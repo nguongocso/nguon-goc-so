@@ -34,6 +34,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ProductionLotController.class)
@@ -134,6 +135,50 @@ class ProductionLotControllerTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void packageProductionLot_shouldReturnOk_whenSuccessful() throws Exception {
+        setSecurityContextWithRole("VT-02");
+        UUID lotId = UUID.randomUUID();
+
+        CreateProductionLotResponse response = CreateProductionLotResponse.builder()
+                .id(lotId)
+                .status(ProductionLotStatus.PACKAGED.name())
+                .name("Test packaged lot")
+                .build();
+
+        when(productionLotService.packageProductionLot(eq(lotId), any(CustomUserDetails.class)))
+                .thenReturn(response);
+
+        mockMvc.perform(put("/api/v1/production-lots/{id}/package", lotId)
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("PACKAGED"));
+    }
+
+    @Test
+    void packageProductionLot_shouldReturnBadRequest_whenLogsAreMissing() throws Exception {
+        setSecurityContextWithRole("VT-02");
+        UUID lotId = UUID.randomUUID();
+
+        when(productionLotService.packageProductionLot(eq(lotId), any(CustomUserDetails.class)))
+                .thenThrow(new BusinessException("Không thể đóng gói. Lô thiếu các nhật ký bắt buộc: [PESTICIDE]"));
+
+        mockMvc.perform(put("/api/v1/production-lots/{id}/package", lotId)
+                        .with(csrf()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Không thể đóng gói. Lô thiếu các nhật ký bắt buộc: [PESTICIDE]"));
+    }
+
+    @Test
+    @WithMockUser(roles = "VT-05")
+    void packageProductionLot_shouldReturnForbidden_whenRoleNotAuthorized() throws Exception {
+        UUID lotId = UUID.randomUUID();
+
+        mockMvc.perform(put("/api/v1/production-lots/{id}/package", lotId)
+                        .with(csrf()))
                 .andExpect(status().isForbidden());
     }
 }

@@ -62,8 +62,8 @@ public class ProductionLotServiceTest {
         userId = UUID.randomUUID();
         lotId = UUID.randomUUID();
         userDetails = mock(CustomUserDetails.class);
-        when(userDetails.getOrganizationId()).thenReturn(orgId);
-        when(userDetails.getUserId()).thenReturn(userId);
+        lenient().when(userDetails.getOrganizationId()).thenReturn(orgId);
+        lenient().when(userDetails.getUserId()).thenReturn(userId);
     }
 
     @Test
@@ -142,7 +142,7 @@ public class ProductionLotServiceTest {
 
         assertThatThrownBy(() -> productionLotService.approveProductionLot(lotId, request, userDetails))
                 .isInstanceOf(BusinessException.class)
-                .hasMessage("Không tìm thấy lô sản xuất");
+                .hasMessage("Lô sản xuất không tồn tại");
     }
 
     @Test
@@ -153,13 +153,14 @@ public class ProductionLotServiceTest {
         lot.setOrganization(otherOrg);
 
         when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+        when(userDetails.getRoleCode()).thenReturn("VT-02");
 
         ApproveProductionLotRequest request = new ApproveProductionLotRequest();
         request.setApproved(true);
 
         assertThatThrownBy(() -> productionLotService.approveProductionLot(lotId, request, userDetails))
                 .isInstanceOf(BusinessException.class)
-                .hasMessage("Lô sản xuất không thuộc tổ chức của bạn");
+                .hasMessage("Bạn không có quyền phê duyệt lô sản xuất của tổ chức khác");
     }
 
     @Test
@@ -173,6 +174,6 @@ public class ProductionLotServiceTest {
 
         assertThatThrownBy(() -> productionLotService.approveProductionLot(lotId, request, userDetails))
                 .isInstanceOf(BusinessException.class)
-                .hasMessage("Chỉ có thể duyệt lô đang ở trạng thái chờ duyệt");
+                .hasMessage("Chỉ có thể phê duyệt lô sản xuất đang ở trạng thái chờ duyệt (PENDING)");
     }
 }

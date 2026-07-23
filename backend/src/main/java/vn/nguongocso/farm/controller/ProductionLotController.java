@@ -115,4 +115,17 @@ public class ProductionLotController {
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
+    /**
+     * API đóng gói lô sản xuất.
+     * Chuyển trạng thái: HARVESTED -> PACKAGED.
+     */
+    @PutMapping("/{id}/package")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
+    public ResponseEntity<ApiResult<CreateProductionLotResponse>> packageLot(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        CreateProductionLotResponse response = productionLotService.packageProductionLot(id, userDetails);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
 }

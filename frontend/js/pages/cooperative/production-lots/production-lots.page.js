@@ -4,11 +4,13 @@ import {
 } from "../../../core/auth-guard.js";
 
 import {
-    getUser
+    getUser,
+    getToken
 } from "../../../core/storage.js";
 
 import {
-    getProductionLots
+    getProductionLots,
+    packageProductionLot
 } from "../../../services/production-lot.service.js";
 
 /* =====================================================
@@ -606,6 +608,20 @@ function createAttachmentButton(lot) {
     return attachmentButton;
 }
 
+function createPackageButton(lot, normalizedStatus) {
+    const packageButton = document.createElement("button");
+    packageButton.type = "button";
+    packageButton.className = "btn btn-success btn-package-lot";
+    packageButton.dataset.id = lot.id;
+    packageButton.textContent = "Đóng gói";
+    packageButton.title = "Đóng gói lô sản xuất";
+    if (normalizedStatus !== "HARVESTED") {
+        packageButton.disabled = true;
+        packageButton.title = "Chỉ có thể đóng gói lô ở trạng thái HARVESTED";
+    }
+    return packageButton;
+}
+
 function renderActionButtons(
     actionCell,
     lot,
@@ -616,25 +632,31 @@ function renderActionButtons(
      * Có quyền sửa lô, xem lịch sử và quản lý attachment.
      */
     if (roleCode === "VT-02") {
-    if (normalizedStatus === "DRAFT") {
+        if (normalizedStatus === "DRAFT") {
+            actionCell.appendChild(
+                createEditButton(
+                    lot,
+                    normalizedStatus
+                )
+            );
+        }
+
+        if (normalizedStatus === "HARVESTED") {
+            actionCell.appendChild(
+                createPackageButton(lot, normalizedStatus)
+            );
+        }
+
         actionCell.appendChild(
-            createEditButton(
-                lot,
-                normalizedStatus
-            )
+            createHistoryButton(lot)
         );
+
+        actionCell.appendChild(
+            createAttachmentButton(lot)
+        );
+
+        return;
     }
-
-    actionCell.appendChild(
-        createHistoryButton(lot)
-    );
-
-    actionCell.appendChild(
-        createAttachmentButton(lot)
-    );
-
-    return;
-}
 
     /*
      * VT-03: Người ghi nhật ký.
@@ -657,6 +679,12 @@ function renderActionButtons(
         actionCell.appendChild(
             attachmentButton
         );
+
+        if (normalizedStatus === "HARVESTED") {
+            actionCell.appendChild(
+                createPackageButton(lot, normalizedStatus)
+            );
+        }
 
         return;
     }
@@ -1532,14 +1560,38 @@ if (productionLotsTableBody) {
              * Nút quản lý tệp đính kèm
              */
             if (
-    button.classList.contains(
-        "btn-attachment-lot"
-    )
-) {
-    goToAttachments(lot);
+                button.classList.contains(
+                    "btn-attachment-lot"
+                )
+            ) {
+                goToAttachments(lot);
 
-    return;
-}
+                return;
+            }
+
+            /*
+             * Nút đóng gói lô sản xuất
+             */
+            if (
+                button.classList.contains(
+                    "btn-package-lot"
+                )
+            ) {
+                if (confirm(`Bạn có chắc chắn muốn đóng gói lô sản xuất "${lot.name}" không?`)) {
+                    button.disabled = true;
+                    packageProductionLot(lotId)
+                        .then(response => {
+                            showToast("Đóng gói lô sản xuất thành công!");
+                            loadProductionLots(); // refresh table
+                        })
+                        .catch(error => {
+                            console.error("Lỗi đóng gói:", error);
+                            showToast(error.message || "Đóng gói thất bại. Vui lòng kiểm tra lại nhật ký.", "error");
+                            button.disabled = false;
+                        });
+                }
+                return;
+            }
         }
     );
 }
@@ -1692,4 +1744,115 @@ setupLogout();
    INITIALIZE PAGE
 ===================================================== */
 
+function showToast(message, type = "success") {
+    let container = document.getElementById("toast-container");
+    if (!container) {
+        container = document.createElement("div");
+        container.id = "toast-container";
+        container.style.position = "fixed";
+        container.style.top = "20px";
+        container.style.right = "20px";
+        container.style.zIndex = "9999";
+        container.style.display = "flex";
+        container.style.flexDirection = "column";
+        container.style.gap = "10px";
+        document.body.appendChild(container);
+    }
+    
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    toast.style.background = type === "success" ? "#28a745" : "#dc3545";
+    toast.style.color = "#fff";
+    toast.style.padding = "12px 20px";
+    toast.style.borderRadius = "8px";
+    toast.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
+    toast.style.minWidth = "250px";
+    toast.style.opacity = "0";
+    toast.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+    toast.style.transform = "translateY(-10px)";
+    toast.style.fontFamily = "sans-serif";
+    toast.style.fontSize = "14px";
+    toast.style.display = "flex";
+    toast.style.alignItems = "center";
+    toast.style.justifyContent = "space-between";
+    
+    const textSpan = document.createElement("span");
+    textSpan.textContent = message;
+    toast.appendChild(textSpan);
+    
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "×";
+    closeBtn.style.background = "none";
+    closeBtn.style.border = "none";
+    closeBtn.style.color = "#fff";
+    closeBtn.style.fontSize = "18px";
+    closeBtn.style.cursor = "pointer";
+    closeBtn.style.marginLeft = "10px";
+    closeBtn.onclick = () => toast.remove();
+    toast.appendChild(closeBtn);
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.opacity = "1";
+        toast.style.transform = "translateY(0)";
+    }, 10);
+    
+    setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(-10px)";
+        setTimeout(() => toast.remove(), 300);
+    }, 6000);
+}
+
+function initializeWebSocket() {
+    const token = getToken();
+    const orgId = user ? user.organizationId : null;
+    if (!token || !orgId) {
+        console.warn("No token or organizationId, WebSocket connection skipped.");
+        return;
+    }
+
+    if (typeof StompJs === "undefined") {
+        console.error("StompJs library not loaded.");
+        return;
+    }
+
+    const client = new StompJs.Client({
+        brokerURL: `ws://${window.location.host}/ws`,
+        connectHeaders: {
+            Authorization: `Bearer ${token}`
+        },
+        debug: function (str) {
+            console.log("[STOMP]", str);
+        },
+        reconnectDelay: 5000,
+        heartbeatIncoming: 4000,
+        heartbeatOutgoing: 4000
+    });
+
+    client.onConnect = function (frame) {
+        console.log("Connected to WebSocket successfully!");
+        client.subscribe(`/topic/notifications/${orgId}`, function (message) {
+            console.log("Received websocket notification:", message.body);
+            try {
+                const payload = JSON.parse(message.body);
+                if (payload.type === "PACKAGING_FAILED") {
+                    showToast(payload.message, "error");
+                }
+            } catch (e) {
+                console.error("Failed to parse websocket message", e);
+            }
+        });
+    };
+
+    client.onStompError = function (frame) {
+        console.error("Broker reported error: " + frame.headers["message"]);
+        console.error("Additional details: " + frame.body);
+    };
+
+    client.activate();
+}
+
 loadProductionLots();
+initializeWebSocket();

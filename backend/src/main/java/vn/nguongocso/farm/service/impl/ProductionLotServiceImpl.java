@@ -224,12 +224,13 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
                 if (Boolean.TRUE.equals(request.getApproved())) {
                         lot.setStatus(ProductionLotStatus.APPROVED);
+                        lot.setApprovedBy(approver);
                 } else {
                         lot.setStatus(ProductionLotStatus.DRAFT);
+                        lot.setApprovedBy(null);
                 }
 
                 lot.setApprovalNotes(request.getApprovalNotes());
-                lot.setApprovedBy(approver);
 
                 ProductionLot savedLot = productionLotRepository.save(lot);
 

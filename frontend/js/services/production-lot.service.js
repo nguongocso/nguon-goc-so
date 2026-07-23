@@ -173,3 +173,23 @@ export async function returnToDraftProductionLot(id, reason) {
         }
     );
 }
+
+/**
+ * Package a production lot.
+ *
+ * Chuyển trạng thái:
+ * HARVESTED -> PACKAGED
+ *
+ * PUT /api/v1/production-lots/{id}/package
+ *
+ * @param {string} id
+ * @returns {Promise<Object>}
+ */
+export async function packageProductionLot(id) {
+    return apiRequest(
+        `/production-lots/${encodeURIComponent(id)}/package`,
+        {
+            method: "PUT"
+        }
+    );
+}
