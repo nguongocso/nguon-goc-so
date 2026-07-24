@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 
 <head>
 
@@ -8,43 +8,52 @@
     <meta
         name="viewport"
         content="width=device-width,
-        initial-scale=1.0">
+        initial-scale=1.0"
+    >
 
     <title>
-        Farm Areas | Nguồn Gốc Số
+        Vùng trồng | Nguồn Gốc Số
     </title>
 
     <link
         rel="stylesheet"
-        href="../../../css/reset.css">
+        href="../../../css/reset.css"
+    >
 
     <link
         rel="stylesheet"
-        href="../../../css/variables.css">
+        href="../../../css/variables.css"
+    >
 
     <link
         rel="stylesheet"
-        href="../../../css/global.css">
+        href="../../../css/global.css"
+    >
 
     <link
         rel="stylesheet"
-        href="../../../css/layouts/dashboard-layout.css">
+        href="../../../css/layouts/dashboard-layout.css"
+    >
 
     <link
         rel="stylesheet"
-        href="../../../css/components/button.css">
+        href="../../../css/components/button.css"
+    >
 
     <link
         rel="stylesheet"
-        href="../../../css/components/form.css">
+        href="../../../css/components/form.css"
+    >
 
     <link
         rel="stylesheet"
-        href="../../../css/pages/cooperative/dashboard.css">
+        href="../../../css/pages/cooperative/dashboard.css"
+    >
 
     <link
         rel="stylesheet"
-        href="../../../css/pages/cooperative/farm-areas.css">
+        href="../../../css/pages/cooperative/farm-areas.css"
+    >
 
 </head>
 
@@ -61,28 +70,43 @@
             <nav class="sidebar-menu">
 
                 <a href="/frontend/pages/cooperative/dashboard.html">
-                    Dashboard
+                    Bảng điều khiển
                 </a>
 
-                <a href="/frontend/pages/cooperative/farm-areas/index.html" class="active">
-                    Farm Areas
+                <a
+                    href="/frontend/pages/cooperative/farm-areas/index.html"
+                    class="active"
+                >
+                    Vùng trồng
                 </a>
 
                 <a href="/frontend/pages/cooperative/production-lots/index.html">
-                    Production Lots
+                    Lô sản xuất
                 </a>
 
                 <a href="/frontend/pages/cooperative/profile.html">
-                    Organization Profile
+                    Hồ sơ tổ chức
                 </a>
 
             </nav>
 
-            <div class="sidebar-user" id="sidebarUser">
-                <div class="sidebar-user-avatar" id="sidebarUserAvatar"></div>
+            <div
+                class="sidebar-user"
+                id="sidebarUser"
+            >
+                <div
+                    class="sidebar-user-avatar"
+                    id="sidebarUserAvatar"
+                ></div>
+
                 <div class="sidebar-user-info">
-                    <strong id="sidebarUserName">—</strong>
-                    <span id="sidebarUserOrg">—</span>
+                    <strong id="sidebarUserName">
+                        —
+                    </strong>
+
+                    <span id="sidebarUserOrg">
+                        —
+                    </span>
                 </div>
             </div>
 
@@ -94,29 +118,46 @@
 
                 <div>
                     <h1>
-                        Farm Areas
+                        Vùng trồng
                     </h1>
 
                     <p class="text-muted">
-                        Manage your organization's farm areas.
+                        Quản lý các vùng trồng thuộc hợp tác xã.
                     </p>
                 </div>
 
                 <div class="header-actions">
 
-                    <div class="user-badge" id="headerUserBadge">
-                        <span id="headerUserRole" class="user-role-badge">—</span>
-                        <span id="headerUserName">—</span>
-                        <span class="user-org-sep">|</span>
-                        <span id="headerUserOrg">—</span>
+                    <div
+                        class="user-badge"
+                        id="headerUserBadge"
+                    >
+                        <span
+                            id="headerUserRole"
+                            class="user-role-badge"
+                        >
+                            —
+                        </span>
+
+                        <span id="headerUserName">
+                            —
+                        </span>
+
+                        <span class="user-org-sep">
+                            |
+                        </span>
+
+                        <span id="headerUserOrg">
+                            —
+                        </span>
                     </div>
 
                     <button
                         id="logoutButton"
-                        class="btn btn-secondary">
-
-                        Logout
-
+                        class="btn btn-secondary"
+                        type="button"
+                    >
+                        Đăng xuất
                     </button>
 
                 </div>
@@ -125,64 +166,163 @@
 
             <section class="dashboard-content">
 
-                <!-- Loading State -->
-                <div id="loadingState" class="state-container" style="display: none;">
+                <!-- Trạng thái đang tải -->
+                <div
+                    id="loadingState"
+                    class="state-container"
+                    style="display: none;"
+                >
                     <div class="state-icon">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10" />
+                        <svg
+                            width="48"
+                            height="48"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <circle
+                                cx="12"
+                                cy="12"
+                                r="10"
+                            />
+
                             <path d="M12 6v6l4 2" />
                         </svg>
                     </div>
-                    <p class="state-text">Loading...</p>
+
+                    <p class="state-text">
+                        Đang tải...
+                    </p>
                 </div>
 
-                <!-- Error State -->
-                <div id="errorState" class="state-container" style="display: none;">
+                <!-- Trạng thái lỗi -->
+                <div
+                    id="errorState"
+                    class="state-container"
+                    style="display: none;"
+                >
                     <div class="state-icon state-error-icon">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="12" y1="8" x2="12" y2="12" />
-                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        <svg
+                            width="48"
+                            height="48"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <circle
+                                cx="12"
+                                cy="12"
+                                r="10"
+                            />
+
+                            <line
+                                x1="12"
+                                y1="8"
+                                x2="12"
+                                y2="12"
+                            />
+
+                            <line
+                                x1="12"
+                                y1="16"
+                                x2="12.01"
+                                y2="16"
+                            />
                         </svg>
                     </div>
-                    <p id="errorMessage" class="state-text state-error-text">An error occurred.</p>
-                    <button id="retryButton" class="btn btn-secondary">Retry</button>
+
+                    <p
+                        id="errorMessage"
+                        class="state-text state-error-text"
+                    >
+                        Đã xảy ra lỗi.
+                    </p>
+
+                    <button
+                        id="retryButton"
+                        class="btn btn-secondary"
+                        type="button"
+                    >
+                        Thử lại
+                    </button>
                 </div>
 
-                <!-- Unauthorized State -->
-                <div id="unauthorizedState" class="state-container" style="display: none;">
+                <!-- Trạng thái không có quyền -->
+                <div
+                    id="unauthorizedState"
+                    class="state-container"
+                    style="display: none;"
+                >
                     <div class="state-icon state-error-icon">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        <svg
+                            width="48"
+                            height="48"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <rect
+                                x="3"
+                                y="11"
+                                width="18"
+                                height="11"
+                                rx="2"
+                                ry="2"
+                            />
+
+                            <path
+                                d="M7 11V7a5 5 0 0 1 10 0v4"
+                            />
                         </svg>
                     </div>
-                    <p class="state-text state-error-text">You do not have permission to access this page.</p>
-                    <a href="/frontend/pages/auth/login.html" class="btn btn-secondary">Back to Login</a>
+
+                    <p class="state-text state-error-text">
+                        Bạn không có quyền truy cập trang này.
+                    </p>
+
+                    <a
+                        href="/frontend/pages/auth/login.html"
+                        class="btn btn-secondary"
+                    >
+                        Quay lại đăng nhập
+                    </a>
                 </div>
 
-                <!-- Main Content -->
+                <!-- Nội dung chính -->
                 <div id="mainContent">
 
-                    <!-- Create Farm Area Form -->
+                    <!-- Form tạo vùng trồng -->
                     <div class="create-section">
 
                         <div class="create-section-inner">
 
                             <div class="create-section-header">
-                                <h2>Create Farm Area</h2>
+                                <h2>
+                                    Thêm vùng trồng
+                                </h2>
+
                                 <p class="text-muted">
-                                    Fill in the details below to register a new farm area.
+                                    Nhập các thông tin bên dưới để đăng ký vùng trồng mới.
                                 </p>
                             </div>
 
-                            <form id="farmAreaForm" novalidate>
+                            <form
+                                id="farmAreaForm"
+                                novalidate
+                            >
 
-                                <!-- Farm Area Name -->
+                                <!-- Tên vùng trồng -->
                                 <div class="form-group">
                                     <label for="name">
-                                        Farm Area Name <span class="required">*</span>
+                                        Tên vùng trồng
+                                        <span class="required">
+                                            *
+                                        </span>
                                     </label>
+
                                     <input
                                         type="text"
                                         id="name"
@@ -192,15 +332,24 @@
                                         aria-describedby="nameError"
                                         aria-invalid="false"
                                         required
-                                    />
-                                    <small id="nameError" class="field-error" data-error-for="name"></small>
+                                    >
+
+                                    <small
+                                        id="nameError"
+                                        class="field-error"
+                                        data-error-for="name"
+                                    ></small>
                                 </div>
 
-                                <!-- Crop Type -->
+                                <!-- Loại cây trồng -->
                                 <div class="form-group">
                                     <label for="cropType">
-                                        Crop Type <span class="required">*</span>
+                                        Loại cây trồng
+                                        <span class="required">
+                                            *
+                                        </span>
                                     </label>
+
                                     <select
                                         id="cropType"
                                         name="cropType"
@@ -208,16 +357,27 @@
                                         aria-invalid="false"
                                         required
                                     >
-                                        <option value="">Select crop type</option>
+                                        <option value="">
+                                            Chọn loại cây trồng
+                                        </option>
                                     </select>
-                                    <small id="cropTypeError" class="field-error" data-error-for="cropType"></small>
+
+                                    <small
+                                        id="cropTypeError"
+                                        class="field-error"
+                                        data-error-for="cropType"
+                                    ></small>
                                 </div>
 
-                                <!-- Latitude -->
+                                <!-- Vĩ độ -->
                                 <div class="form-group">
                                     <label for="latitude">
-                                        Latitude <span class="required">*</span>
+                                        Vĩ độ
+                                        <span class="required">
+                                            *
+                                        </span>
                                     </label>
+
                                     <input
                                         type="number"
                                         id="latitude"
@@ -227,15 +387,24 @@
                                         aria-describedby="latitudeError"
                                         aria-invalid="false"
                                         required
-                                    />
-                                    <small id="latitudeError" class="field-error" data-error-for="latitude"></small>
+                                    >
+
+                                    <small
+                                        id="latitudeError"
+                                        class="field-error"
+                                        data-error-for="latitude"
+                                    ></small>
                                 </div>
 
-                                <!-- Longitude -->
+                                <!-- Kinh độ -->
                                 <div class="form-group">
                                     <label for="longitude">
-                                        Longitude <span class="required">*</span>
+                                        Kinh độ
+                                        <span class="required">
+                                            *
+                                        </span>
                                     </label>
+
                                     <input
                                         type="number"
                                         id="longitude"
@@ -245,15 +414,24 @@
                                         aria-describedby="longitudeError"
                                         aria-invalid="false"
                                         required
-                                    />
-                                    <small id="longitudeError" class="field-error" data-error-for="longitude"></small>
+                                    >
+
+                                    <small
+                                        id="longitudeError"
+                                        class="field-error"
+                                        data-error-for="longitude"
+                                    ></small>
                                 </div>
 
-                                <!-- Area -->
+                                <!-- Diện tích -->
                                 <div class="form-group">
                                     <label for="area">
-                                        Area <span class="required">*</span>
+                                        Diện tích
+                                        <span class="required">
+                                            *
+                                        </span>
                                     </label>
+
                                     <input
                                         type="number"
                                         id="area"
@@ -264,20 +442,31 @@
                                         aria-describedby="areaError"
                                         aria-invalid="false"
                                         required
-                                    />
-                                    <small id="areaError" class="field-error" data-error-for="area"></small>
+                                    >
+
+                                    <small
+                                        id="areaError"
+                                        class="field-error"
+                                        data-error-for="area"
+                                    ></small>
                                 </div>
 
-                                <!-- Form message -->
-                                <div id="formMessage" class="form-message" role="alert" aria-live="polite"></div>
+                                <!-- Thông báo form -->
+                                <div
+                                    id="formMessage"
+                                    class="form-message"
+                                    role="alert"
+                                    aria-live="polite"
+                                ></div>
 
-                                <!-- Actions -->
+                                <!-- Thao tác -->
                                 <div class="form-actions">
                                     <button
                                         type="submit"
                                         id="submitButton"
-                                        class="btn btn-primary">
-                                        Create Farm Area
+                                        class="btn btn-primary"
+                                    >
+                                        Tạo vùng trồng
                                     </button>
                                 </div>
 
@@ -297,7 +486,8 @@
 
     <script
         type="module"
-        src="../../../js/pages/cooperative/farm-areas/farm-areas.page.js">
+        src="../../../js/pages/cooperative/farm-areas/farm-areas.page.js"
+    >
     </script>
 
 </body>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 
 <head>
 
@@ -11,7 +11,7 @@
         initial-scale=1.0">
 
     <title>
-        Cooperative Dashboard | Nguồn Gốc Số
+        Bảng điều khiển hợp tác xã | Nguồn Gốc Số
     </title>
 
     <link
@@ -57,19 +57,19 @@
             <nav class="sidebar-menu">
 
                 <a href="/frontend/pages/cooperative/dashboard.html" class="active">
-                    Dashboard
+                    Bảng điều khiển
                 </a>
 
                 <a href="/frontend/pages/cooperative/farm-areas/index.html">
-                    Farm Areas
+                    Vùng trồng
                 </a>
 
                 <a href="/frontend/pages/cooperative/production-lots/index.html">
-                    Production Lots
+                    Lô sản xuất
                 </a>
 
                 <a href="/frontend/pages/cooperative/profile.html">
-                    Organization Profile
+                    Hồ sơ tổ chức
                 </a>
 
             </nav>
@@ -90,11 +90,11 @@
 
                 <div>
                     <h1>
-                        Cooperative Dashboard
+                        Bảng điều khiển hợp tác xã
                     </h1>
 
                     <p class="text-muted">
-                        Manage members and roles in your organization.
+                        Quản lý thành viên và vai trò trong hợp tác xã.
                     </p>
                 </div>
 
@@ -111,7 +111,7 @@
                         id="logoutButton"
                         class="btn btn-secondary">
 
-                        Logout
+                        Đăng xuất
 
                     </button>
 
@@ -129,7 +129,7 @@
                             <path d="M12 6v6l4 2" />
                         </svg>
                     </div>
-                    <p class="state-text">Loading members...</p>
+                    <p class="state-text">Đang tải danh sách thành viên...</p>
                 </div>
 
                 <!-- Error State -->
@@ -141,8 +141,8 @@
                             <line x1="12" y1="16" x2="12.01" y2="16" />
                         </svg>
                     </div>
-                    <p id="errorMessage" class="state-text state-error-text">An error occurred while loading members.</p>
-                    <button id="retryButton" class="btn btn-secondary">Retry</button>
+                    <p id="errorMessage" class="state-text state-error-text">Đã xảy ra lỗi khi tải danh sách thành viên.</p>
+                    <button id="retryButton" class="btn btn-secondary">Thử lại</button>
                 </div>
 
                 <!-- Unauthorized State -->
@@ -153,8 +153,8 @@
                             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                         </svg>
                     </div>
-                    <p class="state-text state-error-text">You do not have permission to access this page.</p>
-                    <a href="/frontend/pages/auth/login.html" class="btn btn-secondary">Back to Login</a>
+                    <p class="state-text state-error-text">Bạn không có quyền truy cập trang này.</p>
+                    <a href="/frontend/pages/auth/login.html" class="btn btn-secondary">Quay lại đăng nhập</a>
                 </div>
 
                 <!-- Main Content -->
@@ -165,21 +165,21 @@
 
                         <div class="stat-card stat-card-info">
                             <span class="stat-label">
-                                Total Members
+                                Tổng số thành viên
                             </span>
                             <strong id="totalMembers" class="stat-value">0</strong>
                         </div>
 
                         <div class="stat-card stat-card-success">
                             <span class="stat-label">
-                                Active
+                                Đang hoạt động
                             </span>
                             <strong id="activeMembers" class="stat-value">0</strong>
                         </div>
 
                         <div class="stat-card">
                             <span class="stat-label">
-                                Organization
+                                Hợp tác xã
                             </span>
                             <strong id="orgNameDisplay" class="stat-value stat-value-sm">—</strong>
                         </div>
@@ -191,19 +191,32 @@
 
                         <div class="list-section-header">
                             <div class="list-section-header-row">
-                                <h2>Organization Members</h2>
+                                <h2>Thành viên hợp tác xã</h2>
                                 <div class="list-section-actions">
                                     <div class="search-wrapper">
                                         <input
                                             type="text"
                                             id="searchInput"
                                             class="search-input"
-                                            placeholder="Search by name or username..."
+                                            placeholder="Tìm theo họ tên hoặc tên đăng nhập..."
                                         />
                                     </div>
-                                    <button id="addMemberButton" class="btn btn-primary">
-                                        + Add Member
-                                    </button>
+                                    <button
+    id="addMemberButton"
+    type="button"
+    class="btn btn-primary btn-add-member"
+>
+    <span
+        class="btn-add-member__icon"
+        aria-hidden="true"
+    >
+        +
+    </span>
+
+    <span>
+        Thêm thành viên
+    </span>
+</button>
                                 </div>
                             </div>
                         </div>
@@ -218,11 +231,24 @@
                                     <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                                 </svg>
                             </div>
-                            <p class="state-text">No members found.</p>
-                            <p class="state-hint">Add the first member to get started.</p>
-                            <button id="emptyAddMember" class="btn btn-primary">
-                                + Add Member
-                            </button>
+                            <p class="state-text">Không tìm thấy thành viên.</p>
+                            <p class="state-hint">Hãy thêm thành viên đầu tiên để bắt đầu.</p>
+                            <button
+    id="emptyAddMember"
+    type="button"
+    class="btn btn-primary btn-add-member"
+>
+    <span
+        class="btn-add-member__icon"
+        aria-hidden="true"
+    >
+        +
+    </span>
+
+    <span>
+        Thêm thành viên
+    </span>
+</button>
                         </div>
 
                         <!-- Table -->
@@ -230,12 +256,12 @@
                             <table id="memberTable" class="data-table" style="display: none;">
                                 <thead>
                                     <tr>
-                                        <th>Full Name</th>
-                                        <th>Username</th>
-                                        <th>Role</th>
-                                        <th>Status</th>
-                                        <th>Joined Date</th>
-                                        <th>Actions</th>
+                                        <th>Họ và tên</th>
+                                        <th>Tên đăng nhập</th>
+                                        <th>Vai trò</th>
+                                        <th>Trạng thái</th>
+                                        <th>Ngày tham gia</th>
+                                        <th>Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody id="memberTableBody">
@@ -257,30 +283,30 @@
     <div id="assignRoleModal" class="modal-overlay" style="display: none;">
         <div class="modal">
             <div class="modal-header">
-                <h2>Assign Role</h2>
+                <h2>Thay đổi vai trò</h2>
                 <button class="modal-close" id="assignRoleClose">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>Member</label>
+                    <label>Thành viên</label>
                     <p id="assignMemberName" class="modal-field-value"></p>
                 </div>
                 <div class="form-group">
-                    <label>Current Role</label>
+                    <label>Vai trò hiện tại</label>
                     <p id="assignCurrentRole" class="modal-field-value"></p>
                 </div>
                 <div class="form-group">
-                    <label for="assignRoleSelect">New Role <span class="required">*</span></label>
+                    <label for="assignRoleSelect">Vai trò mới <span class="required">*</span></label>
                     <select id="assignRoleSelect" required>
-                        <option value="">Select a role</option>
+                        <option value="">Chọn vai trò</option>
                     </select>
                     <small id="assignRoleError" class="field-error"></small>
                 </div>
                 <div id="assignRoleMessage" class="form-message" role="alert" aria-live="polite"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" id="assignRoleCancel">Cancel</button>
-                <button class="btn btn-primary" id="assignRoleSave">Save Role</button>
+                <button class="btn btn-secondary" id="assignRoleCancel">Hủy</button>
+                <button class="btn btn-primary" id="assignRoleSave">Lưu vai trò</button>
             </div>
         </div>
     </div>
@@ -289,14 +315,14 @@
     <div id="addMemberModal" class="modal-overlay" style="display: none;">
         <div class="modal modal-lg">
             <div class="modal-header">
-                <h2>Add Member</h2>
+                <h2>Thêm thành viên</h2>
                 <button class="modal-close" id="addMemberClose">&times;</button>
             </div>
             <form id="addMemberForm" novalidate>
                 <div class="modal-body">
                     <div class="form-grid">
                         <div class="form-group form-group-full">
-                            <label for="memberFullName">Full Name <span class="required">*</span></label>
+                            <label for="memberFullName">Họ và tên <span class="required">*</span></label>
                             <input
                                 type="text"
                                 id="memberFullName"
@@ -310,7 +336,7 @@
                             <small id="memberFullNameError" class="field-error" data-error-for="fullName"></small>
                         </div>
                         <div class="form-group">
-                            <label for="memberUsername">Username <span class="required">*</span></label>
+                            <label for="memberUsername">Tên đăng nhập <span class="required">*</span></label>
                             <input
                                 type="text"
                                 id="memberUsername"
@@ -324,7 +350,7 @@
                             <small id="memberUsernameError" class="field-error" data-error-for="username"></small>
                         </div>
                         <div class="form-group">
-                            <label for="memberPassword">Password <span class="required">*</span></label>
+                            <label for="memberPassword">Mật khẩu <span class="required">*</span></label>
                             <input
                                 type="password"
                                 id="memberPassword"
@@ -336,12 +362,12 @@
                                 required
                             />
                             <small id="memberPasswordHint" class="field-hint">
-                                8+ chars with uppercase, lowercase, number and special character (@#$%^&+=!).
+                                Tối thiểu 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt (@#$%^&+=!).
                             </small>
                             <small id="memberPasswordError" class="field-error" data-error-for="password"></small>
                         </div>
                         <div class="form-group">
-                            <label for="memberPhone">Phone</label>
+                            <label for="memberPhone">Số điện thoại</label>
                             <input
                                 type="tel"
                                 id="memberPhone"
@@ -365,7 +391,7 @@
                             <small id="memberEmailError" class="field-error" data-error-for="email"></small>
                         </div>
                         <div class="form-group">
-                            <label for="memberRole">Role <span class="required">*</span></label>
+                            <label for="memberRole">Vai trò <span class="required">*</span></label>
                             <select
                                 id="memberRole"
                                 name="roleId"
@@ -373,7 +399,7 @@
                                 aria-invalid="false"
                                 required
                             >
-                                <option value="">Select a role</option>
+                                <option value="">Chọn vai trò</option>
                             </select>
                             <small id="memberRoleError" class="field-error" data-error-for="roleId"></small>
                         </div>
@@ -381,8 +407,8 @@
                     <div id="addMemberMessage" class="form-message" role="alert" aria-live="polite"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" id="addMemberCancel">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="addMemberSubmit">Create Member</button>
+                    <button type="button" class="btn btn-secondary" id="addMemberCancel">Hủy</button>
+                    <button type="submit" class="btn btn-primary" id="addMemberSubmit">Tạo thành viên</button>
                 </div>
             </form>
         </div>
