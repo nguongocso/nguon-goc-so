@@ -3,194 +3,87 @@
 /* Page header */
 .production-lots-header {
     display: flex;
-
     align-items: center;
-
     justify-content: space-between;
-
     margin-bottom: 24px;
 }
 
 .production-lots-header h2 {
     font-size: 1.25rem;
-
     font-weight: 700;
-
-    color:
-        var(--color-text);
+    color: var(--color-text);
 }
 
 .production-lots-header-actions {
     display: flex;
-
-    align-items: center;
-    justify-content: flex-end;
-
     gap: 12px;
 }
 
-/* ===== Search Box ===== */
-
-.search-box {
+.production-lots-header-actions {
     display: flex;
     align-items: center;
-
     gap: 12px;
 }
 
-.search-input-wrapper {
-    position: relative;
-
-    display: flex;
-    align-items: center;
-}
-
-.search-input-wrapper .search-input-icon {
-    position: absolute;
-    left: 14px;
-
-    display: flex;
-
-    width: 16px;
-    height: 16px;
-
-    color: var(--color-text-muted, #9ca3af);
-
-    pointer-events: none;
-}
-
-.search-box .table-search {
-    height: 42px;
-
-    padding: 0 14px 0 40px;
-
-    border: 1px solid #dcdcdc;
-    border-radius: 10px;
-
-    font-size: 0.9rem;
-
-    background: #fff;
-
-    min-width: 220px;
-
-    transition:
-        border-color 0.2s ease,
-        box-shadow 0.2s ease;
-}
-
-.search-box .table-search::placeholder {
-    color: #9ca3af;
-}
-
-.search-box .table-search:focus {
+/* Search input */
+#productionLotSearchInput {
+    height: 40px;
+    padding: 0 16px;
+    border: 1px solid var(--color-border);
+    border-radius: 20px;
+    font-size: 0.95rem;
     outline: none;
-
-    border-color: #3b82f6;
-
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
-.search-box #searchButton {
-    display: flex;
+#productionLotSearchInput:focus {
+    border-color: var(--color-primary);
+}
+
+/* New button */
+.production-lots-header-actions .btn {
+    height: 40px;
+    padding: 0 18px;
+    border-radius: 20px;
+
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-
-    height: 42px;
-
-    min-width: 120px;
-    max-width: 150px;
-
-    padding: 0 18px;
-
-    border: none;
-    border-radius: 10px;
-
-    background: #2E7D32;
-    color: #fff;
-
-    font-size: 0.9rem;
-    font-weight: 600;
-
-    box-shadow: 0 2px 6px rgba(46, 125, 50, 0.25);
-
-    transition:
-        background-color 0.2s ease,
-        box-shadow 0.2s ease,
-        transform 0.2s ease;
-}
-
-.search-box #searchButton:hover {
-    background: #276428;
-
-    box-shadow: 0 4px 10px rgba(46, 125, 50, 0.3);
-}
-
-.search-box #searchButton:active {
-    transform: scale(0.98);
-}
-
-.search-box #searchButton .search-btn-icon {
-    display: flex;
-
-    width: 16px;
-    height: 16px;
 }
 
 /* List card */
 .production-lots-card {
-    background:
-        var(--color-surface);
-
-    border-radius:
-        var(--border-radius-md);
-
-    box-shadow:
-        var(--shadow-sm);
-
+    background: var(--color-surface);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
     overflow: hidden;
 }
 
 /* Empty state within card */
 .empty-state-container {
     display: flex;
-
     flex-direction: column;
-
     align-items: center;
-
     justify-content: center;
-
     padding: 80px 24px;
-
     text-align: center;
 }
 
 .empty-state-icon {
     margin-bottom: 16px;
-
-    color:
-        var(--color-text-muted);
+    color: var(--color-text-muted);
 }
 
 .empty-state-text {
     margin-bottom: 8px;
-
     font-size: 1.1rem;
-
     font-weight: 600;
-
-    color:
-        var(--color-text);
+    color: var(--color-text);
 }
 
 .empty-state-hint {
     margin-bottom: 20px;
-
     font-size: 0.9rem;
-
-    color:
-        var(--color-text-muted);
+    color: var(--color-text-muted);
 }
 
 /* Table */
@@ -200,50 +93,34 @@
 
 .production-lots-table {
     width: 100%;
-
     border-collapse: collapse;
 }
 
 .production-lots-table thead {
-    background:
-        var(--color-background);
+    background: var(--color-background);
 }
 
 .production-lots-table th {
     padding: 12px 16px;
-
     text-align: left;
-
     font-size: 0.8rem;
-
     font-weight: 600;
-
     text-transform: uppercase;
-
     letter-spacing: 0.04em;
-
-    color:
-        var(--color-text-muted);
-
-    border-bottom:
-        1px solid
-        var(--color-border);
-
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border);
     white-space: nowrap;
+}
+
+.production-lots-table th:last-child {
+    text-align: center;
 }
 
 .production-lots-table td {
     padding: 14px 16px;
-
     font-size: 0.9rem;
-
-    color:
-        var(--color-text);
-
-    border-bottom:
-        1px solid
-        var(--color-border);
-
+    color: var(--color-text);
+    border-bottom: 1px solid var(--color-border);
     vertical-align: middle;
 }
 
@@ -252,82 +129,205 @@
 }
 
 .production-lots-table tbody tr:hover {
-    background:
-        var(--color-primary-light);
+    background: var(--color-primary-light);
 }
 
 /* Status badges */
 .status-badge {
     display: inline-block;
-
     padding: 4px 10px;
-
     border-radius: 20px;
-
     font-size: 0.75rem;
-
     font-weight: 600;
-
     text-transform: uppercase;
-
     letter-spacing: 0.03em;
 }
 
 .status-badge-draft {
-    background:
-        #f3f4f6;
-
-    color:
-        #6b7280;
+    background: #f3f4f6;
+    color: #6b7280;
 }
 
 .status-badge-pending {
-    background:
-        #fef3c7;
-
-    color:
-        #d97706;
+    background: #fef3c7;
+    color: #d97706;
 }
 
 .status-badge-approved {
-    background:
-        #d1fae5;
-
-    color:
-        #059669;
+    background: #d1fae5;
+    color: #059669;
 }
 
 .status-badge-harvested {
-    background:
-        #dbeafe;
-
-    color:
-        #2563eb;
+    background: #dbeafe;
+    color: #2563eb;
 }
 
 .status-badge-packaged {
-    background:
-        #ede9fe;
-
-    color:
-        #7c3aed;
+    background: #ede9fe;
+    color: #7c3aed;
 }
 
 .status-badge-closed {
-    background:
-        #f3f4f6;
+    background: #f3f4f6;
+    color: #374151;
+}
 
-    color:
-        #374151;
+/* Inline input */
+.inline-input,
+.edit-lot-name,
+.edit-farm-area,
+.edit-product-category,
+.edit-expected-quantity,
+.edit-planting-date {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    background: #ffffff;
+}
+
+.inline-input:focus,
+.edit-lot-name:focus,
+.edit-farm-area:focus,
+.edit-product-category:focus,
+.edit-expected-quantity:focus,
+.edit-planting-date:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Status dropdown */
+.inline-status {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+
+    min-width: 80px;
+    height: 34px;
+    padding: 0 14px;
+
+    background: #60a5fa !important;
+    color: #ffffff !important;
+
+    border: none !important;
+    border-radius: 8px;
+    outline: none;
+
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.inline-status:hover {
+    background: #3b82f6 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.inline-status:active {
+    background: #2563eb !important;
+    transform: scale(0.98);
+}
+
+.inline-status:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+.inline-status::-ms-expand {
+    display: none;
+}
+
+/* Action buttons */
+.action-buttons,
+.production-lot-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.action-buttons .btn,
+.production-lot-actions .btn {
+    width: auto;
+    min-width: 82px;
+    height: 32px;
+    margin: 0;
+    padding: 0 14px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 auto;
+
+    border: none;
+    border-radius: 20px;
+
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-sm {
+    min-width: 82px;
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.btn-save,
+.btn-edit,
+.btn-cancel,
+.status-button {
+    cursor: pointer;
+}
+
+.status-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+/* Nút sửa và attachment */
+.btn-edit,
+.btn-attachment-lot {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+/* Nút lịch sử và ghi nhật ký */
+.btn-history-lot,
+.btn-create-farm-log {
+    background: #237a35;
+    border-color: #237a35;
+    color: #ffffff;
+}
+
+.btn-history-lot:hover:not(:disabled),
+.btn-create-farm-log:hover:not(:disabled) {
+    background: #1c672b;
+    border-color: #1c672b;
+}
+
+.btn-edit:hover:not(:disabled),
+.btn-attachment-lot:hover:not(:disabled) {
+    background: #e5e7eb;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
     .production-lots-header {
         flex-direction: column;
-
         align-items: flex-start;
-
         gap: 12px;
     }
 
@@ -339,35 +339,13 @@
         flex: 1;
     }
 
-    .search-box {
-        width: 100%;
-
-        flex-wrap: wrap;
-    }
-
-    .search-input-wrapper {
-        flex: 1 1 100%;
-    }
-
-    .search-box .table-search {
-        width: 100%;
-    }
-
-    .search-box #searchButton {
-        flex: 1 1 100%;
-
-        max-width: none;
-    }
-
     .dashboard-header {
         flex-direction: column;
-
         align-items: flex-start;
     }
 
     .header-actions {
         width: 100%;
-
         flex-direction: column;
     }
 
@@ -376,94 +354,276 @@
         width: 100%;
     }
 }
-/* ===== Inline Input ===== */
 
-.inline-input {
+/* Modal responsive */
+@media (max-width: 640px) {
+    .modal {
+        padding: 12px;
+    }
+
+    .modal-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-form-grid__full {
+        grid-column: auto;
+    }
+
+    .modal__header,
+    #editLotForm {
+        padding: 18px;
+    }
+
+    .modal__actions {
+        flex-direction: column-reverse;
+    }
+
+    .modal__actions .btn {
+        width: 100%;
+    }
+}
+
+/* =====================================================
+   PRODUCTION LOT INLINE EDIT
+===================================================== */
+
+.production-lots-table td {
+    vertical-align: middle;
+}
+
+/* Dòng đang được chỉnh sửa */
+.production-lot-row-editing {
+    background:
+        var(--color-background-soft, #f8faf9);
+}
+
+/* Input và select nằm trực tiếp trong bảng */
+.inline-edit-input,
+.inline-edit-select {
     width: 100%;
+
+    min-width: 120px;
+
     padding: 8px 10px;
 
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
+    border: 1px solid
+        var(--color-border, #d9dedb);
 
-    font-size: 14px;
-    background: #fff;
-}
+    border-radius: 6px;
 
-.inline-input:focus {
+    background:
+        var(--color-surface, #ffffff);
+
+    color:
+        var(--color-text, #1c1f1e);
+
+    font: inherit;
+
     outline: none;
-
-    border-color: #3b82f6;
-
-    box-shadow: 0 0 0 3px rgba(59,130,246,.15);
-}
-/* ===== Status Dropdown ===== */
-
-.inline-status{
-    appearance:none !important;
-    -webkit-appearance:none !important;
-    -moz-appearance:none !important;
-
-    background:#60A5FA !important;
-    color:#fff !important;
-
-    border:none !important;
-    outline:none;
-
-    border-radius:8px;
-
-    min-width:80px;
-    height:34px;
-    padding:0 14px;
-
-    font-weight:600;
-
-    cursor:pointer;
-}
-.inline-status:hover{
-
-    background:#3B82F6;
-
-    transform:translateY(-1px);
-
-    box-shadow:0 4px 12px rgba(59,130,246,.25);
-}
-.inline-status:active{
-
-    background:#2563EB;
-
-    transform:scale(.98);
-}
-.inline-status:focus{
-
-    outline:none;
-
-    box-shadow:0 0 0 3px rgba(59,130,246,.25);
-}
-.inline-status::-ms-expand{
-    display:none;
-}
-/* ===== Action Buttons ===== */
-
-.action-buttons{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    white-space:nowrap;
 }
 
-.action-buttons .btn{
-    margin:0;
+.inline-edit-input:focus,
+.inline-edit-select:focus {
+    border-color:
+        var(--color-primary, #237a35);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(35, 122, 53, 0.12);
 }
 
-.btn-sm{
-    min-width:72px;
-    height:36px;
+/* Tên lô cần rộng hơn */
+.inline-edit-input[data-field="name"] {
+    min-width: 180px;
+}
 
-    padding:0 16px;
+/* Vùng trồng và loại nông sản */
+.inline-edit-select[data-field="farmAreaId"],
+.inline-edit-select[data-field="productCategoryId"] {
+    min-width: 160px;
+}
 
-    border-radius:8px;
+/* Sản lượng */
+.inline-edit-input[data-field="expectedQuantity"] {
+    min-width: 100px;
+}
 
-    font-size:14px;
-    font-weight:600;
+/* Ngày gieo trồng */
+.inline-edit-input[data-field="plantingDate"] {
+    min-width: 145px;
+}
+
+/* =====================================================
+   STATUS BUTTON
+===================================================== */
+
+.status-button {
+    border: none;
+
+    font: inherit;
+
+    white-space: nowrap;
+}
+
+/* Chỉ DRAFT của VT-02 mới có class này */
+.status-button-clickable {
+    cursor: pointer;
+
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        filter 0.15s ease;
+}
+
+.status-button-clickable:hover {
+    transform:
+        translateY(-1px);
+
+    filter:
+        brightness(0.96);
+
+    box-shadow:
+        0 3px 8px
+        rgba(0, 0, 0, 0.12);
+}
+
+.status-button-clickable:active {
+    transform:
+        translateY(0);
+}
+
+/*
+ * Các status không được thao tác vẫn giữ
+ * nguyên màu, không bị mờ do disabled.
+ */
+.status-button:disabled {
+    opacity: 1;
+
+    cursor: default;
+}
+
+/* =====================================================
+   INLINE ACTION BUTTONS
+===================================================== */
+
+.btn-save-inline {
+    background:
+        var(--color-primary, #237a35);
+
+    color: #ffffff;
+
+    border-color:
+        var(--color-primary, #237a35);
+}
+
+.btn-save-inline:hover:not(:disabled) {
+    filter:
+        brightness(0.92);
+}
+
+.btn-cancel-inline {
+    background: #f3f4f6;
+
+    color: #374151;
+
+    border: 1px solid #d1d5db;
+}
+
+.btn-cancel-inline:hover:not(:disabled) {
+    background: #e5e7eb;
+}
+
+.btn-save-inline:disabled,
+.btn-cancel-inline:disabled {
+    cursor: not-allowed;
+
+    opacity: 0.65;
+}
+
+/* =====================================================
+   RESPONSIVE TABLE
+===================================================== */
+
+.production-lots-card {
+    overflow-x: auto;
+}
+
+.production-lots-table {
+    min-width: 1100px;
+}
+
+.status-pending-clickable {
+    cursor: pointer;
+
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.status-pending-clickable:hover {
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 3px 8px
+        rgba(0, 0, 0, 0.12);
+}
+
+.status-review-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.status-review-actions .btn {
+    width: auto;
+    min-width: 72px;
+    height: 32px;
+    padding: 0 14px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 auto;
+
+    border-radius: 20px;
+
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+
+    white-space: nowrap;
+}
+
+.btn-approve-inline {
+    color: #ffffff;
+    background: #237a35;
+    border: 1px solid #237a35;
+}
+
+.btn-approve-inline:hover:not(:disabled) {
+    background: #1c672b;
+    border-color: #1c672b;
+}
+
+.btn-reject-inline {
+    color: #b42318;
+    background: #fff1f0;
+    border: 1px solid #f1b4ae;
+}
+
+.btn-reject-inline:hover:not(:disabled) {
+    background: #ffe4e1;
+}
+
+.btn-cancel-review {
+    color: #374151;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+}
+
+.btn-cancel-review:hover:not(:disabled) {
+    background: #e5e7eb;
 }
