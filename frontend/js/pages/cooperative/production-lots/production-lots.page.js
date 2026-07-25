@@ -14,7 +14,9 @@ import {
     returnToDraftProductionLot,
     updateProductionLot,
     getFarmAreas,
-    getProductCategories
+    getProductCategories,
+    checkPackagingReadiness,
+    packageProductionLot
 } from "../../../services/production-lot.service.js";
 
 /* =====================================================
@@ -292,6 +294,22 @@ function createThreeDotMenu(lot, normalizedStatus) {
                     { label: "View Details", action: "view-details" },
                     { label: "View Farming Logs", action: "view-farm-logs" }
                 ];
+            } else if (normalizedStatus === "HARVESTED") {
+                menuItems = [
+                    { label: "View Details", action: "view-details" },
+                    { label: "Check Packaging", action: "check-packaging" }
+                ];
+            }
+        } else if (roleCode === "VT-01") {
+            if (normalizedStatus === "HARVESTED") {
+                menuItems = [
+                    { label: "View Details", action: "view-details" },
+                    { label: "Check Packaging", action: "check-packaging" }
+                ];
+            } else {
+                menuItems = [
+                    { label: "View Details", action: "view-details" }
+                ];
             }
         } else if (roleCode === "VT-03") {
             menuItems = [
@@ -356,6 +374,9 @@ function handleMenuAction(action, lot) {
             break;
         case "attach-document":
             goToAttachments(lot);
+            break;
+        case "check-packaging":
+            openPackagingCheckModal(lot);
             break;
     }
 }
@@ -819,6 +840,218 @@ if (productionLotSearchInput) {
 
         renderProductionLots(filteredLots);
     });
+}
+
+/* =====================================================
+   PACKAGING CHECK MODAL
+===================================================== */
+
+function openPackagingCheckModal(lot) {
+    if (!lot || !lot.id) return;
+
+    // Create modal overlay
+    const overlay = document.createElement("div");
+    overlay.className = "modal__overlay";
+    overlay.style.cssText = "position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:999;";
+
+    // Create modal
+    const modal = document.createElement("div");
+    modal.className = "modal";
+    modal.style.cssText = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;z-index:1000;width:440px;max-width:90vw;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);";
+
+    // Initial loading content
+    modal.innerHTML = `
+        <div style="padding:32px;text-align:center;">
+            <div style="margin-bottom:16px;">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 6v6l4 2" />
+                </svg>
+            </div>
+            <p style="color:#6b7280;font-size:0.9rem;">Đang kiểm tra điều kiện đóng gói...</p>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(modal);
+    document.body.classList.add("modal-open");
+
+    // Close handler
+    function closeModal() {
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        if (modal.parentNode) modal.parentNode.removeChild(modal);
+        document.body.classList.remove("modal-open");
+    }
+
+    overlay.addEventListener("click", closeModal);
+
+    // Escape key handler
+    function escHandler(e) {
+        if (e.key === "Escape") {
+            closeModal();
+            document.removeEventListener("keydown", escHandler);
+        }
+    }
+    document.addEventListener("keydown", escHandler);
+
+    // Call API
+    checkPackagingReadiness(lot.id)
+        .then(function (response) {
+            const data = response && response.data ? response.data : response;
+
+            if (data.canPackage) {
+                // Ready for packaging
+                modal.innerHTML = `
+                    <div style="padding:32px;">
+                        <div style="text-align:center;margin-bottom:20px;">
+                            <div style="width:56px;height:56px;border-radius:50%;background:#d1fae5;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            </div>
+                            <h3 style="margin:0 0 4px;font-size:1.1rem;font-weight:700;color:#172033;">Sẵn sàng đóng gói</h3>
+                            <p style="margin:0;color:#6b7280;font-size:0.9rem;">Tất cả nhật ký canh tác bắt buộc đã có.</p>
+                        </div>
+                        <div style="margin-bottom:20px;">
+                            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f3f4f6;">
+                                <span style="color:#6b7280;font-size:0.85rem;">Lô sản xuất</span>
+                                <span style="font-weight:600;font-size:0.85rem;">${lot.name || "—"}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f3f4f6;">
+                                <span style="color:#6b7280;font-size:0.85rem;">Trạng thái</span>
+                                <span class="status-badge status-badge-harvested" style="font-size:0.75rem;">${data.status || "HARVESTED"}</span>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:12px;">
+                            <button id="packagingCancelBtn" style="flex:1;padding:10px;border:1px solid #d8dfdb;border-radius:8px;background:#fff;color:#344054;font-size:0.9rem;cursor:pointer;">Đóng</button>
+                            <button id="packageConfirmBtn" style="flex:1;padding:10px;border:none;border-radius:8px;background:#059669;color:#fff;font-size:0.9rem;cursor:pointer;">Đóng gói</button>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById("packagingCancelBtn").addEventListener("click", closeModal);
+                document.getElementById("packageConfirmBtn").addEventListener("click", function () {
+                    handlePackageLot(lot, modal, closeModal);
+                });
+            } else {
+                // Not ready - show missing logs
+                const missingItems = (data.missingLogs || [])
+                    .map(function (log) {
+                        return '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;margin-bottom:6px;background:#fef2f2;border-radius:8px;color:#dc2626;font-size:0.85rem;">' +
+                            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+                            '<span>' + log + '</span></div>';
+                    })
+                    .join("");
+
+                modal.innerHTML = `
+                    <div style="padding:32px;">
+                        <div style="text-align:center;margin-bottom:20px;">
+                            <div style="width:56px;height:56px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="8" x2="12" y2="12"/>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                </svg>
+                            </div>
+                            <h3 style="margin:0 0 4px;font-size:1.1rem;font-weight:700;color:#172033;">Chưa sẵn sàng đóng gói</h3>
+                            <p style="margin:0;color:#6b7280;font-size:0.9rem;">Thiếu nhật ký canh tác bắt buộc:</p>
+                        </div>
+                        <div style="margin-bottom:20px;">
+                            ${missingItems}
+                        </div>
+                        <div style="display:flex;gap:12px;">
+                            <button id="packagingCloseBtn" style="flex:1;padding:10px;border:1px solid #d8dfdb;border-radius:8px;background:#fff;color:#344054;font-size:0.9rem;cursor:pointer;">Đóng</button>
+                            <button id="addFarmLogBtn" style="flex:1;padding:10px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-size:0.9rem;cursor:pointer;">Thêm nhật ký</button>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById("packagingCloseBtn").addEventListener("click", closeModal);
+                document.getElementById("addFarmLogBtn").addEventListener("click", function () {
+                    closeModal();
+                    goToCreateFarmLog(lot);
+                });
+            }
+        })
+        .catch(function (error) {
+            // Error state
+            modal.innerHTML = `
+                <div style="padding:32px;text-align:center;">
+                    <div style="width:56px;height:56px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                    </div>
+                    <h3 style="margin:0 0 8px;font-size:1rem;font-weight:700;color:#172033;">Lỗi kiểm tra</h3>
+                    <p style="margin:0 0 20px;color:#6b7280;font-size:0.9rem;">${error.message || "Không thể kiểm tra điều kiện đóng gói."}</p>
+                    <button id="packagingErrorCloseBtn" style="padding:10px 24px;border:1px solid #d8dfdb;border-radius:8px;background:#fff;color:#344054;font-size:0.9rem;cursor:pointer;">Đóng</button>
+                </div>
+            `;
+
+            document.getElementById("packagingErrorCloseBtn").addEventListener("click", closeModal);
+        });
+}
+
+async function handlePackageLot(lot, modal, closeModal) {
+    // Show loading state
+    modal.innerHTML = `
+        <div style="padding:32px;text-align:center;">
+            <div style="margin-bottom:16px;">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 6v6l4 2" />
+                </svg>
+            </div>
+            <p style="color:#6b7280;font-size:0.9rem;">Đang đóng gói...</p>
+        </div>
+    `;
+
+    try {
+        const response = await packageProductionLot(lot.id);
+
+        if (!response || response.success === false) {
+            throw new Error(response?.message || "Đóng gói thất bại.");
+        }
+
+        // Success
+        modal.innerHTML = `
+            <div style="padding:32px;text-align:center;">
+                <div style="width:56px;height:56px;border-radius:50%;background:#d1fae5;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                </div>
+                <h3 style="margin:0 0 4px;font-size:1.1rem;font-weight:700;color:#172033;">Đã đóng gói thành công</h3>
+                <p style="margin:0 0 20px;color:#6b7280;font-size:0.9rem;">Lô sản xuất đã được chuyển sang trạng thái PACKAGED.</p>
+                <button id="packagingDoneBtn" style="padding:10px 24px;border:none;border-radius:8px;background:#059669;color:#fff;font-size:0.9rem;cursor:pointer;">Hoàn tất</button>
+            </div>
+        `;
+
+        document.getElementById("packagingDoneBtn").addEventListener("click", function () {
+            closeModal();
+            loadProductionLots();
+        });
+    } catch (error) {
+        // Error
+        modal.innerHTML = `
+            <div style="padding:32px;text-align:center;">
+                <div style="width:56px;height:56px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                </div>
+                <h3 style="margin:0 0 8px;font-size:1rem;font-weight:700;color:#172033;">Đóng gói thất bại</h3>
+                <p style="margin:0 0 20px;color:#6b7280;font-size:0.9rem;">${error.message || "Không thể đóng gói lô sản xuất."}</p>
+                <button id="packagingErrorCloseBtn" style="padding:10px 24px;border:1px solid #d8dfdb;border-radius:8px;background:#fff;color:#344054;font-size:0.9rem;cursor:pointer;">Đóng</button>
+            </div>
+        `;
+
+        document.getElementById("packagingErrorCloseBtn").addEventListener("click", closeModal);
+    }
 }
 
 /* =====================================================

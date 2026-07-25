@@ -12,6 +12,7 @@ import vn.nguongocso.farm.dto.request.CreateProductionLotRequest;
 import vn.nguongocso.farm.dto.request.UpdateProductionLotRequest;
 import vn.nguongocso.farm.dto.response.CreateProductionLotResponse;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.farm.dto.response.PackagingCheckResult;
 import vn.nguongocso.farm.dto.response.UpdateProductionLotResponse;
 import vn.nguongocso.farm.service.ProductionLotService;
 import vn.nguongocso.common.ApiResult;
@@ -86,5 +87,42 @@ public class ProductionLotController {
         CustomUserDetails userDetails = SecurityUtils.getCurrentUserDetails();
         CreateProductionLotResponse response = productionLotService.approveProductionLot(id, request, userDetails);
         return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Kiểm tra điều kiện đóng gói của lô sản xuất.
+     * Chỉ có hiệu lực khi lô ở trạng thái HARVESTED.
+     *
+     * @param lotId mã lô sản xuất
+     * @return kết quả kiểm tra
+     */
+    @GetMapping("/{lotId}/packaging-check")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<PackagingCheckResult>> checkPackaging(
+            @PathVariable UUID lotId) {
+
+        return ResponseEntity.ok(
+                ApiResult.success(productionLotService.checkPackagingReadiness(lotId))
+        );
+    }
+
+    /**
+     * Đóng gói lô sản xuất.
+     * Tự động kiểm tra điều kiện đóng gói trước khi chuyển trạng thái.
+     * Chuyển trạng thái: HARVESTED -> PACKAGED
+     *
+     * @param lotId       mã lô sản xuất
+     * @param userDetails thông tin người dùng hiện tại
+     * @return thông tin lô sau khi đóng gói
+     */
+    @PostMapping("/{lotId}/package")
+    @PreAuthorize("hasRole('VT-02')")
+    public ResponseEntity<ApiResult<CreateProductionLotResponse>> packageLot(
+            @PathVariable UUID lotId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        return ResponseEntity.ok(
+                ApiResult.success(productionLotService.packageLot(lotId, userDetails))
+        );
     }
 }

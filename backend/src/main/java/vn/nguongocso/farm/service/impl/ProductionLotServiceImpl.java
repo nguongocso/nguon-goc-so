@@ -3,6 +3,7 @@ package vn.nguongocso.farm.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.nguongocso.farm.dto.request.ApproveProductionLotRequest;
@@ -10,15 +11,20 @@ import vn.nguongocso.farm.dto.request.CreateProductionLotRequest;
 import vn.nguongocso.farm.dto.request.UpdateProductionLotRequest;
 import vn.nguongocso.farm.dto.response.CreateProductionLotResponse;
 import vn.nguongocso.auth.entity.User;
+import vn.nguongocso.farm.dto.response.PackagingCheckResult;
 import vn.nguongocso.farm.dto.response.UpdateProductionLotResponse;
+import vn.nguongocso.farm.enums.FarmActivityType;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
+import vn.nguongocso.farm.event.PackagingValidationFailedEvent;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.farm.repository.FarmAreaRepository;
+import vn.nguongocso.farm.repository.FarmLogRepository;
 import vn.nguongocso.farm.repository.ProductCategoryRepository;
 import vn.nguongocso.farm.service.ProductionLotService;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.FarmArea;
+import vn.nguongocso.farm.entity.FarmLog;
 import vn.nguongocso.farm.entity.ProductCategory;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
@@ -27,6 +33,7 @@ import vn.nguongocso.organization.repository.OrganizationRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -41,6 +48,8 @@ public class ProductionLotServiceImpl implements ProductionLotService {
     private final ProductCategoryRepository productCategoryRepository;
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
+    private final FarmLogRepository farmLogRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -236,6 +245,84 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .status(savedLot.getStatus().name())
                 .updatedAt(savedLot.getUpdatedAt())
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PackagingCheckResult checkPackagingReadiness(UUID lotId) {
+        log.info("Kiểm tra điều kiện đóng gói cho lô sản xuất id={}", lotId);
+
+        ProductionLot lot = productionLotRepository.findById(lotId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất"));
+
+        if (lot.getStatus() != ProductionLotStatus.HARVESTED) {
+            throw new BusinessException(
+                    "Lô sản xuất chưa sẵn sàng để đóng gói. Trạng thái phải là HARVESTED."
+            );
+        }
+
+        List<FarmLog> logs = farmLogRepository.findByProductionLotId(lot);
+
+        Set<FarmActivityType> requiredTypes = Set.of(
+                FarmActivityType.PLANTING,
+                FarmActivityType.WATERING,
+                FarmActivityType.FERTILIZING,
+                FarmActivityType.PESTICIDE
+        );
+
+        Set<FarmActivityType> existingTypes = logs.stream()
+                .map(FarmLog::getActivityType)
+                .collect(Collectors.toSet());
+
+        List<String> missing = requiredTypes.stream()
+                .filter(type -> !existingTypes.contains(type))
+                .map(Enum::name)
+                .collect(Collectors.toList());
+
+        boolean canPackage = missing.isEmpty();
+
+        return PackagingCheckResult.builder()
+                .lotId(lotId)
+                .status(lot.getStatus())
+                .canPackage(canPackage)
+                .missingLogs(missing)
+                .message(canPackage
+                        ? "Lô sản xuất đã sẵn sàng để đóng gói"
+                        : "Thiếu nhật ký canh tác bắt buộc: " + String.join(", ", missing))
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public CreateProductionLotResponse packageLot(UUID lotId, CustomUserDetails userDetails) {
+        log.info("Bắt đầu đóng gói lô sản xuất id={}", lotId);
+
+        // Kiểm tra điều kiện đóng gói
+        PackagingCheckResult checkResult = checkPackagingReadiness(lotId);
+
+        if (!checkResult.isCanPackage()) {
+            // Phát sự kiện cảnh báo
+            ProductionLot lot = productionLotRepository.findById(lotId)
+                    .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất"));
+
+            eventPublisher.publishEvent(new PackagingValidationFailedEvent(
+                    this, lotId, lot.getOrganization().getOrganizationId(), lot.getName()
+            ));
+
+            throw new BusinessException(
+                    "Không thể đóng gói. " + checkResult.getMessage()
+            );
+        }
+
+        ProductionLot lot = productionLotRepository.findById(lotId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất"));
+
+        lot.setStatus(ProductionLotStatus.PACKAGED);
+        lot.setUpdatedAt(LocalDateTime.now());
+        productionLotRepository.save(lot);
+
+        log.info("Đã đóng gói thành công lô sản xuất id={}", lotId);
+        return mapToResponse(lot);
     }
 
 }

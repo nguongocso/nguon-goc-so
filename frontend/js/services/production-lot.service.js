@@ -173,3 +173,41 @@ export async function returnToDraftProductionLot(id, reason) {
         }
     );
 }
+
+/**
+ * Kiểm tra điều kiện đóng gói của lô sản xuất.
+ *
+ * Chỉ có hiệu lực khi lô ở trạng thái HARVESTED.
+ *
+ * GET /api/v1/production-lots/{lotId}/packaging-check
+ *
+ * @param {string} lotId
+ * @returns {Promise<Object>}
+ */
+export async function checkPackagingReadiness(lotId) {
+    return apiRequest(
+        `/production-lots/${encodeURIComponent(lotId)}/packaging-check`,
+        {
+            method: "GET"
+        }
+    );
+}
+
+/**
+ * Đóng gói lô sản xuất.
+ *
+ * Chuyển trạng thái: HARVESTED -> PACKAGED
+ *
+ * POST /api/v1/production-lots/{lotId}/package
+ *
+ * @param {string} lotId
+ * @returns {Promise<Object>}
+ */
+export async function packageProductionLot(lotId) {
+    return apiRequest(
+        `/production-lots/${encodeURIComponent(lotId)}/package`,
+        {
+            method: "POST"
+        }
+    );
+}

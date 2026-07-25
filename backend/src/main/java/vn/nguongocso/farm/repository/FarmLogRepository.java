@@ -1,5 +1,6 @@
 package vn.nguongocso.farm.repository;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -43,4 +44,12 @@ public interface FarmLogRepository extends JpaRepository<FarmLog, UUID> {
 		Page<FarmLogProjection> findByProductionLot(
 		        ProductionLot productionLot,
 		        Pageable pageable);
+
+	/**
+	 * Lấy danh sách nhật ký canh tác thuộc về một lô sản xuất.
+	 *
+	 * @param productionLot lô sản xuất
+	 * @return danh sách nhật ký canh tác
+	 */
+	List<FarmLog> findByProductionLotId(ProductionLot productionLot);
 }
