@@ -65,18 +65,21 @@
             <nav class="sidebar-menu">
 
                 <a
+                    id="dashboardMenu"
                     href="/frontend/pages/cooperative/dashboard.html"
                 >
                     Dashboard
                 </a>
 
                 <a
+                    id="farmAreasMenu"
                     href="/frontend/pages/cooperative/farm-areas/index.html"
                 >
                     Farm Areas
                 </a>
 
                 <a
+                    id="productionLotsMenu"
                     href="/frontend/pages/cooperative/production-lots/index.html"
                     class="active"
                 >
@@ -84,6 +87,7 @@
                 </a>
 
                 <a
+                    id="organizationProfileMenu"
                     href="/frontend/pages/cooperative/profile.html"
                 >
                     Organization Profile
@@ -133,11 +137,11 @@
 
                     <div>
                         <h1>
-                            Lịch sử nhật ký canh tác
+                            Farming Log History
                         </h1>
 
                         <p class="text-muted">
-                            Xem các hoạt động canh tác đã ghi nhận của lô sản xuất.
+                            View farming activities recorded for this production lot.
                         </p>
                     </div>
 
@@ -324,18 +328,17 @@
                     <div class="history-section-header">
 
                         <h2>
-                            Danh sách nhật ký
+                            Farming Logs
                         </h2>
 
                         <p class="text-muted">
-                            Có
                             <strong id="activityCount">0</strong>
-                            hoạt động
+                            farming activities
                         </p>
 
                     </div>
 
-                    <!-- KHUNG BẢNG -->
+                    <!-- TIMELINE CARDS -->
                     <div class="history-card">
 
                         <!-- KHÔNG CÓ DỮ LIỆU -->
@@ -387,32 +390,9 @@
                             </p>
                         </div>
 
-                        <!-- BẢNG LỊCH SỬ -->
-                        <div class="history-table-wrapper">
-
-                            <table
-                                id="historyTable"
-                                class="history-table"
-                                style="display: none;"
-                            >
-                                <thead>
-                                    <tr>
-                                        <th>Ngày thực hiện</th>
-                                        <th>Loại hoạt động</th>
-                                        <th>Vật tư</th>
-                                        <th>Số lượng</th>
-                                        <th>Đơn vị</th>
-                                        <th>Người tạo</th>
-                                        <th>Ngày tạo</th>
-                                        <th>Ghi chú</th>
-                                    </tr>
-                                </thead>
-
-                                <tbody id="historyTableBody">
-                                    <!-- JavaScript sẽ render dữ liệu ở đây -->
-                                </tbody>
-                            </table>
-
+                        <!-- TIMELINE CONTAINER -->
+                        <div id="historyTimeline" class="history-timeline">
+                            <!-- JavaScript sẽ render các thẻ timeline ở đây -->
                         </div>
 
                         <!-- PHÂN TRANG -->

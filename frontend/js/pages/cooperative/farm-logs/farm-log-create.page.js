@@ -51,19 +51,18 @@ function setupSidebarByRole() {
         return;
     }
 
-    const dashboardMenu =
-        document.getElementById("dashboardMenu");
+    const menuIds = [
+        "dashboardMenu",
+        "farmAreasMenu",
+        "organizationProfileMenu"
+    ];
 
-    const farmAreasMenu =
-        document.getElementById("farmAreasMenu");
-
-    if (dashboardMenu) {
-        dashboardMenu.style.display = "none";
-    }
-
-    if (farmAreasMenu) {
-        farmAreasMenu.style.display = "none";
-    }
+    menuIds.forEach(function (menuId) {
+        const menuItem = document.getElementById(menuId);
+        if (menuItem) {
+            menuItem.style.display = "none";
+        }
+    });
 }
 
 setupSidebarByRole();

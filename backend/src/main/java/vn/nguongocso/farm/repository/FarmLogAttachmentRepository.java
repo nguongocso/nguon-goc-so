@@ -9,4 +9,6 @@ import java.util.UUID;
 public interface FarmLogAttachmentRepository extends JpaRepository<FarmLogAttachment, UUID> {
 
     List<FarmLogAttachment> findByFarmLogId(UUID farmLogId);
+
+    List<FarmLogAttachment> findByFarmLogIdIn(List<UUID> farmLogIds);
 }

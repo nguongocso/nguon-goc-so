@@ -2,41 +2,42 @@ import {
     apiRequest
 } from "../core/api-client.js";
 
-<<<<<<< HEAD
 /**
  * Tạo một nhật ký canh tác.
  *
  * POST /api/v1/farm-logs
+ *
+ * Yêu cầu role EVENT_RECODER (VT-03).
  *
  * @param {Object} farmLogData
  * @returns {Promise<Object>}
  */
 export async function createFarmLog(
     farmLogData
-=======
-export async function createFarmLog(
-    requestBody
->>>>>>> feature/view-farm-log
 ) {
     return apiRequest(
         "/farm-logs",
         {
             method: "POST",
-<<<<<<< HEAD
             body: JSON.stringify(
                 farmLogData
             )
         }
     );
-=======
-
-            body: JSON.stringify(
-                requestBody
-            )
-        }
-    );
 }
 
+/**
+ * Lấy lịch sử nhật ký canh tác theo lô sản xuất.
+ *
+ * GET /api/v1/farm-logs?productionLotId=...&page=...&size=...
+ *
+ * Yêu cầu role VT-02 (Quản lý hợp tác xã).
+ *
+ * @param {string} productionLotId
+ * @param {number} page
+ * @param {number} size
+ * @returns {Promise<Object>}
+ */
 export async function getFarmLogHistory(
     productionLotId,
     page = 0,
@@ -61,5 +62,48 @@ export async function getFarmLogHistory(
             method: "GET"
         }
     );
->>>>>>> feature/view-farm-log
+}
+
+/**
+ * Upload attachment cho một nhật ký canh tác.
+ *
+ * POST /api/v1/farm-logs/{logId}/attachments
+ *
+ * Content-Type: multipart/form-data
+ *
+ * @param {string} logId
+ * @param {FormData} formData
+ * @returns {Promise<Object>}
+ */
+export async function uploadFarmLogAttachment(
+    logId,
+    formData
+) {
+    return apiRequest(
+        `/farm-logs/${encodeURIComponent(logId)}/attachments`,
+        {
+            method: "POST",
+            body: formData,
+            headers: {}
+        }
+    );
+}
+
+/**
+ * Lấy danh sách attachments của một nhật ký canh tác.
+ *
+ * GET /api/v1/farm-logs/{logId}/attachments
+ *
+ * @param {string} logId
+ * @returns {Promise<Object>}
+ */
+export async function getFarmLogAttachments(
+    logId
+) {
+    return apiRequest(
+        `/farm-logs/${encodeURIComponent(logId)}/attachments`,
+        {
+            method: "GET"
+        }
+    );
 }

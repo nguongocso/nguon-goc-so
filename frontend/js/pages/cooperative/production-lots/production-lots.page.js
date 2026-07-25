@@ -8,7 +8,13 @@ import {
 } from "../../../core/storage.js";
 
 import {
-    getProductionLots
+    getProductionLots,
+    submitProductionLot,
+    approveProductionLot,
+    returnToDraftProductionLot,
+    updateProductionLot,
+    getFarmAreas,
+    getProductCategories
 } from "../../../services/production-lot.service.js";
 
 /* =====================================================
@@ -22,7 +28,7 @@ if (!requireAuth()) {
 const user = getUser();
 
 function setupSidebarByRole() {
-    if (!user || user.roleCode !== "VT-03") {
+    if (!user || !user.roleCode) {
         return;
     }
 
@@ -32,14 +38,14 @@ function setupSidebarByRole() {
         "organizationProfileMenu"
     ];
 
-    menuIds.forEach(function (menuId) {
-        const menuItem =
-            document.getElementById(menuId);
-
-        if (menuItem) {
-            menuItem.style.display = "none";
-        }
-    });
+    if (user.roleCode === "VT-03") {
+        menuIds.forEach(function (menuId) {
+            const menuItem = document.getElementById(menuId);
+            if (menuItem) {
+                menuItem.style.display = "none";
+            }
+        });
+    }
 }
 
 setupSidebarByRole();
@@ -47,54 +53,23 @@ setupSidebarByRole();
 if (!user || !user.roleCode) {
     window.location.href =
         "/frontend/pages/auth/login.html";
-
-    throw new Error(
-        "User not authenticated."
-    );
+    throw new Error("User not authenticated.");
 }
 
 const roleCode = user.roleCode;
 
-const allowedRoles = [
-    "VT-01",
-    "VT-02",
-    "VT-03"
-];
+const allowedRoles = ["VT-01", "VT-02", "VT-03"];
 
 if (!allowedRoles.includes(roleCode)) {
-    const loadingElement =
-        document.getElementById(
-            "loadingState"
-        );
+    const loadingElement = document.getElementById("loadingState");
+    const unauthorizedElement = document.getElementById("unauthorizedState");
+    const mainElement = document.getElementById("mainContent");
 
-    const unauthorizedElement =
-        document.getElementById(
-            "unauthorizedState"
-        );
+    if (loadingElement) loadingElement.style.display = "none";
+    if (unauthorizedElement) unauthorizedElement.style.display = "flex";
+    if (mainElement) mainElement.style.display = "none";
 
-    const mainElement =
-        document.getElementById(
-            "mainContent"
-        );
-
-    if (loadingElement) {
-        loadingElement.style.display =
-            "none";
-    }
-
-    if (unauthorizedElement) {
-        unauthorizedElement.style.display =
-            "flex";
-    }
-
-    if (mainElement) {
-        mainElement.style.display =
-            "none";
-    }
-
-    throw new Error(
-        "Access denied: user does not have permission to access this page."
-    );
+    throw new Error("Access denied: user does not have permission to access this page.");
 }
 
 /* =====================================================
@@ -102,79 +77,22 @@ if (!allowedRoles.includes(roleCode)) {
 ===================================================== */
 
 function populateUserInfo() {
-    const sidebarName =
-        document.getElementById(
-            "sidebarUserName"
-        );
+    const sidebarName = document.getElementById("sidebarUserName");
+    const sidebarOrg = document.getElementById("sidebarUserOrg");
+    const sidebarAvatar = document.getElementById("sidebarUserAvatar");
+    const headerName = document.getElementById("headerUserName");
+    const headerOrg = document.getElementById("headerUserOrg");
+    const headerRole = document.getElementById("headerUserRole");
 
-    const sidebarOrg =
-        document.getElementById(
-            "sidebarUserOrg"
-        );
-
-    const sidebarAvatar =
-        document.getElementById(
-            "sidebarUserAvatar"
-        );
-
-    const headerName =
-        document.getElementById(
-            "headerUserName"
-        );
-
-    const headerOrg =
-        document.getElementById(
-            "headerUserOrg"
-        );
-
-    const headerRole =
-        document.getElementById(
-            "headerUserRole"
-        );
-
-    if (sidebarName) {
-        sidebarName.textContent =
-            user.fullName ||
-            user.username ||
-            "—";
-    }
-
-    if (sidebarOrg) {
-        sidebarOrg.textContent =
-            user.organizationName ||
-            "—";
-    }
-
+    if (sidebarName) sidebarName.textContent = user.fullName || user.username || "—";
+    if (sidebarOrg) sidebarOrg.textContent = user.organizationName || "—";
     if (sidebarAvatar) {
-        const displayName =
-            user.fullName ||
-            user.username ||
-            "?";
-
-        sidebarAvatar.textContent =
-            displayName
-                .charAt(0)
-                .toUpperCase();
+        const displayName = user.fullName || user.username || "?";
+        sidebarAvatar.textContent = displayName.charAt(0).toUpperCase();
     }
-
-    if (headerName) {
-        headerName.textContent =
-            user.fullName ||
-            user.username ||
-            "—";
-    }
-
-    if (headerOrg) {
-        headerOrg.textContent =
-            user.organizationName ||
-            "—";
-    }
-
-    if (headerRole) {
-        headerRole.textContent =
-            user.roleCode ||
-            "—";
-    }
+    if (headerName) headerName.textContent = user.fullName || user.username || "—";
+    if (headerOrg) headerOrg.textContent = user.organizationName || "—";
+    if (headerRole) headerRole.textContent = user.roleCode || "—";
 }
 
 populateUserInfo();
@@ -183,110 +101,52 @@ populateUserInfo();
    DOM REFERENCES
 ===================================================== */
 
-const loadingState =
-    document.getElementById(
-        "loadingState"
-    );
+const loadingState = document.getElementById("loadingState");
+const errorState = document.getElementById("errorState");
+const errorMessage = document.getElementById("errorMessage");
+const retryButton = document.getElementById("retryButton");
+const mainContent = document.getElementById("mainContent");
+const emptyState = document.getElementById("emptyState");
+const productionLotsTable = document.getElementById("productionLotsTable");
+const productionLotsTableBody = document.getElementById("productionLotsTableBody");
 
-const errorState =
-    document.getElementById(
-        "errorState"
-    );
+/* =====================================================
+   CREATE BUTTON VISIBILITY
+===================================================== */
 
-const errorMessage =
-    document.getElementById(
-        "errorMessage"
-    );
+// VT-03 must not see the Create button or empty state create link
+function setupCreateButtonVisibility() {
+    if (roleCode === "VT-03") {
+        const createButtons = document.querySelectorAll(".production-lot-create-button");
+        createButtons.forEach(function (btn) {
+            if (btn) btn.style.display = "none";
+        });
+        // Also hide the header action create link
+        const headerCreateLink = document.querySelector(".production-lots-header-actions a.btn-primary");
+        if (headerCreateLink) headerCreateLink.style.display = "none";
+    }
+}
 
-const retryButton =
-    document.getElementById(
-        "retryButton"
-    );
-
-const mainContent =
-    document.getElementById(
-        "mainContent"
-    );
-
-const emptyState =
-    document.getElementById(
-        "emptyState"
-    );
-
-const productionLotsTable =
-    document.getElementById(
-        "productionLotsTable"
-    );
-
-const productionLotsTableBody =
-    document.getElementById(
-        "productionLotsTableBody"
-    );
+setupCreateButtonVisibility();
 
 /* =====================================================
    EDIT MODAL REFERENCES
 ===================================================== */
 
-const editLotModal =
-    document.getElementById(
-        "editLotModal"
-    );
-
-const editLotOverlay =
-    document.getElementById(
-        "editLotOverlay"
-    );
-
-const closeEditLotButton =
-    document.getElementById(
-        "closeEditLotButton"
-    );
-
-const cancelEditLotButton =
-    document.getElementById(
-        "cancelEditLotButton"
-    );
-
-const editLotForm =
-    document.getElementById(
-        "editLotForm"
-    );
-
-const editLotMessage =
-    document.getElementById(
-        "editLotMessage"
-    );
+const editLotModal = document.getElementById("editLotModal");
+const editLotOverlay = document.getElementById("editLotOverlay");
+const closeEditLotButton = document.getElementById("closeEditLotButton");
+const cancelEditLotButton = document.getElementById("cancelEditLotButton");
+const editLotForm = document.getElementById("editLotForm");
+const editLotMessage = document.getElementById("editLotMessage");
 
 const editFields = {
-    id:
-        document.getElementById(
-            "editLotId"
-        ),
-
-    name:
-        document.getElementById(
-            "editLotName"
-        ),
-
-    farmAreaId:
-        document.getElementById(
-            "editFarmAreaId"
-        ),
-
-    productCategoryId:
-        document.getElementById(
-            "editProductCategoryId"
-        ),
-
-    expectedQuantity:
-        document.getElementById(
-            "editExpectedQuantity"
-        ),
-
-    plantingDate:
-        document.getElementById(
-            "editPlantingDate"
-        )
+    id: document.getElementById("editLotId"),
+    name: document.getElementById("editLotName"),
+    farmAreaId: document.getElementById("editFarmAreaId"),
+    productCategoryId: document.getElementById("editProductCategoryId"),
+    expectedQuantity: document.getElementById("editExpectedQuantity"),
+    plantingDate: document.getElementById("editPlantingDate")
 };
 
 /* =====================================================
@@ -294,138 +154,47 @@ const editFields = {
 ===================================================== */
 
 let productionLots = [];
-
-/*
- * false: sử dụng API backend thật.
- * true: sử dụng dữ liệu giả bên dưới.
- */
 const USE_MOCK_DATA = false;
-
-/*
- * Dữ liệu tạm cho hai select trong modal sửa.
- * Khi tích hợp hoàn chỉnh có thể thay bằng API vùng trồng
- * và API danh mục nông sản.
- */
-const mockFarmAreas = [
-    {
-        id: "farm-001",
-        name: "Khu vực canh tác A1"
-    },
-    {
-        id: "farm-002",
-        name: "Khu vực canh tác B1"
-    }
-];
-
-const mockProductCategories = [
-    {
-        id: "category-001",
-        name: "Cà chua"
-    },
-    {
-        id: "category-002",
-        name: "Xoài Cát Chu"
-    }
-];
 
 /* =====================================================
    FORMAT HELPERS
 ===================================================== */
 
 function getStatusBadgeClass(status) {
-    if (!status) {
-        return "status-badge-draft";
-    }
+    if (!status) return "status-badge-draft";
 
-    const normalizedStatus =
-        String(status)
-            .trim()
-            .toLowerCase();
+    const normalizedStatus = String(status).trim().toLowerCase();
 
-    if (normalizedStatus === "draft") {
-        return "status-badge-draft";
-    }
-
-    if (normalizedStatus === "pending") {
-        return "status-badge-pending";
-    }
-
-    if (normalizedStatus === "approved") {
-        return "status-badge-approved";
-    }
-
-    if (normalizedStatus === "harvested") {
-        return "status-badge-harvested";
-    }
-
-    if (normalizedStatus === "packaged") {
-        return "status-badge-packaged";
-    }
-
-    if (normalizedStatus === "closed") {
-        return "status-badge-closed";
-    }
+    if (normalizedStatus === "draft") return "status-badge-draft";
+    if (normalizedStatus === "pending") return "status-badge-pending";
+    if (normalizedStatus === "approved") return "status-badge-approved";
+    if (normalizedStatus === "harvested") return "status-badge-harvested";
+    if (normalizedStatus === "packaged") return "status-badge-packaged";
+    if (normalizedStatus === "closed") return "status-badge-closed";
 
     return "status-badge-draft";
 }
 
 function formatDate(dateStr) {
-    if (!dateStr) {
-        return "—";
-    }
+    if (!dateStr) return "—";
 
-    /*
-     * LocalDate từ backend thường có dạng YYYY-MM-DD.
-     * Tách thủ công để tránh bị lệch ngày do múi giờ.
-     */
-    const dateParts =
-        String(dateStr).split("-");
-
+    const dateParts = String(dateStr).split("-");
     if (dateParts.length === 3) {
-        const [
-            year,
-            month,
-            day
-        ] = dateParts;
-
+        const [year, month, day] = dateParts;
         return `${day}/${month}/${year}`;
     }
 
-    const date =
-        new Date(dateStr);
-
-    if (
-        Number.isNaN(
-            date.getTime()
-        )
-    ) {
-        return dateStr;
-    }
-
-    return date.toLocaleDateString(
-        "vi-VN"
-    );
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return dateStr;
+    return date.toLocaleDateString("vi-VN");
 }
 
 function formatDateTime(dateStr) {
-    if (!dateStr) {
-        return "—";
-    }
+    if (!dateStr) return "—";
 
-    const date =
-        new Date(dateStr);
-
-    if (
-        Number.isNaN(
-            date.getTime()
-        )
-    ) {
-        return dateStr;
-    }
-
-    return date.toLocaleDateString(
-        "vi-VN"
-    );
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return dateStr;
+    return date.toLocaleDateString("vi-VN");
 }
 
 /* =====================================================
@@ -433,240 +202,163 @@ function formatDateTime(dateStr) {
 ===================================================== */
 
 function goToFarmLogHistory(lot) {
-    if (!lot || !lot.id) {
-        return;
-    }
+    if (!lot || !lot.id) return;
 
-    const queryParams =
-        new URLSearchParams({
-            productionLotId:
-                lot.id,
+    const queryParams = new URLSearchParams({
+        productionLotId: lot.id,
+        productionLotName: lot.name || ""
+    });
 
-            productionLotName:
-                lot.name || ""
-        });
-
-    window.location.href =
-        `../farm-logs/history.html?${queryParams.toString()}`;
+    window.location.href = `../farm-logs/history.html?${queryParams.toString()}`;
 }
 
 function goToCreateFarmLog(lot) {
-    if (!lot || !lot.id) {
-        return;
-    }
+    if (!lot || !lot.id) return;
 
-    const queryParams =
-        new URLSearchParams({
-            productionLotId:
-                lot.id,
+    const queryParams = new URLSearchParams({
+        productionLotId: lot.id,
+        productionLotName: lot.name || ""
+    });
 
-            productionLotName:
-                lot.name || ""
-        });
-
-    window.location.href =
-        `../farm-logs/create.html?${queryParams.toString()}`;
+    window.location.href = `../farm-logs/create.html?${queryParams.toString()}`;
 }
 
 function goToAttachments(lot) {
-    if (!lot || !lot.id) {
-        return;
-    }
+    if (!lot || !lot.id) return;
 
-    const queryParams =
-        new URLSearchParams({
-            id: lot.id,
-            productionLotId:
-                lot.id,
-            productionLotName:
-                lot.name || ""
-        });
+    const queryParams = new URLSearchParams({
+        id: lot.id,
+        productionLotId: lot.id,
+        productionLotName: lot.name || ""
+    });
 
-    window.location.href =
-        `./attachment.html?${queryParams.toString()}`;
+    window.location.href = `./attachment.html?${queryParams.toString()}`;
 }
 
 /* =====================================================
-   CREATE ACTION BUTTONS
+   3-DOT CONTEXTUAL MENU
 ===================================================== */
 
-function createEditButton(
-    lot,
-    normalizedStatus
-) {
-    const editButton =
-        document.createElement(
-            "button"
-        );
+let activeMenu = null;
 
-    editButton.type =
-        "button";
-
-    editButton.className =
-        "btn btn-secondary btn-edit-lot";
-
-    editButton.dataset.id =
-        lot.id;
-
-    editButton.textContent =
-        "Sửa";
-
-    if (normalizedStatus !== "DRAFT") {
-        editButton.disabled =
-            true;
-
-        editButton.title =
-            "Chỉ có thể sửa lô ở trạng thái DRAFT";
+function closeActiveMenu() {
+    if (activeMenu) {
+        activeMenu.remove();
+        activeMenu = null;
     }
-
-    return editButton;
 }
 
-function createHistoryButton(lot) {
-    const historyButton =
-        document.createElement(
-            "button"
-        );
+document.addEventListener("click", function () {
+    closeActiveMenu();
+});
 
-    historyButton.type =
-        "button";
+function createThreeDotMenu(lot, normalizedStatus) {
+    const container = document.createElement("div");
+    container.className = "three-dot-menu-container";
 
-    historyButton.className =
-        "btn btn-primary btn-history-lot";
+    const dotButton = document.createElement("button");
+    dotButton.type = "button";
+    dotButton.className = "three-dot-button";
+    dotButton.dataset.id = lot.id;
+    dotButton.innerHTML = "⋮";
+    dotButton.title = "Actions";
 
-    historyButton.dataset.id =
-        lot.id;
+    dotButton.addEventListener("click", function (event) {
+        event.stopPropagation();
+        closeActiveMenu();
 
-    historyButton.textContent =
-        "Lịch sử";
+        const dropdown = document.createElement("div");
+        dropdown.className = "three-dot-dropdown";
+        activeMenu = dropdown;
 
-    historyButton.title =
-        "Xem lịch sử nhật ký canh tác";
+        // Build menu items based on role and status
+        var menuItems = [];
 
-    return historyButton;
+        if (roleCode === "VT-02") {
+            if (normalizedStatus === "DRAFT") {
+                menuItems = [
+                    { label: "View Details", action: "view-details" },
+                    { label: "Edit", action: "edit" },
+                    { label: "Submit for Approval", action: "submit" }
+                ];
+            } else if (normalizedStatus === "PENDING") {
+                menuItems = [
+                    { label: "View Details", action: "view-details" },
+                    { label: "Approve", action: "approve" },
+                    { label: "Return to Draft", action: "return-draft" }
+                ];
+            } else if (normalizedStatus === "APPROVED") {
+                menuItems = [
+                    { label: "View Details", action: "view-details" },
+                    { label: "View Farming Logs", action: "view-farm-logs" }
+                ];
+            }
+        } else if (roleCode === "VT-03") {
+            menuItems = [
+                { label: "View Details", action: "view-details" },
+                { label: "View Farming Logs", action: "view-farm-logs" },
+                { label: "Create Farming Log", action: "create-farm-log" },
+                { label: "Attach Farming Document", action: "attach-document" }
+            ];
+        }
+
+        menuItems.forEach(function (item) {
+            const menuItem = document.createElement("button");
+            menuItem.type = "button";
+            menuItem.className = "three-dot-menu-item";
+            menuItem.textContent = item.label;
+            menuItem.dataset.action = item.action;
+            menuItem.dataset.id = lot.id;
+
+            menuItem.addEventListener("click", function (event) {
+                event.stopPropagation();
+                closeActiveMenu();
+                handleMenuAction(item.action, lot);
+            });
+
+            dropdown.appendChild(menuItem);
+        });
+
+        // Position the dropdown
+        const rect = dotButton.getBoundingClientRect();
+        dropdown.style.position = "fixed";
+        dropdown.style.top = (rect.bottom + 4) + "px";
+        dropdown.style.left = Math.max(8, rect.left - 100 + rect.width / 2) + "px";
+
+        document.body.appendChild(dropdown);
+    });
+
+    container.appendChild(dotButton);
+    return container;
 }
 
-function createFarmLogButton(
-    lot,
-    normalizedStatus
-) {
-    const farmLogButton =
-        document.createElement(
-            "button"
-        );
-
-    farmLogButton.type =
-        "button";
-
-    farmLogButton.className =
-        "btn btn-primary btn-create-farm-log";
-
-    farmLogButton.dataset.id =
-        lot.id;
-
-    farmLogButton.textContent =
-        "Ghi nhật ký";
-
-    const canCreateFarmLog =
-        normalizedStatus === "APPROVED" ||
-        normalizedStatus === "HARVESTED";
-
-    if (!canCreateFarmLog) {
-        farmLogButton.disabled =
-            true;
-
-        farmLogButton.title =
-            "Chỉ được ghi nhật ký cho lô ở trạng thái APPROVED hoặc HARVESTED";
+function handleMenuAction(action, lot) {
+    switch (action) {
+        case "view-details":
+            window.location.href = `detail.html?id=${encodeURIComponent(lot.id)}`;
+            break;
+        case "edit":
+            openEditLotModal(lot.id);
+            break;
+        case "submit":
+            handleSubmitLot(lot.id);
+            break;
+        case "approve":
+            handleApproveLot(lot.id);
+            break;
+        case "return-draft":
+            handleReturnToDraft(lot.id);
+            break;
+        case "view-farm-logs":
+            goToFarmLogHistory(lot);
+            break;
+        case "create-farm-log":
+            goToCreateFarmLog(lot);
+            break;
+        case "attach-document":
+            goToAttachments(lot);
+            break;
     }
-
-    return farmLogButton;
-}
-
-function createAttachmentButton(lot) {
-    const attachmentButton =
-        document.createElement(
-            "button"
-        );
-
-    attachmentButton.type =
-        "button";
-
-    attachmentButton.className =
-        "btn btn-secondary btn-attachment-lot";
-
-    attachmentButton.dataset.id =
-        lot.id;
-
-    attachmentButton.textContent =
-        "Attachment";
-
-    attachmentButton.title =
-        "Quản lý tệp đính kèm của lô sản xuất";
-
-    return attachmentButton;
-}
-
-function renderActionButtons(
-    actionCell,
-    lot,
-    normalizedStatus
-) {
-    /*
-     * VT-02: Quản lý hợp tác xã.
-     * Có quyền sửa lô, xem lịch sử và quản lý attachment.
-     */
-    if (roleCode === "VT-02") {
-    if (normalizedStatus === "DRAFT") {
-        actionCell.appendChild(
-            createEditButton(
-                lot,
-                normalizedStatus
-            )
-        );
-    }
-
-    actionCell.appendChild(
-        createHistoryButton(lot)
-    );
-
-    actionCell.appendChild(
-        createAttachmentButton(lot)
-    );
-
-    return;
-}
-
-    /*
-     * VT-03: Người ghi nhật ký.
-     * Có quyền ghi nhật ký và quản lý attachment.
-     */
-    if (roleCode === "VT-03") {
-        const farmLogButton =
-            createFarmLogButton(
-                lot,
-                normalizedStatus
-            );
-
-        const attachmentButton =
-            createAttachmentButton(lot);
-
-        actionCell.appendChild(
-            farmLogButton
-        );
-
-        actionCell.appendChild(
-            attachmentButton
-        );
-
-        return;
-    }
-
-    /*
-     * VT-01 hiện chưa được phân công thao tác
-     * trong luồng này nên để dấu gạch ngang.
-     */
-    actionCell.textContent =
-        "—";
 }
 
 /* =====================================================
@@ -674,207 +366,63 @@ function renderActionButtons(
 ===================================================== */
 
 function renderProductionLots(lots) {
-    if (
-        !Array.isArray(lots) ||
-        lots.length === 0
-    ) {
-        if (emptyState) {
-            emptyState.style.display =
-                "flex";
-        }
-
-        if (productionLotsTable) {
-            productionLotsTable.style.display =
-                "none";
-        }
-
-        if (productionLotsTableBody) {
-            productionLotsTableBody.innerHTML =
-                "";
-        }
-
+    if (!Array.isArray(lots) || lots.length === 0) {
+        if (emptyState) emptyState.style.display = "flex";
+        if (productionLotsTable) productionLotsTable.style.display = "none";
+        if (productionLotsTableBody) productionLotsTableBody.innerHTML = "";
         return;
     }
 
-    if (emptyState) {
-        emptyState.style.display =
-            "none";
-    }
+    if (emptyState) emptyState.style.display = "none";
+    if (productionLotsTable) productionLotsTable.style.display = "table";
 
-    if (productionLotsTable) {
-        productionLotsTable.style.display =
-            "table";
-    }
+    if (!productionLotsTableBody) return;
 
-    if (!productionLotsTableBody) {
-        return;
-    }
-
-    productionLotsTableBody.innerHTML =
-        "";
+    productionLotsTableBody.innerHTML = "";
 
     lots.forEach(function (lot) {
-        const row =
-            document.createElement(
-                "tr"
-            );
+        const row = document.createElement("tr");
 
-        /* Tên lô */
+        const nameCell = document.createElement("td");
+        nameCell.textContent = lot.name || "—";
 
-        const nameCell =
-            document.createElement(
-                "td"
-            );
+        const farmAreaCell = document.createElement("td");
+        farmAreaCell.textContent = lot.farmAreaName || "—";
 
-        nameCell.textContent =
-            lot.name || "—";
+        const categoryCell = document.createElement("td");
+        categoryCell.textContent = lot.productCategoryName || "—";
 
-        /* Vùng trồng */
+        const quantityCell = document.createElement("td");
+        quantityCell.textContent = lot.expectedQuantity != null ? String(lot.expectedQuantity) : "—";
 
-        const farmAreaCell =
-            document.createElement(
-                "td"
-            );
+        const plantingDateCell = document.createElement("td");
+        plantingDateCell.textContent = formatDate(lot.plantingDate);
 
-        farmAreaCell.textContent =
-            lot.farmAreaName || "—";
+        const statusCell = document.createElement("td");
+        const statusBadge = document.createElement("span");
+        const normalizedStatus = String(lot.status || "DRAFT").trim().toUpperCase();
+        statusBadge.className = "status-badge " + getStatusBadgeClass(normalizedStatus);
+        statusBadge.textContent = normalizedStatus;
+        statusCell.appendChild(statusBadge);
 
-        /* Danh mục nông sản */
+        const createdCell = document.createElement("td");
+        createdCell.textContent = formatDateTime(lot.createdAt);
 
-        const categoryCell =
-            document.createElement(
-                "td"
-            );
+        const actionCell = document.createElement("td");
+        actionCell.className = "production-lot-actions";
 
-        categoryCell.textContent =
-            lot.productCategoryName ||
-            "—";
+        actionCell.appendChild(createThreeDotMenu(lot, normalizedStatus));
 
-        /* Sản lượng dự kiến */
+        row.appendChild(nameCell);
+        row.appendChild(farmAreaCell);
+        row.appendChild(categoryCell);
+        row.appendChild(quantityCell);
+        row.appendChild(plantingDateCell);
+        row.appendChild(statusCell);
+        row.appendChild(createdCell);
+        row.appendChild(actionCell);
 
-        const quantityCell =
-            document.createElement(
-                "td"
-            );
-
-        quantityCell.textContent =
-            lot.expectedQuantity != null
-                ? String(
-                    lot.expectedQuantity
-                )
-                : "—";
-
-        /* Ngày gieo trồng */
-
-        const plantingDateCell =
-            document.createElement(
-                "td"
-            );
-
-        plantingDateCell.textContent =
-            formatDate(
-                lot.plantingDate
-            );
-
-        /* Trạng thái */
-
-        const statusCell =
-            document.createElement(
-                "td"
-            );
-
-        const statusBadge =
-            document.createElement(
-                "span"
-            );
-
-        const normalizedStatus =
-            String(
-                lot.status || "DRAFT"
-            )
-                .trim()
-                .toUpperCase();
-
-        statusBadge.className =
-            "status-badge " +
-            getStatusBadgeClass(
-                normalizedStatus
-            );
-
-        statusBadge.textContent =
-            normalizedStatus;
-
-        statusCell.appendChild(
-            statusBadge
-        );
-
-        /* Ngày tạo */
-
-        const createdCell =
-            document.createElement(
-                "td"
-            );
-
-        createdCell.textContent =
-            formatDateTime(
-                lot.createdAt
-            );
-
-        /* Thao tác */
-
-        const actionCell =
-            document.createElement(
-                "td"
-            );
-
-        actionCell.className =
-            "production-lot-actions";
-
-        renderActionButtons(
-            actionCell,
-            lot,
-            normalizedStatus
-        );
-
-        /* Thêm các ô vào hàng */
-
-        row.appendChild(
-            nameCell
-        );
-
-        row.appendChild(
-            farmAreaCell
-        );
-
-        row.appendChild(
-            categoryCell
-        );
-
-        row.appendChild(
-            quantityCell
-        );
-
-        row.appendChild(
-            plantingDateCell
-        );
-
-        row.appendChild(
-            statusCell
-        );
-
-        row.appendChild(
-            createdCell
-        );
-
-        row.appendChild(
-            actionCell
-        );
-
-        /* Thêm hàng vào bảng */
-
-        productionLotsTableBody.appendChild(
-            row
-        );
+        productionLotsTableBody.appendChild(row);
     });
 }
 
@@ -882,63 +430,44 @@ function renderProductionLots(lots) {
    MODAL SELECT HELPERS
 ===================================================== */
 
-function fillSelect(
-    selectElement,
-    items,
-    placeholder
-) {
-    if (!selectElement) {
-        return;
-    }
+function fillSelect(selectElement, items, placeholder) {
+    if (!selectElement) return;
 
-    selectElement.innerHTML =
-        "";
+    selectElement.innerHTML = "";
 
-    const defaultOption =
-        document.createElement(
-            "option"
-        );
-
-    defaultOption.value =
-        "";
-
-    defaultOption.textContent =
-        placeholder;
-
-    selectElement.appendChild(
-        defaultOption
-    );
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = placeholder;
+    selectElement.appendChild(defaultOption);
 
     items.forEach(function (item) {
-        const option =
-            document.createElement(
-                "option"
-            );
-
-        option.value =
-            item.id;
-
-        option.textContent =
-            item.name;
-
-        selectElement.appendChild(
-            option
-        );
+        const option = document.createElement("option");
+        option.value = item.id;
+        option.textContent = item.name;
+        selectElement.appendChild(option);
     });
 }
 
-function loadEditSelectOptions() {
-    fillSelect(
-        editFields.farmAreaId,
-        mockFarmAreas,
-        "-- Chọn khu vực canh tác --"
-    );
+async function loadEditSelectOptions() {
+    try {
+        const farmAreasResponse = await getFarmAreas();
+        const categoriesResponse = await getProductCategories();
 
-    fillSelect(
-        editFields.productCategoryId,
-        mockProductCategories,
-        "-- Chọn loại nông sản --"
-    );
+        const farmAreas = farmAreasResponse?.data && Array.isArray(farmAreasResponse.data)
+            ? farmAreasResponse.data
+            : [];
+
+        const categories = categoriesResponse?.data && Array.isArray(categoriesResponse.data)
+            ? categoriesResponse.data
+            : [];
+
+        fillSelect(editFields.farmAreaId, farmAreas, "-- Chọn khu vực canh tác --");
+        fillSelect(editFields.productCategoryId, categories, "-- Chọn loại nông sản --");
+    } catch (error) {
+        console.warn("Could not load select options from API, using empty selects:", error);
+        fillSelect(editFields.farmAreaId, [], "-- Chọn khu vực canh tác --");
+        fillSelect(editFields.productCategoryId, [], "-- Chọn loại nông sản --");
+    }
 }
 
 /* =====================================================
@@ -946,169 +475,147 @@ function loadEditSelectOptions() {
 ===================================================== */
 
 function openEditLotModal(lotId) {
-    const lot =
-        productionLots.find(
-            function (item) {
-                return (
-                    item.id === lotId
-                );
-            }
-        );
+    const lot = productionLots.find(function (item) {
+        return item.id === lotId;
+    });
 
-    if (
-        !lot ||
-        !editLotModal
-    ) {
-        return;
-    }
+    if (!lot || !editLotModal) return;
 
     loadEditSelectOptions();
 
-    if (editFields.id) {
-        editFields.id.value =
-            lot.id || "";
-    }
+    if (editFields.id) editFields.id.value = lot.id || "";
+    if (editFields.name) editFields.name.value = lot.name || "";
+    if (editFields.farmAreaId) editFields.farmAreaId.value = lot.farmAreaId || "";
+    if (editFields.productCategoryId) editFields.productCategoryId.value = lot.productCategoryId || "";
+    if (editFields.expectedQuantity) editFields.expectedQuantity.value = lot.expectedQuantity ?? "";
+    if (editFields.plantingDate) editFields.plantingDate.value = lot.plantingDate || "";
 
-    if (editFields.name) {
-        editFields.name.value =
-            lot.name || "";
-    }
+    if (editLotMessage) editLotMessage.hidden = true;
 
-    if (editFields.farmAreaId) {
-        editFields.farmAreaId.value =
-            lot.farmAreaId || "";
-    }
-
-    if (
-        editFields.productCategoryId
-    ) {
-        editFields.productCategoryId.value =
-            lot.productCategoryId ||
-            "";
-    }
-
-    if (
-        editFields.expectedQuantity
-    ) {
-        editFields.expectedQuantity.value =
-            lot.expectedQuantity ??
-            "";
-    }
-
-    if (editFields.plantingDate) {
-        editFields.plantingDate.value =
-            lot.plantingDate || "";
-    }
-
-    if (editLotMessage) {
-        editLotMessage.hidden =
-            true;
-    }
-
-    editLotModal.hidden =
-        false;
-
-    document.body.classList.add(
-        "modal-open"
-    );
+    editLotModal.hidden = false;
+    document.body.classList.add("modal-open");
 }
 
 function closeEditLotModal() {
-    if (!editLotModal) {
-        return;
-    }
+    if (!editLotModal) return;
 
-    editLotModal.hidden =
-        true;
+    editLotModal.hidden = true;
+    document.body.classList.remove("modal-open");
+    if (editLotForm) editLotForm.reset();
+    if (editLotMessage) editLotMessage.hidden = true;
+}
 
-    document.body.classList.remove(
-        "modal-open"
-    );
+async function handleEditLotSubmit(event) {
+    event.preventDefault();
 
-    if (editLotForm) {
-        editLotForm.reset();
-    }
+    const lotId = editFields.id ? editFields.id.value : "";
 
-    if (editLotMessage) {
-        editLotMessage.hidden =
-            true;
+    const payload = {
+        farmAreaId: editFields.farmAreaId ? editFields.farmAreaId.value : "",
+        productCategoryId: editFields.productCategoryId ? editFields.productCategoryId.value : "",
+        name: editFields.name ? editFields.name.value.trim() : "",
+        expectedQuantity: editFields.expectedQuantity ? Number(editFields.expectedQuantity.value) : 0,
+        plantingDate: editFields.plantingDate ? editFields.plantingDate.value : ""
+    };
+
+    try {
+        const response = await updateProductionLot(lotId, payload);
+
+        if (!response || response.success === false) {
+            throw new Error(response?.message || "Cập nhật lô sản xuất thất bại.");
+        }
+
+        if (editLotMessage) {
+            editLotMessage.textContent = "Cập nhật lô sản xuất thành công.";
+            editLotMessage.className = "modal-message success";
+            editLotMessage.hidden = false;
+        }
+
+        // Close modal after brief delay
+        setTimeout(function () {
+            closeEditLotModal();
+            loadProductionLots();
+        }, 1000);
+    } catch (error) {
+        console.error("Update production lot error:", error);
+
+        if (editLotMessage) {
+            editLotMessage.textContent = error.message || "Cập nhật thất bại.";
+            editLotMessage.className = "modal-message error";
+            editLotMessage.hidden = false;
+        }
     }
 }
 
-/*
- * Hiện tại giữ nguyên logic cũ:
- * chỉ tạo payload và in ra Console,
- * chưa gọi API PUT cập nhật lô.
- */
-function handleEditLotSubmit(event) {
-    event.preventDefault();
+/* =====================================================
+   SUBMIT / APPROVE / RETURN ACTIONS
+===================================================== */
 
-    const lotId =
-        editFields.id
-            ? editFields.id.value
-            : "";
+async function handleSubmitLot(lotId) {
+    if (!confirm("Bạn có chắc chắn muốn submit lô sản xuất này để duyệt?")) {
+        return;
+    }
 
-    const payload = {
-        farmAreaId:
-            editFields.farmAreaId
-                ? editFields
-                    .farmAreaId
-                    .value
-                : "",
+    try {
+        const response = await submitProductionLot(lotId);
 
-        productCategoryId:
-            editFields
-                .productCategoryId
-                ? editFields
-                    .productCategoryId
-                    .value
-                : "",
+        if (!response || response.success === false) {
+            throw new Error(response?.message || "Submit lô sản xuất thất bại.");
+        }
 
-        name:
-            editFields.name
-                ? editFields
-                    .name
-                    .value
-                    .trim()
-                : "",
+        alert("Submit lô sản xuất thành công. Trạng thái đã chuyển thành PENDING.");
+        await loadProductionLots();
+    } catch (error) {
+        console.error("Submit production lot error:", error);
+        alert(error.message || "Submit lô sản xuất thất bại.");
+    }
+}
 
-        expectedQuantity:
-            editFields
-                .expectedQuantity
-                ? Number(
-                    editFields
-                        .expectedQuantity
-                        .value
-                )
-                : 0,
+async function handleApproveLot(lotId) {
+    if (!confirm("Bạn có chắc chắn muốn duyệt lô sản xuất này?")) {
+        return;
+    }
 
-        plantingDate:
-            editFields
-                .plantingDate
-                ? editFields
-                    .plantingDate
-                    .value
-                : ""
-    };
+    try {
+        const response = await approveProductionLot(lotId);
 
-    console.log(
-        `PUT /api/v1/production-lots/${lotId}`
-    );
+        if (!response || response.success === false) {
+            throw new Error(response?.message || "Duyệt lô sản xuất thất bại.");
+        }
 
-    console.log(
-        "Update payload:",
-        payload
-    );
+        alert("Duyệt lô sản xuất thành công. Trạng thái đã chuyển thành APPROVED.");
+        await loadProductionLots();
+    } catch (error) {
+        console.error("Approve production lot error:", error);
+        alert(error.message || "Duyệt lô sản xuất thất bại.");
+    }
+}
 
-    if (editLotMessage) {
-        editLotMessage.textContent =
-            "Giao diện đã sẵn sàng. Dữ liệu cập nhật đã được tạo trong Console.";
+async function handleReturnToDraft(lotId) {
+    const reason = prompt("Vui lòng nhập lý do trả về DRAFT:");
 
-        editLotMessage.className =
-            "modal-message success";
+    if (reason === null) {
+        // User cancelled
+        return;
+    }
 
-        editLotMessage.hidden =
-            false;
+    if (!reason || !reason.trim()) {
+        alert("Vui lòng nhập lý do trả về DRAFT.");
+        return;
+    }
+
+    try {
+        const response = await returnToDraftProductionLot(lotId, reason);
+
+        if (!response || response.success === false) {
+            throw new Error(response?.message || "Trả về DRAFT thất bại.");
+        }
+
+        alert("Trả về DRAFT thành công.");
+        await loadProductionLots();
+    } catch (error) {
+        console.error("Return to draft error:", error);
+        alert(error.message || "Trả về DRAFT thất bại.");
     }
 }
 
@@ -1116,48 +623,17 @@ function handleEditLotSubmit(event) {
    NORMALIZE API DATA
 ===================================================== */
 
-function extractProductionLots(
-    response
-) {
-    if (!response) {
-        return [];
-    }
+function extractProductionLots(response) {
+    if (!response) return [];
 
-    /*
-     * Trường hợp API trả:
-     * {
-     *   success: true,
-     *   data: [...]
-     * }
-     */
-    if (
-        Array.isArray(
-            response.data
-        )
-    ) {
+    if (Array.isArray(response.data)) {
         return response.data;
     }
 
-    /*
-     * Trường hợp API trả phân trang:
-     * {
-     *   data: {
-     *     items: [...]
-     *   }
-     * }
-     */
-    if (
-        response.data &&
-        Array.isArray(
-            response.data.items
-        )
-    ) {
+    if (response.data && Array.isArray(response.data.items)) {
         return response.data.items;
     }
 
-    /*
-     * Trường hợp service trả trực tiếp mảng.
-     */
     if (Array.isArray(response)) {
         return response;
     }
@@ -1170,182 +646,48 @@ function extractProductionLots(
 ===================================================== */
 
 async function loadProductionLots() {
-    if (loadingState) {
-        loadingState.style.display =
-            "flex";
-    }
-
-    if (errorState) {
-        errorState.style.display =
-            "none";
-    }
-
-    if (mainContent) {
-        mainContent.style.display =
-            "none";
-    }
+    if (loadingState) loadingState.style.display = "flex";
+    if (errorState) errorState.style.display = "none";
+    if (mainContent) mainContent.style.display = "none";
 
     try {
         if (USE_MOCK_DATA) {
-            productionLots = [
-                {
-                    id:
-                        "lot-001",
-
-                    name:
-                        "Lô cà chua vụ đông 2026",
-
-                    farmAreaId:
-                        "farm-001",
-
-                    farmAreaName:
-                        "Khu vực canh tác A1",
-
-                    productCategoryId:
-                        "category-001",
-
-                    productCategoryName:
-                        "Cà chua",
-
-                    expectedQuantity:
-                        500,
-
-                    plantingDate:
-                        "2026-08-01",
-
-                    status:
-                        "DRAFT",
-
-                    createdAt:
-                        "2026-07-21T10:00:00"
-                },
-                {
-                    id:
-                        "lot-002",
-
-                    name:
-                        "Lô xoài đợt 1 năm 2026",
-
-                    farmAreaId:
-                        "farm-002",
-
-                    farmAreaName:
-                        "Khu vực canh tác B1",
-
-                    productCategoryId:
-                        "category-002",
-
-                    productCategoryName:
-                        "Xoài Cát Chu",
-
-                    expectedQuantity:
-                        1200,
-
-                    plantingDate:
-                        "2026-07-25",
-
-                    status:
-                        "APPROVED",
-
-                    createdAt:
-                        "2026-07-20T08:30:00"
-                }
-            ];
+            productionLots = [];
         } else {
-            const response =
-                await getProductionLots();
+            const response = await getProductionLots();
 
-            if (
-                response &&
-                response.success === false
-            ) {
-                throw new Error(
-                    response.message ||
-                    "Không thể tải danh sách lô sản xuất."
-                );
+            if (response && response.success === false) {
+                throw new Error(response.message || "Không thể tải danh sách lô sản xuất.");
             }
 
-            productionLots =
-                extractProductionLots(
-                    response
-                );
+            productionLots = extractProductionLots(response);
         }
 
-        if (loadingState) {
-            loadingState.style.display =
-                "none";
-        }
+        if (loadingState) loadingState.style.display = "none";
+        if (mainContent) mainContent.style.display = "block";
 
-        if (mainContent) {
-            mainContent.style.display =
-                "block";
-        }
-
-        renderProductionLots(
-            productionLots
-        );
+        renderProductionLots(productionLots);
     } catch (error) {
-        console.error(
-            "Load production lots error:",
-            error
-        );
+        console.error("Load production lots error:", error);
 
-        if (loadingState) {
-            loadingState.style.display =
-                "none";
-        }
+        if (loadingState) loadingState.style.display = "none";
+        if (mainContent) mainContent.style.display = "none";
 
-        if (mainContent) {
-            mainContent.style.display =
-                "none";
-        }
+        let message = error.message || "Đã xảy ra lỗi khi tải danh sách lô sản xuất.";
+        const normalizedMessage = String(message).toLowerCase();
 
-        let message =
-            error.message ||
-            "Đã xảy ra lỗi khi tải danh sách lô sản xuất.";
-
-        const normalizedMessage =
-            String(message)
-                .toLowerCase();
-
-        if (
-            normalizedMessage.includes(
-                "404"
-            ) ||
-            normalizedMessage.includes(
-                "not found"
-            )
-        ) {
-            if (mainContent) {
-                mainContent.style.display =
-                    "block";
-            }
-
-            renderProductionLots(
-                []
-            );
-
+        if (normalizedMessage.includes("404") || normalizedMessage.includes("not found")) {
+            if (mainContent) mainContent.style.display = "block";
+            renderProductionLots([]);
             return;
         }
 
-        if (
-            normalizedMessage.includes(
-                "403"
-            )
-        ) {
-            message =
-                "Bạn không có quyền xem danh sách lô sản xuất.";
+        if (normalizedMessage.includes("403")) {
+            message = "Bạn không có quyền xem danh sách lô sản xuất.";
         }
 
-        if (errorMessage) {
-            errorMessage.textContent =
-                message;
-        }
-
-        if (errorState) {
-            errorState.style.display =
-                "flex";
-        }
+        if (errorMessage) errorMessage.textContent = message;
+        if (errorState) errorState.style.display = "flex";
     }
 }
 
@@ -1354,110 +696,60 @@ async function loadProductionLots() {
 ===================================================== */
 
 if (productionLotsTableBody) {
-    productionLotsTableBody.addEventListener(
-        "click",
-        function (event) {
-            const target =
-                event.target;
+    productionLotsTableBody.addEventListener("click", function (event) {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
 
-            if (
-                !(target instanceof HTMLElement)
-            ) {
-                return;
-            }
+        const button = target.closest("button");
+        if (!button) return;
 
-            const button =
-                target.closest("button");
+        const lotId = button.dataset.id;
+        if (!lotId) return;
 
-            if (!button) {
-                return;
-            }
+        const lot = productionLots.find(function (item) {
+            return String(item.id) === String(lotId);
+        });
 
-            const lotId =
-                button.dataset.id;
-
-            if (!lotId) {
-                return;
-            }
-
-            const lot =
-                productionLots.find(
-                    function (item) {
-                        return (
-                            String(item.id) ===
-                            String(lotId)
-                        );
-                    }
-                );
-
-            if (!lot) {
-                console.warn(
-                    "Không tìm thấy lô sản xuất:",
-                    lotId
-                );
-
-                return;
-            }
-
-            /*
-             * Nút sửa lô
-             */
-            if (
-                button.classList.contains(
-                    "btn-edit-lot"
-                )
-            ) {
-                openEditLotModal(
-                    lotId
-                );
-
-                return;
-            }
-
-            /*
-             * Nút xem lịch sử nhật ký
-             */
-            if (
-                button.classList.contains(
-                    "btn-history-lot"
-                )
-            ) {
-                goToFarmLogHistory(
-                    lot
-                );
-
-                return;
-            }
-
-            /*
-             * Nút ghi nhật ký canh tác
-             */
-            if (
-                button.classList.contains(
-                    "btn-create-farm-log"
-                )
-            ) {
-                goToCreateFarmLog(
-                    lot
-                );
-
-                return;
-            }
-
-            /*
-             * Nút quản lý tệp đính kèm
-             */
-            if (
-    button.classList.contains(
-        "btn-attachment-lot"
-    )
-) {
-    goToAttachments(lot);
-
-    return;
-}
+        if (!lot) {
+            console.warn("Không tìm thấy lô sản xuất:", lotId);
+            return;
         }
-    );
+
+        if (button.classList.contains("btn-edit-lot")) {
+            openEditLotModal(lotId);
+            return;
+        }
+
+        if (button.classList.contains("btn-submit-lot")) {
+            handleSubmitLot(lotId);
+            return;
+        }
+
+        if (button.classList.contains("btn-approve-lot")) {
+            handleApproveLot(lotId);
+            return;
+        }
+
+        if (button.classList.contains("btn-return-lot")) {
+            handleReturnToDraft(lotId);
+            return;
+        }
+
+        if (button.classList.contains("btn-history-lot")) {
+            goToFarmLogHistory(lot);
+            return;
+        }
+
+        if (button.classList.contains("btn-create-farm-log")) {
+            goToCreateFarmLog(lot);
+            return;
+        }
+
+        if (button.classList.contains("btn-attachment-lot")) {
+            goToAttachments(lot);
+            return;
+        }
+    });
 }
 
 /* =====================================================
@@ -1465,137 +757,69 @@ if (productionLotsTableBody) {
 ===================================================== */
 
 if (editLotForm) {
-    editLotForm.addEventListener(
-        "submit",
-        handleEditLotSubmit
-    );
+    editLotForm.addEventListener("submit", handleEditLotSubmit);
 }
 
 if (closeEditLotButton) {
-    closeEditLotButton.addEventListener(
-        "click",
-        closeEditLotModal
-    );
+    closeEditLotButton.addEventListener("click", closeEditLotModal);
 }
 
 if (cancelEditLotButton) {
-    cancelEditLotButton.addEventListener(
-        "click",
-        closeEditLotModal
-    );
+    cancelEditLotButton.addEventListener("click", closeEditLotModal);
 }
 
 if (editLotOverlay) {
-    editLotOverlay.addEventListener(
-        "click",
-        closeEditLotModal
-    );
+    editLotOverlay.addEventListener("click", closeEditLotModal);
 }
 
-document.addEventListener(
-    "keydown",
-    function (event) {
-        if (
-            event.key === "Escape" &&
-            editLotModal &&
-            !editLotModal.hidden
-        ) {
-            closeEditLotModal();
-        }
+document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && editLotModal && !editLotModal.hidden) {
+        closeEditLotModal();
     }
-);
+});
 
 /* =====================================================
    RETRY EVENT
 ===================================================== */
 
 if (retryButton) {
-    retryButton.addEventListener(
-        "click",
-        loadProductionLots
-    );
+    retryButton.addEventListener("click", loadProductionLots);
 }
 
 /* =====================================================
    SEARCH
 ===================================================== */
 
-const productionLotSearchInput =
-    document.getElementById(
-        "productionLotSearchInput"
-    );
+const productionLotSearchInput = document.getElementById("searchProductionLot");
 
 if (productionLotSearchInput) {
-    productionLotSearchInput.addEventListener(
-        "input",
-        function (event) {
-            const keyword =
-                String(
-                    event.target.value ||
-                    ""
-                )
-                    .trim()
-                    .toLowerCase();
+    productionLotSearchInput.addEventListener("input", function (event) {
+        const keyword = String(event.target.value || "").trim().toLowerCase();
 
-            if (!keyword) {
-                renderProductionLots(
-                    productionLots
-                );
-
-                return;
-            }
-
-            const filteredLots =
-                productionLots.filter(
-                    function (lot) {
-                        const searchableText = [
-                            lot.name,
-                            lot.farmAreaName,
-                            lot.productCategoryName,
-                            lot.status,
-                            lot.expectedQuantity
-                        ]
-                            .filter(
-                                function (value) {
-                                    return (
-                                        value !== null &&
-                                        value !== undefined
-                                    );
-                                }
-                            )
-                            .join(" ")
-                            .toLowerCase();
-
-                        return searchableText.includes(
-                            keyword
-                        );
-                    }
-                );
-
-            renderProductionLots(
-                filteredLots
-            );
+        if (!keyword) {
+            renderProductionLots(productionLots);
+            return;
         }
-    );
-}
 
-/* =====================================================
-   CREATE PRODUCTION LOT BUTTON
-===================================================== */
+        const filteredLots = productionLots.filter(function (lot) {
+            const searchableText = [
+                lot.name,
+                lot.farmAreaName,
+                lot.productCategoryName,
+                lot.status,
+                lot.expectedQuantity
+            ]
+                .filter(function (value) {
+                    return value !== null && value !== undefined;
+                })
+                .join(" ")
+                .toLowerCase();
 
-const createProductionLotButton =
-    document.getElementById(
-        "createProductionLotButton"
-    );
+            return searchableText.includes(keyword);
+        });
 
-if (createProductionLotButton) {
-    createProductionLotButton.addEventListener(
-        "click",
-        function () {
-            window.location.href =
-                "./create.html";
-        }
-    );
+        renderProductionLots(filteredLots);
+    });
 }
 
 /* =====================================================

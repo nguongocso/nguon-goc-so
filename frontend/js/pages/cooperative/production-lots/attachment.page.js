@@ -40,6 +40,25 @@ if (!allowedRoles.includes(roleCode)) {
 }
 
 /* =========================================================
+   Sidebar: Hide menus for VT-03
+========================================================= */
+
+if (roleCode === "VT-03") {
+    var menuIds = [
+        "dashboardMenu",
+        "farmAreasMenu",
+        "organizationProfileMenu"
+    ];
+
+    menuIds.forEach(function (menuId) {
+        var menuItem = document.getElementById(menuId);
+        if (menuItem) {
+            menuItem.style.display = "none";
+        }
+    });
+}
+
+/* =========================================================
    User Info
 ========================================================= */
 
@@ -116,6 +135,27 @@ var previewContainer =
     document.getElementById("documentPreviewContainer");
 
 /* =========================================================
+   Role-based UI: VT-02 = read-only, VT-03 = can upload
+========================================================= */
+
+var isReadOnly = (roleCode === "VT-02");
+
+function setupRoleBasedUI() {
+    if (isReadOnly) {
+        // VT-02: Hide upload section completely
+        var uploadCard = document.querySelector(".attachment-card");
+        if (uploadCard) {
+            uploadCard.style.display = "none";
+        }
+
+        // VT-02: Hide delete buttons in action column
+        // Will be handled also in render
+    }
+
+    // For VT-03: show upload section (default)
+}
+
+/* =========================================================
    State
 ========================================================= */
 
@@ -133,7 +173,11 @@ function initializePage() {
 
     mainContent.style.display = "block";
 
-    initializeUpload();
+    setupRoleBasedUI();
+
+    if (!isReadOnly) {
+        initializeUpload();
+    }
 
     renderAttachmentList();
 
@@ -276,6 +320,19 @@ function renderAttachmentList() {
         row.className =
             "file-item-row";
 
+        // Build action buttons based on role
+        var actionButtons = "";
+
+        actionButtons +=
+            "<button class='file-action-btn file-action-view' data-id='" + item.id + "'>View</button>" +
+            "<button class='file-action-btn file-action-download' data-id='" + item.id + "'>Download</button>";
+
+        // Only show delete for non-read-only roles
+        if (!isReadOnly) {
+            actionButtons +=
+                "<button class='file-action-btn file-action-delete' data-id='" + item.id + "'>Delete</button>";
+        }
+
         row.innerHTML =
 
             "<td>" +
@@ -313,13 +370,7 @@ function renderAttachmentList() {
             "<td>" +
 
             "<div class='file-actions'>" +
-
-            "<button class='file-action-btn file-action-view' data-id='" + item.id + "'>View</button>" +
-
-            "<button class='file-action-btn file-action-download' data-id='" + item.id + "'>Download</button>" +
-
-            "<button class='file-action-btn file-action-delete' data-id='" + item.id + "'>Delete</button>" +
-
+            actionButtons +
             "</div>" +
 
             "</td>";
@@ -365,19 +416,22 @@ function bindActionEvents() {
 
         });
 
-    document
-        .querySelectorAll(".file-action-delete")
-        .forEach(function (button) {
+    // Only bind delete events if not read-only
+    if (!isReadOnly) {
+        document
+            .querySelectorAll(".file-action-delete")
+            .forEach(function (button) {
 
-            button.onclick = function () {
+                button.onclick = function () {
 
-                deleteFile(
-                    Number(this.dataset.id)
-                );
+                    deleteFile(
+                        Number(this.dataset.id)
+                    );
 
-            };
+                };
 
-        });
+            });
+    }
 
 }
 

@@ -3,7 +3,8 @@ import {
 } from "../../../services/farm-log.service.js";
 
 import {
-    clearAuth
+    clearAuth,
+    getUser
 } from "../../../core/storage.js";
 
 document.addEventListener(
@@ -11,21 +12,40 @@ document.addEventListener(
     initPage
 );
 
+function setupSidebarByRole() {
+    const currentUser = getUser();
+
+    if (!currentUser || !currentUser.roleCode) {
+        return;
+    }
+
+    if (currentUser.roleCode === "VT-03") {
+        const menuIds = [
+            "dashboardMenu",
+            "farmAreasMenu",
+            "organizationProfileMenu"
+        ];
+
+        menuIds.forEach(function (menuId) {
+            const menuItem = document.getElementById(menuId);
+            if (menuItem) {
+                menuItem.style.display = "none";
+            }
+        });
+    }
+}
+
 async function initPage() {
+    setupSidebarByRole();
     bindEvents();
 
     function renderCurrentUser() {
     const storedUser =
         localStorage.getItem("currentUser");
 
-    console.log(
-        "currentUser raw:",
-        storedUser
-    );
-
     if (!storedUser) {
         console.error(
-            "Không tìm thấy currentUser trong localStorage"
+            "Kh\u00f4ng t\u00ecm th\u1ea5y currentUser trong localStorage"
         );
         return;
     }
@@ -36,57 +56,51 @@ async function initPage() {
         currentUser =
             JSON.parse(storedUser);
 
-        // Xử lý trường hợp dữ liệu bị stringify hai lần
         if (typeof currentUser === "string") {
             currentUser =
                 JSON.parse(currentUser);
         }
     } catch (error) {
         console.error(
-            "Không thể parse currentUser:",
+            "Kh\u00f4ng th\u1ec3 parse currentUser:",
             error
         );
         return;
     }
 
-    console.log(
-        "currentUser parsed:",
-        currentUser
-    );
-
     setText(
         "headerUserRole",
         currentUser.roleCode ||
             currentUser.roleName ||
-            "—"
+            "\u2014"
     );
 
     setText(
         "headerUserName",
         currentUser.fullName ||
             currentUser.username ||
-            "—"
+            "\u2014"
     );
 
     setText(
         "headerUserOrg",
         currentUser.organizationName ||
             currentUser.organizationCode ||
-            "—"
+            "\u2014"
     );
 
     setText(
         "sidebarUserName",
         currentUser.fullName ||
             currentUser.username ||
-            "—"
+            "\u2014"
     );
 
     setText(
         "sidebarUserOrg",
         currentUser.organizationName ||
             currentUser.organizationCode ||
-            "—"
+            "\u2014"
     );
 
     const avatar =
@@ -107,7 +121,6 @@ async function initPage() {
                 .toUpperCase();
     }
 }
-    // Bắt buộc phải có dòng này
     renderCurrentUser();
 
     const productionLotId =
@@ -118,11 +131,11 @@ async function initPage() {
 
     setText(
         "productionLotName",
-        productionLotName || "—"
+        productionLotName || "\u2014"
     );
 
     if (!productionLotId) {
-        showError("Thiếu productionLotId.");
+        showError("Thi\u1ebfu productionLotId.");
         return;
     }
 
@@ -185,7 +198,7 @@ function renderCurrentUser() {
         );
     } catch (error) {
         console.error(
-            "Không thể đọc thông tin người dùng:",
+            "Kh\u00f4ng th\u1ec3 \u0111\u1ecdc th\u00f4ng tin ng\u01b0\u1eddi d\u00f9ng:",
             error
         );
     }
@@ -205,7 +218,7 @@ function renderCurrentUser() {
         "headerUserName",
         currentUser.fullName ||
             currentUser.username ||
-            "Người dùng"
+            "Ng\u01b0\u1eddi d\u00f9ng"
     );
 
     setText(
@@ -219,7 +232,7 @@ function renderCurrentUser() {
         "sidebarUserName",
         currentUser.fullName ||
             currentUser.username ||
-            "Người dùng"
+            "Ng\u01b0\u1eddi d\u00f9ng"
     );
 
     setText(
@@ -289,7 +302,7 @@ async function loadFarmLogHistory(
 
         if (!pageData) {
             throw new Error(
-                "Dữ liệu trả về không hợp lệ."
+                "D\u1eef li\u1ec7u tr\u1ea3 v\u1ec1 kh\u00f4ng h\u1ee3p l\u1ec7."
             );
         }
 
@@ -299,7 +312,7 @@ async function loadFarmLogHistory(
 
         showError(
             error.message ||
-            "Không thể tải lịch sử nhật ký."
+            "Kh\u00f4ng th\u1ec3 t\u1ea3i l\u1ecbch s\u1eed nh\u1eadt k\u00fd."
         );
     }
 }
@@ -330,7 +343,7 @@ function renderPage(pageData) {
         return;
     }
 
-    renderTable(items);
+    renderTimeline(items);
     renderPagination(pageData);
 }
 
@@ -370,9 +383,9 @@ function showEmptyState() {
             "emptyState"
         );
 
-    const historyTable =
+    const historyTimeline =
         document.getElementById(
-            "historyTable"
+            "historyTimeline"
         );
 
     const paginationContainer =
@@ -385,8 +398,8 @@ function showEmptyState() {
             "flex";
     }
 
-    if (historyTable) {
-        historyTable.style.display =
+    if (historyTimeline) {
+        historyTimeline.style.display =
             "none";
     }
 
@@ -396,15 +409,10 @@ function showEmptyState() {
     }
 }
 
-function renderTable(items) {
-    const tableBody =
+function renderTimeline(items) {
+    const timeline =
         document.getElementById(
-            "historyTableBody"
-        );
-
-    const historyTable =
-        document.getElementById(
-            "historyTable"
+            "historyTimeline"
         );
 
     const emptyState =
@@ -412,17 +420,17 @@ function renderTable(items) {
             "emptyState"
         );
 
-    if (!tableBody || !historyTable) {
+    if (!timeline) {
         return;
     }
 
-    tableBody.innerHTML =
+    timeline.innerHTML =
         items
-            .map(createTableRow)
+            .map(createTimelineCard)
             .join("");
 
-    historyTable.style.display =
-        "table";
+    timeline.style.display =
+        "block";
 
     if (emptyState) {
         emptyState.style.display =
@@ -430,54 +438,38 @@ function renderTable(items) {
     }
 }
 
-function createTableRow(item) {
-    return `
-        <tr>
-            <td>
-                ${formatDate(item.executedDate)}
-            </td>
+function createTimelineCard(item) {
+    const attachments = Array.isArray(item.attachments) ? item.attachments : [];
+    const attachmentCount = attachments.length;
 
-            <td>
-                ${escapeHtml(
-                    item.activityType ?? "—"
-                )}
-            </td>
+    let attachmentsHtml = "";
+    if (attachmentCount > 0) {
+        attachmentsHtml = "\n            <div class=\"farm-log-attachments\">\n                <div class=\"attachments-header\" onclick=\"this.parentElement.classList.toggle('attachments-expanded')\">\n                    <span class=\"attachments-toggle\">\u25B6</span>\n                    <span class=\"attachments-label\">Attachments (" + attachmentCount + ")</span>\n                </div>\n                <div class=\"attachments-list\">\n                    " + attachments.map(function(att) {
+                        return "\n                            <div class=\"attachment-item\">\n                                <span class=\"attachment-icon\">\uD83D\uDCCE</span>\n                                <div class=\"attachment-info\">\n                                    <span class=\"attachment-filename\">" + escapeHtml(att.fileName || "\u2014") + "</span>\n                                    " + (att.description ? '<span class="attachment-description">' + escapeHtml(att.description) + '</span>' : '') + "\n                                    <span class=\"attachment-meta\">\n                                        " + (att.fileType ? escapeHtml(att.fileType) : "") + "\n                                        " + (att.fileSize ? ' | ' + formatFileSize(att.fileSize) : "") + "\n                                        " + (att.uploadedAt ? ' | ' + formatDateTime(att.uploadedAt) : "") + "\n                                    </span>\n                                </div>\n                                " + (att.fileUrl ? '<a href="' + escapeHtml(att.fileUrl) + '" class="attachment-view-btn" target="_blank" rel="noopener">View</a>' : '') + "\n                            </div>\n                        ";
+                    }).join("") + "\n                </div>\n            </div>\n        ";
+    }
 
-            <td>
-                ${escapeHtml(
-                    item.material ?? "—"
-                )}
-            </td>
+    return "\n        <div class=\"timeline-card\">\n            <div class=\"timeline-card-header\">\n                <span class=\"timeline-date\">" + formatDate(item.executedDate) + "</span>\n                <span class=\"timeline-activity-type " + getActivityTypeClass(item.activityType) + "\">" + escapeHtml(item.activityType ?? "\u2014") + "</span>\n            </div>\n\n            <div class=\"timeline-card-body\">\n                " + (item.material ? "\n                    <div class=\"timeline-field\">\n                        <span class=\"timeline-field-label\">Material:</span>\n                        <span class=\"timeline-field-value\">" + escapeHtml(item.material) + "</span>\n                    </div>\n                " : "") + "\n\n                " + (item.quantity != null ? "\n                    <div class=\"timeline-field\">\n                        <span class=\"timeline-field-label\">Quantity:</span>\n                        <span class=\"timeline-field-value\">" + item.quantity + " " + escapeHtml(item.unit ?? "") + "</span>\n                    </div>\n                " : "") + "\n\n                " + (item.notes ? "\n                    <div class=\"timeline-field\">\n                        <span class=\"timeline-field-label\">Notes:</span>\n                        <span class=\"timeline-field-value\">" + escapeHtml(item.notes) + "</span>\n                    </div>\n                " : "") + "\n\n                <div class=\"timeline-field\">\n                    <span class=\"timeline-field-label\">Created by:</span>\n                    <span class=\"timeline-field-value\">" + escapeHtml(item.createdByName ?? "\u2014") + "</span>\n                </div>\n\n                <div class=\"timeline-field\">\n                    <span class=\"timeline-field-label\">Created at:</span>\n                    <span class=\"timeline-field-value\">" + formatDateTime(item.createdAt) + "</span>\n                </div>\n            </div>\n\n            " + attachmentsHtml + "\n        </div>\n    ";
+}
 
-            <td>
-                ${item.quantity ?? "—"}
-            </td>
+function getActivityTypeClass(activityType) {
+    if (!activityType) return "activity-type-default";
 
-            <td>
-                ${escapeHtml(
-                    item.unit ?? "—"
-                )}
-            </td>
+    const type = String(activityType).toLowerCase();
 
-            <td>
-                ${escapeHtml(
-                    item.createdByName ?? "—"
-                )}
-            </td>
+    if (type.includes("plant") || type.includes("sow")) return "activity-type-planting";
+    if (type.includes("fertil") || type.includes("pest") || type.includes("irrig")) return "activity-type-care";
+    if (type.includes("harvest")) return "activity-type-harvest";
+    if (type.includes("transport")) return "activity-type-transport";
 
-            <td>
-                ${formatDateTime(
-                    item.createdAt
-                )}
-            </td>
+    return "activity-type-default";
+}
 
-            <td class="notes-cell">
-                ${escapeHtml(
-                    item.notes ?? "—"
-                )}
-            </td>
-        </tr>
-    `;
+function formatFileSize(bytes) {
+    if (bytes == null) return "\u2014";
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
 function renderPagination(pageData) {
@@ -512,7 +504,7 @@ function renderPagination(pageData) {
 
     buttons.appendChild(
         createPageButton(
-            "‹",
+            "\u2039",
             currentPage - 1,
             currentPage === 0
         )
@@ -535,7 +527,7 @@ function renderPagination(pageData) {
 
     buttons.appendChild(
         createPageButton(
-            "›",
+            "\u203A",
             currentPage + 1,
             currentPage >= totalPages - 1
         )
@@ -669,7 +661,7 @@ function setText(
 
 function formatDate(value) {
     if (!value) {
-        return "—";
+        return "\u2014";
     }
 
     const [
@@ -678,12 +670,12 @@ function formatDate(value) {
         day
     ] = value.split("-");
 
-    return `${day}/${month}/${year}`;
+    return day + "/" + month + "/" + year;
 }
 
 function formatDateTime(value) {
     if (!value) {
-        return "—";
+        return "\u2014";
     }
 
     const date =
@@ -703,12 +695,17 @@ function formatDateTime(value) {
 }
 
 function escapeHtml(value) {
+    var amp = "&" + "amp;";
+    var lt = "&" + "lt;";
+    var gt = "&" + "gt;";
+    var quot = "&" + "quot;";
+    var apos = "&#" + "039;";
     return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+        .replace(/&/g, amp)
+        .replace(/</g, lt)
+        .replace(/>/g, gt)
+        .replace(/"/g, quot)
+        .replace(/'/g, apos);
 }
 
 function handleLogout() {
