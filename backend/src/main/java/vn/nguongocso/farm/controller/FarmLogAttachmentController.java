@@ -18,12 +18,12 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/farm-logs")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('VT-03')")
 public class FarmLogAttachmentController {
 
     private final AttachmentService attachmentService;
 
     @PostMapping("/{logId}/attachments")
+    @PreAuthorize("hasRole('VT-03')")
     public ResponseEntity<ApiResult<AttachmentResponse>> uploadAttachment(
             @PathVariable UUID logId,
             @RequestParam("file") MultipartFile file,
@@ -35,6 +35,7 @@ public class FarmLogAttachmentController {
     }
 
     @GetMapping("/{logId}/attachments")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<List<AttachmentResponse>>> getAttachments(
             @PathVariable UUID logId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
@@ -42,6 +43,7 @@ public class FarmLogAttachmentController {
     }
 
     @DeleteMapping("/attachments/{attachmentId}")
+    @PreAuthorize("hasRole('VT-03')")
     public ResponseEntity<ApiResult<Void>> deleteAttachment(
             @PathVariable UUID attachmentId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {

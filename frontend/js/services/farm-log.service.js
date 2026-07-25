@@ -107,3 +107,22 @@ export async function getFarmLogAttachments(
         }
     );
 }
+
+/**
+ * Xóa một attachment.
+ *
+ * DELETE /api/v1/farm-logs/attachments/{attachmentId}
+ *
+ * @param {string} attachmentId
+ * @returns {Promise<Object>}
+ */
+export async function deleteFarmLogAttachment(
+    attachmentId
+) {
+    return apiRequest(
+        `/farm-logs/attachments/${encodeURIComponent(attachmentId)}`,
+        {
+            method: "DELETE"
+        }
+    );
+}

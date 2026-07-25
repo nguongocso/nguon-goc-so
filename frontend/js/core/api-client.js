@@ -12,10 +12,14 @@ export async function apiRequest(
 ) {
     const token = getToken();
 
-    const headers = {
-        "Content-Type":
-            "application/json",
+    // For FormData (file uploads), do NOT set Content-Type;
+    // the browser will set it to multipart/form-data with boundary.
+    const isFormData = options.body instanceof FormData;
 
+    const headers = {
+        ...(!isFormData && {
+            "Content-Type": "application/json"
+        }),
         ...options.headers
     };
 

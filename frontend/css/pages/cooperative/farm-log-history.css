@@ -483,6 +483,199 @@
 }
 
 /* ========================================
+   ADD ATTACHMENT BUTTON
+======================================== */
+
+.add-attachment-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* ========================================
+   DELETE ATTACHMENT BUTTON
+======================================== */
+
+.attachment-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: #ffffff;
+    border: 1px solid #fca5a5;
+    border-radius: 7px;
+    color: #dc2626;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    line-height: 1;
+}
+
+.attachment-delete-btn:hover {
+    background: #fef2f2;
+    border-color: #ef4444;
+    color: #b91c1c;
+}
+
+/* ========================================
+   UPLOAD MODAL
+======================================== */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1000;
+}
+
+.upload-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 520px;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+    z-index: 1001;
+}
+
+.upload-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #e6eae8;
+}
+
+.upload-modal-header h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #172033;
+}
+
+.upload-modal-close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: #667085;
+    font-size: 26px;
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.upload-modal-close-btn:hover {
+    background: #f3f4f6;
+    color: #172033;
+}
+
+.upload-modal-body {
+    padding: 20px 24px 24px;
+}
+
+.upload-modal-field {
+    margin-bottom: 16px;
+}
+
+.upload-modal-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #344054;
+}
+
+.upload-modal-field .required {
+    color: #dc2626;
+}
+
+.upload-modal-field input[type="file"] {
+    width: 100%;
+    padding: 10px 12px;
+    background: #ffffff;
+    border: 1px solid #d8dfdb;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #172033;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.upload-modal-field input[type="file"]:focus {
+    border-color: #2d7d32;
+    box-shadow: 0 0 0 3px rgba(45, 125, 50, 0.12);
+}
+
+.upload-modal-field textarea {
+    width: 100%;
+    padding: 10px 12px;
+    background: #ffffff;
+    border: 1px solid #d8dfdb;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #172033;
+    outline: none;
+    resize: vertical;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.upload-modal-field textarea:focus {
+    border-color: #2d7d32;
+    box-shadow: 0 0 0 3px rgba(45, 125, 50, 0.12);
+}
+
+.upload-modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.upload-modal-submit-btn {
+    min-width: 120px;
+}
+
+.upload-modal-error {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+    border-radius: 8px;
+    color: #dc2626;
+    font-size: 14px;
+}
+
+.attachment-empty {
+    padding: 12px;
+    color: #98a2b3;
+    font-size: 13px;
+    font-style: italic;
+    text-align: center;
+}
+
+/* ========================================
    RESPONSIVE
 ======================================== */
 

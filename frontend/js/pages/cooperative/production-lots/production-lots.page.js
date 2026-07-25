@@ -297,8 +297,7 @@ function createThreeDotMenu(lot, normalizedStatus) {
             menuItems = [
                 { label: "View Details", action: "view-details" },
                 { label: "View Farming Logs", action: "view-farm-logs" },
-                { label: "Create Farming Log", action: "create-farm-log" },
-                { label: "Attach Farming Document", action: "attach-document" }
+                { label: "Create Farming Log", action: "create-farm-log" }
             ];
         }
 

@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.PageResponse;
@@ -36,6 +37,7 @@ import vn.nguongocso.farm.service.FarmLogService;
 /**
  * Triển khai dịch vụ quản lý nhật ký canh tác.
  */
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -242,6 +244,7 @@ public class FarmLogServiceImpl implements FarmLogService {
 	/**
 	 * Batch load attachments for all farm logs in the current page.
 	 * Groups attachments by farm log ID to avoid N+1 queries.
+	 * Wraps errors gracefully so one failed farm log doesn't crash the entire page.
 	 */
 	private Map<UUID, List<AttachmentResponse>> loadAttachmentsForFarmLogs(
 	        List<FarmLogProjection> farmLogs) {
@@ -254,13 +257,18 @@ public class FarmLogServiceImpl implements FarmLogService {
 	            .map(FarmLogProjection::getId)
 	            .collect(Collectors.toList());
 
-	    List<FarmLogAttachment> attachments = attachmentRepository.findByFarmLogIdIn(farmLogIds);
+	    try {
+	        List<FarmLogAttachment> attachments = attachmentRepository.findByFarmLogIdIn(farmLogIds);
 
-	    return attachments.stream()
-	            .collect(Collectors.groupingBy(
-	                    att -> att.getFarmLog().getId(),
-	                    Collectors.mapping(this::toAttachmentResponse, Collectors.toList())
-	            ));
+	        return attachments.stream()
+	                .collect(Collectors.groupingBy(
+	                        att -> att.getFarmLog().getId(),
+	                        Collectors.mapping(this::toAttachmentResponse, Collectors.toList())
+	                ));
+	    } catch (Exception e) {
+	        log.error("Error loading attachments for farm logs: {}", e.getMessage());
+	        return Collections.emptyMap();
+	    }
 	}
 
 	private AttachmentResponse toAttachmentResponse(FarmLogAttachment attachment) {
