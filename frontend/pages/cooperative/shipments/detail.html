@@ -36,6 +36,10 @@
 
     <link
         rel="stylesheet"
+        href="../../../css/components/modal.css">
+
+    <link
+        rel="stylesheet"
         href="../../../css/pages/cooperative/dashboard.css">
 
     <link
@@ -260,7 +264,8 @@
                                     <tr>
                                         <th>Trace Code</th>
                                         <th>Status</th>
-                                        <th>QR Image</th>
+                                        <th>QR Code</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="traceCodesTableBody">
@@ -278,6 +283,30 @@
 
         </main>
 
+    </div>
+
+    <!-- =========================================================
+         QR View Modal
+    ========================================================= -->
+    <div id="qrViewModal" class="modal-overlay" style="display: none;">
+        <div class="modal" style="max-width: 420px;">
+            <div class="modal-header">
+                <h2>QR Code</h2>
+                <button id="qrViewModalClose" class="modal-close" type="button">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 24px;">
+                <div id="qrViewImageContainer" style="margin-bottom: 16px;">
+                    <img id="qrViewImage" src="" alt="QR Code" style="width: 220px; height: 220px; object-fit: contain; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px;">
+                </div>
+                <p id="qrViewCodeValue" style="font-size: 1rem; font-weight: 700; color: #172033; margin: 0 0 4px;">—</p>
+                <p id="qrViewStatus" style="margin: 0 0 20px;"><span id="qrViewStatusBadge" class="status-badge">—</span></p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="qrViewDownloadBtn" class="btn btn-primary" type="button">Download</button>
+                    <button id="qrViewPrintBtn" class="btn btn-secondary" type="button">Print</button>
+                    <button id="qrViewCloseBtn" class="btn btn-secondary" type="button">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script

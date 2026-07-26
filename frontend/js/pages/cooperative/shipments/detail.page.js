@@ -117,6 +117,16 @@ const pagination = document.getElementById("pagination");
 
 const searchTraceCode = document.getElementById("searchTraceCode");
 
+// QR View Modal
+const qrViewModal = document.getElementById("qrViewModal");
+const qrViewImage = document.getElementById("qrViewImage");
+const qrViewCodeValue = document.getElementById("qrViewCodeValue");
+const qrViewStatusBadge = document.getElementById("qrViewStatusBadge");
+const qrViewDownloadBtn = document.getElementById("qrViewDownloadBtn");
+const qrViewPrintBtn = document.getElementById("qrViewPrintBtn");
+const qrViewCloseBtn = document.getElementById("qrViewCloseBtn");
+const qrViewModalClose = document.getElementById("qrViewModalClose");
+
 /* =====================================================
    GET URL PARAMETERS
 ===================================================== */
@@ -165,6 +175,9 @@ const API_FILE_BASE_URL = "http://localhost:8080";
 const PAGE_SIZE = 10;
 let currentPage = 1;
 
+// 3-dot menu state
+let activeMenu = null;
+
 /* =====================================================
    EXTRACT SHIPMENT FROM API RESPONSE
 ===================================================== */
@@ -177,6 +190,18 @@ function extractShipment(response) {
     }
 
     return response;
+}
+
+/* =====================================================
+   QR IMAGE URL HELPER
+===================================================== */
+
+function getQrImageUrl(path) {
+    if (!path) return "";
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+        return path;
+    }
+    return API_FILE_BASE_URL + path;
 }
 
 /* =====================================================
@@ -197,6 +222,278 @@ function renderShipmentDetails(shipment) {
 
     detailCreatedBy.textContent = shipment.createdByName || "—";
     detailCreatedAt.textContent = formatDate(shipment.createdAt);
+}
+
+/* =====================================================
+   3-DOT CONTEXTUAL MENU FOR TRACE CODE ACTIONS
+===================================================== */
+
+function closeActiveMenu() {
+    if (activeMenu) {
+        activeMenu.remove();
+        activeMenu = null;
+    }
+}
+
+document.addEventListener("click", function () {
+    closeActiveMenu();
+});
+
+function createTraceCodeActionsMenu(tc) {
+    const container = document.createElement("div");
+    container.className = "three-dot-menu-container";
+
+    const dotButton = document.createElement("button");
+    dotButton.type = "button";
+    dotButton.className = "three-dot-button";
+    dotButton.dataset.id = tc.codeValue || "tc";
+    dotButton.innerHTML = "⋮";
+    dotButton.title = "Actions";
+
+    dotButton.addEventListener("click", function (event) {
+        event.stopPropagation();
+        closeActiveMenu();
+
+        const dropdown = document.createElement("div");
+        dropdown.className = "three-dot-dropdown";
+        activeMenu = dropdown;
+
+        const menuItems = [
+            { label: "View QR", action: "view-qr" },
+            { label: "Download QR", action: "download-qr" },
+            { label: "Print QR", action: "print-qr" }
+        ];
+
+        menuItems.forEach(function (item) {
+            const menuItem = document.createElement("button");
+            menuItem.type = "button";
+            menuItem.className = "three-dot-menu-item";
+            menuItem.textContent = item.label;
+            menuItem.dataset.action = item.action;
+
+            menuItem.addEventListener("click", function (event) {
+                event.stopPropagation();
+                closeActiveMenu();
+                handleTraceCodeAction(item.action, tc);
+            });
+
+            dropdown.appendChild(menuItem);
+        });
+
+        // Position the dropdown
+        const rect = dotButton.getBoundingClientRect();
+        dropdown.style.position = "fixed";
+        dropdown.style.top = (rect.bottom + 4) + "px";
+        dropdown.style.left = Math.max(8, rect.left - 100 + rect.width / 2) + "px";
+
+        document.body.appendChild(dropdown);
+    });
+
+    container.appendChild(dotButton);
+    return container;
+}
+
+function handleTraceCodeAction(action, tc) {
+    switch (action) {
+        case "view-qr":
+            openQrViewModal(tc);
+            break;
+        case "download-qr":
+            downloadQr(tc);
+            break;
+        case "print-qr":
+            printQr(tc);
+            break;
+    }
+}
+
+/* =====================================================
+   QR VIEW MODAL
+===================================================== */
+
+function openQrViewModal(tc) {
+    if (!tc) return;
+
+    if (!tc.qrImage) {
+        alert("QR code image is unavailable.");
+        return;
+    }
+
+    const qrUrl = getQrImageUrl(tc.qrImage);
+    qrViewImage.src = qrUrl;
+    qrViewImage.alt = tc.codeValue || "QR Code";
+    qrViewImage.onerror = function () {
+        qrViewImage.src = "/frontend/assets/images/qr-placeholder.png";
+    };
+
+    qrViewCodeValue.textContent = tc.codeValue || "—";
+
+    const normStatus = String(tc.status || "INACTIVE").trim().toUpperCase();
+    qrViewStatusBadge.textContent = normStatus;
+    qrViewStatusBadge.className = "status-badge " + getStatusBadgeClass(normStatus);
+
+    // Store current trace code reference for download/print from modal
+    qrViewDownloadBtn.dataset.tcCodeValue = tc.codeValue || "qr-code";
+    qrViewDownloadBtn.dataset.tcQrImage = tc.qrImage || "";
+    qrViewPrintBtn.dataset.tcCodeValue = tc.codeValue || "qr-code";
+    qrViewPrintBtn.dataset.tcQrImage = tc.qrImage || "";
+    qrViewPrintBtn.dataset.tcStatus = tc.status || "";
+
+    qrViewModal.style.display = "flex";
+    document.body.classList.add("modal-open");
+}
+
+function closeQrViewModal() {
+    qrViewModal.style.display = "none";
+    document.body.classList.remove("modal-open");
+}
+
+// QR View Modal close handlers
+if (qrViewModalClose) {
+    qrViewModalClose.addEventListener("click", closeQrViewModal);
+}
+
+if (qrViewCloseBtn) {
+    qrViewCloseBtn.addEventListener("click", closeQrViewModal);
+}
+
+if (qrViewModal) {
+    qrViewModal.addEventListener("click", function (event) {
+        if (event.target === qrViewModal) {
+            closeQrViewModal();
+        }
+    });
+}
+
+document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && qrViewModal && qrViewModal.style.display === "flex") {
+        closeQrViewModal();
+    }
+});
+
+// Download from QR View Modal
+if (qrViewDownloadBtn) {
+    qrViewDownloadBtn.addEventListener("click", function () {
+        const codeValue = qrViewDownloadBtn.dataset.tcCodeValue || "qr-code";
+        const qrImage = qrViewDownloadBtn.dataset.tcQrImage || "";
+        const tc = { codeValue: codeValue, qrImage: qrImage };
+        downloadQr(tc);
+    });
+}
+
+// Print from QR View Modal
+if (qrViewPrintBtn) {
+    qrViewPrintBtn.addEventListener("click", function () {
+        const codeValue = qrViewPrintBtn.dataset.tcCodeValue || "qr-code";
+        const qrImage = qrViewPrintBtn.dataset.tcQrImage || "";
+        const status = qrViewPrintBtn.dataset.tcStatus || "";
+        const tc = { codeValue: codeValue, qrImage: qrImage, status: status };
+        printQr(tc);
+    });
+}
+
+/* =====================================================
+   DOWNLOAD QR
+===================================================== */
+
+async function downloadQr(tc) {
+    if (!tc || !tc.qrImage) {
+        alert("QR code image is unavailable for download.");
+        return;
+    }
+
+    const qrUrl = getQrImageUrl(tc.qrImage);
+    const filename = (tc.codeValue || "qr-code") + ".png";
+
+    try {
+        // Fetch the image and trigger download via blob
+        const response = await fetch(qrUrl);
+
+        if (!response.ok) {
+            throw new Error("Failed to fetch QR image.");
+        }
+
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = filename;
+        link.target = "_blank";
+        link.rel = "noopener";
+
+        document.body.appendChild(link);
+        link.click();
+
+        // Clean up
+        setTimeout(function () {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(blobUrl);
+        }, 100);
+    } catch (error) {
+        console.error("Download QR error:", error);
+
+        // Fallback: open in new tab for manual download
+        const link = document.createElement("a");
+        link.href = qrUrl;
+        link.download = filename;
+        link.target = "_blank";
+        link.rel = "noopener";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
+/* =====================================================
+   PRINT QR
+===================================================== */
+
+function printQr(tc) {
+    if (!tc || !tc.qrImage) {
+        alert("QR code image is unavailable for printing.");
+        return;
+    }
+
+    const qrUrl = getQrImageUrl(tc.qrImage);
+    const codeValue = tc.codeValue || "-";
+    const status = tc.status || "-";
+
+    // Create a clean print-only popup
+    const popup = window.open("", "_blank", "width=400,height=500");
+
+    popup.document.write("<!DOCTYPE html><html><head>");
+    popup.document.write("<title>Print QR - " + escapeHtml(codeValue) + "</title>");
+    popup.document.write("<style>");
+    popup.document.write("body { font-family: Arial, sans-serif; text-align: center; padding: 40px 20px; }");
+    popup.document.write(".qr-container { display: inline-block; padding: 20px; }");
+    popup.document.write(".qr-container img { width: 280px; height: 280px; object-fit: contain; }");
+    popup.document.write(".qr-container h3 { margin: 16px 0 4px; font-size: 1.1rem; }");
+    popup.document.write(".qr-container p { margin: 4px 0; color: #555; font-size: 0.9rem; }");
+    popup.document.write("@media print { body { padding: 20px; } }");
+    popup.document.write("</style>");
+    popup.document.write("</head><body>");
+    popup.document.write("<div class='qr-container'>");
+    popup.document.write("<img src='" + escapeHtml(qrUrl) + "' alt='QR Code' onerror=\"this.alt='QR unavailable'\">");
+    popup.document.write("<h3>" + escapeHtml(codeValue) + "</h3>");
+    popup.document.write("<p>" + escapeHtml(status) + "</p>");
+    popup.document.write("</div>");
+    popup.document.write("</body></html>");
+
+    popup.document.close();
+    popup.focus();
+
+    // Wait for image to load before printing
+    setTimeout(function () {
+        popup.print();
+        popup.close();
+    }, 500);
+}
+
+function escapeHtml(value) {
+    const div = document.createElement("div");
+    div.textContent = value ?? "";
+    return div.innerHTML;
 }
 
 /* =====================================================
@@ -240,27 +537,39 @@ function renderTraceCodes(traceCodes) {
         statusBadge.textContent = normStatus;
         statusCell.appendChild(statusBadge);
 
-        // QR Image
+        // QR Image thumbnail
         const qrCell = document.createElement("td");
         if (tc.qrImage) {
             const qrImg = document.createElement("img");
-            const qrUrl = tc.qrImage.startsWith("http") ? tc.qrImage : API_FILE_BASE_URL + tc.qrImage;
+            const qrUrl = getQrImageUrl(tc.qrImage);
             qrImg.src = qrUrl;
             qrImg.alt = "QR Code";
             qrImg.style.width = "48px";
             qrImg.style.height = "48px";
             qrImg.style.objectFit = "contain";
+            qrImg.style.cursor = "pointer";
+            qrImg.title = "Click to view QR";
             qrImg.onerror = function () {
                 qrImg.src = "/frontend/assets/images/qr-placeholder.png";
             };
+            // Click thumbnail to open QR view
+            qrImg.addEventListener("click", function () {
+                openQrViewModal(tc);
+            });
             qrCell.appendChild(qrImg);
         } else {
             qrCell.textContent = "—";
         }
 
+        // Actions column
+        const actionCell = document.createElement("td");
+        actionCell.className = "production-lot-actions";
+        actionCell.appendChild(createTraceCodeActionsMenu(tc));
+
         row.appendChild(codeCell);
         row.appendChild(statusCell);
         row.appendChild(qrCell);
+        row.appendChild(actionCell);
 
         traceCodesTableBody.appendChild(row);
     });
