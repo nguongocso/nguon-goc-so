@@ -64,3 +64,21 @@ export async function getShipmentById(id) {
         }
     );
 }
+
+/**
+ * Activate a shipment and its trace codes.
+ * The shipment must be in CODE_PRINTED status.
+ *
+ * POST /api/v1/shipments/{id}/activate
+ *
+ * @param {string} id - The shipment ID
+ * @returns {Promise<Object>}
+ */
+export async function activateShipment(id) {
+    return apiRequest(
+        `/shipments/${encodeURIComponent(id)}/activate`,
+        {
+            method: "POST"
+        }
+    );
+}

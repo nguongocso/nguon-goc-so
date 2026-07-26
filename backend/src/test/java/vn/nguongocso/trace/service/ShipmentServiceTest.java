@@ -74,14 +74,14 @@ public class ShipmentServiceTest {
 
         // Mock SecurityContextHolder
         currentUser = mock(CustomUserDetails.class);
-        when(currentUser.getOrganizationId()).thenReturn(orgId);
-        when(currentUser.getRoleCode()).thenReturn("VT-02");
+        lenient().when(currentUser.getOrganizationId()).thenReturn(orgId);
+        lenient().when(currentUser.getRoleCode()).thenReturn("VT-02");
         lenient().when(currentUser.getUserId()).thenReturn(UUID.randomUUID());
 
         Authentication authentication = mock(Authentication.class);
-        when(authentication.getPrincipal()).thenReturn(currentUser);
+        lenient().when(authentication.getPrincipal()).thenReturn(currentUser);
         SecurityContext securityContext = mock(SecurityContext.class);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
+        lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
 
         organization = new Organization();

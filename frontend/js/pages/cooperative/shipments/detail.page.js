@@ -8,7 +8,8 @@ import {
 } from "../../../core/storage.js";
 
 import {
-    getShipmentById
+    getShipmentById,
+    activateShipment
 } from "../../../services/shipment.service.js";
 
 /* =====================================================
@@ -116,6 +117,13 @@ const traceCodesTableBody = document.getElementById("traceCodesTableBody");
 const pagination = document.getElementById("pagination");
 
 const searchTraceCode = document.getElementById("searchTraceCode");
+
+// Activation elements
+const activateShipmentBtn = document.getElementById("activateShipmentBtn");
+const activatedMessage = document.getElementById("activatedMessage");
+const activationError = document.getElementById("activationError");
+
+let isActivating = false;
 
 // QR View Modal
 const qrViewModal = document.getElementById("qrViewModal");
@@ -635,6 +643,112 @@ function renderPagination(totalPages) {
 }
 
 /* =====================================================
+   ACTIVATION UI
+===================================================== */
+
+function setupActivationUI(shipment) {
+    if (!shipment || !activateShipmentBtn || !activatedMessage || !activationError) return;
+
+    // Hide activation error initially
+    if (activationError) activationError.style.display = "none";
+
+    const normalizedStatus = String(shipment.status || "").trim().toUpperCase();
+
+    if (normalizedStatus === "CODE_PRINTED") {
+        // Show activate button
+        if (activateShipmentBtn) activateShipmentBtn.style.display = "inline-block";
+        if (activatedMessage) activatedMessage.style.display = "none";
+    } else if (normalizedStatus === "ACTIVATED") {
+        // Show activated message
+        if (activateShipmentBtn) activateShipmentBtn.style.display = "none";
+        if (activatedMessage) activatedMessage.style.display = "block";
+    } else {
+        // Other statuses - hide both
+        if (activateShipmentBtn) activateShipmentBtn.style.display = "none";
+        if (activatedMessage) activatedMessage.style.display = "none";
+    }
+}
+
+async function handleActivateShipment() {
+    if (isActivating) return;
+    if (!shipmentId || !currentShipment) return;
+
+    // Show confirmation dialog
+    if (!confirm("Are you sure you want to activate this shipment?\n\nAfter activation, the shipment and its trace codes will become active according to the backend business rules.")) {
+        return;
+    }
+
+    isActivating = true;
+    if (activateShipmentBtn) {
+        activateShipmentBtn.disabled = true;
+        activateShipmentBtn.textContent = "Activating...";
+    }
+    if (activationError) activationError.style.display = "none";
+
+    try {
+        const response = await activateShipment(shipmentId);
+
+        if (response && response.success === false) {
+            throw new Error(response.message || "Activation failed.");
+        }
+
+        // Extract updated shipment from response
+        const updatedShipment = response && response.data ? response.data : response;
+
+        if (updatedShipment) {
+            // Update the page with the backend response
+            currentShipment = updatedShipment;
+            renderShipmentDetails(updatedShipment);
+
+            allTraceCodes = updatedShipment.traceCodes || [];
+            filteredTraceCodes = allTraceCodes.slice();
+            currentPage = 1;
+            renderTraceCodes(filteredTraceCodes);
+
+            // Update activation UI
+            setupActivationUI(updatedShipment);
+        }
+
+        // Show success message
+        if (activatedMessage) {
+            activatedMessage.textContent = "✓ Shipment activated successfully";
+            activatedMessage.style.display = "block";
+        }
+
+    } catch (error) {
+        console.error("Activate shipment error:", error);
+
+        let message = error.message || "Unable to activate shipment. Please try again later.";
+        const normalizedMessage = String(message).toLowerCase();
+
+        if (normalizedMessage.includes("403")) {
+            message = "You do not have permission to activate this shipment.";
+        } else if (normalizedMessage.includes("404")) {
+            message = "Shipment not found.";
+        } else if (normalizedMessage.includes("already") || normalizedMessage.includes("đã")) {
+            // Already activated - refresh the page state
+            message = "This shipment has already been activated.";
+        }
+
+        if (activationError) {
+            activationError.textContent = message;
+            activationError.style.display = "block";
+        }
+    } finally {
+        isActivating = false;
+        if (activateShipmentBtn) {
+            activateShipmentBtn.disabled = false;
+            activateShipmentBtn.textContent = "Activate Shipment";
+        }
+    }
+}
+
+// Activate button event listener
+if (activateShipmentBtn) {
+    activateShipmentBtn.addEventListener("click", handleActivateShipment);
+}
+
+/* =====================================================
    LOAD SHIPMENT DETAILS
 ===================================================== */
 
@@ -670,6 +784,7 @@ async function loadShipmentDetail() {
         if (mainContent) mainContent.style.display = "block";
 
         renderShipmentDetails(currentShipment);
+        setupActivationUI(currentShipment);
 
         allTraceCodes = currentShipment.traceCodes || [];
         filteredTraceCodes = allTraceCodes.slice();

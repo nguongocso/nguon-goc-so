@@ -193,13 +193,13 @@
                         </div>
                     </div>
 
-                    <!-- Shipment Details Card -->
-                    <div class="production-lots-card">
-                        <div class="production-lots-header">
-                            <h2>Shipment Details</h2>
-                        </div>
+                <!-- Shipment Details Card -->
+                <div class="production-lots-card">
+                    <div class="production-lots-header">
+                        <h2>Shipment Details</h2>
+                    </div>
 
-                        <div id="shipmentInfo" class="shipment-detail-info" style="padding: 0 24px 24px;">
+                    <div id="shipmentInfo" class="shipment-detail-info" style="padding: 0 24px 24px;">
                             <div class="shipment-detail-row" style="display: flex; padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
                                 <span style="width: 180px; color: #6b7280; font-size: 0.9rem; flex-shrink: 0;">Shipment Name</span>
                                 <span id="detailName" style="font-weight: 600; font-size: 0.9rem;">—</span>
@@ -228,6 +228,19 @@
                                 <span style="width: 180px; color: #6b7280; font-size: 0.9rem; flex-shrink: 0;">Created Date</span>
                                 <span id="detailCreatedAt" style="font-weight: 600; font-size: 0.9rem;">—</span>
                             </div>
+                        </div>
+
+                        <!-- Activation section -->
+                        <div id="activationSection" style="padding: 0 24px 24px; border-top: 1px solid #f3f4f6; padding-top: 16px;">
+                            <div id="activateButtonContainer">
+                                <button id="activateShipmentBtn" class="btn btn-primary" type="button" style="display: none;">
+                                    Activate Shipment
+                                </button>
+                            </div>
+                            <div id="activatedMessage" style="display: none; padding: 12px 16px; background: #d1fae5; border-radius: 8px; color: #065f46; font-size: 0.9rem; font-weight: 600;">
+                                ✓ Shipment is active
+                            </div>
+                            <div id="activationError" style="display: none; padding: 12px 16px; background: #fef2f2; border-radius: 8px; color: #dc2626; font-size: 0.9rem; margin-top: 8px;"></div>
                         </div>
                     </div>
 
