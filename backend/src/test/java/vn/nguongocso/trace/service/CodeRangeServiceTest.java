@@ -190,4 +190,114 @@ public class CodeRangeServiceTest  {
         assertThat(responses.get(0).getStatus()).isEqualTo("OK");
         assertThat(responses.get(0).getUsagePercent()).isEqualTo(70.0);
     }
+
+    @Test
+    void getCodeRangesForOrganization_shouldReturnOnlyOrgCodeRanges() {
+        // Given
+        UUID userOrgId = UUID.randomUUID();
+        UUID otherOrgId = UUID.randomUUID();
+
+        Organization userOrg = new Organization();
+        userOrg.setOrganizationId(userOrgId);
+        userOrg.setName("HTX Xanh");
+
+        Organization otherOrg = new Organization();
+        otherOrg.setOrganizationId(otherOrgId);
+        otherOrg.setName("HTX Khác");
+
+        CodeRange userRange1 = CodeRange.builder()
+                .id(UUID.randomUUID())
+                .organization(userOrg)
+                .prefix("893001")
+                .totalLimit(1000L)
+                .usedCount(100L)
+                .build();
+
+        CodeRange userRange2 = CodeRange.builder()
+                .id(UUID.randomUUID())
+                .organization(userOrg)
+                .prefix("893002")
+                .totalLimit(500L)
+                .usedCount(0L)
+                .build();
+
+        // Only return user's org code ranges from repository
+        when(codeRangeRepository.findAllByOrganizationOrganizationId(userOrgId))
+                .thenReturn(List.of(userRange1, userRange2));
+
+        CustomUserDetails user = mock(CustomUserDetails.class);
+        when(user.getOrganizationId()).thenReturn(userOrgId);
+
+        // When
+        List<CodeRangeResponse> responses = codeRangeService.getCodeRangesForOrganization(user);
+
+        // Then
+        assertThat(responses).hasSize(2);
+        assertThat(responses.get(0).getOrganizationId()).isEqualTo(userOrgId);
+        assertThat(responses.get(1).getOrganizationId()).isEqualTo(userOrgId);
+        assertThat(responses.get(0).getOrganizationName()).isEqualTo("HTX Xanh");
+
+        // Verify the query was filtered by the user's organization ID, not a different one
+        verify(codeRangeRepository).findAllByOrganizationOrganizationId(userOrgId);
+        verifyNoMoreInteractions(codeRangeRepository);
+    }
+
+    @Test
+    void getCodeRangesForOrganization_shouldReturnEmpty_whenNoCodeRanges() {
+        // Given
+        UUID orgId = UUID.randomUUID();
+
+        when(codeRangeRepository.findAllByOrganizationOrganizationId(orgId))
+                .thenReturn(List.of());
+
+        CustomUserDetails user = mock(CustomUserDetails.class);
+        when(user.getOrganizationId()).thenReturn(orgId);
+
+        // When
+        List<CodeRangeResponse> responses = codeRangeService.getCodeRangesForOrganization(user);
+
+        // Then
+        assertThat(responses).isEmpty();
+        verify(codeRangeRepository).findAllByOrganizationOrganizationId(orgId);
+    }
+
+    @Test
+    void getCodeRangesForOrganization_shouldNotReturnOtherOrgCodeRanges() {
+        // Given
+        UUID userOrgId = UUID.randomUUID();
+        UUID otherOrgId = UUID.randomUUID();
+
+        Organization userOrg = new Organization();
+        userOrg.setOrganizationId(userOrgId);
+        userOrg.setName("User Org");
+
+        Organization otherOrg = new Organization();
+        otherOrg.setOrganizationId(otherOrgId);
+        otherOrg.setName("Other Org");
+
+        // Only code ranges for user's org
+        CodeRange userRange = CodeRange.builder()
+                .id(UUID.randomUUID())
+                .organization(userOrg)
+                .prefix("893001")
+                .totalLimit(1000L)
+                .usedCount(100L)
+                .build();
+
+        when(codeRangeRepository.findAllByOrganizationOrganizationId(userOrgId))
+                .thenReturn(List.of(userRange));
+
+        CustomUserDetails user = mock(CustomUserDetails.class);
+        when(user.getOrganizationId()).thenReturn(userOrgId);
+
+        // When
+        List<CodeRangeResponse> responses = codeRangeService.getCodeRangesForOrganization(user);
+
+        // Then
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).getOrganizationId()).isEqualTo(userOrgId);
+        assertThat(responses.get(0).getOrganizationName()).isEqualTo("User Org");
+        // Verify other org's code ranges are NOT returned
+        assertThat(responses.get(0).getOrganizationId()).isNotEqualTo(otherOrgId);
+    }
 }

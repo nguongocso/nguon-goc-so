@@ -24,3 +24,22 @@ export async function createCodeRange(
         }
     );
 }
+
+/**
+ * Fetch code ranges belonging to the currently authenticated user's organization.
+ *
+ * GET /api/v1/organization/code-ranges
+ *
+ * The endpoint resolves the organization from the JWT security context.
+ * No organization ID is sent from the frontend.
+ *
+ * @returns {Promise<Object>} API response with data containing CodeRangeResponse[]
+ */
+export async function getOrganizationCodeRanges() {
+    return apiRequest(
+        "/organization/code-ranges",
+        {
+            method: "GET"
+        }
+    );
+}

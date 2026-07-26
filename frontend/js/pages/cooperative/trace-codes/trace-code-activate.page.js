@@ -15,6 +15,10 @@ import {
     activateTraceCodes
 } from "../../../services/trace-code.service.js";
 
+import {
+    getOrganizationCodeRanges
+} from "../../../services/code-range.service.js";
+
 const LOGIN_URL =
     "/frontend/pages/auth/login.html";
 
@@ -530,7 +534,40 @@ function renderProductionLots(lots) {
     updateSummary();
 }
 
-function renderCodeRangeFromUrl() {
+/**
+ * Get a human-readable label for a code range response object.
+ *
+ * @param {Object} cr - A CodeRangeResponse object
+ * @returns {string}
+ */
+function getCodeRangeLabel(cr) {
+    var prefix = cr.prefix || "—";
+    var totalLimit = cr.totalLimit != null
+        ? formatNumber(cr.totalLimit)
+        : "—";
+    var usedCount = cr.usedCount != null
+        ? formatNumber(cr.usedCount)
+        : "—";
+    var remaining = (cr.totalLimit != null && cr.usedCount != null)
+        ? formatNumber(cr.totalLimit - cr.usedCount)
+        : "—";
+    var createdDate = cr.createdAt
+        ? formatDateTime(cr.createdAt)
+        : "—";
+
+    return prefix +
+        " | Tổng: " + totalLimit +
+        " | Đã dùng: " + usedCount +
+        " | Còn lại: " + remaining +
+        " | Ngày tạo: " + createdDate;
+}
+
+/**
+ * Render the code range dropdown with data fetched from GET /api/v1/organization/code-ranges.
+ *
+ * @param {Array} codeRanges - Array of CodeRangeResponse objects
+ */
+function renderCodeRanges(codeRanges) {
     elements.codeRange.innerHTML = "";
 
     elements.codeRange.appendChild(
@@ -540,11 +577,11 @@ function renderCodeRangeFromUrl() {
         )
     );
 
-    if (!codeRangeIdFromUrl) {
+    if (!codeRanges || codeRanges.length === 0) {
         elements.codeRange.appendChild(
             createOption(
                 "",
-                "Chưa có API lấy danh sách dải tem",
+                "Không có dải tem nào cho tổ chức của bạn",
                 true
             )
         );
@@ -553,7 +590,7 @@ function renderCodeRangeFromUrl() {
         elements.submitButton.disabled = true;
 
         showFormMessage(
-            "Tài liệu hiện chỉ có API kích hoạt tem, chưa có API lấy danh sách dải tem. Hãy mở trang với tham số codeRangeId hoặc bổ sung API danh sách dải tem.",
+            "Không có dải tem nào khả dụng cho tổ chức của bạn. Vui lòng liên hệ quản trị viên nền tảng.",
             "error"
         );
 
@@ -561,22 +598,117 @@ function renderCodeRangeFromUrl() {
         return;
     }
 
-    const label =
-        codeRangeLabelFromUrl ||
-        `Dải tem ${codeRangeIdFromUrl}`;
+    codeRanges.forEach(function (cr) {
+        elements.codeRange.appendChild(
+            createOption(
+                String(cr.id),
+                getCodeRangeLabel(cr)
+            )
+        );
+    });
 
-    elements.codeRange.appendChild(
-        createOption(
-            codeRangeIdFromUrl,
-            label
-        )
-    );
+    elements.codeRange.disabled = false;
 
-    elements.codeRange.value =
-        codeRangeIdFromUrl;
+    // If a code range was pre-selected via URL params, try to match it
+    if (codeRangeIdFromUrl) {
+        var matchingRange = codeRanges.find(function (cr) {
+            return String(cr.id) === String(codeRangeIdFromUrl);
+        });
 
-    elements.codeRange.disabled = true;
+        if (matchingRange) {
+            elements.codeRange.value = String(matchingRange.id);
+            elements.codeRange.disabled = true;
+        } else {
+            showFormMessage(
+                "Dải tem được chỉ định không tồn tại hoặc không thuộc tổ chức của bạn."
+            );
+            elements.submitButton.disabled = true;
+        }
+    }
+
     updateSummary();
+}
+
+/**
+ * Load code ranges from GET /api/v1/organization/code-ranges.
+ * The backend resolves the organization from the JWT security context.
+ *
+ * For VT-03 users who lack permission, this is handled gracefully.
+ */
+async function loadCodeRanges() {
+    try {
+        var response = await getOrganizationCodeRanges();
+
+        if (
+            !response ||
+            response.success !== true
+        ) {
+            throw new Error(
+                response && response.message
+                    ? response.message
+                    : "Không thể tải danh sách dải tem."
+            );
+        }
+
+        var codeRanges = normalizeListData(response);
+        renderCodeRanges(codeRanges);
+    } catch (error) {
+        console.error(
+            "Load organization code ranges error:",
+            error
+        );
+
+        // Provide a descriptive message in the dropdown
+        elements.codeRange.innerHTML = "";
+
+        elements.codeRange.appendChild(
+            createOption(
+                "",
+                "-- Chọn dải tem --"
+            )
+        );
+
+        var errorMessage = error.message || "";
+
+        // Detect 403 Forbidden from the error message
+        if (
+            errorMessage.indexOf("403") !== -1 ||
+            errorMessage.indexOf("truy cập") !== -1 ||
+            errorMessage.indexOf("quyền") !== -1 ||
+            errorMessage.indexOf("Forbidden") !== -1 ||
+            errorMessage.indexOf("denied") !== -1
+        ) {
+            elements.codeRange.appendChild(
+                createOption(
+                    "",
+                    "Bạn không có quyền truy cập danh sách dải tem",
+                    true
+                )
+            );
+
+            showFormMessage(
+                "Tài khoản của bạn không có quyền xem danh sách dải tem. Vui lòng liên hệ quản trị viên.",
+                "error"
+            );
+        } else {
+            elements.codeRange.appendChild(
+                createOption(
+                    "",
+                    "Không thể tải danh sách dải tem: " + errorMessage,
+                    true
+                )
+            );
+
+            showFormMessage(
+                "Không thể tải danh sách dải tem. Vui lòng thử lại sau.",
+                "error"
+            );
+        }
+
+        elements.codeRange.disabled = true;
+        elements.submitButton.disabled = true;
+        updateSummary();
+    }
 }
 
 async function loadInitialData() {
@@ -604,7 +736,10 @@ async function loadInitialData() {
                 .filter(isAllowedProductionLot);
 
         renderProductionLots(lots);
-        renderCodeRangeFromUrl();
+
+        // Load code ranges for the organization
+        await loadCodeRanges();
+
         showOnly("main");
     } catch (error) {
         console.error(

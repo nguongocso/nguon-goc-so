@@ -28,6 +28,7 @@ import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
+import vn.nguongocso.notification.NotificationService;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.trace.dto.request.CreateShipmentRequest;
 import vn.nguongocso.trace.dto.response.ShipmentResponse;
@@ -39,7 +40,6 @@ import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.CodeRangeRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
-import vn.nguongocso.trace.service.QRCodeService;
 import vn.nguongocso.trace.service.impl.ShipmentServiceImpl;
 
 @ExtendWith(MockitoExtension.class)
@@ -62,6 +62,9 @@ class ShipmentServiceImplTest {
 
     @Mock
     private QRCodeService qrCodeService;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private ShipmentServiceImpl shipmentService;
@@ -104,6 +107,9 @@ class ShipmentServiceImplTest {
         lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
 
+        // Default mock for userRepository.findById to return the authenticated user
+        lenient().when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
         productionLot = new ProductionLot();
         productionLot.setId(productionLotId);
         productionLot.setName("Lô cà chua vụ Đông");
@@ -129,6 +135,16 @@ class ShipmentServiceImplTest {
         SecurityContextHolder.clearContext();
     }
 
+    private void mockCodeRangeFindAll(List<CodeRange> ranges) {
+        when(codeRangeRepository.findAllByOrganizationOrganizationId(organizationId))
+                .thenReturn(ranges);
+    }
+
+    private void mockCodeRangeLock(CodeRange cr) {
+        when(codeRangeRepository.findByIdAndOrganizationIdForUpdate(cr.getId(), organizationId))
+                .thenReturn(Optional.of(cr));
+    }
+
     // ==================== TEST createShipment ====================
 
     @Test
@@ -137,8 +153,8 @@ class ShipmentServiceImplTest {
         when(productionLotRepository.findById(productionLotId))
                 .thenReturn(Optional.of(productionLot));
 
-        when(codeRangeRepository.findByOrganizationOrganizationId(organizationId))
-                .thenReturn(Optional.of(codeRange));
+        mockCodeRangeFindAll(List.of(codeRange));
+        mockCodeRangeLock(codeRange);
 
         when(shipmentRepository.save(any(Shipment.class)))
                 .thenAnswer(invocation -> {
@@ -179,7 +195,7 @@ class ShipmentServiceImplTest {
         verify(shipmentRepository).save(any(Shipment.class));
         verify(traceCodeRepository).saveAll(anyList());
         verify(productionLotRepository).findById(productionLotId);
-        verify(codeRangeRepository).findByOrganizationOrganizationId(organizationId);
+        verify(codeRangeRepository).findAllByOrganizationOrganizationId(organizationId);
         verify(qrCodeService, times(50)).generateQRCode(anyString(), any(), any(), any());
     }
 
@@ -210,7 +226,7 @@ class ShipmentServiceImplTest {
                 .hasMessage("Không tìm thấy lô sản xuất.");
 
         verify(productionLotRepository).findById(productionLotId);
-        verify(codeRangeRepository, never()).findByOrganizationOrganizationId(any());
+        verify(codeRangeRepository, never()).findAllByOrganizationOrganizationId(any());
         verify(shipmentRepository, never()).save(any());
     }
 
@@ -229,7 +245,7 @@ class ShipmentServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Bạn không thuộc tổ chức của lô sản xuất.");
 
-        verify(codeRangeRepository, never()).findByOrganizationOrganizationId(any());
+        verify(codeRangeRepository, never()).findAllByOrganizationOrganizationId(any());
         verify(shipmentRepository, never()).save(any());
     }
 
@@ -245,7 +261,7 @@ class ShipmentServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Chỉ có thể tạo lô hàng từ lô sản xuất đã đóng gói.");
 
-        verify(codeRangeRepository, never()).findByOrganizationOrganizationId(any());
+        verify(codeRangeRepository, never()).findAllByOrganizationOrganizationId(any());
         verify(shipmentRepository, never()).save(any());
     }
 
@@ -255,15 +271,14 @@ class ShipmentServiceImplTest {
         when(productionLotRepository.findById(productionLotId))
                 .thenReturn(Optional.of(productionLot));
 
-        when(codeRangeRepository.findByOrganizationOrganizationId(organizationId))
-                .thenReturn(Optional.empty());
+        mockCodeRangeFindAll(List.of());  // empty list
 
         // Act & Assert
         assertThatThrownBy(() -> shipmentService.createShipment(request))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Tổ chức chưa được cấp dải mã truy xuất.");
 
-        verify(codeRangeRepository).findByOrganizationOrganizationId(organizationId);
+        verify(codeRangeRepository).findAllByOrganizationOrganizationId(organizationId);
         verify(shipmentRepository, never()).save(any());
         verify(traceCodeRepository, never()).saveAll(any());
     }
@@ -275,15 +290,19 @@ class ShipmentServiceImplTest {
                 .thenReturn(Optional.of(productionLot));
 
         codeRange.setUsedCount(980L);
-        when(codeRangeRepository.findByOrganizationOrganizationId(organizationId))
-                .thenReturn(Optional.of(codeRange));
+        mockCodeRangeFindAll(List.of(codeRange));
+        // The lock query will be called with the same codeRange since it still has capacity (1000-980=20)
+        // But request quantity is 50, which exceeds 20
+        // However, findAvailableCodeRange will select it and lock it before checking
+        // We need the lock to return the codeRange
+        mockCodeRangeLock(codeRange);
 
         // Act & Assert
         assertThatThrownBy(() -> shipmentService.createShipment(request))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Số lượng tem vượt quá hạn mức dải mã còn lại.");
 
-        verify(codeRangeRepository).findByOrganizationOrganizationId(organizationId);
+        verify(codeRangeRepository).findAllByOrganizationOrganizationId(organizationId);
         verify(shipmentRepository, never()).save(any());
         verify(traceCodeRepository, never()).saveAll(any());
     }
@@ -298,8 +317,8 @@ class ShipmentServiceImplTest {
         when(productionLotRepository.findById(productionLotId))
                 .thenReturn(Optional.of(productionLot));
 
-        when(codeRangeRepository.findByOrganizationOrganizationId(organizationId))
-                .thenReturn(Optional.of(codeRange));
+        mockCodeRangeFindAll(List.of(codeRange));
+        mockCodeRangeLock(codeRange);
 
         when(shipmentRepository.save(any(Shipment.class)))
                 .thenAnswer(invocation -> {

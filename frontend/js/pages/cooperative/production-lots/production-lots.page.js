@@ -299,6 +299,11 @@ function createThreeDotMenu(lot, normalizedStatus) {
                     { label: "View Details", action: "view-details" },
                     { label: "Check Packaging", action: "check-packaging" }
                 ];
+            } else if (normalizedStatus === "PACKAGED") {
+                menuItems = [
+                    { label: "View Details", action: "view-details" },
+                    { label: "Create Shipment", action: "create-shipment" }
+                ];
             }
         } else if (roleCode === "VT-01") {
             if (normalizedStatus === "HARVESTED") {
@@ -377,6 +382,9 @@ function handleMenuAction(action, lot) {
             break;
         case "check-packaging":
             openPackagingCheckModal(lot);
+            break;
+        case "create-shipment":
+            window.location.href = `create-shipment.html?id=${encodeURIComponent(lot.id)}`;
             break;
     }
 }

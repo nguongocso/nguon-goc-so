@@ -2,14 +2,17 @@ package vn.nguongocso.trace.service.impl;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
@@ -40,6 +43,8 @@ import vn.nguongocso.trace.dto.response.TraceCodeResponse;
 @Transactional
 @RequiredArgsConstructor
 public class ShipmentServiceImpl implements ShipmentService {
+
+	private static final Logger log = LoggerFactory.getLogger(ShipmentServiceImpl.class);
 
 	private final ShipmentRepository shipmentRepository;
 	private final TraceCodeRepository traceCodeRepository;
@@ -72,9 +77,15 @@ public class ShipmentServiceImpl implements ShipmentService {
 	@Override
 	public ShipmentResponse createShipment(CreateShipmentRequest request) {
 
+		log.info("Creating shipment: name={}, productionLotId={}, totalQuantity={}",
+				request.getName(), request.getProductionLotId(), request.getTotalQuantity());
+
 		CustomUserDetails currentUser = getCurrentUser();
 
 		validateRole(currentUser, ORG_MANAGER_ROLE, "Bạn không có quyền tạo lô hàng.");
+
+		log.debug("User authenticated: userId={}, organizationId={}, role={}",
+				currentUser.getUserId(), currentUser.getOrganizationId(), currentUser.getRoleCode());
 
 		ProductionLot productionLot = findProductionLot(request.getProductionLotId());
 
@@ -88,18 +99,28 @@ public class ShipmentServiceImpl implements ShipmentService {
 
 		Shipment shipment = createShipmentEntity(request, productionLot, currentUser);
 
-		shipmentRepository.save(shipment);
+		shipment = shipmentRepository.save(shipment);
+		log.debug("Shipment saved with id: {}", shipment.getId());
 
 		List<TraceCode> traceCodes = generateTraceCodes(shipment, codeRange, request.getTotalQuantity());
+		log.debug("Generated {} trace codes", traceCodes.size());
 
 		traceCodes = traceCodeRepository.saveAll(traceCodes);
+		log.debug("Saved {} trace codes to database", traceCodes.size());
 
 		updateCodeRange(codeRange, request.getTotalQuantity());
 		codeRangeRepository.save(codeRange);
+		log.debug("Updated code range usedCount: {}/{}", codeRange.getUsedCount(), codeRange.getTotalLimit());
+
+			checkAndSendAlert(codeRange);
 
 		shipment.setStatus(ShipmentStatus.CODE_PRINTED);
 
-		return buildShipmentResponse(shipment, traceCodes, currentUser.getFullName());
+		String createdByName = currentUser.getFullName();
+		ShipmentResponse response = buildShipmentResponse(shipment, traceCodes, createdByName);
+		log.info("Shipment created successfully: id={}, traceCodes={}", response.getId(), traceCodes.size());
+
+		return response;
 	}
 
 	/**
@@ -242,8 +263,42 @@ public class ShipmentServiceImpl implements ShipmentService {
 	 */
 	private CodeRange findAvailableCodeRange(CustomUserDetails currentUser) {
 
-		return codeRangeRepository.findByOrganizationOrganizationId(currentUser.getOrganizationId())
+		UUID organizationId = currentUser.getOrganizationId();
+
+		// 1. Load all CodeRanges belonging to the organization
+		List<CodeRange> allCodeRanges = codeRangeRepository.findAllByOrganizationOrganizationId(organizationId);
+
+		if (allCodeRanges.isEmpty()) {
+			throw new BusinessException(CODE_RANGE_NOT_FOUND_MESSAGE);
+		}
+
+		// 2. Find CodeRanges with available capacity (totalLimit > usedCount)
+		List<CodeRange> available = allCodeRanges.stream()
+				.filter(cr -> cr.getTotalLimit() > cr.getUsedCount())
+				.toList();
+
+		if (available.isEmpty()) {
+			// All CodeRanges are exhausted
+			throw new BusinessException(CODE_RANGE_LIMIT_EXCEEDED_MESSAGE);
+		}
+
+		// 3. Select the CodeRange with greatest remaining capacity (deterministic)
+		CodeRange candidate = available.stream()
+				.max(Comparator.comparingLong(cr -> cr.getTotalLimit() - cr.getUsedCount()))
+				.orElseThrow(() -> new BusinessException(CODE_RANGE_LIMIT_EXCEEDED_MESSAGE));
+
+		// 4. Lock the selected CodeRange using PESSIMISTIC_WRITE
+		CodeRange lockedCodeRange = codeRangeRepository
+				.findByIdAndOrganizationIdForUpdate(candidate.getId(), organizationId)
 				.orElseThrow(() -> new BusinessException(CODE_RANGE_NOT_FOUND_MESSAGE));
+
+		// 5. Re-check the actual current capacity after acquiring the lock
+		long remaining = lockedCodeRange.getTotalLimit() - lockedCodeRange.getUsedCount();
+		if (remaining <= 0) {
+			throw new BusinessException(CODE_RANGE_LIMIT_EXCEEDED_MESSAGE);
+		}
+
+		return lockedCodeRange;
 	}
 
 	/**
@@ -286,8 +341,8 @@ public class ShipmentServiceImpl implements ShipmentService {
 
 		shipment.setStatus(ShipmentStatus.DRAFT);
 
-		User createdBy = new User();
-		createdBy.setUserId(currentUser.getUserId());
+		User createdBy = userRepository.findById(currentUser.getUserId())
+				.orElseThrow(() -> new BusinessException("Người dùng không tồn tại."));
 
 		shipment.setCreatedBy(createdBy);
 

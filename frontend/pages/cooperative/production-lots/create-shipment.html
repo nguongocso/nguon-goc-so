@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width,
+        initial-scale=1.0">
+
+    <title>
+        Create Shipment | Nguồn Gốc Số
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="../../../css/reset.css">
+
+    <link
+        rel="stylesheet"
+        href="../../../css/variables.css">
+
+    <link
+        rel="stylesheet"
+        href="../../../css/global.css">
+
+    <link
+        rel="stylesheet"
+        href="../../../css/layouts/dashboard-layout.css">
+
+    <link
+        rel="stylesheet"
+        href="../../../css/components/button.css">
+
+    <link
+        rel="stylesheet"
+        href="../../../css/pages/cooperative/dashboard.css">
+
+    <link
+        rel="stylesheet"
+        href="../../../css/pages/cooperative/create-shipment.css">
+
+</head>
+
+<body>
+
+    <div class="dashboard-layout">
+
+        <aside class="sidebar">
+
+            <div class="sidebar-logo">
+                Nguồn Gốc Số
+            </div>
+
+            <nav class="sidebar-menu">
+
+                <a
+    id="dashboardMenu"
+    href="/frontend/pages/cooperative/dashboard.html"
+>
+    Dashboard
+</a>
+
+<a
+    id="farmAreasMenu"
+    href="/frontend/pages/cooperative/farm-areas/index.html"
+>
+    Farm Areas
+</a>
+
+<a
+    id="productionLotsMenu"
+    href="/frontend/pages/cooperative/production-lots/index.html"
+    class="active"
+>
+    Production Lots
+</a>
+
+<a
+    id="organizationProfileMenu"
+    href="/frontend/pages/cooperative/profile.html"
+>
+    Organization Profile
+</a>
+
+            </nav>
+
+            <div class="sidebar-user" id="sidebarUser">
+                <div class="sidebar-user-avatar" id="sidebarUserAvatar"></div>
+                <div class="sidebar-user-info">
+                    <strong id="sidebarUserName">—</strong>
+                    <span id="sidebarUserOrg">—</span>
+                </div>
+            </div>
+
+        </aside>
+
+        <main class="dashboard-main">
+
+            <header class="dashboard-header">
+
+                <div>
+                    <h1>
+                        Create Shipment
+                    </h1>
+
+                    <p class="text-muted">
+                        Create a shipment from a packaged production lot.
+                    </p>
+                </div>
+
+                <div class="header-actions">
+
+                    <div class="user-badge" id="headerUserBadge">
+                        <span id="headerUserRole" class="user-role-badge">—</span>
+                        <span id="headerUserName">—</span>
+                        <span class="user-org-sep">|</span>
+                        <span id="headerUserOrg">—</span>
+                    </div>
+
+                    <button
+                        id="logoutButton"
+                        class="btn btn-secondary">
+
+                        Logout
+
+                    </button>
+
+                </div>
+
+            </header>
+
+            <section class="dashboard-content">
+
+                <!-- Loading State -->
+                <div id="loadingState" class="state-container" style="display: none;">
+                    <div class="state-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 6v6l4 2" />
+                        </svg>
+                    </div>
+                    <p class="state-text">Loading production lot...</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="errorState" class="state-container" style="display: none;">
+                    <div class="state-icon state-error-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                    </div>
+                    <p id="errorMessage" class="state-text state-error-text">An error occurred.</p>
+                    <button id="retryButton" class="btn btn-secondary">Retry</button>
+                </div>
+
+                <!-- Unauthorized State -->
+                <div id="unauthorizedState" class="state-container" style="display: none;">
+                    <div class="state-icon state-error-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                    </div>
+                    <p class="state-text state-error-text">You do not have permission to access this page.</p>
+                    <a href="/frontend/pages/auth/login.html" class="btn btn-secondary">Back to Login</a>
+                </div>
+
+                <!-- Main Content -->
+                <div id="mainContent" style="display: none;">
+
+                    <div class="cs-container">
+
+                        <!-- Production Lot Info Card -->
+                        <div class="cs-card">
+                            <div class="cs-card-header">
+                                <h2>Production Lot</h2>
+                            </div>
+
+                            <div class="cs-card-body">
+                                <div class="cs-info-row">
+                                    <span class="cs-info-label">Lot Code</span>
+                                    <span class="cs-info-value" id="lotName">—</span>
+                                </div>
+                                <div class="cs-info-row">
+                                    <span class="cs-info-label">Product</span>
+                                    <span class="cs-info-value" id="lotProductCategory">—</span>
+                                </div>
+                                <div class="cs-info-row">
+                                    <span class="cs-info-label">Farm Area</span>
+                                    <span class="cs-info-value" id="lotFarmArea">—</span>
+                                </div>
+                                <div class="cs-info-row">
+                                    <span class="cs-info-label">Status</span>
+                                    <span class="cs-info-value">
+                                        <span class="status-badge status-badge-packaged" id="lotStatus">PACKAGED</span>
+                                    </span>
+                                </div>
+                                <div class="cs-info-row">
+                                    <span class="cs-info-label">Actual Quantity</span>
+                                    <span class="cs-info-value" id="lotActualQuantity">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Shipment Form Card -->
+                        <div class="cs-card">
+                            <div class="cs-card-header">
+                                <h2>Shipment Information</h2>
+                            </div>
+
+                            <div class="cs-card-body">
+
+                                <div id="formMessage" class="cs-form-message" style="display: none;"></div>
+
+                                <form id="createShipmentForm" novalidate>
+
+                                    <input type="hidden" id="productionLotId" value="">
+
+                                    <div class="cs-form-group">
+                                        <label for="shipmentName">
+                                            Shipment Name <span class="required">*</span>
+                                        </label>
+
+                                        <input
+                                            id="shipmentName"
+                                            type="text"
+                                            maxlength="255"
+                                            required
+                                            placeholder="Enter shipment name">
+
+                                        <small
+                                            id="shipmentNameError"
+                                            class="field-error"></small>
+                                    </div>
+
+                                    <div class="cs-form-group">
+                                        <label for="totalQuantity">
+                                            Total Quantity <span class="required">*</span>
+                                        </label>
+
+                                        <input
+                                            id="totalQuantity"
+                                            type="number"
+                                            min="1"
+                                            step="1"
+                                            required
+                                            placeholder="Enter total quantity">
+
+                                        <small
+                                            id="totalQuantityError"
+                                            class="field-error"></small>
+                                    </div>
+
+                                    <div class="cs-form-group">
+                                        <label for="packagingInfo">
+                                            Packaging Information
+                                        </label>
+
+                                        <textarea
+                                            id="packagingInfo"
+                                            rows="3"
+                                            placeholder="Optional packaging details"></textarea>
+                                    </div>
+
+                                    <div class="cs-form-actions">
+                                        <a
+                                            href="/frontend/pages/cooperative/production-lots/index.html"
+                                            class="btn btn-secondary">
+                                            Cancel
+                                        </a>
+
+                                        <button
+                                            id="submitShipmentButton"
+                                            type="submit"
+                                            class="btn btn-primary">
+                                            Create Shipment
+                                        </button>
+                                    </div>
+
+                                </form>
+
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <script
+        type="module"
+        src="../../../js/pages/cooperative/production-lots/create-shipment.page.js">
+    </script>
+
+</body>
+
+</html>
