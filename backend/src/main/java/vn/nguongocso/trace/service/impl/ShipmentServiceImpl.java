@@ -431,6 +431,26 @@ public class ShipmentServiceImpl implements ShipmentService {
 				.createdByName(createdByName).createdAt(shipment.getCreatedAt()).build();
 	}
 
+	@Override
+	public List<ShipmentResponse> getShipmentsByOrganization(UUID organizationId) {
+		log.info("Fetching shipments for organization: {}", organizationId);
+		
+		List<Shipment> shipments = shipmentRepository.findByOrganizationOrganizationIdOrderByCreatedAtDesc(organizationId);
+		
+		return shipments.stream()
+				.map(shipment -> {
+					String createdByName = null;
+					if (shipment.getCreatedBy() != null) {
+						createdByName = userRepository.findById(shipment.getCreatedBy().getUserId())
+								.map(User::getFullName)
+								.orElse(null);
+					}
+					List<TraceCode> traceCodes = traceCodeRepository.findByShipmentId(shipment.getId());
+					return buildShipmentResponse(shipment, traceCodes, createdByName);
+				})
+				.collect(java.util.stream.Collectors.toList());
+	}
+
 	private void checkAndSendAlert(CodeRange range) {
 		double percent = (double) range.getUsedCount() / range.getTotalLimit() * 100;
 		if (percent >= 80 && percent < 100) {

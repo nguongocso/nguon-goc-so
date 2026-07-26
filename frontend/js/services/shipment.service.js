@@ -29,3 +29,20 @@ export async function createShipment(
         }
     );
 }
+
+/**
+ * Fetch all shipments for the
+ * authenticated organization.
+ *
+ * GET /api/v1/shipments
+ *
+ * @returns {Promise<Object>}
+ */
+export async function getShipments() {
+    return apiRequest(
+        "/shipments",
+        {
+            method: "GET"
+        }
+    );
+}

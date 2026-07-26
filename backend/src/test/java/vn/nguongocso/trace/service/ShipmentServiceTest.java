@@ -20,15 +20,18 @@ import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.trace.dto.request.CreateShipmentRequest;
+import vn.nguongocso.trace.dto.response.ShipmentResponse;
 import vn.nguongocso.trace.entity.CodeRange;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
+import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.CodeRangeRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.impl.ShipmentServiceImpl;
 import vn.nguongocso.notification.NotificationService;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -482,5 +485,120 @@ public class ShipmentServiceTest {
 
         // Verify QR service was called correct number of times
         verify(qrCodeService, times(3)).generateQRCode(anyString(), any(), any(), any());
+    }
+
+    // ==================== Shipment Listing Tests ====================
+
+    @Test
+    void getShipmentsByOrganization_shouldReturnOnlyOrganizationShipments() {
+
+        // Given
+        UUID orgId1 = UUID.randomUUID();
+        UUID orgId2 = UUID.randomUUID();
+
+        Organization org1 = new Organization();
+        org1.setOrganizationId(orgId1);
+        org1.setName("Org 1");
+
+        Organization org2 = new Organization();
+        org2.setOrganizationId(orgId2);
+        org2.setName("Org 2");
+
+        ProductionLot lot1 = new ProductionLot();
+        lot1.setId(UUID.randomUUID());
+        lot1.setOrganization(org1);
+        lot1.setName("Lot 1");
+
+        ProductionLot lot2 = new ProductionLot();
+        lot2.setId(UUID.randomUUID());
+        lot2.setOrganization(org2);
+        lot2.setName("Lot 2");
+
+        Shipment shipmentForOrg1 = new Shipment();
+        shipmentForOrg1.setId(UUID.randomUUID());
+        shipmentForOrg1.setOrganization(org1);
+        shipmentForOrg1.setProductionLot(lot1);
+        shipmentForOrg1.setName("Shipment 1");
+        shipmentForOrg1.setTotalQuantity(100);
+        shipmentForOrg1.setStatus(ShipmentStatus.CODE_PRINTED);
+
+        Shipment shipmentForOrg2 = new Shipment();
+        shipmentForOrg2.setId(UUID.randomUUID());
+        shipmentForOrg2.setOrganization(org2);
+        shipmentForOrg2.setProductionLot(lot2);
+        shipmentForOrg2.setName("Shipment 2");
+        shipmentForOrg2.setTotalQuantity(200);
+        shipmentForOrg2.setStatus(ShipmentStatus.DRAFT);
+
+        // Mock: only shipments for org1 are returned
+        when(shipmentRepository.findByOrganizationOrganizationIdOrderByCreatedAtDesc(orgId1))
+                .thenReturn(List.of(shipmentForOrg1));
+        when(traceCodeRepository.findByShipmentId(any()))
+                .thenReturn(Collections.emptyList());
+
+        // When
+        List<ShipmentResponse> result = shipmentService.getShipmentsByOrganization(orgId1);
+
+        // Then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getName()).isEqualTo("Shipment 1");
+        assertThat(result.get(0).getOrganization()).isNull(); // org not mapped in response, but shipment is correct
+
+        // Verify org2's shipment is NOT returned
+        assertThat(result.stream().anyMatch(s -> "Shipment 2".equals(s.getName())))
+                .isFalse();
+    }
+
+    @Test
+    void getShipmentsByOrganization_shouldReturnEmptyList_whenNoShipments() {
+
+        // Given
+        when(shipmentRepository.findByOrganizationOrganizationIdOrderByCreatedAtDesc(orgId))
+                .thenReturn(Collections.emptyList());
+
+        // When
+        List<ShipmentResponse> result = shipmentService.getShipmentsByOrganization(orgId);
+
+        // Then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void getShipmentsByOrganization_shouldReturnMultipleShipments() {
+
+        // Given
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setOrganization(organization);
+        lot.setName("Test Lot");
+
+        Shipment s1 = new Shipment();
+        s1.setId(UUID.randomUUID());
+        s1.setOrganization(organization);
+        s1.setProductionLot(lot);
+        s1.setName("Shipment A");
+        s1.setTotalQuantity(50);
+        s1.setStatus(ShipmentStatus.CODE_PRINTED);
+
+        Shipment s2 = new Shipment();
+        s2.setId(UUID.randomUUID());
+        s2.setOrganization(organization);
+        s2.setProductionLot(lot);
+        s2.setName("Shipment B");
+        s2.setTotalQuantity(100);
+        s2.setStatus(ShipmentStatus.ACTIVATED);
+
+        when(shipmentRepository.findByOrganizationOrganizationIdOrderByCreatedAtDesc(orgId))
+                .thenReturn(List.of(s1, s2));
+        when(traceCodeRepository.findByShipmentId(any()))
+                .thenReturn(Collections.emptyList());
+
+        // When
+        List<ShipmentResponse> result = shipmentService.getShipmentsByOrganization(orgId);
+
+        // Then
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).getName()).isEqualTo("Shipment A");
+        assertThat(result.get(1).getName()).isEqualTo("Shipment B");
     }
 }

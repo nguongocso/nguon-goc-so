@@ -11,7 +11,7 @@
         initial-scale=1.0">
 
     <title>
-        Production Lots | Nguồn Gốc Số
+        Shipments | Nguồn Gốc Số
     </title>
 
     <link
@@ -73,7 +73,6 @@
 <a
     id="productionLotsMenu"
     href="/frontend/pages/cooperative/production-lots/index.html"
-    class="active"
 >
     Production Lots
 </a>
@@ -81,6 +80,7 @@
 <a
     id="shipmentsMenu"
     href="/frontend/pages/cooperative/shipments/index.html"
+    class="active"
 >
     Shipments
 </a>
@@ -110,11 +110,11 @@
 
                 <div>
                     <h1>
-                        Production Lots
+                        Shipments
                     </h1>
 
                     <p class="text-muted">
-                        Manage production lots for your organization.
+                        Manage shipments and trace codes for your organization.
                     </p>
                 </div>
 
@@ -149,7 +149,7 @@
                             <path d="M12 6v6l4 2" />
                         </svg>
                     </div>
-                    <p class="state-text">Loading production lots...</p>
+                    <p class="state-text">Loading shipments...</p>
                 </div>
 
                 <!-- Error State -->
@@ -181,21 +181,14 @@
                 <div id="mainContent" style="display: none;">
 
                     <div class="production-lots-header">
-                        <h2>All Production Lots</h2>
+                        <h2>All Shipments</h2>
                         <div class="production-lots-header-actions">
 
                             <input
                                 type="text"
-                                id="searchProductionLot"
+                                id="searchShipment"
                                 class="table-search"
-                                placeholder="Search production lot...">
-
-                            <a
-                                href="/frontend/pages/cooperative/production-lots/create.html"
-                                class="btn btn-primary production-lot-create-button">
-
-                                + New
-                            </a>
+                                placeholder="Search shipment name...">
 
                         </div>
                     </div>
@@ -212,31 +205,24 @@
                                     <line x1="9" y1="15" x2="15" y2="15" />
                                 </svg>
                             </div>
-                            <p class="empty-state-text">No production lots yet</p>
-                            <p class="empty-state-hint">Create your first production lot to get started.</p>
-                            <a
-                                href="/frontend/pages/cooperative/production-lots/create.html"
-                                class="btn btn-primary production-lot-create-button">
-                                + New Production Lot
-                            </a>
+                            <p id="emptyStateText" class="empty-state-text">No shipments available for your organization.</p>
                         </div>
 
                         <!-- Table -->
                         <div class="production-lots-table-wrapper">
-                            <table id="productionLotsTable" class="production-lots-table" style="display: none;">
+                            <table id="shipmentsTable" class="production-lots-table" style="display: none;">
                                 <thead>
                                     <tr>
-                                        <th>Name</th>
-                                        <th>Farm Area</th>
-                                        <th>Product Category</th>
-                                        <th>Expected Qty</th>
-                                        <th>Planting Date</th>
+                                        <th>Shipment Name</th>
+                                        <th>Production Lot</th>
+                                        <th>Total Quantity</th>
                                         <th>Status</th>
-                                        <th>Created</th>
+                                        <th>Created By</th>
+                                        <th>Created Date</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="productionLotsTableBody">
+                                <tbody id="shipmentsTableBody">
                                 </tbody>
                             </table>
                         </div>
@@ -253,157 +239,8 @@
 
     <script
         type="module"
-        src="../../../js/pages/cooperative/production-lots/production-lots.page.js">
+        src="../../../js/pages/cooperative/shipments/shipments.page.js">
     </script>
-    
-<div id="editLotModal" class="modal" hidden>
-    <div id="editLotOverlay" class="modal__overlay"></div>
-
-    <section
-        class="modal__content"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="editLotTitle"
-    >
-        <header class="modal__header">
-            <div>
-                <h2 id="editLotTitle">Sửa lô sản xuất</h2>
-                <p>Cập nhật thông tin lô sản xuất</p>
-            </div>
-
-            <button
-                id="closeEditLotButton"
-                class="modal__close"
-                type="button"
-            >
-                ×
-            </button>
-        </header>
-
-        <div
-            id="editLotMessage"
-            class="modal-message"
-            hidden
-        ></div>
-
-        <form id="editLotForm" novalidate>
-            <input id="editLotId" type="hidden">
-
-            <div class="modal-form-grid">
-                <div class="form-group">
-                    <label for="editLotName">
-                        Tên lô sản xuất
-                        <span>*</span>
-                    </label>
-
-                    <input
-                        id="editLotName"
-                        type="text"
-                        maxlength="255"
-                        required
-                    >
-
-                    <small
-                        id="editLotNameError"
-                        class="field-error"
-                    ></small>
-                </div>
-
-                <div class="form-group">
-                    <label for="editFarmAreaId">
-                        Khu vực canh tác
-                        <span>*</span>
-                    </label>
-
-                    <select id="editFarmAreaId" required>
-                        <option value="">
-                            -- Chọn khu vực canh tác --
-                        </option>
-                    </select>
-
-                    <small
-                        id="editFarmAreaIdError"
-                        class="field-error"
-                    ></small>
-                </div>
-
-                <div class="form-group">
-                    <label for="editProductCategoryId">
-                        Loại nông sản
-                        <span>*</span>
-                    </label>
-
-                    <select id="editProductCategoryId" required>
-                        <option value="">
-                            -- Chọn loại nông sản --
-                        </option>
-                    </select>
-
-                    <small
-                        id="editProductCategoryIdError"
-                        class="field-error"
-                    ></small>
-                </div>
-
-                <div class="form-group">
-                    <label for="editExpectedQuantity">
-                        Sản lượng dự kiến
-                        <span>*</span>
-                    </label>
-
-                    <input
-                        id="editExpectedQuantity"
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        required
-                    >
-
-                    <small
-                        id="editExpectedQuantityError"
-                        class="field-error"
-                    ></small>
-                </div>
-
-                <div class="form-group modal-form-grid__full">
-                    <label for="editPlantingDate">
-                        Ngày xuống giống
-                        <span>*</span>
-                    </label>
-
-                    <input
-                        id="editPlantingDate"
-                        type="date"
-                        required
-                    >
-
-                    <small
-                        id="editPlantingDateError"
-                        class="field-error"
-                    ></small>
-                </div>
-            </div>
-
-            <footer class="modal__actions">
-                <button
-                    id="cancelEditLotButton"
-                    class="btn btn-secondary"
-                    type="button"
-                >
-                    Hủy
-                </button>
-
-                <button
-                    id="updateEditLotButton"
-                    class="btn btn-primary"
-                    type="submit"
-                >
-                    Cập nhật
-                </button>
-            </footer>
-        </form>
-    </section>
-</div>
 
 </body>
 

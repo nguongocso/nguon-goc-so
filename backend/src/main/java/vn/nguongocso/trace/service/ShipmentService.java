@@ -19,5 +19,6 @@ public interface ShipmentService {
      */
 	ShipmentResponse createShipment(CreateShipmentRequest request);
     ShipmentResponse activateShipmentStamps(UUID shipmentId);
+    java.util.List<ShipmentResponse> getShipmentsByOrganization(UUID organizationId);
 	
 }
