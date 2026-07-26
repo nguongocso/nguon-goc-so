@@ -46,3 +46,21 @@ export async function getShipments() {
         }
     );
 }
+
+/**
+ * Fetch a single shipment by ID
+ * with its trace codes.
+ *
+ * GET /api/v1/shipments/{id}
+ *
+ * @param {string} id
+ * @returns {Promise<Object>}
+ */
+export async function getShipmentById(id) {
+    return apiRequest(
+        `/shipments/${encodeURIComponent(id)}`,
+        {
+            method: "GET"
+        }
+    );
+}

@@ -246,7 +246,7 @@ function createThreeDotMenu(shipment) {
 function handleMenuAction(action, shipment) {
     switch (action) {
         case "view-trace-codes":
-            window.location.href = "/frontend/pages/cooperative/shipment/tracecode.html?id=" + encodeURIComponent(shipment.id);
+            window.location.href = "/frontend/pages/cooperative/shipments/detail.html?id=" + encodeURIComponent(shipment.id);
             break;
     }
 }

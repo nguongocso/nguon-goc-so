@@ -58,5 +58,22 @@ public class ShipmentController {
         return ApiResult.success(shipmentService.getShipmentsByOrganization(userDetails.getOrganizationId()));
     }
 
+    /**
+     * Lấy thông tin chi tiết lô hàng theo id.
+     * Chỉ trả về lô hàng thuộc tổ chức của người dùng đang đăng nhập.
+     *
+     * @param id mã lô hàng
+     * @param userDetails thông tin người dùng hiện tại
+     * @return thông tin lô hàng kèm danh sách mã truy xuất
+     */
+    @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ApiResult<ShipmentResponse> getShipmentById(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        return ApiResult.success(shipmentService.getShipmentById(id, userDetails.getOrganizationId()));
+    }
+
 }
 

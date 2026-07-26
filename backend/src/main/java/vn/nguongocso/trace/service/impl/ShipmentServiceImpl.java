@@ -432,6 +432,27 @@ public class ShipmentServiceImpl implements ShipmentService {
 	}
 
 	@Override
+	public ShipmentResponse getShipmentById(UUID shipmentId, UUID organizationId) {
+		log.info("Fetching shipment: id={}, organizationId={}", shipmentId, organizationId);
+		
+		Shipment shipment = shipmentRepository.findById(shipmentId)
+				.orElseThrow(() -> new BusinessException("Không tìm thấy lô hàng."));
+		
+		if (!shipment.getOrganization().getOrganizationId().equals(organizationId)) {
+			throw new BusinessException("Bạn không có quyền xem lô hàng này.");
+		}
+		
+		String createdByName = null;
+		if (shipment.getCreatedBy() != null) {
+			createdByName = userRepository.findById(shipment.getCreatedBy().getUserId())
+					.map(User::getFullName)
+					.orElse(null);
+		}
+		List<TraceCode> traceCodes = traceCodeRepository.findByShipmentId(shipment.getId());
+		return buildShipmentResponse(shipment, traceCodes, createdByName);
+	}
+
+	@Override
 	public List<ShipmentResponse> getShipmentsByOrganization(UUID organizationId) {
 		log.info("Fetching shipments for organization: {}", organizationId);
 		
