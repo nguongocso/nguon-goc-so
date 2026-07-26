@@ -36,4 +36,11 @@ public class CodeRangeController {
     public ResponseEntity<ApiResult<List<CodeRangeStatusResponse>>> getStatus() {
         return ResponseEntity.ok(ApiResult.success(codeRangeService.getCodeRangeStatus()));
     }
+
+    @GetMapping("/organization/code-ranges")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<List<CodeRangeResponse>>> getOrganizationCodeRanges(
+            @AuthenticationPrincipal CustomUserDetails user) {
+        return ResponseEntity.ok(ApiResult.success(codeRangeService.getCodeRangesForOrganization(user)));
+    }
 }

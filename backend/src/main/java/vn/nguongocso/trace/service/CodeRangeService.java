@@ -15,6 +15,7 @@ import vn.nguongocso.trace.entity.CodeRange;
 import vn.nguongocso.trace.repository.CodeRangeRepository;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -96,5 +97,11 @@ public class CodeRangeService {
                 .usagePercent(Math.round(percent * 10) / 10.0)
                 .status(status)
                 .build();
+    }
+
+    public List<CodeRangeResponse> getCodeRangesForOrganization(CustomUserDetails user) {
+        UUID orgId = user.getOrganizationId();
+        List<CodeRange> ranges = codeRangeRepository.findAllByOrganizationOrganizationId(orgId);
+        return ranges.stream().map(this::toResponse).collect(Collectors.toList());
     }
 }
