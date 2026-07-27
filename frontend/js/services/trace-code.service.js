@@ -33,3 +33,29 @@ export async function activateShipmentTraceCodes(
         }
     );
 }
+
+/**
+ * Cấp dải mã truy xuất cho một tổ chức.
+ *
+ * POST /api/v1/admin/code-ranges
+ *
+ * @param {{
+ *   organizationId: string,
+ *   prefix: string,
+ *   totalLimit: number
+ * }} codeRangeData
+ * @returns {Promise<Object>}
+ */
+export async function createCodeRange(
+    codeRangeData
+) {
+    return apiRequest(
+        "/admin/code-ranges",
+        {
+            method: "POST",
+            body: JSON.stringify(
+                codeRangeData
+            )
+        }
+    );
+}
