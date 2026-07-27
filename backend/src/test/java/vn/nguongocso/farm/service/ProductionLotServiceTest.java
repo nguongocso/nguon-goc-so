@@ -118,7 +118,7 @@ public class ProductionLotServiceTest {
     // Given
     ApproveProductionLotRequest request = new ApproveProductionLotRequest();
     request.setApproved(false);
-    request.setApprovalNotes("Thiếu thông tin vùng trồng");
+    request.setReason("Thiếu thông tin vùng trồng");
 
         ProductionLot lot = createPendingLot();
         User approver = new User();
