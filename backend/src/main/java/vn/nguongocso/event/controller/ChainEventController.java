@@ -99,6 +99,6 @@ public class ChainEventController {
         ChainEventResponse response = chainEventService.correctPackagingEvent(originalEventId, request, currentUser);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
-
+    
 }
 

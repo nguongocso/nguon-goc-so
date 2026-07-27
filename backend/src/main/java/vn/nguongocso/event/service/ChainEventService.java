@@ -7,6 +7,7 @@ import vn.nguongocso.event.dto.request.RecordPackagingEventRequest;
 import vn.nguongocso.event.dto.request.RecordTransportEventRequest;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -23,4 +24,6 @@ public interface ChainEventService {
 
 	ChainEventResponse correctPackagingEvent(UUID originalEventId, CorrectPackagingEventRequest request,
 			CustomUserDetails currentUser);
+
+	List<ChainEventResponse> getShipmentTimeLine(UUID shipmentId, CustomUserDetails currentUser);
 }
