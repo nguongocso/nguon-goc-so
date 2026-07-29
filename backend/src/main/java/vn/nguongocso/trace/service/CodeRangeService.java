@@ -88,7 +88,7 @@ public class CodeRangeService {
 
         return CodeRangeStatusResponse.builder()
                 .id(range.getId())
-                .organizationId(range.getOrganization().getOrganizationId())
+                .organizationId(range.getOrganization().getOrganizationId()) 
                 .organizationName(range.getOrganization().getName())
                 .prefix(range.getPrefix())
                 .totalLimit(range.getTotalLimit())
