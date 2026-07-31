@@ -16,14 +16,14 @@ import vn.nguongocso.farm.projection.FarmLogProjection;
  * Repository thao tác dữ liệu nhật ký canh tác.
  */
 public interface FarmLogRepository extends JpaRepository<FarmLog, UUID> {
-	/**
-	 * Lấy danh sách nhật ký canh tác của lô sản xuất theo phân trang.
-	 *
-	 * @param productionLot lô sản xuất
-	 * @param pageable thông tin phân trang
-	 * @return danh sách nhật ký canh tác
-	 */
-	@Query("""
+    /**
+     * Lấy danh sách nhật ký canh tác của lô sản xuất theo phân trang.
+     *
+     * @param productionLot lô sản xuất
+     * @param pageable thông tin phân trang
+     * @return danh sách nhật ký canh tác
+     */
+    @Query("""
 		    SELECT
 		        fl.id AS id,
 		        pl.id AS productionLotId,
@@ -41,10 +41,10 @@ public interface FarmLogRepository extends JpaRepository<FarmLog, UUID> {
 		    JOIN fl.createdBy u
 		    WHERE pl = :productionLot
 		    """)
-		Page<FarmLogProjection> findByProductionLot(
-		        ProductionLot productionLot,
-		        Pageable pageable);
-	Page<FarmLog> findByProductionLotId(ProductionLot productionLot, Pageable pageable);
+    Page<FarmLogProjection> findByProductionLot(
+            ProductionLot productionLot,
+            Pageable pageable);
+    Page<FarmLog> findByProductionLotId(ProductionLot productionLot, Pageable pageable);
 
-	List<FarmLog> findByProductionLotId_IdOrderByExecutedDateAsc(UUID productionLotId);
+    List<FarmLog> findByProductionLotId_IdOrderByExecutedDateAsc(UUID productionLotId);
 }

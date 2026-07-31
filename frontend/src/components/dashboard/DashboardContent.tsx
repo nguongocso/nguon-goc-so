@@ -1,4 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
+import { useSearchParams } from 'react-router-dom';
+
 import { AdminDashboard } from './AdminDashboard';
 import { CooperativeDashboard } from './CooperativeDashboard';
 import { EventRecorderDashboard } from './EventRecorderDashboard';
@@ -7,13 +9,14 @@ import { ManagementDashboard } from './ManagementDashboard';
 
 export function DashboardContent() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const tab = searchParams.get('tab');
 
-  // VT-06 (Người tiêu dùng tra cứu) không có dashboard nội bộ — chỉ truy cập /public/trace/:code
   switch (user?.roleCode) {
     case 'VT-01':
-      return <AdminDashboard />;
+      return <AdminDashboard initialTab={tab} />;
     case 'VT-02':
-      return <CooperativeDashboard />;
+      return <CooperativeDashboard initialTab={tab} />;
     case 'VT-03':
       return <EventRecorderDashboard />;
     case 'VT-04':

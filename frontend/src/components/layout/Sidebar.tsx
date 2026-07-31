@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link, useLocation, useMatch } from 'react-router-dom';
 import {
+  BarChart2,
   Building2,
   Hash,
   LayoutDashboard,
@@ -83,6 +84,12 @@ const MENU_ITEMS: MenuItem[] = [
     href: '/members',
     allowedRoles: ROLE_ACCESS.memberManagement,
   },
+  {
+  icon: <BarChart2 className="h-5 w-5" />,
+  label: 'Thống kê tra cứu',
+  href: '/reports/lookup-statistics',   // 👈 đổi thành đường dẫn này
+  allowedRoles: ['VT-01', 'VT-02'] as const,
+},
 ];
 
 export function Sidebar({
