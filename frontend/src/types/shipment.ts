@@ -48,3 +48,25 @@ export interface ShipmentResponse {
   data: Shipment;
   timestamp: string;
 }
+
+export interface RecallShipmentPayload {
+  reason: string;
+}
+
+export interface RecallShipmentResponse {
+  id: string;
+  shipmentId: string;
+  reason: string;
+  recalledBy: string;
+  recalledAt: string;
+  status: string;
+  shipmentStatus: "RECALLED";
+  traceCodesUpdated: number;
+}
+
+export interface ShipmentRecallInfo {
+  shipmentId: string;
+  recalled: boolean;
+  reason: string | null;
+  recalledAt: string | null;
+}

@@ -1,5 +1,15 @@
 import apiClient from './axiosConfig';
-import type { CreateShipmentPayload, ProcurementShipment, Shipment, ShipmentResponse, ShipmentSummary } from '@/types/shipment';
+
+import type {
+  CreateShipmentPayload,
+  ProcurementShipment,
+  RecallShipmentPayload,
+  RecallShipmentResponse,
+  Shipment,
+  ShipmentRecallInfo,
+  ShipmentResponse,
+  ShipmentSummary,
+} from '@/types/shipment';
 
 /**
  * Lấy danh sách lô hàng của một lô sản xuất
@@ -57,5 +67,26 @@ export const getEligibleShipments = async (): Promise<ProcurementShipment[]> => 
   const response = await apiClient.get<{ success: boolean; data: ProcurementShipment[] }>(
     '/shipments/eligible',
   );
+  return response.data.data;
+};
+
+export const recallShipment = async (
+  shipmentId: string,
+  payload: RecallShipmentPayload,
+): Promise<RecallShipmentResponse> => {
+  const response = await apiClient.post<{
+    data: RecallShipmentResponse;
+  }>(`/shipments/${shipmentId}/recall`, payload);
+
+  return response.data.data;
+};
+
+export const getShipmentRecallInfo = async (
+  shipmentId: string,
+): Promise<ShipmentRecallInfo> => {
+  const response = await apiClient.get<{
+    data: ShipmentRecallInfo;
+  }>(`/shipments/${shipmentId}/recall`);
+
   return response.data.data;
 };

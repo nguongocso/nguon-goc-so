@@ -15,13 +15,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { BadgeCheck, FileText, Plus, QrCode } from "lucide-react";
+import {
+  BadgeCheck,
+  FileText,
+  Plus,
+  QrCode,
+  TriangleAlert,
+} from "lucide-react";
 import { useShipments } from "@/hooks/useShipments";
 import type { Shipment, CreateShipmentPayload } from "@/types/shipment";
 import { CreateShipmentModal } from "@/components/shipment/CreateShipmentModal";
 import { QrCodeGrid } from "@/components/shipment/QrCodeGrid";
 import { ShipmentTimelineDialog } from "@/components/shipment/ShipmentTimelineDialog";
 import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDialog";
+import { RecallShipmentDialog } from "@/components/shipment/RecallShipmentDialog";
 import { toast } from "sonner";
 import { checkDossierEligibility, exportDossier } from "@/api/dossierApi";
 import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligibleDialog";
@@ -46,6 +53,7 @@ interface ShipmentListProps {
   productionLotStatus: string;
   canCreate: boolean;
   canActivate: boolean;
+  canRecall: boolean;
 }
 
 export const ShipmentList = ({
@@ -53,6 +61,7 @@ export const ShipmentList = ({
   productionLotStatus,
   canCreate,
   canActivate,
+  canRecall,
 }: ShipmentListProps) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -62,6 +71,8 @@ export const ShipmentList = ({
   const [activatingShipment, setActivatingShipment] = useState<Shipment | null>(
     null,
   );
+  const [recallingShipment, setRecallingShipment] =
+    useState<Shipment | null>(null);
   const [timelineDialog, setTimelineDialog] = useState<{
     open: boolean;
     shipmentId: string;
@@ -89,6 +100,8 @@ export const ShipmentList = ({
     isCreating,
     activatingShipmentId,
     activateShipment,
+    recallingShipmentId,
+    recallShipment,
     reload,
   } = useShipments(productionLotId);
 
@@ -242,6 +255,18 @@ export const ShipmentList = ({
                                 Kích hoạt
                               </Button>
                             )}
+                          {canRecall &&
+                            shipment.status === "ACTIVATED" && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="h-auto px-2.5 py-1 text-xs"
+                                onClick={() => setRecallingShipment(shipment)}
+                              >
+                                <TriangleAlert className="mr-1 h-3 w-3" />
+                                Thu hồi
+                              </Button>
+                            )}
                           <Button
                             size="sm"
                             variant="outline"
@@ -358,6 +383,15 @@ export const ShipmentList = ({
         onClose={() => setActivatingShipment(null)}
         onConfirm={async (shipmentId) => {
           await activateShipment(shipmentId);
+        }}
+      />
+
+      <RecallShipmentDialog
+        shipment={recallingShipment}
+        isRecalling={recallingShipmentId === recallingShipment?.id}
+        onClose={() => setRecallingShipment(null)}
+        onConfirm={async (shipmentId, reason) => {
+          await recallShipment(shipmentId, reason);
         }}
       />
 
