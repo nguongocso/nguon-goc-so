@@ -35,7 +35,7 @@ public class ProductionLotCertificationController {
             @PathVariable UUID lotId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-        permissionChecker.check("CERTIFICATION", "READ");
+        permissionChecker.check("certification", "READ");
         List<ProductionLotCertificationResponse> list = certificationService.getCertificationsOfLot(lotId, currentUser);
         return ResponseEntity.ok(ApiResult.success(list));
     }
@@ -50,7 +50,7 @@ public class ProductionLotCertificationController {
             @Valid @RequestBody AttachCertificationRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-        permissionChecker.check("CERTIFICATION", "CREATE");
+        permissionChecker.check("certification", "CREATE");
         ProductionLotCertificationResponse response = certificationService.attachCertification(lotId, request, currentUser);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
@@ -65,7 +65,7 @@ public class ProductionLotCertificationController {
             @PathVariable UUID certificationId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-        permissionChecker.check("CERTIFICATION", "DELETE");
+        permissionChecker.check("certification", "UPDATE");
         certificationService.detachCertification(lotId, certificationId, currentUser);
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), null));
     }
