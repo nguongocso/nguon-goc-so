@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { addMember, getRoles } from '@/api/memberApi';
 import type { RoleOption } from '@/types/member';
-import { getRoleLabel } from '@/config/roleAccess';
 
 const createMemberSchema = z
   .object({
@@ -18,9 +17,6 @@ const createMemberSchema = z
     password: z.string().min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
     confirmPassword: z.string().min(1, 'Vui lòng xác nhận mật khẩu'),
     fullName: z.string().min(1, 'Họ tên không được để trống'),
-    phone: z.string().optional().nullable(),
-    email: z.string().email('Email không hợp lệ').optional().nullable(),
-    roleId: z.number({ required_error: 'Vai trò là bắt buộc' }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Mật khẩu xác nhận không khớp',
@@ -38,7 +34,6 @@ export function CreateMemberForm() {
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors },
   } = useForm<CreateMemberFormValues>({
     resolver: zodResolver(createMemberSchema),
@@ -47,30 +42,16 @@ export function CreateMemberForm() {
       password: '',
       confirmPassword: '',
       fullName: '',
-      phone: '',
-      email: '',
-      roleId: 0, // placeholder, sẽ được cập nhật sau
     },
   });
 
-  // Load roles và tự động gán VT-03
   useEffect(() => {
     const loadRoles = async () => {
       try {
         setIsLoading(true);
-        const allRoles = await getRoles();
-        // Chỉ lấy VT-03 (Người ghi sự kiện)
-        const vt03Roles = allRoles.filter((role) => role.code === 'VT-03');
-
-        if (vt03Roles.length === 0) {
-          toast.error('Không tìm thấy vai trò VT-03. Vui lòng kiểm tra dữ liệu.');
-          return;
-        }
-
-        setRoles(vt03Roles);
-        // Tự động gán roleId của VT-03
-        const vt03Role = vt03Roles[0];
-        setValue('roleId', vt03Role.roleId);
+        const data = await getRoles();
+        // Chỉ hiển thị VT-03 (Người ghi sự kiện) khi tạo mới
+        setRoles(data.filter((role) => role.code === 'VT-03'));
       } catch {
         toast.error('Không thể tải danh sách vai trò');
       } finally {
@@ -78,13 +59,18 @@ export function CreateMemberForm() {
       }
     };
     loadRoles();
-  }, [setValue]);
+  }, []);
 
   const onSubmit = async (values: CreateMemberFormValues) => {
+    const defaultRole = roles.find((role) => role.code === 'VT-03');
+    if (!defaultRole) {
+      toast.error('Không thể xác định vai trò mặc định');
+      return;
+    }
     try {
       setIsSubmitting(true);
-      const { confirmPassword, ...submitData } = values;
-      await addMember(submitData);
+      const { confirmPassword, ...rest } = values;
+      await addMember({ ...rest, roleId: defaultRole.roleId });
       toast.success('Thêm thành viên thành công');
       navigate('/members');
     } catch (error: any) {
@@ -133,29 +119,6 @@ export function CreateMemberForm() {
             {errors.fullName && <p className="text-sm text-red-500">{errors.fullName.message}</p>}
           </div>
 
-          {/* Số điện thoại & Email */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="phone">Số điện thoại</Label>
-              <Input id="phone" {...register('phone')} placeholder="Số điện thoại" />
-              {errors.phone && <p className="text-sm text-red-500">{errors.phone.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" {...register('email')} placeholder="email@example.com" />
-              {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
-            </div>
-          </div>
-
-          {/* Hiển thị vai trò dưới dạng text (đã mặc định VT-03) */}
-          <div className="space-y-2">
-            <Label>Vai trò *</Label>
-            <div className="text-sm font-medium text-muted-foreground">
-              {roles.length > 0 ? getRoleLabel('VT-03') : 'Đang tải...'}
-            </div>
-            <input type="hidden" {...register('roleId')} />
-            {errors.roleId && <p className="text-sm text-red-500">{errors.roleId.message}</p>}
-          </div>
         </CardContent>
 
         <CardFooter className="flex justify-end gap-2">
