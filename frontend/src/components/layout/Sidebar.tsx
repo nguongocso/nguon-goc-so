@@ -517,25 +517,6 @@ export function Sidebar({
         )}
       </div>
 
-      {/* ── User Info (when expanded) ─────── */}
-      {!collapsed && user && (
-        <div className="border-b border-emerald-50 px-4 py-3">
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-medium text-emerald-700">
-              {(user.fullName || user.username || "U").charAt(0).toUpperCase()}
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">
-                {user.fullName || user.username || "Người dùng"}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {user.organizationName || user.roleCode || ""}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Navigation ────────────────────── */}
       <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
         {!hasAnyVisibleItem && !collapsed && (
