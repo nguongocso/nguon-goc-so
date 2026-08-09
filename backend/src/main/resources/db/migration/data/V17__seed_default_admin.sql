@@ -21,7 +21,7 @@ VALUES (
 
 -- 2. Default admin user
 -- Username: admin
--- Password: Admin@123 (DEVELOPMENT ONLY — change in production!)
+-- Password: admin123 (DEVELOPMENT ONLY — change in production!)
 INSERT IGNORE INTO users (user_id, user_name, password_hash, full_name, phone, email, status, created_at, updated_at)
 VALUES (
     UUID(),
