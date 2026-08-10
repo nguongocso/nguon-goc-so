@@ -42,7 +42,7 @@ public class GlobalExceptionHandler {
                         HttpServletRequest request) {
 
                 HttpStatus status = e.getStatus() != null ? e.getStatus() : HttpStatus.BAD_REQUEST;
-                return build(status, e.getMessage(), null, request);
+                return build(status, e.getMessage(), e.getDetails(), request);
         }
 
         /**

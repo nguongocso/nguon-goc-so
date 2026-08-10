@@ -15,7 +15,7 @@ public class OrganizationUpdateRequest {
 
     private String address;
 
-    @Pattern(regexp = "^[0-9]{10,11}$", message = "Số điện thoại phải có 10-11 chữ số")
+    @Pattern(regexp = "^(\\d{10,11})?$", message = "Số điện thoại phải có 10-11 chữ số")
     private String phone;
 
     @Email(message = "Email không hợp lệ")
