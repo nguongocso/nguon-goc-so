@@ -1,0 +1,15 @@
+target/
+.git/
+.github/
+.vscode/
+.idea/
+.DS_Store
+*.iml
+*.class
+*.log
+*.tmp
+*.bak
+*.orig
+README.md
+HELP.md
+.mvn/wrapper/*.jar
