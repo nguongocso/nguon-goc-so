@@ -71,15 +71,21 @@ jobs:
         id: meta
         run: |
           SHA_SHORT=$(git rev-parse --short=7 HEAD)
+          BACKEND_BASE=ghcr.io/nguongocso/nguon-goc-so/backend
+          FRONTEND_BASE=ghcr.io/nguongocso/nguon-goc-so/frontend
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             TAG=${GITHUB_REF#refs/tags/}
-            IMAGE_TAGS="${TAG},latest"
+            BACKEND_TAGS="${BACKEND_BASE}:${TAG},${BACKEND_BASE}:latest"
+            FRONTEND_TAGS="${FRONTEND_BASE}:${TAG},${FRONTEND_BASE}:latest"
           elif [[ "$GITHUB_REF_NAME" == "main" ]]; then
-            IMAGE_TAGS="latest,sha-${SHA_SHORT}"
+            BACKEND_TAGS="${BACKEND_BASE}:latest,${BACKEND_BASE}:sha-${SHA_SHORT}"
+            FRONTEND_TAGS="${FRONTEND_BASE}:latest,${FRONTEND_BASE}:sha-${SHA_SHORT}"
           else
-            IMAGE_TAGS="${GITHUB_REF_NAME},sha-${SHA_SHORT}"
+            BACKEND_TAGS="${BACKEND_BASE}:${GITHUB_REF_NAME},${BACKEND_BASE}:sha-${SHA_SHORT}"
+            FRONTEND_TAGS="${FRONTEND_BASE}:${GITHUB_REF_NAME},${FRONTEND_BASE}:sha-${SHA_SHORT}"
           fi
-          echo "image_tags=${IMAGE_TAGS}" >> "$GITHUB_OUTPUT"
+          echo "backend_tags=${BACKEND_TAGS}" >> "$GITHUB_OUTPUT"
+          echo "frontend_tags=${FRONTEND_TAGS}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push backend
         uses: docker/build-push-action@v6
@@ -87,7 +93,7 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ghcr.io/nguongocso/nguon-goc-so/backend:${{ steps.meta.outputs.image_tags }}
+          tags: ${{ steps.meta.outputs.backend_tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -98,6 +104,6 @@ jobs:
           file: ./frontend/Dockerfile
           build-args: VITE_API_BASE_URL=/api/v1
           push: true
-          tags: ghcr.io/nguongocso/nguon-goc-so/frontend:${{ steps.meta.outputs.image_tags }}
+          tags: ${{ steps.meta.outputs.frontend_tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
