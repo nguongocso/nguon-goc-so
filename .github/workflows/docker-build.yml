@@ -18,8 +18,6 @@ jobs:
         env:
           MYSQL_DATABASE: nguon_goc_so
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_USER: root
-          MYSQL_PASSWORD: root
         ports:
           - 3306:3306
         options: >-
