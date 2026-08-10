@@ -32,6 +32,10 @@ import {
   exportOpenDataSchema,
   type ExportOpenDataFormValues,
 } from '@/utils/validators';
+import {
+  Qtn11ErrorModal,
+  type Qtn11ErrorDetail,
+} from './Qtn11ErrorModal';
 
 // Helper: format date to datetime-local string (YYYY-MM-DDTHH:mm)
 const toDateTimeLocal = (date: Date, endOfDay = false): string => {
@@ -57,6 +61,8 @@ export const ExportOpenDataForm = () => {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [activeQuickRange, setActiveQuickRange] = useState<QuickRangeKey>(null);
+  const [qtn11ErrorModalOpen, setQtn11ErrorModalOpen] = useState(false);
+  const [qtn11Errors, setQtn11Errors] = useState<Qtn11ErrorDetail[]>([]);
 
   const {
     control,
@@ -184,8 +190,14 @@ export const ExportOpenDataForm = () => {
       if (axiosError.response?.data instanceof Blob) {
         const text = await axiosError.response.data.text();
         try {
-          const json: { message?: string } = JSON.parse(text);
-          toast.error(json.message || 'Xuất dữ liệu thất bại');
+          const json: { message?: string; errors?: Qtn11ErrorDetail[] } = JSON.parse(text);
+          if (json.errors && Array.isArray(json.errors) && json.errors.length > 0) {
+            setQtn11Errors(json.errors);
+            setQtn11ErrorModalOpen(true);
+            toast.error(json.message || 'Không có lô hàng nào đáp ứng đủ quy tắc QTN-11');
+          } else {
+            toast.error(json.message || 'Xuất dữ liệu thất bại');
+          }
         } catch {
           toast.error('Xuất dữ liệu thất bại');
         }
@@ -564,6 +576,12 @@ export const ExportOpenDataForm = () => {
           </Button>
         </CardFooter>
       </form>
+
+      <Qtn11ErrorModal
+        open={qtn11ErrorModalOpen}
+        onClose={() => setQtn11ErrorModalOpen(false)}
+        errors={qtn11Errors}
+      />
     </Card>
   );
 };

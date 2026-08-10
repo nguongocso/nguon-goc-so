@@ -90,6 +90,13 @@ public class InvitationServiceImpl implements InvitationService {
         Role role = roleRepository.findById(request.getRoleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Vai trò không tồn tại trong hệ thống"));
 
+        // VT-02 chỉ được gửi lời mời với vai trò VT-03
+        if (RoleCode.ORG_MANAGER.equals(currentUser.getRoleCode())
+                && !RoleCode.EVENT_RECORDER.equals(role.getCode())) {
+        throw new BusinessException(
+                "Quản lý hợp tác xã chỉ được mời thành viên với vai trò Người ghi sự kiện");
+        }
+        
         // Chỉ cho phép mời user chưa là thành viên ACTIVE của tổ chức hiện tại
         userRepository.findByEmail(request.getEmail()).ifPresent(user -> {
             organizationUserRepository.findByOrganization_OrganizationIdAndUser_UserId(orgId, user.getUserId())

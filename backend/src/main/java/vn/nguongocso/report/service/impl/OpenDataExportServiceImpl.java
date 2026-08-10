@@ -18,6 +18,7 @@ import vn.nguongocso.farm.repository.FarmLogRepository;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
+import vn.nguongocso.export.dto.response.Qtn11ErrorDetailDto;
 import vn.nguongocso.report.dto.response.OpenDataExportDto;
 import vn.nguongocso.report.dto.response.OpenDataExportDto.*;
 import vn.nguongocso.report.service.OpenDataExportService;
@@ -107,14 +108,18 @@ public class OpenDataExportServiceImpl implements OpenDataExportService {
                     .collect(Collectors.groupingBy(att -> att.getFarmLog().getId()));
 
             List<ProductionLot> eligibleLots = new ArrayList<>();
+            List<Qtn11ErrorDetailDto> qtn11ErrorDetails = new ArrayList<>();
             for (ProductionLot lot : lots) {
-                if (verifyQTN11(lot.getId(), logsByLot, attachmentsByLog)) {
+                Qtn11ErrorDetailDto detail = checkLotQTN11Detail(lot, logsByLot, attachmentsByLog);
+                if (detail == null) {
                     eligibleLots.add(lot);
+                } else {
+                    qtn11ErrorDetails.add(detail);
                 }
             }
 
             if (eligibleLots.isEmpty()) {
-                throw new BusinessException(EMPTY_DATA_MESSAGE);
+                throw new BusinessException(EMPTY_DATA_MESSAGE, qtn11ErrorDetails);
             }
 
             // 6. Truy vấn Shipments và ChainEvents liên quan
@@ -293,6 +298,49 @@ public class OpenDataExportServiceImpl implements OpenDataExportService {
                 && !format.equalsIgnoreCase("CSV"))) {
             throw new BusinessException("Định dạng xuất dữ liệu không hợp lệ.");
         }
+    }
+
+    private Qtn11ErrorDetailDto checkLotQTN11Detail(ProductionLot lot, Map<UUID, List<FarmLog>> logsByLot,
+            Map<UUID, List<FarmLogAttachment>> attachmentsByLog) {
+        List<FarmLog> lotLogs = logsByLot.getOrDefault(lot.getId(), List.of());
+
+        boolean hasPlanting = false;
+        boolean hasFertilizing = false;
+        boolean hasPesticide = false;
+        boolean hasHarvesting = false;
+
+        for (FarmLog logItem : lotLogs) {
+            List<FarmLogAttachment> atts = attachmentsByLog.getOrDefault(logItem.getId(), List.of());
+            if (!atts.isEmpty()) {
+                if (logItem.getActivityType() == FarmActivityType.PLANTING)
+                    hasPlanting = true;
+                else if (logItem.getActivityType() == FarmActivityType.FERTILIZING)
+                    hasFertilizing = true;
+                else if (logItem.getActivityType() == FarmActivityType.PESTICIDE)
+                    hasPesticide = true;
+                else if (logItem.getActivityType() == FarmActivityType.HARVESTING)
+                    hasHarvesting = true;
+            }
+        }
+
+        if (hasPlanting && hasFertilizing && hasPesticide && hasHarvesting) {
+            return null; // Passes QTN-11
+        }
+
+        List<String> missingDocDetails = new ArrayList<>();
+        if (!hasPlanting) missingDocDetails.add("Xuống giống (PLANTING) chưa có tệp/ảnh minh chứng");
+        if (!hasFertilizing) missingDocDetails.add("Bón phân (FERTILIZING) chưa có tệp/ảnh minh chứng");
+        if (!hasPesticide) missingDocDetails.add("Phun thuốc (PESTICIDE) chưa có tệp/ảnh minh chứng");
+        if (!hasHarvesting) missingDocDetails.add("Thu hoạch (HARVESTING) chưa có tệp/ảnh minh chứng");
+
+        return Qtn11ErrorDetailDto.builder()
+                .id(lot.getId())
+                .name(lot.getName())
+                .lotCode(lot.getName())
+                .missingEvents(List.of())
+                .missingDocs(true)
+                .missingDocDetails(missingDocDetails)
+                .build();
     }
 
     private boolean verifyQTN11(UUID lotId, Map<UUID, List<FarmLog>> logsByLot,

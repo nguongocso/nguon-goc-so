@@ -302,28 +302,28 @@ export const ProductionLotDetailPage = () => {
 
       {/* Tabs chi tiết */}
       <Tabs defaultValue="info" className="w-full">
-        <TabsList className="bg-white/80 backdrop-blur-sm border border-emerald-100 p-1 rounded-xl">
+        <TabsList className="bg-white/80 backdrop-blur-sm border border-emerald-100 p-1 rounded-xl gap-1 min-h-11 max-w-full overflow-x-auto overflow-y-hidden">
           <TabsTrigger
             value="info"
-            className="rounded-lg data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
           >
             Thông tin chung
           </TabsTrigger>
           <TabsTrigger
             value="farmlogs"
-            className="rounded-lg data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
           >
             Nhật ký canh tác
           </TabsTrigger>
           <TabsTrigger
             value="shipments"
-            className="rounded-lg data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
           >
             Lô hàng & Mã QR
           </TabsTrigger>
           <TabsTrigger
             value="certifications"
-            className="rounded-lg data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
           >
             Chứng nhận
           </TabsTrigger>

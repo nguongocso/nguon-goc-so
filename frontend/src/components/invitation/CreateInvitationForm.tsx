@@ -61,7 +61,7 @@ export const CreateInvitationForm: React.FC = () => {
       try {
         const data = await getRoles();
         const filtered = data.filter(
-          (r) => r.code !== "VT-01" && r.code !== "VT-02",
+          (r) => r.code === "VT-03",
         );
         setRoles(filtered);
       } catch (error) {

@@ -80,9 +80,7 @@ export const MemberList = () => {
 
   const assignableRoles = useMemo(
     () =>
-      roles.filter((role) =>
-        ["VT-02", "VT-03", "VT-04"].includes(role.code),
-      ),
+      roles.filter((role) => role.code === "VT-03"),
     [roles],
   );
 

@@ -16,7 +16,6 @@ import {
   MessageSquare,
   Package,
   ScanLine,
-  Shield,
   Truck,
   UserCheck,
   Users,
@@ -254,12 +253,6 @@ const MENU_GROUPS: MenuGroup[] = [
         label: "Sao lưu & Phục hồi dữ liệu",
         href: "/admin/backup-restore",
         allowedRoles: ["VT-01"] as const,
-      },
-      {
-        icon: <Shield className="h-5 w-5" />,
-        label: "Phân quyền",
-        href: "/permissions/config",
-        allowedRoles: ["VT-02"] as const,
       },
       {
         icon: <UserCheck className="h-5 w-5" />,

@@ -363,41 +363,49 @@ export function AttachmentManager({ logId, onUpdate }: AttachmentManagerProps) {
 
       {/* Upload Dialog */}
       <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Tải lên chứng từ</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <Label htmlFor="file">Chọn file *</Label>
-              <Input
-                id="file"
-                type="file"
-                accept=".jpg,.jpeg,.png,.pdf"
-                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-              />
-              <p className="text-xs text-muted-foreground mt-1">Hỗ trợ JPG, PNG, PDF (≤5MB)</p>
-            </div>
-            <div>
-              <Label htmlFor="desc">Mô tả (tùy chọn)</Label>
-              <Input
-                id="desc"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Mô tả ngắn về chứng từ"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setUploadDialogOpen(false)} disabled={isUploading}>
-              Hủy
-            </Button>
-            <Button variant="create" onClick={handleUpload} disabled={isUploading || !selectedFile}>
-              {isUploading ? 'Đang tải lên...' : 'Tải lên'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+  <DialogContent className="sm:max-w-md">
+    <DialogHeader>
+      <DialogTitle>Tải lên chứng từ</DialogTitle>
+    </DialogHeader>
+    <div className="space-y-4 py-2">
+      {/* File upload */}
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="file" className="text-sm font-medium">
+          Chọn file <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          id="file"
+          type="file"
+          accept=".jpg,.jpeg,.png,.pdf"
+          onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+        />
+        <p className="text-xs text-muted-foreground">Hỗ trợ JPG, PNG, PDF (≤5MB)</p>
+      </div>
+
+      {/* Description */}
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="desc" className="text-sm font-medium">
+          Mô tả (tùy chọn)
+        </Label>
+        <Input
+          id="desc"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Mô tả ngắn về chứng từ"
+        />
+      </div>
+    </div>
+
+    <div className="flex justify-end gap-2">
+      <Button variant="outline" onClick={() => setUploadDialogOpen(false)} disabled={isUploading}>
+        Hủy
+      </Button>
+      <Button variant="create" onClick={handleUpload} disabled={isUploading || !selectedFile}>
+        {isUploading ? 'Đang tải lên...' : 'Tải lên'}
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
 
       {/* Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={(open) => { if (!open) handleClosePreview(); }}>

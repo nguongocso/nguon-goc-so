@@ -71,6 +71,18 @@ public class OrganizationMemberService {
                 .orElseThrow(() -> new BusinessException("Tổ chức không tồn tại"));
     }
 
+    /**
+     * VT-02 chỉ được cấp vai trò Người ghi sự kiện cho thành viên.
+     * VT-01 vẫn được giữ nguyên quyền quản trị hiện tại.
+     */
+    private void validateAssignableRole(String currentRoleCode, Role targetRole) {
+        if (RoleCode.ORG_MANAGER.equals(currentRoleCode)
+                && !RoleCode.EVENT_RECORDER.equals(targetRole.getCode())) {
+            throw new BusinessException(
+                    "Quản lý hợp tác xã chỉ được cấp vai trò Người ghi sự kiện");
+        }
+    }
+
     // business methods
     public List<OrganizationUserResponse> getMembersOfCurrentOrganization() {
         UUID orgId = getCurrentOrganizationId();
@@ -94,10 +106,21 @@ public class OrganizationMemberService {
                 .orElseThrow(() -> new BusinessException("Thành viên không thuộc tổ chức này"));
 
         Role newRole = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() -> new ResourceNotFoundException("Vai trò không tồn tại"));
+        .orElseThrow(() -> new ResourceNotFoundException("Vai trò không tồn tại"));
 
-        if (RoleCode.ADMIN.equals(newRole.getCode()) && !RoleCode.ADMIN.equals(currentRoleCode)) {
-            throw new BusinessException("Quản lý HTX không thể gán vai trò Quản trị viên nền tảng");
+        // Không cho cấp hoặc đổi vai trò khi thành viên đang bị vô hiệu hóa
+        if (orgUser.getStatus() != OrganizationUserStatus.ACTIVE) {
+            throw new BusinessException(
+                    "Thành viên đã bị vô hiệu hóa. Vui lòng kích hoạt lại trước khi cấp quyền");
+        }
+
+        // VT-02 chỉ được cấp vai trò VT-03
+        validateAssignableRole(currentRoleCode, newRole);
+
+        if (RoleCode.ADMIN.equals(newRole.getCode())
+                && !RoleCode.ADMIN.equals(currentRoleCode)) {
+            throw new BusinessException(
+                    "Quản lý HTX không thể gán vai trò Quản trị viên nền tảng");
         }
 
         // Nếu role mới là VT-02, kiểm tra và chuyển quyền quản lý cũ
@@ -158,11 +181,17 @@ public class OrganizationMemberService {
         }
 
         Role role = roleRepository.findById(request.getRoleId())
-                .orElseThrow(() -> new ResourceNotFoundException("Vai trò không tồn tại"));
+        .orElseThrow(() -> new ResourceNotFoundException("Vai trò không tồn tại"));
 
         String currentRoleCode = getCurrentRoleCode();
-        if (RoleCode.ADMIN.equals(role.getCode()) && !RoleCode.ADMIN.equals(currentRoleCode)) {
-            throw new BusinessException("Quản lý HTX không thể tạo tài khoản admin");
+
+        // VT-02 chỉ được tạo thành viên với vai trò VT-03
+        validateAssignableRole(currentRoleCode, role);
+
+        if (RoleCode.ADMIN.equals(role.getCode())
+                && !RoleCode.ADMIN.equals(currentRoleCode)) {
+            throw new BusinessException(
+                    "Quản lý HTX không thể tạo tài khoản admin");
         }
 
         User newUser = new User();

@@ -17,6 +17,7 @@ import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.export.dto.request.ExportOpenDataRequest;
+import vn.nguongocso.export.dto.response.Qtn11ErrorDetailDto;
 import vn.nguongocso.export.schema.OpenDataSchema;
 import vn.nguongocso.export.service.ExportService;
 import vn.nguongocso.farm.entity.ProductionLot;
@@ -75,25 +76,46 @@ public class ExportServiceImpl implements ExportService {
         List<UUID> shipmentIds = shipments.stream().map(Shipment::getId).collect(Collectors.toList());
 
         // 3. QTN-11: Validate completeness (all required events + documentation)
-        // 3a. Event completeness check
         Map<UUID, Set<ChainEventType>> eventMap = getEventTypesByShipment(shipmentIds);
-
-        // 3b. Documentation check: at least 1 farm log OR 1 certification per
-        // production lot
         Map<UUID, Boolean> docMap = getDocumentationExistence(shipments);
 
-        List<Shipment> eligibleShipments = shipments.stream()
-                .filter(s -> {
-                    Set<ChainEventType> existingEvents = eventMap.getOrDefault(s.getId(), Collections.emptySet());
-                    boolean hasAllEvents = existingEvents.containsAll(REQUIRED_EVENT_TYPES);
-                    boolean hasDocs = docMap.getOrDefault(s.getId(), false);
-                    return hasAllEvents && hasDocs;
-                })
-                .collect(Collectors.toList());
+        List<Shipment> eligibleShipments = new ArrayList<>();
+        List<Qtn11ErrorDetailDto> qtn11ErrorDetails = new ArrayList<>();
+
+        for (Shipment s : shipments) {
+            Set<ChainEventType> existingEvents = eventMap.getOrDefault(s.getId(), Collections.emptySet());
+            boolean hasAllEvents = existingEvents.containsAll(REQUIRED_EVENT_TYPES);
+            boolean hasDocs = docMap.getOrDefault(s.getId(), false);
+
+            if (hasAllEvents && hasDocs) {
+                eligibleShipments.add(s);
+            } else {
+                List<String> missingEvents = new ArrayList<>();
+                for (ChainEventType type : REQUIRED_EVENT_TYPES) {
+                    if (!existingEvents.contains(type)) {
+                        missingEvents.add(getEventTypeNameInVietnamese(type));
+                    }
+                }
+                List<String> missingDocDetails = new ArrayList<>();
+                if (!hasDocs) {
+                    missingDocDetails.add("Chưa có nhật ký nông hộ hoặc tệp chứng nhận lô hàng đính kèm");
+                }
+
+                qtn11ErrorDetails.add(Qtn11ErrorDetailDto.builder()
+                        .id(s.getId())
+                        .name(s.getName())
+                        .lotCode(s.getProductionLot() != null ? s.getProductionLot().getName() : "Không xác định")
+                        .missingEvents(missingEvents)
+                        .missingDocs(!hasDocs)
+                        .missingDocDetails(missingDocDetails)
+                        .build());
+            }
+        }
 
         if (eligibleShipments.isEmpty()) {
             throw new BusinessException(
-                    "Không có lô hàng nào đáp ứng đủ điều kiện (thiếu sự kiện chuỗi cung ứng hoặc chứng từ).");
+                    "Không có lô hàng nào đáp ứng đủ điều kiện (thiếu sự kiện chuỗi cung ứng hoặc chứng từ).",
+                    qtn11ErrorDetails);
         }
 
         // 4. Build export schema
@@ -104,18 +126,48 @@ public class ExportServiceImpl implements ExportService {
     }
 
     private Map<UUID, Set<ChainEventType>> getEventTypesByShipment(List<UUID> shipmentIds) {
-        List<Object[]> results = chainEventRepository.countEventsByShipmentAndTypes(
-                shipmentIds, REQUIRED_EVENT_TYPES);
-        Map<UUID, Set<ChainEventType>> map = new HashMap<>();
-        for (Object[] row : results) {
-            UUID shipmentId = (UUID) row[0];
-            ChainEventType type = (ChainEventType) row[1];
-            Long count = (Long) row[2];
-            if (count != null && count > 0) {
-                map.computeIfAbsent(shipmentId, k -> new HashSet<>()).add(type);
+        // 1. Lấy danh sách shipment để biết productionLotId
+        List<Shipment> shipments = shipmentRepository.findAllById(shipmentIds);
+        Map<UUID, UUID> shipmentToLotMap = shipments.stream()
+                .collect(Collectors.toMap(
+                        Shipment::getId,
+                        s -> s.getProductionLot() != null ? s.getProductionLot().getId() : null
+                ));
+
+        // 2. Lấy tất cả events của các shipment (TRANSPORT, PROCUREMENT)
+        Map<UUID, Set<ChainEventType>> eventMap = new HashMap<>();
+        List<ChainEvent> shipmentEvents = chainEventRepository.findByShipmentIdInOrderByRecordedAtAsc(shipmentIds);
+        for (ChainEvent e : shipmentEvents) {
+            UUID sid = e.getShipment().getId();
+            eventMap.computeIfAbsent(sid, k -> new HashSet<>()).add(e.getEventType());
+        }
+
+        // 3. Lấy các events không gắn shipment (HARVEST, PACKAGING) và gắn vào production lot
+        List<ChainEventType> unassignedTypes = List.of(ChainEventType.HARVEST, ChainEventType.PACKAGING);
+        List<ChainEvent> unassignedEvents = chainEventRepository.findByShipmentIsNullAndEventTypeIn(unassignedTypes);
+
+        // Gom nhóm events theo productionLotId (từ eventData)
+        Map<UUID, Set<ChainEventType>> lotEventMap = new HashMap<>();
+        for (ChainEvent e : unassignedEvents) {
+            Map<String, Object> data = parseEventData(e.getEventData());
+            Object lotIdObj = data.get("productionLotId");
+            if (lotIdObj != null) {
+                UUID lotId = UUID.fromString(lotIdObj.toString());
+                lotEventMap.computeIfAbsent(lotId, k -> new HashSet<>()).add(e.getEventType());
             }
         }
-        return map;
+
+        // 4. Merge: với mỗi shipment, thêm các event từ production lot tương ứng
+        for (Map.Entry<UUID, UUID> entry : shipmentToLotMap.entrySet()) {
+            UUID shipmentId = entry.getKey();
+            UUID lotId = entry.getValue();
+            if (lotId != null && lotEventMap.containsKey(lotId)) {
+                eventMap.computeIfAbsent(shipmentId, k -> new HashSet<>())
+                        .addAll(lotEventMap.get(lotId));
+            }
+        }
+
+        return eventMap;
     }
 
     /**
@@ -325,5 +377,16 @@ public class ExportServiceImpl implements ExportService {
             return "\"" + value.replace("\"", "\"\"") + "\"";
         }
         return value;
+    }
+
+    private String getEventTypeNameInVietnamese(ChainEventType type) {
+        if (type == null) return "";
+        return switch (type) {
+            case HARVEST -> "Thu hoạch (HARVEST)";
+            case PACKAGING -> "Đóng gói (PACKAGING)";
+            case TRANSPORT -> "Vận chuyển (TRANSPORT)";
+            case PROCUREMENT -> "Thu mua (PROCUREMENT)";
+            default -> type.name();
+        };
     }
 }
