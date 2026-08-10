@@ -1,4 +1,5 @@
-import apiClient from '@/api/axiosConfig';
+import apiClient from "@/api/axiosConfig";
+
 import type {
   OrganizationProfile,
   UpdateOrganizationRequest,
@@ -7,30 +8,49 @@ import type {
   Organization,
   OrganizationDetailResponse,
   OrganizationUserResponse,
-} from "@/types/organization";
-
-import type {
   AddMemberRequest,
   CreateOrganizationMemberResponse,
+  AvailableUser,
 } from "@/types/organization";
-export const getOrganizationProfile = async (): Promise<OrganizationProfile> => {
-  const response = await apiClient.get<{ data : OrganizationProfile }>('/organizations/profile');
+
+export const getOrganizationProfile = async (): Promise<
+  OrganizationProfile
+> => {
+  const response = await apiClient.get<{
+    data: OrganizationProfile;
+  }>("/organizations/profile");
+
   return response.data.data;
 };
 
-export const updateOrganizationProfile = async (data: UpdateOrganizationRequest): Promise<OrganizationProfile> => {
-  const response = await apiClient.put<{ data: OrganizationProfile }>('/organizations/profile', data);
+export const updateOrganizationProfile = async (
+  data: UpdateOrganizationRequest
+): Promise<OrganizationProfile> => {
+  const response = await apiClient.put<{
+    data: OrganizationProfile;
+  }>("/organizations/profile", data);
+
   return response.data.data;
 };
-export const createOrganization = async (data: CreateOrganizationRequest): Promise<CreateOrganizationResponse> => {
-  const response = await apiClient.post<CreateOrganizationResponse>('/admin/organizations', data);
+
+export const createOrganization = async (
+  data: CreateOrganizationRequest
+): Promise<CreateOrganizationResponse> => {
+  const response = await apiClient.post<CreateOrganizationResponse>(
+    "/admin/organizations",
+    data
+  );
+
   return response.data;
 };
 
 export const getOrganizations = async (): Promise<Organization[]> => {
-  const response = await apiClient.get<{ data: Organization[] }>('/admin/organizations');
+  const response = await apiClient.get<{
+    data: Organization[];
+  }>("/admin/organizations");
+
   return response.data.data;
-};  
+};
 
 export const getOrganizationDetail = async (
   id: string
@@ -48,55 +68,44 @@ export const createOrganizationMember = async (
 ): Promise<CreateOrganizationMemberResponse> => {
   const response = await apiClient.post<{
     data: CreateOrganizationMemberResponse;
-  }>(
-    `/admin/organizations/${organizationId}/members`,
-    data
-  );
+  }>(`/admin/organizations/${organizationId}/members`, data);
 
   return response.data.data;
 };
-
-// Types for available users
-export interface AvailableUser {
-  userId: string;
-  username: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  currentRoleCode: string;
-  currentRoleName: string;
-}
 
 export interface AddExistingUserRequest {
   userId: string;
   roleId?: number;
 }
 
-// Fetch available users for organization
-export const getAvailableUsers = async (organizationId: string): Promise<AvailableUser[]> => {
-  const response = await apiClient.get<{ data: AvailableUser[] }>(
-    `/admin/organizations/${organizationId}/available-users`
-  );
+export const getAvailableUsers = async (
+  organizationId: string
+): Promise<AvailableUser[]> => {
+  const response = await apiClient.get<{
+    data: AvailableUser[];
+  }>(`/admin/organizations/${organizationId}/available-users`);
+
   return response.data.data;
 };
 
-// Add existing user to organization
 export const addExistingUser = async (
   organizationId: string,
   data: AddExistingUserRequest
 ): Promise<OrganizationUserResponse> => {
-  const response = await apiClient.post<{ data: OrganizationUserResponse }>(
-    `/admin/organizations/${organizationId}/add-existing-user`,
-    data
-  );
+  const response = await apiClient.post<{
+    data: OrganizationUserResponse;
+  }>(`/admin/organizations/${organizationId}/add-existing-user`, data);
+
   return response.data.data;
 };
 
-// Assign role (for current organization)
-export const assignRole = async (data: { userId: string; roleId: number }): Promise<OrganizationUserResponse> => {
-  const response = await apiClient.put<{ data: OrganizationUserResponse }>(
-    '/admin/organizations/current/members/role',
-    data
-  );
+export const assignRole = async (data: {
+  userId: string;
+  roleId: number;
+}): Promise<OrganizationUserResponse> => {
+  const response = await apiClient.put<{
+    data: OrganizationUserResponse;
+  }>("/admin/organizations/current/members/role", data);
+
   return response.data.data;
 };

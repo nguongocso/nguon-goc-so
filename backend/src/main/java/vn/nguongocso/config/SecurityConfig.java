@@ -25,11 +25,20 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Configures Spring Security for the application.
+ * Cấu hình Spring Security cho hệ thống.
  *
- * <p>This configuration enables stateless authentication using JWT,
- * registers the JWT authentication filter, defines endpoint access rules,
- * and exposes security-related beans.</p>
+ * <p>
+ * Authentication sử dụng JWT và hoàn toàn stateless.
+ * </p>
+ *
+ * <p>
+ * Hệ thống có 2 loại JWT:
+ * </p>
+ *
+ * <ul>
+ *     <li>ORG_SELECTION - dùng trong quá trình chọn organization.</li>
+ *     <li>ACCESS - dùng để truy cập API sau khi đã chọn organization.</li>
+ * </ul>
  */
 @Configuration
 @EnableWebSecurity
@@ -43,96 +52,242 @@ public class SecurityConfig {
     private String allowedOrigins;
 
     /**
-     * Configures the application's security filter chain.
-     *
-     * <p>This configuration:
-     * <ul>
-     *     <li>Disables CSRF protection.</li>
-     *     <li>Uses stateless session management.</li>
-     *     <li>Allows public access to authentication and health endpoints.</li>
-     *     <li>Requires authentication for all other requests.</li>
-     *     <li>Registers the JWT authentication filter.</li>
-     * </ul>
-     *
-     * @param http Spring Security HTTP configuration
-     * @return configured security filter chain
-     * @throws Exception if security configuration fails
+     * Security filter chain.
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http)
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http)
             throws Exception {
-        http.csrf(csrf -> csrf.disable()).cors(Customizer.withDefaults())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+        http
+
+                /*
+                 * =====================================================
+                 * CSRF
+                 * =====================================================
+                 *
+                 * REST API sử dụng JWT nên không sử dụng session-based
+                 * CSRF protection.
+                 */
+                .csrf(csrf -> csrf.disable())
+
+                /*
+                 * =====================================================
+                 * CORS
+                 * =====================================================
+                 */
+                .cors(Customizer.withDefaults())
+
+                /*
+                 * =====================================================
+                 * SESSION
+                 * =====================================================
+                 *
+                 * JWT authentication là stateless.
+                 */
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS
+                        )
+                )
+
+                /*
+                 * =====================================================
+                 * AUTHORIZATION
+                 * =====================================================
+                 */
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/v1/auth/login", "/api/v1/public/**", "/actuator/health", "/files/qr/**").permitAll()
-                        .anyRequest().authenticated())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+                        /*
+                         * CORS preflight.
+                         */
+                        .requestMatchers(
+                                HttpMethod.OPTIONS,
+                                "/**"
+                        ).permitAll()
+
+                        /*
+                         * =================================================
+                         * LOGIN
+                         * =================================================
+                         *
+                         * Chưa có JWT.
+                         */
+                        .requestMatchers(
+                                "/api/v1/auth/login"
+                        ).permitAll()
+
+                        /*
+                         * =================================================
+                         * ORGANIZATION SELECTION FLOW
+                         * =================================================
+                         *
+                         * Hai endpoint này không sử dụng Spring Security
+                         * Authentication.
+                         *
+                         * Controller/service sẽ tự validate:
+                         *
+                         *     tokenType = ORG_SELECTION
+                         *
+                         */
+                        .requestMatchers(
+                                "/api/v1/auth/organizations",
+                                "/api/v1/auth/select-organization"
+                        ).permitAll()
+
+                        /*
+                         * =================================================
+                         * PUBLIC API
+                         * =================================================
+                         */
+                        .requestMatchers(
+                                "/api/v1/public/**"
+                        ).permitAll()
+
+                        /*
+                         * =================================================
+                         * HEALTH CHECK
+                         * =================================================
+                         */
+                        .requestMatchers(
+                                "/actuator/health"
+                        ).permitAll()
+
+                        /*
+                         * =================================================
+                         * QR FILE
+                         * =================================================
+                         */
+                        .requestMatchers(
+                                "/files/qr/**"
+                        ).permitAll()
+
+                        /*
+                         * =================================================
+                         * EVERYTHING ELSE
+                         * =================================================
+                         *
+                         * Bắt buộc phải có ACCESS JWT hợp lệ.
+                         */
+                        .anyRequest().authenticated()
+                )
+
+                /*
+                 * =====================================================
+                 * JWT FILTER
+                 * =====================================================
+                 *
+                 * Chạy trước UsernamePasswordAuthenticationFilter.
+                 */
+                .addFilterBefore(
+                        jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
+
         return http.build();
     }
-    
 
+    /**
+     * Cấu hình CORS.
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        List<String> origins = new ArrayList<>(Arrays.asList(
-                "http://localhost:3000", 
-                "http://localhost:5173", 
-                "http://localhost:63342", 
-                "http://localhost",
-                "http://localhost:5500",
-                "http://127.0.0.1:5500",
-                "http://localhost:5501",
-                "http://127.0.0.1:5501"
-        ));
 
-        if (allowedOrigins != null && !allowedOrigins.isBlank()) {
-            String[] split = allowedOrigins.split(",");
-            for (String o : split) {
-                String trimmed = o.trim();
-                if (!trimmed.isEmpty() && !origins.contains(trimmed)) {
+        CorsConfiguration configuration =
+                new CorsConfiguration();
+
+        List<String> origins =
+                new ArrayList<>(
+                        Arrays.asList(
+                                "http://localhost:3000",
+                                "http://localhost:5173",
+                                "http://localhost:63342",
+                                "http://localhost",
+                                "http://localhost:5500",
+                                "http://127.0.0.1:5500",
+                                "http://localhost:5501",
+                                "http://127.0.0.1:5501"
+                        )
+                );
+
+        /*
+         * Cho phép bổ sung origin từ application.properties.
+         */
+        if (allowedOrigins != null
+                && !allowedOrigins.isBlank()) {
+
+            String[] split =
+                    allowedOrigins.split(",");
+
+            for (String origin : split) {
+
+                String trimmed = origin.trim();
+
+                if (!trimmed.isEmpty()
+                        && !origins.contains(trimmed)) {
+
                     origins.add(trimmed);
                 }
             }
         }
 
         configuration.setAllowedOrigins(origins);
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        configuration.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
+
+        configuration.setAllowedMethods(
+                List.of(
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "PATCH",
+                        "DELETE",
+                        "OPTIONS"
+                )
+        );
+
+        configuration.setAllowedHeaders(
+                List.of(
+                        "Authorization",
+                        "Content-Type"
+                )
+        );
+
+        configuration.setExposedHeaders(
+                List.of(
+                        "Authorization",
+                        "Content-Disposition"
+                )
+        );
+
         configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration(
+                "/**",
+                configuration
+        );
+
         return source;
     }
 
     /**
-     * Exposes the application's {@link AuthenticationManager}.
-     *
-     * <p>The authentication manager is used by the authentication service
-     * to authenticate user credentials during login.</p>
-     *
-     * @param config authentication configuration
-     * @return configured authentication manager
-     * @throws Exception if the authentication manager cannot be created
+     * AuthenticationManager.
      */
     @Bean
     public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration config) throws Exception {
+            AuthenticationConfiguration config)
+            throws Exception {
+
         return config.getAuthenticationManager();
     }
 
     /**
-     * Provides the password encoder used by the application.
-     *
-     * <p>Passwords are hashed using the BCrypt algorithm before being
-     * stored or verified.</p>
-     *
-     * @return BCrypt password encoder
+     * Password encoder.
      */
     @Bean
     public PasswordEncoder passwordEncoder() {
+
         return new BCryptPasswordEncoder();
     }
 }

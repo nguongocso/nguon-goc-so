@@ -137,4 +137,15 @@ public interface OrganizationUserRepository extends JpaRepository<OrganizationUs
 			@Param("organizationId") UUID organizationId,
 			@Param("resource") String resource,
 			@Param("action") String action);
+
+	/**
+	 * Tìm membership của user trong một organization cụ thể.
+	 *
+	 * @param userId         ID người dùng
+	 * @param organizationId ID tổ chức
+	 * @return OrganizationUser nếu user thuộc organization
+	 */
+	Optional<OrganizationUser> findByUser_UserIdAndOrganization_OrganizationId(
+			UUID userId,
+			UUID organizationId);
 }
