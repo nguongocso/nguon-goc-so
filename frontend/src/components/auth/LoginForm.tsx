@@ -172,7 +172,7 @@ export const LoginForm: React.FC = () => {
        * Bearer <ORG_SELECTION_JWT>
        */
       const organizationResponse =
-        await getOrganizations();
+        await getOrganizations(selectionToken);
 
       if (!organizationResponse.success) {
         throw new Error(
@@ -207,7 +207,7 @@ export const LoginForm: React.FC = () => {
         const organizationResponse =
           await selectOrganization({
             organizationId: organizations[0].organizationId,
-          });
+          }, selectionToken);
 
         if (!organizationResponse.success) {
           throw new Error(

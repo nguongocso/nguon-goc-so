@@ -285,6 +285,26 @@ public class AuthService {
                 .toList();
     }
 
+        public List<OrganizationSelectionResponse> getOrganizationsForUser(UUID userId) {
+                return organizationUserRepository
+                                .findByUser_UserIdAndStatus(userId, OrganizationUserStatus.ACTIVE)
+                                .stream()
+                                .map(organizationUser -> {
+                                        var organization = organizationUser.getOrganization();
+                                        var role = organizationUser.getRole();
+
+                                        return OrganizationSelectionResponse.builder()
+                                                        .organizationId(organization.getOrganizationId().toString())
+                                                        .organizationCode(organization.getCode())
+                                                        .organizationName(organization.getName())
+                                                        .organizationType(organization.getType())
+                                                        .roleCode(role.getCode())
+                                                        .roleName(role.getName())
+                                                        .build();
+                                })
+                                .toList();
+        }
+
     /**
      * Tạo response sau khi xác thực username/password thành công.
      *
@@ -518,5 +538,41 @@ public class AuthService {
             throw new BusinessException(
                     "Lỗi hệ thống, vui lòng thử lại sau");
         }
+    }
+
+    public SelectOrganizationResponse switchOrganization(
+            UUID userId,
+            SelectOrganizationRequest request) {
+
+        OrganizationUser orgUser = organizationUserRepository
+                .findByUser_UserIdAndOrganization_OrganizationId(
+                        userId,
+                        request.getOrganizationId())
+                .orElseThrow(() -> new BusinessException(
+                        "Người dùng không thuộc tổ chức này"));
+
+        if (orgUser.getStatus() != OrganizationUserStatus.ACTIVE) {
+            throw new BusinessException("Tổ chức không còn hoạt động với tài khoản này");
+        }
+
+        CustomUserDetails userDetails = userDetailsService
+                .loadUserByUserIdAndOrganizationId(userId, request.getOrganizationId());
+
+        return SelectOrganizationResponse.builder()
+                .accessToken(tokenProvider.generateAccessToken(userDetails))
+                .tokenType("Bearer")
+                .expiresIn(tokenProvider.getExpirationInSeconds())
+                .user(SelectOrganizationResponse.UserInfo.builder()
+                        .userId(userDetails.getUserId().toString())
+                        .username(userDetails.getUsername())
+                        .fullName(userDetails.getFullName())
+                        .organizationId(userDetails.getOrganizationId().toString())
+                        .organizationCode(userDetails.getOrganizationCode())
+                        .organizationName(userDetails.getOrganizationName())
+                        .organizationType(userDetails.getOrganizationType().name())
+                        .roleCode(userDetails.getRoleCode())
+                        .roleName(userDetails.getRoleName())
+                        .build())
+                .build();
     }
 }

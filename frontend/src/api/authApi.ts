@@ -33,12 +33,18 @@ export const login = async (
  *
  * API này sử dụng Selection JWT.
  */
-export const getOrganizations = async (): Promise<
+export const getOrganizations = async (
+  selectionToken?: string
+): Promise<
   ApiResult<OrganizationSelection[]>
 > => {
   const response = await apiClient.get<
     ApiResult<OrganizationSelection[]>
-  >("/auth/organizations");
+  >("/auth/organizations", {
+    headers: selectionToken
+      ? { Authorization: `Bearer ${selectionToken}` }
+      : undefined,
+  });
 
   return response.data;
 };
@@ -52,11 +58,36 @@ export const getOrganizations = async (): Promise<
  * sau đó cấp Access JWT.
  */
 export const selectOrganization = async (
+  data: SelectOrganizationRequest,
+  selectionToken?: string
+): Promise<ApiResult<SelectOrganizationResponse>> => {
+  const response = await apiClient.post<
+    ApiResult<SelectOrganizationResponse>
+  >("/auth/select-organization", data, {
+    headers: selectionToken
+      ? { Authorization: `Bearer ${selectionToken}` }
+      : undefined,
+  });
+
+  return response.data;
+};
+
+export const getMyOrganizations = async (): Promise<
+  ApiResult<OrganizationSelection[]>
+> => {
+  const response = await apiClient.get<
+    ApiResult<OrganizationSelection[]>
+  >("/auth/my-organizations");
+
+  return response.data;
+};
+
+export const switchOrganization = async (
   data: SelectOrganizationRequest
 ): Promise<ApiResult<SelectOrganizationResponse>> => {
   const response = await apiClient.post<
     ApiResult<SelectOrganizationResponse>
-  >("/auth/select-organization", data);
+  >("/auth/switch-organization", data);
 
   return response.data;
 };

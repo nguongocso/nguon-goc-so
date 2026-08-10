@@ -15,6 +15,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import vn.nguongocso.auth.service.CustomUserDetailsService;
 
 import java.io.IOException;
+import java.util.UUID;
 
 /**
  * JWT authentication filter.
@@ -157,36 +158,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         /*
-         * Lấy username từ JWT.
+         * Load lại đúng membership đã được ghi vào ACCESS JWT.
+         * Dùng userId + organizationId tránh phụ thuộc vào việc
+         * organization code có thay đổi hoặc khác format hay không.
          */
-        String username =
-                tokenProvider.getUsernameFromToken(token);
+        UUID userId = tokenProvider.getUserIdFromToken(token);
+        UUID organizationId = tokenProvider.getOrganizationIdFromToken(token);
 
-        /*
-         * ACCESS token bắt buộc phải có organization.
-         */
-        String organizationCode =
-                tokenProvider.getOrganizationCodeFromToken(token);
-
-        if (organizationCode == null
-                || organizationCode.isBlank()) {
-
+        if (userId == null || organizationId == null) {
             return;
         }
 
-        /*
-         * Load user trong context của organization.
-         *
-         * Việc này đồng thời xác định:
-         *
-         * - User
-         * - Organization
-         * - Role
-         */
         UserDetails userDetails =
-                userDetailsService.loadUserByUsernameAndOrg(
-                        username,
-                        organizationCode
+                userDetailsService.loadUserByUserIdAndOrganizationId(
+                        userId,
+                        organizationId
                 );
 
         /*

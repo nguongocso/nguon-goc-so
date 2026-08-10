@@ -43,7 +43,7 @@ const OrganizationSelectionPage: React.FC = () => {
       try {
         setIsLoading(true);
 
-        const response = await getOrganizations();
+        const response = await getOrganizations(selectionToken);
 
         if (!response.success) {
           throw new Error(
@@ -89,7 +89,7 @@ const OrganizationSelectionPage: React.FC = () => {
 
       const response = await selectOrganization({
         organizationId,
-      });
+      }, selectionToken);
 
       if (!response.success) {
         throw new Error(

@@ -124,6 +124,16 @@ public class AuthController {
                         authService.getOrganizations(selectionToken)));
     }
 
+        @GetMapping("/my-organizations")
+        @PreAuthorize("isAuthenticated()")
+        public ResponseEntity<ApiResult<List<OrganizationSelectionResponse>>> getMyOrganizations() {
+                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+
+                return ResponseEntity.ok(
+                                ApiResult.success(authService.getOrganizationsForUser(userDetails.getUserId())));
+        }
+
     /**
      * Lựa chọn organization mà user muốn sử dụng.
      *
@@ -167,4 +177,16 @@ public class AuthController {
         return ResponseEntity.ok(
                 ApiResult.success(response));
     }
+
+        @PostMapping("/switch-organization")
+        @PreAuthorize("isAuthenticated()")
+        public ResponseEntity<ApiResult<SelectOrganizationResponse>> switchOrganization(
+                        @Valid @RequestBody SelectOrganizationRequest request) {
+
+                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+
+                return ResponseEntity.ok(ApiResult.success(
+                                authService.switchOrganization(userDetails.getUserId(), request)));
+        }
 }

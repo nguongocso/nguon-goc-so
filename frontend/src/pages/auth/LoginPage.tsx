@@ -1,13 +1,21 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { LoginForm } from "../../components/auth/LoginForm";
 import { PublicBackground } from "@/components/layout/PublicBackground";
 import { Logo } from "@/components/common/Logo";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isLoading, navigate, user]);
 
   return (
     <PublicBackground>
