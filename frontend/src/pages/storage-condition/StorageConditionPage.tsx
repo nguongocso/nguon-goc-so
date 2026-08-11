@@ -28,6 +28,34 @@ const formSchema = z.object({
     .max(100, 'Độ ẩm phải từ 0 đến 100%'),
 });
 
+// Hàm chuyển đổi mức cảnh báo sang tiếng Việt
+const getAlertLevelLabel = (level: string) => {
+  switch (level) {
+    case 'CRITICAL':
+      return 'Nghiêm trọng';
+    case 'WARNING':
+      return 'Cảnh báo';
+    case 'OK':
+      return 'Bình thường';
+    default:
+      return level;
+  }
+};
+
+// Hàm trả về className cho badge dựa trên mức cảnh báo
+const getAlertBadgeClasses = (level: string) => {
+  switch (level) {
+    case 'CRITICAL':
+      return 'border-red-300 bg-red-50 text-red-700 gap-1';
+    case 'WARNING':
+      return 'border-yellow-300 bg-yellow-50 text-yellow-700 gap-1';
+    case 'OK':
+      return 'border-green-300 bg-green-50 text-green-700 gap-1';
+    default:
+      return 'gap-1';
+  }
+};
+
 export default function StorageConditionPage() {
   const [codeValue, setCodeValue] = useState('');
   const [temperature, setTemperature] = useState('');
@@ -234,10 +262,15 @@ export default function StorageConditionPage() {
               </div>
             </div>
 
+            {/* Mức cảnh báo dạng badge trực quan (đã lược bỏ tiêu đề) */}
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Mức cảnh báo:</span>
-              <Badge variant={result.alertLevel === 'CRITICAL' ? 'destructive' : result.alertLevel === 'WARNING' ? 'secondary' : 'outline'}>
-                {result.alertLevel}
+              <Badge variant="outline" className={getAlertBadgeClasses(result.alertLevel)}>
+                {result.alertLevel === 'OK' ? (
+                  <CheckCircle2 className="size-4" />
+                ) : (
+                  <AlertTriangle className="size-4" />
+                )}
+                {getAlertLevelLabel(result.alertLevel)}
               </Badge>
             </div>
 
