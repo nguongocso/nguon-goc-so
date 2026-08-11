@@ -22,6 +22,8 @@ import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.event.dto.request.*;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
 import vn.nguongocso.event.dto.response.ScanLookupResponse;
+import vn.nguongocso.event.dto.response.StorageConditionResponse;
+import vn.nguongocso.event.dto.response.ThresholdInfo;
 import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
@@ -698,5 +700,146 @@ public class ChainEventServiceImpl implements ChainEventService {
             case TRANSPORT -> List.of(ChainEventType.TRANSPORT.name());
             default -> Collections.emptyList();
         };
+    }
+
+    /**
+     * Ghi nhận mốc điều kiện bảo quản khi vận chuyển.
+     */
+    @Override
+    @Transactional
+    @Auditable(action = "RECORD_STORAGE_CONDITION", entityType = "CHAIN_EVENT", description = "'Ghi nhận điều kiện bảo quản mã tem: ' + #request.codeValue + ', Nhiệt độ: ' + #request.temperature + '°C, Độ ẩm: ' + #request.humidity + '%'")
+    public StorageConditionResponse recordStorageCondition(StorageConditionRequest request, CustomUserDetails currentUser) {
+
+        // 1. Validate role: VT-03 or VT-04 only
+        String role = currentUser.getRoleCode();
+        if (!"VT-03".equals(role) && !"VT-04".equals(role)) {
+            throw new BusinessException(HttpStatus.FORBIDDEN,
+                    "Bạn không có quyền ghi nhận điều kiện bảo quản cho lô hàng này.");
+        }
+
+        // 2. Find TraceCode by codeValue
+        TraceCode traceCode = traceCodeRepository.findByCodeValue(request.getCodeValue())
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND,
+                        "Mã lô hàng không tồn tại."));
+
+        // 3. Find associated Shipment
+        Shipment shipment = traceCode.getShipment();
+        if (shipment == null) {
+            throw new BusinessException("Mã truy xuất chưa được gắn với lô hàng.");
+        }
+
+        // 4. Validate organization
+        if (!shipment.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
+            throw new BusinessException(HttpStatus.FORBIDDEN,
+                    "Bạn không thuộc tổ chức quản lý của lô hàng này.");
+        }
+
+        // 5. Validate shipment status (QTN-05)
+        if (shipment.getStatus() == ShipmentStatus.RECALLED) {
+            throw new BusinessException("Lô hàng chưa được kích hoạt hoặc đã bị thu hồi, không thể ghi nhận mốc bảo quản.");
+        }
+        if (shipment.getStatus() != ShipmentStatus.ACTIVATED) {
+            throw new BusinessException("Lô hàng chưa được kích hoạt hoặc đã bị thu hồi, không thể ghi nhận mốc bảo quản.");
+        }
+
+        // 6. Get ProductCategory thresholds
+        vn.nguongocso.farm.entity.ProductCategory productCategory = null;
+        ProductionLot productionLot = shipment.getProductionLot();
+        if (productionLot != null) {
+            productCategory = productionLot.getProductCategory();
+        }
+
+        Double tempMin = productCategory != null ? productCategory.getTempMin() : null;
+        Double tempMax = productCategory != null ? productCategory.getTempMax() : null;
+        Double humidityMin = productCategory != null ? productCategory.getHumidityMin() : null;
+        Double humidityMax = productCategory != null ? productCategory.getHumidityMax() : null;
+
+        // 7. Compare temperature and humidity against thresholds
+        boolean isTempExceeded = false;
+        boolean isHumidityExceeded = false;
+
+        if (tempMin != null && tempMax != null) {
+            isTempExceeded = request.getTemperature() < tempMin || request.getTemperature() > tempMax;
+        }
+        if (humidityMin != null && humidityMax != null) {
+            isHumidityExceeded = request.getHumidity() < humidityMin || request.getHumidity() > humidityMax;
+        }
+
+        String alertLevel;
+        if (isTempExceeded && isHumidityExceeded) {
+            alertLevel = "CRITICAL";
+        } else if (isTempExceeded || isHumidityExceeded) {
+            alertLevel = "WARNING";
+        } else {
+            alertLevel = "OK";
+        }
+
+        // 8. Resolve recordedAt
+        LocalDateTime recordedAt = request.getRecordedAt() != null
+                ? request.getRecordedAt() : LocalDateTime.now();
+
+        // 9. Build ThresholdInfo
+        ThresholdInfo thresholds = null;
+        if (tempMin != null || tempMax != null || humidityMin != null || humidityMax != null) {
+            thresholds = ThresholdInfo.builder()
+                    .tempMin(tempMin)
+                    .tempMax(tempMax)
+                    .humidityMin(humidityMin)
+                    .humidityMax(humidityMax)
+                    .build();
+        }
+
+        // 10. Build eventData JSON
+        Map<String, Object> eventDataMap = new HashMap<>();
+        eventDataMap.put("shipmentId", shipment.getId().toString());
+        eventDataMap.put("shipmentName", shipment.getName());
+        eventDataMap.put("temperature", request.getTemperature());
+        eventDataMap.put("humidity", request.getHumidity());
+        eventDataMap.put("isTemperatureExceeded", isTempExceeded);
+        eventDataMap.put("isHumidityExceeded", isHumidityExceeded);
+        eventDataMap.put("alertLevel", alertLevel);
+        if (thresholds != null) {
+            eventDataMap.put("tempMin", tempMin);
+            eventDataMap.put("tempMax", tempMax);
+            eventDataMap.put("humidityMin", humidityMin);
+            eventDataMap.put("humidityMax", humidityMax);
+        }
+
+        String eventDataJson = toJson(eventDataMap);
+
+        // 11. Get actor
+        User actor = getActor(currentUser);
+
+        // 12. Create and save ChainEvent
+        ChainEvent chainEvent = ChainEvent.builder()
+                .shipment(shipment)
+                .eventType(ChainEventType.STORAGE_CONDITION)
+                .eventData(eventDataJson)
+                .recordedAt(recordedAt)
+                .recordedBy(actor)
+                .isCorrection(false)
+                .build();
+
+        chainEvent = chainEventRepository.save(chainEvent);
+
+        // 13. Publish activity log
+        publishActivityLog(currentUser, "Ghi mốc bảo quản cho lô hàng " + shipment.getName(),
+                "ChainEvent", chainEvent.getId().toString());
+
+        // 14. Build response
+        return StorageConditionResponse.builder()
+                .id(chainEvent.getId())
+                .eventType(ChainEventType.STORAGE_CONDITION)
+                .shipmentId(shipment.getId())
+                .shipmentName(shipment.getName())
+                .temperature(request.getTemperature())
+                .humidity(request.getHumidity())
+                .thresholds(thresholds)
+                .isTemperatureExceeded(isTempExceeded)
+                .isHumidityExceeded(isHumidityExceeded)
+                .alertLevel(alertLevel)
+                .recordedAt(recordedAt)
+                .recordedBy(actor.getFullName())
+                .build();
     }
 }

@@ -84,6 +84,9 @@ import ProcurementEventPage from "@/pages/procurement-event/procurement-event";
 import WarehouseReceiptPage from "@/pages/warehouse-receipt/WarehouseReceiptPage";
 import WarehouseReceiptDetailPage from "@/pages/warehouse-receipt/WarehouseReceiptDetailPage";
 
+// ===== Storage Condition (NCL-05-CN-007) =====
+import StorageConditionPage from "@/pages/storage-condition/StorageConditionPage";
+
 // ===== Notifications =====
 import NotificationsPage from "@/pages/notification/NotificationsPage";
 
@@ -748,6 +751,20 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={ROLE_ACCESS.warehouseReceipt}>
                         <WarehouseReceiptDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+
+            {/* =================================================
+          STORAGE CONDITION (NCL-05-CN-007)
+      ================================================= */}
+
+            <Route
+                path="storage-condition"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.storageCondition}>
+                        <StorageConditionPage />
                     </RoleRoute>
                 }
             />

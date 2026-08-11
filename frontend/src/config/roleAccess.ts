@@ -27,6 +27,8 @@ export const ROLE_ACCESS = {
 
   warehouseReceipt: ['VT-04'] as const,
 
+  storageCondition: ['VT-03', 'VT-04'] as const,
+
   standardManagement: ['VT-01'] as const,
 
   // ✅ Từ file 1

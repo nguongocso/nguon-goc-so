@@ -19,6 +19,7 @@ import {
   Truck,
   UserCheck,
   Users,
+  Thermometer,
   Warehouse,
   X,
   TrendingUp,
@@ -183,6 +184,12 @@ const MENU_GROUPS: MenuGroup[] = [
         label: "Quét mã ghi sự kiện nhanh",
         href: "/chain-events/scan",
         allowedRoles: ROLE_ACCESS.scanQuickEvent,
+      },
+      {
+        icon: <Thermometer className="h-5 w-5" />,
+        label: "Điều kiện bảo quản",
+        href: "/storage-condition",
+        allowedRoles: ROLE_ACCESS.storageCondition,
       },
       {
         icon: <AlertTriangle className="h-5 w-5" />,

@@ -11,6 +11,7 @@ export const EVENT_TYPE_VN_LABELS: Record<ChainEventType, string> = {
   PROCUREMENT: 'Thu mua',
   CORRECTION: 'Điều chỉnh',
   WAREHOUSE_RECEIPT: 'Nhập kho',
+  STORAGE_CONDITION: 'Điều kiện bảo quản',
 };
 
 export function getEventTypeLabel(eventType: string): string {
