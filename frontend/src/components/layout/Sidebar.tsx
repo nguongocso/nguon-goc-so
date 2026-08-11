@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Package,
   ScanLine,
+  ShieldCheck,
   Truck,
   UserCheck,
   Users,
@@ -272,6 +273,12 @@ const MENU_GROUPS: MenuGroup[] = [
     label: "Hệ thống",
     icon: <Settings className="h-5 w-5" />,
     items: [
+      {
+        icon: <ShieldCheck className="h-5 w-5" />,
+        label: "Kiểm chứng dòng sự kiện",
+        href: "/event-chain-verification",
+        allowedRoles: ROLE_ACCESS.eventChainVerification,
+      },
       {
         icon: <History className="h-5 w-5" />,
         label: "Lịch sử hoạt động",

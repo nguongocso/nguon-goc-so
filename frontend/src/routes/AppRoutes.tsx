@@ -86,6 +86,7 @@ import WarehouseReceiptDetailPage from "@/pages/warehouse-receipt/WarehouseRecei
 
 // ===== Storage Condition (NCL-05-CN-007) =====
 import StorageConditionPage from "@/pages/storage-condition/StorageConditionPage";
+import EventChainVerificationPage from "@/pages/event-chain-verification/EventChainVerificationPage";
 
 // ===== Notifications =====
 import NotificationsPage from "@/pages/notification/NotificationsPage";
@@ -765,6 +766,15 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={ROLE_ACCESS.storageCondition}>
                         <StorageConditionPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="event-chain-verification"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.eventChainVerification}>
+                        <EventChainVerificationPage />
                     </RoleRoute>
                 }
             />

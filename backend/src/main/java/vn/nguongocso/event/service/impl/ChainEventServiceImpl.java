@@ -21,6 +21,8 @@ import vn.nguongocso.common.annotation.Auditable;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.event.dto.request.*;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
+import vn.nguongocso.event.dto.response.ChainVerificationResponse;
+import vn.nguongocso.event.dto.response.EventVerificationItem;
 import vn.nguongocso.event.dto.response.ScanLookupResponse;
 import vn.nguongocso.event.dto.response.StorageConditionResponse;
 import vn.nguongocso.event.dto.response.ThresholdInfo;
@@ -28,6 +30,7 @@ import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.event.service.ChainEventService;
+import vn.nguongocso.event.service.EventHashService;
 import vn.nguongocso.event.service.EventValidationService;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.ProductionLot;
@@ -63,6 +66,7 @@ public class ChainEventServiceImpl implements ChainEventService {
     private final ApplicationEventPublisher eventPublisher;
     private final PermissionChecker permissionChecker;
     private final OrganizationUserRepository organizationUserRepository;
+    private final EventHashService eventHashService;
 
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
@@ -331,7 +335,7 @@ public class ChainEventServiceImpl implements ChainEventService {
                 .isCorrection(false)
                 .build();
 
-        chainEvent = chainEventRepository.save(chainEvent);
+        chainEvent = saveWithChainHash(chainEvent);
 
         publishActivityLog(currentUser, "Ghi sự kiện vận chuyển cho lô hàng " + shipment.getName(),
                 "ChainEvent", chainEvent.getId().toString());
@@ -838,7 +842,7 @@ public class ChainEventServiceImpl implements ChainEventService {
                 .isCorrection(false)
                 .build();
 
-        chainEvent = chainEventRepository.save(chainEvent);
+        chainEvent = saveWithChainHash(chainEvent);
 
         // 13. Publish activity log
         publishActivityLog(currentUser, "Ghi mốc bảo quản cho lô hàng " + shipment.getName(),
@@ -901,5 +905,166 @@ public class ChainEventServiceImpl implements ChainEventService {
             throw new BusinessException(HttpStatus.FORBIDDEN,
                     "Bạn không có quyền ghi nhận điều kiện bảo quản cho lô hàng này. Chỉ doanh nghiệp đã thu mua lô hàng mới được thực hiện.");
         }
+    }
+
+    /**
+     * Kiểm chứng tính toàn vẹn dòng sự kiện của một lô hàng.
+     *
+     * Tính lại hash của từng sự kiện theo thứ tự recordedAt ASC, so sánh với
+     * hash đã lưu. Phát hiện sự kiện đầu tiên bị lệch và ghi ActivityLog
+     * VERIFY_CHAIN sau mỗi lần kiểm chứng.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public ChainVerificationResponse verifyChainIntegrity(UUID shipmentId, CustomUserDetails currentUser) {
+        // 1. Find shipment
+        Shipment shipment = shipmentRepository.findById(shipmentId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Không tìm thấy lô hàng."));
+
+        // 2. Authorization
+        String role = currentUser.getRoleCode();
+        if ("VT-01".equals(role) || "VT-05".equals(role)) {
+            // Platform admin & industry regulator may verify any shipment
+        } else if ("VT-04".equals(role)) {
+            // Procurement company: must have a procurement relationship
+            validateStorageProcurementRelationship(shipment, currentUser);
+        } else {
+            throw new BusinessException(HttpStatus.FORBIDDEN,
+                    "Bạn không có quyền kiểm chứng dòng sự kiện của lô này.");
+        }
+
+        // 3. Load all events for this shipment, ordered deterministically
+        List<ChainEvent> events = chainEventRepository
+                .findByShipmentIdOrderByRecordedAtAsc(shipmentId)
+                .stream()
+                .sorted(eventHashService.eventOrdering())
+                .toList();
+
+        // 4. Empty event chain -> TC-04
+        if (events.isEmpty()) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST,
+                    "Lô hàng chưa có sự kiện nào để kiểm chứng.");
+        }
+
+        // 5. Recalculate chain
+        LocalDateTime verifiedAt = LocalDateTime.now();
+        String previousHash = "";
+        boolean verified = true;
+        Integer failedIndex = null;
+        UUID failedEventId = null;
+        String failureReason = null;
+
+        List<EventVerificationItem> verificationItems = new ArrayList<>();
+
+        for (int i = 0; i < events.size(); i++) {
+            ChainEvent event = events.get(i);
+            int index = i + 1;
+
+            String expectedHash = eventHashService.calculateHash(event, previousHash);
+            String storedHash = event.getHash();
+            String storedPrevious = event.getPreviousHash();
+
+            boolean isPreviousValid = (i == 0)
+                    ? (storedPrevious == null || storedPrevious.isEmpty())
+                    : previousHash.equals(storedPrevious != null ? storedPrevious : "");
+
+            boolean isHashValid = expectedHash.equals(storedHash != null ? storedHash : "");
+
+            boolean isValid = isPreviousValid && isHashValid;
+
+            EventVerificationItem.EventVerificationItemBuilder itemBuilder = EventVerificationItem.builder()
+                    .index(index)
+                    .eventId(event.getId())
+                    .eventType(event.getEventType() != null ? event.getEventType().name() : null)
+                    .recordedAt(event.getRecordedAt())
+                    .hash(storedHash)
+                    .previousHash(event.getPreviousHash())
+                    .isValid(isValid);
+
+            if (!isValid && verified) {
+                // First invalid event
+                verified = false;
+                failedIndex = index;
+                failedEventId = event.getId();
+                if (!isPreviousValid) {
+                    failureReason = "Previous hash mismatch: expected " + previousHash + ", got " + (storedPrevious != null ? storedPrevious : "") + ".";
+                } else if (!isHashValid) {
+                    failureReason = "Hash mismatch: expected " + expectedHash + ", got " + (storedHash != null ? storedHash : "") + ".";
+                }
+                itemBuilder.expectedHash(expectedHash);
+            } else if (!isValid) {
+                // Subsequent invalid events depend on the first broken link
+                itemBuilder.expectedHash(expectedHash);
+            }
+
+            verificationItems.add(itemBuilder.build());
+
+            // Update link for the next event
+            previousHash = expectedHash;
+        }
+
+        // 6. Build response
+        ChainVerificationResponse response = ChainVerificationResponse.builder()
+                .shipmentId(shipment.getId())
+                .shipmentName(shipment.getName())
+                .totalEvents(events.size())
+                .isIntegrityVerified(verified)
+                .verificationStatus(verified ? "INTACT" : "BROKEN")
+                .failedEventIndex(failedIndex)
+                .failedEventId(failedEventId)
+                .failureReason(failureReason)
+                .verifiedAt(verifiedAt)
+                .hashAlgorithm(EventHashService.HASH_ALGORITHM)
+                .events(verificationItems)
+                .build();
+
+        // 7. Record verification in ActivityLog (TC-03)
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+                .userId(currentUser.getUserId())
+                .username(currentUser.getUsername())
+                .fullName(currentUser.getFullName())
+                .organizationId(currentUser.getOrganizationId())
+                .action("VERIFY_CHAIN")
+                .description("Kiểm chứng dòng sự kiện lô hàng: " + shipment.getName())
+                .entityType("SHIPMENT")
+                .entityId(shipment.getId().toString())
+                .ipAddress(IpUtils.getClientIp())
+                .timestamp(verifiedAt)
+                .build());
+
+        return response;
+    }
+
+    /**
+     * Lưu ChainEvent và tự động tính chuỗi băm liên kết trước khi persist.
+     *
+     * Tính toán hash của sự kiện mới dựa trên hash sự kiện liền trước trong
+     * cùng Shipment. Sự kiện đầu tiên dùng previousHash = "".
+     */
+    @Override
+    @Transactional
+    public ChainEvent saveWithChainHash(ChainEvent event) {
+        if (event.getShipment() == null) {
+            // Không gắn shipment (VD: HARVEST/PACKAGING chưa gắn lô hàng) -> không thể tính chuỗi.
+            return chainEventRepository.save(event);
+        }
+
+        // Tìm sự kiện cuối cùng (gần nhất) của cùng shipment
+        List<ChainEvent> previousEvents = chainEventRepository
+                .findByShipmentIdOrderByRecordedAtAsc(event.getShipment().getId())
+                .stream()
+                .sorted(eventHashService.eventOrdering())
+                .toList();
+
+        String previousHash = "";
+        if (!previousEvents.isEmpty()) {
+            ChainEvent last = previousEvents.get(previousEvents.size() - 1);
+            previousHash = last.getHash() != null ? last.getHash() : "";
+        }
+
+        event.setPreviousHash(previousHash.isEmpty() ? null : previousHash);
+        event.setHash(eventHashService.calculateHash(event, previousHash));
+
+        return chainEventRepository.save(event);
     }
 }
