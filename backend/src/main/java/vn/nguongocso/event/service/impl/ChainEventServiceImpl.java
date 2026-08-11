@@ -33,6 +33,7 @@ import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
+import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
@@ -61,6 +62,7 @@ public class ChainEventServiceImpl implements ChainEventService {
     private final EventValidationService eventValidationService;
     private final ApplicationEventPublisher eventPublisher;
     private final PermissionChecker permissionChecker;
+    private final OrganizationUserRepository organizationUserRepository;
 
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
@@ -728,10 +730,17 @@ public class ChainEventServiceImpl implements ChainEventService {
             throw new BusinessException("Mã truy xuất chưa được gắn với lô hàng.");
         }
 
-        // 4. Validate organization
-        if (!shipment.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
-            throw new BusinessException(HttpStatus.FORBIDDEN,
-                    "Bạn không thuộc tổ chức quản lý của lô hàng này.");
+        // 4. Validate authorization based on role
+        if ("VT-04".equals(role)) {
+            // Procurement company: validate via PROCUREMENT relationship (may belong to
+            // a different organization than the producer/cooperative)
+            validateStorageProcurementRelationship(shipment, currentUser);
+        } else {
+            // VT-03: must belong to the shipment's managing organization
+            if (!shipment.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
+                throw new BusinessException(HttpStatus.FORBIDDEN,
+                        "Bạn không thuộc tổ chức quản lý của lô hàng này.");
+            }
         }
 
         // 5. Validate shipment status (QTN-05)
@@ -740,6 +749,15 @@ public class ChainEventServiceImpl implements ChainEventService {
         }
         if (shipment.getStatus() != ShipmentStatus.ACTIVATED) {
             throw new BusinessException("Lô hàng chưa được kích hoạt hoặc đã bị thu hồi, không thể ghi nhận mốc bảo quản.");
+        }
+
+        // 5b. Transportation precondition: the lot must have at least one TRANSPORT event
+        boolean hasTransportEvent = chainEventRepository
+                .findByShipmentIdOrderByRecordedAtAsc(shipment.getId())
+                .stream()
+                .anyMatch(e -> e.getEventType() == ChainEventType.TRANSPORT);
+        if (!hasTransportEvent) {
+            throw new BusinessException("Lô hàng phải có sự kiện vận chuyển trước khi ghi nhận điều kiện bảo quản.");
         }
 
         // 6. Get ProductCategory thresholds
@@ -841,5 +859,47 @@ public class ChainEventServiceImpl implements ChainEventService {
                 .recordedAt(recordedAt)
                 .recordedBy(actor.getFullName())
                 .build();
+    }
+
+    /**
+     * Validates that the current VT-04 procurement company has a legitimate
+     * procurement relationship with the shipment.
+     *
+     * The procurement relationship is represented by existing PROCUREMENT
+     * ChainEvents: at least one PROCUREMENT event for this shipment must have
+     * been recorded by a user belonging to the current user's organization.
+     *
+     * This intentionally does NOT require the procurement company's
+     * organization to equal the producer/cooperative organization of the
+     * shipment.
+     */
+    private void validateStorageProcurementRelationship(Shipment shipment, CustomUserDetails currentUser) {
+        List<ChainEvent> procurementEvents = chainEventRepository
+                .findByShipmentIdOrderByRecordedAtAsc(shipment.getId())
+                .stream()
+                .filter(e -> e.getEventType() == ChainEventType.PROCUREMENT)
+                .toList();
+
+        if (procurementEvents.isEmpty()) {
+            throw new BusinessException(HttpStatus.FORBIDDEN,
+                    "Bạn không có quyền ghi nhận điều kiện bảo quản cho lô hàng này. Chỉ doanh nghiệp đã thu mua lô hàng mới được thực hiện.");
+        }
+
+        UUID currentOrgId = currentUser.getOrganizationId();
+
+        List<UUID> recorderIds = procurementEvents.stream()
+                .map(e -> e.getRecordedBy().getUserId())
+                .distinct()
+                .toList();
+
+        boolean hasRelationship = recorderIds.stream()
+                .anyMatch(recorderId -> organizationUserRepository
+                        .findByOrganization_OrganizationIdAndUser_UserId(currentOrgId, recorderId)
+                        .isPresent());
+
+        if (!hasRelationship) {
+            throw new BusinessException(HttpStatus.FORBIDDEN,
+                    "Bạn không có quyền ghi nhận điều kiện bảo quản cho lô hàng này. Chỉ doanh nghiệp đã thu mua lô hàng mới được thực hiện.");
+        }
     }
 }

@@ -24,6 +24,7 @@ export const ProductCategoryList = ({ categories, loading, onEdit, onToggleActiv
           <TableRow>
             <TableHead>Tên</TableHead>
             <TableHead>Nhóm hàng</TableHead>
+            <TableHead>Ngưỡng bảo quản</TableHead>
             <TableHead>Mô tả</TableHead>
             <TableHead>Trạng thái</TableHead>
             {canManage && <TableHead className="text-right">Thao tác</TableHead>}
@@ -34,6 +35,15 @@ export const ProductCategoryList = ({ categories, loading, onEdit, onToggleActiv
             <TableRow key={category.id}>
               <TableCell className="font-medium">{category.name}</TableCell>
               <TableCell>{category.group}</TableCell>
+              <TableCell>
+                {category.tempMin !== undefined && category.tempMax !== undefined ? (
+                  <span className="text-xs text-muted-foreground">
+                    {category.tempMin}–{category.tempMax}°C / {category.humidityMin ?? '?'}–{category.humidityMax ?? '?'}%
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Chưa khai báo</span>
+                )}
+              </TableCell>
               <TableCell>{category.description || '—'}</TableCell>
               <TableCell>
                 <Badge variant={category.isActive ? 'default' : 'secondary'}>

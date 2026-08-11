@@ -89,12 +89,19 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
 					"Loại nông sản với tên '" + request.getName() + "' đã tồn tại trong danh mục");
 		}
 
+		validateThresholds(request.getTempMin(), request.getTempMax(),
+				request.getHumidityMin(), request.getHumidityMax());
+
 		ProductCategory category = new ProductCategory();
 		category.setId(UUID.randomUUID());
 		category.setName(request.getName().trim());
 		category.setGroup(request.getGroup().trim());
 		category.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
 		category.setIsActive(true);
+		category.setTempMin(request.getTempMin());
+		category.setTempMax(request.getTempMax());
+		category.setHumidityMin(request.getHumidityMin());
+		category.setHumidityMax(request.getHumidityMax());
 
 		ProductCategory saved = productCategoryRepository.save(category);
 		log.info("Thêm mới loại nông sản thành công, ID={}", saved.getId());
@@ -122,14 +129,35 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
 					"Loại nông sản với tên '" + request.getName() + "' đã tồn tại trong danh mục");
 		}
 
+		validateThresholds(request.getTempMin(), request.getTempMax(),
+				request.getHumidityMin(), request.getHumidityMax());
+
 		category.setName(request.getName().trim());
 		category.setGroup(request.getGroup().trim());
 		category.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
 		category.setIsActive(request.getIsActive());
+		category.setTempMin(request.getTempMin());
+		category.setTempMax(request.getTempMax());
+		category.setHumidityMin(request.getHumidityMin());
+		category.setHumidityMax(request.getHumidityMax());
 
 		ProductCategory updated = productCategoryRepository.save(category);
 		log.info("Cập nhật loại nông sản thành công, ID={}", updated.getId());
 		return toResponse(updated);
+	}
+
+	/**
+	 * Kiểm tra ngưỡng bảo quản hợp lệ.
+	 * - tempMin <= tempMax (nếu cả hai được cung cấp)
+	 * - humidityMin <= humidityMax (nếu cả hai được cung cấp)
+	 */
+	private void validateThresholds(Double tempMin, Double tempMax, Double humidityMin, Double humidityMax) {
+		if (tempMin != null && tempMax != null && tempMin > tempMax) {
+			throw new jakarta.validation.ValidationException("Nhiệt độ tối thiểu không được lớn hơn nhiệt độ tối đa");
+		}
+		if (humidityMin != null && humidityMax != null && humidityMin > humidityMax) {
+			throw new jakarta.validation.ValidationException("Độ ẩm tối thiểu không được lớn hơn độ ẩm tối đa");
+		}
 	}
 
 	private ProductCategoryResponse toResponse(ProductCategory category) {
@@ -139,6 +167,10 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
 				.group(category.getGroup())
 				.description(category.getDescription())
 				.isActive(category.getIsActive())
+				.tempMin(category.getTempMin())
+				.tempMax(category.getTempMax())
+				.humidityMin(category.getHumidityMin())
+				.humidityMax(category.getHumidityMax())
 				.build();
 	}
 }

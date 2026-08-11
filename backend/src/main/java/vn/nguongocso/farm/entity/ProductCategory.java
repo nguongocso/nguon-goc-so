@@ -39,15 +39,15 @@ public class ProductCategory {
 	@Column(name = "is_active", nullable = false)
 	private Boolean isActive;
 
-	@Column(name = "temp_min")
+	@Column(name = "temp_min", columnDefinition = "DECIMAL(4,1)")
 	private Double tempMin;
 
-	@Column(name = "temp_max")
+	@Column(name = "temp_max", columnDefinition = "DECIMAL(4,1)")
 	private Double tempMax;
 
-	@Column(name = "humidity_min")
+	@Column(name = "humidity_min", columnDefinition = "DECIMAL(5,1)")
 	private Double humidityMin;
 
-	@Column(name = "humidity_max")
+	@Column(name = "humidity_max", columnDefinition = "DECIMAL(5,1)")
 	private Double humidityMax;
 }
