@@ -74,6 +74,7 @@ import ProcurementEventPage from "@/pages/procurement-event/procurement-event";
 
 // ===== Warehouse Receipt =====
 import WarehouseReceiptPage from "@/pages/warehouse-receipt/WarehouseReceiptPage";
+import WarehouseReceiptDetailPage from "@/pages/warehouse-receipt/WarehouseReceiptDetailPage";
 
 // ===== Notifications =====
 import NotificationsPage from "@/pages/notification/NotificationsPage";
@@ -485,6 +486,14 @@ const AppRoutes = () => (
         element={
           <RoleRoute allowedRoles={ROLE_ACCESS.warehouseReceipt}>
             <WarehouseReceiptPage />
+          </RoleRoute>
+        }
+      />
+      <Route
+        path="warehouse-receipt/:eventId"
+        element={
+          <RoleRoute allowedRoles={ROLE_ACCESS.warehouseReceipt}>
+            <WarehouseReceiptDetailPage />
           </RoleRoute>
         }
       />

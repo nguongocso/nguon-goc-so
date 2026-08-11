@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Warehouse, Eye, LoaderCircle, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -14,14 +15,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { useWarehouseReceipt } from '@/hooks/useWarehouseReceipt';
 import { WarehouseReceiptCreateDialog } from './components/WarehouseReceiptCreateDialog';
-import { WarehouseReceiptDetailSheet } from './components/WarehouseReceiptDetailSheet';
-import type { WarehouseReceiptResponse } from '@/types/warehouseReceipt';
 
 export default function WarehouseReceiptPage() {
   const { list, pageData, isLoadingList, error, fetchList } = useWarehouseReceipt();
   const [createOpen, setCreateOpen] = useState(false);
-  const [selectedReceipt, setSelectedReceipt] = useState<WarehouseReceiptResponse | null>(null);
   const [page, setPage] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchList(page, 10);
@@ -151,7 +150,7 @@ export default function WarehouseReceiptPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setSelectedReceipt(receipt)}
+                            onClick={() => navigate(`/warehouse-receipt/${receipt.id}`)}
                           >
                             <Eye className="size-4" />
                           </Button>
@@ -199,15 +198,6 @@ export default function WarehouseReceiptPage() {
         onOpenChange={setCreateOpen}
         onCreated={handleCreated}
       />
-
-      {/* Detail Sheet */}
-      {selectedReceipt && (
-        <WarehouseReceiptDetailSheet
-          receipt={selectedReceipt}
-          open={!!selectedReceipt}
-          onOpenChange={(open) => { if (!open) setSelectedReceipt(null); }}
-        />
-      )}
     </div>
   );
 }
