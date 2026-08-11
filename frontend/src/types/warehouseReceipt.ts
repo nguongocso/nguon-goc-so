@@ -11,6 +11,7 @@ export interface WarehouseReceiptResponse {
   eventType: 'WAREHOUSE_RECEIPT';
   shipmentId: string;
   shipmentName: string;
+  traceCode?: string;
   declaredQuantity: number;
   receivedQuantity: number;
   discrepancy: number;

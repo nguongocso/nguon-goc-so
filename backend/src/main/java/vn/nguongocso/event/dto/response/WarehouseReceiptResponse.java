@@ -24,6 +24,7 @@ public class WarehouseReceiptResponse {
     private ChainEventType eventType;
     private UUID shipmentId;
     private String shipmentName;
+    private String traceCode;
     private Double declaredQuantity;
     private Double receivedQuantity;
     private Double discrepancy;
