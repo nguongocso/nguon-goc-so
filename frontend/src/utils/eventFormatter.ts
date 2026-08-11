@@ -10,6 +10,7 @@ export const EVENT_TYPE_VN_LABELS: Record<ChainEventType, string> = {
   TRANSPORT: 'Vận chuyển',
   PROCUREMENT: 'Thu mua',
   CORRECTION: 'Điều chỉnh',
+  WAREHOUSE_RECEIPT: 'Nhập kho',
 };
 
 export function getEventTypeLabel(eventType: string): string {

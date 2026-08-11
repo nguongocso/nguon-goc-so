@@ -72,6 +72,9 @@ import OfflineEventPage from "@/pages/offline/OfflineEventPage";
 // ===== Procurement =====
 import ProcurementEventPage from "@/pages/procurement-event/procurement-event";
 
+// ===== Warehouse Receipt =====
+import WarehouseReceiptPage from "@/pages/warehouse-receipt/WarehouseReceiptPage";
+
 // ===== Notifications =====
 import NotificationsPage from "@/pages/notification/NotificationsPage";
 
@@ -472,6 +475,16 @@ const AppRoutes = () => (
         element={
           <RoleRoute allowedRoles={ROLE_ACCESS.procurementEvent}>
             <ProcurementEventPage />
+          </RoleRoute>
+        }
+      />
+
+      {/* ===== Warehouse Receipt (NCL-05-CN-006) ===== */}
+      <Route
+        path="warehouse-receipt"
+        element={
+          <RoleRoute allowedRoles={ROLE_ACCESS.warehouseReceipt}>
+            <WarehouseReceiptPage />
           </RoleRoute>
         }
       />
