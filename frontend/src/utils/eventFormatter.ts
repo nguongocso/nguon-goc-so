@@ -50,6 +50,16 @@ const KNOWN_FIELD_LABELS: Record<string, string> = {
   receivedWeight: 'Khối lượng nhận',
   deviceSource: 'Nguồn thiết bị',
   images: 'Ảnh',
+
+  // ========== Warehouse Receipt (NCL-05-CN-006) ==========
+  conditionNote: 'Tình trạng hàng',
+  isDiscrepancyExceeded: 'Vượt ngưỡng',
+  declaredQuantity: 'Số lượng khai báo',
+  discrepancy: 'Chênh lệch',
+  discrepancyPercent: 'Chênh lệch %',
+  threshold: 'Ngưỡng cho phép',
+  reason: 'Lý do chênh lệch',
+  receiptDate: 'Ngày nhập kho',
 };
 
 /**

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { z } from 'zod';
 import { LoaderCircle, Send, AlertTriangle, CheckCircle2, Package, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,10 +43,14 @@ interface Props {
 }
 
 export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: Props) {
+  // 👇 Lấy ngày hôm nay
+  const today = new Date().toISOString().split('T')[0];
+
   const [codeValue, setCodeValue] = useState('');
   const [receivedQuantity, setReceivedQuantity] = useState('');
   const [conditionNote, setConditionNote] = useState('');
-  const [receiptDate, setReceiptDate] = useState('');
+  // 👇 Set mặc định là ngày hôm nay
+  const [receiptDate, setReceiptDate] = useState(today);
   const [reason, setReason] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [lotInfo, setLotInfo] = useState<LotInfo | null>(null);
@@ -152,7 +156,7 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
     setCodeValue('');
     setReceivedQuantity('');
     setConditionNote('');
-    setReceiptDate('');
+    setReceiptDate(today); // 👈 Reset về ngày hôm nay
     setReason('');
     setFormError(null);
     setLotInfo(null);
@@ -279,7 +283,7 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
             />
           </div>
 
-          {/* Receipt date */}
+          {/* Receipt date - mặc định là ngày hôm nay */}
           <div className="space-y-2">
             <Label htmlFor="receiptDate">Ngày nhập kho</Label>
             <Input
@@ -289,6 +293,7 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
               onChange={(e) => setReceiptDate(e.target.value)}
               disabled={isSubmitting || !lotInfo}
             />
+            <p className="text-xs text-muted-foreground">Mặc định là ngày hôm nay</p>
           </div>
 
           {/* Discrepancy reason */}
