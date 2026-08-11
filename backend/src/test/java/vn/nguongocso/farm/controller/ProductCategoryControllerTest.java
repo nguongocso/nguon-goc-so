@@ -70,7 +70,13 @@ class aProductCategoryControllerTest {
         when(userDetails.getUsername()).thenReturn("user");
         doReturn(Collections.singletonList(new SimpleGrantedAuthority("ROLE_VT-02"))).when(userDetails).getAuthorities();
 
-        activeResponse = new ProductCategoryResponse(UUID.randomUUID(), "Xoài Cát Chu", "Cây ăn quả", "Mô tả", true);
+        activeResponse = ProductCategoryResponse.builder()
+                .id(UUID.randomUUID())
+                .name("Xoài Cát Chu")
+                .group("Cây ăn quả")
+                .description("Mô tả")
+                .isActive(true)
+                .build();
     }
 
     @Test
@@ -90,8 +96,18 @@ class aProductCategoryControllerTest {
     @Test
     void create_shouldReturnCreated_whenUserIsAdmin() throws Exception {
         // Given
-        CreateProductCategoryRequest request = new CreateProductCategoryRequest("Mận An Phước", "Cây ăn quả", "Mận ngon");
-        ProductCategoryResponse response = new ProductCategoryResponse(UUID.randomUUID(), "Mận An Phước", "Cây ăn quả", "Mận ngon", true);
+        CreateProductCategoryRequest request = CreateProductCategoryRequest.builder()
+                .name("Mận An Phước")
+                .group("Cây ăn quả")
+                .description("Mận ngon")
+                .build();
+        ProductCategoryResponse response = ProductCategoryResponse.builder()
+                .id(UUID.randomUUID())
+                .name("Mận An Phước")
+                .group("Cây ăn quả")
+                .description("Mận ngon")
+                .isActive(true)
+                .build();
 
         when(productCategoryService.create(any(CreateProductCategoryRequest.class))).thenReturn(response);
 
@@ -109,7 +125,11 @@ class aProductCategoryControllerTest {
     @Test
     void create_shouldReturnForbidden_whenUserIsNotAdmin() throws Exception {
         // Given
-        CreateProductCategoryRequest request = new CreateProductCategoryRequest("Mận An Phước", "Cây ăn quả", "Mận ngon");
+        CreateProductCategoryRequest request = CreateProductCategoryRequest.builder()
+                .name("Mận An Phước")
+                .group("Cây ăn quả")
+                .description("Mận ngon")
+                .build();
 
         // When & Then (Sử dụng user thường VT-02)
         mockMvc.perform(post("/api/v1/product-categories")
@@ -126,8 +146,19 @@ class aProductCategoryControllerTest {
     void update_shouldReturnOk_whenUserIsAdmin() throws Exception {
         // Given
         UUID categoryId = activeResponse.getId();
-        UpdateProductCategoryRequest request = new UpdateProductCategoryRequest("Xoài Cao Lãnh", "Cây ăn quả", "Mô tả mới", false);
-        ProductCategoryResponse response = new ProductCategoryResponse(categoryId, "Xoài Cao Lãnh", "Cây ăn quả", "Mô tả mới", false);
+        UpdateProductCategoryRequest request = UpdateProductCategoryRequest.builder()
+                .name("Xoài Cao Lãnh")
+                .group("Cây ăn quả")
+                .description("Mô tả mới")
+                .isActive(false)
+                .build();
+        ProductCategoryResponse response = ProductCategoryResponse.builder()
+                .id(categoryId)
+                .name("Xoài Cao Lãnh")
+                .group("Cây ăn quả")
+                .description("Mô tả mới")
+                .isActive(false)
+                .build();
 
         when(productCategoryService.update(eq(categoryId), any(UpdateProductCategoryRequest.class))).thenReturn(response);
 
@@ -147,7 +178,12 @@ class aProductCategoryControllerTest {
     void update_shouldReturnForbidden_whenUserIsNotAdmin() throws Exception {
         // Given
         UUID categoryId = activeResponse.getId();
-        UpdateProductCategoryRequest request = new UpdateProductCategoryRequest("Xoài Cao Lãnh", "Cây ăn quả", "Mô tả mới", false);
+        UpdateProductCategoryRequest request = UpdateProductCategoryRequest.builder()
+                .name("Xoài Cao Lãnh")
+                .group("Cây ăn quả")
+                .description("Mô tả mới")
+                .isActive(false)
+                .build();
 
         // When & Then
         mockMvc.perform(put("/api/v1/product-categories/{id}", categoryId)
