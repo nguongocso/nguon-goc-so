@@ -637,7 +637,12 @@ public class ChainEventServiceImpl implements ChainEventService {
             throw new BusinessException("Mã truy xuất chưa được gắn với lô hàng.");
         }
 
-        validateOrganization(shipment, currentUser);
+        // For VT-04 (procurement company), skip organization validation since
+        // they belong to a different organization than the shipment's cooperative.
+        // The procurement relationship check will be done when recording the event.
+        if (!"VT-04".equals(currentUser.getRoleCode())) {
+            validateOrganization(shipment, currentUser);
+        }
 
         if (shipment.getStatus() == ShipmentStatus.RECALLED) {
             throw new BusinessException(HttpStatus.CONFLICT, "Lô hàng đã bị thu hồi.");
@@ -677,6 +682,7 @@ public class ChainEventServiceImpl implements ChainEventService {
                         latestEvent.map(e -> e.getEventType().name()).orElse(null))
                 .lastEventRecordedAt(
                         latestEvent.map(ChainEvent::getRecordedAt).orElse(null))
+                .totalQuantity(shipment.getTotalQuantity())
                 .build();
     }
 

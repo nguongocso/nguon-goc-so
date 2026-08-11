@@ -13,4 +13,5 @@ export interface ScanLookupResponse {
   allowedEventTypes: string[];
   lastEventType: string | null;
   lastEventRecordedAt: string | null;
+  totalQuantity?: number;
 }

@@ -131,6 +131,12 @@ export const CreateFarmAreaForm = ({ onSuccess, onCancel }: Props) => {
     );
   }
 
+  // Xác định placeholder và trạng thái disabled cho select loại cây trồng
+  const hasCropTypes = cropTypes.length > 0;
+  const cropTypePlaceholder = hasCropTypes
+    ? "Chọn loại cây trồng"
+    : "Chưa có loại cây trồng nào";
+
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <Card className="border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm">
@@ -170,24 +176,32 @@ export const CreateFarmAreaForm = ({ onSuccess, onCancel }: Props) => {
                     shouldDirty: true,
                   })
                 }
+                disabled={!hasCropTypes}
               >
                 <SelectTrigger id="cropType" className="w-full border-emerald-200 focus:ring-emerald-100">
-                  <SelectValue placeholder="Chọn loại cây trồng">
-                    {selectedCropType
+                  <SelectValue placeholder={cropTypePlaceholder}>
+                    {selectedCropType && hasCropTypes
                       ? cropTypes.find((c) => c.id === selectedCropType)?.name
                       : ""}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
-                  {cropTypes.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                {hasCropTypes && (
+                  <SelectContent>
+                    {cropTypes.map((type) => (
+                      <SelectItem key={type.id} value={type.id}>
+                        {type.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                )}
               </Select>
               {errors.cropType && (
                 <p className="text-sm text-red-500">{errors.cropType.message}</p>
+              )}
+              {!hasCropTypes && (
+                <p className="text-sm text-amber-600">
+                  Hiện chưa có loại cây trồng nào. Vui lòng thêm loại cây trồng trước khi tạo vùng.
+                </p>
               )}
             </div>
           </div>

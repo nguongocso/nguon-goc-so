@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -104,4 +106,15 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
                         "AND ce.isCorrection = false " +
                         "ORDER BY ce.recordedAt ASC")
         List<ChainEvent> findByShipmentIdInOrderByRecordedAtAsc(@Param("shipmentIds") List<UUID> shipmentIds);
+
+        /**
+         * Lấy danh sách sự kiện WAREHOUSE_RECEIPT của một tổ chức, phân trang.
+         */
+        Page<ChainEvent> findByEventTypeAndRecordedBy_UserIdOrderByRecordedAtDesc(
+                        ChainEventType eventType, UUID userId, Pageable pageable);
+
+        /**
+         * Tìm một sự kiện WAREHOUSE_RECEIPT theo ID và loại sự kiện.
+         */
+        Optional<ChainEvent> findByIdAndEventType(UUID id, ChainEventType eventType);
 }
