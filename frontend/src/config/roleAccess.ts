@@ -23,6 +23,8 @@ export const ROLE_ACCESS = {
 
   scanAnomalyAlerts: ['VT-01', 'VT-02'] as const,
 
+  loginAnomalyMonitoring: ['VT-01', 'VT-02'] as const,
+
   procurementEvent: ['VT-04'] as const,
 
   warehouseReceipt: ['VT-04'] as const,

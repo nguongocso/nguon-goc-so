@@ -30,6 +30,7 @@ import {
   ChevronDown,
   Settings,
   ShoppingCart,
+  ShieldAlert,
 } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import {
@@ -283,6 +284,12 @@ const MENU_GROUPS: MenuGroup[] = [
         label: "Sao lưu & Phục hồi dữ liệu",
         href: "/admin/backup-restore",
         allowedRoles: ["VT-01"] as const,
+      },
+      {
+        icon: <ShieldAlert className="h-5 w-5" />,
+        label: "Đăng nhập bất thường",
+        href: "/login-anomalies",
+        allowedRoles: ROLE_ACCESS.loginAnomalyMonitoring,
       },
       {
         icon: <UserCheck className="h-5 w-5" />,

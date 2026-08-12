@@ -67,6 +67,9 @@ import SeasonYieldComparisonPage from "@/pages/report/SeasonYieldComparisonPage"
 // ===== Alerts =====
 import ScanAnomalyAlertPage from "@/pages/scan-anomaly-alert/ScanAnomalyAlertPage";
 
+// ===== Login anomaly =====
+import LoginAnomalyPage from "@/pages/login-anomaly/LoginAnomalyPage";
+
 // ===== Farm area =====
 import FarmAreaListPage from "@/pages/farm-area/FarmAreaListPage";
 
@@ -657,6 +660,17 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.scanAnomalyAlerts}
                     >
                         <ScanAnomalyAlertPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="login-anomalies"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.loginAnomalyMonitoring}
+                    >
+                        <LoginAnomalyPage />
                     </RoleRoute>
                 }
             />
