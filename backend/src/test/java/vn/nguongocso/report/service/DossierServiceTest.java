@@ -11,7 +11,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
@@ -75,9 +74,6 @@ public class DossierServiceTest {
     @Mock
     private OrganizationUserRepository organizationUserRepository;
 
-        @Mock
-        private ApplicationEventPublisher eventPublisher;
-
     @InjectMocks
     private DossierServiceImpl dossierService;
 
@@ -100,7 +96,13 @@ public class DossierServiceTest {
                 .id(UUID.randomUUID())
                 .name("Lô chè giống mới")
                 .organization(org)
-                .productCategory(new ProductCategory(UUID.randomUUID(), "Chè", "TEA", "Chè xanh", true))
+                .productCategory(ProductCategory.builder()
+                        .id(UUID.randomUUID())
+                        .name("Chè")
+                        .group("TEA")
+                        .description("Chè xanh")
+                        .isActive(true)
+                        .build())
                 .status(ProductionLotStatus.CLOSED)
                 .plantingDate(LocalDate.now().minusDays(30))
                 .harvestDate(LocalDate.now())

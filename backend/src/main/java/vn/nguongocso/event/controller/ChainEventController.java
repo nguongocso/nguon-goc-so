@@ -13,6 +13,7 @@ import vn.nguongocso.event.dto.request.*;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
 import vn.nguongocso.event.dto.response.OfflineEventSyncResponse;
 import vn.nguongocso.event.dto.response.ScanLookupResponse;
+import vn.nguongocso.event.dto.response.StorageConditionResponse;
 import vn.nguongocso.event.service.ChainEventService;
 import vn.nguongocso.event.service.OfflineSyncService;
 import vn.nguongocso.permission.service.PermissionChecker;
@@ -151,4 +152,20 @@ public class ChainEventController {
         ScanLookupResponse response = chainEventService.scanLookup(codeValue, currentUser);
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
+
+    /**
+     * API ghi nhận mốc điều kiện bảo quản khi vận chuyển.
+     * Chỉ chấp nhận vai trò VT-03 (Người ghi sự kiện) và VT-04 (Doanh nghiệp thu mua).
+     */
+    @PostMapping("/storage-condition")
+    @PreAuthorize("hasAnyRole('VT-03', 'VT-04')")
+    public ResponseEntity<ApiResult<StorageConditionResponse>> recordStorageCondition(
+            @Valid @RequestBody StorageConditionRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        StorageConditionResponse response = chainEventService.recordStorageCondition(request, currentUser);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResult.success(HttpStatus.CREATED.value(), response));
+    }
+
 }

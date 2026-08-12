@@ -63,6 +63,12 @@ public class ChainEvent {
     @Column(name = "is_correction", nullable = false)
     private boolean isCorrection;
 
+    @Column(name = "hash", length = 64)
+    private String hash;
+
+    @Column(name = "previous_hash", length = 64)
+    private String previousHash;
+
     @PrePersist
     protected void onCreate() {
         if (id == null) {

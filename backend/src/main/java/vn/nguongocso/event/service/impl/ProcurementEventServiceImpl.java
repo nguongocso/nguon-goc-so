@@ -21,6 +21,7 @@ import vn.nguongocso.event.dto.response.ChainEventResponse;
 import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
+import vn.nguongocso.event.service.ChainEventService;
 import vn.nguongocso.event.service.EventValidationService;
 import vn.nguongocso.event.service.ProcurementEventService;
 import vn.nguongocso.exception.BusinessException;
@@ -39,6 +40,7 @@ public class ProcurementEventServiceImpl implements ProcurementEventService {
 
     private final ShipmentRepository shipmentRepository;
     private final ChainEventRepository chainEventRepository;
+    private final ChainEventService chainEventService;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
     private final EventValidationService eventValidationService;
@@ -113,7 +115,7 @@ public class ProcurementEventServiceImpl implements ProcurementEventService {
                 .isCorrection(false)
                 .build();
 
-        chainEvent = chainEventRepository.save(chainEvent);
+        chainEvent = chainEventService.saveWithChainHash(chainEvent);
 
         eventPublisher.publishEvent(ActivityLogEvent.builder()
                 .userId(currentUser.getUserId())
