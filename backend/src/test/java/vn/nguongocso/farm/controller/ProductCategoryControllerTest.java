@@ -34,6 +34,7 @@ import vn.nguongocso.farm.dto.request.CreateProductCategoryRequest;
 import vn.nguongocso.farm.dto.request.UpdateProductCategoryRequest;
 import vn.nguongocso.farm.dto.response.ProductCategoryResponse;
 import vn.nguongocso.farm.service.ProductCategoryService;
+import vn.nguongocso.permission.service.PermissionChecker;
 
 @WebMvcTest(ProductCategoryController.class)
 @ActiveProfiles("test")
@@ -54,6 +55,9 @@ class aProductCategoryControllerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+    @MockitoBean
+    private PermissionChecker permissionChecker;
 
     private CustomUserDetails adminDetails;
     private CustomUserDetails userDetails;

@@ -6,10 +6,8 @@ import vn.nguongocso.event.dto.request.RecordHarvestEventRequest;
 import vn.nguongocso.event.dto.request.RecordMobileEventRequest;
 import vn.nguongocso.event.dto.request.RecordPackagingEventRequest;
 import vn.nguongocso.event.dto.request.RecordTransportEventRequest;
-import vn.nguongocso.event.dto.request.StorageConditionRequest;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
 import vn.nguongocso.event.dto.response.ScanLookupResponse;
-import vn.nguongocso.event.dto.response.StorageConditionResponse;
 
 import java.util.List;
 import java.util.UUID;
@@ -56,9 +54,4 @@ public interface ChainEventService {
 	 * Tra cứu thông tin qua mã quét.
 	 */
 	ScanLookupResponse scanLookup(String codeValue, CustomUserDetails currentUser);
-
-	/**
-	 * Ghi nhận mốc điều kiện bảo quản khi vận chuyển.
-	 */
-	StorageConditionResponse recordStorageCondition(StorageConditionRequest request, CustomUserDetails currentUser);
 }

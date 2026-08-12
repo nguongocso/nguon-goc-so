@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -47,6 +48,9 @@ public class ProductionLotServiceTest {
 
     @Mock
     private ProductCategoryRepository productCategoryRepository;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private ProductionLotServiceImpl productionLotService;

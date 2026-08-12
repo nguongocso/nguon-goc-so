@@ -20,11 +20,5 @@ public enum ChainEventType {
     PROCUREMENT, // Thu mua
 
     // Sự kiện sửa lỗi - Điều chỉnh hoặc sửa dữ liệu sự kiện trước đó.
-    CORRECTION, // Sửa lỗi
-
-    // Sự kiện nhập kho và đối chiếu số lượng - Doanh nghiệp thu mua ghi nhận số lượng thực nhận.
-    WAREHOUSE_RECEIPT, // Nhập kho
-
-    // Sự kiện theo dõi điều kiện bảo quản khi vận chuyển.
-    STORAGE_CONDITION // Theo dõi bảo quản
+    CORRECTION // Sửa lỗi
 }

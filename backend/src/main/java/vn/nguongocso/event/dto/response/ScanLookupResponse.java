@@ -87,9 +87,4 @@ public class ScanLookupResponse {
      * Thời điểm ghi nhận sự kiện gần nhất.
      */
     private LocalDateTime lastEventRecordedAt;
-
-    /**
-     * Tổng số lượng khai báo của lô hàng.
-     */
-    private Long totalQuantity;
 }

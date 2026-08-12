@@ -21,6 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
@@ -52,6 +53,9 @@ class MobileChainEventServiceImplTest {
 
     @Mock
     private EventValidationService eventValidationService;
+
+        @Mock
+        private ApplicationEventPublisher eventPublisher;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -159,14 +163,8 @@ class MobileChainEventServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Bạn không thuộc tổ chức quản lý của lô sản xuất này.");
 
-        // Kiểm tra xem đã gọi lưu vết lỗi hay chưa
-        verify(eventValidationService, times(1)).logFailedAttempt(
-                eq(productionLot.getId()),
-                eq(productionLot.getName()),
-                eq(ChainEventType.HARVEST),
-                contains("Bạn không thuộc tổ chức quản lý"),
-                eq(validUser)
-        );
+        // Organization validation now rejects directly without creating a failed-attempt log.
+        verifyNoInteractions(eventValidationService);
         verifyNoMoreInteractions(chainEventRepository);
     }
 

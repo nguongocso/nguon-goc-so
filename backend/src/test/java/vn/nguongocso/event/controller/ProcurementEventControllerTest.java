@@ -18,6 +18,7 @@ import vn.nguongocso.event.dto.request.RecordProcurementEventRequest;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.service.ProcurementEventService;
+import vn.nguongocso.permission.service.PermissionChecker;
 
 import java.util.UUID;
 
@@ -39,6 +40,7 @@ class ProcurementEventControllerTest {
     @MockitoBean private ProcurementEventService procurementEventService;
     @MockitoBean private JwtTokenProvider jwtTokenProvider;
     @MockitoBean private CustomUserDetailsService customUserDetailsService;
+        @MockitoBean private PermissionChecker permissionChecker;
 
     @Test
     @WithMockUser(roles = "VT-04")

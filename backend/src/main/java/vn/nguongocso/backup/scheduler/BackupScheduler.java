@@ -15,6 +15,7 @@ import vn.nguongocso.backup.service.BackupService;
 
 import java.util.Optional;
 import java.util.concurrent.ScheduledFuture;
+import org.springframework.beans.factory.annotation.Value;
 
 /**
  * Lớp BackupScheduler chịu trách nhiệm quản lý lịch trình sao lưu dựa trên cấu hình trong cơ sở dữ liệu.
@@ -30,11 +31,18 @@ public class BackupScheduler {
 
     private ScheduledFuture<?> scheduledTask;
 
+    @Value("${app.backup.scheduler.enabled:true}")
+    private boolean schedulerEnabled;
     /**
      * Initializes the scheduler immediately after bean creation.
      */
     @PostConstruct
     public void init() {
+        if (!schedulerEnabled) {
+            log.info("Backup Scheduler is disabled.");
+            return;
+        }
+
         log.info("Initializing Backup Scheduler...");
         scheduleNext();
     }

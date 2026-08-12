@@ -7,6 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -38,6 +39,7 @@ public class ProcurementEventServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private ObjectMapper objectMapper;
     @Mock private EventValidationService eventValidationService;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private ProcurementEventServiceImpl service;
@@ -81,7 +83,11 @@ public class ProcurementEventServiceTest {
 
         when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(chainEventRepository.save(any(ChainEvent.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(chainEventRepository.save(any(ChainEvent.class))).thenAnswer(invocation -> {
+            ChainEvent event = invocation.getArgument(0);
+            event.setId(UUID.randomUUID());
+            return event;
+        });
         when(objectMapper.writeValueAsString(anyMap())).thenReturn("{}");
 
         ChainEventResponse response = service.recordProcurementEvent(request, userDetails);

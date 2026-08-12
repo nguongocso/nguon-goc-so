@@ -53,11 +53,11 @@ public class LookupStatisticsServiceTest {
     @BeforeEach
     void setUp() {
         adminUser = mock(CustomUserDetails.class);
-        when(adminUser.getRoleCode()).thenReturn("VT-01");
+        lenient().when(adminUser.getRoleCode()).thenReturn("VT-01");
 
         htxUser = mock(CustomUserDetails.class);
-        when(htxUser.getRoleCode()).thenReturn("VT-02");
-        when(htxUser.getOrganizationId()).thenReturn(htxOrgId);
+        lenient().when(htxUser.getRoleCode()).thenReturn("VT-02");
+        lenient().when(htxUser.getOrganizationId()).thenReturn(htxOrgId);
     }
 
     @Test

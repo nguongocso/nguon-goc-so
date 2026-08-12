@@ -31,6 +31,8 @@ import vn.nguongocso.event.dto.request.RecordHarvestEventRequest;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.service.ChainEventService;
+import vn.nguongocso.event.service.OfflineSyncService;
+import vn.nguongocso.permission.service.PermissionChecker;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -52,6 +54,12 @@ class ChainEventControllerTest {
 
     @MockitoBean
     private ChainEventService chainEventService;
+
+        @MockitoBean
+        private OfflineSyncService offlineSyncService;
+
+        @MockitoBean
+        private PermissionChecker permissionChecker;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;

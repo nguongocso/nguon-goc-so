@@ -25,18 +25,6 @@ const formSchema = z.object({
   group: z.string().min(1, "Nhóm hàng không được để trống").max(100),
   description: z.string().optional(),
   isActive: z.boolean().optional(),
-  tempMin: z.coerce.number().optional(),
-  tempMax: z.coerce.number().optional(),
-  humidityMin: z.coerce
-    .number()
-    .min(0, "Độ ẩm tối thiểu phải từ 0 đến 100%")
-    .max(100, "Độ ẩm tối thiểu phải từ 0 đến 100%")
-    .optional(),
-  humidityMax: z.coerce
-    .number()
-    .min(0, "Độ ẩm tối đa phải từ 0 đến 100%")
-    .max(100, "Độ ẩm tối đa phải từ 0 đến 100%")
-    .optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -68,10 +56,6 @@ export const ProductCategoryForm = ({
       group: "",
       description: "",
       isActive: true,
-      tempMin: undefined,
-      tempMax: undefined,
-      humidityMin: undefined,
-      humidityMax: undefined,
     },
   });
 
@@ -83,29 +67,12 @@ export const ProductCategoryForm = ({
       setValue("group", category.group);
       setValue("description", category.description || "");
       setValue("isActive", category.isActive);
-      setValue("tempMin", category.tempMin);
-      setValue("tempMax", category.tempMax);
-      setValue("humidityMin", category.humidityMin);
-      setValue("humidityMax", category.humidityMax);
     } else {
       reset();
     }
   }, [category, setValue, reset]);
 
-  const validateThresholds = (values: FormValues) => {
-    if (values.tempMin !== undefined && values.tempMax !== undefined && values.tempMin > values.tempMax) {
-      toast.error("Nhiệt độ tối thiểu không được lớn hơn nhiệt độ tối đa");
-      return false;
-    }
-    if (values.humidityMin !== undefined && values.humidityMax !== undefined && values.humidityMin > values.humidityMax) {
-      toast.error("Độ ẩm tối thiểu không được lớn hơn độ ẩm tối đa");
-      return false;
-    }
-    return true;
-  };
-
   const onSubmit = async (values: FormValues) => {
-    if (!validateThresholds(values)) return;
     try {
       if (category) {
         await updateProductCategory(category.id, {
@@ -113,10 +80,6 @@ export const ProductCategoryForm = ({
           group: values.group,
           description: values.description || undefined,
           isActive: values.isActive || false,
-          tempMin: values.tempMin,
-          tempMax: values.tempMax,
-          humidityMin: values.humidityMin,
-          humidityMax: values.humidityMax,
         });
         toast.success("Cập nhật loại nông sản thành công");
       } else {
@@ -124,10 +87,6 @@ export const ProductCategoryForm = ({
           name: values.name,
           group: values.group,
           description: values.description || undefined,
-          tempMin: values.tempMin,
-          tempMax: values.tempMax,
-          humidityMin: values.humidityMin,
-          humidityMax: values.humidityMax,
         });
         toast.success("Thêm mới loại nông sản thành công");
       }
@@ -140,7 +99,7 @@ export const ProductCategoryForm = ({
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>
             {category ? "Cập nhật loại nông sản" : "Thêm mới loại nông sản"}
@@ -189,68 +148,6 @@ export const ProductCategoryForm = ({
               placeholder="Mô tả chi tiết..."
               rows={3}
             />
-          </div>
-
-          {/* Ngưỡng bảo quản */}
-          <div className="rounded-lg border border-gray-200 p-4 space-y-4">
-            <Label className="text-sm font-semibold">
-              Ngưỡng bảo quản (điều kiện vận chuyển)
-            </Label>
-
-            {/* Nhiệt độ */}
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Nhiệt độ (°C)</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <Input
-                    type="number"
-                    step="0.1"
-                    placeholder="Tối thiểu"
-                    {...register("tempMin")}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Input
-                    type="number"
-                    step="0.1"
-                    placeholder="Tối đa"
-                    {...register("tempMax")}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Độ ẩm */}
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Độ ẩm (%)</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <Input
-                    type="number"
-                    step="0.1"
-                    placeholder="Tối thiểu (0-100)"
-                    {...register("humidityMin")}
-                  />
-                  {errors.humidityMin && (
-                    <p className="text-sm text-red-500">{errors.humidityMin.message}</p>
-                  )}
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Input
-                    type="number"
-                    step="0.1"
-                    placeholder="Tối đa (0-100)"
-                    {...register("humidityMax")}
-                  />
-                  {errors.humidityMax && (
-                    <p className="text-sm text-red-500">{errors.humidityMax.message}</p>
-                  )}
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Để trống nếu loại nông sản chưa có ngưỡng bảo quản.
-              </p>
-            </div>
           </div>
 
           {/* Trạng thái hoạt động (chỉ hiển thị khi sửa) */}

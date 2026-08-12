@@ -25,13 +25,4 @@ public class ProductCategoryResponse {
 	private String description;
 
 	private Boolean isActive;
-
-	// ===== Ngưỡng bảo quản (NCL-05-CN-007) =====
-	private Double tempMin;
-
-	private Double tempMax;
-
-	private Double humidityMin;
-
-	private Double humidityMax;
 }

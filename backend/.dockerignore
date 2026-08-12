@@ -1,0 +1,42 @@
+# Build output
+target/
+*.jar
+*.war
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Runtime data
+uploads/
+files/
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.log
+*.tmp
+*.temp
+*.swp
+*~
+
+# Test / coverage output
+coverage/
+jacoco/
+*.exec

@@ -20,6 +20,7 @@ import vn.nguongocso.organization.dto.response.OrganizationProfileResponse;
 import vn.nguongocso.organization.enums.OrganizationStatus;
 import vn.nguongocso.organization.enums.OrganizationType;
 import vn.nguongocso.organization.service.OrganizationService;
+import vn.nguongocso.permission.service.PermissionChecker;
 
 import java.util.UUID;
 
@@ -49,6 +50,9 @@ public class OrganizationProfileControllerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+        @MockitoBean
+        private PermissionChecker permissionChecker;
 
     private final UUID orgId = UUID.randomUUID();
 
