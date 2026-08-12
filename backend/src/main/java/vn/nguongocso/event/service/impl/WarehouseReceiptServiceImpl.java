@@ -22,6 +22,7 @@ import vn.nguongocso.event.dto.response.WarehouseReceiptResponse;
 import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
+import vn.nguongocso.event.service.ChainEventService;
 import vn.nguongocso.event.service.EventValidationService;
 import vn.nguongocso.event.service.WarehouseReceiptService;
 import vn.nguongocso.exception.BusinessException;
@@ -54,6 +55,7 @@ public class WarehouseReceiptServiceImpl implements WarehouseReceiptService {
     private final TraceCodeRepository traceCodeRepository;
     private final ShipmentRepository shipmentRepository;
     private final ChainEventRepository chainEventRepository;
+    private final ChainEventService chainEventService;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
     private final EventValidationService eventValidationService;
@@ -176,7 +178,7 @@ public class WarehouseReceiptServiceImpl implements WarehouseReceiptService {
                 .isCorrection(false)
                 .build();
 
-        chainEvent = chainEventRepository.save(chainEvent);
+        chainEvent = chainEventService.saveWithChainHash(chainEvent);
 
         // 13. Publish activity log
         eventPublisher.publishEvent(ActivityLogEvent.builder()

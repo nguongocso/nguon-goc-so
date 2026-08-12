@@ -101,11 +101,17 @@ public class EventHashService {
     }
 
     /**
-     * Sắp xếp sự kiện theo recordedAt tăng dần, với thứ tự phụ theo id để ổn định.
+     * Sắp xếp sự kiện theo thứ tự bất biến của quá trình ghi (createdAt - do
+     * máy chủ sinh ra) để xây dựng chuỗi băm liên kết nhất quán, với thứ tự phụ
+     * theo id để ổn định.
+     *
+     * <p>KHÔNG dùng recordedAt cho thứ tự chuỗi mật mã: recordedAt là thời gian
+     * nghiệp vụ do client cung cấp và có thể nhỏ hơn sự kiện ghi sau, gây phân
+     * nhánh chuỗi không nhất quán.</p>
      */
     public Comparator<ChainEvent> eventOrdering() {
         return Comparator
-                .comparing(ChainEvent::getRecordedAt,
+                .comparing(ChainEvent::getCreatedAt,
                         Comparator.nullsLast(Comparator.naturalOrder()))
                 .thenComparing(e -> e.getId() != null ? e.getId().toString() : "");
     }

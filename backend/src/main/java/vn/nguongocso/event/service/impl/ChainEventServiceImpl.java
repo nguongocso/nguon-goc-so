@@ -1049,17 +1049,15 @@ public class ChainEventServiceImpl implements ChainEventService {
             return chainEventRepository.save(event);
         }
 
-        // Tìm sự kiện cuối cùng (gần nhất) của cùng shipment
-        List<ChainEvent> previousEvents = chainEventRepository
-                .findByShipmentIdOrderByRecordedAtAsc(event.getShipment().getId())
-                .stream()
-                .sorted(eventHashService.eventOrdering())
-                .toList();
+        // Tìm sự kiện được ghi gần nhất (createdAt) của cùng shipment.
+        // Thứ tự chuỗi mật mã dựa trên createdAt (máy chủ sinh ra), KHÔNG dùng
+        // recordedAt (client cung cấp) để tránh phân nhánh chuỗi không nhất quán.
+        Optional<ChainEvent> lastEvent = chainEventRepository
+                .findTopByShipmentIdOrderByCreatedAtDesc(event.getShipment().getId());
 
         String previousHash = "";
-        if (!previousEvents.isEmpty()) {
-            ChainEvent last = previousEvents.get(previousEvents.size() - 1);
-            previousHash = last.getHash() != null ? last.getHash() : "";
+        if (lastEvent.isPresent()) {
+            previousHash = lastEvent.get().getHash() != null ? lastEvent.get().getHash() : "";
         }
 
         event.setPreviousHash(previousHash.isEmpty() ? null : previousHash);

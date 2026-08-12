@@ -75,6 +75,18 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
         Optional<ChainEvent> findTopByShipmentIdOrderByRecordedAtDesc(UUID shipmentId);
 
         /**
+         * Lấy sự kiện được ghi gần nhất (createdAt) của một lô hàng.
+         *
+         * Dùng cho NCL-08 hash chain: thứ tự chuỗi mật mã phải dựa trên
+         * thứ tự bất biến mà máy chủ sinh ra (createdAt), KHÔNG dùng recordedAt
+         * (client cung cấp). Truy vấn này chỉ lấy 1 bản ghi, tránh tải toàn bộ.
+         *
+         * @param shipmentId ID lô hàng
+         * @return sự kiện được ghi gần nhất nếu tồn tại
+         */
+        Optional<ChainEvent> findTopByShipmentIdOrderByCreatedAtDesc(UUID shipmentId);
+
+        /**
          * Xóa tất cả sự kiện của một lô hàng.
          *
          * @param id ID lô hàng

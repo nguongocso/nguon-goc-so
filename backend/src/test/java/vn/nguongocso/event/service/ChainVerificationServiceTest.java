@@ -77,12 +77,14 @@ class ChainVerificationServiceTest {
         lenient().when(adminUser.getOrganizationId()).thenReturn(UUID.randomUUID());
     }
 
-    private ChainEvent buildEvent(ChainEventType type, LocalDateTime at, String data, String hash, String prev) {
+    private ChainEvent buildEvent(ChainEventType type, LocalDateTime recordedAt, LocalDateTime createdAt,
+            String data, String hash, String prev) {
         return ChainEvent.builder()
                 .id(UUID.randomUUID())
                 .shipment(shipment)
                 .eventType(type)
-                .recordedAt(at)
+                .recordedAt(recordedAt)
+                .createdAt(createdAt)
                 .recordedBy(actor)
                 .eventData(data)
                 .hash(hash)
@@ -95,27 +97,101 @@ class ChainVerificationServiceTest {
         return new EventHashService(new ObjectMapper()).calculateHash(e, prev);
     }
 
-    /** Builds a correct 3-event linked chain using the real deterministic algorithm. */
+    /** Builds a correct 3-event linked chain using the real deterministic algorithm.
+     *  Hash chain ordering follows createdAt (server-generated), not recordedAt. */
     private List<ChainEvent> buildIntactChain() {
-        ChainEvent e1 = buildEvent(ChainEventType.TRANSPORT, LocalDateTime.of(2026, 8, 11, 10, 0, 0),
+        ChainEvent e1 = buildEvent(ChainEventType.TRANSPORT,
+                LocalDateTime.of(2026, 8, 11, 10, 0, 0),   // recordedAt
+                LocalDateTime.of(2026, 8, 11, 10, 1, 0),   // createdAt
                 "{\"from\":\"A\"}", null, null);
         String h1 = compute(e1, "");
         e1.setHash(h1);
         e1.setPreviousHash(null);
 
-        ChainEvent e2 = buildEvent(ChainEventType.TRANSPORT, LocalDateTime.of(2026, 8, 11, 11, 0, 0),
+        ChainEvent e2 = buildEvent(ChainEventType.TRANSPORT,
+                LocalDateTime.of(2026, 8, 11, 11, 0, 0),
+                LocalDateTime.of(2026, 8, 11, 11, 1, 0),
                 "{\"to\":\"B\"}", null, null);
         String h2 = compute(e2, h1);
         e2.setHash(h2);
         e2.setPreviousHash(h1);
 
-        ChainEvent e3 = buildEvent(ChainEventType.WAREHOUSE_RECEIPT, LocalDateTime.of(2026, 8, 11, 12, 0, 0),
+        ChainEvent e3 = buildEvent(ChainEventType.WAREHOUSE_RECEIPT,
+                LocalDateTime.of(2026, 8, 11, 12, 0, 0),
+                LocalDateTime.of(2026, 8, 11, 12, 1, 0),
                 "{\"qty\":500}", null, null);
         String h3 = compute(e3, h2);
         e3.setHash(h3);
         e3.setPreviousHash(h2);
 
         return List.of(e1, e2, e3);
+    }
+
+    /**
+     * REGRESSION TEST — recordedAt must NOT determine the cryptographic chain position.
+     *
+     * Chain is built in insertion order (createdAt):
+     *   TRANSPORT #1 (createdAt 13:32:43, recordedAt 13:32:00) -> H1
+     *   PROCUREMENT (createdAt 13:35:39, recordedAt 13:35:39)  -> H2 (prev H1)
+     *   TRANSPORT #2 (createdAt 13:36:43, recordedAt 13:32:00) -> H3 (prev H2)
+     *   TRANSPORT #3 (createdAt 13:38:17, recordedAt 13:36:00) -> H4 (prev H3)
+     *
+     * Even though TRANSPORT #2 has an EARLIER recordedAt (13:32) than PROCUREMENT (13:35),
+     * the hash chain must follow createdAt insertion order and verify INTACT.
+     */
+    @Test
+    void recordedAtDoesNotDetermineChainPosition() {
+        // Event 1: TRANSPORT, createdAt 13:32:43, recordedAt 13:32:00
+        ChainEvent t1 = buildEvent(ChainEventType.TRANSPORT,
+                LocalDateTime.of(2026, 8, 11, 13, 32, 0),
+                LocalDateTime.of(2026, 8, 11, 13, 32, 43),
+                "{\"from\":\"A\"}", null, null);
+        String h1 = compute(t1, "");
+        t1.setHash(h1);
+        t1.setPreviousHash(null);
+
+        // Event 2: PROCUREMENT, createdAt 13:35:39, recordedAt 13:35:39
+        ChainEvent p = buildEvent(ChainEventType.PROCUREMENT,
+                LocalDateTime.of(2026, 8, 11, 13, 35, 39),
+                LocalDateTime.of(2026, 8, 11, 13, 35, 39),
+                "{\"receivedQuantity\":50}", null, null);
+        String h2 = compute(p, h1);
+        p.setHash(h2);
+        p.setPreviousHash(h1);
+
+        // Event 3: TRANSPORT #2, createdAt 13:36:43, recordedAt 13:32:00 (EARLIER than PROCUREMENT)
+        ChainEvent t2 = buildEvent(ChainEventType.TRANSPORT,
+                LocalDateTime.of(2026, 8, 11, 13, 32, 0),
+                LocalDateTime.of(2026, 8, 11, 13, 36, 43),
+                "{\"from\":\"B\"}", null, null);
+        String h3 = compute(t2, h2);
+        t2.setHash(h3);
+        t2.setPreviousHash(h2);
+
+        // Event 4: TRANSPORT #3, createdAt 13:38:17, recordedAt 13:36:00
+        ChainEvent t3 = buildEvent(ChainEventType.TRANSPORT,
+                LocalDateTime.of(2026, 8, 11, 13, 36, 0),
+                LocalDateTime.of(2026, 8, 11, 13, 38, 17),
+                "{\"from\":\"C\"}", null, null);
+        String h4 = compute(t3, h3);
+        t3.setHash(h4);
+        t3.setPreviousHash(h3);
+
+        List<ChainEvent> events = List.of(t1, p, t2, t3);
+        when(shipmentRepository.findById(shipment.getId())).thenReturn(Optional.of(shipment));
+        when(chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId())).thenReturn(events);
+
+        ChainVerificationResponse resp = chainEventService.verifyChainIntegrity(shipment.getId(), adminUser);
+
+        assertThat(resp.getIsIntegrityVerified()).isTrue();
+        assertThat(resp.getVerificationStatus()).isEqualTo("INTACT");
+        assertThat(resp.getTotalEvents()).isEqualTo(4);
+        assertThat(resp.getFailedEventIndex()).isNull();
+        // Assert chain follows insertion order, not recordedAt order:
+        assertThat(resp.getEvents().get(0).getEventId()).isEqualTo(t1.getId());
+        assertThat(resp.getEvents().get(1).getEventId()).isEqualTo(p.getId());
+        assertThat(resp.getEvents().get(2).getEventId()).isEqualTo(t2.getId());
+        assertThat(resp.getEvents().get(3).getEventId()).isEqualTo(t3.getId());
     }
 
     @Test
