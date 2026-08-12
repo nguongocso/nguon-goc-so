@@ -42,6 +42,7 @@ import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.event.dto.request.RecordHarvestEventRequest;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
+import vn.nguongocso.event.service.EventHashService;
 import vn.nguongocso.event.service.impl.ChainEventServiceImpl;
 import vn.nguongocso.event.service.EventValidationService;
 
@@ -65,6 +66,9 @@ class ChainEventServiceImplTest {
 
         @Mock
         private ApplicationEventPublisher eventPublisher;
+
+        @Mock
+        private EventHashService eventHashService;
 
     @InjectMocks
     private ChainEventServiceImpl chainEventService;
@@ -321,6 +325,10 @@ class ChainEventServiceImplTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
+        when(chainEventRepository.findTopByShipmentIdOrderByCreatedAtDesc(shipment.getId()))
+                .thenReturn(Optional.empty());
+        when(eventHashService.calculateHash(any(ChainEvent.class), any(String.class)))
+                .thenReturn("mockHash");
         when(chainEventRepository.save(any(ChainEvent.class))).thenReturn(mockSavedEvent);
 
         // When
