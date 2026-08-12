@@ -11,6 +11,7 @@ import type { PublicLotCertificationsResponse } from '@/types/publicCertificatio
 
 import { ProductInfo } from '@/components/public/ProductInfo';
 import { RecallAlert } from '@/components/public/RecallAlert';
+import { LockAlert } from '@/components/public/LockAlert';
 import { Timeline } from '@/components/public/Timeline';
 import { RouteMap } from '@/components/public/RouteMap';
 import { ProductFeedbackForm } from '@/components/public/ProductFeedbackForm';
@@ -318,6 +319,14 @@ export default function TraceLookupPage() {
           shipmentCode={data.shipmentCode}
           status={data.shipmentStatus}
         />
+
+        {/* Cảnh báo mã bị khóa */}
+        {data.locked && (
+          <LockAlert
+            lockReason={data.lockReason}
+            lockedAt={data.lockedAt}
+          />
+        )}
 
         {/* Cảnh báo thu hồi */}
         {data.recalled &&

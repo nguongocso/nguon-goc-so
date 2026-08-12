@@ -81,8 +81,12 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                     .orElse("Lô hàng này đã bị thu hồi.");
         }
 
-        // TC-03: Nếu chưa thu hồi thì tem phải đang ACTIVE
-        if (!isRecalled && traceCode.getStatus() != TraceCodeStatus.ACTIVE) {
+        // Check if trace code is LOCKED
+        boolean isLocked = traceCode.getStatus() == TraceCodeStatus.LOCKED;
+
+        // TC-03: Nếu chưa thu hồi và chưa bị khóa thì tem phải đang ACTIVE
+        if (!isRecalled && !isLocked && traceCode.getStatus() != TraceCodeStatus.ACTIVE
+                && traceCode.getStatus() != TraceCodeStatus.SUSPECT) {
             throw new BusinessException("Tem chưa có hiệu lực, chưa thể tra cứu hành trình.");
         }
 
@@ -168,6 +172,9 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .shipmentStatus(shipment.getStatus().name())
                 .recalled(isRecalled)
                 .recallMessage(recallMessage)
+                .locked(isLocked)
+                .lockReason(traceCode.getLockReason())
+                .lockedAt(traceCode.getLockedAt())
                 .events(publicEvents)
                 .build();
     }

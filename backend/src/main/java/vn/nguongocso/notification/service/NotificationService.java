@@ -9,6 +9,7 @@ import vn.nguongocso.notification.dto.response.NotificationResponse;
 import vn.nguongocso.notification.dto.response.UnreadCountResponse;
 import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.trace.entity.Recall;
+import vn.nguongocso.trace.entity.TraceCode;
 
 /** Dịch vụ gửi thông báo. */
 public interface NotificationService {
@@ -37,6 +38,11 @@ public interface NotificationService {
      * Đánh dấu một thông báo là đã đọc.
      */
     NotificationResponse markAsRead(UUID notificationId);
+
+    /**
+     * Gửi thông báo khi một mã tem bị đánh dấu nghi vấn.
+     */
+    void sendSuspectTraceCodeNotification(TraceCode traceCode);
 
     /**
      * Gửi thông báo cảnh báo chung.

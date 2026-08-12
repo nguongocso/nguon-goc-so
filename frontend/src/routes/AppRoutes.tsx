@@ -36,6 +36,8 @@ import CreateCodeRangePage from "@/pages/admin/CreateCodeRangePage";
 import CodeRangeListPage from "@/pages/admin/CodeRangeListPage";
 import ProductCategoryManagementPage from "@/pages/admin/ProductCategoryManagementPage";
 import StandardManagementPage from "@/pages/admin/StandardManagementPage";
+import SuspectTraceCodeListPage from "@/pages/admin/SuspectTraceCodeListPage";
+import SuspectTraceCodeDetailPage from "@/pages/admin/SuspectTraceCodeDetailPage";
 
 // ===== Packaging =====
 import CreatePackagingEventPage from "@/pages/packaging-event/CreatePackagingEventPage";
@@ -565,6 +567,24 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-01"]}>
                         <BackupRestorePage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/suspect-trace-codes"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <SuspectTraceCodeListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/suspect-trace-codes/:traceCodeId"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <SuspectTraceCodeDetailPage />
                     </RoleRoute>
                 }
             />

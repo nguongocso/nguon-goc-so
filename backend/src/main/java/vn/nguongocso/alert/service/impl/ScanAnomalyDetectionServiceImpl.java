@@ -26,6 +26,7 @@ import vn.nguongocso.report.entity.TraceCodeScanLog;
 import vn.nguongocso.report.repository.TraceCodeScanLogRepository;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
+import vn.nguongocso.trace.service.SuspectDetectionService;
 
 /** Triển khai phát hiện quét bất thường. */
 @Service
@@ -43,10 +44,14 @@ public class ScanAnomalyDetectionServiceImpl
     private final AlertRepository alertRepository;
     private final ObjectMapper objectMapper;
     private final TraceCodeRepository traceCodeRepository;
+    private final SuspectDetectionService suspectDetectionService;
 
     /** Kiểm tra và xử lý khi phát sinh lượt quét mới. */
     @Override
     public void onScanRecorded(UUID traceCodeId) {
+
+        // Delegate to the new suspicion detection service for comprehensive scoring
+        suspectDetectionService.evaluateSuspicion(traceCodeId);
 
         List<TraceCodeScanLog> scanLogs = getRecentScanLogs(traceCodeId);
 

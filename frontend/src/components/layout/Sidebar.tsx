@@ -11,6 +11,7 @@ import {
   History,
   Layers,
   LayoutDashboard,
+  Lock,
   LogOut,
   MapPinned,
   MessageSquare,
@@ -141,6 +142,12 @@ const MENU_GROUPS: MenuGroup[] = [
         label: "Quản lý dải mã",
         href: "/admin/code-ranges",
         allowedRoles: ROLE_ACCESS.codeRangeList,
+      },
+      {
+        icon: <Lock className="h-5 w-5" />,
+        label: "Tem nghi vấn",
+        href: "/admin/suspect-trace-codes",
+        allowedRoles: ["VT-01"] as const,
       },
       {
         icon: <MessageSquare className="h-5 w-5" />,

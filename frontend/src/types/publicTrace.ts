@@ -14,6 +14,9 @@ export interface PublicTraceResponse {
   shipmentStatus: string;
   recalled: boolean;
   recallMessage: string | null;
+  locked: boolean;
+  lockReason: string | null;
+  lockedAt: string | null;
   events: PublicChainEventItem[];
 }
 

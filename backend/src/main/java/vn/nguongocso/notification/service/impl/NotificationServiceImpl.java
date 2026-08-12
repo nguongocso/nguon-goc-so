@@ -80,6 +80,10 @@ public class NotificationServiceImpl implements NotificationService {
 
         private static final String MSG_CERTIFICATION_NOT_FOUND = "Chứng nhận không tồn tại.";
 
+        private static final String SUSPECT_NOTIFICATION_TITLE = "Mã tem bị nghi vấn";
+
+        private static final String SUSPECT_NOTIFICATION_CONTENT_FORMAT = "Mã tem %s bị đánh dấu nghi vấn (điểm: %d). Lý do: %s";
+
         private final NotificationRepository notificationRepository;
 
         private final TraceCodeRepository traceCodeRepository;
@@ -570,7 +574,64 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         // =========================================================
-        // 9. GHI LOG CẢNH BÁO
+        // 9. GỬI THÔNG BÁO MÃ TEM NGHI VẤN
+        // =========================================================
+
+        /**
+         * Gửi thông báo khi một mã tem bị đánh dấu nghi vấn.
+         *
+         * @param traceCode mã tem bị nghi vấn
+         */
+        @Override
+        public void sendSuspectTraceCodeNotification(TraceCode traceCode) {
+                Shipment shipment = traceCode.getShipment();
+                UUID organizationId = shipment.getOrganization().getOrganizationId();
+
+                List<User> recipients = getNotificationRecipients(organizationId);
+
+                if (recipients.isEmpty()) {
+                        log.warn(
+                                        "Không có người dùng có permission {}:{} để nhận "
+                                                        + "thông báo mã tem nghi vấn. organizationId={}",
+                                        NOTIFICATION_RESOURCE,
+                                        NOTIFICATION_READ_ACTION,
+                                        organizationId);
+                        return;
+                }
+
+                String content = String.format(
+                                SUSPECT_NOTIFICATION_CONTENT_FORMAT,
+                                traceCode.getCodeValue(),
+                                traceCode.getSuspicionScore(),
+                                traceCode.getSuspicionReason() != null
+                                                ? traceCode.getSuspicionReason()
+                                                : "Không rõ");
+
+                List<Notification> notifications = recipients.stream()
+                                .map(user -> {
+                                        Notification notification = new Notification();
+                                        notification.setUser(user);
+                                        notification.setType(NotificationType.ALERT);
+                                        notification.setTitle(SUSPECT_NOTIFICATION_TITLE);
+                                        notification.setContent(content);
+                                        notification.setIsRead(false);
+                                        notification.setReadAt(null);
+                                        return notification;
+                                })
+                                .toList();
+
+                notificationRepository.saveAll(notifications);
+
+                log.info(
+                                "Đã tạo {} notification mã tem nghi vấn. "
+                                                + "organizationId={}, traceCodeId={}",
+                                notifications.size(),
+                                organizationId,
+                                traceCode.getId());
+        }
+
+        // =========================================================
+        // 10. GHI LOG CẢNH BÁO
         // =========================================================
 
         /**
