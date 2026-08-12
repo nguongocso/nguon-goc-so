@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,22 +5,31 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getShipmentById } from "@/api/shipmentApi";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import type { Shipment } from "@/types/shipment";
-import { AlertCircle, LoaderCircle, Package } from "lucide-react";
+import {
+  BadgeCheck,
+  Ban,
+  FileText,
+  History,
+  Package,
+  Trash2,
+} from "lucide-react";
+import { QrCodeGrid } from "./QrCodeGrid";
 
 interface ShipmentDetailDialogProps {
   open: boolean;
-  shipmentId: string | null;
+  shipment: Shipment | null;
   onClose: () => void;
-}
-
-interface ApiError {
-  response?: {
-    data?: {
-      message?: string;
-    };
-  };
+  /** Permission & status-aware action callbacks */
+  canActivate: boolean;
+  canRecall: boolean;
+  onActivate: (shipment: Shipment) => void;
+  onRecall: (shipment: Shipment) => void;
+  onExportDossier: (shipment: Shipment) => void;
+  onDeleteDraft: (shipment: Shipment) => void;
+  onViewTimeline: (shipment: Shipment) => void;
 }
 
 const statusLabelMap: Record<Shipment["status"], string> = {
@@ -50,58 +58,23 @@ const formatDateTime = (value: string): string => {
 
 export const ShipmentDetailDialog = ({
   open,
-  shipmentId,
+  shipment,
   onClose,
+  canActivate,
+  canRecall,
+  onActivate,
+  onRecall,
+  onExportDossier,
+  onDeleteDraft,
+  onViewTimeline,
 }: ShipmentDetailDialogProps) => {
-  const [shipment, setShipment] = useState<Shipment | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open || !shipmentId) {
-      setShipment(null);
-      setError(null);
-      setIsLoading(false);
-      return;
-    }
-
-    let isMounted = true;
-
-    const loadShipmentDetail = async () => {
-      setIsLoading(true);
-      setError(null);
-      setShipment(null);
-
-      try {
-        const data = await getShipmentById(shipmentId);
-
-        if (isMounted) {
-          setShipment(data);
-        }
-      } catch (requestError: unknown) {
-        if (!isMounted) {
-          return;
-        }
-
-        const apiError = requestError as ApiError;
-
-        setError(
-          apiError.response?.data?.message ||
-            "Không thể tải thông tin chi tiết lô hàng.",
-        );
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void loadShipmentDetail();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [open, shipmentId]);
+  // Derive action visibility from shipment status & permissions
+  const showActivate =
+    canActivate && shipment?.status === "CODE_PRINTED";
+  const showRecall =
+    canRecall && shipment?.status !== "RECALLED";
+  const showDeleteDraft =
+    shipment?.status === "DRAFT" || shipment?.status === "CODE_PRINTED";
 
   return (
     <Dialog
@@ -112,34 +85,24 @@ export const ShipmentDetailDialog = ({
         }
       }}
     >
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Chi tiết lô hàng</DialogTitle>
           <DialogDescription>
-            Thông tin chi tiết của lô hàng được lấy trực tiếp từ hệ thống.
+            Thông tin chi tiết và mã QR của lô hàng.
           </DialogDescription>
         </DialogHeader>
 
-        {isLoading && (
-          <div className="flex min-h-48 flex-col items-center justify-center gap-3 text-muted-foreground">
-            <LoaderCircle className="size-8 animate-spin" />
-            <p>Đang tải thông tin lô hàng...</p>
+        {/* No data */}
+        {!shipment && open && (
+          <div className="py-10 text-center text-muted-foreground">
+            Không có dữ liệu lô hàng.
           </div>
         )}
 
-        {!isLoading && error && (
-          <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-            <AlertCircle className="mt-0.5 size-5 shrink-0" />
-
-            <div>
-              <p className="font-semibold">Không thể tải dữ liệu</p>
-              <p className="mt-1 text-sm">{error}</p>
-            </div>
-          </div>
-        )}
-
-        {!isLoading && !error && shipment && (
-          <div className="space-y-5">
+        {shipment && (
+          <div className="flex flex-1 flex-col overflow-hidden">
+            {/* Header: Name + Status */}
             <div className="flex items-start gap-4 rounded-lg border bg-muted/30 p-4">
               <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Package className="size-6" />
@@ -166,68 +129,170 @@ export const ShipmentDetailDialog = ({
               </div>
             </div>
 
-            <dl className="divide-y rounded-lg border">
-              <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
-                <dt className="text-sm text-muted-foreground">Lô sản xuất</dt>
-                <dd className="text-sm font-medium">
-                  {shipment.productionLotName || "—"}
-                </dd>
-              </div>
+            {/* Tabs */}
+            <Tabs defaultValue="info" className="mt-4 flex flex-1 flex-col overflow-hidden">
+              <TabsList className="w-fit">
+                <TabsTrigger value="info">Thông tin</TabsTrigger>
+                <TabsTrigger value="qr">
+                  Mã QR ({shipment.traceCodes?.length || 0})
+                </TabsTrigger>
+              </TabsList>
 
-              <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
-                <dt className="text-sm text-muted-foreground">
-                  ID lô sản xuất
-                </dt>
-                <dd className="break-all text-sm font-medium">
-                  {shipment.productionLotId}
-                </dd>
-              </div>
+              {/* Tab: Thông tin */}
+              <TabsContent
+                value="info"
+                className="flex-1 overflow-y-auto mt-3 pr-1"
+              >
+                <dl className="divide-y rounded-lg border">
+                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
+                    <dt className="text-sm text-muted-foreground">
+                      Lô sản xuất
+                    </dt>
+                    <dd className="text-sm font-medium">
+                      {shipment.productionLotName || "—"}
+                    </dd>
+                  </div>
 
-              <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
-                <dt className="text-sm text-muted-foreground">Số lượng</dt>
-                <dd className="text-sm font-medium">
-                  {shipment.totalQuantity.toLocaleString("vi-VN")}
-                </dd>
-              </div>
+                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
+                    <dt className="text-sm text-muted-foreground">
+                      ID lô sản xuất
+                    </dt>
+                    <dd className="break-all text-sm font-medium">
+                      {shipment.productionLotId}
+                    </dd>
+                  </div>
 
-              <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
-                <dt className="text-sm text-muted-foreground">
-                  Quy cách đóng gói
-                </dt>
-                <dd className="whitespace-pre-wrap text-sm font-medium">
-                  {shipment.packagingInfo || "—"}
-                </dd>
-              </div>
+                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
+                    <dt className="text-sm text-muted-foreground">Số lượng</dt>
+                    <dd className="text-sm font-medium">
+                      {shipment.totalQuantity.toLocaleString("vi-VN")}
+                    </dd>
+                  </div>
 
-              <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
-                <dt className="text-sm text-muted-foreground">
-                  Số mã truy xuất
-                </dt>
-                <dd className="text-sm font-medium">
-                  {shipment.traceCodes.length.toLocaleString("vi-VN")}
-                </dd>
-              </div>
+                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
+                    <dt className="text-sm text-muted-foreground">
+                      Quy cách đóng gói
+                    </dt>
+                    <dd className="whitespace-pre-wrap text-sm font-medium">
+                      {shipment.packagingInfo || "—"}
+                    </dd>
+                  </div>
 
-              <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
-                <dt className="text-sm text-muted-foreground">Người tạo</dt>
-                <dd className="text-sm font-medium">
-                  {shipment.createdByName || "—"}
-                </dd>
-              </div>
+                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
+                    <dt className="text-sm text-muted-foreground">
+                      Số mã truy xuất
+                    </dt>
+                    <dd className="text-sm font-medium">
+                      {shipment.traceCodes.length.toLocaleString("vi-VN")}
+                    </dd>
+                  </div>
 
-              <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
-                <dt className="text-sm text-muted-foreground">Ngày tạo</dt>
-                <dd className="text-sm font-medium">
-                  {formatDateTime(shipment.createdAt)}
-                </dd>
-              </div>
-            </dl>
-          </div>
-        )}
+                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
+                    <dt className="text-sm text-muted-foreground">
+                      Người tạo
+                    </dt>
+                    <dd className="text-sm font-medium">
+                      {shipment.createdByName || "—"}
+                    </dd>
+                  </div>
 
-        {!isLoading && !error && !shipment && open && (
-          <div className="py-10 text-center text-muted-foreground">
-            Không có dữ liệu lô hàng.
+                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
+                    <dt className="text-sm text-muted-foreground">Ngày tạo</dt>
+                    <dd className="text-sm font-medium">
+                      {formatDateTime(shipment.createdAt)}
+                    </dd>
+                  </div>
+                </dl>
+              </TabsContent>
+
+              {/* Tab: Mã QR */}
+              <TabsContent
+                value="qr"
+                className="flex-1 overflow-y-auto mt-3 pr-1"
+              >
+                <div className="mb-3 flex items-center justify-between text-sm text-muted-foreground">
+                  <span>
+                    Tổng số mã: {shipment.traceCodes?.length || 0}
+                  </span>
+                </div>
+
+                <QrCodeGrid traceCodes={shipment.traceCodes || []} />
+              </TabsContent>
+            </Tabs>
+
+            {/* Footer: Action buttons */}
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t pt-4">
+              {/* Sự kiện — always visible */}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  onViewTimeline(shipment);
+                  onClose();
+                }}
+              >
+                <History className="mr-1.5 size-3.5" />
+                Sự kiện
+              </Button>
+
+              {/* Xuất hồ sơ — always visible */}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onExportDossier(shipment)}
+              >
+                <FileText className="mr-1.5 size-3.5" />
+                Xuất hồ sơ
+              </Button>
+
+              {/* Kích hoạt — conditional */}
+              {showActivate && (
+                <Button
+                  size="sm"
+                  variant="edit"
+                  onClick={() => {
+                    onActivate(shipment);
+                    onClose();
+                  }}
+                >
+                  <BadgeCheck className="mr-1.5 size-3.5" />
+                  Kích hoạt
+                </Button>
+              )}
+
+              {/* Spacer to push destructive actions to the right */}
+              <div className="flex-1" />
+
+              {/* Hủy nháp — conditional */}
+              {showDeleteDraft && (
+                <Button
+                  size="sm"
+                  variant="delete"
+                  onClick={() => {
+                    onDeleteDraft(shipment);
+                    onClose();
+                  }}
+                >
+                  <Trash2 className="mr-1.5 size-3.5" />
+                  Hủy nháp
+                </Button>
+              )}
+
+              {/* Thu hồi — conditional */}
+              {showRecall && (
+                <Button
+                  size="sm"
+                  variant="delete"
+                  onClick={() => {
+                    onRecall(shipment);
+                    onClose();
+                  }}
+                >
+                  <Ban className="mr-1.5 size-3.5" />
+                  Thu hồi
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </DialogContent>

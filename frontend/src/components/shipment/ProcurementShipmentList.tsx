@@ -14,8 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { ProcurementShipment } from "@/types/shipment";
-import { getEligibleShipments } from "@/api/shipmentApi";
+import type { ProcurementShipment, Shipment } from "@/types/shipment";
+import { getEligibleShipments, getShipmentById } from "@/api/shipmentApi";
 import { ShipmentDetailDialog } from "@/components/shipment/ShipmentDetailDialog";
 import {
   Eye,
@@ -52,7 +52,16 @@ export function ProcurementShipmentList({
   const [shipments, setShipments] = useState<ProcurementShipment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [detailShipmentId, setDetailShipmentId] = useState<string | null>(null);
+  const [detailShipment, setDetailShipment] = useState<Shipment | null>(null);
+
+  const handleViewDetail = async (shipmentId: string) => {
+    try {
+      const data = await getShipmentById(shipmentId);
+      setDetailShipment(data);
+    } catch {
+      toast.error("Không thể tải chi tiết lô hàng.");
+    }
+  };
 
   const loadShipments = useCallback(async () => {
     setIsLoading(true);
@@ -190,7 +199,7 @@ export function ProcurementShipmentList({
                             type="button"
                             variant="outline"
                             onClick={() =>
-                              setDetailShipmentId(shipment.id)
+                              handleViewDetail(shipment.id)
                             }
                           >
                             <Eye className="size-4" />
@@ -241,9 +250,16 @@ export function ProcurementShipmentList({
       </Card>
 
       <ShipmentDetailDialog
-        open={detailShipmentId !== null}
-        shipmentId={detailShipmentId}
-        onClose={() => setDetailShipmentId(null)}
+        open={detailShipment !== null}
+        shipment={detailShipment}
+        onClose={() => setDetailShipment(null)}
+        canActivate={false}
+        canRecall={false}
+        onActivate={() => {}}
+        onRecall={() => {}}
+        onExportDossier={() => {}}
+        onDeleteDraft={() => {}}
+        onViewTimeline={() => {}}
       />
     </>
   );
