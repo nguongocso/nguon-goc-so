@@ -406,9 +406,89 @@ class ChainEventControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 // SỬA: Kiểm tra thông báo lỗi chung của dự án và chi tiết lỗi trong trường images
-                .andExpect(jsonPath("$.message").value("Dữ liệu không hợp lệ"))
-                .andExpect(jsonPath("$.errors.images").value("Sự kiện ghi nhận ngoài đồng yêu cầu tối thiểu một hình ảnh thực địa"));
+        .andExpect(jsonPath("$.message").value("Dữ liệu không hợp lệ"))
+        .andExpect(jsonPath("$.errors.images").value("Sự kiện ghi nhận ngoài đồng yêu cầu tối thiểu một hình ảnh thực địa"));
     }
 
+    // =========================================================================
+    // TEST CASES FOR REST ENDPOINTS SƠ CHẾ & PHÂN LOẠI
+    // =========================================================================
 
+    @Test
+    @WithMockUser(roles = {"VT-03"})
+    void recordPreprocessing_ShouldReturn201Created_WhenValidRequest() throws Exception {
+        UUID lotId = UUID.randomUUID();
+        vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest request = new vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest();
+        request.setProductionLotId(lotId);
+        request.setInputQuantity(1000.0);
+        request.setOutputQuantity(900.0);
+        request.setGrade("Hạng A");
+        request.setProcessingMethod("Rửa sạch, sấy bớt nước");
+        request.setPreprocessingDate(LocalDate.of(2026, 7, 26));
+
+        ChainEventResponse response = ChainEventResponse.builder()
+                .id(UUID.randomUUID())
+                .eventType(ChainEventType.PREPROCESSING)
+                .eventData(Map.of("lossRate", 10.0, "outputQuantity", 900.0))
+                .recordedAt(LocalDateTime.now())
+                .recordedByName("Nguyễn Văn Ghi")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(chainEventService.recordPreprocessingEvent(any(), any())).thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/chain-events/preprocessing")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(csrf()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.eventType").value("PREPROCESSING"));
+    }
+
+    @Test
+    @WithMockUser(roles = {"VT-03"})
+    void recordPreprocessing_ShouldReturn400BadRequest_WhenMissingProductionLotId() throws Exception {
+        vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest request = new vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest();
+        request.setInputQuantity(1000.0);
+        request.setOutputQuantity(900.0);
+        request.setPreprocessingDate(LocalDate.of(2026, 7, 26));
+
+        mockMvc.perform(post("/api/v1/chain-events/preprocessing")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(csrf()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    @WithMockUser(roles = {"VT-03"})
+    void correctPreprocessing_ShouldReturn201Created_WhenValidRequest() throws Exception {
+        UUID originalEventId = UUID.randomUUID();
+        vn.nguongocso.event.dto.request.CorrectPreprocessingEventRequest request = new vn.nguongocso.event.dto.request.CorrectPreprocessingEventRequest();
+        request.setInputQuantity(1000.0);
+        request.setOutputQuantity(920.0);
+        request.setPreprocessingDate(LocalDate.of(2026, 7, 26));
+        request.setCorrectionReason("Cân lại chính xác là 920kg");
+
+        ChainEventResponse response = ChainEventResponse.builder()
+                .id(UUID.randomUUID())
+                .eventType(ChainEventType.PREPROCESSING)
+                .eventData(Map.of("lossRate", 8.0, "outputQuantity", 920.0))
+                .recordedAt(LocalDateTime.now())
+                .recordedByName("Nguyễn Văn Ghi")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(chainEventService.correctPreprocessingEvent(any(), any(), any())).thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/chain-events/preprocessing/" + originalEventId + "/correct")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(csrf()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.eventType").value("PREPROCESSING"));
+    }
 }

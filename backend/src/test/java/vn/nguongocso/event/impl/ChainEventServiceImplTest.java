@@ -427,6 +427,100 @@ class ChainEventServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Lô hàng chưa được kích hoạt, không thể ghi sự kiện vận chuyển.");
 
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getShipmentId()).isEqualTo(shipment.getId());
+        assertThat(response.getEventType()).isEqualTo(ChainEventType.TRANSPORT);
+        assertThat(response.getEventData())
+                .containsEntry("fromLocation", "Xã Long Cốc, huyện Tân Sơn, Phú Thọ")
+                .containsEntry("toLocation", "Kho trung chuyển Việt Trì, Phú Thọ");
+        assertThat(response.getRecordedAt()).isEqualTo(transportRequest.getTransportTime());
+        assertThat(response.getRecordedByName()).isEqualTo("Nguyễn Văn Ghi");
+
+        verify(chainEventRepository, times(1)).save(any(ChainEvent.class));
+        verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
+    }
+    
+    @Test
+    void recordTransportEvent_ThrowException_WhenRoleIsInvalid() {
+        // Given
+        when(validUser.getRoleCode()).thenReturn("VT-06"); // CONSUMER
+
+        // When & Then
+        assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Bạn không có quyền ghi sự kiện vận chuyển.");
+
+        verifyNoInteractions(traceCodeRepository);
+        verifyNoInteractions(chainEventRepository);
+    }
+    
+    @Test
+    void recordTransportEvent_ThrowException_WhenTraceCodeNotFound() {
+        // Given
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        when(traceCodeRepository.findByCodeValue(transportRequest.getCodeValue()))
+                .thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Mã lô hàng không tồn tại.");
+
+        verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
+        verifyNoInteractions(chainEventRepository);
+    }
+    
+    @Test
+    void recordTransportEvent_ThrowException_WhenShipmentIsNull() {
+        // Given
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        traceCode.setShipment(null);
+        when(traceCodeRepository.findByCodeValue(transportRequest.getCodeValue()))
+                .thenReturn(Optional.of(traceCode));
+
+        // When & Then
+        assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Mã truy xuất chưa được gắn với lô hàng.");
+
+        verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
+        verifyNoInteractions(chainEventRepository);
+    }
+    
+    @Test
+    void recordTransportEvent_ThrowException_WhenShipmentRecalled() {
+        // Given
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId()); // ✅ Thêm dòng này
+        shipment.setStatus(ShipmentStatus.RECALLED);
+        when(traceCodeRepository.findByCodeValue(transportRequest.getCodeValue()))
+                .thenReturn(Optional.of(traceCode));
+
+        // When & Then
+        assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Lô hàng đã bị thu hồi, không thể ghi sự kiện vận chuyển.");
+
+        verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
+        verifyNoInteractions(chainEventRepository);
+    }
+
+    @Test
+    void recordTransportEvent_ThrowException_WhenShipmentNotActivated() {
+        // Given
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId()); 
+        shipment.setStatus(ShipmentStatus.DRAFT);
+        when(traceCodeRepository.findByCodeValue(transportRequest.getCodeValue()))
+                .thenReturn(Optional.of(traceCode));
+
+        // When & Then
+        assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Lô hàng chưa được kích hoạt, không thể ghi sự kiện vận chuyển.");
+
         verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
         verifyNoInteractions(chainEventRepository);
     }
@@ -449,4 +543,164 @@ class ChainEventServiceImplTest {
         verifyNoInteractions(chainEventRepository);
     }
 
+    // =========================================================================
+    // TEST CASES FOR NCL-11-CN-001 SƠ CHẾ VÀ PHÂN LOẠI
+    // =========================================================================
+
+    @Test
+    void recordPreprocessingEvent_Success_TC01() {
+        // Given: Lô đã thu hoạch với 1000 kg, sơ chế ra 900 kg (TC-01)
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+        when(validUser.getUserId()).thenReturn(userId);
+
+        productionLot.setStatus(ProductionLotStatus.HARVESTED);
+        productionLot.setHarvestDate(LocalDate.now().minusDays(1));
+        when(productionLotRepository.findById(productionLot.getId())).thenReturn(Optional.of(productionLot));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(actor));
+
+        ChainEvent savedEvent = ChainEvent.builder()
+                .id(UUID.randomUUID())
+                .eventType(ChainEventType.PREPROCESSING)
+                .eventData("{\"lossRate\":10.0}")
+                .recordedAt(LocalDateTime.now())
+                .recordedBy(actor)
+                .build();
+        when(chainEventRepository.save(any(ChainEvent.class))).thenReturn(savedEvent);
+
+        vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest prepRequest = new vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest();
+        prepRequest.setProductionLotId(productionLot.getId());
+        prepRequest.setInputQuantity(1000.0);
+        prepRequest.setOutputQuantity(900.0);
+        prepRequest.setGrade("Hạng A");
+        prepRequest.setProcessingMethod("Rửa sạch, sấy bớt nước");
+        prepRequest.setPreprocessingDate(LocalDate.now());
+
+        // When
+        ChainEventResponse response = chainEventService.recordPreprocessingEvent(prepRequest, validUser);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(response.getEventType()).isEqualTo(ChainEventType.PREPROCESSING);
+        assertThat(productionLot.getStatus()).isEqualTo(ProductionLotStatus.PREPROCESSED);
+        assertThat(productionLot.getActualQuantity()).isEqualTo(900.0);
+        verify(productionLotRepository, times(1)).save(productionLot);
+        verify(chainEventRepository, times(1)).save(any(ChainEvent.class));
+    }
+
+    @Test
+    void recordPreprocessingEvent_InvalidOutputQuantity_TC02() {
+        // Given: Lô đã thu hoạch 1000 kg, nhập khối lượng ra 1200 kg (TC-02)
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+
+        productionLot.setStatus(ProductionLotStatus.HARVESTED);
+        when(productionLotRepository.findById(productionLot.getId())).thenReturn(Optional.of(productionLot));
+
+        vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest prepRequest = new vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest();
+        prepRequest.setProductionLotId(productionLot.getId());
+        prepRequest.setInputQuantity(1000.0);
+        prepRequest.setOutputQuantity(1200.0);
+        prepRequest.setPreprocessingDate(LocalDate.now());
+
+        // When & Then
+        assertThatThrownBy(() -> chainEventService.recordPreprocessingEvent(prepRequest, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Khối lượng sau sơ chế không được lớn hơn khối lượng vào.");
+
+        verify(eventValidationService, times(1)).logFailedAttempt(any(), any(), eq(ChainEventType.PREPROCESSING), anyString(), any());
+        verifyNoInteractions(chainEventRepository);
+    }
+
+    @Test
+    void recordPreprocessingEvent_WrongStatus_TC03() {
+        // Given: Lô còn ở trạng thái APPROVED chưa thu hoạch (TC-03)
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+
+        productionLot.setStatus(ProductionLotStatus.APPROVED);
+        when(productionLotRepository.findById(productionLot.getId())).thenReturn(Optional.of(productionLot));
+
+        vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest prepRequest = new vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest();
+        prepRequest.setProductionLotId(productionLot.getId());
+        prepRequest.setInputQuantity(1000.0);
+        prepRequest.setOutputQuantity(900.0);
+        prepRequest.setPreprocessingDate(LocalDate.now());
+
+        // When & Then
+        assertThatThrownBy(() -> chainEventService.recordPreprocessingEvent(prepRequest, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Chỉ được ghi nhận sự kiện sơ chế cho lô đã thu hoạch.");
+
+        verify(eventValidationService, times(1)).logFailedAttempt(any(), any(), eq(ChainEventType.PREPROCESSING), anyString(), any());
+        verifyNoInteractions(chainEventRepository);
+    }
+
+    @Test
+    void recordPreprocessingEvent_WrongOrganization_TC04() {
+        // Given: Tài khoản thuộc tổ chức khác (TC-04)
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        when(validUser.getOrganizationId()).thenReturn(UUID.randomUUID()); // Khác với productionLot organization
+
+        when(productionLotRepository.findById(productionLot.getId())).thenReturn(Optional.of(productionLot));
+
+        vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest prepRequest = new vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest();
+        prepRequest.setProductionLotId(productionLot.getId());
+        prepRequest.setInputQuantity(1000.0);
+        prepRequest.setOutputQuantity(900.0);
+        prepRequest.setPreprocessingDate(LocalDate.now());
+
+        // When & Then
+        assertThatThrownBy(() -> chainEventService.recordPreprocessingEvent(prepRequest, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Bạn không thuộc tổ chức quản lý của lô sản xuất này.");
+
+        verify(eventValidationService, times(1)).logFailedAttempt(any(), any(), eq(ChainEventType.PREPROCESSING), anyString(), any());
+        verifyNoInteractions(chainEventRepository);
+    }
+
+    @Test
+    void correctPreprocessingEvent_Success() {
+        // Given: Sự kiện đính chính sơ chế
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+        when(validUser.getUserId()).thenReturn(userId);
+
+        UUID originalEventId = UUID.randomUUID();
+        ChainEvent originalEvent = ChainEvent.builder()
+                .id(originalEventId)
+                .eventType(ChainEventType.PREPROCESSING)
+                .eventData("{\"productionLotId\":\"" + productionLot.getId() + "\"}")
+                .build();
+
+        when(chainEventRepository.findById(originalEventId)).thenReturn(Optional.of(originalEvent));
+        when(productionLotRepository.findById(productionLot.getId())).thenReturn(Optional.of(productionLot));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(actor));
+
+        ChainEvent correctionSaved = ChainEvent.builder()
+                .id(UUID.randomUUID())
+                .eventType(ChainEventType.PREPROCESSING)
+                .eventData("{\"lossRate\":8.0}")
+                .parentEvent(originalEvent)
+                .isCorrection(true)
+                .recordedAt(LocalDateTime.now())
+                .recordedBy(actor)
+                .build();
+        when(chainEventRepository.save(any(ChainEvent.class))).thenReturn(correctionSaved);
+
+        vn.nguongocso.event.dto.request.CorrectPreprocessingEventRequest correctReq = new vn.nguongocso.event.dto.request.CorrectPreprocessingEventRequest();
+        correctReq.setInputQuantity(1000.0);
+        correctReq.setOutputQuantity(920.0);
+        correctReq.setGrade("Hạng A");
+        correctReq.setPreprocessingDate(LocalDate.now());
+        correctReq.setCorrectionReason("Nhập sai khối lượng ra từ 900 thành 920kg");
+
+        // When
+        ChainEventResponse response = chainEventService.correctPreprocessingEvent(originalEventId, correctReq, validUser);
+
+        // Then
+        assertThat(response).isNotNull();
+        assertThat(productionLot.getActualQuantity()).isEqualTo(920.0);
+        verify(chainEventRepository, times(1)).save(any(ChainEvent.class));
+    }
 }
