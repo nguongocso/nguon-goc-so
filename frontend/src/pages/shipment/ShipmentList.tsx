@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -9,7 +10,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Eye, Plus } from "lucide-react";
+import {
+  BadgeCheck,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Plus,
+  Ban,
+  MoreHorizontal,
+  History,
+  Eye,
+} from "lucide-react";
 import { useShipments } from "@/hooks/useShipments";
 import { useRecallShipment } from "@/hooks/useRecallShipment";
 import type { Shipment, CreateShipmentPayload } from "@/types/shipment";
@@ -17,7 +28,13 @@ import { CreateShipmentModal } from "@/components/shipment/CreateShipmentModal";
 import { ShipmentTimelineDialog } from "@/components/shipment/ShipmentTimelineDialog";
 import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDialog";
 import { RecallShipmentDialog } from "@/components/shipment/RecallShipmentDialog";
-import { ShipmentDetailDialog } from "@/components/shipment/ShipmentDetailDialog";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { checkDossierEligibility, exportDossier } from "@/api/dossierApi";
 import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligibleDialog";
@@ -52,10 +69,8 @@ export const ShipmentList = ({
   canActivate,
   canRecall,
 }: ShipmentListProps) => {
+  const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
-
-  // Detail dialog — now receives a full Shipment object
-  const [detailShipment, setDetailShipment] = useState<Shipment | null>(null);
 
   const [activatingShipment, setActivatingShipment] = useState<Shipment | null>(
     null,
@@ -93,6 +108,10 @@ export const ShipmentList = ({
     activatingShipmentId,
     activateShipment,
     reload,
+    page,
+    totalPages,
+    totalElements,
+    setPage,
   } = useShipments(productionLotId);
 
   const { recallingShipmentId, recallShipment } = useRecallShipment(reload);
@@ -239,10 +258,9 @@ export const ShipmentList = ({
 
                       <TableCell>
                         <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            statusColorMap[shipment.status] ||
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusColorMap[shipment.status] ||
                             "bg-status-draft/10 text-status-draft"
-                          }`}
+                            }`}
                         >
                           {statusLabelMap[shipment.status] || shipment.status}
                         </span>
@@ -257,20 +275,139 @@ export const ShipmentList = ({
                       </TableCell>
 
                       <TableCell className="text-center">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-auto px-2.5 py-1 text-xs"
-                          onClick={() => setDetailShipment(shipment)}
-                        >
-                          <Eye className="mr-1 h-3 w-3" />
-                          Chi tiết
-                        </Button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-auto px-2.5 py-1 text-xs"
+                            onClick={() =>
+                              navigate(
+                                `/production-lots/${productionLotId}/shipments/${shipment.id}`,
+                              )
+                            }
+                          >
+                            <Eye className="mr-1 h-3 w-3" />
+                            Chi tiết
+                          </Button>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              className="size-7"
+                              aria-label="Thao tác khác"
+                            >
+                              <MoreHorizontal className="size-4" />
+                            </DropdownMenuTrigger>
+
+                            <DropdownMenuContent>
+                              {canActivate &&
+                                shipment.status === "CODE_PRINTED" && (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      setActivatingShipment(shipment)
+                                    }
+                                  >
+                                    <BadgeCheck className="size-4" />
+                                    Kích hoạt
+                                  </DropdownMenuItem>
+                                )}
+
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  setTimelineDialog({
+                                    open: true,
+                                    shipmentId: shipment.id,
+                                    name: shipment.name,
+                                  })
+                                }
+                              >
+                                <History className="size-4" />
+                                Sự kiện
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem
+                                onClick={() => handleExportDossier(shipment)}
+                              >
+                                <FileText className="size-4" />
+                                Xuất hồ sơ
+                              </DropdownMenuItem>
+
+                              {((canRecall &&
+                                shipment.status !== "RECALLED") ||
+                                shipment.status === "DRAFT" ||
+                                shipment.status === "CODE_PRINTED") && (
+                                  <DropdownMenuSeparator />
+                                )}
+
+                              {canRecall &&
+                                shipment.status !== "RECALLED" && (
+                                  <DropdownMenuItem
+                                    variant="destructive"
+                                    onClick={() =>
+                                      setRecallingShipment(shipment)
+                                    }
+                                  >
+                                    <Ban className="size-4" />
+                                    Thu hồi
+                                  </DropdownMenuItem>
+                                )}
+
+                              {(shipment.status === "DRAFT" ||
+                                shipment.status === "CODE_PRINTED") && (
+                                  <DropdownMenuItem
+                                    variant="destructive"
+                                    onClick={() =>
+                                      handleDeleteDraft(shipment)
+                                    }
+                                  >
+                                    Hủy nháp
+                                  </DropdownMenuItem>
+                                )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+
+          {/* Pagination bar */}
+          {!isLoading && totalElements > 0 && totalPages > 1 && (
+            <div className="flex items-center justify-between border-t pt-4 mt-2">
+              <p className="text-sm text-muted-foreground">
+                Trang{" "}
+                <span className="font-medium text-foreground">{page + 1}</span>
+                {" "}/{" "}
+                <span className="font-medium text-foreground">{totalPages}</span>
+                {" "}&#183;{" "}
+                Tổng{" "}
+                <span className="font-medium text-foreground">
+                  {totalElements}
+                </span>{" "}
+                lô hàng
+              </p>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  disabled={page === 0}
+                  onClick={() => setPage(page - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage(page + 1)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
@@ -282,25 +419,6 @@ export const ShipmentList = ({
         onSubmit={handleCreate}
         productionLotId={productionLotId}
         loading={isCreating}
-      />
-
-      <ShipmentDetailDialog
-        open={detailShipment !== null}
-        shipment={detailShipment}
-        onClose={() => setDetailShipment(null)}
-        canActivate={canActivate}
-        canRecall={canRecall}
-        onActivate={(s) => setActivatingShipment(s)}
-        onRecall={(s) => setRecallingShipment(s)}
-        onExportDossier={handleExportDossier}
-        onDeleteDraft={handleDeleteDraft}
-        onViewTimeline={(s) =>
-          setTimelineDialog({
-            open: true,
-            shipmentId: s.id,
-            name: s.name,
-          })
-        }
       />
 
       <ShipmentTimelineDialog
