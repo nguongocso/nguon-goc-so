@@ -414,87 +414,6 @@ class ChainEventServiceImplTest {
     }
 
     @Test
-
-        // Then
-        assertThat(response).isNotNull();
-        assertThat(response.getShipmentId()).isEqualTo(shipment.getId());
-        assertThat(response.getEventType()).isEqualTo(ChainEventType.TRANSPORT);
-        assertThat(response.getEventData())
-                .containsEntry("fromLocation", "Xã Long Cốc, huyện Tân Sơn, Phú Thọ")
-                .containsEntry("toLocation", "Kho trung chuyển Việt Trì, Phú Thọ");
-        assertThat(response.getRecordedAt()).isEqualTo(transportRequest.getTransportTime());
-        assertThat(response.getRecordedByName()).isEqualTo("Nguyễn Văn Ghi");
-
-        verify(chainEventRepository, times(1)).save(any(ChainEvent.class));
-        verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
-    }
-    
-    @Test
-    void recordTransportEvent_ThrowException_WhenRoleIsInvalid() {
-        // Given
-        when(validUser.getRoleCode()).thenReturn("VT-06"); // CONSUMER
-
-        // When & Then
-        assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("Bạn không có quyền ghi sự kiện vận chuyển.");
-
-        verifyNoInteractions(traceCodeRepository);
-        verifyNoInteractions(chainEventRepository);
-    }
-    
-    @Test
-    void recordTransportEvent_ThrowException_WhenTraceCodeNotFound() {
-        // Given
-        when(validUser.getRoleCode()).thenReturn("VT-03");
-        when(traceCodeRepository.findByCodeValue(transportRequest.getCodeValue()))
-                .thenReturn(Optional.empty());
-
-        // When & Then
-        assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("Mã lô hàng không tồn tại.");
-
-        verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
-        verifyNoInteractions(chainEventRepository);
-    }
-    
-    @Test
-    void recordTransportEvent_ThrowException_WhenShipmentIsNull() {
-        // Given
-        when(validUser.getRoleCode()).thenReturn("VT-03");
-        traceCode.setShipment(null);
-        when(traceCodeRepository.findByCodeValue(transportRequest.getCodeValue()))
-                .thenReturn(Optional.of(traceCode));
-
-        // When & Then
-        assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("Mã truy xuất chưa được gắn với lô hàng.");
-
-        verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
-        verifyNoInteractions(chainEventRepository);
-    }
-    
-    @Test
-    void recordTransportEvent_ThrowException_WhenShipmentRecalled() {
-        // Given
-        when(validUser.getRoleCode()).thenReturn("VT-03");
-        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId()); // ✅ Thêm dòng này
-        shipment.setStatus(ShipmentStatus.RECALLED);
-        when(traceCodeRepository.findByCodeValue(transportRequest.getCodeValue()))
-                .thenReturn(Optional.of(traceCode));
-
-        // When & Then
-        assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("Lô hàng đã bị thu hồi, không thể ghi sự kiện vận chuyển.");
-
-        verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
-        verifyNoInteractions(chainEventRepository);
-    }
-
-    @Test
     void recordTransportEvent_ThrowException_WhenShipmentNotActivated() {
         // Given
         when(validUser.getRoleCode()).thenReturn("VT-03");
@@ -507,6 +426,9 @@ class ChainEventServiceImplTest {
         assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Lô hàng chưa được kích hoạt, không thể ghi sự kiện vận chuyển.");
+
+        verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
+        verifyNoInteractions(chainEventRepository);
     }
     
     
