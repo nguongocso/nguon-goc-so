@@ -1,6 +1,25 @@
 services:
 
   # =========================================================
+  # DATABASE - MySQL
+  # =========================================================
+  db:
+    image: mysql:8.0
+    container_name: nguongocso-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ""
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_DATABASE: nguon_goc_so
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================================
   # BACKEND - Spring Boot
   # =========================================================
   backend:
@@ -15,8 +34,16 @@ services:
     env_file:
       - ./backend/.env
 
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+
     ports:
       - "8080:8080"
+
+    depends_on:
+      db:
+        condition: service_healthy
 
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -34,7 +61,10 @@ services:
     restart: unless-stopped
 
     ports:
-      - "80:80"
+      - "3000:80"
 
     depends_on:
       - backend
+
+volumes:
+  db_data:

@@ -16,7 +16,11 @@ RUN chmod +x mvnw
 
 # Download dependencies trước
 # Giúp tận dụng Docker layer cache
-RUN ./mvnw dependency:go-offline -B
+# Exclude test dependencies (not needed for build) and increase HTTP timeouts for large artifacts
+RUN ./mvnw dependency:go-offline -B \
+    -DexcludeTestDeps=true \
+    -Daether.connector.http.connectTimeout=120000 \
+    -Daether.connector.http.requestTimeout=300000
 
 # Copy source code
 COPY src src
