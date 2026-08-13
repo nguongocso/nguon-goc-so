@@ -79,101 +79,42 @@ public class AuthService {
     public LoginResponse login(LoginRequest request) {
 
         try {
+            log.info("Đăng nhập: user={}", request.getUsername());
 
-            log.info(
-                    "Đăng nhập: user={}",
-                    request.getUsername());
-
-            /*
-             * =====================================================
-             * 1. Tìm User
-             * =====================================================
-             *
-             * Ở bước này KHÔNG tìm OrganizationUser.
-             */
-            User user = userDetailsService.loadUser(
-                    request.getUsername());
-
-            /*
-             * =====================================================
-             * 2. Kiểm tra trạng thái User
-             * =====================================================
-             */
-            if (user.getStatus() != UserStatus.ACTIVE) {
-
-                throw new BusinessException(
-                        "Tài khoản đã bị khóa hoặc không hoạt động");
+            User user;
+            try {
+                user = userDetailsService.loadUser(request.getUsername());
+            } catch (UsernameNotFoundException e) {
+                log.warn("Không tìm thấy user: {}", request.getUsername());
+                throw new BusinessException("Tài khoản hoặc mật khẩu không chính xác");
             }
 
-            /*
-             * =====================================================
-             * 3. Kiểm tra Password
-             * =====================================================
-             */
+            if (user.getStatus() != UserStatus.ACTIVE) {
+                log.warn("Tài khoản không hoạt động: {}", request.getUsername());
+                throw new BusinessException("Tài khoản hoặc mật khẩu không chính xác");
+            }
+
             boolean passwordMatches = passwordEncoder.matches(
                     request.getPassword(),
                     user.getPasswordHash());
 
             if (!passwordMatches) {
-
-                throw new BusinessException(
-                        "Sai mật khẩu");
+                log.warn("Sai mật khẩu: {}", request.getUsername());
+                throw new BusinessException("Tài khoản hoặc mật khẩu không chính xác");
             }
 
-            /*
-             * =====================================================
-             * 4. Tạo Selection JWT
-             * =====================================================
-             *
-             * Selection JWT:
-             *
-             * tokenType = ORG_SELECTION
-             * TTL = 5 phút
-             *
-             * Token này chưa chứa:
-             *
-             * - organizationId
-             * - organizationCode
-             * - role
-             */
             String selectionToken = tokenProvider.generateSelectionToken(user);
 
-            log.info(
-                    "Xác thực username/password thành công, "
-                            + "chờ chọn tổ chức: user={}",
+            log.info("Xác thực username/password thành công, chờ chọn tổ chức: user={}",
                     request.getUsername());
 
-            /*
-             * =====================================================
-             * 5. Trả response
-             * =====================================================
-             */
-            return buildSelectionLoginResponse(
-                    user,
-                    selectionToken);
-
-        } catch (UsernameNotFoundException e) {
-
-            log.warn(
-                    "Không tìm thấy user: {}",
-                    request.getUsername());
-
-            throw new BusinessException(
-                    "Tài khoản không tồn tại");
+            return buildSelectionLoginResponse(user, selectionToken);
 
         } catch (BusinessException e) {
-
             throw e;
-
         } catch (Exception e) {
-
-            log.error(
-                    "Lỗi không xác định khi đăng nhập: user={}",
-                    request.getUsername(),
-                    e);
-
-            throw new BusinessException(
-                    "Lỗi hệ thống, vui lòng thử lại sau");
+            log.error("Lỗi không xác định khi đăng nhập: user={}", request.getUsername(), e);
+            throw new BusinessException("Lỗi hệ thống, vui lòng thử lại sau");
         }
     }
 
