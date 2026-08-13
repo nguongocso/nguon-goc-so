@@ -174,8 +174,7 @@ export function SeasonYieldComparisonFilter({
               <div>
                 <Label>Năm cần so sánh</Label>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Có thể chọn một hoặc nhiều năm. API sẽ tự phân loại các mùa vụ
-                  theo ngày gieo.
+                  Chọn các năm để so sánh sản lượng nông sản theo mùa vụ.
                 </p>
               </div>
               <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">

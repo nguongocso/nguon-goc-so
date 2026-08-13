@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 
 uploads/
+
+# AI / Agent context files
+AGENTS.md
+context.md
