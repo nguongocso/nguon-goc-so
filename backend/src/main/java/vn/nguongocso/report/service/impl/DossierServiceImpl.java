@@ -10,6 +10,8 @@ import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.Phrase;
 import com.lowagie.text.Element;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -36,6 +38,10 @@ import vn.nguongocso.farm.repository.FarmLogRepository;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.report.dto.response.DossierCheckResponse;
+import vn.nguongocso.report.dto.response.EventLocation;
+import vn.nguongocso.report.dto.response.GS1DossierExportResponse;
+import vn.nguongocso.report.dto.response.GS1Event;
+import vn.nguongocso.report.dto.response.Warning;
 import vn.nguongocso.report.entity.DossierExportHistory;
 import vn.nguongocso.report.repository.DossierExportHistoryRepository;
 import vn.nguongocso.report.service.DossierService;
@@ -48,7 +54,11 @@ import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -68,6 +78,11 @@ public class DossierServiceImpl implements DossierService {
     private final UserRepository userRepository;
     private final OrganizationUserRepository organizationUserRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final ObjectMapper objectMapper;
+
+    private static final String GS1_SCHEMA_VERSION = "1.0.0";
+    private static final String GS1_SCHEMA_DESCRIPTION =
+            "Mô phỏng lược đồ GS1, không phải chứng nhận tuân thủ GS1";
 
     /**
      * Kiểm tra điều kiện xuất hồ sơ truy xuất cho một lô hàng.
@@ -348,6 +363,65 @@ public class DossierServiceImpl implements DossierService {
         }
     }
 
+    /**
+     * Xuất hồ sơ theo lược đồ mô phỏng chuẩn GS1 (dạng JSON).
+     *
+     * @param shipmentId     ID của lô hàng
+     * @param currentUser    Người dùng hiện tại (VT-02 / VT-04)
+     * @param includeMapping Có bao gồm bảng ánh xạ schema hay không
+     * @return DTO hồ sơ GS1 mô phỏng
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public GS1DossierExportResponse exportGs1Dossier(UUID shipmentId, CustomUserDetails currentUser,
+            boolean includeMapping) {
+        GS1DossierExportResponse result = buildGs1ExportDossier(shipmentId, currentUser, includeMapping, "json");
+        return result;
+    }
+
+    private GS1DossierExportResponse buildGs1ExportDossier(UUID shipmentId, CustomUserDetails currentUser,
+            boolean includeMapping, String format) {
+        Shipment shipment = shipmentRepository.findById(shipmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lô hàng."));
+
+        // Kiểm tra quyền truy cập Shipment/Organization
+        validateDossierAccess(shipment, currentUser);
+
+        // Kiểm tra điều kiện QTN-11
+        checkEligibility(shipmentId, currentUser);
+
+        // Lấy danh sách sự kiện, sắp xếp recordedAt ASC (thứ tự ổn định theo id)
+        List<ChainEvent> events = chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipmentId).stream()
+                .sorted(Comparator.comparing(ChainEvent::getRecordedAt)
+                        .thenComparing(e -> e.getId() != null ? e.getId().toString() : ""))
+                .toList();
+
+        // Shipment không có sự kiện nào -> 400
+        if (events.isEmpty()) {
+            throw new BusinessException("Lô chưa có sự kiện nào để xuất hồ sơ.");
+        }
+
+        return buildGs1Dossier(shipment, events, currentUser, includeMapping, format);
+    }
+
+    /**
+     * Xuất hồ sơ theo lược đồ mô phỏng chuẩn GS1 (dạng XML).
+     *
+     * <p>Biểu diễn cùng tập dữ liệu và business semantics với JSON export.</p>
+     *
+     * @param shipmentId     ID của lô hàng
+     * @param currentUser    Người dùng hiện tại (VT-02 / VT-04)
+     * @param includeMapping Có bao gồm bảng ánh xạ schema hay không
+     * @return Chuỗi XML
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public String exportGs1DossierXml(UUID shipmentId, CustomUserDetails currentUser,
+            boolean includeMapping) {
+        GS1DossierExportResponse dossier = buildGs1ExportDossier(shipmentId, currentUser, includeMapping, "xml");
+        return generateGs1Xml(dossier);
+    }
+
     private void addTableCell(PdfPTable table, String text, Font font) {
         PdfPCell cell = new PdfPCell(new Phrase(text, font));
         cell.setPadding(6);
@@ -362,6 +436,266 @@ public class DossierServiceImpl implements DossierService {
         cell.setHorizontalAlignment(Element.ALIGN_CENTER);
         cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
         table.addCell(cell);
+    }
+
+    private GS1DossierExportResponse buildGs1Dossier(Shipment shipment, List<ChainEvent> events,
+            CustomUserDetails currentUser, boolean includeMapping, String format) {
+
+        List<GS1Event> gs1Events = new ArrayList<>();
+        List<Warning> warnings = new ArrayList<>();
+
+        for (ChainEvent event : events) {
+            Map<String, Object> details = parseEventData(event.getEventData());
+
+            EventLocation location = null;
+            if (event.getLocation() != null) {
+                location = EventLocation.builder()
+                        .latitude(event.getLocation().getY())
+                        .longitude(event.getLocation().getX())
+                        // ChainEvent không có address -> để null
+                        .address(null)
+                        .build();
+            } else {
+                // Thiếu location: vẫn export, thêm warning
+                warnings.add(Warning.builder()
+                        .eventId(event.getId())
+                        .field("location")
+                        .message("Sự kiện thiếu thông tin vị trí")
+                        .build());
+            }
+
+            gs1Events.add(GS1Event.builder()
+                    .eventId(event.getId())
+                    .eventType(event.getEventType() != null ? event.getEventType().name() : null)
+                    .eventTypeLabel(event.getEventType() != null ? eventTypeLabel(event.getEventType()) : null)
+                    .recordedAt(event.getRecordedAt())
+                    .recordedBy(event.getRecordedBy() != null ? event.getRecordedBy().getFullName() : null)
+                    .location(location)
+                    .details(details)
+                    .build());
+        }
+
+        publishActivityLog(currentUser,
+                "GS1_DOSSIER_EXPORT",
+                "Xuat ho so GS1 dinh dang " + format + " cho lo hang " + shipment.getName(),
+                "Shipment",
+                shipment.getId().toString());
+
+        return GS1DossierExportResponse.builder()
+                .shipment(buildShipmentInfo(shipment))
+                .events(gs1Events)
+                .mapping(includeMapping ? buildGs1Mapping() : null)
+                .warnings(warnings)
+                .exportedAt(LocalDateTime.now())
+                .exportedBy(currentUser != null ? currentUser.getFullName() : null)
+                .schemaVersion(GS1_SCHEMA_VERSION)
+                .schemaDescription(GS1_SCHEMA_DESCRIPTION)
+                .build();
+    }
+
+    private GS1DossierExportResponse.ShipmentInfo buildShipmentInfo(Shipment shipment) {
+        ProductionLot lot = shipment.getProductionLot();
+        String productCategory = lot != null && lot.getProductCategory() != null
+                ? lot.getProductCategory().getName()
+                : null;
+        String unit = lot != null ? lot.getExpectedQuantityUnit() : null;
+
+        GS1DossierExportResponse.OrganizationInfo orgInfo = null;
+        if (shipment.getOrganization() != null) {
+            orgInfo = GS1DossierExportResponse.OrganizationInfo.builder()
+                    .id(shipment.getOrganization().getOrganizationId())
+                    .name(shipment.getOrganization().getName())
+                    .code(shipment.getOrganization().getCode())
+                    .build();
+        }
+
+        return GS1DossierExportResponse.ShipmentInfo.builder()
+                .id(shipment.getId())
+                .name(shipment.getName())
+                .codeValue(null) // Shipment khong co field codeValue
+                .productCategory(productCategory)
+                .totalQuantity(shipment.getTotalQuantity())
+                .unit(unit)
+                .status(shipment.getStatus() != null ? shipment.getStatus().name() : null)
+                .organization(orgInfo)
+                .build();
+    }
+
+    private Map<String, String> buildGs1Mapping() {
+        Map<String, String> mapping = new LinkedHashMap<>();
+        mapping.put("ChainEvent.id", "eventIdentifier");
+        mapping.put("ChainEvent.eventType", "eventTypeCode");
+        mapping.put("ChainEvent.recordedAt", "eventDateTime");
+        mapping.put("ChainEvent.recordedBy.fullName", "actorName");
+        mapping.put("ChainEvent.location.latitude", "eventLocation.latitude");
+        mapping.put("ChainEvent.location.longitude", "eventLocation.longitude");
+        mapping.put("ChainEvent.location.address", "eventLocation.address");
+        mapping.put("ChainEvent.eventData", "eventData");
+        mapping.put("Shipment.name", "shipmentName");
+        mapping.put("Shipment.totalQuantity", "declaredQuantity");
+        mapping.put("Shipment.status", "shipmentStatus");
+        return mapping;
+    }
+
+    private String eventTypeLabel(ChainEventType type) {
+        return switch (type) {
+            case HARVEST -> "Thu hoạch";
+            case PACKAGING -> "Đóng gói";
+            case TRANSPORT -> "Vận chuyển";
+            case PROCUREMENT -> "Thu mua";
+            case CORRECTION -> "Sửa lỗi";
+            case WAREHOUSE_RECEIPT -> "Nhập kho";
+            case STORAGE_CONDITION -> "Theo dõi bảo quản";
+        };
+    }
+
+    private Map<String, Object> parseEventData(String eventDataJson) {
+        if (eventDataJson == null || eventDataJson.isBlank()) {
+            return new HashMap<>();
+        }
+        try {
+            return objectMapper.readValue(eventDataJson, new TypeReference<Map<String, Object>>() {
+            });
+        } catch (Exception e) {
+            log.warn("Không thể parse eventData: {}", eventDataJson);
+            return new HashMap<>();
+        }
+    }
+
+    private String generateGs1Xml(GS1DossierExportResponse dossier) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        sb.append("<gs1Dossier>\n");
+
+        GS1DossierExportResponse.ShipmentInfo shipment = dossier.getShipment();
+        if (shipment != null) {
+            sb.append("  <shipment>\n");
+            sb.append("    <id>").append(shipment.getId()).append("</id>\n");
+            sb.append("    <name>").append(escapeXml(shipment.getName())).append("</name>\n");
+            if (shipment.getCodeValue() != null) {
+                sb.append("    <codeValue>").append(escapeXml(shipment.getCodeValue())).append("</codeValue>\n");
+            }
+            if (shipment.getProductCategory() != null) {
+                sb.append("    <productCategory>").append(escapeXml(shipment.getProductCategory()))
+                        .append("</productCategory>\n");
+            }
+            if (shipment.getTotalQuantity() != null) {
+                sb.append("    <totalQuantity>").append(shipment.getTotalQuantity()).append("</totalQuantity>\n");
+            }
+            if (shipment.getUnit() != null) {
+                sb.append("    <unit>").append(escapeXml(shipment.getUnit())).append("</unit>\n");
+            }
+            if (shipment.getStatus() != null) {
+                sb.append("    <status>").append(escapeXml(shipment.getStatus())).append("</status>\n");
+            }
+            if (shipment.getOrganization() != null) {
+                sb.append("    <organization>\n");
+                sb.append("      <id>").append(shipment.getOrganization().getId()).append("</id>\n");
+                sb.append("      <name>").append(escapeXml(shipment.getOrganization().getName())).append("</name>\n");
+                sb.append("      <code>").append(escapeXml(shipment.getOrganization().getCode())).append("</code>\n");
+                sb.append("    </organization>\n");
+            }
+            sb.append("  </shipment>\n");
+        }
+
+        sb.append("  <events>\n");
+        if (dossier.getEvents() != null) {
+            for (GS1Event event : dossier.getEvents()) {
+                sb.append("    <event>\n");
+                sb.append("      <eventId>").append(event.getEventId()).append("</eventId>\n");
+                sb.append("      <eventType>").append(escapeXml(event.getEventType())).append("</eventType>\n");
+                if (event.getEventTypeLabel() != null) {
+                    sb.append("      <eventTypeLabel>").append(escapeXml(event.getEventTypeLabel()))
+                            .append("</eventTypeLabel>\n");
+                }
+                if (event.getRecordedAt() != null) {
+                    sb.append("      <recordedAt>").append(event.getRecordedAt()).append("</recordedAt>\n");
+                }
+                if (event.getRecordedBy() != null) {
+                    sb.append("      <recordedBy>").append(escapeXml(event.getRecordedBy())).append("</recordedBy>\n");
+                }
+                if (event.getLocation() != null) {
+                    sb.append("      <location>\n");
+                    sb.append("        <latitude>").append(event.getLocation().getLatitude()).append("</latitude>\n");
+                    sb.append("        <longitude>").append(event.getLocation().getLongitude()).append("</longitude>\n");
+                    if (event.getLocation().getAddress() != null) {
+                        sb.append("        <address>").append(escapeXml(event.getLocation().getAddress()))
+                                .append("</address>\n");
+                    }
+                    sb.append("      </location>\n");
+                }
+                if (event.getDetails() != null && !event.getDetails().isEmpty()) {
+                    sb.append("      <details>").append(toJsonForXml(event.getDetails())).append("</details>\n");
+                }
+                sb.append("    </event>\n");
+            }
+        }
+        sb.append("  </events>\n");
+
+        if (dossier.getMapping() != null) {
+            sb.append("  <mapping>\n");
+            for (Map.Entry<String, String> entry : dossier.getMapping().entrySet()) {
+                sb.append("    <entry>\n");
+                sb.append("      <systemField>").append(escapeXml(entry.getKey())).append("</systemField>\n");
+                sb.append("      <gs1Field>").append(escapeXml(entry.getValue())).append("</gs1Field>\n");
+                sb.append("    </entry>\n");
+            }
+            sb.append("  </mapping>\n");
+        }
+
+        sb.append("  <warnings>\n");
+        if (dossier.getWarnings() != null) {
+            for (Warning warning : dossier.getWarnings()) {
+                sb.append("    <warning>\n");
+                sb.append("      <eventId>").append(warning.getEventId()).append("</eventId>\n");
+                sb.append("      <field>").append(escapeXml(warning.getField())).append("</field>\n");
+                sb.append("      <message>").append(escapeXml(warning.getMessage())).append("</message>\n");
+                sb.append("    </warning>\n");
+            }
+        }
+        sb.append("  </warnings>\n");
+
+        if (dossier.getExportedAt() != null) {
+            sb.append("  <exportedAt>").append(dossier.getExportedAt()).append("</exportedAt>\n");
+        }
+        if (dossier.getExportedBy() != null) {
+            sb.append("  <exportedBy>").append(escapeXml(dossier.getExportedBy())).append("</exportedBy>\n");
+        }
+        if (dossier.getSchemaVersion() != null) {
+            sb.append("  <schemaVersion>").append(escapeXml(dossier.getSchemaVersion())).append("</schemaVersion>\n");
+        }
+        if (dossier.getSchemaDescription() != null) {
+            sb.append("  <schemaDescription>").append(escapeXml(dossier.getSchemaDescription()))
+                    .append("</schemaDescription>\n");
+        }
+
+        sb.append("</gs1Dossier>");
+        return sb.toString();
+    }
+
+    private String toJsonForXml(Map<String, Object> details) {
+        try {
+            return escapeXml(objectMapper.writeValueAsString(details));
+        } catch (Exception e) {
+            log.warn("Không thể serialize eventData cho XML: {}", e.getMessage());
+            return "";
+        }
+    }
+
+    private String escapeXml(String value) {
+        if (value == null) {
+            return "";
+        }
+        String amp = "&" + "amp;";
+        String lt = "&" + "lt;";
+        String gt = "&" + "gt;";
+        String quot = "&" + "quot;";
+        String apos = "&" + "apos;";
+        return value.replace("&", amp)
+                .replace("<", lt)
+                .replace(">", gt)
+                .replace("\"", quot)
+                .replace("'", apos);
     }
 
     private void validateDossierAccess(Shipment shipment, CustomUserDetails currentUser) {

@@ -12,9 +12,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
+import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.report.exception.DossierValidationException;
 import vn.nguongocso.report.dto.response.DossierCheckResponse;
+import vn.nguongocso.report.dto.response.GS1DossierExportResponse;
 import vn.nguongocso.report.service.DossierService;
 
 import java.nio.charset.StandardCharsets;
@@ -76,6 +78,34 @@ public class DossierController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
+    }
+
+    /**
+     * API Xuất hồ sơ theo lược đồ mô phỏng chuẩn GS1.
+     * Chi VT-02 / VT-04 duoc phep. Ho tro json (mac dinh) hoac xml.
+     */
+    @GetMapping("/{shipmentId}/export-gs1-dossier")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
+    public ResponseEntity<?> exportGs1Dossier(
+            @PathVariable UUID shipmentId,
+            @RequestParam(defaultValue = "json") String format,
+            @RequestParam(defaultValue = "true") boolean includeMapping,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        String normalizedFormat = format != null ? format.trim().toLowerCase() : "json";
+        if (!"json".equals(normalizedFormat) && !"xml".equals(normalizedFormat)) {
+            throw new BusinessException("Định dạng xuất không được hỗ trợ. Chỉ hỗ trợ json hoặc xml.");
+        }
+
+        if ("xml".equals(normalizedFormat)) {
+            String xml = dossierService.exportGs1DossierXml(shipmentId, currentUser, includeMapping);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_XML)
+                    .body(xml);
+        }
+
+        GS1DossierExportResponse response = dossierService.exportGs1Dossier(shipmentId, currentUser, includeMapping);
+        return ResponseEntity.ok(ApiResult.success(response));
     }
 
     private String extractClientIp(HttpServletRequest request) {
