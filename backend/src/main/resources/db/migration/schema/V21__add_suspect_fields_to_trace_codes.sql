@@ -18,6 +18,7 @@ CREATE INDEX idx_trace_codes_status ON trace_codes(status);
 CREATE INDEX idx_trace_codes_suspicion_score ON trace_codes(suspicion_score);
 
 -- Foreign key for locked_by -> users
+-- NOTE: users PK is user_id (see V1__create_auth_tables.sql), NOT id
 ALTER TABLE trace_codes
     ADD CONSTRAINT fk_trace_codes_locked_by
-        FOREIGN KEY (locked_by) REFERENCES users(id);
+        FOREIGN KEY (locked_by) REFERENCES users(user_id);
