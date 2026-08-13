@@ -104,6 +104,7 @@ AI_GUIDE.md
 .agents/
 npm_member_check.txt
 dev-server.log
-
+AGENTS.md
+context.md
 # Keep the Docker Compose definition under version control
 !docker-compose.yml
