@@ -100,7 +100,7 @@ public class AuthService {
 
             if (!passwordMatches) {
                 log.warn("Sai mật khẩu: {}", request.getUsername());
-                throw new BusinessException("Tài khoản hoặc mật khẩu không chính xác");
+                throw new BusinessException("Sai mật khẩu");
             }
 
             String selectionToken = tokenProvider.generateSelectionToken(user);
