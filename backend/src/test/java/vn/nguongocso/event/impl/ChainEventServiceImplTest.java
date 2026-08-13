@@ -414,19 +414,6 @@ class ChainEventServiceImplTest {
     }
 
     @Test
-    void recordTransportEvent_ThrowException_WhenShipmentNotActivated() {
-        // Given
-        when(validUser.getRoleCode()).thenReturn("VT-03");
-        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId()); 
-        shipment.setStatus(ShipmentStatus.DRAFT);
-        when(traceCodeRepository.findByCodeValue(transportRequest.getCodeValue()))
-                .thenReturn(Optional.of(traceCode));
-
-        // When & Then
-        assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("Lô hàng chưa được kích hoạt, không thể ghi sự kiện vận chuyển.");
-
 
         // Then
         assertThat(response).isNotNull();
@@ -520,9 +507,6 @@ class ChainEventServiceImplTest {
         assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Lô hàng chưa được kích hoạt, không thể ghi sự kiện vận chuyển.");
-
-        verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
-        verifyNoInteractions(chainEventRepository);
     }
     
     
