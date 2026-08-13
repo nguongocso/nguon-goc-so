@@ -53,7 +53,7 @@ public class EventValidationServiceImpl implements EventValidationService {
     @Override
     @Transactional(readOnly = true)
     public LotValidationResponse validateLot(UUID lotId, ChainEventType eventType, CustomUserDetails currentUser) {
-        if (eventType == ChainEventType.HARVEST || eventType == ChainEventType.PACKAGING) {
+        if (eventType == ChainEventType.HARVEST || eventType == ChainEventType.PREPROCESSING || eventType == ChainEventType.PACKAGING) {
             ProductionLot lot = productionLotRepository.findById(lotId)
                     .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất."));
 
@@ -64,8 +64,10 @@ public class EventValidationServiceImpl implements EventValidationService {
                 message = "Bạn không thuộc tổ chức quản lý của lô sản xuất này.";
             } else if (eventType == ChainEventType.HARVEST && lot.getStatus() != ProductionLotStatus.APPROVED) {
                 message = "Lô sản xuất chưa được duyệt, không thể ghi sự kiện thu hoạch.";
-            } else if (eventType == ChainEventType.PACKAGING && lot.getStatus() != ProductionLotStatus.HARVESTED) {
-                message = "Chỉ được ghi nhận sự kiện đóng gói cho lô đã thu hoạch.";
+            } else if (eventType == ChainEventType.PREPROCESSING && lot.getStatus() != ProductionLotStatus.HARVESTED) {
+                message = "Chỉ được ghi nhận sự kiện sơ chế cho lô đã thu hoạch.";
+            } else if (eventType == ChainEventType.PACKAGING && (lot.getStatus() != ProductionLotStatus.HARVESTED && lot.getStatus() != ProductionLotStatus.PREPROCESSED)) {
+                message = "Chỉ được ghi nhận sự kiện đóng gói cho lô đã thu hoạch hoặc đã sơ chế.";
             } else {
                 valid = true;
                 message = "Lô sản xuất hợp lệ.";

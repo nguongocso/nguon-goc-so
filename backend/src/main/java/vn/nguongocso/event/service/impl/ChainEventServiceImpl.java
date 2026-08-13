@@ -139,6 +139,188 @@ public class ChainEventServiceImpl implements ChainEventService {
     }
 
     /**
+     * Ghi nhận sự kiện sơ chế và phân loại cho lô sản xuất.
+     *
+     * @param request     yêu cầu ghi nhận sự kiện sơ chế
+     * @param currentUser người dùng hiện tại
+     * @return phản hồi sự kiện chuỗi cung ứng
+     */
+    @Override
+    @Transactional
+    @Auditable(action = "RECORD_PREPROCESSING_EVENT", entityType = "CHAIN_EVENT", description = "'Ghi nhận sự kiện sơ chế cho lô sản xuất ID: ' + #request.productionLotId + ', Khối lượng vào: ' + #request.inputQuantity + ' kg, Khối lượng ra: ' + #request.outputQuantity + ' kg'")
+    public ChainEventResponse recordPreprocessingEvent(RecordPreprocessingEventRequest request, CustomUserDetails currentUser) {
+        validateEventPermission(currentUser);
+
+        ProductionLot lot = productionLotRepository.findById(request.getProductionLotId())
+                .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất."));
+
+        try {
+            validateOrganization(lot, currentUser);
+            if (lot.getStatus() != ProductionLotStatus.HARVESTED) {
+                throw new BusinessException("Chỉ được ghi nhận sự kiện sơ chế cho lô đã thu hoạch.");
+            }
+            if (request.getOutputQuantity() > request.getInputQuantity()) {
+                throw new BusinessException("Khối lượng sau sơ chế không được lớn hơn khối lượng vào.");
+            }
+            if (request.getPreprocessingDate().isAfter(LocalDate.now())) {
+                throw new BusinessException("Ngày sơ chế không được là ngày ở tương lai.");
+            }
+            if (lot.getHarvestDate() != null && request.getPreprocessingDate().isBefore(lot.getHarvestDate())) {
+                throw new BusinessException("Ngày sơ chế phải sau hoặc bằng ngày thu hoạch của lô sản xuất.");
+            }
+        } catch (BusinessException e) {
+            eventValidationService.logFailedAttempt(request.getProductionLotId(), lot.getName(),
+                    ChainEventType.PREPROCESSING, e.getMessage(), currentUser);
+            throw e;
+        }
+
+        // Tính tỷ lệ hao hụt (%)
+        double lossRate = 0.0;
+        if (request.getInputQuantity() > 0) {
+            lossRate = (request.getInputQuantity() - request.getOutputQuantity()) / request.getInputQuantity() * 100.0;
+            lossRate = Math.round(lossRate * 100.0) / 100.0;
+        }
+
+        // Cập nhật trạng thái lô và khối lượng thực tế mới
+        lot.setStatus(ProductionLotStatus.PREPROCESSED);
+        lot.setActualQuantity(request.getOutputQuantity());
+        productionLotRepository.save(lot);
+
+        Point locationPoint = buildPoint(request.getLatitude(), request.getLongitude());
+
+        Map<String, Object> eventDataMap = new HashMap<>();
+        eventDataMap.put("productionLotId", lot.getId().toString());
+        eventDataMap.put("productionLotName", lot.getName());
+        eventDataMap.put("inputQuantity", request.getInputQuantity());
+        eventDataMap.put("outputQuantity", request.getOutputQuantity());
+        eventDataMap.put("lossRate", lossRate);
+        if (request.getGrade() != null) {
+            eventDataMap.put("grade", request.getGrade());
+        }
+        if (request.getProcessingMethod() != null) {
+            eventDataMap.put("processingMethod", request.getProcessingMethod());
+        }
+        eventDataMap.put("preprocessingDate", request.getPreprocessingDate().toString());
+        if (request.getImages() != null && !request.getImages().isEmpty()) {
+            eventDataMap.put("images", request.getImages());
+        }
+        eventDataMap.put("deviceSource", request.getDeviceSource() != null ? request.getDeviceSource() : "WEB");
+
+        String eventDataJson = toJson(eventDataMap);
+        User actor = getActor(currentUser);
+
+        ChainEvent chainEvent = ChainEvent.builder()
+                .eventType(ChainEventType.PREPROCESSING)
+                .eventData(eventDataJson)
+                .location(locationPoint)
+                .recordedAt(LocalDateTime.now())
+                .recordedBy(actor)
+                .isCorrection(false)
+                .build();
+
+        chainEvent = chainEventRepository.save(chainEvent);
+
+        publishActivityLog(currentUser, "Ghi sự kiện sơ chế cho lô " + lot.getName(),
+                "ChainEvent", chainEvent.getId().toString());
+
+        return buildResponse(chainEvent, eventDataMap, request.getLatitude(), request.getLongitude(), actor);
+    }
+
+    /**
+     * Đính chính sự kiện sơ chế cho lô sản xuất.
+     *
+     * @param originalEventId ID sự kiện gốc
+     * @param request         yêu cầu đính chính sự kiện sơ chế
+     * @param currentUser     người dùng hiện tại
+     * @return phản hồi sự kiện chuỗi cung ứng
+     */
+    @Override
+    @Transactional
+    @Auditable(action = "CORRECT_PREPROCESSING_EVENT", entityType = "CHAIN_EVENT", description = "'Đính chính thông tin sơ chế cho sự kiện gốc ID: ' + #originalEventId")
+    public ChainEventResponse correctPreprocessingEvent(UUID originalEventId, CorrectPreprocessingEventRequest request,
+                                                        CustomUserDetails currentUser) {
+        validateEventPermission(currentUser);
+
+        ChainEvent originalEvent = chainEventRepository.findById(originalEventId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy sự kiện sơ chế cần đính chính."));
+
+        if (originalEvent.getEventType() != ChainEventType.PREPROCESSING) {
+            throw new BusinessException("Sự kiện gốc không phải là sự kiện sơ chế.");
+        }
+
+        Map<String, Object> originalDataMap = parseEventData(originalEvent.getEventData());
+        String productionLotIdStr = (String) originalDataMap.get("productionLotId");
+        if (productionLotIdStr == null) {
+            throw new BusinessException("Không tìm thấy thông tin lô sản xuất trong sự kiện gốc.");
+        }
+        UUID productionLotId = UUID.fromString(productionLotIdStr);
+
+        ProductionLot lot = productionLotRepository.findById(productionLotId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất."));
+
+        validateOrganization(lot, currentUser);
+
+        if (request.getOutputQuantity() > request.getInputQuantity()) {
+            throw new BusinessException("Khối lượng sau sơ chế không được lớn hơn khối lượng vào.");
+        }
+        if (request.getPreprocessingDate().isAfter(LocalDate.now())) {
+            throw new BusinessException("Ngày sơ chế không được là ngày ở tương lai.");
+        }
+        if (lot.getHarvestDate() != null && request.getPreprocessingDate().isBefore(lot.getHarvestDate())) {
+            throw new BusinessException("Ngày sơ chế phải sau hoặc bằng ngày thu hoạch của lô sản xuất.");
+        }
+
+        // Tính tỷ lệ hao hụt (%) đính chính
+        double lossRate = 0.0;
+        if (request.getInputQuantity() > 0) {
+            lossRate = (request.getInputQuantity() - request.getOutputQuantity()) / request.getInputQuantity() * 100.0;
+            lossRate = Math.round(lossRate * 100.0) / 100.0;
+        }
+
+        // Cập nhật khối lượng thực tế của lô
+        lot.setActualQuantity(request.getOutputQuantity());
+        productionLotRepository.save(lot);
+
+        Point locationPoint = buildPoint(request.getLatitude(), request.getLongitude());
+
+        Map<String, Object> eventDataMap = new HashMap<>();
+        eventDataMap.put("productionLotId", lot.getId().toString());
+        eventDataMap.put("productionLotName", lot.getName());
+        eventDataMap.put("inputQuantity", request.getInputQuantity());
+        eventDataMap.put("outputQuantity", request.getOutputQuantity());
+        eventDataMap.put("lossRate", lossRate);
+        if (request.getGrade() != null) {
+            eventDataMap.put("grade", request.getGrade());
+        }
+        if (request.getProcessingMethod() != null) {
+            eventDataMap.put("processingMethod", request.getProcessingMethod());
+        }
+        eventDataMap.put("preprocessingDate", request.getPreprocessingDate().toString());
+        eventDataMap.put("correctionReason", request.getCorrectionReason());
+        eventDataMap.put("parentEventId", originalEventId.toString());
+
+        String eventDataJson = toJson(eventDataMap);
+        User actor = getActor(currentUser);
+
+        ChainEvent correctionEvent = ChainEvent.builder()
+                .eventType(ChainEventType.PREPROCESSING)
+                .eventData(eventDataJson)
+                .location(locationPoint)
+                .recordedAt(LocalDateTime.now())
+                .recordedBy(actor)
+                .parentEvent(originalEvent)
+                .isCorrection(true)
+                .build();
+
+        correctionEvent = chainEventRepository.save(correctionEvent);
+
+        publishActivityLog(currentUser, "Đính chính sự kiện sơ chế cho lô " + lot.getName(),
+                "ChainEvent", correctionEvent.getId().toString());
+
+        return buildResponse(correctionEvent, eventDataMap, request.getLatitude(), request.getLongitude(), actor);
+    }
+
+    /**
      * Ghi nhận sự kiện đóng gói cho lô sản xuất.
      *
      * @param request     yêu cầu ghi nhận sự kiện đóng gói
@@ -156,8 +338,8 @@ public class ChainEventServiceImpl implements ChainEventService {
 
         try {
             validateOrganization(lot, currentUser);
-            if (lot.getStatus() != ProductionLotStatus.HARVESTED) {
-                throw new BusinessException("Chỉ được ghi nhận sự kiện đóng gói cho lô đã thu hoạch.");
+            if (lot.getStatus() != ProductionLotStatus.HARVESTED && lot.getStatus() != ProductionLotStatus.PREPROCESSED) {
+                throw new BusinessException("Chỉ được ghi nhận sự kiện đóng gói cho lô đã thu hoạch hoặc đã sơ chế.");
             }
             if (request.getPackagingDate().isAfter(LocalDate.now())) {
                 throw new BusinessException("Ngày đóng gói không được là ngày ở tương lai.");
@@ -415,7 +597,7 @@ public class ChainEventServiceImpl implements ChainEventService {
         if (shipment.getProductionLot() != null) {
             UUID productionLotId = shipment.getProductionLot().getId();
             List<ChainEvent> allUnassignedEvents = chainEventRepository.findByShipmentIsNullAndEventTypeIn(
-                    List.of(ChainEventType.HARVEST, ChainEventType.PACKAGING));
+                    List.of(ChainEventType.HARVEST, ChainEventType.PREPROCESSING, ChainEventType.PACKAGING));
             productionLotEvents = allUnassignedEvents.stream()
                     .filter(e -> {
                         Map<String, Object> data = parseEventData(e.getEventData());

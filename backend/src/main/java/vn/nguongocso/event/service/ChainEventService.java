@@ -29,6 +29,16 @@ public interface ChainEventService {
 	ChainEventResponse recordHarvestEvent(RecordHarvestEventRequest request, CustomUserDetails currentUser);
 
 	/**
+	 * Ghi nhận sự kiện sơ chế và phân loại.
+	 */
+	ChainEventResponse recordPreprocessingEvent(vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest request, CustomUserDetails currentUser);
+
+	/**
+	 * Đính chính sự kiện sơ chế và phân loại.
+	 */
+	ChainEventResponse correctPreprocessingEvent(UUID originalEventId, vn.nguongocso.event.dto.request.CorrectPreprocessingEventRequest request, CustomUserDetails currentUser);
+
+	/**
 	 * Ghi nhận sự kiện đóng gói.
 	 */
 	ChainEventResponse recordPackagingEvent(RecordPackagingEventRequest request, CustomUserDetails currentUser);
