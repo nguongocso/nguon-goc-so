@@ -1,32 +1,61 @@
 export interface LoginRequest {
   username: string;
   password: string;
-  organizationCode?: string;
 }
 
 export interface LoginResponse {
-  accessToken: string;
+  selectionToken: string;
   tokenType: string;
   expiresIn: number;
-  user: UserInfo;
+  user: LoginUserInfo;
 }
 
-export interface UserInfo {
+export interface LoginUserInfo {
   userId: string;
   username: string;
   fullName: string;
-  roleCode: string;
-  organizationId: string;
-  organizationName: string;
-  organizationCode: string;
-  orgainzationType: OrganizationType;
 }
 
-export type OrganizationType = 'SYSTEM' | 'COOPERATIVE' | 'ENTERPRISE' | 'GOVERNMENT';
+export interface SelectOrganizationRequest {
+  organizationId: string;
+}
+
+export interface SelectOrganizationResponse {
+  accessToken: string;
+  tokenType: string;
+  expiresIn: number;
+  user: AuthUserInfo;
+}
+
+export interface AuthUserInfo {
+  userId: string;
+  username: string;
+  fullName: string;
+
+  phone?: string | null;
+  email?: string | null;
+
+  roleCode: string;
+  roleName: string;
+
+  organizationId: string;
+  organizationCode: string;
+  organizationName: string;
+  organizationType: OrganizationType;
+
+  permissions?: string[];
+}
+
+export type OrganizationType =
+  | "SYSTEM"
+  | "COOPERATIVE"
+  | "ENTERPRISE"
+  | "GOVERNMENT";
 
 export interface AuthState {
-  user: UserInfo | null;
+  user: AuthUserInfo | null;
   token: string | null;
+  selectionToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
 }

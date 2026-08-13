@@ -30,6 +30,7 @@ import vn.nguongocso.event.dto.response.OfflineEventSyncResultDto;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.service.ChainEventService;
 import vn.nguongocso.event.service.OfflineSyncService;
+import vn.nguongocso.permission.service.PermissionChecker;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -60,6 +61,9 @@ class OfflineSyncControllerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+        @MockitoBean
+        private PermissionChecker permissionChecker;
 
     private OfflineEventSyncRequest validRequest;
     private OfflineEventSyncResponse successResponse;

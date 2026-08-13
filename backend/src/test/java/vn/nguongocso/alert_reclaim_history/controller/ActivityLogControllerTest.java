@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithUserDetails;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -72,10 +73,8 @@ public class ActivityLogControllerTest {
     }
 
     @Test
-    @WithUserDetails("manager") // ✅ KHÔNG chỉ định bean name
     void getActivityLogs_shouldReturnOk_whenUserIsOrgManager() throws Exception {
         CustomUserDetails mockUserDetails = createCustomUserDetails("manager", "VT-02");
-        when(customUserDetailsService.loadUserByUsername("manager")).thenReturn(mockUserDetails);
 
         PageResponse response = PageResponse.builder()
                 .items(Collections.emptyList())
@@ -89,6 +88,8 @@ public class ActivityLogControllerTest {
                 .thenReturn(response);
 
         mockMvc.perform(get("/api/v1/organizations/activity-logs")
+                .with(authentication(new UsernamePasswordAuthenticationToken(
+                    mockUserDetails, null, mockUserDetails.getAuthorities())))
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -96,12 +97,12 @@ public class ActivityLogControllerTest {
     }
 
     @Test
-    @WithUserDetails("recorder")
     void getActivityLogs_shouldReturnForbidden_whenUserHasWrongRole() throws Exception {
         CustomUserDetails mockUserDetails = createCustomUserDetails("recorder", "VT-03");
-        when(customUserDetailsService.loadUserByUsername("recorder")).thenReturn(mockUserDetails);
 
         mockMvc.perform(get("/api/v1/organizations/activity-logs")
+                        .with(authentication(new UsernamePasswordAuthenticationToken(
+                                mockUserDetails, null, mockUserDetails.getAuthorities())))
                         .with(csrf()))
                 .andExpect(status().isForbidden());
     }

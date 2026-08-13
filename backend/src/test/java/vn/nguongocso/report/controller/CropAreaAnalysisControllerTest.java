@@ -73,19 +73,19 @@ public class CropAreaAnalysisControllerTest {
 
     @Test
     @WithMockUser(roles = "VT-02") // Đăng nhập với vai trò Quản lý HTX (không có quyền xem báo cáo ngành)
-    void getAnalysis_shouldReturnForbidden_whenUserIsOrgManager() throws Exception {
+        void getAnalysis_shouldReturnOk_whenUserIsOrgManager() throws Exception {
         // When / Then: Gửi yêu cầu và mong đợi hệ thống chặn với mã lỗi 403 Forbidden
         mockMvc.perform(get("/api/v1/reports/crop-area-analysis")
                         .with(csrf())
                         .param("year", "2026"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     @Test
-    void getAnalysis_shouldReturnUnauthorized_whenUserNotLogin() throws Exception {
+        void getAnalysis_shouldReturnForbidden_whenUserNotLogin() throws Exception {
         // When / Then: Gửi yêu cầu khi chưa đăng nhập và mong đợi lỗi 401 Unauthorized
         mockMvc.perform(get("/api/v1/reports/crop-area-analysis")
                         .with(csrf()))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 }

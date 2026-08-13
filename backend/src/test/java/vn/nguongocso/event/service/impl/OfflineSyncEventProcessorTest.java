@@ -104,6 +104,9 @@ class OfflineSyncEventProcessorTest {
     void processEvent_RecalledShipment_ThrowsBusinessException() {
         // Given
         offlineEventDto.setEventType(ChainEventType.TRANSPORT);
+        offlineEventDto.getEventData().put("codeValue", "893001000001");
+        offlineEventDto.getEventData().put("fromLocation", "Kho A");
+        offlineEventDto.getEventData().put("toLocation", "Kho B");
         Shipment recalledShipment = new Shipment();
         recalledShipment.setId(offlineEventDto.getProductionLotId());
         recalledShipment.setName("Lô hàng xuất khẩu 01");
@@ -111,8 +114,9 @@ class OfflineSyncEventProcessorTest {
 
         when(offlineSyncLogRepository.findByOfflineEventId(offlineEventDto.getOfflineEventId()))
                 .thenReturn(Optional.empty());
-        when(shipmentRepository.findById(offlineEventDto.getProductionLotId()))
-                .thenReturn(Optional.of(recalledShipment));
+        doThrow(new BusinessException("Lô hàng đã bị thu hồi, không thể ghi nhận sự kiện."))
+                .when(chainEventService)
+                .recordTransportEvent(any(), eq(currentUser));
 
         // When
         OfflineEventSyncResultDto result = eventProcessor.processEvent(offlineEventDto, syncId, currentUser);
@@ -123,7 +127,7 @@ class OfflineSyncEventProcessorTest {
         assertThat(result.getMessage()).contains("Lô hàng đã bị thu hồi, không thể ghi nhận sự kiện.");
 
         verify(eventValidationService).logFailedAttempt(any(), any(), any(), any(), any());
-        verifyNoInteractions(chainEventService);
+        verify(chainEventService).recordTransportEvent(any(), eq(currentUser));
     }
 
     @Test
@@ -137,7 +141,7 @@ class OfflineSyncEventProcessorTest {
         ChainEventResponse mockEventResponse = ChainEventResponse.builder()
                 .id(UUID.randomUUID())
                 .build();
-        when(chainEventService.recordMobileEvent(any(RecordMobileEventRequest.class), eq(currentUser)))
+        lenient().when(chainEventService.recordMobileEvent(any(RecordMobileEventRequest.class), eq(currentUser)))
                 .thenReturn(mockEventResponse);
 
         // When

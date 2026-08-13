@@ -21,16 +21,22 @@ import vn.nguongocso.common.annotation.Auditable;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.event.dto.request.*;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
+import vn.nguongocso.event.dto.response.ChainVerificationResponse;
+import vn.nguongocso.event.dto.response.EventVerificationItem;
 import vn.nguongocso.event.dto.response.ScanLookupResponse;
+import vn.nguongocso.event.dto.response.StorageConditionResponse;
+import vn.nguongocso.event.dto.response.ThresholdInfo;
 import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.event.service.ChainEventService;
+import vn.nguongocso.event.service.EventHashService;
 import vn.nguongocso.event.service.EventValidationService;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
+import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
@@ -59,6 +65,8 @@ public class ChainEventServiceImpl implements ChainEventService {
     private final EventValidationService eventValidationService;
     private final ApplicationEventPublisher eventPublisher;
     private final PermissionChecker permissionChecker;
+    private final OrganizationUserRepository organizationUserRepository;
+    private final EventHashService eventHashService;
 
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
@@ -210,7 +218,7 @@ public class ChainEventServiceImpl implements ChainEventService {
     @Transactional
     @Auditable(action = "CORRECT_PACKAGING_EVENT", entityType = "CHAIN_EVENT", description = "'Đính chính thông tin đóng gói cho sự kiện gốc ID: ' + #originalEventId")
     public ChainEventResponse correctPackagingEvent(UUID originalEventId, CorrectPackagingEventRequest request,
-            CustomUserDetails currentUser) {
+                                                    CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
 
         ChainEvent originalEvent = chainEventRepository.findById(originalEventId)
@@ -327,7 +335,7 @@ public class ChainEventServiceImpl implements ChainEventService {
                 .isCorrection(false)
                 .build();
 
-        chainEvent = chainEventRepository.save(chainEvent);
+        chainEvent = saveWithChainHash(chainEvent);
 
         publishActivityLog(currentUser, "Ghi sự kiện vận chuyển cho lô hàng " + shipment.getName(),
                 "ChainEvent", chainEvent.getId().toString());
@@ -469,7 +477,7 @@ public class ChainEventServiceImpl implements ChainEventService {
     }
 
     private void publishActivityLog(CustomUserDetails currentUser, String description,
-            String entityType, String entityId) {
+                                    String entityType, String entityId) {
         eventPublisher.publishEvent(ActivityLogEvent.builder()
                 .userId(currentUser.getUserId())
                 .username(currentUser.getUsername())
@@ -485,7 +493,7 @@ public class ChainEventServiceImpl implements ChainEventService {
     }
 
     private ChainEventResponse buildResponse(ChainEvent event, Map<String, Object> eventData,
-            Double latitude, Double longitude, User actor) {
+                                             Double latitude, Double longitude, User actor) {
         return ChainEventResponse.builder()
                 .id(event.getId())
                 .eventType(event.getEventType())
@@ -544,7 +552,7 @@ public class ChainEventServiceImpl implements ChainEventService {
      * Constructs a RecordHarvestEventRequest from mobile DTO fields and delegates.
      */
     private ChainEventResponse delegateHarvestFromMobile(ProductionLot lot, RecordMobileEventRequest request,
-            CustomUserDetails currentUser) {
+                                                         CustomUserDetails currentUser) {
         Object quantityObj = request.getEventData().get("quantity");
         Object harvestDateStrObj = request.getEventData().get("harvestDate");
 
@@ -581,7 +589,7 @@ public class ChainEventServiceImpl implements ChainEventService {
      * delegates.
      */
     private ChainEventResponse delegatePackagingFromMobile(ProductionLot lot, RecordMobileEventRequest request,
-            CustomUserDetails currentUser) {
+                                                           CustomUserDetails currentUser) {
         Object specObj = request.getEventData().get("packagingSpecification");
         Object packagingDateStrObj = request.getEventData().get("packagingDate");
 
@@ -637,7 +645,12 @@ public class ChainEventServiceImpl implements ChainEventService {
             throw new BusinessException("Mã truy xuất chưa được gắn với lô hàng.");
         }
 
-        validateOrganization(shipment, currentUser);
+        // For VT-04 (procurement company), skip organization validation since
+        // they belong to a different organization than the shipment's cooperative.
+        // The procurement relationship check will be done when recording the event.
+        if (!"VT-04".equals(currentUser.getRoleCode())) {
+            validateOrganization(shipment, currentUser);
+        }
 
         if (shipment.getStatus() == ShipmentStatus.RECALLED) {
             throw new BusinessException(HttpStatus.CONFLICT, "Lô hàng đã bị thu hồi.");
@@ -677,6 +690,7 @@ public class ChainEventServiceImpl implements ChainEventService {
                         latestEvent.map(e -> e.getEventType().name()).orElse(null))
                 .lastEventRecordedAt(
                         latestEvent.map(ChainEvent::getRecordedAt).orElse(null))
+                .totalQuantity(shipment.getTotalQuantity())
                 .build();
     }
 
@@ -692,5 +706,363 @@ public class ChainEventServiceImpl implements ChainEventService {
             case TRANSPORT -> List.of(ChainEventType.TRANSPORT.name());
             default -> Collections.emptyList();
         };
+    }
+
+    /**
+     * Ghi nhận mốc điều kiện bảo quản khi vận chuyển.
+     */
+    @Override
+    @Transactional
+    @Auditable(action = "RECORD_STORAGE_CONDITION", entityType = "CHAIN_EVENT", description = "'Ghi nhận điều kiện bảo quản mã tem: ' + #request.codeValue + ', Nhiệt độ: ' + #request.temperature + '°C, Độ ẩm: ' + #request.humidity + '%'")
+    public StorageConditionResponse recordStorageCondition(StorageConditionRequest request, CustomUserDetails currentUser) {
+
+        // 1. Validate role: VT-03 or VT-04 only
+        String role = currentUser.getRoleCode();
+        if (!"VT-03".equals(role) && !"VT-04".equals(role)) {
+            throw new BusinessException(HttpStatus.FORBIDDEN,
+                    "Bạn không có quyền ghi nhận điều kiện bảo quản cho lô hàng này.");
+        }
+
+        // 2. Find TraceCode by codeValue
+        TraceCode traceCode = traceCodeRepository.findByCodeValue(request.getCodeValue())
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND,
+                        "Mã lô hàng không tồn tại."));
+
+        // 3. Find associated Shipment
+        Shipment shipment = traceCode.getShipment();
+        if (shipment == null) {
+            throw new BusinessException("Mã truy xuất chưa được gắn với lô hàng.");
+        }
+
+        // 4. Validate authorization based on role
+        if ("VT-04".equals(role)) {
+            // Procurement company: validate via PROCUREMENT relationship (may belong to
+            // a different organization than the producer/cooperative)
+            validateStorageProcurementRelationship(shipment, currentUser);
+        } else {
+            // VT-03: must belong to the shipment's managing organization
+            if (!shipment.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
+                throw new BusinessException(HttpStatus.FORBIDDEN,
+                        "Bạn không thuộc tổ chức quản lý của lô hàng này.");
+            }
+        }
+
+        // 5. Validate shipment status (QTN-05)
+        if (shipment.getStatus() == ShipmentStatus.RECALLED) {
+            throw new BusinessException("Lô hàng chưa được kích hoạt hoặc đã bị thu hồi, không thể ghi nhận mốc bảo quản.");
+        }
+        if (shipment.getStatus() != ShipmentStatus.ACTIVATED) {
+            throw new BusinessException("Lô hàng chưa được kích hoạt hoặc đã bị thu hồi, không thể ghi nhận mốc bảo quản.");
+        }
+
+        // 5b. Transportation precondition: the lot must have at least one TRANSPORT event
+        boolean hasTransportEvent = chainEventRepository
+                .findByShipmentIdOrderByRecordedAtAsc(shipment.getId())
+                .stream()
+                .anyMatch(e -> e.getEventType() == ChainEventType.TRANSPORT);
+        if (!hasTransportEvent) {
+            throw new BusinessException("Lô hàng phải có sự kiện vận chuyển trước khi ghi nhận điều kiện bảo quản.");
+        }
+
+        // 6. Get ProductCategory thresholds
+        vn.nguongocso.farm.entity.ProductCategory productCategory = null;
+        ProductionLot productionLot = shipment.getProductionLot();
+        if (productionLot != null) {
+            productCategory = productionLot.getProductCategory();
+        }
+
+        Double tempMin = productCategory != null ? productCategory.getTempMin() : null;
+        Double tempMax = productCategory != null ? productCategory.getTempMax() : null;
+        Double humidityMin = productCategory != null ? productCategory.getHumidityMin() : null;
+        Double humidityMax = productCategory != null ? productCategory.getHumidityMax() : null;
+
+        // 7. Compare temperature and humidity against thresholds
+        boolean isTempExceeded = false;
+        boolean isHumidityExceeded = false;
+
+        if (tempMin != null && tempMax != null) {
+            isTempExceeded = request.getTemperature() < tempMin || request.getTemperature() > tempMax;
+        }
+        if (humidityMin != null && humidityMax != null) {
+            isHumidityExceeded = request.getHumidity() < humidityMin || request.getHumidity() > humidityMax;
+        }
+
+        String alertLevel;
+        if (isTempExceeded && isHumidityExceeded) {
+            alertLevel = "CRITICAL";
+        } else if (isTempExceeded || isHumidityExceeded) {
+            alertLevel = "WARNING";
+        } else {
+            alertLevel = "OK";
+        }
+
+        // 8. Resolve recordedAt
+        LocalDateTime recordedAt = request.getRecordedAt() != null
+                ? request.getRecordedAt() : LocalDateTime.now();
+
+        // 9. Build ThresholdInfo
+        ThresholdInfo thresholds = null;
+        if (tempMin != null || tempMax != null || humidityMin != null || humidityMax != null) {
+            thresholds = ThresholdInfo.builder()
+                    .tempMin(tempMin)
+                    .tempMax(tempMax)
+                    .humidityMin(humidityMin)
+                    .humidityMax(humidityMax)
+                    .build();
+        }
+
+        // 10. Build eventData JSON
+        Map<String, Object> eventDataMap = new HashMap<>();
+        eventDataMap.put("shipmentId", shipment.getId().toString());
+        eventDataMap.put("shipmentName", shipment.getName());
+        eventDataMap.put("temperature", request.getTemperature());
+        eventDataMap.put("humidity", request.getHumidity());
+        eventDataMap.put("isTemperatureExceeded", isTempExceeded);
+        eventDataMap.put("isHumidityExceeded", isHumidityExceeded);
+        eventDataMap.put("alertLevel", alertLevel);
+        if (thresholds != null) {
+            eventDataMap.put("tempMin", tempMin);
+            eventDataMap.put("tempMax", tempMax);
+            eventDataMap.put("humidityMin", humidityMin);
+            eventDataMap.put("humidityMax", humidityMax);
+        }
+
+        String eventDataJson = toJson(eventDataMap);
+
+        // 11. Get actor
+        User actor = getActor(currentUser);
+
+        // 12. Create and save ChainEvent
+        ChainEvent chainEvent = ChainEvent.builder()
+                .shipment(shipment)
+                .eventType(ChainEventType.STORAGE_CONDITION)
+                .eventData(eventDataJson)
+                .recordedAt(recordedAt)
+                .recordedBy(actor)
+                .isCorrection(false)
+                .build();
+
+        chainEvent = saveWithChainHash(chainEvent);
+
+        // 13. Publish activity log
+        publishActivityLog(currentUser, "Ghi mốc bảo quản cho lô hàng " + shipment.getName(),
+                "ChainEvent", chainEvent.getId().toString());
+
+        // 14. Build response
+        return StorageConditionResponse.builder()
+                .id(chainEvent.getId())
+                .eventType(ChainEventType.STORAGE_CONDITION)
+                .shipmentId(shipment.getId())
+                .shipmentName(shipment.getName())
+                .temperature(request.getTemperature())
+                .humidity(request.getHumidity())
+                .thresholds(thresholds)
+                .isTemperatureExceeded(isTempExceeded)
+                .isHumidityExceeded(isHumidityExceeded)
+                .alertLevel(alertLevel)
+                .recordedAt(recordedAt)
+                .recordedBy(actor.getFullName())
+                .build();
+    }
+
+    /**
+     * Validates that the current VT-04 procurement company has a legitimate
+     * procurement relationship with the shipment.
+     *
+     * The procurement relationship is represented by existing PROCUREMENT
+     * ChainEvents: at least one PROCUREMENT event for this shipment must have
+     * been recorded by a user belonging to the current user's organization.
+     *
+     * This intentionally does NOT require the procurement company's
+     * organization to equal the producer/cooperative organization of the
+     * shipment.
+     */
+    private void validateStorageProcurementRelationship(Shipment shipment, CustomUserDetails currentUser) {
+        List<ChainEvent> procurementEvents = chainEventRepository
+                .findByShipmentIdOrderByRecordedAtAsc(shipment.getId())
+                .stream()
+                .filter(e -> e.getEventType() == ChainEventType.PROCUREMENT)
+                .toList();
+
+        if (procurementEvents.isEmpty()) {
+            throw new BusinessException(HttpStatus.FORBIDDEN,
+                    "Bạn không có quyền ghi nhận điều kiện bảo quản cho lô hàng này. Chỉ doanh nghiệp đã thu mua lô hàng mới được thực hiện.");
+        }
+
+        UUID currentOrgId = currentUser.getOrganizationId();
+
+        List<UUID> recorderIds = procurementEvents.stream()
+                .map(e -> e.getRecordedBy().getUserId())
+                .distinct()
+                .toList();
+
+        boolean hasRelationship = recorderIds.stream()
+                .anyMatch(recorderId -> organizationUserRepository
+                        .findByOrganization_OrganizationIdAndUser_UserId(currentOrgId, recorderId)
+                        .isPresent());
+
+        if (!hasRelationship) {
+            throw new BusinessException(HttpStatus.FORBIDDEN,
+                    "Bạn không có quyền ghi nhận điều kiện bảo quản cho lô hàng này. Chỉ doanh nghiệp đã thu mua lô hàng mới được thực hiện.");
+        }
+    }
+
+    /**
+     * Kiểm chứng tính toàn vẹn dòng sự kiện của một lô hàng.
+     *
+     * Tính lại hash của từng sự kiện theo thứ tự recordedAt ASC, so sánh với
+     * hash đã lưu. Phát hiện sự kiện đầu tiên bị lệch và ghi ActivityLog
+     * VERIFY_CHAIN sau mỗi lần kiểm chứng.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public ChainVerificationResponse verifyChainIntegrity(UUID shipmentId, CustomUserDetails currentUser) {
+        // 1. Find shipment
+        Shipment shipment = shipmentRepository.findById(shipmentId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Không tìm thấy lô hàng."));
+
+        // 2. Authorization
+        String role = currentUser.getRoleCode();
+        if ("VT-01".equals(role) || "VT-05".equals(role)) {
+            // Platform admin & industry regulator may verify any shipment
+        } else if ("VT-04".equals(role)) {
+            // Procurement company: must have a procurement relationship
+            validateStorageProcurementRelationship(shipment, currentUser);
+        } else {
+            throw new BusinessException(HttpStatus.FORBIDDEN,
+                    "Bạn không có quyền kiểm chứng dòng sự kiện của lô này.");
+        }
+
+        // 3. Load all events for this shipment, ordered deterministically
+        List<ChainEvent> events = chainEventRepository
+                .findByShipmentIdOrderByRecordedAtAsc(shipmentId)
+                .stream()
+                .sorted(eventHashService.eventOrdering())
+                .toList();
+
+        // 4. Empty event chain -> TC-04
+        if (events.isEmpty()) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST,
+                    "Lô hàng chưa có sự kiện nào để kiểm chứng.");
+        }
+
+        // 5. Recalculate chain
+        LocalDateTime verifiedAt = LocalDateTime.now();
+        String previousHash = "";
+        boolean verified = true;
+        Integer failedIndex = null;
+        UUID failedEventId = null;
+        String failureReason = null;
+
+        List<EventVerificationItem> verificationItems = new ArrayList<>();
+
+        for (int i = 0; i < events.size(); i++) {
+            ChainEvent event = events.get(i);
+            int index = i + 1;
+
+            String expectedHash = eventHashService.calculateHash(event, previousHash);
+            String storedHash = event.getHash();
+            String storedPrevious = event.getPreviousHash();
+
+            boolean isPreviousValid = (i == 0)
+                    ? (storedPrevious == null || storedPrevious.isEmpty())
+                    : previousHash.equals(storedPrevious != null ? storedPrevious : "");
+
+            boolean isHashValid = expectedHash.equals(storedHash != null ? storedHash : "");
+
+            boolean isValid = isPreviousValid && isHashValid;
+
+            EventVerificationItem.EventVerificationItemBuilder itemBuilder = EventVerificationItem.builder()
+                    .index(index)
+                    .eventId(event.getId())
+                    .eventType(event.getEventType() != null ? event.getEventType().name() : null)
+                    .recordedAt(event.getRecordedAt())
+                    .hash(storedHash)
+                    .previousHash(event.getPreviousHash())
+                    .isValid(isValid);
+
+            if (!isValid && verified) {
+                // First invalid event
+                verified = false;
+                failedIndex = index;
+                failedEventId = event.getId();
+                if (!isPreviousValid) {
+                    failureReason = "Previous hash mismatch: expected " + previousHash + ", got " + (storedPrevious != null ? storedPrevious : "") + ".";
+                } else if (!isHashValid) {
+                    failureReason = "Hash mismatch: expected " + expectedHash + ", got " + (storedHash != null ? storedHash : "") + ".";
+                }
+                itemBuilder.expectedHash(expectedHash);
+            } else if (!isValid) {
+                // Subsequent invalid events depend on the first broken link
+                itemBuilder.expectedHash(expectedHash);
+            }
+
+            verificationItems.add(itemBuilder.build());
+
+            // Update link for the next event
+            previousHash = expectedHash;
+        }
+
+        // 6. Build response
+        ChainVerificationResponse response = ChainVerificationResponse.builder()
+                .shipmentId(shipment.getId())
+                .shipmentName(shipment.getName())
+                .totalEvents(events.size())
+                .isIntegrityVerified(verified)
+                .verificationStatus(verified ? "INTACT" : "BROKEN")
+                .failedEventIndex(failedIndex)
+                .failedEventId(failedEventId)
+                .failureReason(failureReason)
+                .verifiedAt(verifiedAt)
+                .hashAlgorithm(EventHashService.HASH_ALGORITHM)
+                .events(verificationItems)
+                .build();
+
+        // 7. Record verification in ActivityLog (TC-03)
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+                .userId(currentUser.getUserId())
+                .username(currentUser.getUsername())
+                .fullName(currentUser.getFullName())
+                .organizationId(currentUser.getOrganizationId())
+                .action("VERIFY_CHAIN")
+                .description("Kiểm chứng dòng sự kiện lô hàng: " + shipment.getName())
+                .entityType("SHIPMENT")
+                .entityId(shipment.getId().toString())
+                .ipAddress(IpUtils.getClientIp())
+                .timestamp(verifiedAt)
+                .build());
+
+        return response;
+    }
+
+    /**
+     * Lưu ChainEvent và tự động tính chuỗi băm liên kết trước khi persist.
+     *
+     * Tính toán hash của sự kiện mới dựa trên hash sự kiện liền trước trong
+     * cùng Shipment. Sự kiện đầu tiên dùng previousHash = "".
+     */
+    @Override
+    @Transactional
+    public ChainEvent saveWithChainHash(ChainEvent event) {
+        if (event.getShipment() == null) {
+            // Không gắn shipment (VD: HARVEST/PACKAGING chưa gắn lô hàng) -> không thể tính chuỗi.
+            return chainEventRepository.save(event);
+        }
+
+        // Tìm sự kiện được ghi gần nhất (createdAt) của cùng shipment.
+        // Thứ tự chuỗi mật mã dựa trên createdAt (máy chủ sinh ra), KHÔNG dùng
+        // recordedAt (client cung cấp) để tránh phân nhánh chuỗi không nhất quán.
+        Optional<ChainEvent> lastEvent = chainEventRepository
+                .findTopByShipmentIdOrderByCreatedAtDesc(event.getShipment().getId());
+
+        String previousHash = "";
+        if (lastEvent.isPresent()) {
+            previousHash = lastEvent.get().getHash() != null ? lastEvent.get().getHash() : "";
+        }
+
+        event.setPreviousHash(previousHash.isEmpty() ? null : previousHash);
+        event.setHash(eventHashService.calculateHash(event, previousHash));
+
+        return chainEventRepository.save(event);
     }
 }

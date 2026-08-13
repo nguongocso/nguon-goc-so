@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import vn.nguongocso.event.repository.ChainEventRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -41,6 +42,7 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.CodeRangeRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
+import vn.nguongocso.report.repository.DossierExportHistoryRepository;
 
 @ExtendWith(MockitoExtension.class)
 class EventValidationServiceImplTest {
@@ -62,6 +64,12 @@ class EventValidationServiceImplTest {
 
     @Mock
     private CodeRangeRepository codeRangeRepository;
+
+    @Mock
+    private ChainEventRepository chainEventRepository;
+
+    @Mock
+    private DossierExportHistoryRepository dossierExportHistoryRepository;
 
     @InjectMocks
     private EventValidationServiceImpl eventValidationService;

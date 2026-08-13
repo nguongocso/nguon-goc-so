@@ -13,7 +13,4 @@ public class LoginRequest {
 
     @NotBlank(message = "Mật khẩu không được để trống")
     private String password;
-
-    @NotBlank(message = "Mã tổ chức không được để trống")
-    private String organizationCode;
 }

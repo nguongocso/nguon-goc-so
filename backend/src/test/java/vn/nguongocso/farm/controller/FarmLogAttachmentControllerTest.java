@@ -13,6 +13,7 @@ import vn.nguongocso.config.JwtTokenProvider;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.dto.response.AttachmentResponse;
 import vn.nguongocso.farm.service.AttachmentService;
+import vn.nguongocso.permission.service.PermissionChecker;
 
 import java.util.UUID;
 
@@ -38,6 +39,9 @@ public class FarmLogAttachmentControllerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+        @MockitoBean
+        private PermissionChecker permissionChecker;
 
     private final UUID logId = UUID.randomUUID();
 

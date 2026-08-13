@@ -8,6 +8,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import vn.nguongocso.trace.service.QRCodeService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -42,6 +44,12 @@ public class ShipmentServiceTest {
 
     @Mock
     private ProductionLotRepository productionLotRepository;
+
+    @Mock
+    private QRCodeService qrCodeService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private ShipmentServiceImpl shipmentService;
@@ -93,7 +101,8 @@ public class ShipmentServiceTest {
         when(productionLotRepository.findById(any())).thenReturn(Optional.of(productionLot));
         when(codeRangeRepository.findByOrganizationOrganizationId(orgId))
                 .thenReturn(Optional.of(codeRange));
-
+        when(traceCodeRepository.findMaxCodeValueByOrganization(orgId, codeRange.getPrefix()))
+            .thenReturn(codeRange.getPrefix() + "100");
         CreateShipmentRequest request = new CreateShipmentRequest();
         request.setProductionLotId(productionLot.getId());
         request.setName("Lô hàng 1");
@@ -118,9 +127,19 @@ public class ShipmentServiceTest {
         when(productionLotRepository.findById(any())).thenReturn(Optional.of(productionLot));
         when(codeRangeRepository.findByOrganizationOrganizationId(orgId))
                 .thenReturn(Optional.of(codeRange));
-        when(shipmentRepository.save(any(Shipment.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(traceCodeRepository.findMaxCodeValueByOrganization(orgId, codeRange.getPrefix()))
+            .thenReturn(null);
+            when(shipmentRepository.save(any(Shipment.class))).thenAnswer(invocation -> {
+                Shipment savedShipment = invocation.getArgument(0);
+                if (savedShipment.getId() == null) {
+                    savedShipment.setId(UUID.randomUUID());
+                }
+                return savedShipment;
+            });
         when(traceCodeRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
         when(codeRangeRepository.save(any(CodeRange.class))).thenReturn(codeRange);
+        when(qrCodeService.generateQRCode(anyString(), any(), any(), any()))
+            .thenReturn("qr/test.png");
 
         CreateShipmentRequest request = new CreateShipmentRequest();
         request.setProductionLotId(productionLot.getId());
@@ -135,6 +154,6 @@ public class ShipmentServiceTest {
         verify(shipmentRepository).save(any(Shipment.class));
         verify(traceCodeRepository).saveAll(anyList());
         verify(codeRangeRepository).save(codeRange);
-        assertThat(codeRange.getUsedCount()).isEqualTo(100L);
+        assertThat(codeRange.getUsedCount()).isEqualTo(10L);
     }
 }

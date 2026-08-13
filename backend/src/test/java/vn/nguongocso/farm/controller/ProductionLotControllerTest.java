@@ -28,6 +28,9 @@ import vn.nguongocso.farm.dto.response.CreateProductionLotResponse;
 import vn.nguongocso.farm.dto.response.UpdateProductionLotResponse;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.farm.service.ProductionLotService;
+import vn.nguongocso.farm.service.ProductionLotImportService;
+import vn.nguongocso.farm.repository.ProductionLotImportHistoryRepository;
+import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.entity.OrganizationUser;
 import vn.nguongocso.report.dto.response.ProductionLotDashboardResponse;
@@ -65,6 +68,15 @@ class ProductionLotControllerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+        @MockitoBean
+        private PermissionChecker permissionChecker;
+
+        @MockitoBean
+        private ProductionLotImportService productionLotImportService;
+
+        @MockitoBean
+        private ProductionLotImportHistoryRepository importHistoryRepository;
 
     private UUID lotId;
     private CustomUserDetails userDetails;

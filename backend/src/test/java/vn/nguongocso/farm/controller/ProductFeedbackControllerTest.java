@@ -62,7 +62,7 @@ class ProductFeedbackControllerTest {
         when(productFeedbackService.createFeedback(eq(lotId), any(CreateProductFeedbackRequest.class)))
                 .thenReturn(response);
 
-        mockMvc.perform(post("/public/api/v1/production-lots/{productionLotId}/feedbacks", lotId)
+        mockMvc.perform(post("/api/v1/public/production-lots/{productionLotId}/feedbacks", lotId)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -78,7 +78,7 @@ class ProductFeedbackControllerTest {
         CreateProductFeedbackRequest request = new CreateProductFeedbackRequest();
         request.setContent(""); // Trống
 
-        mockMvc.perform(post("/public/api/v1/production-lots/{productionLotId}/feedbacks", lotId)
+        mockMvc.perform(post("/api/v1/public/production-lots/{productionLotId}/feedbacks", lotId)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))

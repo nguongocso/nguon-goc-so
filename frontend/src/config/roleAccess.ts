@@ -25,6 +25,12 @@ export const ROLE_ACCESS = {
 
   procurementEvent: ['VT-04'] as const,
 
+  warehouseReceipt: ['VT-04'] as const,
+
+  storageCondition: ['VT-03', 'VT-04'] as const,
+
+  eventChainVerification: ['VT-01', 'VT-04', 'VT-05'] as const,
+
   standardManagement: ['VT-01'] as const,
 
   // ✅ Từ file 1

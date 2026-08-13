@@ -35,9 +35,11 @@ public class ProcurementEventServiceTest {
 
     @Mock private ShipmentRepository shipmentRepository;
     @Mock private ChainEventRepository chainEventRepository;
+    @Mock private ChainEventService chainEventService;
     @Mock private UserRepository userRepository;
     @Mock private ObjectMapper objectMapper;
     @Mock private EventValidationService eventValidationService;
+    @Mock private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private ProcurementEventServiceImpl service;
@@ -81,7 +83,11 @@ public class ProcurementEventServiceTest {
 
         when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(chainEventRepository.save(any(ChainEvent.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(chainEventService.saveWithChainHash(any(ChainEvent.class))).thenAnswer(inv -> {
+            ChainEvent event = (ChainEvent) inv.getArgument(0);
+            event.setId(UUID.randomUUID());
+            return event;
+        });
         when(objectMapper.writeValueAsString(anyMap())).thenReturn("{}");
 
         ChainEventResponse response = service.recordProcurementEvent(request, userDetails);
@@ -89,7 +95,7 @@ public class ProcurementEventServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.getShipmentId()).isEqualTo(shipmentId);
         assertThat(response.getEventData().get("receivedQuantity")).isEqualTo(100L);
-        verify(chainEventRepository).save(any(ChainEvent.class));
+        verify(chainEventService).saveWithChainHash(any(ChainEvent.class));
     }
 
     @Test

@@ -5,10 +5,10 @@ export interface OrganizationProfile {
   name: string;
   code: string;
   type: OrganizationType;
-  status: 'ACTIVE' | 'INACTIVE';
+  status: "ACTIVE" | "INACTIVE";
   address: string | null;
   phone: string | null;
-  email: string |  null;
+  email: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,10 +24,11 @@ export interface OrganizationProfileResponse {
   success: boolean;
   data: OrganizationProfile;
 }
+
 export interface CreateOrganizationRequest {
   organizationName: string;
   organizationCode: string;
-  organizationType: OrganizationType; // 'COOPERATIVE' | 'ENTERPRISE' | 'GOVERNMENT' | 'SYSTEM'
+  organizationType: OrganizationType;
   address?: string;
   phone?: string;
   email?: string;
@@ -47,7 +48,7 @@ export interface CreateOrganizationResponse {
     organizationName: string;
     organizationCode: string;
     organizationType: OrganizationType;
-    status: 'ACTIVE' | 'INACTIVE';
+    status: "ACTIVE" | "INACTIVE";
     createdAt: string;
   };
   timestamp: string;
@@ -57,8 +58,8 @@ export interface Organization {
   id: string;
   name: string;
   code: string;
-  type: 'COOPERATIVE' | 'BUSINESS' | 'GOVERNMENT' | 'SYSTEM';
-  status: 'ACTIVE' | 'INACTIVE';
+  type: OrganizationType;
+  status: "ACTIVE" | "INACTIVE";
   createdAt: string;
   updatedAt?: string;
 }
@@ -128,4 +129,17 @@ export interface AvailableUser {
   phone: string;
   currentRoleCode: string;
   currentRoleName: string;
+}
+
+/**
+ * Organization được trả về khi user đăng nhập
+ * và cần chọn organization.
+ */
+export interface OrganizationSelection {
+  organizationId: string;
+  organizationCode: string;
+  organizationName: string;
+  organizationType: OrganizationType;
+  roleCode: string;
+  roleName: string;
 }

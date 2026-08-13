@@ -27,6 +27,7 @@ import vn.nguongocso.config.SecurityConfig;
 import vn.nguongocso.report.exception.DossierValidationException;
 import vn.nguongocso.report.dto.response.DossierCheckResponse;
 import vn.nguongocso.report.service.DossierService;
+import vn.nguongocso.permission.service.PermissionChecker;
 
 import java.util.Collections;
 import java.util.List;
@@ -52,6 +53,9 @@ public class DossierControllerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+        @MockitoBean
+        private PermissionChecker permissionChecker;
 
     private UUID shipmentId;
     private CustomUserDetails userDetails;

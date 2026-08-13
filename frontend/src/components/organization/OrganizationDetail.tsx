@@ -56,6 +56,19 @@ const getAvailableRolesForType = (type: string) => {
   return [];
 };
 
+// Helper để render badge trạng thái với màu sắc và nhãn tiếng Việt
+const StatusBadge = ({ status }: { status: string }) => {
+  const normalized = status.toUpperCase();
+  const isActive = normalized === "ACTIVE";
+
+  const label = isActive ? "Đang hoạt động" : "Không hoạt động";
+  const colorClasses = isActive
+    ? "bg-green-500 hover:bg-green-600 text-white"
+    : "bg-gray-300 hover:bg-gray-400 text-gray-700";
+
+  return <Badge className={`${colorClasses} ml-2`}>{label}</Badge>;
+};
+
 export function OrganizationDetail() {
   const { id } = useParams();
 
@@ -153,7 +166,7 @@ export function OrganizationDetail() {
           </div>
           <div>
             <b>Trạng thái:</b>
-            <Badge className="ml-2">{data.profile.status}</Badge>
+            <StatusBadge status={data.profile.status} />
           </div>
         </CardContent>
       </Card>
@@ -198,7 +211,9 @@ export function OrganizationDetail() {
                   <TableCell>
                     {m.roleCode ? getRoleLabel(m.roleCode) : m.roleName}
                   </TableCell>
-                  <TableCell>{m.status}</TableCell>
+                  <TableCell>
+                    <StatusBadge status={m.status} />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

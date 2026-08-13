@@ -15,6 +15,7 @@ import vn.nguongocso.config.SecurityConfig;
 import vn.nguongocso.event.dto.response.LotValidationResponse;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.service.EventValidationService;
+import vn.nguongocso.permission.service.PermissionChecker;
 
 import java.util.UUID;
 
@@ -37,6 +38,7 @@ class EventValidationControllerTest {
     @MockitoBean private EventValidationService eventValidationService;
     @MockitoBean private JwtTokenProvider jwtTokenProvider;
     @MockitoBean private CustomUserDetailsService customUserDetailsService;
+    @MockitoBean private PermissionChecker permissionChecker;
 
     @Test
     @WithMockUser(roles = "VT-02")
