@@ -1,66 +1,602 @@
-## 📘 API Docs: Khóa mã tem nghi vấn theo dấu hiệu quét bất thường (NCL-08-CN-007)
+# 📘 API Docs: Khóa mã tem nghi vấn theo dấu hiệu quét bất thường
 
-### 🏷️ Thông tin chung
-- **User Story:** NCL-08-CN-007 - Khóa mã tem nghi vấn theo dấu hiệu quét bất thường
-- **Epic:** NCL-08 - Cảnh báo, thu hồi lô và lịch sử hoạt động
-- **Nhánh Git:** `feature/NCL-08-CN-007-suspect-trace-code-lock`
-- **Vai trò:** Quản trị viên nền tảng (VT-01) – xem danh sách nghi vấn và khóa mã.
-- **Vị trí file API docs:** `docs/api/trace/SuspectTraceCodeLock.md`
-- **Mô tả:** Hệ thống tự động chấm mức nghi vấn cho mã tem dựa trên số lượt quét vượt ngưỡng, khoảng cách địa lý giữa hai lượt quét liên tiếp so với thời gian giữa chúng. Quản trị viên xem danh sách nghi vấn, khóa mã kèm lý do, và mã bị khóa sẽ hiện cảnh báo trên trang tra cứu công khai.
+## 1. Thông tin chung
 
----
+| Thuộc tính                      | Giá trị                                                            |
+| ------------------------------- | ------------------------------------------------------------------ |
+| **User Story**                  | NCL-08-CN-007 - Khóa mã tem nghi vấn theo dấu hiệu quét bất thường |
+| **Epic**                        | NCL-08 - Cảnh báo, thu hồi lô và lịch sử hoạt động                 |
+| **Git Branch**                  | `feature/NCL-08-CN-007-suspect-trace-code-lock`                    |
+| **Vai trò thực hiện**           | VT-01 - Quản trị viên nền tảng                                     |
+| **API Docs**                    | `docs/api/trace/SuspectTraceCodeLock.md`                           |
+| **Detection source**            | `TraceCodeScanLog` được tạo từ **POST /public/trace/{codeValue}/scan** (luồng quét QR thực tế) |
+| **Detection mode**              | Real-time, sau mỗi lượt quét QR (POST /scan)                       |
+| **Automatic status**            | `ACTIVE → SUSPECT`                                                 |
+| **Manual status**               | `SUSPECT → LOCKED`                                                 |
+| **Automatic LOCK**              | Không                                                              |
+| **Shipment status propagation** | Không                                                              |
 
-### 🔧 1. Mô hình dữ liệu
+### 1.1. Phạm vi chức năng
 
-#### 1.1. Bổ sung trạng thái cho `trace_codes`
+NCL-08-CN-007 phát hiện mã tem có dấu hiệu bất thường dựa trên **lịch sử quét public của chính mã tem**.
 
-| Trường | Kiểu | Mô tả |
-|---|---|---|
-| `status` | VARCHAR(20) | `ACTIVE`, `SUSPECT`, `LOCKED` (thay đổi từ `ACTIVATED` / `INACTIVE` nếu cần) |
-| `suspicion_score` | INTEGER | Điểm nghi vấn (0-100) tính từ các lượt quét bất thường |
-| `suspicion_reason` | TEXT | Lý do bị đánh dấu nghi vấn (tự động từ hệ thống) |
-| `locked_at` | TIMESTAMP | Thời điểm khóa mã (null nếu chưa khóa) |
-| `locked_by` | UUID | ID của người khóa (VT-01) |
-| `lock_reason` | TEXT | Lý do khóa (do admin nhập) |
+Luồng chính (chỉ luồng quét QR tạo ScanLog):
 
-**Migration:**
-```sql
--- V19__add_suspect_fields_to_trace_codes.sql
-ALTER TABLE trace_codes
-    ADD COLUMN status VARCHAR(20) DEFAULT 'ACTIVE',
-    ADD COLUMN suspicion_score INTEGER DEFAULT 0,
-    ADD COLUMN suspicion_reason TEXT NULL,
-    ADD COLUMN locked_at TIMESTAMP NULL,
-    ADD COLUMN locked_by CHAR(36) NULL,
-    ADD COLUMN lock_reason TEXT NULL;
-
--- Index cho truy vấn nhanh
-CREATE INDEX idx_trace_codes_status ON trace_codes(status);
-CREATE INDEX idx_trace_codes_suspicion_score ON trace_codes(suspicion_score);
+```text
+QR Scanner (frontend, sau khi giải mã QR)
+        │
+        ▼
+POST /api/v1/public/trace/{codeValue}/scan
+        │
+        ▼
+TraceCodeScanLog được tạo
+        │
+        ▼
+SuspectDetectionService.evaluateSuspicion()
+        │
+        ├── ≥ 10 lượt quét / 24h       → +30
+        ├── > 50 km / < 30 phút        → +40
+        └── ≥ 5 địa điểm khác nhau     → +15
+        │
+        ▼
+Tổng điểm ≥ 50?
+        │
+        ├── Không → giữ nguyên ACTIVE
+        │
+        └── Có
+             │
+             ▼
+          SUSPECT
+             │
+             ▼
+       VT-01 xem danh sách
+             │
+             ▼
+       VT-01 khóa thủ công
+             │
+             ▼
+           LOCKED
 ```
 
 ---
 
-### 🔗 2. Endpoints
+# 2. Nguồn dữ liệu phát hiện nghi vấn
 
-#### 2.1. Lấy danh sách mã tem nghi vấn
+## 2.1. Chỉ `TraceCodeScanLog` được sử dụng
 
-| Thuộc tính | Giá trị |
-|---|---|
-| **Method** | `GET` |
-| **Endpoint** | `/api/v1/admin/trace-codes/suspect` |
-| **Quyền** | `VT-01` |
-| **Content-Type** | `application/json` |
+NCL-08-CN-007 sử dụng dữ liệu từ:
 
-**Query Parameters:**
-| Tham số | Kiểu | Bắt buộc | Mô tả |
-|---|---|---|---|
-| `minScore` | integer | ❌ | Điểm nghi vấn tối thiểu (mặc định = 30) |
-| `status` | string | ❌ | Lọc theo trạng thái (`SUSPECT`, `LOCKED`) |
-| `page` | integer | ❌ | Số trang (mặc định = 0) |
-| `size` | integer | ❌ | Số bản ghi trên trang (mặc định = 20) |
+```text
+TraceCodeScanLog
+```
 
-**📤 Response (200 OK)**
+Các trường phục vụ phát hiện:
+
+| Trường        | Ý nghĩa                    |
+| ------------- | -------------------------- |
+| `traceCodeId` | Mã tem được quét           |
+| `scannedAt`   | Thời điểm quét             |
+| `latitude`    | Vĩ độ tại thời điểm quét   |
+| `longitude`   | Kinh độ tại thời điểm quét |
+| `location`    | Thông tin địa điểm         |
+| `ipAddress`   | IP của request             |
+| `userAgent`   | User-Agent của client      |
+
+### 2.2. Tách biệt TRA CỨU (GET) và QUÉT QR (POST)
+
+**Tra cứu công khai** (_manual lookup, mở URL, reload, chia sẻ liên kết_) là **đọc thuần túy**:
+
+```text
+GET /api/v1/public/trace/{codeValue}
+    → KHÔNG tạo TraceCodeScanLog
+    → KHÔNG tăng lượt quét
+    → KHÔNG kích hoạt đánh giá nghi vấn
+```
+
+**Quét mã QR thực tế** (_luồng QR scanner của frontend sau khi giải mã payload_) sử dụng endpoint riêng:
+
+```text
+POST /api/v1/public/trace/{codeValue}/scan
+    → tạo TraceCodeScanLog
+    → kích hoạt đánh giá nghi vấn NCL-08-CN-007
+    → trả về thông tin truy xuất công khai
+```
+
+Cả hai endpoint đều public và nhận các query parameters tùy chọn:
+
+```text
+latitude
+longitude
+```
+
+Ví dụ quét QR:
+
+```http
+POST /api/v1/public/trace/89300900000006?latitude=21.0285&longitude=105.8542
+```
+
+Khi POST /scan hợp lệ:
+
+```text
+PublicTraceService.recordPublicScan()
+    ↓
+TraceCodeScanLog.save()
+    ↓
+ScanAnomalyDetectionService.onScanRecorded()
+    ↓
+SuspectDetectionService.evaluateSuspicion()
+```
+
+### 2.3. Không tính sự kiện nghiệp vụ là lượt quét
+
+Các API nghiệp vụ sau **không tạo lượt quét cho NCL-08-CN-007**:
+
+```text
+Ghi sự kiện thu mua
+Ghi sự kiện vận chuyển
+Ghi sự kiện sản xuất
+Ghi sự kiện kho
+Ghi các ChainEvent khác
+```
+
+Đặc biệt:
+
+```text
+PROCUREMENT ≠ ScanLog
+TRANSPORT  ≠ ScanLog
+ChainEvent  ≠ ScanLog
+```
+
+Do đó, việc một người dùng ghi sự kiện thu mua hoặc vận chuyển **không làm tăng `scanCount` và không trực tiếp kích hoạt suspect detection**.
+
+> **Lưu ý:** Backend hiện không có cơ chế xác minh rằng request public thực sự được tạo bằng camera QR. Vì vậy, trong phạm vi API, "lượt quét" được hiểu là một public trace request hợp lệ tạo `TraceCodeScanLog`.
+
+---
+
+# 3. Điều kiện bắt đầu đánh giá
+
+Mã tem phải:
+
+* tồn tại;
+* đang ở trạng thái cho phép tra cứu;
+* không bị `LOCKED`;
+* không thuộc Shipment đã `RECALLED`;
+* có ít nhất **2 lượt quét** để thực hiện đánh giá.
+
+Nếu:
+
+```text
+recentScans.size() < 2
+```
+
+hệ thống không thực hiện tính điểm nghi vấn.
+
+---
+
+# 4. Mô hình trạng thái TraceCode
+
+NCL-08-CN-007 sử dụng các trạng thái:
+
+```text
+INACTIVE
+ACTIVE
+SUSPECT
+LOCKED
+RECALLED
+```
+
+Trong đó:
+
+| Status     | Ý nghĩa                        |
+| ---------- | ------------------------------ |
+| `INACTIVE` | Mã chưa được kích hoạt         |
+| `ACTIVE`   | Mã đang hoạt động bình thường  |
+| `SUSPECT`  | Mã có dấu hiệu quét bất thường |
+| `LOCKED`   | Mã đã bị VT-01 khóa            |
+| `RECALLED` | Mã thuộc lô đã bị thu hồi      |
+
+### 4.1. Chuyển trạng thái tự động
+
+```text
+ACTIVE
+   │
+   │ score >= 50
+   ▼
+SUSPECT
+```
+
+Hệ thống **không tự động chuyển**:
+
+```text
+SUSPECT → LOCKED
+```
+
+### 4.2. Chuyển sang LOCKED
+
+Chỉ VT-01 được phép thực hiện:
+
+```text
+SUSPECT
+   │
+   │ POST /lock
+   ▼
+LOCKED
+```
+
+---
+
+# 5. Thuật toán chấm điểm nghi vấn
+
+Điểm được tính lại dựa trên các ScanLog trong **24 giờ gần nhất**.
+
+```text
+totalScore =
+    highFrequencyScore
+    + impossibleTravelScore
+    + multipleLocationsScore
+```
+
+Điểm tối đa:
+
+```text
+100
+```
+
+---
+
+## 5.1. Quét quá nhiều lần
+
+Nếu mã có:
+
+```text
+>= 10 lượt quét / 24 giờ
+```
+
+cộng:
+
+```text
++30 điểm
+```
+
+Ví dụ:
+
+```text
+9 scans  → +0
+10 scans → +30
+15 scans → +30
+```
+
+---
+
+## 5.2. Khoảng cách di chuyển không hợp lý
+
+Xét **hai lượt quét liên tiếp** theo `scannedAt`.
+
+Nếu:
+
+```text
+distance > 50 km
+AND
+time difference < 30 minutes
+```
+
+thì cộng:
+
+```text
++40 điểm
+```
+
+Khoảng cách được tính bằng **Haversine formula**.
+
+Chỉ những scan có đầy đủ:
+
+```text
+latitude != null
+longitude != null
+```
+
+mới được sử dụng cho tính khoảng cách.
+
+### Ví dụ
+
+```text
+Scan #1
+Hà Nội
+21.0285, 105.8542
+08:00
+
+        ↓ 10 phút
+
+Scan #2
+Đà Nẵng
+16.0544, 108.2022
+08:10
+```
+
+Khoảng cách khoảng:
+
+```text
+620 km
+```
+
+Thời gian:
+
+```text
+10 phút
+```
+
+Kết quả:
+
+```text
+distance > 50 km
+time < 30 phút
+→ +40 điểm
+```
+
+---
+
+## 5.3. Nhiều địa điểm
+
+Trong 24 giờ, nếu có:
+
+```text
+>= 5 địa điểm khác nhau
+```
+
+cộng:
+
+```text
++15 điểm
+```
+
+Hai vị trí chỉ được xem là khác nhau khi khoảng cách giữa chúng lớn hơn:
+
+```text
+0.5 km
+```
+
+Các ScanLog không có tọa độ hợp lệ không được tính vào số địa điểm.
+
+---
+
+# 6. Ngưỡng SUSPECT
+
+Sau khi tính tất cả các rule:
+
+```text
+totalScore >= 50
+```
+
+thì:
+
+```text
+TraceCode.status = SUSPECT
+```
+
+Đồng thời lưu:
+
+```text
+suspicionScore
+suspicionReason
+```
+
+và gửi notification cho VT-01.
+
+### Ví dụ
+
+```text
+Impossible travel       +40
+Multiple locations      +15
+----------------------------
+Total                   55
+```
+
+Kết quả:
+
+```text
+ACTIVE → SUSPECT
+```
+
+### Ví dụ chỉ có hai lượt quét bất thường
+
+```text
+Impossible travel       +40
+----------------------------
+Total                   40
+```
+
+Kết quả:
+
+```text
+ACTIVE
+```
+
+**Chưa đủ điều kiện để chuyển thành `SUSPECT`.**
+
+Điểm này rất quan trọng đối với TC-01: tiêu chí "2 lượt quét cách nhau 500 km trong 10 phút" **chỉ tạo +40 điểm**, không tự nó đạt ngưỡng SUSPECT = 50.
+
+---
+
+# 7. Persistence khi phát hiện SUSPECT
+
+Khi:
+
+```text
+totalScore >= 50
+```
+
+và TraceCode hiện tại là:
+
+```text
+ACTIVE
+```
+
+hệ thống cập nhật:
+
+```text
+status = SUSPECT
+suspicion_score = totalScore
+suspicion_reason = ...
+```
+
+Sau đó gửi notification tới VT-01.
+
+Nếu TraceCode đã:
+
+```text
+SUSPECT
+```
+
+hệ thống tiếp tục tính lại và cập nhật:
+
+```text
+suspicionScore
+suspicionReason
+```
+
+nhưng không tạo lại trạng thái.
+
+Các trạng thái sau không bị detector tự động thay đổi:
+
+```text
+LOCKED
+INACTIVE
+RECALLED
+```
+
+---
+
+# 8. Shipment không bị chuyển SUSPECT/LOCKED
+
+NCL-08-CN-007 **không thay đổi `ShipmentStatus`**.
+
+Ví dụ:
+
+```text
+Shipment
+    ├── TraceCode A → SUSPECT
+    ├── TraceCode B → ACTIVE
+    └── TraceCode C → ACTIVE
+```
+
+Không thực hiện:
+
+```text
+Shipment → SUSPECT
+```
+
+và cũng không tự động:
+
+```text
+TraceCode B → SUSPECT
+TraceCode C → SUSPECT
+```
+
+Chỉ TraceCode có điểm nghi vấn đạt ngưỡng mới được đánh dấu `SUSPECT`.
+
+---
+
+# 9. API Endpoints
+
+## 9.1. Public trace — TRA CỨU (đọc thuần túy)
+
+### Request
+
+```http
+GET /api/v1/public/trace/{codeValue}
+```
+
+### Query parameters
+
+| Parameter   | Type     | Required | Description                 |
+| ----------- | -------- | -------: | --------------------------- |
+| `latitude`  | `Double` |       No | Vĩ độ tại vị trí người xem  |
+| `longitude` | `Double` |       No | Kinh độ tại vị trí người xem |
+
+### Example
+
+```http
+GET /api/v1/public/trace/89300900000006?latitude=21.0285&longitude=105.8542
+```
+
+Khi request hợp lệ, hệ thống:
+
+```text
+1. Tra cứu TraceCode
+2. Trả public trace response
+3. KHÔNG tạo TraceCodeScanLog
+4. KHÔNG tăng lượt quét
+5. KHÔNG kích hoạt suspect detection
+```
+
+## 9.2. Public scan — QUÉT QR (tạo ScanLog + kích hoạt đánh giá nghi vấn)
+
+### Request
+
+```http
+POST /api/v1/public/trace/{codeValue}/scan
+```
+
+### Query parameters
+
+| Parameter   | Type     | Required | Description                 |
+| ----------- | -------- | -------: | --------------------------- |
+| `latitude`  | `Double` |       No | Vĩ độ tại vị trí quét       |
+| `longitude` | `Double` |       No | Kinh độ tại vị trí quét     |
+
+### Example
+
+```http
+POST /api/v1/public/trace/89300900000006?latitude=21.0285&longitude=105.8542
+```
+
+Khi request hợp lệ, hệ thống:
+
+```text
+1. Tra cứu TraceCode (cùng quy tắc validation với GET lookup)
+2. Tạo TraceCodeScanLog
+3. Lưu thời điểm scannedAt
+4. Lưu latitude/longitude nếu được cung cấp
+5. Gọi ScanAnomalyDetectionService.onScanRecorded()
+   → SuspectDetectionService.evaluateSuspicion()
+6. Trả public trace response
+```
+
+> **Lưu ý bảo mật:** POST /scan không phải bằng chứng mật mã xác thực việc quét mã vật lý. Nó đại diện cho hợp đồng ứng dụng giữa luồng QR scanner (frontend) và backend. Không mở các chức năng quản trị qua endpoint public này.
+
+---
+
+# 10. Danh sách mã nghi vấn
+
+### Request
+
+```http
+GET /api/v1/admin/trace-codes/suspect
+```
+
+### Authorization
+
+```text
+VT-01
+```
+
+### Query parameters
+
+| Parameter  | Type    | Required | Default | Description             |
+| ---------- | ------- | -------: | ------: | ----------------------- |
+| `minScore` | Integer |       No |    `30` | Điểm nghi vấn tối thiểu |
+| `status`   | String  |       No |       — | `SUSPECT` hoặc `LOCKED` |
+| `page`     | Integer |       No |     `0` | Trang                   |
+| `size`     | Integer |       No |    `20` | Số bản ghi              |
+
+### Example
+
+```http
+GET /api/v1/admin/trace-codes/suspect?minScore=50&status=SUSPECT&page=0&size=20
+```
+
+### Response
+
 ```json
 {
   "success": true,
@@ -72,12 +608,12 @@ CREATE INDEX idx_trace_codes_suspicion_score ON trace_codes(suspicion_score);
         "codeValue": "89300900000006",
         "shipmentName": "Lô chè Tân Cương T8/2026",
         "status": "SUSPECT",
-        "suspicionScore": 85,
-        "suspicionReason": "2 lượt quét cách nhau 500km trong 10 phút - không thể di chuyển hợp lý",
-        "scanCount": 12,
+        "suspicionScore": 55,
+        "suspicionReason": "Khoảng cách không hợp lý; 5 địa điểm khác nhau",
+        "scanCount": 5,
         "uniqueLocations": 5,
-        "firstScannedAt": "2026-08-10T08:00:00Z",
-        "lastScannedAt": "2026-08-11T14:30:00Z",
+        "firstScannedAt": "2026-08-10T08:00:00",
+        "lastScannedAt": "2026-08-10T11:00:00",
         "lockedAt": null,
         "lockedBy": null,
         "lockReason": null
@@ -87,22 +623,28 @@ CREATE INDEX idx_trace_codes_suspicion_score ON trace_codes(suspicion_score);
     "totalPages": 1,
     "page": 0,
     "size": 20
-  },
-  "timestamp": "2026-08-11T16:00:00.123Z"
+  }
 }
 ```
 
 ---
 
-#### 2.2. Chi tiết mã tem nghi vấn
+# 11. Chi tiết mã nghi vấn
 
-| Thuộc tính | Giá trị |
-|---|---|
-| **Method** | `GET` |
-| **Endpoint** | `/api/v1/admin/trace-codes/{traceCodeId}/suspect-detail` |
-| **Quyền** | `VT-01` |
+### Request
 
-**📤 Response (200 OK)**
+```http
+GET /api/v1/admin/trace-codes/{traceCodeId}/suspect-detail
+```
+
+### Authorization
+
+```text
+VT-01
+```
+
+### Response
+
 ```json
 {
   "success": true,
@@ -113,30 +655,15 @@ CREATE INDEX idx_trace_codes_suspicion_score ON trace_codes(suspicion_score);
     "shipmentId": "8c8b7a6f-2222-4a2a-9f3d-1a2b3c4d5e6f",
     "shipmentName": "Lô chè Tân Cương T8/2026",
     "status": "SUSPECT",
-    "suspicionScore": 85,
-    "suspicionReason": "2 lượt quét cách nhau 500km trong 10 phút - không thể di chuyển hợp lý",
-    "scanLogs": [
-      {
-        "scannedAt": "2026-08-10T08:00:00Z",
-        "latitude": 21.0285,
-        "longitude": 105.8542,
-        "location": "Hà Nội, Việt Nam",
-        "userAgent": "Mozilla/5.0 ..."
-      },
-      {
-        "scannedAt": "2026-08-10T08:10:00Z",
-        "latitude": 16.0544,
-        "longitude": 108.2022,
-        "location": "Đà Nẵng, Việt Nam",
-        "userAgent": "Mozilla/5.0 ..."
-      }
-    ],
+    "suspicionScore": 55,
+    "suspicionReason": "Khoảng cách không hợp lý; 5 địa điểm khác nhau",
+    "scanLogs": [],
     "anomalyDetails": {
-      "totalScans": 12,
+      "totalScans": 5,
       "uniqueLocations": 5,
-      "impossibleTravelCount": 2,
+      "impossibleTravelCount": 1,
       "scoreBreakdown": {
-        "highFrequency": 30,
+        "highFrequency": 0,
         "impossibleTravel": 40,
         "multipleLocations": 15
       }
@@ -144,34 +671,50 @@ CREATE INDEX idx_trace_codes_suspicion_score ON trace_codes(suspicion_score);
     "lockedAt": null,
     "lockedBy": null,
     "lockReason": null
-  },
-  "timestamp": "2026-08-11T16:00:00.123Z"
+  }
 }
 ```
 
 ---
 
-#### 2.3. Khóa mã tem nghi vấn
+# 12. Khóa mã tem
 
-| Thuộc tính | Giá trị |
-|---|---|
-| **Method** | `POST` |
-| **Endpoint** | `/api/v1/admin/trace-codes/{traceCodeId}/lock` |
-| **Quyền** | `VT-01` |
-| **Content-Type** | `application/json` |
+### Request
 
-**📥 Request Body**
+```http
+POST /api/v1/admin/trace-codes/{traceCodeId}/lock
+```
+
+### Authorization
+
+```text
+VT-01
+```
+
+### Request body
+
 ```json
 {
-  "reason": "Mã tem bị nghi ngờ làm giả do quét bất thường ở nhiều địa điểm khác nhau trong thời gian ngắn."
+  "reason": "Mã tem có dấu hiệu quét bất thường tại nhiều địa điểm."
 }
 ```
 
-| Trường | Kiểu | Bắt buộc | Mô tả |
-|---|---|---|---|
-| `reason` | string | ✅ Có | Lý do khóa mã (tối thiểu 10 ký tự, tối đa 500) |
+### Validation
 
-**📤 Response (200 OK)**
+| Rule     | Requirement |
+| -------- | ----------- |
+| `reason` | bắt buộc    |
+| Minimum  | 10 ký tự    |
+| Maximum  | 500 ký tự   |
+
+### Thành công
+
+```text
+SUSPECT → LOCKED
+```
+
+### Response
+
 ```json
 {
   "success": true,
@@ -180,256 +723,377 @@ CREATE INDEX idx_trace_codes_suspicion_score ON trace_codes(suspicion_score);
     "id": "9c8b7a6f-2222-4a2a-9f3d-1a2b3c4d5e6f",
     "codeValue": "89300900000006",
     "status": "LOCKED",
-    "lockedAt": "2026-08-11T16:05:00Z",
+    "lockedAt": "2026-08-11T16:05:00",
     "lockedBy": "7f6e5d4c-3333-4a2a-9f3d-1a2b3c4d5e6f",
     "lockedByName": "Nguyễn Văn A",
-    "lockReason": "Mã tem bị nghi ngờ làm giả do quét bất thường ở nhiều địa điểm khác nhau trong thời gian ngắn.",
+    "lockReason": "Mã tem có dấu hiệu quét bất thường tại nhiều địa điểm.",
     "notificationSent": true
-  },
-  "timestamp": "2026-08-11T16:05:01.123Z"
+  }
 }
 ```
 
 ---
 
-#### 2.4. Mở khóa mã tem (nếu cần)
+# 13. Quy tắc khóa
 
-| Thuộc tính | Giá trị |
-|---|---|
-| **Method** | `POST` |
-| **Endpoint** | `/api/v1/admin/trace-codes/{traceCodeId}/unlock` |
-| **Quyền** | `VT-01` |
+Chỉ mã:
 
-**📥 Request Body**
-```json
-{
-  "reason": "Đã xác minh, mã tem hợp lệ. Quét bất thường do lỗi kỹ thuật."
-}
+```text
+SUSPECT
 ```
 
-**📤 Response (200 OK)**
-```json
-{
-  "success": true,
-  "status": 200,
-  "data": {
-    "id": "9c8b7a6f-2222-4a2a-9f3d-1a2b3c4d5e6f",
-    "codeValue": "89300900000006",
-    "status": "ACTIVE",
-    "unlockedAt": "2026-08-11T17:00:00Z",
-    "unlockedBy": "7f6e5d4c-3333-4a2a-9f3d-1a2b3c4d5e6f",
-    "unlockReason": "Đã xác minh, mã tem hợp lệ."
-  },
-  "timestamp": "2026-08-11T17:00:01.123Z"
-}
+mới được VT-01 khóa.
+
+Không cho phép:
+
+```text
+ACTIVE → LOCKED
+```
+
+thông qua API này.
+
+Không tự động khóa khi:
+
+```text
+score >= 50
+```
+
+Mà phải:
+
+```text
+score >= 50
+      ↓
+   SUSPECT
+      ↓
+VT-01 xác minh
+      ↓
+   LOCKED
 ```
 
 ---
 
-### ❌ 3. Error Response
+# 14. Public trace khi mã bị LOCKED
 
-#### 3.1. Lý do khóa rỗng hoặc quá ngắn – TC-04
-**HTTP Status:** `400 Bad Request`
-```json
-{
-  "success": false,
-  "status": 400,
-  "message": "Vui lòng nhập lý do khóa (tối thiểu 10 ký tự).",
-  "timestamp": "2026-08-11T16:05:01.123Z"
-}
+Khi người tiêu dùng tra cứu mã:
+
+```text
+GET /api/v1/public/trace/{codeValue}
 ```
 
-#### 3.2. Không có quyền – TC-03
-**HTTP Status:** `403 Forbidden`
+và TraceCode có:
+
+```text
+status = LOCKED
+```
+
+hệ thống phải hiển thị cảnh báo mã bị khóa/nghi vấn thay vì cho người dùng thấy hành trình bình thường theo contract của User Story.
+
+Thông điệp nghiệp vụ:
+
+> **Mã tem này đang bị nghi ngờ giả mạo hoặc có dấu hiệu bất thường. Vui lòng liên hệ đơn vị quản lý để được kiểm tra.**
+
+---
+
+# 15. Error responses
+
+## 15.1. Không có quyền
+
+```http
+403 Forbidden
+```
+
 ```json
 {
   "success": false,
   "status": 403,
-  "message": "Bạn không có quyền khóa mã tem. Chỉ Quản trị viên nền tảng mới được thực hiện.",
-  "timestamp": "2026-08-11T16:05:01.123Z"
+  "message": "Bạn không có quyền khóa mã tem."
 }
 ```
 
-#### 3.3. Mã tem không tồn tại
-**HTTP Status:** `404 Not Found`
-```json
-{
-  "success": false,
-  "status": 404,
-  "message": "Không tìm thấy mã tem.",
-  "timestamp": "2026-08-11T16:05:01.123Z"
-}
+Áp dụng cho người dùng không có role:
+
+```text
+VT-01
 ```
 
-#### 3.4. Mã tem đã bị khóa
-**HTTP Status:** `409 Conflict`
-```json
-{
-  "success": false,
-  "status": 409,
-  "message": "Mã tem đã bị khóa bởi Quản trị viên khác.",
-  "timestamp": "2026-08-11T16:05:01.123Z"
-}
+---
+
+## 15.2. Lý do khóa không hợp lệ
+
+```http
+400 Bad Request
 ```
 
-#### 3.5. Không có dữ liệu quét để đánh giá
-**HTTP Status:** `400 Bad Request`
 ```json
 {
   "success": false,
   "status": 400,
-  "message": "Mã tem chưa có đủ lượt quét để đánh giá nghi vấn (cần ít nhất 2 lượt quét).",
-  "timestamp": "2026-08-11T16:05:01.123Z"
+  "message": "Lý do khóa phải từ 10 đến 500 ký tự."
 }
 ```
 
 ---
 
-### 📊 4. Business Rules
+## 15.3. Không tìm thấy TraceCode
 
-| Rule | Mô tả |
-|---|---|
-| **Phát hiện nghi vấn** | Hệ thống chạy định kỳ (cron job) hoặc real-time sau mỗi lượt quét để tính điểm nghi vấn. |
-| **Ngưỡng số lượt quét** | `≥ 10` lượt quét trong 24 giờ → +30 điểm. |
-| **Khoảng cách không hợp lý** | Khoảng cách > 50km mà thời gian giữa 2 lượt quét < 30 phút → +40 điểm. |
-| **Nhiều địa điểm khác nhau** | `≥ 5` địa điểm khác nhau trong 24 giờ → +15 điểm. |
-| **Điểm nghi vấn** | Tổng điểm tối đa = 100. |
-| **Ngưỡng nghi vấn** | `≥ 50` điểm → tự động đánh dấu `SUSPECT` và gửi thông báo cho VT-01. |
-| **Khóa mã** | Chỉ VT-01 mới có quyền khóa/mở khóa. |
-| **Cảnh báo công khai** | Khi mã bị khóa (`LOCKED`), trang tra cứu công khai hiển thị cảnh báo thay vì hành trình. |
-| **Lý do khóa** | Bắt buộc, tối thiểu 10 ký tự. |
-| **Lịch sử** | Ghi log mỗi lần khóa/mở khóa vào `ActivityLog`. |
-
----
-
-### 📦 5. DTO Schemas
-
-#### 5.1. SuspectTraceCodeResponse
-```java
-public class SuspectTraceCodeResponse {
-    private UUID id;
-    private String codeValue;
-    private String shipmentName;
-    private String status; // SUSPECT, LOCKED
-    private Integer suspicionScore;
-    private String suspicionReason;
-    private Integer scanCount;
-    private Integer uniqueLocations;
-    private LocalDateTime firstScannedAt;
-    private LocalDateTime lastScannedAt;
-    private LocalDateTime lockedAt;
-    private UUID lockedBy;
-    private String lockReason;
-}
+```http
+404 Not Found
 ```
 
-#### 5.2. SuspectTraceCodeDetailResponse
-```java
-public class SuspectTraceCodeDetailResponse {
-    // ... extends SuspectTraceCodeResponse
-    private List<ScanLogDetail> scanLogs;
-    private AnomalyDetails anomalyDetails;
-}
-```
-
-#### 5.3. LockTraceCodeRequest
-```java
-public class LockTraceCodeRequest {
-    @NotBlank(message = "Vui lòng nhập lý do khóa")
-    @Size(min = 10, max = 500, message = "Lý do khóa phải từ 10 đến 500 ký tự")
-    private String reason;
-}
-```
-
-#### 5.4. LockTraceCodeResponse
-```java
-public class LockTraceCodeResponse {
-    private UUID id;
-    private String codeValue;
-    private String status; // LOCKED
-    private LocalDateTime lockedAt;
-    private UUID lockedBy;
-    private String lockedByName;
-    private String lockReason;
-    private Boolean notificationSent;
+```json
+{
+  "success": false,
+  "status": 404,
+  "message": "Không tìm thấy mã tem."
 }
 ```
 
 ---
 
-### 🔄 6. Sơ đồ luồng xử lý
+## 15.4. TraceCode đã LOCKED
 
+```http
+409 Conflict
 ```
-Quét mã (ScanLog mới)
-    │
-    ▼
-Hệ thống kiểm tra số lượt quét của mã
-    │
-    ├─ < 2 lượt → không đánh giá
-    └─ ≥ 2 lượt → tính điểm nghi vấn
-        │
-        ├─ Số lượt quét ≥ 10 trong 24h → +30 điểm
-        ├─ Khoảng cách > 50km & thời gian < 30p → +40 điểm
-        ├─ ≥ 5 địa điểm khác nhau → +15 điểm
-        │
-        ▼
-Tổng điểm ≥ 50?
-    │
-    ├─ Không → giữ nguyên
-    └─ Có → status = SUSPECT, gửi Notification đến VT-01
-        │
-        ▼
-VT-01 xem danh sách nghi vấn (GET /admin/trace-codes/suspect)
-    │
-    ▼
-VT-01 xem chi tiết (GET /admin/trace-codes/{id}/suspect-detail)
-    │
-    ▼
-VT-01 khóa mã (POST /admin/trace-codes/{id}/lock)
-    ├─ reason không rỗng → status = LOCKED, ghi ActivityLog
-    └─ reason rỗng → 400 Bad Request
-        │
-        ▼
-Trang tra cứu công khai hiển thị cảnh báo khi mã bị LOCKED
+
+```json
+{
+  "success": false,
+  "status": 409,
+  "message": "Mã tem đã bị khóa."
+}
 ```
 
 ---
 
-### 🧪 7. Test Cases
+# 16. Business Rules
 
-| TC | Description | Expected |
-|---|---|---|
-| TC-01 | 2 lượt quét cách nhau 500km trong 10 phút | Điểm = 40, status = SUSPECT (nếu ≥ 50 điểm) |
-| TC-02 | Admin khóa mã kèm lý do | status = LOCKED, trang tra cứu hiển thị cảnh báo |
-| TC-03 | VT-02 (Quản lý HTX) khóa mã | 403 Forbidden |
-| TC-04 | Khóa mã với lý do rỗng | 400 Bad Request |
-| TC-05 | Mã tem có 10 lượt quét trong 24h | +30 điểm nghi vấn |
-| TC-06 | Mã tem có 5 địa điểm khác nhau | +15 điểm nghi vấn |
-| TC-07 | Mã tem đã bị khóa, khóa lần nữa | 409 Conflict |
-
----
-
-### 📁 8. Các file cần tạo/sửa
-
-| File | Hành động |
-|---|---|
-| `TraceCode.java` | Thêm `status`, `suspicionScore`, `suspicionReason`, `lockedAt`, `lockedBy`, `lockReason` |
-| `TraceCodeStatus.java` | Tạo enum mới (`ACTIVE`, `SUSPECT`, `LOCKED`) |
-| `ScanLogRepository.java` | Thêm method đếm lượt quét và vị trí |
-| `SuspectDetectionService.java` | Tạo mới service tính điểm nghi vấn |
-| `SuspectDetectionServiceImpl.java` | Implement |
-| `TraceCodeAdminController.java` | Tạo mới controller cho admin |
-| `SuspectTraceCodeResponse.java` | Tạo mới DTO |
-| `LockTraceCodeRequest.java` | Tạo mới DTO |
-| `LockTraceCodeResponse.java` | Tạo mới DTO |
-| **Migration** | `V19__add_suspect_fields_to_trace_codes.sql` |
-| **Frontend** | Trang danh sách nghi vấn (admin) |
-| **Frontend** | Dialog khóa mã |
-| **Frontend** | Cảnh báo trên trang tra cứu công khai |
+| Rule                             | Giá trị                               |
+| -------------------------------- | ------------------------------------- |
+| Detection source                 | `TraceCodeScanLog`                    |
+| Trigger                          | Sau mỗi public scan tạo ScanLog       |
+| Minimum scans                    | 2                                     |
+| High frequency                   | ≥ 10 scans / 24h                      |
+| High frequency score             | +30                                   |
+| Impossible travel                | >50 km và <30 phút                    |
+| Impossible travel score          | +40                                   |
+| Unique locations                 | ≥5 / 24h                              |
+| Multiple-location score          | +15                                   |
+| SUSPECT threshold                | ≥50                                   |
+| Maximum score                    | 100                                   |
+| Automatic SUSPECT                | Có                                    |
+| Automatic LOCK                   | Không                                 |
+| Manual LOCK                      | VT-01                                 |
+| Shipment SUSPECT                 | Không                                 |
+| Shipment LOCKED                  | Không                                 |
+| ChainEvent detection             | Không                                 |
+| Procurement event counts as scan | Không                                 |
+| Transport event counts as scan   | Không                                 |
+| GET /public/trace lookup         | Đọc thuần túy — KHÔNG tạo ScanLog      |
+| POST /public/trace/{code}/scan   | Tạo ScanLog + kích hoạt đánh giá       |
+| QR-camera verification           | Không thuộc backend contract hiện tại |
 
 ---
 
-### 🔗 9. Tên nhánh
+# 17. Acceptance Criteria Mapping
+
+| Acceptance Criteria                            | API/Logic                                           |
+| ---------------------------------------------- | --------------------------------------------------- |
+| **TC-01** – Hai lượt quét >500km trong 10 phút | +40 điểm; chưa đủ SUSPECT nếu không có điểm bổ sung |
+| **TC-02** – VT-01 khóa mã nghi vấn             | `POST /admin/trace-codes/{id}/lock`                 |
+| **TC-03** – VT-02 khóa mã                      | `403 Forbidden`                                     |
+| **TC-04** – Lý do rỗng                         | `400 Bad Request`                                   |
+
+### Lưu ý TC-01
+
+Theo thuật toán hiện tại:
+
+```text
+2 scans
++ impossible travel = 40
+```
+
+không đạt:
+
+```text
+SUSPECT_THRESHOLD = 50
+```
+
+Vì vậy TC-01 **không thể đồng thời giữ nguyên "chỉ 2 lượt quét" và yêu cầu status = SUSPECT** nếu không thay đổi business rule.
+
+Để kiểm thử trạng thái `SUSPECT`, cần bổ sung một điều kiện khác, ví dụ:
+
+```text
+Impossible travel +40
++
+5 unique locations +15
+=
+55 → SUSPECT
+```
+
+hoặc:
+
+```text
+Impossible travel +40
++
+10 scans +30
+=
+70 → SUSPECT
+```
+
+**Không tự ý thay đổi threshold chỉ để TC-01 pass.**
+
+---
+
+# 18. Test scenario khuyến nghị
+
+## Scenario A — Impossible travel
+
+```text
+Scan 1:
+Hà Nội
+08:00
+
+Scan 2:
+Đà Nẵng
+08:10
+```
+
+Kết quả:
+
+```text
++40
+status = ACTIVE
+```
+
+---
+
+## Scenario B — Impossible travel + 5 locations
+
+```text
+Scan 1 → Hà Nội
+Scan 2 → Đà Nẵng (<30 phút)
+Scan 3 → Huế
+Scan 4 → Nha Trang
+Scan 5 → Cần Thơ
+```
+
+Kết quả:
+
+```text
+Impossible travel = +40
+Unique locations = +15
+----------------------
+Total = 55
+
+ACTIVE → SUSPECT
+```
+
+---
+
+## Scenario C — Admin lock
+
+```text
+SUSPECT
+   ↓
+VT-01 POST /lock
+   ↓
+LOCKED
+```
+
+Public trace:
+
+```text
+LOCKED
+   ↓
+hiển thị cảnh báo
+```
+
+---
+
+# 19. Migration
+
+Việc thay đổi database phải tuân theo migration hiện có của repository.
+
+Các field NCL-08-CN-007 cần có trên `trace_codes`:
+
+```text
+suspicion_score
+suspicion_reason
+locked_at
+locked_by
+lock_reason
+```
+
+Status phải hỗ trợ:
+
+```text
+SUSPECT
+LOCKED
+```
+
+**Không thêm `SUSPECT` hoặc `LOCKED` vào `ShipmentStatus` cho NCL-08-CN-007.**
+
+> Tên migration phải được xác định theo migration version thực tế hiện có trong repository. Không sử dụng lại `V19` nếu version đó đã tồn tại.
+
+---
+
+# 20. Activity Log
+
+Khi VT-01 khóa mã, hệ thống ghi nhận hoạt động:
+
+```text
+ActivityLog
+```
+
+Thông tin tối thiểu:
+
+```text
+actor
+action
+target TraceCode
+timestamp
+reason
+```
+
+Việc mở khóa **không thuộc acceptance criteria hiện tại** và không được xem là requirement bắt buộc của NCL-08-CN-007.
+
+Nếu product bổ sung chức năng unlock sau này, cần tạo requirement/API contract riêng.
+
+---
+
+# 21. Không thuộc phạm vi NCL-08-CN-007
+
+Các nội dung sau **không thuộc contract hiện tại**:
+
+```text
+ChainEvent geographic detection
+        ↓
+PROCUREMENT location detection
+        ↓
+TRANSPORT location detection
+        ↓
+Shipment SUSPECT
+        ↓
+Shipment LOCKED
+        ↓
+Propagation SUSPECT → tất cả TraceCode
+        ↓
+Transport latitude/longitude contract
+```
+
+Cụ thể:
+
+```text
+Ghi sự kiện thu mua
+Ghi sự kiện vận chuyển
+```
+
+**không được tính là lượt quét và không làm tăng suspicion score.**
+
+---
+
+# 22. Git Branch
 
 ```bash
 git checkout -b feature/NCL-08-CN-007-suspect-trace-code-lock
@@ -437,17 +1101,77 @@ git checkout -b feature/NCL-08-CN-007-suspect-trace-code-lock
 
 ---
 
-### 📌 10. Lưu ý khi triển khai
+# 23. Files dự kiến
 
-1. **Cron job chạy định kỳ**: Nên chạy real-time (sau mỗi lượt quét) để phát hiện nhanh, nhưng có thể đặt cron job 5 phút/lần nếu load cao.
-2. **Tính toán khoảng cách**: Dùng Haversine formula để tính khoảng cách giữa 2 tọa độ.
-3. **Thời gian di chuyển hợp lý**: Giả định vận tốc tối đa 100km/h → thời gian tối thiểu = khoảng cách / 100.
-4. **Notification**: Gửi thông báo đến tất cả VT-01 khi có mã mới bị đánh dấu `SUSPECT`.
-5. **Cảnh báo công khai**: Khi mã `LOCKED`, trang tra cứu hiển thị thông báo "Mã tem này bị nghi ngờ giả mạo. Vui lòng liên hệ với cơ quan chức năng để kiểm tra."
+Các file cần kiểm tra/chỉnh sửa theo implementation thực tế:
+
+```text
+backend/
+└── .../
+    ├── trace/
+    │   ├── entity/
+    │   │   └── TraceCode.java
+    │   ├── enum/
+    │   │   └── TraceCodeStatus.java
+    │   ├── repository/
+    │   │   └── TraceCodeRepository.java
+    │   ├── service/
+    │   │   ├── SuspectDetectionService.java
+    │   │   └── SuspectDetectionServiceImpl.java
+    │   └── controller/
+    │       └── TraceCodeAdminController.java
+    │
+    └── ...
+
+frontend/
+└── .../
+    ├── suspect-trace-codes/
+    └── public-trace/
+
+docs/
+└── api/
+    └── trace/
+        └── SuspectTraceCodeLock.md
+```
+
+Các tên package/file phải được đối chiếu với cấu trúc thực tế của repository trước khi tạo mới.
 
 ---
 
-**Author:** @hienvanla5  
-**Date:** 2026-08-11  
-**Branch:** `feature/NCL-08-CN-007-suspect-trace-code-lock`  
-**File:** `docs/api/trace/SuspectTraceCodeLock.md`
+# 24. Summary
+
+NCL-08-CN-007 hoạt động theo mô hình:
+
+```text
+        QR SCAN (POST /scan)
+                  │
+                  ▼
+        ┌───────────────────┐
+        │ TraceCodeScanLog  │
+        └─────────┬─────────┘
+                  │
+                  ▼
+        Suspect Detection
+                  │
+       ┌──────────┼──────────┐
+       ▼          ▼          ▼
+     ≥10/24h   >50km/<30m   ≥5 locations
+       +30        +40          +15
+       └──────────┼────────────┘
+                  ▼
+             score >= 50
+                  │
+                  ▼
+               SUSPECT
+                  │
+                  │ VT-01
+                  ▼
+               LOCKED
+                  │
+                  ▼
+          Public warning
+```
+
+**Điểm mấu chốt của contract:**
+
+> **NCL-08-CN-007 phát hiện bất thường dựa trên `TraceCodeScanLog` được tạo bởi `POST /public/trace/{codeValue}/scan` (luồng quét QR). `GET /public/trace/{codeValue}` là đọc thuần túy — không tạo ScanLog, không tăng lượt quét. Ghi sự kiện thu mua hoặc vận chuyển không phải là lượt quét và không tham gia chấm điểm nghi vấn.**

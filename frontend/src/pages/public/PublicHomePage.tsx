@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BrowserQRCodeReader } from "@zxing/browser";
+import { recordPublicScan } from "@/api/publicApi";
 import {
   LogIn,
   ScanLine,
@@ -97,7 +98,48 @@ export default function PublicHomePage() {
             streamRef.current = null;
             controlsRef.current = null;
             setIsScanning(false);
-            navigate(`/public/trace/${codeValue}`);
+
+            // Luồng quét QR thực tế: gọi POST /public/trace/{codeValue}/scan
+            // để tạo TraceCodeScanLog và kích hoạt đánh giá nghi vấn,
+            // sau đó chuyển kết quả sang trang tra cứu qua router state.
+            // (Không dùng GET lookup ở luồng quét.)
+            const submitScan = async () => {
+              try {
+                let latitude: number | undefined;
+                let longitude: number | undefined;
+
+                if (navigator.geolocation) {
+                  await new Promise<void>((resolve) => {
+                    navigator.geolocation.getCurrentPosition(
+                      (position) => {
+                        latitude = position.coords.latitude;
+                        longitude = position.coords.longitude;
+                        resolve();
+                      },
+                      () => resolve(),
+                      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+                    );
+                  });
+                }
+
+                const scanResult = await recordPublicScan(
+                  codeValue,
+                  latitude,
+                  longitude,
+                );
+
+                navigate(`/public/trace/${codeValue}`, {
+                  state: { scanResult },
+                });
+              } catch (scanError: any) {
+                const message =
+                  scanError.response?.data?.message ||
+                  "Không thể ghi nhận lượt quét. Vui lòng thử lại.";
+                toast.error(message);
+              }
+            };
+
+            void submitScan();
           },
         );
 
