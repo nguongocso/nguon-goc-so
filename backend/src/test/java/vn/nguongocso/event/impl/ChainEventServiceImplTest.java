@@ -296,7 +296,7 @@ class ChainEventServiceImplTest {
         // When & Then
         assertThatThrownBy(() -> chainEventService.recordPackagingEvent(packagingRequest, validUser))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("Chỉ được ghi nhận sự kiện đóng gói cho lô đã thu hoạch.");
+                .hasMessageContaining("Chỉ được ghi nhận sự kiện đóng gói cho lô đã thu hoạch hoặc đã sơ chế.");
     }
     
     @Test
