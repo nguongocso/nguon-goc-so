@@ -151,6 +151,7 @@ export const ShipmentList = ({
   };
 
   const handleExportDossier = async (shipment: Shipment) => {
+    let toastId: string | number | undefined;
     try {
       // 1. Kiểm tra điều kiện
       const checkResult = await checkDossierEligibility(shipment.id);
@@ -166,9 +167,9 @@ export const ShipmentList = ({
       }
 
       // 3. Đủ điều kiện → tải file PDF
-      toast.loading("Đang tạo hồ sơ...");
+      toastId = toast.loading("Đang tạo hồ sơ...");
       const blob = await exportDossier(shipment.id);
-      toast.dismiss();
+      toast.dismiss(toastId);
 
       // Tạo link tải file
       const url = window.URL.createObjectURL(blob);
@@ -202,6 +203,10 @@ export const ShipmentList = ({
 
       toast.success("Tải hồ sơ thành công");
     } catch (error: any) {
+      if (toastId != null) {
+        toast.dismiss(toastId);
+      }
+
       const msg =
         error.response?.data?.message || "Có lỗi xảy ra khi xuất hồ sơ.";
 
@@ -210,14 +215,14 @@ export const ShipmentList = ({
   };
 
   const handleExportGs1Dossier = async (shipment: Shipment) => {
+    const toastId = toast.loading("Đang tạo hồ sơ GS1...");
     try {
-      toast.loading("Đang tạo hồ sơ GS1...");
       const { blob, fileName } = await exportGs1Dossier(
         shipment.id,
         "json",
         true,
       );
-      toast.dismiss();
+      toast.dismiss(toastId);
 
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -230,6 +235,7 @@ export const ShipmentList = ({
 
       toast.success("Tải hồ sơ GS1 thành công");
     } catch (error: any) {
+      toast.dismiss(toastId);
       const msg =
         error.response?.data?.message ||
         "Có lỗi xảy ra khi xuất hồ sơ GS1.";

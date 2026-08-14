@@ -97,14 +97,14 @@ export function ProcurementShipmentList({
   const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
 
   const handleExportGs1 = async (shipmentId: string) => {
+    const toastId = toast.loading("Đang tạo hồ sơ GS1...");
     try {
-      toast.loading("Đang tạo hồ sơ GS1...");
       const { blob, fileName } = await exportGs1Dossier(
         shipmentId,
         "json",
         true,
       );
-      toast.dismiss();
+      toast.dismiss(toastId);
 
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -117,6 +117,7 @@ export function ProcurementShipmentList({
 
       toast.success("Tải hồ sơ GS1 thành công");
     } catch (error: any) {
+      toast.dismiss(toastId);
       const msg =
         error.response?.data?.message ||
         "Có lỗi xảy ra khi xuất hồ sơ GS1.";
