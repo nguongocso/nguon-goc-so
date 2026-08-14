@@ -50,6 +50,9 @@ export const ROLE_ACCESS = {
   // ✅ NCL-08-CN-008 - Yêu cầu thu hồi lô sản xuất (2 bước)
   recallRequestCreate: ['VT-03'] as const,
   recallRequestManage: ['VT-02'] as const,
+
+  // ✅ NCL-12-CN-003 - Xuất hồ sơ truy xuất theo lược đồ GS1 mô phỏng
+  gs1DossierExport: ['VT-02', 'VT-04'] as const,
 } as const satisfies Record<string, readonly AuthenticatedRoleCode[]>;
 
 export function hasAnyRole(

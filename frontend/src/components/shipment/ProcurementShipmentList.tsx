@@ -17,8 +17,12 @@ import {
 import type { ProcurementShipment } from "@/types/shipment";
 import { getEligibleShipments } from "@/api/shipmentApi";
 import { ShipmentDetailDialog } from "@/components/shipment/ShipmentDetailDialog";
+import { exportGs1Dossier } from "@/api/dossierApi";
+import { ROLE_ACCESS } from "@/config/roleAccess";
+import { usePermission } from "@/hooks/usePermission";
 import {
   Eye,
+  FileJson,
   LoaderCircle,
   Package,
   Search,
@@ -89,6 +93,36 @@ export function ProcurementShipmentList({
           .includes(keyword),
     );
   }, [shipments, search]);
+
+  const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
+
+  const handleExportGs1 = async (shipmentId: string) => {
+    try {
+      toast.loading("Đang tạo hồ sơ GS1...");
+      const { blob, fileName } = await exportGs1Dossier(
+        shipmentId,
+        "json",
+        true,
+      );
+      toast.dismiss();
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Tải hồ sơ GS1 thành công");
+    } catch (error: any) {
+      const msg =
+        error.response?.data?.message ||
+        "Có lỗi xảy ra khi xuất hồ sơ GS1.";
+      toast.error(msg);
+    }
+  };
 
   return (
     <>
@@ -207,6 +241,18 @@ export function ProcurementShipmentList({
                             <ShoppingCart className="size-4" />
                             Ghi nhận thu mua
                           </Button>
+
+                          {canExportGs1 && (
+                            <Button
+                              size="sm"
+                              type="button"
+                              variant="outline"
+                              onClick={() => handleExportGs1(shipment.id)}
+                            >
+                              <FileJson className="size-4" />
+                              Xuất hồ sơ GS1
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

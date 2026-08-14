@@ -18,6 +18,7 @@ import {
 import {
   BadgeCheck,
   FileText,
+  FileJson,
   Plus,
   QrCode,
   Ban,
@@ -42,8 +43,14 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { checkDossierEligibility, exportDossier } from "@/api/dossierApi";
+import {
+  checkDossierEligibility,
+  exportDossier,
+  exportGs1Dossier,
+} from "@/api/dossierApi";
 import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligibleDialog";
+import { ROLE_ACCESS } from "@/config/roleAccess";
+import { usePermission } from "@/hooks/usePermission";
 import { deleteDraft } from "@/api/eventValidationApi";
 
 const statusLabelMap: Record<string, string> = {
@@ -111,6 +118,8 @@ export const ShipmentList = ({
     missingDocs: [],
     shipmentName: "",
   });
+
+  const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
 
   const {
     shipments,
@@ -195,6 +204,35 @@ export const ShipmentList = ({
     } catch (error: any) {
       const msg =
         error.response?.data?.message || "Có lỗi xảy ra khi xuất hồ sơ.";
+
+      toast.error(msg);
+    }
+  };
+
+  const handleExportGs1Dossier = async (shipment: Shipment) => {
+    try {
+      toast.loading("Đang tạo hồ sơ GS1...");
+      const { blob, fileName } = await exportGs1Dossier(
+        shipment.id,
+        "json",
+        true,
+      );
+      toast.dismiss();
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Tải hồ sơ GS1 thành công");
+    } catch (error: any) {
+      const msg =
+        error.response?.data?.message ||
+        "Có lỗi xảy ra khi xuất hồ sơ GS1.";
 
       toast.error(msg);
     }
@@ -349,6 +387,17 @@ export const ShipmentList = ({
                                 <FileText className="size-4" />
                                 Xuất hồ sơ
                               </DropdownMenuItem>
+
+                              {canExportGs1 && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleExportGs1Dossier(shipment)
+                                  }
+                                >
+                                  <FileJson className="size-4" />
+                                  Xuất hồ sơ GS1
+                                </DropdownMenuItem>
+                              )}
 
                               {((canRecall &&
                                 shipment.status !== "RECALLED") ||
