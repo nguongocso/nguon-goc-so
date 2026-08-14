@@ -44,3 +44,5 @@ backend/src/main/resources/application-local.properties
 
 ### Local Docker configuration ###
 docker-compose.override.yml
+.env
+!.env.example

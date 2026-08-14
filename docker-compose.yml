@@ -7,7 +7,7 @@ services:
   # recreating the stack (even under a different project name) ALWAYS reuses
   # the existing data directory instead of initializing an empty database.
   mysql:
-    image: nguongocso-mysql
+    image: mysql:8.4
 
     container_name: nguongocso-mysql
 
