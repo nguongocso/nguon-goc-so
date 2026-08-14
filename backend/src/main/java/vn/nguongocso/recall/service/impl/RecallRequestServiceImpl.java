@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.common.annotation.Auditable;
 import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.exception.BusinessException;
@@ -69,6 +70,8 @@ public class RecallRequestServiceImpl implements RecallRequestService {
     private final NotificationService notificationService;
 
     @Override
+    @Auditable(action = "CREATE_RECALL_REQUEST", entityType = "RECALL_REQUEST",
+            description = "'Tạo yêu cầu thu hồi lô sản xuất ID: ' + #request.lotId")
     public RecallRequestResponse create(CreateRecallRequest request, CustomUserDetails currentUser) {
         ProductionLot lot = productionLotRepository.findById(request.getLotId())
                 .orElseThrow(() -> new BusinessException(MSG_LOT_NOT_FOUND));
@@ -146,6 +149,8 @@ public class RecallRequestServiceImpl implements RecallRequestService {
     }
 
     @Override
+    @Auditable(action = "APPROVE_RECALL_REQUEST", entityType = "RECALL_REQUEST",
+            description = "'Duyệt yêu cầu thu hồi ID: ' + #id")
     public RecallRequestResponse approve(UUID id, ApproveRecallRequest request, CustomUserDetails currentUser) {
         RecallRequest recallRequest = recallRequestRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(MSG_REQUEST_NOT_FOUND));
@@ -204,6 +209,8 @@ public class RecallRequestServiceImpl implements RecallRequestService {
     }
 
     @Override
+    @Auditable(action = "REJECT_RECALL_REQUEST", entityType = "RECALL_REQUEST",
+            description = "'Từ chối yêu cầu thu hồi ID: ' + #id")
     public RecallRequestResponse reject(UUID id, RejectRecallRequest request, CustomUserDetails currentUser) {
         RecallRequest recallRequest = recallRequestRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(MSG_REQUEST_NOT_FOUND));
