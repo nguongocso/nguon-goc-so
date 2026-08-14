@@ -32,6 +32,9 @@ import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.RecallRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.SuspectDetectionService;
+import vn.nguongocso.recall.entity.RecallRequest;
+import vn.nguongocso.recall.enums.RecallRequestStatus;
+import vn.nguongocso.recall.repository.RecallRequestRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -51,6 +54,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
     private final ScanAnomalyDetectionService scanAnomalyDetectionService;
     private final SuspectDetectionService suspectDetectionService;
     private final RecallRepository recallRepository;
+    private final RecallRequestRepository recallRequestRepository;
     private final ProductionLotCertificationRepository productionLotCertificationRepository;
     private final ReverseGeocodingService reverseGeocodingService;
 
@@ -149,10 +153,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
 
         String recallMessage = null;
         if (isRecalled) {
-            recallMessage = recallRepository
-                    .findTopByShipmentOrderByRecalledAtDesc(shipment)
-                    .map(Recall::getReason)
-                    .orElse("Lô hàng này đã bị thu hồi.");
+            recallMessage = resolveRecallMessage(shipment);
         }
 
         boolean isLocked = traceCode.getStatus() == TraceCodeStatus.LOCKED;
@@ -209,6 +210,37 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .lockedAt(traceCode.getLockedAt())
                 .events(publicEvents)
                 .build();
+    }
+
+    /**
+     * Xác định thông điệp thu hồi hiển thị công khai.
+     *
+     * <p>
+     * Ưu tiên lấy lý do từ yêu cầu thu hồi lô sản xuất đã được duyệt
+     * (NCL-08-CN-008) theo lô sản xuất của lô hàng. Nếu không có, fallback
+     * về lý do từ bản ghi thu hồi lô hàng cũ (NCL-08-CN-003).
+     * </p>
+     *
+     * @param shipment lô hàng đang bị thu hồi
+     * @return thông điệp thu hồi
+     */
+    private String resolveRecallMessage(Shipment shipment) {
+        if (shipment.getProductionLot() != null) {
+            UUID lotId = shipment.getProductionLot().getId();
+            Optional<RecallRequest> approvedRequest = recallRequestRepository
+                    .findTopByProductionLot_IdAndStatusOrderByApprovedAtDesc(
+                            lotId,
+                            RecallRequestStatus.APPROVED);
+
+            if (approvedRequest.isPresent()) {
+                return approvedRequest.get().getReason();
+            }
+        }
+
+        return recallRepository
+                .findTopByShipmentOrderByRecalledAtDesc(shipment)
+                .map(Recall::getReason)
+                .orElse("Lô hàng này đã bị thu hồi.");
     }
 
     /**
