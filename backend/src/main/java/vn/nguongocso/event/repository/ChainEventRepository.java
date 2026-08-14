@@ -101,32 +101,61 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
          * @return danh sách kết quả đếm
          */
         @Query("SELECT ce.shipment.id, ce.eventType, COUNT(ce) " +
-                "FROM ChainEvent ce " +
-                "WHERE ce.shipment.id IN :shipmentIds " +
-                "AND ce.eventType IN :requiredTypes " +
-                "AND ce.isCorrection = false " +
-                "GROUP BY ce.shipment.id, ce.eventType")
+                        "FROM ChainEvent ce " +
+                        "WHERE ce.shipment.id IN :shipmentIds " +
+                        "AND ce.eventType IN :requiredTypes " +
+                        "AND ce.isCorrection = false " +
+                        "GROUP BY ce.shipment.id, ce.eventType")
         List<Object[]> countEventsByShipmentAndTypes(@Param("shipmentIds") List<UUID> shipmentIds,
-                                                     @Param("requiredTypes") List<ChainEventType> requiredTypes);
+                        @Param("requiredTypes") List<ChainEventType> requiredTypes);
 
         /**
          * Lấy danh sách sự kiện (không phải đính chính) của nhiều lô hàng,
          * sắp xếp theo thời gian tăng dần.
          */
         @Query("SELECT ce FROM ChainEvent ce " +
-                "WHERE ce.shipment.id IN :shipmentIds " +
-                "AND ce.isCorrection = false " +
-                "ORDER BY ce.recordedAt ASC")
+                        "WHERE ce.shipment.id IN :shipmentIds " +
+                        "AND ce.isCorrection = false " +
+                        "ORDER BY ce.recordedAt ASC")
         List<ChainEvent> findByShipmentIdInOrderByRecordedAtAsc(@Param("shipmentIds") List<UUID> shipmentIds);
 
         /**
          * Lấy danh sách sự kiện WAREHOUSE_RECEIPT của một tổ chức, phân trang.
          */
         Page<ChainEvent> findByEventTypeAndRecordedBy_UserIdOrderByRecordedAtDesc(
-                ChainEventType eventType, UUID userId, Pageable pageable);
+                        ChainEventType eventType, UUID userId, Pageable pageable);
 
         /**
          * Tìm một sự kiện WAREHOUSE_RECEIPT theo ID và loại sự kiện.
          */
         Optional<ChainEvent> findByIdAndEventType(UUID id, ChainEventType eventType);
+
+        /**
+         * Kiểm tra sự tồn tại của sự kiện theo ID lô sản xuất và loại sự kiện.
+         *
+         * @param productionLotId ID của lô sản xuất.
+         * @param eventType       Loại sự kiện.
+         * @return true nếu tồn tại, ngược lại là false.
+         */
+        @Query("""
+                            SELECT COUNT(ce) > 0
+                            FROM ChainEvent ce
+                            JOIN ce.shipment s
+                            WHERE s.productionLot.id = :productionLotId
+                              AND ce.eventType = :eventType
+                              AND ce.isCorrection = false
+                        """)
+        boolean existsByProductionLotIdAndEventType(
+                        @Param("productionLotId") UUID productionLotId,
+                        @Param("eventType") ChainEventType eventType);
+
+        /**
+         * Kiểm tra sự tồn tại của sự kiện theo ID lô sản xuất và loại sự kiện.
+         * @param productionLotId
+         * @param eventType
+         * @return
+         */
+        boolean existsByShipment_ProductionLot_IdAndEventType(
+        UUID productionLotId,
+        ChainEventType eventType);
 }
