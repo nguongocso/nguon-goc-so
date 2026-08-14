@@ -329,6 +329,152 @@ class InspectionRequestServiceImplTest {
     }
 
     /**
+     * Regression test NCL-11-CN-002:
+     *
+     * HARVEST được ghi với shipment_id = NULL và productionLotId
+     * nằm trong event_data JSON vẫn phải được nhận diện khi tạo
+     * yêu cầu kiểm nghiệm.
+     *
+     * Service phải gọi repository với đúng cặp tham số:
+     *
+     *     (lotId UUID, lotId.toString(), HARVEST)
+     *
+     * để repository so khớp JSON event_data qua JSON_EXTRACT.
+     */
+    @Test
+    void createInspectionRequest_shouldRecognizeHarvestStoredInEventData_whenNoShipmentLinked() {
+
+        /*
+         * Arrange
+         */
+        CreateInspectionRequest request =
+                new CreateInspectionRequest();
+
+        request.setTestingUnit(
+                "Lab ABC");
+
+        request.setSampleSentDate(
+                LocalDate.now());
+
+        request.setCriteriaIds(
+                List.of(101));
+
+        /*
+         * Lô đã thu hoạch (status HARVESTED) nhưng chưa
+         * có shipment nào được gắn.
+         */
+        lot.setStatus(
+                ProductionLotStatus.HARVESTED);
+
+        /*
+         * Production lot tồn tại và thuộc organization.
+         */
+        when(
+                productionLotRepository
+                        .findByIdAndOrganization_OrganizationId(
+                                lotId,
+                                orgId))
+                .thenReturn(
+                        Optional.of(lot));
+
+        /*
+         * HARVEST tồn tại ở dạng chưa gắn shipment:
+         *
+         * event_type = 'HARVEST'
+         * shipment_id = NULL
+         * event_data.productionLotId = lotId.toString()
+         *
+         * Repository nhận diện qua productionLotIdText.
+         */
+        when(
+                chainEventRepository
+                        .existsByProductionLotIdOrUnassignedEventDataAndEventType(
+                                lotId,
+                                lotId.toString(),
+                                ChainEventType.HARVEST))
+                .thenReturn(true);
+
+        /*
+         * Criterion definition tồn tại.
+         */
+        when(
+                inspectionCriterionDefinitionRepository
+                        .findById(101))
+                .thenReturn(
+                        Optional.of(
+                                criterionDefinition));
+
+        /*
+         * Standard đã được gắn với lô.
+         */
+        when(
+                productionLotCertificationRepository
+                        .existsByProductionLotIdAndStandardId(
+                                lotId,
+                                standard.getId()))
+                .thenReturn(true);
+
+        /*
+         * Không có request PENDING_RESULT trước đó.
+         */
+        when(
+                inspectionRequestRepository
+                        .findByProductionLot_IdAndStatus(
+                                lotId,
+                                InspectionRequestStatus.PENDING_RESULT))
+                .thenReturn(
+                        List.of());
+
+        /*
+         * Giả lập save().
+         */
+        when(
+                inspectionRequestRepository
+                        .save(any(InspectionRequest.class)))
+                .thenAnswer(invocation -> {
+
+                    InspectionRequest saved =
+                            invocation.getArgument(
+                                    0);
+
+                    saved.setId(
+                            UUID.randomUUID());
+
+                    return saved;
+                });
+
+        /*
+         * Act
+         */
+        InspectionRequestResponse response =
+                inspectionRequestService
+                        .createInspectionRequest(
+                                lotId,
+                                request,
+                                currentUser);
+
+        /*
+         * Assert
+         */
+        assertThat(response)
+                .isNotNull();
+
+        assertThat(response.getStatus())
+                .isEqualTo("PENDING");
+
+        /*
+         * Service phải hỏi repository với đúng contract
+         * để so khớp event_data JSON của HARVEST.
+         */
+        verify(
+                chainEventRepository)
+                .existsByProductionLotIdOrUnassignedEventDataAndEventType(
+                        lotId,
+                        lotId.toString(),
+                        ChainEventType.HARVEST);
+    }
+
+    /**
      * Test từ chối tạo request nếu đã tồn tại
      * request PENDING_RESULT với cùng bộ chỉ tiêu.
      *

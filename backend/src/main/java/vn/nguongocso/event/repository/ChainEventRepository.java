@@ -147,7 +147,9 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
                                   OR (
                                       ce.shipment IS NULL
                                       AND ce.eventData IS NOT NULL
-                                      AND ce.eventData LIKE CONCAT('%\"productionLotId\":\"', :productionLotIdText, '\"%')
+                                      AND FUNCTION('JSON_UNQUOTE',
+                                            FUNCTION('JSON_EXTRACT', ce.eventData, '$.productionLotId'))
+                                          = :productionLotIdText
                                   )
                               )
                         """)
