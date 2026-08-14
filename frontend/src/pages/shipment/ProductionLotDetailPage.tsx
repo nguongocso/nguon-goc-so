@@ -1,9 +1,17 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Package, Plus, Sprout } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Package,
+  Plus,
+  Sprout,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getProductionLotById } from "@/api/productionLotApi";
 import { ShipmentList } from "@/pages/shipment/ShipmentList";
@@ -14,13 +22,50 @@ import { HarvestForm } from "@/components/trace-event/HarvestForm";
 import type { ProductionLot } from "@/types/productionLot";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import type { ProductionLotCertification } from "@/types/certification";
+import type {
+  InspectionRequestListItem,
+  InspectionRequestStatusDisplay,
+  InspectionRequestStatusQuery,
+  LotTestCriteriaResult,
+  ProductionLotCertification,
+} from "@/types/certification";
 import {
+  createInspectionRequest,
   detachCertification,
+  getInspectionRequests,
   getLotCertifications,
+  getLotTestCriteria,
 } from "@/api/certificationApi";
 import { CertificationList } from "@/components/certification/CertificationList";
 import { AttachCertificationDialog } from "@/components/certification/AttachCertificationDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogPopup,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import type { PageResponse } from "@/types/common";
 
 // Ánh xạ trạng thái sang tiếng Việt và màu sắc
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
@@ -73,11 +118,99 @@ const getStatusBadge = (status: string) => {
   );
 };
 
+// Ánh xạ trạng thái yêu cầu kiểm nghiệm (trả về từ backend)
+const INSPECTION_STATUS_MAP: Record<
+  InspectionRequestStatusDisplay,
+  { label: string; className: string }
+> = {
+  PENDING: {
+    label: "Chờ kết quả",
+    className: "bg-yellow-100 text-yellow-800 border-yellow-300",
+  },
+  PASSED: {
+    label: "Đạt",
+    className: "bg-emerald-100 text-emerald-800 border-emerald-300",
+  },
+  FAILED: {
+    label: "Không đạt",
+    className: "bg-red-100 text-red-800 border-red-300",
+  },
+  CANCELLED: {
+    label: "Đã hủy",
+    className: "bg-gray-100 text-gray-700 border-gray-300",
+  },
+};
+
+// Bộ lọc trạng thái; "Chờ kết quả" gửi PENDING_RESULT (enum backend)
+const INSPECTION_FILTER_OPTIONS: Array<{
+  value: InspectionRequestStatusQuery | "ALL";
+  label: string;
+}> = [
+  { value: "ALL", label: "Tất cả" },
+  { value: "PENDING_RESULT", label: "Chờ kết quả" },
+  { value: "PASSED", label: "Đạt" },
+  { value: "FAILED", label: "Không đạt" },
+  { value: "CANCELLED", label: "Đã hủy" },
+];
+
+const getInspectionStatusBadge = (status: InspectionRequestStatusDisplay) => {
+  const config = INSPECTION_STATUS_MAP[status];
+  if (!config) {
+    return <Badge variant="outline">{status}</Badge>;
+  }
+  return (
+    <Badge
+      variant="outline"
+      className={`${config.className} border text-xs font-semibold px-2.5 py-0.5`}
+    >
+      {config.label}
+    </Badge>
+  );
+};
+
+// Định dạng ngày kiểu "YYYY-MM-DD" sang tiếng Việt
+const formatDateOnly = (dateStr: string) => {
+  if (!dateStr) return "—";
+  const date = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString("vi-VN");
+};
+
+const toISODate = (date: Date) => {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+};
+
+const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  if (axios.isAxiosError(error)) {
+    const serverMessage = error.response?.data?.message;
+    if (typeof serverMessage === "string" && serverMessage.trim()) {
+      return serverMessage;
+    }
+    const status = error.response?.status;
+    if (status === 400) {
+      return "Dữ liệu không hợp lệ. Vui lòng kiểm tra lại thông tin.";
+    }
+    if (status === 403) {
+      return "Bạn không có quyền thực hiện thao tác này.";
+    }
+    if (status === 404) {
+      return "Không tìm thấy dữ liệu yêu cầu.";
+    }
+    if (status === 409) {
+      return "Yêu cầu kiểm nghiệm trùng lặp với yêu cầu đang chờ kết quả cho cùng bộ chỉ tiêu. Vui lòng xác nhận để tạo thêm yêu cầu.";
+    }
+  }
+  return fallback;
+};
+
 export const ProductionLotDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const canCreateFarmLog = usePermission(ROLE_ACCESS.farmLogCreate);
+  const canInspect = usePermission(ROLE_ACCESS.inspectionRequest);
   const [lot, setLot] = useState<ProductionLot | null>(null);
   const [loading, setLoading] = useState(true);
   const [showHarvestForm, setShowHarvestForm] = useState(false);
@@ -86,6 +219,41 @@ export const ProductionLotDetailPage = () => {
   >([]);
   const [loadingCerts, setLoadingCerts] = useState(false);
   const [attachDialogOpen, setAttachDialogOpen] = useState(false);
+
+  const [activeTab, setActiveTab] = useState("info");
+
+  // Danh sách yêu cầu kiểm nghiệm (chỉ tải khi mở tab với vai trò VT-02)
+  const [inspectionRequests, setInspectionRequests] = useState<
+    InspectionRequestListItem[]
+  >([]);
+  const [inspectionPageData, setInspectionPageData] =
+    useState<PageResponse<InspectionRequestListItem> | null>(null);
+  const [inspectionLoading, setInspectionLoading] = useState(false);
+  const [inspectionError, setInspectionError] = useState<string | null>(null);
+  const [inspectionStatus, setInspectionStatus] = useState<
+    InspectionRequestStatusQuery | "ALL"
+  >("ALL");
+  const [inspectionPage, setInspectionPage] = useState(0);
+  const [inspectionReloadKey, setInspectionReloadKey] = useState(0);
+
+  // Dialog tạo yêu cầu kiểm nghiệm
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [criteriaData, setCriteriaData] = useState<LotTestCriteriaResult | null>(
+    null
+  );
+  const [criteriaLoading, setCriteriaLoading] = useState(false);
+  const [criteriaError, setCriteriaError] = useState<string | null>(null);
+  const [testingUnit, setTestingUnit] = useState("");
+  const [sampleSentDate, setSampleSentDate] = useState("");
+  const [selectedCriteriaIds, setSelectedCriteriaIds] = useState<number[]>([]);
+  const [touched, setTouched] = useState({
+    unit: false,
+    date: false,
+    criteria: false,
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
+  const [duplicateMessage, setDuplicateMessage] = useState("");
 
   const loadLot = async () => {
     if (!id) return;
@@ -112,6 +280,52 @@ export const ProductionLotDetailPage = () => {
     }
   };
 
+  const loadInspectionRequests = useCallback(
+    async (status: InspectionRequestStatusQuery | "ALL", page: number) => {
+      if (!id) return;
+      try {
+        setInspectionLoading(true);
+        setInspectionError(null);
+        const data = await getInspectionRequests({
+          lotId: id,
+          status: status === "ALL" ? undefined : status,
+          page,
+          size: 20,
+        });
+        setInspectionRequests(data.items);
+        setInspectionPageData(data);
+      } catch (error) {
+        setInspectionRequests([]);
+        setInspectionPageData(null);
+        setInspectionError("Không thể tải danh sách yêu cầu kiểm nghiệm");
+      } finally {
+        setInspectionLoading(false);
+      }
+    },
+    [id]
+  );
+
+  const loadCriteria = async () => {
+    if (!id) return;
+    try {
+      setCriteriaLoading(true);
+      setCriteriaError(null);
+      const data = await getLotTestCriteria(id);
+      setCriteriaData(data);
+      const mandatoryIds = data.criteria
+        .filter((criterion) => criterion.isMandatory)
+        .map((criterion) => criterion.criteriaId);
+      setSelectedCriteriaIds(mandatoryIds);
+    } catch (error) {
+      setCriteriaData(null);
+      setCriteriaError(
+        getApiErrorMessage(error, "Không thể tải chỉ tiêu kiểm nghiệm")
+      );
+    } finally {
+      setCriteriaLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadLot();
   }, [id]);
@@ -121,6 +335,20 @@ export const ProductionLotDetailPage = () => {
       loadCertifications();
     }
   }, [id]);
+
+  useEffect(() => {
+    if (activeTab === "inspection" && canInspect && id) {
+      void loadInspectionRequests(inspectionStatus, inspectionPage);
+    }
+  }, [
+    activeTab,
+    canInspect,
+    id,
+    inspectionStatus,
+    inspectionPage,
+    inspectionReloadKey,
+    loadInspectionRequests,
+  ]);
 
   const canRecordHarvest =
     user?.roleCode === "VT-02" || user?.roleCode === "VT-03";
@@ -163,6 +391,119 @@ export const ProductionLotDetailPage = () => {
       await loadCertifications();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Không thể gỡ chứng nhận");
+    }
+  };
+
+  const today = toISODate(new Date());
+  const trimmedTestingUnit = testingUnit.trim();
+  const isSampleDateValid =
+    sampleSentDate !== "" && sampleSentDate <= today;
+  const canSubmitCreate =
+    !submitting &&
+    !criteriaLoading &&
+    criteriaError === null &&
+    criteriaData !== null &&
+    criteriaData.criteria.length > 0 &&
+    trimmedTestingUnit !== "" &&
+    isSampleDateValid &&
+    selectedCriteriaIds.length > 0;
+
+  const openCreateDialog = () => {
+    if (!id) return;
+    setCreateDialogOpen(true);
+    setDuplicateOpen(false);
+    setDuplicateMessage("");
+    setCriteriaData(null);
+    setCriteriaError(null);
+    setTestingUnit("");
+    setSampleSentDate(toISODate(new Date()));
+    setSelectedCriteriaIds([]);
+    setTouched({ unit: false, date: false, criteria: false });
+    setSubmitting(false);
+    void loadCriteria();
+  };
+
+  const handleCloseCreateDialog = () => {
+    if (submitting) return;
+    setCreateDialogOpen(false);
+    setDuplicateOpen(false);
+    setDuplicateMessage("");
+  };
+
+  const toggleCriterion = (criteriaId: number, checked: boolean) => {
+    setTouched((prev) => ({ ...prev, criteria: true }));
+    setSelectedCriteriaIds((prev) => {
+      if (checked) {
+        return prev.includes(criteriaId) ? prev : [...prev, criteriaId];
+      }
+      return prev.filter((id) => id !== criteriaId);
+    });
+  };
+
+  const handleCreated = () => {
+    setCreateDialogOpen(false);
+    setDuplicateOpen(false);
+    setDuplicateMessage("");
+    setTestingUnit("");
+    setSampleSentDate("");
+    setSelectedCriteriaIds([]);
+    setTouched({ unit: false, date: false, criteria: false });
+    setInspectionPage(0);
+    setInspectionReloadKey((key) => key + 1);
+  };
+
+  const submitCreate = async () => {
+    if (!id || !canSubmitCreate) return;
+    setSubmitting(true);
+    try {
+      await createInspectionRequest(id, {
+        testingUnit: trimmedTestingUnit,
+        sampleSentDate,
+        criteriaIds: selectedCriteriaIds,
+        confirmDuplicate: false,
+      });
+      toast.success("Tạo yêu cầu kiểm nghiệm thành công");
+      handleCreated();
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 409) {
+        // Giữ nguyên dữ liệu form và mở hộp xác nhận tạo trùng
+        setDuplicateMessage(
+          getApiErrorMessage(
+            error,
+            "Yêu cầu kiểm nghiệm trùng lặp với yêu cầu đang chờ kết quả cho cùng bộ chỉ tiêu. Vui lòng xác nhận để tạo thêm yêu cầu."
+          )
+        );
+        setDuplicateOpen(true);
+      } else {
+        toast.error(
+          getApiErrorMessage(error, "Không thể tạo yêu cầu kiểm nghiệm")
+        );
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const confirmDuplicateSubmit = async () => {
+    if (!id || submitting) return;
+    setSubmitting(true);
+    try {
+      await createInspectionRequest(id, {
+        testingUnit: trimmedTestingUnit,
+        sampleSentDate,
+        criteriaIds: selectedCriteriaIds,
+        confirmDuplicate: true,
+      });
+      toast.success("Tạo yêu cầu kiểm nghiệm thành công");
+      handleCreated();
+    } catch (error) {
+      // Không mở lại hộp xác nhận nếu lần gửi thứ hai tiếp tục lỗi
+      setDuplicateOpen(false);
+      toast.error(
+        getApiErrorMessage(error, "Không thể tạo yêu cầu kiểm nghiệm")
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -301,7 +642,7 @@ export const ProductionLotDetailPage = () => {
       )}
 
       {/* Tabs chi tiết */}
-      <Tabs defaultValue="info" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-white/80 backdrop-blur-sm border border-emerald-100 p-1 rounded-xl gap-1 min-h-11 max-w-full overflow-x-auto overflow-y-hidden">
           <TabsTrigger
             value="info"
@@ -327,6 +668,14 @@ export const ProductionLotDetailPage = () => {
           >
             Chứng nhận
           </TabsTrigger>
+          {canInspect && (
+            <TabsTrigger
+              value="inspection"
+              className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+            >
+              Kiểm nghiệm
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="info" className="mt-4">
@@ -389,6 +738,185 @@ export const ProductionLotDetailPage = () => {
             />
           </div>
         </TabsContent>
+
+        {canInspect && (
+          <TabsContent value="inspection" className="mt-4">
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 className="text-lg font-semibold text-emerald-800">
+                  Yêu cầu kiểm nghiệm
+                </h2>
+                <Button
+                  onClick={openCreateDialog}
+                  variant="create"
+                  disabled={submitting}
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Tạo yêu cầu
+                </Button>
+              </div>
+
+              <div
+                className="flex flex-wrap gap-2"
+                role="group"
+                aria-label="Lọc theo trạng thái"
+              >
+                {INSPECTION_FILTER_OPTIONS.map((option) => (
+                  <Button
+                    key={option.value}
+                    size="sm"
+                    variant={
+                      inspectionStatus === option.value ? "create" : "outline"
+                    }
+                    onClick={() => {
+                      setInspectionStatus(option.value);
+                      setInspectionPage(0);
+                    }}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+
+              {inspectionLoading ? (
+                <div
+                  className="flex items-center justify-center gap-2 py-12 text-muted-foreground"
+                  aria-live="polite"
+                >
+                  <Sprout className="h-5 w-5 animate-spin text-emerald-500" />
+                  Đang tải yêu cầu kiểm nghiệm...
+                </div>
+              ) : inspectionError ? (
+                <div
+                  className="flex flex-col items-center gap-3 py-12 text-muted-foreground"
+                  aria-live="assertive"
+                >
+                  <p>{inspectionError}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      void loadInspectionRequests(
+                        inspectionStatus,
+                        inspectionPage
+                      )
+                    }
+                  >
+                    Thử lại
+                  </Button>
+                </div>
+              ) : inspectionRequests.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  Chưa có yêu cầu kiểm nghiệm nào cho lô này.
+                </div>
+              ) : (
+                <>
+                  {/* Desktop: bảng */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Mã yêu cầu</TableHead>
+                          <TableHead>Đơn vị kiểm nghiệm</TableHead>
+                          <TableHead>Ngày gửi mẫu</TableHead>
+                          <TableHead>Số chỉ tiêu</TableHead>
+                          <TableHead>Trạng thái</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {inspectionRequests.map((request) => (
+                          <TableRow key={request.testRequestId}>
+                            <TableCell>
+                              <span
+                                className="font-mono text-xs"
+                                title={request.testRequestId}
+                              >
+                                #{request.testRequestId.slice(0, 8)}
+                              </span>
+                            </TableCell>
+                            <TableCell>{request.testingUnit}</TableCell>
+                            <TableCell>
+                              {formatDateOnly(request.sampleSentDate)}
+                            </TableCell>
+                            <TableCell>{request.criteriaCount}</TableCell>
+                            <TableCell>
+                              {getInspectionStatusBadge(request.status)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile: thẻ */}
+                  <div className="md:hidden space-y-3">
+                    {inspectionRequests.map((request) => (
+                      <div
+                        key={request.testRequestId}
+                        className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm space-y-2"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className="font-mono text-xs text-muted-foreground"
+                            title={request.testRequestId}
+                          >
+                            #{request.testRequestId.slice(0, 8)}
+                          </span>
+                          {getInspectionStatusBadge(request.status)}
+                        </div>
+                        <p className="font-medium break-words">
+                          {request.testingUnit}
+                        </p>
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span>
+                            Ngày gửi mẫu:{" "}
+                            {formatDateOnly(request.sampleSentDate)}
+                          </span>
+                          <span>{request.criteriaCount} chỉ tiêu</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Phân trang */}
+                  <div className="flex items-center justify-between pt-2">
+                    <p className="text-sm text-muted-foreground">
+                      Trang {inspectionPageData ? inspectionPageData.page + 1 : 1}{" "}
+                      / {inspectionPageData?.totalPages ?? 1}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={
+                          !inspectionPageData || inspectionPageData.first
+                        }
+                        onClick={() =>
+                          setInspectionPage((page) =>
+                            Math.max(0, page - 1)
+                          )
+                        }
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" /> Trước
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={
+                          !inspectionPageData || inspectionPageData.last
+                        }
+                        onClick={() =>
+                          setInspectionPage((page) => page + 1)
+                        }
+                      >
+                        Sau <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
 
       <AttachCertificationDialog
@@ -397,6 +925,223 @@ export const ProductionLotDetailPage = () => {
         lotId={id!}
         onSuccess={loadCertifications}
       />
+
+      {/* Dialog tạo yêu cầu kiểm nghiệm */}
+      <Dialog
+        open={createDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) handleCloseCreateDialog();
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Tạo yêu cầu kiểm nghiệm</DialogTitle>
+            <DialogDescription>
+              Lập yêu cầu kiểm nghiệm cho lô “{lot.name}”. Các chỉ tiêu bắt
+              buộc đã được chọn sẵn.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            {/* Chỉ tiêu kiểm nghiệm */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label className="font-medium">
+                  Chỉ tiêu kiểm nghiệm *
+                </Label>
+                {criteriaData?.standardName && (
+                  <span className="text-xs text-muted-foreground">
+                    Tiêu chuẩn: {criteriaData.standardName}
+                  </span>
+                )}
+              </div>
+
+              {criteriaLoading ? (
+                <div
+                  className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-muted/30 p-4 text-sm text-muted-foreground"
+                  aria-live="polite"
+                >
+                  <Sprout className="h-4 w-4 animate-spin text-emerald-500" />
+                  Đang tải chỉ tiêu kiểm nghiệm...
+                </div>
+              ) : criteriaError ? (
+                <div
+                  className="space-y-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+                  aria-live="assertive"
+                >
+                  <p>{criteriaError}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void loadCriteria()}
+                  >
+                    Thử lại
+                  </Button>
+                </div>
+              ) : criteriaData && criteriaData.criteria.length === 0 ? (
+                <div
+                  className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
+                  aria-live="polite"
+                >
+                  {criteriaData.standardName
+                    ? "Tiêu chuẩn hiện tại chưa có chỉ tiêu kiểm nghiệm nào. Không thể tạo yêu cầu."
+                    : "Lô chưa được gắn tiêu chuẩn nên chưa có chỉ tiêu kiểm nghiệm nào. Không thể tạo yêu cầu."}
+                </div>
+              ) : criteriaData ? (
+                <>
+                  <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                    {criteriaData.criteria.map((criterion) => (
+                      <div
+                        key={criterion.criteriaId}
+                        className="flex items-start gap-3 rounded-lg border border-emerald-100 p-3"
+                      >
+                        <Checkbox
+                          id={`test-criterion-${criterion.criteriaId}`}
+                          checked={selectedCriteriaIds.includes(
+                            criterion.criteriaId
+                          )}
+                          onCheckedChange={(checked) =>
+                            toggleCriterion(
+                              criterion.criteriaId,
+                              checked === true
+                            )
+                          }
+                          disabled={submitting || criterion.isMandatory}
+                          className="mt-0.5"
+                        />
+                        <Label
+                          htmlFor={`test-criterion-${criterion.criteriaId}`}
+                          className="cursor-pointer font-normal leading-snug"
+                        >
+                          <span className="font-medium">{criterion.name}</span>
+                          <span className="block text-xs text-muted-foreground">
+                            {criterion.code}
+                          </span>
+                        </Label>
+                        {criterion.isMandatory && (
+                          <Badge
+                            variant="outline"
+                            className="ml-auto shrink-0 text-xs"
+                          >
+                            Bắt buộc
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {selectedCriteriaIds.length === 0 && (
+                    <p className="text-sm text-red-500" role="alert">
+                      Vui lòng chọn ít nhất một chỉ tiêu kiểm nghiệm
+                    </p>
+                  )}
+                </>
+              ) : null}
+            </div>
+
+            {/* Đơn vị kiểm nghiệm */}
+            <div className="space-y-2">
+              <Label htmlFor="testingUnit">Đơn vị kiểm nghiệm *</Label>
+              <Input
+                id="testingUnit"
+                value={testingUnit}
+                onChange={(event) => {
+                  setTestingUnit(event.target.value);
+                  setTouched((prev) => ({ ...prev, unit: true }));
+                }}
+                placeholder="VD: Phòng thí nghiệm Trung tâm..."
+                maxLength={200}
+                disabled={submitting}
+              />
+              {touched.unit && trimmedTestingUnit === "" && (
+                <p className="text-sm text-red-500" role="alert">
+                  Vui lòng nhập đơn vị kiểm nghiệm
+                </p>
+              )}
+            </div>
+
+            {/* Ngày gửi mẫu */}
+            <div className="space-y-2">
+              <Label htmlFor="sampleSentDate">Ngày gửi mẫu *</Label>
+              <Input
+                id="sampleSentDate"
+                type="date"
+                value={sampleSentDate}
+                max={today}
+                onChange={(event) => {
+                  setSampleSentDate(event.target.value);
+                  setTouched((prev) => ({ ...prev, date: true }));
+                }}
+                disabled={submitting}
+              />
+              {touched.date && sampleSentDate === "" && (
+                <p className="text-sm text-red-500" role="alert">
+                  Vui lòng chọn ngày gửi mẫu
+                </p>
+              )}
+              {sampleSentDate !== "" && sampleSentDate > today && (
+                <p className="text-sm text-red-500" role="alert">
+                  Ngày gửi mẫu không được lớn hơn ngày hiện tại
+                </p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCloseCreateDialog}
+              disabled={submitting}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              variant="create"
+              onClick={() => void submitCreate()}
+              disabled={!canSubmitCreate}
+            >
+              {submitting ? "Đang tạo..." : "Tạo yêu cầu"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Xác nhận tạo yêu cầu trùng */}
+      <AlertDialog
+        open={duplicateOpen}
+        onOpenChange={(open) => {
+          if (!open && !submitting) setDuplicateOpen(false);
+        }}
+      >
+        <AlertDialogPopup>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Yêu cầu kiểm nghiệm trùng lặp
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {duplicateMessage ||
+                "Yêu cầu kiểm nghiệm trùng lặp với yêu cầu đang chờ kết quả cho cùng bộ chỉ tiêu. Vui lòng xác nhận để tạo thêm yêu cầu."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDuplicateOpen(false)}
+              disabled={submitting}
+            >
+              Quay lại
+            </Button>
+            <Button
+              variant="create"
+              onClick={() => void confirmDuplicateSubmit()}
+              disabled={submitting}
+            >
+              {submitting ? "Đang tạo..." : "Vẫn tạo yêu cầu"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogPopup>
+      </AlertDialog>
     </div>
   );
 };
