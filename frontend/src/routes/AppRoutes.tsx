@@ -120,6 +120,10 @@ import CreateInvitationPage from "@/pages/invitation/CreateInvitationPage";
 // ===== Backup Restore =====
 import BackupRestorePage from "@/pages/admin/BackupRestorePage";
 
+// ===== Recall requests (NCL-08-CN-008) =====
+import { CreateRecallRequestPage } from "@/pages/recall-request/CreateRecallRequestPage";
+import { RecallRequestListPage } from "@/pages/recall-request/RecallRequestListPage";
+import { RecallRequestDetailPage } from "@/pages/recall-request/RecallRequestDetailPage";
 
 // =====================================================
 // Constants
@@ -857,6 +861,44 @@ const AppRoutes = () => (
                 }
             />
 
+
+            {/* =================================================
+          RECALL REQUESTS (NCL-08-CN-008)
+      ================================================= */}
+
+            <Route
+                path="recall-requests"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.recallRequestManage}
+                    >
+                        <RecallRequestListPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* NOTE: route /create must be declared before /:id to avoid capture */}
+            <Route
+                path="recall-requests/create"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.recallRequestCreate}
+                    >
+                        <CreateRecallRequestPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="recall-requests/:id"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.recallRequestManage}
+                    >
+                        <RecallRequestDetailPage />
+                    </RoleRoute>
+                }
+            />
 
             {/* =================================================
           PRODUCT FEEDBACK
