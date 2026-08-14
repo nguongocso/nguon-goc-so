@@ -16,10 +16,10 @@ import {
 } from "@/components/ui/table";
 import type { ProcurementShipment } from "@/types/shipment";
 import { getEligibleShipments } from "@/api/shipmentApi";
-import { ShipmentDetailDialog } from "@/components/shipment/ShipmentDetailDialog";
 import { exportGs1Dossier } from "@/api/dossierApi";
 import { ROLE_ACCESS } from "@/config/roleAccess";
 import { usePermission } from "@/hooks/usePermission";
+import { useNavigate } from "react-router-dom";
 import {
   Eye,
   FileJson,
@@ -56,7 +56,7 @@ export function ProcurementShipmentList({
   const [shipments, setShipments] = useState<ProcurementShipment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [detailShipmentId, setDetailShipmentId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const loadShipments = useCallback(async () => {
     setIsLoading(true);
@@ -224,9 +224,7 @@ export function ProcurementShipmentList({
                             size="sm"
                             type="button"
                             variant="outline"
-                            onClick={() =>
-                              setDetailShipmentId(shipment.id)
-                            }
+                            onClick={() => navigate(`/shipments/${shipment.id}`)}
                           >
                             <Eye className="size-4" />
                             Chi tiết
@@ -287,11 +285,6 @@ export function ProcurementShipmentList({
         </CardContent>
       </Card>
 
-      <ShipmentDetailDialog
-        open={detailShipmentId !== null}
-        shipmentId={detailShipmentId}
-        onClose={() => setDetailShipmentId(null)}
-      />
     </>
   );
 }

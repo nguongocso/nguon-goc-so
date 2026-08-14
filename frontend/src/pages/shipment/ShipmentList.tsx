@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -9,12 +10,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   BadgeCheck,
   FileText,
@@ -30,11 +25,9 @@ import { useShipments } from "@/hooks/useShipments";
 import { useRecallShipment } from "@/hooks/useRecallShipment";
 import type { Shipment, CreateShipmentPayload } from "@/types/shipment";
 import { CreateShipmentModal } from "@/components/shipment/CreateShipmentModal";
-import { QrCodeGrid } from "@/components/shipment/QrCodeGrid";
 import { ShipmentTimelineDialog } from "@/components/shipment/ShipmentTimelineDialog";
 import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDialog";
 import { RecallShipmentDialog } from "@/components/shipment/RecallShipmentDialog";
-import { ShipmentDetailDialog } from "@/components/shipment/ShipmentDetailDialog";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -82,14 +75,8 @@ export const ShipmentList = ({
   canActivate,
   canRecall,
 }: ShipmentListProps) => {
+  const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-
-  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(
-    null,
-  );
-
-  const [detailShipmentId, setDetailShipmentId] = useState<string | null>(null);
 
   const [activatingShipment, setActivatingShipment] = useState<Shipment | null>(
     null,
@@ -135,11 +122,6 @@ export const ShipmentList = ({
 
   const handleCreate = async (payload: CreateShipmentPayload) => {
     await createShipment(payload);
-  };
-
-  const openQrDialog = (shipment: Shipment) => {
-    setSelectedShipment(shipment);
-    setDialogOpen(true);
   };
 
   const formatDate = (dateStr: string) => {
@@ -338,10 +320,12 @@ export const ShipmentList = ({
                             size="sm"
                             variant="outline"
                             className="h-auto px-2.5 py-1 text-xs"
-                            onClick={() => openQrDialog(shipment)}
+                            onClick={() =>
+                              navigate(`/shipments/${shipment.id}?tab=qr`)
+                            }
                           >
                             <QrCode className="mr-1 h-3 w-3" />
-                            QR
+                            Xem mã QR
                           </Button>
 
                           <DropdownMenu>
@@ -354,9 +338,7 @@ export const ShipmentList = ({
 
                             <DropdownMenuContent>
                               <DropdownMenuItem
-                                onClick={() =>
-                                  setDetailShipmentId(shipment.id)
-                                }
+                                onClick={() => navigate(`/shipments/${shipment.id}`)}
                               >
                                 <Eye className="size-4" />
                                 Chi tiết
@@ -455,59 +437,6 @@ export const ShipmentList = ({
         onSubmit={handleCreate}
         productionLotId={productionLotId}
         loading={isCreating}
-      />
-
-      <Dialog
-        open={dialogOpen}
-        onOpenChange={(open) => !open && setDialogOpen(false)}
-      >
-        <DialogContent
-          className="
-            flex
-            max-h-[90vh]
-            w-[95vw]
-            max-w-7xl
-            flex-col
-            overflow-hidden
-          "
-        >
-          <DialogHeader>
-            <DialogTitle>
-              Mã QR - {selectedShipment?.name || ""}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="flex items-center justify-between border-b pb-2 text-sm text-muted-foreground">
-            <span>
-              Tổng số mã: {selectedShipment?.traceCodes?.length || 0}
-            </span>
-
-            <span className="text-xs text-muted-foreground">
-              Trạng thái:{" "}
-              <span className="font-medium text-primary">
-                INACTIVE
-              </span>
-            </span>
-          </div>
-
-          <div className="flex-1 overflow-y-auto py-4 pr-1">
-            {selectedShipment && (
-              <div className="overflow-x-auto">
-                <div className="min-w-max">
-                  <QrCodeGrid
-                    traceCodes={selectedShipment.traceCodes || []}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <ShipmentDetailDialog
-        open={detailShipmentId !== null}
-        shipmentId={detailShipmentId}
-        onClose={() => setDetailShipmentId(null)}
       />
 
       <ShipmentTimelineDialog

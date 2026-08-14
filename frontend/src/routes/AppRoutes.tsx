@@ -52,6 +52,7 @@ import FarmLogHistoryPage from "@/pages/farm-log/FarmLogHistoryPage";
 
 // ===== Shipment =====
 import { ProductionLotDetailPage } from "@/pages/shipment/ProductionLotDetailPage";
+import { ShipmentDetailPage } from "@/pages/shipment/ShipmentDetailPage";
 
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
@@ -435,6 +436,19 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-02"]}>
                         <ImportProductionLotPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* =================================================
+          SHIPMENT DETAIL (NCL-07-CN-002 / NCL-12-CN-003)
+      ================================================= */}
+
+            <Route
+                path="shipments/:id"
+                element={
+                    <RoleRoute allowedRoles={["VT-02", "VT-04"]}>
+                        <ShipmentDetailPage />
                     </RoleRoute>
                 }
             />
