@@ -172,7 +172,7 @@ class EventValidationServiceImplTest {
         codeRange.setUsedCount(500L);
 
         when(shipmentRepository.findById(shipment.getId())).thenReturn(Optional.of(shipment));
-        when(codeRangeRepository.findByOrganizationOrganizationId(currentUser.getOrganizationId())).thenReturn(Optional.of(codeRange));
+        when(codeRangeRepository.findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(currentUser.getOrganizationId())).thenReturn(Optional.of(codeRange));
 
         eventValidationService.deleteDraft(shipment.getId(), currentUser);
 

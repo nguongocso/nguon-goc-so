@@ -22,11 +22,19 @@ public interface CodeRangeRepository extends JpaRepository<CodeRange, UUID> {
     Optional<CodeRange> findByPrefix(String prefix);
 
     /**
-     * Tìm một dải mã truy xuất theo tổ chức.
+     * Tìm dải mã truy xuất mới nhất (theo createdAt) của một tổ chức.
+     *
+     * <p>
+     * Bảng {@code code_ranges} hiện tại KHÔNG có ràng buộc UNIQUE trên
+     * {@code organization_id} nên một tổ chức có thể có nhiều dòng. Dùng
+     * {@code findFirst...OrderByCreatedAtDesc} để chọn một kết quả xác định
+     * (dải mã mới nhất), tránh {@code NonUniqueResultException}. Nên thêm ràng
+     * buộc UNIQUE ở database sau khi dữ liệu đã được làm sạch.
+     * </p>
      *
      * @param organizationId ID của tổ chức
-     * @return Optional chứa CodeRange nếu tìm thấy, ngược lại là Optional.empty()
+     * @return Optional chứa CodeRange mới nhất nếu tìm thấy, ngược lại là Optional.empty()
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    Optional<CodeRange> findByOrganizationOrganizationId(UUID organizationId);
+    Optional<CodeRange> findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(UUID organizationId);
 }
