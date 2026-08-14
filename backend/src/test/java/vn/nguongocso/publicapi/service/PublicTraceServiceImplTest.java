@@ -31,6 +31,7 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.RecallRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
+import vn.nguongocso.trace.service.SuspectDetectionService;
 
 /**
  * Kiểm thử contract NCL-08-CN-007:
@@ -51,6 +52,9 @@ class PublicTraceServiceImplTest {
 
     @Mock
     private ScanAnomalyDetectionService scanAnomalyDetectionService;
+
+    @Mock
+    private SuspectDetectionService suspectDetectionService;
 
     @Mock
     private RecallRepository recallRepository;
@@ -75,6 +79,7 @@ class PublicTraceServiceImplTest {
                 new ObjectMapper(),
                 traceCodeScanLogRepository,
                 scanAnomalyDetectionService,
+                suspectDetectionService,
                 recallRepository,
                 productionLotCertificationRepository,
                 reverseGeocodingService);
@@ -124,6 +129,7 @@ class PublicTraceServiceImplTest {
 
         // POST scan tạo đúng 1 ScanLog và kích hoạt đánh giá nghi vấn.
         verify(traceCodeScanLogRepository).save(any());
+        verify(suspectDetectionService).evaluateSuspicion(traceCode.getId());
         verify(scanAnomalyDetectionService).onScanRecorded(traceCode.getId());
     }
 }

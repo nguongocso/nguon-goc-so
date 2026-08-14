@@ -31,6 +31,7 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.RecallRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
+import vn.nguongocso.trace.service.SuspectDetectionService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -48,6 +49,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
     private final ObjectMapper objectMapper;
     private final TraceCodeScanLogRepository traceCodeScanLogRepository;
     private final ScanAnomalyDetectionService scanAnomalyDetectionService;
+    private final SuspectDetectionService suspectDetectionService;
     private final RecallRepository recallRepository;
     private final ProductionLotCertificationRepository productionLotCertificationRepository;
     private final ReverseGeocodingService reverseGeocodingService;
@@ -118,7 +120,11 @@ public class PublicTraceServiceImpl implements PublicTraceService {
 
         traceCodeScanLogRepository.save(scanLog);
 
-        // Kiểm tra phát hiện quét bất thường (bao gồm đánh giá nghi vấn NCL-08-CN-007)
+        // Đánh giá nghi vấn (NCL-08-CN-007) — giữ nguyên thứ tự thực thi cũ:
+        // trước đây evaluateSuspicion được gọi đầu tiên bên trong onScanRecorded.
+        suspectDetectionService.evaluateSuspicion(traceCode.getId());
+
+        // Kiểm tra phát hiện quét bất thường (NCL-08-CN-001)
         scanAnomalyDetectionService.onScanRecorded(traceCode.getId());
 
         return buildPublicTraceResponse(codeValue);

@@ -1,12 +1,10 @@
 package vn.nguongocso.trace.service.impl;
 
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -21,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.common.PageResponse;
+import vn.nguongocso.common.util.GeoDistanceUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.exception.ResourceNotFoundException;
 import vn.nguongocso.notification.service.NotificationService;
@@ -39,7 +38,14 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.SuspectDetectionService;
 
 /**
- * Triển khai phát hiện nghi vấn và quản lý khóa mã tem.
+ * Triển khai phát hiện nghi vấn và quản lý khóa mã tem (NCL-08-CN-007).
+ *
+ * <p>
+ * Service này chỉ chịu trách nhiệm chấm điểm nghi vấn, cập nhật trạng thái
+ * {@code SUSPECT}, gửi cảnh báo nghi vấn và cho phép VT-01 khóa/mở khóa thủ công.
+ * Nó KHÔNG tạo cảnh báo quét bất thường (Alert) — trách nhiệm đó thuộc về
+ * NCL-08-CN-001.
+ * </p>
  */
 @Slf4j
 @Service
@@ -56,7 +62,6 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
     private static final int MULTIPLE_LOCATIONS_SCORE = 15;
     private static final int SUSPECT_THRESHOLD = 50; // ≥ 50 → SUSPECT
     private static final int MAX_SCORE = 100;
-    private static final double EARTH_RADIUS_KM = 6371.0;
     private static final double LOCATION_EPSILON_KM = 0.5; // Coi là cùng vị trí nếu khoảng cách < 0.5km
 
     private final TraceCodeRepository traceCodeRepository;
@@ -93,71 +98,36 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                 .sorted(Comparator.comparing(TraceCodeScanLog::getScannedAt))
                 .collect(Collectors.toList());
 
-        // Calculate scores
-        int highFreqScore = 0;
-        int impossibleTravelScore = 0;
-        int multipleLocationsScore = 0;
-        int impossibleTravelCount = 0;
-        StringBuilder reasonBuilder = new StringBuilder();
+        SuspicionEvaluation evaluation = evaluate(sortedScans);
 
-        // 1. High frequency: ≥ 10 scans in 24h
-        if (recentScans.size() >= HIGH_FREQUENCY_THRESHOLD) {
-            highFreqScore = HIGH_FREQUENCY_SCORE;
+        // Build suspicion reason
+        StringBuilder reasonBuilder = new StringBuilder();
+        if (evaluation.highFreqScore() > 0) {
             reasonBuilder.append("Số lượt quét cao (").append(recentScans.size())
                     .append(" lượt trong 24 giờ); ");
         }
-
-        // 2. Impossible travel: > 50km within < 30 min between consecutive scans with coordinates
-        for (int i = 0; i < sortedScans.size() - 1; i++) {
-            TraceCodeScanLog scan1 = sortedScans.get(i);
-            TraceCodeScanLog scan2 = sortedScans.get(i + 1);
-
-            if (scan1.getLatitude() == null || scan1.getLongitude() == null
-                    || scan2.getLatitude() == null || scan2.getLongitude() == null) {
-                continue;
-            }
-
-            double distance = calculateDistance(
-                    scan1.getLatitude().doubleValue(),
-                    scan1.getLongitude().doubleValue(),
-                    scan2.getLatitude().doubleValue(),
-                    scan2.getLongitude().doubleValue());
-
-            long minutesBetween = Duration.between(scan1.getScannedAt(), scan2.getScannedAt()).toMinutes();
-
-            if (distance > IMPOSSIBLE_TRAVEL_DISTANCE_KM && minutesBetween < IMPOSSIBLE_TRAVEL_MINUTES) {
-                impossibleTravelCount++;
-                if (impossibleTravelScore == 0) {
-                    impossibleTravelScore = IMPOSSIBLE_TRAVEL_SCORE;
-                    reasonBuilder.append("Khoảng cách không hợp lý: ")
-                            .append(String.format("%.0f", distance)).append("km trong ")
-                            .append(minutesBetween).append(" phút; ");
-                }
-            }
+        if (evaluation.impossibleTravelScore() > 0) {
+            reasonBuilder.append("Khoảng cách không hợp lý: ")
+                    .append(String.format("%.0f", evaluation.firstImpossibleDistanceKm())).append("km trong ")
+                    .append(evaluation.firstImpossibleMinutes()).append(" phút; ");
+        }
+        if (evaluation.multipleLocationsScore() > 0) {
+            reasonBuilder.append(evaluation.uniqueLocations()).append(" địa điểm khác nhau trong 24 giờ; ");
         }
 
-        // 3. Multiple locations: count unique locations (by geohash approximation)
-        int uniqueLocations = countUniqueLocations(sortedScans);
-        if (uniqueLocations >= MULTIPLE_LOCATIONS_THRESHOLD) {
-            multipleLocationsScore = MULTIPLE_LOCATIONS_SCORE;
-            reasonBuilder.append(uniqueLocations).append(" địa điểm khác nhau trong 24 giờ; ");
-        }
-
-        int totalScore = Math.min(MAX_SCORE, highFreqScore + impossibleTravelScore + multipleLocationsScore);
-
-        // Update trace code
-        traceCode.setSuspicionScore(totalScore);
-
-        // Build suspicion reason
         String reason = reasonBuilder.length() > 0
                 ? reasonBuilder.substring(0, reasonBuilder.length() - 2) // remove trailing "; "
                 : null;
+
+        // Update trace code
+        traceCode.setSuspicionScore(evaluation.totalScore());
         traceCode.setSuspicionReason(reason);
 
-        if (totalScore >= SUSPECT_THRESHOLD) {
+        if (evaluation.totalScore() >= SUSPECT_THRESHOLD) {
             if (traceCode.getStatus() == TraceCodeStatus.ACTIVE) {
                 traceCode.setStatus(TraceCodeStatus.SUSPECT);
-                log.info("Trace code {} marked as SUSPECT with score {}", traceCode.getCodeValue(), totalScore);
+                log.info("Trace code {} marked as SUSPECT with score {}", traceCode.getCodeValue(),
+                        evaluation.totalScore());
 
                 // Send notification to VT-01
                 try {
@@ -167,8 +137,6 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                             traceCode.getCodeValue(), e.getMessage());
                 }
             }
-        } else {
-            // Score dropped below threshold - keep current status, just update score/reason
         }
 
         traceCodeRepository.save(traceCode);
@@ -231,23 +199,18 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                         .build())
                 .collect(Collectors.toList());
 
-        // Count unique locations & impossible travels
-        int uniqueLocations = countUniqueLocations(sortedScans);
-        int impossibleTravelCount = countImpossibleTravels(sortedScans);
-
-        // Build anomaly details
-        int highFreqScore = recentScans.size() >= HIGH_FREQUENCY_THRESHOLD ? HIGH_FREQUENCY_SCORE : 0;
-        int impossibleTravelScore = impossibleTravelCount > 0 ? IMPOSSIBLE_TRAVEL_SCORE : 0;
-        int multipleLocationsScore = uniqueLocations >= MULTIPLE_LOCATIONS_THRESHOLD ? MULTIPLE_LOCATIONS_SCORE : 0;
+        // Reuse the exact same scoring engine as evaluateSuspicion so the
+        // breakdown always matches the persisted suspicionScore.
+        SuspicionEvaluation evaluation = evaluate(sortedScans);
 
         AnomalyDetails anomalyDetails = AnomalyDetails.builder()
                 .totalScans(recentScans.size())
-                .uniqueLocations(uniqueLocations)
-                .impossibleTravelCount(impossibleTravelCount)
+                .uniqueLocations(evaluation.uniqueLocations())
+                .impossibleTravelCount(evaluation.impossibleTravelCount())
                 .scoreBreakdown(ScoreBreakdown.builder()
-                        .highFrequency(highFreqScore)
-                        .impossibleTravel(impossibleTravelScore)
-                        .multipleLocations(multipleLocationsScore)
+                        .highFrequency(evaluation.highFreqScore())
+                        .impossibleTravel(evaluation.impossibleTravelScore())
+                        .multipleLocations(evaluation.multipleLocationsScore())
                         .build())
                 .build();
 
@@ -259,7 +222,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                 .suspicionScore(traceCode.getSuspicionScore())
                 .suspicionReason(traceCode.getSuspicionReason())
                 .scanCount(recentScans.size())
-                .uniqueLocations(uniqueLocations)
+                .uniqueLocations(evaluation.uniqueLocations())
                 .firstScannedAt(sortedScans.isEmpty() ? null : sortedScans.get(0).getScannedAt())
                 .lastScannedAt(sortedScans.isEmpty() ? null : sortedScans.get(sortedScans.size() - 1).getScannedAt())
                 .lockedAt(traceCode.getLockedAt())
@@ -348,16 +311,82 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
     }
 
     /**
-     * Tính khoảng cách Haversine giữa hai tọa độ (km).
+     * Trung tâm tính điểm nghi vấn NCL-08-CN-007.
+     *
+     * <p>
+     * Cả {@code evaluateSuspicion} lẫn {@code getSuspectDetail} đều dùng duy nhất
+     * phương thức này, đảm bảo điểm được lưu và bảng phân tích hiển thị luôn khớp.
+     * Quy tắc không thay đổi:
+     * </p>
+     * <ul>
+     * <li>Số lượt quét ≥ 10 trong 24h → +30.</li>
+     * <li>Di chuyển bất hợp lý (> 50km, < 30 phút) → tối đa +40 (không cộng dồn).</li>
+     * <li>Số địa điểm khác nhau ≥ 5 → +15.</li>
+     * </ul>
+     *
+     * @param sortedScans các lượt quét đã sắp xếp tăng dần theo thời gian
+     * @return kết quả đánh giá (từng hạng mục + tổng điểm)
      */
-    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                        * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return EARTH_RADIUS_KM * c;
+    private SuspicionEvaluation evaluate(List<TraceCodeScanLog> sortedScans) {
+        int highFreqScore = 0;
+        int impossibleTravelScore = 0;
+        int multipleLocationsScore = 0;
+        int impossibleTravelCount = 0;
+        Double firstImpossibleDistanceKm = null;
+        Long firstImpossibleMinutes = null;
+
+        // 1. High frequency: ≥ 10 scans in 24h
+        if (sortedScans.size() >= HIGH_FREQUENCY_THRESHOLD) {
+            highFreqScore = HIGH_FREQUENCY_SCORE;
+        }
+
+        // 2. Impossible travel: > 50km within < 30 min between consecutive scans with coordinates
+        for (int i = 0; i < sortedScans.size() - 1; i++) {
+            TraceCodeScanLog scan1 = sortedScans.get(i);
+            TraceCodeScanLog scan2 = sortedScans.get(i + 1);
+
+            if (scan1.getLatitude() == null || scan1.getLongitude() == null
+                    || scan2.getLatitude() == null || scan2.getLongitude() == null) {
+                continue;
+            }
+
+            double distance = GeoDistanceUtils.haversineKm(
+                    scan1.getLatitude().doubleValue(),
+                    scan1.getLongitude().doubleValue(),
+                    scan2.getLatitude().doubleValue(),
+                    scan2.getLongitude().doubleValue());
+
+            long minutesBetween = Duration.between(scan1.getScannedAt(), scan2.getScannedAt()).toMinutes();
+
+            if (distance > IMPOSSIBLE_TRAVEL_DISTANCE_KM && minutesBetween < IMPOSSIBLE_TRAVEL_MINUTES) {
+                impossibleTravelCount++;
+                if (firstImpossibleDistanceKm == null) {
+                    firstImpossibleDistanceKm = distance;
+                    firstImpossibleMinutes = minutesBetween;
+                }
+            }
+        }
+
+        // Rule contributes at most +40 for the category, regardless of how many pairs match.
+        impossibleTravelScore = impossibleTravelCount > 0 ? IMPOSSIBLE_TRAVEL_SCORE : 0;
+
+        // 3. Multiple locations: count unique locations (by distance epsilon)
+        int uniqueLocations = countUniqueLocations(sortedScans);
+        if (uniqueLocations >= MULTIPLE_LOCATIONS_THRESHOLD) {
+            multipleLocationsScore = MULTIPLE_LOCATIONS_SCORE;
+        }
+
+        int totalScore = Math.min(MAX_SCORE, highFreqScore + impossibleTravelScore + multipleLocationsScore);
+
+        return new SuspicionEvaluation(
+                highFreqScore,
+                impossibleTravelScore,
+                multipleLocationsScore,
+                impossibleTravelCount,
+                uniqueLocations,
+                totalScore,
+                firstImpossibleDistanceKm,
+                firstImpossibleMinutes);
     }
 
     /**
@@ -373,7 +402,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
             }
             boolean found = false;
             for (TraceCodeScanLog existing : distinct) {
-                double dist = calculateDistance(
+                double dist = GeoDistanceUtils.haversineKm(
                         scan.getLatitude().doubleValue(),
                         scan.getLongitude().doubleValue(),
                         existing.getLatitude().doubleValue(),
@@ -388,31 +417,6 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
             }
         }
         return distinct.size();
-    }
-
-    /**
-     * Đếm số cặp quét có khoảng cách bất hợp lý.
-     */
-    private int countImpossibleTravels(List<TraceCodeScanLog> sortedScans) {
-        int count = 0;
-        for (int i = 0; i < sortedScans.size() - 1; i++) {
-            TraceCodeScanLog s1 = sortedScans.get(i);
-            TraceCodeScanLog s2 = sortedScans.get(i + 1);
-            if (s1.getLatitude() == null || s1.getLongitude() == null
-                    || s2.getLatitude() == null || s2.getLongitude() == null) {
-                continue;
-            }
-            double distance = calculateDistance(
-                    s1.getLatitude().doubleValue(),
-                    s1.getLongitude().doubleValue(),
-                    s2.getLatitude().doubleValue(),
-                    s2.getLongitude().doubleValue());
-            long minutes = Duration.between(s1.getScannedAt(), s2.getScannedAt()).toMinutes();
-            if (distance > IMPOSSIBLE_TRAVEL_DISTANCE_KM && minutes < IMPOSSIBLE_TRAVEL_MINUTES) {
-                count++;
-            }
-        }
-        return count;
     }
 
     /**
@@ -442,5 +446,19 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                 .lockedByName(tc.getLockedBy() != null ? tc.getLockedBy().getFullName() : null)
                 .lockReason(tc.getLockReason())
                 .build();
+    }
+
+    /**
+     * Kết quả đánh giá nghi vấn bất biến (không được sửa đổi bởi người gọi).
+     */
+    private record SuspicionEvaluation(
+            int highFreqScore,
+            int impossibleTravelScore,
+            int multipleLocationsScore,
+            int impossibleTravelCount,
+            int uniqueLocations,
+            int totalScore,
+            Double firstImpossibleDistanceKm,
+            Long firstImpossibleMinutes) {
     }
 }
