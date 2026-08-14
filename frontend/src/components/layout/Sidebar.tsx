@@ -211,6 +211,20 @@ const MENU_GROUPS: MenuGroup[] = [
         href: "/failed-event-logs",
         allowedRoles: ["VT-02", "VT-03"] as const,
       },
+      {
+        icon: <AlertTriangle className="h-5 w-5" />,
+        label: "Tạo yêu cầu thu hồi",
+        href: "/recall-requests/create",
+        allowedRoles: ROLE_ACCESS.recallRequestCreate,
+        activePaths: ["/recall-requests/create"],
+      },
+      {
+        icon: <AlertTriangle className="h-5 w-5" />,
+        label: "Danh sách yêu cầu thu hồi",
+        href: "/recall-requests",
+        allowedRoles: ROLE_ACCESS.recallRequestManage,
+        activePaths: ["/recall-requests"],
+      },
     ],
   },
 

@@ -62,8 +62,14 @@ export const CreateRecallRequestPage = () => {
         reason: reason.trim(),
         evidence: evidence.trim() || undefined,
       });
-      toast.success('Đã gửi yêu cầu thu hồi thành công. Chờ quản lý duyệt.');
-      navigate('/recall-requests');
+
+      toast.success('Yêu cầu thu hồi đã được gửi thành công.');
+
+      // Giữ người dùng ở lại trang tạo và reset form để có thể gửi tiếp.
+      setReason('');
+      setEvidence('');
+      setSelectedLotId(lots.length > 0 ? lots[0].id : '');
+      setError(null);
     } catch (err: any) {
       const message =
         err.response?.data?.message || 'Không thể tạo yêu cầu thu hồi.';
