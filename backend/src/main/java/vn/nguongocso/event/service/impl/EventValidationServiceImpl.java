@@ -145,7 +145,8 @@ public class EventValidationServiceImpl implements EventValidationService {
         dossierExportHistoryRepository.deleteByShipmentId(shipment.getId());
 
         // 4. Hoàn lại dải mã
-        CodeRange codeRange = codeRangeRepository.findByOrganizationOrganizationId(currentUser.getOrganizationId())
+        CodeRange codeRange = codeRangeRepository
+                .findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(currentUser.getOrganizationId())
                 .orElseThrow(() -> new BusinessException("Không tìm thấy dải mã của tổ chức."));
         codeRange.setUsedCount(Math.max(0, codeRange.getUsedCount() - shipment.getTotalQuantity()));
         codeRangeRepository.save(codeRange);
