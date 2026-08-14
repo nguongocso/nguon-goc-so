@@ -58,6 +58,22 @@ public class TraceCode {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "suspicion_score")
+    private Integer suspicionScore;
+
+    @Column(name = "suspicion_reason", columnDefinition = "TEXT")
+    private String suspicionReason;
+
+    @Column(name = "locked_at")
+    private LocalDateTime lockedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "locked_by")
+    private User lockedBy;
+
+    @Column(name = "lock_reason", columnDefinition = "TEXT")
+    private String lockReason;
+
     @PrePersist
     protected void onCreate() {
         if (id == null) {

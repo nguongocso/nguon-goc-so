@@ -15,5 +15,7 @@ public enum ProductionLotStatus {
 
     PACKAGED, // Đã đóng gói
 
-    CLOSED // Đã đóng
+    CLOSED, // Đã đóng
+
+    RECALLED // Đã thu hồi
 }

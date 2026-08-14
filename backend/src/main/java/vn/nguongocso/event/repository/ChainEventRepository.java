@@ -129,4 +129,20 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
          * Tìm một sự kiện WAREHOUSE_RECEIPT theo ID và loại sự kiện.
          */
         Optional<ChainEvent> findByIdAndEventType(UUID id, ChainEventType eventType);
+
+        /**
+         * Lấy danh sách ID người dùng đã ghi sự kiện thu mua (PROCUREMENT)
+         * cho các lô hàng được chỉ định.
+         *
+         * <p>Dùng cho NCL-08-CN-008 để xác định doanh nghiệp thu mua (người mua)
+         * liên quan đến một lô sản xuất để gửi thông báo thu hồi.</p>
+         *
+         * @param shipmentIds danh sách ID lô hàng
+         * @return danh sách ID người dùng đã ghi nhận thu mua (không trùng lặp)
+         */
+        @Query("SELECT DISTINCT ce.recordedBy.id FROM ChainEvent ce " +
+                "WHERE ce.shipment.id IN :shipmentIds " +
+                "AND ce.eventType = vn.nguongocso.event.enums.ChainEventType.PROCUREMENT " +
+                "AND ce.isCorrection = false")
+        List<UUID> findDistinctProcurementRecorderIdsByShipmentIds(@Param("shipmentIds") List<UUID> shipmentIds);
 }

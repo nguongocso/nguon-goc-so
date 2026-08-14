@@ -8,5 +8,9 @@ public enum TraceCodeStatus {
 
     ACTIVE, // Đã kích hoạt
 
+    SUSPECT, // Nghi vấn
+
+    LOCKED, // Đã khóa
+
     RECALLED // Đã thu hồi
 }

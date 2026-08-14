@@ -31,6 +31,10 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.RecallRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
+import vn.nguongocso.trace.service.SuspectDetectionService;
+import vn.nguongocso.recall.entity.RecallRequest;
+import vn.nguongocso.recall.enums.RecallRequestStatus;
+import vn.nguongocso.recall.repository.RecallRequestRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -48,13 +52,36 @@ public class PublicTraceServiceImpl implements PublicTraceService {
     private final ObjectMapper objectMapper;
     private final TraceCodeScanLogRepository traceCodeScanLogRepository;
     private final ScanAnomalyDetectionService scanAnomalyDetectionService;
+    private final SuspectDetectionService suspectDetectionService;
     private final RecallRepository recallRepository;
+    private final RecallRequestRepository recallRequestRepository;
     private final ProductionLotCertificationRepository productionLotCertificationRepository;
     private final ReverseGeocodingService reverseGeocodingService;
 
-    /** Lấy thông tin truy xuất công khai. */
+    /**
+     * Lấy thông tin truy xuất công khai (đọc thuần túy).
+     * <p>
+     * Không tạo TraceCodeScanLog, không tăng lượt quét và không kích hoạt
+     * đánh giá nghi vấn NCL-08-CN-007.
+     */
     @Override
     public PublicTraceResponse getPublicTrace(String codeValue,
+            Double latitude,
+            Double longitude,
+            String ipAddress,
+            String userAgent) {
+
+        return buildPublicTraceResponse(codeValue);
+    }
+
+    /**
+     * Ghi nhận lượt quét mã QR thực tế.
+     * <p>
+     * Tạo TraceCodeScanLog, kích hoạt phát hiện bất thường (gồm cả đánh giá
+     * nghi vấn NCL-08-CN-007), sau đó trả về thông tin truy xuất công khai.
+     */
+    @Override
+    public PublicTraceResponse recordPublicScan(String codeValue,
             Double latitude,
             Double longitude,
             String ipAddress,
@@ -64,34 +91,13 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         TraceCode traceCode = traceCodeRepository.findByCodeValue(codeValue)
                 .orElseThrow(() -> new ResourceNotFoundException("Mã lô hàng không tồn tại."));
 
-        // Lấy Shipment
-        Shipment shipment = traceCode.getShipment();
-        if (shipment == null) {
-            throw new ResourceNotFoundException("Không tìm thấy lô hàng liên kết.");
-        }
-
-        // TC-04: Kiểm tra thu hồi
-        boolean isRecalled = shipment.getStatus() == ShipmentStatus.RECALLED;
-
-        String recallMessage = null;
-        if (isRecalled) {
-            recallMessage = recallRepository
-                    .findTopByShipmentOrderByRecalledAtDesc(shipment)
-                    .map(Recall::getReason)
-                    .orElse("Lô hàng này đã bị thu hồi.");
-        }
-
-        // TC-03: Nếu chưa thu hồi thì tem phải đang ACTIVE
-        if (!isRecalled && traceCode.getStatus() != TraceCodeStatus.ACTIVE) {
-            throw new BusinessException("Tem chưa có hiệu lực, chưa thể tra cứu hành trình.");
-        }
+        // TC-04/TC-03: Kiểm tra thu hồi / trạng thái tem
+        validateTraceCodeLookup(traceCode);
 
         String resolvedLocation = "Không xác định";
 
-        String location = null;
-
         if (latitude != null && longitude != null) {
-            location = reverseGeocodingService.reverseGeocode(
+            String location = reverseGeocodingService.reverseGeocode(
                     latitude,
                     longitude);
 
@@ -118,8 +124,39 @@ public class PublicTraceServiceImpl implements PublicTraceService {
 
         traceCodeScanLogRepository.save(scanLog);
 
-        // Kiểm tra phát hiện quét bất thường
+        // Đánh giá nghi vấn (NCL-08-CN-007) — giữ nguyên thứ tự thực thi cũ:
+        // trước đây evaluateSuspicion được gọi đầu tiên bên trong onScanRecorded.
+        suspectDetectionService.evaluateSuspicion(traceCode.getId());
+
+        // Kiểm tra phát hiện quét bất thường (NCL-08-CN-001)
         scanAnomalyDetectionService.onScanRecorded(traceCode.getId());
+
+        return buildPublicTraceResponse(codeValue);
+    }
+
+    /**
+     * Xây dựng thông tin truy xuất công khai sau khi đã kiểm tra tồn tại mã,
+     * trạng thái tem và lô hàng.
+     */
+    private PublicTraceResponse buildPublicTraceResponse(String codeValue) {
+        TraceCode traceCode = traceCodeRepository.findByCodeValue(codeValue)
+                .orElseThrow(() -> new ResourceNotFoundException("Mã lô hàng không tồn tại."));
+
+        Shipment shipment = traceCode.getShipment();
+        if (shipment == null) {
+            throw new ResourceNotFoundException("Không tìm thấy lô hàng liên kết.");
+        }
+
+        validateTraceCodeLookup(traceCode);
+
+        boolean isRecalled = shipment.getStatus() == ShipmentStatus.RECALLED;
+
+        String recallMessage = null;
+        if (isRecalled) {
+            recallMessage = resolveRecallMessage(shipment);
+        }
+
+        boolean isLocked = traceCode.getStatus() == TraceCodeStatus.LOCKED;
 
         // Lấy dòng sự kiện của Shipment
         List<ChainEvent> shipmentEvents = chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId());
@@ -168,8 +205,60 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .shipmentStatus(shipment.getStatus().name())
                 .recalled(isRecalled)
                 .recallMessage(recallMessage)
+                .locked(isLocked)
+                .lockReason(traceCode.getLockReason())
+                .lockedAt(traceCode.getLockedAt())
                 .events(publicEvents)
                 .build();
+    }
+
+    /**
+     * Xác định thông điệp thu hồi hiển thị công khai.
+     *
+     * <p>
+     * Ưu tiên lấy lý do từ yêu cầu thu hồi lô sản xuất đã được duyệt
+     * (NCL-08-CN-008) theo lô sản xuất của lô hàng. Nếu không có, fallback
+     * về lý do từ bản ghi thu hồi lô hàng cũ (NCL-08-CN-003).
+     * </p>
+     *
+     * @param shipment lô hàng đang bị thu hồi
+     * @return thông điệp thu hồi
+     */
+    private String resolveRecallMessage(Shipment shipment) {
+        if (shipment.getProductionLot() != null) {
+            UUID lotId = shipment.getProductionLot().getId();
+            Optional<RecallRequest> approvedRequest = recallRequestRepository
+                    .findTopByProductionLot_IdAndStatusOrderByApprovedAtDesc(
+                            lotId,
+                            RecallRequestStatus.APPROVED);
+
+            if (approvedRequest.isPresent()) {
+                return approvedRequest.get().getReason();
+            }
+        }
+
+        return recallRepository
+                .findTopByShipmentOrderByRecalledAtDesc(shipment)
+                .map(Recall::getReason)
+                .orElse("Lô hàng này đã bị thu hồi.");
+    }
+
+    /**
+     * Kiểm tra trạng thái hợp lệ của tem để tra cứu/ghi nhận quét.
+     */
+    private void validateTraceCodeLookup(TraceCode traceCode) {
+        Shipment shipment = traceCode.getShipment();
+        if (shipment == null) {
+            throw new ResourceNotFoundException("Không tìm thấy lô hàng liên kết.");
+        }
+
+        boolean isRecalled = shipment.getStatus() == ShipmentStatus.RECALLED;
+        boolean isLocked = traceCode.getStatus() == TraceCodeStatus.LOCKED;
+
+        if (!isRecalled && !isLocked && traceCode.getStatus() != TraceCodeStatus.ACTIVE
+                && traceCode.getStatus() != TraceCodeStatus.SUSPECT) {
+            throw new BusinessException("Tem chưa có hiệu lực, chưa thể tra cứu hành trình.");
+        }
     }
 
     /** Chuyển một sự kiện nội bộ thành dữ liệu công khai. */

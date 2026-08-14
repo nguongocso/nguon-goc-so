@@ -65,12 +65,7 @@ jobs:
       - name: Run backend tests
         env:
           SPRING_PROFILES_ACTIVE: test
-
-          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/nguon_goc_so_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
-
-          SPRING_DATASOURCE_USERNAME: nguongocso_test
-
-          SPRING_DATASOURCE_PASSWORD: Dev2026
+          # Không set SPRING_DATASOURCE_* -> dùng H2 mặc định trong application-test.properties
 
         run: ./mvnw clean test
 
