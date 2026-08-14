@@ -1,27 +1,22 @@
 services:
 
   # =========================================================
-  # MYSQL - Database
+  # DATABASE - MySQL
   # =========================================================
-  # NOTE: volume is pinned via `name:` to nguongocso_mysql_data so that
-  # recreating the stack (even under a different project name) ALWAYS reuses
-  # the existing data directory instead of initializing an empty database.
-  mysql:
+  db:
     image: mysql:8.4
-
-    container_name: nguongocso-mysql
-
+    container_name: nguongocso-db
     restart: unless-stopped
+
+    ports:
+      - "3307:3306"
 
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: nguon_goc_so
 
-    ports:
-      - "3307:3306"
-
     volumes:
-      - mysql_data:/var/lib/mysql
+      - db_data:/var/lib/mysql
 
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
@@ -44,10 +39,8 @@ services:
     env_file:
       - ./backend/.env
 
-    # Override DB connection inside the container:
-    # "localhost" would point to the container itself, not the mysql service.
     environment:
-      DB_HOST: mysql
+      DB_HOST: db
       DB_PORT: 3306
 
     ports:
@@ -59,10 +52,6 @@ services:
 
     extra_hosts:
       - "host.docker.internal:host-gateway"
-
-    depends_on:
-      mysql:
-        condition: service_healthy
 
   # =========================================================
   # FRONTEND - React / Vite / Nginx
@@ -83,5 +72,5 @@ services:
       - backend
 
 volumes:
-  mysql_data:
-    name: nguongocso_mysql_data
+  db_data:
+    name: nguongocso_db_data
