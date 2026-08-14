@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { AlertCircle, ArrowLeft, LoaderCircle, QrCode } from "lucide-react";
+import { AlertCircle, ArrowLeft, ChevronLeft, ChevronRight, LoaderCircle, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -46,6 +46,27 @@ export const ShipmentDetailPage = () => {
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Pagination cho danh sách mã QR
+  const [qrPage, setQrPage] = useState(1);
+  const qrPageSize = 20;
+
+  const totalPages = useMemo(() => {
+    if (!shipment) return 0;
+    return Math.ceil(shipment.traceCodes.length / qrPageSize);
+  }, [shipment]);
+
+  const pageItems = useMemo(() => {
+    if (!shipment) return [];
+    const start = (qrPage - 1) * qrPageSize;
+    const end = start + qrPageSize;
+    return shipment.traceCodes.slice(start, end);
+  }, [shipment, qrPage]);
+
+  // Reset về trang 1 khi chuyển lô hàng
+  useEffect(() => {
+    setQrPage(1);
+  }, [shipment?.id]);
 
   useEffect(() => {
     if (!id) {
@@ -218,7 +239,37 @@ export const ShipmentDetailPage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
-              <QrCodeGrid traceCodes={shipment.traceCodes} />
+              <QrCodeGrid traceCodes={pageItems} />
+
+              {totalPages > 1 && (
+                <div className="mt-6 flex items-center justify-between gap-3 rounded-lg border border-emerald-100 bg-emerald-50/50 p-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={qrPage === 1}
+                    onClick={() => setQrPage((p) => Math.max(1, p - 1))}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Trang trước
+                  </Button>
+
+                  <span className="text-sm font-medium text-emerald-800">
+                    Trang {qrPage} / {totalPages}
+                  </span>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={qrPage >= totalPages}
+                    onClick={() => setQrPage((p) => Math.min(totalPages, p + 1))}
+                  >
+                    Trang sau
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
