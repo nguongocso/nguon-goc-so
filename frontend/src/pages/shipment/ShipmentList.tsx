@@ -15,7 +15,6 @@ import {
   FileText,
   FileJson,
   Plus,
-  QrCode,
   Ban,
   MoreHorizontal,
   History,
@@ -316,18 +315,6 @@ export const ShipmentList = ({
 
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-1.5">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-auto px-2.5 py-1 text-xs"
-                            onClick={() =>
-                              navigate(`/shipments/${shipment.id}?tab=qr`)
-                            }
-                          >
-                            <QrCode className="mr-1 h-3 w-3" />
-                            Xem mã QR
-                          </Button>
-
                           <DropdownMenu>
                             <DropdownMenuTrigger
                               className="size-7"
