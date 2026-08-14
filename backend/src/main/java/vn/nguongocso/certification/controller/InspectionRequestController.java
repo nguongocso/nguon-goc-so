@@ -30,6 +30,11 @@ public class InspectionRequestController {
 
     private final InspectionRequestService inspectionRequestService;
 
+    /**
+     * Lấy danh sách chỉ tiêu kiểm nghiệm áp dụng cho lô.
+     *
+     * GET /api/v1/production-lots/{lotId}/test-criteria
+     */
     @GetMapping("/production-lots/{lotId}/test-criteria")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<ProductionLotTestCriteriaResponse>> getTestCriteria(
@@ -37,17 +42,27 @@ public class InspectionRequestController {
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
         ProductionLotTestCriteriaResponse response =
-                inspectionRequestService.getTestCriteria(lotId, currentUser);
+                inspectionRequestService.getTestCriteria(
+                        lotId,
+                        currentUser);
 
-        return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
+        return ResponseEntity.ok(
+                ApiResult.success(
+                        HttpStatus.OK.value(),
+                        response));
     }
 
-    @PreAuthorize("hasRole('VT-02')")
+    /**
+     * Tạo yêu cầu kiểm nghiệm cho lô.
+     *
+     * POST /api/v1/production-lots/{lotId}/test-requests
+     */
     @PostMapping("/production-lots/{lotId}/test-requests")
+    @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<InspectionRequestResponse>> create(
             @PathVariable UUID lotId,
             @Valid @RequestBody CreateInspectionRequest request,
-            @AuthenticationPrincipal CustomUserDet/ails currentUser) {
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
 
         InspectionRequestResponse response =
                 inspectionRequestService.createInspectionRequest(
@@ -55,10 +70,19 @@ public class InspectionRequestController {
                         request,
                         currentUser);
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResult.success(HttpStatus.CREATED.value(), response));
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(
+                        ApiResult.success(
+                                HttpStatus.CREATED.value(),
+                                response));
     }
 
+    /**
+     * Lấy danh sách yêu cầu kiểm nghiệm.
+     *
+     * GET /api/v1/test-requests
+     */
     @GetMapping("/test-requests")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<PageResponse<InspectionRequestListResponse>>> getInspectionRequests(
@@ -69,6 +93,7 @@ public class InspectionRequestController {
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
         Pageable pageable = PageRequest.of(page, size);
+
         Page<InspectionRequestListResponse> response =
                 inspectionRequestService.getInspectionRequests(
                         lotId,
@@ -79,6 +104,8 @@ public class InspectionRequestController {
         return ResponseEntity.ok(
                 ApiResult.success(
                         HttpStatus.OK.value(),
-                        PageResponse.from(response, response.getContent())));
+                        PageResponse.from(
+                                response,
+                                response.getContent())));
     }
 }
