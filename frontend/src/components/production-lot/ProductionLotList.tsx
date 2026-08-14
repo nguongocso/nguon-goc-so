@@ -96,6 +96,10 @@ const statusConfig: Record<
     label: "Đã kết thúc",
     className: "bg-purple-100 text-purple-800 border-purple-300",
   },
+  RECALLED: {
+    label: "Đã thu hồi",
+    className: "bg-red-100 text-red-800 border-red-300",
+  },
 };
 
 const formatDate = (value: string | null) => {

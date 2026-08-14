@@ -57,7 +57,7 @@ export const CreateRecallRequestPage = () => {
 
     try {
       setSubmitting(true);
-      const result = await createRecallRequest({
+      await createRecallRequest({
         lotId: selectedLotId,
         reason: reason.trim(),
         evidence: evidence.trim() || undefined,
