@@ -2,7 +2,10 @@ CREATE TABLE inspection_criterion_definitions (
     id INT NOT NULL AUTO_INCREMENT,
     code VARCHAR(100) NOT NULL,
     name VARCHAR(255) NOT NULL,
+    note TEXT,
     standard_id CHAR(36) NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
 
     PRIMARY KEY (id),
 

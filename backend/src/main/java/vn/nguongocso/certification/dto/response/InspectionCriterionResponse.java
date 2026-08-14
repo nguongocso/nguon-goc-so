@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -27,4 +28,13 @@ public class InspectionCriterionResponse {
 
     @JsonProperty("standardName")
     private String standardName;
+
+    @JsonProperty("note")
+    private String note;
+
+    @JsonProperty("createdAt")
+    private LocalDateTime createdAt;
+
+    @JsonProperty("updatedAt")
+    private LocalDateTime updatedAt;
 }

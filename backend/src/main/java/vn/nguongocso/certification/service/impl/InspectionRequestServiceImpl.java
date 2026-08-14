@@ -421,8 +421,6 @@ public class InspectionRequestServiceImpl
                                                         def.getCode())
                                                 .name(
                                                         def.getName())
-                                                .isMandatory(
-                                                        false)
                                                 .build())
                                 .toList())
                 .build();
@@ -555,8 +553,9 @@ public class InspectionRequestServiceImpl
 
         boolean hasHarvest =
                 chainEventRepository
-                        .existsByShipment_ProductionLot_IdAndEventType(
+                        .existsByProductionLotIdOrUnassignedEventDataAndEventType(
                                 lot.getId(),
+                                lot.getId().toString(),
                                 ChainEventType.HARVEST);
 
         if (!hasHarvest) {

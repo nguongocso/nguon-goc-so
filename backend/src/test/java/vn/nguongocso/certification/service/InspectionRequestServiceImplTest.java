@@ -195,8 +195,9 @@ class InspectionRequestServiceImplTest {
          */
         when(
                 chainEventRepository
-                        .existsByShipment_ProductionLot_IdAndEventType(
+                        .existsByProductionLotIdOrUnassignedEventDataAndEventType(
                                 lotId,
+                                lotId.toString(),
                                 ChainEventType.HARVEST))
                 .thenReturn(true);
 
@@ -428,8 +429,9 @@ class InspectionRequestServiceImplTest {
          */
         when(
                 chainEventRepository
-                        .existsByShipment_ProductionLot_IdAndEventType(
+                        .existsByProductionLotIdOrUnassignedEventDataAndEventType(
                                 lotId,
+                                lotId.toString(),
                                 ChainEventType.HARVEST))
                 .thenReturn(true);
 

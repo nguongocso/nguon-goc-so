@@ -34,8 +34,5 @@ public class ProductionLotTestCriteriaResponse {
 
         @JsonProperty("name")
         private String name;
-
-        @JsonProperty("isMandatory")
-        private boolean isMandatory;
     }
 }

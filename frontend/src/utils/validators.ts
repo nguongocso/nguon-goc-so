@@ -493,6 +493,27 @@ export const standardFormSchema = z.object({
 export type StandardFormValues =
     z.infer<typeof standardFormSchema>;
 
+export const inspectionCriterionSchema = z.object({
+    criterionCode: z
+        .string()
+        .min(1, 'Mã tiêu chí không được để trống')
+        .max(100, 'Mã tiêu chí tối đa 100 ký tự'),
+
+    criterionName: z
+        .string()
+        .min(1, 'Tên tiêu chí không được để trống')
+        .max(255, 'Tên tiêu chí tối đa 255 ký tự'),
+
+    note: z
+        .string()
+        .max(1000, 'Ghi chú không được vượt quá 1000 ký tự')
+        .optional()
+        .or(z.literal('')),
+});
+
+export type InspectionCriterionFormValues =
+    z.infer<typeof inspectionCriterionSchema>;
+
 
 // ============================================================
 // Certification

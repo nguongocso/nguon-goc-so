@@ -4,6 +4,8 @@ import type {
   CreateStandardRequest,
   UpdateStandardRequest,
   StandardListResponse,
+  InspectionCriterion,
+  InspectionCriterionRequest,
 } from '@/types/standard';
 
 /**
@@ -57,4 +59,49 @@ export const getActiveStandards = async (): Promise<Standard[]> => {
     { params: { isActive: true, page: 0, size: 100 } }
   );
   return response.data.data.items;
+};
+
+export const getStandardCriteria = async (
+  standardId: string
+): Promise<InspectionCriterion[]> => {
+  const response = await apiClient.get<{ data: InspectionCriterion[] }>(
+    `/standards/${standardId}/criteria`
+  );
+  return response.data.data;
+};
+
+export const createStandardCriterion = async (
+  standardId: string,
+  data: InspectionCriterionRequest
+): Promise<InspectionCriterion> => {
+  const response = await apiClient.post<{ data: InspectionCriterion }>(
+    `/standards/${standardId}/criteria`,
+    {
+      ...data,
+      standardId,
+    }
+  );
+  return response.data.data;
+};
+
+export const updateStandardCriterion = async (
+  standardId: string,
+  criteriaId: number,
+  data: InspectionCriterionRequest
+): Promise<InspectionCriterion> => {
+  const response = await apiClient.put<{ data: InspectionCriterion }>(
+    `/standards/${standardId}/criteria/${criteriaId}`,
+    {
+      ...data,
+      standardId,
+    }
+  );
+  return response.data.data;
+};
+
+export const deleteStandardCriterion = async (
+  standardId: string,
+  criteriaId: number
+): Promise<void> => {
+  await apiClient.delete(`/standards/${standardId}/criteria/${criteriaId}`);
 };

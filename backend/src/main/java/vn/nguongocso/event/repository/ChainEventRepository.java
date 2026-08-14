@@ -131,31 +131,28 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
         Optional<ChainEvent> findByIdAndEventType(UUID id, ChainEventType eventType);
 
         /**
-         * Kiểm tra sự tồn tại của sự kiện theo ID lô sản xuất và loại sự kiện.
-         *
-         * @param productionLotId ID của lô sản xuất.
-         * @param eventType       Loại sự kiện.
-         * @return true nếu tồn tại, ngược lại là false.
+         * Kiểm tra sự tồn tại của sự kiện theo lotId với 2 trường hợp:
+         * 1) event gắn trực tiếp vào shipment của lot
+         * 2) event chưa gắn shipment nhưng lưu productionLotId trong eventData
+         *    (ví dụ HARVEST / PACKAGING do thiết kế hệ thống cũ).
          */
         @Query("""
                             SELECT COUNT(ce) > 0
                             FROM ChainEvent ce
-                            JOIN ce.shipment s
-                            WHERE s.productionLot.id = :productionLotId
-                              AND ce.eventType = :eventType
+                            LEFT JOIN ce.shipment s
+                            WHERE ce.eventType = :eventType
                               AND ce.isCorrection = false
+                              AND (
+                                  (s.productionLot.id = :productionLotId)
+                                  OR (
+                                      ce.shipment IS NULL
+                                      AND ce.eventData IS NOT NULL
+                                      AND ce.eventData LIKE CONCAT('%\"productionLotId\":\"', :productionLotIdText, '\"%')
+                                  )
+                              )
                         """)
-        boolean existsByProductionLotIdAndEventType(
+        boolean existsByProductionLotIdOrUnassignedEventDataAndEventType(
                         @Param("productionLotId") UUID productionLotId,
+                        @Param("productionLotIdText") String productionLotIdText,
                         @Param("eventType") ChainEventType eventType);
-
-        /**
-         * Kiểm tra sự tồn tại của sự kiện theo ID lô sản xuất và loại sự kiện.
-         * @param productionLotId
-         * @param eventType
-         * @return
-         */
-        boolean existsByShipment_ProductionLot_IdAndEventType(
-        UUID productionLotId,
-        ChainEventType eventType);
 }

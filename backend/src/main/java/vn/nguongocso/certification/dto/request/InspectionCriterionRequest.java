@@ -13,7 +13,7 @@ import java.util.UUID;
  */
 @Getter
 @Setter
-class InspectionCriterionRequest {
+public class InspectionCriterionRequest {
 
     @NotNull(message = "Tiêu chuẩn không được để trống")
     private UUID standardId;
@@ -25,4 +25,7 @@ class InspectionCriterionRequest {
     @NotBlank(message = "Tên chỉ tiêu không được để trống")
     @Size(max = 255)
     private String criterionName;
+
+    @Size(max = 1000, message = "Ghi chú tối đa 1000 ký tự")
+    private String note;
 }
