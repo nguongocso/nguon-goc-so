@@ -145,4 +145,32 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
                 "AND ce.eventType = vn.nguongocso.event.enums.ChainEventType.PROCUREMENT " +
                 "AND ce.isCorrection = false")
         List<UUID> findDistinctProcurementRecorderIdsByShipmentIds(@Param("shipmentIds") List<UUID> shipmentIds);
+
+        /**
+         * Kiểm tra sự tồn tại của sự kiện theo lotId với 2 trường hợp:
+         * 1) event gắn trực tiếp vào shipment của lot
+         * 2) event chưa gắn shipment nhưng lưu productionLotId trong eventData
+         *    (ví dụ HARVEST / PACKAGING do thiết kế hệ thống cũ).
+         */
+        @Query("""
+                            SELECT COUNT(ce) > 0
+                            FROM ChainEvent ce
+                            LEFT JOIN ce.shipment s
+                            WHERE ce.eventType = :eventType
+                              AND ce.isCorrection = false
+                              AND (
+                                  (s.productionLot.id = :productionLotId)
+                                  OR (
+                                      ce.shipment IS NULL
+                                      AND ce.eventData IS NOT NULL
+                                      AND FUNCTION('JSON_UNQUOTE',
+                                            FUNCTION('JSON_EXTRACT', ce.eventData, '$.productionLotId'))
+                                          = :productionLotIdText
+                                  )
+                              )
+                        """)
+        boolean existsByProductionLotIdOrUnassignedEventDataAndEventType(
+                        @Param("productionLotId") UUID productionLotId,
+                        @Param("productionLotIdText") String productionLotIdText,
+                        @Param("eventType") ChainEventType eventType);
 }
