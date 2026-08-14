@@ -1,5 +1,9 @@
 package vn.nguongocso.report.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
@@ -15,6 +19,7 @@ import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.report.exception.DossierValidationException;
 import vn.nguongocso.report.dto.response.DossierCheckResponse;
+import vn.nguongocso.report.dto.response.Gs1DossierExportResponse;
 import vn.nguongocso.report.service.DossierService;
 
 import java.nio.charset.StandardCharsets;
@@ -76,6 +81,57 @@ public class DossierController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
+    }
+
+    /**
+     * API Xuất hồ sơ truy xuất theo lược đồ GS1 mô phỏng.
+     *
+     * <p>
+     * Chỉ dành cho VT-02 (Quản lý HTX) và VT-04 (Doanh nghiệp thu mua). Hồ sơ
+     * được ánh xạ theo bốn chiều {@code who / when / where / why}. Hỗ trợ xuất
+     * dưới dạng {@code json} hoặc {@code xml}, kèm bảng ánh xạ schema (mặc định
+     * {@code includeMapping=true}).
+     * </p>
+     *
+     * @param shipmentId     ID lô hàng cần xuất hồ sơ
+     * @param format         định dạng xuất: {@code json} hoặc {@code xml}
+     * @param includeMapping có kèm bảng ánh xạ schema hay không
+     * @param currentUser    thông tin người dùng hiện tại
+     * @param request        HTTP request dùng để lấy IP client
+     * @return hồ sơ GS1 mô phỏng (JSON hoặc XML)
+     */
+    @GetMapping("/{shipmentId}/dossier/gs1")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
+    public ResponseEntity<?> exportGs1Dossier(
+            @PathVariable UUID shipmentId,
+            @RequestParam(name = "format", defaultValue = "json") String format,
+            @RequestParam(name = "includeMapping", defaultValue = "true") boolean includeMapping,
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            HttpServletRequest request) {
+
+        permissionChecker.check("SHIPMENT", "READ");
+        String ipAddress = extractClientIp(request);
+        Gs1DossierExportResponse response = dossierService.exportGs1Dossier(
+                shipmentId, format, includeMapping, currentUser, ipAddress);
+
+        String normalizedFormat = format == null ? "json" : format.toLowerCase();
+
+        if ("xml".equals(normalizedFormat)) {
+            try {
+                XmlMapper xmlMapper = new XmlMapper();
+                xmlMapper.registerModule(new JavaTimeModule());
+                xmlMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+                String xml = xmlMapper.writeValueAsString(response);
+                return ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_XML)
+                        .body(xml);
+            } catch (JsonProcessingException ex) {
+                throw new RuntimeException("Lỗi khi sinh XML hồ sơ GS1.", ex);
+            }
+        }
+
+        // JSON (default) – bọc trong ApiResult theo convention project
+        return ResponseEntity.ok(ApiResult.success(response));
     }
 
     private String extractClientIp(HttpServletRequest request) {
