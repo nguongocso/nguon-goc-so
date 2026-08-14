@@ -47,6 +47,9 @@ export const ROLE_ACCESS = {
 
   productFeedbackManagement: ['VT-01', 'VT-02'] as const,
 
+  // ✅ NCL-08-CN-008 - Yêu cầu thu hồi lô sản xuất (2 bước)
+  recallRequestCreate: ['VT-03'] as const,
+  recallRequestManage: ['VT-02'] as const,
 } as const satisfies Record<string, readonly AuthenticatedRoleCode[]>;
 
 export function hasAnyRole(
