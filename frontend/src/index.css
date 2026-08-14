@@ -1,0 +1,345 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+@import "leaflet/dist/leaflet.css";
+
+@custom-variant dark (&:is(.dark *));
+@source "./src";
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Geist Variable', sans-serif;
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-info: var(--info);
+    --color-warning: var(--warning);
+    --color-success: var(--success);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    /* Design system extended tokens (docs/AI_DESIGN_SYSTEM.md) */
+    --color-primary-hover: var(--primary-hover);
+    --color-primary-light: var(--primary-light);
+    --color-secondary-light: var(--secondary-light);
+    --color-success-bg: var(--success-bg);
+    --color-warning-bg: var(--warning-bg);
+    --color-error-bg: var(--error-bg);
+    --color-info-bg: var(--info-bg);
+    --color-label: var(--label);
+    --color-description: var(--description);
+    --color-disabled: var(--disabled);
+    --color-table-header: var(--table-header);
+    --color-table-hover: var(--table-hover);
+    --color-table-alternate: var(--table-alternate);
+    --color-status-draft: var(--status-draft);
+    --color-status-pending: var(--status-pending);
+    --color-status-approved: var(--status-approved);
+    --color-status-rejected: var(--status-rejected);
+    --color-status-harvested: var(--status-harvested);
+    --color-status-packaged: var(--status-packaged);
+    --color-status-shipped: var(--status-shipped);
+    --color-status-completed: var(--status-completed);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+    --shadow-card: var(--shadow-card-value);
+}
+
+:root {
+    /* Backgrounds */
+    --background: #F5F7FA;
+    --foreground: #1F2937;
+    --card: #FFFFFF;
+    --card-foreground: #1F2937;
+    --popover: #FFFFFF;
+    --popover-foreground: #1F2937;
+    --primary: #2E7D32;
+    --primary-foreground: #FFFFFF;
+    --primary-hover: #256B29;
+    --primary-light: #E8F5E9;
+    --secondary: #F1F8E9;
+    --secondary-foreground: #558B2F;
+    --secondary-light: #F1F8E9;
+    --muted: #F3F4F6;                     /* ← xám nhạt hơn để phân biệt với nền trắng */
+    --muted-foreground: #4B5563;          /* ← tối hơn #6B7280, dễ đọc hơn */
+    --accent: #E8F5E9;
+    --accent-foreground: #2E7D32;
+    --destructive: #D32F2F;
+    --destructive-foreground: #FFFFFF;
+    --success: #2E7D32;
+    --success-foreground: #FFFFFF;
+    --success-bg: #E8F5E9;
+    --warning: #F9A825;
+    --warning-foreground: #FFFFFF;
+    --warning-bg: #FFF8E1;
+    --info: #1976D2;
+    --info-foreground: #FFFFFF;
+    --info-bg: #E3F2FD;
+    --error-bg: #FFEBEE;
+    --border: #E5E7EB;
+    --input: #D1D5DB;
+    --ring: #2E7D32;
+    --label: #1F2937;                     /* ← tối hơn #374151, nhãn nổi bật hơn */
+    --description: #4B5563;               /* ← đồng bộ với muted-foreground */
+    --disabled: #9CA3AF;                  /* ← đủ tương phản để nhận biết */
+    --table-header: #F3F4F6;             /* ← hơi xám hơn nền card */
+    --table-hover: #EDEFF2;
+    --table-alternate: #F9FAFB;
+    /* Status colors */
+    --status-draft: #9CA3AF;
+    --status-pending: #F9A825;
+    --status-approved: #2E7D32;
+    --status-rejected: #D32F2F;
+    --status-harvested: #7CB342;
+    --status-packaged: #1565C0;
+    --status-shipped: #00897B;
+    --status-completed: #00695C;
+    /* Charts & radius */
+    --chart-1: #2E7D32;
+    --chart-2: #1976D2;
+    --chart-3: #F9A825;
+    --chart-4: #D32F2F;
+    --chart-5: #558B2F;
+    --radius: 0.625rem;
+    --sidebar: #FFFFFF;
+    --sidebar-foreground: #1F2937;
+    --sidebar-primary: #2E7D32;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent: #E8F5E9;
+    --sidebar-accent-foreground: #2E7D32;
+    --sidebar-border: #E5E7EB;
+    --sidebar-ring: #2E7D32;
+    --shadow-card-value: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.dark {
+    --background: #0F172A;               /* ← xanh đen đậm hơn, tăng tương phản */
+    --foreground: #F1F5F9;
+    --card: #1E293B;
+    --card-foreground: #F1F5F9;
+    --popover: #1E293B;
+    --popover-foreground: #F1F5F9;
+    --primary: #4CAF50;
+    --primary-foreground: #0F172A;
+    --primary-hover: #43A047;
+    --primary-light: #1B5E20;
+    --secondary: #334155;
+    --secondary-foreground: #CBD5E1;
+    --secondary-light: #1B5E20;
+    --muted: #334155;
+    --muted-foreground: #94A3B8;         /* ← sáng hơn để dễ đọc trong dark */
+    --accent: #1E293B;
+    --accent-foreground: #81C784;
+    --destructive: #E57373;
+    --destructive-foreground: #0F172A;
+    --success: #81C784;
+    --success-foreground: #0F172A;
+    --success-bg: #1B5E20;
+    --warning: #FFB300;
+    --warning-foreground: #0F172A;
+    --warning-bg: #4E342E;
+    --info: #64B5F6;
+    --info-foreground: #0F172A;
+    --info-bg: #1A237E;
+    --error-bg: #4E342E;
+    --border: #475569;
+    --input: #64748B;
+    --ring: #4CAF50;
+    --label: #F1F5F9;                    /* ← sáng rõ hơn */
+    --description: #94A3B8;
+    --disabled: #64748B;                 /* ← dễ phân biệt hơn #757575 */
+    --table-header: #1E293B;
+    --table-hover: #2D3A4A;
+    --table-alternate: #1B2329;
+    --status-draft: #64748B;
+    --status-pending: #FFB300;
+    --status-approved: #81C784;
+    --status-rejected: #E57373;
+    --status-harvested: #9CCC65;
+    --status-packaged: #64B5F6;
+    --status-shipped: #4DB6AC;
+    --status-completed: #4DB6AC;
+    --chart-1: #81C784;
+    --chart-2: #64B5F6;
+    --chart-3: #FFB300;
+    --chart-4: #E57373;
+    --chart-5: #AED581;
+    --sidebar: #0F172A;
+    --sidebar-foreground: #F1F5F9;
+    --sidebar-primary: #4CAF50;
+    --sidebar-primary-foreground: #0F172A;
+    --sidebar-accent: #1E293B;
+    --sidebar-accent-foreground: #81C784;
+    --sidebar-border: #334155;
+    --sidebar-ring: #4CAF50;
+    --shadow-card-value: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="success"] {
+  background-color: var(--success-bg);
+  border-left: 4px solid var(--success);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="error"] {
+  background-color: var(--error-bg);
+  border-left: 4px solid var(--destructive);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="warning"] {
+  background-color: var(--warning-bg);
+  border-left: 4px solid var(--warning);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-type="info"] {
+  background-color: var(--info-bg);
+  border-left: 4px solid var(--info);
+}
+
+/* ─── Responsive utilities ────────────────────────────── */
+
+/* Sidebar drawer animation */
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slide-out-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 200ms ease-out forwards;
+}
+
+/* Touch-friendly scroll areas for mobile */
+@utility touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Responsive table card view - activate on mobile */
+@media (max-width: 639px) {
+  .responsive-table-cards tbody,
+  .responsive-table-cards tbody tr {
+    display: block;
+    width: 100%;
+  }
+
+  .responsive-table-cards thead {
+    display: none;
+  }
+
+  .responsive-table-cards tbody tr {
+    margin-bottom: 0.75rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    background: var(--card);
+    box-shadow: var(--shadow-card-value);
+    padding: 1rem;
+  }
+
+  .responsive-table-cards tbody td {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .responsive-table-cards tbody td:last-child {
+    border-bottom: none;
+  }
+
+  .responsive-table-cards tbody td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    width: 40%;
+    max-width: 8rem;
+    font-weight: 500;
+    font-size: 0.8125rem;
+    color: var(--label);
+  }
+}
+
+/* Responsive tab horizontal scroll for mobile/tablet */
+@utility tabs-scrollable {
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabs-scrollable::-webkit-scrollbar {
+  display: none;
+}
+
+/* Ensure minimum touch target size (44x44px) for interactive elements */
+@media (pointer: coarse) {
+  button, a, [role="button"], [role="tab"], [role="menuitem"], select, input[type="checkbox"], input[type="radio"] {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+}
+
+/* Responsive dialog improvements for mobile */
+@media (max-width: 639px) {
+  .dialog-responsive {
+    margin: 0.75rem;
+    max-width: calc(100vw - 1.5rem);
+    border-radius: var(--radius-xl);
+  }
+}

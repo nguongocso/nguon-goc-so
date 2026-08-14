@@ -1,0 +1,321 @@
+📄 **API Docs — Quét mã để ghi sự kiện nhanh**
+
+**Tên nhánh:** feature/scan-code-quick-event
+
+**User Story:** NCL-10-CN-004
+
+**Epic:** NCL-10 — Phân tích chuyên sâu, trải nghiệm di động và quản trị dữ liệu
+
+**Phụ thuộc:** NCL-10-CN-003 (module ghi sự kiện trên di động/ngoại tuyến) và module Ghi sự kiện chuỗi cung ứng đã có từ NCL-05 (ChainEventController)
+
+# 1. Thông tin chung
+
+### Mục tiêu
+
+Cho phép Người ghi sự kiện (VT-03) quét mã truy xuất (QR/barcode) in trên bao bì lô hàng để hệ thống tự động xác định đúng lô hàng và mở nhanh biểu mẫu ghi sự kiện chuỗi cung ứng đã gắn sẵn thông tin lô đó, giúp giảm thao tác nhập liệu thủ công và hạn chế nhầm lẫn giữa các lô khi làm việc ngoài hiện trường.
+
+### Yêu cầu nghiệp vụ
+
+- Người ghi sự kiện dùng camera thiết bị di động quét mã QR/barcode trên bao bì; giá trị mã đọc được (`code_value`) được gửi lên hệ thống để tra cứu.
+- Chỉ Người ghi sự kiện (VT-03) thuộc đúng tổ chức sở hữu lô hàng mới được thực hiện quét; Quản trị viên nền tảng (VT-01) được tra cứu trên toàn hệ thống.
+- Nếu mã không tồn tại trong hệ thống hoặc không đọc được, hệ thống trả lỗi rõ ràng để người dùng quét lại; không mở biểu mẫu ghi sự kiện.
+- Nếu lô hàng tương ứng với mã đã bị thu hồi (`status = RECALLED`), hệ thống cảnh báo và chặn hoàn toàn việc mở biểu mẫu ghi sự kiện.
+- Khi mã hợp lệ và lô còn hiệu lực, hệ thống trả về đầy đủ thông tin lô hàng (shipment, lô sản xuất, vùng trồng, loại nông sản) cùng danh sách loại sự kiện hợp lệ tiếp theo, để mở nhanh biểu mẫu đã gắn đúng lô.
+- Đây là API chỉ đọc (read-only), phục vụ bước tra cứu trước khi ghi sự kiện thực tế qua endpoint POST /api/v1/chain-events/{type} đã có từ NCL-05; API này không tạo ChainEvent.
+- Mọi lượt quét (kể cả thất bại) được ghi log để phục vụ giám sát và đối soát về sau.
+
+# 2. Vị trí làm việc tại cây thư mục Backend
+
+```
+src/main/java/vn/nguongocso/
+└── chainevent/                          # Package đã có từ NCL-05
+    ├── controller/
+    │   └── ChainEventController.java    # Sửa đổi - bổ sung endpoint scan-lookup
+    ├── dto/
+    │   └── response/
+    │       └── ScanLookupResponse.java  # 📁 Tạo mới
+    ├── repository/
+    │   ├── TraceCodeRepository.java     # Sửa đổi - bổ sung findByCodeValue
+    │   └── ChainEventRepository.java    # Sửa đổi - bổ sung tìm sự kiện gần nhất
+    └── service/
+        ├── ChainEventService.java       # Sửa đổi - thêm scanLookup(...)
+        └── impl/
+            └── ChainEventServiceImpl.java  # Sửa đổi - bổ sung logic tra cứu mã quét
+```
+
+Lưu ý: Story này không tạo package, entity hay controller mới. Chức năng được phát triển mở rộng trên module `chainevent` đã có từ NCL-05 (ChainEventController / ChainEventService), tái sử dụng các entity `TraceCode`, `Shipment`, `ProductionLot` đã có sẵn nhằm đảm bảo thống nhất kiến trúc hệ thống.
+
+# 3. Cơ sở dữ liệu
+
+Không tạo migration mới. Story tái sử dụng dữ liệu hiện có từ `TraceCode`, `Shipment`, `ProductionLot`, `ChainEvent` — không có bảng lưu riêng cho lượt quét.
+
+Các cột chính được dùng để tra cứu:
+
+- `TraceCode.code_value` — giá trị mã QR đọc được, dùng làm khóa tra cứu chính.
+- `TraceCode.status` (INACTIVE, ACTIVE, RECALLED) — dùng để chặn quét mã đã thu hồi.
+- `TraceCode.shipment_id` — liên kết tới lô hàng tương ứng.
+- `Shipment.status` (DRAFT, CODEPRINTED, ACTIVATED, RECALLED) — dùng để chặn ghi sự kiện khi lô đã thu hồi.
+- `Shipment.organization_id` — dùng để kiểm tra người ghi có thuộc đúng tổ chức sở hữu lô hàng.
+- `Shipment.production_lot_id` — liên kết tới lô sản xuất để lấy vùng trồng, loại nông sản.
+- `ProductionLot.farm_area_id`, `ProductionLot.product_category_id` — hiển thị bổ sung trên biểu mẫu ghi sự kiện.
+- `ChainEvent.event_type`, `ChainEvent.recorded_at` — dùng để xác định sự kiện gần nhất, làm cơ sở gợi ý loại sự kiện tiếp theo hợp lệ.
+
+Vì không có bảng lưu riêng cho lượt quét, mỗi lần gọi API sẽ tra cứu trực tiếp `TraceCode` theo `code_value`, sau đó lấy thông tin `Shipment`/`ProductionLot` liên quan và sự kiện gần nhất của lô, tái sử dụng logic xác định loại sự kiện đã áp dụng trong `ChainEventServiceImpl` (NCL-05). Mọi lượt quét (thành công hoặc thất bại) được ghi vào `ActivityLog`.
+
+# 4. API Endpoint
+
+## 4.1. Quét mã để mở biểu mẫu ghi sự kiện
+
+**Method:** GET
+
+**Endpoint:**
+
+```
+GET /api/v1/chain-events/scan-lookup
+```
+
+**Quyền:** `chain_event.CREATE`
+
+API dạng GET, không sử dụng Request Body. Tham số được truyền qua `@RequestParam`.
+
+**Query Parameters**
+
+| Parameter | Kiểu | Bắt buộc | Mô tả |
+|---|---|---|---|
+| code | String | Có | Giá trị mã truy xuất (`code_value`) đọc được từ QR/barcode trên bao bì lô hàng. |
+
+**Ví dụ request**
+
+```
+GET /api/v1/chain-events/scan-lookup?code=NCL-2026-000123
+```
+
+**Response 200 OK — Mã hợp lệ, lô còn hiệu lực (TC-01)**
+
+```json
+{
+  "success": true,
+  "status": 200,
+  "data": {
+    "valid": true,
+    "message": null,
+    "traceCode": "NCL-2026-000123",
+    "shipmentId": "8f14e453-2b1a-4a6e-9c11-7d0a2f9b1234",
+    "shipmentName": "Lô hàng rau cải xanh đợt 1",
+    "shipmentStatus": "ACTIVATED",
+    "productionLotId": "3ac68afc-9d0e-4b2a-8e21-1a2b3c4d5e6f",
+    "productCategoryName": "Rau cải xanh",
+    "farmAreaName": "Vùng trồng A1 - HTX Xanh Sạch",
+    "organizationId": "0a1b2c3d-4e5f-6789-a0b1-c2d3e4f5a6b7",
+    "organizationName": "HTX Xanh Sạch",
+    "allowedEventTypes": ["TRANSPORT", "PACKAGING"],
+    "lastEventType": "HARVEST",
+    "lastEventRecordedAt": "2026-07-30T08:00:00Z"
+  },
+  "timestamp": "2026-08-02T09:00:00Z"
+}
+```
+
+**Response 400 Bad Request — Mã không hợp lệ (TC-02)**
+
+```json
+{
+  "success": false,
+  "status": 400,
+  "message": "Mã truy xuất không hợp lệ hoặc không tồn tại trong hệ thống."
+}
+```
+
+**Response 403 Forbidden — Sai vai trò**
+
+```json
+{
+  "success": false,
+  "status": 403,
+  "message": "Bạn không có quyền ghi sự kiện chuỗi cung ứng."
+}
+```
+
+**Response 403 Forbidden — Không thuộc tổ chức sở hữu lô hàng**
+
+```json
+{
+  "success": false,
+  "status": 403,
+  "message": "Bạn không thuộc tổ chức sở hữu lô hàng này."
+}
+```
+
+**Response 409 Conflict — Lô hàng đã thu hồi (TC-03)**
+
+```json
+{
+  "success": false,
+  "status": 409,
+  "message": "Lô hàng đã bị thu hồi. Không thể ghi sự kiện cho lô hàng này."
+}
+```
+
+# 5. Business Rules
+
+- **4.1. Kiểm tra Role** — Chỉ Người ghi sự kiện (VT-03) mới được phép gọi API này; đây là bước kiểm tra nghiệp vụ đầu tiên, thực hiện trước mọi bước tra cứu dữ liệu. Nếu sai vai trò → trả **403 Forbidden** (case sai vai trò).
+- **4.2. Kiểm tra mã truy xuất** — Hệ thống tra cứu `TraceCode` theo `code_value` (`TraceCodeRepository.findByCodeValue`). Nếu không tìm thấy hoặc mã không đúng định dạng → trả **400 Bad Request** với thông báo mã không hợp lệ.
+- **4.3. Kiểm tra tổ chức** — `Shipment.organization_id` phải trùng với tổ chức của người ghi sự kiện (trừ VT-01 được xem toàn hệ thống). Nếu không khớp → trả **403 Forbidden** riêng biệt (org-mismatch), khác với case sai vai trò ở bước 4.1.
+- **4.4. Kiểm tra trạng thái** — Nếu `TraceCode.status = RECALLED` hoặc `Shipment.status = RECALLED` → trả **409 Conflict**, chặn hoàn toàn việc mở biểu mẫu ghi sự kiện.
+- **4.5. Xác định loại sự kiện hợp lệ tiếp theo** — Dựa trên trạng thái hiện tại của `Shipment` và loại sự kiện gần nhất (`lastEventType`), hệ thống gợi ý `allowedEventTypes` cho bước tiếp theo, tái sử dụng logic chuyển trạng thái sự kiện đã áp dụng ở NCL-05.
+- **4.6. Ghi log truy cập** — Mọi lượt quét (thành công hoặc bị chặn) đều được ghi nhận qua `ActivityLogService` với `action = "SCAN_TRACE_CODE"`, bao gồm cả trường hợp mã không hợp lệ, sai tổ chức và lô đã thu hồi.
+- API là **read-only**, không tạo, cập nhật hay xóa dữ liệu. Việc tạo `ChainEvent` thực tế được thực hiện ở bước tiếp theo qua endpoint POST /api/v1/chain-events/{type} đã có từ NCL-05, sau khi người dùng xác nhận thông tin trên biểu mẫu.
+
+**Quyền yêu cầu:** `chain_event.CREATE`
+
+- Quyền được kiểm tra thông qua:
+
+```java
+permissionChecker.check("chain_event", "CREATE");
+```
+
+- Nếu người dùng không có quyền hoặc sai vai trò, hệ thống:
+  - ghi nhận log truy cập thất bại qua `ActivityLogService`;
+  - trả về **HTTP 403 Forbidden**.
+- Nếu người dùng có quyền, hệ thống tiếp tục kiểm tra tổ chức và trạng thái lô hàng theo các bước 4.3–4.4 ở trên trước khi trả kết quả.
+
+# 6. Repository Methods
+
+### TraceCodeRepository (bổ sung)
+
+```java
+Optional<TraceCode> findByCodeValue(@Param("codeValue") String codeValue);
+```
+
+### ChainEventRepository (bổ sung)
+
+```java
+Optional<ChainEvent> findTopByShipmentIdOrderByRecordedAtDesc(
+    @Param("shipmentId") UUID shipmentId
+);
+```
+
+Service tra cứu `TraceCode` theo mã quét được, lấy `Shipment` và `ProductionLot` liên quan, sau đó lấy `ChainEvent` gần nhất của lô (nếu có) để xác định `lastEventType` và tính `allowedEventTypes`, tái sử dụng logic chuyển trạng thái sự kiện đã có trong `ChainEventServiceImpl`.
+
+# 7. DTOs
+
+Không tạo Request DTO — endpoint là GET thuần, tham số nhận qua `@RequestParam` và được validate trực tiếp tại controller/service.
+
+### ScanLookupResponse
+
+```java
+package vn.nguongocso.chainevent.dto.response;
+
+import lombok.Builder;
+import lombok.Getter;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Response tra cứu mã truy xuất khi quét mã để mở biểu mẫu ghi sự kiện.
+ */
+@Getter
+@Builder
+public class ScanLookupResponse {
+
+    /**
+     * Mã hợp lệ và có thể mở biểu mẫu ghi sự kiện hay không.
+     */
+    private Boolean valid;
+
+    /**
+     * Thông báo khi mã không hợp lệ (null nếu valid = true).
+     */
+    private String message;
+
+    /**
+     * Giá trị mã truy xuất đã quét.
+     */
+    private String traceCode;
+
+    /**
+     * ID lô hàng tương ứng với mã.
+     */
+    private UUID shipmentId;
+
+    /**
+     * Tên lô hàng.
+     */
+    private String shipmentName;
+
+    /**
+     * Trạng thái hiện tại của lô hàng.
+     */
+    private String shipmentStatus;
+
+    /**
+     * ID lô sản xuất gốc.
+     */
+    private UUID productionLotId;
+
+    /**
+     * Tên loại nông sản của lô.
+     */
+    private String productCategoryName;
+
+    /**
+     * Tên vùng trồng của lô.
+     */
+    private String farmAreaName;
+
+    /**
+     * ID tổ chức sở hữu lô hàng.
+     */
+    private UUID organizationId;
+
+    /**
+     * Tên tổ chức sở hữu lô hàng.
+     */
+    private String organizationName;
+
+    /**
+     * Danh sách loại sự kiện hợp lệ có thể ghi tiếp theo.
+     */
+    private List<String> allowedEventTypes;
+
+    /**
+     * Loại sự kiện gần nhất đã ghi cho lô hàng (nếu có).
+     */
+    private String lastEventType;
+
+    /**
+     * Thời điểm ghi nhận sự kiện gần nhất (nếu có).
+     */
+    private Instant lastEventRecordedAt;
+}
+```
+
+# 8. Ghi chú Frontend
+
+- Ứng dụng di động dùng camera quét mã QR/barcode trên bao bì; giá trị đọc được gửi lên endpoint scan-lookup ngay sau khi quét, không yêu cầu người dùng nhập tay.
+- Nếu quét lỗi (mã mờ, không đọc được), giữ nguyên màn hình quét và cho phép quét lại; không gọi API với chuỗi rỗng.
+- Khi `valid = true`, mở ngay biểu mẫu ghi sự kiện với `shipmentId`, `productionLotId` đã điền sẵn; hiển thị `allowedEventTypes` làm gợi ý loại sự kiện có thể chọn.
+- Khi API trả **409 Conflict** (lô đã thu hồi), hiển thị cảnh báo rõ ràng bằng `message` trả về, chặn nút "Ghi sự kiện" và không cho mở biểu mẫu.
+- Khi API trả **400 Bad Request** (mã không hợp lệ), hiển thị thông báo lỗi và quay lại màn hình quét ngay để thử lại.
+- Khi API trả **403 Forbidden**, phân biệt rõ hai thông báo: sai vai trò và không thuộc tổ chức sở hữu lô, để người dùng hiểu đúng nguyên nhân.
+- Hỗ trợ luồng ngoại tuyến: nếu mất kết nối tại thời điểm quét, lưu tạm mã đã quét trên thiết bị và đồng bộ lại khi có mạng, phối hợp với story ghi sự kiện di động/ngoại tuyến NCL-10-CN-003.
+
+# 9. Kế hoạch triển khai (Backend)
+
+| Công việc | Package | File |
+|---|---|---|
+| Tạo Response DTO | chainevent.dto.response | ScanLookupResponse |
+| Bổ sung tra cứu TraceCode theo `code_value` | chainevent.repository | TraceCodeRepository.java (sửa) |
+| Bổ sung tra cứu sự kiện gần nhất theo lô hàng | chainevent.repository | ChainEventRepository.java (sửa) |
+| Bổ sung logic `scanLookup`: kiểm tra role, tổ chức, trạng thái, tính `allowedEventTypes` | chainevent.service.impl | ChainEventServiceImpl.java (sửa) |
+| Thêm endpoint GET scan-lookup | chainevent.controller | ChainEventController.java (sửa) |
+| Viết test case TC-01, TC-02, TC-03 | chainevent (test) | ChainEventControllerTest.java |
+
+### Ánh xạ Test Case ↔ Xử lý backend
+
+| Test Case | Kịch bản | Xử lý tương ứng |
+|---|---|---|
+| NCL-10-CN-004-TC-01 | Mã hợp lệ và lô còn hiệu lực | Trả 200, `valid = true`, đầy đủ thông tin lô hàng/lô sản xuất và `allowedEventTypes` để mở biểu mẫu |
+| NCL-10-CN-004-TC-02 | Mã không đọc được / không tồn tại | Trả 400 Bad Request, thông báo mã truy xuất không hợp lệ |
+| NCL-10-CN-004-TC-03 | Lô đã thu hồi | Trả 409 Conflict, cảnh báo lô đã thu hồi và chặn mở biểu mẫu ghi sự kiện |

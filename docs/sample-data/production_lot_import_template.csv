@@ -1,0 +1,21 @@
+ten_lo,ma_loai_nong_san,ma_vung_trong,san_luong_du_kien,san_luong_thuc_thu,ngay_gieo_trong,ngay_thu_hoach,hoat_dong_canh_tac,vat_tu,so_luong,don_vi,ngay_thuc_hien,ghi_chu
+Lúa Đông Xuân 2026 - Vụ 1,ca8c8c3b-1234-4567-89ab-cdef01234567,fa8c8c3b-5678-90ab-cdef-1234567890ab,1500,1450,05/01/2026,15/05/2026,PLANTING,Giống lúa OM5451,50,kg,05/01/2026,Gieo sạ
+Lúa Đông Xuân 2026 - Vụ 1,ca8c8c3b-1234-4567-89ab-cdef01234567,fa8c8c3b-5678-90ab-cdef-1234567890ab,1500,1450,05/01/2026,15/05/2026,FERTILIZING,Phân NPK 16-16-8,25,kg,20/01/2026,Bón thúc đợt 1
+Lúa Đông Xuân 2026 - Vụ 1,ca8c8c3b-1234-4567-89ab-cdef01234567,fa8c8c3b-5678-90ab-cdef-1234567890ab,1500,1450,05/01/2026,15/05/2026,WATERING,,0,lan,10/01/2026,Tưới nước định kỳ
+Lúa Đông Xuân 2026 - Vụ 2,ca8c8c3b-1234-4567-89ab-cdef01234567,fa8c8c3b-5678-90ab-cdef-1234567890ab,2000,1900,10/01/2026,20/05/2026,PLANTING,Giống lúa Jasmine85,60,kg,10/01/2026,Gieo sạ
+Lúa Đông Xuân 2026 - Vụ 2,ca8c8c3b-1234-4567-89ab-cdef01234567,fa8c8c3b-5678-90ab-cdef-1234567890ab,2000,1900,10/01/2026,20/05/2026,PESTICIDE,Thuốc trừ sâu sinh học,5,lít,25/01/2026,Phun phòng rầy nâu
+Rau Muống Hè 2026,ba9b9b4d-2345-5678-90bc-def012345678,fb9c9c4d-6789-01cd-def0-2345678901ab,500,,15/02/2026,30/03/2026,PLANTING,Hạt giống rau muống,2,kg,15/02/2026,Gieo hạt
+Rau Muống Hè 2026,ba9b9b4d-2345-5678-90bc-def012345678,fb9c9c4d-6789-01cd-def0-2345678901ab,500,,15/02/2026,30/03/2026,WEEDING,,0,lan,22/02/2026,Làm cỏ
+Cà Phê Robusta 2026-2027,cb0c0c5e-3456-6789-01cd-ef0123456789,fc0d0d5e-7890-12ef-ef01-3456789012bc,3000,,01/03/2026,01/11/2026,PLANTING,Cây giống cà phê Robusta,500,cây,01/03/2026,Trồng mới
+Cà Phê Robusta 2026-2027,cb0c0c5e-3456-6789-01cd-ef0123456789,fc0d0d5e-7890-12ef-ef01-3456789012bc,3000,,01/03/2026,01/11/2026,FERTILIZING,Phân hữu cơ vi sinh,200,kg,15/03/2026,Bón lót
+Cà Phê Robusta 2026-2027,cb0c0c5e-3456-6789-01cd-ef0123456789,fc0d0d5e-7890-12ef-ef01-3456789012bc,3000,,01/03/2026,01/11/2026,PESTICIDE,Thuốc trừ sâu,3,lít,01/04/2026,Phòng sâu đục thân
+Xoài Cát Chu 2026,dc1d1d6f-4567-7890-12de-fg0123456789,fd1e1e6f-8901-23fg-fg12-4567890123cd,2500,2400,01/12/2025,15/04/2026,PLANTING,Cây giống xoài Cát Chu,100,cây,01/12/2025,Trồng mới
+Xoài Cát Chu 2026,dc1d1d6f-4567-7890-12de-fg0123456789,fd1e1e6f-8901-23fg-fg12-4567890123cd,2500,2400,01/12/2025,15/04/2026,FERTILIZING,Phân Kali,50,kg,15/01/2026,Bón thúc ra hoa
+Xoài Cát Chu 2026,dc1d1d6f-4567-7890-12de-fg0123456789,fd1e1e6f-8901-23fg-fg12-4567890123cd,2500,2400,01/12/2025,15/04/2026,HARVESTING,,0,lan,15/04/2026,Thu hoạch chính vụ
+Thanh Long Ruột Đỏ 2026,ed2e2e7g-5678-8901-23ef-gh0123456789,fe2f2f7g-9012-34gh-gh23-5678901234de,1800,1750,01/06/2026,01/11/2026,PLANTING,Trụ thanh long,200,trụ,01/06/2026,Trồng mới
+Thanh Long Ruột Đỏ 2026,ed2e2e7g-5678-8901-23ef-gh0123456789,fe2f2f7g-9012-34gh-gh23-5678901234de,1800,1750,01/06/2026,01/11/2026,FERTILIZING,Phân NPK 20-20-15,30,kg,01/07/2026,Bón thúc
+Thanh Long Ruột Đỏ 2026,ed2e2e7g-5678-8901-23ef-gh0123456789,fe2f2f7g-9012-34gh-gh23-5678901234de,1800,1750,01/06/2026,01/11/2026,WATERING,,0,lan,15/07/2026,Tưới nhỏ giọt
+Bưởi Da Xanh 2026,fe3f3f8h-6789-9012-34fg-hi0123456789,ff3g3g8h-0123-45hi-hi34-6789012345ef,1200,,15/03/2026,15/09/2026,PLANTING,Cây giống bưởi Da Xanh,80,cây,15/03/2026,Trồng mới
+Bưởi Da Xanh 2026,fe3f3f8h-6789-9012-34fg-hi0123456789,ff3g3g8h-0123-45hi-hi34-6789012345ef,1200,,15/03/2026,15/09/2026,OTHER,Tỉa cành tạo tán,0,lan,15/04/2026,Tỉa cành sau trồng
+Sầu Riêng Monthong 2026,gf4g4g9i-7890-0123-45gh-ij0123456789,fg4h4h9i-1234-56ij-ij45-7890123456gh,4000,,01/02/2026,01/07/2026,PLANTING,Cây giống sầu riêng Monthong,50,cây,01/02/2026,Trồng mới
+Sầu Riêng Monthong 2026,gf4g4g9i-7890-0123-45gh-ij0123456789,fg4h4h9i-1234-56ij-ij45-7890123456gh,4000,,01/02/2026,01/07/2026,FERTILIZING,Phân hữu cơ + NPK,100,kg,01/03/2026,Bón thúc

@@ -1,0 +1,11 @@
+ten_lo,ma_loai_nong_san,ma_vung_trong,san_luong_du_kien,san_luong_thuc_thu,ngay_gieo_trong,ngay_thu_hoach,hoat_dong_canh_tac,vat_tu,so_luong,don_vi,ngay_thuc_hien,ghi_chu
+,ca8c8c3b-1234-4567-89ab-cdef01234567,fa8c8c3b-5678-90ab-cdef-1234567890ab,1000,950,01/01/2026,15/02/2026,PLANTING,Giống lúa,30,kg,01/01/2026,Tên lô bị trống
+Lô Sản Lượng 0,ca8c8c3b-1234-4567-89ab-cdef01234567,fa8c8c3b-5678-90ab-cdef-1234567890ab,0,950,01/01/2026,15/02/2026,PLANTING,Giống lúa,30,kg,01/01/2026,Sản lượng dự kiến = 0
+Lô Sản Lượng Âm,ca8c8c3b-1234-4567-89ab-cdef01234567,fa8c8c3b-5678-90ab-cdef-1234567890ab,-500,950,01/01/2026,15/02/2026,PLANTING,Giống lúa,30,kg,01/01/2026,Sản lượng dự kiến âm
+Lô Thiếu Ngày Trồng,ba9b9b4d-2345-5678-90bc-def012345678,fb9c9c4d-6789-01cd-def0-2345678901ab,500,480,,15/03/2026,PLANTING,Hạt giống,2,kg,,Thiếu ngày gieo trồng
+Lô Ngày Thu Hoạch Trước Ngày Trồng,cb0c0c5e-3456-6789-01cd-ef0123456789,fc0d0d5e-7890-12ef-ef01-3456789012bc,2000,1900,01/06/2026,01/01/2026,FERTILIZING,Phân bón,20,kg,15/06/2026,Ngày thu hoạch trước ngày trồng
+Lô Sai Định Dạng Ngày,dc1d1d6f-4567-7890-12de-fg0123456789,fd1e1e6f-8901-23fg-fg12-4567890123cd,1500,1400,2026/01/01,2026/05/01,PLANTING,Giống,40,kg,2026/01/01,Sai định dạng ngày (yyyy/MM/dd)
+Lô Sai Mã Nông Sản,INVALID-UUID-HERE,fb9c9c4d-6789-01cd-def0-2345678901ab,800,750,15/02/2026,30/03/2026,PLANTING,Hạt giống,3,kg,15/02/2026,Mã loại nông sản không phải UUID
+Lô Sai Hoạt Động Canh Tác,ca8c8c3b-1234-4567-89ab-cdef01234567,fa8c8c3b-5678-90ab-cdef-1234567890ab,1200,1100,01/03/2026,01/04/2026,SPRAYING,Thuốc trừ sâu,5,lít,05/03/2026,Hoạt động canh tác không hợp lệ (SPRAYING)
+Lô Sản Lượng Thực Thu Âm,ed2e2e7g-5678-8901-23ef-gh0123456789,fe2f2f7g-9012-34gh-gh23-5678901234de,1000,-100,01/05/2026,01/08/2026,FERTILIZING,Phân NPK,25,kg,15/05/2026,Sản lượng thực thu âm
+Lô Thiếu Mã Vùng Trồng,fe3f3f8h-6789-9012-34fg-hi0123456789,,700,,10/04/2026,10/07/2026,WATERING,,0,lan,15/04/2026,Mã vùng trồng để trống (cho phép null)

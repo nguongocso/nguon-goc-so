@@ -1,0 +1,8 @@
+ten_lo,ma_loai_nong_san,ma_vung_trong,san_luong_du_kien,san_luong_thuc_thu,ngay_gieo_trong,ngay_thu_hoach,hoat_dong_canh_tac,vat_tu,so_luong,don_vi,ngay_thuc_hien,ghi_chu
+Lô Trùng 1,ca8c8c3b-1234-4567-89ab-cdef01234567,fa8c8c3b-5678-90ab-cdef-1234567890ab,1000,950,01/01/2026,15/05/2026,PLANTING,Giống lúa,30,kg,01/01/2026,Lần 1
+Lô Trùng 1,ca8c8c3b-1234-4567-89ab-cdef01234567,fa8c8c3b-5678-90ab-cdef-1234567890ab,1000,950,01/01/2026,15/05/2026,FERTILIZING,Phân NPK,20,kg,15/01/2026,Lần 1
+Lô Trùng 2,ba9b9b4d-2345-5678-90bc-def012345678,fb9c9c4d-6789-01cd-def0-2345678901ab,500,480,15/02/2026,15/04/2026,PLANTING,Hạt giống,5,kg,15/02/2026,Lần 1
+Lô Trùng 2,ba9b9b4d-2345-5678-90bc-def012345678,fb9c9c4d-6789-01cd-def0-2345678901ab,500,480,15/02/2026,15/04/2026,PESTICIDE,Thuốc trừ sâu,2,lít,20/02/2026,Lần 1
+Lô Trùng 3,cb0c0c5e-3456-6789-01cd-ef0123456789,fc0d0d5e-7890-12ef-ef01-3456789012bc,2000,,01/03/2026,01/09/2026,PLANTING,Cây giống,100,cây,01/03/2026,Lần 1
+Lô Trùng 3,cb0c0c5e-3456-6789-01cd-ef0123456789,fc0d0d5e-7890-12ef-ef01-3456789012bc,2000,,01/03/2026,01/09/2026,FERTILIZING,Phân hữu cơ,50,kg,15/03/2026,Lần 1
+Lô Trùng 3,cb0c0c5e-3456-6789-01cd-ef0123456789,fc0d0d5e-7890-12ef-ef01-3456789012bc,2000,,01/03/2026,01/09/2026,WATERING,,0,lan,20/03/2026,Lần 1

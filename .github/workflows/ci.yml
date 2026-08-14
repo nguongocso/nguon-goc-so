@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - ci
+      - develop
+      - main
+
+  pull_request:
+    branches:
+      - develop
+      - main
+
+jobs:
+
+  # ==========================================
+  # BACKEND - TEST
+  # ==========================================
+  backend-test:
+    name: Backend - Test
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: nguon_goc_so_test
+          MYSQL_USER: nguongocso_test
+          MYSQL_PASSWORD: Dev2026
+          MYSQL_ROOT_PASSWORD: root_test_password
+
+        ports:
+          - 3306:3306
+
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot_test_password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+
+      # Checkout source code
+      - name: Checkout source code
+        uses: actions/checkout@v5
+
+      # Java 21
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # Maven wrapper permission
+      - name: Make Maven wrapper executable
+        run: chmod +x mvnw
+
+      # Run backend tests
+      - name: Run backend tests
+        env:
+          SPRING_PROFILES_ACTIVE: test
+
+          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/nguon_goc_so_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+
+          SPRING_DATASOURCE_USERNAME: nguongocso_test
+
+          SPRING_DATASOURCE_PASSWORD: Dev2026
+
+        run: ./mvnw clean test
+
+
+  # ==========================================
+  # FRONTEND - BUILD
+  # ==========================================
+  frontend-build:
+    name: Frontend - Build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+
+      # Checkout source code
+      - name: Checkout source code
+        uses: actions/checkout@v5
+
+      # Node.js 24
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Build frontend
+      - name: Build frontend
+        env:
+          VITE_API_BASE_URL: http://localhost:8080/api/v1
+          VITE_API_URL: http://localhost:8080
+
+        run: npm run build

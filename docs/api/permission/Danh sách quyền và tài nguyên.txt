@@ -1,0 +1,166 @@
+MariaDB [nguon_goc_so]> select * from permissions;
++---------------+--------------+--------+---------------------+
+| permission_id | resource     | action | description         |
++---------------+--------------+--------+---------------------+
+|             1 | USER         | CREATE | Create user         |
+|             2 | USER         | READ   | View user           |
+|             3 | USER         | UPDATE | Update user         |
+|             4 | USER         | DELETE | Delete user         |
+|             5 | ORGANIZATION | CREATE | Create organization |
+|             6 | ORGANIZATION | READ   | View organization   |
+|             7 | ORGANIZATION | UPDATE | Update organization |
+|             8 | ORGANIZATION | DELETE | Delete organization |
+|             9 | ROLE         | CREATE | Create role         |
+|            10 | ROLE         | READ   | View role           |
+|            11 | ROLE         | UPDATE | Update role         |
+|            12 | ROLE         | DELETE | Delete role         |
+|            13 | TRACEABILITY | CREATE | Create traceability |
+|            14 | TRACEABILITY | READ   | View traceability   |
+|            15 | TRACEABILITY | UPDATE | Update traceability |
+|            16 | TRACEABILITY | DELETE | Delete traceability |
++---------------+--------------+--------+---------------------+
+16 rows in set (0.003 sec)
+
+MariaDB [nguon_goc_so]> -- Thêm resource PRODUCTION_LOT
+MariaDB [nguon_goc_so]> INSERT IGNORE INTO permissions (resource, action, description)
+    -> VALUES
+    -> ('PRODUCTION_LOT', 'CREATE', 'Tạo lô sản xuất'),
+    -> ('PRODUCTION_LOT', 'READ', 'Xem lô sản xuất'),
+    -> ('PRODUCTION_LOT', 'UPDATE', 'Cập nhật lô sản xuất'),
+    -> ('PRODUCTION_LOT', 'DELETE', 'Xóa lô sản xuất');
+Query OK, 4 rows affected, 4 warnings (0.005 sec)
+Records: 4  Duplicates: 0  Warnings: 4
+
+MariaDB [nguon_goc_so]>
+MariaDB [nguon_goc_so]> -- Thêm resource CERTIFICATION
+MariaDB [nguon_goc_so]> INSERT IGNORE INTO permissions (resource, action, description)
+    -> VALUES
+    -> ('CERTIFICATION', 'CREATE', 'Tạo chứng nhận'),
+    -> ('CERTIFICATION', 'READ', 'Xem chứng nhận'),
+    -> ('CERTIFICATION', 'UPDATE', 'Cập nhật chứng nhận'),
+    -> ('CERTIFICATION', 'DELETE', 'Xóa chứng nhận');
+Query OK, 4 rows affected, 1 warning (0.002 sec)
+Records: 4  Duplicates: 0  Warnings: 1
+
+MariaDB [nguon_goc_so]>
+MariaDB [nguon_goc_so]> -- Thêm resource FARM_AREA
+MariaDB [nguon_goc_so]> INSERT IGNORE INTO permissions (resource, action, description)
+    -> VALUES
+    -> ('FARM_AREA', 'CREATE', 'Tạo vùng trồng'),
+    -> ('FARM_AREA', 'READ', 'Xem vùng trồng'),
+    -> ('FARM_AREA', 'UPDATE', 'Cập nhật vùng trồng'),
+    -> ('FARM_AREA', 'DELETE', 'Xóa vùng trồng');
+Query OK, 4 rows affected, 4 warnings (0.002 sec)
+Records: 4  Duplicates: 0  Warnings: 4
+
+MariaDB [nguon_goc_so]>
+MariaDB [nguon_goc_so]> -- Thêm resource FARM_LOG
+MariaDB [nguon_goc_so]> INSERT IGNORE INTO permissions (resource, action, description)
+    -> VALUES
+    -> ('FARM_LOG', 'CREATE', 'Tạo nhật ký canh tác'),
+    -> ('FARM_LOG', 'READ', 'Xem nhật ký canh tác'),
+    -> ('FARM_LOG', 'UPDATE', 'Cập nhật nhật ký canh tác'),
+    -> ('FARM_LOG', 'DELETE', 'Xóa nhật ký canh tác');
+Query OK, 4 rows affected, 4 warnings (0.001 sec)
+Records: 4  Duplicates: 0  Warnings: 4
+
+MariaDB [nguon_goc_so]>
+MariaDB [nguon_goc_so]> -- Thêm resource PRODUCT_CATEGORY
+MariaDB [nguon_goc_so]> INSERT IGNORE INTO permissions (resource, action, description)
+    -> VALUES
+    -> ('PRODUCT_CATEGORY', 'CREATE', 'Tạo loại nông sản'),
+    -> ('PRODUCT_CATEGORY', 'READ', 'Xem loại nông sản'),
+    -> ('PRODUCT_CATEGORY', 'UPDATE', 'Cập nhật loại nông sản'),
+    -> ('PRODUCT_CATEGORY', 'DELETE', 'Xóa loại nông sản');
+Query OK, 4 rows affected, 4 warnings (0.001 sec)
+Records: 4  Duplicates: 0  Warnings: 4
+
+MariaDB [nguon_goc_so]>
+MariaDB [nguon_goc_so]> -- Thêm resource SHIPMENT
+MariaDB [nguon_goc_so]> INSERT IGNORE INTO permissions (resource, action, description)
+    -> VALUES
+    -> ('SHIPMENT', 'CREATE', 'Tạo lô hàng'),
+    -> ('SHIPMENT', 'READ', 'Xem lô hàng'),
+    -> ('SHIPMENT', 'UPDATE', 'Cập nhật lô hàng'),
+    -> ('SHIPMENT', 'DELETE', 'Xóa lô hàng');
+Query OK, 4 rows affected, 4 warnings (0.001 sec)
+Records: 4  Duplicates: 0  Warnings: 4
+
+MariaDB [nguon_goc_so]>
+MariaDB [nguon_goc_so]> -- Thêm resource CHAIN_EVENT
+MariaDB [nguon_goc_so]> INSERT IGNORE INTO permissions (resource, action, description)
+    -> VALUES
+    -> ('CHAIN_EVENT', 'CREATE', 'Tạo sự kiện chuỗi'),
+    -> ('CHAIN_EVENT', 'READ', 'Xem sự kiện chuỗi'),
+    -> ('CHAIN_EVENT', 'UPDATE', 'Cập nhật sự kiện chuỗi'),
+    -> ('CHAIN_EVENT', 'DELETE', 'Xóa sự kiện chuỗi');
+Query OK, 4 rows affected, 1 warning (0.002 sec)
+Records: 4  Duplicates: 0  Warnings: 1
+
+MariaDB [nguon_goc_so]>
+MariaDB [nguon_goc_so]> -- Thêm resource STANDARD
+MariaDB [nguon_goc_so]> INSERT IGNORE INTO permissions (resource, action, description)
+    -> VALUES
+    -> ('STANDARD', 'CREATE', 'Tạo tiêu chuẩn'),
+    -> ('STANDARD', 'READ', 'Xem tiêu chuẩn'),
+    -> ('STANDARD', 'UPDATE', 'Cập nhật tiêu chuẩn'),
+    -> ('STANDARD', 'DELETE', 'Xóa tiêu chuẩn');
+Query OK, 4 rows affected, 4 warnings (0.001 sec)
+Records: 4  Duplicates: 0  Warnings: 4
+
+MariaDB [nguon_goc_so]>
+MariaDB [nguon_goc_so]> -- Thêm resource ALERT
+MariaDB [nguon_goc_so]> INSERT IGNORE INTO permissions (resource, action, description)
+    -> VALUES
+    -> ('ALERT', 'CREATE', 'Tạo cảnh báo'),
+    -> ('ALERT', 'READ', 'Xem cảnh báo'),
+    -> ('ALERT', 'UPDATE', 'Cập nhật cảnh báo'),
+    -> ('ALERT', 'DELETE', 'Xóa cảnh báo');
+Query OK, 4 rows affected, 4 warnings (0.001 sec)
+Records: 4  Duplicates: 0  Warnings: 4
+
+MariaDB [nguon_goc_so]>
+MariaDB [nguon_goc_so]> -- Thêm resource ACTIVITY_LOG
+MariaDB [nguon_goc_so]> INSERT IGNORE INTO permissions (resource, action, description)
+    -> VALUES
+    -> ('ACTIVITY_LOG', 'CREATE', 'Tạo log hoạt động'),
+    -> ('ACTIVITY_LOG', 'READ', 'Xem log hoạt động'),
+    -> ('ACTIVITY_LOG', 'UPDATE', 'Cập nhật log hoạt động'),
+    -> ('ACTIVITY_LOG', 'DELETE', 'Xóa log hoạt động');
+Query OK, 4 rows affected, 1 warning (0.002 sec)
+Records: 4  Duplicates: 0  Warnings: 1
+
+MariaDB [nguon_goc_so]>
+MariaDB [nguon_goc_so]> -- Thêm resource REPORT
+MariaDB [nguon_goc_so]> INSERT IGNORE INTO permissions (resource, action, description)
+    -> VALUES
+    -> ('REPORT', 'CREATE', 'Tạo báo cáo'),
+    -> ('REPORT', 'READ', 'Xem báo cáo'),
+    -> ('REPORT', 'UPDATE', 'Cập nhật báo cáo'),
+    -> ('REPORT', 'DELETE', 'Xóa báo cáo');
+Query OK, 4 rows affected, 4 warnings (0.002 sec)
+Records: 4  Duplicates: 0  Warnings: 4
+
+MariaDB [nguon_goc_so]>
+MariaDB [nguon_goc_so]> -- Thêm resource EXPORT
+MariaDB [nguon_goc_so]> INSERT IGNORE INTO permissions (resource, action, description)
+    -> VALUES
+    -> ('EXPORT', 'CREATE', 'Tạo xuất dữ liệu'),
+    -> ('EXPORT', 'READ', 'Xem xuất dữ liệu'),
+    -> ('EXPORT', 'UPDATE', 'Cập nhật xuất dữ liệu'),
+    -> ('EXPORT', 'DELETE', 'Xóa xuất dữ liệu');
+Query OK, 4 rows affected, 1 warning (0.002 sec)
+Records: 4  Duplicates: 0  Warnings: 1
+
+MariaDB [nguon_goc_so]>
+MariaDB [nguon_goc_so]> -- Thêm resource CODE_RANGE
+MariaDB [nguon_goc_so]> INSERT IGNORE INTO permissions (resource, action, description)
+    -> VALUES
+    -> ('CODE_RANGE', 'CREATE', 'Tạo dải mã'),
+    -> ('CODE_RANGE', 'READ', 'Xem dải mã'),
+    -> ('CODE_RANGE', 'UPDATE', 'Cập nhật dải mã'),
+    -> ('CODE_RANGE', 'DELETE', 'Xóa dải mã');
+Query OK, 4 rows affected, 1 warning (0.005 sec)
+Records: 4  Duplicates: 0  Warnings: 1
+
+MariaDB [nguon_goc_so]>
