@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import vn.nguongocso.alert.service.ScanAnomalyDetectionService;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.farm.entity.ProductCategory;
@@ -65,6 +66,7 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
+@Testcontainers
 class Qtn10AbnormalScanDataFlowIntegrationTest {
     @Container
     static MySQLContainer<?> mysql =
