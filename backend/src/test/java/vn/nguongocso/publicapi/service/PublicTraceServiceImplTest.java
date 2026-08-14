@@ -29,6 +29,7 @@ import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
+import vn.nguongocso.recall.repository.RecallRequestRepository;
 import vn.nguongocso.trace.repository.RecallRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.SuspectDetectionService;
@@ -60,6 +61,9 @@ class PublicTraceServiceImplTest {
     private RecallRepository recallRepository;
 
     @Mock
+    private RecallRequestRepository recallRequestRepository;
+
+    @Mock
     private ProductionLotCertificationRepository productionLotCertificationRepository;
 
     @Mock
@@ -81,6 +85,7 @@ class PublicTraceServiceImplTest {
                 scanAnomalyDetectionService,
                 suspectDetectionService,
                 recallRepository,
+                recallRequestRepository,
                 productionLotCertificationRepository,
                 reverseGeocodingService);
 
