@@ -1,25 +1,6 @@
 services:
 
   # =========================================================
-<<<<<<< HEAD
-  # DATABASE - MySQL
-  # =========================================================
-  db:
-    image: mysql:8.0
-    container_name: nguongocso-db
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ""
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-      MYSQL_DATABASE: nguon_goc_so
-    volumes:
-      - db_data:/var/lib/mysql
-    healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-=======
   # MYSQL - Database
   # =========================================================
   # NOTE: volume is pinned via `name:` to nguongocso_mysql_data so that
@@ -47,7 +28,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
->>>>>>> origin/develop
 
   # =========================================================
   # BACKEND - Spring Boot
@@ -64,15 +44,10 @@ services:
     env_file:
       - ./backend/.env
 
-<<<<<<< HEAD
-    environment:
-      DB_HOST: db
-=======
     # Override DB connection inside the container:
     # "localhost" would point to the container itself, not the mysql service.
     environment:
       DB_HOST: mysql
->>>>>>> origin/develop
       DB_PORT: 3306
 
     ports:
@@ -108,9 +83,5 @@ services:
       - backend
 
 volumes:
-<<<<<<< HEAD
-  db_data:
-=======
   mysql_data:
     name: nguongocso_mysql_data
->>>>>>> origin/develop
