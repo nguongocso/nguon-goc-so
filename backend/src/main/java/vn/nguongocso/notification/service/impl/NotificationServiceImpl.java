@@ -88,6 +88,8 @@ public class NotificationServiceImpl implements NotificationService {
 
         private final TraceCodeRepository traceCodeRepository;
 
+        private final vn.nguongocso.auth.repository.UserRepository userRepository;
+
         private final OrganizationUserRepository organizationUserRepository;
 
         private final CertificationRepository certificationRepository;
@@ -242,7 +244,62 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         // =========================================================
-        // 3. TẠO THÔNG BÁO CHỨNG NHẬN SẮP HẾT HẠN / HẾT HẠN
+        // 3. TẠO THÔNG BÁO THU HỒI LÔ SẢN XUẤT (NCL-08-CN-008)
+        // =========================================================
+
+        private static final String LOT_RECALL_TITLE = "Thông báo thu hồi lô sản xuất";
+
+        /**
+         * Gửi thông báo thu hồi lô sản xuất cho danh sách người dùng được chỉ định.
+         *
+         * @param lotName      tên lô sản xuất
+         * @param reason       lý do thu hồi
+         * @param recipientIds danh sách ID người dùng nhận thông báo
+         * @return số lượng thông báo đã tạo
+         */
+        @Override
+        public int sendLotRecallNotification(String lotName, String reason, List<UUID> recipientIds) {
+                if (recipientIds == null || recipientIds.isEmpty()) {
+                        log.warn("Không có người dùng để nhận thông báo thu hồi lô sản xuất. lotName={}", lotName);
+                        return 0;
+                }
+
+                List<User> recipients = userRepository.findAllById(recipientIds);
+
+                if (recipients.isEmpty()) {
+                        return 0;
+                }
+
+                String content = "Lô sản xuất \""
+                                + lotName
+                                + "\" đã bị thu hồi. Lý do: "
+                                + (reason == null ? "Không rõ" : reason);
+
+                List<Notification> notifications = recipients.stream()
+                                .map(user -> {
+                                        Notification notification = new Notification();
+                                        notification.setUser(user);
+                                        notification.setType(NotificationType.ALERT);
+                                        notification.setTitle(LOT_RECALL_TITLE);
+                                        notification.setContent(content);
+                                        notification.setIsRead(false);
+                                        notification.setReadAt(null);
+                                        return notification;
+                                })
+                                .toList();
+
+                notificationRepository.saveAll(notifications);
+
+                log.info(
+                                "Đã tạo {} notification thu hồi lô sản xuất. lotName={}",
+                                notifications.size(),
+                                lotName);
+
+                return notifications.size();
+        }
+
+        // =========================================================
+        // 4. TẠO THÔNG BÁO CHỨNG NHẬN SẮP HẾT HẠN / HẾT HẠN
         // =========================================================
 
         /**
