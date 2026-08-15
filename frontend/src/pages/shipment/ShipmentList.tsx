@@ -12,9 +12,8 @@ import {
 } from "@/components/ui/table";
 import {
   BadgeCheck,
-  ChevronLeft,
-  ChevronRight,
   FileText,
+  FileJson,
   Plus,
   Ban,
   MoreHorizontal,
@@ -36,8 +35,14 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { checkDossierEligibility, exportDossier } from "@/api/dossierApi";
+import {
+  checkDossierEligibility,
+  exportDossier,
+  exportGs1Dossier,
+} from "@/api/dossierApi";
 import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligibleDialog";
+import { ROLE_ACCESS } from "@/config/roleAccess";
+import { usePermission } from "@/hooks/usePermission";
 import { deleteDraft } from "@/api/eventValidationApi";
 
 const statusLabelMap: Record<string, string> = {
@@ -100,6 +105,8 @@ export const ShipmentList = ({
     shipmentName: "",
   });
 
+  const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
+
   const {
     shipments,
     isLoading,
@@ -108,10 +115,6 @@ export const ShipmentList = ({
     activatingShipmentId,
     activateShipment,
     reload,
-    page,
-    totalPages,
-    totalElements,
-    setPage,
   } = useShipments(productionLotId);
 
   const { recallingShipmentId, recallShipment } = useRecallShipment(reload);
@@ -129,6 +132,7 @@ export const ShipmentList = ({
   };
 
   const handleExportDossier = async (shipment: Shipment) => {
+    let toastId: string | number | undefined;
     try {
       // 1. Kiểm tra điều kiện
       const checkResult = await checkDossierEligibility(shipment.id);
@@ -144,9 +148,9 @@ export const ShipmentList = ({
       }
 
       // 3. Đủ điều kiện → tải file PDF
-      toast.loading("Đang tạo hồ sơ...");
+      toastId = toast.loading("Đang tạo hồ sơ...");
       const blob = await exportDossier(shipment.id);
-      toast.dismiss();
+      toast.dismiss(toastId);
 
       // Tạo link tải file
       const url = window.URL.createObjectURL(blob);
@@ -180,8 +184,42 @@ export const ShipmentList = ({
 
       toast.success("Tải hồ sơ thành công");
     } catch (error: any) {
+      if (toastId != null) {
+        toast.dismiss(toastId);
+      }
+
       const msg =
         error.response?.data?.message || "Có lỗi xảy ra khi xuất hồ sơ.";
+
+      toast.error(msg);
+    }
+  };
+
+  const handleExportGs1Dossier = async (shipment: Shipment) => {
+    const toastId = toast.loading("Đang tạo hồ sơ GS1...");
+    try {
+      const { blob, fileName } = await exportGs1Dossier(
+        shipment.id,
+        "json",
+        true,
+      );
+      toast.dismiss(toastId);
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Tải hồ sơ GS1 thành công");
+    } catch (error: any) {
+      toast.dismiss(toastId);
+      const msg =
+        error.response?.data?.message ||
+        "Có lỗi xảy ra khi xuất hồ sơ GS1.";
 
       toast.error(msg);
     }
@@ -258,9 +296,10 @@ export const ShipmentList = ({
 
                       <TableCell>
                         <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusColorMap[shipment.status] ||
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            statusColorMap[shipment.status] ||
                             "bg-status-draft/10 text-status-draft"
-                            }`}
+                          }`}
                         >
                           {statusLabelMap[shipment.status] || shipment.status}
                         </span>
@@ -276,20 +315,6 @@ export const ShipmentList = ({
 
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-1.5">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-auto px-2.5 py-1 text-xs"
-                            onClick={() =>
-                              navigate(
-                                `/production-lots/${productionLotId}/shipments/${shipment.id}`,
-                              )
-                            }
-                          >
-                            <Eye className="mr-1 h-3 w-3" />
-                            Chi tiết
-                          </Button>
-
                           <DropdownMenu>
                             <DropdownMenuTrigger
                               className="size-7"
@@ -299,6 +324,13 @@ export const ShipmentList = ({
                             </DropdownMenuTrigger>
 
                             <DropdownMenuContent>
+                              <DropdownMenuItem
+                                onClick={() => navigate(`/shipments/${shipment.id}`)}
+                              >
+                                <Eye className="size-4" />
+                                Chi tiết
+                              </DropdownMenuItem>
+
                               {canActivate &&
                                 shipment.status === "CODE_PRINTED" && (
                                   <DropdownMenuItem
@@ -331,12 +363,23 @@ export const ShipmentList = ({
                                 Xuất hồ sơ
                               </DropdownMenuItem>
 
+                              {canExportGs1 && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleExportGs1Dossier(shipment)
+                                  }
+                                >
+                                  <FileJson className="size-4" />
+                                  Xuất hồ sơ GS1
+                                </DropdownMenuItem>
+                              )}
+
                               {((canRecall &&
                                 shipment.status !== "RECALLED") ||
                                 shipment.status === "DRAFT" ||
                                 shipment.status === "CODE_PRINTED") && (
-                                  <DropdownMenuSeparator />
-                                )}
+                                <DropdownMenuSeparator />
+                              )}
 
                               {canRecall &&
                                 shipment.status !== "RECALLED" && (
@@ -353,15 +396,15 @@ export const ShipmentList = ({
 
                               {(shipment.status === "DRAFT" ||
                                 shipment.status === "CODE_PRINTED") && (
-                                  <DropdownMenuItem
-                                    variant="destructive"
-                                    onClick={() =>
-                                      handleDeleteDraft(shipment)
-                                    }
-                                  >
-                                    Hủy nháp
-                                  </DropdownMenuItem>
-                                )}
+                                <DropdownMenuItem
+                                  variant="destructive"
+                                  onClick={() =>
+                                    handleDeleteDraft(shipment)
+                                  }
+                                >
+                                  Hủy nháp
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -370,44 +413,6 @@ export const ShipmentList = ({
                   ))}
                 </TableBody>
               </Table>
-            </div>
-          )}
-
-          {/* Pagination bar */}
-          {!isLoading && totalElements > 0 && totalPages > 1 && (
-            <div className="flex items-center justify-between border-t pt-4 mt-2">
-              <p className="text-sm text-muted-foreground">
-                Trang{" "}
-                <span className="font-medium text-foreground">{page + 1}</span>
-                {" "}/{" "}
-                <span className="font-medium text-foreground">{totalPages}</span>
-                {" "}&#183;{" "}
-                Tổng{" "}
-                <span className="font-medium text-foreground">
-                  {totalElements}
-                </span>{" "}
-                lô hàng
-              </p>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  disabled={page === 0}
-                  onClick={() => setPage(page - 1)}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage(page + 1)}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
             </div>
           )}
         </CardContent>

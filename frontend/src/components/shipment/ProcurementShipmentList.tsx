@@ -14,11 +14,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { ProcurementShipment, Shipment } from "@/types/shipment";
-import { getEligibleShipments, getShipmentById } from "@/api/shipmentApi";
-import { ShipmentDetailDialog } from "@/components/shipment/ShipmentDetailDialog";
+import type { ProcurementShipment } from "@/types/shipment";
+import { getEligibleShipments } from "@/api/shipmentApi";
+import { exportGs1Dossier } from "@/api/dossierApi";
+import { ROLE_ACCESS } from "@/config/roleAccess";
+import { usePermission } from "@/hooks/usePermission";
+import { useNavigate } from "react-router-dom";
 import {
   Eye,
+  FileJson,
   LoaderCircle,
   Package,
   Search,
@@ -52,16 +56,7 @@ export function ProcurementShipmentList({
   const [shipments, setShipments] = useState<ProcurementShipment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [detailShipment, setDetailShipment] = useState<Shipment | null>(null);
-
-  const handleViewDetail = async (shipmentId: string) => {
-    try {
-      const data = await getShipmentById(shipmentId);
-      setDetailShipment(data);
-    } catch {
-      toast.error("Không thể tải chi tiết lô hàng.");
-    }
-  };
+  const navigate = useNavigate();
 
   const loadShipments = useCallback(async () => {
     setIsLoading(true);
@@ -98,6 +93,37 @@ export function ProcurementShipmentList({
           .includes(keyword),
     );
   }, [shipments, search]);
+
+  const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
+
+  const handleExportGs1 = async (shipmentId: string) => {
+    const toastId = toast.loading("Đang tạo hồ sơ GS1...");
+    try {
+      const { blob, fileName } = await exportGs1Dossier(
+        shipmentId,
+        "json",
+        true,
+      );
+      toast.dismiss(toastId);
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Tải hồ sơ GS1 thành công");
+    } catch (error: any) {
+      toast.dismiss(toastId);
+      const msg =
+        error.response?.data?.message ||
+        "Có lỗi xảy ra khi xuất hồ sơ GS1.";
+      toast.error(msg);
+    }
+  };
 
   return (
     <>
@@ -198,9 +224,7 @@ export function ProcurementShipmentList({
                             size="sm"
                             type="button"
                             variant="outline"
-                            onClick={() =>
-                              handleViewDetail(shipment.id)
-                            }
+                            onClick={() => navigate(`/shipments/${shipment.id}`)}
                           >
                             <Eye className="size-4" />
                             Chi tiết
@@ -216,6 +240,18 @@ export function ProcurementShipmentList({
                             <ShoppingCart className="size-4" />
                             Ghi nhận thu mua
                           </Button>
+
+                          {canExportGs1 && (
+                            <Button
+                              size="sm"
+                              type="button"
+                              variant="outline"
+                              onClick={() => handleExportGs1(shipment.id)}
+                            >
+                              <FileJson className="size-4" />
+                              Xuất hồ sơ GS1
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -249,18 +285,6 @@ export function ProcurementShipmentList({
         </CardContent>
       </Card>
 
-      <ShipmentDetailDialog
-        open={detailShipment !== null}
-        shipment={detailShipment}
-        onClose={() => setDetailShipment(null)}
-        canActivate={false}
-        canRecall={false}
-        onActivate={() => {}}
-        onRecall={() => {}}
-        onExportDossier={() => {}}
-        onDeleteDraft={() => {}}
-        onViewTimeline={() => {}}
-      />
     </>
   );
 }
