@@ -225,4 +225,37 @@
 		</plugins>
 	</build>
 
+	<profiles>
+		<!--
+		  Production profile:
+		  - skips tests during packaging (they run separately in CI)
+		  - strips test-only resources from the packaged JAR
+
+		  Used by the Docker build: `./mvnw clean package -Pprod`
+		-->
+		<profile>
+			<id>prod</id>
+			<properties>
+				<skipTests>true</skipTests>
+				<maven.test.skip>true</maven.test.skip>
+			</properties>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-jar-plugin</artifactId>
+						<configuration>
+							<excludes>
+								<exclude>**/application-test.properties</exclude>
+								<exclude>**/application-test.yml</exclude>
+								<exclude>**/application-test.yaml</exclude>
+								<exclude>**/*.bak</exclude>
+							</excludes>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
 </project>

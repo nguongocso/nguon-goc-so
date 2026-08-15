@@ -1,5 +1,7 @@
 import axios from "axios";
 
+import { getApiBaseUrl } from "@/config/runtimeConfig";
+
 import {
   getToken,
   getSelectionToken,
@@ -7,14 +9,7 @@ import {
   removeSelectionToken,
 } from "@/utils/storage";
 
-const rawBaseUrl =
-  import.meta.env.VITE_API_BASE_URL ||
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:8080/api/v1";
-
-const baseURL = rawBaseUrl.endsWith("/api/v1")
-  ? rawBaseUrl
-  : `${rawBaseUrl.replace(/\/$/, "")}/api/v1`;
+const baseURL = getApiBaseUrl();
 
 const apiClient = axios.create({
   baseURL,

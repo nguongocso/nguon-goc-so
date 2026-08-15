@@ -1,50 +1,51 @@
-# =========================================================
-# STAGE 1: BUILD
-# =========================================================
-
+# ============================================================
+# Stage 1: Build
+# ============================================================
 FROM eclipse-temurin:21-jdk AS builder
 
 WORKDIR /app
 
-# Copy Maven Wrapper
-COPY mvnw .
+# Copy the Maven wrapper and POM first to leverage layer caching.
+COPY mvnw ./
 COPY .mvn .mvn
-COPY pom.xml .
+COPY pom.xml ./
 
-# Maven Wrapper cần quyền thực thi trên Linux
+# Make the Maven wrapper executable (Linux).
 RUN chmod +x mvnw
 
-# Download dependencies trước
-# Giúp tận dụng Docker layer cache
+# Pre-download dependencies (cached separately from source).
 RUN ./mvnw dependency:go-offline -B
 
-# Copy source code
+# Copy source code.
 COPY src src
 
-# Build Spring Boot application
-# Test đã được chạy riêng trước đó
-RUN ./mvnw clean package -DskipTests
+# Build a production JAR:
+#   -Pprod skips tests (run separately in CI) and excludes
+#         test-only resources from the packaged artifact.
+RUN ./mvnw clean package -Pprod -B
 
 
-# =========================================================
-# STAGE 2: RUNTIME
-# =========================================================
-
+# ============================================================
+# Stage 2: Runtime
+# ============================================================
 FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-# Tạo các thư mục runtime
-RUN mkdir -p /app/uploads \
-    /app/files/qr
+# Create runtime directories for file storage.
+RUN mkdir -p /app/uploads /app/files/qr
 
-# Chỉ copy JAR từ build stage
+# Copy the packaged JAR from the build stage.
 COPY --from=builder /app/target/*.jar app.jar
 
-# Spring Boot
+# Run as a non-root user for security.
+RUN addgroup --system spring && adduser --system spring --ingroup spring
+RUN chown -R spring:spring /app
+USER spring:spring
+
 EXPOSE 8080
 
-# Cho phép truyền JVM options từ bên ngoài
+# JVM options can be overridden at runtime (e.g. -Xmx512m).
 ENV JAVA_OPTS=""
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
