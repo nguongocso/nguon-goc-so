@@ -141,7 +141,7 @@ Required repository secrets / GitHub environments:
 | --- | --- | --- |
 | `KUBECONFIG_B64` | staging, production | base64-encoded kubeconfig |
 | `KUBE_NAMESPACE` | staging, production | namespace (default `nguongocso`) |
-| `GITHUB_TOKEN` | (automatic) | push images to GHCR |
+| `GHCR_TOKEN` | (automatic) | push images to GHCR |
 
 > The images referenced by the manifests are tagged `:latest` on main and
 > `:edge` on develop. For production, pin the `type=sha` tag in each Deployment.

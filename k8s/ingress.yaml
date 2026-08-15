@@ -19,10 +19,10 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
 spec:
   ingressClassName: nginx
-  tls:
-    - hosts:
-        - nguongocso.example.com
-      secretName: nguongocso-tls
+  # tls:
+  #   - hosts:
+  #       - nguongocso.example.com
+  #     secretName: nguongocso-tls
   rules:
     - host: nguongocso.example.com
       http:
