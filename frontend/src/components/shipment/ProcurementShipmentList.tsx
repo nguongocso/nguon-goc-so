@@ -14,13 +14,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { ProcurementShipment } from "@/types/shipment";
-import { getEligibleShipments } from "@/api/shipmentApi";
+import type { ProcurementShipment, Shipment } from "@/types/shipment";
+import { getEligibleShipments, getShipmentById } from "@/api/shipmentApi";
 import { exportGs1Dossier } from "@/api/dossierApi";
 import { ShipmentDetailDialog } from "@/components/shipment/ShipmentDetailDialog";
 import { ROLE_ACCESS } from "@/config/roleAccess";
 import { usePermission } from "@/hooks/usePermission";
-import { useNavigate } from "react-router-dom";
 import {
   Eye,
   FileJson,
@@ -67,7 +66,7 @@ export function ProcurementShipmentList({
       toast.error("Không thể tải chi tiết lô hàng.");
     }
   };
-  const navigate = useNavigate();
+
 
   const loadShipments = useCallback(async () => {
     setIsLoading(true);

@@ -12,7 +12,7 @@ export interface ProductionLot {
   actualQuantity: number | null;
   plantingDate: string;
   harvestDate: string;
-  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'HARVESTED' | 'PREPROCESSED' | 'PACKAGED' | 'CLOSED';
+  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'HARVESTED' | 'PREPROCESSED' | 'PACKAGED' | 'CLOSED' | 'RECALLED';
   approvalNotes: string | null;
   createdByName: string | null;
   // FIX: was `approvebyName` (typo, inconsistent casing) — corrected to approvedByName
