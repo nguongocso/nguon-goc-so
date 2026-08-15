@@ -28,7 +28,6 @@ const statusLabels: Record<string, string> = {
   APPROVED: 'Đã duyệt',
   REJECTED: 'Bị từ chối',
   HARVESTED: 'Đã thu hoạch',
-  PREPROCESSED: 'Đã sơ chế',
   PACKAGED: 'Đã đóng gói',
   CLOSED: 'Đã kết thúc',
 };

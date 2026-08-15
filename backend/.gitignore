@@ -31,18 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
-
 /uploads
 /files/
 
-### Environment ###
-.env
-.env.*
-
-### Local application configuration ###
-backend/src/main/resources/application-local.properties
-
-### Local Docker configuration ###
-docker-compose.override.yml
 .env
 !.env.example

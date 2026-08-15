@@ -3,35 +3,24 @@ import { toast } from 'sonner';
 import {
   activateShipmentStamps,
   createShipment,
-  getShipmentsByProductionLotPaged,
+  getShipmentsByProductionLot,
 } from '@/api/shipmentApi';
-import type { PageResponse, Shipment, CreateShipmentPayload } from '@/types/shipment';
-
-const PAGE_SIZE = 10;
+import type { Shipment, CreateShipmentPayload } from '@/types/shipment';
 
 export const useShipments = (productionLotId: string) => {
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
-  const [activatingShipmentId, setActivatingShipmentId] = useState<string | null>(null);
+  const [activatingShipmentId, setActivatingShipmentId] = useState<string | null>(
+    null,
+  );
 
-  // Pagination state
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
-
-  const loadShipments = useCallback(async (targetPage: number) => {
+  const loadShipments = useCallback(async () => {
     if (!productionLotId) return;
     setIsLoading(true);
     try {
-      const data: PageResponse<Shipment> = await getShipmentsByProductionLotPaged(
-        productionLotId,
-        targetPage,
-        PAGE_SIZE,
-      );
-      setShipments(data.items);
-      setTotalPages(data.totalPages);
-      setTotalElements(data.totalElements);
+      const data = await getShipmentsByProductionLot(productionLotId);
+      setShipments(data);
     } catch (error: any) {
       const message = error.response?.data?.message || 'Không thể tải danh sách lô hàng';
       toast.error(message);
@@ -41,20 +30,16 @@ export const useShipments = (productionLotId: string) => {
   }, [productionLotId]);
 
   useEffect(() => {
-    void loadShipments(page);
-  }, [productionLotId, page, loadShipments]);
+    loadShipments();
+  }, [loadShipments]);
 
   const createShipmentMutation = async (payload: CreateShipmentPayload) => {
     setIsCreating(true);
     try {
-      await createShipment(payload);
+      const newShipment = await createShipment(payload);
+      setShipments((prev) => [newShipment, ...prev]);
       toast.success('Tạo lô hàng thành công!');
-      // Về trang đầu để thấy lô hàng mới nhất (sort DESC)
-      if (page === 0) {
-        void loadShipments(0);
-      } else {
-        setPage(0);
-      }
+      return newShipment;
     } catch (error: any) {
       const message = error.response?.data?.message || 'Có lỗi xảy ra khi tạo lô hàng.';
       toast.error(message);
@@ -66,13 +51,19 @@ export const useShipments = (productionLotId: string) => {
 
   const activateShipmentMutation = async (shipmentId: string) => {
     setActivatingShipmentId(shipmentId);
+
     try {
-      await activateShipmentStamps(shipmentId);
+      const activatedShipment = await activateShipmentStamps(shipmentId);
+      setShipments((prev) =>
+        prev.map((shipment) =>
+          shipment.id === shipmentId ? activatedShipment : shipment,
+        ),
+      );
       toast.success('Kích hoạt tem thành công!');
-      // Reload trang hiện tại để cập nhật status
-      void loadShipments(page);
+      return activatedShipment;
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Không thể kích hoạt tem.';
+      const message =
+        error.response?.data?.message || 'Không thể kích hoạt tem.';
       toast.error(message);
       throw error;
     } finally {
@@ -85,12 +76,8 @@ export const useShipments = (productionLotId: string) => {
     isLoading,
     isCreating,
     activatingShipmentId,
-    page,
-    totalPages,
-    totalElements,
-    setPage,
     createShipment: createShipmentMutation,
     activateShipment: activateShipmentMutation,
-    reload: () => void loadShipments(page),
+    reload: loadShipments,
   };
 };

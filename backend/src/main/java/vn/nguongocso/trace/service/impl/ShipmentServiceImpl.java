@@ -7,9 +7,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -20,7 +17,6 @@ import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
-import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.common.annotation.Auditable;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
@@ -220,7 +216,7 @@ public class ShipmentServiceImpl implements ShipmentService {
         }
 
         List<Shipment> shipments = shipmentRepository.findByProductionLotId(productionLotId);
-        List<ShipmentResponse> shipmentResponses = shipments.stream()
+        return shipments.stream()
                 .map(shipment -> {
                     List<TraceCode> traceCodes = traceCodeRepository.findByShipmentId(shipment.getId());
                     String createdByName = null;
@@ -232,50 +228,6 @@ public class ShipmentServiceImpl implements ShipmentService {
                     return buildShipmentResponse(shipment, traceCodes, createdByName);
                 })
                 .collect(Collectors.toList());
-        return shipmentResponses;
-    }
-
-    /**
-     * Lấy danh sách lô hàng theo ID của lô sản xuất với phân trang.
-     *
-     * @param productionLotId ID của lô sản xuất
-     * @param page            số trang (bắt đầu từ 0)
-     * @param size            số bản ghi trên mỗi trang
-     * @return dữ liệu phân trang
-     */
-    @Override
-    public PageResponse<ShipmentResponse> getShipmentsByProductionLotPaged(
-            UUID productionLotId, int page, int size) {
-
-        CustomUserDetails currentUser = getCurrentUser();
-        ProductionLot productionLot = findProductionLot(productionLotId);
-
-        if (!productionLot.getOrganization().getOrganizationId()
-                .equals(currentUser.getOrganizationId())) {
-            throw new BusinessException(ORGANIZATION_ACCESS_MESSAGE);
-        }
-
-        PageRequest pageable = PageRequest.of(
-                page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Shipment> shipmentsPage =
-                shipmentRepository.findByProductionLotId(productionLotId, pageable);
-
-        List<ShipmentResponse> responses = shipmentsPage.getContent().stream()
-                .map(shipment -> {
-                    List<TraceCode> traceCodes =
-                            traceCodeRepository.findByShipmentId(shipment.getId());
-                    String createdByName = null;
-                    if (shipment.getCreatedBy() != null) {
-                        createdByName = userRepository
-                                .findById(shipment.getCreatedBy().getUserId())
-                                .map(User::getFullName)
-                                .orElse(null);
-                    }
-                    return buildShipmentResponse(shipment, traceCodes, createdByName);
-                })
-                .toList();
-
-        return PageResponse.from(shipmentsPage, responses);
     }
 
     /**

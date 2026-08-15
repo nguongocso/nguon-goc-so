@@ -88,10 +88,6 @@ const statusConfig: Record<
     label: "Đã thu hoạch",
     className: "bg-lime-100 text-lime-800 border-lime-300",
   },
-  PREPROCESSED: {
-    label: "Đã sơ chế",
-    className: "bg-teal-100 text-teal-800 border-teal-300",
-  },
   PACKAGED: {
     label: "Đã đóng gói",
     className: "bg-sky-100 text-sky-800 border-sky-300",
@@ -168,10 +164,7 @@ export const ProductionLotList = ({
   }, [lots, search, statusFilter]);
 
   const getStatusBadge = (status: ProductionLot["status"]) => {
-    const config = statusConfig[status] || {
-      label: status || "Không xác định",
-      className: "bg-gray-100 text-gray-800 border-gray-300",
-    };
+    const config = statusConfig[status];
     return (
       <Badge
         variant="outline"

@@ -17,13 +17,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import vn.nguongocso.alert.service.ScanAnomalyDetectionService;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.farm.entity.ProductCategory;
@@ -66,22 +61,8 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-@Testcontainers
 class Qtn10AbnormalScanDataFlowIntegrationTest {
-    @Container
-    static MySQLContainer<?> mysql =
-            new MySQLContainer<>("mysql:8.0")
-                    .withDatabaseName("nguon_goc_so_test")
-                    .withUsername("test")
-                    .withPassword("test");
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", mysql::getJdbcUrl);
-        registry.add("spring.datasource.username", mysql::getUsername);
-        registry.add("spring.datasource.password", mysql::getPassword);
-        registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
-    }
     // Hà Nội, Đà Nẵng, TP.HCM — cách xa nhau (> 5km), đủ để CN-001 coi là 3 vị trí khác nhau.
     private static final double HN_LAT = 21.0285;
     private static final double HN_LON = 105.8542;

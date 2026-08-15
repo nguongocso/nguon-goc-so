@@ -1,6 +1,5 @@
 package vn.nguongocso.trace.service;
 
-import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.trace.dto.request.CreateShipmentRequest;
 import vn.nguongocso.trace.dto.response.ShipmentResponse;
 import vn.nguongocso.trace.dto.response.ProcurementShipmentResponse;
@@ -36,17 +35,6 @@ public interface ShipmentService {
      * @return danh sách lô hàng
      */
     List<ShipmentResponse> getShipmentsByProductionLot(UUID productionLotId);
-
-    /**
-     * Lấy danh sách lô hàng theo ID của lô sản xuất với phân trang.
-     *
-     * @param productionLotId ID của lô sản xuất
-     * @param page            số trang (bắt đầu từ 0)
-     * @param size            số bản ghi trên mỗi trang
-     * @return dữ liệu phân trang
-     */
-    PageResponse<ShipmentResponse> getShipmentsByProductionLotPaged(
-            UUID productionLotId, int page, int size);
 
     /**
      * Tra cứu lô hàng bằng mã truy xuất (codeValue in trên tem QR).
