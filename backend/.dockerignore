@@ -20,23 +20,30 @@ target/
 .env.*
 !.env.example
 
-# Runtime data
+# Runtime data (local)
 uploads/
 files/
+backups/
 logs/
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Temporary files
+# Temporary / backup files
 *.log
 *.tmp
 *.temp
 *.swp
 *~
+*.bak
+*.rar
+*.zip
 
 # Test / coverage output
 coverage/
 jacoco/
 *.exec
+
+# Docs / sample data (not needed at runtime)
+docs/
