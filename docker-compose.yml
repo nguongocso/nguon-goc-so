@@ -1,55 +1,61 @@
+# ============================================================
+# Docker Compose — local / single-node deployment
+# ------------------------------------------------------------
+# Backs the same env-var contract as the Kubernetes manifests:
+#   backend reads DB_* , JWT_*, MAIL_*, LOCATIONIQ_* etc.
+#   frontend container entrypoint replaces /config.js placeholders
+#            and renders the nginx conf from BACKEND_UPSTREAM.
+#
+# Do NOT commit real secrets. Set them in a local `.env` file
+# (gitignored) or export them before running `docker compose up`.
+# ============================================================
 services:
 
-  # =========================================================
-  # MYSQL - Database
-  # =========================================================
-  # NOTE: volume is pinned via `name:` to nguongocso_mysql_data so that
-  # recreating the stack (even under a different project name) ALWAYS reuses
-  # the existing data directory instead of initializing an empty database.
   mysql:
     image: mysql:8.4
-
-    container_name: nguongocso-mysql
-
     restart: unless-stopped
-
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: nguon_goc_so
-
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${DB_NAME:-nguon_goc_so}
+      MYSQL_USER: ${DB_USERNAME:-nguongocso}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
     ports:
-      - "3307:3306"
-
+      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 20
 
-  # =========================================================
-  # BACKEND - Spring Boot
-  # =========================================================
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
-
-    container_name: nguongocso-backend
-
     restart: unless-stopped
-
-    env_file:
-      - ./backend/.env
-
-    # Override DB connection inside the container:
-    # "localhost" would point to the container itself, not the mysql service.
     environment:
       DB_HOST: mysql
       DB_PORT: 3306
-
+      DB_NAME: ${DB_NAME:-nguon_goc_so}
+      DB_USERNAME: ${DB_USERNAME:-nguongocso}
+      DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost}
+      UPLOAD_BASE_DIR: /app/uploads
+      UPLOAD_FARM_LOG_RELATIVE_PATH: farm-logs
+      UPLOAD_FARM_LOG_MAX_SIZE: 5242880
+      QR_IMAGE_STORAGE_PATH: /app/files/qr
+      MYSQL_DUMP_PATH: /usr/bin/mysqldump
+      MYSQL_PATH: /usr/bin/mysql
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      LOCATIONIQ_API_KEY: ${LOCATIONIQ_API_KEY:-}
+      LOCATIONIQ_BASE_URL: ${LOCATIONIQ_BASE_URL:-https://us1.locationiq.com/v1/reverse}
+      JAVA_OPTS: "-Xms256m -Xmx768m"
     ports:
       - "8080:8080"
 
@@ -60,22 +66,20 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_files:/app/files
     depends_on:
       mysql:
         condition: service_healthy
 
-  # =========================================================
-  # FRONTEND - React / Vite / Nginx
-  # =========================================================
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-
-    container_name: nguongocso-frontend
-
     restart: unless-stopped
-
+    environment:
+      API_BASE_URL: /api/v1
+      BACKEND_UPSTREAM: http://backend:8080
     ports:
       - "3000:80"
 

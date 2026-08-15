@@ -1,0 +1,61 @@
+# ============================================================
+# Nginx SPA + API reverse-proxy (template)
+# ------------------------------------------------------------
+# ${BACKEND_UPSTREAM} is substituted at container startup from
+# the BACKEND_UPSTREAM environment variable (see
+# docker-entrypoint.d/40-runtime-config.sh).
+#
+# Example values:
+#   docker-compose : http://backend:8080
+#   Kubernetes     : http://backend-service:8080
+# ============================================================
+server {
+    listen 80;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Serve the runtime config without caching so updates take effect
+    # immediately after a container restart.
+    location = /config.js {
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate";
+        add_header Pragma "no-cache";
+        expires 0;
+    }
+
+    # SPA fallback
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Reverse-proxy API calls to the backend service.
+    location /api/ {
+        proxy_pass ${BACKEND_UPSTREAM}/api/;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # Reverse-proxy static files (e.g. generated QR images served at /files/qr/**).
+    location /files/ {
+        proxy_pass ${BACKEND_UPSTREAM}/files/;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}

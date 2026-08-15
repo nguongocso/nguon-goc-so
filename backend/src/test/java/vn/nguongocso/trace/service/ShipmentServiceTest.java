@@ -99,7 +99,7 @@ public class ShipmentServiceTest {
         // Given
         codeRange.setUsedCount(100L);
         when(productionLotRepository.findById(any())).thenReturn(Optional.of(productionLot));
-        when(codeRangeRepository.findByOrganizationOrganizationId(orgId))
+        when(codeRangeRepository.findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(orgId))
                 .thenReturn(Optional.of(codeRange));
         when(traceCodeRepository.findMaxCodeValueByOrganization(orgId, codeRange.getPrefix()))
             .thenReturn(codeRange.getPrefix() + "100");
@@ -125,7 +125,7 @@ public class ShipmentServiceTest {
         // Given
         codeRange.setUsedCount(90L);
         when(productionLotRepository.findById(any())).thenReturn(Optional.of(productionLot));
-        when(codeRangeRepository.findByOrganizationOrganizationId(orgId))
+        when(codeRangeRepository.findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(orgId))
                 .thenReturn(Optional.of(codeRange));
         when(traceCodeRepository.findMaxCodeValueByOrganization(orgId, codeRange.getPrefix()))
             .thenReturn(null);

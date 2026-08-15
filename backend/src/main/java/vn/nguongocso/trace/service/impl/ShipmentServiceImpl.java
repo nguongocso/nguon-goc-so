@@ -374,7 +374,8 @@ public class ShipmentServiceImpl implements ShipmentService {
      */
     private CodeRange findAvailableCodeRange(CustomUserDetails currentUser) {
 
-        return codeRangeRepository.findByOrganizationOrganizationId(currentUser.getOrganizationId())
+        return codeRangeRepository
+                .findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(currentUser.getOrganizationId())
                 .orElseThrow(() -> new BusinessException(CODE_RANGE_NOT_FOUND_MESSAGE));
     }
 

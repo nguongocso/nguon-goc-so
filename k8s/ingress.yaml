@@ -1,0 +1,36 @@
+# ============================================================
+# Ingress
+# ------------------------------------------------------------
+# The frontend nginx reverse-proxies /api -> backend-service,
+# so external traffic only needs to reach the frontend service.
+# If you also need to expose backend endpoints directly (e.g.
+# /actuator), add a separate path rule pointing to backend-service.
+#
+# Prerequisite: an Ingress controller must be installed
+# (e.g. ingress-nginx). TLS uses the nguongocso-tls secret.
+# ============================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nguongocso-ingress
+  namespace: nguongocso
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  ingressClassName: nginx
+  # tls:
+  #   - hosts:
+  #       - nguongocso.example.com
+  #     secretName: nguongocso-tls
+  rules:
+    - host: nguongocso.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80

@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  FileJson,
   Plus,
   Ban,
   MoreHorizontal,
@@ -36,8 +37,14 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { checkDossierEligibility, exportDossier } from "@/api/dossierApi";
+import {
+  checkDossierEligibility,
+  exportDossier,
+  exportGs1Dossier,
+} from "@/api/dossierApi";
 import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligibleDialog";
+import { ROLE_ACCESS } from "@/config/roleAccess";
+import { usePermission } from "@/hooks/usePermission";
 import { deleteDraft } from "@/api/eventValidationApi";
 
 const statusLabelMap: Record<string, string> = {
@@ -100,6 +107,8 @@ export const ShipmentList = ({
     shipmentName: "",
   });
 
+  const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
+
   const {
     shipments,
     isLoading,
@@ -129,6 +138,7 @@ export const ShipmentList = ({
   };
 
   const handleExportDossier = async (shipment: Shipment) => {
+    let toastId: string | number | undefined;
     try {
       // 1. Kiểm tra điều kiện
       const checkResult = await checkDossierEligibility(shipment.id);
@@ -144,9 +154,9 @@ export const ShipmentList = ({
       }
 
       // 3. Đủ điều kiện → tải file PDF
-      toast.loading("Đang tạo hồ sơ...");
+      toastId = toast.loading("Đang tạo hồ sơ...");
       const blob = await exportDossier(shipment.id);
-      toast.dismiss();
+      toast.dismiss(toastId);
 
       // Tạo link tải file
       const url = window.URL.createObjectURL(blob);
@@ -180,8 +190,42 @@ export const ShipmentList = ({
 
       toast.success("Tải hồ sơ thành công");
     } catch (error: any) {
+      if (toastId != null) {
+        toast.dismiss(toastId);
+      }
+
       const msg =
         error.response?.data?.message || "Có lỗi xảy ra khi xuất hồ sơ.";
+
+      toast.error(msg);
+    }
+  };
+
+  const handleExportGs1Dossier = async (shipment: Shipment) => {
+    const toastId = toast.loading("Đang tạo hồ sơ GS1...");
+    try {
+      const { blob, fileName } = await exportGs1Dossier(
+        shipment.id,
+        "json",
+        true,
+      );
+      toast.dismiss(toastId);
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Tải hồ sơ GS1 thành công");
+    } catch (error: any) {
+      toast.dismiss(toastId);
+      const msg =
+        error.response?.data?.message ||
+        "Có lỗi xảy ra khi xuất hồ sơ GS1.";
 
       toast.error(msg);
     }
@@ -330,6 +374,17 @@ export const ShipmentList = ({
                                 <FileText className="size-4" />
                                 Xuất hồ sơ
                               </DropdownMenuItem>
+
+                              {canExportGs1 && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleExportGs1Dossier(shipment)
+                                  }
+                                >
+                                  <FileJson className="size-4" />
+                                  Xuất hồ sơ GS1
+                                </DropdownMenuItem>
+                              )}
 
                               {((canRecall &&
                                 shipment.status !== "RECALLED") ||

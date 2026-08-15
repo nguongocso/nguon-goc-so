@@ -106,7 +106,7 @@ export const ShipmentDetailPage = () => {
     } catch (err: any) {
       setShipmentError(
         err.response?.data?.message ??
-          "Không thể tải thông tin lô hàng.",
+        "Không thể tải thông tin lô hàng.",
       );
     } finally {
       setLoadingShipment(false);

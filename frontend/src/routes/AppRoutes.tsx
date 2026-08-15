@@ -451,6 +451,19 @@ const AppRoutes = () => (
                 }
             />
 
+            {/* =================================================
+          SHIPMENT DETAIL (NCL-07-CN-002 / NCL-12-CN-003)
+      ================================================= */}
+
+            <Route
+                path="shipments/:id"
+                element={
+                    <RoleRoute allowedRoles={["VT-02", "VT-04"]}>
+                        <ShipmentDetailPage />
+                    </RoleRoute>
+                }
+            />
+
 
             {/* =================================================
           FARM LOGS

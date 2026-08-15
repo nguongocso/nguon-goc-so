@@ -1,40 +1,50 @@
-# =========================
+# ============================================================
 # Stage 1: Build frontend
-# =========================
+# ============================================================
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files trước để tận dụng Docker cache
-COPY package*.json ./
+# Copy package files first to leverage Docker layer caching.
+COPY package.json package-lock.json ./
 
-# Cài dependencies đúng theo package-lock.json
+# Install dependencies exactly as pinned in package-lock.json.
 RUN npm ci
 
-# Copy source code
+# Copy source code.
 COPY . .
 
-# Nhận biến môi trường Vite khi docker build
-ARG VITE_API_BASE_URL
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
-
-# Build production
+# The API base URL is resolved at RUNTIME (via /config.js), so the
+# build-time Vite vars are intentionally left unset. Nginx will
+# reverse-proxy /api -> backend service. This produces a single
+# environment-agnostic image.
 RUN npm run build
 
 
-# =========================
+# ============================================================
 # Stage 2: Serve with Nginx
-# =========================
-FROM nginx:alpine
+# ============================================================
+FROM nginx:1.27-alpine
 
-# Cấu hình Nginx cho React SPA
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Install envsubst (provided by gettext) plus a POSIX shell.
+# envsubst substitutes ${BACKEND_UPSTREAM} in the nginx template.
+RUN apk add --no-cache gettext
 
-# Copy kết quả build từ stage builder
+# Copy the nginx template; it is rendered at startup by the entrypoint.
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+
+# Copy the runtime config placeholder; it is populated at startup.
+COPY public/config.js /usr/share/nginx/html/config.js
+
+# Copy build output from the builder stage.
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Nginx chạy cổng 80
+# Copy our runtime substitution script into the official entrypoint dir.
+# The nginx image's docker-entrypoint.sh auto-executes *.sh here,
+# then (after 10-envsubst-on-templates.sh) renders templates and starts nginx.
+COPY docker-entrypoint.d/40-runtime-config.sh /docker-entrypoint.d/40-runtime-config.sh
+RUN chmod +x /docker-entrypoint.d/40-runtime-config.sh
+
 EXPOSE 80
 
-# Chạy Nginx foreground
 CMD ["nginx", "-g", "daemon off;"]
