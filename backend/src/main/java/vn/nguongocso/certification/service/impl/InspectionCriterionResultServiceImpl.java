@@ -70,7 +70,7 @@ public class InspectionCriterionResultServiceImpl
 
         // Tìm hoặc tạo kết quả kiểm nghiệm
         InspectionCriterionResult result = resultRepository
-                .findByCriterion_Id(criterionUUID)
+                .findByInspectionCriterion_Id(criterionUUID)
                 .orElse(InspectionCriterionResult.builder()
                         .inspectionCriterion(criterion)
                         .build());
@@ -98,7 +98,7 @@ public class InspectionCriterionResultServiceImpl
             UUID inspectionRequestId) {
 
         return resultRepository
-                .findByCriterion_InspectionRequest_Id(inspectionRequestId)
+                .findByInspectionCriterion_InspectionRequest_Id(inspectionRequestId)
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -110,7 +110,7 @@ public class InspectionCriterionResultServiceImpl
 
         UUID criterionUUID = UUID.fromString(criterionId);
         InspectionCriterionResult result = resultRepository
-                .findByCriterion_Id(criterionUUID)
+                .findByInspectionCriterion_Id(criterionUUID)
                 .orElseThrow(() ->
                     new IllegalArgumentException("Kết quả kiểm nghiệm không tồn tại"));
 

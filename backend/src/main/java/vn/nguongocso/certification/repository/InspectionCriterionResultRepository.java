@@ -12,34 +12,72 @@ import java.util.UUID;
 
 /**
  * Repository cho thực thể InspectionCriterionResult.
+ *
+ * Quản lý kết quả kiểm nghiệm tương ứng với từng chỉ tiêu
+ * trong một yêu cầu kiểm nghiệm.
  */
 public interface InspectionCriterionResultRepository
         extends JpaRepository<InspectionCriterionResult, UUID> {
 
     /**
-     * Tìm kết quả kiểm nghiệm theo ID chỉ tiêu kiểm nghiệm.
-     * Mỗi chỉ tiêu chỉ có tối đa một kết quả.
+     * Tìm kết quả kiểm nghiệm theo ID của chỉ tiêu kiểm nghiệm.
+     *
+     * Entity InspectionCriterionResult có field:
+     *
+     *     private InspectionCriterion inspectionCriterion;
+     *
+     * Vì vậy Spring Data JPA phải sử dụng:
+     *
+     *     findByInspectionCriterion_Id(...)
+     *
+     * thay vì:
+     *
+     *     findByCriterion_Id(...)
+     *
+     * Mỗi chỉ tiêu chỉ có tối đa một kết quả do database
+     * có unique constraint trên inspection_criterion_id.
      *
      * @param criterionId ID của chỉ tiêu kiểm nghiệm.
      * @return Optional chứa kết quả kiểm nghiệm nếu tồn tại.
      */
-    Optional<InspectionCriterionResult> findByCriterion_Id(UUID criterionId);
+    Optional<InspectionCriterionResult> findByInspectionCriterion_Id(
+            UUID criterionId);
 
     /**
-     * Lấy danh sách kết quả kiểm nghiệm cho tất cả chỉ tiêu của một yêu cầu kiểm nghiệm.
+     * Lấy danh sách kết quả kiểm nghiệm cho tất cả chỉ tiêu
+     * thuộc một yêu cầu kiểm nghiệm.
+     *
+     * Quan hệ:
+     *
+     * InspectionCriterionResult
+     *      -> inspectionCriterion
+     *          -> inspectionRequest
+     *              -> id
      *
      * @param inspectionRequestId ID của yêu cầu kiểm nghiệm.
      * @return Danh sách kết quả kiểm nghiệm.
      */
-    List<InspectionCriterionResult> findByCriterion_InspectionRequest_Id(
+    List<InspectionCriterionResult> findByInspectionCriterion_InspectionRequest_Id(
             UUID inspectionRequestId);
 
     /**
-     * Kiểm tra xem tất cả chỉ tiêu của yêu cầu kiểm nghiệm đều đạt và còn hiệu lực hay không.
+     * Kiểm tra xem tất cả chỉ tiêu của yêu cầu kiểm nghiệm
+     * đều đạt và còn hiệu lực hay không.
+     *
+     * Một chỉ tiêu được xem là đạt và hợp lệ khi:
+     *
+     * - Có kết quả kiểm nghiệm.
+     * - passed = true.
+     * - expiryDate >= ngày hiện tại.
+     *
+     * LEFT JOIN được sử dụng để vẫn lấy các chỉ tiêu chưa
+     * có kết quả. Khi đó r sẽ là NULL và COUNT(r) sẽ nhỏ
+     * hơn COUNT(c), kết quả trả về false.
      *
      * @param inspectionRequestId ID của yêu cầu kiểm nghiệm.
-     * @param today               Ngày hiện tại để kiểm tra hiệu lực.
-     * @return true nếu tất cả đạt và còn hiệu lực, ngược lại là false.
+     * @param today Ngày hiện tại để kiểm tra hiệu lực.
+     * @return true nếu tất cả chỉ tiêu đều đạt và còn hiệu lực,
+     *         false nếu còn chỉ tiêu chưa đạt/chưa có kết quả/hết hạn.
      */
     @Query("""
         SELECT COUNT(r) = COUNT(c)
@@ -55,10 +93,12 @@ public interface InspectionCriterionResultRepository
             @Param("today") LocalDate today);
 
     /**
-     * Lấy ngày hết hiệu lực sớm nhất của tất cả kết quả kiểm nghiệm trong yêu cầu.
+     * Lấy ngày hết hiệu lực sớm nhất của tất cả kết quả kiểm nghiệm
+     * thuộc một yêu cầu kiểm nghiệm.
      *
      * @param inspectionRequestId ID của yêu cầu kiểm nghiệm.
-     * @return Optional chứa ngày hết hiệu lực sớm nhất nếu tồn tại.
+     * @return Optional chứa ngày hết hiệu lực sớm nhất nếu tồn tại
+     *         kết quả kiểm nghiệm.
      */
     @Query("""
         SELECT MIN(r.expiryDate)
@@ -71,8 +111,14 @@ public interface InspectionCriterionResultRepository
     /**
      * Đếm số lượng chỉ tiêu đạt và còn hiệu lực.
      *
+     * Điều kiện:
+     *
+     * - Kết quả thuộc yêu cầu kiểm nghiệm.
+     * - passed = true.
+     * - expiryDate >= today.
+     *
      * @param inspectionRequestId ID của yêu cầu kiểm nghiệm.
-     * @param today               Ngày hiện tại để kiểm tra hiệu lực.
+     * @param today Ngày hiện tại để kiểm tra hiệu lực.
      * @return Số lượng chỉ tiêu đạt và còn hiệu lực.
      */
     @Query("""
@@ -87,7 +133,7 @@ public interface InspectionCriterionResultRepository
             @Param("today") LocalDate today);
 
     /**
-     * Đếm tổng số lượng chỉ tiêu trong yêu cầu kiểm nghiệm.
+     * Đếm tổng số lượng chỉ tiêu trong một yêu cầu kiểm nghiệm.
      *
      * @param inspectionRequestId ID của yêu cầu kiểm nghiệm.
      * @return Tổng số lượng chỉ tiêu.
@@ -97,5 +143,6 @@ public interface InspectionCriterionResultRepository
         FROM InspectionCriterion c
         WHERE c.inspectionRequest.id = :inspectionRequestId
     """)
-    int countTotalCriteria(@Param("inspectionRequestId") UUID inspectionRequestId);
+    int countTotalCriteria(
+            @Param("inspectionRequestId") UUID inspectionRequestId);
 }
