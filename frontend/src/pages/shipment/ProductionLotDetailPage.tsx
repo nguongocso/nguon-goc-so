@@ -11,6 +11,7 @@ import {
   Package,
   Plus,
   Sprout,
+  Wheat,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getProductionLotById } from "@/api/productionLotApi";
@@ -84,6 +85,10 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
   HARVESTED: {
     label: "Đã thu hoạch",
     className: "bg-lime-100 text-lime-800 border-lime-300",
+  },
+  PREPROCESSED: {
+    label: "Đã sơ chế",
+    className: "bg-teal-100 text-teal-800 border-teal-300",
   },
   PACKAGED: {
     label: "Đã đóng gói",
@@ -210,6 +215,9 @@ export const ProductionLotDetailPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const canCreateFarmLog = usePermission(ROLE_ACCESS.farmLogCreate);
+  const canCreatePreprocessing = usePermission(
+    ROLE_ACCESS.preprocessingEventCreate,
+  );
   const canInspect = usePermission(ROLE_ACCESS.inspectionRequest);
   const [lot, setLot] = useState<ProductionLot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -373,7 +381,9 @@ export const ProductionLotDetailPage = () => {
   const canRecallShipment = user?.roleCode === "VT-02";
   const canRecordPackaging =
     (user?.roleCode === "VT-02" || user?.roleCode === "VT-03") &&
-    lot.status === "HARVESTED";
+    (lot.status === "HARVESTED" || lot.status === "PREPROCESSED");
+  const canRecordPreprocessing =
+    canCreatePreprocessing && lot.status === "HARVESTED";
   const canManageCert = user?.roleCode === "VT-02";
 
   const handleDetach = async (certificationId: string) => {
@@ -524,6 +534,19 @@ export const ProductionLotDetailPage = () => {
                 Ghi nhận thu hoạch
               </Button>
             )}
+          {canRecordPreprocessing && (
+            <Button
+              onClick={() =>
+                navigate(
+                  `/preprocessing-events/create?productionLotId=${encodeURIComponent(lot.id)}`,
+                )
+              }
+              variant="create"
+            >
+              <Wheat className="h-4 w-4 mr-1" />
+              Ghi sơ chế
+            </Button>
+          )}
           {canRecordPackaging && (
             <Button
               onClick={() =>

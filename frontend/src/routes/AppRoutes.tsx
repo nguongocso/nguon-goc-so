@@ -43,6 +43,10 @@ import SuspectTraceCodeDetailPage from "@/pages/admin/SuspectTraceCodeDetailPage
 import CreatePackagingEventPage from "@/pages/packaging-event/CreatePackagingEventPage";
 import CorrectPackagingEventPage from "@/pages/packaging-event/CorrectPackagingEventPage";
 
+// ===== Preprocessing =====
+import CreatePreprocessingEventPage from "@/pages/preprocessing-event/CreatePreprocessingEventPage";
+import CorrectPreprocessingEventPage from "@/pages/preprocessing-event/CorrectPreprocessingEventPage";
+
 // ===== Organization =====
 import { OrganizationListPage } from "@/pages/organization/OrganizationListPage";
 import CreateMemberPage from "@/pages/organization/CreateMemberPage";
@@ -474,6 +478,33 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-02"]}>
                         <FarmLogHistoryPage />
+                    </RoleRoute>
+                }
+            />
+
+
+            {/* =================================================
+          PREPROCESSING
+      ================================================= */}
+
+            <Route
+                path="preprocessing-events/create"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.preprocessingEventCreate}
+                    >
+                        <CreatePreprocessingEventPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="preprocessing-events/:id/correct"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.preprocessingEventCorrect}
+                    >
+                        <CorrectPreprocessingEventPage />
                     </RoleRoute>
                 }
             />

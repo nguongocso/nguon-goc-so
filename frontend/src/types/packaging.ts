@@ -17,7 +17,7 @@ export interface CorrectPackagingRequest {
 export interface ChainEventResponse {
   id: string;
   shipmentId: string | null;
-  eventType: 'PACKAGING' | 'HARVEST' | 'TRANSPORT' | 'PROCUREMENT' | 'CORRECTION';
+  eventType: 'PREPROCESSING' | 'PACKAGING' | 'HARVEST' | 'TRANSPORT' | 'PROCUREMENT' | 'CORRECTION';
   eventData: Record<string, any>;
   latitude: number | null;
   longitude: number | null;
