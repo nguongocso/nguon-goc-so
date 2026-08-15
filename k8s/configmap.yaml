@@ -8,9 +8,9 @@ metadata:
   namespace: nguongocso
 data:
   # Database (host/port/name are non-secret; credentials live in the Secret)
-  DB_HOST: "mysql"
+  DB_HOST: "database-1.ct2w4qggumqo.ap-southeast-2.rds.amazonaws.com"
   DB_PORT: "3306"
-  DB_NAME: "nguon_goc_so"
+  DB_NAME: "nguongocso_db"
 
   # Server
   PORT: "8080"
