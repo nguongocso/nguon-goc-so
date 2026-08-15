@@ -44,6 +44,7 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -67,6 +68,7 @@ public class ChainEventServiceImpl implements ChainEventService {
     private final PermissionChecker permissionChecker;
     private final OrganizationUserRepository organizationUserRepository;
     private final EventHashService eventHashService;
+    private final Clock clock;
 
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
@@ -162,7 +164,7 @@ public class ChainEventServiceImpl implements ChainEventService {
             if (request.getOutputQuantity() > request.getInputQuantity()) {
                 throw new BusinessException("Khối lượng sau sơ chế không được lớn hơn khối lượng vào.");
             }
-            if (request.getPreprocessingDate().isAfter(LocalDate.now())) {
+            if (request.getPreprocessingDate().isAfter(LocalDate.now(clock))) {
                 throw new BusinessException("Ngày sơ chế không được là ngày ở tương lai.");
             }
             if (lot.getHarvestDate() != null && request.getPreprocessingDate().isBefore(lot.getHarvestDate())) {
@@ -263,7 +265,7 @@ public class ChainEventServiceImpl implements ChainEventService {
         if (request.getOutputQuantity() > request.getInputQuantity()) {
             throw new BusinessException("Khối lượng sau sơ chế không được lớn hơn khối lượng vào.");
         }
-        if (request.getPreprocessingDate().isAfter(LocalDate.now())) {
+        if (request.getPreprocessingDate().isAfter(LocalDate.now(clock))) {
             throw new BusinessException("Ngày sơ chế không được là ngày ở tương lai.");
         }
         if (lot.getHarvestDate() != null && request.getPreprocessingDate().isBefore(lot.getHarvestDate())) {
