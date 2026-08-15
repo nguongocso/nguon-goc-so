@@ -4,6 +4,7 @@ package vn.nguongocso.publicapi.dto.response;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,6 +28,12 @@ public class PublicTraceResponse {
     private Boolean recalled;
 
     private String recallMessage;
+
+    private Boolean locked;
+
+    private String lockReason;
+
+    private LocalDateTime lockedAt;
 
     private List<PublicChainEventItem> events;
 }

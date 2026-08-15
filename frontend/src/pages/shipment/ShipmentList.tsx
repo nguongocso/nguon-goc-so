@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -10,16 +11,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   BadgeCheck,
   FileText,
+  FileJson,
   Plus,
-  QrCode,
   Ban,
   MoreHorizontal,
   History,
@@ -29,11 +24,9 @@ import { useShipments } from "@/hooks/useShipments";
 import { useRecallShipment } from "@/hooks/useRecallShipment";
 import type { Shipment, CreateShipmentPayload } from "@/types/shipment";
 import { CreateShipmentModal } from "@/components/shipment/CreateShipmentModal";
-import { QrCodeGrid } from "@/components/shipment/QrCodeGrid";
 import { ShipmentTimelineDialog } from "@/components/shipment/ShipmentTimelineDialog";
 import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDialog";
 import { RecallShipmentDialog } from "@/components/shipment/RecallShipmentDialog";
-import { ShipmentDetailDialog } from "@/components/shipment/ShipmentDetailDialog";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -42,8 +35,14 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { checkDossierEligibility, exportDossier } from "@/api/dossierApi";
+import {
+  checkDossierEligibility,
+  exportDossier,
+  exportGs1Dossier,
+} from "@/api/dossierApi";
 import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligibleDialog";
+import { ROLE_ACCESS } from "@/config/roleAccess";
+import { usePermission } from "@/hooks/usePermission";
 import { deleteDraft } from "@/api/eventValidationApi";
 
 const statusLabelMap: Record<string, string> = {
@@ -75,14 +74,8 @@ export const ShipmentList = ({
   canActivate,
   canRecall,
 }: ShipmentListProps) => {
+  const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-
-  const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(
-    null,
-  );
-
-  const [detailShipmentId, setDetailShipmentId] = useState<string | null>(null);
 
   const [activatingShipment, setActivatingShipment] = useState<Shipment | null>(
     null,
@@ -112,6 +105,8 @@ export const ShipmentList = ({
     shipmentName: "",
   });
 
+  const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
+
   const {
     shipments,
     isLoading,
@@ -128,11 +123,6 @@ export const ShipmentList = ({
     await createShipment(payload);
   };
 
-  const openQrDialog = (shipment: Shipment) => {
-    setSelectedShipment(shipment);
-    setDialogOpen(true);
-  };
-
   const formatDate = (dateStr: string) => {
     try {
       return new Date(dateStr).toLocaleString("vi-VN");
@@ -142,6 +132,7 @@ export const ShipmentList = ({
   };
 
   const handleExportDossier = async (shipment: Shipment) => {
+    let toastId: string | number | undefined;
     try {
       // 1. Kiểm tra điều kiện
       const checkResult = await checkDossierEligibility(shipment.id);
@@ -157,9 +148,9 @@ export const ShipmentList = ({
       }
 
       // 3. Đủ điều kiện → tải file PDF
-      toast.loading("Đang tạo hồ sơ...");
+      toastId = toast.loading("Đang tạo hồ sơ...");
       const blob = await exportDossier(shipment.id);
-      toast.dismiss();
+      toast.dismiss(toastId);
 
       // Tạo link tải file
       const url = window.URL.createObjectURL(blob);
@@ -193,8 +184,42 @@ export const ShipmentList = ({
 
       toast.success("Tải hồ sơ thành công");
     } catch (error: any) {
+      if (toastId != null) {
+        toast.dismiss(toastId);
+      }
+
       const msg =
         error.response?.data?.message || "Có lỗi xảy ra khi xuất hồ sơ.";
+
+      toast.error(msg);
+    }
+  };
+
+  const handleExportGs1Dossier = async (shipment: Shipment) => {
+    const toastId = toast.loading("Đang tạo hồ sơ GS1...");
+    try {
+      const { blob, fileName } = await exportGs1Dossier(
+        shipment.id,
+        "json",
+        true,
+      );
+      toast.dismiss(toastId);
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Tải hồ sơ GS1 thành công");
+    } catch (error: any) {
+      toast.dismiss(toastId);
+      const msg =
+        error.response?.data?.message ||
+        "Có lỗi xảy ra khi xuất hồ sơ GS1.";
 
       toast.error(msg);
     }
@@ -290,16 +315,6 @@ export const ShipmentList = ({
 
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-1.5">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-auto px-2.5 py-1 text-xs"
-                            onClick={() => openQrDialog(shipment)}
-                          >
-                            <QrCode className="mr-1 h-3 w-3" />
-                            QR
-                          </Button>
-
                           <DropdownMenu>
                             <DropdownMenuTrigger
                               className="size-7"
@@ -310,9 +325,7 @@ export const ShipmentList = ({
 
                             <DropdownMenuContent>
                               <DropdownMenuItem
-                                onClick={() =>
-                                  setDetailShipmentId(shipment.id)
-                                }
+                                onClick={() => navigate(`/shipments/${shipment.id}`)}
                               >
                                 <Eye className="size-4" />
                                 Chi tiết
@@ -349,6 +362,17 @@ export const ShipmentList = ({
                                 <FileText className="size-4" />
                                 Xuất hồ sơ
                               </DropdownMenuItem>
+
+                              {canExportGs1 && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleExportGs1Dossier(shipment)
+                                  }
+                                >
+                                  <FileJson className="size-4" />
+                                  Xuất hồ sơ GS1
+                                </DropdownMenuItem>
+                              )}
 
                               {((canRecall &&
                                 shipment.status !== "RECALLED") ||
@@ -400,59 +424,6 @@ export const ShipmentList = ({
         onSubmit={handleCreate}
         productionLotId={productionLotId}
         loading={isCreating}
-      />
-
-      <Dialog
-        open={dialogOpen}
-        onOpenChange={(open) => !open && setDialogOpen(false)}
-      >
-        <DialogContent
-          className="
-            flex
-            max-h-[90vh]
-            w-[95vw]
-            max-w-7xl
-            flex-col
-            overflow-hidden
-          "
-        >
-          <DialogHeader>
-            <DialogTitle>
-              Mã QR - {selectedShipment?.name || ""}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="flex items-center justify-between border-b pb-2 text-sm text-muted-foreground">
-            <span>
-              Tổng số mã: {selectedShipment?.traceCodes?.length || 0}
-            </span>
-
-            <span className="text-xs text-muted-foreground">
-              Trạng thái:{" "}
-              <span className="font-medium text-primary">
-                INACTIVE
-              </span>
-            </span>
-          </div>
-
-          <div className="flex-1 overflow-y-auto py-4 pr-1">
-            {selectedShipment && (
-              <div className="overflow-x-auto">
-                <div className="min-w-max">
-                  <QrCodeGrid
-                    traceCodes={selectedShipment.traceCodes || []}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <ShipmentDetailDialog
-        open={detailShipmentId !== null}
-        shipmentId={detailShipmentId}
-        onClose={() => setDetailShipmentId(null)}
       />
 
       <ShipmentTimelineDialog

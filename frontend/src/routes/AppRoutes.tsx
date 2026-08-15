@@ -36,6 +36,8 @@ import CreateCodeRangePage from "@/pages/admin/CreateCodeRangePage";
 import CodeRangeListPage from "@/pages/admin/CodeRangeListPage";
 import ProductCategoryManagementPage from "@/pages/admin/ProductCategoryManagementPage";
 import StandardManagementPage from "@/pages/admin/StandardManagementPage";
+import SuspectTraceCodeListPage from "@/pages/admin/SuspectTraceCodeListPage";
+import SuspectTraceCodeDetailPage from "@/pages/admin/SuspectTraceCodeDetailPage";
 
 // ===== Packaging =====
 import CreatePackagingEventPage from "@/pages/packaging-event/CreatePackagingEventPage";
@@ -50,6 +52,7 @@ import FarmLogHistoryPage from "@/pages/farm-log/FarmLogHistoryPage";
 
 // ===== Shipment =====
 import { ProductionLotDetailPage } from "@/pages/shipment/ProductionLotDetailPage";
+import { ShipmentDetailPage } from "@/pages/shipment/ShipmentDetailPage";
 
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
@@ -118,6 +121,10 @@ import CreateInvitationPage from "@/pages/invitation/CreateInvitationPage";
 // ===== Backup Restore =====
 import BackupRestorePage from "@/pages/admin/BackupRestorePage";
 
+// ===== Recall requests (NCL-08-CN-008) =====
+import { CreateRecallRequestPage } from "@/pages/recall-request/CreateRecallRequestPage";
+import { RecallRequestListPage } from "@/pages/recall-request/RecallRequestListPage";
+import { RecallRequestDetailPage } from "@/pages/recall-request/RecallRequestDetailPage";
 
 // =====================================================
 // Constants
@@ -433,6 +440,19 @@ const AppRoutes = () => (
                 }
             />
 
+            {/* =================================================
+          SHIPMENT DETAIL (NCL-07-CN-002 / NCL-12-CN-003)
+      ================================================= */}
+
+            <Route
+                path="shipments/:id"
+                element={
+                    <RoleRoute allowedRoles={["VT-02", "VT-04"]}>
+                        <ShipmentDetailPage />
+                    </RoleRoute>
+                }
+            />
+
 
             {/* =================================================
           FARM LOGS
@@ -565,6 +585,24 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-01"]}>
                         <BackupRestorePage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/suspect-trace-codes"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <SuspectTraceCodeListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/suspect-trace-codes/:traceCodeId"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <SuspectTraceCodeDetailPage />
                     </RoleRoute>
                 }
             />
@@ -837,6 +875,44 @@ const AppRoutes = () => (
                 }
             />
 
+
+            {/* =================================================
+          RECALL REQUESTS (NCL-08-CN-008)
+      ================================================= */}
+
+            <Route
+                path="recall-requests"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.recallRequestManage}
+                    >
+                        <RecallRequestListPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* NOTE: route /create must be declared before /:id to avoid capture */}
+            <Route
+                path="recall-requests/create"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.recallRequestCreate}
+                    >
+                        <CreateRecallRequestPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="recall-requests/:id"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.recallRequestManage}
+                    >
+                        <RecallRequestDetailPage />
+                    </RoleRoute>
+                }
+            />
 
             {/* =================================================
           PRODUCT FEEDBACK

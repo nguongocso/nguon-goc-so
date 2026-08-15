@@ -1,5 +1,6 @@
 package vn.nguongocso.notification.service;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Pageable;
@@ -9,6 +10,7 @@ import vn.nguongocso.notification.dto.response.NotificationResponse;
 import vn.nguongocso.notification.dto.response.UnreadCountResponse;
 import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.trace.entity.Recall;
+import vn.nguongocso.trace.entity.TraceCode;
 
 /** Dịch vụ gửi thông báo. */
 public interface NotificationService {
@@ -17,6 +19,16 @@ public interface NotificationService {
 
     /** Gửi thông báo thu hồi lô hàng. */
     void sendShipmentRecallNotification(Recall recall);
+
+    /**
+     * Gửi thông báo thu hồi lô sản xuất (NCL-08-CN-008) cho danh sách người dùng.
+     *
+     * @param lotName tên lô sản xuất
+     * @param reason  lý do thu hồi
+     * @param recipientIds danh sách ID người dùng nhận thông báo
+     * @return số lượng thông báo đã tạo
+     */
+    int sendLotRecallNotification(String lotName, String reason, List<UUID> recipientIds);
 
     /**
      * Gửi thông báo chứng nhận sắp hết hạn hoặc đã hết hạn.
@@ -37,6 +49,11 @@ public interface NotificationService {
      * Đánh dấu một thông báo là đã đọc.
      */
     NotificationResponse markAsRead(UUID notificationId);
+
+    /**
+     * Gửi thông báo khi một mã tem bị đánh dấu nghi vấn.
+     */
+    void sendSuspectTraceCodeNotification(TraceCode traceCode);
 
     /**
      * Gửi thông báo cảnh báo chung.

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,6 +20,7 @@ import vn.nguongocso.alert.enums.AlertStatus;
 import vn.nguongocso.alert.enums.AlertType;
 import vn.nguongocso.alert.repository.AlertRepository;
 import vn.nguongocso.alert.service.ScanAnomalyDetectionService;
+import vn.nguongocso.common.util.GeoDistanceUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.organization.entity.Organization;
@@ -27,16 +29,25 @@ import vn.nguongocso.report.repository.TraceCodeScanLogRepository;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
-/** Triển khai phát hiện quét bất thường. */
+/**
+ * Triển khai phát hiện quét bất thường (NCL-08-CN-001).
+ *
+ * <p>
+ * Service này chỉ chịu trách nhiệm phát hiện quét bất thường, đánh dấu các lượt
+ * quét bất thường (QTN-10), tạo cảnh báo {@code SCAN_ANOMALY}, tính mức độ (severity)
+ * và gửi thông báo. Nó KHÔNG chấm điểm nghi vấn và KHÔNG phụ thuộc vào
+ * {@code SuspectDetectionService} (NCL-08-CN-007).
+ * </p>
+ */
 @Service
 @RequiredArgsConstructor
 public class ScanAnomalyDetectionServiceImpl
         implements ScanAnomalyDetectionService {
     private static final int DETECTION_WINDOW_MINUTES = 10; // Khoảng thời gian xét các lượt quét (phút)
-    private static final double EARTH_RADIUS_KM = 6371.0; // Bán kính Trái Đất (km)
     private static final double SAME_LOCATION_THRESHOLD_KM = 5.0; // Ngưỡng coi là cùng một vị trí (km)
     private static final int MIN_SCAN_COUNT = 3; // Số lượt quét tối thiểu để đánh giá
     private static final int MIN_DISTINCT_LOCATIONS = 2; // Số vị trí khác nhau tối thiểu để xác định bất thường
+    private static final int HIGH_SEVERITY_DISTINCT_LOCATIONS = 3; // Ngưỡng vị trí để xếp mức HIGH
 
     private final TraceCodeScanLogRepository traceCodeScanLogRepository;
     private final NotificationService notificationService;
@@ -46,6 +57,7 @@ public class ScanAnomalyDetectionServiceImpl
 
     /** Kiểm tra và xử lý khi phát sinh lượt quét mới. */
     @Override
+    @Transactional
     public void onScanRecorded(UUID traceCodeId) {
 
         List<TraceCodeScanLog> scanLogs = getRecentScanLogs(traceCodeId);
@@ -55,6 +67,9 @@ public class ScanAnomalyDetectionServiceImpl
         if (!anomaly) {
             return;
         }
+
+        // QTN-10: đánh dấu các lượt quét bất thường để báo cáo thống kê đọc được.
+        markScanLogsAbnormal(scanLogs);
 
         boolean existed = alertRepository
                 .existsByRelatedEntityIdAndTypeAndStatus(
@@ -88,27 +103,26 @@ public class ScanAnomalyDetectionServiceImpl
                         fromTime);
     }
 
-    /** Tính khoảng cách giữa hai tọa độ (km). */
-    private double calculateDistance(
-            double lat1,
-            double lon1,
-            double lat2,
-            double lon2) {
+    /**
+     * Đánh dấu các lượt quét trong cửa sổ phát hiện là bất thường (QTN-10).
+     *
+     * <p>
+     * Ghi {@code isAbnormal = true} và lý do bất thường vào các bản ghi hiện có,
+     * không tạo cột/bảng mới.
+     * </p>
+     */
+    private void markScanLogsAbnormal(List<TraceCodeScanLog> scanLogs) {
+        int distinctLocations = countDistinctLocations(scanLogs);
 
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
+        for (TraceCodeScanLog scanLog : scanLogs) {
+            scanLog.setIsAbnormal(true);
+            scanLog.setAbnormalReason("Phát hiện quét bất thường: "
+                    + scanLogs.size() + " lượt quét tại "
+                    + distinctLocations + " vị trí khác nhau trong "
+                    + DETECTION_WINDOW_MINUTES + " phút.");
+        }
 
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                + Math.cos(Math.toRadians(lat1))
-                        * Math.cos(Math.toRadians(lat2))
-                        * Math.sin(dLon / 2)
-                        * Math.sin(dLon / 2);
-
-        double c = 2 * Math.atan2(
-                Math.sqrt(a),
-                Math.sqrt(1 - a));
-
-        return EARTH_RADIUS_KM * c;
+        traceCodeScanLogRepository.saveAll(scanLogs);
     }
 
     /** Kiểm tra hai vị trí có giống nhau. */
@@ -123,7 +137,7 @@ public class ScanAnomalyDetectionServiceImpl
             return false;
         }
 
-        double distance = calculateDistance(
+        double distance = GeoDistanceUtils.haversineKm(
                 first.getLatitude().doubleValue(),
                 first.getLongitude().doubleValue(),
                 second.getLatitude().doubleValue(),
@@ -215,7 +229,7 @@ public class ScanAnomalyDetectionServiceImpl
 
         int distinctLocations = countDistinctLocations(scanLogs);
 
-        if (distinctLocations >= 3) {
+        if (distinctLocations >= HIGH_SEVERITY_DISTINCT_LOCATIONS) {
             return AlertSeverity.HIGH;
         }
 

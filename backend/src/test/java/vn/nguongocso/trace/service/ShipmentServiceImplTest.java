@@ -151,7 +151,7 @@ class ShipmentServiceImplTest {
         when(productionLotRepository.findById(productionLotId))
                 .thenReturn(Optional.of(productionLot));
 
-        when(codeRangeRepository.findByOrganizationOrganizationId(organizationId))
+        when(codeRangeRepository.findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(organizationId))
                 .thenReturn(Optional.of(codeRange));
 
         when(shipmentRepository.save(any(Shipment.class)))
@@ -193,7 +193,7 @@ class ShipmentServiceImplTest {
         verify(shipmentRepository).save(any(Shipment.class));
         verify(traceCodeRepository).saveAll(anyList());
         verify(productionLotRepository).findById(productionLotId);
-        verify(codeRangeRepository).findByOrganizationOrganizationId(organizationId);
+        verify(codeRangeRepository).findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(organizationId);
         verify(qrCodeService, times(50)).generateQRCode(anyString(), any(), any(), any());
     }
 
@@ -224,7 +224,7 @@ class ShipmentServiceImplTest {
                 .hasMessage("Không tìm thấy lô sản xuất.");
 
         verify(productionLotRepository).findById(productionLotId);
-        verify(codeRangeRepository, never()).findByOrganizationOrganizationId(any());
+        verify(codeRangeRepository, never()).findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(any());
         verify(shipmentRepository, never()).save(any());
     }
 
@@ -243,7 +243,7 @@ class ShipmentServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Bạn không thuộc tổ chức của lô sản xuất.");
 
-        verify(codeRangeRepository, never()).findByOrganizationOrganizationId(any());
+        verify(codeRangeRepository, never()).findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(any());
         verify(shipmentRepository, never()).save(any());
     }
 
@@ -259,7 +259,7 @@ class ShipmentServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Chỉ có thể tạo lô hàng từ lô sản xuất đã đóng gói.");
 
-        verify(codeRangeRepository, never()).findByOrganizationOrganizationId(any());
+        verify(codeRangeRepository, never()).findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(any());
         verify(shipmentRepository, never()).save(any());
     }
 
@@ -269,7 +269,7 @@ class ShipmentServiceImplTest {
         when(productionLotRepository.findById(productionLotId))
                 .thenReturn(Optional.of(productionLot));
 
-        when(codeRangeRepository.findByOrganizationOrganizationId(organizationId))
+        when(codeRangeRepository.findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(organizationId))
                 .thenReturn(Optional.empty());
 
         // Act & Assert
@@ -277,7 +277,7 @@ class ShipmentServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Tổ chức chưa được cấp dải mã truy xuất.");
 
-        verify(codeRangeRepository).findByOrganizationOrganizationId(organizationId);
+        verify(codeRangeRepository).findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(organizationId);
         verify(shipmentRepository, never()).save(any());
         verify(traceCodeRepository, never()).saveAll(any());
     }
@@ -289,7 +289,7 @@ class ShipmentServiceImplTest {
                 .thenReturn(Optional.of(productionLot));
 
         codeRange.setUsedCount(980L);
-        when(codeRangeRepository.findByOrganizationOrganizationId(organizationId))
+        when(codeRangeRepository.findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(organizationId))
                 .thenReturn(Optional.of(codeRange));
         when(traceCodeRepository.findMaxCodeValueByOrganization(eq(organizationId), anyString()))
                 .thenReturn("NCL00000980");
@@ -299,7 +299,7 @@ class ShipmentServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Số lượng tem vượt quá hạn mức dải mã còn lại.");
 
-        verify(codeRangeRepository).findByOrganizationOrganizationId(organizationId);
+        verify(codeRangeRepository).findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(organizationId);
         verify(shipmentRepository, never()).save(any());
         verify(traceCodeRepository, never()).saveAll(any());
     }
@@ -314,7 +314,7 @@ class ShipmentServiceImplTest {
         when(productionLotRepository.findById(productionLotId))
                 .thenReturn(Optional.of(productionLot));
 
-        when(codeRangeRepository.findByOrganizationOrganizationId(organizationId))
+        when(codeRangeRepository.findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(organizationId))
                 .thenReturn(Optional.of(codeRange));
 
         when(traceCodeRepository.findMaxCodeValueByOrganization(eq(organizationId), anyString()))

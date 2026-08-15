@@ -129,4 +129,48 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
          * Tìm một sự kiện WAREHOUSE_RECEIPT theo ID và loại sự kiện.
          */
         Optional<ChainEvent> findByIdAndEventType(UUID id, ChainEventType eventType);
+
+        /**
+         * Lấy danh sách ID người dùng đã ghi sự kiện thu mua (PROCUREMENT)
+         * cho các lô hàng được chỉ định.
+         *
+         * <p>Dùng cho NCL-08-CN-008 để xác định doanh nghiệp thu mua (người mua)
+         * liên quan đến một lô sản xuất để gửi thông báo thu hồi.</p>
+         *
+         * @param shipmentIds danh sách ID lô hàng
+         * @return danh sách ID người dùng đã ghi nhận thu mua (không trùng lặp)
+         */
+        @Query("SELECT DISTINCT ce.recordedBy.id FROM ChainEvent ce " +
+                "WHERE ce.shipment.id IN :shipmentIds " +
+                "AND ce.eventType = vn.nguongocso.event.enums.ChainEventType.PROCUREMENT " +
+                "AND ce.isCorrection = false")
+        List<UUID> findDistinctProcurementRecorderIdsByShipmentIds(@Param("shipmentIds") List<UUID> shipmentIds);
+
+        /**
+         * Kiểm tra sự tồn tại của sự kiện theo lotId với 2 trường hợp:
+         * 1) event gắn trực tiếp vào shipment của lot
+         * 2) event chưa gắn shipment nhưng lưu productionLotId trong eventData
+         *    (ví dụ HARVEST / PACKAGING do thiết kế hệ thống cũ).
+         */
+        @Query("""
+                            SELECT COUNT(ce) > 0
+                            FROM ChainEvent ce
+                            LEFT JOIN ce.shipment s
+                            WHERE ce.eventType = :eventType
+                              AND ce.isCorrection = false
+                              AND (
+                                  (s.productionLot.id = :productionLotId)
+                                  OR (
+                                      ce.shipment IS NULL
+                                      AND ce.eventData IS NOT NULL
+                                      AND FUNCTION('JSON_UNQUOTE',
+                                            FUNCTION('JSON_EXTRACT', ce.eventData, '$.productionLotId'))
+                                          = :productionLotIdText
+                                  )
+                              )
+                        """)
+        boolean existsByProductionLotIdOrUnassignedEventDataAndEventType(
+                        @Param("productionLotId") UUID productionLotId,
+                        @Param("productionLotIdText") String productionLotIdText,
+                        @Param("eventType") ChainEventType eventType);
 }

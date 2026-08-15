@@ -4,11 +4,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import vn.nguongocso.trace.entity.TraceCode;
+import vn.nguongocso.trace.enums.TraceCodeStatus;
 
 /**
  * Repository quản lý mã truy xuất.
@@ -39,4 +42,17 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 	 */
 	@Query("SELECT MAX(t.codeValue) FROM TraceCode t WHERE t.shipment.organization.id = :orgId AND t.codeValue LIKE CONCAT(:prefix, '%')")
 	String findMaxCodeValueByOrganization(@Param("orgId") UUID orgId, @Param("prefix") String prefix);
+
+	/**
+	 * Tìm TraceCode theo suspicionScore >= minScore và status cụ thể (phân trang).
+	 */
+	Page<TraceCode> findBySuspicionScoreGreaterThanEqualAndStatus(
+			Integer suspicionScore, TraceCodeStatus status, Pageable pageable);
+
+	/**
+	 * Tìm TraceCode theo suspicionScore >= minScore và status nằm trong danh sách (phân
+	 * trang).
+	 */
+	Page<TraceCode> findBySuspicionScoreGreaterThanEqualAndStatusIn(
+			Integer suspicionScore, List<TraceCodeStatus> statuses, Pageable pageable);
 }

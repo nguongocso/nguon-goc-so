@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 
 import {
   getPublicCertifications,
@@ -11,6 +11,7 @@ import type { PublicLotCertificationsResponse } from '@/types/publicCertificatio
 
 import { ProductInfo } from '@/components/public/ProductInfo';
 import { RecallAlert } from '@/components/public/RecallAlert';
+import { LockAlert } from '@/components/public/LockAlert';
 import { Timeline } from '@/components/public/Timeline';
 import { RouteMap } from '@/components/public/RouteMap';
 import { ProductFeedbackForm } from '@/components/public/ProductFeedbackForm';
@@ -33,16 +34,28 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 
+interface TraceLookupLocationState {
+  scanResult?: PublicTraceResponse;
+}
+
 export default function TraceLookupPage() {
   const { codeValue } = useParams<{ codeValue: string }>();
+  const location = useLocation();
 
-  const [data, setData] =
-    useState<PublicTraceResponse | null>(null);
+  // Luồng quét QR: scanner gọi POST /public/trace/{codeValue}/scan,
+  // sau đó chuyển hướng cùng dữ liệu qua router state. State chỉ tồn tại
+  // trong lần điều hướng đầu tiên — reload/mở lại URL sẽ mất state và
+  // rơi về GET lookup (không tạo ScanLog).
+  const scanResult = (location.state as TraceLookupLocationState | null)
+    ?.scanResult;
 
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<PublicTraceResponse | null>(
+    scanResult ?? null,
+  );
 
-  const [error, setError] =
-    useState<string | null>(null);
+  const [loading, setLoading] = useState(!scanResult);
+
+  const [error, setError] = useState<string | null>(null);
 
   const [certificationData, setCertificationData] =
     useState<PublicLotCertificationsResponse | null>(null);
@@ -61,26 +74,24 @@ export default function TraceLookupPage() {
       return;
     }
 
+    // Nếu đã có kết quả quét QR (POST /scan đã thực hiện ở trang chủ)
+    // thì không gọi GET tra cứu nữa — tránh tạo thêm ScanLog.
+    const alreadyScanned = !!scanResult;
+
     /**
-     * Tra cứu thông tin sản phẩm.
+     * Tra cứu thông tin sản phẩm (GET lookup — đọc thuần túy).
      *
      * Flow:
      * 1. Lấy GPS từ trình duyệt.
      * 2. Gửi latitude + longitude lên backend.
      * 3. Backend gọi LocationIQ để reverse geocoding.
-     * 4. Backend lưu location vào trace_code_scan_logs.
+     * 4. Backend trả thông tin; KHÔNG tạo TraceCodeScanLog.
      */
     const fetchTrace = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        /**
-         * Gọi API tra cứu.
-         *
-         * FE chỉ gửi latitude + longitude.
-         * Không gửi location.
-         */
         const loadTrace = async (
           latitude?: number,
           longitude?: number
@@ -99,25 +110,11 @@ export default function TraceLookupPage() {
           setData(result);
         };
 
-        /**
-         * Kiểm tra trình duyệt có hỗ trợ Geolocation hay không.
-         */
         if (!navigator.geolocation) {
-          console.warn(
-            'Trình duyệt không hỗ trợ Geolocation'
-          );
-
-          // Vẫn cho phép tra cứu nếu không có GPS.
           await loadTrace();
-
           return;
         }
 
-        /**
-         * getCurrentPosition() sử dụng callback,
-         * vì vậy chuyển nó thành Promise để
-         * fetchTrace() có thể await.
-         */
         await new Promise<void>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(
             async (position) => {
@@ -125,41 +122,16 @@ export default function TraceLookupPage() {
                 const { latitude, longitude } =
                   position.coords;
 
-                console.log('GPS lấy được:', {
-                  latitude,
-                  longitude,
-                });
-
-                await loadTrace(
-                  latitude,
-                  longitude
-                );
-
+                await loadTrace(latitude, longitude);
                 resolve();
               } catch (error) {
                 reject(error);
               }
             },
 
-            async (geoError) => {
-              console.warn(
-                'Không lấy được vị trí:',
-                geoError.code,
-                geoError.message
-              );
-
+            async () => {
               try {
-                /**
-                 * Người dùng không cấp quyền GPS
-                 * hoặc GPS bị lỗi.
-                 *
-                 * Vẫn cho phép tra cứu.
-                 *
-                 * Backend sẽ lưu latitude/longitude
-                 * là NULL và location = "Không xác định".
-                 */
                 await loadTrace();
-
                 resolve();
               } catch (error) {
                 reject(error);
@@ -199,10 +171,6 @@ export default function TraceLookupPage() {
       } catch (err: any) {
         const status = err.response?.status;
 
-        /**
-         * Nếu backend chưa triển khai endpoint
-         * hoặc không có dữ liệu thì ẩn section.
-         */
         if (status === 404 || status === 501) {
           setCertificationError(null);
           setCertificationData(null);
@@ -219,9 +187,11 @@ export default function TraceLookupPage() {
       }
     };
 
-    fetchTrace();
+    if (!alreadyScanned) {
+      fetchTrace();
+    }
     fetchCertifications();
-  }, [codeValue]);
+  }, [codeValue, scanResult]);
 
   /**
    * Đang tra cứu.
@@ -318,6 +288,14 @@ export default function TraceLookupPage() {
           shipmentCode={data.shipmentCode}
           status={data.shipmentStatus}
         />
+
+        {/* Cảnh báo mã bị khóa */}
+        {data.locked && (
+          <LockAlert
+            lockReason={data.lockReason}
+            lockedAt={data.lockedAt}
+          />
+        )}
 
         {/* Cảnh báo thu hồi */}
         {data.recalled &&

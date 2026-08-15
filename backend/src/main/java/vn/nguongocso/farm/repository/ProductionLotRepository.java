@@ -8,6 +8,7 @@ import vn.nguongocso.farm.enums.ProductionLotStatus;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -140,4 +141,24 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate,
             @Param("statuses") List<ProductionLotStatus> statuses);
+
+    /**
+     * Tìm lô sản xuất theo ID lô và ID tổ chức.
+     *
+     * Dùng để đảm bảo người dùng chỉ được thao tác
+     * trên lô thuộc tổ chức hiện tại.
+     *
+     * @param lotId          ID lô sản xuất
+     * @param organizationId ID tổ chức hiện tại
+     * @return lô sản xuất nếu thuộc tổ chức
+     */
+    @Query("""
+        SELECT pl
+        FROM ProductionLot pl
+        WHERE pl.id = :lotId
+          AND pl.organization.organizationId = :organizationId
+        """)
+    Optional<ProductionLot> findByIdAndOrganization_OrganizationId(
+            @Param("lotId") UUID lotId,
+            @Param("organizationId") UUID organizationId);
 }
