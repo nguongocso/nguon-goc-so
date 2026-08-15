@@ -180,6 +180,7 @@ const MENU_GROUPS: MenuGroup[] = [
           "/packaging-events/create",
           "/production-lots/import",
           "/shipments/",
+          "/farm-logs/", 
         ],
       },
       {
