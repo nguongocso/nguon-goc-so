@@ -88,6 +88,10 @@ const statusConfig: Record<
     label: "Đã thu hoạch",
     className: "bg-lime-100 text-lime-800 border-lime-300",
   },
+  PREPROCESSED: {
+    label: "Đã sơ chế",
+    className: "bg-teal-100 text-teal-800 border-teal-300",
+  },
   PACKAGED: {
     label: "Đã đóng gói",
     className: "bg-sky-100 text-sky-800 border-sky-300",

@@ -172,7 +172,7 @@ export function CreatePackagingForm() {
     const matchedLot = productionLots.find((lot) => lot.id === prefilledLotId);
     if (!matchedLot) {
       toast.error(
-        "Lô sản xuất từ mã vừa quét chưa ở trạng thái đã thu hoạch, không thể chọn sẵn.",
+        "Lô sản xuất từ mã vừa quét chưa ở trạng thái đã thu hoạch hoặc đã sơ chế, không thể chọn sẵn.",
       );
       return;
     }
@@ -301,7 +301,7 @@ export function CreatePackagingForm() {
       <CardHeader>
         <CardTitle>Ghi sự kiện đóng gói</CardTitle>
         <CardDescription>
-          Nhập thông tin đóng gói cho lô sản xuất đã thu hoạch.
+          Nhập thông tin đóng gói cho lô sản xuất đã thu hoạch hoặc đã sơ chế.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -332,7 +332,7 @@ export function CreatePackagingForm() {
                   {selectedLotId
                     ? productionLots.find((lot) => lot.id === selectedLotId)
                         ?.name
-                    : "Chọn lô đã thu hoạch"}
+                    : "Chọn lô đã thu hoạch hoặc đã sơ chế"}
                 </span>
               </SelectTrigger>
               <SelectContent>

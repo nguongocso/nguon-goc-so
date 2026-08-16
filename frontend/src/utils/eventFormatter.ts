@@ -6,6 +6,7 @@ import type { ChainEventType } from '@/enums/chainEventType';
 
 export const EVENT_TYPE_VN_LABELS: Record<ChainEventType, string> = {
   HARVEST: 'Thu hoạch',
+  PREPROCESSING: 'Sơ chế và phân loại',
   PACKAGING: 'Đóng gói',
   TRANSPORT: 'Vận chuyển',
   PROCUREMENT: 'Thu mua',
@@ -24,6 +25,14 @@ export function getEventTypeLabel(eventType: string): string {
 // ─────────────────────────────────────────────
 
 const KNOWN_FIELD_LABELS: Record<string, string> = {
+  // Preprocessing
+  inputQuantity: 'Khối lượng đưa vào (kg)',
+  outputQuantity: 'Khối lượng sau sơ chế (kg)',
+  lossRate: 'Tỷ lệ hao hụt (%)',
+  grade: 'Hạng phân loại',
+  processingMethod: 'Phương pháp sơ chế',
+  preprocessingDate: 'Ngày sơ chế',
+  parentEventId: 'Mã sự kiện gốc',
   // Packaging
   packagingSpecification: 'Quy cách đóng gói',
   packagingDate: 'Ngày đóng gói',
