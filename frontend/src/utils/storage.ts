@@ -55,10 +55,10 @@ export const getUser = (): AuthUserInfo | null => {
   try {
     return JSON.parse(data) as AuthUserInfo;
   } catch (error) {
-    console.error(
-      "Invalid user data in localStorage:",
-      error
-    );
+    // console.error(
+    //   "Invalid user data in localStorage:",
+    //   error
+    // );
 
     localStorage.removeItem(USER_KEY);
 

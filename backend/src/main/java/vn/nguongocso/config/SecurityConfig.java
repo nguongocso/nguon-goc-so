@@ -231,7 +231,7 @@ public class SecurityConfig {
             }
         }
 
-        configuration.setAllowedOrigins(origins);
+        configuration.setAllowedOriginPatterns(List.of("*"));
 
         configuration.setAllowedMethods(
                 List.of(

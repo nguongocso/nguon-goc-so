@@ -17,7 +17,7 @@ export default function FarmLogHistoryPage() {
       const response = await getFarmLogs({ productionLotId, page: 0, size: 100 });
       setLogs(response.items);
     } catch (error) {
-      console.error('Không thể tải nhật ký:', error);
+      // console.error('Không thể tải nhật ký:', error);
     } finally {
       setLoading(false);
     }

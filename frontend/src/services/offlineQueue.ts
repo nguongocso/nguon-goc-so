@@ -75,7 +75,7 @@ export const addOfflineEvent = (eventData: Omit<OfflineEvent, 'offlineEventId'>)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
     return null; // success
   } catch (error) {
-    console.error("❌ Failed to save offline event:", error);
+    // console.error("❌ Failed to save offline event:", error);
     throw error;
   }
 };

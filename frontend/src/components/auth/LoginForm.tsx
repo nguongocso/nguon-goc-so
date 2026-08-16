@@ -244,7 +244,7 @@ export const LoginForm: React.FC = () => {
         replace: true,
       });
     } catch (error: any) {
-      console.error("Login error:", error);
+      // console.error("Login error:", error);
 
       /**
        * Nếu flow ORG_SELECTION thất bại,

@@ -144,6 +144,29 @@ class EventValidationServiceImplTest {
     }
 
     @Test
+    void validateLot_preprocessing_success() {
+        productionLot.setStatus(ProductionLotStatus.HARVESTED);
+        when(productionLotRepository.findById(productionLot.getId())).thenReturn(Optional.of(productionLot));
+
+        LotValidationResponse response = eventValidationService.validateLot(
+                productionLot.getId(), ChainEventType.PREPROCESSING, currentUser);
+
+        assertThat(response.isValid()).isTrue();
+    }
+
+    @Test
+    void validateLot_preprocessing_fail_notHarvested() {
+        productionLot.setStatus(ProductionLotStatus.APPROVED);
+        when(productionLotRepository.findById(productionLot.getId())).thenReturn(Optional.of(productionLot));
+
+        LotValidationResponse response = eventValidationService.validateLot(
+                productionLot.getId(), ChainEventType.PREPROCESSING, currentUser);
+
+        assertThat(response.isValid()).isFalse();
+        assertThat(response.getMessage()).contains("Chỉ được ghi nhận sự kiện sơ chế cho lô đã thu hoạch.");
+    }
+
+    @Test
     void validateLot_transport_success() {
         when(shipmentRepository.findById(shipment.getId())).thenReturn(Optional.of(shipment));
 

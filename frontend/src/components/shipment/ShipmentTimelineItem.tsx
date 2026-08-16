@@ -1,5 +1,10 @@
-import { Calendar, MapPin, Package, Truck, Sprout, Clipboard, Pencil } from 'lucide-react';
+import { Calendar, MapPin, Package, Truck, Sprout, Clipboard, Pencil, Wheat } from 'lucide-react';
 import type { ChainEventResponse } from '@/types/packaging';
+import type { PreprocessingEventResponse } from '@/types/preprocessing';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { usePermission } from '@/hooks/usePermission';
+import { ROLE_ACCESS } from '@/config/roleAccess';
 import {
   getEventTypeLabel,
   formatFieldLabel,
@@ -11,6 +16,7 @@ import type { ComponentType } from 'react';
 
 const EVENT_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   HARVEST: Sprout,
+  PREPROCESSING: Wheat,
   PACKAGING: Package,
   TRANSPORT: Truck,
   PROCUREMENT: Clipboard,
@@ -34,6 +40,10 @@ interface Props {
  *  - GPS coordinates with Vietnamese label when available
  */
 export const ShipmentTimelineItem = ({ event, index, total }: Props) => {
+  const navigate = useNavigate();
+  const canCorrectPreprocessing = usePermission(
+    ROLE_ACCESS.preprocessingEventCorrect,
+  );
   const Icon = EVENT_ICONS[event.eventType] || Calendar;
   const label = getEventTypeLabel(event.eventType);
   const timestamp = formatDisplayDateTime(event.recordedAt);
@@ -51,6 +61,9 @@ export const ShipmentTimelineItem = ({ event, index, total }: Props) => {
 
   const productionLotId = event.eventData?.['productionLotId'] as string | undefined;
   const hasCoordinates = event.latitude != null && event.longitude != null;
+  const isOriginalPreprocessingEvent =
+    event.eventType === 'PREPROCESSING' &&
+    !event.eventData?.['parentEventId'];
 
   return (
     <div className="relative pl-8 pb-6 last:pb-0">
@@ -123,6 +136,26 @@ export const ShipmentTimelineItem = ({ event, index, total }: Props) => {
             <span>
               Vị trí: {event.latitude!.toFixed(6)}, {event.longitude!.toFixed(6)}
             </span>
+          </div>
+        )}
+
+        {canCorrectPreprocessing && isOriginalPreprocessingEvent && (
+          <div className="mt-3 border-t border-gray-100 pt-3">
+            <Button
+              type="button"
+              size="sm"
+              variant="edit"
+              onClick={() =>
+                navigate(`/preprocessing-events/${event.id}/correct`, {
+                  state: {
+                    preprocessingEvent: event as PreprocessingEventResponse,
+                  },
+                })
+              }
+            >
+              <Pencil className="size-4" />
+              Đính chính sơ chế
+            </Button>
           </div>
         )}
       </div>
