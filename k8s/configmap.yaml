@@ -19,8 +19,8 @@ data:
 
   # CORS — comma-separated list of allowed origins.
   # The real per-environment value is set by CI/CD after apply:
-  #   staging    -> http://3.106.186.33:31691
-  #   production -> http://3.106.186.33:31690
+  #   staging    -> http://3.105.159.125:31691
+  #   production -> http://3.105.159.125:31690
   # This default only keeps localhost available locally.
   ALLOWED_ORIGINS: "http://localhost"
 
