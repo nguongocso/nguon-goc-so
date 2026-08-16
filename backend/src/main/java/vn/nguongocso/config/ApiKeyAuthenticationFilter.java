@@ -2,6 +2,7 @@ package vn.nguongocso.config;
 
 import java.io.IOException;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -33,7 +34,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
     private static final String API_KEY_HEADER = "X-API-KEY";
     private static final String PARTNER_PATH_PREFIX = "/api/v1/partner/";
 
-    private final PartnerApiKeyService partnerApiKeyService;
+    private final ObjectProvider<PartnerApiKeyService> partnerApiKeyServiceProvider;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -47,6 +48,12 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
+
+        PartnerApiKeyService partnerApiKeyService = partnerApiKeyServiceProvider.getIfAvailable();
+        if (partnerApiKeyService == null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         String apiKey = request.getHeader(API_KEY_HEADER);
         String clientIp = getClientIp(request);
