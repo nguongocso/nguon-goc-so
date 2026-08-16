@@ -10,6 +10,9 @@ public enum ChainEventType {
     // Sự kiện thu hoạch
     HARVEST, // Thu hoạch
 
+    // Sự kiện sơ chế và phân loại - Sản phẩm được gọt, rửa, sấy, phân loại phẩm cấp và tính tỷ lệ hao hụt.
+    PREPROCESSING, // Sơ chế và phân loại
+
     // Sự kiện đóng gói - Sản phẩm được đóng gói và dán nhãn.
     PACKAGING, // Đóng gói
 

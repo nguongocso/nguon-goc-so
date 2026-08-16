@@ -514,6 +514,7 @@ public class DossierServiceImpl implements DossierService {
         }
         return switch (type) {
             case HARVEST -> "Thu hoạch";
+            case PREPROCESSING -> "Sơ chế và phân loại";
             case PACKAGING -> "Đóng gói";
             case TRANSPORT -> "Vận chuyển";
             case PROCUREMENT -> "Thu mua";

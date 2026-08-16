@@ -12,6 +12,8 @@ export const ROLE_ACCESS = {
   productionLotEdit: ['VT-02'],
   productionLotApprove: ['VT-02'],
   farmLogCreate: ['VT-03'],
+  preprocessingEventCreate: ['VT-02', 'VT-03'] as const,
+  preprocessingEventCorrect: ['VT-02', 'VT-03'] as const,
   packagingEventCreate: ['VT-02', 'VT-03'] as const,
   packagingEventCorrect: ['VT-02', 'VT-03'] as const,
   transportEventRecord: ["VT-03"] as const,

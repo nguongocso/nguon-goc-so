@@ -17,9 +17,12 @@ export const correctPackagingEvent = async (
   return response.data.data;
 };
 
-// Hàm lấy danh sách lô sản xuất đã thu hoạch (để chọn)
+// Lô đã thu hoạch có thể đóng gói trực tiếp; lô đã sơ chế cũng tiếp tục
+// được phép đóng gói theo chu trình HARVESTED -> PREPROCESSED -> PACKAGED.
 export const getHarvestedProductionLots = async (): Promise<ProductionLot[]> => {
-  const response = await apiClient.get('/production-lots?status=HARVESTED');
+  const response = await apiClient.get('/production-lots');
   const lots = response.data.data as ProductionLot[];
-  return lots.filter((lot) => lot.status === 'HARVESTED');
+  return lots.filter(
+    (lot) => lot.status === 'HARVESTED' || lot.status === 'PREPROCESSED',
+  );
 };

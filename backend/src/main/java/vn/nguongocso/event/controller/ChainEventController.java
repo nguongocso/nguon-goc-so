@@ -61,6 +61,34 @@ public class ChainEventController {
     }
 
     /**
+     * API ghi nhận sự kiện sơ chế và phân loại cho lô sản xuất.
+     * Chỉ chấp nhận vai trò VT-02 (Quản lý HTX) và VT-03 (Người ghi sự kiện).
+     */
+    @PostMapping("/preprocessing")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
+    public ResponseEntity<ApiResult<ChainEventResponse>> recordPreprocessing(
+            @Valid @RequestBody RecordPreprocessingEventRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        ChainEventResponse response = chainEventService.recordPreprocessingEvent(request, currentUser);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
+    }
+
+    /**
+     * API tạo sự kiện đính chính thông tin sơ chế và phân loại (giữ nguyên gốc).
+     */
+    @PostMapping("/preprocessing/{id}/correct")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
+    public ResponseEntity<ApiResult<ChainEventResponse>> correctPreprocessing(
+            @PathVariable("id") UUID originalEventId,
+            @Valid @RequestBody CorrectPreprocessingEventRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        ChainEventResponse response = chainEventService.correctPreprocessingEvent(originalEventId, request, currentUser);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
+    }
+
+    /**
      * API ghi nhận sự kiện đóng gói cho lô sản xuất.
      */
     @PostMapping("/packaging")
