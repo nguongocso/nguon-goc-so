@@ -11,6 +11,8 @@ public enum ProductionLotStatus {
 
     HARVESTED, // Đã thu hoạch
 
+    PREPROCESSED, // Đã sơ chế
+
     PACKAGED, // Đã đóng gói
 
     CLOSED, // Đã đóng
