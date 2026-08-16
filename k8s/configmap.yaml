@@ -17,8 +17,12 @@ data:
   # JWT (secret key lives in the Secret)
   JWT_EXPIRATION: "86400000"
 
-  # CORS — comma-separated list of allowed origins
-  ALLOWED_ORIGINS: "http://localhost,http://3.106.186.33:31974,https://nguongocso.example.com"
+  # CORS — comma-separated list of allowed origins.
+  # The real per-environment value is set by CI/CD after apply:
+  #   staging    -> http://3.106.186.33:31691
+  #   production -> http://3.106.186.33:31690
+  # This default only keeps localhost available locally.
+  ALLOWED_ORIGINS: "http://localhost"
 
   # Uploads
   UPLOAD_BASE_DIR: "/app/uploads"

@@ -208,6 +208,18 @@ jobs:
           fi
           kubectl -n "$NS" patch svc frontend-service -p "{\"spec\":{\"ports\":[{\"port\":80,\"nodePort\":$PORT}]}}"
 
+      - name: Set CORS allowed origins per environment
+        env:
+          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
+        run: |
+          NS="${KUBE_NAMESPACE:-nguongocso}"
+          if [ "$NS" = "production" ]; then
+            ORIGINS="http://localhost,http://3.106.186.33:31690,https://nguongocso.example.com"
+          else
+            ORIGINS="http://localhost,http://3.106.186.33:31691,https://staging.nguongocso.example.com"
+          fi
+          kubectl -n "$NS" patch configmap backend-config -p "{\"data\":{\"ALLOWED_ORIGINS\":\"$ORIGINS\"}}"
+
       - name: Apply MySQL (if using in-cluster)
         env:
           KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
