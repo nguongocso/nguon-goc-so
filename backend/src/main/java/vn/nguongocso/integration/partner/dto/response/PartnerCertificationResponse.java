@@ -15,9 +15,9 @@ import lombok.Setter;
 @AllArgsConstructor
 public class PartnerCertificationResponse {
     private String certificationName;
-    private String standardCode;
-    private String certificateNumber;
-    private LocalDate issuedDate;
-    private LocalDate expiredDate;
-    private String issuingBody;
+    private String standardName;
+    private String certificateCode;
+    private LocalDate issueDate;
+    private LocalDate expiryDate;
+    private String issuedBy;
 }

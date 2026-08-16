@@ -14,6 +14,6 @@ import lombok.Setter;
 public class PartnerFarmAreaResponse {
     private String farmAreaId;
     private String farmAreaName;
-    private Double acreageM2;
-    private String address;
+    private Double area;
+    private String areaUnit;
 }

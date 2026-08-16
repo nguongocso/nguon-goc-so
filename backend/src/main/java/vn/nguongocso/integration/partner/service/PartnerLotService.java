@@ -104,8 +104,8 @@ public class PartnerLotService {
             farmAreaInfo = PartnerFarmAreaResponse.builder()
                     .farmAreaId(fa.getId().toString())
                     .farmAreaName(fa.getName())
-                    .acreageM2(fa.getAcreageM2())
-                    .address(fa.getAddress())
+                    .area(fa.getArea() != null ? fa.getArea().doubleValue() : null)
+                    .areaUnit(fa.getAreaUnit() != null ? fa.getAreaUnit().name() : null)
                     .build();
         }
 
@@ -117,11 +117,11 @@ public class PartnerLotService {
                 if (cert != null) {
                     certResponses.add(PartnerCertificationResponse.builder()
                             .certificationName(cert.getName())
-                            .standardCode(cert.getStandard() != null ? cert.getStandard().getCode() : null)
-                            .certificateNumber(cert.getCertificateNumber())
-                            .issuedDate(cert.getIssuedDate())
-                            .expiredDate(cert.getExpiredDate())
-                            .issuingBody(cert.getIssuingBody())
+                            .standardName(cert.getStandard() != null ? cert.getStandard().getName() : null)
+                            .certificateCode(cert.getCode())
+                            .issueDate(cert.getIssueDate())
+                            .expiryDate(cert.getExpiryDate())
+                            .issuedBy(cert.getIssuedBy())
                             .build());
                 }
             }
@@ -130,7 +130,7 @@ public class PartnerLotService {
         // 5. Farm Log Summary
         int logCount = 0;
         try {
-            var logs = farmLogRepository.findByProductionLotId(lot.getId());
+            var logs = farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lot.getId());
             if (logs != null) {
                 logCount = logs.size();
             }
