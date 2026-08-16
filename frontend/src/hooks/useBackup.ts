@@ -52,7 +52,7 @@ export const useBackup = () => {
         setIsBackupInProgress(hasInProgress && !hasRestoreInProgress);
         setIsRestoreInProgress(hasRestoreInProgress);
       } catch (err) {
-        console.error('❌ Fetch history error:', err);
+        // console.error('❌ Fetch history error:', err);
         toast.error('Không thể tải lịch sử sao lưu');
       } finally {
         setLoading(false);

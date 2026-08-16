@@ -6,9 +6,14 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import vn.nguongocso.event.dto.request.RecordMobileEventRequest;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,26 +25,21 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import vn.nguongocso.auth.service.CustomUserDetails;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import vn.nguongocso.auth.service.CustomUserDetailsService;
 import vn.nguongocso.config.JwtTokenProvider;
 import vn.nguongocso.config.SecurityConfig;
 import vn.nguongocso.event.dto.request.CorrectPackagingEventRequest;
-import vn.nguongocso.event.dto.request.RecordPackagingEventRequest;
-import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.event.dto.request.RecordHarvestEventRequest;
+import vn.nguongocso.event.dto.request.RecordMobileEventRequest;
+import vn.nguongocso.event.dto.request.RecordPackagingEventRequest;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.service.ChainEventService;
 import vn.nguongocso.event.service.OfflineSyncService;
+import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.permission.service.PermissionChecker;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 @WebMvcTest(ChainEventController.class)
 @Import(SecurityConfig.class)
@@ -55,11 +55,11 @@ class ChainEventControllerTest {
     @MockitoBean
     private ChainEventService chainEventService;
 
-        @MockitoBean
-        private OfflineSyncService offlineSyncService;
+    @MockitoBean
+    private OfflineSyncService offlineSyncService;
 
-        @MockitoBean
-        private PermissionChecker permissionChecker;
+    @MockitoBean
+    private PermissionChecker permissionChecker;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
@@ -70,8 +70,6 @@ class ChainEventControllerTest {
     private RecordHarvestEventRequest validRequest;
     private RecordMobileEventRequest validRequestMobile;
     private ChainEventResponse successResponse;
-
-    // Thay thế @MockBean bằng @MockitoBean theo chuẩn Spring Boot 3.4.0+
 
     @BeforeEach
     void setUp() {
@@ -84,6 +82,7 @@ class ChainEventControllerTest {
         validRequest.setQuantity(1500.0);
         validRequest.setLatitude(21.0285);
         validRequest.setLongitude(105.8542);
+
         validRequestMobile = new RecordMobileEventRequest();
         validRequestMobile.setProductionLotId(UUID.randomUUID());
         validRequestMobile.setEventType(ChainEventType.HARVEST);
@@ -116,15 +115,13 @@ class ChainEventControllerTest {
      * Case 1: Ghi nhận sự kiện thành công khi người dùng có quyền hợp lệ (VT-03 - EVENT_RECORDER)
      */
     @Test
-    @WithMockUser(roles = "VT-03") // Map tới ROLE_VT-03
+    @WithMockUser(roles = "VT-03")
     void recordHarvest_Success_WithAuthorizedUser() throws Exception {
-        // Given
         when(chainEventService.recordHarvestEvent(any(RecordHarvestEventRequest.class), any()))
                 .thenReturn(successResponse);
 
-        // When & Then
         mockMvc.perform(post("/api/v1/chain-events/harvest")
-                        .with(csrf()) // Hỗ trợ bypass CSRF check khi chạy test Spring Security
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated())
@@ -135,12 +132,11 @@ class ChainEventControllerTest {
     }
 
     /**
-     * Case 2: Trả về 403 Forbidden khi người dùng không có vai trò phù hợp (ví dụ VT-06 - CONSUMER)
+     * Case 2: Trả về 403 Forbidden khi người dùng không có vai trò phù hợp (VT-06)
      */
     @Test
-    @WithMockUser(roles = "VT-06") // Map tới ROLE_VT-06 (Khách hàng)
+    @WithMockUser(roles = "VT-06")
     void recordHarvest_ThrowForbidden_WithUnauthorizedUser() throws Exception {
-        // When & Then
         mockMvc.perform(post("/api/v1/chain-events/harvest")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -149,17 +145,15 @@ class ChainEventControllerTest {
     }
 
     /**
-     * Case 3: Trả về 400 Bad Request khi dữ liệu request đầu vào không hợp lệ (ví dụ thiếu ngày thu hoạch)
+     * Case 3: Trả về 400 Bad Request khi dữ liệu request đầu vào không hợp lệ
      */
     @Test
-    @WithMockUser(roles = "VT-02") // Map tới ROLE_VT-02 (Quản lý HTX)
+    @WithMockUser(roles = "VT-02")
     void recordHarvest_ThrowBadRequest_WhenValidationFails() throws Exception {
-        // Given
         RecordHarvestEventRequest invalidRequest = new RecordHarvestEventRequest();
         invalidRequest.setProductionLotId(UUID.randomUUID());
-        invalidRequest.setQuantity(-10.0); // Invalid: Sản lượng phải lớn hơn 0 và thiếu ngày thu hoạch
+        invalidRequest.setQuantity(-10.0);
 
-        // When & Then
         mockMvc.perform(post("/api/v1/chain-events/harvest")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -170,36 +164,30 @@ class ChainEventControllerTest {
     }
 
     /**
-     * Case 4: Trả về lỗi nghiệp vụ khi Service ném ra BusinessException (ví dụ lô chưa duyệt)
+     * Case 4: Trả về lỗi nghiệp vụ khi Service ném ra BusinessException
      */
     @Test
     @WithMockUser(roles = "VT-03")
     void recordHarvest_ThrowBusinessException_WhenServiceFails() throws Exception {
-        // Given
         when(chainEventService.recordHarvestEvent(any(RecordHarvestEventRequest.class), any()))
                 .thenThrow(new BusinessException("Lô sản xuất chưa được duyệt, không thể ghi sự kiện thu hoạch."));
 
-        // When & Then
         mockMvc.perform(post("/api/v1/chain-events/harvest")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
-                // Tùy thuộc vào thiết kế GlobalExceptionHandler của dự án để bắt mã HTTP, thông thường ném BusinessException sẽ trả về 400 hoặc 409
                 .andExpect(status().is4xxClientError())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Lô sản xuất chưa được duyệt, không thể ghi sự kiện thu hoạch."));
     }
+
     // ==========================================
     // UNIT TESTS CHO GHI SỰ KIỆN ĐÓNG GÓI (PACKAGING)
     // ==========================================
 
-    /**
-     * Case 5: Ghi nhận sự kiện đóng gói thành công khi người dùng có quyền (VT-03)
-     */
     @Test
     @WithMockUser(roles = "VT-03")
     void recordPackaging_Success_WithAuthorizedUser() throws Exception {
-        // Given
         UUID productionLotId = UUID.randomUUID();
         RecordPackagingEventRequest packagingRequest = new RecordPackagingEventRequest();
         packagingRequest.setProductionLotId(productionLotId);
@@ -227,7 +215,6 @@ class ChainEventControllerTest {
         when(chainEventService.recordPackagingEvent(any(RecordPackagingEventRequest.class), any()))
                 .thenReturn(packagingResponse);
 
-        // When & Then
         mockMvc.perform(post("/api/v1/chain-events/packaging")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -239,9 +226,6 @@ class ChainEventControllerTest {
                 .andExpect(jsonPath("$.data.recordedByName").value("Nguyễn Văn Ghi"));
     }
 
-    /**
-     * Case 6: Trả về 403 Forbidden khi ghi nhận đóng gói với vai trò không được cấp quyền (VT-06)
-     */
     @Test
     @WithMockUser(roles = "VT-06")
     void recordPackaging_ThrowForbidden_WithUnauthorizedUser() throws Exception {
@@ -257,15 +241,12 @@ class ChainEventControllerTest {
                 .andExpect(status().isForbidden());
     }
 
-    /**
-     * Case 7: Trả về 400 Bad Request khi thiếu trường bắt buộc (thiếu quy cách đóng gói)
-     */
     @Test
     @WithMockUser(roles = "VT-03")
     void recordPackaging_ThrowBadRequest_WhenValidationFails() throws Exception {
         RecordPackagingEventRequest invalidRequest = new RecordPackagingEventRequest();
         invalidRequest.setProductionLotId(UUID.randomUUID());
-        invalidRequest.setPackagingSpecification(""); // Invalid: Bị trống
+        invalidRequest.setPackagingSpecification("");
         invalidRequest.setPackagingDate(LocalDate.of(2026, 7, 25));
 
         mockMvc.perform(post("/api/v1/chain-events/packaging")
@@ -276,18 +257,13 @@ class ChainEventControllerTest {
                 .andExpect(jsonPath("$.success").value(false));
     }
 
-
     // ==========================================
     // UNIT TESTS CHO ĐÍNH CHÍNH SỰ KIỆN ĐÓNG GÓI (CORRECT)
     // ==========================================
 
-    /**
-     * Case 8: Đính chính sự kiện đóng gói thành công khi người dùng có quyền (VT-02)
-     */
     @Test
     @WithMockUser(roles = "VT-02")
     void correctPackaging_Success_WithAuthorizedUser() throws Exception {
-        // Given
         UUID originalEventId = UUID.randomUUID();
         CorrectPackagingEventRequest correctRequest = new CorrectPackagingEventRequest();
         correctRequest.setPackagingSpecification("Túi hút chân không 1kg");
@@ -313,7 +289,6 @@ class ChainEventControllerTest {
         when(chainEventService.correctPackagingEvent(any(UUID.class), any(CorrectPackagingEventRequest.class), any()))
                 .thenReturn(correctResponse);
 
-        // When & Then
         mockMvc.perform(post("/api/v1/chain-events/packaging/{id}/correct", originalEventId)
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -325,9 +300,6 @@ class ChainEventControllerTest {
                 .andExpect(jsonPath("$.data.eventData.parentEventId").value(originalEventId.toString()));
     }
 
-    /**
-     * Case 9: Trả về 403 Forbidden khi đính chính sự kiện với vai trò không phù hợp (VT-06)
-     */
     @Test
     @WithMockUser(roles = "VT-06")
     void correctPackaging_ThrowForbidden_WithUnauthorizedUser() throws Exception {
@@ -344,9 +316,6 @@ class ChainEventControllerTest {
                 .andExpect(status().isForbidden());
     }
 
-    /**
-     * Case 10: Trả về 400 Bad Request khi đính chính thiếu lý do đính chính (correctionReason)
-     */
     @Test
     @WithMockUser(roles = "VT-03")
     void correctPackaging_ThrowBadRequest_WhenValidationFails() throws Exception {
@@ -354,7 +323,7 @@ class ChainEventControllerTest {
         CorrectPackagingEventRequest invalidRequest = new CorrectPackagingEventRequest();
         invalidRequest.setPackagingSpecification("Túi hút chân không 1kg");
         invalidRequest.setPackagingDate(LocalDate.of(2026, 7, 25));
-        invalidRequest.setCorrectionReason(""); // Invalid: Lý do bị rỗng
+        invalidRequest.setCorrectionReason("");
 
         mockMvc.perform(post("/api/v1/chain-events/packaging/{id}/correct", originalEventId)
                         .with(csrf())
@@ -363,10 +332,10 @@ class ChainEventControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false));
     }
+
     @Test
-    @WithMockUser(roles = {"VT-03"}) // EVENT_RECORDER
+    @WithMockUser(roles = {"VT-03"})
     void recordMobileEvent_ShouldReturnCreated_WhenRequestIsValid() throws Exception {
-        // Given
         ChainEventResponse mockResponse = ChainEventResponse.builder()
                 .id(UUID.randomUUID())
                 .eventType(ChainEventType.HARVEST)
@@ -377,11 +346,9 @@ class ChainEventControllerTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        // SỬA: Thay thế any(CustomUserDetails.class) bằng any() để bắt được cả giá trị null/mock principal
         when(chainEventService.recordMobileEvent(any(RecordMobileEventRequest.class), any()))
                 .thenReturn(mockResponse);
 
-        // When & Then
         mockMvc.perform(post("/api/v1/chain-events/mobile")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequestMobile))
@@ -395,19 +362,16 @@ class ChainEventControllerTest {
     @Test
     @WithMockUser(roles = {"VT-03"})
     void recordMobileEvent_ShouldReturnBadRequest_WhenMissingImages() throws Exception {
-        // Given
-        validRequestMobile.setImages(List.of()); // Gửi danh sách rỗng (vi phạm validation)
+        validRequestMobile.setImages(List.of());
 
-        // When & Then
         mockMvc.perform(post("/api/v1/chain-events/mobile")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequestMobile))
                         .with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                // SỬA: Kiểm tra thông báo lỗi chung của dự án và chi tiết lỗi trong trường images
-        .andExpect(jsonPath("$.message").value("Dữ liệu không hợp lệ"))
-        .andExpect(jsonPath("$.errors.images").value("Sự kiện ghi nhận ngoài đồng yêu cầu tối thiểu một hình ảnh thực địa"));
+                .andExpect(jsonPath("$.message").value("Dữ liệu không hợp lệ"))
+                .andExpect(jsonPath("$.errors.images").value("Sự kiện ghi nhận ngoài đồng yêu cầu tối thiểu một hình ảnh thực địa"));
     }
 
     // =========================================================================
