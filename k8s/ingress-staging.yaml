@@ -1,15 +1,14 @@
 # ============================================================
-# Ingress (production)
+# Ingress (staging)
 # ------------------------------------------------------------
-# Host: agri-trace.online
+# Host: staging.agri-trace.online
 # TLS is auto-provisioned by cert-manager via the letsencrypt-prod
-# ClusterIssuer. The frontend nginx reverse-proxies /api and /files
-# to backend-service, so external traffic only reaches frontend-service.
+# ClusterIssuer.
 # ============================================================
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nguongocso-ingress
+  name: staging-ingress
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
@@ -18,10 +17,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - agri-trace.online
-      secretName: agri-trace-tls
+        - staging.agri-trace.online
+      secretName: staging-tls
   rules:
-    - host: agri-trace.online
+    - host: staging.agri-trace.online
       http:
         paths:
           - path: /

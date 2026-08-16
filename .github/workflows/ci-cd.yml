@@ -192,9 +192,8 @@ jobs:
           kubectl apply -f k8s/backend-deployment.yaml -n "$NS"
           kubectl apply -f k8s/frontend-service.yaml -n "$NS"
           kubectl apply -f k8s/frontend-deployment.yaml -n "$NS"
-          # NOTE: k8s/ingress.yaml is intentionally NOT applied here.
-          # Staging and production are exposed via NodePort (31691/31690),
-          # and applying the same host in two namespaces would collide.
+          # Ingress is applied per-environment in a dedicated step below
+          # (each namespace uses its own host via a separate manifest).
 
       - name: Set frontend NodePort per environment
         env:
@@ -214,11 +213,13 @@ jobs:
         run: |
           NS="${KUBE_NAMESPACE:-nguongocso}"
           if [ "$NS" = "production" ]; then
-            ORIGINS="http://localhost,http://3.105.159.125:31690,https://nguongocso.example.com"
+            ORIGINS="http://localhost,http://3.105.159.125:31690,https://agri-trace.online"
+            FRONTEND_URL="https://agri-trace.online"
           else
-            ORIGINS="http://localhost,http://3.105.159.125:31691,https://staging.nguongocso.example.com"
+            ORIGINS="http://localhost,http://3.105.159.125:31691,https://staging.agri-trace.online"
+            FRONTEND_URL="https://staging.agri-trace.online"
           fi
-          kubectl -n "$NS" patch configmap backend-config -p "{\"data\":{\"ALLOWED_ORIGINS\":\"$ORIGINS\"}}"
+          kubectl -n "$NS" patch configmap backend-config -p "{\"data\":{\"ALLOWED_ORIGINS\":\"$ORIGINS\",\"FRONTEND_URL\":\"$FRONTEND_URL\"}}"
 
       - name: Set database name per environment
         env:
@@ -231,6 +232,17 @@ jobs:
             DB_NAME="nguongocso_db"
           fi
           kubectl -n "$NS" patch configmap backend-config -p "{\"data\":{\"DB_NAME\":\"$DB_NAME\"}}"
+
+      - name: Apply Ingress per environment
+        env:
+          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
+        run: |
+          NS="${KUBE_NAMESPACE:-nguongocso}"
+          if [ "$NS" = "production" ]; then
+            kubectl apply -f k8s/ingress.yaml -n "$NS"
+          else
+            kubectl apply -f k8s/ingress-staging.yaml -n "$NS"
+          fi
 
       - name: Apply MySQL (if using in-cluster)
         env:
