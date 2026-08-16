@@ -18,10 +18,10 @@ public interface PartnerApiKeyRepository extends JpaRepository<PartnerApiKey, UU
 
     Optional<PartnerApiKey> findByKeyHash(String keyHash);
 
-    Page<PartnerApiKey> findByOrganizationId(UUID organizationId, Pageable pageable);
+    Page<PartnerApiKey> findByOrganizationOrganizationId(UUID organizationId, Pageable pageable);
 
-    Page<PartnerApiKey> findByOrganizationIdAndStatus(UUID organizationId, PartnerApiKeyStatus status, Pageable pageable);
+    Page<PartnerApiKey> findByOrganizationOrganizationIdAndStatus(UUID organizationId, PartnerApiKeyStatus status, Pageable pageable);
 
-    @Query("SELECT k FROM PartnerApiKey k WHERE k.id = :id AND k.organization.id = :organizationId")
+    @Query("SELECT k FROM PartnerApiKey k WHERE k.id = :id AND k.organization.organizationId = :organizationId")
     Optional<PartnerApiKey> findByIdAndOrganizationId(@Param("id") UUID id, @Param("organizationId") UUID organizationId);
 }

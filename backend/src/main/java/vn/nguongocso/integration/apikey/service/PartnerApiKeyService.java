@@ -119,9 +119,9 @@ public class PartnerApiKeyService {
 
         Page<PartnerApiKey> page;
         if (status != null) {
-            page = partnerApiKeyRepository.findByOrganizationIdAndStatus(organizationId, status, pageable);
+            page = partnerApiKeyRepository.findByOrganizationOrganizationIdAndStatus(organizationId, status, pageable);
         } else {
-            page = partnerApiKeyRepository.findByOrganizationId(organizationId, pageable);
+            page = partnerApiKeyRepository.findByOrganizationOrganizationId(organizationId, pageable);
         }
 
         return page.map(this::mapToResponse);
