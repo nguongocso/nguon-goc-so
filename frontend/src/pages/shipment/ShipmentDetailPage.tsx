@@ -96,7 +96,7 @@ export const ShipmentDetailPage = () => {
 
   // ── Loaders ────────────────────────────────────────────────────────────────
 
-  const loadShipment = async () => {
+  async function loadShipment() {
     if (!shipmentId) return;
     setLoadingShipment(true);
     setShipmentError(null);
