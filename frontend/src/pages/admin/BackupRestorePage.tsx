@@ -42,9 +42,9 @@ export default function BackupRestorePage() {
     description?: string;
     isActive: boolean;
   }) => {
-    console.log("🔄 Toggling schedule:", data);
+    // console.log("🔄 Toggling schedule:", data);
     await updateSchedule(data);
-    console.log("✅ Schedule updated, new state:", schedule);
+    // console.log("✅ Schedule updated, new state:", schedule);
   };
 
   // Wrapper cho ScheduleEditDialog

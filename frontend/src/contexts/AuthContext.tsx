@@ -94,7 +94,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setSelectionTokenState(selectionTokenValue);
 
     // Chưa lưu user vào AuthUserInfo vì chưa có organization.
-    console.log("Authenticated user:", loginUser);
+    // console.log("Authenticated user:", loginUser);
   }, []);
 
   /**

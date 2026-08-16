@@ -80,11 +80,11 @@ export function SeasonYieldComparisonFilter({
       try {
         const [categories, areas, orgs] = await Promise.all([
           getProductCategories({ isActive: true }).catch((err) => {
-            console.error("Lỗi product categories:", err);
+            // console.error("Lỗi product categories:", err);
             return [];
           }),
           getFarmAreas().catch((err) => {
-            console.error("Lỗi farm areas:", err);
+            // console.error("Lỗi farm areas:", err);
             return [];
           }),
           currentUserRole === "VT-01"
@@ -101,7 +101,7 @@ export function SeasonYieldComparisonFilter({
                   }))
                 )
                 .catch((err) => {
-                  console.error("Lỗi organizations:", err);
+                  // console.error("Lỗi organizations:", err);
                   return [];
                 })
             : Promise.resolve([]),
@@ -116,7 +116,7 @@ export function SeasonYieldComparisonFilter({
       } catch (err) {
         if (!active) return;
 
-        console.error("Lỗi load options:", err);
+        // console.error("Lỗi load options:", err);
         setHasUnavailableOptions(true);
       } finally {
         if (active) {
