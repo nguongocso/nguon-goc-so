@@ -703,4 +703,178 @@ public class NotificationServiceImpl implements NotificationService {
                                 "CẢNH BÁO: {}",
                                 message);
         }
+
+        // =========================================================
+        // 10. THÔNG BÁO ĐĂNG NHẬP BẤT THƯỜNG (NCL-01-CN-005)
+        // =========================================================
+
+        /**
+         * Gửi thông báo khi phát hiện đăng nhập bất thường.
+         *
+         * @param anomaly bản ghi bất thường
+         */
+        @Override
+        public void sendLoginAnomalyNotification(vn.nguongocso.auth.entity.LoginAnomaly anomaly) {
+                List<User> recipients = getNotificationRecipients(anomaly.getOrganization().getOrganizationId());
+
+                if (recipients.isEmpty()) {
+                        log.warn(
+                                        "Không có người dùng có permission {}:{} để nhận "
+                                                        + "thông báo bất thường đăng nhập. organizationId={}",
+                                        NOTIFICATION_RESOURCE,
+                                        NOTIFICATION_READ_ACTION,
+                                        anomaly.getOrganization().getOrganizationId());
+                        return;
+                }
+
+                String title = "Phát hiện đăng nhập bất thường";
+                String content = String.format(
+                        "Tài khoản %s (%s) phát hiện hoạt động đăng nhập bất thường. "
+                                + "Lý do: %s. Địa chỉ IP: %s. Quốc gia: %s.",
+                        anomaly.getUser().getUserName(),
+                        anomaly.getUser().getFullName(),
+                        anomaly.getReasonCode().toString(),
+                        anomaly.getIpAddress(),
+                        anomaly.getCountryCode() != null ? anomaly.getCountryCode() : "Không xác định"
+                );
+
+                List<Notification> notifications = recipients.stream()
+                                .map(user -> {
+                                        Notification notification = new Notification();
+                                        notification.setUser(user);
+                                        notification.setType(vn.nguongocso.alert.enums.NotificationType.LOGIN_ANOMALY_DETECTED);
+                                        notification.setTitle(title);
+                                        notification.setContent(content);
+                                        notification.setIsRead(false);
+                                        notification.setReadAt(null);
+                                        return notification;
+                                })
+                                .toList();
+
+                notificationRepository.saveAll(notifications);
+
+                log.info(
+                                "Đã tạo {} notification bất thường đăng nhập. "
+                                                + "organizationId={}, userId={}, anomalyId={}",
+                                notifications.size(),
+                                anomaly.getOrganization().getOrganizationId(),
+                                anomaly.getUser().getUserId(),
+                                anomaly.getId());
+        }
+
+        /**
+         * Gửi thông báo khi tài khoản bị khóa tạm.
+         *
+         * @param accountLock bản ghi khóa tài khoản
+         */
+        @Override
+        public void sendAccountLockedNotification(vn.nguongocso.auth.entity.AccountLock accountLock) {
+                User lockedUser = accountLock.getUser();
+                List<User> recipients = getNotificationRecipients(
+                        organizationUserRepository.findFirstByUser(lockedUser)
+                                .orElseThrow()
+                                .getOrganization()
+                                .getOrganizationId()
+                );
+
+                if (recipients.isEmpty()) {
+                        log.warn(
+                                        "Không có người dùng có permission {}:{} để nhận "
+                                                        + "thông báo khóa tài khoản. userId={}",
+                                        NOTIFICATION_RESOURCE,
+                                        NOTIFICATION_READ_ACTION,
+                                        lockedUser.getUserId());
+                        return;
+                }
+
+                String title = "Tài khoản bị khóa tạm";
+                String content = String.format(
+                        "Tài khoản %s (%s) đã bị khóa tạm bởi %s. "
+                                + "Lý do: %s. "
+                                + "Vui lòng liên hệ với quản trị viên để mở khóa.",
+                        lockedUser.getUserName(),
+                        lockedUser.getFullName(),
+                        accountLock.getLockedBy().getUserName(),
+                        accountLock.getLockReason() != null ? accountLock.getLockReason() : "Không xác định"
+                );
+
+                List<Notification> notifications = recipients.stream()
+                                .map(user -> {
+                                        Notification notification = new Notification();
+                                        notification.setUser(user);
+                                        notification.setType(vn.nguongocso.alert.enums.NotificationType.ACCOUNT_LOCKED);
+                                        notification.setTitle(title);
+                                        notification.setContent(content);
+                                        notification.setIsRead(false);
+                                        notification.setReadAt(null);
+                                        return notification;
+                                })
+                                .toList();
+
+                notificationRepository.saveAll(notifications);
+
+                log.info(
+                                "Đã tạo {} notification khóa tài khoản. "
+                                                + "userId={}, accountLockId={}",
+                                notifications.size(),
+                                lockedUser.getUserId(),
+                                accountLock.getId());
+        }
+
+        /**
+         * Gửi thông báo khi tài khoản được mở khóa.
+         *
+         * @param accountLock bản ghi khóa tài khoản (status = UNLOCKED)
+         */
+        @Override
+        public void sendAccountUnlockedNotification(vn.nguongocso.auth.entity.AccountLock accountLock) {
+                User unlockedUser = accountLock.getUser();
+                List<User> recipients = getNotificationRecipients(
+                        organizationUserRepository.findFirstByUser(unlockedUser)
+                                .orElseThrow()
+                                .getOrganization()
+                                .getOrganizationId()
+                );
+
+                if (recipients.isEmpty()) {
+                        log.warn(
+                                        "Không có người dùng có permission {}:{} để nhận "
+                                                        + "thông báo mở khóa tài khoản. userId={}",
+                                        NOTIFICATION_RESOURCE,
+                                        NOTIFICATION_READ_ACTION,
+                                        unlockedUser.getUserId());
+                        return;
+                }
+
+                String title = "Tài khoản đã được mở khóa";
+                String content = String.format(
+                        "Tài khoản %s (%s) đã được mở khóa bởi %s vào lúc %s.",
+                        unlockedUser.getUserName(),
+                        unlockedUser.getFullName(),
+                        accountLock.getUnlockedBy() != null ? accountLock.getUnlockedBy().getUserName() : "Hệ thống",
+                        accountLock.getUnlockedAt() != null ? accountLock.getUnlockedAt() : "Không xác định"
+                );
+
+                List<Notification> notifications = recipients.stream()
+                                .map(user -> {
+                                        Notification notification = new Notification();
+                                        notification.setUser(user);
+                                        notification.setType(vn.nguongocso.alert.enums.NotificationType.ACCOUNT_UNLOCKED);
+                                        notification.setTitle(title);
+                                        notification.setContent(content);
+                                        notification.setIsRead(false);
+                                        notification.setReadAt(null);
+                                        return notification;
+                                })
+                                .toList();
+
+                notificationRepository.saveAll(notifications);
+
+                log.info(
+                                "Đã tạo {} notification mở khóa tài khoản. "
+                                                + "userId={}, accountLockId={}",
+                                notifications.size(),
+                                unlockedUser.getUserId(),
+                                accountLock.getId());
+        }
 }

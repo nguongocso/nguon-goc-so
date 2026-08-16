@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import vn.nguongocso.auth.dto.request.LoginRequest;
@@ -17,62 +18,82 @@ import vn.nguongocso.auth.dto.response.LoginResponse;
 import vn.nguongocso.auth.dto.response.OrganizationSelectionResponse;
 import vn.nguongocso.auth.dto.response.SelectOrganizationResponse;
 import vn.nguongocso.auth.dto.response.UserProfileResponse;
-import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.auth.service.AuthService;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.exception.BusinessException;
+import vn.nguongocso.permission.service.PermissionChecker;
 
 /**
- * REST controller providing authentication-related endpoints.
+ * REST controller cung cấp các API liên quan đến xác thực người dùng.
  *
  * <p>
- * This controller handles user authentication and exposes APIs
- * for retrieving information about the currently authenticated user.
+ * Controller này xử lý:
  * </p>
+ * <ul>
+ *     <li>Đăng nhập bằng username/password.</li>
+ *     <li>Lấy thông tin user hiện tại.</li>
+ *     <li>Lấy danh sách organization mà user có thể lựa chọn.</li>
+ *     <li>Lựa chọn organization sau khi đăng nhập.</li>
+ *     <li>Chuyển đổi organization khi đã đăng nhập.</li>
+ * </ul>
  */
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
+
     private final AuthService authService;
     private final PermissionChecker permissionChecker;
 
     /**
-     * Authenticates a user using the provided credentials.
+     * Xác thực người dùng bằng username và password.
      *
      * <p>
-     * If the credentials are valid, a JWT access token and the
-     * associated user information are returned.
+     * Bước này chỉ xác thực ở cấp User. Organization và Role
+     * chưa được xác định tại bước đăng nhập.
      * </p>
      *
-     * @param request login request containing username, password and
-     *                organization information
-     * @return authenticated user information and JWT token
+     * <p>
+     * Nếu đăng nhập thành công, hệ thống trả về Selection JWT
+     * để người dùng tiếp tục lựa chọn organization.
+     * </p>
+     *
+     * @param request thông tin đăng nhập
+     * @return thông tin user và Selection JWT
      */
     @PostMapping("/login")
-    public ResponseEntity<ApiResult<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(ApiResult.success(authService.login(request)));
+    public ResponseEntity<ApiResult<LoginResponse>> login(
+            @Valid @RequestBody LoginRequest request) {
+
+        return ResponseEntity.ok(
+                ApiResult.success(
+                        authService.login(request)
+                )
+        );
     }
 
     /**
-     * Returns the profile of the currently authenticated user.
+     * Lấy thông tin profile của user hiện tại.
      *
      * <p>
-     * The user information is obtained from the Spring Security
-     * authentication context.
+     * User phải được xác thực bằng Access JWT.
      * </p>
      *
-     * @return profile of the authenticated user
+     * @return thông tin user hiện tại
      */
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResult<UserProfileResponse>> getCurrentUser() {
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+        Authentication auth =
+                SecurityContextHolder.getContext().getAuthentication();
 
-        java.util.List<String> permissions = permissionChecker.getPermissionsForCurrentUser();
+        CustomUserDetails userDetails =
+                (CustomUserDetails) auth.getPrincipal();
+
+        List<String> permissions =
+                permissionChecker.getPermissionsForCurrentUser();
 
         UserProfileResponse response = UserProfileResponse.builder()
                 .userId(userDetails.getUserId())
@@ -87,7 +108,9 @@ public class AuthController {
                 .permissions(permissions)
                 .build();
 
-        return ResponseEntity.ok(ApiResult.success(response));
+        return ResponseEntity.ok(
+                ApiResult.success(response)
+        );
     }
 
     /**
@@ -99,47 +122,67 @@ public class AuthController {
      * </p>
      *
      * <p>
-     * Selection JWT không tạo SecurityContext nên không sử dụng
-     * @PreAuthorize("isAuthenticated()").
+     * Selection JWT chưa tạo SecurityContext nên endpoint này
+     * không sử dụng {@code @PreAuthorize("isAuthenticated()")}.
      * </p>
      *
-     * @param authorization Authorization header
+     * @param authorization Authorization header chứa Selection JWT
      * @return danh sách organization của user
      */
     @GetMapping("/organizations")
     public ResponseEntity<ApiResult<List<OrganizationSelectionResponse>>> getOrganizations(
-            @RequestHeader("Authorization") String authorization) {
+            @RequestHeader(value = "Authorization", required = false)
+            String authorization) {
 
         if (authorization == null
                 || !authorization.startsWith("Bearer ")) {
 
             throw new BusinessException(
-                    "Thiếu Authorization Bearer token");
+                    "Thiếu Authorization Bearer token"
+            );
         }
 
-        String selectionToken = authorization.substring("Bearer ".length());
+        String selectionToken =
+                authorization.substring("Bearer ".length());
 
         return ResponseEntity.ok(
                 ApiResult.success(
-                        authService.getOrganizations(selectionToken)));
+                        authService.getOrganizations(selectionToken)
+                )
+        );
     }
 
-        @GetMapping("/my-organizations")
-        @PreAuthorize("isAuthenticated()")
-        public ResponseEntity<ApiResult<List<OrganizationSelectionResponse>>> getMyOrganizations() {
-                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-                CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+    /**
+     * Lấy danh sách tất cả organization mà user hiện tại
+     * đang có quyền tham gia.
+     *
+     * <p>
+     * Endpoint này yêu cầu Access JWT hợp lệ.
+     * </p>
+     *
+     * @return danh sách organization của user
+     */
+    @GetMapping("/my-organizations")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResult<List<OrganizationSelectionResponse>>> getMyOrganizations() {
 
-                return ResponseEntity.ok(
-                                ApiResult.success(authService.getOrganizationsForUser(userDetails.getUserId())));
-        }
+        Authentication auth =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        CustomUserDetails userDetails =
+                (CustomUserDetails) auth.getPrincipal();
+
+        return ResponseEntity.ok(
+                ApiResult.success(
+                        authService.getOrganizationsForUser(
+                                userDetails.getUserId()
+                        )
+                )
+        );
+    }
 
     /**
      * Lựa chọn organization mà user muốn sử dụng.
-     *
-     * <p>
-     * Sau khi lựa chọn, hệ thống sẽ cấp Access JWT dùng cho các API nghiệp vụ.
-     * </p>
      *
      * <p>
      * Endpoint này sử dụng Selection JWT được cấp sau khi
@@ -147,46 +190,77 @@ public class AuthController {
      * </p>
      *
      * <p>
-     * Selection JWT không tạo SecurityContext nên không sử dụng
-     * @PreAuthorize("isAuthenticated()").
+     * Sau khi lựa chọn organization thành công, hệ thống
+     * cấp Access JWT chứa thông tin organization và role.
      * </p>
      *
-     * @param request           request chứa thông tin organization mà user muốn
-     *                          lựa chọn
+     * @param request thông tin organization cần lựa chọn
      * @param authorizationHeader Authorization header chứa Selection JWT
-     * @return Access JWT và thông tin user trong organization đã lựa chọn
+     * @return Access JWT và thông tin user trong organization đã chọn
      */
     @PostMapping("/select-organization")
     public ResponseEntity<ApiResult<SelectOrganizationResponse>> selectOrganization(
             @Valid @RequestBody SelectOrganizationRequest request,
-            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+            @RequestHeader(
+                    value = "Authorization",
+                    required = false
+            ) String authorizationHeader) {
 
         if (authorizationHeader == null
                 || !authorizationHeader.startsWith("Bearer ")) {
 
             throw new BusinessException(
-                    "Thiếu Selection Token");
+                    "Thiếu Selection Token"
+            );
         }
 
-        String selectionToken = authorizationHeader.substring(7);
+        String selectionToken =
+                authorizationHeader.substring("Bearer ".length());
 
-        SelectOrganizationResponse response = authService.selectOrganization(
-                selectionToken,
-                request);
+        SelectOrganizationResponse response =
+                authService.selectOrganization(
+                        selectionToken,
+                        request
+                );
 
         return ResponseEntity.ok(
-                ApiResult.success(response));
+                ApiResult.success(response)
+        );
     }
 
-        @PostMapping("/switch-organization")
-        @PreAuthorize("isAuthenticated()")
-        public ResponseEntity<ApiResult<SelectOrganizationResponse>> switchOrganization(
-                        @Valid @RequestBody SelectOrganizationRequest request) {
+    /**
+     * Chuyển đổi sang organization khác khi user đã đăng nhập.
+     *
+     * <p>
+     * Endpoint này yêu cầu Access JWT hợp lệ.
+     * </p>
+     *
+     * <p>
+     * Sau khi chuyển organization, hệ thống cấp Access JWT mới
+     * tương ứng với organization được lựa chọn.
+     * </p>
+     *
+     * @param request thông tin organization cần chuyển sang
+     * @return Access JWT và thông tin organization mới
+     */
+    @PostMapping("/switch-organization")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResult<SelectOrganizationResponse>> switchOrganization(
+            @Valid @RequestBody SelectOrganizationRequest request) {
 
-                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-                CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+        Authentication auth =
+                SecurityContextHolder.getContext().getAuthentication();
 
-                return ResponseEntity.ok(ApiResult.success(
-                                authService.switchOrganization(userDetails.getUserId(), request)));
-        }
+        CustomUserDetails userDetails =
+                (CustomUserDetails) auth.getPrincipal();
+
+        return ResponseEntity.ok(
+                ApiResult.success(
+                        authService.switchOrganization(
+                                userDetails.getUserId(),
+                                request
+                        )
+                )
+        );
+    }
 }
