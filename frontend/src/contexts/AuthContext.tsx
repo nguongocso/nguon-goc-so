@@ -88,7 +88,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
    */
   const loginWithSelection = useCallback((
     selectionTokenValue: string,
-    loginUser: LoginUserInfo
   ) => {
     setSelectionToken(selectionTokenValue);
     setSelectionTokenState(selectionTokenValue);
