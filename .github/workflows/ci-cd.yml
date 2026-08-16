@@ -91,7 +91,7 @@ jobs:
   build-push:
     name: Build & Push Images
     needs: [backend-test, frontend-build]
-    if: github.event_name == 'push' && (contains(github.ref, 'develop') || contains(github.ref, 'main') || contains(github.ref, 'test/cicd'))
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -150,7 +150,7 @@ jobs:
   deploy:
     name: Deploy to Kubernetes
     needs: build-push
-    if: github.event_name == 'push' && (contains(github.ref, 'develop') || contains(github.ref, 'main') || contains(github.ref, 'test/cicd'))
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
