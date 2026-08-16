@@ -19,7 +19,7 @@ data:
   JWT_EXPIRATION: "86400000"
 
   # CORS — comma-separated list of allowed origins
-  ALLOWED_ORIGINS: "http://localhost,https://nguongocso.example.com"
+  ALLOWED_ORIGINS: "http://localhost,http://3.106.186.33:31690,https://nguongocso.example.com"
 
   # Uploads
   UPLOAD_BASE_DIR: "/app/uploads"
