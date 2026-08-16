@@ -39,5 +39,10 @@ data:
   MAIL_HOST: "smtp.gmail.com"
   MAIL_PORT: "587"
 
+  # Disable Spring Boot's mail health indicator. The SMTP credentials are
+  # placeholders in the Secret, so the default JavaMailSender health check
+  # would otherwise report DOWN and fail liveness/readiness probes.
+  MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
+
   # LocationIQ
   LOCATIONIQ_BASE_URL: "https://us1.locationiq.com/v1/reverse"

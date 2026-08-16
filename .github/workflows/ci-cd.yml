@@ -192,7 +192,21 @@ jobs:
           kubectl apply -f k8s/backend-deployment.yaml -n "$NS"
           kubectl apply -f k8s/frontend-service.yaml -n "$NS"
           kubectl apply -f k8s/frontend-deployment.yaml -n "$NS"
-          kubectl apply -f k8s/ingress.yaml -n "$NS"
+          # NOTE: k8s/ingress.yaml is intentionally NOT applied here.
+          # Staging and production are exposed via NodePort (31691/31690),
+          # and applying the same host in two namespaces would collide.
+
+      - name: Set frontend NodePort per environment
+        env:
+          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
+        run: |
+          NS="${KUBE_NAMESPACE:-nguongocso}"
+          if [ "$NS" = "production" ]; then
+            PORT=31690
+          else
+            PORT=31691
+          fi
+          kubectl -n "$NS" patch svc frontend-service -p "{\"spec\":{\"ports\":[{\"port\":80,\"nodePort\":$PORT}]}}"
 
       - name: Apply MySQL (if using in-cluster)
         env:
