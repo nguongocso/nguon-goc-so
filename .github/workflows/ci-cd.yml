@@ -220,6 +220,18 @@ jobs:
           fi
           kubectl -n "$NS" patch configmap backend-config -p "{\"data\":{\"ALLOWED_ORIGINS\":\"$ORIGINS\"}}"
 
+      - name: Set database name per environment
+        env:
+          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
+        run: |
+          NS="${KUBE_NAMESPACE:-nguongocso}"
+          if [ "$NS" = "staging" ]; then
+            DB_NAME="nguongocso_staging_db"
+          else
+            DB_NAME="nguongocso_db"
+          fi
+          kubectl -n "$NS" patch configmap backend-config -p "{\"data\":{\"DB_NAME\":\"$DB_NAME\"}}"
+
       - name: Apply MySQL (if using in-cluster)
         env:
           KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
