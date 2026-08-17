@@ -44,7 +44,7 @@ public class PartnerApiKeyController {
      * Cấp mới khóa truy cập cho bên thứ ba (TC-01, TC-03).
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('VT-02')")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
     public ResponseEntity<ApiResult<PartnerApiKeyResponse>> createApiKey(
             @Valid @RequestBody CreateApiKeyRequest request) {
 
@@ -60,7 +60,7 @@ public class PartnerApiKeyController {
      * Lấy danh sách khóa truy cập thuộc Hợp tác xã hiện tại.
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('VT-02')")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
     public ResponseEntity<ApiResult<Page<PartnerApiKeyResponse>>> getOrganizationApiKeys(
             @RequestParam(required = false) PartnerApiKeyStatus status,
             @RequestParam(defaultValue = "0") int page,
@@ -75,7 +75,7 @@ public class PartnerApiKeyController {
      * Thu hồi khóa truy cập (TC-02).
      */
     @PostMapping("/{id}/revoke")
-    @PreAuthorize("hasAnyRole('VT-02')")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
     public ResponseEntity<ApiResult<PartnerApiKeyResponse>> revokeApiKey(
             @PathVariable UUID id) {
 
