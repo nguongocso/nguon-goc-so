@@ -1,5 +1,5 @@
 import apiClient from './axiosConfig';
-import type { ProductionLotCertification, AttachCertificationRequest, Certification, CreateCertificationRequest, CertificationResponse, LotTestCriteriaResult, CreateInspectionRequestPayload, InspectionRequestCreatedResponse, InspectionRequestListItem, InspectionRequestStatusQuery } from '@/types/certification';
+import type { ProductionLotCertification, AttachCertificationRequest, Certification, CreateCertificationRequest, CertificationResponse, LotTestCriteriaResult, CreateInspectionRequestPayload, InspectionRequestCreatedResponse, InspectionRequestListItem, InspectionRequestStatusQuery, InspectionRequestDetailResponse, InspectionCriterionResult, RecordCriterionResultPayload, RecordInspectionResultsPayload, InspectionResultFileUploadResponse, CanActivateSealCheck } from '@/types/certification';
 import type { PageResponse } from '@/types/common';
 
 /**
@@ -124,6 +124,123 @@ export const getInspectionRequests = async (
   }
   const response = await apiClient.get<{ data: PageResponse<InspectionRequestListItem> }>(
     `/test-requests?${searchParams.toString()}`
+  );
+  return response.data.data;
+};
+
+/**
+ * Lấy chi tiết yêu cầu kiểm nghiệm để nhập kết quả.
+ * GET /api/v1/inspection-requests/{requestId}
+ *
+ * Trả về danh sách chỉ tiêu (UUID snapshot) kèm kết quả đã ghi (nếu có).
+ */
+export const getInspectionRequestDetail = async (
+  requestId: string
+): Promise<InspectionRequestDetailResponse> => {
+  const response = await apiClient.get<{ data: InspectionRequestDetailResponse }>(
+    `/inspection-requests/${requestId}`
+  );
+  return response.data.data;
+};
+
+/**
+ * Lấy danh sách kết quả kiểm nghiệm của các chỉ tiêu thuộc một yêu cầu.
+ * GET /api/v1/inspection-requests/{requestId}/results
+ */
+export const getInspectionRequestResults = async (
+  requestId: string
+): Promise<InspectionCriterionResult[]> => {
+  const response = await apiClient.get<{ data: InspectionCriterionResult[] }>(
+    `/inspection-requests/${requestId}/results`
+  );
+  return response.data.data;
+};
+
+/**
+ * Ghi nhận toàn bộ kết quả kiểm nghiệm của một yêu cầu trong một lần gọi.
+ * PUT /api/v1/inspection-requests/{requestId}/results
+ *
+ * Payload phải chứa kết quả cho TẤT CẢ chỉ tiêu của yêu cầu.
+ * Backend validate toàn bộ rồi lưu trong một giao dịch (all-or-nothing):
+ * nếu có chỉ tiêu không hợp lệ, không chỉ tiêu nào được lưu.
+ */
+export const recordInspectionRequestResults = async (
+  requestId: string,
+  payload: RecordInspectionResultsPayload
+): Promise<InspectionCriterionResult[]> => {
+  const response = await apiClient.put<{ data: InspectionCriterionResult[] }>(
+    `/inspection-requests/${requestId}/results`,
+    payload
+  );
+  return response.data.data;
+};
+
+/**
+ * Ghi nhận / cập nhật kết quả kiểm nghiệm cho một chỉ tiêu.
+ * POST /api/v1/inspection-criteria/{criterionId}/results
+ *
+ * criterionId là UUID snapshot của chỉ tiêu thuộc yêu cầu (inspection_criteria.id).
+ * Trả HTTP 201 khi thành công.
+ */
+export const recordOrUpdateCriterionResult = async (
+  criterionId: string,
+  payload: RecordCriterionResultPayload
+): Promise<InspectionCriterionResult> => {
+  const response = await apiClient.post<{ data: InspectionCriterionResult }>(
+    `/inspection-criteria/${criterionId}/results`,
+    payload
+  );
+  return response.data.data;
+};
+
+/**
+ * Tải lên phiếu kết quả kiểm nghiệm cho một chỉ tiêu.
+ * POST /api/v1/inspection-criteria/{criterionId}/result-file
+ *
+ * Trả về filePath để gửi kèm khi ghi nhận kết quả.
+ */
+export const uploadInspectionResultFile = async (
+  criterionId: string,
+  file: File
+): Promise<InspectionResultFileUploadResponse> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await apiClient.post<{
+    data: InspectionResultFileUploadResponse;
+  }>(`/inspection-criteria/${criterionId}/result-file`, formData);
+  return response.data.data;
+};
+
+/**
+ * Lấy kết quả kiểm nghiệm của một chỉ tiêu.
+ * GET /api/v1/inspection-criteria/{criterionId}/result
+ */
+export const getCriterionResult = async (
+  criterionId: string
+): Promise<InspectionCriterionResult> => {
+  const response = await apiClient.get<{ data: InspectionCriterionResult }>(
+    `/inspection-criteria/${criterionId}/result`
+  );
+  return response.data.data;
+};
+
+/**
+ * Xóa kết quả kiểm nghiệm.
+ * DELETE /api/v1/inspection-results/{resultId}
+ */
+export const deleteInspectionResult = async (resultId: string): Promise<void> => {
+  await apiClient.delete(`/inspection-results/${resultId}`);
+};
+
+/**
+ * Kiểm tra lô sản xuất có đủ điều kiện kích hoạt tem dựa trên kết quả kiểm nghiệm.
+ * POST /api/v1/production-lots/{lotId}/can-activate-seal
+ */
+export const checkCanActivateSeal = async (
+  lotId: string
+): Promise<CanActivateSealCheck> => {
+  const response = await apiClient.post<{ data: CanActivateSealCheck }>(
+    `/production-lots/${lotId}/can-activate-seal`
   );
   return response.data.data;
 };

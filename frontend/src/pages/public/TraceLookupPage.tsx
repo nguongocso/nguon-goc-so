@@ -3,11 +3,13 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 
 import {
   getPublicCertifications,
+  getPublicInspections,
   getPublicTrace,
 } from '@/api/publicApi';
 
 import type { PublicTraceResponse } from '@/types/publicTrace';
 import type { PublicLotCertificationsResponse } from '@/types/publicCertification';
+import type { PublicInspectionResponse } from '@/types/publicInspection';
 
 import { ProductInfo } from '@/components/public/ProductInfo';
 import { RecallAlert } from '@/components/public/RecallAlert';
@@ -16,6 +18,7 @@ import { Timeline } from '@/components/public/Timeline';
 import { RouteMap } from '@/components/public/RouteMap';
 import { ProductFeedbackForm } from '@/components/public/ProductFeedbackForm';
 import { PublicCertificationsSection } from '@/components/public/PublicCertificationsSection';
+import { PublicInspectionSection } from '@/components/public/PublicInspectionSection';
 
 import {
   Home,
@@ -66,11 +69,20 @@ export default function TraceLookupPage() {
   const [certificationError, setCertificationError] =
     useState<string | null>(null);
 
+  const [inspectionData, setInspectionData] =
+    useState<PublicInspectionResponse | null>(null);
+
+  const [inspectionLoading, setInspectionLoading] = useState(true);
+
+  const [inspectionError, setInspectionError] =
+    useState<string | null>(null);
+
   useEffect(() => {
     if (!codeValue) {
       setError('Mã tra cứu không hợp lệ.');
       setLoading(false);
       setCertificationLoading(false);
+      setInspectionLoading(false);
       return;
     }
 
@@ -187,10 +199,41 @@ export default function TraceLookupPage() {
       }
     };
 
+    /**
+     * Lấy kết quả kiểm nghiệm công khai.
+     */
+    const fetchInspections = async () => {
+      try {
+        setInspectionLoading(true);
+        setInspectionError(null);
+
+        const result = await getPublicInspections(codeValue);
+
+        setInspectionData(result);
+      } catch (err: any) {
+        const status = err.response?.status;
+
+        if (status === 404 || status === 501) {
+          setInspectionError(null);
+          setInspectionData(null);
+        } else {
+          const message =
+            err.response?.data?.message ||
+            'Không thể tải kết quả kiểm nghiệm.';
+
+          setInspectionError(message);
+          setInspectionData(null);
+        }
+      } finally {
+        setInspectionLoading(false);
+      }
+    };
+
     if (!alreadyScanned) {
       fetchTrace();
     }
     fetchCertifications();
+    fetchInspections();
   }, [codeValue, scanResult]);
 
   /**
@@ -310,6 +353,13 @@ export default function TraceLookupPage() {
           data={certificationData}
           isLoading={certificationLoading}
           error={certificationError}
+        />
+
+        {/* Kết quả kiểm nghiệm công khai */}
+        <PublicInspectionSection
+          data={inspectionData}
+          isLoading={inspectionLoading}
+          error={inspectionError}
         />
 
         {/* Gửi phản ánh */}

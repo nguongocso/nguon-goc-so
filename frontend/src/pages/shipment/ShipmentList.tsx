@@ -46,6 +46,7 @@ import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligible
 import { ROLE_ACCESS } from "@/config/roleAccess";
 import { usePermission } from "@/hooks/usePermission";
 import { deleteDraft } from "@/api/eventValidationApi";
+import { checkCanActivateSeal } from "@/api/certificationApi";
 
 const statusLabelMap: Record<string, string> = {
   DRAFT: "Nháp",
@@ -127,6 +128,22 @@ export const ShipmentList = ({
 
   const handleCreate = async (payload: CreateShipmentPayload) => {
     await createShipment(payload);
+  };
+
+  // Chặn kích hoạt tem khi lô chưa đạt kiểm nghiệm / kết quả hết hiệu lực
+  const handleActivateConfirm = async (shipmentId: string) => {
+    let check;
+    try {
+      check = await checkCanActivateSeal(productionLotId);
+    } catch {
+      toast.error("Không thể kiểm tra điều kiện kích hoạt tem");
+      throw new Error("cannot-check-activation");
+    }
+    if (!check.canActivate) {
+      toast.error(check.reason || "Lô chưa đủ điều kiện kích hoạt tem");
+      throw new Error("cannot-activate");
+    }
+    await activateShipment(shipmentId);
   };
 
   const formatDate = (dateStr: string) => {
@@ -495,9 +512,7 @@ export const ShipmentList = ({
           activatingShipmentId === activatingShipment?.id
         }
         onClose={() => setActivatingShipment(null)}
-        onConfirm={async (shipmentId) => {
-          await activateShipment(shipmentId);
-        }}
+        onConfirm={handleActivateConfirm}
       />
 
       <RecallShipmentDialog
