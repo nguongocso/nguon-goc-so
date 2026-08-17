@@ -582,6 +582,19 @@ const AppRoutes = () => (
                 }
             />
 
+            {/* =================================================
+          OFFLINE EVENTS (NCL-10-CN-005 / NCL-10-CN-006)
+      ================================================= */}
+
+            <Route
+                path="offline-events"
+                element={
+                    <RoleRoute allowedRoles={AUTHENTICATED_ROLE_CODES}>
+                        <OfflineEventPage />
+                    </RoleRoute>
+                }
+            />
+
 
             {/* =================================================
           ADMIN

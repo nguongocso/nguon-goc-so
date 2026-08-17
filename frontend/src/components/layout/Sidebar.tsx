@@ -33,6 +33,7 @@ import {
   Settings,
   ShoppingCart,
   Key,
+  WifiOff,
 } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import {
@@ -219,6 +220,12 @@ const MENU_GROUPS: MenuGroup[] = [
         label: "Nhật ký lỗi sự kiện",
         href: "/failed-event-logs",
         allowedRoles: ["VT-02", "VT-03"] as const,
+      },
+      {
+        icon: <WifiOff className="h-5 w-5" />,
+        label: "Sự kiện chờ đồng bộ",
+        href: "/offline-events",
+        allowedRoles: AUTHENTICATED_ROLE_CODES,
       },
       {
         icon: <AlertTriangle className="h-5 w-5" />,
