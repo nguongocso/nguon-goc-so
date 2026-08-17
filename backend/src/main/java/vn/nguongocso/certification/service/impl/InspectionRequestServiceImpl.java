@@ -8,16 +8,21 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.CreateInspectionRequest;
 import vn.nguongocso.certification.dto.response.InspectionCriterionResponse;
+import vn.nguongocso.certification.dto.response.InspectionCriterionResultResponse;
+import vn.nguongocso.certification.dto.response.InspectionRequestDetailCriterionResponse;
+import vn.nguongocso.certification.dto.response.InspectionRequestDetailResponse;
 import vn.nguongocso.certification.dto.response.InspectionRequestListResponse;
 import vn.nguongocso.certification.dto.response.InspectionRequestResponse;
 import vn.nguongocso.certification.dto.response.ProductionLotTestCriteriaResponse;
 import vn.nguongocso.certification.entity.InspectionCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterionDefinition;
+import vn.nguongocso.certification.entity.InspectionCriterionResult;
 import vn.nguongocso.certification.entity.InspectionRequest;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.certification.entity.Standard;
 import vn.nguongocso.certification.enums.InspectionRequestStatus;
 import vn.nguongocso.certification.repository.InspectionCriterionDefinitionRepository;
+import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
 import vn.nguongocso.certification.service.InspectionRequestService;
@@ -32,6 +37,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -74,6 +80,9 @@ public class InspectionRequestServiceImpl
     private static final String MSG_INVALID_SAMPLE_DATE =
             "Ngày gửi mẫu không được để trống.";
 
+    private static final String MSG_REQUEST_NOT_FOUND =
+            "Yêu cầu kiểm nghiệm không tồn tại.";
+
     private final ProductionLotRepository productionLotRepository;
 
     private final InspectionRequestRepository inspectionRequestRepository;
@@ -85,6 +94,9 @@ public class InspectionRequestServiceImpl
 
     private final ProductionLotCertificationRepository
             productionLotCertificationRepository;
+
+    private final InspectionCriterionResultRepository
+            inspectionCriterionResultRepository;
 
     @Override
     public InspectionRequestResponse createInspectionRequest(
@@ -515,6 +527,131 @@ public class InspectionRequestServiceImpl
                                         : request.getCriteria()
                                         .size())
                         .build());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public InspectionRequestDetailResponse getDetail(
+            UUID requestId,
+            CustomUserDetails currentUser) {
+
+        InspectionRequest request = inspectionRequestRepository
+                .findDetailById(requestId)
+                .orElseThrow(() ->
+                        new BusinessException(
+                                MSG_REQUEST_NOT_FOUND));
+
+        /*
+         * Org boundary: yêu cầu kiểm nghiệm phải thuộc tổ chức
+         * hiện tại của người dùng.
+         */
+        if (request.getProductionLot() == null
+                || request.getProductionLot().getOrganization() == null
+                || !request.getProductionLot().getOrganization()
+                        .getOrganizationId()
+                        .equals(currentUser.getOrganizationId())) {
+
+            throw new BusinessException(
+                    MSG_REQUEST_NOT_FOUND);
+        }
+
+        Map<UUID, InspectionCriterionResult> resultByCriterionId =
+                inspectionCriterionResultRepository
+                        .findByInspectionCriterion_InspectionRequest_Id(
+                                requestId)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                r -> r.getInspectionCriterion().getId(),
+                                r -> r));
+
+        List<InspectionRequestDetailCriterionResponse> criteria =
+                request.getCriteria()
+                        .stream()
+                        .map(c ->
+                                InspectionRequestDetailCriterionResponse
+                                        .builder()
+                                        .criterionId(
+                                                c.getId())
+                                        .code(
+                                                c.getCriterionCode())
+                                        .name(
+                                                c.getCriterionName())
+                                        .standardName(
+                                                c.getStandard() != null
+                                                        ? c.getStandard()
+                                                        .getName()
+                                                        : null)
+                                        .result(
+                                                toResultResponse(
+                                                        resultByCriterionId
+                                                                .get(
+                                                                        c.getId())))
+                                        .build())
+                        .toList();
+
+        return InspectionRequestDetailResponse.builder()
+                .testRequestId(
+                        request.getId())
+                .lotId(
+                        request.getProductionLot()
+                                .getId())
+                .lotCode(
+                        request.getProductionLot()
+                                .getName())
+                .status(
+                        mapStatus(
+                                request.getStatus()))
+                .testingUnit(
+                        request.getInspectionUnit())
+                .sampleSentDate(
+                        request.getSampleSentDate())
+                .criteria(
+                        criteria)
+                .build();
+    }
+
+    /**
+     * Chuyển kết quả kiểm nghiệm thành DTO (null nếu chưa có kết quả).
+     */
+    private InspectionCriterionResultResponse toResultResponse(
+            InspectionCriterionResult result) {
+
+        if (result == null) {
+            return null;
+        }
+
+        return InspectionCriterionResultResponse.builder()
+                .resultId(
+                        result.getId().toString())
+                .criterionId(
+                        result.getInspectionCriterion()
+                                .getId().toString())
+                .criterionCode(
+                        result.getInspectionCriterion()
+                                .getCriterionCode())
+                .criterionName(
+                        result.getInspectionCriterion()
+                                .getCriterionName())
+                .resultDate(
+                        result.getResultDate())
+                .expiryDate(
+                        result.getExpiryDate())
+                .passed(
+                        result.getPassed())
+                .filePath(
+                        result.getFilePath())
+                .createdByName(
+                        result.getCreatedBy() != null
+                                && result.getCreatedBy()
+                                .getFullName() != null
+                                ? result.getCreatedBy()
+                                .getFullName()
+                                : null)
+                .createdAt(
+                        result.getCreatedAt())
+                .updatedAt(
+                        result.getUpdatedAt())
+                .build();
     }
 
     /**

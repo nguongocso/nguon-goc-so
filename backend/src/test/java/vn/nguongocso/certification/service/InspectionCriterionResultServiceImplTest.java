@@ -175,10 +175,14 @@ class InspectionCriterionResultServiceImplTest {
         when(resultRepository.save(any(InspectionCriterionResult.class)))
                 .thenReturn(result);
 
-        when(resultRepository.areAllCriteriaPassedAndValid(
-                inspectionRequestId,
-                LocalDate.now()))
-                .thenReturn(true);
+        when(resultRepository.countTotalCriteria(
+                inspectionRequestId))
+                .thenReturn(1);
+
+        when(resultRepository
+                .findByInspectionCriterion_InspectionRequest_Id(
+                        inspectionRequestId))
+                .thenReturn(List.of(result));
 
         // Act
         InspectionCriterionResultResponse response =
@@ -450,10 +454,15 @@ class InspectionCriterionResultServiceImplTest {
         when(resultRepository.findById(resultId))
                 .thenReturn(Optional.of(result));
 
-        when(resultRepository.areAllCriteriaPassedAndValid(
-                inspectionRequestId,
-                LocalDate.now()))
-                .thenReturn(false);
+        // Sau khi xóa: vẫn còn 1 chỉ tiêu nhưng không còn kết quả nào
+        when(resultRepository.countTotalCriteria(
+                inspectionRequestId))
+                .thenReturn(1);
+
+        when(resultRepository
+                .findByInspectionCriterion_InspectionRequest_Id(
+                        inspectionRequestId))
+                .thenReturn(List.of());
 
         // Act
         service.deleteResult(resultId.toString());
@@ -461,5 +470,125 @@ class InspectionCriterionResultServiceImplTest {
         // Assert
         verify(resultRepository)
                 .delete(result);
+
+        // Chưa đủ kết quả cho tất cả chỉ tiêu → trạng thái vẫn PENDING_RESULT
+        assertThat(inspectionRequest.getStatus())
+                .isEqualTo(InspectionRequestStatus.PENDING_RESULT);
+
+        verify(requestRepository, org.mockito.Mockito.never())
+                .save(inspectionRequest);
+    }
+
+    // ============================================================
+    // TC-09
+    // ============================================================
+
+    @Test
+    @DisplayName("TC-09: Chỉ tiêu không đạt → Yêu cầu chuyển FAILED")
+    void testRecordFailedCriteriaSetsRequestFailed() {
+
+        // Arrange
+        LocalDate resultDate = LocalDate.now().minusDays(1);
+        LocalDate expiryDate = LocalDate.now().plusMonths(6);
+
+        InspectionCriterionResultRequest request =
+                InspectionCriterionResultRequest.builder()
+                        .criterionId(criterionId.toString())
+                        .resultDate(resultDate)
+                        .expiryDate(expiryDate)
+                        .passed(false)
+                        .build();
+
+        result.setPassed(false);
+        result.setExpiryDate(expiryDate);
+
+        when(criterionRepository.findById(criterionId))
+                .thenReturn(Optional.of(criterion));
+
+        when(resultRepository.findByInspectionCriterion_Id(criterionId))
+                .thenReturn(Optional.empty());
+
+        when(resultRepository.save(any(InspectionCriterionResult.class)))
+                .thenReturn(result);
+
+        when(resultRepository.countTotalCriteria(
+                inspectionRequestId))
+                .thenReturn(1);
+
+        when(resultRepository
+                .findByInspectionCriterion_InspectionRequest_Id(
+                        inspectionRequestId))
+                .thenReturn(List.of(result));
+
+        // Act
+        service.recordOrUpdateResult(
+                criterionId.toString(),
+                request,
+                currentUser);
+
+        // Assert
+        assertThat(inspectionRequest.getStatus())
+                .isEqualTo(InspectionRequestStatus.FAILED);
+
+        verify(requestRepository)
+                .save(inspectionRequest);
+    }
+
+    // ============================================================
+    // TC-10
+    // ============================================================
+
+    @Test
+    @DisplayName("TC-10: Ghi lại kết quả khi yêu cầu FAILED được phép và chuyển PASSED nếu đạt hết")
+    void testRecordResultAllowedWhenRequestFailed() {
+
+        // Arrange
+        inspectionRequest.setStatus(
+                InspectionRequestStatus.FAILED);
+
+        LocalDate resultDate = LocalDate.now().minusDays(1);
+        LocalDate expiryDate = LocalDate.now().plusMonths(6);
+
+        InspectionCriterionResultRequest request =
+                InspectionCriterionResultRequest.builder()
+                        .criterionId(criterionId.toString())
+                        .resultDate(resultDate)
+                        .expiryDate(expiryDate)
+                        .passed(true)
+                        .build();
+
+        result.setPassed(true);
+        result.setExpiryDate(expiryDate);
+
+        when(criterionRepository.findById(criterionId))
+                .thenReturn(Optional.of(criterion));
+
+        when(resultRepository.findByInspectionCriterion_Id(criterionId))
+                .thenReturn(Optional.empty());
+
+        when(resultRepository.save(any(InspectionCriterionResult.class)))
+                .thenReturn(result);
+
+        when(resultRepository.countTotalCriteria(
+                inspectionRequestId))
+                .thenReturn(1);
+
+        when(resultRepository
+                .findByInspectionCriterion_InspectionRequest_Id(
+                        inspectionRequestId))
+                .thenReturn(List.of(result));
+
+        // Act
+        service.recordOrUpdateResult(
+                criterionId.toString(),
+                request,
+                currentUser);
+
+        // Assert
+        assertThat(inspectionRequest.getStatus())
+                .isEqualTo(InspectionRequestStatus.PASSED);
+
+        verify(requestRepository)
+                .save(inspectionRequest);
     }
 }

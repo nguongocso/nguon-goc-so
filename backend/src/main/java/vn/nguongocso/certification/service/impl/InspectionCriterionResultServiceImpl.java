@@ -49,11 +49,13 @@ public class InspectionCriterionResultServiceImpl
                 .orElseThrow(() ->
                     new IllegalArgumentException("Chỉ tiêu kiểm nghiệm không tồn tại"));
 
-        // Kiểm tra yêu cầu kiểm nghiệm ở trạng thái PENDING_RESULT
+        // Kiểm tra yêu cầu kiểm nghiệm ở trạng thái chờ kết quả hoặc không đạt
         InspectionRequest inspectionRequest = criterion.getInspectionRequest();
-        if (!inspectionRequest.getStatus().equals(InspectionRequestStatus.PENDING_RESULT)) {
+        InspectionRequestStatus requestStatus = inspectionRequest.getStatus();
+        if (requestStatus != InspectionRequestStatus.PENDING_RESULT
+                && requestStatus != InspectionRequestStatus.FAILED) {
             throw new IllegalStateException(
-                    "Yêu cầu kiểm nghiệm phải ở trạng thái chờ kết quả");
+                    "Yêu cầu kiểm nghiệm phải ở trạng thái chờ kết quả hoặc không đạt");
         }
 
         // Validate ngày cấp và ngày hết hiệu lực
@@ -215,17 +217,36 @@ public class InspectionCriterionResultServiceImpl
 
     /**
      * Kiểm tra và cập nhật trạng thái yêu cầu kiểm nghiệm.
-     * Nếu tất cả chỉ tiêu đều đạt, cập nhật trạng thái thành PASSED.
+     *
+     * - Chưa đủ kết quả cho tất cả chỉ tiêu: PENDING_RESULT.
+     * - Tất cả chỉ tiêu đạt và còn hiệu lực: PASSED.
+     * - Đã có đủ kết quả nhưng có chỉ tiêu không đạt / hết hạn: FAILED.
      */
     private void checkAndUpdateRequestStatus(InspectionRequest inspectionRequest) {
 
-        boolean allPassed = resultRepository
-                .areAllCriteriaPassedAndValid(
-                        inspectionRequest.getId(),
-                        LocalDate.now());
+        UUID requestId = inspectionRequest.getId();
+        LocalDate today = LocalDate.now();
 
-        if (allPassed && inspectionRequest.getCriteria().size() > 0) {
-            inspectionRequest.setStatus(InspectionRequestStatus.PASSED);
+        int totalCriteria = resultRepository.countTotalCriteria(requestId);
+        List<InspectionCriterionResult> results = resultRepository
+                .findByInspectionCriterion_InspectionRequest_Id(requestId);
+
+        InspectionRequestStatus newStatus;
+        if (totalCriteria == 0) {
+            newStatus = InspectionRequestStatus.PENDING_RESULT;
+        } else if (results.size() < totalCriteria) {
+            newStatus = InspectionRequestStatus.PENDING_RESULT;
+        } else {
+            boolean allPassedAndValid = results.stream()
+                    .allMatch(result -> result.getPassed()
+                            && !result.getExpiryDate().isBefore(today));
+            newStatus = allPassedAndValid
+                    ? InspectionRequestStatus.PASSED
+                    : InspectionRequestStatus.FAILED;
+        }
+
+        if (newStatus != inspectionRequest.getStatus()) {
+            inspectionRequest.setStatus(newStatus);
             requestRepository.save(inspectionRequest);
         }
     }

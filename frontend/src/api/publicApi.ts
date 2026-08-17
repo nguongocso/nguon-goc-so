@@ -2,6 +2,11 @@ import apiClient from './axiosConfig';
 
 import type { PublicTraceResponse } from '@/types/publicTrace';
 import type { PublicLotCertificationsResponse } from '@/types/publicCertification';
+import type { PublicInspectionResponse } from '@/types/publicInspection';
+import {
+  USE_MOCK_INSPECTION_RESULT,
+  mockFetchPublicInspections,
+} from '@/services/inspectionResultMock';
 
 export const getPublicTrace = async (
   codeValue: string,
@@ -52,6 +57,27 @@ export const getPublicCertifications = async (
     data: PublicLotCertificationsResponse;
   }>(
     `/public/trace/${codeValue}/certifications`
+  );
+
+  return response.data.data;
+};
+
+/**
+ * Lấy kết quả kiểm nghiệm công khai của lô (CV-04).
+ * GET /api/v1/public/trace/{codeValue}/inspections
+ *
+ * Dùng mock khi backend chưa bổ sung endpoint (xem VITE_USE_MOCK_INSPECTION_RESULT).
+ */
+export const getPublicInspections = async (
+  codeValue: string
+): Promise<PublicInspectionResponse> => {
+  if (USE_MOCK_INSPECTION_RESULT) {
+    return mockFetchPublicInspections(codeValue);
+  }
+  const response = await apiClient.get<{
+    data: PublicInspectionResponse;
+  }>(
+    `/public/trace/${codeValue}/inspections`
   );
 
   return response.data.data;

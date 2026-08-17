@@ -106,7 +106,8 @@ export interface InspectionRequestCriterionResponse {
 
 /**
  * Trạng thái yêu cầu trong response từ backend.
- * Backend map PENDING_RESULT -> PENDING.
+ * Backend map PENDING_RESULT -> PENDING; khi tất cả chỉ tiêu đạt -> PASSED,
+ * có chỉ tiêu không đạt -> FAILED.
  */
 export type InspectionRequestStatusDisplay =
   | 'PENDING'
@@ -116,7 +117,7 @@ export type InspectionRequestStatusDisplay =
 
 /**
  * Trạng thái yêu cầu dùng để query backend.
- * Backend nhận enum PENDING_RESULT, không nhận PENDING.
+ * Backend enum: PENDING_RESULT / PASSED / FAILED / CANCELLED (không có RESULTED).
  */
 export type InspectionRequestStatusQuery =
   | 'PENDING_RESULT'
@@ -135,4 +136,84 @@ export interface InspectionRequestListItem {
   testingUnit: string;
   sampleSentDate: string;
   criteriaCount: number;
+}
+
+/**
+ * Chi tiết yêu cầu kiểm nghiệm để nhập kết quả.
+ * GET /api/v1/inspection-requests/{requestId}
+ */
+export interface InspectionRequestDetailResponse {
+  testRequestId: string;
+  lotId: string;
+  lotCode: string;
+  status: InspectionRequestStatusDisplay;
+  testingUnit: string;
+  sampleSentDate: string;
+  criteria: InspectionRequestDetailCriterion[];
+}
+
+/**
+ * Một chỉ tiêu kiểm nghiệm trong chi tiết yêu cầu.
+ * criterionId là UUID snapshot của chỉ tiêu thuộc yêu cầu
+ * (inspection_criteria.id), dùng để gọi
+ * POST /api/v1/inspection-criteria/{criterionId}/results.
+ */
+export interface InspectionRequestDetailCriterion {
+  criterionId: string;
+  code: string;
+  name: string;
+  standardName: string | null;
+  /** Kết quả đã ghi cho chỉ tiêu (null nếu chưa có). */
+  result: InspectionCriterionResult | null;
+}
+
+// ============================================================
+// Kết quả kiểm nghiệm theo chỉ tiêu (InspectionCriterionResultController)
+// ============================================================
+
+/**
+ * Kết quả kiểm nghiệm của một chỉ tiêu.
+ * GET /api/v1/inspection-requests/{requestId}/results
+ * POST /api/v1/inspection-criteria/{criterionId}/results
+ */
+export interface InspectionCriterionResult {
+  resultId: string;
+  /** UUID snapshot của chỉ tiêu thuộc yêu cầu (inspection_criteria.id). */
+  criterionId: string;
+  criterionCode: string;
+  criterionName: string;
+  resultDate: string; // YYYY-MM-DD
+  expiryDate: string; // YYYY-MM-DD
+  /** true = đạt, false = không đạt. */
+  passed: boolean;
+  filePath: string | null;
+  createdByName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Payload ghi nhận kết quả kiểm nghiệm cho một chỉ tiêu.
+ * POST /api/v1/inspection-criteria/{criterionId}/results
+ */
+export interface RecordCriterionResultPayload {
+  criterionId: string;
+  resultDate: string; // YYYY-MM-DD
+  expiryDate: string; // YYYY-MM-DD
+  passed: boolean;
+  filePath?: string | null;
+}
+
+/**
+ * Kết quả kiểm tra điều kiện kích hoạt tem của lô.
+ * POST /api/v1/production-lots/{lotId}/can-activate-seal
+ */
+export interface CanActivateSealCheck {
+  productionLotId: string;
+  canActivate: boolean;
+  reason: string | null;
+  earliestExpiryDate: string | null; // YYYY-MM-DD
+  totalCriteria: number;
+  passedCriteria: number;
+  failedOrExpiredCriteria: number;
 }
