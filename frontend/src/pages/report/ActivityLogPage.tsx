@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { HelpButton } from "@/components/help/HelpButton";
 import { toast } from "sonner";
 import type { PageResponse } from "@/types/common";
 
@@ -109,16 +110,19 @@ export default function ActivityLogPage() {
             Theo dõi các thao tác đã thực hiện trong tổ chức
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => fetchLogs({ page, size })}
-          disabled={loading}
-        >
-          <RefreshCw
-            className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`}
-          />
-          Làm mới
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="report-activity-log" />
+          <Button
+            variant="outline"
+            onClick={() => fetchLogs({ page, size })}
+            disabled={loading}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`}
+            />
+            Làm mới
+          </Button>
+        </div>
       </div>
 
       {/* Bộ lọc */}

@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { RefreshCw, Calendar } from 'lucide-react';
+import { HelpButton } from '@/components/help/HelpButton';
 
 type GroupByType = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR';
 
@@ -157,10 +158,13 @@ export default function LookupStatisticsPage() {
             Tổng hợp số lượt quét mã theo lô và thời gian
           </p>
         </div>
-        <Button variant="outline" onClick={fetchStats} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-          Làm mới
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="report-lookup-statistics" />
+          <Button variant="outline" onClick={fetchStats} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Làm mới
+          </Button>
+        </div>
       </div>
 
       {/* Bộ lọc */}

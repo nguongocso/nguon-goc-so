@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { LockTraceCodeDialog } from './components/LockTraceCodeDialog';
+import { HelpButton } from '@/components/help/HelpButton';
 
 const EMPTY_PAGE: PageResponse<SuspectTraceCodeResponse> = {
   items: [],
@@ -163,10 +164,13 @@ export default function SuspectTraceCodeListPage() {
             </p>
           </div>
         </div>
-        <Button variant="outline" onClick={fetchData} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Làm mới
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="admin-suspect-trace-codes" />
+          <Button variant="outline" onClick={fetchData} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Làm mới
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">

@@ -20,6 +20,7 @@ import { FarmLogList } from "@/components/farm-log/FarmLogList";
 import { usePermission } from "@/hooks/usePermission";
 import { ROLE_ACCESS } from "@/config/roleAccess";
 import { HarvestForm } from "@/components/trace-event/HarvestForm";
+import { HelpButton } from "@/components/help/HelpButton";
 import type { ProductionLot } from "@/types/productionLot";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -595,6 +596,7 @@ export const ProductionLotDetailPage = () => {
               Ghi đóng gói
             </Button>
           )}
+          <HelpButton screenKey="production-lot-detail" />
         </div>
       </div>
 

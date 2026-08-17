@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle, LoaderCircle } from 'lucide-react';
+import { HelpButton } from '@/components/help/HelpButton';
 import { getProductionLots } from '@/api/productionLotApi';
 import { createRecallRequest } from '@/api/recallApi';
 import type { ProductionLot } from '@/types/productionLot';
@@ -84,19 +85,22 @@ export const CreateRecallRequestPage = () => {
     <div className="container mx-auto max-w-2xl py-6 space-y-6">
       <Card className="border-red-100">
         <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-full bg-red-100 text-red-700">
-              <AlertTriangle className="size-6" />
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex size-11 items-center justify-center rounded-full bg-red-100 text-red-700">
+                <AlertTriangle className="size-6" />
+              </div>
+              <div>
+                <CardTitle className="text-xl font-bold">
+                  Tạo yêu cầu thu hồi lô sản xuất
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Gửi yêu cầu để quản lý hợp tác xã xét duyệt. Yêu cầu sẽ được duyệt
+                  bởi người khác, không phải chính bạn.
+                </p>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-xl font-bold">
-                Tạo yêu cầu thu hồi lô sản xuất
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Gửi yêu cầu để quản lý hợp tác xã xét duyệt. Yêu cầu sẽ được duyệt
-                bởi người khác, không phải chính bạn.
-              </p>
-            </div>
+            <HelpButton screenKey="recall-request-create" />
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
