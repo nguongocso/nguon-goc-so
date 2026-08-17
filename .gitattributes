@@ -1,0 +1,6 @@
+# Shell scripts phải luôn ở LF (kể cả trên Windows với core.autocrlf=true)
+# vì nginx docker-entrypoint.d chạy trực tiếp các script này.
+*.sh text eol=lf
+
+# Template nginx dùng envsubst — giữ LF tránh lỗi config.
+frontend/nginx.conf.template text eol=lf

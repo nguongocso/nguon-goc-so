@@ -69,6 +69,8 @@ services:
       - backend
 
 volumes:
+  # NOTE: volume is pinned via `name:` to nguongocso_mysql_data so that
+  # existing local data is reused instead of creating a fresh database.
   mysql_data:
     name: nguongocso_mysql_data
   backend_uploads:
