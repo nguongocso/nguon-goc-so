@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { KeyRound, Loader2, Calendar, ShieldAlert } from 'lucide-react';
+import { KeyRound, Loader2, ShieldAlert } from 'lucide-react';
 import { createApiKey } from '@/api/apiKeyApi';
 import type { PartnerApiKeyResponse } from '@/types/apiKey';
 

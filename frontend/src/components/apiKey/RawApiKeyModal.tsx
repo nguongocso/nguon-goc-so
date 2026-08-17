@@ -72,7 +72,7 @@ export const RawApiKeyModal: React.FC<RawApiKeyModalProps> = ({
               <Button
                 type="button"
                 size="sm"
-                variant={copied ? 'success' : 'secondary'}
+                variant="secondary"
                 className="shrink-0 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white border-none"
                 onClick={handleCopy}
               >

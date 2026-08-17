@@ -5,11 +5,8 @@ import {
   PlusCircle,
   RefreshCw,
   Search,
-  Activity,
   ShieldCheck,
   Ban,
-  Clock,
-  ExternalLink,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -30,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { getApiKeys } from '@/api/apiKeyApi';
 import type { PartnerApiKeyResponse, PartnerApiKeyStatus } from '@/types/apiKey';
 import { ApiKeyStatusBadge } from '@/components/apiKey/ApiKeyStatusBadge';
@@ -189,7 +186,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
 
               {/* Lọc theo trạng thái */}
               <div className="w-full sm:w-48">
-                <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(0); }}>
+                <Select value={statusFilter} onValueChange={(val) => { if (val) setStatusFilter(val); setPage(0); }}>
                   <SelectTrigger>
                     <SelectValue placeholder="Lọc trạng thái" />
                   </SelectTrigger>
