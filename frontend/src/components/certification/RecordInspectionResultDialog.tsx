@@ -19,8 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getInspectionRequestDetail, recordOrUpdateCriterionResult } from "@/api/certificationApi";
-import { mockUploadInspectionResultFile } from "@/services/inspectionUploadMock";
+import { getInspectionRequestDetail, recordInspectionRequestResults, uploadInspectionResultFile } from "@/api/certificationApi";
 import type { InspectionRequestDetailResponse } from "@/types/certification";
 
 const toISODate = (date: Date) => {
@@ -162,11 +161,11 @@ export function RecordInspectionResultDialog({
       )
     );
     try {
-      const url = await mockUploadInspectionResultFile(file);
+      const url = await uploadInspectionResultFile(criterionId, file);
       setCriteriaInputs((prev) =>
         prev.map((input) =>
           input.criterionId === criterionId
-            ? { ...input, filePath: url, uploading: false }
+            ? { ...input, filePath: url.filePath, uploading: false }
             : input
         )
       );
@@ -186,31 +185,28 @@ export function RecordInspectionResultDialog({
     if (!canSubmit || !detail) return;
     setSubmitting(true);
     try {
-      for (const input of criteriaInputs) {
-        try {
-          await recordOrUpdateCriterionResult(input.criterionId, {
+      await recordInspectionRequestResults(
+        detail.testRequestId,
+        {
+          results: criteriaInputs.map((input) => ({
             criterionId: input.criterionId,
             resultDate: input.resultDate,
             expiryDate: input.expiryDate,
             passed: input.passed as boolean,
             filePath: input.filePath === "" ? null : input.filePath,
-          });
-        } catch (error) {
-          const message = axios.isAxiosError(error)
-            ? error.response?.data?.message || "Lỗi không xác định"
-            : "Lỗi không xác định";
-          const criterion = detail.criteria.find(
-            (item) => item.criterionId === input.criterionId
-          );
-          toast.error(
-            `Không thể ghi kết quả cho chỉ tiêu "${criterion?.name ?? ""}": ${message}`
-          );
-          return;
+          })),
         }
-      }
+      );
       toast.success("Ghi nhận kết quả kiểm nghiệm thành công");
       onRecorded();
       onOpenChange(false);
+    } catch (error) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || "Lỗi không xác định"
+        : "Lỗi không xác định";
+      toast.error(
+        `Không thể ghi nhận kết quả kiểm nghiệm: ${message}`
+      );
     } finally {
       setSubmitting(false);
     }
@@ -392,9 +388,6 @@ export function RecordInspectionResultDialog({
                         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <FileUp className="h-3.5 w-3.5 text-emerald-600" />
                           Đã đính kèm: {input.selectedFileName || input.filePath}
-                          <span className="rounded bg-amber-50 px-1.5 py-0.5 text-amber-700">
-                            URL giả lập (mock) — chờ backend bổ sung upload
-                          </span>
                         </p>
                       )}
                     </div>

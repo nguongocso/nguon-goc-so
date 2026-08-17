@@ -1,5 +1,5 @@
 import apiClient from './axiosConfig';
-import type { ProductionLotCertification, AttachCertificationRequest, Certification, CreateCertificationRequest, CertificationResponse, LotTestCriteriaResult, CreateInspectionRequestPayload, InspectionRequestCreatedResponse, InspectionRequestListItem, InspectionRequestStatusQuery, InspectionRequestDetailResponse, InspectionCriterionResult, RecordCriterionResultPayload, CanActivateSealCheck } from '@/types/certification';
+import type { ProductionLotCertification, AttachCertificationRequest, Certification, CreateCertificationRequest, CertificationResponse, LotTestCriteriaResult, CreateInspectionRequestPayload, InspectionRequestCreatedResponse, InspectionRequestListItem, InspectionRequestStatusQuery, InspectionRequestDetailResponse, InspectionCriterionResult, RecordCriterionResultPayload, RecordInspectionResultsPayload, InspectionResultFileUploadResponse, CanActivateSealCheck } from '@/types/certification';
 import type { PageResponse } from '@/types/common';
 
 /**
@@ -157,6 +157,25 @@ export const getInspectionRequestResults = async (
 };
 
 /**
+ * Ghi nhận toàn bộ kết quả kiểm nghiệm của một yêu cầu trong một lần gọi.
+ * PUT /api/v1/inspection-requests/{requestId}/results
+ *
+ * Payload phải chứa kết quả cho TẤT CẢ chỉ tiêu của yêu cầu.
+ * Backend validate toàn bộ rồi lưu trong một giao dịch (all-or-nothing):
+ * nếu có chỉ tiêu không hợp lệ, không chỉ tiêu nào được lưu.
+ */
+export const recordInspectionRequestResults = async (
+  requestId: string,
+  payload: RecordInspectionResultsPayload
+): Promise<InspectionCriterionResult[]> => {
+  const response = await apiClient.put<{ data: InspectionCriterionResult[] }>(
+    `/inspection-requests/${requestId}/results`,
+    payload
+  );
+  return response.data.data;
+};
+
+/**
  * Ghi nhận / cập nhật kết quả kiểm nghiệm cho một chỉ tiêu.
  * POST /api/v1/inspection-criteria/{criterionId}/results
  *
@@ -171,6 +190,24 @@ export const recordOrUpdateCriterionResult = async (
     `/inspection-criteria/${criterionId}/results`,
     payload
   );
+  return response.data.data;
+};
+
+/**
+ * Tải lên phiếu kết quả kiểm nghiệm cho một chỉ tiêu.
+ * POST /api/v1/inspection-criteria/{criterionId}/result-file
+ *
+ * Trả về filePath để gửi kèm khi ghi nhận kết quả.
+ */
+export const uploadInspectionResultFile = async (
+  criterionId: string,
+  file: File
+): Promise<InspectionResultFileUploadResponse> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await apiClient.post<{
+    data: InspectionResultFileUploadResponse;
+  }>(`/inspection-criteria/${criterionId}/result-file`, formData);
   return response.data.data;
 };
 

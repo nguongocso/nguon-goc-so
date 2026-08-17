@@ -33,6 +33,7 @@ import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -97,6 +98,8 @@ public class InspectionRequestServiceImpl
 
     private final InspectionCriterionResultRepository
             inspectionCriterionResultRepository;
+
+    private final Clock clock;
 
     @Override
     public InspectionRequestResponse createInspectionRequest(
@@ -181,7 +184,7 @@ public class InspectionRequestServiceImpl
         }
 
         if (request.getSampleSentDate()
-                .isAfter(LocalDate.now())) {
+                .isAfter(LocalDate.now(clock))) {
 
             throw new BusinessException(
                     MSG_SAMPLE_DATE_FUTURE);

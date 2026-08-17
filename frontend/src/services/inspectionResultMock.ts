@@ -5,18 +5,21 @@ import type { PublicInspectionResponse } from "@/types/publicInspection";
  *
  *   - GET /api/v1/public/trace/{codeValue}/inspections
  *
- * Backend chưa có endpoint này nên frontend tạm dùng mock.
- * Khi backend bổ sung endpoint thật, chỉ cần tắt cờ
- * VITE_USE_MOCK_INSPECTION_RESULT=false là code gọi API thật
- * (xem src/api/publicApi.ts).
+ * Mock chỉ bật khi được yêu cầu rõ ràng bằng:
+ *
+ *   VITE_USE_MOCK_INSPECTION_RESULT=true
+ *
+ * Mặc định (không khai báo biến) là OFF: frontend gọi API thật
+ * (xem src/api/publicApi.ts). Khi backend chưa trả dữ liệu thì UI
+ * hiển thị trạng thái "Chưa có kết quả kiểm nghiệm" — không fake dữ liệu.
  *
  * Các endpoint ghi nhận kết quả kiểm nghiệm đã có trên backend
  * (POST /inspection-criteria/{criterionId}/results,
- * GET /inspection-requests/{requestId}...) nên không còn mock ở đây.
+ * PUT /inspection-requests/{requestId}/results...) nên không còn mock ở đây.
  */
 
 export const USE_MOCK_INSPECTION_RESULT =
-  import.meta.env.VITE_USE_MOCK_INSPECTION_RESULT !== "false";
+  import.meta.env.VITE_USE_MOCK_INSPECTION_RESULT === "true";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

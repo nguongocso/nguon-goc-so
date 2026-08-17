@@ -205,6 +205,25 @@ export interface RecordCriterionResultPayload {
 }
 
 /**
+ * Payload ghi nhận toàn bộ kết quả kiểm nghiệm của một yêu cầu.
+ * PUT /api/v1/inspection-requests/{requestId}/results
+ *
+ * Phải chứa kết quả cho tất cả chỉ tiêu của yêu cầu; backend lưu
+ * trong một giao dịch (all-or-nothing).
+ */
+export interface RecordInspectionResultsPayload {
+  results: RecordCriterionResultPayload[];
+}
+
+/**
+ * Phản hồi tải lên phiếu kết quả kiểm nghiệm.
+ * POST /api/v1/inspection-criteria/{criterionId}/result-file
+ */
+export interface InspectionResultFileUploadResponse {
+  filePath: string;
+}
+
+/**
  * Kết quả kiểm tra điều kiện kích hoạt tem của lô.
  * POST /api/v1/production-lots/{lotId}/can-activate-seal
  */

@@ -8,7 +8,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -68,6 +70,9 @@ class InspectionRequestServiceImplTest {
     @Mock
     private InspectionCriterionResultRepository inspectionCriterionResultRepository;
 
+    @Mock
+    private Clock clock;
+
     @InjectMocks
     private InspectionRequestServiceImpl inspectionRequestService;
 
@@ -112,6 +117,15 @@ class InspectionRequestServiceImplTest {
 
         lenient().when(currentUser.getUser())
                 .thenReturn(user);
+
+        /*
+         * Business clock: dùng zone hệ thống để LocalDate.now(clock)
+         * khớp với LocalDate.now() dùng trong fixture.
+         */
+        lenient().when(clock.instant())
+                .thenReturn(Clock.systemDefaultZone().instant());
+        lenient().when(clock.getZone())
+                .thenReturn(ZoneId.systemDefault());
 
         /*
          * Production lot test.
