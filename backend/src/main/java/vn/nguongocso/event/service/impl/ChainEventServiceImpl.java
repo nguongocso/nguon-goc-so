@@ -150,7 +150,8 @@ public class ChainEventServiceImpl implements ChainEventService {
     @Override
     @Transactional
     @Auditable(action = "RECORD_PREPROCESSING_EVENT", entityType = "CHAIN_EVENT", description = "'Ghi nhận sự kiện sơ chế cho lô sản xuất ID: ' + #request.productionLotId + ', Khối lượng vào: ' + #request.inputQuantity + ' kg, Khối lượng ra: ' + #request.outputQuantity + ' kg'")
-    public ChainEventResponse recordPreprocessingEvent(RecordPreprocessingEventRequest request, CustomUserDetails currentUser) {
+    public ChainEventResponse recordPreprocessingEvent(RecordPreprocessingEventRequest request,
+            CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
 
         ProductionLot lot = productionLotRepository.findById(request.getProductionLotId())
@@ -240,7 +241,7 @@ public class ChainEventServiceImpl implements ChainEventService {
     @Transactional
     @Auditable(action = "CORRECT_PREPROCESSING_EVENT", entityType = "CHAIN_EVENT", description = "'Đính chính thông tin sơ chế cho sự kiện gốc ID: ' + #originalEventId")
     public ChainEventResponse correctPreprocessingEvent(UUID originalEventId, CorrectPreprocessingEventRequest request,
-                                                        CustomUserDetails currentUser) {
+            CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
 
         ChainEvent originalEvent = chainEventRepository.findById(originalEventId)
@@ -265,6 +266,7 @@ public class ChainEventServiceImpl implements ChainEventService {
         if (request.getOutputQuantity() > request.getInputQuantity()) {
             throw new BusinessException("Khối lượng sau sơ chế không được lớn hơn khối lượng vào.");
         }
+
         if (request.getPreprocessingDate().isAfter(LocalDate.now(clock))) {
             throw new BusinessException("Ngày sơ chế không được là ngày ở tương lai.");
         }
@@ -340,7 +342,8 @@ public class ChainEventServiceImpl implements ChainEventService {
 
         try {
             validateOrganization(lot, currentUser);
-            if (lot.getStatus() != ProductionLotStatus.HARVESTED && lot.getStatus() != ProductionLotStatus.PREPROCESSED) {
+            if (lot.getStatus() != ProductionLotStatus.HARVESTED
+                    && lot.getStatus() != ProductionLotStatus.PREPROCESSED) {
                 throw new BusinessException("Chỉ được ghi nhận sự kiện đóng gói cho lô đã thu hoạch hoặc đã sơ chế.");
             }
             if (request.getPackagingDate().isAfter(LocalDate.now())) {
@@ -402,7 +405,7 @@ public class ChainEventServiceImpl implements ChainEventService {
     @Transactional
     @Auditable(action = "CORRECT_PACKAGING_EVENT", entityType = "CHAIN_EVENT", description = "'Đính chính thông tin đóng gói cho sự kiện gốc ID: ' + #originalEventId")
     public ChainEventResponse correctPackagingEvent(UUID originalEventId, CorrectPackagingEventRequest request,
-                                                    CustomUserDetails currentUser) {
+            CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
 
         ChainEvent originalEvent = chainEventRepository.findById(originalEventId)
@@ -661,7 +664,7 @@ public class ChainEventServiceImpl implements ChainEventService {
     }
 
     private void publishActivityLog(CustomUserDetails currentUser, String description,
-                                    String entityType, String entityId) {
+            String entityType, String entityId) {
         eventPublisher.publishEvent(ActivityLogEvent.builder()
                 .userId(currentUser.getUserId())
                 .username(currentUser.getUsername())
@@ -677,7 +680,7 @@ public class ChainEventServiceImpl implements ChainEventService {
     }
 
     private ChainEventResponse buildResponse(ChainEvent event, Map<String, Object> eventData,
-                                             Double latitude, Double longitude, User actor) {
+            Double latitude, Double longitude, User actor) {
         return ChainEventResponse.builder()
                 .id(event.getId())
                 .eventType(event.getEventType())
@@ -736,7 +739,7 @@ public class ChainEventServiceImpl implements ChainEventService {
      * Constructs a RecordHarvestEventRequest from mobile DTO fields and delegates.
      */
     private ChainEventResponse delegateHarvestFromMobile(ProductionLot lot, RecordMobileEventRequest request,
-                                                         CustomUserDetails currentUser) {
+            CustomUserDetails currentUser) {
         Object quantityObj = request.getEventData().get("quantity");
         Object harvestDateStrObj = request.getEventData().get("harvestDate");
 
@@ -773,7 +776,7 @@ public class ChainEventServiceImpl implements ChainEventService {
      * delegates.
      */
     private ChainEventResponse delegatePackagingFromMobile(ProductionLot lot, RecordMobileEventRequest request,
-                                                           CustomUserDetails currentUser) {
+            CustomUserDetails currentUser) {
         Object specObj = request.getEventData().get("packagingSpecification");
         Object packagingDateStrObj = request.getEventData().get("packagingDate");
 
@@ -898,7 +901,8 @@ public class ChainEventServiceImpl implements ChainEventService {
     @Override
     @Transactional
     @Auditable(action = "RECORD_STORAGE_CONDITION", entityType = "CHAIN_EVENT", description = "'Ghi nhận điều kiện bảo quản mã tem: ' + #request.codeValue + ', Nhiệt độ: ' + #request.temperature + '°C, Độ ẩm: ' + #request.humidity + '%'")
-    public StorageConditionResponse recordStorageCondition(StorageConditionRequest request, CustomUserDetails currentUser) {
+    public StorageConditionResponse recordStorageCondition(StorageConditionRequest request,
+            CustomUserDetails currentUser) {
 
         // 1. Validate role: VT-03 or VT-04 only
         String role = currentUser.getRoleCode();
@@ -933,13 +937,16 @@ public class ChainEventServiceImpl implements ChainEventService {
 
         // 5. Validate shipment status (QTN-05)
         if (shipment.getStatus() == ShipmentStatus.RECALLED) {
-            throw new BusinessException("Lô hàng chưa được kích hoạt hoặc đã bị thu hồi, không thể ghi nhận mốc bảo quản.");
+            throw new BusinessException(
+                    "Lô hàng chưa được kích hoạt hoặc đã bị thu hồi, không thể ghi nhận mốc bảo quản.");
         }
         if (shipment.getStatus() != ShipmentStatus.ACTIVATED) {
-            throw new BusinessException("Lô hàng chưa được kích hoạt hoặc đã bị thu hồi, không thể ghi nhận mốc bảo quản.");
+            throw new BusinessException(
+                    "Lô hàng chưa được kích hoạt hoặc đã bị thu hồi, không thể ghi nhận mốc bảo quản.");
         }
 
-        // 5b. Transportation precondition: the lot must have at least one TRANSPORT event
+        // 5b. Transportation precondition: the lot must have at least one TRANSPORT
+        // event
         boolean hasTransportEvent = chainEventRepository
                 .findByShipmentIdOrderByRecordedAtAsc(shipment.getId())
                 .stream()
@@ -982,7 +989,8 @@ public class ChainEventServiceImpl implements ChainEventService {
 
         // 8. Resolve recordedAt
         LocalDateTime recordedAt = request.getRecordedAt() != null
-                ? request.getRecordedAt() : LocalDateTime.now();
+                ? request.getRecordedAt()
+                : LocalDateTime.now();
 
         // 9. Build ThresholdInfo
         ThresholdInfo thresholds = null;
@@ -1171,9 +1179,11 @@ public class ChainEventServiceImpl implements ChainEventService {
                 failedIndex = index;
                 failedEventId = event.getId();
                 if (!isPreviousValid) {
-                    failureReason = "Previous hash mismatch: expected " + previousHash + ", got " + (storedPrevious != null ? storedPrevious : "") + ".";
+                    failureReason = "Previous hash mismatch: expected " + previousHash + ", got "
+                            + (storedPrevious != null ? storedPrevious : "") + ".";
                 } else if (!isHashValid) {
-                    failureReason = "Hash mismatch: expected " + expectedHash + ", got " + (storedHash != null ? storedHash : "") + ".";
+                    failureReason = "Hash mismatch: expected " + expectedHash + ", got "
+                            + (storedHash != null ? storedHash : "") + ".";
                 }
                 itemBuilder.expectedHash(expectedHash);
             } else if (!isValid) {
@@ -1229,7 +1239,8 @@ public class ChainEventServiceImpl implements ChainEventService {
     @Transactional
     public ChainEvent saveWithChainHash(ChainEvent event) {
         if (event.getShipment() == null) {
-            // Không gắn shipment (VD: HARVEST/PACKAGING chưa gắn lô hàng) -> không thể tính chuỗi.
+            // Không gắn shipment (VD: HARVEST/PACKAGING chưa gắn lô hàng) -> không thể tính
+            // chuỗi.
             return chainEventRepository.save(event);
         }
 

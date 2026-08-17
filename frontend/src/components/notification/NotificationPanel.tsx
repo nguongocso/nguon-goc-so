@@ -60,7 +60,7 @@ export const NotificationPanel = ({
         ) : (
           <ul className="divide-y">
             {items.map((item) => {
-              const Icon = TYPE_ICON[item.type];
+              const Icon = TYPE_ICON[item.type] || Bell;
               return (
                 <li key={item.id}>
                   <button
