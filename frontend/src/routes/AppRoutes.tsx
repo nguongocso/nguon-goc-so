@@ -113,6 +113,9 @@ import ScanQuickEventPage from "@/pages/scan-anomaly-alert/components/ScanQuickE
 // ===== Organization Detail =====
 import OrganizationDetailPage from "@/pages/organization/OrganizationDetailPage";
 
+// ===== Partner API Keys (NCL-12-CN-001) =====
+import PartnerApiKeyListPage from "@/pages/apiKey/PartnerApiKeyListPage";
+
 // ===== Product Feedback =====
 import ProductFeedbackManagementPage from "@/pages/product-feedback/ProductFeedbackManagementPage";
 
@@ -761,6 +764,20 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-02"]}>
                         <CreateCertificationPage />
+                    </RoleRoute>
+                }
+            />
+
+
+            {/* =================================================
+          PARTNER API KEYS (NCL-12-CN-001)
+      ================================================= */}
+
+            <Route
+                path="integration/api-keys"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.apiKeyManagement}>
+                        <PartnerApiKeyListPage />
                     </RoleRoute>
                 }
             />
