@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.CreateInspectionRequest;
+import vn.nguongocso.certification.dto.response.InspectionRequestDetailResponse;
 import vn.nguongocso.certification.dto.response.InspectionRequestListResponse;
 import vn.nguongocso.certification.dto.response.InspectionRequestResponse;
 import vn.nguongocso.certification.dto.response.ProductionLotTestCriteriaResponse;
@@ -107,5 +108,28 @@ public class InspectionRequestController {
                         PageResponse.from(
                                 response,
                                 response.getContent())));
+    }
+
+    /**
+     * Lấy chi tiết yêu cầu kiểm nghiệm kèm danh sách chỉ tiêu
+     * và kết quả đã ghi (nếu có).
+     *
+     * GET /api/v1/inspection-requests/{requestId}
+     */
+    @GetMapping("/inspection-requests/{requestId}")
+    @PreAuthorize("hasRole('VT-02')")
+    public ResponseEntity<ApiResult<InspectionRequestDetailResponse>> getDetail(
+            @PathVariable UUID requestId,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        InspectionRequestDetailResponse response =
+                inspectionRequestService.getDetail(
+                        requestId,
+                        currentUser);
+
+        return ResponseEntity.ok(
+                ApiResult.success(
+                        HttpStatus.OK.value(),
+                        response));
     }
 }

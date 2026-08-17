@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.CreateInspectionRequest;
+import vn.nguongocso.certification.dto.response.InspectionRequestDetailResponse;
 import vn.nguongocso.certification.dto.response.InspectionRequestListResponse;
 import vn.nguongocso.certification.dto.response.InspectionRequestResponse;
 import vn.nguongocso.certification.dto.response.ProductionLotTestCriteriaResponse;
@@ -33,5 +34,13 @@ public interface InspectionRequestService {
             UUID lotId,
             InspectionRequestStatus status,
             Pageable pageable,
+            CustomUserDetails currentUser);
+
+    /**
+     * Lấy chi tiết yêu cầu kiểm nghiệm kèm danh sách chỉ tiêu
+     * và kết quả đã ghi (nếu có), dùng cho màn hình nhập kết quả.
+     */
+    InspectionRequestDetailResponse getDetail(
+            UUID requestId,
             CustomUserDetails currentUser);
 }

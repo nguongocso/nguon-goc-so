@@ -29,12 +29,15 @@ export function MainLayout() {
     setSidebarExpanded(false);
   }, [location.pathname]);
 
-  // Handle escape key for mobile menu
+  // Handle escape key for mobile menu and tablet sidebar overlay
   useEffect(() => {
-    if (!mobileMenuOpen) return;
+    if (!mobileMenuOpen && !sidebarExpanded) return;
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMobileMenuOpen(false);
+      if (event.key === 'Escape') {
+        setMobileMenuOpen(false);
+        setSidebarExpanded(false);
+      }
     };
 
     document.addEventListener('keydown', handleEscape);
@@ -44,7 +47,7 @@ export function MainLayout() {
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = '';
     };
-  }, [mobileMenuOpen]);
+  }, [mobileMenuOpen, sidebarExpanded]);
 
   // Toggle expanded sidebar on tablet
   const toggleSidebarExpanded = useCallback(() => {
@@ -53,38 +56,36 @@ export function MainLayout() {
 
   // Determine sidebar mode:
   // Desktop (>=1280px): permanent full sidebar
-  // Tablet (768-1279px): permanent collapsed sidebar (icons only), expandable
-  // Mobile (<768px): no permanent sidebar, drawer overlay instead
-  const showPermanentSidebar = isDesktop || isTablet;
-  const sidebarCollapsed = isTablet && !sidebarExpanded;
-
+  // Tablet (768-1279px): hidden sidebar, opens as overlay via the toggle button
+  // Mobile (<768px): drawer overlay via header hamburger
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50/50 via-white to-green-50/30">
-      {/* Permanent Sidebar (Desktop + Tablet) */}
-      {showPermanentSidebar && (
-        <div
-          className={cn(
-            'fixed inset-y-0 left-0 z-30 hidden md:block transition-all duration-300 ease-in-out',
-            sidebarCollapsed ? 'w-[4.5rem]' : 'w-[17rem]',
-          )}
-        >
-          <Sidebar collapsed={sidebarCollapsed} />
+      {/* Permanent Sidebar (Desktop only) */}
+      {isDesktop && (
+        <div className="fixed inset-y-0 left-0 z-30 hidden w-[17rem] xl:block">
+          <Sidebar collapsed={false} />
+        </div>
+      )}
 
-          {/* Tablet: Expand/collapse toggle button */}
-          {isTablet && (
-            <button
-              type="button"
-              onClick={toggleSidebarExpanded}
-              className="absolute -right-3 top-[4.5rem] z-40 flex h-6 w-6 items-center justify-center rounded-full bg-white border border-emerald-100 shadow-sm text-emerald-600 hover:text-emerald-800 transition-all duration-300"
-              aria-label={sidebarExpanded ? 'Thu gọn menu' : 'Mở rộng menu'}
-            >
-              {sidebarExpanded ? (
-                <ChevronLeft className="h-3.5 w-3.5" />
-              ) : (
-                <ChevronRight className="h-3.5 w-3.5" />
-              )}
-            </button>
-          )}
+      {/* Tablet Sidebar Overlay */}
+      {isTablet && sidebarExpanded && (
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
+          {/* Backdrop */}
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/45 animate-fade-in"
+            onClick={() => setSidebarExpanded(false)}
+            aria-label="Đóng menu"
+          />
+          {/* Drawer */}
+          <div className="relative h-full w-[min(20rem,88vw)] shadow-xl animate-slide-in-left">
+            <Sidebar
+              showCloseButton
+              onClose={() => setSidebarExpanded(false)}
+              onNavigate={() => setSidebarExpanded(false)}
+              collapsed={false}
+            />
+          </div>
         </div>
       )}
 
@@ -110,15 +111,32 @@ export function MainLayout() {
         </div>
       )}
 
+      {/* Tablet: floating expand/collapse toggle button */}
+      {isTablet && (
+        <button
+          type="button"
+          onClick={toggleSidebarExpanded}
+          className={cn(
+            'fixed top-[4.5rem] z-[60] flex h-8 w-8 items-center justify-center rounded-full border bg-white text-emerald-600 shadow-lg transition-all duration-300 hover:bg-emerald-50 hover:text-emerald-800',
+            sidebarExpanded
+              ? 'left-[min(20rem,88vw)] -translate-x-1/2'
+              : 'left-3',
+          )}
+          aria-label={sidebarExpanded ? 'Thu gọn menu' : 'Mở rộng menu'}
+        >
+          {sidebarExpanded ? (
+            <ChevronLeft className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          )}
+        </button>
+      )}
+
       {/* Main Content Area */}
       <div
         className={cn(
           'flex min-h-screen min-w-0 flex-col transition-all duration-300 ease-in-out',
-          showPermanentSidebar && sidebarCollapsed
-            ? 'md:pl-[4.5rem]'
-            : showPermanentSidebar
-              ? 'md:pl-[17rem]'
-              : '',
+          isDesktop ? 'xl:pl-[17rem]' : '',
         )}
       >
         <Header

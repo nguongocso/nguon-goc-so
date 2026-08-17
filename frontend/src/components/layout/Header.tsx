@@ -206,8 +206,8 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
           "flex h-16 items-center gap-2 sm:gap-3",
           isMobile ? "px-3" : "px-4 md:px-6",
         )}>
-          {/* Hamburger menu button - visible on mobile and tablet */}
-          {(isMobile || isTablet) && onMenuClick && (
+          {/* Hamburger menu button - visible on mobile only (tablet uses the sidebar expand toggle) */}
+          {isMobile && onMenuClick && (
             <Button
               type="button"
               variant="ghost"
