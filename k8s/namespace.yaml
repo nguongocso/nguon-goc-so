@@ -1,6 +1,19 @@
+# ============================================================
+# Namespaces for the two deployment environments.
+# ------------------------------------------------------------
+# staging    -> develop branch
+# production -> main branch
+# ============================================================
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: nguongocso
+  name: staging
+  labels:
+    app.kubernetes.io/part-of: nguongocso
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
   labels:
     app.kubernetes.io/part-of: nguongocso

@@ -108,10 +108,10 @@ export default function TraceLookupPage() {
           latitude?: number,
           longitude?: number
         ) => {
-          console.log('Gửi GPS lên BE:', {
-            latitude,
-            longitude,
-          });
+          // console.log('Gửi GPS lên BE:', {
+          //   latitude,
+          //   longitude,
+          // });
 
           const result = await getPublicTrace(
             codeValue,

@@ -32,6 +32,7 @@ import {
   ChevronDown,
   Settings,
   ShoppingCart,
+  Key,
 } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import {
@@ -136,6 +137,12 @@ const MENU_GROUPS: MenuGroup[] = [
         label: "Chứng nhận",
         href: "/certifications",
         allowedRoles: ["VT-02"] as const,
+      },
+      {
+        icon: <Key className="h-5 w-5" />,
+        label: "Khóa API bên thứ ba",
+        href: "/integration/api-keys",
+        allowedRoles: ROLE_ACCESS.apiKeyManagement,
       },
       {
         icon: <Hash className="h-5 w-5" />,

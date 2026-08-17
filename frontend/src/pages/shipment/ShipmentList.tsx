@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/table";
 import {
   BadgeCheck,
+  ChevronLeft,
+  ChevronRight,
   FileText,
   FileJson,
   Plus,
@@ -116,6 +118,10 @@ export const ShipmentList = ({
     activatingShipmentId,
     activateShipment,
     reload,
+    page,
+    totalPages,
+    totalElements,
+    setPage,
   } = useShipments(productionLotId);
 
   const { recallingShipmentId, recallShipment } = useRecallShipment(reload);
@@ -313,10 +319,9 @@ export const ShipmentList = ({
 
                       <TableCell>
                         <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            statusColorMap[shipment.status] ||
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusColorMap[shipment.status] ||
                             "bg-status-draft/10 text-status-draft"
-                          }`}
+                            }`}
                         >
                           {statusLabelMap[shipment.status] || shipment.status}
                         </span>
@@ -332,6 +337,20 @@ export const ShipmentList = ({
 
                       <TableCell className="text-center">
                         <div className="flex items-center justify-center gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-auto px-2.5 py-1 text-xs"
+                            onClick={() =>
+                              navigate(
+                                `/production-lots/${productionLotId}/shipments/${shipment.id}`,
+                              )
+                            }
+                          >
+                            <Eye className="mr-1 h-3 w-3" />
+                            Chi tiết
+                          </Button>
+
                           <DropdownMenu>
                             <DropdownMenuTrigger
                               className="size-7"
@@ -341,13 +360,6 @@ export const ShipmentList = ({
                             </DropdownMenuTrigger>
 
                             <DropdownMenuContent>
-                              <DropdownMenuItem
-                                onClick={() => navigate(`/shipments/${shipment.id}`)}
-                              >
-                                <Eye className="size-4" />
-                                Chi tiết
-                              </DropdownMenuItem>
-
                               {canActivate &&
                                 shipment.status === "CODE_PRINTED" && (
                                   <DropdownMenuItem
@@ -395,8 +407,8 @@ export const ShipmentList = ({
                                 shipment.status !== "RECALLED") ||
                                 shipment.status === "DRAFT" ||
                                 shipment.status === "CODE_PRINTED") && (
-                                <DropdownMenuSeparator />
-                              )}
+                                  <DropdownMenuSeparator />
+                                )}
 
                               {canRecall &&
                                 shipment.status !== "RECALLED" && (
@@ -413,15 +425,15 @@ export const ShipmentList = ({
 
                               {(shipment.status === "DRAFT" ||
                                 shipment.status === "CODE_PRINTED") && (
-                                <DropdownMenuItem
-                                  variant="destructive"
-                                  onClick={() =>
-                                    handleDeleteDraft(shipment)
-                                  }
-                                >
-                                  Hủy nháp
-                                </DropdownMenuItem>
-                              )}
+                                  <DropdownMenuItem
+                                    variant="destructive"
+                                    onClick={() =>
+                                      handleDeleteDraft(shipment)
+                                    }
+                                  >
+                                    Hủy nháp
+                                  </DropdownMenuItem>
+                                )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -430,6 +442,44 @@ export const ShipmentList = ({
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+
+          {/* Pagination bar */}
+          {!isLoading && totalElements > 0 && totalPages > 1 && (
+            <div className="flex items-center justify-between border-t pt-4 mt-2">
+              <p className="text-sm text-muted-foreground">
+                Trang{" "}
+                <span className="font-medium text-foreground">{page + 1}</span>
+                {" "}/{" "}
+                <span className="font-medium text-foreground">{totalPages}</span>
+                {" "}&#183;{" "}
+                Tổng{" "}
+                <span className="font-medium text-foreground">
+                  {totalElements}
+                </span>{" "}
+                lô hàng
+              </p>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  disabled={page === 0}
+                  onClick={() => setPage(page - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage(page + 1)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

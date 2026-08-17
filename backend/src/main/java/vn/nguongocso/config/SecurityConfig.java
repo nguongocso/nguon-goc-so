@@ -47,6 +47,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ApiKeyAuthenticationFilter apiKeyAuthenticationFilter;
 
     @Value("${app.cors.allowed-origins:http://localhost:5173}")
     private String allowedOrigins;
@@ -137,11 +138,12 @@ public class SecurityConfig {
 
                         /*
                          * =================================================
-                         * PUBLIC API
+                         * PUBLIC & PARTNER API
                          * =================================================
                          */
                         .requestMatchers(
-                                "/api/v1/public/**"
+                                "/api/v1/public/**",
+                                "/api/v1/partner/**"
                         ).permitAll()
 
                         /*
@@ -174,11 +176,15 @@ public class SecurityConfig {
 
                 /*
                  * =====================================================
-                 * JWT FILTER
+                 * API KEY FILTER & JWT FILTER
                  * =====================================================
                  *
                  * Chạy trước UsernamePasswordAuthenticationFilter.
                  */
+                .addFilterBefore(
+                        apiKeyAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                )
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
@@ -231,7 +237,7 @@ public class SecurityConfig {
             }
         }
 
-        configuration.setAllowedOrigins(origins);
+        configuration.setAllowedOriginPatterns(List.of("*"));
 
         configuration.setAllowedMethods(
                 List.of(
@@ -247,7 +253,8 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(
                 List.of(
                         "Authorization",
-                        "Content-Type"
+                        "Content-Type",
+                        "X-API-KEY"
                 )
         );
 

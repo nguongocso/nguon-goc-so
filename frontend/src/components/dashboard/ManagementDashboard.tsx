@@ -73,7 +73,7 @@ export function ManagementDashboard() {
                       </p>
                     </div>
                     <div className={`rounded-xl p-3 ${card.iconClass}`}>
-                      <Icon className="size-6" />
+                      {Icon && <Icon className="size-6" />}
                     </div>
                   </CardContent>
                 </Card>

@@ -1,12 +1,17 @@
+# ============================================================
+# Backend Deployment
+# ------------------------------------------------------------
+# Applies to both staging and production namespaces (via -n).
+# Image tag is rewritten by CI/CD before apply.
+# ============================================================
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backend
-  namespace: nguongocso
   labels:
     app: backend
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: backend
@@ -15,18 +20,19 @@ spec:
       labels:
         app: backend
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
         - name: backend
-          image: ghcr.io/nguongocso/backend:latest
+          image: ghcr.io/nguongocso/nguongocso-backend:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
               name: http
-          # Non-secret configuration from ConfigMap
+          # Non-secret configuration from ConfigMap.
           envFrom:
             - configMapRef:
                 name: backend-config
-          # Secret-backed env vars + JVM options (single env list)
           env:
             - name: DB_USERNAME
               valueFrom:
@@ -62,27 +68,11 @@ spec:
               value: "-Xms256m -Xmx768m"
           resources:
             requests:
-              cpu: 250m
-              memory: 512Mi
+              cpu: 100m
+              memory: 256Mi
             limits:
-              cpu: 1000m
-              memory: 1Gi
-          readinessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 5
-          livenessProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8080
-            initialDelaySeconds: 60
-            periodSeconds: 20
-            timeoutSeconds: 5
-            failureThreshold: 3
+              cpu: 500m
+              memory: 512Mi
           volumeMounts:
             - name: uploads
               mountPath: /app/uploads

@@ -1,6 +1,7 @@
 import apiClient from './axiosConfig';
 import type {
   CreateShipmentPayload,
+  PageResponse,
   ProcurementShipment,
   Shipment,
   ShipmentResponse,
@@ -16,6 +17,23 @@ export const getShipmentsByProductionLot = async (
 ): Promise<Shipment[]> => {
   const response = await apiClient.get<{ data: Shipment[] }>(
     `/shipments/production-lots/${productionLotId}`,
+  );
+
+  return response.data.data;
+};
+
+/**
+ * Lấy danh sách lô hàng theo lô sản xuất với phân trang
+ * GET /api/v1/shipments/production-lots/{productionLotId}/paged?page=0&size=10
+ */
+export const getShipmentsByProductionLotPaged = async (
+  productionLotId: string,
+  page: number,
+  size = 10,
+): Promise<PageResponse<Shipment>> => {
+  const response = await apiClient.get<{ data: PageResponse<Shipment> }>(
+    `/shipments/production-lots/${productionLotId}/paged`,
+    { params: { page, size } },
   );
 
   return response.data.data;

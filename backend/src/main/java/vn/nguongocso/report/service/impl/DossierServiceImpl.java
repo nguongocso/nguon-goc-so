@@ -521,6 +521,7 @@ public class DossierServiceImpl implements DossierService {
             case CORRECTION -> "Điều chỉnh";
             case WAREHOUSE_RECEIPT -> "Nhập kho";
             case STORAGE_CONDITION -> "Theo dõi bảo quản";
+            default -> type.name();
         };
     }
 

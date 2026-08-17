@@ -161,4 +161,25 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
     Optional<ProductionLot> findByIdAndOrganization_OrganizationId(
             @Param("lotId") UUID lotId,
             @Param("organizationId") UUID organizationId);
+
+    /**
+     * Truy vấn hồ sơ lô sản xuất đầy đủ cho cổng dữ liệu đối tác bên thứ ba.
+     * Sử dụng JOIN FETCH để nạp trước Organization, FarmArea, ProductCategory và Certifications
+     * đồng thời thực thi bảo mật Cách ly dữ liệu tổ chức (Tenant Isolation - TC-04).
+     */
+    @Query("""
+        SELECT DISTINCT pl
+        FROM ProductionLot pl
+        JOIN FETCH pl.organization org
+        LEFT JOIN FETCH pl.farmArea fa
+        LEFT JOIN FETCH pl.productCategory pc
+        LEFT JOIN FETCH pl.certifications plc
+        LEFT JOIN FETCH plc.certification cert
+        LEFT JOIN FETCH cert.standard std
+        WHERE pl.id = :lotId
+          AND org.organizationId = :organizationId
+        """)
+    Optional<ProductionLot> findDossierByIdAndOrganizationId(
+            @Param("lotId") UUID lotId,
+            @Param("organizationId") UUID organizationId);
 }
