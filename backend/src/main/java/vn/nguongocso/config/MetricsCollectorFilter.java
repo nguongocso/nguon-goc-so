@@ -15,10 +15,13 @@ import java.io.IOException;
  * Filter thu thập số liệu tự động từ các request HTTP phục vụ giám sát hệ thống.
  */
 @Component
-@RequiredArgsConstructor
 public class MetricsCollectorFilter extends OncePerRequestFilter {
 
     private final MetricsBufferService metricsBufferService;
+
+    public MetricsCollectorFilter(@org.springframework.beans.factory.annotation.Autowired(required = false) MetricsBufferService metricsBufferService) {
+        this.metricsBufferService = metricsBufferService;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -32,7 +35,7 @@ public class MetricsCollectorFilter extends OncePerRequestFilter {
                 || uri.startsWith("/api/v1/export/") 
                 || uri.startsWith("/api/v1/integration/");
 
-        if (isDataGateway) {
+        if (isDataGateway && metricsBufferService != null) {
             metricsBufferService.recordDataGatewayCall();
         }
 
@@ -41,12 +44,14 @@ public class MetricsCollectorFilter extends OncePerRequestFilter {
         } finally {
             long duration = System.currentTimeMillis() - startTime;
 
-            if (isPublicTrace) {
-                metricsBufferService.recordPublicTraceLatency(duration);
-            }
+            if (metricsBufferService != null) {
+                if (isPublicTrace) {
+                    metricsBufferService.recordPublicTraceLatency(duration);
+                }
 
-            if (response.getStatus() >= 500) {
-                metricsBufferService.recordServerError();
+                if (response.getStatus() >= 500) {
+                    metricsBufferService.recordServerError();
+                }
             }
         }
     }
