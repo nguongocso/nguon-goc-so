@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Warehouse, Eye, LoaderCircle, FileText } from 'lucide-react';
+import { HelpButton } from '@/components/help/HelpButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
@@ -58,10 +59,13 @@ export default function WarehouseReceiptPage() {
             Theo dõi và ghi nhận nhập kho cho các lô hàng đã thu mua.
           </p>
         </div>
-        <Button variant="view" onClick={() => setCreateOpen(true)}>
-          <Plus className="size-4" />
-          Nhập kho
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="warehouse-receipt" />
+          <Button variant="view" onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            Nhập kho
+          </Button>
+        </div>
       </div>
 
       {/* Error */}

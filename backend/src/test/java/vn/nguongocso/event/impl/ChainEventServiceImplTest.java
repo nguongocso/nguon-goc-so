@@ -3,10 +3,18 @@ package vn.nguongocso.event.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -14,8 +22,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,11 +31,22 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.event.dto.request.RecordHarvestEventRequest;
 import vn.nguongocso.event.dto.request.RecordPackagingEventRequest;
 import vn.nguongocso.event.dto.request.RecordTransportEventRequest;
+import vn.nguongocso.event.dto.response.ChainEventResponse;
+import vn.nguongocso.event.entity.ChainEvent;
+import vn.nguongocso.event.enums.ChainEventType;
+import vn.nguongocso.event.repository.ChainEventRepository;
+import vn.nguongocso.event.service.EventHashService;
+import vn.nguongocso.event.service.EventValidationService;
+import vn.nguongocso.event.service.impl.ChainEventServiceImpl;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
@@ -39,15 +56,6 @@ import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
-import vn.nguongocso.event.entity.ChainEvent;
-import vn.nguongocso.event.enums.ChainEventType;
-import vn.nguongocso.event.repository.ChainEventRepository;
-import vn.nguongocso.event.dto.request.RecordHarvestEventRequest;
-import vn.nguongocso.event.dto.response.ChainEventResponse;
-import vn.nguongocso.event.dto.response.ChainEventResponse;
-import vn.nguongocso.event.service.EventHashService;
-import vn.nguongocso.event.service.impl.ChainEventServiceImpl;
-import vn.nguongocso.event.service.EventValidationService;
 
 @ExtendWith(MockitoExtension.class)
 class ChainEventServiceImplTest {
@@ -67,14 +75,14 @@ class ChainEventServiceImplTest {
     @Mock
     private EventValidationService eventValidationService;
 
-        @Mock
-        private ApplicationEventPublisher eventPublisher;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
-        @Mock
-        private EventHashService eventHashService;
+    @Mock
+    private EventHashService eventHashService;
 
-        @Mock
-        private Clock clock;
+    @Mock
+    private Clock clock;
 
     @InjectMocks
     private ChainEventServiceImpl chainEventService;
@@ -82,7 +90,7 @@ class ChainEventServiceImplTest {
     @Mock
     private TraceCodeRepository traceCodeRepository;
 
-    private CustomUserDetails validUser; // Mocked UserDetails
+    private CustomUserDetails validUser;
     private ProductionLot productionLot;
     private Organization organization;
     private RecordHarvestEventRequest request;
@@ -95,7 +103,6 @@ class ChainEventServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        // Mock CustomUserDetails
         validUser = mock(CustomUserDetails.class);
         userId = UUID.randomUUID();
 
@@ -138,15 +145,13 @@ class ChainEventServiceImplTest {
         transportRequest.setToLocation("Kho trung chuyển Việt Trì, Phú Thọ");
         transportRequest.setTransportTime(LocalDateTime.of(2026, 7, 24, 9, 0, 0));
 
-        // Mặc định đồng hồ nghiệp vụ theo múi giờ hệ thống để giữ nguyên hành vi các test hiện có
         lenient().when(clock.instant()).thenReturn(Clock.systemDefaultZone().instant());
         lenient().when(clock.getZone()).thenReturn(ZoneId.systemDefault());
     }
 
     @Test
     void recordHarvestEvent_Success() throws JsonProcessingException {
-        // Given
-        when(validUser.getRoleCode()).thenReturn("VT-03"); // EVENT_RECORDER
+        when(validUser.getRoleCode()).thenReturn("VT-03");
         when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
         when(validUser.getUserId()).thenReturn(userId);
 
@@ -165,17 +170,14 @@ class ChainEventServiceImplTest {
 
         when(chainEventRepository.save(any(ChainEvent.class))).thenReturn(mockSavedEvent);
 
-        // When
         ChainEventResponse response = chainEventService.recordHarvestEvent(request, validUser);
 
-        // Then
         assertThat(response).isNotNull();
         assertThat(response.getEventType()).isEqualTo(ChainEventType.HARVEST);
         assertThat(response.getEventData()).containsEntry("productionLotId", productionLot.getId().toString());
         assertThat(response.getEventData()).containsEntry("quantity", 1200.5);
         assertThat(response.getRecordedByName()).isEqualTo("Nguyễn Văn Ghi");
 
-        // Kiểm tra thay đổi trạng thái của lô sản xuất
         assertThat(productionLot.getStatus()).isEqualTo(ProductionLotStatus.HARVESTED);
         assertThat(productionLot.getHarvestDate()).isEqualTo(request.getHarvestDate());
         assertThat(productionLot.getActualQuantity()).isEqualTo(request.getQuantity());
@@ -186,10 +188,8 @@ class ChainEventServiceImplTest {
 
     @Test
     void recordHarvestEvent_ThrowException_WhenRoleIsInvalid() {
-        // Given
-        when(validUser.getRoleCode()).thenReturn("VT-06"); // CONSUMER - Vai trò không được quyền
+        when(validUser.getRoleCode()).thenReturn("VT-06");
 
-        // When & Then
         assertThatThrownBy(() -> chainEventService.recordHarvestEvent(request, validUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Chỉ thành viên được cấp quyền trong tổ chức mới được ghi sự kiện.");
@@ -200,11 +200,9 @@ class ChainEventServiceImplTest {
 
     @Test
     void recordHarvestEvent_ThrowException_WhenProductionLotNotFound() {
-        // Given
         when(validUser.getRoleCode()).thenReturn("VT-03");
         when(productionLotRepository.findById(request.getProductionLotId())).thenReturn(Optional.empty());
 
-        // When & Then
         assertThatThrownBy(() -> chainEventService.recordHarvestEvent(request, validUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Không tìm thấy lô sản xuất.");
@@ -215,13 +213,11 @@ class ChainEventServiceImplTest {
 
     @Test
     void recordHarvestEvent_ThrowException_WhenDifferentOrganization() {
-        // Given
         when(validUser.getRoleCode()).thenReturn("VT-03");
-        when(validUser.getOrganizationId()).thenReturn(UUID.randomUUID()); // Tổ chức khác tổ chức của Lô
+        when(validUser.getOrganizationId()).thenReturn(UUID.randomUUID());
 
         when(productionLotRepository.findById(request.getProductionLotId())).thenReturn(Optional.of(productionLot));
 
-        // When & Then
         assertThatThrownBy(() -> chainEventService.recordHarvestEvent(request, validUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Bạn không thuộc tổ chức quản lý của lô sản xuất này.");
@@ -232,15 +228,13 @@ class ChainEventServiceImplTest {
 
     @Test
     void recordHarvestEvent_ThrowException_WhenProductionLotNotApproved() {
-        // Given
         when(validUser.getRoleCode()).thenReturn("VT-03");
         when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
 
-        productionLot.setStatus(ProductionLotStatus.DRAFT); // Chưa được duyệt
+        productionLot.setStatus(ProductionLotStatus.DRAFT);
 
         when(productionLotRepository.findById(request.getProductionLotId())).thenReturn(Optional.of(productionLot));
 
-        // When & Then
         assertThatThrownBy(() -> chainEventService.recordHarvestEvent(request, validUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Lô sản xuất chưa được duyệt, không thể ghi sự kiện thu hoạch.");
@@ -248,14 +242,14 @@ class ChainEventServiceImplTest {
         verifyNoMoreInteractions(productionLotRepository);
         verifyNoInteractions(chainEventRepository);
     }
+
     @Test
     void recordPackagingEvent_Success() throws JsonProcessingException {
-        // Given
         when(validUser.getRoleCode()).thenReturn("VT-03");
         when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
         when(validUser.getUserId()).thenReturn(userId);
 
-        productionLot.setStatus(ProductionLotStatus.HARVESTED); // Đã thu hoạch
+        productionLot.setStatus(ProductionLotStatus.HARVESTED);
         productionLot.setHarvestDate(LocalDate.of(2026, 7, 24));
 
         RecordPackagingEventRequest packagingRequest = new RecordPackagingEventRequest();
@@ -278,10 +272,8 @@ class ChainEventServiceImplTest {
 
         when(chainEventRepository.save(any(ChainEvent.class))).thenReturn(mockSavedEvent);
 
-        // When
         ChainEventResponse response = chainEventService.recordPackagingEvent(packagingRequest, validUser);
 
-        // Then
         assertThat(response).isNotNull();
         assertThat(response.getEventType()).isEqualTo(ChainEventType.PACKAGING);
         assertThat(productionLot.getStatus()).isEqualTo(ProductionLotStatus.PACKAGED);
@@ -290,11 +282,10 @@ class ChainEventServiceImplTest {
 
     @Test
     void recordPackagingEvent_ThrowException_WhenLotNotHarvested() {
-        // Given
         when(validUser.getRoleCode()).thenReturn("VT-03");
         when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
 
-        productionLot.setStatus(ProductionLotStatus.APPROVED); // Chưa thu hoạch
+        productionLot.setStatus(ProductionLotStatus.APPROVED);
 
         RecordPackagingEventRequest packagingRequest = new RecordPackagingEventRequest();
         packagingRequest.setProductionLotId(productionLot.getId());
@@ -303,15 +294,13 @@ class ChainEventServiceImplTest {
 
         when(productionLotRepository.findById(productionLot.getId())).thenReturn(Optional.of(productionLot));
 
-        // When & Then
         assertThatThrownBy(() -> chainEventService.recordPackagingEvent(packagingRequest, validUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Chỉ được ghi nhận sự kiện đóng gói cho lô đã thu hoạch hoặc đã sơ chế.");
     }
-
+    
     @Test
     void recordTransportEvent_Success() throws JsonProcessingException {
-        // Given
         when(validUser.getRoleCode()).thenReturn("VT-03");
         when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
         when(validUser.getUserId()).thenReturn(userId);
@@ -320,7 +309,6 @@ class ChainEventServiceImplTest {
                 .thenReturn(Optional.of(traceCode));
         when(userRepository.findById(userId)).thenReturn(Optional.of(actor));
 
-        // Mock JSON serialization (ObjectMapper spy)
         String expectedJson = "{\"fromLocation\":\"Xã Long Cốc, huyện Tân Sơn, Phú Thọ\",\"toLocation\":\"Kho trung chuyển Việt Trì, Phú Thọ\"}";
         doReturn(expectedJson).when(objectMapper).writeValueAsString(any(Map.class));
 
@@ -341,10 +329,8 @@ class ChainEventServiceImplTest {
                 .thenReturn("mockHash");
         when(chainEventRepository.save(any(ChainEvent.class))).thenReturn(mockSavedEvent);
 
-        // When
         ChainEventResponse response = chainEventService.recordTransportEvent(transportRequest, validUser);
 
-        // Then
         assertThat(response).isNotNull();
         assertThat(response.getShipmentId()).isEqualTo(shipment.getId());
         assertThat(response.getEventType()).isEqualTo(ChainEventType.TRANSPORT);
@@ -357,13 +343,11 @@ class ChainEventServiceImplTest {
         verify(chainEventRepository, times(1)).save(any(ChainEvent.class));
         verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
     }
-
+    
     @Test
     void recordTransportEvent_ThrowException_WhenRoleIsInvalid() {
-        // Given
-        when(validUser.getRoleCode()).thenReturn("VT-06"); // CONSUMER
+        when(validUser.getRoleCode()).thenReturn("VT-06");
 
-        // When & Then
         assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Bạn không có quyền ghi sự kiện vận chuyển.");
@@ -371,15 +355,13 @@ class ChainEventServiceImplTest {
         verifyNoInteractions(traceCodeRepository);
         verifyNoInteractions(chainEventRepository);
     }
-
+    
     @Test
     void recordTransportEvent_ThrowException_WhenTraceCodeNotFound() {
-        // Given
         when(validUser.getRoleCode()).thenReturn("VT-03");
         when(traceCodeRepository.findByCodeValue(transportRequest.getCodeValue()))
                 .thenReturn(Optional.empty());
 
-        // When & Then
         assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Mã lô hàng không tồn tại.");
@@ -387,16 +369,14 @@ class ChainEventServiceImplTest {
         verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
         verifyNoInteractions(chainEventRepository);
     }
-
+    
     @Test
     void recordTransportEvent_ThrowException_WhenShipmentIsNull() {
-        // Given
         when(validUser.getRoleCode()).thenReturn("VT-03");
         traceCode.setShipment(null);
         when(traceCodeRepository.findByCodeValue(transportRequest.getCodeValue()))
                 .thenReturn(Optional.of(traceCode));
 
-        // When & Then
         assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Mã truy xuất chưa được gắn với lô hàng.");
@@ -404,17 +384,15 @@ class ChainEventServiceImplTest {
         verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
         verifyNoInteractions(chainEventRepository);
     }
-
+    
     @Test
     void recordTransportEvent_ThrowException_WhenShipmentRecalled() {
-        // Given
         when(validUser.getRoleCode()).thenReturn("VT-03");
-        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId()); // ✅ Thêm dòng này
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
         shipment.setStatus(ShipmentStatus.RECALLED);
         when(traceCodeRepository.findByCodeValue(transportRequest.getCodeValue()))
                 .thenReturn(Optional.of(traceCode));
 
-        // When & Then
         assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Lô hàng đã bị thu hồi, không thể ghi sự kiện vận chuyển.");
@@ -425,14 +403,12 @@ class ChainEventServiceImplTest {
 
     @Test
     void recordTransportEvent_ThrowException_WhenShipmentNotActivated() {
-        // Given
         when(validUser.getRoleCode()).thenReturn("VT-03");
-        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId()); 
         shipment.setStatus(ShipmentStatus.DRAFT);
         when(traceCodeRepository.findByCodeValue(transportRequest.getCodeValue()))
                 .thenReturn(Optional.of(traceCode));
 
-        // When & Then
         assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Lô hàng chưa được kích hoạt, không thể ghi sự kiện vận chuyển.");
@@ -440,17 +416,14 @@ class ChainEventServiceImplTest {
         verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
         verifyNoInteractions(chainEventRepository);
     }
-
-
+    
     @Test
     void recordTransportEvent_ThrowException_WhenOrganizationMismatch() {
-        // Given
         when(validUser.getRoleCode()).thenReturn("VT-03");
-        when(validUser.getOrganizationId()).thenReturn(UUID.randomUUID()); // khác với shipment
+        when(validUser.getOrganizationId()).thenReturn(UUID.randomUUID());
         when(traceCodeRepository.findByCodeValue(transportRequest.getCodeValue()))
                 .thenReturn(Optional.of(traceCode));
 
-        // When & Then
         assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Bạn không thuộc tổ chức quản lý của lô hàng.");
@@ -465,7 +438,6 @@ class ChainEventServiceImplTest {
 
     @Test
     void recordPreprocessingEvent_Success_TC01() {
-        // Given: Lô đã thu hoạch với 1000 kg, sơ chế ra 900 kg (TC-01)
         when(validUser.getRoleCode()).thenReturn("VT-03");
         when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
         when(validUser.getUserId()).thenReturn(userId);
@@ -492,10 +464,8 @@ class ChainEventServiceImplTest {
         prepRequest.setProcessingMethod("Rửa sạch, sấy bớt nước");
         prepRequest.setPreprocessingDate(LocalDate.now());
 
-        // When
         ChainEventResponse response = chainEventService.recordPreprocessingEvent(prepRequest, validUser);
 
-        // Then
         assertThat(response).isNotNull();
         assertThat(response.getEventType()).isEqualTo(ChainEventType.PREPROCESSING);
         assertThat(productionLot.getStatus()).isEqualTo(ProductionLotStatus.PREPROCESSED);
@@ -506,7 +476,6 @@ class ChainEventServiceImplTest {
 
     @Test
     void recordPreprocessingEvent_InvalidOutputQuantity_TC02() {
-        // Given: Lô đã thu hoạch 1000 kg, nhập khối lượng ra 1200 kg (TC-02)
         when(validUser.getRoleCode()).thenReturn("VT-03");
         when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
 
@@ -519,7 +488,6 @@ class ChainEventServiceImplTest {
         prepRequest.setOutputQuantity(1200.0);
         prepRequest.setPreprocessingDate(LocalDate.now());
 
-        // When & Then
         assertThatThrownBy(() -> chainEventService.recordPreprocessingEvent(prepRequest, validUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Khối lượng sau sơ chế không được lớn hơn khối lượng vào.");
@@ -530,7 +498,6 @@ class ChainEventServiceImplTest {
 
     @Test
     void recordPreprocessingEvent_WrongStatus_TC03() {
-        // Given: Lô còn ở trạng thái APPROVED chưa thu hoạch (TC-03)
         when(validUser.getRoleCode()).thenReturn("VT-03");
         when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
 
@@ -543,7 +510,6 @@ class ChainEventServiceImplTest {
         prepRequest.setOutputQuantity(900.0);
         prepRequest.setPreprocessingDate(LocalDate.now());
 
-        // When & Then
         assertThatThrownBy(() -> chainEventService.recordPreprocessingEvent(prepRequest, validUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Chỉ được ghi nhận sự kiện sơ chế cho lô đã thu hoạch.");
@@ -554,9 +520,8 @@ class ChainEventServiceImplTest {
 
     @Test
     void recordPreprocessingEvent_WrongOrganization_TC04() {
-        // Given: Tài khoản thuộc tổ chức khác (TC-04)
         when(validUser.getRoleCode()).thenReturn("VT-03");
-        when(validUser.getOrganizationId()).thenReturn(UUID.randomUUID()); // Khác với productionLot organization
+        when(validUser.getOrganizationId()).thenReturn(UUID.randomUUID());
 
         when(productionLotRepository.findById(productionLot.getId())).thenReturn(Optional.of(productionLot));
 
@@ -566,7 +531,6 @@ class ChainEventServiceImplTest {
         prepRequest.setOutputQuantity(900.0);
         prepRequest.setPreprocessingDate(LocalDate.now());
 
-        // When & Then
         assertThatThrownBy(() -> chainEventService.recordPreprocessingEvent(prepRequest, validUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Bạn không thuộc tổ chức quản lý của lô sản xuất này.");
@@ -577,7 +541,6 @@ class ChainEventServiceImplTest {
 
     @Test
     void correctPreprocessingEvent_Success() {
-        // Given: Sự kiện đính chính sơ chế
         when(validUser.getRoleCode()).thenReturn("VT-03");
         when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
         when(validUser.getUserId()).thenReturn(userId);
@@ -611,171 +574,10 @@ class ChainEventServiceImplTest {
         correctReq.setPreprocessingDate(LocalDate.now());
         correctReq.setCorrectionReason("Nhập sai khối lượng ra từ 900 thành 920kg");
 
-        // When
         ChainEventResponse response = chainEventService.correctPreprocessingEvent(originalEventId, correctReq, validUser);
 
-        // Then
         assertThat(response).isNotNull();
         assertThat(productionLot.getActualQuantity()).isEqualTo(920.0);
         verify(chainEventRepository, times(1)).save(any(ChainEvent.class));
-    }
-
-    // =========================================================================
-    // REGRESSION TESTS: MÚI GIỜ NGHIỆP VỤ (Asia/Ho_Chi_Minh)
-    // =========================================================================
-
-    private void useBusinessClock(Instant fixedInstant) {
-        Clock fixed = Clock.fixed(fixedInstant, ZoneId.of("Asia/Ho_Chi_Minh"));
-        when(clock.instant()).thenReturn(fixed.instant());
-        when(clock.getZone()).thenReturn(fixed.getZone());
-    }
-
-    @Test
-    void recordPreprocessingEvent_acceptsVietnamToday_whenUtcStillPreviousDay() {
-        // Given: UTC vẫn là 2026-07-25 17:30 nhưng tại Việt Nam (UTC+7) đã sang ngày 2026-07-26
-        useBusinessClock(Instant.parse("2026-07-25T17:30:00Z"));
-        when(validUser.getRoleCode()).thenReturn("VT-03");
-        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
-        when(validUser.getUserId()).thenReturn(userId);
-
-        productionLot.setStatus(ProductionLotStatus.HARVESTED);
-        productionLot.setHarvestDate(LocalDate.of(2026, 7, 24));
-        when(productionLotRepository.findById(productionLot.getId())).thenReturn(Optional.of(productionLot));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(actor));
-
-        ChainEvent savedEvent = ChainEvent.builder()
-                .id(UUID.randomUUID())
-                .eventType(ChainEventType.PREPROCESSING)
-                .eventData("{\"lossRate\":10.0}")
-                .recordedAt(LocalDateTime.now())
-                .recordedBy(actor)
-                .build();
-        when(chainEventRepository.save(any(ChainEvent.class))).thenReturn(savedEvent);
-
-        vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest prepRequest = new vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest();
-        prepRequest.setProductionLotId(productionLot.getId());
-        prepRequest.setInputQuantity(1000.0);
-        prepRequest.setOutputQuantity(900.0);
-        prepRequest.setGrade("Hạng A");
-        prepRequest.setProcessingMethod("Rửa sạch, sấy bớt nước");
-        prepRequest.setPreprocessingDate(LocalDate.of(2026, 7, 26));
-
-        // When
-        ChainEventResponse response = chainEventService.recordPreprocessingEvent(prepRequest, validUser);
-
-        // Then
-        assertThat(response).isNotNull();
-        assertThat(response.getEventType()).isEqualTo(ChainEventType.PREPROCESSING);
-        assertThat(productionLot.getStatus()).isEqualTo(ProductionLotStatus.PREPROCESSED);
-        assertThat(productionLot.getActualQuantity()).isEqualTo(900.0);
-        verify(productionLotRepository, times(1)).save(productionLot);
-        verify(chainEventRepository, times(1)).save(any(ChainEvent.class));
-    }
-
-    @Test
-    void recordPreprocessingEvent_rejectsFutureVietnamDate_whenUtcStillPreviousDay() {
-        // Given: UTC vẫn là 2026-07-25 17:30 nhưng tại Việt Nam đã sang ngày 2026-07-26
-        useBusinessClock(Instant.parse("2026-07-25T17:30:00Z"));
-        when(validUser.getRoleCode()).thenReturn("VT-03");
-        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
-
-        productionLot.setStatus(ProductionLotStatus.HARVESTED);
-        productionLot.setHarvestDate(LocalDate.of(2026, 7, 24));
-        when(productionLotRepository.findById(productionLot.getId())).thenReturn(Optional.of(productionLot));
-
-        vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest prepRequest = new vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest();
-        prepRequest.setProductionLotId(productionLot.getId());
-        prepRequest.setInputQuantity(1000.0);
-        prepRequest.setOutputQuantity(900.0);
-        prepRequest.setPreprocessingDate(LocalDate.of(2026, 7, 27));
-
-        // When & Then
-        assertThatThrownBy(() -> chainEventService.recordPreprocessingEvent(prepRequest, validUser))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("Ngày sơ chế không được là ngày ở tương lai.");
-
-        verify(eventValidationService, times(1)).logFailedAttempt(any(), any(), eq(ChainEventType.PREPROCESSING), anyString(), any());
-        verifyNoInteractions(chainEventRepository);
-    }
-
-    @Test
-    void correctPreprocessingEvent_acceptsVietnamToday_whenUtcStillPreviousDay() {
-        // Given: UTC vẫn là 2026-07-25 17:30 nhưng tại Việt Nam (UTC+7) đã sang ngày 2026-07-26
-        useBusinessClock(Instant.parse("2026-07-25T17:30:00Z"));
-        when(validUser.getRoleCode()).thenReturn("VT-03");
-        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
-        when(validUser.getUserId()).thenReturn(userId);
-
-        UUID originalEventId = UUID.randomUUID();
-        ChainEvent originalEvent = ChainEvent.builder()
-                .id(originalEventId)
-                .eventType(ChainEventType.PREPROCESSING)
-                .eventData("{\"productionLotId\":\"" + productionLot.getId() + "\"}")
-                .build();
-
-        productionLot.setStatus(ProductionLotStatus.HARVESTED);
-        productionLot.setHarvestDate(LocalDate.of(2026, 7, 24));
-
-        when(chainEventRepository.findById(originalEventId)).thenReturn(Optional.of(originalEvent));
-        when(productionLotRepository.findById(productionLot.getId())).thenReturn(Optional.of(productionLot));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(actor));
-
-        ChainEvent correctionSaved = ChainEvent.builder()
-                .id(UUID.randomUUID())
-                .eventType(ChainEventType.PREPROCESSING)
-                .eventData("{\"lossRate\":8.0}")
-                .parentEvent(originalEvent)
-                .isCorrection(true)
-                .recordedAt(LocalDateTime.now())
-                .recordedBy(actor)
-                .build();
-        when(chainEventRepository.save(any(ChainEvent.class))).thenReturn(correctionSaved);
-
-        vn.nguongocso.event.dto.request.CorrectPreprocessingEventRequest correctReq = new vn.nguongocso.event.dto.request.CorrectPreprocessingEventRequest();
-        correctReq.setInputQuantity(1000.0);
-        correctReq.setOutputQuantity(920.0);
-        correctReq.setGrade("Hạng A");
-        correctReq.setPreprocessingDate(LocalDate.of(2026, 7, 26));
-        correctReq.setCorrectionReason("Nhập sai khối lượng ra từ 900 thành 920kg");
-
-        // When
-        ChainEventResponse response = chainEventService.correctPreprocessingEvent(originalEventId, correctReq, validUser);
-
-        // Then
-        assertThat(response).isNotNull();
-        assertThat(productionLot.getActualQuantity()).isEqualTo(920.0);
-        verify(chainEventRepository, times(1)).save(any(ChainEvent.class));
-    }
-
-    @Test
-    void correctPreprocessingEvent_rejectsFutureVietnamDate_whenUtcStillPreviousDay() {
-        // Given: UTC vẫn là 2026-07-25 17:30 nhưng tại Việt Nam đã sang ngày 2026-07-26
-        useBusinessClock(Instant.parse("2026-07-25T17:30:00Z"));
-        when(validUser.getRoleCode()).thenReturn("VT-03");
-        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
-
-        UUID originalEventId = UUID.randomUUID();
-        ChainEvent originalEvent = ChainEvent.builder()
-                .id(originalEventId)
-                .eventType(ChainEventType.PREPROCESSING)
-                .eventData("{\"productionLotId\":\"" + productionLot.getId() + "\"}")
-                .build();
-
-        productionLot.setHarvestDate(LocalDate.of(2026, 7, 24));
-        when(chainEventRepository.findById(originalEventId)).thenReturn(Optional.of(originalEvent));
-        when(productionLotRepository.findById(productionLot.getId())).thenReturn(Optional.of(productionLot));
-
-        vn.nguongocso.event.dto.request.CorrectPreprocessingEventRequest correctReq = new vn.nguongocso.event.dto.request.CorrectPreprocessingEventRequest();
-        correctReq.setInputQuantity(1000.0);
-        correctReq.setOutputQuantity(920.0);
-        correctReq.setPreprocessingDate(LocalDate.of(2026, 7, 27));
-        correctReq.setCorrectionReason("Nhập sai khối lượng ra từ 900 thành 920kg");
-
-        // When & Then
-        assertThatThrownBy(() -> chainEventService.correctPreprocessingEvent(originalEventId, correctReq, validUser))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("Ngày sơ chế không được là ngày ở tương lai.");
-
-        verify(chainEventRepository, never()).save(any(ChainEvent.class));
     }
 }

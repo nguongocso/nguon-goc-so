@@ -12,6 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ChevronLeft, ChevronRight, Eye, RefreshCcw } from 'lucide-react';
+import { HelpButton } from '@/components/help/HelpButton';
 import { getRecallRequests } from '@/api/recallApi';
 import type {
   PageResponse,
@@ -68,9 +69,12 @@ export const RecallRequestListPage = () => {
           <CardTitle className="text-xl font-bold">
             Yêu cầu thu hồi lô sản xuất
           </CardTitle>
-          <Button variant="outline" onClick={() => load()} disabled={loading}>
-            <RefreshCcw className="size-4 mr-1" /> Làm mới
-          </Button>
+          <div className="flex items-center gap-2">
+            <HelpButton screenKey="recall-request-list" />
+            <Button variant="outline" onClick={() => load()} disabled={loading}>
+              <RefreshCcw className="size-4 mr-1" /> Làm mới
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="mb-4 flex items-center gap-2">

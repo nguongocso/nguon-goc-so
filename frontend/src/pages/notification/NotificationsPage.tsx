@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AlertTriangle, Bell, CheckCircle2, ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import { HelpButton } from '@/components/help/HelpButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -73,11 +74,14 @@ const NotificationsPage = () => {
 
   return (
     <div className="container mx-auto max-w-3xl space-y-6 py-8">
-      <div>
-        <h1 className="text-2xl font-bold">Thông báo</h1>
-        <p className="text-sm text-muted-foreground">
-          Danh sách việc cần làm và cảnh báo liên quan đến tài khoản của bạn.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Thông báo</h1>
+          <p className="text-sm text-muted-foreground">
+            Danh sách việc cần làm và cảnh báo liên quan đến tài khoản của bạn.
+          </p>
+        </div>
+        <HelpButton screenKey="notifications" />
       </div>
 
       <div className="flex gap-2">
@@ -117,7 +121,7 @@ const NotificationsPage = () => {
           ) : (
             <ul className="divide-y">
               {items.map((item) => {
-                const Icon = TYPE_ICON[item.type];
+                const Icon = TYPE_ICON[item.type] || Bell;
                 return (
                   <li key={item.id}>
                     <button

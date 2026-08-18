@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import vn.nguongocso.common.ApiResult;
+import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.trace.dto.request.CreateShipmentRequest;
 import vn.nguongocso.trace.dto.response.ShipmentResponse;
@@ -63,6 +64,25 @@ public class ShipmentController {
 	public ApiResult<List<ShipmentResponse>> getShipmentsByProductionLot(@PathVariable UUID productionLotId) {
 
 		return ApiResult.success(shipmentService.getShipmentsByProductionLot(productionLotId));
+	}
+
+	/**
+	 * Lấy danh sách lô hàng theo ID lô sản xuất với phân trang.
+	 *
+	 * @param productionLotId ID của lô sản xuất
+	 * @param page            số trang (mặc định 0)
+	 * @param size            số bản ghi trên mỗi trang (mặc định 10)
+	 * @return danh sách lô hàng phân trang
+	 */
+	@GetMapping("/production-lots/{productionLotId}/paged")
+	@PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
+	public ApiResult<PageResponse<ShipmentResponse>> getShipmentsByProductionLotPaged(
+			@PathVariable UUID productionLotId,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size) {
+
+		return ApiResult.success(
+				shipmentService.getShipmentsByProductionLotPaged(productionLotId, page, size));
 	}
 
 	/**

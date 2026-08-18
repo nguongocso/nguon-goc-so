@@ -18,6 +18,7 @@ import { recordStorageCondition } from '@/api/storageConditionApi';
 import { scanLookupTraceCode } from '@/api/chainEventApi';
 import type { StorageConditionResponse } from '@/types/storageCondition';
 import { toast } from 'sonner';
+import { HelpButton } from '@/components/help/HelpButton';
 
 const formSchema = z.object({
   codeValue: z.string().min(1, 'Vui lòng nhập mã truy xuất'),
@@ -127,11 +128,14 @@ export default function StorageConditionPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-4">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Điều kiện bảo quản</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Ghi nhận nhiệt độ và độ ẩm trong quá trình vận chuyển. Dữ liệu mô phỏng, nhập tay.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Điều kiện bảo quản</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Ghi nhận nhiệt độ và độ ẩm trong quá trình vận chuyển. Dữ liệu mô phỏng, nhập tay.
+          </p>
+        </div>
+        <HelpButton screenKey="storage-condition" />
       </div>
 
       <Card>

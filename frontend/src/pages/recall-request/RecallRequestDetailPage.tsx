@@ -7,6 +7,7 @@ import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, 
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle2, LoaderCircle, XCircle } from 'lucide-react';
+import { HelpButton } from '@/components/help/HelpButton';
 import { approveRecallRequest, getRecallRequest, rejectRecallRequest } from '@/api/recallApi';
 import { useAuth } from '@/hooks/useAuth';
 import type { RecallRequest } from '@/types/recallRequest';
@@ -121,13 +122,16 @@ export const RecallRequestDetailPage = () => {
           <CardTitle className="text-xl font-bold">
             Yêu cầu thu hồi: {request.lotName}
           </CardTitle>
-          <span
-            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-              STATUS_MAP[request.status]?.className || 'bg-gray-100 text-gray-700'
-            }`}
-          >
-            {STATUS_MAP[request.status]?.label || request.status}
-          </span>
+          <div className="flex items-center gap-2">
+            <HelpButton screenKey="recall-request-detail" />
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                STATUS_MAP[request.status]?.className || 'bg-gray-100 text-gray-700'
+              }`}
+            >
+              {STATUS_MAP[request.status]?.label || request.status}
+            </span>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <dl className="divide-y rounded-lg border bg-slate-50 px-4">

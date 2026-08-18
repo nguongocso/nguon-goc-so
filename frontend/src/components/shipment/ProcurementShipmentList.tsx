@@ -14,12 +14,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { ProcurementShipment } from "@/types/shipment";
-import { getEligibleShipments } from "@/api/shipmentApi";
+import type { ProcurementShipment, Shipment } from "@/types/shipment";
+import { getEligibleShipments, getShipmentById } from "@/api/shipmentApi";
 import { exportGs1Dossier } from "@/api/dossierApi";
+import { ShipmentDetailDialog } from "@/components/shipment/ShipmentDetailDialog";
 import { ROLE_ACCESS } from "@/config/roleAccess";
 import { usePermission } from "@/hooks/usePermission";
-import { useNavigate } from "react-router-dom";
 import {
   Eye,
   FileJson,
@@ -56,7 +56,17 @@ export function ProcurementShipmentList({
   const [shipments, setShipments] = useState<ProcurementShipment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const navigate = useNavigate();
+  const [detailShipment, setDetailShipment] = useState<Shipment | null>(null);
+
+  const handleViewDetail = async (shipmentId: string) => {
+    try {
+      const data = await getShipmentById(shipmentId);
+      setDetailShipment(data);
+    } catch {
+      toast.error("Không thể tải chi tiết lô hàng.");
+    }
+  };
+
 
   const loadShipments = useCallback(async () => {
     setIsLoading(true);
@@ -209,10 +219,9 @@ export function ProcurementShipmentList({
 
                       <TableCell>
                         <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            statusClasses[shipment.status] ??
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses[shipment.status] ??
                             "bg-status-draft/10 text-status-draft"
-                          }`}
+                            }`}
                         >
                           {statusLabels[shipment.status] ?? shipment.status}
                         </span>
@@ -224,7 +233,9 @@ export function ProcurementShipmentList({
                             size="sm"
                             type="button"
                             variant="outline"
-                            onClick={() => navigate(`/shipments/${shipment.id}`)}
+                            onClick={() =>
+                              handleViewDetail(shipment.id)
+                            }
                           >
                             <Eye className="size-4" />
                             Chi tiết
@@ -285,6 +296,18 @@ export function ProcurementShipmentList({
         </CardContent>
       </Card>
 
+      <ShipmentDetailDialog
+        open={detailShipment !== null}
+        shipment={detailShipment}
+        onClose={() => setDetailShipment(null)}
+        canActivate={false}
+        canRecall={false}
+        onActivate={() => { }}
+        onRecall={() => { }}
+        onExportDossier={() => { }}
+        onDeleteDraft={() => { }}
+        onViewTimeline={() => { }}
+      />
     </>
   );
 }

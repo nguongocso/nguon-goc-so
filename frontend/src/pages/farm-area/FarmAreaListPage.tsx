@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, MapPin, ExternalLink, RefreshCw } from 'lucide-react';
+import { HelpButton } from '@/components/help/HelpButton';
 import { toast } from 'sonner';
 import { getFarmAreas } from '@/api/farmAreaApi';
 import type { FarmArea } from '@/types/farmArea';
@@ -51,6 +52,7 @@ export default function FarmAreaListPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <HelpButton screenKey="farm-area-list" />
           <Button variant="outline" onClick={fetchAreas} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Làm mới

@@ -40,6 +40,7 @@ import {
 import { toast } from 'sonner';
 import { ResolveScanAnomalyAlertDialog } from './components/ResolveScanAnomalyAlertDialog';
 import { ScanAnomalyAlertDetailsDialog } from './components/ScanAnomalyAlertDetailsDialog';
+import { HelpButton } from '@/components/help/HelpButton';
 
 interface AlertFilters {
   status: ScanAnomalyAlertFilterStatus;
@@ -159,10 +160,13 @@ export default function ScanAnomalyAlertPage() {
             </p>
           </div>
         </div>
-        <Button variant="outline" onClick={fetchAlerts} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Làm mới
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="alert-scan-anomaly" />
+          <Button variant="outline" onClick={fetchAlerts} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Làm mới
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">

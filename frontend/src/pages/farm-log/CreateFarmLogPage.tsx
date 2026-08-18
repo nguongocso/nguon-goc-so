@@ -12,6 +12,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { createFarmLog } from "@/api/farmLogApi";
+import { HelpButton } from "@/components/help/HelpButton";
 import { getProductionLots } from "@/api/productionLotApi";
 import { CreateFarmLogForm } from "@/components/farm-log/CreateFarmLogForm";
 import { Button } from "@/components/ui/button";
@@ -140,15 +141,18 @@ const CreateFarmLogPage = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
-            <ShieldCheck className="size-5 text-blue-700" />
-            <div>
-              <p className="text-xs font-bold text-blue-950">
-                Quyền ghi nhật ký
-              </p>
-              <p className="mt-0.5 text-xs text-blue-700">
-                Người ghi sự kiện · VT-03
-              </p>
+          <div className="flex items-center gap-3">
+            <HelpButton screenKey="farm-log-create" />
+            <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+              <ShieldCheck className="size-5 text-blue-700" />
+              <div>
+                <p className="text-xs font-bold text-blue-950">
+                  Quyền ghi nhật ký
+                </p>
+                <p className="mt-0.5 text-xs text-blue-700">
+                  Người ghi sự kiện · VT-03
+                </p>
+              </div>
             </div>
           </div>
         </header>
