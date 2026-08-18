@@ -48,6 +48,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ApiKeyAuthenticationFilter apiKeyAuthenticationFilter;
+    private final MetricsCollectorFilter metricsCollectorFilter;
 
     @Value("${app.cors.allowed-origins:http://localhost:5173}")
     private String allowedOrigins;
@@ -187,6 +188,10 @@ public class SecurityConfig {
                 )
                 .addFilterBefore(
                         jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                )
+                .addFilterBefore(
+                        metricsCollectorFilter,
                         UsernamePasswordAuthenticationFilter.class
                 );
 
