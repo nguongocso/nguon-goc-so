@@ -20,6 +20,7 @@ import vn.nguongocso.auth.dto.request.LockAccountRequest;
 import vn.nguongocso.auth.dto.response.AccountLockResponse;
 import vn.nguongocso.auth.dto.response.LoginAnomalyResponse;
 import vn.nguongocso.auth.dto.response.LoginHistoryResponse;
+import vn.nguongocso.auth.dto.response.SuspiciousCaseResponse;
 import vn.nguongocso.auth.service.AccountLockService;
 import vn.nguongocso.auth.service.LoginMonitoringService;
 import vn.nguongocso.common.ApiResult;
@@ -97,7 +98,7 @@ public class LoginMonitoringController {
      * - VT-03..VT-05: không có quyền xem (403)
      * </p>
      * 
-     * @param status        lọc theo trạng thái: OPEN, ACCOUNT_LOCKED, DISMISSED (optional)
+     * @param status        lọc theo trạng thái: OPEN, DISMISSED (optional)
      * @param reasonCode    lọc theo nguyên nhân: REPEATED_FAILED_LOGIN, UNUSUAL_COUNTRY (optional)
      * @param organizationId lọc theo tổ chức (chỉ VT-01)
      * @param page          số trang (mặc định 0)
@@ -108,6 +109,7 @@ public class LoginMonitoringController {
     public ResponseEntity<ApiResult<PageResponse<LoginAnomalyResponse>>> getLoginAnomalies(
         @RequestParam(required = false) String status,
         @RequestParam(required = false) String reasonCode,
+        @RequestParam(required = false) String username,
         @RequestParam(required = false) UUID organizationId,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "10") int size
@@ -118,9 +120,30 @@ public class LoginMonitoringController {
             status,
             reasonCode,
             organizationId,
+            username,
             pageable
         );
         
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    @GetMapping("/suspicious-cases")
+    public ResponseEntity<ApiResult<PageResponse<SuspiciousCaseResponse>>> getSuspiciousCases(
+        @RequestParam(required = false) String status,
+        @RequestParam(required = false) String username,
+        @RequestParam(required = false) UUID organizationId,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        PageResponse<SuspiciousCaseResponse> response = loginMonitoringService.getSuspiciousCases(
+            status,
+            organizationId,
+            username,
+            pageable
+        );
+
         return ResponseEntity.ok(ApiResult.success(response));
     }
     
@@ -154,7 +177,11 @@ public class LoginMonitoringController {
         AccountLockResponse response = loginMonitoringService.lockAccount(
             accountId,
             request.getAnomalyId(),
-            request.getReason()
+            request.getReason(),
+            request.getDays() == null ? 0 : request.getDays(),
+            request.getHours() == null ? 0 : request.getHours(),
+            request.getMinutes() == null ? 0 : request.getMinutes(),
+            Boolean.TRUE.equals(request.isPermanent())
         );
         
         return ResponseEntity.ok(ApiResult.success(response));
@@ -187,5 +214,16 @@ public class LoginMonitoringController {
         AccountLockResponse response = loginMonitoringService.unlockAccount(accountId);
         
         return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Đánh dấu tất cả bản ghi bất thường của một tài khoản là đã giải quyết.
+     */
+    @PatchMapping("/accounts/{accountId}/resolve-anomalies")
+    public ResponseEntity<ApiResult<Void>> resolveUserAnomalies(
+        @PathVariable UUID accountId
+    ) {
+        loginMonitoringService.markUserAnomaliesResolved(accountId);
+        return ResponseEntity.ok(ApiResult.success(null));
     }
 }

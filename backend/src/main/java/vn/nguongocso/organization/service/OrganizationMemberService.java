@@ -268,7 +268,7 @@ public class OrganizationMemberService {
                 .roleId(role.getRoleId())
                 .roleCode(role.getCode())
                 .roleName(role.getName())
-                .status(orgUser.getStatus())
+                .status(user.getStatus())
                 .joinedAt(orgUser.getJoinedAt())
                 .build();
     }

@@ -14,14 +14,18 @@ import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.auth.entity.AccountLock;
 import vn.nguongocso.auth.entity.LoginAnomaly;
 import vn.nguongocso.auth.entity.LoginAttempt;
+import vn.nguongocso.auth.entity.SuspiciousCase;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.enums.AccountLockStatus;
 import vn.nguongocso.auth.enums.AnomalyReasonCode;
 import vn.nguongocso.auth.enums.AnomalyStatus;
 import vn.nguongocso.auth.enums.LoginResult;
+import vn.nguongocso.auth.enums.UserStatus;
 import vn.nguongocso.auth.repository.AccountLockRepository;
 import vn.nguongocso.auth.repository.LoginAnomalyRepository;
 import vn.nguongocso.auth.repository.LoginAttemptRepository;
+import vn.nguongocso.auth.repository.SuspiciousCaseRepository;
+import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.LoginAnomalyDetectionService;
 import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.organization.entity.Organization;
@@ -41,7 +45,9 @@ public class LoginAnomalyDetectionServiceImpl implements LoginAnomalyDetectionSe
     
     private final LoginAttemptRepository loginAttemptRepository;
     private final LoginAnomalyRepository loginAnomalyRepository;
+    private final SuspiciousCaseRepository suspiciousCaseRepository;
     private final AccountLockRepository accountLockRepository;
+    private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final OrganizationUserRepository organizationUserRepository;
     
@@ -57,6 +63,11 @@ public class LoginAnomalyDetectionServiceImpl implements LoginAnomalyDetectionSe
         String countryCode
     ) {
         try {
+            if (user == null) {
+                log.warn("Bỏ qua ghi nhận lần đăng nhập do user null. usernameInput={}, ipAddress={}", usernameInput, ipAddress);
+                return;
+            }
+
             // Ghi nhận đăng nhập
             LoginAttempt attempt = LoginAttempt.builder()
                 .user(user)
@@ -115,7 +126,28 @@ public class LoginAnomalyDetectionServiceImpl implements LoginAnomalyDetectionSe
                 user.getUserName(),
                 ipAddress
             );
-            
+
+            // Kiểm tra xem đã có AccountLock nào ở trạng thái LOCKED chưa
+            boolean alreadyLocked = accountLockRepository
+                .existsByUser_UserIdAndStatus(
+                    user.getUserId(),
+                    AccountLockStatus.LOCKED
+                );
+
+            if (!alreadyLocked) {
+                user.setStatus(UserStatus.INACTIVE);
+                userRepository.save(user);
+
+                AccountLock lock = AccountLock.builder()
+                    .user(user)
+                    .lockedBy(user)
+                    .lockReason("REPEATED_FAILED_LOGIN")
+                    .lockedAt(OffsetDateTime.now())
+                    .status(AccountLockStatus.LOCKED)
+                    .build();
+                accountLockRepository.save(lock);
+            }
+
             createAnomaly(
                 user,
                 AnomalyReasonCode.REPEATED_FAILED_LOGIN,
@@ -149,6 +181,10 @@ public class LoginAnomalyDetectionServiceImpl implements LoginAnomalyDetectionSe
                     user.getUserId(),
                     PageRequest.of(0, 1)
                 );
+
+            if (firstLoginPage == null || firstLoginPage.isEmpty()) {
+                return;
+            }
             
             // Chỉ cảnh báo nếu user đã từng đăng nhập thành công trước đó
             // (tức là không phải lần đầu tiên)
@@ -206,6 +242,14 @@ public class LoginAnomalyDetectionServiceImpl implements LoginAnomalyDetectionSe
                 .build();
             
             anomaly = loginAnomalyRepository.save(anomaly);
+            if (anomaly == null) {
+                log.warn(
+                    "Không thể lưu bản ghi bất thường do repository trả về null. userId={}, reasonCode={}",
+                    user.getUserId(),
+                    reasonCode
+                );
+                return;
+            }
             
             log.info(
                 "Bản ghi bất thường đã được tạo. anomalyId={}, userId={}, reasonCode={}, organizationId={}",
@@ -214,9 +258,9 @@ public class LoginAnomalyDetectionServiceImpl implements LoginAnomalyDetectionSe
                 reasonCode,
                 organization.getOrganizationId()
             );
-            
-            // TODO: Gửi thông báo cho admin và quản lý tổ chức qua NotificationService
-            // notificationService.sendLoginAnomalyNotification(anomaly);
+
+            notificationService.sendLoginAnomalyNotification(anomaly);
+            triggerSuspiciousCaseIfThresholdMet(user, organization, anomaly);
             
         } catch (Exception e) {
             log.error(
@@ -226,6 +270,62 @@ public class LoginAnomalyDetectionServiceImpl implements LoginAnomalyDetectionSe
                 e
             );
         }
+    }
+
+    private void triggerSuspiciousCaseIfThresholdMet(
+        User user,
+        Organization organization,
+        LoginAnomaly latestAnomaly
+    ) {
+        List<SuspiciousCase> userCases = suspiciousCaseRepository
+            .findByUser_UserIdOrderByLastDetectedAtDesc(user.getUserId());
+
+        SuspiciousCase latestCase = userCases.isEmpty() ? null : userCases.get(0);
+        OffsetDateTime effectiveWindowStart = latestAnomaly.getDetectedAt().minusHours(24);
+
+        if (latestCase != null && latestCase.getStatus() == AnomalyStatus.DISMISSED) {
+            effectiveWindowStart = latestCase.getLastDetectedAt().plusSeconds(1);
+        }
+
+        List<LoginAnomaly> recentAnomalies = loginAnomalyRepository
+            .findByUser_UserIdAndDetectedAtAfterOrderByDetectedAtDesc(
+                user.getUserId(),
+                effectiveWindowStart
+            );
+
+        if (recentAnomalies.size() < 5) {
+            return;
+        }
+
+        boolean hasOpenCaseInWindow = suspiciousCaseRepository
+            .existsByUser_UserIdAndStatusAndLastDetectedAtAfter(
+                user.getUserId(),
+                AnomalyStatus.OPEN,
+                effectiveWindowStart
+            );
+
+        if (hasOpenCaseInWindow) {
+            return;
+        }
+
+        SuspiciousCase suspiciousCase = SuspiciousCase.builder()
+            .user(user)
+            .organization(organization)
+            .status(AnomalyStatus.OPEN)
+            .anomalyCount(recentAnomalies.size())
+            .firstDetectedAt(recentAnomalies.get(recentAnomalies.size() - 1).getDetectedAt())
+            .lastDetectedAt(latestAnomaly.getDetectedAt())
+            .createdAt(OffsetDateTime.now())
+            .build();
+
+        suspiciousCaseRepository.save(suspiciousCase);
+        log.info(
+            "Tạo case nghi vấn mới. userId={}, anomalyCount={}, firstDetectedAt={}, lastDetectedAt={}",
+            user.getUserId(),
+            suspiciousCase.getAnomalyCount(),
+            suspiciousCase.getFirstDetectedAt(),
+            suspiciousCase.getLastDetectedAt()
+        );
     }
     
     /**

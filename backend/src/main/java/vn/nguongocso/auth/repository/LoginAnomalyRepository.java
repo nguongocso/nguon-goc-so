@@ -1,5 +1,6 @@
 package vn.nguongocso.auth.repository;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -38,9 +39,14 @@ public interface LoginAnomalyRepository extends JpaRepository<LoginAnomaly, UUID
         UUID userId,
         Pageable pageable
     );
+
+    List<LoginAnomaly> findByUser_UserIdAndDetectedAtAfterOrderByDetectedAtDesc(
+        UUID userId,
+        java.time.OffsetDateTime detectedAtAfter
+    );
     
     /**
-     * Đếm số lượng bất thường chưa xử lý (status = OPEN) của một tổ chức.
+     * Đếm số lượng bất thường chưa giải quyết (status = OPEN) của một tổ chức.
      */
     long countByOrganization_OrganizationIdAndStatus(
         UUID organizationId,

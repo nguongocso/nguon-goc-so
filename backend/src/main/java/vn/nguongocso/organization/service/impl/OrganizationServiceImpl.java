@@ -638,7 +638,7 @@ public class OrganizationServiceImpl
                                 .roleId(role.getRoleId())
                                 .roleCode(role.getCode())
                                 .roleName(role.getName())
-                                .status(organizationUser.getStatus())
+                                .status(user.getStatus())
                                 .joinedAt(organizationUser.getJoinedAt())
                                 .build();
         }

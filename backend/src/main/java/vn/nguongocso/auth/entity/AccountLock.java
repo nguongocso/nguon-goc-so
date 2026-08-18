@@ -79,12 +79,24 @@ public class AccountLock {
     private OffsetDateTime lockedAt;
     
     /**
+     * Thời điểm hết hạn nếu khoá tạm. Null nghĩa là khoá vĩnh viễn.
+     */
+    @Column(nullable = true)
+    private OffsetDateTime lockUntil;
+
+    /**
+     * True nếu đây là khóa vĩnh viễn, chỉ mở khóa thủ công bởi admin.
+     */
+    @Column(nullable = false)
+    private boolean permanent = false;
+
+    /**
      * Người thực hiện mở khoá (nếu đã mở khoá).
      */
     @ManyToOne
     @JoinColumn(name = "unlocked_by", nullable = true)
     private User unlockedBy;
-    
+
     /**
      * Thời điểm mở khoá. Null nếu tài khoản vẫn còn khoá.
      */

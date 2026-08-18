@@ -40,12 +40,21 @@ public class AccountLockResponse {
     private OffsetDateTime lockedAt;
     
     /**
-     * Username của người thực hiện mở khoá (nếu có).
+     * Thời điểm khóa hết hạn nếu là khóa.
+     */
+    private OffsetDateTime lockUntil;
+
+    /**
+     * Đây là khóa vĩnh viễn hay không.
+     */
+    private Boolean permanent;
+
+    /**
+     * Username của người thực hiện mở khóa, nếu đã mở khóa.
      */
     private String unlockedBy;
-    
+
     /**
-     * Thời điểm mở khoá (nếu có).
      */
     private OffsetDateTime unlockedAt;
     

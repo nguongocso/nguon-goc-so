@@ -80,9 +80,25 @@ public class LoginAnomalyResponse {
     private OffsetDateTime detectedAt;
     
     /**
-     * Trạng thái: OPEN, ACCOUNT_LOCKED, DISMISSED.
+     * Trạng thái: OPEN, DISMISSED.
      */
     private String status;
+
+    /**
+     * Trạng thái khóa thực tế của tài khoản trên hệ thống.
+     * true = đang bị khóa, false = đang mở khóa.
+     */
+    private boolean accountLocked;
+
+    /**
+     * Thời điểm khóa hết hạn nếu hiện tại đang bị khóa.
+     */
+    private OffsetDateTime lockUntil;
+
+    /**
+     * True nếu hiện tại đang là khóa vĩnh viễn.
+     */
+    private boolean permanentLock;
     
     /**
      * ID thông báo đã tạo cho sự kiện này (nếu có).

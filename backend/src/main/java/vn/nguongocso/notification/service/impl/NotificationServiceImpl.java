@@ -433,6 +433,10 @@ public class NotificationServiceImpl implements NotificationService {
                                 NOTIFICATION_READ_ACTION);
         }
 
+        private List<User> getLoginSecurityRecipients(User targetUser) {
+                return targetUser == null ? List.of() : List.of(targetUser);
+        }
+
         // =========================================================
         // 5. GET DANH SÁCH THÔNG BÁO
         // =========================================================
@@ -715,15 +719,12 @@ public class NotificationServiceImpl implements NotificationService {
          */
         @Override
         public void sendLoginAnomalyNotification(vn.nguongocso.auth.entity.LoginAnomaly anomaly) {
-                List<User> recipients = getNotificationRecipients(anomaly.getOrganization().getOrganizationId());
+                List<User> recipients = getLoginSecurityRecipients(anomaly.getUser());
 
                 if (recipients.isEmpty()) {
                         log.warn(
-                                        "Không có người dùng có permission {}:{} để nhận "
-                                                        + "thông báo bất thường đăng nhập. organizationId={}",
-                                        NOTIFICATION_RESOURCE,
-                                        NOTIFICATION_READ_ACTION,
-                                        anomaly.getOrganization().getOrganizationId());
+                                        "Không có tài khoản nào được nhận thông báo đăng nhập bất thường. userId={}",
+                                        anomaly.getUser().getUserId());
                         return;
                 }
 
@@ -763,33 +764,25 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         /**
-         * Gửi thông báo khi tài khoản bị khóa tạm.
+         * Gửi thông báo khi tài khoản bị khóa.
          *
          * @param accountLock bản ghi khóa tài khoản
          */
         @Override
         public void sendAccountLockedNotification(vn.nguongocso.auth.entity.AccountLock accountLock) {
                 User lockedUser = accountLock.getUser();
-                List<User> recipients = getNotificationRecipients(
-                        organizationUserRepository.findFirstByUser(lockedUser)
-                                .orElseThrow()
-                                .getOrganization()
-                                .getOrganizationId()
-                );
+                List<User> recipients = getLoginSecurityRecipients(lockedUser);
 
                 if (recipients.isEmpty()) {
                         log.warn(
-                                        "Không có người dùng có permission {}:{} để nhận "
-                                                        + "thông báo khóa tài khoản. userId={}",
-                                        NOTIFICATION_RESOURCE,
-                                        NOTIFICATION_READ_ACTION,
+                                        "Không có tài khoản nào được nhận thông báo khóa tài khoản. userId={}",
                                         lockedUser.getUserId());
                         return;
                 }
 
-                String title = "Tài khoản bị khóa tạm";
+                String title = "Tài khoản bị khóa";
                 String content = String.format(
-                        "Tài khoản %s (%s) đã bị khóa tạm bởi %s. "
+                        "Tài khoản %s (%s) đã bị khóa bởi %s. "
                                 + "Lý do: %s. "
                                 + "Vui lòng liên hệ với quản trị viên để mở khóa.",
                         lockedUser.getUserName(),
@@ -829,19 +822,11 @@ public class NotificationServiceImpl implements NotificationService {
         @Override
         public void sendAccountUnlockedNotification(vn.nguongocso.auth.entity.AccountLock accountLock) {
                 User unlockedUser = accountLock.getUser();
-                List<User> recipients = getNotificationRecipients(
-                        organizationUserRepository.findFirstByUser(unlockedUser)
-                                .orElseThrow()
-                                .getOrganization()
-                                .getOrganizationId()
-                );
+                List<User> recipients = getLoginSecurityRecipients(unlockedUser);
 
                 if (recipients.isEmpty()) {
                         log.warn(
-                                        "Không có người dùng có permission {}:{} để nhận "
-                                                        + "thông báo mở khóa tài khoản. userId={}",
-                                        NOTIFICATION_RESOURCE,
-                                        NOTIFICATION_READ_ACTION,
+                                        "Không có tài khoản nào được nhận thông báo mở khóa tài khoản. userId={}",
                                         unlockedUser.getUserId());
                         return;
                 }

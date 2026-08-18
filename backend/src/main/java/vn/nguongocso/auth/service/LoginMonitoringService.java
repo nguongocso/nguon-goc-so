@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import vn.nguongocso.auth.dto.response.AccountLockResponse;
 import vn.nguongocso.auth.dto.response.LoginAnomalyResponse;
 import vn.nguongocso.auth.dto.response.LoginHistoryResponse;
+import vn.nguongocso.auth.dto.response.SuspiciousCaseResponse;
 import vn.nguongocso.common.PageResponse;
 
 /**
@@ -36,10 +37,27 @@ public interface LoginMonitoringService {
     /**
      * Lấy danh sách bất thường với bộ lọc.
      */
+    default PageResponse<LoginAnomalyResponse> getLoginAnomalies(
+        String status,
+        String reasonCode,
+        UUID organizationId,
+        Pageable pageable
+    ) {
+        return getLoginAnomalies(status, reasonCode, organizationId, null, pageable);
+    }
+
     PageResponse<LoginAnomalyResponse> getLoginAnomalies(
         String status,
         String reasonCode,
         UUID organizationId,
+        String username,
+        Pageable pageable
+    );
+
+    PageResponse<SuspiciousCaseResponse> getSuspiciousCases(
+        String status,
+        UUID organizationId,
+        String username,
         Pageable pageable
     );
     
@@ -51,9 +69,24 @@ public interface LoginMonitoringService {
         UUID anomalyId,
         String reason
     );
+
+    AccountLockResponse lockAccount(
+        UUID accountId,
+        UUID anomalyId,
+        String reason,
+        Integer days,
+        Integer hours,
+        Integer minutes,
+        boolean permanent
+    );
     
     /**
      * Mở khoá một tài khoản.
      */
     AccountLockResponse unlockAccount(UUID accountId);
+
+    /**
+     * Đánh dấu tất cả bản ghi bất thường của một tài khoản là đã giải quyết.
+     */
+    void markUserAnomaliesResolved(UUID accountId);
 }

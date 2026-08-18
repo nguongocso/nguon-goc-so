@@ -32,6 +32,17 @@ public interface AccountLockService {
         String reason,
         User lockedBy
     );
+
+    UUID lockAccount(
+        UUID accountId,
+        UUID anomalyId,
+        String reason,
+        User lockedBy,
+        Integer days,
+        Integer hours,
+        Integer minutes,
+        boolean permanent
+    );
     
     /**
      * Mở khóa một tài khoản.

@@ -93,7 +93,7 @@ public class LoginAnomaly {
     private OffsetDateTime detectedAt;
     
     /**
-     * Trạng thái xử lý bất thường: OPEN, ACCOUNT_LOCKED, DISMISSED.
+     * Trạng thái xử lý bất thường: OPEN, DISMISSED.
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

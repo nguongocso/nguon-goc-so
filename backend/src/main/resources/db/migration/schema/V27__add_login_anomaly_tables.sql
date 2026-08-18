@@ -50,9 +50,7 @@ CREATE TABLE login_attempts (
                                 INDEX idx_login_attempts_user_country
                                     (user_id, country_code)
 
-) ENGINE=InnoDB
-DEFAULT CHARSET=utf8mb4
-COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB;
 
 
 -- ============================================================
@@ -102,9 +100,7 @@ CREATE TABLE login_anomalies (
                                  INDEX idx_login_anomalies_status
                                      (status)
 
-) ENGINE=InnoDB
-DEFAULT CHARSET=utf8mb4
-COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB;
 
 
 -- ============================================================
@@ -131,6 +127,8 @@ CREATE TABLE account_locks (
                                locked_by CHAR(36) NOT NULL,
                                lock_reason VARCHAR(500) NULL,
                                locked_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+                               lock_until TIMESTAMP(3) NULL,
+                               permanent BOOLEAN NOT NULL DEFAULT FALSE,
                                unlocked_by CHAR(36) NULL,
                                unlocked_at TIMESTAMP(3) NULL,
                                status VARCHAR(50) NOT NULL DEFAULT 'LOCKED',
@@ -160,9 +158,7 @@ CREATE TABLE account_locks (
                                INDEX idx_account_locks_user_locked_at
                                    (user_id, locked_at DESC)
 
-) ENGINE=InnoDB
-DEFAULT CHARSET=utf8mb4
-COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB;
 
 
 -- ============================================================

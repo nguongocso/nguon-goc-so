@@ -66,6 +66,8 @@ import JoinOrganizationPage from "@/pages/public/JoinOrganizationPage";
 // ===== Reports =====
 import LookupStatisticsPage from "@/pages/report/LookupStatisticsPage";
 import ActivityLogPage from "@/pages/report/ActivityLogPage";
+import LoginHistoryPage from "@/pages/report/LoginHistoryPage";
+import LoginAnomalyTrackingPage from "@/pages/report/LoginAnomalyTrackingPage";
 import FailedEventLogsPage from "@/pages/report/FailedEventLogsPage";
 import CropAreaAnalysisPage from "@/pages/report/CropAreaAnalysisPage";
 import IndustryReportPage from "@/pages/report/IndustryReportPage";
@@ -657,6 +659,24 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-02"]}>
                         <ActivityLogPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="login-history"
+                element={
+                    <PrivateRoute>
+                        <LoginHistoryPage />
+                    </PrivateRoute>
+                }
+            />
+
+            <Route
+                path="login-anomalies"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <LoginAnomalyTrackingPage />
                     </RoleRoute>
                 }
             />

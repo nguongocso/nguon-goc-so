@@ -1,5 +1,6 @@
 package vn.nguongocso.auth.service.impl;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -46,64 +47,107 @@ public class AccountLockServiceImpl implements AccountLockService {
         String reason,
         User lockedBy
     ) {
+        return lockAccount(accountId, anomalyId, reason, lockedBy, 0, 0, 0, false);
+    }
+
+    @Override
+    public UUID lockAccount(
+        UUID accountId,
+        UUID anomalyId,
+        String reason,
+        User lockedBy,
+        Integer days,
+        Integer hours,
+        Integer minutes,
+        boolean permanent
+    ) {
         User account = userRepository.findById(accountId)
             .orElseThrow(() -> new BusinessException("Tài khoản không tồn tại"));
-        
+
         if (account.getStatus() != UserStatus.ACTIVE) {
             throw new BusinessException("Tài khoản không ở trạng thái hoạt động");
         }
-        
-        // Kiểm tra xem tài khoản đã bị khoá trước đó chưa
-        boolean alreadyLocked = accountLockRepository
-            .existsByUser_UserIdAndStatus(
-                accountId,
-                AccountLockStatus.LOCKED
-            );
-        
-        if (alreadyLocked) {
-            throw new BusinessException("Tài khoản đã bị khóa tạm trước đó");
-        }
-        
-        // Cập nhật trạng thái tài khoản thành LOCKED
-        account.setStatus(UserStatus.LOCKED);
+
+        account.setStatus(UserStatus.INACTIVE);
         userRepository.save(account);
-        
-        // Tạo bản ghi khoá
+
+        AccountLock activeLock = accountLockRepository
+            .findFirstByUser_UserIdAndStatusOrderByLockedAtDesc(accountId, AccountLockStatus.LOCKED)
+            .orElse(null);
+
+        if (activeLock != null) {
+            OffsetDateTime now = OffsetDateTime.now();
+            long elapsedSeconds = Duration.between(activeLock.getLockedAt(), now).getSeconds();
+
+            if (!activeLock.isPermanent() && activeLock.getLockUntil() != null) {
+                if (now.isBefore(activeLock.getLockUntil())) {
+                    throw new BusinessException("Tài khoản đã bị khóa trước đó");
+                }
+                activeLock.setStatus(AccountLockStatus.UNLOCKED);
+                activeLock.setUnlockedAt(now);
+                accountLockRepository.save(activeLock);
+                log.info("Cập nhật bản ghi khóa cũ từ thời hạn hết hạn thành UNLOCKED. accountId={}, elapsedSeconds={}", accountId, elapsedSeconds);
+            } else if (activeLock.isPermanent() || activeLock.getLockUntil() == null) {
+                if (activeLock.isPermanent()) {
+                    throw new BusinessException("Tài khoản đang bị khóa vĩnh viễn, cần mở khóa thủ công mới được truy cập lại");
+                }
+                if (elapsedSeconds < 60) {
+                    throw new BusinessException("Tài khoản đã bị khóa trước đó");
+                }
+                activeLock.setStatus(AccountLockStatus.UNLOCKED);
+                activeLock.setUnlockedAt(now);
+                accountLockRepository.save(activeLock);
+                log.info("Cập nhật bản ghi khóa cũ từ timeout thành UNLOCKED. accountId={}, elapsedSeconds={}", accountId, elapsedSeconds);
+            }
+        }
+
         LoginAnomaly anomaly = null;
         if (anomalyId != null) {
-            anomaly = loginAnomalyRepository.findById(anomalyId)
-                .orElse(null);
-            
+            anomaly = loginAnomalyRepository.findById(anomalyId).orElse(null);
             if (anomaly != null) {
-                anomaly.setStatus(AnomalyStatus.ACCOUNT_LOCKED);
+                // Trạng thái khóa của tài khoản thuộc AccountLockStatus, không phải AnomalyStatus.
+                // Bản ghi bất thường chỉ được chuyển trạng thái khi admin đánh dấu đã giải quyết.
                 loginAnomalyRepository.save(anomaly);
             }
         }
-        
+
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime lockUntil = null;
+        if (!permanent) {
+            int totalMinutes = (days == null ? 0 : days) * 24 * 60
+                + (hours == null ? 0 : hours) * 60
+                + (minutes == null ? 0 : minutes);
+            if (totalMinutes <= 0) {
+                totalMinutes = 60;
+            }
+            lockUntil = now.plusMinutes(totalMinutes);
+        }
+
         AccountLock lock = AccountLock.builder()
             .user(account)
             .anomaly(anomaly)
             .lockedBy(lockedBy)
             .lockReason(reason)
-            .lockedAt(OffsetDateTime.now())
+            .lockedAt(now)
+            .lockUntil(lockUntil)
+            .permanent(permanent)
             .status(AccountLockStatus.LOCKED)
             .build();
-        
+
         accountLockRepository.save(lock);
-        
+
         log.info(
-            "Tài khoản đã được khóa tạm. accountId={}, lockedBy={}, reason={}",
+            "Tài khoản đã được khóa. accountId={}, lockedBy={}, reason={}, permanent={}, lockUntil={}",
             accountId,
             lockedBy.getUserId(),
-            reason
+            reason,
+            permanent,
+            lockUntil
         );
-        
-        // Vô hiệu hoá tất cả access token
+
         invalidateAllTokens(accountId);
-        
-        // Gửi thông báo cho các admin/quản lý tổ chức
         notificationService.sendAccountLockedNotification(lock);
-        
+
         return accountId;
     }
     
@@ -115,23 +159,15 @@ public class AccountLockServiceImpl implements AccountLockService {
         User account = userRepository.findById(accountId)
             .orElseThrow(() -> new BusinessException("Tài khoản không tồn tại"));
         
-        if (account.getStatus() != UserStatus.LOCKED) {
-            throw new BusinessException("Tài khoản hiện không ở trạng thái bị khóa tạm");
-        }
-        
-        // Lấy bản ghi khoá gần nhất
+        // Lấy bản ghi khóa gần nhất đang ở trạng thái LOCKED
         AccountLock lock = accountLockRepository
-            .findFirstByUser_UserIdAndStatusOrderByLockedAtDesc(
-                accountId,
-                AccountLockStatus.LOCKED
-            )
-            .orElseThrow(() -> new BusinessException("Không tìm thấy bản ghi khóa cho tài khoản"));
+            .findTopByUser_UserIdOrderByLockedAtDesc(accountId)
+            .filter(currentLock -> currentLock.getStatus() == AccountLockStatus.LOCKED)
+            .orElseThrow(() -> new BusinessException("Tài khoản hiện không ở trạng thái bị khóa"));
         
-        // Cập nhật trạng thái tài khoản thành ACTIVE
         account.setStatus(UserStatus.ACTIVE);
         userRepository.save(account);
-        
-        // Cập nhật bản ghi khoá
+
         lock.setStatus(AccountLockStatus.UNLOCKED);
         lock.setUnlockedBy(unlockedBy);
         lock.setUnlockedAt(OffsetDateTime.now());

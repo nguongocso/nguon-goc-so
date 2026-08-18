@@ -30,4 +30,24 @@ public class LockAccountRequest {
      */
     @Size(max = 500, message = "Lý do khoá không được vượt quá 500 ký tự")
     private String reason;
+
+    /**
+     * Có phải khóa vĩnh viễn hay không.
+     */
+    private boolean permanent;
+
+    /**
+     * Số ngày khóa.
+     */
+    private Integer days;
+
+    /**
+     * Số giờ khóa.
+     */
+    private Integer hours;
+
+    /**
+     * Số phút khóa.
+     */
+    private Integer minutes;
 }

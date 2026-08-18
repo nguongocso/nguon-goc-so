@@ -1,5 +1,7 @@
 package vn.nguongocso.auth.repository;
 
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,6 +27,12 @@ public interface AccountLockRepository extends JpaRepository<AccountLock, UUID> 
         UUID userId,
         AccountLockStatus status
     );
+
+    /**
+     * Lấy bản ghi khoá gần nhất theo thời gian, bất kể trạng thái hiện tại.
+     * Dùng để xác định trạng thái khoá hiện tại sau khi mở khoá trước đó.
+     */
+    Optional<AccountLock> findTopByUser_UserIdOrderByLockedAtDesc(UUID userId);
     
     /**
      * Lấy lịch sử khoá/mở khoá của một tài khoản.
@@ -40,5 +48,13 @@ public interface AccountLockRepository extends JpaRepository<AccountLock, UUID> 
     boolean existsByUser_UserIdAndStatus(
         UUID userId,
         AccountLockStatus status
+    );
+
+    /**
+     * Lấy các bản ghi khóa tạm đã hết hạn và vẫn đang ở trạng thái LOCKED.
+     */
+    List<AccountLock> findByStatusAndPermanentFalseAndLockUntilBefore(
+        AccountLockStatus status,
+        OffsetDateTime before
     );
 }

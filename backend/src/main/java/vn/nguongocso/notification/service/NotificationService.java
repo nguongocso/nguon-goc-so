@@ -68,7 +68,7 @@ public interface NotificationService {
     void sendLoginAnomalyNotification(LoginAnomaly anomaly);
 
     /**
-     * Gửi thông báo khi tài khoản bị khóa tạm.
+     * Gửi thông báo khi tài khoản bị khóa.
      */
     void sendAccountLockedNotification(AccountLock accountLock);
 

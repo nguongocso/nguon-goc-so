@@ -54,7 +54,7 @@ Quyền xem/thao tác áp dụng theo đúng mô hình phân quyền đã dùng 
 
 
 
-Khóa tạm là vô thời hạn: Admin (VT-01 hoặc quản lý tổ chức có quyền) khóa tạm → tài khoản giữ trạng thái LOCKED cho đến khi được mở khóa thủ công, không có cơ chế tự hết hạn.
+khóa là vô thời hạn: Admin (VT-01 hoặc quản lý tổ chức có quyền) khóa → tài khoản giữ trạng thái LOCKED cho đến khi được mở khóa thủ công, không có cơ chế tự hết hạn.
 
 
 
@@ -370,7 +370,7 @@ Trả về lịch sử các lần đăng nhập (thành công và thất bại) 
 
 
 
-| {<br>"success": false,<br>"status": 409,<br>"message": "Tài khoản đã bị khóa tạm trước đó"<br>} |
+| {<br>"success": false,<br>"status": 409,<br>"message": "Tài khoản đã bị khóa trước đó"<br>} |
 
 | --- |
 
@@ -380,7 +380,7 @@ Trả về lịch sử các lần đăng nhập (thành công và thất bại) 
 
 
 
-| {<br>"success": false,<br>"status": 403,<br>"message": "Bạn không có quyền khóa tạm tài khoản này"<br>} |
+| {<br>"success": false,<br>"status": 403,<br>"message": "Bạn không có quyền khóa tài khoản này"<br>} |
 
 | --- |
 
@@ -420,7 +420,7 @@ Tài khoản LOCKED giữ nguyên trạng thái vô thời hạn cho đến khi 
 
 
 
-| {<br>"success": false,<br>"status": 409,<br>"message": "Tài khoản hiện không ở trạng thái bị khóa tạm"<br>} |
+| {<br>"success": false,<br>"status": 409,<br>"message": "Tài khoản hiện không ở trạng thái bị khóa"<br>} |
 
 | --- |
 
@@ -450,7 +450,7 @@ Không tạo endpoint thông báo mới. Ba API đã có trong NotificationContr
 
 
 
-| // Trong LoginAnomalyDetectionServiceImpl, sau khi lưu bản ghi login_anomalies<br>notificationService.create(<br>NotificationCreateCommand.builder()<br>.recipientUserIds(platformAdminAndScopedOrgManagerIds)<br>.type("LOGIN_ANOMALY_DETECTED")<br>.referenceType("LOGIN_ANOMALY")<br>.referenceId(anomaly.getId())<br>.message(buildAnomalyMessage(anomaly)) // vd: "Tài khoản field_staff01 đăng nhập bất thường"<br>.build());<br>// Trong AccountLockServiceImpl, sau khi khoá / mở khoá thành công<br>notificationService.create(<br>NotificationCreateCommand.builder()<br>.recipientUserIds(List.of(lockedAccount.getUserId()))<br>.type("ACCOUNT_LOCKED") // hoặc "ACCOUNT_UNLOCKED"<br>.referenceType("ACCOUNT_LOCK")<br>.referenceId(accountLock.getId())<br>.message("Tài khoản của bạn đã bị khóa tạm do phát hiện đăng nhập bất thường")<br>.build()); |
+| // Trong LoginAnomalyDetectionServiceImpl, sau khi lưu bản ghi login_anomalies<br>notificationService.create(<br>NotificationCreateCommand.builder()<br>.recipientUserIds(platformAdminAndScopedOrgManagerIds)<br>.type("LOGIN_ANOMALY_DETECTED")<br>.referenceType("LOGIN_ANOMALY")<br>.referenceId(anomaly.getId())<br>.message(buildAnomalyMessage(anomaly)) // vd: "Tài khoản field_staff01 đăng nhập bất thường"<br>.build());<br>// Trong AccountLockServiceImpl, sau khi khoá / mở khoá thành công<br>notificationService.create(<br>NotificationCreateCommand.builder()<br>.recipientUserIds(List.of(lockedAccount.getUserId()))<br>.type("ACCOUNT_LOCKED") // hoặc "ACCOUNT_UNLOCKED"<br>.referenceType("ACCOUNT_LOCK")<br>.referenceId(accountLock.getId())<br>.message("Tài khoản của bạn đã bị khóa do phát hiện đăng nhập bất thường")<br>.build()); |
 
 | --- |
 

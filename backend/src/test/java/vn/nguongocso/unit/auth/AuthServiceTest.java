@@ -2,6 +2,7 @@ package vn.nguongocso.unit.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -18,15 +19,23 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.OffsetDateTime;
+
 import vn.nguongocso.auth.dto.request.LoginRequest;
 import vn.nguongocso.auth.dto.request.SelectOrganizationRequest;
 import vn.nguongocso.auth.dto.response.LoginResponse;
 import vn.nguongocso.auth.dto.response.SelectOrganizationResponse;
+import vn.nguongocso.auth.entity.AccountLock;
 import vn.nguongocso.auth.entity.User;
+import vn.nguongocso.auth.enums.AccountLockStatus;
 import vn.nguongocso.auth.enums.UserStatus;
+import vn.nguongocso.auth.repository.AccountLockRepository;
+import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.AuthService;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.auth.service.CustomUserDetailsService;
+import vn.nguongocso.auth.service.LoginAnomalyDetectionService;
+import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.config.JwtTokenProvider;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.organization.entity.Organization;
@@ -49,6 +58,15 @@ class AuthServiceTest {
 
     @Mock
     private OrganizationUserRepository organizationUserRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private AccountLockRepository accountLockRepository;
+
+    @Mock
+    private LoginAnomalyDetectionService loginAnomalyDetectionService;
 
     @InjectMocks
     private AuthService authService;
@@ -196,6 +214,51 @@ class AuthServiceTest {
                 () -> authService.login(request))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Sai mật khẩu");
+
+        org.mockito.Mockito.verify(loginAnomalyDetectionService)
+                .recordLoginAttempt(
+                        eq(user),
+                        eq("tpd01"),
+                        eq(false),
+                        org.mockito.ArgumentMatchers.anyString(),
+                        eq(null));
+    }
+
+    @Test
+    void login_shouldRejectLockedAccountWithinSixtySeconds() {
+        LoginRequest request = new LoginRequest();
+        request.setUsername("tpd01");
+        request.setPassword("password");
+
+        OffsetDateTime lockTime = OffsetDateTime.now().minusSeconds(30);
+        AccountLock lock = AccountLock.builder()
+                .user(user)
+                .lockedBy(user)
+                .lockedAt(lockTime)
+                .status(AccountLockStatus.LOCKED)
+                .build();
+
+        when(userDetailsService.loadUser("tpd01"))
+                .thenReturn(user);
+        when(accountLockRepository.findFirstByUser_UserIdAndStatusOrderByLockedAtDesc(
+                userId,
+                AccountLockStatus.LOCKED))
+                .thenReturn(Optional.of(lock));
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(ex -> {
+                    String message = ex.getMessage();
+                    assertThat(message)
+                            .contains("Tài khoản đang bị khóa")
+                            .contains("vui lòng thử lại sau ")
+                            .doesNotContain("sau 60s");
+
+                    String suffix = message.substring(message.lastIndexOf("sau ") + 4);
+                    String numberPart = suffix.replace("s", "").trim();
+                    int remainingSeconds = Integer.parseInt(numberPart);
+                    assertThat(remainingSeconds).isBetween(1, 59);
+                });
     }
 
     // =========================================================
@@ -297,6 +360,9 @@ class AuthServiceTest {
                                 organizationId))
                 .thenReturn(Optional.of(membership));
 
+        when(userRepository.findById(userId))
+                .thenReturn(Optional.of(user));
+
         when(
                 userDetailsService
                         .loadUserByUserIdAndOrganizationId(
@@ -338,6 +404,14 @@ class AuthServiceTest {
 
         verify(tokenProvider)
                 .generateAccessToken(userDetails);
+
+        org.mockito.Mockito.verify(loginAnomalyDetectionService)
+                .recordLoginAttempt(
+                        eq(user),
+                        eq("tpd01"),
+                        eq(true),
+                        org.mockito.ArgumentMatchers.anyString(),
+                        eq(null));
     }
 
     // =========================================================
