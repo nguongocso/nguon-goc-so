@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, RefreshCw, MessageSquare } from "lucide-react";
+import { HelpButton } from "@/components/help/HelpButton";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -106,16 +107,19 @@ export default function ProductFeedbackManagementPage() {
             Xem và xử lý các phản ánh từ người dùng về sản phẩm.
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={loading}
-          className="shrink-0"
-        >
-          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Làm mới
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="product-feedback" />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={loading}
+            className="shrink-0"
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Làm mới
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}

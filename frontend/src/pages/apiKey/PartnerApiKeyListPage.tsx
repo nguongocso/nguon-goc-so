@@ -35,6 +35,7 @@ import { CreateApiKeyModal } from '@/components/apiKey/CreateApiKeyModal';
 import { RawApiKeyModal } from '@/components/apiKey/RawApiKeyModal';
 import { RevokeApiKeyDialog } from '@/components/apiKey/RevokeApiKeyDialog';
 import { usePermission } from '@/hooks/usePermission';
+import { HelpButton } from '@/components/help/HelpButton';
 
 export const PartnerApiKeyListPage: React.FC = () => {
   const canManage = usePermission(['VT-01', 'VT-02']);
@@ -114,15 +115,18 @@ export const PartnerApiKeyListPage: React.FC = () => {
           </p>
         </div>
 
-        {canManage && (
-          <Button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 gap-2 shadow-sm"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>Cấp khóa mới</span>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="admin-api-keys" />
+          {canManage && (
+            <Button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 gap-2 shadow-sm"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Cấp khóa mới</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Thẻ thống kê tổng quan */}

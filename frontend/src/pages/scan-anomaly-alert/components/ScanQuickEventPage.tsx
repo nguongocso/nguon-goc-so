@@ -27,6 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { HelpButton } from "@/components/help/HelpButton";
 
 type CameraState =
   | { step: "scanning" }
@@ -200,15 +201,18 @@ export default function ScanQuickEventPage() {
 
   return (
     <Card className="mx-auto max-w-2xl">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ScanLine className="h-5 w-5" />
-          Quét mã ghi sự kiện nhanh
-        </CardTitle>
-        <CardDescription>
-          Đưa mã QR/barcode in trên bao bì lô hàng vào khung hình. Hệ thống sẽ
-          tự xác định lô hàng và mở nhanh biểu mẫu ghi sự kiện phù hợp.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <div>
+          <CardTitle className="flex items-center gap-2">
+            <ScanLine className="h-5 w-5" />
+            Quét mã ghi sự kiện nhanh
+          </CardTitle>
+          <CardDescription>
+            Đưa mã QR/barcode in trên bao bì lô hàng vào khung hình. Hệ thống sẽ
+            tự xác định lô hàng và mở nhanh biểu mẫu ghi sự kiện phù hợp.
+          </CardDescription>
+        </div>
+        <HelpButton screenKey="scan-quick-event" />
       </CardHeader>
 
       <CardContent className="space-y-4">

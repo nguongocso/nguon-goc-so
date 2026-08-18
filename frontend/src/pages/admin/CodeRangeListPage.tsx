@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import type { CodeRangeStatusResponse } from "@/types/codeRange";
 import { Plus } from "lucide-react";
+import { HelpButton } from "@/components/help/HelpButton";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -72,15 +73,18 @@ const CodeRangeListPage: React.FC = () => {
             Quản lý các dải mã truy xuất đã cấp cho tổ chức
           </p>
         </div>
-        {canCreate && (
-          <Link to="/admin/code-ranges/create">
-            {/* CHANGED: thêm variant="create" */}
-            <Button className="shrink-0" variant="create">
-              <Plus className="h-4 w-4 mr-2" />
-              Cấp dải mã mới
-            </Button>
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="admin-code-range-list" />
+          {canCreate && (
+            <Link to="/admin/code-ranges/create">
+              {/* CHANGED: thêm variant="create" */}
+              <Button className="shrink-0" variant="create">
+                <Plus className="h-4 w-4 mr-2" />
+                Cấp dải mã mới
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Card */}

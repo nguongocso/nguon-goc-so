@@ -28,6 +28,7 @@ import type { CertificationResponse } from '@/types/certification';
 import { CertificationStatusBadge } from '@/components/certification/CertificationStatusBadge';
 import { CertificationDetailDialog } from '@/components/certification/CertificationDetailDialog';
 import { usePermission } from '@/hooks/usePermission';
+import { HelpButton } from '@/components/help/HelpButton';
 
 type SortField = 'name' | 'issueDate' | 'expiryDate' | 'status';
 type SortDir = 'asc' | 'desc';
@@ -161,6 +162,7 @@ const CertificationListPage = () => {
           </p>
         </div>
         <div className="flex gap-2">
+          <HelpButton screenKey="certification-list" />
           <Button variant="outline" size="sm" onClick={fetchCertifications} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Làm mới

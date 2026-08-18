@@ -11,6 +11,7 @@ import type {
   FarmAreaOption,
   ProductCategoryOption,
 } from '@/types/productionLot';
+import { HelpButton } from '@/components/help/HelpButton';
 import { ArrowLeft, Info, LoaderCircle, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -77,13 +78,16 @@ const CreateProductionLotPage = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
-            <ShieldCheck className="size-5 text-blue-700" />
-            <div>
-              <p className="text-xs font-bold text-blue-950">Phạm vi tổ chức</p>
-              <p className="mt-0.5 text-xs text-blue-700">
-                Quản lý hợp tác xã · VT-02
-              </p>
+          <div className="flex items-center gap-3">
+            <HelpButton screenKey="production-lot-create" />
+            <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+              <ShieldCheck className="size-5 text-blue-700" />
+              <div>
+                <p className="text-xs font-bold text-blue-950">Phạm vi tổ chức</p>
+                <p className="mt-0.5 text-xs text-blue-700">
+                  Quản lý hợp tác xã · VT-02
+                </p>
+              </div>
             </div>
           </div>
         </header>

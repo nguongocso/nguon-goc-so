@@ -8,6 +8,7 @@ import { BackupHistoryFilter } from "@/components/backup/BackupHistoryFilter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Database, RefreshCw } from "lucide-react";
+import { HelpButton } from "@/components/help/HelpButton";
 import { ScheduleEditDialog } from "@/components/backup/ScheduleEditDialog";
 import type { BackupScheduleRequest } from "@/types/backup";
 
@@ -63,19 +64,22 @@ export default function BackupRestorePage() {
             Quản lý lịch sao lưu tự động và phục hồi dữ liệu khi cần thiết
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => {
-            fetchSchedule();
-            fetchHistory(pageInfo.page, pageInfo.size);
-          }}
-          disabled={loading}
-        >
-          <RefreshCw
-            className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`}
-          />
-          Làm mới
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="admin-backup-restore" />
+          <Button
+            variant="outline"
+            onClick={() => {
+              fetchSchedule();
+              fetchHistory(pageInfo.page, pageInfo.size);
+            }}
+            disabled={loading}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`}
+            />
+            Làm mới
+          </Button>
+        </div>
       </div>
 
       {/* Cấu hình lịch */}

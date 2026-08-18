@@ -9,6 +9,7 @@ import { SeasonAnalysisTable } from "@/components/report/SeasonAnalysisTable";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { RefreshCw } from "lucide-react";
+import { HelpButton } from "@/components/help/HelpButton";
 
 export default function CropAreaAnalysisPage() {
   const { user } = useAuth();
@@ -56,16 +57,19 @@ export default function CropAreaAnalysisPage() {
             Tổng hợp sản lượng và số lô theo vùng trồng, mùa vụ
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => fetchData(params)}
-          disabled={loading}
-        >
-          <RefreshCw
-            className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`}
-          />
-          Làm mới
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="report-crop-area-analysis" />
+          <Button
+            variant="outline"
+            onClick={() => fetchData(params)}
+            disabled={loading}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`}
+            />
+            Làm mới
+          </Button>
+        </div>
       </div>
 
       <CropAreaFilter
