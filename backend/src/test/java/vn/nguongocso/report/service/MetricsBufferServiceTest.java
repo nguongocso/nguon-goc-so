@@ -44,4 +44,25 @@ class MetricsBufferServiceTest {
 
         assertEquals(2, metricsBufferService.getDataGatewayCallCountLastHour());
     }
+
+    @Test
+    @DisplayName("Bucket cũ hơn 60 phút tự hết hạn và không được tính vào tổng")
+    void staleBuckets_AreExcludedFromLastHour() throws Exception {
+        metricsBufferService.recordServerError();
+        metricsBufferService.recordServerError();
+        assertEquals(2, metricsBufferService.getServerErrorCountLastHour());
+
+        long currentMinute = System.currentTimeMillis() / 60000;
+        java.util.concurrent.atomic.AtomicLongArray bucketTimestamps = getField("bucketTimestamps");
+        bucketTimestamps.set((int) (currentMinute % 60), currentMinute - 61);
+
+        assertEquals(0, metricsBufferService.getServerErrorCountLastHour());
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T getField(String name) throws Exception {
+        java.lang.reflect.Field field = MetricsBufferService.class.getDeclaredField(name);
+        field.setAccessible(true);
+        return (T) field.get(metricsBufferService);
+    }
 }

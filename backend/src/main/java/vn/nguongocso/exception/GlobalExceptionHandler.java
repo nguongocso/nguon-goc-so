@@ -3,14 +3,19 @@ package vn.nguongocso.exception;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import java.time.LocalDateTime;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -23,7 +28,10 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.servlet.http.HttpServletRequest;
+import vn.nguongocso.alert.event.ActivityLogEvent;
+import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
+import vn.nguongocso.common.util.IpUtils;
 
 /**
  * Xử lý ngoại lệ toàn cục của hệ thống.
@@ -32,6 +40,12 @@ import vn.nguongocso.common.ApiResult;
 public class GlobalExceptionHandler {
 
         private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+        private final ApplicationEventPublisher eventPublisher;
+
+        public GlobalExceptionHandler(ApplicationEventPublisher eventPublisher) {
+                this.eventPublisher = eventPublisher;
+        }
 
         /**
          * Lỗi nghiệp vụ.
@@ -195,7 +209,37 @@ public class GlobalExceptionHandler {
                                 ? e.getMessage()
                                 : "Bạn không có quyền thực hiện chức năng này";
 
-                return build(HttpStatus.FORBIDDEN, message, null, request);
+                publishAccessDeniedAudit(request);
+
+                return build(HttpStatus.FORBIDDEN, message, "ACCESS_DENIED", request);
+        }
+
+        /**
+         * Ghi nhật ký truy cập trái phép (TC-03) vào activity_logs cho các endpoint giám sát hệ thống.
+         */
+        private void publishAccessDeniedAudit(HttpServletRequest request) {
+                String uri = request.getRequestURI();
+                if (uri == null || !uri.startsWith("/api/v1/admin/monitoring")) {
+                        return;
+                }
+
+                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+                if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails user)) {
+                        return;
+                }
+
+                eventPublisher.publishEvent(ActivityLogEvent.builder()
+                                .userId(user.getUserId())
+                                .username(user.getUsername())
+                                .fullName(user.getFullName())
+                                .organizationId(user.getOrganizationId())
+                                .action("ACCESS_DENIED")
+                                .description("Truy cập trái phép vào API giám sát hệ thống ("
+                                                + request.getMethod() + " " + uri + ")")
+                                .entityType("SYSTEM_MONITORING")
+                                .ipAddress(IpUtils.getClientIp())
+                                .timestamp(LocalDateTime.now())
+                                .build());
         }
 
         /**

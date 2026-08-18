@@ -61,7 +61,27 @@ class SystemMonitoringControllerTest {
     @DisplayName("TC-03: Quản lý HTX VT-02 truy cập bị từ chối 403 Forbidden")
     void getSystemStatus_ForbiddenForVT02() throws Exception {
         mockMvc.perform(get("/api/v1/admin/monitoring/system-status"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.errors").value("ACCESS_DENIED"))
+                .andExpect(jsonPath("$.path").value("/api/v1/admin/monitoring/system-status"));
+    }
+
+    @Test
+    @DisplayName("Thiếu JWT bị từ chối (403 theo convention anonymous của hệ thống)")
+    void getSystemStatus_UnauthorizedWithoutToken() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/monitoring/system-status"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "VT-02")
+    @DisplayName("TC-03: VT-02 truy cập /thresholds bị từ chối 403")
+    void getThresholds_ForbiddenForVT02() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/monitoring/thresholds"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.errors").value("ACCESS_DENIED"));
     }
 
     @Test

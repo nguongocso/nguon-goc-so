@@ -87,4 +87,55 @@ class SystemMonitoringServiceImplTest {
         assertFalse(response.isHasSufficientData());
         assertEquals(MetricStatus.INSUFFICIENT_DATA, response.getMetrics().get("serverErrorCount").getStatus());
     }
+
+    @Test
+    @DisplayName("TC-02: Latency tra cứu công khai vượt 2000ms chuyển sang WARNING")
+    void getSystemStatus_WarningWhenLatencyExceedsThreshold() {
+        when(metricsBufferService.hasSufficientData()).thenReturn(true);
+        when(metricsBufferService.getServerErrorCountLastHour()).thenReturn(5L);
+        when(metricsBufferService.getPublicTraceAvgLatencyLastHour()).thenReturn(2500.0); // 2500 > 2000
+        when(metricsBufferService.getDataGatewayCallCountLastHour()).thenReturn(100L);
+
+        SystemStatusResponse response = systemMonitoringService.getSystemStatus();
+
+        assertNotNull(response);
+        assertEquals(OverallSystemStatus.WARNING, response.getOverallStatus());
+        assertEquals(1, response.getBreachedMetricsCount());
+        assertEquals(MetricStatus.WARNING, response.getMetrics().get("publicTraceAvgResponseTime").getStatus());
+        assertEquals(MetricStatus.NORMAL, response.getMetrics().get("serverErrorCount").getStatus());
+    }
+
+    @Test
+    @DisplayName("TC-02: Lượt gọi Cổng dữ liệu vượt 1000 chuyển sang WARNING")
+    void getSystemStatus_WarningWhenGatewayCallsExceedThreshold() {
+        when(metricsBufferService.hasSufficientData()).thenReturn(true);
+        when(metricsBufferService.getServerErrorCountLastHour()).thenReturn(5L);
+        when(metricsBufferService.getPublicTraceAvgLatencyLastHour()).thenReturn(300.0);
+        when(metricsBufferService.getDataGatewayCallCountLastHour()).thenReturn(1500L); // 1500 > 1000
+
+        SystemStatusResponse response = systemMonitoringService.getSystemStatus();
+
+        assertNotNull(response);
+        assertEquals(OverallSystemStatus.WARNING, response.getOverallStatus());
+        assertEquals(1, response.getBreachedMetricsCount());
+        assertEquals(MetricStatus.WARNING, response.getMetrics().get("dataGatewayCallCount").getStatus());
+    }
+
+    @Test
+    @DisplayName("Mất kết nối CSDL chuyển sang CRITICAL bất kể các chỉ số khác")
+    void getSystemStatus_CriticalWhenDatabaseDown() throws SQLException {
+        when(metricsBufferService.hasSufficientData()).thenReturn(true);
+        when(metricsBufferService.getServerErrorCountLastHour()).thenReturn(5L);
+        when(metricsBufferService.getPublicTraceAvgLatencyLastHour()).thenReturn(300.0);
+        when(metricsBufferService.getDataGatewayCallCountLastHour()).thenReturn(100L);
+        when(connection.isValid(anyInt())).thenReturn(false); // DB DOWN
+
+        SystemStatusResponse response = systemMonitoringService.getSystemStatus();
+
+        assertNotNull(response);
+        assertEquals(OverallSystemStatus.CRITICAL, response.getOverallStatus());
+        assertEquals(1, response.getBreachedMetricsCount());
+        assertEquals(MetricStatus.CRITICAL, response.getMetrics().get("dbConnection").getStatus());
+        assertEquals("DOWN", response.getMetrics().get("dbConnection").getValue());
+    }
 }
