@@ -33,9 +33,11 @@ import {
   Settings,
   ShoppingCart,
   Key,
+  WifiOff,
 } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import {
+  AUTHENTICATED_ROLE_CODES,
   ROLE_ACCESS,
   hasAnyRole,
   type AuthenticatedRoleCode,
@@ -221,6 +223,12 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ["VT-02", "VT-03"] as const,
       },
       {
+        icon: <WifiOff className="h-5 w-5" />,
+        label: "Sự kiện chờ đồng bộ",
+        href: "/offline-events",
+        allowedRoles: AUTHENTICATED_ROLE_CODES,
+      },
+      {
         icon: <AlertTriangle className="h-5 w-5" />,
         label: "Tạo yêu cầu thu hồi",
         href: "/recall-requests/create",
@@ -319,6 +327,12 @@ const MENU_GROUPS: MenuGroup[] = [
         icon: <Database className="h-5 w-5" />,
         label: "Sao lưu & Phục hồi dữ liệu",
         href: "/admin/backup-restore",
+        allowedRoles: ["VT-01"] as const,
+      },
+      {
+        icon: <Activity className="h-5 w-5" />,
+        label: "Giám sát hệ thống",
+        href: "/admin/system-monitoring",
         allowedRoles: ["VT-01"] as const,
       },
       {

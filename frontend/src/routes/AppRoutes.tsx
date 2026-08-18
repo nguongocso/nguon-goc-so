@@ -128,6 +128,9 @@ import CreateInvitationPage from "@/pages/invitation/CreateInvitationPage";
 // ===== Backup Restore =====
 import BackupRestorePage from "@/pages/admin/BackupRestorePage";
 
+// ===== System Monitoring (NCL-10-CN-010) =====
+import { SystemMonitoringPage } from "@/pages/admin/SystemMonitoringPage";
+
 // ===== Recall requests (NCL-08-CN-008) =====
 import { CreateRecallRequestPage } from "@/pages/recall-request/CreateRecallRequestPage";
 import { RecallRequestListPage } from "@/pages/recall-request/RecallRequestListPage";
@@ -582,6 +585,19 @@ const AppRoutes = () => (
                 }
             />
 
+            {/* =================================================
+          OFFLINE EVENTS (NCL-10-CN-005 / NCL-10-CN-006)
+      ================================================= */}
+
+            <Route
+                path="offline-events"
+                element={
+                    <RoleRoute allowedRoles={AUTHENTICATED_ROLE_CODES}>
+                        <OfflineEventPage />
+                    </RoleRoute>
+                }
+            />
+
 
             {/* =================================================
           ADMIN
@@ -630,6 +646,15 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-01"]}>
                         <BackupRestorePage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/system-monitoring"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <SystemMonitoringPage />
                     </RoleRoute>
                 }
             />

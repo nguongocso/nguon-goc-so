@@ -9,7 +9,7 @@ import type {
 
 /**
  * Lấy danh sách khóa truy cập API của tổ chức hiện tại
- * GET /api/v1/integration/api-keys
+ * GET /api/v1/organization/api-keys
  */
 export const getApiKeys = async (
   status?: PartnerApiKeyStatus,
@@ -21,7 +21,7 @@ export const getApiKeys = async (
     params.status = status;
   }
   const response = await apiClient.get<ApiResult<ApiKeyPageResponse>>(
-    '/integration/api-keys',
+    '/organization/api-keys',
     { params },
   );
   return response.data.data;
@@ -29,13 +29,13 @@ export const getApiKeys = async (
 
 /**
  * Cấp khóa truy cập API mới cho đối tác bên thứ ba
- * POST /api/v1/integration/api-keys
+ * POST /api/v1/organization/api-keys
  */
 export const createApiKey = async (
   data: CreateApiKeyRequest,
 ): Promise<PartnerApiKeyResponse> => {
   const response = await apiClient.post<ApiResult<PartnerApiKeyResponse>>(
-    '/integration/api-keys',
+    '/organization/api-keys',
     data,
   );
   return response.data.data;
@@ -43,13 +43,13 @@ export const createApiKey = async (
 
 /**
  * Thu hồi khóa truy cập API đang hoạt động
- * PUT /api/v1/integration/api-keys/{id}/revoke
+ * POST /api/v1/organization/api-keys/{id}/revoke
  */
 export const revokeApiKey = async (
   id: string,
 ): Promise<PartnerApiKeyResponse> => {
-  const response = await apiClient.put<ApiResult<PartnerApiKeyResponse>>(
-    `/integration/api-keys/${id}/revoke`,
+  const response = await apiClient.post<ApiResult<PartnerApiKeyResponse>>(
+    `/organization/api-keys/${id}/revoke`,
   );
   return response.data.data;
 };

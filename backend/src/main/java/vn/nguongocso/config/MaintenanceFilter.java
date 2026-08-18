@@ -72,8 +72,8 @@ public class MaintenanceFilter extends OncePerRequestFilter {
         if (restoreService != null && restoreService.isMaintenanceMode()) {
             String uri = request.getRequestURI();
 
-            // Allow Actuator health endpoint and Backup APIs
-            if (uri.equals("/actuator/health") || uri.startsWith("/api/v1/backups")) {
+            // Allow Actuator health endpoint, Backup APIs, and Monitoring APIs
+            if (uri.equals("/actuator/health") || uri.startsWith("/api/v1/backups") || uri.startsWith("/api/v1/admin/monitoring")) {
                 filterChain.doFilter(request, response);
                 return;
             }
