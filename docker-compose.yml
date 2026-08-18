@@ -7,9 +7,10 @@ services:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: nguon_goc_so
       MYSQL_USER: nguongocso
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_PASSWORD: root
+      MYSQL_ALLOW_EMPTY_PASSWORD: "no"
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -27,31 +28,43 @@ services:
       DB_PORT: 3306
       DB_NAME: nguon_goc_so
       DB_USERNAME: nguongocso
-      DB_PASSWORD: ""
+      DB_PASSWORD: root
+
       JWT_SECRET: ${JWT_SECRET:-nguongocso_secret_key_default_for_local_development_2026_very_long_secure_secret}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+
       UPLOAD_BASE_DIR: /app/uploads
       UPLOAD_FARM_LOG_RELATIVE_PATH: farm-logs
       UPLOAD_FARM_LOG_MAX_SIZE: 5242880
+
       QR_IMAGE_STORAGE_PATH: /app/files/qr
+
       MYSQL_DUMP_PATH: /usr/bin/mysqldump
       MYSQL_PATH: /usr/bin/mysql
+
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+
       MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+
       LOCATIONIQ_API_KEY: ${LOCATIONIQ_API_KEY:-}
       LOCATIONIQ_BASE_URL: ${LOCATIONIQ_BASE_URL:-https://us1.locationiq.com/v1/reverse}
+
       JAVA_OPTS: "-Xms256m -Xmx768m"
+
     ports:
       - "8080:8080"
+
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
     volumes:
       - backend_uploads:/app/uploads
       - backend_files:/app/files
+
     depends_on:
       mysql:
         condition: service_healthy
@@ -73,5 +86,6 @@ volumes:
   # existing local data is reused instead of creating a fresh database.
   mysql_data:
     name: nguongocso_mysql_data
+
   backend_uploads:
   backend_files:
