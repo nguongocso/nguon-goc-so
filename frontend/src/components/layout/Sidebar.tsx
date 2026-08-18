@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import {
+  AUTHENTICATED_ROLE_CODES,
   ROLE_ACCESS,
   hasAnyRole,
   type AuthenticatedRoleCode,
