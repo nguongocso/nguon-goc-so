@@ -330,6 +330,12 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ["VT-01"] as const,
       },
       {
+        icon: <Activity className="h-5 w-5" />,
+        label: "Giám sát hệ thống",
+        href: "/admin/system-monitoring",
+        allowedRoles: ["VT-01"] as const,
+      },
+      {
         icon: <UserCheck className="h-5 w-5" />,
         label: "Hồ sơ tổ chức",
         href: "/organizations/profile",

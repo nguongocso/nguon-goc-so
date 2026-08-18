@@ -128,6 +128,9 @@ import CreateInvitationPage from "@/pages/invitation/CreateInvitationPage";
 // ===== Backup Restore =====
 import BackupRestorePage from "@/pages/admin/BackupRestorePage";
 
+// ===== System Monitoring (NCL-10-CN-010) =====
+import { SystemMonitoringPage } from "@/pages/admin/SystemMonitoringPage";
+
 // ===== Recall requests (NCL-08-CN-008) =====
 import { CreateRecallRequestPage } from "@/pages/recall-request/CreateRecallRequestPage";
 import { RecallRequestListPage } from "@/pages/recall-request/RecallRequestListPage";
@@ -643,6 +646,15 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-01"]}>
                         <BackupRestorePage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/system-monitoring"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <SystemMonitoringPage />
                     </RoleRoute>
                 }
             />
