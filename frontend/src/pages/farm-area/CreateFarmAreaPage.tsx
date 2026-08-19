@@ -1,4 +1,5 @@
 import { CreateFarmAreaForm } from "@/components/farm-area/CreateFarmAreaForm";
+import { HelpButton } from "@/components/help/HelpButton";
 import { useNavigate } from "react-router-dom";
 
 export const CreateFarmAreaPage: React.FC = () => {
@@ -10,7 +11,10 @@ export const CreateFarmAreaPage: React.FC = () => {
 
   return (
     <div className="container mx-auto py-8 max-w-4xl">
-      <h1 className="text-2xl font-bold mb-6">Tạo vùng trồng mới</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Tạo vùng trồng mới</h1>
+        <HelpButton screenKey="farm-area-create" />
+      </div>
       <CreateFarmAreaForm
         onSuccess={handleSuccess}
         onCancel={() => navigate('/farm-areas')}

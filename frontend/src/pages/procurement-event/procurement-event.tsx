@@ -1,15 +1,19 @@
 import { ProcurementEventForm } from '@/components/event-validation/ProcurementEventForm';
+import { HelpButton } from '@/components/help/HelpButton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Truck } from 'lucide-react';
 
 export default function ProcurementEventPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-4">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Ghi sự kiện thu mua</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Ghi nhận sự kiện nhận hàng cho lô hàng đã kích hoạt tem.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Ghi sự kiện thu mua</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Ghi nhận sự kiện nhận hàng cho lô hàng đã kích hoạt tem.
+          </p>
+        </div>
+        <HelpButton screenKey="procurement-event" />
       </div>
 
       <Card>

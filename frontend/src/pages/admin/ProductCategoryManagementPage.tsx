@@ -7,6 +7,7 @@ import type { ProductCategory, ProductCategoryQueryParams } from '@/types/produc
 import { ProductCategoryFilter } from '@/components/admin/product-category/ProductCategoryFilter';
 import { ProductCategoryList } from '@/components/admin/product-category/ProductCategoryList';
 import { ProductCategoryForm } from '@/components/admin/product-category/ProductCategoryForm';
+import { HelpButton } from '@/components/help/HelpButton';
 import { usePermission } from '@/hooks/usePermission';
 
 export default function ProductCategoryManagementPage() {
@@ -85,6 +86,7 @@ export default function ProductCategoryManagementPage() {
             <Plus className="h-4 w-4 mr-1" /> Thêm loại nông sản
           </Button>
         )}
+        <HelpButton screenKey="admin-product-categories" />
       </div>
 
       <ProductCategoryFilter onFilter={handleFilter} onReset={handleReset} loading={loading} />

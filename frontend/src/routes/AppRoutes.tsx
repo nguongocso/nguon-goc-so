@@ -53,6 +53,7 @@ import CreateMemberPage from "@/pages/organization/CreateMemberPage";
 
 // ===== Farm logs =====
 import FarmLogHistoryPage from "@/pages/farm-log/FarmLogHistoryPage";
+import AttachmentManagementPage from "@/pages/farm-log/AttachmentManagementPage";
 
 // ===== Shipment =====
 import { ProductionLotDetailPage } from "@/pages/shipment/ProductionLotDetailPage";
@@ -113,6 +114,9 @@ import ScanQuickEventPage from "@/pages/scan-anomaly-alert/components/ScanQuickE
 // ===== Organization Detail =====
 import OrganizationDetailPage from "@/pages/organization/OrganizationDetailPage";
 
+// ===== Partner API Keys (NCL-12-CN-001) =====
+import PartnerApiKeyListPage from "@/pages/apiKey/PartnerApiKeyListPage";
+
 // ===== Product Feedback =====
 import ProductFeedbackManagementPage from "@/pages/product-feedback/ProductFeedbackManagementPage";
 
@@ -124,6 +128,9 @@ import CreateInvitationPage from "@/pages/invitation/CreateInvitationPage";
 
 // ===== Backup Restore =====
 import BackupRestorePage from "@/pages/admin/BackupRestorePage";
+
+// ===== System Monitoring (NCL-10-CN-010) =====
+import { SystemMonitoringPage } from "@/pages/admin/SystemMonitoringPage";
 
 // ===== Recall requests (NCL-08-CN-008) =====
 import { CreateRecallRequestPage } from "@/pages/recall-request/CreateRecallRequestPage";
@@ -436,6 +443,17 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="production-lots/:lotId/shipments/:shipmentId"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                    >
+                        <ShipmentDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="production-lots/import"
                 element={
                     <RoleRoute allowedRoles={["VT-02"]}>
@@ -478,6 +496,15 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-02"]}>
                         <FarmLogHistoryPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="farm-logs/:logId/attachments"
+                element={
+                    <RoleRoute allowedRoles={["VT-02", "VT-03"]}>
+                        <AttachmentManagementPage />
                     </RoleRoute>
                 }
             />
@@ -568,6 +595,19 @@ const AppRoutes = () => (
                 }
             />
 
+            {/* =================================================
+          OFFLINE EVENTS (NCL-10-CN-005 / NCL-10-CN-006)
+      ================================================= */}
+
+            <Route
+                path="offline-events"
+                element={
+                    <RoleRoute allowedRoles={AUTHENTICATED_ROLE_CODES}>
+                        <OfflineEventPage />
+                    </RoleRoute>
+                }
+            />
+
 
             {/* =================================================
           ADMIN
@@ -616,6 +656,15 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-01"]}>
                         <BackupRestorePage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/system-monitoring"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <SystemMonitoringPage />
                     </RoleRoute>
                 }
             />
@@ -750,6 +799,20 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-02"]}>
                         <CreateCertificationPage />
+                    </RoleRoute>
+                }
+            />
+
+
+            {/* =================================================
+          PARTNER API KEYS (NCL-12-CN-001)
+      ================================================= */}
+
+            <Route
+                path="integration/api-keys"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.apiKeyManagement}>
+                        <PartnerApiKeyListPage />
                     </RoleRoute>
                 }
             />

@@ -8,7 +8,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,13 +28,16 @@ import org.springframework.data.domain.Pageable;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.CreateInspectionRequest;
+import vn.nguongocso.certification.dto.response.InspectionRequestDetailResponse;
 import vn.nguongocso.certification.dto.response.InspectionRequestResponse;
 import vn.nguongocso.certification.entity.InspectionCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterionDefinition;
+import vn.nguongocso.certification.entity.InspectionCriterionResult;
 import vn.nguongocso.certification.entity.InspectionRequest;
 import vn.nguongocso.certification.entity.Standard;
 import vn.nguongocso.certification.enums.InspectionRequestStatus;
 import vn.nguongocso.certification.repository.InspectionCriterionDefinitionRepository;
+import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
 import vn.nguongocso.certification.service.impl.DuplicateInspectionRequestException;
@@ -42,6 +47,7 @@ import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
+import vn.nguongocso.exception.BusinessException;
 
 @ExtendWith(MockitoExtension.class)
 class InspectionRequestServiceImplTest {
@@ -60,6 +66,12 @@ class InspectionRequestServiceImplTest {
 
     @Mock
     private ProductionLotCertificationRepository productionLotCertificationRepository;
+
+    @Mock
+    private InspectionCriterionResultRepository inspectionCriterionResultRepository;
+
+    @Mock
+    private Clock clock;
 
     @InjectMocks
     private InspectionRequestServiceImpl inspectionRequestService;
@@ -105,6 +117,15 @@ class InspectionRequestServiceImplTest {
 
         lenient().when(currentUser.getUser())
                 .thenReturn(user);
+
+        /*
+         * Business clock: dùng zone hệ thống để LocalDate.now(clock)
+         * khớp với LocalDate.now() dùng trong fixture.
+         */
+        lenient().when(clock.instant())
+                .thenReturn(Clock.systemDefaultZone().instant());
+        lenient().when(clock.getZone())
+                .thenReturn(ZoneId.systemDefault());
 
         /*
          * Production lot test.
@@ -747,5 +768,191 @@ class InspectionRequestServiceImplTest {
                 inspectionRequestRepository,
                 never())
                 .findAll(any(Pageable.class));
+    }
+
+    /**
+     * Test lấy chi tiết yêu cầu kiểm nghiệm thành công.
+     *
+     * Response phải chứa danh sách chỉ tiêu kèm UUID snapshot
+     * và kết quả đã ghi (nếu có).
+     */
+    @Test
+    void getDetail_shouldReturnCriteriaAndExistingResult_whenRequestInOrganization() {
+
+        /*
+         * Arrange
+         */
+        UUID requestId =
+                UUID.randomUUID();
+
+        InspectionCriterion criterion =
+                InspectionCriterion.builder()
+                        .id(
+                                UUID.randomUUID())
+                        .criterionCode(
+                                "RESIDUE_PESTICIDE")
+                        .criterionName(
+                                "Dư lượng thuốc trừ sâu")
+                        .standard(
+                                standard)
+                        .build();
+
+        InspectionRequest request =
+                InspectionRequest.builder()
+                        .productionLot(lot)
+                        .inspectionUnit(
+                                "Lab ABC")
+                        .sampleSentDate(
+                                LocalDate.now())
+                        .status(
+                                InspectionRequestStatus
+                                        .PENDING_RESULT)
+                        .criteria(
+                                List.of(criterion))
+                        .build();
+
+        request.setId(requestId);
+
+        InspectionCriterionResult result =
+                InspectionCriterionResult.builder()
+                        .inspectionCriterion(criterion)
+                        .resultDate(
+                                LocalDate.now().minusDays(1))
+                        .expiryDate(
+                                LocalDate.now().plusMonths(6))
+                        .passed(true)
+                        .createdBy(user)
+                        .build();
+
+        when(
+                inspectionRequestRepository
+                        .findDetailById(requestId))
+                .thenReturn(
+                        Optional.of(request));
+
+        when(
+                inspectionCriterionResultRepository
+                        .findByInspectionCriterion_InspectionRequest_Id(
+                                requestId))
+                .thenReturn(
+                        List.of(result));
+
+        /*
+         * Act
+         */
+        InspectionRequestDetailResponse response =
+                inspectionRequestService
+                        .getDetail(
+                                requestId,
+                                currentUser);
+
+        /*
+         * Assert
+         */
+        assertThat(response)
+                .isNotNull();
+
+        assertThat(response.getTestRequestId())
+                .isEqualTo(requestId);
+
+        assertThat(response.getStatus())
+                .isEqualTo("PENDING");
+
+        assertThat(response.getCriteria())
+                .hasSize(1);
+
+        assertThat(
+                response.getCriteria()
+                        .get(0)
+                        .getCriterionId())
+                .isEqualTo(
+                        criterion.getId());
+
+        assertThat(
+                response.getCriteria()
+                        .get(0)
+                        .getStandardName())
+                .isEqualTo(
+                        "VietGAP");
+
+        assertThat(
+                response.getCriteria()
+                        .get(0)
+                        .getResult())
+                .isNotNull();
+
+        assertThat(
+                response.getCriteria()
+                        .get(0)
+                        .getResult()
+                        .getPassed())
+                .isTrue();
+    }
+
+    /**
+     * Test org boundary: yêu cầu kiểm nghiệm của tổ chức khác
+     * phải bị từ chối với BusinessException.
+     */
+    @Test
+    void getDetail_shouldReject_whenRequestBelongsToAnotherOrganization() {
+
+        /*
+         * Arrange
+         */
+        UUID requestId =
+                UUID.randomUUID();
+
+        UUID otherOrgId =
+                UUID.randomUUID();
+
+        ProductionLot otherLot =
+                new ProductionLot();
+
+        otherLot.setId(
+                UUID.randomUUID());
+
+        otherLot.setName(
+                "Lô khác tổ chức");
+
+        otherLot.setOrganization(
+                new vn.nguongocso.organization.entity.Organization());
+
+        otherLot.getOrganization()
+                .setOrganizationId(otherOrgId);
+
+        InspectionRequest request =
+                InspectionRequest.builder()
+                        .productionLot(otherLot)
+                        .inspectionUnit(
+                                "Lab ABC")
+                        .sampleSentDate(
+                                LocalDate.now())
+                        .status(
+                                InspectionRequestStatus
+                                        .PENDING_RESULT)
+                        .criteria(
+                                List.of())
+                        .build();
+
+        request.setId(requestId);
+
+        when(
+                inspectionRequestRepository
+                        .findDetailById(requestId))
+                .thenReturn(
+                        Optional.of(request));
+
+        /*
+         * Act & Assert
+         */
+        assertThatThrownBy(() ->
+                inspectionRequestService
+                        .getDetail(
+                                requestId,
+                                currentUser))
+                .isInstanceOf(
+                        BusinessException.class)
+                .hasMessageContaining(
+                        "không tồn tại");
     }
 }

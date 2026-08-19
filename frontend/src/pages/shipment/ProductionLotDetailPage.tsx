@@ -20,10 +20,12 @@ import { FarmLogList } from "@/components/farm-log/FarmLogList";
 import { usePermission } from "@/hooks/usePermission";
 import { ROLE_ACCESS } from "@/config/roleAccess";
 import { HarvestForm } from "@/components/trace-event/HarvestForm";
+import { HelpButton } from "@/components/help/HelpButton";
 import type { ProductionLot } from "@/types/productionLot";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import type {
+  CanActivateSealCheck,
   InspectionRequestListItem,
   InspectionRequestStatusDisplay,
   InspectionRequestStatusQuery,
@@ -31,6 +33,7 @@ import type {
   ProductionLotCertification,
 } from "@/types/certification";
 import {
+  checkCanActivateSeal,
   createInspectionRequest,
   detachCertification,
   getInspectionRequests,
@@ -39,6 +42,7 @@ import {
 } from "@/api/certificationApi";
 import { CertificationList } from "@/components/certification/CertificationList";
 import { AttachCertificationDialog } from "@/components/certification/AttachCertificationDialog";
+import { RecordInspectionResultDialog } from "@/components/certification/RecordInspectionResultDialog";
 import {
   Dialog,
   DialogContent,
@@ -228,6 +232,11 @@ export const ProductionLotDetailPage = () => {
   const [loadingCerts, setLoadingCerts] = useState(false);
   const [attachDialogOpen, setAttachDialogOpen] = useState(false);
 
+  // Chỉ hiển thị tab Kiểm nghiệm khi lô có ít nhất một chứng nhận
+  // (chỉ tiêu kiểm nghiệm được lấy từ chứng nhận đã gắn).
+  // Kiểm tra thêm loadingCerts để tránh tab nhấp nháy khi đang tải.
+  const hasCertifications = !loadingCerts && certifications.length > 0;
+
   const [activeTab, setActiveTab] = useState("info");
 
   // Danh sách yêu cầu kiểm nghiệm (chỉ tải khi mở tab với vai trò VT-02)
@@ -243,6 +252,11 @@ export const ProductionLotDetailPage = () => {
   >("ALL");
   const [inspectionPage, setInspectionPage] = useState(0);
   const [inspectionReloadKey, setInspectionReloadKey] = useState(0);
+
+  // Kiểm tra điều kiện kích hoạt tem của lô (POST /production-lots/{id}/can-activate-seal)
+  const [canActivateCheck, setCanActivateCheck] =
+    useState<CanActivateSealCheck | null>(null);
+  const [canActivateLoading, setCanActivateLoading] = useState(false);
 
   // Dialog tạo yêu cầu kiểm nghiệm
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -262,6 +276,20 @@ export const ProductionLotDetailPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [duplicateMessage, setDuplicateMessage] = useState("");
+
+  // Dialog ghi nhận kết quả kiểm nghiệm
+  const [resultDialogOpen, setResultDialogOpen] = useState(false);
+  const [resultRequestId, setResultRequestId] = useState<string | null>(null);
+
+  const openResultDialog = (requestId: string) => {
+    setResultRequestId(requestId);
+    setResultDialogOpen(true);
+  };
+
+  const handleResultRecorded = () => {
+  setInspectionReloadKey((key) => key + 1);
+  void loadCanActivateCheck();
+};
 
   const loadLot = async () => {
     if (!id) return;
@@ -331,6 +359,19 @@ export const ProductionLotDetailPage = () => {
     }
   };
 
+  const loadCanActivateCheck = useCallback(async () => {
+    if (!id) return;
+    try {
+      setCanActivateLoading(true);
+      const data = await checkCanActivateSeal(id);
+      setCanActivateCheck(data);
+    } catch {
+      setCanActivateCheck(null);
+    } finally {
+      setCanActivateLoading(false);
+    }
+  }, [id]);
+
   useEffect(() => {
     loadLot();
   }, [id]);
@@ -344,6 +385,7 @@ export const ProductionLotDetailPage = () => {
   useEffect(() => {
     if (activeTab === "inspection" && canInspect && id) {
       void loadInspectionRequests(inspectionStatus, inspectionPage);
+      void loadCanActivateCheck();
     }
   }, [
     activeTab,
@@ -353,6 +395,7 @@ export const ProductionLotDetailPage = () => {
     inspectionPage,
     inspectionReloadKey,
     loadInspectionRequests,
+    loadCanActivateCheck,
   ]);
 
   const canRecordHarvest =
@@ -377,8 +420,6 @@ export const ProductionLotDetailPage = () => {
 
   const canCreateShipment =
     user?.roleCode === "VT-02" && lot.status === "PACKAGED";
-  const canActivateShipment = user?.roleCode === "VT-02";
-  const canRecallShipment = user?.roleCode === "VT-02";
   const canRecordPackaging =
     (user?.roleCode === "VT-02" || user?.roleCode === "VT-03") &&
     (lot.status === "HARVESTED" || lot.status === "PREPROCESSED");
@@ -558,6 +599,7 @@ export const ProductionLotDetailPage = () => {
               Ghi đóng gói
             </Button>
           )}
+          <HelpButton screenKey="production-lot-detail" />
         </div>
       </div>
 
@@ -688,7 +730,7 @@ export const ProductionLotDetailPage = () => {
           >
             Chứng nhận
           </TabsTrigger>
-          {canInspect && (
+          {canInspect && hasCertifications && (
             <TabsTrigger
               value="inspection"
               className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
@@ -730,8 +772,6 @@ export const ProductionLotDetailPage = () => {
             productionLotId={lot.id}
             productionLotStatus={lot.status}
             canCreate={canCreateShipment}
-            canActivate={canActivateShipment}
-            canRecall={canRecallShipment}
           />
         </TabsContent>
 
@@ -759,7 +799,7 @@ export const ProductionLotDetailPage = () => {
           </div>
         </TabsContent>
 
-        {canInspect && (
+        {canInspect && hasCertifications && (
           <TabsContent value="inspection" className="mt-4">
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -840,6 +880,7 @@ export const ProductionLotDetailPage = () => {
                           <TableHead>Ngày gửi mẫu</TableHead>
                           <TableHead>Số chỉ tiêu</TableHead>
                           <TableHead>Trạng thái</TableHead>
+                          <TableHead>Thao tác</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -859,7 +900,47 @@ export const ProductionLotDetailPage = () => {
                             </TableCell>
                             <TableCell>{request.criteriaCount}</TableCell>
                             <TableCell>
-                              {getInspectionStatusBadge(request.status)}
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {getInspectionStatusBadge(request.status)}
+                                {request.status === "PASSED" &&
+                                  !canActivateLoading &&
+                                  canActivateCheck?.canActivate && (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-sky-200 bg-sky-50 text-sky-800 text-xs font-semibold px-2.5 py-0.5"
+                                      title="Lô đạt kết quả kiểm nghiệm và còn hiệu lực"
+                                    >
+                                      Đủ điều kiện kích hoạt tem
+                                    </Badge>
+                                  )}
+                                {request.status === "PASSED" &&
+                                  !canActivateLoading &&
+                                  canActivateCheck &&
+                                  !canActivateCheck.canActivate && (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-red-200 bg-red-50 text-red-700 text-xs font-semibold px-2.5 py-0.5"
+                                      title={canActivateCheck.reason ?? undefined}
+                                    >
+                                      Chưa đủ điều kiện kích hoạt tem
+                                    </Badge>
+                                  )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {(request.status === "PENDING" ||
+                                request.status === "FAILED") &&
+                                canInspect && (
+                                <Button
+                                  size="sm"
+                                  variant="edit"
+                                  onClick={() =>
+                                    openResultDialog(request.testRequestId)
+                                  }
+                                >
+                                  Nhập kết quả
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -881,7 +962,9 @@ export const ProductionLotDetailPage = () => {
                           >
                             #{request.testRequestId.slice(0, 8)}
                           </span>
-                          {getInspectionStatusBadge(request.status)}
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {getInspectionStatusBadge(request.status)}
+                          </div>
                         </div>
                         <p className="font-medium break-words">
                           {request.testingUnit}
@@ -893,6 +976,42 @@ export const ProductionLotDetailPage = () => {
                           </span>
                           <span>{request.criteriaCount} chỉ tiêu</span>
                         </div>
+                        {request.status === "PASSED" &&
+                          !canActivateLoading &&
+                          canActivateCheck?.canActivate && (
+                            <Badge
+                              variant="outline"
+                              className="border-sky-200 bg-sky-50 text-sky-800 text-xs font-semibold px-2.5 py-0.5"
+                            >
+                              Đủ điều kiện kích hoạt tem
+                            </Badge>
+                          )}
+                        {request.status === "PASSED" &&
+                          !canActivateLoading &&
+                          canActivateCheck &&
+                          !canActivateCheck.canActivate && (
+                            <Badge
+                              variant="outline"
+                              className="border-red-200 bg-red-50 text-red-700 text-xs font-semibold px-2.5 py-0.5"
+                              title={canActivateCheck.reason ?? undefined}
+                            >
+                              Chưa đủ điều kiện kích hoạt tem
+                            </Badge>
+                          )}
+                        {(request.status === "PENDING" ||
+                          request.status === "FAILED") &&
+                          canInspect && (
+                          <Button
+                            size="sm"
+                            variant="edit"
+                            className="w-full"
+                            onClick={() =>
+                              openResultDialog(request.testRequestId)
+                            }
+                          >
+                            Nhập kết quả
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1153,6 +1272,16 @@ export const ProductionLotDetailPage = () => {
           </AlertDialogFooter>
         </AlertDialogPopup>
       </AlertDialog>
+
+      {/* Ghi nhận kết quả kiểm nghiệm */}
+      {resultRequestId && (
+        <RecordInspectionResultDialog
+          open={resultDialogOpen}
+          onOpenChange={setResultDialogOpen}
+          requestId={resultRequestId}
+          onRecorded={handleResultRecorded}
+        />
+      )}
     </div>
   );
 };

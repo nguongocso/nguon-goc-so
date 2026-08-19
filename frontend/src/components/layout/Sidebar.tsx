@@ -32,9 +32,12 @@ import {
   ChevronDown,
   Settings,
   ShoppingCart,
+  Key,
+  WifiOff,
 } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import {
+  AUTHENTICATED_ROLE_CODES,
   ROLE_ACCESS,
   hasAnyRole,
   type AuthenticatedRoleCode,
@@ -138,6 +141,12 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ["VT-02"] as const,
       },
       {
+        icon: <Key className="h-5 w-5" />,
+        label: "Khóa API bên thứ ba",
+        href: "/integration/api-keys",
+        allowedRoles: ROLE_ACCESS.apiKeyManagement,
+      },
+      {
         icon: <Hash className="h-5 w-5" />,
         label: "Quản lý dải mã",
         href: "/admin/code-ranges",
@@ -212,6 +221,12 @@ const MENU_GROUPS: MenuGroup[] = [
         label: "Nhật ký lỗi sự kiện",
         href: "/failed-event-logs",
         allowedRoles: ["VT-02", "VT-03"] as const,
+      },
+      {
+        icon: <WifiOff className="h-5 w-5" />,
+        label: "Sự kiện chờ đồng bộ",
+        href: "/offline-events",
+        allowedRoles: AUTHENTICATED_ROLE_CODES,
       },
       {
         icon: <AlertTriangle className="h-5 w-5" />,
@@ -315,6 +330,12 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ["VT-01"] as const,
       },
       {
+        icon: <Activity className="h-5 w-5" />,
+        label: "Giám sát hệ thống",
+        href: "/admin/system-monitoring",
+        allowedRoles: ["VT-01"] as const,
+      },
+      {
         icon: <UserCheck className="h-5 w-5" />,
         label: "Hồ sơ tổ chức",
         href: "/organizations/profile",
@@ -383,9 +404,9 @@ function MenuLink({
 
   if (collapsed) {
     return (
-      <Tooltip key={item.href}>
+      <Tooltip key={item.href} side="right">
         <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-        <TooltipContent className="z-[60]">{item.label}</TooltipContent>
+        <TooltipContent>{item.label}</TooltipContent>
       </Tooltip>
     );
   }
@@ -577,25 +598,6 @@ export function Sidebar({
         )}
       </div>
 
-      {/* ── User Info (when expanded) ─────── */}
-      {!collapsed && user && (
-        <div className="border-b border-emerald-50 px-4 py-3">
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-medium text-emerald-700">
-              {(user.fullName || user.username || "U").charAt(0).toUpperCase()}
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">
-                {user.fullName || user.username || "Người dùng"}
-              </p>
-              <p className="truncate text-xs text-muted-foreground">
-                {user.organizationName || user.roleCode || ""}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Navigation ────────────────────── */}
       <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
         {!hasAnyVisibleItem && !collapsed && (
@@ -709,11 +711,9 @@ export function Sidebar({
 
           if (collapsed) {
             return (
-              <Tooltip key={action.label}>
+              <Tooltip key={action.label} side="right">
                 <TooltipTrigger asChild>{btn}</TooltipTrigger>
-                <TooltipContent className="z-[60]">
-                  {action.label}
-                </TooltipContent>
+                <TooltipContent>{action.label}</TooltipContent>
               </Tooltip>
             );
           }

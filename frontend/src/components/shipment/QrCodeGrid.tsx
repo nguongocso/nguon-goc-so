@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Copy, Download, ImageOff } from "lucide-react";
 import { toast } from "sonner";
 import { getAssetBaseUrl } from "@/config/runtimeConfig";
@@ -21,6 +28,10 @@ export const QrCodeGrid = ({
   const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
   const markFailed = (id: string) =>
     setFailedIds((prev) => new Set(prev).add(id));
+
+  const [preview, setPreview] = useState<{ src: string; code: string } | null>(
+    null,
+  );
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code).then(
@@ -53,7 +64,8 @@ export const QrCodeGrid = ({
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 justify-items-center">
       {traceCodes.map((code) => {
         const qrFullUrl = code.qrImage ? resolveUrl(code.qrImage) : "";
         const hasFailed = !code.qrImage || failedIds.has(code.id);
@@ -72,7 +84,11 @@ export const QrCodeGrid = ({
                 <img
                   src={qrFullUrl}
                   alt={code.codeValue}
-                  className="w-28 h-28 object-contain"
+                  title="Click để phóng to"
+                  className="w-28 h-28 object-contain cursor-pointer"
+                  onClick={() =>
+                    setPreview({ src: qrFullUrl, code: code.codeValue })
+                  }
                   onError={() => markFailed(code.id)}
                 />
               )}
@@ -108,5 +124,25 @@ export const QrCodeGrid = ({
         );
       })}
     </div>
+
+      {/* QR preview dialog: zoom the QR image on click */}
+      {preview && (
+        <Dialog open onOpenChange={(open) => !open && setPreview(null)}>
+          <DialogContent className="w-full max-w-sm sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Mã QR: {preview.code}</DialogTitle>
+              <DialogDescription>
+                Xem mã QR ở kích thước lớn.
+              </DialogDescription>
+            </DialogHeader>
+            <img
+              src={preview.src}
+              alt={preview.code}
+              className="mx-auto w-full max-h-[70vh] object-contain rounded-md"
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 };

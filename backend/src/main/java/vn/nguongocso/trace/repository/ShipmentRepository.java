@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,6 +24,11 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
          * Lấy danh sách lô hàng theo ID của lô sản xuất.
          */
         List<Shipment> findByProductionLotId(UUID productionLotId);
+
+        /**
+         * Lấy danh sách lô hàng theo ID của lô sản xuất với phân trang.
+         */
+        Page<Shipment> findByProductionLotId(UUID productionLotId, Pageable pageable);
 
         /**
          * Tính tổng sản lượng của các lô hàng theo địa bàn và khoảng thời gian.

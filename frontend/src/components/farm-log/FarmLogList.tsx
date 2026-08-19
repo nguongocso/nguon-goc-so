@@ -29,13 +29,6 @@ import {
 import { getFarmLogs } from "@/api/farmLogApi";
 import type { FarmLog } from "@/types/farmLog";
 import { useNavigate } from "react-router-dom";
-import { AttachmentManager } from "./AttachmentManager";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import type { PageResponse } from "@/types/common";
 
 // 👇 Định nghĩa interface
@@ -121,10 +114,6 @@ export function FarmLogList({
   const [dateTo, setDateTo] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-  // State cho modal đính kèm
-  const [attachmentModalOpen, setAttachmentModalOpen] = useState(false);
-  const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
-
   const goToCreateLog = () => {
     navigate(`/farm-logs/create?productionLotId=${productionLotId}`);
   };
@@ -202,16 +191,6 @@ export function FarmLogList({
     if (newPage >= 0 && newPage < pageInfo.totalPages) {
       setPage(newPage);
     }
-  };
-
-  const openAttachmentModal = (logId: string) => {
-    setSelectedLogId(logId);
-    setAttachmentModalOpen(true);
-  };
-
-  const handleAttachmentUpdated = () => {
-    // Reload lại danh sách để cập nhật dữ liệu attachments mới
-    loadLogs();
   };
 
   return (
@@ -383,7 +362,7 @@ export function FarmLogList({
                         <Button
                           variant="view"
                           size="sm"
-                          onClick={() => openAttachmentModal(log.id)}
+                          onClick={() => navigate(`/farm-logs/${log.id}/attachments`)}
                           className="flex items-center gap-1"
                         >
                           <Paperclip className="h-4 w-4" />
@@ -453,20 +432,6 @@ export function FarmLogList({
         </CardContent>
       </Card>
 
-      {/* Modal đính kèm */}
-      <Dialog open={attachmentModalOpen} onOpenChange={setAttachmentModalOpen}>
-        <DialogContent className="max-w-xl md:max-w-3xl lg:max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Quản lý chứng từ</DialogTitle>
-          </DialogHeader>
-          {selectedLogId && (
-            <AttachmentManager
-              logId={selectedLogId}
-              onUpdate={handleAttachmentUpdated}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

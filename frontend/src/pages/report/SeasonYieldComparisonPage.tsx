@@ -15,6 +15,7 @@ import { SeasonYieldComparisonFilter } from "@/components/report/SeasonYieldComp
 import { SeasonYieldComparisonTable } from "@/components/report/SeasonYieldComparisonTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { HelpButton } from "@/components/help/HelpButton";
 import { useAuth } from "@/hooks/useAuth";
 import type {
   SeasonYieldComparisonParams,
@@ -97,10 +98,13 @@ export default function SeasonYieldComparisonPage() {
             Đối chiếu tổng sản lượng, số lô và mức tăng giảm giữa các mùa vụ theo dữ liệu hiện có.
           </p>
         </div>
-        <Button variant="outline" onClick={() => void loadComparison(lastParams)} disabled={loading}>
-          <RefreshCw className={loading ? "animate-spin" : ""} />
-          Làm mới
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="report-season-yield" />
+          <Button variant="outline" onClick={() => void loadComparison(lastParams)} disabled={loading}>
+            <RefreshCw className={loading ? "animate-spin" : ""} />
+            Làm mới
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-start gap-3 rounded-xl bg-blue-50 p-4 text-sm text-blue-900 ring-1 ring-blue-200">

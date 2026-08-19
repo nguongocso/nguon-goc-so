@@ -13,8 +13,13 @@ COPY pom.xml ./
 # Make the Maven wrapper executable (Linux).
 RUN chmod +x mvnw
 
-# Pre-download dependencies (cached separately from source).
-RUN ./mvnw dependency:go-offline -B
+# Download dependencies trước
+# Giúp tận dụng Docker layer cache
+# Exclude test dependencies (not needed for build) and increase HTTP timeouts for large artifacts
+RUN ./mvnw dependency:go-offline -B \
+    -DexcludeTestDeps=true \
+    -Daether.connector.http.connectTimeout=120000 \
+    -Daether.connector.http.requestTimeout=300000
 
 # Copy source code.
 COPY src src

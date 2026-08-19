@@ -168,7 +168,10 @@ export const ProductionLotList = ({
   }, [lots, search, statusFilter]);
 
   const getStatusBadge = (status: ProductionLot["status"]) => {
-    const config = statusConfig[status];
+    const config = statusConfig[status] || {
+      label: status || "Không xác định",
+      className: "bg-gray-100 text-gray-800 border-gray-300",
+    };
     return (
       <Badge
         variant="outline"

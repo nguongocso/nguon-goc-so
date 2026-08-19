@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FarmLogTab } from '@/components/farm-log/FarmLogTab';
+import { HelpButton } from '@/components/help/HelpButton';
 import { getFarmLogs } from '@/api/farmLogApi';
 import type { FarmLog } from '@/types/farmLog';
 
@@ -31,6 +32,9 @@ export default function FarmLogHistoryPage() {
 
   return (
     <div className="container mx-auto py-6">
+      <div className="mb-4 flex justify-end">
+        <HelpButton screenKey="farm-log-history" />
+      </div>
       {loading ? (
         <div>Đang tải...</div>
       ) : (

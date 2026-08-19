@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, Maximize2, Minimize2 } from 'lucide-react';
+import { HelpButton } from '@/components/help/HelpButton';
 import { toast } from 'sonner';
 import { getFailedLogs } from '@/api/eventValidationApi';
 import type { FailedEventLog } from '@/types/eventValidation';
@@ -104,10 +105,13 @@ export default function FailedEventLogsPage() {
               </p>
             </div>
           </div>
-          <Button variant="outline" onClick={fetchLogs} disabled={loading} className="border-emerald-200 hover:bg-emerald-50">
-            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-            Làm mới
-          </Button>
+          <div className="flex items-center gap-2">
+            <HelpButton screenKey="report-failed-events" />
+            <Button variant="outline" onClick={fetchLogs} disabled={loading} className="border-emerald-200 hover:bg-emerald-50">
+              <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+              Làm mới
+            </Button>
+          </div>
         </div>
 
         {/* Card chứa bảng */}

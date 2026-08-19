@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { verifyChainIntegrity } from '@/api/eventChainVerificationApi';
+import { HelpButton } from '@/components/help/HelpButton';
 import type { ChainVerificationResponse } from '@/types/eventChainVerification';
 
 export default function EventChainVerificationPage() {
@@ -35,11 +36,14 @@ export default function EventChainVerificationPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-4">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Kiểm chứng tính toàn vẹn dòng sự kiện</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Tính lại chuỗi băm liên kết của các sự kiện để xác minh dòng sự kiện lô hàng không bị can thiệp.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Kiểm chứng tính toàn vẹn dòng sự kiện</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Tính lại chuỗi băm liên kết của các sự kiện để xác minh dòng sự kiện lô hàng không bị can thiệp.
+          </p>
+        </div>
+        <HelpButton screenKey="event-chain-verification" />
       </div>
 
       <Card>
