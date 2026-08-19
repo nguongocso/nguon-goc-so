@@ -1,5 +1,6 @@
 export interface ProductionLot {
   id: string;
+  code?: string;
   organizationName: string;
   farmAreaId: string | null;
   farmAreaName: string | null;

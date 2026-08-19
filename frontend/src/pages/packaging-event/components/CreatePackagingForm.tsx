@@ -310,7 +310,7 @@ export function CreatePackagingForm() {
             <Label htmlFor="productionLotId">Lô sản xuất *</Label>
             <Select
               value={selectedLotId || ""}
-              onValueChange={(val) => {
+              onValueChange={(val: string | null) => {
                 const nextLotId = val || "";
                 eligibilityRequestRef.current += 1;
                 setSelectedLotId(nextLotId);
