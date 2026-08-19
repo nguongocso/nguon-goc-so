@@ -3,75 +3,115 @@ services:
   mysql:
     image: mysql:8.4
     restart: unless-stopped
+
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: nguon_goc_so
-      MYSQL_USER: nguongocso
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+
     ports:
-      - "3306:3306"
+      - "${MYSQL_HOST_PORT}:${MYSQL_CONTAINER_PORT}"
+
     volumes:
       - mysql_data:/var/lib/mysql
+
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-proot"]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "127.0.0.1",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD}"
+        ]
       interval: 10s
       timeout: 5s
       retries: 20
 
+
   backend:
     build:
       context: ./backend
+      dockerfile: Dockerfile
+
     restart: unless-stopped
+
     environment:
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_NAME: nguon_goc_so
-      DB_USERNAME: nguongocso
-      DB_PASSWORD: ""
-      JWT_SECRET: ${JWT_SECRET:-nguongocso_secret_key_default_for_local_development_2026_very_long_secure_secret}
-      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
-      UPLOAD_BASE_DIR: /app/uploads
-      UPLOAD_FARM_LOG_RELATIVE_PATH: farm-logs
-      UPLOAD_FARM_LOG_MAX_SIZE: 5242880
-      QR_IMAGE_STORAGE_PATH: /app/files/qr
-      MYSQL_DUMP_PATH: /usr/bin/mysqldump
-      MYSQL_PATH: /usr/bin/mysql
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
-      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
-      MAIL_PORT: ${MAIL_PORT:-587}
-      MAIL_USERNAME: ${MAIL_USERNAME:-}
-      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
-      LOCATIONIQ_API_KEY: ${LOCATIONIQ_API_KEY:-}
-      LOCATIONIQ_BASE_URL: ${LOCATIONIQ_BASE_URL:-https://us1.locationiq.com/v1/reverse}
-      JAVA_OPTS: "-Xms256m -Xmx768m"
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      PORT: ${PORT}
+
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+
+      UPLOAD_BASE_DIR: ${UPLOAD_BASE_DIR}
+      UPLOAD_FARM_LOG_RELATIVE_PATH: ${UPLOAD_FARM_LOG_RELATIVE_PATH}
+      UPLOAD_FARM_LOG_MAX_SIZE: ${UPLOAD_FARM_LOG_MAX_SIZE}
+
+      QR_IMAGE_STORAGE_PATH: ${QR_IMAGE_STORAGE_PATH}
+
+      MYSQL_DUMP_PATH: ${MYSQL_DUMP_PATH}
+      MYSQL_PATH: ${MYSQL_PATH}
+
+      FRONTEND_URL: ${FRONTEND_URL}
+
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+
+      LOCATIONIQ_API_KEY: ${LOCATIONIQ_API_KEY}
+      LOCATIONIQ_BASE_URL: ${LOCATIONIQ_BASE_URL}
+
+      JAVA_OPTS: ${JAVA_OPTS}
+
     ports:
-      - "8080:8080"
+      - "${BACKEND_HOST_PORT}:${BACKEND_CONTAINER_PORT}"
+
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
     volumes:
       - backend_uploads:/app/uploads
       - backend_files:/app/files
+
     depends_on:
       mysql:
         condition: service_healthy
 
+
   frontend:
     build:
       context: ./frontend
+      dockerfile: Dockerfile
+
     restart: unless-stopped
+
     environment:
       API_BASE_URL: /api/v1
-      BACKEND_UPSTREAM: http://backend:8080
+      BACKEND_UPSTREAM: http://backend:${BACKEND_CONTAINER_PORT}
+
     ports:
-      - "3000:80"
+      - "${FRONTEND_HOST_PORT}:${FRONTEND_CONTAINER_PORT}"
+
     depends_on:
       - backend
 
+
 volumes:
-  # NOTE: volume is pinned via `name:` to nguongocso_mysql_data so that
-  # existing local data is reused instead of creating a fresh database.
   mysql_data:
-    name: nguongocso_mysql_data
+    name: ${MYSQL_VOLUME_NAME}
+
   backend_uploads:
+
   backend_files:
