@@ -13,11 +13,6 @@ COPY pom.xml ./
 # Make the Maven wrapper executable (Linux).
 RUN chmod +x mvnw
 
-# Seed the Maven local repository from the host (~/.m2, provided via the
-# "m2repo" build context in docker-compose.yml) so cold builds only fetch
-# artifacts that are missing, instead of re-downloading everything.
-COPY --from=m2repo /repository /root/.m2/repository
-
 # Download dependencies trước
 # Giúp tận dụng Docker layer cache
 # Exclude test dependencies (not needed for build) and increase HTTP timeouts for large artifacts
