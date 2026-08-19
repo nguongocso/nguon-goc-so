@@ -21,6 +21,10 @@ services:
   backend:
     build:
       context: ./backend
+      additional_contexts:
+        # Seeding builder with the host Maven repository (~/.m2) avoids
+        # re-downloading all dependencies on cold builds (slow networks).
+        m2repo: ~/.m2
     restart: unless-stopped
     environment:
       DB_HOST: mysql
