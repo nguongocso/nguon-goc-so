@@ -198,116 +198,97 @@ export function CreatePreprocessingForm() {
         shouldValidate: true,
       });
     }
-
-    if (lot?.harvestDate) {
-      const today = getLocalDateString();
-      setValue(
-        "preprocessingDate",
-        lot.harvestDate > today ? today : lot.harvestDate,
-        { shouldValidate: true },
-      );
-    }
   };
 
-  const handleLocationSelect = (
-    selectedLatitude: number,
-    selectedLongitude: number,
-  ) => {
-    setValue("latitude", selectedLatitude, {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
-    setValue("longitude", selectedLongitude, {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
-  };
+  const handleLocationSelect = useCallback(
+    (nextLat: number, nextLng: number) => {
+      setValue("latitude", nextLat, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      setValue("longitude", nextLng, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    },
+    [setValue],
+  );
 
-  useAutoGeolocation({
-    onLocation: (selectedLatitude, selectedLongitude) => {
-      handleLocationSelect(selectedLatitude, selectedLongitude);
-      toast.success("Đã lấy vị trí hiện tại");
+  const { locationLoading, fetchLocation } = useAutoGeolocation({
+    onLocation: (nextLat, nextLng) => {
+      handleLocationSelect(nextLat, nextLng);
+      toast.success("Đã cập nhật vị trí hiện tại cho sự kiện sơ chế.");
     },
     onError: (message) => {
-      toast.error(`Không thể lấy vị trí: ${message}`);
+      toast.error(`Không thể lấy vị trí hiện tại: ${message}`);
     },
   });
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(event.target.files ?? []);
-    event.target.value = "";
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
-    const validFiles = selectedFiles.filter((file) => {
-      if (!file.type.startsWith("image/")) {
-        toast.error(`“${file.name}” không phải là tệp ảnh.`);
-        return false;
-      }
-
-      if (file.size > MAX_PREPROCESSING_IMAGE_SIZE) {
-        toast.error(`“${file.name}” vượt quá dung lượng 5 MB.`);
-        return false;
-      }
-
-      return true;
-    });
-
-    const availableSlots = MAX_PREPROCESSING_IMAGES - imageFiles.length;
-    if (validFiles.length > availableSlots) {
-      toast.error(`Chỉ được chọn tối đa ${MAX_PREPROCESSING_IMAGES} ảnh.`);
+    const fileList = Array.from(files);
+    if (imageFiles.length + fileList.length > MAX_PREPROCESSING_IMAGES) {
+      toast.error(`Chỉ được chọn tối đa ${MAX_PREPROCESSING_IMAGES} ảnh thực địa.`);
+      event.target.value = "";
+      return;
     }
 
-    const acceptedFiles = validFiles.slice(0, availableSlots);
-    const nextUrls = acceptedFiles.map((file) => URL.createObjectURL(file));
-    previewUrlsRef.current = [...previewUrlsRef.current, ...nextUrls];
-    setImageFiles((current) => [...current, ...acceptedFiles]);
-    setImagePreviews((current) => [...current, ...nextUrls]);
+    for (const file of fileList) {
+      if (!file.type.startsWith("image/")) {
+        toast.error(`File "${file.name}" không phải định dạng ảnh.`);
+        event.target.value = "";
+        return;
+      }
+      if (file.size > MAX_PREPROCESSING_IMAGE_SIZE) {
+        toast.error(`Ảnh "${file.name}" vượt quá kích thước 5 MB.`);
+        event.target.value = "";
+        return;
+      }
+    }
+
+    const nextFiles = [...imageFiles, ...fileList];
+    const newUrls = fileList.map((file) => URL.createObjectURL(file));
+
+    previewUrlsRef.current = [...previewUrlsRef.current, ...newUrls];
+    setImageFiles(nextFiles);
+    setImagePreviews((prev) => [...prev, ...newUrls]);
+    event.target.value = "";
   };
 
   const removeImage = (index: number) => {
-    const url = imagePreviews[index];
-    if (url) URL.revokeObjectURL(url);
-    previewUrlsRef.current = previewUrlsRef.current.filter(
-      (previewUrl) => previewUrl !== url,
-    );
-    setImageFiles((current) => current.filter((_, itemIndex) => itemIndex !== index));
-    setImagePreviews((current) =>
-      current.filter((_, itemIndex) => itemIndex !== index),
-    );
+    const targetUrl = imagePreviews[index];
+    if (targetUrl) {
+      URL.revokeObjectURL(targetUrl);
+      previewUrlsRef.current = previewUrlsRef.current.filter(
+        (url) => url !== targetUrl,
+      );
+    }
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const onSubmit = async (values: RecordPreprocessingFormValues) => {
     setServerError(null);
 
-    if (!selectedLot) {
-      setError("productionLotId", {
-        type: "manual",
-        message: "Vui lòng chọn lô sản xuất",
-      });
-      return;
-    }
-
     if (
-      selectedLot.harvestDate &&
-      values.preprocessingDate < selectedLot.harvestDate
+      validation &&
+      !validation.valid &&
+      validation.errorType === "WRONG_ORGANIZATION"
     ) {
-      setError("preprocessingDate", {
-        type: "manual",
-        message: "Ngày sơ chế phải sau hoặc bằng ngày thu hoạch của lô",
-      });
-      return;
-    }
-
-    if (!validation?.valid) {
-      setServerError(
-        validation?.message ||
-          validationError ||
-          "Lô sản xuất chưa đủ điều kiện ghi sự kiện sơ chế.",
-      );
+      const msg =
+        "Lô sản xuất thuộc doanh nghiệp khác. Bạn không thể ghi sự kiện cho lô này.";
+      setServerError(msg);
+      toast.error(msg);
       return;
     }
 
     try {
-      const images = await Promise.all(imageFiles.map(fileToBase64));
+      const base64Images = await Promise.all(
+        imageFiles.map((file) => fileToBase64(file)),
+      );
+
       await recordPreprocessingEvent({
         productionLotId: values.productionLotId,
         inputQuantity: values.inputQuantity,
@@ -315,258 +296,260 @@ export function CreatePreprocessingForm() {
         grade: toOptionalText(values.grade),
         processingMethod: toOptionalText(values.processingMethod),
         preprocessingDate: values.preprocessingDate,
-        images: images.length > 0 ? images : undefined,
         latitude: values.latitude,
         longitude: values.longitude,
-        deviceSource: "WEB",
+        images: base64Images.length > 0 ? base64Images : undefined,
       });
 
-      toast.success(`Đã ghi sự kiện sơ chế cho lô “${selectedLot.name}”.`);
-      navigate(`/production-lots/${selectedLot.id}`, { replace: true });
+      toast.success("Ghi nhận sự kiện sơ chế thành công!");
+      navigate(`/production-lots/${values.productionLotId}`);
     } catch (error) {
       const message = getPreprocessingErrorMessage(
         error,
-        "Không thể ghi sự kiện sơ chế. Vui lòng kiểm tra lại thông tin.",
+        "Không thể lưu sự kiện sơ chế. Vui lòng kiểm tra lại thông tin.",
       );
       setServerError(message);
+
+      if (message.includes("Sản lượng sau sơ chế")) {
+        setError("outputQuantity", { type: "server", message });
+      } else if (message.includes("Sản lượng ban đầu")) {
+        setError("inputQuantity", { type: "server", message });
+      }
+
       toast.error(message);
     }
   };
 
   return (
-    <Card className="mx-auto max-w-5xl border-emerald-100 shadow-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-emerald-800">
-          <Wheat className="size-5" />
-          Ghi sự kiện sơ chế và phân loại
-        </CardTitle>
-        <CardDescription>
-          Ghi nhận khối lượng trước và sau sơ chế, phẩm cấp, phương pháp thực
-          hiện và bằng chứng thực địa.
-        </CardDescription>
+    <Card className="mx-auto max-w-4xl border-emerald-100 shadow-sm">
+      <CardHeader className="border-b border-emerald-50 bg-emerald-50/40">
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">
+            <Wheat className="size-5" />
+          </div>
+          <div>
+            <CardTitle className="text-xl font-bold text-emerald-900">
+              Ghi sự kiện sơ chế
+            </CardTitle>
+            <CardDescription className="text-emerald-700">
+              Ghi nhận phân loại, hao hụt và xử lý sơ bộ nông sản sau thu hoạch
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        <CardContent className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <CardContent className="space-y-6 pt-6">
           {serverError && (
-            <Alert variant="destructive" aria-live="assertive">
+            <Alert variant="destructive">
               <AlertTriangle className="size-4" />
               <AlertDescription>{serverError}</AlertDescription>
             </Alert>
           )}
 
-          <section className="space-y-4" aria-labelledby="preprocessing-lot-heading">
-            <div>
-              <h2
-                id="preprocessing-lot-heading"
-                className="font-semibold text-emerald-800"
+          {lotsError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="size-4" />
+              <AlertDescription className="flex items-center justify-between gap-2">
+                <span>{lotsError}</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void loadLots()}
+                >
+                  Tải lại
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <section className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="productionLotId" className="font-semibold text-emerald-900">
+                Chọn lô sản xuất (Đã thu hoạch) <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={selectedLotId}
+                onValueChange={handleLotChange}
+                disabled={loadingLots || isSubmitting}
               >
-                Lô sản xuất
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Chỉ hiển thị các lô đang ở trạng thái đã thu hoạch.
-              </p>
+                <SelectTrigger id="productionLotId" className="w-full">
+                  <span>
+                    {selectedLot
+                      ? `${selectedLot.name} (${selectedLot.code})`
+                      : loadingLots
+                        ? "Đang tải danh sách lô..."
+                        : "Chọn lô sản xuất"}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  {productionLots.map((lot) => (
+                    <SelectItem key={lot.id} value={lot.id}>
+                      {lot.name} ({lot.code})
+                      {lot.productCategoryName ? ` - ${lot.productCategoryName}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {errors.productionLotId && (
+                <p className="text-sm font-medium text-red-500">
+                  {errors.productionLotId.message}
+                </p>
+              )}
             </div>
 
-            {loadingLots ? (
-              <div className="flex items-center gap-2 rounded-lg border p-4 text-sm text-muted-foreground">
-                <LoaderCircle className="size-4 animate-spin text-emerald-600" />
-                Đang tải danh sách lô...
-              </div>
-            ) : lotsError && productionLots.length === 0 ? (
-              <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                <p>{lotsError}</p>
-                <Button type="button" size="sm" variant="outline" onClick={() => void loadLots()}>
-                  Thử lại
-                </Button>
-              </div>
-            ) : productionLots.length === 0 ? (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                Chưa có lô sản xuất nào đã thu hoạch để ghi sơ chế.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {lotsError && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                    {lotsError}
-                  </div>
-                )}
-                <Label htmlFor="productionLotId">
-                  Lô sản xuất <span className="text-red-500">*</span>
-                </Label>
-                <Select value={selectedLotId} onValueChange={handleLotChange}>
-                <SelectTrigger
-                  id="productionLotId"
-                  className="w-full"
-                  aria-invalid={Boolean(errors.productionLotId)}
-                >
-                    <span>
-                      {selectedLot?.name ?? "Chọn lô đã thu hoạch"}
-                    </span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {productionLots.map((lot) => (
-                      <SelectItem key={lot.id} value={lot.id}>
-                        {lot.name} — {lot.actualQuantity?.toLocaleString("vi-VN") ?? "—"} kg
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.productionLotId && (
-                  <p className="text-sm text-red-500" role="alert">
-                    {errors.productionLotId.message}
-                  </p>
-                )}
-                <LotValidationStatus
-                  isValid={validation?.valid ?? null}
-                  message={validationError || validation?.message || ""}
-                  loading={validationLoading}
-                  className="mt-2"
-                />
-              </div>
+            {selectedLotId && (
+              <LotValidationStatus
+                validation={validation}
+                loading={validationLoading}
+                error={validationError}
+              />
             )}
           </section>
 
-          <section className="space-y-4" aria-labelledby="preprocessing-quantity-heading">
-            <div>
-              <h2
-                id="preprocessing-quantity-heading"
-                className="flex items-center gap-2 font-semibold text-emerald-800"
-              >
-                <Scale className="size-4" /> Khối lượng và hao hụt
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Tỷ lệ hao hụt được tính tự động từ hai khối lượng bên dưới.
-              </p>
-            </div>
+          <section className="space-y-4 rounded-lg border border-emerald-100 bg-emerald-50/20 p-4">
+            <h2 className="flex items-center gap-2 font-semibold text-emerald-800">
+              <Scale className="size-4" /> Khối lượng & Phân loại
+            </h2>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="inputQuantity">
-                  Khối lượng đưa vào (kg) <span className="text-red-500">*</span>
+                  Khối lượng đưa vào sơ chế (kg) <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="inputQuantity"
                   type="number"
-                  min="0.01"
                   step="0.01"
-                  inputMode="decimal"
-                  aria-invalid={Boolean(errors.inputQuantity)}
+                  min="0.01"
+                  placeholder="VD: 1000"
+                  disabled={isSubmitting}
                   {...register("inputQuantity", { valueAsNumber: true })}
                 />
                 {errors.inputQuantity && (
-                  <p className="text-sm text-red-500" role="alert">
-                    {errors.inputQuantity.message}
-                  </p>
+                  <p className="text-sm text-red-500">{errors.inputQuantity.message}</p>
                 )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="outputQuantity">
-                  Khối lượng sau sơ chế (kg) <span className="text-red-500">*</span>
+                  Khối lượng thu được sau sơ chế (kg) <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="outputQuantity"
                   type="number"
-                  min="0"
                   step="0.01"
-                  inputMode="decimal"
-                  aria-invalid={Boolean(errors.outputQuantity)}
+                  min="0.01"
+                  placeholder="VD: 950"
+                  disabled={isSubmitting}
                   {...register("outputQuantity", { valueAsNumber: true })}
                 />
                 {errors.outputQuantity && (
-                  <p className="text-sm text-red-500" role="alert">
-                    {errors.outputQuantity.message}
-                  </p>
+                  <p className="text-sm text-red-500">{errors.outputQuantity.message}</p>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
-              <Percent className="size-5 text-emerald-700" />
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Tỷ lệ hao hụt dự kiến
-                </p>
-                <p className="text-xl font-semibold text-emerald-800" aria-live="polite">
-                  {lossRate === null ? "—" : `${lossRate.toLocaleString("vi-VN")}%`}
-                </p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="rounded-lg border border-emerald-200 bg-white p-3 shadow-xs">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <Percent className="size-4 text-emerald-700" /> Tỷ lệ hao hụt dự kiến:
+                  </span>
+                  <span className="font-bold text-emerald-900">
+                    {lossRate !== null ? `${lossRate}%` : "--"}
+                  </span>
+                </div>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="grade">Phân loại phẩm cấp (Grade)</Label>
+                <Input
+                  id="grade"
+                  placeholder="VD: Loại 1, Hạng A, Xuất khẩu..."
+                  disabled={isSubmitting}
+                  {...register("grade")}
+                />
+                {errors.grade && (
+                  <p className="text-sm text-red-500">{errors.grade.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="processingMethod">Phương pháp / Quy trình sơ chế</Label>
+              <Textarea
+                id="processingMethod"
+                rows={3}
+                placeholder="VD: Rửa sạch, sấy lạnh ở 45 độ C trong 8 giờ, phân loại kích thước bằng sàng..."
+                disabled={isSubmitting}
+                {...register("processingMethod")}
+              />
+              {errors.processingMethod && (
+                <p className="text-sm text-red-500">{errors.processingMethod.message}</p>
+              )}
             </div>
           </section>
 
-          <section className="grid gap-4 sm:grid-cols-2">
+          <section className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="grade">Hạng phân loại</Label>
-              <Input
-                id="grade"
-                maxLength={100}
-                placeholder="VD: Hạng A, Loại 1"
-                {...register("grade")}
-              />
-              {errors.grade && (
-                <p className="text-sm text-red-500" role="alert">
-                  {errors.grade.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="preprocessingDate">
-                Ngày sơ chế <span className="text-red-500">*</span>
+              <Label htmlFor="preprocessingDate" className="font-semibold text-emerald-900">
+                Ngày thực hiện sơ chế <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="preprocessingDate"
                 type="date"
-                min={selectedLot?.harvestDate || undefined}
                 max={getLocalDateString()}
-                aria-invalid={Boolean(errors.preprocessingDate)}
+                disabled={isSubmitting}
                 {...register("preprocessingDate")}
               />
               {errors.preprocessingDate && (
-                <p className="text-sm text-red-500" role="alert">
-                  {errors.preprocessingDate.message}
-                </p>
+                <p className="text-sm text-red-500">{errors.preprocessingDate.message}</p>
               )}
             </div>
 
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="processingMethod">Phương pháp sơ chế</Label>
-              <Textarea
-                id="processingMethod"
-                rows={4}
-                maxLength={500}
-                placeholder="Mô tả các bước rửa, làm sạch, sấy, loại bỏ sản phẩm không đạt..."
-                {...register("processingMethod")}
-              />
-              <div className="flex justify-between gap-3 text-xs text-muted-foreground">
-                <span>{errors.processingMethod?.message}</span>
-                <span>{watch("processingMethod")?.length ?? 0}/500</span>
+            <div className="space-y-3 rounded-lg border border-emerald-100 bg-emerald-50/20 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <Label className="flex items-center gap-2 font-semibold text-emerald-800">
+                  <MapPin className="size-4" /> Vị trí sơ chế (Click trên bản đồ)
+                </Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={locationLoading || isSubmitting}
+                  onClick={() => fetchLocation()}
+                >
+                  {locationLoading ? "Đang lấy vị trí..." : "Lấy vị trí hiện tại"}
+                </Button>
               </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  value={currentPosition?.lat ?? ""}
+                  placeholder="Vĩ độ (Latitude)"
+                  readOnly
+                  tabIndex={-1}
+                />
+                <Input
+                  value={currentPosition?.lng ?? ""}
+                  placeholder="Kinh độ (Longitude)"
+                  readOnly
+                  tabIndex={-1}
+                />
+              </div>
+
+              <LocationPicker
+                onLocationSelect={handleLocationSelect}
+                initialPosition={currentPosition}
+                height="280px"
+              />
             </div>
           </section>
 
-          <section className="space-y-3" aria-labelledby="preprocessing-location-heading">
-            <div>
-              <h2
-                id="preprocessing-location-heading"
-                className="flex items-center gap-2 font-semibold text-emerald-800"
-              >
-                <MapPin className="size-4" /> Vị trí sơ chế
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Không bắt buộc; chọn vị trí trên bản đồ.
-              </p>
-            </div>
-
-            <LocationPicker
-              onLocationSelect={handleLocationSelect}
-              initialPosition={currentPosition}
-              height="280px"
-            />
-          </section>
-
-          <section className="space-y-3" aria-labelledby="preprocessing-images-heading">
+          <section className="space-y-3 rounded-lg border border-emerald-100 bg-emerald-50/20 p-4">
             <div>
               <h2
                 id="preprocessing-images-heading"

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { Fragment, useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -21,6 +21,7 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Search,
   FileText,
   Plus,
@@ -30,12 +31,6 @@ import { getFarmLogs } from "@/api/farmLogApi";
 import type { FarmLog } from "@/types/farmLog";
 import { useNavigate } from "react-router-dom";
 import { AttachmentManager } from "./AttachmentManager";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import type { PageResponse } from "@/types/common";
 
 // 👇 Định nghĩa interface
@@ -121,9 +116,8 @@ export function FarmLogList({
   const [dateTo, setDateTo] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-  // State cho modal đính kèm
-  const [attachmentModalOpen, setAttachmentModalOpen] = useState(false);
-  const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
+  // State row mở rộng: xem chi tiết + chứng từ inline
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
   const goToCreateLog = () => {
     navigate(`/farm-logs/create?productionLotId=${productionLotId}`);
@@ -204,14 +198,8 @@ export function FarmLogList({
     }
   };
 
-  const openAttachmentModal = (logId: string) => {
-    setSelectedLogId(logId);
-    setAttachmentModalOpen(true);
-  };
-
-  const handleAttachmentUpdated = () => {
-    // Reload lại danh sách để cập nhật dữ liệu attachments mới
-    loadLogs();
+  const toggleExpand = (logId: string) => {
+    setExpandedLogId((current) => (current === logId ? null : logId));
   };
 
   return (
@@ -355,43 +343,89 @@ export function FarmLogList({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredLogs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell>{formatDate(log.executedDate)}</TableCell>
-                      <TableCell className="font-medium">
-                        {log.createdByName}
-                      </TableCell>
-                      <TableCell>
-                        <span className="inline-flex rounded-full bg-info-bg px-2.5 py-0.5 text-xs font-medium text-info">
-                          {ACTIVITY_TYPE_LABELS[log.activityType] ||
-                            log.activityType}
-                        </span>
-                      </TableCell>
-                      <TableCell>{log.material || "—"}</TableCell>
-                      <TableCell>
-                        {log.quantity !== null && log.unit
-                          ? `${log.quantity} ${log.unit}`
-                          : "—"}
-                      </TableCell>
-                      <TableCell className="max-w-50 truncate">
-                        {log.notes || "—"}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {formatDateTime(log.createdAt)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Button
-                          variant="view"
-                          size="sm"
-                          onClick={() => openAttachmentModal(log.id)}
-                          className="flex items-center gap-1"
+                  {filteredLogs.map((log) => {
+                    const isExpanded = expandedLogId === log.id;
+                    return (
+                      <Fragment key={log.id}>
+                        <TableRow
+                          className={isExpanded ? "bg-muted/40" : ""}
                         >
-                          <Paperclip className="h-4 w-4" />
-                          <span>{log.attachmentCount ?? 0}</span>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                          <TableCell>{formatDate(log.executedDate)}</TableCell>
+                          <TableCell className="font-medium">
+                            {log.createdByName}
+                          </TableCell>
+                          <TableCell>
+                            <span className="inline-flex rounded-full bg-info-bg px-2.5 py-0.5 text-xs font-medium text-info">
+                              {ACTIVITY_TYPE_LABELS[log.activityType] ||
+                                log.activityType}
+                            </span>
+                          </TableCell>
+                          <TableCell>{log.material || "—"}</TableCell>
+                          <TableCell>
+                            {log.quantity !== null && log.unit
+                              ? `${log.quantity} ${log.unit}`
+                              : "—"}
+                          </TableCell>
+                          <TableCell className="max-w-50 truncate">
+                            {log.notes || "—"}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {formatDateTime(log.createdAt)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="view"
+                              size="sm"
+                              onClick={() => toggleExpand(log.id)}
+                              className="flex items-center gap-1"
+                              title={
+                                isExpanded
+                                  ? "Thu gọn chi tiết"
+                                  : "Xem chi tiết & quản lý chứng từ"
+                              }
+                            >
+                              <Paperclip className="h-4 w-4" />
+                              <span>{log.attachmentCount ?? 0}</span>
+                              <ChevronDown
+                                className={`h-3.5 w-3.5 transition-transform ${
+                                  isExpanded ? "rotate-180" : ""
+                                }`}
+                              />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+
+                        {isExpanded && (
+                          <TableRow className="bg-muted/30">
+                            <TableCell colSpan={8} className="p-4">
+                              <div className="space-y-4">
+                                {log.notes && (
+                                  <div>
+                                    <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
+                                      Ghi chú
+                                    </p>
+                                    <p className="whitespace-pre-wrap text-sm">
+                                      {log.notes}
+                                    </p>
+                                  </div>
+                                )}
+
+                                <div>
+                                  <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
+                                    Chứng từ
+                                  </p>
+                                  <AttachmentManager
+                                    logId={log.id}
+                                    onUpdate={loadLogs}
+                                  />
+                                </div>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </Fragment>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -452,21 +486,6 @@ export function FarmLogList({
           )}
         </CardContent>
       </Card>
-
-      {/* Modal đính kèm */}
-      <Dialog open={attachmentModalOpen} onOpenChange={setAttachmentModalOpen}>
-        <DialogContent className="max-w-xl md:max-w-3xl lg:max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Quản lý chứng từ</DialogTitle>
-          </DialogHeader>
-          {selectedLogId && (
-            <AttachmentManager
-              logId={selectedLogId}
-              onUpdate={handleAttachmentUpdated}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
