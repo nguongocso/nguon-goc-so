@@ -97,9 +97,31 @@ class GlobalExceptionHandlerTest {
         assertNotNull(body);
         assertEquals(false, body.isSuccess());
         assertEquals(403, body.getStatus());
-        assertEquals("Access Denied", body.getMessage());
+        assertEquals("Bạn không có quyền thực hiện chức năng này", body.getMessage());
         assertEquals("ACCESS_DENIED", body.getErrors());
         assertEquals("/api/v1/admin/monitoring/system-status", body.getPath());
+    }
+
+    @Test
+    @DisplayName("403: message mặc định framework 'Access is denied' được thay bằng tiếng Việt")
+    void handleAccessDenied_ReplacesFrameworkDefaultMessage() {
+        HttpServletRequest request = monitoringRequest("/api/v1/admin/monitoring/system-status");
+
+        ResponseEntity<ApiResult<Void>> response = handler.handleAccessDenied(
+                new AccessDeniedException("Access is denied"), request);
+
+        assertEquals("Bạn không có quyền thực hiện chức năng này", response.getBody().getMessage());
+    }
+
+    @Test
+    @DisplayName("403: message tiếng Việt do service tự ném được giữ nguyên")
+    void handleAccessDenied_KeepsServiceSpecificMessage() {
+        HttpServletRequest request = monitoringRequest("/api/v1/admin/monitoring/system-status");
+
+        ResponseEntity<ApiResult<Void>> response = handler.handleAccessDenied(
+                new AccessDeniedException("Bạn không có quyền truy cập lô hàng này."), request);
+
+        assertEquals("Bạn không có quyền truy cập lô hàng này.", response.getBody().getMessage());
     }
 
     @Test

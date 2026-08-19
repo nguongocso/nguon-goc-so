@@ -14,6 +14,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import vn.nguongocso.auth.entity.Role;
+import vn.nguongocso.auth.entity.User;
+import vn.nguongocso.auth.enums.UserStatus;
 import vn.nguongocso.auth.repository.RoleRepository;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -21,8 +24,10 @@ import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.organization.dto.request.OrganizationUpdateRequest;
 import vn.nguongocso.organization.dto.response.OrganizationProfileResponse;
 import vn.nguongocso.organization.entity.Organization;
+import vn.nguongocso.organization.entity.OrganizationUser;
 import vn.nguongocso.organization.enums.OrganizationStatus;
 import vn.nguongocso.organization.enums.OrganizationType;
+import vn.nguongocso.organization.enums.OrganizationUserStatus;
 import vn.nguongocso.organization.repository.OrganizationRepository;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.organization.service.OrganizationService;
@@ -141,6 +146,39 @@ public class OrganizationServiceTest {
         assertThatThrownBy(() -> organizationServiceImpl.updateCurrentOrganization(request))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Tổ chức không tồn tại");
+    }
+
+    @Test
+    void getOrganizationDetail_shouldUseUserStatusForMemberDisplay() {
+        UUID memberUserId = UUID.randomUUID();
+        User user = new User();
+        user.setUserId(memberUserId);
+        user.setUserName("member01");
+        user.setFullName("Member One");
+        user.setEmail("member@example.com");
+        user.setPhone("0909090909");
+        user.setStatus(UserStatus.INACTIVE);
+
+        Role role = new Role();
+        role.setRoleId(3);
+        role.setCode("VT-03");
+        role.setName("Người ghi sự kiện");
+
+        OrganizationUser orgUser = new OrganizationUser();
+        orgUser.setId(UUID.randomUUID());
+        orgUser.setOrganization(existingOrg);
+        orgUser.setUser(user);
+        orgUser.setRole(role);
+        orgUser.setStatus(OrganizationUserStatus.ACTIVE);
+
+        when(organizationRepository.findById(orgId)).thenReturn(Optional.of(existingOrg));
+        when(organizationUserRepository.findByOrganization_OrganizationIdAndStatus(orgId, OrganizationUserStatus.ACTIVE))
+                .thenReturn(java.util.List.of(orgUser));
+
+        var response = organizationServiceImpl.getOrganizationDetail(orgId);
+
+        assertThat(response.getMembers()).hasSize(1);
+        assertThat(response.getMembers().get(0).getStatus()).isEqualTo(UserStatus.INACTIVE);
     }
 
     @Test

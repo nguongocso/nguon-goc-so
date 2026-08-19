@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,28 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Plus, Pencil, RefreshCw, Trash2, ListChecks, Save } from "lucide-react";
+import { Plus, Pencil, RefreshCw, ListChecks } from "lucide-react";
 import {
   getStandards,
   createStandard,
   updateStandard,
-  getStandardCriteria,
-  createStandardCriterion,
-  updateStandardCriterion,
-  deleteStandardCriterion,
 } from "@/api/standardApi";
 import { StandardForm } from "./StandardForm";
-import type { StandardFormValues, InspectionCriterionFormValues } from "@/utils/validators";
-import type { Standard, InspectionCriterion } from "@/types/standard";
+import type { StandardFormValues } from "@/utils/validators";
+import type { Standard } from "@/types/standard";
 import { usePermission } from "@/hooks/usePermission";
 import { ROLE_ACCESS } from "@/config/roleAccess";
 
@@ -52,6 +40,7 @@ const statusFilterOptions = [
 ];
 
 export const StandardList: React.FC = () => {
+  const navigate = useNavigate();
   const canManage = usePermission(ROLE_ACCESS.standardManagement);
   const [standards, setStandards] = useState<Standard[]>([]);
   const [totalElements, setTotalElements] = useState(0);
@@ -64,18 +53,6 @@ export const StandardList: React.FC = () => {
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [editingStandard, setEditingStandard] = useState<Standard | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  const [criteriaDialogOpen, setCriteriaDialogOpen] = useState(false);
-  const [selectedStandard, setSelectedStandard] = useState<Standard | null>(null);
-  const [criteriaList, setCriteriaList] = useState<InspectionCriterion[]>([]);
-  const [criteriaLoading, setCriteriaLoading] = useState(false);
-  const [criteriaSubmitting, setCriteriaSubmitting] = useState(false);
-  const [editingCriterion, setEditingCriterion] = useState<InspectionCriterion | null>(null);
-  const [criteriaForm, setCriteriaForm] = useState<InspectionCriterionFormValues>({
-    criterionCode: "",
-    criterionName: "",
-    note: "",
-  });
 
   const fetchStandards = async () => {
     setLoading(true);
@@ -155,108 +132,6 @@ export const StandardList: React.FC = () => {
   const closeDialog = () => {
     setFormDialogOpen(false);
     setEditingStandard(null);
-  };
-
-  const resetCriteriaForm = () => {
-    setEditingCriterion(null);
-    setCriteriaForm({ criterionCode: "", criterionName: "", note: "" });
-  };
-
-  const closeCriteriaManager = () => {
-    setCriteriaDialogOpen(false);
-    setSelectedStandard(null);
-    setCriteriaList([]);
-    resetCriteriaForm();
-  };
-
-  const openCriteriaManager = async (standard: Standard) => {
-    resetCriteriaForm();
-    setCriteriaList([]);
-    setSelectedStandard(standard);
-    setCriteriaDialogOpen(true);
-    setCriteriaLoading(true);
-    try {
-      const data = await getStandardCriteria(standard.id);
-      setCriteriaList(data);
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message || "Không thể tải danh sách tiêu chí",
-      );
-    } finally {
-      setCriteriaLoading(false);
-    }
-  };
-
-  const handleCriteriaFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedStandard) return;
-
-    if (!criteriaForm.criterionCode.trim() || !criteriaForm.criterionName.trim()) {
-      toast.error("Mã tiêu chí và tên tiêu chí không được để trống");
-      return;
-    }
-
-    setCriteriaSubmitting(true);
-    try {
-      if (editingCriterion) {
-        await updateStandardCriterion(selectedStandard.id, editingCriterion.criteriaId, {
-          standardId: selectedStandard.id,
-          criterionCode: criteriaForm.criterionCode.trim(),
-          criterionName: criteriaForm.criterionName.trim(),
-          note: criteriaForm.note?.trim() || undefined,
-        });
-        toast.success("Cập nhật tiêu chí thành công");
-      } else {
-        await createStandardCriterion(selectedStandard.id, {
-          standardId: selectedStandard.id,
-          criterionCode: criteriaForm.criterionCode.trim(),
-          criterionName: criteriaForm.criterionName.trim(),
-          note: criteriaForm.note?.trim() || undefined,
-        });
-        toast.success("Thêm tiêu chí thành công");
-      }
-
-      resetCriteriaForm();
-      const data = await getStandardCriteria(selectedStandard.id);
-      setCriteriaList(data);
-    } catch (error: any) {
-      const msg = error.response?.data?.message || "Lưu tiêu chí thất bại";
-      toast.error(msg);
-    } finally {
-      setCriteriaSubmitting(false);
-    }
-  };
-
-  const handleEditCriterion = (criterion: InspectionCriterion) => {
-    setEditingCriterion(criterion);
-    setCriteriaForm({
-      criterionCode: criterion.code,
-      criterionName: criterion.name,
-      note: criterion.note || "",
-    });
-  };
-
-  const handleDeleteCriterion = async (criterion: InspectionCriterion) => {
-    if (!selectedStandard) return;
-
-    const confirmed = window.confirm(
-      `Bạn có chắc muốn xóa tiêu chí "${criterion.name}" không?`,
-    );
-    if (!confirmed) return;
-
-    try {
-      await deleteStandardCriterion(selectedStandard.id, criterion.criteriaId);
-      toast.success("Xóa tiêu chí thành công");
-      setCriteriaList((prev) =>
-        prev.filter((item) => item.criteriaId !== criterion.criteriaId),
-      );
-      if (editingCriterion?.criteriaId === criterion.criteriaId) {
-        resetCriteriaForm();
-      }
-    } catch (error: any) {
-      const msg = error.response?.data?.message || "Xóa tiêu chí thất bại";
-      toast.error(msg);
-    }
   };
 
   const totalPages = Math.ceil(totalElements / PAGE_SIZE);
@@ -375,7 +250,9 @@ export const StandardList: React.FC = () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => openCriteriaManager(std)}
+                                  onClick={() =>
+                                    navigate(`/admin/standards/${std.id}/criteria`)
+                                  }
                                   title="Quản lý tiêu chí"
                                 >
                                   <ListChecks className="h-4 w-4" />
@@ -439,156 +316,6 @@ export const StandardList: React.FC = () => {
         initialData={editingStandard}
         isLoading={submitting}
       />
-
-      <Dialog open={criteriaDialogOpen} onOpenChange={(open) => {
-        if (!open) {
-          closeCriteriaManager();
-        }
-      }}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              Quản lý tiêu chí kiểm nghiệm - {selectedStandard?.name || ""}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="grid gap-6 md:grid-cols-[1.2fr_1fr]">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium">Danh sách tiêu chí</h3>
-                <Badge variant="outline">{criteriaList.length} tiêu chí</Badge>
-              </div>
-
-              {criteriaLoading ? (
-                <div className="text-sm text-muted-foreground py-6 text-center">
-                  Đang tải tiêu chí...
-                </div>
-              ) : criteriaList.length === 0 ? (
-                <div className="text-sm text-muted-foreground py-6 text-center border rounded-md">
-                  Chưa có tiêu chí nào cho tiêu chuẩn này.
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
-                  {criteriaList.map((criterion) => (
-                    <div
-                      key={criterion.criteriaId}
-                      className="flex items-center justify-between rounded-md border p-3 gap-3"
-                    >
-                      <div className="min-w-0">
-                        <div className="font-medium text-sm">{criterion.code}</div>
-                        <div className="text-sm text-muted-foreground truncate">
-                          {criterion.name}
-                        </div>
-                      </div>
-                      <div className="flex gap-2 shrink-0">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditCriterion(criterion)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteCriterion(criterion)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <form onSubmit={handleCriteriaFormSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="criterionCode">Mã tiêu chí</Label>
-                <Input
-                  id="criterionCode"
-                  value={criteriaForm.criterionCode}
-                  onChange={(e) =>
-                    setCriteriaForm((prev) => ({
-                      ...prev,
-                      criterionCode: e.target.value,
-                    }))
-                  }
-                  placeholder="VD: HEAVY_METAL"
-                  disabled={criteriaSubmitting}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="criterionName">Tên tiêu chí</Label>
-                <Input
-                  id="criterionName"
-                  value={criteriaForm.criterionName}
-                  onChange={(e) =>
-                    setCriteriaForm((prev) => ({
-                      ...prev,
-                      criterionName: e.target.value,
-                    }))
-                  }
-                  placeholder="VD: Kim loại nặng"
-                  disabled={criteriaSubmitting}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="criterionNote">Ghi chú</Label>
-                <textarea
-                  id="criterionNote"
-                  value={criteriaForm.note || ""}
-                  onChange={(e) =>
-                    setCriteriaForm((prev) => ({
-                      ...prev,
-                      note: e.target.value,
-                    }))
-                  }
-                  placeholder="Nhập ghi chú cho tiêu chí..."
-                  disabled={criteriaSubmitting}
-                  className="flex min-h-[90px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <Button type="submit" disabled={criteriaSubmitting} className="flex-1">
-                  {criteriaSubmitting ? (
-                    "Đang lưu..."
-                  ) : editingCriterion ? (
-                    <>
-                      <Save className="h-4 w-4 mr-1" />
-                      Cập nhật
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4 mr-1" />
-                      Thêm mới
-                    </>
-                  )}
-                </Button>
-                {editingCriterion && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={resetCriteriaForm}
-                    disabled={criteriaSubmitting}
-                  >
-                    Hủy
-                  </Button>
-                )}
-              </div>
-            </form>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={closeCriteriaManager}>
-              Đóng
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 };

@@ -13,6 +13,7 @@ import {
 import { ChevronLeft, ChevronRight, RefreshCw, MessageSquare } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 import { toast } from "sonner";
+import { maskId } from "@/lib/utils";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 
@@ -320,7 +321,7 @@ function FeedbackDetailSheet({
             <div className="rounded-lg border border-gray-100 bg-gray-50 p-4 space-y-2">
               <div>
                 <span className="text-xs text-muted-foreground">Mã phản ánh</span>
-                <p className="text-sm font-mono text-foreground break-all">{feedback.id}</p>
+                <p className="text-sm font-mono text-foreground break-all">{maskId(feedback.id)}</p>
               </div>
               <div>
                 <span className="text-xs text-muted-foreground">Nội dung</span>
@@ -350,7 +351,7 @@ function FeedbackDetailSheet({
               <div>
                 <span className="text-xs text-muted-foreground">Mã lô sản xuất</span>
                 <p className="text-sm font-mono text-foreground break-all">
-                  {feedback.productionLotId}
+                  {maskId(feedback.productionLotId)}
                 </p>
               </div>
               <div>
@@ -377,7 +378,7 @@ function FeedbackDetailSheet({
               <div>
                 <span className="text-xs text-muted-foreground">Mã tổ chức</span>
                 <p className="text-sm font-mono text-foreground break-all">
-                  {feedback.organizationId || "—"}
+                  {maskId(feedback.organizationId) || "—"}
                 </p>
               </div>
             </div>

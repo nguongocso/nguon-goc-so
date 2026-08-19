@@ -205,9 +205,13 @@ public class GlobalExceptionHandler {
                         AccessDeniedException e,
                         HttpServletRequest request) {
 
-                String message = e.getMessage() != null && !e.getMessage().isEmpty()
-                                ? e.getMessage()
-                                : "Bạn không có quyền thực hiện chức năng này";
+                String raw = e.getMessage();
+                boolean frameworkDefault = raw == null || raw.isBlank()
+                                || "Access Denied".equalsIgnoreCase(raw)
+                                || "Access is denied".equalsIgnoreCase(raw);
+                String message = frameworkDefault
+                                ? "Bạn không có quyền thực hiện chức năng này"
+                                : raw;
 
                 publishAccessDeniedAudit(request);
 
