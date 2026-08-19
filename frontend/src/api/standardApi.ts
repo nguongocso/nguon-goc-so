@@ -53,6 +53,19 @@ export const getStandards = async (params?: {
   return response.data.data;
 };
 
+/**
+ * Lấy chi tiết tiêu chuẩn theo ID
+ * GET /api/v1/standards/{standardId}
+ */
+export const getStandardById = async (
+  standardId: string
+): Promise<Standard> => {
+  const response = await apiClient.get<{ data: Standard }>(
+    `/standards/${standardId}`
+  );
+  return response.data.data;
+};
+
 export const getActiveStandards = async (): Promise<Standard[]> => {
   const response = await apiClient.get<{ data: { items: Standard[] } }>(
     '/standards',

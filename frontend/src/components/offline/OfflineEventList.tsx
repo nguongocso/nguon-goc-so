@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { RefreshCw, Trash2, X, Info } from 'lucide-react';
 import type { OfflineEvent } from '@/types/offlineEvent';
+import { maskId } from '@/lib/utils';
 
 // Component hiển thị một event
 const EventItem: React.FC<{
@@ -46,7 +47,7 @@ const EventItem: React.FC<{
           </Badge>
         </div>
         <div className="text-sm text-muted-foreground">
-          Lô: {lotName} (ID: {event.productionLotId?.slice(0, 8) ?? 'N/A'})
+          Lô: {lotName} (ID: {maskId(event.productionLotId) || 'N/A'})
         </div>
         <div className="text-xs text-muted-foreground">
           Ghi lúc: {new Date(event.recordedAt).toLocaleString()}
