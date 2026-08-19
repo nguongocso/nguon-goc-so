@@ -43,6 +43,31 @@ public interface LoginAttemptRepository extends JpaRepository<LoginAttempt, UUID
         LoginResult result,
         String countryCode
     );
+
+    boolean existsByUser_UserIdAndResultAndIpAddress(
+        UUID userId,
+        LoginResult result,
+        String ipAddress
+    );
+
+    boolean existsByUser_UserIdAndResultAndIpAddressAndCreatedAtBefore(
+        UUID userId,
+        LoginResult result,
+        String ipAddress,
+        OffsetDateTime createdAt
+    );
+
+    boolean existsByUser_UserIdAndResultAndCountryCodeAndCreatedAtBefore(
+        UUID userId,
+        LoginResult result,
+        String countryCode,
+        OffsetDateTime createdAt
+    );
+
+    long countByUser_UserIdAndResult(
+        UUID userId,
+        LoginResult result
+    );
     
     /**
      * Lấy các lần đăng nhập FAILED của người dùng trong khoảng thời gian (dùng để phát hiện repeated failed login).
