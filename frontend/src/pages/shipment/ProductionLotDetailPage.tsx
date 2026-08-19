@@ -415,8 +415,6 @@ export const ProductionLotDetailPage = () => {
 
   const canCreateShipment =
     user?.roleCode === "VT-02" && lot.status === "PACKAGED";
-  const canActivateShipment = user?.roleCode === "VT-02";
-  const canRecallShipment = user?.roleCode === "VT-02";
   const canRecordPackaging =
     (user?.roleCode === "VT-02" || user?.roleCode === "VT-03") &&
     (lot.status === "HARVESTED" || lot.status === "PREPROCESSED");
@@ -769,8 +767,6 @@ export const ProductionLotDetailPage = () => {
             productionLotId={lot.id}
             productionLotStatus={lot.status}
             canCreate={canCreateShipment}
-            canActivate={canActivateShipment}
-            canRecall={canRecallShipment}
           />
         </TabsContent>
 

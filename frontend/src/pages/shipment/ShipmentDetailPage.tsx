@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   BadgeCheck,
   Ban,
+  FileJson,
   FileText,
   LoaderCircle,
   Package,
@@ -17,9 +18,15 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
+import { ROLE_ACCESS } from "@/config/roleAccess";
 import { getShipmentById } from "@/api/shipmentApi";
 import { getShipmentTimeline } from "@/api/chainEventApi";
-import { checkDossierEligibility, exportDossier } from "@/api/dossierApi";
+import {
+  checkDossierEligibility,
+  exportDossier,
+  exportGs1Dossier,
+} from "@/api/dossierApi";
 import { deleteDraft } from "@/api/eventValidationApi";
 import { useRecallShipment } from "@/hooks/useRecallShipment";
 import { activateShipmentStamps } from "@/api/shipmentApi";
@@ -93,6 +100,7 @@ export const ShipmentDetailPage = () => {
   // ── Permissions ────────────────────────────────────────────────────────────
   const canActivate = user?.roleCode === "VT-02";
   const canRecall = user?.roleCode === "VT-02";
+  const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
 
   // ── Loaders ────────────────────────────────────────────────────────────────
 
@@ -180,6 +188,37 @@ export const ShipmentDetailPage = () => {
       toast.success("Tải hồ sơ thành công");
     } catch (err: any) {
       toast.error(err.response?.data?.message ?? "Có lỗi xảy ra khi xuất hồ sơ.");
+    }
+  };
+
+  const handleExportGs1Dossier = async () => {
+    if (!shipment) return;
+    const toastId = toast.loading("Đang tạo hồ sơ GS1...");
+    try {
+      const { blob, fileName } = await exportGs1Dossier(
+        shipment.id,
+        "json",
+        true,
+      );
+      toast.dismiss(toastId);
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Tải hồ sơ GS1 thành công");
+    } catch (error: any) {
+      toast.dismiss(toastId);
+      const msg =
+        error.response?.data?.message ||
+        "Có lỗi xảy ra khi xuất hồ sơ GS1.";
+
+      toast.error(msg);
     }
   };
 
@@ -290,6 +329,13 @@ export const ShipmentDetailPage = () => {
                 <FileText className="mr-1 h-4 w-4" />
                 Xuất hồ sơ
               </Button>
+
+              {canExportGs1 && (
+                <Button variant="outline" onClick={handleExportGs1Dossier}>
+                  <FileJson className="mr-1 h-4 w-4" />
+                  Xuất hồ sơ GS1
+                </Button>
+              )}
 
               {canRecallThis && (
                 <Button
