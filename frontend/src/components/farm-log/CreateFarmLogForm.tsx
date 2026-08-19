@@ -278,23 +278,46 @@ export function CreateFarmLogForm({
 
       // Tải lên các chứng từ/hình ảnh đã chọn (nếu có)
       if (attachmentFiles.length > 0) {
-        let uploadedCount = 0;
-        for (const file of attachmentFiles) {
+        const successfulIndices: number[] = [];
+        const failedFileDetails: string[] = [];
+
+        for (let i = 0; i < attachmentFiles.length; i++) {
+          const file = attachmentFiles[i];
           try {
             await uploadAttachment(result.id, file);
-            uploadedCount++;
-          } catch {
-            // Đã ném toast lỗi nếu cần
+            successfulIndices.push(i);
+          } catch (uploadErr: any) {
+            console.error(`Lỗi tải lên tệp ${file.name}:`, uploadErr);
+            const errMsg = uploadErr.response?.data?.message || 'Lỗi kết nối';
+            failedFileDetails.push(`"${file.name}": ${errMsg}`);
           }
         }
-        if (uploadedCount > 0) {
-          toast.success(`Đã tải lên ${uploadedCount} chứng từ đính kèm.`);
-        }
-      }
 
-      setAttachmentFiles([]);
-      filePreviews.forEach((url) => { if (url) URL.revokeObjectURL(url); });
-      setFilePreviews([]);
+        if (successfulIndices.length > 0 && failedFileDetails.length === 0) {
+          toast.success(`Đã tải lên thành công ${successfulIndices.length} chứng từ đính kèm.`);
+        } else if (successfulIndices.length > 0 && failedFileDetails.length > 0) {
+          toast.warning(
+            `Đã tải lên ${successfulIndices.length}/${attachmentFiles.length} chứng từ. Thất bại: ${failedFileDetails.join('; ')}`
+          );
+        } else {
+          toast.error(
+            `Không thể tải lên chứng từ: ${failedFileDetails.join('; ')}`
+          );
+        }
+
+        // Chỉ giữ lại các file bị upload thất bại để người dùng xem lại hoặc thử lại
+        const remainingFiles = attachmentFiles.filter((_, idx) => !successfulIndices.includes(idx));
+        const remainingPreviews = filePreviews.filter((url, idx) => {
+          if (successfulIndices.includes(idx) && url) {
+            URL.revokeObjectURL(url);
+            return false;
+          }
+          return true;
+        });
+
+        setAttachmentFiles(remainingFiles);
+        setFilePreviews(remainingPreviews);
+      }
       setForm((current) => ({
         ...createInitialForm(current.productionLotId),
         executedDate: current.executedDate,
