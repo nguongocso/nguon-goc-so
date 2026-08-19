@@ -13,6 +13,7 @@ import {
   formatDisplayDateTime,
 } from '@/utils/eventFormatter';
 import type { ComponentType } from 'react';
+import { maskId } from '@/lib/utils';
 
 const EVENT_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   HARVEST: Sprout,
@@ -125,7 +126,7 @@ export const ShipmentTimelineItem = ({ event, index, total }: Props) => {
         {/* Production Lot ID (secondary metadata, muted) */}
         {productionLotId && (
           <div className="mt-2 text-xs text-gray-300 break-all">
-            Mã: {productionLotId}
+            Mã: {maskId(productionLotId)}
           </div>
         )}
 
