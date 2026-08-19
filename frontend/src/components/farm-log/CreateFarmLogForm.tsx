@@ -2,14 +2,22 @@ import axios from 'axios';
 import {
   CheckCircle2,
   ClipboardList,
+  FileText,
   Info,
+  Paperclip,
   Sprout,
+  Upload,
+  X,
 } from 'lucide-react';
 import {
   useMemo,
   useState,
   type FormEvent,
 } from 'react';
+import { toast } from 'sonner';
+
+import { uploadAttachment } from '@/api/attachmentApi';
+import { AttachmentManager } from './AttachmentManager';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -129,6 +137,48 @@ export function CreateFarmLogForm({
     useState<FarmLogResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const MAX_ATTACHMENTS = 5;
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<string[]>([]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const fileArray = Array.from(files);
+    const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+
+    for (const f of fileArray) {
+      if (!validTypes.includes(f.type)) {
+        toast.error(`Tệp "${f.name}" không hỗ trợ. Chỉ nhận JPG, PNG, PDF.`);
+        return;
+      }
+      if (f.size > 5 * 1024 * 1024) {
+        toast.error(`Tệp "${f.name}" vượt quá 5MB.`);
+        return;
+      }
+    }
+
+    if (attachmentFiles.length + fileArray.length > MAX_ATTACHMENTS) {
+      toast.error(`Chỉ được chọn tối đa ${MAX_ATTACHMENTS} chứng từ.`);
+      return;
+    }
+
+    setAttachmentFiles((prev) => [...prev, ...fileArray]);
+    const newPreviews = fileArray.map((f) =>
+      f.type.startsWith('image/') ? URL.createObjectURL(f) : ''
+    );
+    setFilePreviews((prev) => [...prev, ...newPreviews]);
+  };
+
+  const removeFile = (index: number) => {
+    setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
+    setFilePreviews((prev) => {
+      if (prev[index]) URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
   const selectedLot = useMemo(
     () =>
       productionLots.find(
@@ -225,6 +275,26 @@ export function CreateFarmLogForm({
       });
 
       setCreatedLog(result);
+
+      // Tải lên các chứng từ/hình ảnh đã chọn (nếu có)
+      if (attachmentFiles.length > 0) {
+        let uploadedCount = 0;
+        for (const file of attachmentFiles) {
+          try {
+            await uploadAttachment(result.id, file);
+            uploadedCount++;
+          } catch {
+            // Đã ném toast lỗi nếu cần
+          }
+        }
+        if (uploadedCount > 0) {
+          toast.success(`Đã tải lên ${uploadedCount} chứng từ đính kèm.`);
+        }
+      }
+
+      setAttachmentFiles([]);
+      filePreviews.forEach((url) => { if (url) URL.revokeObjectURL(url); });
+      setFilePreviews([]);
       setForm((current) => ({
         ...createInitialForm(current.productionLotId),
         executedDate: current.executedDate,
@@ -499,6 +569,83 @@ export function CreateFarmLogForm({
               )}
             </div>
 
+            {/* Chứng từ / Hình ảnh đính kèm */}
+            <div className="space-y-3 pt-6 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium text-slate-800 flex items-center gap-2">
+                  <Paperclip className="size-4 text-emerald-700" />
+                  Chứng từ / Hình ảnh đính kèm
+                  <span className="text-xs font-normal text-slate-400">
+                    (không bắt buộc, tối đa {MAX_ATTACHMENTS} tệp)
+                  </span>
+                </Label>
+              </div>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('farm-log-attachment-input')?.click()}
+                  disabled={isSubmitting || attachmentFiles.length >= MAX_ATTACHMENTS}
+                  className="border-dashed border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                >
+                  <Upload className="size-4 mr-1.5" />
+                  Chọn chứng từ ({attachmentFiles.length}/{MAX_ATTACHMENTS})
+                </Button>
+                <input
+                  id="farm-log-attachment-input"
+                  type="file"
+                  multiple
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <span className="text-xs text-slate-400">
+                  Hỗ trợ JPG, PNG, PDF (≤ 5MB / tệp)
+                </span>
+              </div>
+
+              {/* Danh sách tệp đã chọn */}
+              {attachmentFiles.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pt-2">
+                  {attachmentFiles.map((file, idx) => (
+                    <div
+                      key={idx}
+                      className="relative group rounded-lg border border-slate-200 bg-slate-50 p-2 flex items-center gap-2 overflow-hidden shadow-xs"
+                    >
+                      {file.type.startsWith('image/') ? (
+                        <img
+                          src={filePreviews[idx]}
+                          alt={file.name}
+                          className="size-10 object-cover rounded shrink-0"
+                        />
+                      ) : (
+                        <FileText className="size-8 text-red-500 shrink-0" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-slate-700 truncate" title={file.name}>
+                          {file.name}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(idx)}
+                        disabled={isSubmitting}
+                        className="p-1 text-slate-400 hover:text-red-600 transition-colors"
+                        title="Xóa tệp"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {submitError && (
               <div
                 role="alert"
@@ -509,23 +656,28 @@ export function CreateFarmLogForm({
             )}
 
             {createdLog && (
-              <div
-                role="status"
-                className="flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
-              >
-                <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
-                <div>
-                  <p className="font-bold">
-                    Lưu nhật ký thành công
-                  </p>
-                  <p className="mt-1 leading-6">
-                    Hoạt động đã được ghi cho lô{' '}
-                    <strong>
-                      {createdLog.productionLotName}
-                    </strong>
-                    . Bạn có thể tiếp tục ghi hoạt động khác
-                    cho cùng lô.
-                  </p>
+              <div className="space-y-4">
+                <div
+                  role="status"
+                  className="flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
+                >
+                  <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
+                  <div>
+                    <p className="font-bold">
+                      Lưu nhật ký thành công
+                    </p>
+                    <p className="mt-1 leading-6">
+                      Hoạt động đã được ghi cho lô{' '}
+                      <strong>
+                        {createdLog.productionLotName}
+                      </strong>
+                      . Bạn có thể xem hoặc bổ sung thêm chứng từ đính kèm bên dưới.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <AttachmentManager logId={createdLog.id} />
                 </div>
               </div>
             )}
@@ -658,7 +810,7 @@ export function CreateFarmLogForm({
             <ul className="mt-2 space-y-2 text-sm leading-6 text-emerald-800">
               <li>Chỉ áp dụng cho lô đã duyệt hoặc đã thu hoạch.</li>
               <li>Nhật ký được ghi theo tài khoản VT-03 hiện tại.</li>
-              <li>Chứng từ được bổ sung sau khi nhật ký đã được lưu.</li>
+              <li>Chứng từ có thể chọn đính kèm trực tiếp khi tạo nhật ký hoặc bổ sung sau.</li>
             </ul>
           </div>
         </div>

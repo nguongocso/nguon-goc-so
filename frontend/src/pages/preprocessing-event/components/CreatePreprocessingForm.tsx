@@ -223,12 +223,14 @@ export function CreatePreprocessingForm() {
     });
   };
 
-  const { locationLoading, fetchLocation } = useAutoGeolocation({
+  useAutoGeolocation({
     onLocation: (selectedLatitude, selectedLongitude) => {
       handleLocationSelect(selectedLatitude, selectedLongitude);
       toast.success("Đã lấy vị trí hiện tại");
     },
-    onError: (message) => toast.error(`Không thể lấy vị trí: ${message}`),
+    onError: (message) => {
+      toast.error(`Không thể lấy vị trí: ${message}`);
+    },
   });
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -545,33 +547,18 @@ export function CreatePreprocessingForm() {
           </section>
 
           <section className="space-y-3" aria-labelledby="preprocessing-location-heading">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2
-                  id="preprocessing-location-heading"
-                  className="flex items-center gap-2 font-semibold text-emerald-800"
-                >
-                  <MapPin className="size-4" /> Vị trí sơ chế
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Không bắt buộc; chọn trên bản đồ hoặc lấy vị trí hiện tại.
-                </p>
-              </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={locationLoading || isSubmitting}
-                onClick={() => fetchLocation()}
+            <div>
+              <h2
+                id="preprocessing-location-heading"
+                className="flex items-center gap-2 font-semibold text-emerald-800"
               >
-                {locationLoading ? "Đang lấy vị trí..." : "Lấy vị trí hiện tại"}
-              </Button>
+                <MapPin className="size-4" /> Vị trí sơ chế
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Không bắt buộc; chọn vị trí trên bản đồ.
+              </p>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Input value={currentPosition?.lat ?? ""} disabled placeholder="Vĩ độ" />
-              <Input value={currentPosition?.lng ?? ""} disabled placeholder="Kinh độ" />
-            </div>
             <LocationPicker
               onLocationSelect={handleLocationSelect}
               initialPosition={currentPosition}

@@ -98,7 +98,7 @@ export const HarvestForm = ({
     });
   };
 
-  const { locationLoading, fetchLocation } = useAutoGeolocation({
+  useAutoGeolocation({
     onLocation: (selectedLatitude, selectedLongitude) => {
       handleLocationSelect(selectedLatitude, selectedLongitude);
       toast.success('Đã lấy vị trí hiện tại');
@@ -274,32 +274,7 @@ export const HarvestForm = ({
 
           {/* LocationPicker */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <Label>Vị trí thu hoạch (click trên bản đồ)</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={locationLoading || isSubmitting}
-                onClick={() => fetchLocation()}
-              >
-                {locationLoading
-                  ? 'Đang lấy vị trí...'
-                  : 'Lấy vị trí hiện tại'}
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              <Input
-                value={currentPosition?.lat ?? ''}
-                disabled
-                placeholder="Vĩ độ"
-              />
-              <Input
-                value={currentPosition?.lng ?? ''}
-                disabled
-                placeholder="Kinh độ"
-              />
-            </div>
+            <Label>Vị trí thu hoạch (click trên bản đồ)</Label>
             <LocationPicker
               onLocationSelect={handleLocationSelect}
               initialPosition={currentPosition}

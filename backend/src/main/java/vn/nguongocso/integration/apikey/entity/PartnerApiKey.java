@@ -54,7 +54,7 @@ public class PartnerApiKey {
     @Column(name = "partner_name", nullable = false)
     private String partnerName;
 
-    @Column(name = "key_prefix", nullable = false, length = 16)
+    @Column(name = "key_prefix", nullable = false, length = 32)
     private String keyPrefix;
 
     @Column(name = "key_hash", nullable = false, unique = true, length = 64)
