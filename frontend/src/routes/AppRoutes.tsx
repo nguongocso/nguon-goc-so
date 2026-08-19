@@ -36,6 +36,7 @@ import CreateCodeRangePage from "@/pages/admin/CreateCodeRangePage";
 import CodeRangeListPage from "@/pages/admin/CodeRangeListPage";
 import ProductCategoryManagementPage from "@/pages/admin/ProductCategoryManagementPage";
 import StandardManagementPage from "@/pages/admin/StandardManagementPage";
+import CriteriaManagementPage from "@/pages/admin/CriteriaManagementPage";
 import SuspectTraceCodeListPage from "@/pages/admin/SuspectTraceCodeListPage";
 import SuspectTraceCodeDetailPage from "@/pages/admin/SuspectTraceCodeDetailPage";
 
@@ -639,6 +640,17 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.standardManagement}
                     >
                         <StandardManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/standards/:standardId/criteria"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.standardManagement}
+                    >
+                        <CriteriaManagementPage />
                     </RoleRoute>
                 }
             />

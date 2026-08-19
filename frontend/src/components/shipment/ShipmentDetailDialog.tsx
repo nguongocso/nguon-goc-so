@@ -16,6 +16,7 @@ import {
   Package,
   Trash2,
 } from "lucide-react";
+import { maskId } from "@/lib/utils";
 import { QrCodeGrid } from "./QrCodeGrid";
 
 interface ShipmentDetailDialogProps {
@@ -124,7 +125,7 @@ export const ShipmentDetailDialog = ({
                 </div>
 
                 <p className="mt-1 break-all text-sm text-muted-foreground">
-                  ID: {shipment.id}
+                  ID: {maskId(shipment.id)}
                 </p>
               </div>
             </div>
@@ -158,7 +159,7 @@ export const ShipmentDetailDialog = ({
                       ID lô sản xuất
                     </dt>
                     <dd className="break-all text-sm font-medium">
-                      {shipment.productionLotId}
+                      {maskId(shipment.productionLotId)}
                     </dd>
                   </div>
 
