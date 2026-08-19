@@ -2,7 +2,7 @@ package vn.nguongocso.auth.dto.response;
 
 import lombok.Builder;
 import lombok.Data;
-import vn.nguongocso.organization.enums.OrganizationUserStatus;
+import vn.nguongocso.auth.enums.UserStatus;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -33,7 +33,7 @@ public class OrganizationUserResponse {
 
     private String roleName;
 
-    private OrganizationUserStatus status;
+    private UserStatus status;
 
     private LocalDateTime joinedAt;
 }

@@ -6,6 +6,8 @@ import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 
 import vn.nguongocso.alert.entity.Alert;
+import vn.nguongocso.auth.entity.AccountLock;
+import vn.nguongocso.auth.entity.LoginAnomaly;
 import vn.nguongocso.notification.dto.response.NotificationResponse;
 import vn.nguongocso.notification.dto.response.UnreadCountResponse;
 import vn.nguongocso.common.PageResponse;
@@ -59,4 +61,19 @@ public interface NotificationService {
      * Gửi thông báo cảnh báo chung.
      */
     void sendAlert(String message);
+
+    /**
+     * Gửi thông báo khi phát hiện đăng nhập bất thường (NCL-01-CN-005).
+     */
+    void sendLoginAnomalyNotification(LoginAnomaly anomaly);
+
+    /**
+     * Gửi thông báo khi tài khoản bị khóa.
+     */
+    void sendAccountLockedNotification(AccountLock accountLock);
+
+    /**
+     * Gửi thông báo khi tài khoản được mở khóa.
+     */
+    void sendAccountUnlockedNotification(AccountLock accountLock);
 }

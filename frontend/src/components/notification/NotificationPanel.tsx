@@ -13,12 +13,32 @@ const TYPE_ICON: Record<NotificationType, typeof Bell> = {
   ALERT: AlertTriangle,
   TASK: CheckCircle2,
   INFO: Info,
+  LOGIN_ANOMALY_DETECTED: AlertTriangle,
+  ACCOUNT_LOCKED: Bell,
+  ANOMALY_OPEN: AlertTriangle,
+  ANOMALY_DISMISSED: CheckCircle2,
+  ACCOUNT_UNLOCKED: Info,
 };
 
 const TYPE_STYLE: Record<NotificationType, string> = {
   ALERT: 'bg-error-bg text-destructive',
   TASK: 'bg-warning-bg text-status-pending',
   INFO: 'bg-info-bg text-info',
+  LOGIN_ANOMALY_DETECTED: 'bg-error-bg text-destructive',
+  ACCOUNT_LOCKED: 'bg-warning-bg text-status-pending',
+  ANOMALY_OPEN: 'bg-error-bg text-destructive',
+  ANOMALY_DISMISSED: 'bg-success-bg text-success',
+  ACCOUNT_UNLOCKED: 'bg-info-bg text-info',
+};
+
+const formatNotificationReason = (content: string) => {
+  return content
+    .replace(/REPEATED_FAILED_LOGIN/g, 'Đăng nhập thất bại nhiều lần')
+    .replace(/UNUSUAL_COUNTRY/g, 'Đăng nhập từ quốc gia bất thường')
+    .replace(/OPEN/g, 'Bất thường mới phát hiện')
+    .replace(/ACCOUNT_LOCKED/g, 'Tài khoản bị khóa')
+    .replace(/DISMISSED/g, 'Bất thường đã được bỏ qua')
+    .replace(/LOGIN_ANOMALY_DETECTED/g, 'Phát hiện đăng nhập bất thường');
 };
 
 const formatRelativeTime = (iso: string) => {
@@ -89,7 +109,7 @@ export const NotificationPanel = ({
                         )}
                       </span>
                       <span className="mt-0.5 block line-clamp-2 text-xs text-muted-foreground">
-                        {item.content}
+                        {formatNotificationReason(item.content)}
                       </span>
                       <span className="mt-1 block text-xs text-muted-foreground/70">
                         {formatRelativeTime(item.createdAt)}
