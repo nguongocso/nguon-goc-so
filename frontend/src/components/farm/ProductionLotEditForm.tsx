@@ -121,7 +121,7 @@ export const ProductionLotEditForm: React.FC = () => {
         plantingDate: data.plantingDate,
       });
       toast.success("Cập nhật lô sản xuất thành công");
-      navigate("/dashboard");
+      navigate("/production-lots");
     } catch (error: any) {
       const message =
         error.response?.data?.message || "Cập nhật thất bại. Vui lòng thử lại.";
@@ -301,7 +301,7 @@ export const ProductionLotEditForm: React.FC = () => {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/production-lots")}
           >
             Hủy
           </Button>
