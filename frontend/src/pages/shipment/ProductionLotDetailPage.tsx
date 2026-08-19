@@ -232,6 +232,11 @@ export const ProductionLotDetailPage = () => {
   const [loadingCerts, setLoadingCerts] = useState(false);
   const [attachDialogOpen, setAttachDialogOpen] = useState(false);
 
+  // Chỉ hiển thị tab Kiểm nghiệm khi lô có ít nhất một chứng nhận
+  // (chỉ tiêu kiểm nghiệm được lấy từ chứng nhận đã gắn).
+  // Kiểm tra thêm loadingCerts để tránh tab nhấp nháy khi đang tải.
+  const hasCertifications = !loadingCerts && certifications.length > 0;
+
   const [activeTab, setActiveTab] = useState("info");
 
   // Danh sách yêu cầu kiểm nghiệm (chỉ tải khi mở tab với vai trò VT-02)
@@ -725,7 +730,7 @@ export const ProductionLotDetailPage = () => {
           >
             Chứng nhận
           </TabsTrigger>
-          {canInspect && (
+          {canInspect && hasCertifications && (
             <TabsTrigger
               value="inspection"
               className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
@@ -794,7 +799,7 @@ export const ProductionLotDetailPage = () => {
           </div>
         </TabsContent>
 
-        {canInspect && (
+        {canInspect && hasCertifications && (
           <TabsContent value="inspection" className="mt-4">
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
