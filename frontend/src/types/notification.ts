@@ -1,4 +1,12 @@
-export type NotificationType = 'ALERT' | 'TASK' | 'INFO';
+export type NotificationType =
+  | 'ALERT'
+  | 'TASK'
+  | 'INFO'
+  | 'LOGIN_ANOMALY_DETECTED'
+  | 'ACCOUNT_LOCKED'
+  | 'ANOMALY_OPEN'
+  | 'ANOMALY_DISMISSED'
+  | 'ACCOUNT_UNLOCKED';
 
 export interface NotificationResponse {
   id: string;
