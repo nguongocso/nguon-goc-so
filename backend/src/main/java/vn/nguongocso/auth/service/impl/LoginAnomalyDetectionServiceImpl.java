@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,6 +67,11 @@ public class LoginAnomalyDetectionServiceImpl implements LoginAnomalyDetectionSe
                 return;
             }
 
+            boolean shouldCreateUnusualLocationAnomaly = false;
+            if (isSuccess) {
+                shouldCreateUnusualLocationAnomaly = isUnusualLocation(user, ipAddress, countryCode);
+            }
+
             // Ghi nhận đăng nhập
             LoginAttempt attempt = LoginAttempt.builder()
                 .user(user)
@@ -88,9 +92,9 @@ public class LoginAnomalyDetectionServiceImpl implements LoginAnomalyDetectionSe
                 countryCode
             );
             
-            // Nếu đăng nhập thành công, kiểm tra xem có phải quốc gia lạ không
-            if (isSuccess && user != null) {
-                checkUnusualCountry(user, ipAddress, countryCode);
+            // Nếu đăng nhập thành công, kiểm tra IP hoặc quốc gia mới
+            if (shouldCreateUnusualLocationAnomaly) {
+                createUnusualLocationAnomaly(user, ipAddress, countryCode);
             }
             
             // Nếu đăng nhập thất bại, kiểm tra xem có bao nhiêu lần sai liên tiếp
@@ -161,51 +165,51 @@ public class LoginAnomalyDetectionServiceImpl implements LoginAnomalyDetectionSe
     /**
      * Kiểm tra xem đăng nhập từ quốc gia chưa từng ghi nhận SUCCESS không.
      */
-    private void checkUnusualCountry(User user, String ipAddress, String countryCode) {
-        if (countryCode == null) {
-            return;
+    private boolean isUnusualLocation(
+        User user,
+        String ipAddress,
+        String countryCode
+    ) {
+        long previousSuccessfulLoginCount = loginAttemptRepository.countByUser_UserIdAndResult(
+            user.getUserId(),
+            LoginResult.SUCCESS
+        );
+
+        if (previousSuccessfulLoginCount == 0) {
+            return false;
         }
-        
-        boolean existsSuccessfulLoginFromThisCountry = loginAttemptRepository
-            .existsByUser_UserIdAndResultAndCountryCode(
+
+        boolean knownIp = loginAttemptRepository.existsByUser_UserIdAndResultAndIpAddress(
+            user.getUserId(),
+            LoginResult.SUCCESS,
+            ipAddress
+        );
+        boolean knownCountry = countryCode != null
+            && loginAttemptRepository.existsByUser_UserIdAndResultAndCountryCode(
                 user.getUserId(),
                 LoginResult.SUCCESS,
                 countryCode
             );
-        
-        // Nếu chưa từng đăng nhập thành công từ quốc gia này, tạo bản ghi bất thường
-        if (!existsSuccessfulLoginFromThisCountry) {
-            // Kiểm tra xem này có phải lần đầu tiên hay không
-            var firstLoginPage = loginAttemptRepository
-                .findByUser_UserIdOrderByCreatedAtDesc(
-                    user.getUserId(),
-                    PageRequest.of(0, 1)
-                );
 
-            if (firstLoginPage == null || firstLoginPage.isEmpty()) {
-                return;
-            }
-            
-            // Chỉ cảnh báo nếu user đã từng đăng nhập thành công trước đó
-            // (tức là không phải lần đầu tiên)
-            if (!firstLoginPage.isEmpty()) {
-                log.warn(
-                    "Phát hiện đăng nhập từ quốc gia lạ. userId={}, username={}, countryCode={}, ipAddress={}",
-                    user.getUserId(),
-                    user.getUserName(),
-                    countryCode,
-                    ipAddress
-                );
-                
-                createAnomaly(
-                    user,
-                    AnomalyReasonCode.UNUSUAL_COUNTRY,
-                    null,
-                    ipAddress,
-                    countryCode
-                );
-            }
-        }
+        return !knownIp || (countryCode != null && !knownCountry);
+    }
+
+    private void createUnusualLocationAnomaly(User user, String ipAddress, String countryCode) {
+        log.warn(
+            "Phát hiện đăng nhập từ vị trí mới. userId={}, username={}, countryCode={}, ipAddress={}",
+            user.getUserId(),
+            user.getUserName(),
+            countryCode,
+            ipAddress
+        );
+
+        createAnomaly(
+            user,
+            AnomalyReasonCode.UNUSUAL_COUNTRY,
+            null,
+            ipAddress,
+            countryCode
+        );
     }
     
     /**
