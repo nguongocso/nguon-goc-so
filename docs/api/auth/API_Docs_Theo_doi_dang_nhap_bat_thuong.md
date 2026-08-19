@@ -15,11 +15,15 @@ Nguon trang thai:
 
 - Ap dung cho tai khoan ton tai trong he thong. Username khong tim thay user thi luong hien tai bo qua ghi nhan.
 - Sai mat khau tu 5 lan tro len trong cua so 2 phut tao `REPEATED_FAILED_LOGIN`.
-- Dang nhap thanh cong tu quoc gia chua tung co lan dang nhap thanh cong tao `UNUSUAL_COUNTRY`, tru lan dang nhap thanh cong dau tien.
+- Moi lan dang nhap co IP client duoc luu vao `login_attempts`; IP public duoc resolver `https://ipwho.is` chuyen thanh `countryCode`.
+- Dang nhap thanh cong tu IP moi hoac quoc gia moi so voi cac lan dang nhap thanh cong truoc do tao `UNUSUAL_COUNTRY`, tru lan dang nhap thanh cong dau tien.
+- IP private, loopback va link-local khong goi dich vu GeoIP; khi resolver loi, dang nhap van tiep tuc va `countryCode` de trong.
 - Moi anomaly duoc luu vao `login_anomalies` va cap nhat/gom vao `suspicious_cases` theo tai khoan.
 - Khoa tai khoan cap nhat `User.status = INACTIVE`, tao `AccountLock.status = LOCKED` va vo hieu hoa token hien tai.
 - Khoa tam co thoi han; scheduler tu dong chuyen lock het han sang `UNLOCKED` va user ve `ACTIVE`.
 - Khoa vinh vien chi mo lai khi goi API unlock.
+
+Trong moi truong trien khai, chi chap nhan `X-Forwarded-For` tu dia chi proxy nam trong bien moi truong `TRUSTED_PROXY_IPS` (phan tach bang dau phay). Mac dinh local tin `127.0.0.1`, `::1` va dang IPv6 day du cua loopback.
 
 ## 3. Phan quyen thuc te
 
@@ -238,6 +242,7 @@ Luot phat hien anomaly va thao tac khoa tai khoan goi `NotificationService` hien
 
 - Tab **Su kien bat thuong** goi `/login-anomalies`.
 - Tab **Tai khoan nghi van** goi `/suspicious-cases`.
+- `IP_GEOLOCATION_ENABLED=false` co the dung de tat resolver; `IP_GEOLOCATION_BASE_URL` dung de thay endpoint GeoIP tuong thich response `success` va `country_code`.
 - Thong ke tai khoan nghi van tinh tren tap tai khoan unique theo `userId`, khong cong don cac anomaly rows.
 - Trang theo doi hien duoc gioi han tren frontend cho `VT-01`; thay doi quyen backend can cap nhat dong thoi voi Sidebar va route.
 - Giao dien cap nhat ngam sau thao tac, khong reload toan trang.

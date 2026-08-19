@@ -398,18 +398,16 @@ class LoginAnomalyDetectionServiceTest {
         // Arrange
         when(loginAttemptRepository.save(any(LoginAttempt.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(loginAttemptRepository.existsByUser_UserIdAndResultAndCountryCode(
+        when(loginAttemptRepository.countByUser_UserIdAndResult(
                 userId,
-                LoginResult.SUCCESS,
-                "US"))
-                .thenReturn(false); // Never logged in from US before
-        when(loginAttemptRepository.findByUser_UserIdOrderByCreatedAtDesc(
-                eq(userId),
-                any()))
-                .thenReturn(new org.springframework.data.domain.PageImpl<>(
-                        List.of(createFailedAttempt(userId, 1)),
-                        org.springframework.data.domain.PageRequest.of(0, 1),
-                        1)); // already had prior login before unusual country check
+                LoginResult.SUCCESS))
+                .thenReturn(1L);
+        when(loginAttemptRepository.existsByUser_UserIdAndResultAndIpAddress(
+                userId, LoginResult.SUCCESS, "1.2.3.4"))
+                .thenReturn(false);
+        when(loginAttemptRepository.existsByUser_UserIdAndResultAndCountryCode(
+                userId, LoginResult.SUCCESS, "US"))
+                .thenReturn(false);
         when(organizationUserRepository.findFirstByUser(user))
                 .thenReturn(Optional.of(organizationUser));
 
@@ -437,11 +435,16 @@ class LoginAnomalyDetectionServiceTest {
         // Arrange
         when(loginAttemptRepository.save(any(LoginAttempt.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(loginAttemptRepository.existsByUser_UserIdAndResultAndCountryCode(
+        when(loginAttemptRepository.countByUser_UserIdAndResult(
                 userId,
-                LoginResult.SUCCESS,
-                "VN"))
-                .thenReturn(true); // Already logged in from VN
+                LoginResult.SUCCESS))
+                .thenReturn(1L);
+        when(loginAttemptRepository.existsByUser_UserIdAndResultAndIpAddress(
+                userId, LoginResult.SUCCESS, "192.168.1.1"))
+                .thenReturn(true);
+        when(loginAttemptRepository.existsByUser_UserIdAndResultAndCountryCode(
+                userId, LoginResult.SUCCESS, "VN"))
+                .thenReturn(true);
 
         // Act
         loginAnomalyDetectionService.recordLoginAttempt(
@@ -474,6 +477,36 @@ class LoginAnomalyDetectionServiceTest {
 
         // Assert
         verify(loginAnomalyRepository, times(0)).save(any(LoginAnomaly.class));
+    }
+
+    @Test
+    @DisplayName("should detect new IP even when country code is null")
+    void recordLoginAttempt_shouldDetectNewIpWithNullCountryCode() {
+        when(loginAttemptRepository.save(any(LoginAttempt.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(loginAttemptRepository.countByUser_UserIdAndResult(userId, LoginResult.SUCCESS))
+                .thenReturn(1L);
+        when(loginAttemptRepository.existsByUser_UserIdAndResultAndIpAddress(
+                userId, LoginResult.SUCCESS, "172.18.0.1"))
+                .thenReturn(false);
+        when(organizationUserRepository.findFirstByUser(user))
+                .thenReturn(Optional.of(organizationUser));
+
+        loginAnomalyDetectionService.recordLoginAttempt(
+                user,
+                "testuser",
+                true,
+                "172.18.0.1",
+                null
+        );
+
+        ArgumentCaptor<LoginAnomaly> anomalyCaptor = ArgumentCaptor.forClass(LoginAnomaly.class);
+        verify(loginAnomalyRepository, times(1)).save(anomalyCaptor.capture());
+
+        LoginAnomaly anomaly = anomalyCaptor.getValue();
+        assertThat(anomaly.getReasonCode()).isEqualTo(AnomalyReasonCode.UNUSUAL_COUNTRY);
+        assertThat(anomaly.getIpAddress()).isEqualTo("172.18.0.1");
+        assertThat(anomaly.getCountryCode()).isNull();
     }
 
     @Test
