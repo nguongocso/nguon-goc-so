@@ -24,6 +24,7 @@ import { HelpButton } from "@/components/help/HelpButton";
 import type { ProductionLot } from "@/types/productionLot";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { maskId } from "@/lib/utils";
 import type {
   CanActivateSealCheck,
   InspectionRequestListItem,
@@ -611,7 +612,7 @@ export const ProductionLotDetailPage = () => {
               {lot.name}
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Mã lô: {lot.id}
+              Mã lô: {maskId(lot.id)}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -746,7 +747,7 @@ export const ProductionLotDetailPage = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="rounded-lg bg-muted/50 p-4">
                   <span className="text-sm text-muted-foreground">ID</span>
-                  <p className="font-mono text-sm">{lot.id}</p>
+                  <p className="font-mono text-sm">{maskId(lot.id)}</p>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-4">
                   <span className="text-sm text-muted-foreground">Ngày tạo</span>

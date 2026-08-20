@@ -324,6 +324,18 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ["VT-02"] as const,
       },
       {
+        icon: <ShieldCheck className="h-5 w-5" />,
+        label: "Lịch sử đăng nhập",
+        href: "/login-history",
+        allowedRoles: AUTHENTICATED_ROLE_CODES,
+      },
+      {
+        icon: <AlertTriangle className="h-5 w-5" />,
+        label: "Theo dõi đăng nhập bất thường",
+        href: "/login-anomalies",
+        allowedRoles: ["VT-01"] as const,
+      },
+      {
         icon: <Database className="h-5 w-5" />,
         label: "Sao lưu & Phục hồi dữ liệu",
         href: "/admin/backup-restore",

@@ -131,14 +131,14 @@ export function CreatePackagingForm() {
 
   const currentPosition =
     typeof lat === "number" &&
-    Number.isFinite(lat) &&
-    typeof lng === "number" &&
-    Number.isFinite(lng) &&
-    !(lat === 0 && lng === 0)
+      Number.isFinite(lat) &&
+      typeof lng === "number" &&
+      Number.isFinite(lng) &&
+      !(lat === 0 && lng === 0)
       ? {
-          lat,
-          lng,
-        }
+        lat,
+        lng,
+      }
       : undefined;
 
   const selectedLot = productionLots.find((lot) => lot.id === selectedLotId);
@@ -310,7 +310,7 @@ export function CreatePackagingForm() {
             <Label htmlFor="productionLotId">Lô sản xuất *</Label>
             <Select
               value={selectedLotId || ""}
-              onValueChange={(val) => {
+              onValueChange={(val: string | null) => {
                 const nextLotId = val || "";
                 eligibilityRequestRef.current += 1;
                 setSelectedLotId(nextLotId);
@@ -331,7 +331,7 @@ export function CreatePackagingForm() {
                 <span>
                   {selectedLotId
                     ? productionLots.find((lot) => lot.id === selectedLotId)
-                        ?.name
+                      ?.name
                     : "Chọn lô đã thu hoạch hoặc đã sơ chế"}
                 </span>
               </SelectTrigger>
@@ -369,20 +369,20 @@ export function CreatePackagingForm() {
             onAction={
               eligibilityStatus === "ineligible" && selectedLotId
                 ? () =>
-                    navigate(
-                      user?.roleCode === "VT-02"
-                        ? `/production-lots/${selectedLotId}/farm-logs`
-                        : `/farm-logs/create?productionLotId=${encodeURIComponent(selectedLotId)}`,
-                    )
+                  navigate(
+                    user?.roleCode === "VT-02"
+                      ? `/production-lots/${selectedLotId}/farm-logs`
+                      : `/farm-logs/create?productionLotId=${encodeURIComponent(selectedLotId)}`,
+                  )
                 : undefined
             }
             onRetry={
               eligibilityStatus === "error" ||
-              eligibilityStatus === "ineligible"
+                eligibilityStatus === "ineligible"
                 ? () =>
-                    selectedLotId
-                      ? void checkFarmLogEligibility(selectedLotId)
-                      : setEligibilityStatus("unselected")
+                  selectedLotId
+                    ? void checkFarmLogEligibility(selectedLotId)
+                    : setEligibilityStatus("unselected")
                 : undefined
             }
           />
@@ -470,3 +470,4 @@ export function CreatePackagingForm() {
     </Card>
   );
 }
+

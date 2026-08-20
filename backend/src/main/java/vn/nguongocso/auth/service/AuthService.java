@@ -10,13 +10,22 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.OffsetDateTime;
+
 import vn.nguongocso.auth.dto.request.LoginRequest;
 import vn.nguongocso.auth.dto.request.SelectOrganizationRequest;
 import vn.nguongocso.auth.dto.response.LoginResponse;
 import vn.nguongocso.auth.dto.response.OrganizationSelectionResponse;
 import vn.nguongocso.auth.dto.response.SelectOrganizationResponse;
+import vn.nguongocso.auth.entity.AccountLock;
 import vn.nguongocso.auth.entity.User;
+import vn.nguongocso.auth.enums.AccountLockStatus;
 import vn.nguongocso.auth.enums.UserStatus;
+import vn.nguongocso.auth.repository.AccountLockRepository;
+import vn.nguongocso.auth.repository.UserRepository;
+import vn.nguongocso.auth.service.LoginAnomalyDetectionService;
+import vn.nguongocso.auth.service.IpCountryResolver;
+import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.config.JwtTokenProvider;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.organization.entity.OrganizationUser;
@@ -57,7 +66,15 @@ public class AuthService {
 
     private final PasswordEncoder passwordEncoder;
 
+    private final UserRepository userRepository;
+
+    private final AccountLockRepository accountLockRepository;
+
     private final OrganizationUserRepository organizationUserRepository;
+
+    private final LoginAnomalyDetectionService loginAnomalyDetectionService;
+
+        private final IpCountryResolver ipCountryResolver;
 
     /**
      * Xác thực người dùng bằng username và password.
@@ -89,6 +106,57 @@ public class AuthService {
                 throw new BusinessException("Tài khoản hoặc mật khẩu không chính xác");
             }
 
+            // Check xem tài khoản có đang bị khóa từ AccountLock table
+            AccountLock latestLock = accountLockRepository
+                    .findFirstByUser_UserIdAndStatusOrderByLockedAtDesc(
+                            user.getUserId(),
+                            AccountLockStatus.LOCKED)
+                    .orElse(null);
+            
+            if (latestLock != null) {
+                OffsetDateTime now = OffsetDateTime.now();
+
+                if (latestLock.isPermanent()) {
+                    log.warn("Tài khoản đang bị khóa vĩnh viễn. user={}, accountId={}",
+                            request.getUsername(), user.getUserId());
+                    throw new BusinessException("Tài khoản đang bị khóa vĩnh viễn, vui lòng liên hệ quản trị viên để mở khóa.");
+                }
+
+                OffsetDateTime lockUntil = latestLock.getLockUntil();
+                long remainingSeconds;
+                if (lockUntil != null) {
+                    remainingSeconds = java.time.Duration.between(now, lockUntil).getSeconds();
+                } else {
+                    remainingSeconds = 60L - java.time.Duration
+                            .between(latestLock.getLockedAt(), now)
+                            .getSeconds();
+                }
+
+                if (remainingSeconds > 0) {
+                    log.warn(
+                            "Tài khoản đang bị khóa. user={}, remainingSeconds={}, lockUntil={}",
+                            request.getUsername(),
+                            remainingSeconds,
+                            lockUntil);
+                    throw new BusinessException(
+                            "Tài khoản đang bị khóa, vui lòng thử lại sau "
+                                    + remainingSeconds + "s");
+                }
+
+                latestLock.setStatus(AccountLockStatus.UNLOCKED);
+                latestLock.setUnlockedAt(now);
+                accountLockRepository.save(latestLock);
+
+                user.setStatus(UserStatus.ACTIVE);
+                userRepository.save(user);
+
+                log.info(
+                        "Tài khoản được tự động mở khóa sau khi hết thời hạn khóa. user={}, accountId={}, lockUntil={}",
+                        request.getUsername(),
+                        user.getUserId(),
+                        lockUntil);
+            }
+
             if (user.getStatus() != UserStatus.ACTIVE) {
                 log.warn("Tài khoản không hoạt động: {}", request.getUsername());
                 throw new BusinessException("Tài khoản hoặc mật khẩu không chính xác");
@@ -100,6 +168,14 @@ public class AuthService {
 
             if (!passwordMatches) {
                 log.warn("Sai mật khẩu: {}", request.getUsername());
+                String clientIp = IpUtils.getClientIp();
+                loginAnomalyDetectionService.recordLoginAttempt(
+                        user,
+                        request.getUsername(),
+                        false,
+                        clientIp,
+                        ipCountryResolver.resolveCountryCode(clientIp)
+                );
                 throw new BusinessException("Sai mật khẩu");
             }
 
@@ -401,6 +477,19 @@ public class AuthService {
                     .loadUserByUserIdAndOrganizationId(
                             userId,
                             request.getOrganizationId());
+
+            User currentUser = userRepository.findById(userId)
+                    .orElseThrow(() -> new BusinessException(
+                            "Người dùng không tồn tại"));
+
+            String clientIp = IpUtils.getClientIp();
+            loginAnomalyDetectionService.recordLoginAttempt(
+                    currentUser,
+                    currentUser.getUserName(),
+                    true,
+                    clientIp,
+                    ipCountryResolver.resolveCountryCode(clientIp)
+            );
 
             /*
              * =====================================================

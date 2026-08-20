@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Eye, Download, Trash2, Upload, File, FileText } from 'lucide-react';
+import { Eye, Download, Trash2, Upload, File, FileText, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -410,8 +410,11 @@ export function AttachmentManager({ logId, onUpdate }: AttachmentManagerProps) {
       {/* Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={(open) => { if (!open) handleClosePreview(); }}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-auto">
-          <DialogHeader>
+          <DialogHeader className="flex flex-row items-center justify-between">
             <DialogTitle className="truncate max-w-[80%]">{previewFileName}</DialogTitle>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleClosePreview}>
+              <X className="h-4 w-4" />
+            </Button>
           </DialogHeader>
           <div className="flex items-center justify-center min-h-[300px] bg-muted/30 rounded-lg">
             {previewType.startsWith('image/') ? (
