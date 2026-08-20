@@ -427,6 +427,8 @@ export const ProductionLotDetailPage = () => {
   const canRecordPreprocessing =
     canCreatePreprocessing && lot.status === "HARVESTED";
   const canManageCert = user?.roleCode === "VT-02";
+  const canActivateShipment = user?.roleCode === "VT-02";
+  const canRecallShipment = user?.roleCode === "VT-02";
 
   const handleDetach = async (certificationId: string) => {
     if (!id) {
@@ -773,6 +775,8 @@ export const ProductionLotDetailPage = () => {
             productionLotId={lot.id}
             productionLotStatus={lot.status}
             canCreate={canCreateShipment}
+            canActivate={canActivateShipment}
+            canRecall={canRecallShipment}
           />
         </TabsContent>
 
