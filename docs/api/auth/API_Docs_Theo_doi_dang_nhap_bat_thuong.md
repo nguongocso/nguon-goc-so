@@ -23,7 +23,7 @@ Nguon trang thai:
 - Khoa tam co thoi han; scheduler tu dong chuyen lock het han sang `UNLOCKED` va user ve `ACTIVE`.
 - Khoa vinh vien chi mo lai khi goi API unlock.
 
-Trong moi truong trien khai, chi chap nhan `X-Forwarded-For` tu dia chi proxy nam trong bien moi truong `TRUSTED_PROXY_IPS` (phan tach bang dau phay). Mac dinh local tin `127.0.0.1`, `::1` va dang IPv6 day du cua loopback.
+Trong moi truong trien khai, chi chap nhan `X-Forwarded-For` tu dia chi proxy nam trong bien moi truong `TRUSTED_PROXY_IPS` (phan tach bang dau phay, ho tro ca IP don va CIDR). Mac dinh tin cac IP loopback (`127.0.0.1`, `::1`) va cac dai mang noi bo pho bien cua Docker/Kubernetes (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`). Khi peer truc tiep la proxy tin cay, `IpUtils` duyet chuoi `X-Forwarded-For` tu phai sang trai, bo qua cac proxy tin cay va tra ve IP khong tin cay dau tien (IP client thuc) de chong gia mao header.
 
 ## 3. Phan quyen thuc te
 
