@@ -214,7 +214,7 @@ export function CreatePreprocessingForm() {
     [setValue],
   );
 
-  const { locationLoading, fetchLocation } = useAutoGeolocation({
+  useAutoGeolocation({
     onLocation: (nextLat, nextLng) => {
       handleLocationSelect(nextLat, nextLng);
       toast.success("Đã cập nhật vị trí hiện tại cho sự kiện sơ chế.");
@@ -272,13 +272,8 @@ export function CreatePreprocessingForm() {
   const onSubmit = async (values: RecordPreprocessingFormValues) => {
     setServerError(null);
 
-    if (
-      validation &&
-      !validation.valid &&
-      validation.errorType === "WRONG_ORGANIZATION"
-    ) {
-      const msg =
-        "Lô sản xuất thuộc doanh nghiệp khác. Bạn không thể ghi sự kiện cho lô này.";
+    if (validation && !validation.valid) {
+      const msg = validation.message || "Lô sản xuất không hợp lệ.";
       setServerError(msg);
       toast.error(msg);
       return;
@@ -377,7 +372,7 @@ export function CreatePreprocessingForm() {
                 <SelectTrigger id="productionLotId" className="w-full">
                   <span>
                     {selectedLot
-                      ? `${selectedLot.name} (${selectedLot.code})`
+                      ? selectedLot.name
                       : loadingLots
                         ? "Đang tải danh sách lô..."
                         : "Chọn lô sản xuất"}
@@ -386,7 +381,7 @@ export function CreatePreprocessingForm() {
                 <SelectContent>
                   {productionLots.map((lot) => (
                     <SelectItem key={lot.id} value={lot.id}>
-                      {lot.name} ({lot.code})
+                      {lot.name}
                       {lot.productCategoryName ? ` - ${lot.productCategoryName}` : ""}
                     </SelectItem>
                   ))}
@@ -402,9 +397,9 @@ export function CreatePreprocessingForm() {
 
             {selectedLotId && (
               <LotValidationStatus
-                validation={validation}
+                isValid={validation?.valid ?? null}
+                message={validation?.message ?? validationError ?? ""}
                 loading={validationLoading}
-                error={validationError}
               />
             )}
           </section>
@@ -511,35 +506,9 @@ export function CreatePreprocessingForm() {
             </div>
 
             <div className="space-y-3 rounded-lg border border-emerald-100 bg-emerald-50/20 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <Label className="flex items-center gap-2 font-semibold text-emerald-800">
-                  <MapPin className="size-4" /> Vị trí sơ chế (Click trên bản đồ)
-                </Label>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={locationLoading || isSubmitting}
-                  onClick={() => fetchLocation()}
-                >
-                  {locationLoading ? "Đang lấy vị trí..." : "Lấy vị trí hiện tại"}
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  value={currentPosition?.lat ?? ""}
-                  placeholder="Vĩ độ (Latitude)"
-                  readOnly
-                  tabIndex={-1}
-                />
-                <Input
-                  value={currentPosition?.lng ?? ""}
-                  placeholder="Kinh độ (Longitude)"
-                  readOnly
-                  tabIndex={-1}
-                />
-              </div>
+              <Label className="flex items-center gap-2 font-semibold text-emerald-800">
+                <MapPin className="size-4" /> Vị trí sơ chế (Click trên bản đồ)
+              </Label>
 
               <LocationPicker
                 onLocationSelect={handleLocationSelect}

@@ -13,6 +13,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { useAutoGeolocation } from "@/hooks/useAutoGeolocation";
+import { LocationPicker } from "@/pages/packaging-event/components/LocationPicker";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -237,23 +238,22 @@ export function RecordProcurementDialog({
   // lấy lại ngay khi người dùng cấp quyền GPS trong lúc dialog đang mở.
   // `handleGetCurrentLocation` vẫn dùng cho nút "Lấy vị trí hiện tại" để người
   // dùng chủ động lấy lại vị trí mới nhất.
-  const { locationLoading: isLocating, fetchLocation: handleGetCurrentLocation } =
-    useAutoGeolocation({
-      enabled: open,
-      onLocation: (latitude, longitude) => {
-        setValue("latitude", latitude, { shouldValidate: true });
-        setValue("longitude", longitude, { shouldValidate: true });
-        toast.success("Đã lấy vị trí hiện tại.");
-      },
-      onError: (message) => {
-        const isPermissionDenied = message.toLowerCase().includes("denied");
-        toast.error(
-          isPermissionDenied
-            ? "Bạn chưa cấp quyền truy cập vị trí. Vui lòng bật quyền vị trí rồi thử lại."
-            : "Không thể lấy vị trí hiện tại. Vui lòng thử lại.",
-        );
-      },
-    });
+  useAutoGeolocation({
+    enabled: open,
+    onLocation: (latitude, longitude) => {
+      setValue("latitude", latitude, { shouldValidate: true });
+      setValue("longitude", longitude, { shouldValidate: true });
+      toast.success("Đã lấy vị trí hiện tại.");
+    },
+    onError: (message) => {
+      const isPermissionDenied = message.toLowerCase().includes("denied");
+      toast.error(
+        isPermissionDenied
+          ? "Bạn chưa cấp quyền truy cập vị trí. Vui lòng bật quyền vị trí rồi thử lại."
+          : "Không thể lấy vị trí hiện tại. Vui lòng thử lại.",
+      );
+    },
+  });
 
   // ── Xử lý submit: chuyển dữ liệu hợp lệ sang hook useProcurementEvent ──
   const onSubmit = (values: ProcurementEventFormValues) => {
@@ -416,72 +416,24 @@ export function RecordProcurementDialog({
                 </div>
 
                 {/* Vị trí GPS */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label className="flex items-center gap-1.5">
-                      <MapPin className="size-4 text-emerald-700" />
-                      Vị trí nhận hàng
-                    </Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isLoading || isLocating}
-                      onClick={() => handleGetCurrentLocation()}
-                    >
-                      <MapPin className="mr-1.5 size-4" />
-                      {isLocating ? "Đang lấy vị trí..." : "Lấy vị trí hiện tại"}
-                    </Button>
-                  </div>
+                <div className="space-y-3 rounded-lg border border-emerald-100 bg-emerald-50/20 p-4">
+                  <Label className="flex items-center gap-1.5 font-semibold text-emerald-800">
+                    <MapPin className="size-4 text-emerald-700" />
+                    Vị trí nhận hàng (Click trên bản đồ)
+                  </Label>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="latitude"
-                        className="text-xs text-slate-500"
-                      >
-                        Vĩ độ
-                      </Label>
-                      <Input
-                        id="latitude"
-                        type="number"
-                        step="any"
-                        placeholder="Ví dụ: 21.0278"
-                        disabled={isLoading}
-                        {...register("latitude")}
-                      />
-                      {errors.latitude && (
-                        <p className="text-sm text-destructive">
-                          {errors.latitude.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="longitude"
-                        className="text-xs text-slate-500"
-                      >
-                        Kinh độ
-                      </Label>
-                      <Input
-                        id="longitude"
-                        type="number"
-                        step="any"
-                        placeholder="Ví dụ: 105.8342"
-                        disabled={isLoading}
-                        {...register("longitude")}
-                      />
-                      {errors.longitude && (
-                        <p className="text-sm text-destructive">
-                          {errors.longitude.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Tọa độ không bắt buộc. Nếu bạn cho phép trình duyệt, hệ
-                    thống sẽ tự động điền vị trí hiện tại.
-                  </p>
+                  <LocationPicker
+                    onLocationSelect={(lat, lng) => {
+                      setValue("latitude", lat, { shouldValidate: true });
+                      setValue("longitude", lng, { shouldValidate: true });
+                    }}
+                    initialPosition={
+                      rawLatitude && rawLongitude
+                        ? { lat: Number(rawLatitude), lng: Number(rawLongitude) }
+                        : undefined
+                    }
+                    height="240px"
+                  />
                 </div>
 
                 {/* Ghi chú */}

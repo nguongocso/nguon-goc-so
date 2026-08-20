@@ -34,7 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { LocationPicker } from "@/pages/packaging-event/components/LocationPicker";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
+// unused import removed
 import {
   FarmLogEligibilityAlert,
   type FarmLogEligibilityStatus,
@@ -95,7 +95,6 @@ const getPackagingError = (error: unknown) => {
 export function CreatePackagingForm() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
   const [productionLots, setProductionLots] = useState<ProductionLot[]>([]);
   const [loadingLots, setLoadingLots] = useState(true);
   const [selectedLotId, setSelectedLotId] = useState("");
@@ -198,7 +197,7 @@ export function CreatePackagingForm() {
     });
   };
 
-  const { locationLoading, fetchLocation } = useAutoGeolocation({
+  useAutoGeolocation({
     onLocation: (selectedLatitude, selectedLongitude) => {
       handleLocationSelect(selectedLatitude, selectedLongitude);
       toast.success("Đã lấy vị trí hiện tại");
@@ -278,20 +277,20 @@ export function CreatePackagingForm() {
             <Label htmlFor="productionLotId">Chọn lô sản xuất *</Label>
             <Select
               value={selectedLotId}
-              onValueChange={handleLotSelect}
+              onValueChange={(val) => handleLotSelect(val || "")}
               disabled={loadingLots}
             >
               <SelectTrigger id="productionLotId" className="w-full">
                 <span>
                   {selectedLot
-                    ? `${selectedLot.name} (${selectedLot.code})`
+                    ? selectedLot.name
                     : "Chọn lô sản xuất"}
                 </span>
               </SelectTrigger>
               <SelectContent>
                 {productionLots.map((lot) => (
                   <SelectItem key={lot.id} value={lot.id}>
-                    {lot.name} ({lot.code}) - {lot.productCategoryName}
+                    {lot.name} - {lot.productCategoryName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -305,9 +304,9 @@ export function CreatePackagingForm() {
 
           {selectedLotId && (
             <LotValidationStatus
-              validation={validation}
+              isValid={validation?.valid ?? null}
+              message={validation?.message ?? ""}
               loading={loading}
-              currentOrgId={user?.organizationId}
             />
           )}
 
@@ -347,33 +346,7 @@ export function CreatePackagingForm() {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <Label>Vị trí đóng gói (click trên bản đồ)</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={locationLoading || isSubmitting}
-                onClick={() => fetchLocation()}
-              >
-                {locationLoading
-                  ? "Đang lấy vị trí..."
-                  : "Lấy vị trí hiện tại"}
-              </Button>
-            </div>
-
-            <div className="flex gap-2">
-              <Input
-                value={currentPosition?.lat ?? ""}
-                disabled
-                placeholder="Vĩ độ"
-              />
-              <Input
-                value={currentPosition?.lng ?? ""}
-                disabled
-                placeholder="Kinh độ"
-              />
-            </div>
+            <Label>Vị trí đóng gói (click trên bản đồ)</Label>
 
             <LocationPicker
               onLocationSelect={handleLocationSelect}

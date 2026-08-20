@@ -243,13 +243,13 @@ export function CreateFarmLogForm({
     const payload: CreateFarmLogRequest = {
       productionLotId: form.productionLotId,
       activityType: form.activityType as FarmActivityType,
-      material: form.material.trim() || undefined,
+      material: form.material.trim() || null,
       quantity: form.quantity
         ? Number.parseFloat(form.quantity)
-        : undefined,
-      unit: form.unit.trim() || undefined,
+        : null,
+      unit: form.unit.trim() || null,
       executedDate: form.executedDate,
-      notes: form.notes.trim() || undefined,
+      notes: form.notes.trim() || null,
     };
 
     try {
@@ -258,7 +258,7 @@ export function CreateFarmLogForm({
       if (attachmentFiles.length > 0) {
         for (const file of attachmentFiles) {
           try {
-            await uploadAttachment('FARM_LOG', created.id, file);
+            await uploadAttachment(created.id, file);
           } catch {
             toast.error(`Lỗi khi tải đính kèm "${file.name}"`);
           }
@@ -326,7 +326,7 @@ export function CreateFarmLogForm({
                   Hoạt động
                 </p>
                 <p className="text-lg font-bold text-slate-900">
-                  {createdLog.activityTypeName}
+                  {ACTIVITY_OPTIONS.find((a) => a.value === createdLog.activityType)?.label ?? createdLog.activityType}
                 </p>
               </div>
               <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
@@ -334,39 +334,39 @@ export function CreateFarmLogForm({
               </span>
             </div>
 
-            <dl className="grid grid-cols-1 gap-4 pt-4 text-sm sm:grid-cols-2">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div>
-                <dt className="text-slate-500">Vật tư sử dụng</dt>
-                <dd className="font-semibold text-slate-800">
-                  {createdLog.material ?? 'Không ghi nhận'}
+                <dt className="text-xs font-semibold uppercase text-slate-400">
+                  Vùng trồng
+                </dt>
+                <dd className="mt-0.5 text-sm font-semibold text-slate-800">
+                  {selectedLot?.farmAreaName ?? '—'}
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">Số lượng</dt>
-                <dd className="font-semibold text-slate-800">
-                  {createdLog.quantity !== null &&
-                  createdLog.quantity !== undefined
-                    ? `${formatQuantity(createdLog.quantity)} ${createdLog.unit ?? ''}`.trim()
-                    : 'Không ghi nhận'}
+                <dt className="text-xs font-semibold uppercase text-slate-400">
+                  Ngày thực hiện
+                </dt>
+                <dd className="mt-0.5 text-sm font-semibold text-slate-800">
+                  {createdLog.executedDate}
                 </dd>
               </div>
-              <div>
-                <dt className="text-slate-500">Ngày thực hiện</dt>
-                <dd className="font-semibold text-slate-800">
-                  {formatDate(createdLog.executedDate)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-slate-500">Người thực hiện</dt>
-                <dd className="font-semibold text-slate-800">
-                  {createdLog.createdByName ?? 'Tài khoản hiện tại'}
-                </dd>
-              </div>
-            </dl>
+              {createdLog.material && (
+                <div>
+                  <dt className="text-xs font-semibold uppercase text-slate-400">
+                    Vật tư
+                  </dt>
+                  <dd className="mt-0.5 text-sm font-semibold text-slate-800">
+                    {createdLog.material}{' '}
+                    {createdLog.quantity ? `(${createdLog.quantity} ${createdLog.unit ?? ''})` : ''}
+                  </dd>
+                </div>
+              )}
+            </div>
 
             {createdLog.notes && (
-              <div className="mt-4 border-t border-slate-100 pt-3">
-                <dt className="text-xs font-semibold text-slate-500">
+              <div className="mt-3 border-t border-slate-100 pt-3">
+                <dt className="text-xs font-semibold uppercase text-slate-400">
                   Ghi chú
                 </dt>
                 <dd className="mt-1 text-sm text-slate-700">
@@ -376,10 +376,7 @@ export function CreateFarmLogForm({
             )}
           </div>
 
-          <AttachmentManager
-            targetType="FARM_LOG"
-            targetId={createdLog.id}
-          />
+          <AttachmentManager logId={createdLog.id} />
         </CardContent>
 
         <CardFooter className="flex flex-col gap-3 border-t border-emerald-100 pt-4 sm:flex-row sm:justify-end">
@@ -452,7 +449,7 @@ export function CreateFarmLogForm({
                   <option value="">-- Chọn lô sản xuất --</option>
                   {productionLots.map((lot) => (
                     <option key={lot.id} value={lot.id}>
-                      {lot.name} ({lot.code})
+                      {lot.name}
                     </option>
                   ))}
                 </select>
