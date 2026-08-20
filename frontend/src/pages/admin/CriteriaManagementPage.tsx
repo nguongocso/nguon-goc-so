@@ -1,50 +1,82 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, Save, ChevronLeft, ListChecks } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  getStandardById,
+  AlertDialog,
+  AlertDialogPopup,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Save,
+  ChevronLeft,
+  ListChecks,
+} from "lucide-react";
+import {
+  getStandards,
   getStandardCriteria,
   createStandardCriterion,
   updateStandardCriterion,
   deleteStandardCriterion,
 } from "@/api/standardApi";
-import type { InspectionCriterionFormValues } from "@/utils/validators";
-import type { Standard, InspectionCriterion } from "@/types/standard";
+import {
+  inspectionCriterionSchema,
+  type InspectionCriterionFormValues,
+} from "@/utils/validators";
+import type { InspectionCriterion } from "@/types/standard";
 
 const CriteriaManagementPage: React.FC = () => {
   const navigate = useNavigate();
   const { standardId } = useParams<{ standardId: string }>();
 
-  const [standard, setStandard] = useState<Standard | null>(null);
-  const [standardLoading, setStandardLoading] = useState(true);
   const [criteriaList, setCriteriaList] = useState<InspectionCriterion[]>([]);
   const [criteriaLoading, setCriteriaLoading] = useState(false);
   const [criteriaSubmitting, setCriteriaSubmitting] = useState(false);
-  const [editingCriterion, setEditingCriterion] = useState<InspectionCriterion | null>(null);
-  const [criteriaForm, setCriteriaForm] = useState<InspectionCriterionFormValues>({
-    criterionCode: "",
-    criterionName: "",
-    note: "",
+  const [standardName, setStandardName] = useState<string | null>(null);
+  const [editingCriterion, setEditingCriterion] =
+    useState<InspectionCriterion | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<InspectionCriterion | null>(
+    null,
+  );
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<InspectionCriterionFormValues>({
+    resolver: zodResolver(inspectionCriterionSchema),
+    defaultValues: {
+      criterionCode: "",
+      criterionName: "",
+      note: "",
+    },
   });
 
-  const fetchStandard = async () => {
+  const fetchStandardName = async () => {
     if (!standardId) return;
-    setStandardLoading(true);
     try {
-      const data = await getStandardById(standardId);
-      setStandard(data);
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message || "Không thể tải thông tin tiêu chuẩn",
-      );
-    } finally {
-      setStandardLoading(false);
+      const data = await getStandards({ page: 0, size: 100 });
+      const found = data.items.find((s) => s.id === standardId);
+      if (found) setStandardName(found.name);
+    } catch {
+      setStandardName(null);
     }
   };
 
@@ -54,6 +86,12 @@ const CriteriaManagementPage: React.FC = () => {
     try {
       const data = await getStandardCriteria(standardId);
       setCriteriaList(data);
+      if (data.length > 0) {
+        setStandardName(data[0].standardName);
+      } else {
+        setStandardName(null);
+        await fetchStandardName();
+      }
     } catch (error: any) {
       toast.error(
         error.response?.data?.message || "Không thể tải danh sách tiêu chí",
@@ -64,85 +102,81 @@ const CriteriaManagementPage: React.FC = () => {
   };
 
   useEffect(() => {
-    void fetchStandard();
     void fetchCriteria();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [standardId]);
 
   const resetCriteriaForm = () => {
     setEditingCriterion(null);
-    setCriteriaForm({ criterionCode: "", criterionName: "", note: "" });
+    reset({ criterionCode: "", criterionName: "", note: "" });
   };
 
-  const handleCriteriaFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCriteriaFormSubmit = handleSubmit(async (values) => {
     if (!standardId) return;
 
-    if (!criteriaForm.criterionCode.trim() || !criteriaForm.criterionName.trim()) {
-      toast.error("Mã tiêu chí và tên tiêu chí không được để trống");
-      return;
-    }
+    const payload = {
+      standardId,
+      criterionCode: values.criterionCode.trim(),
+      criterionName: values.criterionName.trim(),
+      note: values.note?.trim() || undefined,
+    };
 
     setCriteriaSubmitting(true);
     try {
       if (editingCriterion) {
-        await updateStandardCriterion(standardId, editingCriterion.criteriaId, {
+        const updated = await updateStandardCriterion(
           standardId,
-          criterionCode: criteriaForm.criterionCode.trim(),
-          criterionName: criteriaForm.criterionName.trim(),
-          note: criteriaForm.note?.trim() || undefined,
-        });
+          editingCriterion.criteriaId,
+          payload,
+        );
         toast.success("Cập nhật tiêu chí thành công");
+        setCriteriaList((prev) =>
+          prev.map((item) =>
+            item.criteriaId === updated.criteriaId ? updated : item,
+          ),
+        );
       } else {
-        await createStandardCriterion(standardId, {
-          standardId,
-          criterionCode: criteriaForm.criterionCode.trim(),
-          criterionName: criteriaForm.criterionName.trim(),
-          note: criteriaForm.note?.trim() || undefined,
-        });
+        const created = await createStandardCriterion(standardId, payload);
         toast.success("Thêm tiêu chí thành công");
+        setCriteriaList((prev) => [...prev, created]);
       }
-
       resetCriteriaForm();
-      const data = await getStandardCriteria(standardId);
-      setCriteriaList(data);
     } catch (error: any) {
       const msg = error.response?.data?.message || "Lưu tiêu chí thất bại";
       toast.error(msg);
     } finally {
       setCriteriaSubmitting(false);
     }
-  };
+  });
 
   const handleEditCriterion = (criterion: InspectionCriterion) => {
     setEditingCriterion(criterion);
-    setCriteriaForm({
+    reset({
       criterionCode: criterion.code,
       criterionName: criterion.name,
       note: criterion.note || "",
     });
   };
 
-  const handleDeleteCriterion = async (criterion: InspectionCriterion) => {
-    if (!standardId) return;
+  const handleDeleteCriterion = async () => {
+    if (!standardId || !deleteTarget) return;
 
-    const confirmed = window.confirm(
-      `Bạn có chắc muốn xóa tiêu chí "${criterion.name}" không?`,
-    );
-    if (!confirmed) return;
-
+    setDeleteSubmitting(true);
     try {
-      await deleteStandardCriterion(standardId, criterion.criteriaId);
+      await deleteStandardCriterion(standardId, deleteTarget.criteriaId);
       toast.success("Xóa tiêu chí thành công");
       setCriteriaList((prev) =>
-        prev.filter((item) => item.criteriaId !== criterion.criteriaId),
+        prev.filter((item) => item.criteriaId !== deleteTarget.criteriaId),
       );
-      if (editingCriterion?.criteriaId === criterion.criteriaId) {
+      if (editingCriterion?.criteriaId === deleteTarget.criteriaId) {
         resetCriteriaForm();
       }
+      setDeleteTarget(null);
     } catch (error: any) {
       const msg = error.response?.data?.message || "Xóa tiêu chí thất bại";
       toast.error(msg);
+    } finally {
+      setDeleteSubmitting(false);
     }
   };
 
@@ -164,10 +198,10 @@ const CriteriaManagementPage: React.FC = () => {
             Quản lý tiêu chí kiểm nghiệm
           </h1>
           <p className="text-sm text-muted-foreground">
-            {standardLoading
+            {criteriaLoading
               ? "Đang tải thông tin tiêu chuẩn..."
-              : standard
-                ? `Tiêu chuẩn: ${standard.name}`
+              : standardName
+                ? `Tiêu chuẩn: ${standardName}`
                 : "Không tìm thấy tiêu chuẩn"}
           </p>
         </div>
@@ -201,7 +235,9 @@ const CriteriaManagementPage: React.FC = () => {
                       className="flex items-center justify-between rounded-md border p-3 gap-3"
                     >
                       <div className="min-w-0">
-                        <div className="font-medium text-sm">{criterion.code}</div>
+                        <div className="font-medium text-sm">
+                          {criterion.code}
+                        </div>
                         <div className="text-sm text-muted-foreground truncate">
                           {criterion.name}
                         </div>
@@ -215,9 +251,9 @@ const CriteriaManagementPage: React.FC = () => {
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                         <Button
-                          variant="destructive"
+                          variant="delete"
                           size="sm"
-                          onClick={() => handleDeleteCriterion(criterion)}
+                          onClick={() => setDeleteTarget(criterion)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -228,58 +264,62 @@ const CriteriaManagementPage: React.FC = () => {
               )}
             </div>
 
-            <form onSubmit={handleCriteriaFormSubmit} className="space-y-4">
+            <form
+              onSubmit={handleCriteriaFormSubmit}
+              className="space-y-4"
+              noValidate
+            >
               <div className="space-y-2">
                 <Label htmlFor="criterionCode">Mã tiêu chí</Label>
                 <Input
                   id="criterionCode"
-                  value={criteriaForm.criterionCode}
-                  onChange={(e) =>
-                    setCriteriaForm((prev) => ({
-                      ...prev,
-                      criterionCode: e.target.value,
-                    }))
-                  }
+                  {...register("criterionCode")}
                   placeholder="VD: HEAVY_METAL"
                   disabled={criteriaSubmitting}
+                  aria-invalid={!!errors.criterionCode}
                 />
+                {errors.criterionCode && (
+                  <p className="text-sm text-red-500">
+                    {errors.criterionCode.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="criterionName">Tên tiêu chí</Label>
                 <Input
                   id="criterionName"
-                  value={criteriaForm.criterionName}
-                  onChange={(e) =>
-                    setCriteriaForm((prev) => ({
-                      ...prev,
-                      criterionName: e.target.value,
-                    }))
-                  }
+                  {...register("criterionName")}
                   placeholder="VD: Kim loại nặng"
                   disabled={criteriaSubmitting}
+                  aria-invalid={!!errors.criterionName}
                 />
+                {errors.criterionName && (
+                  <p className="text-sm text-red-500">
+                    {errors.criterionName.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="criterionNote">Ghi chú</Label>
-                <textarea
+                <Textarea
                   id="criterionNote"
-                  value={criteriaForm.note || ""}
-                  onChange={(e) =>
-                    setCriteriaForm((prev) => ({
-                      ...prev,
-                      note: e.target.value,
-                    }))
-                  }
+                  {...register("note")}
                   placeholder="Nhập ghi chú cho tiêu chí..."
                   disabled={criteriaSubmitting}
-                  className="flex min-h-[90px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
+                {errors.note && (
+                  <p className="text-sm text-red-500">{errors.note.message}</p>
+                )}
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Button type="submit" disabled={criteriaSubmitting} className="flex-1">
+                <Button
+                  type="submit"
+                  disabled={criteriaSubmitting}
+                  className="flex-1"
+                >
                   {criteriaSubmitting ? (
                     "Đang lưu..."
                   ) : editingCriterion ? (
@@ -309,6 +349,37 @@ const CriteriaManagementPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogPopup>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa tiêu chí</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc muốn xóa tiêu chí{" "}
+              <strong>{deleteTarget?.name}</strong> không? Hành động này không
+              thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleteSubmitting}
+            >
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCriterion}
+              disabled={deleteSubmitting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteSubmitting ? "Đang xóa..." : "Xóa"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogPopup>
+      </AlertDialog>
     </div>
   );
 };

@@ -34,6 +34,7 @@ import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.AuthService;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.auth.service.CustomUserDetailsService;
+import vn.nguongocso.auth.service.IpCountryResolver;
 import vn.nguongocso.auth.service.LoginAnomalyDetectionService;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.config.JwtTokenProvider;
@@ -67,6 +68,9 @@ class AuthServiceTest {
 
     @Mock
     private LoginAnomalyDetectionService loginAnomalyDetectionService;
+
+        @Mock
+        private IpCountryResolver ipCountryResolver;
 
     @InjectMocks
     private AuthService authService;

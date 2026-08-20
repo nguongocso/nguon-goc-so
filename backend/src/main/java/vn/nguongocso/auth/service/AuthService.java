@@ -24,6 +24,7 @@ import vn.nguongocso.auth.enums.UserStatus;
 import vn.nguongocso.auth.repository.AccountLockRepository;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.LoginAnomalyDetectionService;
+import vn.nguongocso.auth.service.IpCountryResolver;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.config.JwtTokenProvider;
 import vn.nguongocso.exception.BusinessException;
@@ -72,6 +73,8 @@ public class AuthService {
     private final OrganizationUserRepository organizationUserRepository;
 
     private final LoginAnomalyDetectionService loginAnomalyDetectionService;
+
+        private final IpCountryResolver ipCountryResolver;
 
     /**
      * Xác thực người dùng bằng username và password.
@@ -165,12 +168,13 @@ public class AuthService {
 
             if (!passwordMatches) {
                 log.warn("Sai mật khẩu: {}", request.getUsername());
+                String clientIp = IpUtils.getClientIp();
                 loginAnomalyDetectionService.recordLoginAttempt(
                         user,
                         request.getUsername(),
                         false,
-                        IpUtils.getClientIp(),
-                        null
+                        clientIp,
+                        ipCountryResolver.resolveCountryCode(clientIp)
                 );
                 throw new BusinessException("Sai mật khẩu");
             }
@@ -478,12 +482,13 @@ public class AuthService {
                     .orElseThrow(() -> new BusinessException(
                             "Người dùng không tồn tại"));
 
+            String clientIp = IpUtils.getClientIp();
             loginAnomalyDetectionService.recordLoginAttempt(
                     currentUser,
                     currentUser.getUserName(),
                     true,
-                    IpUtils.getClientIp(),
-                    null
+                    clientIp,
+                    ipCountryResolver.resolveCountryCode(clientIp)
             );
 
             /*
