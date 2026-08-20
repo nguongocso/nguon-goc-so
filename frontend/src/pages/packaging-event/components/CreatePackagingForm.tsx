@@ -131,14 +131,14 @@ export function CreatePackagingForm() {
 
   const currentPosition =
     typeof lat === "number" &&
-    Number.isFinite(lat) &&
-    typeof lng === "number" &&
-    Number.isFinite(lng) &&
-    !(lat === 0 && lng === 0)
+      Number.isFinite(lat) &&
+      typeof lng === "number" &&
+      Number.isFinite(lng) &&
+      !(lat === 0 && lng === 0)
       ? {
-          lat,
-          lng,
-        }
+        lat,
+        lng,
+      }
       : undefined;
 
   const selectedLot = productionLots.find((lot) => lot.id === selectedLotId);
@@ -208,94 +208,147 @@ export function CreatePackagingForm() {
     },
   });
 
-  const checkFarmLogEligibility = async (lotId: string) => {
-    const requestId = (eligibilityRequestRef.current += 1);
+  const checkFarmLogEligibility = async (productionLotId: string) => {
+    const requestId = ++eligibilityRequestRef.current;
+
     setEligibilityStatus("checking");
     setEligibilityMessage("");
     setMissingActivities([]);
 
     try {
-      const logs = await getAllFarmLogsByProductionLot(lotId);
-      if (eligibilityRequestRef.current !== requestId) return;
+      const logs = await getAllFarmLogsByProductionLot(productionLotId);
+      if (requestId !== eligibilityRequestRef.current) return;
 
-      const loggedTypes = new Set(logs.map((log) => log.activityType));
+      const recordedActivities = new Set(logs.map((log) => log.activityType));
       const missing = requiredFarmActivities.filter(
-        (type) => !loggedTypes.has(type),
+        (activity) => !recordedActivities.has(activity),
       );
 
-      if (missing.length === 0) {
-        setEligibilityStatus("eligible");
-        setEligibilityMessage("Đã đủ nhật ký nông vụ để ghi nhận đóng gói");
-      } else {
+      if (missing.length > 0) {
         setEligibilityStatus("ineligible");
         setEligibilityMessage(
-          "Chưa đủ nhật ký nông vụ bắt buộc để đóng gói",
+          "Lô sản xuất còn thiếu nhật ký bắt buộc. Vui lòng bổ sung trước khi đóng gói.",
         );
         setMissingActivities(missing);
+        return;
       }
-    } catch {
-      if (eligibilityRequestRef.current !== requestId) return;
-      setEligibilityStatus("ineligible");
-      setEligibilityMessage("Không thể kiểm tra nhật ký nông vụ");
-    }
-  };
 
-  const handleLotSelect = (lotId: string) => {
-    eligibilityRequestRef.current += 1;
-    setSelectedLotId(lotId);
-    setValue("productionLotId", lotId, { shouldValidate: true });
-    void checkFarmLogEligibility(lotId);
+      setEligibilityStatus("eligible");
+      setEligibilityMessage(
+        "Lô đã có đủ nhật ký gieo trồng, bón phân, phun thuốc và thu hoạch.",
+      );
+    } catch (error: unknown) {
+      if (requestId !== eligibilityRequestRef.current) return;
+
+      const details = getPackagingError(error);
+      setEligibilityStatus("error");
+      setEligibilityMessage(
+        details.isNetworkError
+          ? "Không thể kết nối để kiểm tra nhật ký. Vui lòng thử lại."
+          : details.message,
+      );
+    }
   };
 
   const onSubmit = async (values: RecordPackagingFormValues) => {
-    try {
-      await recordPackagingEvent(values);
-      toast.success("Ghi sự kiện đóng gói thành công!");
-      navigate("/packaging-events");
-    } catch (err: unknown) {
-      const parsedError = getPackagingError(err);
-      toast.error(parsedError.message);
+    if (eligibilityStatus !== "eligible") {
+      toast.error("Cần kiểm tra đủ nhật ký trước khi đóng gói");
+      await checkFarmLogEligibility(values.productionLotId);
+      return;
+    }
 
-      if (parsedError.missingActivities.length > 0) {
+    try {
+      await recordPackagingEvent({
+        productionLotId: values.productionLotId,
+        packagingSpecification: values.packagingSpecification,
+        packagingDate: values.packagingDate,
+        latitude: values.latitude || undefined,
+        longitude: values.longitude || undefined,
+      });
+      setEligibilityStatus("eligible");
+      toast.success("Ghi sự kiện đóng gói thành công");
+      navigate("/production-lots");
+    } catch (error: unknown) {
+      const details = getPackagingError(error);
+      const missingLogError =
+        details.missingActivities.length > 0 ||
+        /thiếu.*nhật ký|nhật ký.*(?:chưa|không).*đầy đủ|không đủ điều kiện đóng gói/i.test(
+          details.message,
+        );
+
+      if (missingLogError) {
         setEligibilityStatus("ineligible");
-        setEligibilityMessage(parsedError.message);
-        setMissingActivities(parsedError.missingActivities);
+        setEligibilityMessage(details.message);
+        setMissingActivities(details.missingActivities);
+      } else if (details.isNetworkError) {
+        setEligibilityStatus("error");
+        setEligibilityMessage(
+          "Không thể kết nối để kiểm tra nhật ký. Vui lòng thử lại.",
+        );
+      } else {
+        setEligibilityStatus("error");
+        setEligibilityMessage(details.message);
       }
+
+      toast.error(details.message);
     }
   };
 
+  if (loadingLots) return <div className="p-8 text-center">Đang tải...</div>;
+
   return (
-    <Card className="max-w-2xl mx-auto">
+    <Card className="max-w-4xl mx-auto">
       <CardHeader>
         <CardTitle>Ghi sự kiện đóng gói</CardTitle>
         <CardDescription>
-          Nhập thông tin đóng gói nông sản để lưu vào chuỗi cung ứng
+          Nhập thông tin đóng gói cho lô sản xuất đã thu hoạch hoặc đã sơ chế.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="productionLotId">Chọn lô sản xuất *</Label>
+            <Label htmlFor="productionLotId">Lô sản xuất *</Label>
             <Select
-              value={selectedLotId}
-              onValueChange={handleLotSelect}
-              disabled={loadingLots}
+              value={selectedLotId || ""}
+              onValueChange={(val: string | null) => {
+                const nextLotId = val || "";
+                eligibilityRequestRef.current += 1;
+                setSelectedLotId(nextLotId);
+                setValue("productionLotId", nextLotId, {
+                  shouldValidate: true,
+                });
+                setEligibilityMessage("");
+                setMissingActivities([]);
+
+                if (nextLotId) {
+                  void checkFarmLogEligibility(nextLotId);
+                } else {
+                  setEligibilityStatus("unselected");
+                }
+              }}
             >
-              <SelectTrigger id="productionLotId" className="w-full">
+              <SelectTrigger>
                 <span>
-                  {selectedLot
-                    ? `${selectedLot.name} (${selectedLot.code})`
-                    : "Chọn lô sản xuất"}
+                  {selectedLotId
+                    ? productionLots.find((lot) => lot.id === selectedLotId)
+                      ?.name
+                    : "Chọn lô đã thu hoạch hoặc đã sơ chế"}
                 </span>
               </SelectTrigger>
               <SelectContent>
                 {productionLots.map((lot) => (
                   <SelectItem key={lot.id} value={lot.id}>
-                    {lot.name} ({lot.code}) - {lot.productCategoryName}
+                    {lot.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <LotValidationStatus
+              isValid={validation?.valid ?? null}
+              message={validation?.message || ""}
+              loading={loading}
+              className="mt-2"
+            />
             {errors.productionLotId && (
               <p className="text-sm text-red-500">
                 {errors.productionLotId.message}
@@ -303,25 +356,41 @@ export function CreatePackagingForm() {
             )}
           </div>
 
-          {selectedLotId && (
-            <LotValidationStatus
-              validation={validation}
-              loading={loading}
-              currentOrgId={user?.organizationId}
-            />
-          )}
-
           <FarmLogEligibilityAlert
             status={eligibilityStatus}
-            message={eligibilityMessage}
+            productionLotName={selectedLot?.name}
             missingActivities={missingActivities}
+            message={eligibilityMessage || undefined}
+            actionLabel={
+              user?.roleCode === "VT-02"
+                ? "Xem lịch sử nhật ký"
+                : "Ghi bổ sung nhật ký"
+            }
+            onAction={
+              eligibilityStatus === "ineligible" && selectedLotId
+                ? () =>
+                  navigate(
+                    user?.roleCode === "VT-02"
+                      ? `/production-lots/${selectedLotId}/farm-logs`
+                      : `/farm-logs/create?productionLotId=${encodeURIComponent(selectedLotId)}`,
+                  )
+                : undefined
+            }
+            onRetry={
+              eligibilityStatus === "error" ||
+                eligibilityStatus === "ineligible"
+                ? () =>
+                  selectedLotId
+                    ? void checkFarmLogEligibility(selectedLotId)
+                    : setEligibilityStatus("unselected")
+                : undefined
+            }
           />
 
           <div className="space-y-2">
             <Label htmlFor="packagingSpecification">Quy cách đóng gói *</Label>
             <Input
               id="packagingSpecification"
-              placeholder="Ví dụ: Thùng carton 10kg, Túi PE 1kg..."
               {...register("packagingSpecification")}
             />
             {errors.packagingSpecification && (
@@ -386,6 +455,7 @@ export function CreatePackagingForm() {
           <Button type="button" variant="outline" onClick={() => navigate(-1)}>
             Hủy
           </Button>
+          {/* CHANGED: thêm variant="create" */}
           <Button
             type="submit"
             disabled={
@@ -400,3 +470,4 @@ export function CreatePackagingForm() {
     </Card>
   );
 }
+
