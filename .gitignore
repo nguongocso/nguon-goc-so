@@ -16,6 +16,7 @@
 # ============================================================
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # ============================================================
 # Java / Maven
@@ -26,8 +27,6 @@ target/
 *.war
 *.ear
 .mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
 
 # ============================================================
 # Node.js
@@ -41,23 +40,18 @@ build/
 # Python
 # ============================================================
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
 *.egg-info/
 .venv/
 venv/
+env/
 
 # ============================================================
 # Environment / Secrets
 # ============================================================
-.env
-docker-compose.yml
-
 *.env
 .env.*
 !.env.example
-backend/.env
-frontend/.env
 
 # ============================================================
 # Logs
@@ -69,13 +63,15 @@ yarn-error.log*
 pnpm-debug.log*
 
 # ============================================================
-# Coverage / Reports
+# Coverage / Test Reports
 # ============================================================
 coverage/
 reports/
+.test-results/
+test-results/
 
 # ============================================================
-# Uploads / Runtime data
+# Uploads / Runtime Data
 # ============================================================
 uploads/
 files/
@@ -83,28 +79,26 @@ backups/
 qr/
 
 # ============================================================
-# Temporary
+# Temporary / Cache
 # ============================================================
 tmp/
 temp/
+.cache/
 *.tmp
 *.cache
-.cache/
 
 # ============================================================
-# Docker
+# Docker Runtime Data
 # ============================================================
 docker-data/
 docker-volumes/
 
 # ============================================================
-# Misc
+# Project-specific / Local Files
 # ============================================================
 AI_GUIDE.md
+AGENTS.md
+context.md
 .agents/
 npm_member_check.txt
 dev-server.log
-AGENTS.md
-context.md
-# Keep the Docker Compose definition under version control
-!docker-compose.yml
