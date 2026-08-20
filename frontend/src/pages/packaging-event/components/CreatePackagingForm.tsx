@@ -198,7 +198,7 @@ export function CreatePackagingForm() {
     });
   };
 
-  const { locationLoading, fetchLocation } = useAutoGeolocation({
+  useAutoGeolocation({
     onLocation: (selectedLatitude, selectedLongitude) => {
       handleLocationSelect(selectedLatitude, selectedLongitude);
       toast.success("Đã lấy vị trí hiện tại");
@@ -326,19 +326,19 @@ export function CreatePackagingForm() {
                   setEligibilityStatus("unselected");
                 }
               }}
+              disabled={loadingLots}
             >
               <SelectTrigger>
                 <span>
-                  {selectedLotId
-                    ? productionLots.find((lot) => lot.id === selectedLotId)
-                      ?.name
+                  {selectedLot
+                    ? selectedLot.name
                     : "Chọn lô đã thu hoạch hoặc đã sơ chế"}
                 </span>
               </SelectTrigger>
               <SelectContent>
                 {productionLots.map((lot) => (
                   <SelectItem key={lot.id} value={lot.id}>
-                    {lot.name}
+                    {lot.name} {lot.productCategoryName ? `- ${lot.productCategoryName}` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -355,7 +355,6 @@ export function CreatePackagingForm() {
               </p>
             )}
           </div>
-
           <FarmLogEligibilityAlert
             status={eligibilityStatus}
             productionLotName={selectedLot?.name}
@@ -416,33 +415,7 @@ export function CreatePackagingForm() {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <Label>Vị trí đóng gói (click trên bản đồ)</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={locationLoading || isSubmitting}
-                onClick={() => fetchLocation()}
-              >
-                {locationLoading
-                  ? "Đang lấy vị trí..."
-                  : "Lấy vị trí hiện tại"}
-              </Button>
-            </div>
-
-            <div className="flex gap-2">
-              <Input
-                value={currentPosition?.lat ?? ""}
-                disabled
-                placeholder="Vĩ độ"
-              />
-              <Input
-                value={currentPosition?.lng ?? ""}
-                disabled
-                placeholder="Kinh độ"
-              />
-            </div>
+            <Label>Vị trí đóng gói (click trên bản đồ)</Label>
 
             <LocationPicker
               onLocationSelect={handleLocationSelect}

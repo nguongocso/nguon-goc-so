@@ -2,14 +2,22 @@ import axios from 'axios';
 import {
   CheckCircle2,
   ClipboardList,
+  FileText,
   Info,
+  Paperclip,
   Sprout,
+  Upload,
+  X,
 } from 'lucide-react';
 import {
   useMemo,
   useState,
   type FormEvent,
 } from 'react';
+import { toast } from 'sonner';
+
+import { uploadAttachment } from '@/api/attachmentApi';
+import { AttachmentManager } from './AttachmentManager';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -129,6 +137,48 @@ export function CreateFarmLogForm({
     useState<FarmLogResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const MAX_ATTACHMENTS = 5;
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<string[]>([]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const fileArray = Array.from(files);
+    const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+
+    for (const f of fileArray) {
+      if (!validTypes.includes(f.type)) {
+        toast.error(`Tệp "${f.name}" không hỗ trợ. Chỉ nhận JPG, PNG, PDF.`);
+        return;
+      }
+      if (f.size > 5 * 1024 * 1024) {
+        toast.error(`Tệp "${f.name}" vượt quá 5MB.`);
+        return;
+      }
+    }
+
+    if (attachmentFiles.length + fileArray.length > MAX_ATTACHMENTS) {
+      toast.error(`Chỉ được chọn tối đa ${MAX_ATTACHMENTS} chứng từ.`);
+      return;
+    }
+
+    setAttachmentFiles((prev) => [...prev, ...fileArray]);
+    const newPreviews = fileArray.map((f) =>
+      f.type.startsWith('image/') ? URL.createObjectURL(f) : ''
+    );
+    setFilePreviews((prev) => [...prev, ...newPreviews]);
+  };
+
+  const removeFile = (index: number) => {
+    setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
+    setFilePreviews((prev) => {
+      if (prev[index]) URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
   const selectedLot = useMemo(
     () =>
       productionLots.find(
@@ -150,422 +200,509 @@ export function CreateFarmLogForm({
       [field]: undefined,
     }));
     setSubmitError('');
-    setCreatedLog(null);
   };
 
-  const validate = () => {
+  const validate = (): boolean => {
     const nextErrors: FormErrors = {};
 
     if (!form.productionLotId) {
-      nextErrors.productionLotId =
-        'Vui lòng chọn lô sản xuất.';
+      nextErrors.productionLotId = 'Vui lòng chọn lô sản xuất.';
     }
 
     if (!form.activityType) {
-      nextErrors.activityType =
-        'Vui lòng chọn loại hoạt động.';
+      nextErrors.activityType = 'Vui lòng chọn loại hoạt động.';
     }
 
     if (!form.executedDate) {
+      nextErrors.executedDate = 'Vui lòng chọn ngày thực hiện.';
+    } else if (
+      new Date(`${form.executedDate}T00:00:00`) > new Date()
+    ) {
       nextErrors.executedDate =
-        'Vui lòng chọn ngày thực hiện.';
-    }
-
-    if (form.material.trim().length > 255) {
-      nextErrors.material =
-        'Tên vật tư không được vượt quá 255 ký tự.';
+        'Ngày thực hiện không được vượt quá ngày hiện tại.';
     }
 
     if (form.quantity) {
-      const quantity = Number(form.quantity);
-
-      if (!Number.isFinite(quantity) || quantity <= 0) {
-        nextErrors.quantity =
-          'Số lượng phải lớn hơn 0.';
+      const parsed = Number.parseFloat(form.quantity);
+      if (Number.isNaN(parsed) || parsed < 0) {
+        nextErrors.quantity = 'Số lượng phải là số lớn hơn hoặc bằng 0.';
       }
     }
 
-    if (form.unit.trim().length > 50) {
-      nextErrors.unit =
-        'Đơn vị không được vượt quá 50 ký tự.';
-    }
-
-    if (form.notes.trim().length > 1000) {
-      nextErrors.notes =
-        'Ghi chú không được vượt quá 1000 ký tự.';
-    }
-
     setErrors(nextErrors);
-
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = async (
-    event: FormEvent<HTMLFormElement>,
-  ) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSubmitError('');
-    setCreatedLog(null);
-
-    if (!validate() || !form.activityType) return;
+    if (!validate()) return;
 
     setIsSubmitting(true);
+    setSubmitError('');
+
+    const payload: CreateFarmLogRequest = {
+      productionLotId: form.productionLotId,
+      activityType: form.activityType as FarmActivityType,
+      material: form.material.trim() || null,
+      quantity: form.quantity
+        ? Number.parseFloat(form.quantity)
+        : null,
+      unit: form.unit.trim() || null,
+      executedDate: form.executedDate,
+      notes: form.notes.trim() || null,
+    };
 
     try {
-      const result = await onSubmit({
-        productionLotId: form.productionLotId,
-        activityType: form.activityType,
-        material: form.material.trim() || null,
-        quantity: form.quantity
-          ? Number(form.quantity)
-          : null,
-        unit: form.unit.trim() || null,
-        executedDate: form.executedDate,
-        notes: form.notes.trim() || null,
-      });
+      const created = await onSubmit(payload);
 
-      setCreatedLog(result);
-      setForm((current) => ({
-        ...createInitialForm(current.productionLotId),
-        executedDate: current.executedDate,
-      }));
-      setErrors({});
-    } catch (error: unknown) {
-      if (axios.isAxiosError<ApiErrorResponse>(error)) {
-        const responseData = error.response?.data;
-
-        if (responseData?.errors) {
-          setErrors((current) => ({
-            ...current,
-            productionLotId:
-              responseData.errors?.productionLotId,
-            activityType:
-              responseData.errors?.activityType,
-            material: responseData.errors?.material,
-            quantity: responseData.errors?.quantity,
-            unit: responseData.errors?.unit,
-            executedDate:
-              responseData.errors?.executedDate,
-            notes: responseData.errors?.notes,
-          }));
+      if (attachmentFiles.length > 0) {
+        for (const file of attachmentFiles) {
+          try {
+            await uploadAttachment(created.id, file);
+          } catch {
+            toast.error(`Lỗi khi tải đính kèm "${file.name}"`);
+          }
         }
+      }
 
-        setSubmitError(
-          responseData?.message
-            || 'Không thể lưu nhật ký. Vui lòng kiểm tra lại dữ liệu.',
-        );
+      setCreatedLog(created);
+      toast.success('Thêm nhật ký sản xuất thành công!');
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        const data = error.response?.data as ApiErrorResponse | undefined;
+
+        if (data?.message) {
+          setSubmitError(data.message);
+        } else if (data?.errors) {
+          const firstKey = Object.keys(data.errors)[0];
+          setSubmitError(
+            data.errors[firstKey] ??
+              'Dữ liệu nhập vào chưa hợp lệ. Vui lòng kiểm tra lại.',
+          );
+        } else {
+          setSubmitError('Có lỗi xảy ra khi tạo nhật ký. Vui lòng thử lại.');
+        }
       } else {
-        setSubmitError(
-          'Không thể kết nối đến máy chủ. Vui lòng thử lại.',
-        );
+        setSubmitError('Có lỗi không xác định xảy ra.');
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <Card className="border-slate-200 bg-white shadow-sm">
-        <CardHeader className="border-b border-slate-100 px-6 pb-5 sm:px-8">
-          <CardTitle className="flex items-center gap-2 text-lg font-bold">
-            <ClipboardList className="size-5 text-emerald-700" />
-            Thông tin nhật ký
-          </CardTitle>
-          <CardDescription>
-            Các trường có dấu{' '}
-            <span className="text-red-600">*</span> là bắt
-            buộc.
-          </CardDescription>
+  const resetFormToCreateAnother = () => {
+    setCreatedLog(null);
+    setForm(createInitialForm(initialProductionLotId));
+    setErrors({});
+    setSubmitError('');
+    setAttachmentFiles([]);
+    setFilePreviews([]);
+  };
+
+  if (createdLog) {
+    return (
+      <Card className="mx-auto max-w-2xl border-emerald-200 bg-emerald-50/40 shadow-sm">
+        <CardHeader className="border-b border-emerald-100 pb-5">
+          <div className="flex items-center gap-3 text-emerald-700">
+            <div className="flex size-10 items-center justify-center rounded-full bg-emerald-100">
+              <CheckCircle2 className="size-6 text-emerald-600" />
+            </div>
+            <div>
+              <CardTitle className="text-xl font-bold">
+                Tạo nhật ký thành công
+              </CardTitle>
+              <CardDescription className="text-emerald-700">
+                Nhật ký hoạt động nông nghiệp đã được ghi nhận vào hệ thống.
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <CardContent className="space-y-7 px-6 py-6 sm:px-8">
-            <div className="space-y-2">
-              <Label htmlFor="productionLotId">
-                Lô sản xuất{' '}
-                <span className="text-red-600">*</span>
-              </Label>
-              <select
-                id="productionLotId"
-                className={selectClassName}
-                value={form.productionLotId}
-                onChange={(event) =>
-                  updateField(
-                    'productionLotId',
-                    event.target.value,
-                  )
-                }
-                aria-invalid={Boolean(
-                  errors.productionLotId,
-                )}
-              >
-                <option value="">Chọn lô sản xuất</option>
-                {productionLots.map((lot) => (
-                  <option key={lot.id} value={lot.id}>
-                    {lot.name} ·{' '}
-                    {lot.status === 'APPROVED'
-                      ? 'Đã duyệt'
-                      : 'Đã thu hoạch'}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs leading-5 text-slate-500">
-                Chỉ hiển thị lô đã duyệt hoặc đã thu hoạch
-                trong tổ chức của bạn.
-              </p>
-              {errors.productionLotId && (
-                <p className="text-xs text-red-600">
-                  {errors.productionLotId}
+        <CardContent className="space-y-6 pt-6">
+          <div className="rounded-xl border border-emerald-200 bg-white p-5 shadow-xs">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Hoạt động
                 </p>
+                <p className="text-lg font-bold text-slate-900">
+                  {ACTIVITY_OPTIONS.find((a) => a.value === createdLog.activityType)?.label ?? createdLog.activityType}
+                </p>
+              </div>
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                Mã lô: {createdLog.productionLotId.slice(0, 8)}...
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div>
+                <dt className="text-xs font-semibold uppercase text-slate-400">
+                  Vùng trồng
+                </dt>
+                <dd className="mt-0.5 text-sm font-semibold text-slate-800">
+                  {selectedLot?.farmAreaName ?? '—'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase text-slate-400">
+                  Ngày thực hiện
+                </dt>
+                <dd className="mt-0.5 text-sm font-semibold text-slate-800">
+                  {createdLog.executedDate}
+                </dd>
+              </div>
+              {createdLog.material && (
+                <div>
+                  <dt className="text-xs font-semibold uppercase text-slate-400">
+                    Vật tư
+                  </dt>
+                  <dd className="mt-0.5 text-sm font-semibold text-slate-800">
+                    {createdLog.material}{' '}
+                    {createdLog.quantity ? `(${createdLog.quantity} ${createdLog.unit ?? ''})` : ''}
+                  </dd>
+                </div>
               )}
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
+            {createdLog.notes && (
+              <div className="mt-3 border-t border-slate-100 pt-3">
+                <dt className="text-xs font-semibold uppercase text-slate-400">
+                  Ghi chú
+                </dt>
+                <dd className="mt-1 text-sm text-slate-700">
+                  {createdLog.notes}
+                </dd>
+              </div>
+            )}
+          </div>
+
+          <AttachmentManager logId={createdLog.id} />
+        </CardContent>
+
+        <CardFooter className="flex flex-col gap-3 border-t border-emerald-100 pt-4 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            className="w-full border-slate-300 text-slate-700 hover:bg-slate-50 sm:w-auto"
+          >
+            Về danh sách
+          </Button>
+          <Button
+            type="button"
+            variant="create"
+            onClick={resetFormToCreateAnother}
+            className="w-full sm:w-auto"
+          >
+            Tạo nhật ký mới
+          </Button>
+        </CardFooter>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div className="lg:col-span-8">
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="border-b border-slate-100 pb-5">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                <ClipboardList className="size-5" />
+              </div>
+              <div>
+                <CardTitle className="text-xl font-bold text-slate-900">
+                  Ghi nhật ký nhật ký sản xuất
+                </CardTitle>
+                <CardDescription className="text-slate-500">
+                  Ghi nhận hoạt động tác nghiệp nông nghiệp cho lô sản xuất.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+
+          <form onSubmit={handleSubmit} noValidate>
+            <CardContent className="space-y-6 pt-6">
+              {submitError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  <p className="font-bold">Không thể lưu nhật ký</p>
+                  <p className="mt-1">{submitError}</p>
+                </div>
+              )}
+
               <div className="space-y-2">
-                <Label htmlFor="activityType">
-                  Loại hoạt động{' '}
-                  <span className="text-red-600">*</span>
+                <Label
+                  htmlFor="productionLotId"
+                  className="font-semibold text-slate-800"
+                >
+                  Chọn lô sản xuất <span className="text-red-500">*</span>
                 </Label>
                 <select
-                  id="activityType"
-                  className={selectClassName}
-                  value={form.activityType}
-                  onChange={(event) =>
-                    updateField(
-                      'activityType',
-                      event.target.value as
-                        | FarmActivityType
-                        | '',
-                    )
+                  id="productionLotId"
+                  value={form.productionLotId}
+                  onChange={(e) =>
+                    updateField('productionLotId', e.target.value)
                   }
-                  aria-invalid={Boolean(
-                    errors.activityType,
-                  )}
+                  className={selectClassName}
+                  aria-invalid={Boolean(errors.productionLotId)}
                 >
-                  <option value="">
-                    Chọn loại hoạt động
-                  </option>
-                  {ACTIVITY_OPTIONS.map((activity) => (
-                    <option
-                      key={activity.value}
-                      value={activity.value}
-                    >
-                      {activity.label}
+                  <option value="">-- Chọn lô sản xuất --</option>
+                  {productionLots.map((lot) => (
+                    <option key={lot.id} value={lot.id}>
+                      {lot.name}
                     </option>
                   ))}
                 </select>
-                {errors.activityType && (
-                  <p className="text-xs text-red-600">
-                    {errors.activityType}
+                {errors.productionLotId && (
+                  <p className="text-xs font-semibold text-red-500">
+                    {errors.productionLotId}
                   </p>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="executedDate">
-                  Ngày thực hiện{' '}
-                  <span className="text-red-600">*</span>
-                </Label>
-                <Input
-                  id="executedDate"
-                  type="date"
-                  value={form.executedDate}
-                  onChange={(event) =>
-                    updateField(
-                      'executedDate',
-                      event.target.value,
-                    )
-                  }
-                  aria-invalid={Boolean(
-                    errors.executedDate,
-                  )}
-                />
-                {errors.executedDate && (
-                  <p className="text-xs text-red-600">
-                    {errors.executedDate}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <section className="border-t border-slate-100 pt-7">
-              <h3 className="mb-5 flex items-center gap-2 font-bold">
-                <Sprout className="size-4 text-emerald-700" />
-                Vật tư sử dụng
-                <span className="text-sm font-normal text-slate-400">
-                  (không bắt buộc)
-                </span>
-              </h3>
-
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(140px,0.7fr)_minmax(120px,0.6fr)]">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="material">
-                    Tên vật tư
+                  <Label
+                    htmlFor="activityType"
+                    className="font-semibold text-slate-800"
+                  >
+                    Loại hoạt động <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="material"
-                    maxLength={255}
-                    value={form.material}
-                    onChange={(event) =>
+                  <select
+                    id="activityType"
+                    value={form.activityType}
+                    onChange={(e) =>
                       updateField(
-                        'material',
-                        event.target.value,
+                        'activityType',
+                        e.target.value as FarmActivityType,
                       )
                     }
-                    aria-invalid={Boolean(errors.material)}
-                    placeholder="Ví dụ: NPK 16-16-8"
-                  />
-                  {errors.material && (
-                    <p className="text-xs text-red-600">
-                      {errors.material}
+                    className={selectClassName}
+                    aria-invalid={Boolean(errors.activityType)}
+                  >
+                    <option value="">-- Chọn hoạt động --</option>
+                    {ACTIVITY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.activityType && (
+                    <p className="text-xs font-semibold text-red-500">
+                      {errors.activityType}
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="quantity">
+                  <Label
+                    htmlFor="executedDate"
+                    className="font-semibold text-slate-800"
+                  >
+                    Ngày thực hiện <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="executedDate"
+                    type="date"
+                    value={form.executedDate}
+                    max={getToday()}
+                    onChange={(e) =>
+                      updateField('executedDate', e.target.value)
+                    }
+                    className="h-10 border-slate-200 focus:border-emerald-600 focus:ring-emerald-100"
+                    aria-invalid={Boolean(errors.executedDate)}
+                  />
+                  {errors.executedDate && (
+                    <p className="text-xs font-semibold text-red-500">
+                      {errors.executedDate}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label
+                  htmlFor="material"
+                  className="font-semibold text-slate-800"
+                >
+                  Tên vật tư / Phân bón / Thuốc BVTV
+                </Label>
+                <Input
+                  id="material"
+                  type="text"
+                  placeholder="VD: Phun phân bón NPK 16-16-8, Thuốc trừ sâu Trichoderma..."
+                  value={form.material}
+                  onChange={(e) => updateField('material', e.target.value)}
+                  className="h-10 border-slate-200 focus:border-emerald-600 focus:ring-emerald-100"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="quantity"
+                    className="font-semibold text-slate-800"
+                  >
                     Số lượng
                   </Label>
                   <Input
                     id="quantity"
                     type="number"
-                    min="0.01"
-                    step="0.01"
+                    step="any"
+                    placeholder="VD: 50, 1.5..."
                     value={form.quantity}
-                    onChange={(event) =>
-                      updateField(
-                        'quantity',
-                        event.target.value,
-                      )
-                    }
+                    onChange={(e) => updateField('quantity', e.target.value)}
+                    className="h-10 border-slate-200 focus:border-emerald-600 focus:ring-emerald-100"
                     aria-invalid={Boolean(errors.quantity)}
-                    placeholder="Ví dụ: 25"
                   />
                   {errors.quantity && (
-                    <p className="text-xs text-red-600">
+                    <p className="text-xs font-semibold text-red-500">
                       {errors.quantity}
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="unit">Đơn vị</Label>
+                  <Label
+                    htmlFor="unit"
+                    className="font-semibold text-slate-800"
+                  >
+                    Đơn vị tính
+                  </Label>
                   <Input
                     id="unit"
-                    maxLength={50}
+                    type="text"
+                    placeholder="VD: kg, lít, bao, chai, ngày công..."
                     value={form.unit}
-                    onChange={(event) =>
-                      updateField(
-                        'unit',
-                        event.target.value,
-                      )
-                    }
-                    aria-invalid={Boolean(errors.unit)}
-                    placeholder="Ví dụ: kg"
+                    onChange={(e) => updateField('unit', e.target.value)}
+                    className="h-10 border-slate-200 focus:border-emerald-600 focus:ring-emerald-100"
                   />
-                  {errors.unit && (
-                    <p className="text-xs text-red-600">
-                      {errors.unit}
-                    </p>
-                  )}
                 </div>
               </div>
-            </section>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-4">
-                <Label htmlFor="notes">Ghi chú</Label>
-                <span className="text-xs text-slate-400">
-                  {form.notes.length}/1000
-                </span>
+              <div className="space-y-2">
+                <Label
+                  htmlFor="notes"
+                  className="font-semibold text-slate-800"
+                >
+                  Ghi chú chi tiết
+                </Label>
+                <Textarea
+                  id="notes"
+                  rows={3}
+                  placeholder="Mô tả chi tiết tình hình thời tiết, diện tích xử lý, phương pháp thực hiện..."
+                  value={form.notes}
+                  onChange={(e) => updateField('notes', e.target.value)}
+                  className="border-slate-200 focus:border-emerald-600 focus:ring-emerald-100"
+                />
               </div>
-              <Textarea
-                id="notes"
-                rows={5}
-                maxLength={1000}
-                className="min-h-32 resize-y"
-                value={form.notes}
-                onChange={(event) =>
-                  updateField('notes', event.target.value)
-                }
-                aria-invalid={Boolean(errors.notes)}
-                placeholder="Ví dụ: Bón phân lần 1 cho lô sản xuất..."
-              />
-              {errors.notes && (
-                <p className="text-xs text-red-600">
-                  {errors.notes}
-                </p>
-              )}
-            </div>
 
-            {submitError && (
-              <div
-                role="alert"
-                className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
-              >
-                {submitError}
-              </div>
-            )}
-
-            {createdLog && (
-              <div
-                role="status"
-                className="flex gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
-              >
-                <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
-                <div>
-                  <p className="font-bold">
-                    Lưu nhật ký thành công
-                  </p>
-                  <p className="mt-1 leading-6">
-                    Hoạt động đã được ghi cho lô{' '}
-                    <strong>
-                      {createdLog.productionLotName}
-                    </strong>
-                    . Bạn có thể tiếp tục ghi hoạt động khác
-                    cho cùng lô.
-                  </p>
+              <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4">
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-2 font-semibold text-slate-800">
+                    <Paperclip className="size-4 text-emerald-600" />
+                    Chứng từ đính kèm (Hình ảnh, Hóa đơn, Chứng nhận)
+                  </Label>
+                  <span className="text-xs font-medium text-slate-500">
+                    {attachmentFiles.length}/{MAX_ATTACHMENTS} tệp
+                  </span>
                 </div>
+
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      document.getElementById('farm-log-attachment-input')?.click()
+                    }
+                    disabled={isSubmitting || attachmentFiles.length >= MAX_ATTACHMENTS}
+                    className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  >
+                    <Upload className="mr-2 size-4 text-slate-500" />
+                    Chọn tệp đính kèm
+                  </Button>
+                  <span className="text-xs text-slate-400">
+                    Hỗ trợ JPG, PNG, PDF (Tối đa 5MB)
+                  </span>
+                  <input
+                    id="farm-log-attachment-input"
+                    type="file"
+                    accept="image/jpeg,image/png,application/pdf"
+                    multiple
+                    className="hidden"
+                    onChange={handleFileChange}
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                {attachmentFiles.length > 0 && (
+                  <div className="grid grid-cols-2 gap-3 pt-2 sm:grid-cols-4">
+                    {attachmentFiles.map((file, idx) => (
+                      <div
+                        key={idx}
+                        className="group relative flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2 text-xs shadow-2xs"
+                      >
+                        {file.type.startsWith('image/') && filePreviews[idx] ? (
+                          <img
+                            src={filePreviews[idx]}
+                            alt={file.name}
+                            className="size-8 rounded object-cover"
+                          />
+                        ) : (
+                          <FileText className="size-8 shrink-0 text-slate-400" />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium text-slate-700">
+                            {file.name}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeFile(idx)}
+                          className="rounded-full p-1 text-slate-400 hover:bg-red-50 hover:text-red-500"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </CardContent>
+            </CardContent>
 
-          <CardFooter className="flex-col-reverse gap-3 border-t border-slate-100 px-6 py-5 sm:flex-row sm:justify-end sm:px-8">
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              className="w-full sm:w-auto"
-              onClick={onCancel}
-              disabled={isSubmitting}
-            >
-              Hủy
-            </Button>
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full bg-emerald-700 text-white hover:bg-emerald-800 sm:w-auto"
-              disabled={isSubmitting}
-              variant="create"
-            >
-              {isSubmitting
-                ? 'Đang lưu...'
-                : 'Lưu nhật ký'}
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
+            <CardFooter className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                disabled={isSubmitting}
+                className="w-full border-slate-300 text-slate-700 hover:bg-slate-50 sm:w-auto"
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                type="submit"
+                variant="create"
+                disabled={isSubmitting}
+                className="w-full sm:w-auto"
+              >
+                {isSubmitting ? 'Đang ghi nhận...' : 'Lưu nhật ký'}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
 
-      <aside className="space-y-4 xl:sticky xl:top-6">
-        <Card className="border-slate-200 bg-white shadow-sm">
-          <CardHeader className="border-b border-slate-100 pb-4">
-            <CardTitle className="text-base">
-              Thông tin lô đã chọn
+      <aside className="space-y-6 lg:col-span-4">
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
+            <CardTitle className="text-base font-bold text-slate-800">
+              Thông tin lô sản xuất
             </CardTitle>
-            <CardDescription>
-              Kiểm tra đúng lô trước khi lưu nhật ký.
-            </CardDescription>
           </CardHeader>
           <CardContent className="p-5">
             {selectedLot ? (
@@ -598,7 +735,7 @@ export function CreateFarmLogForm({
                   </div>
                   <div className="flex justify-between gap-4 py-3">
                     <dt className="text-slate-500">
-                      Ngày gieo trồng
+                      Ngày trồng
                     </dt>
                     <dd className="text-right font-semibold">
                       {formatDate(selectedLot.plantingDate)}
@@ -658,7 +795,7 @@ export function CreateFarmLogForm({
             <ul className="mt-2 space-y-2 text-sm leading-6 text-emerald-800">
               <li>Chỉ áp dụng cho lô đã duyệt hoặc đã thu hoạch.</li>
               <li>Nhật ký được ghi theo tài khoản VT-03 hiện tại.</li>
-              <li>Chứng từ được bổ sung sau khi nhật ký đã được lưu.</li>
+              <li>Chứng từ có thể chọn đính kèm trực tiếp khi tạo nhật ký hoặc bổ sung sau.</li>
             </ul>
           </div>
         </div>

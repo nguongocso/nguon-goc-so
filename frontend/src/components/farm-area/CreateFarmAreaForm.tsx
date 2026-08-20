@@ -21,7 +21,6 @@ import type { AreaUnit, CropType } from "@/types/farmArea";
 import { AREA_UNIT_LABELS, convertAreaToHa } from "@/types/farmArea";
 import { LocationPicker } from "@/pages/packaging-event/components/LocationPicker";
 import { useAutoGeolocation } from "@/hooks/useAutoGeolocation";
-import { MapPin, Navigation } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(1, "Tên vùng trồng không được để trống").max(255),
@@ -94,7 +93,7 @@ export const CreateFarmAreaForm = ({ onSuccess, onCancel }: Props) => {
     setValue("longitude", lng, { shouldValidate: true, shouldDirty: true });
   };
 
-  const { locationLoading, fetchLocation } = useAutoGeolocation({
+  useAutoGeolocation({
     onLocation: (lat, lng) => {
       handleLocationSelect(lat, lng);
       toast.success("Đã lấy vị trí hiện tại");
@@ -207,50 +206,15 @@ export const CreateFarmAreaForm = ({ onSuccess, onCancel }: Props) => {
           </div>
 
           {/* Nhóm 2: Vị trí */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium text-emerald-800">
-                Vị trí trên bản đồ <span className="text-red-500">*</span>
-              </Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={locationLoading}
-                onClick={() => fetchLocation()}
-                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-              >
-                <Navigation className="h-4 w-4 mr-1" />
-                {locationLoading ? "Đang lấy vị trí..." : "Lấy vị trí hiện tại"}
-              </Button>
-            </div>
-
-            {/* Tọa độ hiện tại */}
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={currentPosition?.lat?.toFixed(6) ?? ""}
-                  disabled
-                  placeholder="Vĩ độ"
-                  className="pl-9 border-emerald-200 bg-emerald-50/50"
-                />
-              </div>
-              <div className="relative flex-1">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={currentPosition?.lng?.toFixed(6) ?? ""}
-                  disabled
-                  placeholder="Kinh độ"
-                  className="pl-9 border-emerald-200 bg-emerald-50/50"
-                />
-              </div>
-            </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-emerald-800">
+              Vị trí trên bản đồ <span className="text-red-500">*</span>
+            </Label>
 
             <LocationPicker
               onLocationSelect={handleLocationSelect}
               initialPosition={currentPosition}
-              height="300px"
+              height="320px"
             />
 
             {(errors.latitude || errors.longitude) && (
