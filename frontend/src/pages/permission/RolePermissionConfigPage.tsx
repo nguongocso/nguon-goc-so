@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 const RolePermissionConfigPage: React.FC = () => {
   return (
     <div className="container mx-auto py-6 max-w-6xl">
+      
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div>

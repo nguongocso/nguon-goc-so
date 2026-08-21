@@ -52,12 +52,14 @@ export const ProductCategoryList = ({ categories, loading, onEdit, onToggleActiv
               </TableCell>
               {canManage && (
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" onClick={() => onEdit(category)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => onToggleActive(category.id, category.isActive)}>
-                    {category.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon-sm" onClick={() => onEdit(category)} className="hover:bg-muted">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" onClick={() => onToggleActive(category.id, category.isActive)} className="hover:bg-muted">
+                      {category.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </TableCell>
               )}
             </TableRow>
