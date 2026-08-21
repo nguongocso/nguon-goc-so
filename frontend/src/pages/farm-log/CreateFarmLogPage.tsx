@@ -1,6 +1,5 @@
 import {
   AlertCircle,
-  ArrowLeft,
   ClipboardPenLine,
   LoaderCircle,
   RefreshCw,
@@ -78,14 +77,6 @@ const CreateFarmLogPage = () => {
     return (
       <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950 md:px-8">
         <div className="mx-auto max-w-7xl">
-          <button
-            type="button"
-            className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-emerald-800 hover:text-emerald-950"
-            onClick={() => void navigate("/production-lots")}
-          >
-            <ArrowLeft className="size-4" />
-            Quay lại danh sách lô
-          </button>
 
           <Card className="border-amber-200 bg-amber-50 shadow-sm">
             <CardContent className="grid min-h-80 place-items-center p-8 text-center">
@@ -98,14 +89,6 @@ const CreateFarmLogPage = () => {
                   Lô sản xuất được chọn không tồn tại hoặc chưa đủ điều kiện ghi
                   nhật ký. Vui lòng quay lại và chọn lô hợp lệ.
                 </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="mt-5 border-amber-300 text-amber-800 hover:bg-amber-100"
-                  onClick={() => navigate("/production-lots")}
-                >
-                  Quay lại danh sách lô
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -117,14 +100,6 @@ const CreateFarmLogPage = () => {
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950 md:px-8">
       <div className="mx-auto max-w-7xl">
-        <button
-          type="button"
-          className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-emerald-800 hover:text-emerald-950"
-          onClick={() => void navigate("/production-lots")}
-        >
-          <ArrowLeft className="size-4" />
-          Quay lại danh sách lô
-        </button>
 
         <header className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
@@ -197,14 +172,6 @@ const CreateFarmLogPage = () => {
                   Chỉ có thể ghi nhật ký cho lô đã duyệt hoặc đã thu hoạch trong
                   tổ chức của bạn.
                 </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="mt-5"
-                  onClick={() => void navigate("/production-lots")}
-                >
-                  Quay lại danh sách lô
-                </Button>
               </div>
             </CardContent>
           </Card>

@@ -15,7 +15,6 @@ import {
 import type { SuspectTraceCodeDetailResponse } from '@/types/suspectTraceCode';
 import {
   AlertTriangle,
-  ArrowLeft,
   Clock,
   Lock,
   MapPin,
@@ -90,25 +89,15 @@ export default function SuspectTraceCodeDetailPage() {
   return (
     <div className="container mx-auto space-y-6 py-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/admin/suspect-trace-codes')}
-          >
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Quay lại
-          </Button>
-          <div className="flex items-start gap-3">
-            <div className="rounded-xl bg-red-100 p-2.5 text-red-700">
-              <ShieldAlert className="h-6 w-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Chi tiết mã tem nghi vấn</h1>
-              <p className="text-sm text-muted-foreground font-mono">
-                {detail.codeValue}
-              </p>
-            </div>
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl bg-red-100 p-2.5 text-red-700">
+            <ShieldAlert className="h-6 w-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold">Chi tiết mã tem nghi vấn</h1>
+            <p className="text-sm text-muted-foreground font-mono">
+              {detail.codeValue}
+            </p>
           </div>
         </div>
         {detail.status === 'SUSPECT' && (

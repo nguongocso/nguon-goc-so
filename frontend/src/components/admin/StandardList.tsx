@@ -225,9 +225,9 @@ export const StandardList: React.FC = () => {
                           <TableCell className="font-medium">
                             {std.name}
                           </TableCell>
-                          <TableCell>{std.issuingBody || "---"}</TableCell>
+                          <TableCell>{std.issuingBody || "—"}</TableCell>
                           <TableCell className="max-w-xs truncate">
-                            {std.description || "---"}
+                            {std.description || "—"}
                           </TableCell>
                           <TableCell>
                             <Badge
@@ -248,21 +248,22 @@ export const StandardList: React.FC = () => {
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">
                                 <Button
-                                  variant="outline"
-                                  size="sm"
+                                  variant="ghost"
+                                  size="icon-sm"
                                   onClick={() =>
                                     navigate(`/admin/standards/${std.id}/criteria`)
                                   }
                                   title="Quản lý tiêu chí"
+                                  className="hover:bg-muted"
                                 >
                                   <ListChecks className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="ghost"
-                                  size="sm"
+                                  size="icon-sm"
                                   onClick={() => openEditDialog(std)}
                                   disabled={!isActive}
-                                  className={!isActive ? "text-muted-foreground" : ""}
+                                  className={`hover:bg-muted${!isActive ? " text-muted-foreground" : ""}`}
                                   title="Sửa tiêu chuẩn"
                                 >
                                   <Pencil className="h-4 w-4" />

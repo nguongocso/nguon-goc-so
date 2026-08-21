@@ -107,30 +107,31 @@ export const BackupHistoryTable = ({
                     <>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon-sm"
                         onClick={() => onDownload(item.id)}
                         disabled={disabled}
                         title="Tải xuống"
+                        className="hover:bg-muted"
                       >
                         <Download className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon-sm"
                         onClick={() => onDelete(item.id)}
                         disabled={disabled}
                         title="Xóa bản sao lưu"
-                        className="text-destructive hover:text-destructive"
+                        className="text-destructive hover:text-destructive hover:bg-muted"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon-sm"
                         onClick={() => onRestore(item.id)}
                         disabled={disabled}
                         title="Phục hồi dữ liệu"
-                        className="text-warning hover:text-warning"
+                        className="text-warning hover:text-warning hover:bg-muted"
                       >
                         <RotateCcw className="h-4 w-4" />
                       </Button>

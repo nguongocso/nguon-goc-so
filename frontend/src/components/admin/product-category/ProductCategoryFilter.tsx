@@ -88,12 +88,13 @@ export const ProductCategoryFilter = ({
                 Trạng thái
               </Label>
               <Select
+                items={STATUS_OPTIONS}
                 value={isActive !== undefined ? String(isActive) : ""}
                 onValueChange={(val) =>
                   setIsActive(val === "" ? undefined : val === "true")
                 }
               >
-                <SelectTrigger className="h-9">
+                <SelectTrigger size="sm" className="w-[180px]">
                   <SelectValue placeholder="Tất cả" />
                 </SelectTrigger>
                 <SelectContent>
@@ -111,7 +112,7 @@ export const ProductCategoryFilter = ({
               {/* Label ẩn để căn chỉnh */}
               <Label className="invisible text-sm font-medium">Thao tác</Label>
               <div className="flex gap-2">
-                <Button type="submit" disabled={loading} className="flex-1">
+                <Button type="submit" variant="search" disabled={loading} className="flex-1">
                   <Search className="mr-1 h-4 w-4" />
                   Tìm kiếm
                 </Button>

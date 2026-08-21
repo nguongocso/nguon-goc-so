@@ -153,8 +153,9 @@ export default function WarehouseReceiptPage() {
                         <TableCell className="text-center">
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="icon-sm"
                             onClick={() => navigate(`/warehouse-receipt/${receipt.id}`)}
+                            className="hover:bg-muted"
                           >
                             <Eye className="size-4" />
                           </Button>

@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
-  ArrowLeft,
   CheckCircle2,
   AlertTriangle,
   LoaderCircle,
@@ -9,7 +8,6 @@ import {
   User,
   CalendarClock,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -19,7 +17,6 @@ const ALLOWED_THRESHOLD = 2.0;
 
 export default function WarehouseReceiptDetailPage() {
   const { eventId } = useParams<{ eventId: string }>();
-  const navigate = useNavigate();
   const { detail, isLoadingDetail, error, fetchDetail } = useWarehouseReceipt();
 
   useEffect(() => {
@@ -61,10 +58,6 @@ export default function WarehouseReceiptDetailPage() {
   if (error || !detail) {
     return (
       <div className="mx-auto max-w-3xl space-y-6 p-4">
-        <Button variant="ghost" onClick={() => navigate('/warehouse-receipt')}>
-          <ArrowLeft className="size-4" />
-          Quay lại
-        </Button>
         <Alert variant="destructive">
           <AlertDescription>
             {error || 'Không tìm thấy sự kiện nhập kho.'}
@@ -82,10 +75,6 @@ export default function WarehouseReceiptDetailPage() {
     <div className="mx-auto max-w-4xl space-y-6 p-4">
       {/* Back + Header */}
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => navigate('/warehouse-receipt')}>
-          <ArrowLeft className="size-4" />
-          Quay lại
-        </Button>
         <Badge
           variant={isExceeded ? 'destructive' : 'outline'}
           className={isExceeded ? '' : 'text-emerald-700 border-emerald-300'}
