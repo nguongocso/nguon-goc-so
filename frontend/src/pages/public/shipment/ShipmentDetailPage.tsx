@@ -219,10 +219,6 @@ export const ShipmentDetailPage = () => {
   if (shipmentError || !shipment) {
     return (
       <div className="container mx-auto py-10">
-        <Button variant="outline" onClick={() => navigate(-1)} className="mb-6">
-          <ArrowLeft className="mr-1 h-4 w-4" />
-          Quay lại
-        </Button>
         <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-5 text-red-700">
           <AlertCircle className="mt-0.5 size-5 shrink-0" />
           <div>
