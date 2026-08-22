@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ORGANIZATION_TYPES } from '@/utils/constants';
+import { CREATABLE_ORGANIZATION_TYPES } from '@/utils/constants';
 import type { CreateOrganizationRequest } from '@/types/organization';
 
 const getPasswordStrength = (password: string): { score: number; label: string; color: string } => {
@@ -149,7 +149,7 @@ export function CreateOrganizationForm() {
               <div className="space-y-1.5">
                 <Label htmlFor="organizationType">Loại tổ chức *</Label>
                 <Select
-                  items={Object.entries(ORGANIZATION_TYPES).map(([key, label]) => ({
+                  items={Object.entries(CREATABLE_ORGANIZATION_TYPES).map(([key, label]) => ({
                     value: key,
                     label,
                   }))}
@@ -160,7 +160,7 @@ export function CreateOrganizationForm() {
                     <SelectValue placeholder="Chọn loại tổ chức" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(ORGANIZATION_TYPES).map(([key, label]) => (
+                    {Object.entries(CREATABLE_ORGANIZATION_TYPES).map(([key, label]) => (
                       <SelectItem key={key} value={key}>
                         {label}
                       </SelectItem>
