@@ -81,12 +81,14 @@ export default function ProductCategoryManagementPage() {
           <h1 className="text-2xl font-bold">Quản lý danh mục loại nông sản</h1>
           <p className="text-sm text-muted-foreground">Thêm, sửa, ẩn/hiện các loại nông sản dùng chung</p>
         </div>
-        {canManage && (
-          <Button onClick={() => setOpenForm(true)} variant="create">
-            <Plus className="h-4 w-4 mr-1" /> Thêm loại nông sản
-          </Button>
-        )}
-        <HelpButton screenKey="admin-product-categories" />
+        <div className="flex items-center gap-3">
+          {canManage && (
+            <Button onClick={() => setOpenForm(true)} variant="create">
+              <Plus className="h-4 w-4 mr-1" /> Thêm loại nông sản
+            </Button>
+          )}
+          <HelpButton screenKey="admin-product-categories" />
+        </div>
       </div>
 
       <ProductCategoryFilter onFilter={handleFilter} onReset={handleReset} loading={loading} />

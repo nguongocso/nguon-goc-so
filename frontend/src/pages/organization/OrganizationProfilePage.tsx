@@ -3,6 +3,7 @@ import { OrganizationProfileForm } from "@/components/organization/OrganizationP
 const OrganizationProfilePage: React.FC = () => {
   return (
     <div className="container mx-auto py-8">
+      
       <OrganizationProfileForm />
     </div>
   );

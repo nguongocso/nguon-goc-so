@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ORGANIZATION_TYPES } from '@/utils/constants';
+import { CREATABLE_ORGANIZATION_TYPES } from '@/utils/constants';
 import type { CreateOrganizationRequest } from '@/types/organization';
 
 const getPasswordStrength = (password: string): { score: number; label: string; color: string } => {
@@ -30,6 +30,7 @@ const getPasswordStrength = (password: string): { score: number; label: string; 
 export function CreateOrganizationForm() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
@@ -148,7 +149,7 @@ export function CreateOrganizationForm() {
               <div className="space-y-1.5">
                 <Label htmlFor="organizationType">Loại tổ chức *</Label>
                 <Select
-                  items={Object.entries(ORGANIZATION_TYPES).map(([key, label]) => ({
+                  items={Object.entries(CREATABLE_ORGANIZATION_TYPES).map(([key, label]) => ({
                     value: key,
                     label,
                   }))}
@@ -159,7 +160,7 @@ export function CreateOrganizationForm() {
                     <SelectValue placeholder="Chọn loại tổ chức" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(ORGANIZATION_TYPES).map(([key, label]) => (
+                    {Object.entries(CREATABLE_ORGANIZATION_TYPES).map(([key, label]) => (
                       <SelectItem key={key} value={key}>
                         {label}
                       </SelectItem>
@@ -276,7 +277,7 @@ export function CreateOrganizationForm() {
                   </div>
                   <Input
                     id="confirmPassword"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showConfirmPassword ? 'text' : 'password'}
                     className="pl-9 pr-10"
                     {...register('confirmPassword')}
                     placeholder="Nhập lại mật khẩu"
@@ -284,11 +285,11 @@ export function CreateOrganizationForm() {
                   <button
                     type="button"
                     tabIndex={-1}
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    aria-label={showConfirmPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                     className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
                 {errors.confirmPassword && (

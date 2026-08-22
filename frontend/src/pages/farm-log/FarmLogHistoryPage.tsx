@@ -32,6 +32,7 @@ export default function FarmLogHistoryPage() {
 
   return (
     <div className="container mx-auto py-6">
+      
       <div className="mb-4 flex justify-end">
         <HelpButton screenKey="farm-log-history" />
       </div>

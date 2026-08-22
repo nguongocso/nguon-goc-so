@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  ArrowLeft,
   ChevronLeft,
   ChevronRight,
   Package,
@@ -15,7 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getProductionLotById } from "@/api/productionLotApi";
-import { ShipmentList } from "@/pages/shipment/ShipmentList";
+import { ShipmentList } from "@/pages/public/shipment/ShipmentList";
 import { FarmLogList } from "@/components/farm-log/FarmLogList";
 import { usePermission } from "@/hooks/usePermission";
 import { ROLE_ACCESS } from "@/config/roleAccess";
@@ -557,10 +556,6 @@ export const ProductionLotDetailPage = () => {
     <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <Button variant="outline" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Quay lại
-        </Button>
         <div className="flex gap-2">
           {canRecordHarvest &&
             lot.status === "APPROVED" &&

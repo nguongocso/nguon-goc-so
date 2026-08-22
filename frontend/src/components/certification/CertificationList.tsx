@@ -82,10 +82,11 @@ export const CertificationList = ({
               {canManage && (
                 <TableCell className="text-right">
                   <Button
-                    variant="delete"
+                    variant="ghost"
                     size="sm"
                     onClick={() => onDetach(cert.certificationId)}
                     title="Gỡ chứng nhận"
+                    className="text-destructive hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
