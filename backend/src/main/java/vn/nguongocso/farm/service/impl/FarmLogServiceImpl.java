@@ -1,5 +1,6 @@
 package vn.nguongocso.farm.service.impl;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -43,6 +44,13 @@ public class FarmLogServiceImpl implements FarmLogService {
 	private final FarmLogAttachmentRepository attachmentRepository;
 
 	private final ApplicationEventPublisher eventPublisher;
+
+	/**
+	 * Clock nghiệp vụ theo múi giờ cấu hình (app.timezone, mặc định
+	 * Asia/Ho_Chi_Minh). Dùng để ghi createdAt đúng giờ Việt Nam, không phụ
+	 * thuộc timezone của JVM/container.
+	 */
+	private final Clock clock;
 
 	private static final String EVENT_RECORDER_ROLE = "VT-03";
 	private static final String ORG_MANAGER_ROLE = "VT-02";
@@ -102,7 +110,7 @@ public class FarmLogServiceImpl implements FarmLogService {
 				.entityType(entityType)
 				.entityId(entityId)
 				.ipAddress(getClientIp()) // lấy từ request context nếu có
-				.timestamp(LocalDateTime.now())
+				.timestamp(LocalDateTime.now(clock))
 				.build());
 	}
 
@@ -132,6 +140,9 @@ public class FarmLogServiceImpl implements FarmLogService {
 				.executedDate(request.getExecutedDate())
 				.notes(request.getNotes())
 				.createdBy(createdBy)
+				// Ghi thời gian tạo theo múi giờ nghiệp vụ (Asia/Ho_Chi_Minh),
+				// không dùng LocalDateTime.now() mặc định của JVM.
+				.createdAt(LocalDateTime.now(clock))
 				.build();
 	}
 
