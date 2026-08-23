@@ -9,6 +9,8 @@ export interface PublicChainEventItem {
 export interface PublicTraceResponse {
   codeValue: string;
   productionLotId: string | null;
+  lotName?: string | null;
+  lotCode?: string | null;
   productName: string;
   shipmentCode: string;
   shipmentStatus: string;

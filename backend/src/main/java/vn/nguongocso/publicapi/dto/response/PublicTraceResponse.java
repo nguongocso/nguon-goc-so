@@ -19,6 +19,10 @@ public class PublicTraceResponse {
 
     private UUID productionLotId;
 
+    private String lotName;
+
+    private String lotCode;
+
     private String productName;
 
     private String shipmentCode;

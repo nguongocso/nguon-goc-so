@@ -190,18 +190,28 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .map(this::convertToPublicEvent)
                 .toList();
 
-        String productName = shipment.getProductionLot() != null
-                ? shipment.getProductionLot().getName()
-                : "Sản phẩm";
+        ProductionLot productionLot = shipment.getProductionLot();
+        String lotName = productionLot != null ? productionLot.getName() : null;
+        String lotCode = (productionLot != null && productionLot.getId() != null)
+                ? productionLot.getId().toString()
+                : null;
+        String productName = (productionLot != null && productionLot.getProductCategory() != null)
+                ? productionLot.getProductCategory().getName()
+                : (productionLot != null ? productionLot.getName() : "Sản phẩm");
+        String shipmentCode = (shipment.getName() != null && !shipment.getName().isBlank())
+                ? shipment.getName()
+                : shipment.getId().toString();
 
         return PublicTraceResponse.builder()
                 .codeValue(traceCode.getCodeValue())
                 .productionLotId(
-                        shipment.getProductionLot() != null
-                                ? shipment.getProductionLot().getId()
+                        productionLot != null
+                                ? productionLot.getId()
                                 : null)
+                .lotName(lotName)
+                .lotCode(lotCode)
                 .productName(productName)
-                .shipmentCode(shipment.getId().toString())
+                .shipmentCode(shipmentCode)
                 .shipmentStatus(shipment.getStatus().name())
                 .recalled(isRecalled)
                 .recallMessage(recallMessage)

@@ -328,6 +328,8 @@ export default function TraceLookupPage() {
         {/* Thông tin sản phẩm */}
         <ProductInfo
           productName={data.productName}
+          lotName={data.lotName}
+          lotCode={data.lotCode}
           shipmentCode={data.shipmentCode}
           status={data.shipmentStatus}
         />
