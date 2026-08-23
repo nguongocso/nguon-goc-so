@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
+import { BackButton } from '@/components/common/BackButton';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -146,6 +147,11 @@ export function MainLayout() {
         />
         <main className="min-w-0 flex-1 p-3 sm:p-4 md:p-5 lg:p-6 xl:p-8">
           <div className="mx-auto w-full max-w-7xl">
+            {location.pathname !== '/dashboard' && (
+              <div className="mb-4">
+                <BackButton />
+              </div>
+            )}
             <Outlet />
           </div>
         </main>

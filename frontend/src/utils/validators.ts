@@ -89,7 +89,6 @@ export const createOrganizationSchema = z
                 'COOPERATIVE',
                 'ENTERPRISE',
                 'GOVERNMENT',
-                'SYSTEM',
             ],
             {
                 required_error:

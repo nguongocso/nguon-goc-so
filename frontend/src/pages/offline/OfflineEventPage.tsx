@@ -5,6 +5,7 @@ import { HelpButton } from '@/components/help/HelpButton';
 const OfflineEventPage: React.FC = () => {
   return (
     <div className="container mx-auto py-6">
+      
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Quản lý sự kiện chờ đồng bộ</h1>

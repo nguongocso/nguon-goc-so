@@ -72,6 +72,7 @@ export function OrganizationListPage() {
 
   return (
     <div className="py-8">
+      
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Danh sách tổ chức</CardTitle>

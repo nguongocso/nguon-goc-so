@@ -11,6 +11,7 @@ export const CreateFarmAreaPage: React.FC = () => {
 
   return (
     <div className="container mx-auto py-8 max-w-4xl">
+      
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Tạo vùng trồng mới</h1>
         <HelpButton screenKey="farm-area-create" />

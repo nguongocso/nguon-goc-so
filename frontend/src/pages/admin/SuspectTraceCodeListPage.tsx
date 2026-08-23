@@ -252,7 +252,7 @@ export default function SuspectTraceCodeListPage() {
               <X className="h-4 w-4" />
               Xóa bộ lọc
             </Button>
-            <Button onClick={applyFilters} disabled={loading}>
+            <Button variant="search" onClick={applyFilters} disabled={loading}>
               <Search className="h-4 w-4" />
               Tìm kiếm
             </Button>

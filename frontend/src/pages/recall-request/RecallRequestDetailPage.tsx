@@ -113,9 +113,6 @@ export const RecallRequestDetailPage = () => {
 
   return (
     <div className="container mx-auto max-w-3xl py-6 space-y-6">
-      <Button variant="outline" onClick={() => navigate('/recall-requests')}>
-        ← Quay lại
-      </Button>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

@@ -17,4 +17,10 @@ export const ORGANIZATION_TYPES = {
   SYSTEM: 'Tổ chức hệ thống',
 } as const;
 
+export const CREATABLE_ORGANIZATION_TYPES = {
+  COOPERATIVE: 'Hợp tác xã',
+  ENTERPRISE: 'Doanh nghiệp',
+  GOVERNMENT: 'Cơ quan quản lý',
+} as const;
+
 export type OrganizationTypeKey = keyof typeof ORGANIZATION_TYPES;

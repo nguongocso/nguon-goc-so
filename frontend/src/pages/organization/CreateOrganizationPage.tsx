@@ -4,6 +4,7 @@ import { CreateOrganizationGuide } from "@/components/organization/CreateOrganiz
 export function CreateOrganizationPage() {
   return (
     <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+      
       {/* Grid 1 cột mặc định, chỉ chuyển 2 cột từ màn hình xl (1280px) */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         {/* Form: toàn bộ chiều rộng trên mobile/laptop, 8 cột trên desktop lớn */}

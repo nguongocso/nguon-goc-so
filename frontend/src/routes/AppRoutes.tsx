@@ -56,8 +56,8 @@ import CreateMemberPage from "@/pages/organization/CreateMemberPage";
 import FarmLogHistoryPage from "@/pages/farm-log/FarmLogHistoryPage";
 
 // ===== Shipment =====
-import { ProductionLotDetailPage } from "@/pages/shipment/ProductionLotDetailPage";
-import { ShipmentDetailPage } from "@/pages/shipment/ShipmentDetailPage";
+import { ProductionLotDetailPage } from "@/pages/public/shipment/ProductionLotDetailPage";
+import { ShipmentDetailPage } from "@/pages/public/shipment/ShipmentDetailPage";
 
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";

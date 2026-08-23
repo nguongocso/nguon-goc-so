@@ -12,7 +12,7 @@ import type {
   ProductCategoryOption,
 } from '@/types/productionLot';
 import { HelpButton } from '@/components/help/HelpButton';
-import { ArrowLeft, Info, LoaderCircle, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Info, LoaderCircle, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -57,14 +57,6 @@ const CreateProductionLotPage = () => {
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950 md:px-8">
       <div className="mx-auto max-w-7xl">
-        <button
-          type="button"
-          className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-emerald-800 hover:text-emerald-950"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="size-4" />
-          Quay lại danh sách lô
-        </button>
 
         <header className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
