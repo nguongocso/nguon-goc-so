@@ -3,9 +3,13 @@ package vn.nguongocso.farm.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -48,6 +52,9 @@ class AttachmentServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private Clock clock;
+
     @InjectMocks
     private AttachmentService attachmentService;
 
@@ -78,6 +85,12 @@ class AttachmentServiceTest {
                 "farmLogRelativePath",
                 "farm-logs"
         );
+
+        // Clock nghiệp vụ cố định: 2026-08-23T03:00:00Z == 10:00 giờ Việt Nam.
+        lenient().when(clock.instant())
+                .thenReturn(Instant.parse("2026-08-23T03:00:00Z"));
+        lenient().when(clock.getZone())
+                .thenReturn(ZoneId.of("Asia/Ho_Chi_Minh"));
 
         orgId = UUID.randomUUID();
         userId = UUID.randomUUID();
@@ -142,6 +155,48 @@ class AttachmentServiceTest {
         assertThat(response.getFileSize()).isEqualTo(file.getSize());
         assertThat(response.getFileType()).isEqualTo("image/jpeg");
         assertThat(response.getDescription()).isEqualTo("test");
+    }
+
+    @Test
+    void uploadAttachment_shouldCaptureUploadedAtInBusinessTimezone()
+            throws Exception {
+
+        // Stub userDetails trong test
+        when(userDetails.getUserId()).thenReturn(userId);
+        when(userDetails.getOrganizationId()).thenReturn(orgId);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "image.jpg",
+                "image/jpeg",
+                "test content".getBytes()
+        );
+
+        when(farmLogRepository.findById(logId))
+                .thenReturn(Optional.of(farmLog));
+
+        when(userRepository.findById(userId))
+                .thenReturn(Optional.of(user));
+
+        when(attachmentRepository.save(any(FarmLogAttachment.class)))
+                .thenAnswer(invocation -> {
+                    FarmLogAttachment a = invocation.getArgument(0);
+                    a.setId(UUID.randomUUID());
+                    return a;
+                });
+
+        AttachmentResponse response =
+                attachmentService.uploadAttachment(
+                        logId,
+                        file,
+                        "test",
+                        userDetails
+                );
+
+        // Clock cố định 2026-08-23T03:00:00Z => 10:00 giờ Asia/Ho_Chi_Minh.
+        // uploadedAt phải là giờ nghiệp vụ, không phải giờ UTC của JVM.
+        assertThat(response.getUploadedAt())
+                .isEqualTo(java.time.LocalDateTime.of(2026, 8, 23, 10, 0, 0));
     }
 
     @Test

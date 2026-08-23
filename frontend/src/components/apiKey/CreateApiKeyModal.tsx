@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getLocalDateTimeString } from '@/utils/dateTime';
 import { toast } from 'sonner';
 import { KeyRound, Loader2, ShieldAlert } from 'lucide-react';
 import { createApiKey } from '@/api/apiKeyApi';
@@ -29,11 +30,11 @@ export const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   const [partnerName, setPartnerName] = useState('');
   const [rateLimitPerHour, setRateLimitPerHour] = useState<number>(100);
   
-  // Mặc định hết hạn sau 30 ngày
+  // Mặc định hết hạn sau 30 ngày (theo giờ local cho input datetime-local)
   const getDefaultExpiry = () => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
-    return d.toISOString().slice(0, 16); // YYYY-MM-THH:mm
+    return getLocalDateTimeString(d); // YYYY-MM-THH:mm
   };
 
   const [expiresAt, setExpiresAt] = useState(getDefaultExpiry());

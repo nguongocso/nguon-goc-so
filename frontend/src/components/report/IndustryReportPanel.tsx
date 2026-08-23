@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { z } from 'zod';
+import { getLocalDateString } from '@/utils/dateTime';
 import {
   AlertCircle,
   Download,
@@ -46,7 +47,7 @@ type QuickRange = 'today' | 'week' | 'month' | 'year' | null;
 
 function getQuickRangeDates(range: QuickRange): { from: string; to: string } {
   const now = new Date();
-  const to = now.toISOString().split('T')[0];
+  const to = getLocalDateString(now);
   let from = to;
 
   if (range === 'today') {
@@ -54,15 +55,15 @@ function getQuickRangeDates(range: QuickRange): { from: string; to: string } {
   } else if (range === 'week') {
     const d = new Date(now);
     d.setDate(d.getDate() - 7);
-    from = d.toISOString().split('T')[0];
+    from = getLocalDateString(d);
   } else if (range === 'month') {
     const d = new Date(now);
     d.setDate(d.getDate() - 30);
-    from = d.toISOString().split('T')[0];
+    from = getLocalDateString(d);
   } else if (range === 'year') {
     const d = new Date(now);
     d.setFullYear(d.getFullYear() - 1);
-    from = d.toISOString().split('T')[0];
+    from = getLocalDateString(d);
   }
 
   return { from, to };

@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.AbstractMap;
 import java.util.List;
@@ -49,6 +50,13 @@ public class AttachmentService {
     private final UserRepository userRepository;
 
     private final ApplicationEventPublisher eventPublisher;
+
+    /**
+     * Clock nghiệp vụ theo múi giờ cấu hình (app.timezone, mặc định
+     * Asia/Ho_Chi_Minh). Dùng để ghi uploadedAt đúng giờ Việt Nam, không phụ
+     * thuộc timezone của JVM/container.
+     */
+    private final Clock clock;
 
     @Value("${app.upload.base-dir}")
     private String baseDir;
@@ -128,6 +136,9 @@ public class AttachmentService {
                 .filePath(filePath)
                 .description(description)
                 .uploadedBy(user)
+                // Ghi thời gian tải lên theo múi giờ nghiệp vụ (Asia/Ho_Chi_Minh),
+                // không dùng LocalDateTime.now() mặc định của JVM.
+                .uploadedAt(LocalDateTime.now(clock))
                 .build();
         attachmentRepository.save(attachment);
 
@@ -274,7 +285,7 @@ public class AttachmentService {
                 .entityType(entityType)
                 .entityId(entityId)
                 .ipAddress(IpUtils.getClientIp())
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(clock))
                 .build());
     }
 

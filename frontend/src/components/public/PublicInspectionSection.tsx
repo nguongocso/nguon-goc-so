@@ -13,6 +13,7 @@ import type {
   PublicInspectionResponse,
   PublicInspectionResult,
 } from "@/types/publicInspection";
+import { getLocalDateString } from "@/utils/dateTime";
 
 interface PublicInspectionSectionProps {
   data?: PublicInspectionResponse | null;
@@ -30,7 +31,7 @@ const formatDate = (dateValue: string | null) => {
 };
 
 const isExpired = (expiryDate: string): boolean => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getLocalDateString();
   return expiryDate < today;
 };
 
