@@ -854,6 +854,23 @@ public class ChainEventServiceImpl implements ChainEventService {
 
         ProductionLot productionLot = shipment.getProductionLot();
 
+        // Ngưỡng bảo quản của loại nông sản để hiển thị trước khi nhập số liệu
+        vn.nguongocso.farm.entity.ProductCategory productCategory = productionLot.getProductCategory();
+        Double tempMin = productCategory != null ? productCategory.getTempMin() : null;
+        Double tempMax = productCategory != null ? productCategory.getTempMax() : null;
+        Double humidityMin = productCategory != null ? productCategory.getHumidityMin() : null;
+        Double humidityMax = productCategory != null ? productCategory.getHumidityMax() : null;
+
+        ThresholdInfo thresholds = null;
+        if (tempMin != null || tempMax != null || humidityMin != null || humidityMax != null) {
+            thresholds = ThresholdInfo.builder()
+                    .tempMin(tempMin)
+                    .tempMax(tempMax)
+                    .humidityMin(humidityMin)
+                    .humidityMax(humidityMax)
+                    .build();
+        }
+
         return ScanLookupResponse.builder()
                 .valid(true)
                 .message(null)
@@ -878,6 +895,7 @@ public class ChainEventServiceImpl implements ChainEventService {
                 .lastEventRecordedAt(
                         latestEvent.map(ChainEvent::getRecordedAt).orElse(null))
                 .totalQuantity(shipment.getTotalQuantity())
+                .thresholds(thresholds)
                 .build();
     }
 

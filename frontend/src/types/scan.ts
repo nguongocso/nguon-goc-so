@@ -1,3 +1,5 @@
+import type { ThresholdInfo } from './storageCondition';
+
 export interface ScanLookupResponse {
   valid: boolean;
   message: string | null;
@@ -14,4 +16,5 @@ export interface ScanLookupResponse {
   lastEventType: string | null;
   lastEventRecordedAt: string | null;
   totalQuantity?: number;
+  thresholds?: ThresholdInfo;
 }

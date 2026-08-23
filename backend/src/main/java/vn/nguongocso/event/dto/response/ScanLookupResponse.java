@@ -92,4 +92,10 @@ public class ScanLookupResponse {
      * Tổng số lượng khai báo của lô hàng.
      */
     private Long totalQuantity;
+
+    /**
+     * Ngưỡng bảo quản của loại nông sản (nhiệt độ/độ ẩm cho phép).
+     * Null khi loại nông sản chưa được cấu hình ngưỡng.
+     */
+    private ThresholdInfo thresholds;
 }

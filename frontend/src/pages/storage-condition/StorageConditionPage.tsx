@@ -16,7 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { recordStorageCondition } from '@/api/storageConditionApi';
 import { scanLookupTraceCode } from '@/api/chainEventApi';
-import type { StorageConditionResponse } from '@/types/storageCondition';
+import type { StorageConditionResponse, ThresholdInfo } from '@/types/storageCondition';
 import { toast } from 'sonner';
 import { HelpButton } from '@/components/help/HelpButton';
 
@@ -64,7 +64,7 @@ export default function StorageConditionPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<StorageConditionResponse | null>(null);
-  const [lotInfo, setLotInfo] = useState<{ shipmentName: string } | null>(null);
+  const [lotInfo, setLotInfo] = useState<{ shipmentName: string; thresholds?: ThresholdInfo } | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
@@ -81,7 +81,7 @@ export default function StorageConditionPage() {
         setScanError('Không tìm thấy lô hàng cho mã này.');
         return;
       }
-      setLotInfo({ shipmentName: lookupResult.shipmentName });
+      setLotInfo({ shipmentName: lookupResult.shipmentName, thresholds: lookupResult.thresholds });
     } catch (err: any) {
       setScanError(err.response?.data?.message || 'Không thể tra cứu mã.');
     } finally {
@@ -170,10 +170,21 @@ export default function StorageConditionPage() {
             {scanError && <Alert variant="destructive"><AlertDescription>{scanError}</AlertDescription></Alert>}
             {lotInfo && (
               <Card className="border-green-200 bg-green-50">
-                <CardContent className="pt-4">
+                <CardContent className="pt-4 space-y-3">
                   <p className="text-sm text-green-800">
                     <span className="font-medium">Lô hàng:</span> {lotInfo.shipmentName}
                   </p>
+                  {lotInfo.thresholds ? (
+                    <div className="rounded-lg bg-gray-50 p-3">
+                      <p className="text-xs text-gray-600 font-medium mb-2">Ngưỡng bảo quản</p>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                        <span>Nhiệt độ: {lotInfo.thresholds.tempMin}°C – {lotInfo.thresholds.tempMax}°C</span>
+                        <span>Độ ẩm: {lotInfo.thresholds.humidityMin}% – {lotInfo.thresholds.humidityMax}%</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500">Chưa cấu hình ngưỡng cho loại nông sản này.</p>
+                  )}
                 </CardContent>
               </Card>
             )}
