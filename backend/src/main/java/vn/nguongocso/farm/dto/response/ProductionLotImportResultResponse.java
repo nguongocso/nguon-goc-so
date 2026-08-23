@@ -1,6 +1,6 @@
 package vn.nguongocso.farm.dto.response;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,5 +29,9 @@ public class ProductionLotImportResultResponse {
 
     private List<ProductionLotImportRowError> errors; // Danh sách dòng lỗi.
 
-    private Instant importedAt; // Thời điểm hoàn tất nhập dữ liệu.
+    /**
+     * Thời điểm hoàn tất nhập dữ liệu, theo giờ nghiệp vụ
+     * (Asia/Ho_Chi_Minh) — thống nhất với createdAt của nhật ký canh tác.
+     */
+    private LocalDateTime importedAt;
 }

@@ -3,6 +3,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Download, Loader2, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { getLocalDateString } from '@/utils/dateTime';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -177,7 +178,7 @@ export const ExportOpenDataForm = () => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      const fileName = `export_${new Date().toISOString().slice(0, 10)}.${data.format.toLowerCase()}`;
+      const fileName = `export_${getLocalDateString()}.${data.format.toLowerCase()}`;
       link.download = fileName;
       document.body.appendChild(link);
       link.click();

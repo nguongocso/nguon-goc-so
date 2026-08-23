@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { useWarehouseReceipt } from '@/hooks/useWarehouseReceipt';
 import { scanLookupTraceCode } from '@/api/chainEventApi';
+import { getLocalDateString } from '@/utils/dateTime';
 
 const ALLOWED_THRESHOLD = 2.0;
 
@@ -43,8 +44,8 @@ interface Props {
 }
 
 export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: Props) {
-  // 👇 Lấy ngày hôm nay
-  const today = new Date().toISOString().split('T')[0];
+  // 👇 Lấy ngày hôm nay theo giờ local (tránh lệch ngày UTC)
+  const today = getLocalDateString();
 
   const [codeValue, setCodeValue] = useState('');
   const [receivedQuantity, setReceivedQuantity] = useState('');

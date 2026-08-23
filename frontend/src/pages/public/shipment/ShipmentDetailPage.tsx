@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getShipmentById } from "@/api/shipmentApi";
+import { getLocalDateString } from "@/utils/dateTime";
 import { getShipmentTimeline } from "@/api/chainEventApi";
 import { checkDossierEligibility, exportDossier } from "@/api/dossierApi";
 import { deleteDraft } from "@/api/eventValidationApi";
@@ -171,9 +172,7 @@ export const ShipmentDetailPage = () => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Ho_so_truy_xuat_${shipment.name}_${new Date()
-        .toISOString()
-        .slice(0, 10)}.pdf`;
+      link.download = `Ho_so_truy_xuat_${shipment.name}_${getLocalDateString()}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

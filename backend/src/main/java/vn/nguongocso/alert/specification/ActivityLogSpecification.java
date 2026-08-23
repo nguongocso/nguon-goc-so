@@ -3,10 +3,9 @@ package vn.nguongocso.alert.specification;
 import org.springframework.data.jpa.domain.Specification;
 import vn.nguongocso.alert.entity.ActivityLog;
 
-import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneOffset;
 import java.util.UUID;
 
 /**
@@ -48,19 +47,24 @@ public class ActivityLogSpecification {
 
     /**
      * Tạo Specification để lọc ActivityLog theo khoảng thời gian tạo.
+     *
+     * <p>
+     * Cột createdAt là LocalDateTime (DATETIME, lưu giờ nghiệp vụ
+     * Asia/Ho_Chi_Minh), nên khoảng lọc cũng dùng LocalDateTime thay vì
+     * Instant quy đổi theo UTC — tránh lệch múi giờ khi so sánh.
      */
     public static Specification<ActivityLog> createdBetween(LocalDate startDate, LocalDate endDate) {
         return (root, query, cb) -> {
             if (startDate == null && endDate == null) {
                 return cb.conjunction();
             }
-            Instant startInstant = startDate != null
-                    ? startDate.atStartOfDay().toInstant(ZoneOffset.UTC)
-                    : Instant.EPOCH;
-            Instant endInstant = endDate != null
-                    ? endDate.atTime(LocalTime.MAX).toInstant(ZoneOffset.UTC)
-                    : Instant.now();
-            return cb.between(root.get("createdAt"), startInstant, endInstant);
+            LocalDateTime startDateTime = startDate != null
+                    ? startDate.atStartOfDay()
+                    : LocalDateTime.MIN;
+            LocalDateTime endDateTime = endDate != null
+                    ? endDate.atTime(LocalTime.MAX)
+                    : LocalDateTime.now();
+            return cb.between(root.get("createdAt"), startDateTime, endDateTime);
         };
     }
 }

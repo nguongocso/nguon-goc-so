@@ -74,6 +74,10 @@ services:
       LOCATIONIQ_API_KEY: ${LOCATIONIQ_API_KEY}
       LOCATIONIQ_BASE_URL: ${LOCATIONIQ_BASE_URL}
 
+      # Múi giờ nghiệp vụ (mặc định Asia/Ho_Chi_Minh). Dùng chung cho Clock
+      # nghiệp vụ (app.timezone) và múi giờ mặc định của JVM.
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Ho_Chi_Minh}
+
       JAVA_OPTS: ${JAVA_OPTS}
 
     ports:

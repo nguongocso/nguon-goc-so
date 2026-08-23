@@ -26,6 +26,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { RefreshCw, Calendar } from 'lucide-react';
 import { HelpButton } from '@/components/help/HelpButton';
+import { getLocalDateString } from '@/utils/dateTime';
 
 type GroupByType = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR';
 
@@ -36,22 +37,20 @@ const groupByLabels: Record<GroupByType, string> = {
   YEAR: 'Năm',
 };
 
-// Helper: lấy ngày hôm nay (YYYY-MM-DD)
-const getToday = () => new Date().toISOString().split('T')[0];
+// Helper: lấy ngày hôm nay (YYYY-MM-DD) theo giờ local (tránh lệch ngày UTC)
+const getToday = () => getLocalDateString();
 
 // Helper: lấy ngày đầu tháng hiện tại (YYYY-MM-DD)
 const getFirstDayOfMonth = () => {
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1)
-    .toISOString()
-    .split('T')[0];
+  return getLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1));
 };
 
 // Helper: lấy ngày 7 ngày trước
 const getSevenDaysAgo = () => {
   const now = new Date();
   now.setDate(now.getDate() - 7);
-  return now.toISOString().split('T')[0];
+  return getLocalDateString(now);
 };
 
 export default function LookupStatisticsPage() {

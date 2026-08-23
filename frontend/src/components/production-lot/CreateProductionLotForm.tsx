@@ -17,6 +17,7 @@ import type {
 import axios from "axios";
 import { CheckCircle2, PackageOpen, Sprout } from "lucide-react";
 import { useState, type FormEvent } from "react";
+import { getLocalDateString } from "@/utils/dateTime";
 
 interface CreateProductionLotFormProps {
   farmAreas: FarmAreaOption[];
@@ -307,7 +308,7 @@ const CreateProductionLotForm = ({
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      const today = new Date().toISOString().split("T")[0];
+                      const today = getLocalDateString();
                       setForm((current) => ({
                         ...current,
                         plantingDate: today,
