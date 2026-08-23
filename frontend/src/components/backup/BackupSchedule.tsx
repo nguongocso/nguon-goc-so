@@ -3,8 +3,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Pencil, Loader2 } from 'lucide-react';
+import { Pencil, Loader2, Sparkles, Clock } from 'lucide-react';
 import type { BackupSchedule as BackupScheduleType } from '@/types/backup';
+import { parseCronToVisualState, getCronDescriptionInVietnamese } from '@/utils/cronHelper';
 
 interface Props {
   schedule: BackupScheduleType | null;
@@ -26,10 +27,8 @@ export const BackupSchedule = ({ schedule, onEdit, onToggleActive, disabled }: P
         description: schedule.description,
         isActive: checked,
       });
-      // Success: state sẽ được cập nhật từ parent
     } catch (error) {
-      // Error: đã được xử lý trong useBackup (toast.error)
-      // Switch sẽ tự động revert vì schedule.isActive không đổi
+      // Error handled in useBackup
     } finally {
       setIsToggling(false);
     }
@@ -39,25 +38,37 @@ export const BackupSchedule = ({ schedule, onEdit, onToggleActive, disabled }: P
     return (
       <Card>
         <CardHeader>
-          <CardTitle>⚙️ Lịch sao lưu tự động</CardTitle>
-          <CardDescription>Chưa có cấu hình lịch sao lưu</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-emerald-600" />
+            Lịch sao lưu tự động
+          </CardTitle>
+          <CardDescription>Chưa có cấu hình lịch sao lưu tự động</CardDescription>
         </CardHeader>
         <CardFooter>
-          <Button onClick={onEdit} disabled={disabled}>
-            <Pencil className="h-4 w-4 mr-1" /> Thiết lập
+          <Button onClick={onEdit} disabled={disabled} className="bg-emerald-600 hover:bg-emerald-700">
+            <Pencil className="h-4 w-4 mr-1" /> Thiết lập ngay
           </Button>
         </CardFooter>
       </Card>
     );
   }
 
+  const visualState = parseCronToVisualState(schedule.cronExpression);
+  const friendlyVietnameseSchedule = getCronDescriptionInVietnamese(visualState);
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>⚙️ Lịch sao lưu tự động</CardTitle>
-          <CardDescription>
-            Biểu thức Cron: <code className="bg-muted px-2 py-1 rounded text-sm">{schedule.cronExpression}</code>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-emerald-600" />
+            Lịch sao lưu tự động
+          </CardTitle>
+          <CardDescription className="flex items-center gap-2 mt-1">
+            <span>Biểu thức Cron:</span>
+            <code className="bg-muted font-mono px-2 py-0.5 rounded text-xs text-primary">
+              {schedule.cronExpression}
+            </code>
           </CardDescription>
         </div>
         <div className="flex items-center gap-2">
@@ -69,20 +80,28 @@ export const BackupSchedule = ({ schedule, onEdit, onToggleActive, disabled }: P
           />
         </div>
       </CardHeader>
-      <CardContent className="space-y-2">
-        <p className="text-sm">{schedule.description || 'Không có mô tả'}</p>
+      <CardContent className="space-y-3">
+        <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 p-2.5 rounded-md border border-emerald-200 dark:border-emerald-800">
+          <Sparkles className="h-4 w-4 shrink-0" />
+          <span className="font-medium">{friendlyVietnameseSchedule}</span>
+        </div>
+
+        {schedule.description && (
+          <p className="text-sm text-muted-foreground">{schedule.description}</p>
+        )}
+
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>Trạng thái:</span>
           <Badge variant={schedule.isActive ? 'default' : 'secondary'}>
             {schedule.isActive ? '🟢 Đang kích hoạt' : '🔴 Đã dừng'}
           </Badge>
           <span className="ml-2">Cập nhật lần cuối: {new Date(schedule.updatedAt).toLocaleString('vi-VN')}</span>
-          <span>• {schedule.updatedBy}</span>
+          {schedule.updatedBy && <span>• {schedule.updatedBy}</span>}
         </div>
       </CardContent>
       <CardFooter className="gap-2">
         <Button variant="outline" onClick={onEdit} disabled={disabled || isToggling}>
-          <Pencil className="h-4 w-4 mr-1" /> Chỉnh sửa
+          <Pencil className="h-4 w-4 mr-1" /> Chỉnh sửa lịch
         </Button>
       </CardFooter>
     </Card>
