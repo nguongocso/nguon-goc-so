@@ -25,6 +25,7 @@ import {
 import { useShipments } from "@/hooks/useShipments";
 import { useRecallShipment } from "@/hooks/useRecallShipment";
 import type { Shipment, CreateShipmentPayload } from "@/types/shipment";
+import { getLocalDateString } from "@/utils/dateTime";
 import { CreateShipmentModal } from "@/components/shipment/CreateShipmentModal";
 import { ShipmentTimelineDialog } from "@/components/shipment/ShipmentTimelineDialog";
 import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDialog";
@@ -185,9 +186,7 @@ export const ShipmentList = ({
         "content-disposition",
       );
 
-      let fileName = `Ho_so_truy_xuat_${shipment.name}_${new Date()
-        .toISOString()
-        .slice(0, 10)}.pdf`;
+      let fileName = `Ho_so_truy_xuat_${shipment.name}_${getLocalDateString()}.pdf`;
 
       if (contentDisposition) {
         const match = contentDisposition.match(

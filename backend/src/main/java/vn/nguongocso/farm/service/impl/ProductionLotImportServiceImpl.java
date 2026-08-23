@@ -593,9 +593,7 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
                                 .failedCount(history.getFailedCount())
                                 .savedLotIds(savedLotIds)
                                 .errors(rowErrors)
-                                .importedAt(
-                                                history.getImportedAt()
-                                                                .toInstant(java.time.ZoneOffset.UTC))
+                                .importedAt(history.getImportedAt())
                                 .build();
         }
 
