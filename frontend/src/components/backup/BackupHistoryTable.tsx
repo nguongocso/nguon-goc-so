@@ -73,7 +73,7 @@ export const BackupHistoryTable = ({
             <TableHead>Loại</TableHead>
             <TableHead>File</TableHead>
             <TableHead>Kích thước</TableHead>
-            <TableHead>Trạng thái</TableHead>
+            <TableHead>Trạng thái & Lỗi</TableHead>
             <TableHead className="text-right">Thao tác</TableHead>
           </TableRow>
         </TableHeader>
@@ -91,12 +91,15 @@ export const BackupHistoryTable = ({
                 {item.fileName || '—'}
               </TableCell>
               <TableCell>{formatFileSize(item.fileSize)}</TableCell>
-              <TableCell>
+              <TableCell className="max-w-[340px]">
                 <Badge className={statusConfig[item.status].className}>
                   {statusConfig[item.status].label}
                 </Badge>
                 {item.errorMessage && (
-                  <div className="text-xs text-destructive mt-1 truncate max-w-[150px]">
+                  <div
+                    className="text-[11px] font-mono text-rose-700 dark:text-rose-300 mt-1.5 p-2 rounded bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 whitespace-pre-wrap break-words leading-relaxed shadow-xs"
+                    title={item.errorMessage}
+                  >
                     {item.errorMessage}
                   </div>
                 )}
