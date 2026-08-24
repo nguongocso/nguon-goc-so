@@ -117,6 +117,10 @@ class ProductCategoryServiceTest {
                 .name("Cam Sành")
                 .group("Cây ăn quả")
                 .description("Cam ngọt")
+                .tempMin(10.0)
+                .tempMax(30.0)
+                .humidityMin(60.0)
+                .humidityMax(90.0)
                 .build();
         when(productCategoryRepository.existsByNameIgnoreCase("Cam Sành")).thenReturn(false);
         when(productCategoryRepository.save(any(ProductCategory.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -128,6 +132,10 @@ class ProductCategoryServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.getName()).isEqualTo("Cam Sành");
         assertThat(response.getIsActive()).isTrue();
+        assertThat(response.getTempMin()).isEqualTo(10.0);
+        assertThat(response.getTempMax()).isEqualTo(30.0);
+        assertThat(response.getHumidityMin()).isEqualTo(60.0);
+        assertThat(response.getHumidityMax()).isEqualTo(90.0);
         verify(productCategoryRepository, times(1)).save(any(ProductCategory.class));
     }
 
@@ -158,6 +166,10 @@ class ProductCategoryServiceTest {
                 .group("Cây ăn quả")
                 .description("Mô tả mới")
                 .isActive(false)
+                .tempMin(12.5)
+                .tempMax(28.0)
+                .humidityMin(65.0)
+                .humidityMax(85.0)
                 .build();
 
         when(productCategoryRepository.findById(categoryId)).thenReturn(Optional.of(activeCategory));
@@ -171,6 +183,44 @@ class ProductCategoryServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.getName()).isEqualTo("Xoài Cát Chu Cao Lãnh");
         assertThat(response.getIsActive()).isFalse();
+        assertThat(response.getTempMin()).isEqualTo(12.5);
+        assertThat(response.getTempMax()).isEqualTo(28.0);
+        assertThat(response.getHumidityMin()).isEqualTo(65.0);
+        assertThat(response.getHumidityMax()).isEqualTo(85.0);
+        assertThat(activeCategory.getTempMin()).isEqualTo(12.5);
+        assertThat(activeCategory.getHumidityMax()).isEqualTo(85.0);
+        verify(productCategoryRepository, times(1)).save(activeCategory);
+    }
+
+    @Test
+    void update_shouldClearThresholds_whenThresholdsAreNull() {
+        // Given
+        UUID categoryId = activeCategory.getId();
+        activeCategory.setTempMin(4.0);
+        activeCategory.setTempMax(12.0);
+        activeCategory.setHumidityMin(70.0);
+        activeCategory.setHumidityMax(90.0);
+
+        UpdateProductCategoryRequest request = UpdateProductCategoryRequest.builder()
+                .name("Xoài Cát Chu")
+                .group("Cây ăn quả")
+                .description("Xoài chuẩn xuất khẩu")
+                .isActive(true)
+                .build();
+
+        when(productCategoryRepository.findById(categoryId)).thenReturn(Optional.of(activeCategory));
+        when(productCategoryRepository.existsByNameIgnoreCaseAndIdNot("Xoài Cát Chu", categoryId)).thenReturn(false);
+        when(productCategoryRepository.save(any(ProductCategory.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        ProductCategoryResponse response = productCategoryService.update(categoryId, request);
+
+        // Then
+        assertThat(response.getTempMin()).isNull();
+        assertThat(response.getTempMax()).isNull();
+        assertThat(response.getHumidityMin()).isNull();
+        assertThat(response.getHumidityMax()).isNull();
+        assertThat(activeCategory.getTempMin()).isNull();
         verify(productCategoryRepository, times(1)).save(activeCategory);
     }
 

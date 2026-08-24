@@ -20,19 +20,24 @@ import {
 } from "@/api/productCategoryApi";
 import type { ProductCategory } from "@/types/productCategory";
 
+const emptyToUndefined = {
+  setValueAs: (value: unknown) =>
+    value === "" || value === null || value === undefined ? undefined : Number(value),
+};
+
 const formSchema = z.object({
   name: z.string().min(1, "Tên không được để trống").max(255),
   group: z.string().min(1, "Nhóm hàng không được để trống").max(100),
   description: z.string().optional(),
   isActive: z.boolean().optional(),
-  tempMin: z.coerce.number().optional(),
-  tempMax: z.coerce.number().optional(),
-  humidityMin: z.coerce
+  tempMin: z.number().optional(),
+  tempMax: z.number().optional(),
+  humidityMin: z
     .number()
     .min(0, "Độ ẩm tối thiểu phải từ 0 đến 100%")
     .max(100, "Độ ẩm tối thiểu phải từ 0 đến 100%")
     .optional(),
-  humidityMax: z.coerce
+  humidityMax: z
     .number()
     .min(0, "Độ ẩm tối đa phải từ 0 đến 100%")
     .max(100, "Độ ẩm tối đa phải từ 0 đến 100%")
@@ -83,10 +88,10 @@ export const ProductCategoryForm = ({
       setValue("group", category.group);
       setValue("description", category.description || "");
       setValue("isActive", category.isActive);
-      setValue("tempMin", category.tempMin);
-      setValue("tempMax", category.tempMax);
-      setValue("humidityMin", category.humidityMin);
-      setValue("humidityMax", category.humidityMax);
+      setValue("tempMin", category.tempMin ?? undefined);
+      setValue("tempMax", category.tempMax ?? undefined);
+      setValue("humidityMin", category.humidityMin ?? undefined);
+      setValue("humidityMax", category.humidityMax ?? undefined);
     } else {
       reset();
     }
@@ -206,7 +211,7 @@ export const ProductCategoryForm = ({
                     type="number"
                     step="0.1"
                     placeholder="Tối thiểu"
-                    {...register("tempMin")}
+                    {...register("tempMin", emptyToUndefined)}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -214,7 +219,7 @@ export const ProductCategoryForm = ({
                     type="number"
                     step="0.1"
                     placeholder="Tối đa"
-                    {...register("tempMax")}
+                    {...register("tempMax", emptyToUndefined)}
                   />
                 </div>
               </div>
@@ -229,7 +234,7 @@ export const ProductCategoryForm = ({
                     type="number"
                     step="0.1"
                     placeholder="Tối thiểu (0-100)"
-                    {...register("humidityMin")}
+                    {...register("humidityMin", emptyToUndefined)}
                   />
                   {errors.humidityMin && (
                     <p className="text-sm text-red-500">{errors.humidityMin.message}</p>
@@ -240,7 +245,7 @@ export const ProductCategoryForm = ({
                     type="number"
                     step="0.1"
                     placeholder="Tối đa (0-100)"
-                    {...register("humidityMax")}
+                    {...register("humidityMax", emptyToUndefined)}
                   />
                   {errors.humidityMax && (
                     <p className="text-sm text-red-500">{errors.humidityMax.message}</p>
