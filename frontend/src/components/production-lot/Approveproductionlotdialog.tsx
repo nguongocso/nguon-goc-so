@@ -186,7 +186,7 @@ export const ApproveProductionLotDialog = ({
               </Button>
               <Button
                 type="button"
-                variant="destructive"
+                variant="delete"
                 onClick={handleReject}
                 disabled={!!submitting}
               >
