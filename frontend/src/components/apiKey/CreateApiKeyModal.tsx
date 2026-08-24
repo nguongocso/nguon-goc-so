@@ -30,12 +30,19 @@ export const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
 }) => {
   const [partnerName, setPartnerName] = useState('');
   const [rateLimitPerHour, setRateLimitPerHour] = useState<number | ''>('');
-  
+
   // Mặc định hết hạn sau 30 ngày (theo giờ local cho input datetime-local)
   const getDefaultExpiry = () => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
-    return getLocalDateTimeString(d); // YYYY-MM-THH:mm
+    return getLocalDateTimeString(d); // YYYY-MM-DDTHH:mm
+  };
+
+  const getMinExpiry = () => {
+    // Tối thiểu từ thời điểm hiện tại (cộng thêm 5 phút buffer)
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 5);
+    return getLocalDateTimeString(now);
   };
 
   const [expiresAt, setExpiresAt] = useState(getDefaultExpiry());
@@ -62,9 +69,17 @@ export const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
       return;
     }
 
+    const selectedExpiryDate = new Date(expiresAt);
+    const now = new Date();
+    if (isNaN(selectedExpiryDate.getTime()) || selectedExpiryDate <= now) {
+      toast.error('Thời gian hết hạn của khóa phải ở thời điểm tương lai');
+      return;
+    }
+
     try {
       setLoading(true);
-      const isoExpiresAt = new Date(expiresAt).toISOString();
+      // Gửi ISO String dạng YYYY-MM-DDTHH:mm:ss theo múi giờ địa phương
+      const isoExpiresAt = `${expiresAt}:00`;
       const newKey = await createApiKey({
         partnerName: partnerName.trim(),
         rateLimitPerHour: Number(rateLimitPerHour),
@@ -144,12 +159,16 @@ export const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                 <Input
                   id="expiresAt"
                   type="datetime-local"
+                  min={getMinExpiry()}
                   value={expiresAt}
                   onChange={(e) => setExpiresAt(e.target.value)}
                   disabled={loading}
                   required
                 />
               </div>
+              <p className="text-xs text-muted-foreground">
+                Thời gian hết hạn bắt buộc phải ở thời điểm tương lai.
+              </p>
             </div>
 
             {/* Ghi chú bảo mật */}

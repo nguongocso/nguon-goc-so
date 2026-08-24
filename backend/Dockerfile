@@ -37,8 +37,11 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-# Create runtime directories for file storage.
-RUN mkdir -p /app/uploads /app/files/qr
+# Install mysql-client for database backup and restore operations
+RUN apt-get update && apt-get install -y --no-install-recommends mysql-client && rm -rf /var/lib/apt/lists/*
+
+# Create runtime directories for file storage and backups.
+RUN mkdir -p /app/uploads /app/files/qr /app/backups
 
 # Copy the packaged JAR from the build stage.
 COPY --from=builder /app/target/*.jar app.jar
