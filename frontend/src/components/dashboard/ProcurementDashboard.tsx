@@ -36,10 +36,6 @@ export function ProcurementDashboard() {
             mua.
           </p>
         </div>
-        <Button onClick={handleOpenNewProcurement}>
-          <ShoppingCart className="mr-2 size-4" />
-          Ghi nhận thu mua mới
-        </Button>
       </div>
 
       <ProcurementShipmentList

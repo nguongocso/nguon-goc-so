@@ -129,6 +129,7 @@ export function ProcurementShipmentList({
     } catch (error: any) {
       toast.dismiss(toastId);
       const msg =
+        error.message ||
         error.response?.data?.message ||
         "Có lỗi xảy ra khi xuất hồ sơ GS1.";
       toast.error(msg);

@@ -443,24 +443,32 @@ public class DossierServiceImpl implements DossierService {
         Shipment shipment = shipmentRepository.findById(shipmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin lô hàng."));
 
-        // 3. Kiểm tra quyền truy cập (VT-02 / VT-04 được xử lý bởi @PreAuthorize,
+        // 3. Kiểm tra sự kiện thu mua (bắt buộc với hồ sơ GS1)
+        boolean hasProcurement = chainEventRepository.existsByShipmentIdAndEventType(
+                shipmentId, ChainEventType.PROCUREMENT);
+        if (!hasProcurement) {
+            throw new BusinessException(
+                    "Lô hàng chưa có sự kiện thu mua. Vui lòng ghi nhận sự kiện thu mua trước khi xuất hồ sơ GS1.");
+        }
+
+        // 4. Kiểm tra quyền truy cập (VT-02 / VT-04 được xử lý bởi @PreAuthorize,
         // tại đây kiểm tra phạm vi tổ chức)
         validateDossierAccess(shipment, currentUser);
 
-        // 4. Kiểm tra QTN-11
+        // 5. Kiểm tra QTN-11
         DossierCheckResponse checkResult = checkEligibility(shipmentId, currentUser);
         if (!checkResult.isEligible()) {
             throw new DossierValidationException("Không đủ điều kiện xuất hồ sơ truy xuất.",
                     checkResult.getMissingDocuments());
         }
 
-        // 5. Kiểm tra sự kiện không rỗng (không tạo hồ sơ trống)
+        // 6. Kiểm tra sự kiện không rỗng (không tạo hồ sơ trống)
         List<ChainEvent> events = chainEventRepository.findByShipment_IdOrderByRecordedAtAsc(shipmentId);
         if (events == null || events.isEmpty()) {
             throw new BusinessException("Lô chưa có sự kiện nào để xuất hồ sơ.");
         }
 
-        // 6. Xây dựng hồ sơ GS1 mô phỏng
+        // 7. Xây dựng hồ sơ GS1 mô phỏng
         List<Gs1Warning> warnings = new ArrayList<>();
         Gs1DossierExportResponse response = Gs1DossierExportResponse.builder()
                 .shipment(buildGs1ShipmentInfo(shipment))

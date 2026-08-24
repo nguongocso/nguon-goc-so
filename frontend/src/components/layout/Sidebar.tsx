@@ -297,12 +297,7 @@ const MENU_GROUPS: MenuGroup[] = [
     label: "Thu mua",
     icon: <ShoppingCart className="h-5 w-5" />,
     items: [
-      {
-        icon: <ShoppingCart className="h-5 w-5" />,
-        label: "Ghi sự kiện thu mua",
-        href: "/procurement-event",
-        allowedRoles: ROLE_ACCESS.procurementEvent,
-      },
+
       {
         icon: <Warehouse className="h-5 w-5" />,
         label: "Nhập kho & đối chiếu",

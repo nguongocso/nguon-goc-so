@@ -29,15 +29,16 @@ export const exportDossier = async (shipmentId: string): Promise<Blob> => {
   } catch (error: any) {
     if (error.response?.data instanceof Blob && error.response.data.type?.includes('application/json')) {
       const text = await error.response.data.text();
+      let message = text || 'Không đủ điều kiện hoặc lỗi khi tạo hồ sơ truy xuất';
       try {
         const errJson = JSON.parse(text);
-        throw new Error(errJson.message || 'Không đủ điều kiện hoặc lỗi khi tạo hồ sơ truy xuất');
-      } catch (parseErr) {
-        if (parseErr instanceof Error && parseErr.message !== text) {
-          throw new Error(text || 'Lỗi khi tạo hồ sơ truy xuất');
+        if (errJson?.message) {
+          message = errJson.message;
         }
-        throw parseErr;
+      } catch {
+        // Không phải JSON hợp lệ → giữ nguyên text
       }
+      throw new Error(message);
     }
     throw error;
   }
@@ -127,15 +128,16 @@ export const exportGs1Dossier = async (
   } catch (error: any) {
     if (error.response?.data instanceof Blob && error.response.data.type?.includes('application/json')) {
       const text = await error.response.data.text();
+      let message = text || 'Lỗi khi tạo hồ sơ GS1';
       try {
         const errJson = JSON.parse(text);
-        throw new Error(errJson.message || 'Lỗi khi tạo hồ sơ GS1');
-      } catch (parseErr) {
-        if (parseErr instanceof Error && parseErr.message !== text) {
-          throw new Error(text || 'Lỗi khi tạo hồ sơ GS1');
+        if (errJson?.message) {
+          message = errJson.message;
         }
-        throw parseErr;
+      } catch {
+        // Không phải JSON hợp lệ → giữ nguyên text
       }
+      throw new Error(message);
     }
     throw error;
   }
