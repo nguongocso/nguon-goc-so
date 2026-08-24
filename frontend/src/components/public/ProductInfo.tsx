@@ -1,4 +1,4 @@
-import { Hash, Layers, Package, Sprout, Tag } from 'lucide-react';
+import { Layers, Package, Sprout, Tag } from 'lucide-react';
 
 interface ProductInfoProps {
   productName?: string | null;
@@ -11,7 +11,6 @@ interface ProductInfoProps {
 export const ProductInfo = ({
   productName,
   lotName,
-  lotCode,
   shipmentCode,
   status,
 }: ProductInfoProps) => {
@@ -73,23 +72,13 @@ export const ProductInfo = ({
           </p>
         </div>
 
-        <div className="p-3 bg-muted/40 rounded-lg border border-border/50">
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-            <Hash className="h-3.5 w-3.5 text-indigo-600" />
-            Mã lô sản xuất
-          </span>
-          <p className="font-mono font-medium text-foreground break-all">
-            {lotCode || 'N/A'}
-          </p>
-        </div>
-
         {shipmentCode && (
           <div className="p-3 bg-muted/40 rounded-lg border border-border/50">
             <span className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
               <Package className="h-3.5 w-3.5 text-amber-600" />
-              Mã lô hàng xuất
+              Tên lô hàng
             </span>
-            <p className="font-mono font-medium text-foreground break-all">
+            <p className="font-semibold text-foreground break-all">
               {shipmentCode}
             </p>
           </div>
