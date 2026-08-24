@@ -264,15 +264,23 @@ public class IndustryReportPdfGeneratorImpl
                         float size,
                         int style) {
 
-                try (InputStream inputStream = new ClassPathResource(resource)
-                                .getInputStream()) {
+                String resourcePath = resource.startsWith("/") ? resource : "/" + resource;
+                try (InputStream inputStream = getClass().getResourceAsStream(resourcePath)) {
+                        byte[] fontBytes;
+                        if (inputStream != null) {
+                                fontBytes = inputStream.readAllBytes();
+                        } else {
+                                try (InputStream cpStream = new ClassPathResource(resource).getInputStream()) {
+                                        fontBytes = cpStream.readAllBytes();
+                                }
+                        }
 
                         BaseFont baseFont = BaseFont.createFont(
                                         resource,
                                         BaseFont.IDENTITY_H,
                                         BaseFont.EMBEDDED,
                                         false,
-                                        inputStream.readAllBytes(),
+                                        fontBytes,
                                         null);
 
                         return new Font(
@@ -281,10 +289,8 @@ public class IndustryReportPdfGeneratorImpl
                                         style);
 
                 } catch (Exception ex) {
-
-                        log.error("Load font failed.", ex);
-
-                        throw new BusinessException(FONT_ERROR);
+                        log.warn("Load custom font failed: {}, falling back to standard font: {}", resource, ex.getMessage());
+                        return new Font(Font.HELVETICA, size, style);
                 }
         }
 }

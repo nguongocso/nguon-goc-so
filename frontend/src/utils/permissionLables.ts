@@ -1,13 +1,25 @@
 // Mapping action sang tiếng Việt
 export const actionLabels: Record<string, string> = {
-  CREATE: 'Tạo',
-  READ: 'Xem',
-  UPDATE: 'Cập nhật',
+  CREATE: 'Tạo / Thêm mới',
+  READ: 'Xem danh sách & chi tiết',
+  UPDATE: 'Cập nhật / Chỉnh sửa',
   DELETE: 'Xóa',
+  APPROVE: 'Phê duyệt',
+  VERIFY: 'Xác minh',
+  EXPORT: 'Xuất dữ liệu / Hồ sơ',
+  ACTIVATE: 'Kích hoạt',
+
+  // Quyền sự kiện chuỗi cụ thể
+  EVENT_FARM_LOG: 'Ghi nhật ký canh tác',
+  EVENT_HARVEST: 'Ghi sự kiện thu hoạch',
+  EVENT_PREPROCESSING: 'Ghi sự kiện sơ chế & phân loại',
+  EVENT_PACKAGING: 'Ghi sự kiện đóng gói',
+  EVENT_TRANSPORT: 'Ghi sự kiện vận chuyển',
 };
 
 // Mapping resource sang tiếng Việt (dùng nếu backend chưa trả về label tiếng Việt)
 export const resourceLabels: Record<string, string> = {
+  event_chain: 'Quyền ghi nhận sự kiện chuỗi',
   organization: 'Tổ chức',
   farm_area: 'Vùng trồng',
   production_lot: 'Lô sản xuất',

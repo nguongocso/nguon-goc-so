@@ -291,6 +291,20 @@ public class GlobalExceptionHandler {
         }
 
         /**
+         * Lỗi hồ sơ không đủ điều kiện xuất.
+         */
+        @ExceptionHandler(vn.nguongocso.report.exception.DossierValidationException.class)
+        public ResponseEntity<ApiResult<Void>> handleDossierValidation(
+                        vn.nguongocso.report.exception.DossierValidationException e,
+                        HttpServletRequest request) {
+                return build(
+                                HttpStatus.BAD_REQUEST,
+                                e.getMessage(),
+                                e.getErrors(),
+                                request);
+        }
+
+        /**
          * Lỗi chưa được xử lý.
          */
         @ExceptionHandler(Exception.class)
