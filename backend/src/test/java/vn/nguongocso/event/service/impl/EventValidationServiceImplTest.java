@@ -17,14 +17,17 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -74,6 +77,9 @@ class EventValidationServiceImplTest {
 
     @Mock
     private DossierExportHistoryRepository dossierExportHistoryRepository;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private EventValidationServiceImpl eventValidationService;
@@ -206,6 +212,16 @@ class EventValidationServiceImplTest {
         verify(traceCodeRepository, times(1)).deleteByShipmentId(shipment.getId());
         verify(shipmentRepository, times(1)).delete(shipment);
         assertThat(codeRange.getUsedCount()).isEqualTo(400); // 500 - 100
+
+        // TASK-27: hủy bản nháp lô hàng phải ghi nhật ký hoạt động
+        ArgumentCaptor<ActivityLogEvent> logCaptor = ArgumentCaptor.forClass(ActivityLogEvent.class);
+        verify(eventPublisher, times(1)).publishEvent(logCaptor.capture());
+        ActivityLogEvent logEvent = logCaptor.getValue();
+        assertThat(logEvent.getAction()).isEqualTo("DELETE_SHIPMENT_DRAFT");
+        assertThat(logEvent.getEntityType()).isEqualTo("SHIPMENT");
+        assertThat(logEvent.getEntityId()).isEqualTo(shipment.getId().toString());
+        assertThat(logEvent.getOrganizationId()).isEqualTo(currentUser.getOrganizationId());
+        assertThat(logEvent.getDescription()).contains("Lô Hàng A");
     }
 
     @Test

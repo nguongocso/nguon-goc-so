@@ -1,8 +1,10 @@
 package vn.nguongocso.farm.service.impl;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -15,7 +17,9 @@ import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.dto.request.CreateFarmAreaRequest;
 import vn.nguongocso.farm.dto.response.FarmAreaResponse;
@@ -39,6 +43,7 @@ public class FarmAreaServiceImpl implements FarmAreaService {
 	private final ProductCategoryRepository productCategoryRepository;
 	private final OrganizationRepository organizationRepository;
 	private final GeometryFactory geometryFactory;
+	private final ApplicationEventPublisher eventPublisher;
 
 	/**
 	 * Tạo mới vùng trồng cho tổ chức của người dùng đang đăng nhập.
@@ -77,7 +82,37 @@ public class FarmAreaServiceImpl implements FarmAreaService {
 
 		FarmArea saved = farmAreaRepository.save(farmArea);
 
+		// Ghi nhật ký hoạt động (TASK-27): tạo vùng trồng
+		publishActivityLog(
+				currentUser,
+				"CREATE_FARM_AREA",
+				"Tạo vùng trồng '" + saved.getName() + "'",
+				"FARM_AREA",
+				saved.getId().toString());
+
 		return toResponse(saved);
+	}
+
+	/**
+	 * Ghi nhật ký hoạt động theo convention của hệ thống (TASK-27).
+	 * <p>
+	 * Actor lấy từ người dùng đã xác thực trong security context,
+	 * organization lấy từ organization của người thực hiện.
+	 */
+	private void publishActivityLog(CustomUserDetails currentUser, String action, String description,
+			String entityType, String entityId) {
+		eventPublisher.publishEvent(ActivityLogEvent.builder()
+				.userId(currentUser.getUserId())
+				.username(currentUser.getUsername())
+				.fullName(currentUser.getFullName())
+				.organizationId(currentUser.getOrganizationId())
+				.action(action)
+				.description(description)
+				.entityType(entityType)
+				.entityId(entityId)
+				.ipAddress(IpUtils.getClientIp())
+				.timestamp(LocalDateTime.now())
+				.build());
 	}
 
 	/**
