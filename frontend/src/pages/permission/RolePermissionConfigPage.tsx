@@ -10,10 +10,10 @@ const RolePermissionConfigPage: React.FC = () => {
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div>
-            <CardTitle>Cấu hình phân quyền chi tiết</CardTitle>
+            <CardTitle>Cấu hình phân quyền Người ghi sự kiện</CardTitle>
             <CardDescription>
-              Bật/tắt quyền theo nhóm chức năng cho từng vai trò trong tổ chức.
-              Cấu hình chỉ áp dụng cho tổ chức của bạn.
+              Bật/tắt quyền theo nhóm chức năng và các sự kiện chuỗi cho vai trò Người ghi sự kiện trong hợp tác xã.
+              Cấu hình áp dụng cho tất cả người ghi sự kiện của tổ chức bạn.
             </CardDescription>
           </div>
           <HelpButton screenKey="permission-config" />
