@@ -47,6 +47,7 @@ import { useLotValidation } from "@/hooks/useLotValidation";
 import { LocationPicker } from "@/pages/packaging-event/components/LocationPicker";
 import type { ProductionLot } from "@/types/productionLot";
 import { getLocalDateString } from "@/utils/dateTime";
+import { selectAllOnFocus, preventMouseUpCollapse } from "@/utils/inputUtils";
 import {
   recordPreprocessingSchema,
   type RecordPreprocessingFormValues,
@@ -84,8 +85,8 @@ export function CreatePreprocessingForm() {
     resolver: zodResolver(recordPreprocessingSchema),
     defaultValues: {
       productionLotId: "",
-      inputQuantity: 0,
-      outputQuantity: 0,
+      inputQuantity: undefined,
+      outputQuantity: undefined,
       grade: "",
       processingMethod: "",
       preprocessingDate: getLocalDateString(),
@@ -422,6 +423,8 @@ export function CreatePreprocessingForm() {
                   placeholder="VD: 1000"
                   disabled={isSubmitting}
                   {...register("inputQuantity", { valueAsNumber: true })}
+                  onFocus={selectAllOnFocus}
+                  onMouseUp={preventMouseUpCollapse}
                 />
                 {errors.inputQuantity && (
                   <p className="text-sm text-red-500">{errors.inputQuantity.message}</p>
@@ -440,6 +443,8 @@ export function CreatePreprocessingForm() {
                   placeholder="VD: 950"
                   disabled={isSubmitting}
                   {...register("outputQuantity", { valueAsNumber: true })}
+                  onFocus={selectAllOnFocus}
+                  onMouseUp={preventMouseUpCollapse}
                 />
                 {errors.outputQuantity && (
                   <p className="text-sm text-red-500">{errors.outputQuantity.message}</p>

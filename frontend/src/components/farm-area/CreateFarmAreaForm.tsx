@@ -21,13 +21,16 @@ import type { AreaUnit, CropType } from "@/types/farmArea";
 import { AREA_UNIT_LABELS, convertAreaToHa } from "@/types/farmArea";
 import { LocationPicker } from "@/pages/packaging-event/components/LocationPicker";
 import { useAutoGeolocation } from "@/hooks/useAutoGeolocation";
+import { selectAllOnFocus, preventMouseUpCollapse } from "@/utils/inputUtils";
 
 const formSchema = z.object({
   name: z.string().min(1, "Tên vùng trồng không được để trống").max(255),
   cropType: z.string().uuid("Vui lòng chọn loại cây trồng"),
   latitude: z.number({ required_error: "Vui lòng chọn vị trí trên bản đồ" }),
   longitude: z.number({ required_error: "Vui lòng chọn vị trí trên bản đồ" }),
-  area: z.number().positive("Diện tích phải lớn hơn 0"),
+  area: z
+    .number({ invalid_type_error: "Vui lòng nhập diện tích" })
+    .positive("Diện tích phải lớn hơn 0"),
   areaUnit: z.enum(["HA", "KM2", "M2", "SAO", "CONG", "MAU"], {
     required_error: "Vui lòng chọn đơn vị diện tích",
   }),
@@ -57,7 +60,7 @@ export const CreateFarmAreaForm = ({ onSuccess, onCancel }: Props) => {
       cropType: "",
       latitude: 0,
       longitude: 0,
-      area: 0,
+      area: undefined,
       areaUnit: "HA",
     },
   });
@@ -236,6 +239,8 @@ export const CreateFarmAreaForm = ({ onSuccess, onCancel }: Props) => {
                 step="0.01"
                 className="w-32 border-emerald-200 focus-visible:ring-emerald-100"
                 {...register("area", { valueAsNumber: true })}
+                onFocus={selectAllOnFocus}
+                onMouseUp={preventMouseUpCollapse}
                 placeholder="VD: 5.5"
               />
               <Select
