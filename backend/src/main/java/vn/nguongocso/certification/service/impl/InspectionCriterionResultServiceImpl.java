@@ -2,11 +2,13 @@ package vn.nguongocso.certification.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.InspectionCriterionResultRequest;
 import vn.nguongocso.certification.dto.response.CanActivateSealCheckResponse;
@@ -19,6 +21,7 @@ import vn.nguongocso.certification.repository.InspectionCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.service.InspectionCriterionResultService;
+import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
@@ -30,6 +33,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -116,6 +120,7 @@ public class InspectionCriterionResultServiceImpl
     private final InspectionRequestRepository requestRepository;
     private final ProductionLotRepository lotRepository;
     private final Clock clock;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${app.upload.base-dir}")
     private String baseDir;
@@ -160,8 +165,11 @@ public class InspectionCriterionResultServiceImpl
         }
 
         // Tìm hoặc tạo kết quả kiểm nghiệm
-        InspectionCriterionResult result = resultRepository
-                .findByInspectionCriterion_Id(criterionUUID)
+        Optional<InspectionCriterionResult> existingResult = resultRepository
+                .findByInspectionCriterion_Id(criterionUUID);
+        boolean isNewResult = existingResult.isEmpty();
+
+        InspectionCriterionResult result = existingResult
                 .orElseGet(() -> InspectionCriterionResult.builder()
                         .inspectionCriterion(criterion)
                         .createdBy(currentUser.getUser())
@@ -178,6 +186,17 @@ public class InspectionCriterionResultServiceImpl
 
         // Cập nhật trạng thái yêu cầu kiểm nghiệm nếu tất cả chỉ tiêu đều đạt
         checkAndUpdateRequestStatus(inspectionRequest);
+
+        // Ghi nhật ký hoạt động (TASK-27): phân biệt rõ thao tác ghi mới và cập nhật
+        publishActivityLog(
+                currentUser,
+                isNewResult ? "RECORD_INSPECTION_RESULT" : "UPDATE_INSPECTION_RESULT",
+                (isNewResult ? "Ghi" : "Cập nhật") + " kết quả kiểm nghiệm cho chỉ tiêu '"
+                        + criterion.getCriterionName() + "' của yêu cầu kiểm nghiệm ID "
+                        + inspectionRequest.getId()
+                        + (Boolean.TRUE.equals(request.getPassed()) ? " (đạt)" : " (không đạt)"),
+                "INSPECTION_CRITERION_RESULT",
+                result.getId().toString());
 
         return toResponse(result);
     }
@@ -271,6 +290,18 @@ public class InspectionCriterionResultServiceImpl
         // ============================================================
         checkAndUpdateRequestStatus(inspectionRequest);
 
+        // ============================================================
+        // 4. Ghi nhật ký hoạt động (TASK-27): một bản ghi duy nhất
+        //    cho toàn bộ thao tác ghi kết quả hàng loạt
+        // ============================================================
+        publishActivityLog(
+                currentUser,
+                "RECORD_INSPECTION_RESULTS",
+                "Ghi " + results.size() + " kết quả kiểm nghiệm cho yêu cầu kiểm nghiệm ID "
+                        + inspectionRequest.getId(),
+                "INSPECTION_REQUEST",
+                inspectionRequest.getId().toString());
+
         return results.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -322,10 +353,23 @@ public class InspectionCriterionResultServiceImpl
         InspectionRequest inspectionRequest =
                 result.getInspectionCriterion().getInspectionRequest();
 
+        // Lưu thông tin mô tả trước khi xóa để ghi nhật ký hoạt động
+        String criterionName = result.getInspectionCriterion().getCriterionName();
+        UUID requestId = inspectionRequest.getId();
+
         resultRepository.delete(result);
 
         // Cập nhật trạng thái yêu cầu sau khi xóa
         checkAndUpdateRequestStatus(inspectionRequest);
+
+        // Ghi nhật ký hoạt động (TASK-27)
+        publishActivityLog(
+                currentUser,
+                "DELETE_INSPECTION_RESULT",
+                "Xóa kết quả kiểm nghiệm của chỉ tiêu '" + criterionName
+                        + "' thuộc yêu cầu kiểm nghiệm ID " + requestId,
+                "INSPECTION_CRITERION_RESULT",
+                resultUUID.toString());
     }
 
     @Override
@@ -383,6 +427,17 @@ public class InspectionCriterionResultServiceImpl
         } catch (IOException e) {
             throw new BusinessException(MSG_FILE_SAVE_ERROR);
         }
+
+        // Ghi nhật ký hoạt động (TASK-27): chỉ ghi tên tệp, không ghi nội dung tệp
+        publishActivityLog(
+                currentUser,
+                "UPLOAD_INSPECTION_RESULT_FILE",
+                "Tải lên phiếu kết quả kiểm nghiệm cho chỉ tiêu '"
+                        + criterion.getCriterionName() + "' của yêu cầu kiểm nghiệm ID "
+                        + criterion.getInspectionRequest().getId()
+                        + (originalFilename != null ? " (tệp " + originalFilename + ")" : ""),
+                "INSPECTION_CRITERION",
+                criterionUUID.toString());
 
         return filePath;
     }
@@ -653,6 +708,33 @@ public class InspectionCriterionResultServiceImpl
         if (item.getExpiryDate().isBefore(today)) {
             throw new BusinessException(MSG_EXPIRY_IN_PAST);
         }
+    }
+
+    /**
+     * Ghi nhật ký hoạt động theo convention của hệ thống (TASK-27).
+     * <p>
+     * Actor lấy từ người dùng đã xác thực trong security context,
+     * organization lấy từ organization của người thực hiện.
+     */
+    private void publishActivityLog(
+            CustomUserDetails currentUser,
+            String action,
+            String description,
+            String entityType,
+            String entityId) {
+
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+                .userId(currentUser.getUserId())
+                .username(currentUser.getUsername())
+                .fullName(currentUser.getFullName())
+                .organizationId(currentUser.getOrganizationId())
+                .action(action)
+                .description(description)
+                .entityType(entityType)
+                .entityId(entityId)
+                .ipAddress(IpUtils.getClientIp())
+                .timestamp(LocalDateTime.now())
+                .build());
     }
 
     /**

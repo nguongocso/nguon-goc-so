@@ -1,10 +1,12 @@
 package vn.nguongocso.certification.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.CreateInspectionRequest;
 import vn.nguongocso.certification.dto.response.InspectionCriterionResponse;
@@ -26,6 +28,7 @@ import vn.nguongocso.certification.repository.InspectionCriterionResultRepositor
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
 import vn.nguongocso.certification.service.InspectionRequestService;
+import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.exception.BusinessException;
@@ -35,6 +38,7 @@ import vn.nguongocso.farm.repository.ProductionLotRepository;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -100,6 +104,8 @@ public class InspectionRequestServiceImpl
             inspectionCriterionResultRepository;
 
     private final Clock clock;
+
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public InspectionRequestResponse createInspectionRequest(
@@ -352,7 +358,19 @@ public class InspectionRequestServiceImpl
                         inspectionRequest);
 
         /*
-         * 10. Mapping entity -> response.
+         * 10. Ghi nhật ký hoạt động (TASK-27): tạo yêu cầu kiểm nghiệm.
+         */
+        publishActivityLog(
+                currentUser,
+                "CREATE_INSPECTION_REQUEST",
+                "Tạo yêu cầu kiểm nghiệm cho lô " + lot.getName()
+                        + " tại đơn vị '" + testingUnit + "' với "
+                        + saved.getCriteria().size() + " chỉ tiêu",
+                "INSPECTION_REQUEST",
+                saved.getId().toString());
+
+        /*
+         * 11. Mapping entity -> response.
          */
         return toResponse(saved);
     }
@@ -761,6 +779,33 @@ public class InspectionRequestServiceImpl
             InspectionCriterion criterion) {
 
         return criterion.getCriterionCode();
+    }
+
+    /**
+     * Ghi nhật ký hoạt động theo convention của hệ thống (TASK-27).
+     * <p>
+     * Actor lấy từ người dùng đã xác thực trong security context,
+     * organization lấy từ organization của người thực hiện.
+     */
+    private void publishActivityLog(
+            CustomUserDetails currentUser,
+            String action,
+            String description,
+            String entityType,
+            String entityId) {
+
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+                .userId(currentUser.getUserId())
+                .username(currentUser.getUsername())
+                .fullName(currentUser.getFullName())
+                .organizationId(currentUser.getOrganizationId())
+                .action(action)
+                .description(description)
+                .entityType(entityType)
+                .entityId(entityId)
+                .ipAddress(IpUtils.getClientIp())
+                .timestamp(LocalDateTime.now())
+                .build());
     }
 
     /**

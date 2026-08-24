@@ -505,6 +505,14 @@ public class OrganizationServiceImpl
                 organizationRepository.save(
                                 organization);
 
+                // Ghi nhật ký hoạt động (TASK-27): cập nhật hồ sơ tổ chức
+                publishActivityLog(
+                                getCurrentUser(),
+                                "UPDATE_ORGANIZATION_PROFILE",
+                                "Cập nhật hồ sơ tổ chức '" + organization.getName() + "'",
+                                "ORGANIZATION",
+                                organizationId.toString());
+
                 log.info(
                                 "Cập nhật hồ sơ tổ chức thành công: orgId={}",
                                 organizationId);

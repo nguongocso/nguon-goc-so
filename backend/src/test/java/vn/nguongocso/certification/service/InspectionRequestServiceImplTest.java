@@ -18,13 +18,16 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.CreateInspectionRequest;
@@ -72,6 +75,9 @@ class InspectionRequestServiceImplTest {
 
     @Mock
     private Clock clock;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private InspectionRequestServiceImpl inspectionRequestService;
@@ -350,6 +356,27 @@ class InspectionRequestServiceImplTest {
         verify(
                 inspectionRequestRepository)
                 .save(any(InspectionRequest.class));
+
+        /*
+         * TASK-27: tạo yêu cầu kiểm nghiệm phải ghi nhật ký hoạt động
+         * đúng action, đúng đối tượng, đúng người thực hiện.
+         */
+        ArgumentCaptor<ActivityLogEvent> logCaptor =
+                ArgumentCaptor.forClass(ActivityLogEvent.class);
+        verify(eventPublisher)
+                .publishEvent(logCaptor.capture());
+
+        ActivityLogEvent logEvent = logCaptor.getValue();
+        assertThat(logEvent.getAction())
+                .isEqualTo("CREATE_INSPECTION_REQUEST");
+        assertThat(logEvent.getEntityType())
+                .isEqualTo("INSPECTION_REQUEST");
+        assertThat(logEvent.getEntityId())
+                .isEqualTo(response.getTestRequestId().toString());
+        assertThat(logEvent.getOrganizationId())
+                .isEqualTo(orgId);
+        assertThat(logEvent.getTimestamp())
+                .isNotNull();
     }
 
     /**

@@ -21,10 +21,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.InspectionCriterionResultRequest;
@@ -74,6 +77,9 @@ class InspectionCriterionResultServiceImplTest {
 
     @Mock
     private Clock clock;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private InspectionCriterionResultServiceImpl service;
@@ -229,6 +235,17 @@ class InspectionCriterionResultServiceImplTest {
 
         verify(requestRepository)
                 .save(inspectionRequest);
+
+        // TASK-27: ghi kết quả kiểm nghiệm phải ghi nhật ký hoạt động
+        ArgumentCaptor<ActivityLogEvent> logCaptor =
+                ArgumentCaptor.forClass(ActivityLogEvent.class);
+        verify(eventPublisher).publishEvent(logCaptor.capture());
+        ActivityLogEvent logEvent = logCaptor.getValue();
+        assertThat(logEvent.getAction()).isEqualTo("RECORD_INSPECTION_RESULT");
+        assertThat(logEvent.getEntityType()).isEqualTo("INSPECTION_CRITERION_RESULT");
+        assertThat(logEvent.getEntityId()).isEqualTo(result.getId().toString());
+        assertThat(logEvent.getOrganizationId()).isEqualTo(orgId);
+        assertThat(logEvent.getTimestamp()).isNotNull();
     }
 
     // ============================================================
@@ -500,6 +517,16 @@ class InspectionCriterionResultServiceImplTest {
 
         verify(requestRepository, org.mockito.Mockito.never())
                 .save(inspectionRequest);
+
+        // TASK-27: xóa kết quả kiểm nghiệm phải ghi nhật ký hoạt động
+        ArgumentCaptor<ActivityLogEvent> logCaptor =
+                ArgumentCaptor.forClass(ActivityLogEvent.class);
+        verify(eventPublisher).publishEvent(logCaptor.capture());
+        ActivityLogEvent logEvent = logCaptor.getValue();
+        assertThat(logEvent.getAction()).isEqualTo("DELETE_INSPECTION_RESULT");
+        assertThat(logEvent.getEntityType()).isEqualTo("INSPECTION_CRITERION_RESULT");
+        assertThat(logEvent.getEntityId()).isEqualTo(resultId.toString());
+        assertThat(logEvent.getOrganizationId()).isEqualTo(orgId);
     }
 
     // ============================================================

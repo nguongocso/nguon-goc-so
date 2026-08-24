@@ -17,13 +17,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.Role;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
@@ -50,6 +53,9 @@ class PartnerApiKeyServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private PartnerApiKeyService partnerApiKeyService;
@@ -120,6 +126,22 @@ class PartnerApiKeyServiceTest {
         assertEquals("nks_live_" + response.getRawApiKey().substring(9, 17), response.getKeyPrefix());
         assertEquals(PartnerApiKeyStatus.ACTIVE, response.getStatus());
         assertEquals(100, response.getRateLimitPerHour());
+
+        // TASK-27: kiểm tra audit log của thao tác cấp khóa truy cập
+        ArgumentCaptor<ActivityLogEvent> captor = ArgumentCaptor.forClass(ActivityLogEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        ActivityLogEvent logEvent = captor.getValue();
+        assertEquals("CREATE_API_KEY", logEvent.getAction());
+        assertEquals("PARTNER_API_KEY", logEvent.getEntityType());
+        assertNotNull(logEvent.getEntityId());
+        assertEquals(userId, logEvent.getUserId());
+        assertEquals(orgId, logEvent.getOrganizationId());
+        assertNotNull(logEvent.getTimestamp());
+        // Không được ghi khóa bí mật vào audit log
+        assertTrue(!logEvent.getDescription().contains(response.getRawApiKey()),
+                "Audit log không được chứa rawApiKey");
+        assertTrue(!logEvent.getDescription().contains("nks_live_" + response.getRawApiKey().substring(9)),
+                "Audit log không được chứa hậu tố khóa bí mật");
     }
 
     @Test
@@ -166,6 +188,17 @@ class PartnerApiKeyServiceTest {
         assertNotNull(response);
         assertEquals(PartnerApiKeyStatus.REVOKED, response.getStatus());
         assertNotNull(response.getRevokedAt());
+
+        // TASK-27: kiểm tra audit log của thao tác thu hồi khóa truy cập
+        ArgumentCaptor<ActivityLogEvent> captor = ArgumentCaptor.forClass(ActivityLogEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        ActivityLogEvent logEvent = captor.getValue();
+        assertEquals("REVOKE_API_KEY", logEvent.getAction());
+        assertEquals("PARTNER_API_KEY", logEvent.getEntityType());
+        assertEquals(keyId.toString(), logEvent.getEntityId());
+        assertEquals(userId, logEvent.getUserId());
+        assertEquals(orgId, logEvent.getOrganizationId());
+        assertNotNull(logEvent.getTimestamp());
     }
 
     @Test
