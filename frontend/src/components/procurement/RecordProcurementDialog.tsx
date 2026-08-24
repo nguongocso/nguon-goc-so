@@ -277,11 +277,8 @@ export function RecordProcurementDialog({
   // ── Khi ghi thành công ──────────────────────────────────────────────
   useEffect(() => {
     if (!data) return;
-    const timer = window.setTimeout(() => {
-      // Không tự đóng, để người dùng bấm "Ghi tiếp" hoặc đóng thủ công
-    }, 100);
-    return () => window.clearTimeout(timer);
-  }, [data]);
+    onSuccess?.();
+  }, [data, onSuccess]);
 
   return (
     <Dialog open={open} onOpenChange={handleUserClose}>

@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { ShoppingCart } from "lucide-react";
 import { ProcurementShipmentList } from "@/components/shipment/ProcurementShipmentList";
 import { RecordProcurementDialog } from "@/components/procurement/RecordProcurementDialog";
-import { Button } from "@/components/ui/button";
 
 /**
  * Dashboard dành cho Doanh nghiệp thu mua (VT‑04).
@@ -16,11 +14,6 @@ export function ProcurementDashboard() {
 
   const handleRecordProcurement = (shipmentId: string) => {
     setSelectedShipmentId(shipmentId);
-    setDialogOpen(true);
-  };
-
-  const handleOpenNewProcurement = () => {
-    setSelectedShipmentId(undefined);
     setDialogOpen(true);
   };
 

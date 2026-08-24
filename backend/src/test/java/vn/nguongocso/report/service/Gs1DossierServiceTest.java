@@ -103,9 +103,15 @@ public class Gs1DossierServiceTest {
                 .thenReturn(Collections.singletonList(FarmLogAttachment.builder().fileName("doc.pdf").build()));
     }
 
+    private void mockHasProcurement() {
+        when(chainEventRepository.existsByShipmentIdAndEventType(shipmentId, ChainEventType.PROCUREMENT))
+                .thenReturn(true);
+    }
+
     @Test
     void export_success_mapsEventAndLogsAudit() {
         mockEligibleQtN11();
+        mockHasProcurement();
         when(userDetails.getFullName()).thenReturn("Nguyễn Văn A");
         ChainEvent ev = ChainEvent.builder()
                 .id(UUID.randomUUID()).eventType(ChainEventType.HARVEST)
@@ -134,6 +140,7 @@ public class Gs1DossierServiceTest {
     @Test
     void export_missingLocation_addsWarning() {
         mockEligibleQtN11();
+        mockHasProcurement();
         ChainEvent ev = ChainEvent.builder()
                 .id(UUID.randomUUID()).eventType(ChainEventType.TRANSPORT)
                 .recordedAt(LocalDateTime.of(2026, 8, 11, 11, 0)).location(null).build();
@@ -148,10 +155,22 @@ public class Gs1DossierServiceTest {
     @Test
     void export_noEvents_throws() {
         mockEligibleQtN11();
+        mockHasProcurement();
         when(chainEventRepository.findByShipment_IdOrderByRecordedAtAsc(shipmentId)).thenReturn(Collections.emptyList());
 
         assertThatThrownBy(() -> dossierService.exportGs1Dossier(shipmentId, "json", true, userDetails, "127.0.0.1"))
                 .isInstanceOf(BusinessException.class).hasMessageContaining("Lô chưa có sự kiện nào");
+    }
+
+    @Test
+    void export_noProcurementEvent_throws() {
+        when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
+        when(chainEventRepository.existsByShipmentIdAndEventType(shipmentId, ChainEventType.PROCUREMENT))
+                .thenReturn(false);
+
+        assertThatThrownBy(() -> dossierService.exportGs1Dossier(shipmentId, "json", true, userDetails, "127.0.0.1"))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Lô hàng chưa có sự kiện thu mua");
     }
 
     @Test
@@ -163,6 +182,7 @@ public class Gs1DossierServiceTest {
     @Test
     void export_includeMappingFalse_mappingNull() {
         mockEligibleQtN11();
+        mockHasProcurement();
         ChainEvent ev = ChainEvent.builder()
                 .id(UUID.randomUUID()).eventType(ChainEventType.PROCUREMENT)
                 .recordedAt(LocalDateTime.of(2026, 8, 11, 11, 30)).build();
@@ -186,6 +206,7 @@ public class Gs1DossierServiceTest {
     void export_wrongRole_throwsAccessDenied() {
         when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
         when(userDetails.getRoleCode()).thenReturn("VT-05");
+        mockHasProcurement();
 
         assertThatThrownBy(() -> dossierService.exportGs1Dossier(shipmentId, "json", true, userDetails, "127.0.0.1"))
                 .isInstanceOf(AccessDeniedException.class);
