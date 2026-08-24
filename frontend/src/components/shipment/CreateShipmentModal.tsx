@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,8 +14,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Info, AlertTriangle } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { getRemainingCodes } from '@/api/codeRangeApi';
 import type { CreateShipmentPayload } from '@/types/shipment';
+import type { RemainingCodesResponse } from '@/types/codeRange';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Vui lòng nhập tên lô hàng'),
@@ -43,6 +46,10 @@ export const CreateShipmentModal = ({
   productionLotId,
   loading = false,
 }: CreateShipmentModalProps) => {
+  const { user } = useAuth();
+  const [remainingCodes, setRemainingCodes] = useState<RemainingCodesResponse | null>(null);
+  const [remainingLoading, setRemainingLoading] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -60,8 +67,16 @@ export const CreateShipmentModal = ({
   useEffect(() => {
     if (open) {
       reset();
+      setRemainingCodes(null);
+      if (user?.organizationId) {
+        setRemainingLoading(true);
+        getRemainingCodes(user.organizationId)
+          .then(setRemainingCodes)
+          .catch(() => setRemainingCodes(null))
+          .finally(() => setRemainingLoading(false));
+      }
     }
-  }, [open, reset]);
+  }, [open, reset, user?.organizationId]);
 
   const onFormSubmit = async (data: FormValues) => {
     await onSubmit({
@@ -74,6 +89,13 @@ export const CreateShipmentModal = ({
     onClose();
   };
 
+  const remainingCount = remainingCodes?.remainingCount ?? 0;
+  const totalLimit = remainingCodes?.totalLimit ?? 0;
+  const hasCodeRange = remainingCodes?.hasCodeRange ?? false;
+  const isExhausted =
+    remainingCodes !== null &&
+    (!hasCodeRange || remainingCount <= 0);
+
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[500px]">
@@ -85,6 +107,47 @@ export const CreateShipmentModal = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
+          <div className="rounded-lg border bg-card p-3 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Mã còn lại:</span>
+              {remainingLoading && !remainingCodes ? (
+                <span className="text-sm text-muted-foreground">Đang tải...</span>
+              ) : !hasCodeRange ? (
+                <span className="flex items-center gap-1 font-semibold text-amber-600">
+                  <AlertTriangle className="h-3 w-3" />
+                  Chưa có dải mã
+                </span>
+              ) : (
+                <span className="font-semibold text-emerald-600">
+                  {remainingCount.toLocaleString()} / {totalLimit.toLocaleString()}
+                </span>
+              )}
+            </div>
+            {!remainingLoading && !remainingCodes && user?.organizationId && (
+              <p className="mt-1 text-xs text-red-500">
+                Không thể tải số lượng mã còn lại.
+              </p>
+            )}
+            {!user?.organizationId && (
+              <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                <AlertTriangle className="h-3 w-3" />
+                Không xác định được tổ chức.
+              </p>
+            )}
+            {!remainingLoading && hasCodeRange && remainingCount <= 0 && (
+              <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                <AlertTriangle className="h-3 w-3" />
+                Đã hết mã truy xuất. Không thể tạo thêm lô hàng.
+              </p>
+            )}
+            {!remainingLoading && remainingCodes !== null && !hasCodeRange && (
+              <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                <AlertTriangle className="h-3 w-3" />
+                Tổ chức chưa được cấp dải mã truy xuất.
+              </p>
+            )}
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="name">Tên lô hàng *</Label>
             <Input
@@ -131,8 +194,7 @@ export const CreateShipmentModal = ({
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
               Hủy
             </Button>
-            {/* CHANGED: thêm variant="create" */}
-            <Button type="submit" disabled={loading} variant="create">
+            <Button type="submit" disabled={loading || isExhausted} variant="create">
               {loading ? 'Đang tạo...' : 'Tạo lô hàng'}
             </Button>
           </DialogFooter>

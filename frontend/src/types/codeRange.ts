@@ -30,3 +30,10 @@ export interface CreateCodeRangeFormValues {
   prefix: string;
   totalLimit: number;
 }
+
+export interface RemainingCodesResponse {
+  remainingCount: number;
+  totalLimit: number;
+  usedCount: number;
+  hasCodeRange: boolean;
+}

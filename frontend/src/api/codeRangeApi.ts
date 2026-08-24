@@ -1,4 +1,4 @@
-import type { CodeRange, CodeRangeStatusResponse, CreateCodeRangeRequest } from "@/types/codeRange";
+import type { CodeRange, CodeRangeStatusResponse, CreateCodeRangeRequest, RemainingCodesResponse } from "@/types/codeRange";
 import apiClient from "./axiosConfig";
 
 export const createCodeRange = async (data: CreateCodeRangeRequest): Promise<CodeRange> => {
@@ -8,5 +8,12 @@ export const createCodeRange = async (data: CreateCodeRangeRequest): Promise<Cod
 
 export const getCodeRangeStatus = async (): Promise<CodeRangeStatusResponse[]> => {
   const response = await apiClient.get<{ data: CodeRangeStatusResponse[] }>('/admin/code-ranges/status');
+  return response.data.data;
+};  
+
+export const getRemainingCodes = async (organizationId: string): Promise<RemainingCodesResponse> => {
+  const response = await apiClient.get<{ data: RemainingCodesResponse }>(
+    `/admin/code-ranges/organization/${organizationId}/remaining`
+  );
   return response.data.data;
 };  
