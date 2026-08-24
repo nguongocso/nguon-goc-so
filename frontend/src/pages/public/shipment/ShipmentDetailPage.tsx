@@ -179,7 +179,8 @@ export const ShipmentDetailPage = () => {
       URL.revokeObjectURL(url);
       toast.success("Tải hồ sơ thành công");
     } catch (err: any) {
-      toast.error(err.response?.data?.message ?? "Có lỗi xảy ra khi xuất hồ sơ.");
+      toast.dismiss();
+      toast.error(err.message || err.response?.data?.message || "Có lỗi xảy ra khi xuất hồ sơ.");
     }
   };
 

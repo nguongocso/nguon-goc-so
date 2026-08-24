@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, FileX } from 'lucide-react';
 
 interface Props {
   open: boolean;
@@ -19,14 +19,21 @@ export const DossierIneligibleDialog = ({ open, onClose, missingDocs, shipmentNa
             <DialogTitle>Không đủ điều kiện xuất hồ sơ</DialogTitle>
           </div>
           <DialogDescription>
-            Lô hàng <strong>{shipmentName}</strong> chưa đáp ứng đủ các điều kiện sau:
+            Lô hàng <strong>{shipmentName || 'được chọn'}</strong> chưa đáp ứng đủ các điều kiện sau:
           </DialogDescription>
         </DialogHeader>
-        <ul className="list-disc pl-5 space-y-1 text-sm text-red-600">
-          {missingDocs.map((doc, idx) => (
-            <li key={idx}>{doc}</li>
-          ))}
-        </ul>
+        {missingDocs && missingDocs.length > 0 ? (
+          <ul className="list-disc pl-5 space-y-1.5 text-sm text-rose-600 bg-rose-50 p-3 rounded-lg border border-rose-100">
+            {missingDocs.map((doc, idx) => (
+              <li key={idx} className="leading-snug">{doc}</li>
+            ))}
+          </ul>
+        ) : (
+          <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg text-sm text-amber-700">
+            <FileX className="h-4 w-4 shrink-0" />
+            <span>Lô hàng chưa hoàn tất hoặc thiếu chứng từ bắt buộc để xuất hồ sơ.</span>
+          </div>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Đóng</Button>
         </DialogFooter>
