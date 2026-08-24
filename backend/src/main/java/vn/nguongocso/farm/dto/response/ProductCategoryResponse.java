@@ -25,4 +25,12 @@ public class ProductCategoryResponse {
 	private String description;
 
 	private Boolean isActive;
+
+	private Double tempMin;
+
+	private Double tempMax;
+
+	private Double humidityMin;
+
+	private Double humidityMax;
 }

@@ -9,8 +9,13 @@ import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.exception.ResourceNotFoundException;
 import vn.nguongocso.alert.service.ScanAnomalyDetectionService;
 import vn.nguongocso.certification.entity.Certification;
+import vn.nguongocso.certification.entity.InspectionCriterion;
+import vn.nguongocso.certification.entity.InspectionCriterionResult;
+import vn.nguongocso.certification.entity.InspectionRequest;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.certification.enums.CertificationStatus;
+import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
+import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
 import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
@@ -18,6 +23,8 @@ import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.publicapi.dto.response.PublicCertificationResponse;
 import vn.nguongocso.publicapi.dto.response.PublicChainEventItem;
+import vn.nguongocso.publicapi.dto.response.PublicInspectionCriterionResultDto;
+import vn.nguongocso.publicapi.dto.response.PublicInspectionResponse;
 import vn.nguongocso.publicapi.dto.response.PublicLotCertificationsResponse;
 import vn.nguongocso.publicapi.dto.response.PublicTraceResponse;
 import vn.nguongocso.publicapi.service.PublicTraceService;
@@ -56,6 +63,8 @@ public class PublicTraceServiceImpl implements PublicTraceService {
     private final RecallRepository recallRepository;
     private final RecallRequestRepository recallRequestRepository;
     private final ProductionLotCertificationRepository productionLotCertificationRepository;
+    private final InspectionRequestRepository inspectionRequestRepository;
+    private final InspectionCriterionResultRepository inspectionCriterionResultRepository;
     private final ReverseGeocodingService reverseGeocodingService;
 
     /**
@@ -190,18 +199,30 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .map(this::convertToPublicEvent)
                 .toList();
 
-        String productName = shipment.getProductionLot() != null
-                ? shipment.getProductionLot().getName()
-                : "Sản phẩm";
+        ProductionLot productionLot = shipment.getProductionLot();
+        String lotName = productionLot != null ? productionLot.getName() : null;
+        String lotCode = (productionLot != null && productionLot.getId() != null)
+                ? productionLot.getId().toString()
+                : null;
+        String productName = (productionLot != null && productionLot.getProductCategory() != null)
+                ? productionLot.getProductCategory().getName()
+                : (productionLot != null ? productionLot.getName() : "Sản phẩm");
+        String shipmentCode = (shipment.getName() != null && !shipment.getName().isBlank())
+                ? shipment.getName()
+                : shipment.getId().toString();
+
+        List<PublicInspectionCriterionResultDto> inspectionResults = fetchPublicInspectionResults(productionLot);
 
         return PublicTraceResponse.builder()
                 .codeValue(traceCode.getCodeValue())
                 .productionLotId(
-                        shipment.getProductionLot() != null
-                                ? shipment.getProductionLot().getId()
+                        productionLot != null
+                                ? productionLot.getId()
                                 : null)
+                .lotName(lotName)
+                .lotCode(lotCode)
                 .productName(productName)
-                .shipmentCode(shipment.getId().toString())
+                .shipmentCode(shipmentCode)
                 .shipmentStatus(shipment.getStatus().name())
                 .recalled(isRecalled)
                 .recallMessage(recallMessage)
@@ -209,6 +230,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .lockReason(traceCode.getLockReason())
                 .lockedAt(traceCode.getLockedAt())
                 .events(publicEvents)
+                .inspections(inspectionResults)
                 .build();
     }
 
@@ -394,5 +416,97 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .hasCertification(!certResponses.isEmpty())
                 .certifications(certResponses)
                 .build();
+    }
+
+    /**
+     * Lấy danh sách kết quả kiểm nghiệm công khai của lô hàng.
+     */
+    @Override
+    public PublicInspectionResponse getPublicInspections(String codeValue) {
+        TraceCode traceCode = traceCodeRepository.findByCodeValue(codeValue)
+                .orElseThrow(() -> new ResourceNotFoundException("Mã lô hàng không tồn tại."));
+
+        Shipment shipment = traceCode.getShipment();
+        if (shipment == null) {
+            throw new ResourceNotFoundException("Không tìm thấy lô hàng liên kết.");
+        }
+
+        ProductionLot lot = shipment.getProductionLot();
+        if (lot == null) {
+            return PublicInspectionResponse.builder()
+                    .productionLotId(null)
+                    .lotName(null)
+                    .hasInspection(false)
+                    .inspections(Collections.emptyList())
+                    .build();
+        }
+
+        List<PublicInspectionCriterionResultDto> inspectionResults = fetchPublicInspectionResults(lot);
+
+        return PublicInspectionResponse.builder()
+                .productionLotId(lot.getId())
+                .lotName(lot.getName())
+                .hasInspection(!inspectionResults.isEmpty())
+                .inspections(inspectionResults)
+                .build();
+    }
+
+    /**
+     * Helper truy vấn và chuyển đổi danh sách kết quả kiểm nghiệm của lô sản xuất.
+     */
+    private List<PublicInspectionCriterionResultDto> fetchPublicInspectionResults(ProductionLot lot) {
+        if (lot == null || lot.getId() == null) {
+            return Collections.emptyList();
+        }
+
+        List<InspectionRequest> requests = inspectionRequestRepository
+                .findByProductionLot_IdOrderByCreatedAtDesc(lot.getId());
+
+        List<PublicInspectionCriterionResultDto> inspectionResults = new ArrayList<>();
+
+        for (InspectionRequest request : requests) {
+            List<InspectionCriterionResult> results = inspectionCriterionResultRepository
+                    .findByInspectionCriterion_InspectionRequest_Id(request.getId());
+
+            for (InspectionCriterionResult result : results) {
+                InspectionCriterion criterion = result.getInspectionCriterion();
+                String criterionName = (criterion != null && criterion.getCriterionName() != null)
+                        ? criterion.getCriterionName()
+                        : "Chỉ tiêu kiểm nghiệm";
+
+                String standardValue = "QCVN / TCCS";
+                if (criterion != null && criterion.getStandard() != null && criterion.getStandard().getName() != null) {
+                    standardValue = criterion.getStandard().getName();
+                }
+
+                String measuredValue = Boolean.TRUE.equals(result.getPassed())
+                        ? "Đạt chuẩn (Trong ngưỡng an toàn)"
+                        : "Không đạt (Vượt ngưỡng quy định)";
+
+                String laboratoryName = (request.getInspectionUnit() != null && !request.getInspectionUnit().isBlank())
+                        ? request.getInspectionUnit()
+                        : "Phòng kiểm nghiệm đạt chuẩn";
+
+                String inspectorName = (result.getCreatedBy() != null && result.getCreatedBy().getFullName() != null)
+                        ? result.getCreatedBy().getFullName()
+                        : null;
+
+                PublicInspectionCriterionResultDto dto = PublicInspectionCriterionResultDto.builder()
+                        .id(result.getId() != null ? result.getId().toString() : UUID.randomUUID().toString())
+                        .criterionName(criterionName)
+                        .standardValue(standardValue)
+                        .measuredValue(measuredValue)
+                        .passed(result.getPassed())
+                        .inspectorName(inspectorName)
+                        .inspectionDate(result.getResultDate())
+                        .expiryDate(result.getExpiryDate())
+                        .laboratoryName(laboratoryName)
+                        .build();
+
+                inspectionResults.add(dto);
+            }
+        }
+
+        return inspectionResults;
     }
 }

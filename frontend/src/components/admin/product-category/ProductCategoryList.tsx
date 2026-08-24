@@ -36,13 +36,19 @@ export const ProductCategoryList = ({ categories, loading, onEdit, onToggleActiv
               <TableCell className="font-medium">{category.name}</TableCell>
               <TableCell>{category.group}</TableCell>
               <TableCell>
-                {category.tempMin !== undefined && category.tempMax !== undefined ? (
-                  <span className="text-xs text-muted-foreground">
-                    {category.tempMin}–{category.tempMax}°C / {category.humidityMin ?? '?'}–{category.humidityMax ?? '?'}%
-                  </span>
-                ) : (
-                  <span className="text-xs text-muted-foreground">Chưa khai báo</span>
-                )}
+                {(() => {
+                  const hasTemp = category.tempMin != null && category.tempMax != null;
+                  const hasHumidity = category.humidityMin != null && category.humidityMax != null;
+                  if (!hasTemp && !hasHumidity) {
+                    return <span className="text-xs text-muted-foreground">—</span>;
+                  }
+                  return (
+                    <span className="text-xs text-muted-foreground">
+                      {hasTemp ? `${category.tempMin}–${category.tempMax}°C` : '—°C'} /{' '}
+                      {hasHumidity ? `${category.humidityMin}–${category.humidityMax}%` : '—%'}
+                    </span>
+                  );
+                })()}
               </TableCell>
               <TableCell>{category.description || '—'}</TableCell>
               <TableCell>

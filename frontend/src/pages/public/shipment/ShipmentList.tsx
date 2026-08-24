@@ -211,7 +211,9 @@ export const ShipmentList = ({
       }
 
       const msg =
-        error.response?.data?.message || "Có lỗi xảy ra khi xuất hồ sơ.";
+        error.message ||
+        error.response?.data?.message ||
+        "Có lỗi xảy ra khi xuất hồ sơ.";
 
       toast.error(msg);
     }
@@ -240,6 +242,7 @@ export const ShipmentList = ({
     } catch (error: any) {
       toast.dismiss(toastId);
       const msg =
+        error.message ||
         error.response?.data?.message ||
         "Có lỗi xảy ra khi xuất hồ sơ GS1.";
 

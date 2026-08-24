@@ -19,6 +19,10 @@ public class PublicTraceResponse {
 
     private UUID productionLotId;
 
+    private String lotName;
+
+    private String lotCode;
+
     private String productName;
 
     private String shipmentCode;
@@ -36,4 +40,6 @@ public class PublicTraceResponse {
     private LocalDateTime lockedAt;
 
     private List<PublicChainEventItem> events;
+
+    private List<PublicInspectionCriterionResultDto> inspections;
 }
