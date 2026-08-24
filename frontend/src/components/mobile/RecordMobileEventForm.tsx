@@ -36,6 +36,7 @@ import {
   getLocalDateTimeString,
   isoToLocalDateTimeInputValue,
 } from "@/utils/dateTime";
+import { selectAllOnFocus, preventMouseUpCollapse } from "@/utils/inputUtils";
 import {
   mobileEventSchema,
   type MobileEventFormValues,
@@ -61,7 +62,7 @@ const getInitialFormValues = (): MobileEventFormValues => ({
   images: [],
   harvestDate: getLocalDateString(),
   packagingDate: getLocalDateString(),
-  quantity: 0,
+  quantity: undefined,
   packagingSpecification: "",
 });
 
@@ -405,7 +406,7 @@ export const RecordMobileEventForm: React.FC<Props> = ({
                         getLocalDateString(),
                       );
 
-                      setValue("quantity", 0);
+                      setValue("quantity", undefined);
                     }
 
                     if (
@@ -528,6 +529,8 @@ export const RecordMobileEventForm: React.FC<Props> = ({
                       step="0.01"
                       placeholder="Nhập sản lượng"
                       value={field.value ?? ""}
+                      onFocus={selectAllOnFocus}
+                      onMouseUp={preventMouseUpCollapse}
                       onChange={(event) => {
                         const value =
                           event.target.value;
