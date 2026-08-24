@@ -254,6 +254,11 @@ public class PartnerApiKeyService {
     }
 
     private PartnerApiKeyResponse mapToResponse(PartnerApiKey key) {
+        PartnerApiKeyStatus status = key.getStatus();
+        if (status == PartnerApiKeyStatus.ACTIVE && key.getExpiresAt() != null && LocalDateTime.now().isAfter(key.getExpiresAt())) {
+            status = PartnerApiKeyStatus.EXPIRED;
+        }
+
         return PartnerApiKeyResponse.builder()
                 .id(key.getId())
                 .organizationId(key.getOrganization().getOrganizationId())
@@ -261,7 +266,7 @@ public class PartnerApiKeyService {
                 .keyPrefix(key.getKeyPrefix())
                 .rateLimitPerHour(key.getRateLimitPerHour())
                 .expiresAt(key.getExpiresAt())
-                .status(key.getStatus())
+                .status(status)
                 .totalCalls(key.getTotalCalls())
                 .failedCalls(key.getFailedCalls())
                 .lastCalledAt(key.getLastCalledAt())
