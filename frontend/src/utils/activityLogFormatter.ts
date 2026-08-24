@@ -57,17 +57,42 @@ export const formatActionType = (action: string): string => {
     UPDATE_FARM_LOG: 'Cập nhật nhật ký canh tác',
     DELETE_FARM_LOG: 'Xóa nhật ký canh tác',
 
+    // Farm Area
+    CREATE_FARM_AREA: 'Tạo vùng trồng',
+    UPDATE_FARM_AREA: 'Cập nhật vùng trồng',
+    DELETE_FARM_AREA: 'Xóa vùng trồng',
+
     // Category
     CREATE_PRODUCT_CATEGORY: 'Tạo loại nông sản',
     UPDATE_PRODUCT_CATEGORY: 'Cập nhật loại nông sản',
     DELETE_PRODUCT_CATEGORY: 'Xóa loại nông sản',
 
-    // Organization & Member
+    // Organization & Member & Permissions
     CREATE_ORGANIZATION: 'Tạo tổ chức',
     UPDATE_ORGANIZATION: 'Cập nhật tổ chức',
+    UPDATE_ORGANIZATION_PROFILE: 'Cập nhật hồ sơ tổ chức',
     CREATE_INVITATION: 'Tạo thư mời',
     JOIN_ORGANIZATION: 'Tham gia tổ chức',
+    UPDATE_ROLE_PERMISSIONS: 'Cấu hình quyền vai trò',
     ACCESS_DENIED: 'Truy cập trái phép bị chặn',
+
+    // API Key
+    CREATE_API_KEY: 'Cấp API key đối tác',
+    REVOKE_API_KEY: 'Thu hồi API key',
+
+    // Inspection
+    CREATE_INSPECTION_REQUEST: 'Tạo yêu cầu kiểm nghiệm',
+    RECORD_INSPECTION_RESULT: 'Ghi kết quả kiểm nghiệm',
+    UPDATE_INSPECTION_RESULT: 'Cập nhật kết quả kiểm nghiệm',
+    RECORD_INSPECTION_RESULTS: 'Ghi bulk kết quả',
+    DELETE_INSPECTION_RESULT: 'Xóa kết quả kiểm nghiệm',
+    UPLOAD_INSPECTION_RESULT_FILE: 'Tải phiếu kết quả',
+
+    // Shipment
+    DELETE_SHIPMENT_DRAFT: 'Hủy bản nháp lô hàng',
+
+    // Alert
+    RESOLVE_ALERT: 'Xử lý cảnh báo',
   };
 
   const upper = action.toUpperCase();
@@ -90,7 +115,9 @@ export const formatTargetType = (target: string): string => {
     PRODUCTIONLOT: 'Lô sản xuất',
     FARM_LOG: 'Nhật ký canh tác',
     FARMLOG: 'Nhật ký canh tác',
-    SHIPMENT: 'Lô hàng xuất',
+    FARM_AREA: 'Vùng trồng',
+    FARMAREA: 'Vùng trồng',
+    SHIPMENT: 'Lô hàng',
     CHAIN_EVENT: 'Sự kiện chuỗi',
     CHAINEVENT: 'Sự kiện chuỗi',
     PRODUCT_CATEGORY: 'Loại nông sản',
@@ -100,6 +127,19 @@ export const formatTargetType = (target: string): string => {
     ORGANIZATION_USER: 'Thành viên tổ chức',
     ORGANIZATIONUSER: 'Thành viên tổ chức',
     ORGANIZATION: 'Tổ chức',
+    ORGANIZATION_ROLE_PERMISSION: 'Phân quyền vai trò',
+    ORGANIZATIONROLEPERMISSION: 'Phân quyền vai trò',
+    ROLE_PERMISSION: 'Phân quyền vai trò',
+    PARTNER_API_KEY: 'Khóa API đối tác',
+    PARTNERAPIKEY: 'Khóa API đối tác',
+    API_KEY: 'Khóa API đối tác',
+    INSPECTION_REQUEST: 'Yêu cầu kiểm nghiệm',
+    INSPECTIONREQUEST: 'Yêu cầu kiểm nghiệm',
+    INSPECTION_CRITERION_RESULT: 'Kết quả tiêu chí kiểm nghiệm',
+    INSPECTIONCRITERIONRESULT: 'Kết quả tiêu chí kiểm nghiệm',
+    INSPECTION_CRITERION: 'Tiêu chí kiểm nghiệm',
+    INSPECTIONCRITERION: 'Tiêu chí kiểm nghiệm',
+    ALERT: 'Cảnh báo hệ thống',
     SYSTEM_MONITORING: 'Giám sát hệ thống',
     ATTACHMENT: 'Chứng từ đính kèm',
     INVITATION: 'Thư mời thành viên',
@@ -123,7 +163,8 @@ export const getActionColor = (action: string): string => {
   if (
     act.includes('CREATE') ||
     act.includes('APPROVE') ||
-    act.includes('JOIN')
+    act.includes('JOIN') ||
+    act.includes('UPLOAD')
   ) {
     return 'bg-emerald-100 text-emerald-800 border-emerald-200';
   }
@@ -132,14 +173,16 @@ export const getActionColor = (action: string): string => {
     act.includes('EXPORT') ||
     act.includes('RECORD') ||
     act.includes('ATTACH') ||
-    act.includes('ACTIVATE')
+    act.includes('ACTIVATE') ||
+    act.includes('RESOLVE')
   ) {
     return 'bg-blue-100 text-blue-800 border-blue-200';
   }
   if (
     act.includes('DELETE') ||
     act.includes('REJECT') ||
-    act.includes('DENIED')
+    act.includes('DENIED') ||
+    act.includes('REVOKE')
   ) {
     return 'bg-rose-100 text-rose-800 border-rose-200';
   }
