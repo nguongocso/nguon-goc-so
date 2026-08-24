@@ -16,6 +16,7 @@ import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { addOfflineEvent } from '@/services/offlineQueue';
 import { ChainEventType } from '@/enums/chainEventType';
 import { getLocalDateString } from '@/utils/dateTime';
+import { selectAllOnFocus, preventMouseUpCollapse } from '@/utils/inputUtils';
 import { useAutoGeolocation } from '@/hooks/useAutoGeolocation';
 
 const MAX_IMAGES = 5;
@@ -24,7 +25,7 @@ const formSchema = z.object({
   harvestDate: z.string().min(1, 'Vui lòng chọn ngày thu hoạch'),
   quantity: z.number({
     required_error: 'Vui lòng nhập sản lượng',
-    invalid_type_error: 'Sản lượng phải là số',
+    invalid_type_error: 'Vui lòng nhập sản lượng',
   }).positive('Sản lượng phải lớn hơn 0'),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
@@ -63,7 +64,7 @@ export const HarvestForm = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       harvestDate: getLocalDateString(),
-      quantity: 0,
+      quantity: undefined,
       latitude: 0,
       longitude: 0,
     },
@@ -266,6 +267,8 @@ export const HarvestForm = ({
               min="0.01"
               placeholder="Nhập sản lượng thực tế"
               {...register('quantity', { valueAsNumber: true })}
+              onFocus={selectAllOnFocus}
+              onMouseUp={preventMouseUpCollapse}
             />
             {errors.quantity && (
               <p className="text-sm text-red-500">{errors.quantity.message}</p>

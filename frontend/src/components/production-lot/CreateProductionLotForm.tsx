@@ -18,6 +18,7 @@ import axios from "axios";
 import { CheckCircle2, PackageOpen, Sprout } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { getLocalDateString } from "@/utils/dateTime";
+import { selectAllOnFocus, preventMouseUpCollapse } from "@/utils/inputUtils";
 
 interface CreateProductionLotFormProps {
   farmAreas: FarmAreaOption[];
@@ -254,6 +255,8 @@ const CreateProductionLotForm = ({
                     step="0.01"
                     className="pr-14"
                     value={form.expectedQuantity || ""}
+                    onFocus={selectAllOnFocus}
+                    onMouseUp={preventMouseUpCollapse}
                     onChange={(event) => {
                       setForm((current) => ({
                         ...current,

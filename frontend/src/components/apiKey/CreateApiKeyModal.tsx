@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { KeyRound, Loader2, ShieldAlert } from 'lucide-react';
 import { createApiKey } from '@/api/apiKeyApi';
 import type { PartnerApiKeyResponse } from '@/types/apiKey';
+import { selectAllOnFocus, preventMouseUpCollapse } from '@/utils/inputUtils';
 
 interface CreateApiKeyModalProps {
   open: boolean;
@@ -28,7 +29,7 @@ export const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   onSuccess,
 }) => {
   const [partnerName, setPartnerName] = useState('');
-  const [rateLimitPerHour, setRateLimitPerHour] = useState<number>(100);
+  const [rateLimitPerHour, setRateLimitPerHour] = useState<number | ''>('');
 
   // Mặc định hết hạn sau 30 ngày (theo giờ local cho input datetime-local)
   const getDefaultExpiry = () => {
@@ -49,7 +50,7 @@ export const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
 
   const resetForm = () => {
     setPartnerName('');
-    setRateLimitPerHour(100);
+    setRateLimitPerHour('');
     setExpiresAt(getDefaultExpiry());
   };
 
@@ -57,6 +58,10 @@ export const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
     e.preventDefault();
     if (!partnerName.trim()) {
       toast.error('Vui lòng nhập tên đối tác / doanh nghiệp thu mua');
+      return;
+    }
+    if (rateLimitPerHour === '') {
+      toast.error('Vui lòng nhập hạn mức gọi API');
       return;
     }
     if (rateLimitPerHour < 1) {
@@ -134,7 +139,9 @@ export const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                 max={100000}
                 placeholder="VD: 100"
                 value={rateLimitPerHour}
-                onChange={(e) => setRateLimitPerHour(Number(e.target.value))}
+                onFocus={selectAllOnFocus}
+                onMouseUp={preventMouseUpCollapse}
+                onChange={(e) => setRateLimitPerHour(e.target.value === '' ? '' : Number(e.target.value))}
                 disabled={loading}
                 required
               />

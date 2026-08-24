@@ -363,55 +363,55 @@ export function AttachmentManager({ logId, onUpdate }: AttachmentManagerProps) {
 
       {/* Upload Dialog */}
       <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Tải lên chứng từ</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            {/* File upload */}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="file" className="text-sm font-medium">
-                Chọn file <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="file"
-                type="file"
-                accept=".jpg,.jpeg,.png,.pdf"
-                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-              />
-              <p className="text-xs text-muted-foreground">Hỗ trợ JPG, PNG, PDF (≤5MB)</p>
-            </div>
+  <DialogContent className="sm:max-w-md">
+    <DialogHeader>
+      <DialogTitle>Tải lên chứng từ</DialogTitle>
+    </DialogHeader>
+    <div className="space-y-4 py-2">
+      {/* File upload */}
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="file" className="text-sm font-medium">
+          Chọn file <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          id="file"
+          type="file"
+          accept=".jpg,.jpeg,.png,.pdf"
+          onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+        />
+        <p className="text-xs text-muted-foreground">Hỗ trợ JPG, PNG, PDF (≤5MB)</p>
+      </div>
 
-            {/* Description */}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="desc" className="text-sm font-medium">
-                Mô tả (tùy chọn)
-              </Label>
-              <Input
-                id="desc"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Mô tả ngắn về chứng từ"
-              />
-            </div>
-          </div>
+      {/* Description */}
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="desc" className="text-sm font-medium">
+          Mô tả (tùy chọn)
+        </Label>
+        <Input
+          id="desc"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Mô tả ngắn về chứng từ"
+        />
+      </div>
+    </div>
 
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setUploadDialogOpen(false)} disabled={isUploading}>
-              Hủy
-            </Button>
-            <Button variant="create" onClick={handleUpload} disabled={isUploading || !selectedFile}>
-              {isUploading ? 'Đang tải lên...' : 'Tải lên'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+    <div className="flex justify-end gap-2">
+      <Button variant="outline" onClick={() => setUploadDialogOpen(false)} disabled={isUploading}>
+        Hủy
+      </Button>
+      <Button variant="create" onClick={handleUpload} disabled={isUploading || !selectedFile}>
+        {isUploading ? 'Đang tải lên...' : 'Tải lên'}
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
 
-      {/* Preview Dialog - fixed duplicate close button */}
+      {/* Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={(open) => { if (!open) handleClosePreview(); }}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle className="truncate max-w-[80%]">{previewFileName}</DialogTitle>
+            <DialogTitle className="truncate">{previewFileName}</DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-center min-h-[300px] bg-muted/30 rounded-lg">
             {previewType.startsWith('image/') ? (
@@ -430,11 +430,10 @@ export function AttachmentManager({ logId, onUpdate }: AttachmentManagerProps) {
               <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
                 <FileText className="h-12 w-12" />
                 <p className="text-sm">Không thể hiển thị loại file này</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => downloadAttachment(previewSrc.replace(/^blob:/, '') ? '' : '', previewFileName)}
-                >
+                <Button variant="outline" size="sm" onClick={() => downloadAttachment(
+                  previewSrc.replace(/^blob:/, '') ? '' : '',
+                  previewFileName
+                )}>
                   <Download className="mr-1.5 h-4 w-4" /> Tải xuống
                 </Button>
               </div>
