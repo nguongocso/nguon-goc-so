@@ -36,6 +36,7 @@ import {
   Pencil,
   Plus,
   Search,
+  Send,
   ShoppingCart,
   Sprout,
 } from "lucide-react";
@@ -104,13 +105,6 @@ const statusConfig: Record<
     label: "Đã thu hồi",
     className: "bg-red-100 text-red-800 border-red-300",
   },
-};
-
-const formatDate = (value: string | null) => {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("vi-VN").format(
-    new Date(`${value}T00:00:00`),
-  );
 };
 
 export const ProductionLotList = ({
@@ -267,8 +261,6 @@ export const ProductionLotList = ({
                     "Tên lô",
                     "Vùng trồng",
                     "Nông sản",
-                    "Sản lượng dự kiến",
-                    "Ngày gieo trồng",
                     "Trạng thái",
                     "Thao tác",
                     "Chi tiết",
@@ -284,7 +276,7 @@ export const ProductionLotList = ({
                 {isLoading && (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={6}
                       className="py-12 text-center text-muted-foreground"
                     >
                       <Sprout className="mx-auto mb-2 h-6 w-6 animate-spin text-emerald-500" />
@@ -297,6 +289,8 @@ export const ProductionLotList = ({
                   filteredLots.map((lot) => {
                     const showEdit =
                       canEdit && lot.status === "DRAFT";
+                    const showSubmit =
+                      canSubmitForApproval && lot.status === "DRAFT";
                     const showApprove =
                       canApprove && lot.status === "PENDING";
                     const showRecordFarmLog =
@@ -308,6 +302,7 @@ export const ProductionLotList = ({
                       lot.status === "PACKAGED";
                     const hasAction =
                       showEdit ||
+                      showSubmit ||
                       showApprove ||
                       showRecordFarmLog ||
                       showRecordProcurement;
@@ -323,28 +318,9 @@ export const ProductionLotList = ({
                         <TableCell className="text-muted-foreground">
                           {lot.productCategoryName ?? "—"}
                         </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {lot.expectedQuantity.toLocaleString("vi-VN")}{" "}
-                          {lot.expectedQuantityUnit || ""}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(lot.plantingDate)}
-                        </TableCell>
 
                         <TableCell>
-                          {canSubmitForApproval &&
-                          lot.status === "DRAFT" ? (
-                            <button
-                              type="button"
-                              onClick={() => setConfirmingLot(lot)}
-                              className="rounded-full px-2.5 py-1 text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200 transition-colors"
-                              title="Nhấn để gửi duyệt"
-                            >
-                              {statusConfig[lot.status].label}
-                            </button>
-                          ) : (
-                            getStatusBadge(lot.status)
-                          )}
+                          {getStatusBadge(lot.status)}
                         </TableCell>
 
                         <TableCell>
@@ -357,6 +333,15 @@ export const ProductionLotList = ({
                               >
                                 <Pencil className="size-4" />
                                 Chỉnh sửa
+                              </Button>
+                            )}
+                            {showSubmit && (
+                              <Button
+                                size="sm"
+                                onClick={() => setConfirmingLot(lot)}
+                              >
+                                <Send className="size-4" />
+                                Gửi duyệt
                               </Button>
                             )}
                             {showApprove && (

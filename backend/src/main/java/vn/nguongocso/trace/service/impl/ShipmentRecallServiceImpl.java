@@ -19,12 +19,14 @@ import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.trace.dto.request.RecallRequest;
 import vn.nguongocso.trace.dto.response.RecallInfoResponse;
 import vn.nguongocso.trace.dto.response.RecallResponse;
+import vn.nguongocso.trace.entity.CodeRange;
 import vn.nguongocso.trace.entity.Recall;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.RecallStatus;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
+import vn.nguongocso.trace.repository.CodeRangeRepository;
 import vn.nguongocso.trace.repository.RecallRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
@@ -48,6 +50,7 @@ public class ShipmentRecallServiceImpl implements ShipmentRecallService {
 
     private final ShipmentRepository shipmentRepository;
     private final TraceCodeRepository traceCodeRepository;
+    private final CodeRangeRepository codeRangeRepository;
     private final RecallRepository recallRepository;
     private final UserRepository userRepository;
     private final NotificationService alertNotificationService;
@@ -104,6 +107,20 @@ public class ShipmentRecallServiceImpl implements ShipmentRecallService {
         traceCodes.forEach(code -> code.setStatus(TraceCodeStatus.RECALLED));
 
         traceCodeRepository.saveAll(traceCodes);
+
+        // 8b. Trả lại mã đã dùng cho dải mã của tổ chức
+        if (!traceCodes.isEmpty()) {
+            CodeRange codeRange = shipment.getCodeRange() != null
+                    ? shipment.getCodeRange()
+                    : codeRangeRepository
+                            .findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(
+                                    shipment.getOrganization().getOrganizationId())
+                            .orElse(null);
+            if (codeRange != null) {
+                codeRange.setUsedCount(Math.max(0, codeRange.getUsedCount() - traceCodes.size()));
+                codeRangeRepository.save(codeRange);
+            }
+        }
 
         // 9. Ghi lịch sử hoạt động
         ActivityLogRequest activityLogRequest = ActivityLogRequest.builder()
