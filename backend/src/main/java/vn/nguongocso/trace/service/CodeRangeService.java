@@ -11,10 +11,12 @@ import vn.nguongocso.organization.repository.OrganizationRepository;
 import vn.nguongocso.trace.dto.request.CreateCodeRangeRequest;
 import vn.nguongocso.trace.dto.response.CodeRangeResponse;
 import vn.nguongocso.trace.dto.response.CodeRangeStatusResponse;
+import vn.nguongocso.trace.dto.response.RemainingCodesResponse;
 import vn.nguongocso.trace.entity.CodeRange;
 import vn.nguongocso.trace.repository.CodeRangeRepository;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -80,6 +82,30 @@ public class CodeRangeService {
         return ranges.stream()
                 .map(this::toStatusResponse)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Lấy số lượng mã truy xuất còn lại của một tổ chức.
+     *
+     * @param organizationId ID của tổ chức
+     * @return thông tin số mã còn lại
+     */
+    @Transactional(readOnly = true)
+    public RemainingCodesResponse getRemainingCodesForOrganization(UUID organizationId) {
+        return codeRangeRepository
+                .findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(organizationId)
+                .map(range -> RemainingCodesResponse.builder()
+                        .remainingCount(Math.max(0, range.getTotalLimit() - range.getUsedCount()))
+                        .totalLimit(range.getTotalLimit())
+                        .usedCount(range.getUsedCount())
+                        .hasCodeRange(true)
+                        .build())
+                .orElse(RemainingCodesResponse.builder()
+                        .remainingCount(0)
+                        .totalLimit(0)
+                        .usedCount(0)
+                        .hasCodeRange(false)
+                        .build());
     }
 
     /** Chuyển entity dải mã sang response trạng thái. */
