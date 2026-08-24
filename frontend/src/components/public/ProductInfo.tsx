@@ -51,7 +51,11 @@ export const ProductInfo = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+      <div
+        className={`grid grid-cols-1 ${
+          shipmentCode ? 'sm:grid-cols-3' : 'sm:grid-cols-2'
+        } gap-4 text-sm`}
+      >
         <div className="p-3 bg-muted/40 rounded-lg border border-border/50">
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
             <Sprout className="h-3.5 w-3.5 text-emerald-600" />
