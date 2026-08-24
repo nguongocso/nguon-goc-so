@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import {
   getOrganizationRoles,
@@ -20,6 +21,7 @@ import type { RoleInfo, PermissionGroup as PermissionGroupType } from '@/types/p
 import { getRoleLabel } from '@/config/roleAccess';
 
 export const RolePermissionConfig: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const organizationId = user?.organizationId;
 
@@ -40,8 +42,30 @@ export const RolePermissionConfig: React.FC = () => {
         // Loại bỏ VT-01 (Admin hệ thống) khỏi danh sách
         const filtered = data.filter((role) => role.roleCode !== 'VT-01');
         setRoles(filtered);
+
+        // Kiểm tra xem có roleId hoặc roleCode trên URL không
+        const paramRoleId = searchParams.get('roleId');
+        const paramRoleCode = searchParams.get('roleCode');
+
+        if (paramRoleId) {
+          const matched = filtered.find((r) => r.roleId === Number(paramRoleId));
+          if (matched) {
+            setSelectedRoleId(matched.roleId);
+            return;
+          }
+        }
+        if (paramRoleCode) {
+          const matched = filtered.find((r) => r.roleCode === paramRoleCode);
+          if (matched) {
+            setSelectedRoleId(matched.roleId);
+            return;
+          }
+        }
+
         if (filtered.length > 0) {
-          setSelectedRoleId(filtered[0].roleId);
+          // Mặc định chọn VT-03 (Người ghi sự kiện) nếu có
+          const defaultRole = filtered.find((r) => r.roleCode === 'VT-03') || filtered[0];
+          setSelectedRoleId(defaultRole.roleId);
         }
       } catch (error: any) {
         toast.error(error.response?.data?.message || 'Không thể tải danh sách vai trò');
@@ -50,7 +74,7 @@ export const RolePermissionConfig: React.FC = () => {
       }
     };
     fetchRoles();
-  }, [organizationId]);
+  }, [organizationId, searchParams]);
 
   // Lấy cấu hình quyền khi chọn vai trò
   const fetchPermissions = useCallback(async (roleId: number) => {
@@ -137,36 +161,47 @@ export const RolePermissionConfig: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Chọn vai trò */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <label className="font-medium">Vai trò:</label>
-        <Select
-          value={selectedRoleId?.toString() || ''}
-          onValueChange={(val) => {
-            if (val) setSelectedRoleId(parseInt(val));
-          }}
-        >
-          <SelectTrigger className="w-[250px]">
-            <SelectValue placeholder="Chọn vai trò">
-              {selectedRole ? getDisplayName(selectedRole.roleCode) : ''}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {roles.map((role) => (
-              <SelectItem key={role.roleId} value={role.roleId.toString()}>
-                {getDisplayName(role.roleCode)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex items-center justify-between gap-4 flex-wrap bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+            <ShieldCheck className="h-5 w-5" />
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-slate-800">Cấu hình phân quyền cho vai trò</label>
+            <p className="text-xs text-muted-foreground">Tùy biến quyền hạn và các sự kiện chuỗi được phép thao tác</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Select
+            value={selectedRoleId?.toString() || ''}
+            onValueChange={(val) => {
+              if (val) setSelectedRoleId(parseInt(val));
+            }}
+          >
+            <SelectTrigger className="w-[260px] border-emerald-200 focus:ring-emerald-100 font-medium">
+              <SelectValue placeholder="Chọn vai trò">
+                {selectedRole ? getDisplayName(selectedRole.roleCode) : ''}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {roles.map((role) => (
+                <SelectItem key={role.roleId} value={role.roleId.toString()} className="font-medium">
+                  {getDisplayName(role.roleCode)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Danh sách nhóm quyền */}
       {loadingPermissions ? (
-        <div className="flex justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
         </div>
       ) : permissions.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
+        <div className="text-center py-12 text-muted-foreground bg-white rounded-xl border">
           Không có quyền nào để cấu hình.
         </div>
       ) : (
@@ -174,6 +209,7 @@ export const RolePermissionConfig: React.FC = () => {
           {permissions.map((group) => (
             <PermissionGroup
               key={group.resource}
+              resource={group.resource}
               resourceLabel={group.resourceLabel}
               permissions={group.permissions}
               onToggle={handleToggle}

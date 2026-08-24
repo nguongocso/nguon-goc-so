@@ -1,3 +1,5 @@
+import type { PublicInspectionResult } from './publicInspection';
+
 export interface PublicChainEventItem {
   eventType: string;
   eventData: Record<string, any>;
@@ -9,6 +11,8 @@ export interface PublicChainEventItem {
 export interface PublicTraceResponse {
   codeValue: string;
   productionLotId: string | null;
+  lotName?: string | null;
+  lotCode?: string | null;
   productName: string;
   shipmentCode: string;
   shipmentStatus: string;
@@ -18,6 +22,7 @@ export interface PublicTraceResponse {
   lockReason: string | null;
   lockedAt: string | null;
   events: PublicChainEventItem[];
+  inspections?: PublicInspectionResult[];
 }
 
 export interface ApiError {

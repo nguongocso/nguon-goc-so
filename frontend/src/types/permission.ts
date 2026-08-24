@@ -34,3 +34,23 @@ export interface RoleInfo {
   roleCode: string;
   roleName: string;
 }
+
+/**
+ * Các mã quyền chuẩn cho nhóm ghi nhận sự kiện chuỗi cung ứng.
+ */
+export const EVENT_PERMISSIONS = {
+  EVENT_FARM_LOG: 'EVENT_FARM_LOG',           // Ghi nhật ký canh tác
+  EVENT_HARVEST: 'EVENT_HARVEST',             // Ghi sự kiện thu hoạch
+  EVENT_PREPROCESSING: 'EVENT_PREPROCESSING', // Ghi sự kiện sơ chế & phân loại
+  EVENT_PACKAGING: 'EVENT_PACKAGING',         // Ghi sự kiện đóng gói
+  EVENT_TRANSPORT: 'EVENT_TRANSPORT',         // Ghi sự kiện vận chuyển
+} as const;
+
+export type EventPermissionCode = keyof typeof EVENT_PERMISSIONS;
+
+export interface EventPermissionOption {
+  code: string;
+  label: string;
+  description: string;
+  defaultEnabled: boolean;
+}

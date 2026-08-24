@@ -105,9 +105,9 @@ export default function ActivityLogPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Lịch sử hoạt động</h1>
+          <h1 className="text-2xl font-bold">Lịch sử hoạt động hệ thống</h1>
           <p className="text-sm text-muted-foreground">
-            Theo dõi các thao tác đã thực hiện trong tổ chức
+            Theo dõi và kiểm tra toàn bộ nhật ký thao tác trong tổ chức
           </p>
         </div>
         <div className="flex items-center gap-2">

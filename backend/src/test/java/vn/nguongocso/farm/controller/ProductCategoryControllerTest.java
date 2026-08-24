@@ -155,6 +155,10 @@ class ProductCategoryControllerTest {
                 .group("Cây ăn quả")
                 .description("Mô tả mới")
                 .isActive(false)
+                .tempMin(12.5)
+                .tempMax(28.0)
+                .humidityMin(65.0)
+                .humidityMax(85.0)
                 .build();
         ProductCategoryResponse response = ProductCategoryResponse.builder()
                 .id(categoryId)
@@ -162,6 +166,10 @@ class ProductCategoryControllerTest {
                 .group("Cây ăn quả")
                 .description("Mô tả mới")
                 .isActive(false)
+                .tempMin(12.5)
+                .tempMax(28.0)
+                .humidityMin(65.0)
+                .humidityMax(85.0)
                 .build();
 
         when(productCategoryService.update(eq(categoryId), any(UpdateProductCategoryRequest.class))).thenReturn(response);
@@ -175,7 +183,11 @@ class ProductCategoryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.name").value("Xoài Cao Lãnh"))
-                .andExpect(jsonPath("$.data.isActive").value(false));
+                .andExpect(jsonPath("$.data.isActive").value(false))
+                .andExpect(jsonPath("$.data.tempMin").value(12.5))
+                .andExpect(jsonPath("$.data.tempMax").value(28.0))
+                .andExpect(jsonPath("$.data.humidityMin").value(65.0))
+                .andExpect(jsonPath("$.data.humidityMax").value(85.0));
     }
 
     @Test

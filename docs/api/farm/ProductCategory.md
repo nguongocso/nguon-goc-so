@@ -5,6 +5,7 @@
 | Ngày | Phiên bản | Nội dung thay đổi | Người thực hiện |
 |---|---|---|---|
 | 2026-07-30 | v1.0.0 | Khởi tạo tài liệu đặc tả các API thêm, sửa, ẩn/hiện và lấy danh sách loại nông sản | AI Agent |
+| 2026-08-24 | v1.1.0 | Bổ sung 4 trường ngưỡng bảo quản `tempMin`, `tempMax`, `humidityMin`, `humidityMax` vào POST/PUT và các response (fix lỗi không cập nhật được ngưỡng bảo quản) | AI Agent |
 
 ---
 
@@ -45,7 +46,11 @@
       "name": "Xoài Cát Chu",
       "group": "Cây ăn quả",
       "description": "Xoài cát chu chính hiệu",
-      "isActive": true
+      "isActive": true,
+      "tempMin": 10.0,
+      "tempMax": 30.0,
+      "humidityMin": 60.0,
+      "humidityMax": 90.0
     }
   ],
   "timestamp": "2026-07-30T10:00:00.123Z"
@@ -63,14 +68,22 @@
       "name": "Xoài Cát Chu",
       "group": "Cây ăn quả",
       "description": "Xoài cát chu chính hiệu",
-      "isActive": true
+      "isActive": true,
+      "tempMin": 10.0,
+      "tempMax": 30.0,
+      "humidityMin": 60.0,
+      "humidityMax": 90.0
     },
     {
       "id": "a5c7f8a1-1234-4a22-8f12-bd12d1b74292",
       "name": "Cây Cỏ Ngọt",
       "group": "Cây công nghiệp",
       "description": "Cây cỏ ngọt bị ẩn do tạm dừng sản xuất",
-      "isActive": false
+      "isActive": false,
+      "tempMin": null,
+      "tempMax": null,
+      "humidityMin": null,
+      "humidityMax": null
     }
   ],
   "timestamp": "2026-07-30T10:00:05.123Z"
@@ -110,13 +123,21 @@
 | Body | name | String | Yes | @NotBlank, tối đa 255 ký tự. Không được trùng tên (không phân biệt hoa thường) với loại nông sản đã tồn tại. | "Xoài Cát Chu" |
 | Body | group | String | Yes | @NotBlank, tối đa 100 ký tự. Tên nhóm hàng dùng để gom nhóm nông sản. | "Cây ăn quả" |
 | Body | description | String | No | Tối đa 1000 ký tự. Mô tả thông tin chi tiết về loại nông sản. | "Nông sản sạch chuẩn VietGAP" |
+| Body | tempMin | Number | No | Ngưỡng nhiệt độ bảo quản tối thiểu (°C), từ -99.9 đến 999.9. Bỏ trống nếu chưa có ngưỡng. | 10.0 |
+| Body | tempMax | Number | No | Ngưỡng nhiệt độ bảo quản tối đa (°C), từ -99.9 đến 999.9, phải ≥ tempMin. | 30.0 |
+| Body | humidityMin | Number | No | Ngưỡng độ ẩm bảo quản tối thiểu (%), từ 0 đến 100. | 60.0 |
+| Body | humidityMax | Number | No | Ngưỡng độ ẩm bảo quản tối đa (%), từ 0 đến 100, phải ≥ humidityMin. | 90.0 |
 
 **Request Example (JSON)**
 ```json
 {
   "name": "Xoài Cát Chu",
   "group": "Cây ăn quả",
-  "description": "Nông sản sạch chuẩn VietGAP"
+  "description": "Nông sản sạch chuẩn VietGAP",
+  "tempMin": 10.0,
+  "tempMax": 30.0,
+  "humidityMin": 60.0,
+  "humidityMax": 90.0
 }
 ```
 
@@ -135,7 +156,11 @@
     "name": "Xoài Cát Chu",
     "group": "Cây ăn quả",
     "description": "Nông sản sạch chuẩn VietGAP",
-    "isActive": true
+    "isActive": true,
+    "tempMin": 10.0,
+    "tempMax": 30.0,
+    "humidityMin": 60.0,
+    "humidityMax": 90.0
   },
   "timestamp": "2026-07-30T10:05:00.123Z"
 }
@@ -193,6 +218,10 @@
 | Body | group | String | Yes | @NotBlank, tối đa 100 ký tự. | "Cây ăn quả" |
 | Body | description | String | No | Tối đa 1000 ký tự. | "Xoài cát chu xuất xứ Cao Lãnh" |
 | Body | isActive | Boolean | Yes | @NotNull. Cập nhật trạng thái ẩn/hiện. Nếu đặt là `false`, loại nông sản này bị ẩn và không cho phép tổ chức chọn khi tạo vùng trồng/lô mới. | false |
+| Body | tempMin | Number | No | Ngưỡng nhiệt độ bảo quản tối thiểu (°C), từ -99.9 đến 999.9. Gửi `null`/bỏ trống để xóa ngưỡng đã lưu. | 12.5 |
+| Body | tempMax | Number | No | Ngưỡng nhiệt độ bảo quản tối đa (°C), từ -99.9 đến 999.9, phải ≥ tempMin. Gửi `null` để xóa ngưỡng. | 28.0 |
+| Body | humidityMin | Number | No | Ngưỡng độ ẩm bảo quản tối thiểu (%), từ 0 đến 100. Gửi `null` để xóa ngưỡng. | 65.0 |
+| Body | humidityMax | Number | No | Ngưỡng độ ẩm bảo quản tối đa (%), từ 0 đến 100, phải ≥ humidityMin. Gửi `null` để xóa ngưỡng. | 85.0 |
 
 **Request Example (JSON)**
 ```json
@@ -200,7 +229,11 @@
   "name": "Xoài Cát Chu Cao Lãnh",
   "group": "Cây ăn quả",
   "description": "Xoài cát chu xuất xứ Cao Lãnh",
-  "isActive": false
+  "isActive": false,
+  "tempMin": 12.5,
+  "tempMax": 28.0,
+  "humidityMin": 65.0,
+  "humidityMax": 85.0
 }
 ```
 
@@ -219,7 +252,11 @@
     "name": "Xoài Cát Chu Cao Lãnh",
     "group": "Cây ăn quả",
     "description": "Xoài cát chu xuất xứ Cao Lãnh",
-    "isActive": false
+    "isActive": false,
+    "tempMin": 12.5,
+    "tempMax": 28.0,
+    "humidityMin": 65.0,
+    "humidityMax": 85.0
   },
   "timestamp": "2026-07-30T10:10:00.123Z"
 }

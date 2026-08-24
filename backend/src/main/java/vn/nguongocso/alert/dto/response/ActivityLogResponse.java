@@ -20,15 +20,25 @@ public class ActivityLogResponse {
 
     private String fullName;
 
+    private String actorName;
+
     private String action;
+
+    private String actionType;
 
     private String description;
 
     private String entityType;
 
+    private String targetType;
+
     private String entityId;
 
+    private String targetId;
+
     private String ipAddress;
+
+    private String details;
 
     private LocalDateTime createdAt;
 }

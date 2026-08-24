@@ -123,6 +123,13 @@ const MENU_GROUPS: MenuGroup[] = [
         activePaths: ["/members", "/invitations/create"],
       },
       {
+        icon: <ShieldCheck className="h-5 w-5" />,
+        label: "Cấu hình phân quyền",
+        href: "/permissions/config",
+        allowedRoles: ROLE_ACCESS.rolePermissionConfig,
+        activePaths: ["/permissions/config"],
+      },
+      {
         icon: <Layers className="h-5 w-5" />,
         label: "Danh mục nông sản",
         href: "/admin/product-categories",

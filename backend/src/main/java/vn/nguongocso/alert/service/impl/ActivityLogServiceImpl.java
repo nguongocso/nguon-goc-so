@@ -59,16 +59,25 @@ public class ActivityLogServiceImpl implements ActivityLogService {
 
     /** Chuyển entity nhật ký sang response. */
     private ActivityLogResponse convertToResponse(ActivityLog log) {
+        String actorName = log.getFullName() != null && !log.getFullName().isBlank()
+                ? log.getFullName()
+                : log.getUsername();
+
         return ActivityLogResponse.builder()
                 .id(log.getId())
                 .userId(log.getUserId())
                 .username(log.getUsername())
                 .fullName(log.getFullName())
+                .actorName(actorName)
                 .action(log.getAction())
+                .actionType(log.getAction())
                 .description(log.getDescription())
                 .entityType(log.getEntityType())
+                .targetType(log.getEntityType())
                 .entityId(log.getEntityId())
+                .targetId(log.getEntityId())
                 .ipAddress(log.getIpAddress())
+                .details(log.getDescription())
                 .createdAt(log.getCreatedAt())
                 .build();
     }

@@ -3,14 +3,22 @@ package vn.nguongocso.permission.constant;
 import java.util.Map;
 
 /**
- * Tên hiển thị của các nhóm chức năng.
+ * Tên hiển thị của các nhóm chức năng và mã quyền sự kiện chuỗi.
  */
 public final class ResourceLabelConstants {
+
+    // Mã quyền chuẩn cho sự kiện chuỗi
+    public static final String EVENT_FARM_LOG = "EVENT_FARM_LOG";           // Ghi nhật ký canh tác
+    public static final String EVENT_HARVEST = "EVENT_HARVEST";             // Ghi sự kiện thu hoạch
+    public static final String EVENT_PREPROCESSING = "EVENT_PREPROCESSING"; // Ghi sự kiện sơ chế & phân loại
+    public static final String EVENT_PACKAGING = "EVENT_PACKAGING";         // Ghi sự kiện đóng gói
+    public static final String EVENT_TRANSPORT = "EVENT_TRANSPORT";         // Ghi sự kiện vận chuyển
 
     private ResourceLabelConstants() {
     }
 
     private static final Map<String, String> LABELS = Map.ofEntries(
+            Map.entry("event_chain", "Quyền ghi nhận sự kiện chuỗi"),
             Map.entry("organization", "Tổ chức"),
             Map.entry("farm_area", "Vùng trồng"),
             Map.entry("production_lot", "Lô sản xuất"),

@@ -266,7 +266,7 @@ export function CreateFarmLogForm({
       }
 
       setCreatedLog(created);
-      toast.success('Thêm nhật ký sản xuất thành công!');
+      // Toast đã được xóa – component cha sẽ xử lý thông báo thành công
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         const data = error.response?.data as ApiErrorResponse | undefined;
@@ -412,7 +412,7 @@ export function CreateFarmLogForm({
               </div>
               <div>
                 <CardTitle className="text-xl font-bold text-slate-900">
-                  Ghi nhật ký nhật ký sản xuất
+                  Ghi nhật ký sản xuất
                 </CardTitle>
                 <CardDescription className="text-slate-500">
                   Ghi nhận hoạt động tác nghiệp nông nghiệp cho lô sản xuất.
