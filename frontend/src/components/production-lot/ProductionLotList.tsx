@@ -362,7 +362,7 @@ export const ProductionLotList = ({
                             {showApprove && (
                               <Button
                                 size="sm"
-                                variant="search"
+                                variant="default"
                                 onClick={() => setApprovingLot(lot)}
                               >
                                 <ClipboardCheck className="size-4" />

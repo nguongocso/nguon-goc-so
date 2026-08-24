@@ -153,7 +153,7 @@ export const ApproveProductionLotDialog = ({
             <>
               <Button
                 type="button"
-                variant="edit"
+                variant="destructive"
                 onClick={() => setMode('reject')}
                 disabled={!!submitting}
               >
@@ -164,7 +164,7 @@ export const ApproveProductionLotDialog = ({
                 type="button"
                 onClick={handleApprove}
                 disabled={!!submitting || hasMissingFields}
-                variant="edit"
+                variant="create"
               >
                 {submitting === 'approve' ? (
                   <LoaderCircle className="size-4 animate-spin" />
