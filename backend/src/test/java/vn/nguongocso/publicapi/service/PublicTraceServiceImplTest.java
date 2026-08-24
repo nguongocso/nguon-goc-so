@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,8 +21,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import vn.nguongocso.alert.service.ScanAnomalyDetectionService;
+import vn.nguongocso.certification.entity.InspectionCriterion;
+import vn.nguongocso.certification.entity.InspectionCriterionResult;
+import vn.nguongocso.certification.entity.InspectionRequest;
+import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
+import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
 import vn.nguongocso.event.repository.ChainEventRepository;
+import vn.nguongocso.farm.entity.ProductionLot;
+import vn.nguongocso.publicapi.dto.response.PublicInspectionResponse;
 import vn.nguongocso.publicapi.dto.response.PublicTraceResponse;
 import vn.nguongocso.publicapi.service.impl.PublicTraceServiceImpl;
 import vn.nguongocso.report.repository.TraceCodeScanLogRepository;
@@ -35,9 +43,10 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.SuspectDetectionService;
 
 /**
- * Kiểm thử contract NCL-08-CN-007:
+ * Kiểm thử contract NCL-08-CN-007 & TASK-16:
  * - GET trace = đọc thuần túy (KHÔNG tạo ScanLog, KHÔNG kích hoạt đánh giá nghi vấn)
  * - POST scan = tạo ScanLog + kích hoạt đánh giá nghi vấn
+ * - GET inspections = lấy danh sách kết quả kiểm nghiệm công khai
  */
 @ExtendWith(MockitoExtension.class)
 class PublicTraceServiceImplTest {
@@ -67,6 +76,12 @@ class PublicTraceServiceImplTest {
     private ProductionLotCertificationRepository productionLotCertificationRepository;
 
     @Mock
+    private InspectionRequestRepository inspectionRequestRepository;
+
+    @Mock
+    private InspectionCriterionResultRepository inspectionCriterionResultRepository;
+
+    @Mock
     private ReverseGeocodingService reverseGeocodingService;
 
     private PublicTraceServiceImpl publicTraceService;
@@ -87,6 +102,8 @@ class PublicTraceServiceImplTest {
                 recallRepository,
                 recallRequestRepository,
                 productionLotCertificationRepository,
+                inspectionRequestRepository,
+                inspectionCriterionResultRepository,
                 reverseGeocodingService);
 
         shipment = new Shipment();
@@ -103,7 +120,7 @@ class PublicTraceServiceImplTest {
 
         when(traceCodeRepository.findByCodeValue(codeValue))
                 .thenReturn(Optional.of(traceCode));
-        when(chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId()))
+        lenient().when(chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId()))
                 .thenReturn(Collections.emptyList());
         // Stub này chỉ được dùng ở test POST /scan; dùng lenient để
         // không fail test GET lookup (vốn không gọi save ScanLog).
@@ -136,5 +153,45 @@ class PublicTraceServiceImplTest {
         verify(traceCodeScanLogRepository).save(any());
         verify(suspectDetectionService).evaluateSuspicion(traceCode.getId());
         verify(scanAnomalyDetectionService).onScanRecorded(traceCode.getId());
+    }
+
+    @Test
+    void getPublicInspections_WhenProductionLotExists_ShouldReturnInspections() {
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setName("Lô nông sản A");
+        shipment.setProductionLot(lot);
+
+        InspectionRequest req = InspectionRequest.builder()
+                .id(UUID.randomUUID())
+                .inspectionUnit("TT Kiểm nghiệm Chất lượng")
+                .productionLot(lot)
+                .build();
+
+        InspectionCriterion criterion = InspectionCriterion.builder()
+                .id(UUID.randomUUID())
+                .criterionCode("PESTICIDE_RESIDUE")
+                .criterionName("Dư lượng thuốc BVTV")
+                .build();
+
+        InspectionCriterionResult result = InspectionCriterionResult.builder()
+                .id(UUID.randomUUID())
+                .inspectionCriterion(criterion)
+                .passed(true)
+                .build();
+
+        when(inspectionRequestRepository.findByProductionLot_IdOrderByCreatedAtDesc(lot.getId()))
+                .thenReturn(List.of(req));
+        when(inspectionCriterionResultRepository.findByInspectionCriterion_InspectionRequest_Id(req.getId()))
+                .thenReturn(List.of(result));
+
+        PublicInspectionResponse response = publicTraceService.getPublicInspections(codeValue);
+
+        assertNotNull(response);
+        assertEquals(lot.getId(), response.getProductionLotId());
+        assertEquals("Lô nông sản A", response.getLotName());
+        assertEquals(1, response.getInspections().size());
+        assertEquals("Dư lượng thuốc BVTV", response.getInspections().get(0).getCriterionName());
+        assertEquals(true, response.getInspections().get(0).getPassed());
     }
 }

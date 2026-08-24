@@ -1,5 +1,6 @@
 package vn.nguongocso.publicapi.service;
 
+import vn.nguongocso.publicapi.dto.response.PublicInspectionResponse;
 import vn.nguongocso.publicapi.dto.response.PublicLotCertificationsResponse;
 import vn.nguongocso.publicapi.dto.response.PublicTraceResponse;
 
@@ -22,4 +23,7 @@ public interface PublicTraceService {
 
     /** Lấy chứng nhận công khai của lô hàng. */
     PublicLotCertificationsResponse getPublicCertifications(String codeValue);
+
+    /** Lấy kết quả kiểm nghiệm công khai của lô hàng. */
+    PublicInspectionResponse getPublicInspections(String codeValue);
 }

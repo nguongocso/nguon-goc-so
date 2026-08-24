@@ -1,15 +1,18 @@
 export interface PublicInspectionResult {
-  requestId: string;
-  overallResult: "PASSED" | "FAILED";
-  overallResultLabel: string;
-  issueDate: string | null;
+  id: string;
+  criterionName: string;
+  standardValue: string;
+  measuredValue: string;
+  passed: boolean;
+  inspectorName?: string;
+  inspectionDate: string;
   expiryDate: string;
-  statusLabel: string;
+  laboratoryName?: string;
 }
 
 export interface PublicInspectionResponse {
-  productionLotId: string;
-  lotName: string;
+  productionLotId?: string | null;
+  lotName?: string | null;
   hasInspection: boolean;
   inspections: PublicInspectionResult[];
 }

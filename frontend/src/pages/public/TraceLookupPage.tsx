@@ -359,6 +359,7 @@ export default function TraceLookupPage() {
 
         {/* Kết quả kiểm nghiệm công khai */}
         <PublicInspectionSection
+          inspections={inspectionData?.inspections ?? data.inspections}
           data={inspectionData}
           isLoading={inspectionLoading}
           error={inspectionError}
