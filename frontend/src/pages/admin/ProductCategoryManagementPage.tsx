@@ -51,6 +51,10 @@ export default function ProductCategoryManagementPage() {
         group: category.group,
         description: category.description || undefined,
         isActive: !currentActive,
+        tempMin: category.tempMin ?? undefined,
+        tempMax: category.tempMax ?? undefined,
+        humidityMin: category.humidityMin ?? undefined,
+        humidityMax: category.humidityMax ?? undefined,
       });
       toast.success(`Đã ${!currentActive ? 'hiện' : 'ẩn'} loại nông sản`);
       fetchCategories(filterParams);
