@@ -6,6 +6,7 @@ import {
   type CreateCodeRangeFormValues,
   createCodeRangeSchema,
 } from "@/utils/validators";
+import { selectAllOnFocus, preventMouseUpCollapse } from "@/utils/inputUtils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -48,7 +49,7 @@ export const CreateCodeRangeForm: React.FC = () => {
     defaultValues: {
       organizationId: "",
       prefix: "",
-      totalLimit: 0,
+      totalLimit: undefined,
     },
   });
 
@@ -185,6 +186,8 @@ export const CreateCodeRangeForm: React.FC = () => {
               type="number"
               step="1"
               {...register("totalLimit")}
+              onFocus={selectAllOnFocus}
+              onMouseUp={preventMouseUpCollapse}
               placeholder="Nhập số lượng tem tối đa"
             />
             <p className="text-sm text-gray-500">

@@ -346,6 +346,8 @@ public class BackupServiceImpl implements BackupService {
         command.add(dbUsername);
         command.add("--single-transaction");
         command.add("--skip-lock-tables");
+        command.add("--no-tablespaces");
+        command.add("--set-gtid-purged=OFF");
         command.add("--ignore-table=" + dbName + ".backup_restore_history");
         command.add("--ignore-table=" + dbName + ".backup_schedules"); // nếu có bảng lịch trình cũng nên loại trừ
         command.add(dbName);

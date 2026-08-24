@@ -18,6 +18,7 @@ import {
 import { useWarehouseReceipt } from '@/hooks/useWarehouseReceipt';
 import { scanLookupTraceCode } from '@/api/chainEventApi';
 import { getLocalDateString } from '@/utils/dateTime';
+import { selectAllOnFocus, preventMouseUpCollapse } from '@/utils/inputUtils';
 
 const ALLOWED_THRESHOLD = 2.0;
 
@@ -237,6 +238,8 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
               step="0.1"
               min="0.1"
               value={receivedQuantity}
+              onFocus={selectAllOnFocus}
+              onMouseUp={preventMouseUpCollapse}
               onChange={(e) => setReceivedQuantity(e.target.value)}
               placeholder="VD: 500"
               disabled={isSubmitting || !lotInfo}

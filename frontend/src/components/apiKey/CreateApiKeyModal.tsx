@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { KeyRound, Loader2, ShieldAlert } from 'lucide-react';
 import { createApiKey } from '@/api/apiKeyApi';
 import type { PartnerApiKeyResponse } from '@/types/apiKey';
+import { selectAllOnFocus, preventMouseUpCollapse } from '@/utils/inputUtils';
 
 interface CreateApiKeyModalProps {
   open: boolean;
@@ -28,13 +29,20 @@ export const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   onSuccess,
 }) => {
   const [partnerName, setPartnerName] = useState('');
-  const [rateLimitPerHour, setRateLimitPerHour] = useState<number>(100);
-  
+  const [rateLimitPerHour, setRateLimitPerHour] = useState<number | ''>('');
+
   // Mặc định hết hạn sau 30 ngày (theo giờ local cho input datetime-local)
   const getDefaultExpiry = () => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
-    return getLocalDateTimeString(d); // YYYY-MM-THH:mm
+    return getLocalDateTimeString(d); // YYYY-MM-DDTHH:mm
+  };
+
+  const getMinExpiry = () => {
+    // Tối thiểu từ thời điểm hiện tại (cộng thêm 5 phút buffer)
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 5);
+    return getLocalDateTimeString(now);
   };
 
   const [expiresAt, setExpiresAt] = useState(getDefaultExpiry());
@@ -42,7 +50,7 @@ export const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
 
   const resetForm = () => {
     setPartnerName('');
-    setRateLimitPerHour(100);
+    setRateLimitPerHour('');
     setExpiresAt(getDefaultExpiry());
   };
 
@@ -52,14 +60,26 @@ export const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
       toast.error('Vui lòng nhập tên đối tác / doanh nghiệp thu mua');
       return;
     }
+    if (rateLimitPerHour === '') {
+      toast.error('Vui lòng nhập hạn mức gọi API');
+      return;
+    }
     if (rateLimitPerHour < 1) {
       toast.error('Hạn mức gọi API phải lớn hơn hoặc bằng 1 lượt/giờ');
       return;
     }
 
+    const selectedExpiryDate = new Date(expiresAt);
+    const now = new Date();
+    if (isNaN(selectedExpiryDate.getTime()) || selectedExpiryDate <= now) {
+      toast.error('Thời gian hết hạn của khóa phải ở thời điểm tương lai');
+      return;
+    }
+
     try {
       setLoading(true);
-      const isoExpiresAt = new Date(expiresAt).toISOString();
+      // Gửi ISO String dạng YYYY-MM-DDTHH:mm:ss theo múi giờ địa phương
+      const isoExpiresAt = `${expiresAt}:00`;
       const newKey = await createApiKey({
         partnerName: partnerName.trim(),
         rateLimitPerHour: Number(rateLimitPerHour),
@@ -119,7 +139,9 @@ export const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                 max={100000}
                 placeholder="VD: 100"
                 value={rateLimitPerHour}
-                onChange={(e) => setRateLimitPerHour(Number(e.target.value))}
+                onFocus={selectAllOnFocus}
+                onMouseUp={preventMouseUpCollapse}
+                onChange={(e) => setRateLimitPerHour(e.target.value === '' ? '' : Number(e.target.value))}
                 disabled={loading}
                 required
               />
@@ -137,12 +159,16 @@ export const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                 <Input
                   id="expiresAt"
                   type="datetime-local"
+                  min={getMinExpiry()}
                   value={expiresAt}
                   onChange={(e) => setExpiresAt(e.target.value)}
                   disabled={loading}
                   required
                 />
               </div>
+              <p className="text-xs text-muted-foreground">
+                Thời gian hết hạn bắt buộc phải ở thời điểm tương lai.
+              </p>
             </div>
 
             {/* Ghi chú bảo mật */}
