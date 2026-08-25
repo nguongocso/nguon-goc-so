@@ -245,7 +245,9 @@ public class CertificationServiceImpl implements CertificationService {
      * hiệu lực, có phân trang và sắp xếp.
      *
      * <p>Từ khoá khớp tên, số hiệu hoặc cơ quan cấp (không phân biệt hoa/thường).
-     * Trạng thái "expiring" tính theo ngưỡng cảnh báo {@code warningThresholdDays}.
+     * Ba trạng thái rời rạc khớp với badge hiển thị: "valid" là chứng nhận còn
+     * hiệu lực quá {@code warningThresholdDays} ngày, "expiring" là còn hiệu
+     * lực trong vòng ngưỡng đó, "expired" là đã quá hạn.
      * Kết quả luôn scope trong tổ chức của người dùng hiện tại.</p>
      */
     @Override

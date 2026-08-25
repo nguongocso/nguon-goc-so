@@ -118,14 +118,14 @@ class CertificationRepositorySearchTest {
     }
 
     @Test
-    void search_statusValid_returnsOnlyUnexpired() {
+    void search_statusValid_excludesExpiringAndExpired() {
         Page<Certification> page = certificationRepository.search(
                 orgA.getOrganizationId(), null, "valid", today, today.plusDays(30), PageRequest.of(0, 10));
 
-        assertThat(page.getTotalElements()).isEqualTo(2);
+        assertThat(page.getTotalElements()).isEqualTo(1);
         assertThat(page.getContent())
                 .extracting(Certification::getCode)
-                .containsExactlyInAnyOrder("GG-BUOI-01", "VG-CAM-01");
+                .containsExactly("GG-BUOI-01");
     }
 
     @Test

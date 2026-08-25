@@ -55,6 +55,11 @@ public interface CertificationService {
          * Tìm kiếm chứng nhận của tổ chức hiện tại theo từ khoá và trạng thái
          * hiệu lực, có phân trang và sắp xếp.
          *
+         * <p>Ba trạng thái rời rạc (không giao nhau):
+         * {@code valid} = hết hạn sau hơn 30 ngày,
+         * {@code expiring} = còn hiệu lực trong vòng 30 ngày,
+         * {@code expired} = đã quá hạn.</p>
+         *
          * @param keyword      từ khoá tìm theo tên / số hiệu / cơ quan cấp
          *                     (null hoặc rỗng để bỏ qua).
          * @param status       valid | expiring | expired (null để lấy tất cả).

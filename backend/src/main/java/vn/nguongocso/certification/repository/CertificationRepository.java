@@ -60,9 +60,10 @@ public interface CertificationRepository extends JpaRepository<Certification, UU
      * Tìm kiếm chứng nhận của tổ chức theo từ khoá (tên, số hiệu, cơ quan cấp)
      * và trạng thái hiệu lực, có phân trang.
      *
-     * <p>Trạng thái tính theo ngày hết hạn:
+     * <p>Trạng thái tính theo ngày hết hạn, ba nhóm rời rạc khớp với badge
+     * hiển thị:
      * <ul>
-     *   <li>{@code valid}: {@code expiryDate >= today}</li>
+     *   <li>{@code valid}: {@code expiryDate > threshold} (còn hiệu lực quá 30 ngày)</li>
      *   <li>{@code expiring}: {@code today <= expiryDate <= threshold}</li>
      *   <li>{@code expired}: {@code expiryDate < today}</li>
      * </ul></p>
@@ -84,7 +85,7 @@ public interface CertificationRepository extends JpaRepository<Certification, UU
                    OR LOWER(COALESCE(c.issuedBy, '')) LIKE LOWER(CONCAT('%', :keyword, '%')))
               AND (:status IS NULL
                    OR (:status = 'expired' AND c.expiryDate < :today)
-                   OR (:status = 'valid' AND c.expiryDate >= :today)
+                   OR (:status = 'valid' AND c.expiryDate > :threshold)
                    OR (:status = 'expiring' AND c.expiryDate >= :today AND c.expiryDate <= :threshold))
             """)
     Page<Certification> search(
