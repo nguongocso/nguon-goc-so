@@ -1039,7 +1039,7 @@ export default function LoginAnomalyTrackingPage() {
                           <TableHead>Nguyên nhân</TableHead>
                           <TableHead>Trạng thái</TableHead>
                           <TableHead>Thời gian gần nhất</TableHead>
-                          <TableHead className="text-right">Hành động</TableHead>
+                          <TableHead className="text-right">Thao tác</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1069,35 +1069,33 @@ export default function LoginAnomalyTrackingPage() {
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex justify-end gap-2">
+                                <div className="flex justify-end gap-1">
                                   {isAccountLocked(account.userId) ? (
                                     <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                                      size="icon-sm"
+                                      variant="ghost"
+                                      title="Mở khóa tài khoản"
                                       onClick={() => void handleAccountAction(account)}
                                     >
-                                      <Unlock className="mr-1 h-4 w-4" />
-                                      Mở khóa
+                                      <Unlock className="size-4" />
                                     </Button>
                                   ) : (
                                     <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="border-red-200 text-red-700 hover:bg-red-50"
+                                      size="icon-sm"
+                                      variant="ghost"
+                                      title="Khóa tài khoản"
                                       onClick={() => void handleAccountAction(account)}
                                     >
-                                      <Lock className="mr-1 h-4 w-4" />
-                                      khóa
+                                      <Lock className="size-4" />
                                     </Button>
                                   )}
                                   <Button
-                                    size="sm"
-                                    variant="default"
-                                    className="bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-600"
+                                    size="icon-sm"
+                                    variant="ghost"
+                                    title="Đánh dấu đã giải quyết"
                                     onClick={() => void handleMarkResolved(account)}
                                   >
-                                    Đánh dấu giải quyết
+                                    <CheckCircle2 className="size-4" />
                                   </Button>
                                 </div>
                               )}
