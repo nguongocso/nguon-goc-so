@@ -305,8 +305,8 @@ export default function ScanAnomalyAlertPage() {
                     <TableHead>Mã TraceCode</TableHead>
                     <TableHead>Dữ liệu quét</TableHead>
                     <TableHead>Trạng thái</TableHead>
-                    <TableHead className="text-right">Thao tác</TableHead>
-                    <TableHead className="text-right">Chi tiết</TableHead>
+                    <TableHead className="text-center">Thao tác</TableHead>
+                    <TableHead className="text-center">Chi tiết</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -343,7 +343,7 @@ export default function ScanAnomalyAlertPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-center gap-1">
                           {alert.status === 'PENDING' ? (
                             <Button
                               size="icon-sm"
@@ -359,7 +359,7 @@ export default function ScanAnomalyAlertPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end">
+                        <div className="flex justify-center">
                           <Button
                             variant="outline"
                             size="sm"
