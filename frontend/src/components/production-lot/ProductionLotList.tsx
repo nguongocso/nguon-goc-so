@@ -265,7 +265,14 @@ export const ProductionLotList = ({
                     "Thao tác",
                     "Chi tiết",
                   ].map((title) => (
-                    <TableHead key={title} className="text-emerald-800 font-semibold">
+                    <TableHead
+                      key={title}
+                      className={`text-emerald-800 font-semibold${
+                        title === "Thao tác" || title === "Chi tiết"
+                          ? " text-center"
+                          : ""
+                      }`}
+                    >
                       {title}
                     </TableHead>
                   ))}
@@ -324,7 +331,7 @@ export const ProductionLotList = ({
                         </TableCell>
 
                         <TableCell>
-                          <div className="flex justify-end gap-1">
+                          <div className="flex justify-center gap-1">
                             {showEdit && (
                               <Button
                                 size="icon-sm"
@@ -385,7 +392,7 @@ export const ProductionLotList = ({
                           </div>
                         </TableCell>
 
-                        <TableCell>
+                        <TableCell className="text-center">
                           <Button
                             size="sm"
                             variant="outline"
