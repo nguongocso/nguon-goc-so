@@ -21,6 +21,7 @@ import {
   MoreHorizontal,
   History,
   Eye,
+  QrCode,
 } from "lucide-react";
 import { useShipments } from "@/hooks/useShipments";
 import { useRecallShipment } from "@/hooks/useRecallShipment";
@@ -50,6 +51,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useDeleteDraftShipment } from "@/hooks/useDeleteDraftShipment";
 import { checkCanActivateSeal } from "@/api/certificationApi";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { ExportLabelsDialog } from "@/components/shipment/ExportLabelsDialog";
 
 interface ShipmentListProps {
   productionLotId: string;
@@ -97,7 +99,13 @@ export const ShipmentList = ({
     shipmentName: "",
   });
 
+  // NCL-04-CN-005: Lô hàng đang được xuất tem QR
+  const [labelExportShipment, setLabelExportShipment] =
+    useState<Shipment | null>(null);
+
   const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
+  // NCL-04-CN-005: Chỉ VT-02 được xuất tem QR
+  const canExportLabels = usePermission(ROLE_ACCESS.labelExport);
 
   const {
     shipments,
@@ -376,6 +384,21 @@ export const ShipmentList = ({
                                 </DropdownMenuItem>
                               )}
 
+                              {/* NCL-04-CN-005: Xuất tem QR — chỉ VT-02, lô đã sinh mã và chưa thu hồi */}
+                              {canExportLabels &&
+                                shipment.status !== "DRAFT" &&
+                                shipment.status !== "RECALLED" &&
+                                (shipment.traceCodes?.length || 0) > 0 && (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      setLabelExportShipment(shipment)
+                                    }
+                                  >
+                                    <QrCode className="size-4" />
+                                    Xuất tem QR
+                                  </DropdownMenuItem>
+                                )}
+
                               {((canRecall &&
                                 shipment.status !== "RECALLED") ||
                                 shipment.status === "DRAFT" ||
@@ -525,6 +548,13 @@ export const ShipmentList = ({
           setPendingDeleteDraft(null);
         }}
       />
+      {/* NCL-04-CN-005: Dialog xuất tem QR */}
+      <ExportLabelsDialog
+        open={labelExportShipment !== null}
+        shipment={labelExportShipment}
+        onClose={() => setLabelExportShipment(null)}
+      />
+
     </>
   );
 };

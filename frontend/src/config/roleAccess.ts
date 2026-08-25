@@ -58,6 +58,9 @@ export const ROLE_ACCESS = {
   // ✅ NCL-12-CN-003 - Xuất hồ sơ truy xuất theo lược đồ GS1 mô phỏng
   gs1DossierExport: ['VT-02', 'VT-04'] as const,
 
+  // ✅ NCL-04-CN-005 - Xuất tem QR cho lô hàng để in
+  labelExport: ['VT-02'] as const,
+
   // ✅ NCL-12-CN-001 - Quản lý khóa truy cập đối tác bên thứ ba
   apiKeyManagement: ['VT-01', 'VT-02'] as const,
 } as const satisfies Record<string, readonly AuthenticatedRoleCode[]>;
