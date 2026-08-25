@@ -112,7 +112,7 @@ public class ShipmentServiceImpl implements ShipmentService {
 
         validateCodeRangeLimit(codeRange, request.getTotalQuantity());
 
-        Shipment shipment = createShipmentEntity(request, productionLot, currentUser);
+        Shipment shipment = createShipmentEntity(request, productionLot, currentUser, codeRange);
 
         shipmentRepository.save(shipment);
 
@@ -406,12 +406,13 @@ public class ShipmentServiceImpl implements ShipmentService {
      * @return đối tượng lô hàng
      */
     private Shipment createShipmentEntity(CreateShipmentRequest request, ProductionLot productionLot,
-            CustomUserDetails currentUser) {
+            CustomUserDetails currentUser, CodeRange codeRange) {
 
         Shipment shipment = new Shipment();
 
         shipment.setProductionLot(productionLot);
         shipment.setOrganization(productionLot.getOrganization());
+        shipment.setCodeRange(codeRange);
 
         shipment.setName(request.getName());
         shipment.setTotalQuantity(request.getTotalQuantity());

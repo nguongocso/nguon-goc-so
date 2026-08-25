@@ -17,10 +17,12 @@ import org.locationtech.jts.geom.PrecisionModel;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.farm.dto.request.CreateFarmAreaRequest;
 import vn.nguongocso.farm.dto.response.FarmAreaResponse;
@@ -45,6 +47,9 @@ class FarmAreaServiceTest {
     @Mock
     private OrganizationRepository organizationRepository;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private FarmAreaServiceImpl farmAreaService;
 
     private UUID organizationId;
@@ -55,7 +60,7 @@ class FarmAreaServiceTest {
     void setUp() {
         farmAreaService = new FarmAreaServiceImpl(
                 farmAreaRepository, productCategoryRepository, organizationRepository,
-                new GeometryFactory(new PrecisionModel(), 4326));
+                new GeometryFactory(new PrecisionModel(), 4326), eventPublisher);
 
         organizationId = UUID.randomUUID();
         organization = new Organization();
@@ -79,7 +84,14 @@ class FarmAreaServiceTest {
 
         lenient().when(organizationRepository.findById(organizationId)).thenReturn(Optional.of(organization));
         lenient().when(productCategoryRepository.findById(cropType.getId())).thenReturn(Optional.of(cropType));
-        lenient().when(farmAreaRepository.save(any(FarmArea.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        // Giả lập @PrePersist của JPA: gán ID khi lưu để service ghi được audit log
+        lenient().when(farmAreaRepository.save(any(FarmArea.class))).thenAnswer(invocation -> {
+            FarmArea farmArea = invocation.getArgument(0);
+            if (farmArea.getId() == null) {
+                farmArea.setId(UUID.randomUUID());
+            }
+            return farmArea;
+        });
     }
 
     @AfterEach
@@ -138,6 +150,25 @@ class FarmAreaServiceTest {
         verify(farmAreaRepository, times(1)).save(captor.capture());
         assertThat(captor.getValue().getArea()).isEqualByComparingTo("200");
         assertThat(captor.getValue().getAreaUnit()).isEqualTo(AreaUnit.KM2);
+    }
+
+    @Test
+    void create_shouldPublishActivityLogWithCorrectActionAndOrganization() {
+        CreateFarmAreaRequest request = buildRequest(new BigDecimal("5.5"), AreaUnit.HA);
+
+        farmAreaService.create(request);
+
+        // TASK-27: tạo vùng trồng phải ghi nhật ký hoạt động đúng action, đúng đối tượng
+        ArgumentCaptor<ActivityLogEvent> captor = ArgumentCaptor.forClass(ActivityLogEvent.class);
+        verify(eventPublisher, times(1)).publishEvent(captor.capture());
+
+        ActivityLogEvent event = captor.getValue();
+        assertThat(event.getAction()).isEqualTo("CREATE_FARM_AREA");
+        assertThat(event.getEntityType()).isEqualTo("FARM_AREA");
+        assertThat(event.getEntityId()).isNotBlank();
+        assertThat(event.getOrganizationId()).isEqualTo(organizationId);
+        assertThat(event.getDescription()).contains("Vùng chè Tân Cương");
+        assertThat(event.getTimestamp()).isNotNull();
     }
 
     @Test

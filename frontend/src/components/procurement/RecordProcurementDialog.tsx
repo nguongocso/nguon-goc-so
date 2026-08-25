@@ -1,12 +1,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BrowserQRCodeReader } from "@zxing/browser";
 import {
+  CheckCircle2,
   LoaderCircle,
   MapPin,
+  Package,
   QrCode,
   RotateCcw,
   Send,
   Truck,
+  X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -15,11 +18,9 @@ import { toast } from "sonner";
 import { useAutoGeolocation } from "@/hooks/useAutoGeolocation";
 import { LocationPicker } from "@/pages/packaging-event/components/LocationPicker";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -47,7 +48,9 @@ interface RecordProcurementDialogProps {
 
 /** Kiểm tra chuỗi có dạng UUID v4 hay không */
 function isUUID(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value,
+  );
 }
 
 export function RecordProcurementDialog({
@@ -58,18 +61,19 @@ export function RecordProcurementDialog({
 }: RecordProcurementDialogProps) {
   const { data, isLoading, error, submit, reset } = useProcurementEvent();
 
-  // ── State cho hộp thoại quét mã QR ──────────────────────────────────────
+  // ── State cho quét mã QR (inline) ──────────────────────────────────────
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const controlsRef = useRef<{ stop: () => void } | null>(null);
-  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerActive, setScannerActive] = useState(false);
   const [scannerError, setScannerError] = useState("");
 
-  // ── State cho tra cứu shipment qua mã truy xuất ─────────────────────────
+  // ── State cho tra cứu shipment ─────────────────────────────────────────
   const [isLookingUp, setIsLookingUp] = useState(false);
-  const [resolvedShipment, setResolvedShipment] = useState<ShipmentSummary | null>(null);
+  const [resolvedShipment, setResolvedShipment] =
+    useState<ShipmentSummary | null>(null);
 
-  // ── Form với react‑hook‑form + zod ──────────────────────────────────────
+  // ── Form ────────────────────────────────────────────────────────────────
   const {
     register,
     handleSubmit,
@@ -89,27 +93,25 @@ export function RecordProcurementDialog({
   const rawLatitude = watch("latitude");
   const rawLongitude = watch("longitude");
 
-  // ── Cập nhật shipmentId khi initialShipmentId thay đổi ──────────────────
+  // ── Cập nhật shipmentId khi initialShipmentId thay đổi ────────────────
   useEffect(() => {
     if (initialShipmentId) {
       setValue("shipmentId", initialShipmentId, { shouldValidate: true });
     }
   }, [initialShipmentId, setValue]);
 
-  // ── Dừng quét mã ────────────────────────────────────────────────────────
+  // ── Dừng quét mã ──────────────────────────────────────────────────────
   const stopScanning = () => {
     controlsRef.current?.stop();
     controlsRef.current = null;
-
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
-
-    setScannerOpen(false);
+    setScannerActive(false);
   };
 
-  // ── Khởi động camera khi mở hộp thoại quét ──────────────────────────────
+  // ── Khởi động camera ──────────────────────────────────────────────────
   useEffect(() => {
-    if (!scannerOpen) return;
+    if (!scannerActive) return;
 
     let isActive = true;
     const codeReader = new BrowserQRCodeReader();
@@ -119,7 +121,6 @@ export function RecordProcurementDialog({
         await new Promise((resolve) => window.setTimeout(resolve, 150));
 
         const video = videoRef.current;
-
         if (!video) {
           throw new Error("Không tìm thấy vùng hiển thị camera.");
         }
@@ -127,9 +128,7 @@ export function RecordProcurementDialog({
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
           video: {
-            facingMode: {
-              ideal: "environment",
-            },
+            facingMode: { ideal: "environment" },
           },
         });
 
@@ -145,7 +144,6 @@ export function RecordProcurementDialog({
           video,
           (result) => {
             if (!result || !isActive) return;
-
             const scannedText = result.getText().trim();
             stopScanning();
             void handleResolveCode(scannedText);
@@ -156,7 +154,6 @@ export function RecordProcurementDialog({
           controls.stop();
           return;
         }
-
         controlsRef.current = controls;
       } catch (scanError: unknown) {
         if (!isActive) return;
@@ -193,19 +190,16 @@ export function RecordProcurementDialog({
       isActive = false;
       controlsRef.current?.stop();
       controlsRef.current = null;
-
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     };
-  }, [scannerOpen, setValue]);
+  }, [scannerActive, setValue]);
 
-  // ── Tự động lấy vị trí GPS từ trình duyệt ───────────────────────────────
-  // ── Tra cứu lô hàng từ mã truy xuất hoặc UUID ──────────────────────────
+  // ── Tra cứu lô hàng ──────────────────────────────────────────────────
   const handleResolveCode = async (code: string) => {
     const trimmed = code.trim();
     if (!trimmed) return;
 
-    // Nếu đã là UUID, dùng trực tiếp
     if (isUUID(trimmed)) {
       setValue("shipmentId", trimmed, { shouldValidate: true });
       setResolvedShipment(null);
@@ -213,7 +207,6 @@ export function RecordProcurementDialog({
       return;
     }
 
-    // Ngược lại, tra cứu qua API
     setIsLookingUp(true);
     try {
       const result = await getShipmentByCode(trimmed);
@@ -223,8 +216,7 @@ export function RecordProcurementDialog({
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message ||
-        "Không thể tra cứu lô hàng. Vui lòng thử lại.";
+          ?.message || "Không thể tra cứu lô hàng. Vui lòng thử lại.";
       toast.error(message);
       setResolvedShipment(null);
       setValue("shipmentId", "", { shouldValidate: false });
@@ -233,11 +225,7 @@ export function RecordProcurementDialog({
     }
   };
 
-  // ── Tự động lấy vị trí GPS từ trình duyệt ───────────────────────────────
-  // Tự động lấy vị trí ngay khi mở dialog (nếu đã/được cấp quyền), và tự động
-  // lấy lại ngay khi người dùng cấp quyền GPS trong lúc dialog đang mở.
-  // `handleGetCurrentLocation` vẫn dùng cho nút "Lấy vị trí hiện tại" để người
-  // dùng chủ động lấy lại vị trí mới nhất.
+  // ── Tự động lấy vị trí GPS ────────────────────────────────────────────
   useAutoGeolocation({
     enabled: open,
     onLocation: (latitude, longitude) => {
@@ -255,7 +243,7 @@ export function RecordProcurementDialog({
     },
   });
 
-  // ── Xử lý submit: chuyển dữ liệu hợp lệ sang hook useProcurementEvent ──
+  // ── Submit ────────────────────────────────────────────────────────────
   const onSubmit = (values: ProcurementEventFormValues) => {
     void submit({
       shipmentId: values.shipmentId,
@@ -266,7 +254,7 @@ export function RecordProcurementDialog({
     });
   };
 
-  // ── Làm mới toàn bộ form + reset trạng thái hook ─────────────────────────
+  // ── Reset ─────────────────────────────────────────────────────────────
   const handleReset = () => {
     reset();
     resetForm({
@@ -277,127 +265,185 @@ export function RecordProcurementDialog({
     setResolvedShipment(null);
   };
 
-  // ── Đóng dialog và reset trạng thái (khi người dùng tự đóng) ────────────
+  // ── Đóng dialog ──────────────────────────────────────────────────────
   const handleUserClose = (isOpen: boolean) => {
     if (!isOpen) {
+      stopScanning();
       handleReset();
     }
     onOpenChange(isOpen);
   };
 
-  // ── Khi ghi thành công, đóng dialog sau 1.5s ────────────────────────────
+  // ── Khi ghi thành công ──────────────────────────────────────────────
   useEffect(() => {
     if (!data) return;
-
-    const timer = window.setTimeout(() => {
-      handleReset();
-      onOpenChange(false);
-      onSuccess?.();
-    }, 1500);
-    return () => window.clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data]);
+    onSuccess?.();
+  }, [data, onSuccess]);
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={handleUserClose}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <Truck className="size-5 text-emerald-700" />
-              Ghi sự kiện thu mua
-            </DialogTitle>
-            <DialogDescription>
-              Ghi nhận lô hàng khi doanh nghiệp thu mua nhận hàng, bổ sung mắt
-              xích cho hành trình truy xuất nguồn gốc.
-            </DialogDescription>
-          </DialogHeader>
+    <Dialog open={open} onOpenChange={handleUserClose}>
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <Truck className="size-5 text-emerald-700" />
+            Ghi sự kiện thu mua
+          </DialogTitle>
+          <DialogDescription>
+            Ghi nhận lô hàng khi doanh nghiệp thu mua nhận hàng, bổ sung mắt
+            xích cho hành trình truy xuất nguồn gốc.
+          </DialogDescription>
+        </DialogHeader>
 
-          <div className="max-h-[65vh] overflow-y-auto pr-1">
-            {/* Form chỉ hiển thị khi chưa ghi thành công. */}
-            {!data && (
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                {/* Lỗi từ backend */}
-                {error && (
-                  <div
-                    role="alert"
-                    className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-                  >
-                    {error}
+        {/* ─── SUCCESS STATE ─── */}
+        {data ? (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <Card className="border-emerald-200 bg-emerald-50">
+              <CardContent className="pt-6 text-center">
+                <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-emerald-100">
+                  <CheckCircle2 className="size-8 text-emerald-600" />
+                </div>
+                <p className="text-lg font-bold text-emerald-800">
+                  Ghi nhận thành công! 🎉
+                </p>
+                <p className="text-sm text-emerald-700">
+                  Sự kiện thu mua đã được lưu vào hệ thống.
+                </p>
+                <div className="mt-4 grid grid-cols-2 gap-2 text-left text-sm">
+                  <div className="rounded bg-white/60 p-2">
+                    <p className="text-xs text-muted-foreground">Mã sự kiện</p>
+                    <p className="font-mono text-xs">
+                      {data.id.slice(0, 8)}...
+                    </p>
                   </div>
-                )}
+                  <div className="rounded bg-white/60 p-2">
+                    <p className="text-xs text-muted-foreground">Lô hàng</p>
+                    <p className="font-medium">{data.eventData.shipmentName}</p>
+                  </div>
+                  <div className="rounded bg-white/60 p-2">
+                    <p className="text-xs text-muted-foreground">Số lượng</p>
+                    <p className="font-medium">
+                      {data.eventData.receivedQuantity.toLocaleString("vi-VN")}
+                    </p>
+                  </div>
+                  <div className="rounded bg-white/60 p-2">
+                    <p className="text-xs text-muted-foreground">Người ghi</p>
+                    <p className="font-medium">{data.recordedByName}</p>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
+                  <Button variant="outline" onClick={handleReset}>
+                    <RotateCcw className="mr-2 size-4" />
+                    Ghi tiếp
+                  </Button>
+                  <Button onClick={() => onOpenChange(false)}>Đóng</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          /* ─── FORM ─── */
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Lỗi từ backend */}
+            {error && (
+              <div
+                role="alert"
+                className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                {error}
+              </div>
+            )}
 
+            {/* ── Grid 2 cột ── */}
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              {/* Cột trái */}
+              <div className="space-y-4">
                 {/* Mã lô hàng */}
                 <div className="space-y-2">
-                  <Label htmlFor="shipmentId">Mã lô hàng *</Label>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <Input
-                      id="shipmentId"
-                      placeholder="550e8400-e29b-41d4-a716-446655440000"
-                      autoComplete="off"
-                      disabled={isLoading}
-                      {...register("shipmentId")}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={isLoading}
-                      onClick={() => {
-                        setScannerError("");
-                        setScannerOpen(true);
-                      }}
-                      className="shrink-0"
-                    >
-                      <QrCode className="mr-2 size-4" />
-                      Quét mã QR
-                    </Button>
-                  </div>
-                  {isLookingUp && (
-                    <p className="flex items-center gap-1.5 text-sm text-emerald-700">
-                      <LoaderCircle className="size-3.5 animate-spin" />
-                      Đang tra cứu lô hàng...
-                    </p>
-                  )}
-                  {resolvedShipment && (
-                    <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                      <p>
-                        <span className="font-semibold">Lô hàng:</span>{" "}
-                        {resolvedShipment.name}
-                      </p>
-                      {resolvedShipment.productionLotName && (
-                        <p className="text-xs text-emerald-600">
-                          Lô sản xuất: {resolvedShipment.productionLotName}
-                        </p>
-                      )}
-                      {resolvedShipment.totalQuantity != null && (
-                        <p className="text-xs text-emerald-600">
-                          Sản lượng:{" "}
-                          {resolvedShipment.totalQuantity.toLocaleString(
-                            "vi-VN",
-                          )}
-                        </p>
-                      )}
+                  <Label
+                    htmlFor="shipmentId"
+                    className="flex items-center gap-1"
+                  >
+                    Mã lô hàng <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <Input
+                        id="shipmentId"
+                        placeholder="550e8400-e29b-41d4-a716-446655440000"
+                        autoComplete="off"
+                        disabled={isLoading}
+                        className="flex-1"
+                        {...register("shipmentId")}
+                      />
+                      <Button
+                        type="button"
+                        variant={scannerActive ? "destructive" : "outline"}
+                        disabled={isLoading}
+                        onClick={() => {
+                          if (scannerActive) {
+                            stopScanning();
+                          } else {
+                            setScannerError("");
+                            setScannerActive(true);
+                          }
+                        }}
+                        className="shrink-0"
+                      >
+                        {scannerActive ? (
+                          <X className="mr-1 size-4" />
+                        ) : (
+                          <QrCode className="mr-1 size-4" />
+                        )}
+                        {scannerActive ? "Đóng" : "Quét QR"}
+                      </Button>
                     </div>
-                  )}
-                  {errors.shipmentId ? (
-                    <p className="text-sm text-destructive">
-                      {errors.shipmentId.message}
-                    </p>
-                  ) : (
-                    !isLookingUp &&
-                    !resolvedShipment && (
-                      <p className="text-xs text-muted-foreground">
-                        Quét QR bằng camera hoặc nhập mã lô hàng thủ công (mã
-                        truy xuất hoặc UUID).
+
+                    {/* Camera inline */}
+                    {scannerActive && (
+                      <div className="relative overflow-hidden rounded-lg bg-black">
+                        <video
+                          ref={videoRef}
+                          className="aspect-video w-full object-cover"
+                          muted
+                          playsInline
+                        />
+                        {scannerError && (
+                          <div className="absolute inset-x-0 bottom-0 bg-black/70 px-3 py-2 text-center text-sm text-white">
+                            {scannerError}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {isLookingUp && (
+                      <p className="flex items-center gap-1.5 text-sm text-emerald-700">
+                        <LoaderCircle className="size-3.5 animate-spin" />
+                        Đang tra cứu lô hàng...
                       </p>
-                    )
-                  )}
+                    )}
+
+                    {errors.shipmentId ? (
+                      <p className="text-sm text-destructive">
+                        {errors.shipmentId.message}
+                      </p>
+                    ) : (
+                      !isLookingUp &&
+                      !resolvedShipment && (
+                        <p className="text-xs text-muted-foreground">
+                          Quét QR bằng camera hoặc nhập mã truy xuất / UUID.
+                        </p>
+                      )
+                    )}
+                  </div>
                 </div>
 
                 {/* Số lượng thực nhận */}
                 <div className="space-y-2">
-                  <Label htmlFor="receivedQuantity">
-                    Số lượng thực nhận *
+                  <Label
+                    htmlFor="receivedQuantity"
+                    className="flex items-center gap-1"
+                  >
+                    Số lượng thực nhận <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="receivedQuantity"
@@ -414,26 +460,46 @@ export function RecordProcurementDialog({
                     </p>
                   )}
                 </div>
+              </div>
 
-                {/* Vị trí GPS */}
-                <div className="space-y-3 rounded-lg border border-emerald-100 bg-emerald-50/20 p-4">
-                  <Label className="flex items-center gap-1.5 font-semibold text-emerald-800">
-                    <MapPin className="size-4 text-emerald-700" />
-                    Vị trí nhận hàng (Click trên bản đồ)
-                  </Label>
-
-                  <LocationPicker
-                    onLocationSelect={(lat, lng) => {
-                      setValue("latitude", lat, { shouldValidate: true });
-                      setValue("longitude", lng, { shouldValidate: true });
-                    }}
-                    initialPosition={
-                      rawLatitude && rawLongitude
-                        ? { lat: Number(rawLatitude), lng: Number(rawLongitude) }
-                        : undefined
-                    }
-                    height="240px"
-                  />
+              {/* Cột phải */}
+              <div className="space-y-4">
+                {/* Vị trí nhận hàng */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="flex items-center gap-1.5 text-sm font-medium">
+                      <MapPin className="size-4 text-emerald-600" />
+                      Vị trí nhận hàng
+                    </Label>
+                    {rawLatitude && rawLongitude && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs text-emerald-700"
+                      >
+                        Đã chọn
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="rounded-lg border border-emerald-100 bg-emerald-50/20 p-2">
+                    {/* ✅ Bỏ className trên LocationPicker, thêm wrapper div */}
+                    <div className="rounded-md overflow-hidden">
+                      <LocationPicker
+                        onLocationSelect={(lat, lng) => {
+                          setValue("latitude", lat, { shouldValidate: true });
+                          setValue("longitude", lng, { shouldValidate: true });
+                        }}
+                        initialPosition={
+                          rawLatitude && rawLongitude
+                            ? {
+                                lat: Number(rawLatitude),
+                                lng: Number(rawLongitude),
+                              }
+                            : undefined
+                        }
+                        height="200px"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Ghi chú */}
@@ -460,129 +526,69 @@ export function RecordProcurementDialog({
                     </p>
                   )}
                 </div>
+              </div>
+            </div>
 
-                {/* Nút hành động */}
-                <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={isLoading}
-                    onClick={handleReset}
-                    className="sm:order-first"
-                  >
-                    <RotateCcw className="mr-2 size-4" />
-                    Làm mới
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={isLoading}
-                    className="flex-1 sm:flex-none"
-                  >
-                    {isLoading ? (
-                      <>
-                        <LoaderCircle className="mr-2 size-4 animate-spin" />
-                        Đang ghi nhận...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="mr-2 size-4" />
-                        Ghi nhận
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            )}
-
-            {/* Kết quả sau khi ghi thành công */}
-            {data && (
-              <Card className="border-emerald-200 bg-emerald-50">
-                <CardContent className="pt-6">
-                  <p className="font-semibold text-emerald-800">
-                    Ghi nhận thành công!
-                  </p>
-                  <div className="mt-3 space-y-1.5 rounded-lg bg-white/60 p-3 text-sm text-emerald-800">
-                    <p>
-                      Mã sự kiện:{" "}
-                      <span className="font-mono text-xs">{data.id}</span>
-                    </p>
-                    <p>
-                      Lô hàng:{" "}
-                      <span className="font-semibold">
-                        {data.eventData.shipmentName}
-                      </span>
-                    </p>
-                    <p>
-                      Số lượng thực nhận:{" "}
-                      <span className="font-semibold">
-                        {data.eventData.receivedQuantity.toLocaleString(
-                          "vi-VN",
-                        )}
-                      </span>
-                    </p>
-                    <p>
-                      Người ghi:{" "}
-                      <span className="font-semibold">
-                        {data.recordedByName}
-                      </span>
-                    </p>
-                    <p>
-                      Thời gian:{" "}
-                      <span className="font-semibold">
-                        {new Date(data.recordedAt).toLocaleString("vi-VN")}
-                      </span>
-                    </p>
+            {/* ── Thông tin lô hàng đã tra cứu (full width) ── */}
+            {resolvedShipment && (
+              <Card className="border-emerald-200 bg-emerald-50/50 shadow-sm">
+                <CardContent className="p-3">
+                  <div className="flex items-start gap-3">
+                    <Package className="mt-0.5 size-5 text-emerald-600" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-emerald-800">
+                        {resolvedShipment.name}
+                      </p>
+                      <div className="mt-1 grid grid-cols-2 gap-1 text-xs text-emerald-700">
+                        <span>
+                          Lô sản xuất:{" "}
+                          {resolvedShipment.productionLotName || "—"}
+                        </span>
+                        <span>
+                          Sản lượng:{" "}
+                          {resolvedShipment.totalQuantity?.toLocaleString(
+                            "vi-VN",
+                          ) || "—"}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             )}
-          </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* Hộp thoại quét mã QR bằng camera */}
-      <Dialog
-        open={scannerOpen}
-        onOpenChange={(open) => {
-          if (open) {
-            setScannerOpen(true);
-          } else {
-            stopScanning();
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <QrCode className="size-5" />
-              Quét mã lô hàng
-            </DialogTitle>
-            <DialogDescription>
-              Đưa mã QR trên bao bì vào trong khung hình để hệ thống tự điền mã
-              lô hàng.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="overflow-hidden rounded-lg bg-black">
-            <video
-              ref={videoRef}
-              className="aspect-video w-full object-cover"
-              muted
-              playsInline
-            />
-          </div>
-
-          {scannerError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {scannerError}
+            {/* ── Nút hành động ── */}
+            <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isLoading}
+                onClick={handleReset}
+              >
+                <RotateCcw className="mr-2 size-4" />
+                Làm mới
+              </Button>
+              <Button
+                type="submit"
+                disabled={isLoading || !watch("shipmentId")}
+                className="min-w-32"
+              >
+                {isLoading ? (
+                  <>
+                    <LoaderCircle className="mr-2 size-4 animate-spin" />
+                    Đang ghi...
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 size-4" />
+                    Ghi nhận
+                  </>
+                )}
+              </Button>
             </div>
-          )}
-
-          <Button type="button" variant="outline" onClick={stopScanning}>
-            Hủy quét
-          </Button>
-        </DialogContent>
-      </Dialog>
-    </>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

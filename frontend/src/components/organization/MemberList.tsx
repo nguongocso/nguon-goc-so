@@ -429,27 +429,6 @@ export const MemberList = () => {
                                 >
                                   {member.roleCode ? "Đổi vai trò" : "Cấp quyền"}
                                 </Button>
-
-                                {(member.roleCode === "VT-03" ||
-                                  member.roleCode === "EVENT_RECORDER" ||
-                                  member.roleId === 3 ||
-                                  String(member.roleCode || "").includes("03")) && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={inactive}
-                                    onClick={() =>
-                                      navigate(
-                                        `/permissions/config?roleId=${member.roleId || 3}&roleCode=VT-03`
-                                      )
-                                    }
-                                    className="border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 hover:text-purple-800 h-8 text-xs gap-1 font-medium"
-                                    title="Cấu hình chi tiết các sự kiện được phép ghi nhận"
-                                  >
-                                    <ShieldCheck className="h-3.5 w-3.5" />
-                                    Phân quyền sự kiện
-                                  </Button>
-                                )}
                               </div>
                             </TableCell>
                           )}

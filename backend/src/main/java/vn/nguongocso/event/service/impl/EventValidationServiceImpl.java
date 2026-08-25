@@ -2,15 +2,18 @@ package vn.nguongocso.event.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.PageResponse;
+import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.event.dto.response.FailedEventLogResponse;
 import vn.nguongocso.event.dto.response.LotValidationResponse;
 import vn.nguongocso.event.entity.FailedEventLog;
@@ -48,6 +51,7 @@ public class EventValidationServiceImpl implements EventValidationService {
     private final CodeRangeRepository codeRangeRepository;
     private final ChainEventRepository chainEventRepository;
     private final DossierExportHistoryRepository dossierExportHistoryRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /** Kiểm tra tính hợp lệ của lô cho loại sự kiện. */
     @Override
@@ -156,7 +160,34 @@ public class EventValidationServiceImpl implements EventValidationService {
         // 5. Xóa Shipment
         shipmentRepository.delete(shipment);
 
+        // 6. Ghi nhật ký hoạt động (TASK-27): hủy bản nháp lô hàng
+        publishActivityLog(currentUser, "DELETE_SHIPMENT_DRAFT",
+                "Hủy bản nháp lô hàng '" + shipment.getName() + "' và hoàn lại dải mã",
+                "SHIPMENT", shipment.getId().toString());
+
         log.info("Hủy bản nháp lô hàng thành công: id={}, name={}", shipment.getId(), shipment.getName());
+    }
+
+    /**
+     * Ghi nhật ký hoạt động theo convention của hệ thống (TASK-27).
+     * <p>
+     * Actor lấy từ người dùng đã xác thực trong security context,
+     * organization lấy từ organization của người thực hiện.
+     */
+    private void publishActivityLog(CustomUserDetails currentUser, String action, String description,
+            String entityType, String entityId) {
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+                .userId(currentUser.getUserId())
+                .username(currentUser.getUsername())
+                .fullName(currentUser.getFullName())
+                .organizationId(currentUser.getOrganizationId())
+                .action(action)
+                .description(description)
+                .entityType(entityType)
+                .entityId(entityId)
+                .ipAddress(IpUtils.getClientIp())
+                .timestamp(LocalDateTime.now())
+                .build());
     }
 
     /** Lấy danh sách log sự kiện thất bại. */

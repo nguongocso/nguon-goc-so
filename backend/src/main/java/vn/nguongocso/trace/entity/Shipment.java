@@ -45,6 +45,10 @@ public class Shipment {
     @JoinColumn(name = "organization_id", nullable = false)
     private Organization organization;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "code_range_id")
+    private CodeRange codeRange;
+
     @Column(nullable = false)
     private String name;
 

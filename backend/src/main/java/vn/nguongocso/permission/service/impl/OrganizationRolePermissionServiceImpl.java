@@ -1,15 +1,18 @@
 package vn.nguongocso.permission.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.Role;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.RoleRepository;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.auth.security.SecurityUtils;
+import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
@@ -27,6 +30,7 @@ import vn.nguongocso.permission.repository.RolePermissionRepository;
 import vn.nguongocso.permission.service.OrganizationRolePermissionService;
 import vn.nguongocso.permission.service.PermissionChecker;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -51,6 +55,8 @@ public class OrganizationRolePermissionServiceImpl
         private final UserRepository userRepository;
 
         private final PermissionChecker permissionChecker;
+
+        private final ApplicationEventPublisher eventPublisher;
 
         private CustomUserDetails getCurrentUser() {
                 return SecurityUtils.getCurrentUserDetails();
@@ -294,7 +300,7 @@ public class OrganizationRolePermissionServiceImpl
                         UpdateRolePermissionRequest request) {
 
                 // Kiểm tra quyền
-                validateOrganizationManager(organizationId);
+                CustomUserDetails currentUserDetails = validateOrganizationManager(organizationId);
 
                 // Không cho phép sửa quyền Admin hệ thống
                 validateTargetRole(roleId);
@@ -342,6 +348,37 @@ public class OrganizationRolePermissionServiceImpl
                         }
                 }
 
+                // Ghi nhật ký hoạt động (TASK-27): cấu hình quyền vai trò trong tổ chức
+                publishActivityLog(
+                                currentUserDetails,
+                                "UPDATE_ROLE_PERMISSIONS",
+                                "Cập nhật " + request.getPermissions().size()
+                                                + " quyền cho vai trò '" + role.getName() + "'",
+                                "ORGANIZATION_ROLE_PERMISSION",
+                                String.valueOf(roleId));
+
                 return getRolePermissions(organizationId, roleId);
+        }
+
+        /**
+         * Ghi nhật ký hoạt động theo convention của hệ thống (TASK-27).
+         * <p>
+         * Actor lấy từ người dùng đã xác thực trong security context,
+         * organization lấy từ organization của người thực hiện.
+         */
+        private void publishActivityLog(CustomUserDetails currentUser, String action, String description,
+                        String entityType, String entityId) {
+                eventPublisher.publishEvent(ActivityLogEvent.builder()
+                                .userId(currentUser.getUserId())
+                                .username(currentUser.getUsername())
+                                .fullName(currentUser.getFullName())
+                                .organizationId(currentUser.getOrganizationId())
+                                .action(action)
+                                .description(description)
+                                .entityType(entityType)
+                                .entityId(entityId)
+                                .ipAddress(IpUtils.getClientIp())
+                                .timestamp(LocalDateTime.now())
+                                .build());
         }
 }
