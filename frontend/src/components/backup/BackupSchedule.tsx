@@ -45,7 +45,7 @@ export const BackupSchedule = ({ schedule, onEdit, onToggleActive, disabled }: P
           <CardDescription>Chưa có cấu hình lịch sao lưu tự động</CardDescription>
         </CardHeader>
         <CardFooter>
-          <Button onClick={onEdit} disabled={disabled} className="bg-emerald-600 hover:bg-emerald-700">
+          <Button onClick={onEdit} disabled={disabled} variant="create">
             <Pencil className="h-4 w-4 mr-1" /> Thiết lập ngay
           </Button>
         </CardFooter>
