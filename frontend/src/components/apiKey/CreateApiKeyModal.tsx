@@ -187,7 +187,7 @@ export const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
             <Button
               type="submit"
               disabled={loading}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              variant="create"
             >
               {loading ? (
                 <>
