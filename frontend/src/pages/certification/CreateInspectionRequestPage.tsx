@@ -381,6 +381,11 @@ export const CreateInspectionRequestPage: React.FC = () => {
     }
   };
 
+  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void handleSubmit(false);
+  };
+
   // --- Trạng thái Loading ---
   if (isLoading) {
     return (
@@ -439,7 +444,20 @@ export const CreateInspectionRequestPage: React.FC = () => {
   const selectedCount = selectedCriteriaIds.length;
 
   return (
-    <div className="space-y-6 pb-28">
+    <form onSubmit={handleFormSubmit} className="space-y-6 pb-28">
+      <div className="flex items-center justify-end gap-2">
+        <HelpButton screenKey="inspection-request-create" />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => void loadInitialData()}
+          className="h-9 rounded-xl border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 shadow-xs hover:bg-slate-50"
+        >
+          <RotateCw className="mr-1.5 h-3.5 w-3.5" /> Tải lại
+        </Button>
+      </div>
+
       {/* SECTION 0: Header Card with Breadcrumb & Screen Help */}
       <Card className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
         <div>
@@ -487,18 +505,6 @@ export const CreateInspectionRequestPage: React.FC = () => {
                 <span className="font-semibold text-slate-800">{lot.name}</span>
               </p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <HelpButton screenKey="inspection-request-create" />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void loadInitialData()}
-              className="h-9 rounded-xl border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 shadow-xs hover:bg-slate-50"
-            >
-              <RotateCw className="mr-1.5 h-3.5 w-3.5" /> Tải lại
-            </Button>
           </div>
         </div>
       </Card>
@@ -553,6 +559,9 @@ export const CreateInspectionRequestPage: React.FC = () => {
                       placeholder="Tìm theo tên hoặc mã chỉ tiêu..."
                       value={criteriaSearch}
                       onChange={(e) => setCriteriaSearch(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") e.preventDefault();
+                      }}
                       className="h-9 pl-9 text-xs rounded-xl border-slate-200"
                     />
                     {criteriaSearch && (
@@ -567,14 +576,14 @@ export const CreateInspectionRequestPage: React.FC = () => {
                   </div>
 
                   {/* Filter Pills */}
-                  <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-0.5 text-xs">
+                  <div className="inline-flex items-center rounded-xl border border-emerald-100 bg-white/80 backdrop-blur-sm p-1">
                     <button
                       type="button"
                       onClick={() => setCriteriaFilter("ALL")}
-                      className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all ${
+                      className={`rounded-lg px-3 py-1.5 text-xs transition-all ${
                         criteriaFilter === "ALL"
-                          ? "bg-white text-slate-900 shadow-2xs font-semibold"
-                          : "text-slate-500 hover:text-slate-900"
+                          ? "border border-emerald-300 bg-white font-semibold text-emerald-800 shadow-2xs"
+                          : "border border-transparent font-medium text-slate-500 hover:text-slate-800"
                       }`}
                     >
                       Tất cả
@@ -582,10 +591,10 @@ export const CreateInspectionRequestPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setCriteriaFilter("SELECTED")}
-                      className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all ${
+                      className={`rounded-lg px-3 py-1.5 text-xs transition-all ${
                         criteriaFilter === "SELECTED"
-                          ? "bg-white text-emerald-800 shadow-2xs font-semibold"
-                          : "text-slate-500 hover:text-slate-900"
+                          ? "border border-emerald-300 bg-white font-semibold text-emerald-800 shadow-2xs"
+                          : "border border-transparent font-medium text-slate-500 hover:text-slate-800"
                       }`}
                     >
                       Đã chọn ({selectedCount})
@@ -593,10 +602,10 @@ export const CreateInspectionRequestPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setCriteriaFilter("UNSELECTED")}
-                      className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all ${
+                      className={`rounded-lg px-3 py-1.5 text-xs transition-all ${
                         criteriaFilter === "UNSELECTED"
-                          ? "bg-white text-slate-900 shadow-2xs font-semibold"
-                          : "text-slate-500 hover:text-slate-900"
+                          ? "border border-emerald-300 bg-white font-semibold text-emerald-800 shadow-2xs"
+                          : "border border-transparent font-medium text-slate-500 hover:text-slate-800"
                       }`}
                     >
                       Chưa chọn ({totalCriteriaCount - selectedCount})
@@ -1068,57 +1077,44 @@ export const CreateInspectionRequestPage: React.FC = () => {
       </div>
 
       {/* SECTION 2: STICKY ACTION BAR */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-md px-4 py-3.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-md px-4 py-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={handleClearDraft}
+            disabled={submitting}
+            className="rounded-xl text-xs font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+          >
+            Làm mới form
+          </Button>
+
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate(`/production-lots/${effectiveLotId}`)}
+            onClick={handleSaveDraft}
             disabled={submitting}
-            className="rounded-xl border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            className="rounded-xl border-emerald-200 text-xs font-medium text-emerald-800 bg-emerald-50/50 hover:bg-emerald-100/60"
           >
-            <ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Quay lại
+            <Save className="mr-1.5 h-3.5 w-3.5 text-emerald-700" /> Lưu bản nháp
           </Button>
 
-          <div className="flex items-center gap-2.5">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={handleClearDraft}
-              disabled={submitting}
-              className="rounded-xl text-xs font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-            >
-              Làm mới form
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleSaveDraft}
-              disabled={submitting}
-              className="rounded-xl border-emerald-200 text-xs font-medium text-emerald-800 bg-emerald-50/50 hover:bg-emerald-100/60"
-            >
-              <Save className="mr-1.5 h-3.5 w-3.5 text-emerald-700" /> Lưu bản nháp
-            </Button>
-
-            <Button
-              type="button"
-              variant="create"
-              onClick={() => void handleSubmit(false)}
-              disabled={!canSubmit}
-              className="rounded-xl text-xs font-semibold px-5 shadow-xs"
-            >
-              {submitting ? (
-                <>
-                  <LoaderCircle className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Đang tạo...
-                </>
-              ) : (
-                <>
-                  <Send className="mr-1.5 h-3.5 w-3.5" /> Tạo yêu cầu kiểm nghiệm
-                </>
-              )}
-            </Button>
-          </div>
+          <Button
+            type="submit"
+            variant="create"
+            disabled={!canSubmit}
+            className="rounded-xl text-xs font-semibold px-5 shadow-xs"
+          >
+            {submitting ? (
+              <>
+                <LoaderCircle className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Đang tạo...
+              </>
+            ) : (
+              <>
+                <Send className="mr-1.5 h-3.5 w-3.5" /> Tạo yêu cầu kiểm nghiệm
+              </>
+            )}
+          </Button>
         </div>
       </div>
 
@@ -1144,6 +1140,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <Button
+              type="button"
               variant="outline"
               onClick={() => setDuplicateOpen(false)}
               disabled={submitting}
@@ -1152,6 +1149,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
               Quay lại chỉnh sửa
             </Button>
             <Button
+              type="button"
               variant="create"
               onClick={() => {
                 setDuplicateOpen(false);
@@ -1165,7 +1163,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogPopup>
       </AlertDialog>
-    </div>
+    </form>
   );
 };
 
