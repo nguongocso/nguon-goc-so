@@ -654,81 +654,77 @@ export const RecordInspectionResultPage: React.FC = () => {
               </Button>
             </div>
           </div>
+        </Card>
 
-          {/* Filter Tabs */}
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3.5">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-500">Lọc hiển thị:</span>
-              <div className="flex rounded-xl border border-slate-200 bg-white p-1 text-xs shadow-xs">
-                <button
-                  type="button"
-                  onClick={() => setFilterTab("ALL")}
-                  className={`rounded-lg px-3 py-1 font-medium transition-all ${
-                    filterTab === "ALL"
-                      ? "bg-[#2E7D32] text-white shadow-xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  Tất cả ({totalCriteria})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterTab("UNSET")}
-                  className={`rounded-lg px-3 py-1 font-medium transition-all ${
-                    filterTab === "UNSET"
-                      ? "bg-amber-600 text-white shadow-xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  Chưa nhập ({unsetCount})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterTab("PASSED")}
-                  className={`rounded-lg px-3 py-1 font-medium transition-all ${
-                    filterTab === "PASSED"
-                      ? "bg-emerald-600 text-white shadow-xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  Đạt ({passedCount})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilterTab("FAILED")}
-                  className={`rounded-lg px-3 py-1 font-medium transition-all ${
-                    filterTab === "FAILED"
-                      ? "bg-red-600 text-white shadow-xs"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  Không đạt ({failedCount})
-                </button>
-              </div>
+        {/* SECTION 3: Main Criteria Table Section */}
+        <div className="space-y-3.5">
+          {/* Header */}
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">
+              Danh sách chỉ tiêu kiểm nghiệm
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Chọn kết luận Đạt/Không đạt và thiết lập ngày hiệu lực cho từng chỉ tiêu
+            </p>
+          </div>
+
+          {/* Filter Bar & Counter */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="inline-flex max-w-full overflow-x-auto items-center gap-1 rounded-2xl border border-emerald-100 bg-white/80 p-1 shadow-2xs backdrop-blur-sm">
+              <button
+                type="button"
+                onClick={() => setFilterTab("ALL")}
+                className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                  filterTab === "ALL"
+                    ? "border border-emerald-700 bg-white text-emerald-800 shadow-2xs"
+                    : "border border-transparent text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Tất cả ({totalCriteria})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterTab("UNSET")}
+                className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                  filterTab === "UNSET"
+                    ? "border border-emerald-700 bg-white text-emerald-800 shadow-2xs"
+                    : "border border-transparent text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Chưa nhập ({unsetCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterTab("PASSED")}
+                className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                  filterTab === "PASSED"
+                    ? "border border-emerald-700 bg-white text-emerald-800 shadow-2xs"
+                    : "border border-transparent text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Đạt ({passedCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterTab("FAILED")}
+                className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                  filterTab === "FAILED"
+                    ? "border border-emerald-700 bg-white text-emerald-800 shadow-2xs"
+                    : "border border-transparent text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Không đạt ({failedCount})
+              </button>
             </div>
 
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-slate-500 whitespace-nowrap">
               Hiển thị {filteredRows.length}/{totalCriteria} chỉ tiêu
             </span>
           </div>
-        </Card>
 
-        {/* SECTION 3: Main Criteria Table Container with Rounded Borders */}
-        <Card className="rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden">
-          <CardHeader className="border-b border-slate-100 bg-[#F8FAFC] p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base font-semibold text-[#1F2937]">
-                  Danh sách chỉ tiêu kiểm nghiệm
-                </CardTitle>
-                <CardDescription className="text-xs text-slate-500 mt-0.5">
-                  Chọn kết luận Đạt/Không đạt và thiết lập ngày hiệu lực cho từng chỉ tiêu
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-0">
+          {/* Table Container Card */}
+          <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <CardContent className="p-0">
             {filteredRows.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center text-slate-400">
                 <Info className="h-8 w-8 mb-2 text-slate-300" />
@@ -947,6 +943,7 @@ export const RecordInspectionResultPage: React.FC = () => {
             )}
           </CardContent>
         </Card>
+      </div>
 
         {/* SECTION 4: Real-time Feedback & Forecast */}
         <div className="space-y-4">
