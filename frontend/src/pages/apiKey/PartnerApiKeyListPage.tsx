@@ -206,8 +206,9 @@ export const PartnerApiKeyListPage: React.FC = () => {
             </div>
 
             {/* Nút làm mới */}
-            <Button variant="outline" size="icon" onClick={fetchApiKeys} title="Làm mới dữ liệu">
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <Button variant="outline" onClick={fetchApiKeys} disabled={loading}>
+              <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+              Làm mới
             </Button>
           </div>
 
