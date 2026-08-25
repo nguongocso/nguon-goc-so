@@ -526,28 +526,48 @@ public class InspectionRequestServiceImpl
                                     pageable);
         }
 
-        return result.map(request ->
-                InspectionRequestListResponse.builder()
-                        .testRequestId(
-                                request.getId())
-                        .lotCode(
-                                request.getProductionLot() != null
-                                        ? request.getProductionLot()
-                                        .getName()
-                                        : null)
-                        .status(
-                                mapStatus(
-                                        request.getStatus()))
-                        .testingUnit(
-                                request.getInspectionUnit())
-                        .sampleSentDate(
-                                request.getSampleSentDate())
-                        .criteriaCount(
-                                request.getCriteria() == null
-                                        ? 0
-                                        : request.getCriteria()
-                                        .size())
-                        .build());
+        /*
+         * Đếm số chỉ tiêu không đạt cho toàn bộ trang kết quả
+         * bằng một truy vấn nhóm duy nhất (tránh N+1).
+         */
+        Map<UUID, Long> failedCountByRequestId =
+                countFailedByRequestIds(result.getContent());
+
+        return result.map(request -> {
+            int criteriaCount =
+                    request.getCriteria() == null
+                            ? 0
+                            : request.getCriteria()
+                            .size();
+            int failedCriteriaCount = failedCountByRequestId
+                    .getOrDefault(request.getId(), 0L)
+                    .intValue();
+
+            return InspectionRequestListResponse.builder()
+                    .testRequestId(
+                            request.getId())
+                    .lotCode(
+                            request.getProductionLot() != null
+                                    ? request.getProductionLot()
+                                    .getName()
+                                    : null)
+                    .status(
+                            mapStatus(
+                                    request.getStatus()))
+                    .testingUnit(
+                            request.getInspectionUnit())
+                    .sampleSentDate(
+                            request.getSampleSentDate())
+                    .criteriaCount(
+                            criteriaCount)
+                    .failedCriteriaCount(
+                            failedCriteriaCount)
+                    .failedRatio(
+                            computeFailedRatio(
+                                    failedCriteriaCount,
+                                    criteriaCount))
+                    .build();
+        });
     }
 
     @Override
@@ -610,6 +630,33 @@ public class InspectionRequestServiceImpl
                                         .build())
                         .toList();
 
+        /*
+         * Thống kê tổng hợp kết quả kiểm nghiệm:
+         * - Tổng số chỉ tiêu của yêu cầu.
+         * - Số chỉ tiêu đã có kết quả / đạt / không đạt.
+         * - Tỷ lệ không đạt (%) trên TỔNG số chỉ tiêu.
+         *
+         * Lưu ý: chỉ tiêu chưa có kết quả không được tính vào
+         * evaluated/passed/failed; kết quả hết hạn nhưng passed = true
+         * vẫn tính là ĐẠT ở đây (khác với logic can-activate-seal).
+         */
+        int totalCriteria = criteria.size();
+        int evaluatedCriteria = 0;
+        int passedCriteria = 0;
+        int failedCriteriaCount = 0;
+
+        for (InspectionRequestDetailCriterionResponse criterion : criteria) {
+            if (criterion.getResult() != null) {
+                evaluatedCriteria++;
+                if (Boolean.TRUE.equals(
+                        criterion.getResult().getPassed())) {
+                    passedCriteria++;
+                } else {
+                    failedCriteriaCount++;
+                }
+            }
+        }
+
         return InspectionRequestDetailResponse.builder()
                 .testRequestId(
                         request.getId())
@@ -626,6 +673,18 @@ public class InspectionRequestServiceImpl
                         request.getInspectionUnit())
                 .sampleSentDate(
                         request.getSampleSentDate())
+                .totalCriteria(
+                        totalCriteria)
+                .evaluatedCriteria(
+                        evaluatedCriteria)
+                .passedCriteria(
+                        passedCriteria)
+                .failedCriteriaCount(
+                        failedCriteriaCount)
+                .failedRatio(
+                        computeFailedRatio(
+                                failedCriteriaCount,
+                                totalCriteria))
                 .criteria(
                         criteria)
                 .build();
@@ -892,5 +951,55 @@ public class InspectionRequestServiceImpl
             case FAILED -> "FAILED";
             case CANCELLED -> "CANCELLED";
         };
+    }
+
+    /**
+     * Đếm số chỉ tiêu không đạt (passed = false) cho từng yêu cầu
+     * kiểm nghiệm trong danh sách, bằng một truy vấn nhóm duy nhất
+     * để tránh N+1 khi map trang danh sách.
+     *
+     * @param requests Danh sách yêu cầu kiểm nghiệm.
+     * @return Map giữa requestId và số chỉ tiêu không đạt.
+     */
+    private Map<UUID, Long> countFailedByRequestIds(
+            List<InspectionRequest> requests) {
+
+        List<UUID> requestIds = requests.stream()
+                .map(InspectionRequest::getId)
+                .toList();
+
+        if (requestIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return inspectionCriterionResultRepository
+                .countFailedCriteriaByRequestIds(requestIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        row -> (UUID) row[0],
+                        row -> (Long) row[1]));
+    }
+
+    /**
+     * Tính tỷ lệ phần trăm chỉ tiêu không đạt trên TỔNG số chỉ tiêu,
+     * làm tròn 1 chữ số thập phân.
+     *
+     * Trả về 0.0 khi tổng số chỉ tiêu là 0 (tránh chia cho 0).
+     *
+     * @param failedCriteriaCount Số chỉ tiêu không đạt.
+     * @param totalCriteria Tổng số chỉ tiêu của yêu cầu.
+     * @return Tỷ lệ không đạt theo %, ví dụ 40.0.
+     */
+    private double computeFailedRatio(
+            int failedCriteriaCount,
+            int totalCriteria) {
+
+        if (totalCriteria <= 0) {
+            return 0.0;
+        }
+
+        return Math.round(
+                failedCriteriaCount * 1000.0 / totalCriteria)
+                / 10.0;
     }
 }

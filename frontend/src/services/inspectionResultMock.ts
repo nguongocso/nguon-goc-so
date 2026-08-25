@@ -51,6 +51,10 @@ export const mockFetchPublicInspections = async (
       productionLotId: "mock-public-lot",
       lotName: "Lô sản xuất mẫu",
       hasInspection: false,
+      totalCriteria: 0,
+      passedCriteria: 0,
+      failedCriteriaCount: 0,
+      failedRatio: 0.0,
       inspections: [],
     };
   }
@@ -66,10 +70,18 @@ export const mockFetchPublicInspections = async (
   const expiryDate = new Date(now);
   expiryDate.setMonth(expiryDate.getMonth() + 5);
 
+  const passedCount = passed ? 2 : 0;
+  const failedCount = 2 - passedCount;
+  const failedRatio = Math.round((failedCount / 2) * 1000) / 10;
+
   return {
     productionLotId: "mock-public-lot",
     lotName: "Lô sản xuất mẫu",
     hasInspection: true,
+    totalCriteria: 2,
+    passedCriteria: passedCount,
+    failedCriteriaCount: failedCount,
+    failedRatio: failedRatio,
     inspections: [
       {
         id: `mock-res-${seed}-1`,

@@ -83,6 +83,8 @@ import FarmAreaListPage from "@/pages/farm-area/FarmAreaListPage";
 // ===== Certification =====
 import CreateCertificationPage from "@/pages/certification/CreateCertificationPage";
 import CertificationListPage from "@/pages/certification/CertificationListPage";
+import RecordInspectionResultPage from "@/pages/certification/RecordInspectionResultPage";
+import CreateInspectionRequestPage from "@/pages/certification/CreateInspectionRequestPage";
 
 // ===== Offline events =====
 import OfflineEventPage from "@/pages/offline/OfflineEventPage";
@@ -818,6 +820,42 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-02"]}>
                         <CreateCertificationPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:lotId/inspection-requests/create"
+                element={
+                    <RoleRoute allowedRoles={["VT-02"]}>
+                        <CreateInspectionRequestPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:id/inspection-requests/create"
+                element={
+                    <RoleRoute allowedRoles={["VT-02"]}>
+                        <CreateInspectionRequestPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:lotId/inspection-requests/:requestId/results"
+                element={
+                    <RoleRoute allowedRoles={["VT-02"]}>
+                        <RecordInspectionResultPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="inspection-requests/:requestId/results"
+                element={
+                    <RoleRoute allowedRoles={["VT-02"]}>
+                        <RecordInspectionResultPage />
                     </RoleRoute>
                 }
             />
