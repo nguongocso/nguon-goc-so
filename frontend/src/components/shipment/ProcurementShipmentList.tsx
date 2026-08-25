@@ -21,7 +21,6 @@ import { ShipmentDetailDialog } from "@/components/shipment/ShipmentDetailDialog
 import { ROLE_ACCESS } from "@/config/roleAccess";
 import { usePermission } from "@/hooks/usePermission";
 import {
-  Eye,
   FileJson,
   LoaderCircle,
   Package,
@@ -178,6 +177,7 @@ export function ProcurementShipmentList({
                     "Sản lượng",
                     "Trạng thái",
                     "Thao tác",
+                    "Chi tiết",
                   ].map((title) => (
                     <TableHead key={title}>{title}</TableHead>
                   ))}
@@ -188,7 +188,7 @@ export function ProcurementShipmentList({
                 {isLoading && (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="py-12 text-center text-muted-foreground"
                     >
                       <LoaderCircle className="mx-auto mb-2 size-5 animate-spin" />
@@ -229,42 +229,44 @@ export function ProcurementShipmentList({
                       </TableCell>
 
                       <TableCell>
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex justify-end gap-1">
                           <Button
-                            size="sm"
+                            size="icon-sm"
                             type="button"
-                            variant="outline"
-                            onClick={() =>
-                              handleViewDetail(shipment.id)
-                            }
-                          >
-                            <Eye className="size-4" />
-                            Chi tiết
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            type="button"
+                            variant="ghost"
+                            title="Ghi nhận thu mua"
                             onClick={() =>
                               onRecordProcurement(shipment.id)
                             }
                           >
                             <ShoppingCart className="size-4" />
-                            Ghi nhận thu mua
                           </Button>
 
                           {canExportGs1 && (
                             <Button
-                              size="sm"
+                              size="icon-sm"
                               type="button"
-                              variant="outline"
+                              variant="ghost"
+                              title="Xuất hồ sơ GS1"
                               onClick={() => handleExportGs1(shipment.id)}
                             >
                               <FileJson className="size-4" />
-                              Xuất hồ sơ GS1
                             </Button>
                           )}
                         </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          type="button"
+                          variant="outline"
+                          onClick={() =>
+                            handleViewDetail(shipment.id)
+                          }
+                        >
+                          Chi tiết
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -272,7 +274,7 @@ export function ProcurementShipmentList({
                 {!isLoading && filtered.length === 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="py-12 text-center text-muted-foreground"
                     >
                       <Package className="mx-auto mb-3 size-10 text-muted-foreground/40" />
