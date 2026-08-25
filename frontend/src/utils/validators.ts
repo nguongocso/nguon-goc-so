@@ -212,8 +212,10 @@ export const updateProductionLotSchema = z.object({
 
     farmAreaId: z
         .string()
-        .nullable()
-        .optional(),
+        .min(
+            1,
+            'Vui lòng chọn vùng trồng',
+        ),
 
     productCategoryId: z
         .string()
