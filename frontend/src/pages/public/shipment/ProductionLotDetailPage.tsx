@@ -42,7 +42,6 @@ import {
 } from "@/api/certificationApi";
 import { CertificationList } from "@/components/certification/CertificationList";
 import { AttachCertificationDialog } from "@/components/certification/AttachCertificationDialog";
-import { RecordInspectionResultDialog } from "@/components/certification/RecordInspectionResultDialog";
 import {
   Dialog,
   DialogContent,
@@ -272,19 +271,7 @@ export const ProductionLotDetailPage = () => {
   const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [duplicateMessage, setDuplicateMessage] = useState("");
 
-  // Dialog ghi nhận kết quả kiểm nghiệm
-  const [resultDialogOpen, setResultDialogOpen] = useState(false);
-  const [resultRequestId, setResultRequestId] = useState<string | null>(null);
 
-  const openResultDialog = (requestId: string) => {
-    setResultRequestId(requestId);
-    setResultDialogOpen(true);
-  };
-
-  const handleResultRecorded = () => {
-  setInspectionReloadKey((key) => key + 1);
-  void loadCanActivateCheck();
-};
 
   const loadLot = async () => {
     if (!id) return;
@@ -923,17 +910,20 @@ export const ProductionLotDetailPage = () => {
                               </div>
                             </TableCell>
                             <TableCell>
-                              {(request.status === "PENDING" ||
-                                request.status === "FAILED") &&
-                                canInspect && (
+                              {canInspect && (
                                 <Button
                                   size="sm"
-                                  variant="edit"
+                                  variant={request.status === "PASSED" ? "outline" : "create"}
+                                  className="text-xs font-semibold"
                                   onClick={() =>
-                                    openResultDialog(request.testRequestId)
+                                    navigate(
+                                      `/production-lots/${id}/inspection-requests/${request.testRequestId}/results`
+                                    )
                                   }
                                 >
-                                  Nhập kết quả
+                                  {request.status === "PASSED"
+                                    ? "Xem / Sửa kết quả"
+                                    : "Nhập kết quả"}
                                 </Button>
                               )}
                             </TableCell>
@@ -993,19 +983,23 @@ export const ProductionLotDetailPage = () => {
                               Chưa đủ điều kiện kích hoạt tem
                             </Badge>
                           )}
-                        {(request.status === "PENDING" ||
-                          request.status === "FAILED") &&
-                          canInspect && (
-                          <Button
-                            size="sm"
-                            variant="edit"
-                            className="w-full"
-                            onClick={() =>
-                              openResultDialog(request.testRequestId)
-                            }
-                          >
-                            Nhập kết quả
-                          </Button>
+                        {canInspect && (
+                          <div className="flex gap-2 pt-1">
+                            <Button
+                              size="sm"
+                              variant={request.status === "PASSED" ? "outline" : "create"}
+                              className="w-full text-xs font-semibold"
+                              onClick={() =>
+                                navigate(
+                                  `/production-lots/${id}/inspection-requests/${request.testRequestId}/results`
+                                )
+                              }
+                            >
+                              {request.status === "PASSED"
+                                ? "Xem / Sửa kết quả"
+                                : "Nhập kết quả kiểm nghiệm"}
+                            </Button>
+                          </div>
                         )}
                       </div>
                     ))}
@@ -1268,15 +1262,7 @@ export const ProductionLotDetailPage = () => {
         </AlertDialogPopup>
       </AlertDialog>
 
-      {/* Ghi nhận kết quả kiểm nghiệm */}
-      {resultRequestId && (
-        <RecordInspectionResultDialog
-          open={resultDialogOpen}
-          onOpenChange={setResultDialogOpen}
-          requestId={resultRequestId}
-          onRecorded={handleResultRecorded}
-        />
-      )}
+
     </div>
   );
 };
