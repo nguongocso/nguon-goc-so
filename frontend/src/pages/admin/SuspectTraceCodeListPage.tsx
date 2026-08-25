@@ -291,8 +291,8 @@ export default function SuspectTraceCodeListPage() {
                     <TableHead>Lượt quét</TableHead>
                     <TableHead>Địa điểm</TableHead>
                     <TableHead>Trạng thái</TableHead>
-                    <TableHead className="text-right">Thao tác</TableHead>
-                    <TableHead className="text-right">Chi tiết</TableHead>
+                    <TableHead className="text-center">Thao tác</TableHead>
+                    <TableHead className="text-center">Chi tiết</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -335,7 +335,7 @@ export default function SuspectTraceCodeListPage() {
                       </TableCell>
                       <TableCell>{getStatusBadge(item.status)}</TableCell>
                       <TableCell>
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-center gap-1">
                           {item.status === 'SUSPECT' ? (
                             <Button
                               size="icon-sm"
@@ -351,7 +351,7 @@ export default function SuspectTraceCodeListPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end">
+                        <div className="flex justify-center">
                           <Button
                             size="sm"
                             variant="outline"
