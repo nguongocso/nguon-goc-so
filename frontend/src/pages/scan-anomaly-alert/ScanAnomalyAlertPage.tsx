@@ -30,7 +30,6 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Eye,
   MapPin,
   RefreshCw,
   Search,
@@ -307,6 +306,7 @@ export default function ScanAnomalyAlertPage() {
                     <TableHead>Dữ liệu quét</TableHead>
                     <TableHead>Trạng thái</TableHead>
                     <TableHead className="text-right">Thao tác</TableHead>
+                    <TableHead className="text-right">Chi tiết</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -343,25 +343,30 @@ export default function ScanAnomalyAlertPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-1">
+                          {alert.status === 'PENDING' ? (
+                            <Button
+                              size="icon-sm"
+                              variant="ghost"
+                              title="Xử lý cảnh báo"
+                              onClick={() => openResolveDialog(alert)}
+                            >
+                              <CheckCircle2 className="size-4" />
+                            </Button>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">—</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-end">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => setDetailsAlert(alert)}
                           >
-                            <Eye className="h-4 w-4" />
                             Chi tiết
                           </Button>
-                          {alert.status === 'PENDING' && (
-                            <Button
-                              size="sm"
-                              onClick={() => openResolveDialog(alert)}
-                              className="bg-emerald-600 hover:bg-emerald-700"
-                            >
-                              <CheckCircle2 className="h-4 w-4" />
-                              Xử lý
-                            </Button>
-                          )}
                         </div>
                       </TableCell>
                     </TableRow>
