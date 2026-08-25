@@ -179,7 +179,16 @@ export function ProcurementShipmentList({
                     "Thao tác",
                     "Chi tiết",
                   ].map((title) => (
-                    <TableHead key={title}>{title}</TableHead>
+                    <TableHead
+                      key={title}
+                      className={
+                        title === "Thao tác" || title === "Chi tiết"
+                          ? "text-center"
+                          : undefined
+                      }
+                    >
+                      {title}
+                    </TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
@@ -229,7 +238,7 @@ export function ProcurementShipmentList({
                       </TableCell>
 
                       <TableCell>
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-center gap-1">
                           <Button
                             size="icon-sm"
                             type="button"
@@ -256,7 +265,7 @@ export function ProcurementShipmentList({
                         </div>
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell className="text-center">
                         <Button
                           size="sm"
                           type="button"
