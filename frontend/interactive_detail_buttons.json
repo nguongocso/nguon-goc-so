@@ -1,0 +1,166 @@
+{
+  "components\\activity-log\\ActivityLogDetailDialog.tsx": [
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "lineNum": 177,
+      "lineContent": "{log.description || 'Không có mô tả chi tiết'}",
+      "context": "            title=\"Nội dung thao tác\"\r\n            icon={<FileText className=\"h-4 w-4 text-emerald-600\" />}\r\n          >\r\n            <p className=\"text-sm leading-relaxed\">\r\n              {log.description || 'Không có mô tả chi tiết'}\r\n            </p>\r\n          </DetailSection>\r\n\r\n          {/* Raw payload — technical, secondary, collapsed by default */}\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "lineNum": 185,
+      "lineContent": "description=\"Dữ liệu chi tiết (Payload) — JSON thô được ghi bởi hệ thống.\"",
+      "context": "          {/* Raw payload — technical, secondary, collapsed by default */}\r\n          {hasPayload && formattedPayload !== null && (\r\n            <DetailSection\r\n              title=\"Dữ liệu kỹ thuật\"\r\n              description=\"Dữ liệu chi tiết (Payload) — JSON thô được ghi bởi hệ thống.\"\r\n              icon={<Braces className=\"h-4 w-4 text-muted-foreground\" />}\r\n              contentClassName=\"overflow-hidden p-0\"\r\n            >\r\n              <details className=\"group\">\r"
+    }
+  ],
+  "components\\activity-log\\ActivityLogTable.tsx": [
+    {
+      "file": "components\\activity-log\\ActivityLogTable.tsx",
+      "lineNum": 129,
+      "lineContent": "title=\"Xem chi tiết thao tác\"",
+      "context": "                      variant=\"ghost\"\r\n                      size=\"sm\"\r\n                      onClick={() => setSelectedLog(log)}\r\n                      className=\"h-8 px-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 gap-1\"\r\n                      title=\"Xem chi tiết thao tác\"\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r\n                      <span className=\"text-xs font-medium\">Chi tiết</span>\r\n                    </Button>\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogTable.tsx",
+      "lineNum": 132,
+      "lineContent": "<span className=\"text-xs font-medium\">Chi tiết</span>",
+      "context": "                      className=\"h-8 px-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 gap-1\"\r\n                      title=\"Xem chi tiết thao tác\"\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r\n                      <span className=\"text-xs font-medium\">Chi tiết</span>\r\n                    </Button>\r\n                  </TableCell>\r\n                </TableRow>\r\n              );\r"
+    }
+  ],
+  "components\\farm-log\\AttachmentManager.tsx": [
+    {
+      "file": "components\\farm-log\\AttachmentManager.tsx",
+      "lineNum": 332,
+      "lineContent": "title=\"Xem\"",
+      "context": "                      size=\"icon\"\r\n                      className=\"h-8 w-8\"\r\n                      onClick={() => handleView(att)}\r\n                      disabled={viewingId === att.id}\r\n                      title=\"Xem\"\r\n                      aria-label={`Xem chứng từ ${att.fileName}`}\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r\n                    </Button>\r"
+    },
+    {
+      "file": "components\\farm-log\\AttachmentManager.tsx",
+      "lineNum": 333,
+      "lineContent": "aria-label={`Xem chứng từ ${att.fileName}`}",
+      "context": "                      className=\"h-8 w-8\"\r\n                      onClick={() => handleView(att)}\r\n                      disabled={viewingId === att.id}\r\n                      title=\"Xem\"\r\n                      aria-label={`Xem chứng từ ${att.fileName}`}\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r\n                    </Button>\r\n                    <Button\r"
+    }
+  ],
+  "components\\farm-log\\FarmLogList.tsx": [
+    {
+      "file": "components\\farm-log\\FarmLogList.tsx",
+      "lineNum": 395,
+      "lineContent": "? \"Thu gọn chi tiết nhật ký\"",
+      "context": "                              aria-expanded={isExpanded}\r\n                              aria-controls={`farm-log-detail-${log.id}`}\r\n                              aria-label={\r\n                                isExpanded\r\n                                  ? \"Thu gọn chi tiết nhật ký\"\r\n                                  : \"Xem chi tiết & quản lý chứng từ nhật ký\"\r\n                              }\r\n                              title={\r\n                                isExpanded\r"
+    },
+    {
+      "file": "components\\farm-log\\FarmLogList.tsx",
+      "lineNum": 396,
+      "lineContent": ": \"Xem chi tiết & quản lý chứng từ nhật ký\"",
+      "context": "                              aria-controls={`farm-log-detail-${log.id}`}\r\n                              aria-label={\r\n                                isExpanded\r\n                                  ? \"Thu gọn chi tiết nhật ký\"\r\n                                  : \"Xem chi tiết & quản lý chứng từ nhật ký\"\r\n                              }\r\n                              title={\r\n                                isExpanded\r\n                                  ? \"Thu gọn chi tiết\"\r"
+    },
+    {
+      "file": "components\\farm-log\\FarmLogList.tsx",
+      "lineNum": 400,
+      "lineContent": "? \"Thu gọn chi tiết\"",
+      "context": "                                  : \"Xem chi tiết & quản lý chứng từ nhật ký\"\r\n                              }\r\n                              title={\r\n                                isExpanded\r\n                                  ? \"Thu gọn chi tiết\"\r\n                                  : \"Xem chi tiết & quản lý chứng từ\"\r\n                              }\r\n                            >\r\n                              <Paperclip className=\"h-4 w-4\" />\r"
+    },
+    {
+      "file": "components\\farm-log\\FarmLogList.tsx",
+      "lineNum": 401,
+      "lineContent": ": \"Xem chi tiết & quản lý chứng từ\"",
+      "context": "                              }\r\n                              title={\r\n                                isExpanded\r\n                                  ? \"Thu gọn chi tiết\"\r\n                                  : \"Xem chi tiết & quản lý chứng từ\"\r\n                              }\r\n                            >\r\n                              <Paperclip className=\"h-4 w-4\" />\r\n                              <span>{log.attachmentCount ?? 0}</span>\r"
+    }
+  ],
+  "components\\notification\\NotificationPanel.tsx": [
+    {
+      "file": "components\\notification\\NotificationPanel.tsx",
+      "lineNum": 131,
+      "lineContent": "Xem tất cả",
+      "context": "        <Link\r\n          to=\"/notifications\"\r\n          className=\"block text-center text-sm font-medium text-primary hover:text-primary-hover\"\r\n        >\r\n          Xem tất cả\r\n        </Link>\r\n      </div>\r\n    </div>\r\n  );\r"
+    }
+  ],
+  "components\\production-lot\\ProductionLotList.tsx": [
+    {
+      "file": "components\\production-lot\\ProductionLotList.tsx",
+      "lineNum": 404,
+      "lineContent": "Chi tiết",
+      "context": "                            onClick={() =>\r\n                              navigate(`/production-lots/${lot.id}`)\r\n                            }\r\n                          >\r\n                            Chi tiết\r\n                          </Button>\r\n                        </TableCell>\r\n                      </TableRow>\r\n                    );\r"
+    }
+  ],
+  "components\\report\\IndustryReportFilter.tsx": [
+    {
+      "file": "components\\report\\IndustryReportFilter.tsx",
+      "lineNum": 75,
+      "lineContent": "<Search className=\"h-4 w-4 mr-1\" /> Xem báo cáo",
+      "context": "                type=\"submit\"\r\n                disabled={loading || !region || !fromDate || !toDate}\r\n                variant=\"view\"\r\n              >\r\n                <Search className=\"h-4 w-4 mr-1\" /> Xem báo cáo\r\n              </Button>\r\n              <Button type=\"button\" variant=\"outline\" onClick={handleReset} disabled={loading}>\r\n                <X className=\"h-4 w-4 mr-1\" /> Xóa\r\n              </Button>\r"
+    }
+  ],
+  "components\\shipment\\ProcurementShipmentList.tsx": [
+    {
+      "file": "components\\shipment\\ProcurementShipmentList.tsx",
+      "lineNum": 257,
+      "lineContent": "Chi tiết",
+      "context": "                                  variant=\"outline\"\r\n                                  onClick={() => handleViewDetail(shipment.id)}\r\n                              >\r\n                                <Eye className=\"mr-1 size-4\" />\r\n                                Chi tiết\r\n                              </Button>\r\n                            </TableCell>\r\n                          </TableRow>\r\n                      ))}\r"
+    }
+  ],
+  "pages\\admin\\SuspectTraceCodeListPage.tsx": [
+    {
+      "file": "pages\\admin\\SuspectTraceCodeListPage.tsx",
+      "lineNum": 360,
+      "lineContent": "Chi tiết",
+      "context": "                            size=\"sm\"\r\n                            variant=\"outline\"\r\n                            onClick={() => navigate(`/admin/suspect-trace-codes/${item.id}`)}\r\n                          >\r\n                            Chi tiết\r\n                          </Button>\r\n                        </div>\r\n                      </TableCell>\r\n                    </TableRow>\r"
+    }
+  ],
+  "pages\\certification\\CertificationListPage.tsx": [
+    {
+      "file": "pages\\certification\\CertificationListPage.tsx",
+      "lineNum": 285,
+      "lineContent": "Xem",
+      "context": "                            variant=\"view\"\r\n                            size=\"sm\"\r\n                            onClick={() => setSelectedCertId(cert.id)}\r\n                          >\r\n                            Xem\r\n                          </Button>\r\n                        </TableCell>\r\n                      </TableRow>\r\n                    ))}\r"
+    }
+  ],
+  "pages\\farm-area\\FarmAreaListPage.tsx": [
+    {
+      "file": "pages\\farm-area\\FarmAreaListPage.tsx",
+      "lineNum": 116,
+      "lineContent": "title=\"Xem trên Google Maps\"",
+      "context": "                          href={`https://www.google.com/maps?q=${area.latitude},${area.longitude}`}\r\n                          target=\"_blank\"\r\n                          rel=\"noopener noreferrer\"\r\n                          className=\"inline-flex items-center gap-1 text-xs font-mono text-emerald-700 hover:text-emerald-800 hover:underline\"\r\n                          title=\"Xem trên Google Maps\"\r\n                        >\r\n                          <MapPin className=\"h-3 w-3 text-emerald-500\" />\r\n                          {area.latitude.toFixed(4)}, {area.longitude.toFixed(4)}\r\n                          <ExternalLink className=\"h-3 w-3 opacity-50\" />\r"
+    }
+  ],
+  "pages\\organization\\OrganizationListPage.tsx": [
+    {
+      "file": "pages\\organization\\OrganizationListPage.tsx",
+      "lineNum": 131,
+      "lineContent": "Xem",
+      "context": "                          variant=\"view\"\r\n                          size=\"sm\"\r\n                          onClick={() => navigate(`/organizations/${org.id}`)}\r\n                        >\r\n                          Xem\r\n                        </Button>\r\n                      </TableCell>\r\n                    </TableRow>\r\n                  ))}\r"
+    }
+  ],
+  "pages\\product-feedback\\ProductFeedbackManagementPage.tsx": [
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "lineNum": 210,
+      "lineContent": "Xem chi tiết",
+      "context": "                        variant=\"outline\"\r\n                        size=\"sm\"\r\n                        onClick={() => handleViewDetail(fb)}\r\n                      >\r\n                        Xem chi tiết\r\n                      </Button>\r\n                    </td>\r\n                  </tr>\r\n                ))\r"
+    }
+  ],
+  "pages\\recall-request\\RecallRequestListPage.tsx": [
+    {
+      "file": "pages\\recall-request\\RecallRequestListPage.tsx",
+      "lineNum": 143,
+      "lineContent": "<Eye className=\"size-4 mr-1\" /> Chi tiết",
+      "context": "                            size=\"sm\"\r\n                            variant=\"outline\"\r\n                            onClick={() => navigate(`/recall-requests/${item.id}`)}\r\n                          >\r\n                            <Eye className=\"size-4 mr-1\" /> Chi tiết\r\n                          </Button>\r\n                        </TableCell>\r\n                      </TableRow>\r\n                    ))}\r"
+    }
+  ],
+  "pages\\report\\LoginHistoryPage.tsx": [
+    {
+      "file": "pages\\report\\LoginHistoryPage.tsx",
+      "lineNum": 107,
+      "lineContent": "Xem lịch sử đăng nhập của tài khoản {user?.fullName}",
+      "context": "      <div className=\"flex items-center justify-between\">\r\n        <div>\r\n          <h1 className=\"text-2xl font-bold\">Lịch sử đăng nhập</h1>\r\n          <p className=\"text-sm text-muted-foreground\">\r\n            Xem lịch sử đăng nhập của tài khoản {user?.fullName}\r\n          </p>\r\n        </div>\r\n        <Button\r\n          variant=\"outline\"\r"
+    }
+  ],
+  "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx": [
+    {
+      "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+      "lineNum": 368,
+      "lineContent": "Chi tiết",
+      "context": "                            variant=\"outline\"\r\n                            size=\"sm\"\r\n                            onClick={() => setDetailsAlert(alert)}\r\n                          >\r\n                            Chi tiết\r\n                          </Button>\r\n                        </div>\r\n                      </TableCell>\r\n                    </TableRow>\r"
+    }
+  ]
+}

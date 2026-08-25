@@ -8,6 +8,7 @@ import { ProductionLotBoard } from '@/components/production-lot/ProductionLotBoa
 import { ProductionStatistics } from '@/components/dashboard/PoductionStatistics';
 import type { ProductionLot } from '@/types/productionLot';
 import LookupStatisticsPage from '@/pages/report/LookupStatisticsPage';
+import { HelpButton } from '@/components/help/HelpButton';
 
 interface CooperativeDashboardProps {
   initialTab?: string | null;
@@ -56,11 +57,14 @@ export function CooperativeDashboard({ initialTab }: CooperativeDashboardProps) 
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Tổng quan hợp tác xã</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Theo dõi tình hình các lô sản xuất và thống kê tra cứu của hợp tác xã.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Tổng quan hợp tác xã</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Theo dõi tình hình các lô sản xuất và thống kê tra cứu của hợp tác xã.
+          </p>
+        </div>
+        <HelpButton screenKey="dashboard" />
       </div>
 
       <Tabs defaultValue={defaultTab} className="w-full">
