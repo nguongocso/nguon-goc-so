@@ -120,7 +120,8 @@ export const PartnerApiKeyListPage: React.FC = () => {
           {canManage && (
             <Button
               onClick={() => setIsCreateModalOpen(true)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 gap-2 shadow-sm"
+              variant="create"
+              className="shrink-0 gap-2 shadow-sm"
             >
               <PlusCircle className="w-4 h-4" />
               <span>Cấp khóa mới</span>
@@ -292,10 +293,10 @@ export const PartnerApiKeyListPage: React.FC = () => {
                             <Button
                               variant="destructive"
                               size="sm"
-                              className="h-8 gap-1.5 bg-rose-600 hover:bg-rose-700 text-white"
+                              className="h-8 gap-1.5"
                               onClick={() => setRevokeKeyTarget(item)}
                             >
-                              <Ban className="w-3.5 h-3.5" />
+                              <Ban className="size-3.5" />
                               <span>Thu hồi</span>
                             </Button>
                           ) : (

@@ -171,7 +171,8 @@ export const CreateCodeRangeForm: React.FC = () => {
               placeholder="893001"
             />
             <p className="text-sm text-gray-500">
-              Duy nhất, chỉ chứa chữ hoa và số. Nhập chính xác định dạng.
+              Duy nhất trong hệ thống, chỉ gồm chữ hoa (A–Z) và chữ số, tối đa
+              50 ký tự. Ví dụ: 893001.
             </p>
             {errors.prefix && (
               <p className="text-sm text-red-500">{errors.prefix.message}</p>

@@ -31,7 +31,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
             <div className="mt-6 flex flex-col gap-2">
               <button
                 onClick={() => window.location.reload()}
-                className="w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
+                className="w-full rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 transition-colors"
               >
                 Tải lại trang
               </button>

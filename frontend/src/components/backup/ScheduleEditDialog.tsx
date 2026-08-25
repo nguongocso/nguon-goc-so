@@ -463,7 +463,7 @@ export const ScheduleEditDialog = ({ open, onClose, schedule, onSave }: Props) =
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Hủy
           </Button>
-          <Button onClick={handleSubmit} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">
+          <Button onClick={handleSubmit} disabled={loading} variant="create">
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {schedule ? 'Cập nhật' : 'Tạo mới'}
           </Button>

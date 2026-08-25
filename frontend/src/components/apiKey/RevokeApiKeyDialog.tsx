@@ -69,7 +69,7 @@ export const RevokeApiKeyDialog: React.FC<RevokeApiKeyDialogProps> = ({
           <AlertDialogAction
             onClick={handleRevoke}
             disabled={loading}
-            className="bg-rose-600 hover:bg-rose-700 text-white border-none"
+            className="bg-destructive hover:bg-destructive/90 text-white"
           >
             {loading ? (
               <>
