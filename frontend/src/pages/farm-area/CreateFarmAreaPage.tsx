@@ -10,7 +10,7 @@ export const CreateFarmAreaPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6">
       
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Tạo vùng trồng mới</h1>

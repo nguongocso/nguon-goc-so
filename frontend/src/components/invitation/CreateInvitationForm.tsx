@@ -28,7 +28,7 @@ import { createInvitation } from "@/api/invitationApi";
 import { getRoles } from "@/api/memberApi";
 import type { RoleOption } from "@/types/member";
 import { getRoleLabel } from "@/config/roleAccess";
-import { Loader2, Mail, MailPlus, ArrowLeft, Copy, Check, CheckCircle2 } from "lucide-react";
+import { Loader2, Mail, MailPlus, Copy, Check, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export const CreateInvitationForm: React.FC = () => {
@@ -117,17 +117,7 @@ export const CreateInvitationForm: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-emerald-50/50 via-white to-green-50/30 px-4 py-8 md:px-8">
-      <div className="mx-auto max-w-lg space-y-6">
-        {/* Nút quay lại */}
-        <Button
-          variant="outline"
-          onClick={() => navigate(-1)}
-          className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Quay lại
-        </Button>
+    <div className="mx-auto max-w-lg space-y-6">
 
         {createdInvitation && (
           <Card className="border-emerald-200 bg-emerald-50/60 shadow-sm transition-all animate-in fade-in slide-in-from-top-2">
@@ -332,6 +322,5 @@ export const CreateInvitationForm: React.FC = () => {
           </form>
         </Card>
       </div>
-    </div>
   );
 };
