@@ -160,6 +160,9 @@ public class RestoreServiceImpl implements RestoreService {
         BackupRestoreHistory restoreRecord = BackupRestoreHistory.builder()
                 .operationType(BackupOperationType.RESTORE)
                 .status(BackupStatus.IN_PROGRESS)
+                .fileName(targetBackup.getFileName())
+                .filePath(targetBackup.getFilePath())
+                .fileSize(targetBackup.getFileSize())
                 .reference(targetBackup)
                 .createdBy(creator)
                 .build();
