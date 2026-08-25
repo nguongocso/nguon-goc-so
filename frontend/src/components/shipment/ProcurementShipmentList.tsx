@@ -14,13 +14,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { ProcurementShipment, Shipment } from "@/types/shipment";
+import type { ProcurementShipment } from "@/types/shipment";
 import { getEligibleShipments, getShipmentById } from "@/api/shipmentApi";
 import { exportGs1Dossier } from "@/api/dossierApi";
-import { ShipmentDetailDialog } from "@/components/shipment/ShipmentDetailDialog";
 import { ShipmentStatusBadge } from "@/components/shipment/ShipmentStatusBadge";
 import { ROLE_ACCESS } from "@/config/roleAccess";
 import { usePermission } from "@/hooks/usePermission";
+import { useNavigate } from "react-router-dom";
 import {
   Eye,
   FileJson,
@@ -43,12 +43,23 @@ export function ProcurementShipmentList({
   const [shipments, setShipments] = useState<ProcurementShipment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [detailShipment, setDetailShipment] = useState<Shipment | null>(null);
+  const navigate = useNavigate();
 
+  // Điều hướng tới trang chi tiết lô hàng. ProcurementShipment không chứa
+  // productionLotId nên cần lấy chi tiết trước để xây dựng route đầy đủ
+  // /production-lots/:lotId/shipments/:shipmentId (back button hoạt động).
   const handleViewDetail = async (shipmentId: string) => {
     try {
       const data = await getShipmentById(shipmentId);
-      setDetailShipment(data);
+
+      if (!data.productionLotId) {
+        toast.error("Không thể xác định lô sản xuất của lô hàng này.");
+        return;
+      }
+
+      navigate(
+        `/production-lots/${data.productionLotId}/shipments/${shipmentId}`,
+      );
     } catch {
       toast.error("Không thể tải chi tiết lô hàng.");
     }
@@ -208,26 +219,28 @@ export function ProcurementShipmentList({
                             </TableCell>
 
                             <TableCell>
-                              <div className="flex justify-center gap-1">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <Button
-                                    size="icon-sm"
+                                    size="sm"
                                     type="button"
-                                    variant="ghost"
+                                    variant="default"
                                     title="Ghi nhận thu mua"
                                     onClick={() => onRecordProcurement(shipment.id)}
                                 >
-                                  <ShoppingCart className="size-4" />
+                                  <ShoppingCart className="mr-1 size-4" />
+                                  Thu mua
                                 </Button>
 
                                 {canExportGs1 && (
                                     <Button
-                                        size="icon-sm"
+                                        size="sm"
                                         type="button"
-                                        variant="ghost"
+                                        variant="outline"
                                         title="Xuất hồ sơ GS1"
                                         onClick={() => handleExportGs1(shipment.id)}
                                     >
-                                      <FileJson className="size-4" />
+                                      <FileJson className="mr-1 size-4" />
+                                      Xuất GS1
                                     </Button>
                                 )}
                               </div>
@@ -272,19 +285,6 @@ export function ProcurementShipmentList({
             </div>
           </CardContent>
         </Card>
-
-        <ShipmentDetailDialog
-            open={detailShipment !== null}
-            shipment={detailShipment}
-            onClose={() => setDetailShipment(null)}
-            canActivate={false}
-            canRecall={false}
-            onActivate={() => {}}
-            onRecall={() => {}}
-            onExportDossier={() => {}}
-            onDeleteDraft={() => {}}
-            onViewTimeline={() => {}}
-        />
       </>
   );
 }
