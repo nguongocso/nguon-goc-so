@@ -1039,7 +1039,7 @@ export default function LoginAnomalyTrackingPage() {
                           <TableHead>Nguyên nhân</TableHead>
                           <TableHead>Trạng thái</TableHead>
                           <TableHead>Thời gian gần nhất</TableHead>
-                          <TableHead className="text-right">Thao tác</TableHead>
+                          <TableHead className="text-center">Thao tác</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1059,9 +1059,9 @@ export default function LoginAnomalyTrackingPage() {
                               <Badge className={getStatusBadgeClass(account.status)}>{getStatusLabel(account.status)}</Badge>
                             </TableCell>
                             <TableCell>{formatDateTime(account.lastDetectedAt)}</TableCell>
-                            <TableCell className="text-right">
+                            <TableCell>
                               {account.status === 'DISMISSED' || suspiciousStatusFilter === 'DISMISSED' ? (
-                                <div className="flex justify-end">
+                                <div className="flex justify-center">
                                   <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-left">
                                     <div className="mt-1 text-sm font-medium text-slate-700">
                                       {getSuspiciousAccountStateLabel(account.userId)}
@@ -1069,7 +1069,7 @@ export default function LoginAnomalyTrackingPage() {
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex justify-end gap-1">
+                                <div className="flex justify-center gap-1">
                                   {isAccountLocked(account.userId) ? (
                                     <Button
                                       size="icon-sm"
