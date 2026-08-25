@@ -64,11 +64,11 @@ const CodeRangeListPage: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Quản lý dải mã truy xuất</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Quản lý dải mã truy xuất</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Quản lý các dải mã truy xuất đã cấp cho tổ chức
           </p>

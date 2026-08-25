@@ -112,7 +112,7 @@ export const RecallRequestDetailPage = () => {
   }
 
   return (
-    <div className="container mx-auto max-w-3xl py-6 space-y-6">
+    <div className="max-w-3xl space-y-6">
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

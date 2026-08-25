@@ -99,10 +99,10 @@ export default function LoginHistoryPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Lịch sử đăng nhập</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Lịch sử đăng nhập</h1>
           <p className="text-sm text-muted-foreground">
             Xem lịch sử đăng nhập của tài khoản {user?.fullName}
           </p>

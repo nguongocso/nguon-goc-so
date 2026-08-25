@@ -151,14 +151,14 @@ export default function SuspectTraceCodeListPage() {
   };
 
   return (
-    <div className="container mx-auto space-y-6 py-6">
+    <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="rounded-xl bg-red-100 p-2.5 text-red-700">
             <ShieldAlert className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Quản lý mã tem nghi vấn</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Quản lý mã tem nghi vấn</h1>
             <p className="text-sm text-muted-foreground">
               Xem xét và khóa các mã tem có dấu hiệu quét bất thường
             </p>

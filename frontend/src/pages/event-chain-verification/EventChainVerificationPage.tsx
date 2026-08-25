@@ -35,7 +35,7 @@ export default function EventChainVerificationPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-4">
+    <div className="max-w-3xl space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Kiểm chứng tính toàn vẹn dòng sự kiện</h1>

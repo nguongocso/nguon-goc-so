@@ -98,7 +98,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       {/* Header trang */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -119,8 +119,9 @@ export const PartnerApiKeyListPage: React.FC = () => {
           <HelpButton screenKey="admin-api-keys" />
           {canManage && (
             <Button
+              variant="create"
               onClick={() => setIsCreateModalOpen(true)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 gap-2 shadow-sm"
+              className="shrink-0 gap-2 shadow-sm"
             >
               <PlusCircle className="w-4 h-4" />
               <span>Cấp khóa mới</span>

@@ -546,7 +546,7 @@ export default function LoginAnomalyTrackingPage() {
   };
 
   return (
-    <div className="container mx-auto space-y-6 py-6">
+    <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="rounded-xl bg-emerald-100 p-2.5 text-emerald-700">
@@ -556,7 +556,7 @@ export default function LoginAnomalyTrackingPage() {
             <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
               Giám sát bảo mật
             </p>
-            <h1 className="text-2xl font-bold tracking-tight">Theo dõi đăng nhập bất thường</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Theo dõi đăng nhập bất thường</h1>
             <p className="text-sm text-muted-foreground">
               Tổng quan các sự kiện phát hiện bất thường, trạng thái xử lý và hành động khóa/mở khóa tài khoản.
             </p>

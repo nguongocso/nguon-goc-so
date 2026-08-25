@@ -3,7 +3,7 @@ import { CreateInvitationForm } from '@/components/invitation/CreateInvitationFo
 
 const CreateInvitationPage: React.FC = () => {
   return (
-    <div className="container mx-auto py-8">
+    <div className="space-y-6">
       
       <CreateInvitationForm />
     </div>

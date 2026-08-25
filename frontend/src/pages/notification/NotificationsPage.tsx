@@ -73,10 +73,10 @@ const NotificationsPage = () => {
   };
 
   return (
-    <div className="container mx-auto max-w-3xl space-y-6 py-8">
+    <div className="max-w-3xl space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Thông báo</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Thông báo</h1>
           <p className="text-sm text-muted-foreground">
             Danh sách việc cần làm và cảnh báo liên quan đến tài khoản của bạn.
           </p>

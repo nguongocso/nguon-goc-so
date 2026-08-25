@@ -127,7 +127,7 @@ export default function StorageConditionPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-4">
+    <div className="max-w-2xl space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Điều kiện bảo quản</h1>

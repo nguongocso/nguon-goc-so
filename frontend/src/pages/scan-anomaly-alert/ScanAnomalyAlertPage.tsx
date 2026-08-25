@@ -147,14 +147,14 @@ export default function ScanAnomalyAlertPage() {
   };
 
   return (
-    <div className="container mx-auto space-y-6 py-6">
+    <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="rounded-xl bg-amber-100 p-2.5 text-amber-700">
             <ShieldAlert className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Cảnh báo tem quét bất thường</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Cảnh báo tem quét bất thường</h1>
             <p className="text-sm text-muted-foreground">
               Phát hiện mã có dấu hiệu được quét tại nhiều vị trí khác nhau
             </p>

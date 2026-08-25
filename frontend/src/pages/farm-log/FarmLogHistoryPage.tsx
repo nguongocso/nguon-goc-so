@@ -31,7 +31,7 @@ export default function FarmLogHistoryPage() {
   if (!productionLotId) return <div>Không tìm thấy ID lô sản xuất</div>;
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="space-y-6">
       
       <div className="mb-4 flex justify-end">
         <HelpButton screenKey="farm-log-history" />

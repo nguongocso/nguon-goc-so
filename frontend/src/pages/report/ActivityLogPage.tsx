@@ -101,11 +101,11 @@ export default function ActivityLogPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Lịch sử hoạt động hệ thống</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Lịch sử hoạt động hệ thống</h1>
           <p className="text-sm text-muted-foreground">
             Theo dõi và kiểm tra toàn bộ nhật ký thao tác trong tổ chức
           </p>
@@ -133,7 +133,7 @@ export default function ActivityLogPage() {
       />
 
       {/* Bảng danh sách */}
-      <div className="bg-white rounded-lg border shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
         <div className="p-4 border-b flex justify-between items-center">
           <span className="text-sm text-muted-foreground">
             Tổng số: {pageInfo.totalElements} bản ghi

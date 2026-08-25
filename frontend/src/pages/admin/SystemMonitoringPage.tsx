@@ -163,13 +163,13 @@ export function SystemMonitoringPage() {
 
   if (!status) {
     return (
-      <div className="container mx-auto space-y-6 py-6">
+      <div className="space-y-6">
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-emerald-100 p-2.5 text-emerald-700">
             <HeartPulse className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Giám sát hệ thống</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Giám sát hệ thống</h1>
             <p className="text-sm text-muted-foreground">
               Tổng quan sức khỏe hệ thống trước buổi trình diễn
             </p>
@@ -186,14 +186,14 @@ export function SystemMonitoringPage() {
   }
 
   return (
-    <div className="container mx-auto space-y-6 py-6">
+    <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="rounded-xl bg-emerald-100 p-2.5 text-emerald-700">
             <HeartPulse className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Giám sát hệ thống</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Giám sát hệ thống</h1>
             <p className="text-sm text-muted-foreground">
               Tổng quan sức khỏe hệ thống trước buổi trình diễn
             </p>

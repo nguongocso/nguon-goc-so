@@ -72,12 +72,12 @@ export default function WarehouseReceiptDetailPage() {
   const hasReason = !!detail.reason && detail.reason.trim() !== '';
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-4">
+    <div className="max-w-4xl space-y-6">
       {/* Back + Header */}
       <div className="flex items-center justify-between">
         <Badge
           variant={isExceeded ? 'destructive' : 'outline'}
-          className={isExceeded ? '' : 'text-emerald-700 border-emerald-300'}
+          className={isExceeded ? 'rounded-full' : 'rounded-full text-emerald-700 border-emerald-300'}
         >
           {isExceeded ? 'Chênh lệch' : 'Khớp'}
         </Badge>

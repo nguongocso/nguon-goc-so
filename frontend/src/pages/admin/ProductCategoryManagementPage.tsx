@@ -79,10 +79,10 @@ export default function ProductCategoryManagementPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Quản lý danh mục loại nông sản</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Quản lý danh mục loại nông sản</h1>
           <p className="text-sm text-muted-foreground">Thêm, sửa, ẩn/hiện các loại nông sản dùng chung</p>
         </div>
         <div className="flex items-center gap-3">

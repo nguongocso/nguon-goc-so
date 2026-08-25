@@ -82,7 +82,7 @@ export const CreateRecallRequestPage = () => {
   };
 
   return (
-    <div className="container mx-auto max-w-2xl py-6 space-y-6">
+    <div className="max-w-2xl space-y-6">
       <Card className="border-red-100">
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
