@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, RefreshCw, ListChecks } from "lucide-react";
+import { Plus, Pencil, RefreshCw } from "lucide-react";
 import {
   getStandards,
   createStandard,
@@ -246,17 +246,16 @@ export const StandardList: React.FC = () => {
                           </TableCell>
                           {canManage && (
                             <TableCell className="text-right">
-                              <div className="flex justify-end gap-1">
+                              <div className="flex justify-end items-center gap-2">
                                 <Button
-                                  variant="ghost"
-                                  size="icon-sm"
+                                  variant="outline"
+                                  size="sm"
                                   onClick={() =>
                                     navigate(`/admin/standards/${std.id}/criteria`)
                                   }
-                                  title="Quản lý tiêu chí"
-                                  className="hover:bg-muted"
+                                  className="text-emerald-700 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 font-medium"
                                 >
-                                  <ListChecks className="h-4 w-4" />
+                                  Quản lý tiêu chí
                                 </Button>
                                 <Button
                                   variant="ghost"
