@@ -390,12 +390,12 @@ export const CreateInspectionRequestPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="flex min-h-[50vh] flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-xs">
+        <div className="flex min-h-[50vh] flex-col items-center justify-center rounded-xl border border-border bg-white p-12 text-center shadow-xs">
           <LoaderCircle className="h-10 w-10 animate-spin text-emerald-600 mb-4" />
-          <h2 className="text-base font-semibold text-slate-800">
+          <h2 className="text-base font-semibold text-foreground">
             Đang tải dữ liệu lô sản xuất và danh mục chỉ tiêu...
           </h2>
-          <p className="text-xs text-slate-500 mt-1 max-w-sm">
+          <p className="text-xs text-muted-foreground mt-1 max-w-sm">
             Vui lòng chờ trong giây lát trong khi hệ thống kết nối với cơ sở dữ liệu.
           </p>
         </div>
@@ -407,7 +407,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
   if (loadError || !lot) {
     return (
       <div className="space-y-6">
-        <Card className="rounded-2xl border-red-200 bg-red-50/50 p-8 shadow-xs">
+        <Card className="rounded-xl border-red-200 bg-red-50/50 p-8 shadow-xs">
           <CardContent className="flex flex-col items-center justify-center p-0 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600 mb-4">
               <AlertTriangle className="h-7 w-7" />
@@ -421,7 +421,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
             <div className="mt-6 flex items-center gap-3">
               <Button
                 variant="outline"
-                className="rounded-xl border-slate-300 bg-white"
+                className="rounded-xl border-input bg-white"
                 onClick={() => navigate("/production-lots")}
               >
                 <ArrowLeft className="mr-1.5 h-4 w-4" /> Quay lại danh sách lô
@@ -452,57 +452,57 @@ export const CreateInspectionRequestPage: React.FC = () => {
           variant="outline"
           size="sm"
           onClick={() => void loadInitialData()}
-          className="h-9 rounded-xl border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 shadow-xs hover:bg-slate-50"
+          className="h-9 rounded-xl border-border bg-white px-3 text-xs font-medium text-foreground shadow-xs hover:bg-muted/50"
         >
           <RotateCw className="mr-1.5 h-3.5 w-3.5" /> Tải lại
         </Button>
       </div>
 
       {/* SECTION 0: Header Card with Breadcrumb & Screen Help */}
-      <Card className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+      <Card className="rounded-xl border-emerald-100 bg-white/80 backdrop-blur-sm p-5 shadow-sm">
         <div>
           {/* Breadcrumbs */}
-          <nav className="flex items-center space-x-2 text-xs text-slate-500 sm:text-sm">
-            <Link to="/dashboard" className="hover:text-[#2E7D32] transition-colors">
+          <nav className="flex items-center space-x-2 text-xs text-muted-foreground sm:text-sm">
+            <Link to="/dashboard" className="hover:text-emerald-700 transition-colors">
               Dashboard
             </Link>
-            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-            <Link to="/production-lots" className="hover:text-[#2E7D32] transition-colors">
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <Link to="/production-lots" className="hover:text-emerald-700 transition-colors">
               Lô sản xuất
             </Link>
-            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
             <Link
               to={`/production-lots/${effectiveLotId}`}
-              className="max-w-[150px] truncate hover:text-[#2E7D32] transition-colors font-medium sm:max-w-xs"
+              className="max-w-[150px] truncate hover:text-emerald-700 transition-colors font-medium sm:max-w-xs"
               title={lot.name}
             >
               {lot.name}
             </Link>
-            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-            <span className="font-semibold text-slate-800">Tạo yêu cầu kiểm nghiệm</span>
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="font-semibold text-foreground">Tạo yêu cầu kiểm nghiệm</span>
           </nav>
         </div>
 
-        <div className="mt-4 flex flex-col gap-4 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-4 flex flex-col gap-4 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3.5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E8F5E9] text-[#2E7D32] shadow-sm shrink-0">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 shadow-sm shrink-0">
               <FlaskConical className="h-6 w-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight text-[#111827] sm:text-2xl">
+                <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
                   Tạo yêu cầu kiểm nghiệm chất lượng
                 </h1>
                 <Badge
                   variant="outline"
-                  className="rounded-lg border-emerald-300 bg-emerald-50 text-[11px] font-semibold text-emerald-800 px-2 py-0.5"
+                  className="rounded-lg border-emerald-300 bg-emerald-50 text-xs font-semibold text-emerald-800 px-2 py-0.5"
                 >
                   VT-02
                 </Badge>
               </div>
-              <p className="text-xs text-slate-500 sm:text-sm mt-0.5">
+              <p className="text-xs text-muted-foreground sm:text-sm mt-0.5">
                 Lập hồ sơ gửi mẫu phân tích chỉ tiêu an toàn thực phẩm cho lô:{" "}
-                <span className="font-semibold text-slate-800">{lot.name}</span>
+                <span className="font-semibold text-foreground">{lot.name}</span>
               </p>
             </div>
           </div>
@@ -514,18 +514,18 @@ export const CreateInspectionRequestPage: React.FC = () => {
         {/* CỘT TRÁI (70% - lg:col-span-8) */}
         <div className="space-y-6 lg:col-span-8">
           {/* CARD 1: Bộ quy chuẩn & Lựa chọn chỉ tiêu phân tích */}
-          <Card className="rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden">
-            <CardHeader className="border-b border-slate-100 bg-slate-50/60 p-5">
+          <Card className="rounded-xl border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden">
+            <CardHeader className="border-b border-border bg-muted/40 p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-[#2E7D32]">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
                     <Layers className="h-5 w-5" />
                   </div>
                   <div>
-                    <CardTitle className="text-base font-semibold text-slate-900">
+                    <CardTitle className="text-base font-semibold text-foreground">
                       1. Bộ quy chuẩn & Chỉ tiêu phân tích
                     </CardTitle>
-                    <CardDescription className="text-xs text-slate-500 mt-0.5">
+                    <CardDescription className="text-xs text-muted-foreground mt-0.5">
                       Tiêu chuẩn áp dụng:{" "}
                       <span className="font-semibold text-emerald-800">
                         {criteriaData?.standardName || "Tiêu chuẩn kỹ thuật áp dụng cho lô"}
@@ -554,7 +554,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-1 flex-wrap items-center gap-2">
                   <div className="relative flex-1 min-w-[200px] max-w-xs">
-                    <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       placeholder="Tìm theo tên hoặc mã chỉ tiêu..."
                       value={criteriaSearch}
@@ -562,13 +562,13 @@ export const CreateInspectionRequestPage: React.FC = () => {
                       onKeyDown={(e) => {
                         if (e.key === "Enter") e.preventDefault();
                       }}
-                      className="h-9 pl-9 text-xs rounded-xl border-slate-200"
+                      className="h-9 pl-9 text-xs rounded-xl border-border"
                     />
                     {criteriaSearch && (
                       <button
                         type="button"
                         onClick={() => setCriteriaSearch("")}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -580,10 +580,10 @@ export const CreateInspectionRequestPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setCriteriaFilter("ALL")}
-                      className={`rounded-lg px-3 py-1.5 text-xs transition-all ${
+                      className={`rounded-lg px-3.5 py-1.5 text-sm transition-all ${
                         criteriaFilter === "ALL"
-                          ? "border border-emerald-300 bg-white font-semibold text-emerald-800 shadow-2xs"
-                          : "border border-transparent font-medium text-slate-500 hover:text-slate-800"
+                          ? "border border-primary bg-white font-semibold text-primary shadow-2xs"
+                          : "border border-transparent font-medium text-foreground/60 hover:text-foreground"
                       }`}
                     >
                       Tất cả
@@ -591,10 +591,10 @@ export const CreateInspectionRequestPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setCriteriaFilter("SELECTED")}
-                      className={`rounded-lg px-3 py-1.5 text-xs transition-all ${
+                      className={`rounded-lg px-3.5 py-1.5 text-sm transition-all ${
                         criteriaFilter === "SELECTED"
-                          ? "border border-emerald-300 bg-white font-semibold text-emerald-800 shadow-2xs"
-                          : "border border-transparent font-medium text-slate-500 hover:text-slate-800"
+                          ? "border border-primary bg-white font-semibold text-primary shadow-2xs"
+                          : "border border-transparent font-medium text-foreground/60 hover:text-foreground"
                       }`}
                     >
                       Đã chọn ({selectedCount})
@@ -602,10 +602,10 @@ export const CreateInspectionRequestPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setCriteriaFilter("UNSELECTED")}
-                      className={`rounded-lg px-3 py-1.5 text-xs transition-all ${
+                      className={`rounded-lg px-3.5 py-1.5 text-sm transition-all ${
                         criteriaFilter === "UNSELECTED"
-                          ? "border border-emerald-300 bg-white font-semibold text-emerald-800 shadow-2xs"
-                          : "border border-transparent font-medium text-slate-500 hover:text-slate-800"
+                          ? "border border-primary bg-white font-semibold text-primary shadow-2xs"
+                          : "border border-transparent font-medium text-foreground/60 hover:text-foreground"
                       }`}
                     >
                       Chưa chọn ({totalCriteriaCount - selectedCount})
@@ -628,7 +628,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
                     variant="ghost"
                     size="sm"
                     onClick={handleDeselectAllCriteria}
-                    className="h-8 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-800"
+                    className="h-8 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground"
                   >
                     Bỏ chọn
                   </Button>
@@ -645,7 +645,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
                   </p>
                 </div>
               ) : filteredCriteria.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-400">
+                <div className="rounded-xl border border-dashed border-border p-8 text-center text-xs text-muted-foreground">
                   Không tìm thấy chỉ tiêu nào phù hợp với từ khóa "{criteriaSearch}".
                 </div>
               ) : (
@@ -659,7 +659,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
                         className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-all ${
                           isChecked
                             ? "border-emerald-500 bg-emerald-50/40 shadow-2xs"
-                            : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50"
+                            : "border-border bg-white hover:border-input hover:bg-muted/40"
                         }`}
                       >
                         <Checkbox
@@ -673,11 +673,11 @@ export const CreateInspectionRequestPage: React.FC = () => {
                         <div className="min-w-0 flex-1">
                           <Label
                             htmlFor={`criterion-${criterion.criteriaId}`}
-                            className="cursor-pointer text-xs font-semibold text-slate-800 leading-snug"
+                            className="cursor-pointer text-xs font-semibold text-foreground leading-snug"
                           >
                             {criterion.name}
                           </Label>
-                          <p className="font-mono text-[11px] text-slate-400 mt-0.5">
+                          <p className="font-mono text-xs text-muted-foreground mt-0.5">
                             Mã: {criterion.code}
                           </p>
                         </div>
@@ -696,17 +696,17 @@ export const CreateInspectionRequestPage: React.FC = () => {
           </Card>
 
           {/* CARD 2: Thông tin gửi mẫu */}
-          <Card className="rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden">
-            <CardHeader className="border-b border-slate-100 bg-slate-50/60 p-5">
+          <Card className="rounded-xl border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden">
+            <CardHeader className="border-b border-border bg-muted/40 p-5">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
                   <ClipboardCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-base font-semibold text-slate-900">
+                  <CardTitle className="text-base font-semibold text-foreground">
                     2. Thông tin gửi mẫu & Đơn vị phòng kiểm nghiệm
                   </CardTitle>
-                  <CardDescription className="text-xs text-slate-500 mt-0.5">
+                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
                     Thông tin phòng Lab tiếp nhận, ngày bàn giao và các thông số mẫu thử
                   </CardDescription>
                 </div>
@@ -716,7 +716,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
             <CardContent className="p-5 space-y-4">
               {/* Đơn vị kiểm nghiệm (Phòng Lab) */}
               <div className="space-y-1.5">
-                <Label htmlFor="testingUnit" className="text-xs font-semibold text-slate-700">
+                <Label htmlFor="testingUnit" className="text-xs font-semibold text-foreground">
                   Đơn vị phòng Lab tiếp nhận <span className="text-red-600">*</span>
                 </Label>
                 <Input
@@ -727,13 +727,13 @@ export const CreateInspectionRequestPage: React.FC = () => {
                     setTouched((prev) => ({ ...prev, testingUnit: true }));
                   }}
                   placeholder="Nhập tên phòng thí nghiệm hoặc đơn vị kiểm nghiệm..."
-                  className="h-10 rounded-xl text-xs border-slate-300"
+                  className="h-10 rounded-xl text-xs border-input"
                   maxLength={200}
                 />
 
                 {/* Quick suggestions */}
                 <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-[11px] text-slate-400 font-medium">Gợi ý nhanh:</span>
+                  <span className="text-xs text-muted-foreground font-medium">Gợi ý nhanh:</span>
                   {COMMON_LAB_SUGGESTIONS.slice(0, 3).map((lab) => (
                     <button
                       key={lab}
@@ -742,7 +742,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
                         setTestingUnit(lab);
                         setTouched((prev) => ({ ...prev, testingUnit: true }));
                       }}
-                      className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] text-slate-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 transition-colors truncate max-w-[260px]"
+                      className="rounded-lg border border-border bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 transition-colors truncate max-w-[260px]"
                       title={lab}
                     >
                       {lab}
@@ -761,7 +761,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {/* Ngày gửi mẫu */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="sampleSentDate" className="text-xs font-semibold text-slate-700">
+                  <Label htmlFor="sampleSentDate" className="text-xs font-semibold text-foreground">
                     Ngày gửi mẫu <span className="text-red-600">*</span>
                   </Label>
                   <Input
@@ -773,9 +773,9 @@ export const CreateInspectionRequestPage: React.FC = () => {
                       setSampleSentDate(e.target.value);
                       setTouched((prev) => ({ ...prev, sampleSentDate: true }));
                     }}
-                    className="h-10 rounded-xl text-xs border-slate-300"
+                    className="h-10 rounded-xl text-xs border-input"
                   />
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     Ngày gửi mẫu không được lớn hơn ngày hiện tại ({today}).
                   </p>
                   {touched.sampleSentDate && !isSampleDateValid && (
@@ -787,7 +787,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
                 {/* Khối lượng mẫu (kg) */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="sampleWeight" className="text-xs font-semibold text-slate-700">
+                  <Label htmlFor="sampleWeight" className="text-xs font-semibold text-foreground">
                     Khối lượng mẫu gửi (kg)
                   </Label>
                   <Input
@@ -798,9 +798,9 @@ export const CreateInspectionRequestPage: React.FC = () => {
                     placeholder="VD: 2.5"
                     value={sampleWeight}
                     onChange={(e) => setSampleWeight(e.target.value)}
-                    className="h-10 rounded-xl text-xs border-slate-300"
+                    className="h-10 rounded-xl text-xs border-input"
                   />
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-xs text-muted-foreground">
                     Khối lượng mẫu đại diện trích từ lô sản xuất.
                   </p>
                 </div>
@@ -808,7 +808,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
               {/* Phương thức giao nhận */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700">
+                <Label className="text-xs font-semibold text-foreground">
                   Phương thức giao nhận mẫu
                 </Label>
                 <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
@@ -822,7 +822,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
                       className={`flex cursor-pointer flex-col rounded-xl border p-3 transition-all ${
                         deliveryMethod === m.id
                           ? "border-emerald-600 bg-emerald-50/50 shadow-2xs"
-                          : "border-slate-200 bg-white hover:border-slate-300"
+                          : "border-border bg-white hover:border-input"
                       }`}
                     >
                       <div className="flex items-center gap-2">
@@ -833,9 +833,9 @@ export const CreateInspectionRequestPage: React.FC = () => {
                           onChange={() => setDeliveryMethod(m.id as any)}
                           className="text-emerald-600 focus:ring-emerald-500"
                         />
-                        <span className="text-xs font-semibold text-slate-800">{m.label}</span>
+                        <span className="text-xs font-semibold text-foreground">{m.label}</span>
                       </div>
-                      <span className="text-[11px] text-slate-500 mt-1 pl-5">{m.desc}</span>
+                      <span className="text-xs text-muted-foreground mt-1 pl-5">{m.desc}</span>
                     </label>
                   ))}
                 </div>
@@ -843,7 +843,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
               {/* Ghi chú bảo quản & yêu cầu đặc biệt */}
               <div className="space-y-1.5">
-                <Label htmlFor="notes" className="text-xs font-semibold text-slate-700">
+                <Label htmlFor="notes" className="text-xs font-semibold text-foreground">
                   Ghi chú bảo quản & Yêu cầu phân tích bổ sung
                 </Label>
                 <Textarea
@@ -852,24 +852,24 @@ export const CreateInspectionRequestPage: React.FC = () => {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Ghi chú điều kiện nhiệt độ bảo quản mẫu, hạn thử nghiệm, yêu cầu trả kết quả gấp..."
-                  className="rounded-xl text-xs border-slate-300 resize-none"
+                  className="rounded-xl text-xs border-input resize-none"
                 />
               </div>
             </CardContent>
           </Card>
 
           {/* CARD 3: Hồ sơ & Tài liệu đính kèm */}
-          <Card className="rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden">
-            <CardHeader className="border-b border-slate-100 bg-slate-50/60 p-5">
+          <Card className="rounded-xl border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden">
+            <CardHeader className="border-b border-border bg-muted/40 p-5">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 text-purple-700">
                   <FileUp className="h-5 w-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-base font-semibold text-slate-900">
+                  <CardTitle className="text-base font-semibold text-foreground">
                     3. Hồ sơ đính kèm & Ảnh niêm phong mẫu
                   </CardTitle>
-                  <CardDescription className="text-xs text-slate-500 mt-0.5">
+                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
                     Đính kèm biên bản lấy mẫu hiện trường, ảnh chụp niêm phong hoặc phiếu bàn giao mẫu
                   </CardDescription>
                 </div>
@@ -878,14 +878,14 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
             <CardContent className="p-5 space-y-4">
               {/* Drag & Drop Upload Zone */}
-              <label className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/60 p-6 text-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/20 transition-all">
+              <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-input bg-muted/40 p-6 text-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/20 transition-all">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 mb-3">
                   <Upload className="h-6 w-6" />
                 </div>
-                <p className="text-xs font-semibold text-slate-700">
+                <p className="text-xs font-semibold text-foreground">
                   Nhấp để tải lên hoặc kéo thả tệp vào đây
                 </p>
-                <p className="text-[11px] text-slate-400 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Hỗ trợ hình ảnh (PNG, JPG), tài liệu PDF (Tối đa 10MB/tệp)
                 </p>
                 <input
@@ -900,10 +900,10 @@ export const CreateInspectionRequestPage: React.FC = () => {
               {/* Danh sách tệp đã chọn */}
               {attachedFiles.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-slate-700">
+                  <p className="text-xs font-semibold text-foreground">
                     Tệp đính kèm đã chọn ({attachedFiles.length}):
                   </p>
-                  <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+                  <div className="divide-y divide-border rounded-xl border border-border bg-white">
                     {attachedFiles.map((item) => (
                       <div
                         key={item.id}
@@ -912,8 +912,8 @@ export const CreateInspectionRequestPage: React.FC = () => {
                         <div className="flex items-center gap-2.5 min-w-0">
                           <FileText className="h-4 w-4 text-emerald-600 shrink-0" />
                           <div className="truncate">
-                            <p className="font-medium text-slate-800 truncate">{item.name}</p>
-                            <p className="text-[11px] text-slate-400">{formatFileSize(item.size)}</p>
+                            <p className="font-medium text-foreground truncate">{item.name}</p>
+                            <p className="text-xs text-muted-foreground">{formatFileSize(item.size)}</p>
                           </div>
                         </div>
                         <Button
@@ -921,7 +921,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveFile(item.id)}
-                          className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 rounded-lg"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600 rounded-lg"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -937,19 +937,19 @@ export const CreateInspectionRequestPage: React.FC = () => {
         {/* CỘT PHẢI (30% - lg:col-span-4) - Sidebar Thông Tin & Quy Trình */}
         <div className="space-y-6 lg:col-span-4">
           {/* SIDEBAR CARD 1: Đối soát thông tin lô sản xuất */}
-          <Card className="rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden">
-            <CardHeader className="border-b border-slate-100 bg-slate-50/60 p-4">
+          <Card className="rounded-xl border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden">
+            <CardHeader className="border-b border-border bg-muted/40 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Package className="h-4 w-4 text-emerald-700" />
-                  <CardTitle className="text-sm font-semibold text-slate-900">
+                  <CardTitle className="text-sm font-semibold text-foreground">
                     Đối soát lô sản xuất
                   </CardTitle>
                 </div>
                 <Link
                   to={`/production-lots/${effectiveLotId}`}
                   target="_blank"
-                  className="flex items-center gap-1 text-[11px] font-medium text-[#2E7D32] hover:underline"
+                  className="flex items-center gap-1 text-xs font-medium text-emerald-700 hover:underline"
                 >
                   Chi tiết <ExternalLink className="h-3 w-3" />
                 </Link>
@@ -957,35 +957,35 @@ export const CreateInspectionRequestPage: React.FC = () => {
             </CardHeader>
 
             <CardContent className="p-4 space-y-3 text-xs">
-              <div className="flex justify-between items-start border-b border-slate-100 pb-2">
-                <span className="text-slate-500">Tên lô sản xuất:</span>
-                <span className="font-semibold text-slate-800 text-right max-w-[160px] truncate" title={lot.name}>
+              <div className="flex justify-between items-start border-b border-border pb-2">
+                <span className="text-muted-foreground">Tên lô sản xuất:</span>
+                <span className="font-semibold text-foreground text-right max-w-[160px] truncate" title={lot.name}>
                   {lot.name}
                 </span>
               </div>
-              <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                <span className="text-slate-500">Mã lô:</span>
-                <span className="font-mono font-medium text-slate-700">{lot.code || lot.id.slice(0, 8)}</span>
+              <div className="flex justify-between items-center border-b border-border pb-2">
+                <span className="text-muted-foreground">Mã lô:</span>
+                <span className="font-mono font-medium text-foreground">{lot.code || lot.id.slice(0, 8)}</span>
               </div>
-              <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                <span className="text-slate-500">Vùng trồng:</span>
-                <span className="font-medium text-slate-700">{lot.farmAreaName || "—"}</span>
+              <div className="flex justify-between items-center border-b border-border pb-2">
+                <span className="text-muted-foreground">Vùng trồng:</span>
+                <span className="font-medium text-foreground">{lot.farmAreaName || "—"}</span>
               </div>
-              <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                <span className="text-slate-500">Loại nông sản:</span>
-                <span className="font-medium text-slate-700">{lot.productCategoryName || "—"}</span>
+              <div className="flex justify-between items-center border-b border-border pb-2">
+                <span className="text-muted-foreground">Loại nông sản:</span>
+                <span className="font-medium text-foreground">{lot.productCategoryName || "—"}</span>
               </div>
-              <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                <span className="text-slate-500">Sản lượng dự kiến:</span>
-                <span className="font-medium text-slate-700">
+              <div className="flex justify-between items-center border-b border-border pb-2">
+                <span className="text-muted-foreground">Sản lượng dự kiến:</span>
+                <span className="font-medium text-foreground">
                   {lot.expectedQuantity ? `${lot.expectedQuantity.toLocaleString()} ${lot.expectedQuantityUnit || "kg"}` : "—"}
                 </span>
               </div>
               <div className="flex justify-between items-center pt-1">
-                <span className="text-slate-500">Trạng thái lô:</span>
+                <span className="text-muted-foreground">Trạng thái lô:</span>
                 <Badge
                   variant="outline"
-                  className="border-emerald-300 bg-emerald-50 text-[11px] font-semibold text-emerald-800"
+                  className="border-emerald-300 bg-emerald-50 text-xs font-semibold text-emerald-800"
                 >
                   {lot.status || "APPROVED"}
                 </Badge>
@@ -994,26 +994,26 @@ export const CreateInspectionRequestPage: React.FC = () => {
           </Card>
 
           {/* SIDEBAR CARD 2: Pipeline 4 bước quy trình kiểm nghiệm */}
-          <Card className="rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden">
-            <CardHeader className="border-b border-slate-100 bg-slate-50/60 p-4">
+          <Card className="rounded-xl border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden">
+            <CardHeader className="border-b border-border bg-muted/40 p-4">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-emerald-700" />
-                <CardTitle className="text-sm font-semibold text-slate-900">
+                <CardTitle className="text-sm font-semibold text-foreground">
                   Tiến trình kiểm nghiệm (Pipeline)
                 </CardTitle>
               </div>
             </CardHeader>
 
             <CardContent className="p-4 space-y-4">
-              <div className="relative pl-6 space-y-5 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+              <div className="relative pl-6 space-y-5 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-border">
                 {/* Bước 1: Đang thực hiện */}
                 <div className="relative">
                   <div className="absolute -left-6 top-0 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs">
-                    <span className="text-[10px] font-bold">1</span>
+                    <span className="text-xs font-bold">1</span>
                   </div>
                   <div>
                     <p className="text-xs font-bold text-emerald-800">1. Tạo yêu cầu kiểm nghiệm</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       Lập danh sách chỉ tiêu & thông tin gửi mẫu (Đang thao tác)
                     </p>
                   </div>
@@ -1021,12 +1021,12 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
                 {/* Bước 2: Chờ tiếp nhận */}
                 <div className="relative">
-                  <div className="absolute -left-6 top-0 flex h-5 w-5 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-500">
-                    <span className="text-[10px] font-medium">2</span>
+                  <div className="absolute -left-6 top-0 flex h-5 w-5 items-center justify-center rounded-full border border-input bg-white text-muted-foreground">
+                    <span className="text-xs font-medium">2</span>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-slate-700">2. Bàn giao mẫu & Phòng Lab tiếp nhận</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
+                    <p className="text-xs font-semibold text-foreground">2. Bàn giao mẫu & Phòng Lab tiếp nhận</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       Chuyển mẫu đến Lab phân tích chất lượng
                     </p>
                   </div>
@@ -1034,12 +1034,12 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
                 {/* Bước 3: Phân tích */}
                 <div className="relative">
-                  <div className="absolute -left-6 top-0 flex h-5 w-5 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-500">
-                    <span className="text-[10px] font-medium">3</span>
+                  <div className="absolute -left-6 top-0 flex h-5 w-5 items-center justify-center rounded-full border border-input bg-white text-muted-foreground">
+                    <span className="text-xs font-medium">3</span>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-slate-700">3. Phân tích & Ghi nhận kết quả</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
+                    <p className="text-xs font-semibold text-foreground">3. Phân tích & Ghi nhận kết quả</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       Nhập kết luận Đạt/Không đạt cho từng chỉ tiêu
                     </p>
                   </div>
@@ -1047,12 +1047,12 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
                 {/* Bước 4: Hoàn tất */}
                 <div className="relative">
-                  <div className="absolute -left-6 top-0 flex h-5 w-5 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-500">
-                    <span className="text-[10px] font-medium">4</span>
+                  <div className="absolute -left-6 top-0 flex h-5 w-5 items-center justify-center rounded-full border border-input bg-white text-muted-foreground">
+                    <span className="text-xs font-medium">4</span>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-slate-700">4. Kết luận & Kích hoạt tem</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
+                    <p className="text-xs font-semibold text-foreground">4. Kết luận & Kích hoạt tem</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       Lô đủ điều kiện phát hành tem truy xuất điện tử
                     </p>
                   </div>
@@ -1062,12 +1062,12 @@ export const CreateInspectionRequestPage: React.FC = () => {
           </Card>
 
           {/* SIDEBAR CARD 3: Lưu ý nghiệp vụ */}
-          <Card className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4 shadow-2xs">
+          <Card className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 shadow-2xs">
             <div className="flex items-start gap-2.5">
               <Sparkles className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
               <div className="space-y-1 text-xs text-amber-900">
                 <h4 className="font-bold">Lưu ý quản lý chất lượng</h4>
-                <p className="text-[11px] leading-relaxed text-amber-800">
+                <p className="text-xs leading-relaxed text-amber-800">
                   Theo quy định hệ thống, lô sản xuất phải đạt 100% các chỉ tiêu kiểm nghiệm còn hiệu lực mới đủ điều kiện kích hoạt tem truy xuất nguồn gốc.
                 </p>
               </div>
@@ -1077,14 +1077,14 @@ export const CreateInspectionRequestPage: React.FC = () => {
       </div>
 
       {/* SECTION 2: STICKY ACTION BAR */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-md px-4 py-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-white/95 backdrop-blur-md px-4 py-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] xl:left-[17rem]">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-end gap-2">
           <Button
             type="button"
             variant="ghost"
             onClick={handleClearDraft}
             disabled={submitting}
-            className="rounded-xl text-xs font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+            className="rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50"
           >
             Làm mới form
           </Button>
@@ -1129,11 +1129,11 @@ export const CreateInspectionRequestPage: React.FC = () => {
           <AlertDialogHeader>
             <div className="flex items-center gap-2.5 text-amber-600 mb-1">
               <AlertTriangle className="h-5 w-5" />
-              <AlertDialogTitle className="text-base font-bold text-slate-900">
+              <AlertDialogTitle className="text-base font-bold text-foreground">
                 Yêu cầu kiểm nghiệm trùng lặp
               </AlertDialogTitle>
             </div>
-            <AlertDialogDescription className="text-xs text-slate-600 leading-relaxed">
+            <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
               {duplicateMessage ||
                 "Hệ thống phát hiện lô sản xuất này đã có yêu cầu kiểm nghiệm đang chờ kết quả cho cùng bộ chỉ tiêu. Bạn có chắc chắn muốn tạo thêm yêu cầu mới không?"}
             </AlertDialogDescription>
