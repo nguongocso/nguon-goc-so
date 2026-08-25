@@ -38,8 +38,8 @@ interface ProcurementShipmentListProps {
 }
 
 export function ProcurementShipmentList({
-  onRecordProcurement,
-}: ProcurementShipmentListProps) {
+                                          onRecordProcurement,
+                                        }: ProcurementShipmentListProps) {
   const [shipments, setShipments] = useState<ProcurementShipment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -54,10 +54,8 @@ export function ProcurementShipmentList({
     }
   };
 
-
   const loadShipments = useCallback(async () => {
     setIsLoading(true);
-
     try {
       const data = await getEligibleShipments();
       setShipments(data);
@@ -74,20 +72,12 @@ export function ProcurementShipmentList({
 
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase();
-
-    if (!keyword) {
-      return shipments;
-    }
-
+    if (!keyword) return shipments;
     return shipments.filter(
-      (shipment) =>
-        shipment.name.toLowerCase().includes(keyword) ||
-        (shipment.productionLotName ?? "")
-          .toLowerCase()
-          .includes(keyword) ||
-        (shipment.productCategoryName ?? "")
-          .toLowerCase()
-          .includes(keyword),
+        (shipment) =>
+            shipment.name.toLowerCase().includes(keyword) ||
+            (shipment.productionLotName ?? "").toLowerCase().includes(keyword) ||
+            (shipment.productCategoryName ?? "").toLowerCase().includes(keyword),
     );
   }, [shipments, search]);
 
@@ -97,9 +87,9 @@ export function ProcurementShipmentList({
     const toastId = toast.loading("Đang tạo hồ sơ GS1...");
     try {
       const { blob, fileName } = await exportGs1Dossier(
-        shipmentId,
-        "json",
-        true,
+          shipmentId,
+          "json",
+          true,
       );
       toast.dismiss(toastId);
 
@@ -116,180 +106,185 @@ export function ProcurementShipmentList({
     } catch (error: any) {
       toast.dismiss(toastId);
       const msg =
-        error.message ||
-        error.response?.data?.message ||
-        "Có lỗi xảy ra khi xuất hồ sơ GS1.";
+          error.message ||
+          error.response?.data?.message ||
+          "Có lỗi xảy ra khi xuất hồ sơ GS1.";
       toast.error(msg);
     }
   };
 
   return (
-    <>
-      <Card className="overflow-hidden">
-        <CardHeader className="border-b">
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-            <div>
-              <CardTitle>Danh sách lô hàng sẵn sàng thu mua</CardTitle>
-
-              <p className="mt-1 text-sm text-muted-foreground">
-                Chỉ hiển thị các lô hàng đã kích hoạt tem, sẵn sàng ghi nhận thu
-                mua.
-              </p>
+      <>
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+              <div>
+                <CardTitle>Danh sách lô hàng sẵn sàng thu mua</CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Chỉ hiển thị các lô hàng đã kích hoạt tem, sẵn sàng ghi nhận thu
+                  mua.
+                </p>
+              </div>
             </div>
-          </div>
-        </CardHeader>
+          </CardHeader>
 
-        <CardContent className="p-0">
-          <div className="border-b bg-table-header p-4">
-            <label className="relative">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <CardContent className="p-0">
+            <div className="border-b bg-table-header p-4">
+              <label className="relative">
+                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                    className="bg-white pl-9"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Tìm tên lô hàng, lô sản xuất hoặc loại nông sản..."
+                    aria-label="Tìm kiếm lô hàng thu mua"
+                />
+              </label>
+            </div>
 
-              <Input
-                className="bg-white pl-9"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Tìm tên lô hàng, lô sản xuất hoặc loại nông sản..."
-                aria-label="Tìm kiếm lô hàng thu mua"
-              />
-            </label>
-          </div>
-
-          <div className="overflow-x-auto">
-            <Table className="min-w-[600px] md:min-w-[750px]">
-              <TableHeader>
-                <TableRow>
-                  {[
-                    "Tên lô hàng",
-                    "Lô sản xuất",
-                    "Nông sản",
-                    "Sản lượng",
-                    "Trạng thái",
-                    "Thao tác",
-                  ].map((title) => (
-                    <TableHead key={title}>{title}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {isLoading && (
+            <div className="overflow-x-auto">
+              <Table className="min-w-[600px] md:min-w-[750px]">
+                <TableHeader>
                   <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="py-12 text-center text-muted-foreground"
-                    >
-                      <LoaderCircle className="mx-auto mb-2 size-5 animate-spin" />
-                      Đang tải danh sách lô hàng...
-                    </TableCell>
-                  </TableRow>
-                )}
-
-                {!isLoading &&
-                  filtered.map((shipment) => (
-                    <TableRow key={shipment.id}>
-                      <TableCell className="font-semibold text-foreground">
-                        {shipment.name}
-                      </TableCell>
-
-                      <TableCell className="text-muted-foreground">
-                        {shipment.productionLotName ?? "—"}
-                      </TableCell>
-
-                      <TableCell className="text-muted-foreground">
-                        {shipment.productCategoryName ?? "—"}
-                      </TableCell>
-
-                      <TableCell className="text-muted-foreground">
-                        {shipment.totalQuantity != null
-                          ? shipment.totalQuantity.toLocaleString("vi-VN")
-                          : "—"}
-                      </TableCell>
-
-                      <TableCell>
-                        <ShipmentStatusBadge status={shipment.status} />
-                      </TableCell>
-
-                      <TableCell>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Button
-                            size="sm"
-                            type="button"
-                            variant="outline"
-                            onClick={() =>
-                              handleViewDetail(shipment.id)
+                    {[
+                      "Tên lô hàng",
+                      "Lô sản xuất",
+                      "Nông sản",
+                      "Sản lượng",
+                      "Trạng thái",
+                      "Thao tác",
+                      "Chi tiết",
+                    ].map((title) => (
+                        <TableHead
+                            key={title}
+                            className={
+                              title === "Thao tác" || title === "Chi tiết"
+                                  ? "text-center"
+                                  : undefined
                             }
-                          >
-                            <Eye className="size-4" />
-                            Chi tiết
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            type="button"
-                            onClick={() =>
-                              onRecordProcurement(shipment.id)
-                            }
-                          >
-                            <ShoppingCart className="size-4" />
-                            Thu mua
-                          </Button>
-
-                          {canExportGs1 && (
-                            <Button
-                              size="sm"
-                              type="button"
-                              variant="outline"
-                              onClick={() => handleExportGs1(shipment.id)}
-                            >
-                              <FileJson className="size-4" />
-                              Xuất hồ sơ GS1
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-
-                {!isLoading && filtered.length === 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="py-12 text-center text-muted-foreground"
-                    >
-                      <Package className="mx-auto mb-3 size-10 text-muted-foreground/40" />
-
-                      <p className="font-semibold">
-                        {search.trim()
-                          ? "Không tìm thấy lô hàng phù hợp"
-                          : "Chưa có lô hàng nào sẵn sàng thu mua"}
-                      </p>
-
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {search.trim()
-                          ? "Hãy thử thay đổi từ khóa tìm kiếm."
-                          : "Các lô hàng đã kích hoạt tem sẽ xuất hiện tại đây."}
-                      </p>
-                    </TableCell>
+                        >
+                          {title}
+                        </TableHead>
+                    ))}
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                </TableHeader>
 
-      <ShipmentDetailDialog
-        open={detailShipment !== null}
-        shipment={detailShipment}
-        onClose={() => setDetailShipment(null)}
-        canActivate={false}
-        canRecall={false}
-        onActivate={() => { }}
-        onRecall={() => { }}
-        onExportDossier={() => { }}
-        onDeleteDraft={() => { }}
-        onViewTimeline={() => { }}
-      />
-    </>
+                <TableBody>
+                  {isLoading && (
+                      <TableRow>
+                        <TableCell
+                            colSpan={7}
+                            className="py-12 text-center text-muted-foreground"
+                        >
+                          <LoaderCircle className="mx-auto mb-2 size-5 animate-spin" />
+                          Đang tải danh sách lô hàng...
+                        </TableCell>
+                      </TableRow>
+                  )}
+
+                  {!isLoading &&
+                      filtered.map((shipment) => (
+                          <TableRow key={shipment.id}>
+                            <TableCell className="font-semibold text-foreground">
+                              {shipment.name}
+                            </TableCell>
+
+                            <TableCell className="text-muted-foreground">
+                              {shipment.productionLotName ?? "—"}
+                            </TableCell>
+
+                            <TableCell className="text-muted-foreground">
+                              {shipment.productCategoryName ?? "—"}
+                            </TableCell>
+
+                            <TableCell className="text-muted-foreground">
+                              {shipment.totalQuantity != null
+                                  ? shipment.totalQuantity.toLocaleString("vi-VN")
+                                  : "—"}
+                            </TableCell>
+
+                            <TableCell>
+                              <ShipmentStatusBadge status={shipment.status} />
+                            </TableCell>
+
+                            <TableCell>
+                              <div className="flex justify-center gap-1">
+                                <Button
+                                    size="icon-sm"
+                                    type="button"
+                                    variant="ghost"
+                                    title="Ghi nhận thu mua"
+                                    onClick={() => onRecordProcurement(shipment.id)}
+                                >
+                                  <ShoppingCart className="size-4" />
+                                </Button>
+
+                                {canExportGs1 && (
+                                    <Button
+                                        size="icon-sm"
+                                        type="button"
+                                        variant="ghost"
+                                        title="Xuất hồ sơ GS1"
+                                        onClick={() => handleExportGs1(shipment.id)}
+                                    >
+                                      <FileJson className="size-4" />
+                                    </Button>
+                                )}
+                              </div>
+                            </TableCell>
+
+                            <TableCell className="text-center">
+                              <Button
+                                  size="sm"
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => handleViewDetail(shipment.id)}
+                              >
+                                <Eye className="mr-1 size-4" />
+                                Chi tiết
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                      ))}
+
+                  {!isLoading && filtered.length === 0 && (
+                      <TableRow>
+                        <TableCell
+                            colSpan={7}
+                            className="py-12 text-center text-muted-foreground"
+                        >
+                          <Package className="mx-auto mb-3 size-10 text-muted-foreground/40" />
+                          <p className="font-semibold">
+                            {search.trim()
+                                ? "Không tìm thấy lô hàng phù hợp"
+                                : "Chưa có lô hàng nào sẵn sàng thu mua"}
+                          </p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {search.trim()
+                                ? "Hãy thử thay đổi từ khóa tìm kiếm."
+                                : "Các lô hàng đã kích hoạt tem sẽ xuất hiện tại đây."}
+                          </p>
+                        </TableCell>
+                      </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        <ShipmentDetailDialog
+            open={detailShipment !== null}
+            shipment={detailShipment}
+            onClose={() => setDetailShipment(null)}
+            canActivate={false}
+            canRecall={false}
+            onActivate={() => {}}
+            onRecall={() => {}}
+            onExportDossier={() => {}}
+            onDeleteDraft={() => {}}
+            onViewTimeline={() => {}}
+        />
+      </>
   );
 }
