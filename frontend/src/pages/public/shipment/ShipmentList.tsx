@@ -44,24 +44,12 @@ import {
   exportGs1Dossier,
 } from "@/api/dossierApi";
 import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligibleDialog";
+import { ShipmentStatusBadge } from "@/components/shipment/ShipmentStatusBadge";
 import { ROLE_ACCESS } from "@/config/roleAccess";
 import { usePermission } from "@/hooks/usePermission";
-import { deleteDraft } from "@/api/eventValidationApi";
+import { useDeleteDraftShipment } from "@/hooks/useDeleteDraftShipment";
 import { checkCanActivateSeal } from "@/api/certificationApi";
-
-const statusLabelMap: Record<string, string> = {
-  DRAFT: "Nháp",
-  CODE_PRINTED: "Đã in mã",
-  ACTIVATED: "Đã kích hoạt",
-  RECALLED: "Đã thu hồi",
-};
-
-const statusColorMap: Record<string, string> = {
-  DRAFT: "bg-status-draft/10 text-status-draft",
-  CODE_PRINTED: "bg-status-packaged/10 text-status-packaged",
-  ACTIVATED: "bg-status-approved/10 text-status-approved",
-  RECALLED: "bg-status-rejected/10 text-status-rejected",
-};
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 
 interface ShipmentListProps {
   productionLotId: string;
@@ -126,6 +114,11 @@ export const ShipmentList = ({
   } = useShipments(productionLotId);
 
   const { recallingShipmentId, recallShipment } = useRecallShipment(reload);
+
+  const [pendingDeleteDraft, setPendingDeleteDraft] = useState<Shipment | null>(
+    null,
+  );
+  const { deletingDraft, deleteDraftShipment } = useDeleteDraftShipment(reload);
 
   const handleCreate = async (payload: CreateShipmentPayload) => {
     await createShipment(payload);
@@ -250,22 +243,6 @@ export const ShipmentList = ({
     }
   };
 
-  const handleDeleteDraft = async (shipment: Shipment) => {
-    if (!confirm(`Bạn có chắc chắn muốn hủy bản nháp "${shipment.name}"?`)) {
-      return;
-    }
-
-    try {
-      await deleteDraft(shipment.id);
-      toast.success("Hủy bản nháp thành công");
-      reload();
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message || "Không thể hủy bản nháp",
-      );
-    }
-  };
-
   return (
     <>
       <Card>
@@ -320,13 +297,7 @@ export const ShipmentList = ({
                       </TableCell>
 
                       <TableCell>
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusColorMap[shipment.status] ||
-                            "bg-status-draft/10 text-status-draft"
-                            }`}
-                        >
-                          {statusLabelMap[shipment.status] || shipment.status}
-                        </span>
+                        <ShipmentStatusBadge status={shipment.status} />
                       </TableCell>
 
                       <TableCell>
@@ -430,7 +401,7 @@ export const ShipmentList = ({
                                   <DropdownMenuItem
                                     variant="destructive"
                                     onClick={() =>
-                                      handleDeleteDraft(shipment)
+                                      setPendingDeleteDraft(shipment)
                                     }
                                   >
                                     Hủy nháp
@@ -537,6 +508,22 @@ export const ShipmentList = ({
         }
         missingDocs={ineligibleDialog.missingDocs}
         shipmentName={ineligibleDialog.shipmentName}
+      />
+
+      <ConfirmDialog
+        open={pendingDeleteDraft !== null}
+        onOpenChange={(open) => !open && setPendingDeleteDraft(null)}
+        title="Hủy bản nháp lô hàng"
+        description={`Bạn có chắc chắn muốn hủy bản nháp "${pendingDeleteDraft?.name}"?`}
+        confirmLabel="Hủy nháp"
+        variant="destructive"
+        loading={deletingDraft}
+        onConfirm={async () => {
+          if (pendingDeleteDraft) {
+            await deleteDraftShipment(pendingDeleteDraft);
+          }
+          setPendingDeleteDraft(null);
+        }}
       />
     </>
   );

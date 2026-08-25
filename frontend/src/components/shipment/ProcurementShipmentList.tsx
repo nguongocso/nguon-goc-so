@@ -18,6 +18,7 @@ import type { ProcurementShipment, Shipment } from "@/types/shipment";
 import { getEligibleShipments, getShipmentById } from "@/api/shipmentApi";
 import { exportGs1Dossier } from "@/api/dossierApi";
 import { ShipmentDetailDialog } from "@/components/shipment/ShipmentDetailDialog";
+import { ShipmentStatusBadge } from "@/components/shipment/ShipmentStatusBadge";
 import { ROLE_ACCESS } from "@/config/roleAccess";
 import { usePermission } from "@/hooks/usePermission";
 import {
@@ -35,20 +36,6 @@ interface ProcurementShipmentListProps {
   /** Callback khi người dùng bấm "Ghi nhận thu mua" trên một lô hàng */
   onRecordProcurement: (shipmentId: string) => void;
 }
-
-const statusLabels: Record<string, string> = {
-  ACTIVATED: "Đã kích hoạt",
-  CODE_PRINTED: "Đã in mã",
-  DRAFT: "Bản nháp",
-  RECALLED: "Đã thu hồi",
-};
-
-const statusClasses: Record<string, string> = {
-  ACTIVATED: "bg-status-approved/10 text-status-approved",
-  CODE_PRINTED: "bg-status-packaged/10 text-status-packaged",
-  DRAFT: "bg-status-draft/10 text-status-draft",
-  RECALLED: "bg-status-rejected/10 text-status-rejected",
-};
 
 export function ProcurementShipmentList({
   onRecordProcurement,
@@ -219,13 +206,7 @@ export function ProcurementShipmentList({
                       </TableCell>
 
                       <TableCell>
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses[shipment.status] ??
-                            "bg-status-draft/10 text-status-draft"
-                            }`}
-                        >
-                          {statusLabels[shipment.status] ?? shipment.status}
-                        </span>
+                        <ShipmentStatusBadge status={shipment.status} />
                       </TableCell>
 
                       <TableCell>
@@ -250,7 +231,7 @@ export function ProcurementShipmentList({
                             }
                           >
                             <ShoppingCart className="size-4" />
-                            Ghi nhận thu mua
+                            Thu mua
                           </Button>
 
                           {canExportGs1 && (

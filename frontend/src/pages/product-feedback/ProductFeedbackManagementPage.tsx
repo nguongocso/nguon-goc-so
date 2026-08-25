@@ -10,6 +10,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { DetailSection } from "@/components/common/detail/DetailSection";
+import { DetailField } from "@/components/common/detail/DetailField";
 import { ChevronLeft, ChevronRight, RefreshCw, MessageSquare } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 import { toast } from "sonner";
@@ -260,142 +270,79 @@ export default function ProductFeedbackManagementPage() {
       </div>
 
       {/* Detail Sheet */}
-      {detailOpen && selectedFeedback && (
-        <FeedbackDetailSheet
-          feedback={selectedFeedback}
-          onClose={handleCloseDetail}
-        />
-      )}
+      <FeedbackDetailSheet
+        open={detailOpen}
+        feedback={selectedFeedback}
+        onClose={handleCloseDetail}
+      />
     </div>
   );
 }
 
-// ─── Detail Sheet (inline for simplicity) ─────────────────
+// ─── Detail Sheet (Sheet primitive) ───────────────────────
 
 function FeedbackDetailSheet({
   feedback,
+  open,
   onClose,
 }: {
-  feedback: ProductFeedback;
+  feedback: ProductFeedback | null;
+  open: boolean;
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-end">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      {/* Sheet */}
-      <div className="relative z-10 flex h-full w-full max-w-lg flex-col bg-white shadow-xl animate-in slide-in-from-right">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-          <h2 className="text-lg font-semibold text-foreground">
-            Chi tiết phản ánh
-          </h2>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1 text-muted-foreground hover:bg-gray-100 hover:text-foreground transition-colors"
-            aria-label="Đóng"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+    <Sheet open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-lg">
+        {feedback && (
+          <>
+            <SheetHeader className="border-b px-6 py-4">
+              <SheetTitle className="text-lg font-semibold text-foreground">
+                Chi tiết phản ánh
+              </SheetTitle>
+              <SheetDescription className="text-sm text-muted-foreground">
+                Nội dung phản ánh từ người dùng về sản phẩm.
+              </SheetDescription>
+            </SheetHeader>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
-          {/* Section: Thông tin phản ánh */}
-          <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-              Thông tin phản ánh
-            </h3>
-            <div className="rounded-lg border border-gray-100 bg-gray-50 p-4 space-y-2">
-              <div>
-                <span className="text-xs text-muted-foreground">Mã phản ánh</span>
-                <p className="text-sm font-mono text-foreground break-all">{maskId(feedback.id)}</p>
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground">Nội dung</span>
-                <p className="mt-1 text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                  {feedback.content}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground">Thời gian gửi</span>
-                <p className="text-sm text-foreground">{formatDate(feedback.createdAt)}</p>
-              </div>
+            {/* Content */}
+            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-4">
+              {/* Section: Thông tin phản ánh */}
+              <DetailSection title="Thông tin phản ánh" contentClassName="space-y-3">
+                <DetailField label="Mã phản ánh" mono value={maskId(feedback.id)} />
+                <DetailField
+                  label="Nội dung"
+                  value={
+                    <span className="block whitespace-pre-wrap font-normal leading-relaxed">
+                      {feedback.content}
+                    </span>
+                  }
+                />
+                <DetailField label="Thời gian gửi" value={formatDate(feedback.createdAt)} />
+              </DetailSection>
+
+              {/* Section: Thông tin sản phẩm */}
+              <DetailSection title="Thông tin sản phẩm" contentClassName="space-y-3">
+                <DetailField label="Lô sản xuất" value={feedback.productionLotName} />
+                <DetailField label="Mã lô sản xuất" mono value={maskId(feedback.productionLotId)} />
+                <DetailField label="Loại nông sản" value={feedback.productCategoryName || undefined} />
+              </DetailSection>
+
+              {/* Section: Thông tin tổ chức */}
+              <DetailSection title="Thông tin tổ chức" contentClassName="space-y-3">
+                <DetailField label="Tổ chức" value={feedback.organizationName || undefined} />
+                <DetailField label="Mã tổ chức" mono value={maskId(feedback.organizationId) || undefined} />
+              </DetailSection>
             </div>
-          </section>
 
-          {/* Section: Thông tin sản phẩm */}
-          <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-              Thông tin sản phẩm
-            </h3>
-            <div className="rounded-lg border border-gray-100 bg-gray-50 p-4 space-y-2">
-              <div>
-                <span className="text-xs text-muted-foreground">Lô sản xuất</span>
-                <p className="text-sm font-medium text-foreground">
-                  {feedback.productionLotName}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground">Mã lô sản xuất</span>
-                <p className="text-sm font-mono text-foreground break-all">
-                  {maskId(feedback.productionLotId)}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground">Loại nông sản</span>
-                <p className="text-sm text-foreground">
-                  {feedback.productCategoryName || "—"}
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Section: Thông tin tổ chức */}
-          <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-              Thông tin tổ chức
-            </h3>
-            <div className="rounded-lg border border-gray-100 bg-gray-50 p-4 space-y-2">
-              <div>
-                <span className="text-xs text-muted-foreground">Tổ chức</span>
-                <p className="text-sm text-foreground">
-                  {feedback.organizationName || "—"}
-                </p>
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground">Mã tổ chức</span>
-                <p className="text-sm font-mono text-foreground break-all">
-                  {maskId(feedback.organizationId) || "—"}
-                </p>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        {/* Footer */}
-        <div className="border-t border-gray-100 px-6 py-4">
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={onClose}
-          >
-            Đóng
-          </Button>
-        </div>
-      </div>
-    </div>
+            {/* Footer */}
+            <SheetFooter className="mx-0 mb-0 border-t px-6 py-4 sm:flex-row">
+              <Button variant="outline" className="w-full" onClick={onClose}>
+                Đóng
+              </Button>
+            </SheetFooter>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
   );
 }

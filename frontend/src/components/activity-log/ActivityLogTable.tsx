@@ -9,16 +9,9 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Eye, Info, User, Calendar, MapPin, Activity, Layers, FileText } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import type { ActivityLog } from '@/types/activityLog';
+import { ActivityLogDetailDialog } from './ActivityLogDetailDialog';
 import {
   formatActionType,
   formatTargetType,
@@ -147,115 +140,10 @@ export const ActivityLogTable = ({ logs, loading }: Props) => {
       </div>
 
       {/* Modal Chi tiết hoạt động */}
-      {selectedLog && (
-        <Dialog open={!!selectedLog} onOpenChange={(open) => !open && setSelectedLog(null)}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <div className="flex items-center gap-2 text-emerald-700">
-                <Info className="h-5 w-5" />
-                <DialogTitle>Chi tiết nhật ký hoạt động</DialogTitle>
-              </div>
-              <DialogDescription>
-                Thông tin chi tiết thao tác được ghi nhận bởi hệ thống kiểm toán
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 py-2">
-              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-lg border border-slate-100 text-sm">
-                <div className="space-y-1">
-                  <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
-                    <Calendar className="h-3.5 w-3.5 text-slate-400" /> Thời gian
-                  </span>
-                  <div className="font-mono text-slate-800 text-xs">
-                    {formatDate(selectedLog.createdAt)}
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
-                    <User className="h-3.5 w-3.5 text-slate-400" /> Người thực hiện
-                  </span>
-                  <div className="font-medium text-slate-800">
-                    {getActorValue(selectedLog)}{' '}
-                    <span className="text-xs text-muted-foreground font-normal">
-                      (@{selectedLog.username})
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
-                    <Activity className="h-3.5 w-3.5 text-slate-400" /> Hành động
-                  </span>
-                  <div>
-                    <Badge variant="outline" className={`font-medium ${getActionColor(getActionValue(selectedLog))}`}>
-                      {formatActionType(getActionValue(selectedLog))}
-                    </Badge>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
-                    <MapPin className="h-3.5 w-3.5 text-slate-400" /> Địa chỉ IP
-                  </span>
-                  <div className="font-mono text-slate-800 text-xs">
-                    {selectedLog.ipAddress || 'Không xác định'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Đối tượng tác động */}
-              <div className="space-y-1.5">
-                <span className="text-xs font-semibold text-slate-600 flex items-center gap-1">
-                  <Layers className="h-4 w-4 text-emerald-600" /> Đối tượng tác động
-                </span>
-                <div className="p-3 bg-white border border-slate-200 rounded-lg space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 text-xs">Loại đối tượng:</span>
-                    <span className="font-medium text-slate-800">
-                      {formatTargetType(getTargetValue(selectedLog))}
-                    </span>
-                  </div>
-                  {getTargetIdValue(selectedLog) && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-500 text-xs">Mã định danh (ID):</span>
-                      <span className="font-mono text-xs text-slate-700 select-all">
-                        {getTargetIdValue(selectedLog)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Mô tả chi tiết */}
-              <div className="space-y-1.5">
-                <span className="text-xs font-semibold text-slate-600 flex items-center gap-1">
-                  <FileText className="h-4 w-4 text-emerald-600" /> Nội dung thao tác
-                </span>
-                <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-lg text-sm text-slate-800 leading-relaxed">
-                  {selectedLog.description || 'Không có mô tả chi tiết'}
-                </div>
-              </div>
-
-              {/* Dữ liệu payload chi tiết nếu có */}
-              {selectedLog.details && selectedLog.details !== selectedLog.description && (
-                <div className="space-y-1.5">
-                  <span className="text-xs font-semibold text-slate-600">Dữ liệu chi tiết (Payload)</span>
-                  <pre className="p-3 bg-slate-900 text-slate-100 rounded-lg text-xs font-mono overflow-x-auto max-h-40">
-                    {selectedLog.details}
-                  </pre>
-                </div>
-              )}
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setSelectedLog(null)}>
-                Đóng
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+      <ActivityLogDetailDialog
+        log={selectedLog}
+        onClose={() => setSelectedLog(null)}
+      />
     </>
   );
 };
