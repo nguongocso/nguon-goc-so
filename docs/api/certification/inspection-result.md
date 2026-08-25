@@ -101,6 +101,32 @@ Các API hiện có thực sự đang hoạt động theo code là:
 
 Nếu cần thống nhất API contract cho tương lai, phải cập nhật lại doc này dựa trên code hiện hành, không dựa trên mô hình thiết kế chưa implement.
 
+## 8. Thống kê tổng hợp kết quả kiểm nghiệm (failed criteria summary)
+
+Cập nhật: 2026-08-25. Các response sau đây đã bổ sung trường thống kê tổng hợp:
+
+| Trường | Kiểu | Ý nghĩa |
+|---|---|---|
+| `totalCriteria` | int | Tổng số chỉ tiêu của yêu cầu kiểm nghiệm |
+| `evaluatedCriteria` | int | Số chỉ tiêu đã có kết quả được ghi nhận (chỉ có ở response chi tiết) |
+| `passedCriteria` | int | Số chỉ tiêu đạt (`passed = true`) |
+| `failedCriteriaCount` | int | Số chỉ tiêu không đạt (`passed = false`) |
+| `failedRatio` | double | Tỷ lệ không đạt trên **tổng** số chỉ tiêu (%), làm tròn 1 chữ số thập phân; bằng `0.0` khi không có chỉ tiêu |
+
+Quy tắc nghiệp vụ thống nhất:
+
+- Mẫu số của `failedRatio` là **tổng số chỉ tiêu** của yêu cầu (kể cả chỉ tiêu chưa có kết quả), theo quyết định nghiệp vụ.
+- Kết quả hết hạn nhưng `passed = true` **không** được tính là không đạt trong thống kê này (khác với logic `can-activate-seal` gộp cả hết hạn vào `failedOrExpiredCriteria`).
+- Chỉ tiêu chưa có kết quả (`result = null`) không tính vào `passedCriteria`/`failedCriteriaCount`, chỉ tính vào `totalCriteria`.
+
+Áp dụng tại các endpoint:
+
+1) `GET /api/v1/test-requests` — từng item trong `InspectionRequestListResponse` có `criteriaCount`, `failedCriteriaCount`, `failedRatio`. Số không đạt được đếm bằng một truy vấn nhóm duy nhất (`InspectionCriterionResultRepository.countFailedCriteriaByRequestIds`) để tránh N+1.
+2) `GET /api/v1/inspection-requests/{requestId}` — `InspectionRequestDetailResponse` có đầy đủ 5 trường trên, tính trực tiếp từ danh sách chỉ tiêu và kết quả đã load.
+3) Cổng tra cứu công khai (`PublicInspectionResponse` của module `publicapi`) — có `totalCriteria`, `passedCriteria`, `failedCriteriaCount`, `failedRatio`. Danh sách công khai chỉ chứa chỉ tiêu đã có kết quả nên `totalCriteria` bằng số kết quả đã ghi nhận.
+
+Ví dụ: yêu cầu có 5 chỉ tiêu, 3 đạt, 2 không đạt → `totalCriteria=5, evaluatedCriteria=5, passedCriteria=3, failedCriteriaCount=2, failedRatio=40.0`.
+
 ## Nguồn code đối chiếu
 
 - `backend/src/main/java/vn/nguongocso/certification/controller/InspectionCriterionResultController.java`
