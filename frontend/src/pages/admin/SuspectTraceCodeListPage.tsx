@@ -27,7 +27,6 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Eye,
   Lock,
   MapPin,
   RefreshCw,
@@ -293,6 +292,7 @@ export default function SuspectTraceCodeListPage() {
                     <TableHead>Địa điểm</TableHead>
                     <TableHead>Trạng thái</TableHead>
                     <TableHead className="text-right">Thao tác</TableHead>
+                    <TableHead className="text-right">Chi tiết</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -335,25 +335,30 @@ export default function SuspectTraceCodeListPage() {
                       </TableCell>
                       <TableCell>{getStatusBadge(item.status)}</TableCell>
                       <TableCell>
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/admin/suspect-trace-codes/${item.id}`)}
-                          >
-                            <Eye className="h-4 w-4" />
-                            Chi tiết
-                          </Button>
-                          {item.status === 'SUSPECT' && (
+                        <div className="flex justify-end gap-1">
+                          {item.status === 'SUSPECT' ? (
                             <Button
-                              size="sm"
-                              variant="destructive"
+                              size="icon-sm"
+                              variant="ghost"
+                              title="Khóa tem"
                               onClick={() => setLockTarget(item)}
                             >
-                              <Lock className="h-4 w-4" />
-                              Khóa
+                              <Lock className="size-4" />
                             </Button>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">—</span>
                           )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigate(`/admin/suspect-trace-codes/${item.id}`)}
+                          >
+                            Chi tiết
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
