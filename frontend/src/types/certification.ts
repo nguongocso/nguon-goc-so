@@ -136,6 +136,10 @@ export interface InspectionRequestListItem {
   testingUnit: string;
   sampleSentDate: string;
   criteriaCount: number;
+  /** Số chỉ tiêu không đạt (passed = false); không tính chưa có kết quả/hết hạn. */
+  failedCriteriaCount: number;
+  /** Tỷ lệ chỉ tiêu không đạt trên tổng số chỉ tiêu (%), 1 chữ số thập phân. */
+  failedRatio: number;
 }
 
 /**
@@ -149,6 +153,16 @@ export interface InspectionRequestDetailResponse {
   status: InspectionRequestStatusDisplay;
   testingUnit: string;
   sampleSentDate: string;
+  /** Tổng số chỉ tiêu kiểm nghiệm của yêu cầu. */
+  totalCriteria: number;
+  /** Số chỉ tiêu đã có kết quả kiểm nghiệm được ghi nhận. */
+  evaluatedCriteria: number;
+  /** Số chỉ tiêu đạt (passed = true). */
+  passedCriteria: number;
+  /** Số chỉ tiêu không đạt (passed = false). */
+  failedCriteriaCount: number;
+  /** Tỷ lệ chỉ tiêu không đạt trên tổng số chỉ tiêu (%), 1 chữ số thập phân. */
+  failedRatio: number;
   criteria: InspectionRequestDetailCriterion[];
 }
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   ChevronLeft,
   ChevronRight,
+  LoaderCircle,
   Package,
   Plus,
   Sprout,
@@ -42,7 +43,6 @@ import {
 } from "@/api/certificationApi";
 import { CertificationList } from "@/components/certification/CertificationList";
 import { AttachCertificationDialog } from "@/components/certification/AttachCertificationDialog";
-import { RecordInspectionResultDialog } from "@/components/certification/RecordInspectionResultDialog";
 import {
   Dialog,
   DialogContent,
@@ -272,19 +272,7 @@ export const ProductionLotDetailPage = () => {
   const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [duplicateMessage, setDuplicateMessage] = useState("");
 
-  // Dialog ghi nhận kết quả kiểm nghiệm
-  const [resultDialogOpen, setResultDialogOpen] = useState(false);
-  const [resultRequestId, setResultRequestId] = useState<string | null>(null);
 
-  const openResultDialog = (requestId: string) => {
-    setResultRequestId(requestId);
-    setResultDialogOpen(true);
-  };
-
-  const handleResultRecorded = () => {
-  setInspectionReloadKey((key) => key + 1);
-  void loadCanActivateCheck();
-};
 
   const loadLot = async () => {
     if (!id) return;
@@ -399,7 +387,7 @@ export const ProductionLotDetailPage = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20 text-muted-foreground">
-        <Sprout className="h-5 w-5 animate-spin mr-2 text-emerald-500" />
+        <LoaderCircle className="h-5 w-5 animate-spin mr-2 text-emerald-500" />
         Đang tải...
       </div>
     );
@@ -455,17 +443,7 @@ export const ProductionLotDetailPage = () => {
 
   const openCreateDialog = () => {
     if (!id) return;
-    setCreateDialogOpen(true);
-    setDuplicateOpen(false);
-    setDuplicateMessage("");
-    setCriteriaData(null);
-    setCriteriaError(null);
-    setTestingUnit("");
-    setSampleSentDate(toISODate(new Date()));
-    setSelectedCriteriaIds([]);
-    setTouched({ unit: false, date: false, criteria: false });
-    setSubmitting(false);
-    void loadCriteria();
+    navigate(`/production-lots/${id}/inspection-requests/create`);
   };
 
   const handleCloseCreateDialog = () => {
@@ -483,6 +461,19 @@ export const ProductionLotDetailPage = () => {
       }
       return prev.filter((id) => id !== criteriaId);
     });
+  };
+
+  const handleSelectAllCriteria = () => {
+    if (!criteriaData) return;
+    setTouched((prev) => ({ ...prev, criteria: true }));
+    setSelectedCriteriaIds(
+      criteriaData.criteria.map((criterion) => criterion.criteriaId)
+    );
+  };
+
+  const handleClearAllCriteria = () => {
+    setTouched((prev) => ({ ...prev, criteria: true }));
+    setSelectedCriteriaIds([]);
   };
 
   const handleCreated = () => {
@@ -527,6 +518,11 @@ export const ProductionLotDetailPage = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCreateFormSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void submitCreate();
   };
 
   const confirmDuplicateSubmit = async () => {
@@ -831,7 +827,7 @@ export const ProductionLotDetailPage = () => {
                   className="flex items-center justify-center gap-2 py-12 text-muted-foreground"
                   aria-live="polite"
                 >
-                  <Sprout className="h-5 w-5 animate-spin text-emerald-500" />
+                  <LoaderCircle className="h-5 w-5 animate-spin text-emerald-500" />
                   Đang tải yêu cầu kiểm nghiệm...
                 </div>
               ) : inspectionError ? (
@@ -887,7 +883,21 @@ export const ProductionLotDetailPage = () => {
                             <TableCell>
                               {formatDateOnly(request.sampleSentDate)}
                             </TableCell>
-                            <TableCell>{request.criteriaCount}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <span>{request.criteriaCount}</span>
+                                {request.failedCriteriaCount > 0 && (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-red-200 bg-red-50 text-red-700 text-xs font-semibold px-2 py-0.5"
+                                    title={`${request.failedCriteriaCount}/${request.criteriaCount} chỉ tiêu không đạt (${request.failedRatio}%)`}
+                                  >
+                                    {request.failedCriteriaCount} không đạt ·{" "}
+                                    {request.failedRatio}%
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>
                               <div className="flex flex-wrap items-center gap-1.5">
                                 {getInspectionStatusBadge(request.status)}
@@ -917,17 +927,20 @@ export const ProductionLotDetailPage = () => {
                               </div>
                             </TableCell>
                             <TableCell>
-                              {(request.status === "PENDING" ||
-                                request.status === "FAILED") &&
-                                canInspect && (
+                              {canInspect && (
                                 <Button
                                   size="sm"
-                                  variant="edit"
+                                  variant={request.status === "PASSED" ? "outline" : "create"}
+                                  className="text-xs font-semibold"
                                   onClick={() =>
-                                    openResultDialog(request.testRequestId)
+                                    navigate(
+                                      `/production-lots/${id}/inspection-requests/${request.testRequestId}/results`
+                                    )
                                   }
                                 >
-                                  Nhập kết quả
+                                  {request.status === "PASSED"
+                                    ? "Xem / Sửa kết quả"
+                                    : "Nhập kết quả"}
                                 </Button>
                               )}
                             </TableCell>
@@ -963,7 +976,11 @@ export const ProductionLotDetailPage = () => {
                             Ngày gửi mẫu:{" "}
                             {formatDateOnly(request.sampleSentDate)}
                           </span>
-                          <span>{request.criteriaCount} chỉ tiêu</span>
+                          <span>
+                            {request.criteriaCount} chỉ tiêu
+                            {request.failedCriteriaCount > 0 &&
+                              ` · ${request.failedCriteriaCount} không đạt (${request.failedRatio}%)`}
+                          </span>
                         </div>
                         {request.status === "PASSED" &&
                           !canActivateLoading &&
@@ -987,19 +1004,23 @@ export const ProductionLotDetailPage = () => {
                               Chưa đủ điều kiện kích hoạt tem
                             </Badge>
                           )}
-                        {(request.status === "PENDING" ||
-                          request.status === "FAILED") &&
-                          canInspect && (
-                          <Button
-                            size="sm"
-                            variant="edit"
-                            className="w-full"
-                            onClick={() =>
-                              openResultDialog(request.testRequestId)
-                            }
-                          >
-                            Nhập kết quả
-                          </Button>
+                        {canInspect && (
+                          <div className="flex gap-2 pt-1">
+                            <Button
+                              size="sm"
+                              variant={request.status === "PASSED" ? "outline" : "create"}
+                              className="w-full text-xs font-semibold"
+                              onClick={() =>
+                                navigate(
+                                  `/production-lots/${id}/inspection-requests/${request.testRequestId}/results`
+                                )
+                              }
+                            >
+                              {request.status === "PASSED"
+                                ? "Xem / Sửa kết quả"
+                                : "Nhập kết quả"}
+                            </Button>
+                          </div>
                         )}
                       </div>
                     ))}
@@ -1069,160 +1090,178 @@ export const ProductionLotDetailPage = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5 py-2">
-            {/* Chỉ tiêu kiểm nghiệm */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <Label className="font-medium">
-                  Chỉ tiêu kiểm nghiệm *
-                </Label>
-                {criteriaData?.standardName && (
-                  <span className="text-xs text-muted-foreground">
-                    Tiêu chuẩn: {criteriaData.standardName}
-                  </span>
+          <form onSubmit={handleCreateFormSubmit} className="grid gap-4">
+            <div className="space-y-5 py-2">
+              {/* Chỉ tiêu kiểm nghiệm */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="font-medium">
+                    Chỉ tiêu kiểm nghiệm *
+                  </Label>
+                  {criteriaData?.standardName && (
+                    <span className="text-xs text-muted-foreground">
+                      Tiêu chuẩn: {criteriaData.standardName}
+                    </span>
+                  )}
+                </div>
+
+                {criteriaLoading ? (
+                  <div
+                    className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-muted/30 p-4 text-sm text-muted-foreground"
+                    aria-live="polite"
+                  >
+                    <LoaderCircle className="h-4 w-4 animate-spin text-emerald-500" />
+                    Đang tải chỉ tiêu kiểm nghiệm...
+                  </div>
+                ) : criteriaError ? (
+                  <div
+                    className="space-y-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+                    aria-live="assertive"
+                  >
+                    <p>{criteriaError}</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void loadCriteria()}
+                    >
+                      Thử lại
+                    </Button>
+                  </div>
+                ) : criteriaData && criteriaData.criteria.length === 0 ? (
+                  <div
+                    className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
+                    aria-live="polite"
+                  >
+                    {criteriaData.standardName
+                      ? "Tiêu chuẩn hiện tại chưa có chỉ tiêu kiểm nghiệm nào. Không thể tạo yêu cầu."
+                      : "Lô chưa được gắn tiêu chuẩn nên chưa có chỉ tiêu kiểm nghiệm nào. Không thể tạo yêu cầu."}
+                  </div>
+                ) : criteriaData ? (
+                  <>
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSelectAllCriteria}
+                        disabled={submitting}
+                      >
+                        Chọn tất cả
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleClearAllCriteria}
+                        disabled={submitting}
+                      >
+                        Bỏ chọn tất cả
+                      </Button>
+                    </div>
+                    <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                      {criteriaData.criteria.map((criterion) => (
+                        <div
+                          key={criterion.criteriaId}
+                          className="flex items-start gap-3 rounded-lg border border-emerald-100 p-3"
+                        >
+                          <Checkbox
+                            id={`test-criterion-${criterion.criteriaId}`}
+                            checked={selectedCriteriaIds.includes(
+                              criterion.criteriaId
+                            )}
+                            onCheckedChange={(checked) =>
+                              toggleCriterion(
+                                criterion.criteriaId,
+                                checked === true
+                              )
+                            }
+                            disabled={submitting}
+                            className="mt-0.5"
+                          />
+                          <Label
+                            htmlFor={`test-criterion-${criterion.criteriaId}`}
+                            className="cursor-pointer font-normal leading-snug"
+                          >
+                            <span className="font-medium">{criterion.name}</span>
+                            <span className="block text-xs text-muted-foreground">
+                              {criterion.code}
+                            </span>
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedCriteriaIds.length === 0 && (
+                      <p className="text-sm text-red-500" role="alert">
+                        Vui lòng chọn ít nhất một chỉ tiêu kiểm nghiệm
+                      </p>
+                    )}
+                  </>
+                ) : null}
+              </div>
+
+              {/* Đơn vị kiểm nghiệm */}
+              <div className="space-y-2">
+                <Label htmlFor="testingUnit">Đơn vị kiểm nghiệm *</Label>
+                <Input
+                  id="testingUnit"
+                  value={testingUnit}
+                  onChange={(event) => {
+                    setTestingUnit(event.target.value);
+                    setTouched((prev) => ({ ...prev, unit: true }));
+                  }}
+                  placeholder="VD: Phòng thí nghiệm Trung tâm..."
+                  maxLength={200}
+                  disabled={submitting}
+                />
+                {touched.unit && trimmedTestingUnit === "" && (
+                  <p className="text-sm text-red-500" role="alert">
+                    Vui lòng nhập đơn vị kiểm nghiệm
+                  </p>
                 )}
               </div>
 
-              {criteriaLoading ? (
-                <div
-                  className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-muted/30 p-4 text-sm text-muted-foreground"
-                  aria-live="polite"
-                >
-                  <Sprout className="h-4 w-4 animate-spin text-emerald-500" />
-                  Đang tải chỉ tiêu kiểm nghiệm...
-                </div>
-              ) : criteriaError ? (
-                <div
-                  className="space-y-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"
-                  aria-live="assertive"
-                >
-                  <p>{criteriaError}</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void loadCriteria()}
-                  >
-                    Thử lại
-                  </Button>
-                </div>
-              ) : criteriaData && criteriaData.criteria.length === 0 ? (
-                <div
-                  className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
-                  aria-live="polite"
-                >
-                  {criteriaData.standardName
-                    ? "Tiêu chuẩn hiện tại chưa có chỉ tiêu kiểm nghiệm nào. Không thể tạo yêu cầu."
-                    : "Lô chưa được gắn tiêu chuẩn nên chưa có chỉ tiêu kiểm nghiệm nào. Không thể tạo yêu cầu."}
-                </div>
-              ) : criteriaData ? (
-                <>
-                  <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
-                    {criteriaData.criteria.map((criterion) => (
-                      <div
-                        key={criterion.criteriaId}
-                        className="flex items-start gap-3 rounded-lg border border-emerald-100 p-3"
-                      >
-                        <Checkbox
-                          id={`test-criterion-${criterion.criteriaId}`}
-                          checked={selectedCriteriaIds.includes(
-                            criterion.criteriaId
-                          )}
-                          onCheckedChange={(checked) =>
-                            toggleCriterion(
-                              criterion.criteriaId,
-                              checked === true
-                            )
-                          }
-                          disabled={submitting}
-                          className="mt-0.5"
-                        />
-                        <Label
-                          htmlFor={`test-criterion-${criterion.criteriaId}`}
-                          className="cursor-pointer font-normal leading-snug"
-                        >
-                          <span className="font-medium">{criterion.name}</span>
-                          <span className="block text-xs text-muted-foreground">
-                            {criterion.code}
-                          </span>
-                        </Label>
-                        </div>
-                    ))}
-                  </div>
-                  {selectedCriteriaIds.length === 0 && (
-                    <p className="text-sm text-red-500" role="alert">
-                      Vui lòng chọn ít nhất một chỉ tiêu kiểm nghiệm
-                    </p>
-                  )}
-                </>
-              ) : null}
+              {/* Ngày gửi mẫu */}
+              <div className="space-y-2">
+                <Label htmlFor="sampleSentDate">Ngày gửi mẫu *</Label>
+                <Input
+                  id="sampleSentDate"
+                  type="date"
+                  value={sampleSentDate}
+                  max={today}
+                  onChange={(event) => {
+                    setSampleSentDate(event.target.value);
+                    setTouched((prev) => ({ ...prev, date: true }));
+                  }}
+                  disabled={submitting}
+                />
+                {touched.date && sampleSentDate === "" && (
+                  <p className="text-sm text-red-500" role="alert">
+                    Vui lòng chọn ngày gửi mẫu
+                  </p>
+                )}
+                {sampleSentDate !== "" && sampleSentDate > today && (
+                  <p className="text-sm text-red-500" role="alert">
+                    Ngày gửi mẫu không được lớn hơn ngày hiện tại
+                  </p>
+                )}
+              </div>
             </div>
 
-            {/* Đơn vị kiểm nghiệm */}
-            <div className="space-y-2">
-              <Label htmlFor="testingUnit">Đơn vị kiểm nghiệm *</Label>
-              <Input
-                id="testingUnit"
-                value={testingUnit}
-                onChange={(event) => {
-                  setTestingUnit(event.target.value);
-                  setTouched((prev) => ({ ...prev, unit: true }));
-                }}
-                placeholder="VD: Phòng thí nghiệm Trung tâm..."
-                maxLength={200}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCloseCreateDialog}
                 disabled={submitting}
-              />
-              {touched.unit && trimmedTestingUnit === "" && (
-                <p className="text-sm text-red-500" role="alert">
-                  Vui lòng nhập đơn vị kiểm nghiệm
-                </p>
-              )}
-            </div>
-
-            {/* Ngày gửi mẫu */}
-            <div className="space-y-2">
-              <Label htmlFor="sampleSentDate">Ngày gửi mẫu *</Label>
-              <Input
-                id="sampleSentDate"
-                type="date"
-                value={sampleSentDate}
-                max={today}
-                onChange={(event) => {
-                  setSampleSentDate(event.target.value);
-                  setTouched((prev) => ({ ...prev, date: true }));
-                }}
-                disabled={submitting}
-              />
-              {touched.date && sampleSentDate === "" && (
-                <p className="text-sm text-red-500" role="alert">
-                  Vui lòng chọn ngày gửi mẫu
-                </p>
-              )}
-              {sampleSentDate !== "" && sampleSentDate > today && (
-                <p className="text-sm text-red-500" role="alert">
-                  Ngày gửi mẫu không được lớn hơn ngày hiện tại
-                </p>
-              )}
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCloseCreateDialog}
-              disabled={submitting}
-            >
-              Hủy
-            </Button>
-            <Button
-              type="button"
-              variant="create"
-              onClick={() => void submitCreate()}
-              disabled={!canSubmitCreate}
-            >
-              {submitting ? "Đang tạo..." : "Tạo yêu cầu"}
-            </Button>
-          </DialogFooter>
+              >
+                Hủy
+              </Button>
+              <Button type="submit" variant="create" disabled={!canSubmitCreate}>
+                {submitting ? "Đang tạo..." : "Tạo yêu cầu"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -1262,15 +1301,7 @@ export const ProductionLotDetailPage = () => {
         </AlertDialogPopup>
       </AlertDialog>
 
-      {/* Ghi nhận kết quả kiểm nghiệm */}
-      {resultRequestId && (
-        <RecordInspectionResultDialog
-          open={resultDialogOpen}
-          onOpenChange={setResultDialogOpen}
-          requestId={resultRequestId}
-          onRecorded={handleResultRecorded}
-        />
-      )}
+
     </div>
   );
 };

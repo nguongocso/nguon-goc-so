@@ -35,6 +35,28 @@ public class PublicInspectionResponse {
     private boolean hasInspection;
 
     /**
+     * Tổng số chỉ tiêu kiểm nghiệm đã công bố của lô.
+     */
+    private int totalCriteria;
+
+    /**
+     * Số chỉ tiêu đạt (passed = true).
+     */
+    private int passedCriteria;
+
+    /**
+     * Số chỉ tiêu không đạt (passed = false).
+     * Kết quả hết hạn nhưng passed = true không được tính là không đạt.
+     */
+    private int failedCriteriaCount;
+
+    /**
+     * Tỷ lệ chỉ tiêu không đạt trên tổng số chỉ tiêu (%),
+     * làm tròn 1 chữ số thập phân. Bằng 0.0 khi không có chỉ tiêu.
+     */
+    private double failedRatio;
+
+    /**
      * Danh sách kết quả kiểm nghiệm các chỉ tiêu.
      */
     private List<PublicInspectionCriterionResultDto> inspections;
