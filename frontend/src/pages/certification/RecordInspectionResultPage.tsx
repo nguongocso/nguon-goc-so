@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
+import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 import {
   AlertTriangle,
   Calendar,
@@ -91,6 +92,21 @@ export const RecordInspectionResultPage: React.FC = () => {
 
   const [detail, setDetail] = useState<InspectionRequestDetailResponse | null>(null);
   const [lot, setLot] = useState<ProductionLot | null>(null);
+
+  // ── Breadcrumb điều hướng thống nhất (thay nút "Quay lại") ────────────────
+  useSetBreadcrumb([
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Lô sản xuất", href: "/production-lots" },
+    ...(routeLotId || lot?.id
+      ? [
+          {
+            label: lot?.name || "Chi tiết lô",
+            href: `/production-lots/${routeLotId || lot?.id}`,
+          },
+        ]
+      : []),
+    { label: "Kết quả kiểm nghiệm" },
+  ]);
 
   const [rows, setRows] = useState<CriterionRowState[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -411,16 +427,6 @@ export const RecordInspectionResultPage: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0 flex gap-3">
-            <Button
-              variant="outline"
-              className="rounded-xl"
-              onClick={() => {
-                if (effectiveLotId) navigate(`/production-lots/${effectiveLotId}`);
-                else navigate("/production-lots");
-              }}
-            >
-              Quay lại
-            </Button>
             <Button variant="create" className="rounded-xl" onClick={() => void loadData()}>
               <RotateCw className="mr-1.5 h-4 w-4" /> Thử lại
             </Button>

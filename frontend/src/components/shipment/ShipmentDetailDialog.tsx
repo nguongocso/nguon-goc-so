@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,13 +15,17 @@ import {
   FileText,
   History,
   Package,
+  QrCode,
   Trash2,
 } from "lucide-react";
 import { maskId } from "@/lib/utils";
 import { QrCodeGrid } from "./QrCodeGrid";
+import { ExportLabelsDialog } from "./ExportLabelsDialog";
 import { ShipmentStatusBadge } from "./ShipmentStatusBadge";
 import { DetailSection } from "@/components/common/detail/DetailSection";
 import { DetailField } from "@/components/common/detail/DetailField";
+import { ROLE_ACCESS } from "@/config/roleAccess";
+import { usePermission } from "@/hooks/usePermission";
 
 interface ShipmentDetailDialogProps {
   open: boolean;
@@ -66,15 +71,20 @@ export const ShipmentDetailDialog = ({
   const showDeleteDraft =
     shipment?.status === "DRAFT" || shipment?.status === "CODE_PRINTED";
 
+  // NCL-04-CN-005: Chỉ VT-02 được xuất tem QR
+  const canExportLabels = usePermission(ROLE_ACCESS.labelExport);
+  const [showLabelsDialog, setShowLabelsDialog] = useState(false);
+
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
-          onClose();
-        }
-      }}
-    >
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            onClose();
+          }
+        }}
+      >
       <DialogContent className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Chi tiết lô hàng</DialogTitle>
@@ -218,6 +228,22 @@ export const ShipmentDetailDialog = ({
                 Xuất hồ sơ
               </Button>
 
+              {/* Export QR Labels — NCL-04-CN-005 */}
+              {canExportLabels &&
+                shipment.status !== "DRAFT" &&
+                shipment.status !== "RECALLED" &&
+                (shipment.traceCodes?.length || 0) > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowLabelsDialog(true)}
+                    className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  >
+                    <QrCode className="mr-1.5 size-3.5" />
+                    Xuất tem QR
+                  </Button>
+                )}
+
               {/* Kích hoạt — conditional */}
               {showActivate && (
                 <Button
@@ -269,6 +295,14 @@ export const ShipmentDetailDialog = ({
           </div>
         )}
       </DialogContent>
-    </Dialog>
+      </Dialog>
+
+      {/* NCL-04-CN-005: Dialog xuất tem QR */}
+      <ExportLabelsDialog
+        open={showLabelsDialog}
+        shipment={shipment}
+        onClose={() => setShowLabelsDialog(false)}
+      />
+    </>
   );
 };
