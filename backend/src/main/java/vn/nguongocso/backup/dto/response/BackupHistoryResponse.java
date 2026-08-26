@@ -43,11 +43,21 @@ public class BackupHistoryResponse {
     public static BackupHistoryResponse fromEntity(BackupRestoreHistory history) {
         if (history == null)
             return null;
+
+        String fileName = history.getFileName();
+        Long fileSize = history.getFileSize();
+        if (fileName == null && history.getReference() != null) {
+            fileName = history.getReference().getFileName();
+        }
+        if (fileSize == null && history.getReference() != null) {
+            fileSize = history.getReference().getFileSize();
+        }
+
         return BackupHistoryResponse.builder()
                 .id(history.getId())
                 .operationType(history.getOperationType().name())
-                .fileName(history.getFileName())
-                .fileSize(history.getFileSize())
+                .fileName(fileName)
+                .fileSize(fileSize)
                 .backupType(history.getBackupType() != null ? history.getBackupType().name() : null)
                 .status(history.getStatus().name())
                 .errorMessage(history.getErrorMessage())

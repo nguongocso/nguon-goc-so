@@ -207,7 +207,23 @@ export const uploadInspectionResultFile = async (
   formData.append('file', file);
   const response = await apiClient.post<{
     data: InspectionResultFileUploadResponse;
-  }>(`/inspection-criteria/${criterionId}/result-file`, formData);
+  }>(
+    `/inspection-criteria/${criterionId}/result-file`,
+    formData,
+    {
+      headers: {
+        /**
+         * Override Content-Type mặc định 'application/json' của apiClient.
+         * Nếu không override, axios sẽ serialize FormData thành JSON và
+         * backend trả 415 vì endpoint khai báo
+         * consumes = MULTIPART_FORM_DATA_VALUE.
+         * Axios tự thay header này bằng multipart/form-data kèm boundary
+         * khi gửi đi (giống uploadAttachment / importProductionLots).
+         */
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
   return response.data.data;
 };
 

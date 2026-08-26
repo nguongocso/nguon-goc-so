@@ -889,7 +889,21 @@ export const ProductionLotDetailPage = () => {
                             <TableCell>
                               {formatDateOnly(request.sampleSentDate)}
                             </TableCell>
-                            <TableCell>{request.criteriaCount}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <span>{request.criteriaCount}</span>
+                                {request.failedCriteriaCount > 0 && (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-red-200 bg-red-50 text-red-700 text-xs font-semibold px-2 py-0.5"
+                                    title={`${request.failedCriteriaCount}/${request.criteriaCount} chỉ tiêu không đạt (${request.failedRatio}%)`}
+                                  >
+                                    {request.failedCriteriaCount} không đạt ·{" "}
+                                    {request.failedRatio}%
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>
                               <div className="flex flex-wrap items-center gap-1.5">
                                 {getInspectionStatusBadge(request.status)}
@@ -968,7 +982,11 @@ export const ProductionLotDetailPage = () => {
                             Ngày gửi mẫu:{" "}
                             {formatDateOnly(request.sampleSentDate)}
                           </span>
-                          <span>{request.criteriaCount} chỉ tiêu</span>
+                          <span>
+                            {request.criteriaCount} chỉ tiêu
+                            {request.failedCriteriaCount > 0 &&
+                              ` · ${request.failedCriteriaCount} không đạt (${request.failedRatio}%)`}
+                          </span>
                         </div>
                         {request.status === "PASSED" &&
                           !canActivateLoading &&

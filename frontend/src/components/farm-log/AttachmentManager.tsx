@@ -330,6 +330,7 @@ export function AttachmentManager({ logId, onUpdate }: AttachmentManagerProps) {
                       onClick={() => handleView(att)}
                       disabled={viewingId === att.id}
                       title="Xem"
+                      aria-label={`Xem chứng từ ${att.fileName}`}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -340,6 +341,7 @@ export function AttachmentManager({ logId, onUpdate }: AttachmentManagerProps) {
                       onClick={() => handleDownload(att)}
                       disabled={downloadingId === att.id}
                       title="Tải xuống"
+                      aria-label={`Tải xuống chứng từ ${att.fileName}`}
                     >
                       <Download className="h-4 w-4" />
                     </Button>
@@ -350,6 +352,7 @@ export function AttachmentManager({ logId, onUpdate }: AttachmentManagerProps) {
                       onClick={() => handleDeleteConfirm(att)}
                       disabled={isDeleting}
                       title="Xóa"
+                      aria-label={`Xóa chứng từ ${att.fileName}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

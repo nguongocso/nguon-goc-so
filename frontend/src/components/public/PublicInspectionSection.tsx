@@ -47,6 +47,19 @@ export const PublicInspectionSection: React.FC<PublicInspectionSectionProps> = (
   const items = inspections ?? data?.inspections ?? [];
   const hasInspection = items.length > 0;
 
+  /*
+   * Thống kê tổng hợp kết quả kiểm nghiệm:
+   * ưu tiên dùng số liệu tổng hợp từ backend; nếu không có
+   * (ví dụ component được truyền inspections trực tiếp),
+   * tự tính từ danh sách hiển thị.
+   */
+  const total = data?.totalCriteria ?? items.length;
+  const passed = data?.passedCriteria ?? items.filter((i) => i.passed).length;
+  const failed = data?.failedCriteriaCount ?? total - passed;
+  const failedRatio =
+    data?.failedRatio ??
+    (total > 0 ? Math.round((failed / total) * 1000) / 10 : 0);
+
   return (
     <section aria-labelledby="public-inspection-title">
       <Card className="shadow-sm border-gray-100">
@@ -76,6 +89,21 @@ export const PublicInspectionSection: React.FC<PublicInspectionSectionProps> = (
             </div>
           ) : hasInspection ? (
             <div className="space-y-4">
+              {/* Tổng hợp kết quả kiểm nghiệm */}
+              <div
+                className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm"
+                aria-label={`Tổng hợp kết quả: đạt ${passed} trên ${total} chỉ tiêu, không đạt ${failed} trên ${total} chỉ tiêu, tỷ lệ không đạt ${failedRatio} phần trăm`}
+              >
+                <span className="inline-flex items-center gap-1.5 font-medium text-emerald-800">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Đạt {passed}/{total} chỉ tiêu
+                </span>
+                <span className="inline-flex items-center gap-1.5 font-medium text-red-800">
+                  <CircleAlert className="h-4 w-4" />
+                  Không đạt {failed}/{total} ({failedRatio}%)
+                </span>
+              </div>
+
               <div className="overflow-x-auto rounded-lg border border-gray-200">
                 <table className="min-w-full divide-y divide-gray-200 text-sm">
                   <thead className="bg-gray-50/80">

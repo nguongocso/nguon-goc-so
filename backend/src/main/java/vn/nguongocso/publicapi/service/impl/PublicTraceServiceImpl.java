@@ -437,18 +437,60 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                     .productionLotId(null)
                     .lotName(null)
                     .hasInspection(false)
+                    .totalCriteria(0)
+                    .passedCriteria(0)
+                    .failedCriteriaCount(0)
+                    .failedRatio(0.0)
                     .inspections(Collections.emptyList())
                     .build();
         }
 
         List<PublicInspectionCriterionResultDto> inspectionResults = fetchPublicInspectionResults(lot);
 
+        /*
+         * Thống kê tổng hợp kết quả kiểm nghiệm công khai:
+         * danh sách công khai chỉ chứa các chỉ tiêu đã có kết quả,
+         * nên totalCriteria bằng số kết quả đã ghi nhận.
+         */
+        int totalCriteria = inspectionResults.size();
+        int failedCriteriaCount = (int) inspectionResults.stream()
+                .filter(dto -> !Boolean.TRUE.equals(dto.getPassed()))
+                .count();
+        int passedCriteria = totalCriteria - failedCriteriaCount;
+
         return PublicInspectionResponse.builder()
                 .productionLotId(lot.getId())
                 .lotName(lot.getName())
                 .hasInspection(!inspectionResults.isEmpty())
+                .totalCriteria(totalCriteria)
+                .passedCriteria(passedCriteria)
+                .failedCriteriaCount(failedCriteriaCount)
+                .failedRatio(computeFailedRatio(failedCriteriaCount, totalCriteria))
                 .inspections(inspectionResults)
                 .build();
+    }
+
+    /**
+     * Tính tỷ lệ phần trăm chỉ tiêu không đạt trên TỔNG số chỉ tiêu,
+     * làm tròn 1 chữ số thập phân.
+     *
+     * Trả về 0.0 khi tổng số chỉ tiêu là 0 (tránh chia cho 0).
+     *
+     * @param failedCriteriaCount Số chỉ tiêu không đạt.
+     * @param totalCriteria Tổng số chỉ tiêu.
+     * @return Tỷ lệ không đạt theo %, ví dụ 40.0.
+     */
+    private double computeFailedRatio(
+            int failedCriteriaCount,
+            int totalCriteria) {
+
+        if (totalCriteria <= 0) {
+            return 0.0;
+        }
+
+        return Math.round(
+                failedCriteriaCount * 1000.0 / totalCriteria)
+                / 10.0;
     }
 
     /**

@@ -18,6 +18,7 @@ import type { Organization } from "@/types/organization";
 import { ProductionStatistics } from "@/components/dashboard/PoductionStatistics";
 import { OrganizationListPage } from "@/pages/organization/OrganizationListPage";
 import LookupStatisticsPage from "@/pages/report/LookupStatisticsPage";
+import { HelpButton } from "@/components/help/HelpButton";
 
 interface AdminDashboardProps {
   initialTab?: string | null;
@@ -79,6 +80,7 @@ export function AdminDashboard({ initialTab }: AdminDashboardProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Quản trị hệ thống</h1>
+        <HelpButton screenKey="dashboard" />
       </div>
 
       <Tabs defaultValue={defaultTab} className="w-full">

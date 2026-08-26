@@ -447,7 +447,7 @@ const AppRoutes = () => (
                 path="production-lots/:lotId/shipments/:shipmentId"
                 element={
                     <RoleRoute
-                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                        allowedRoles={["VT-01", "VT-02", "VT-03", "VT-04"]}
                     >
                         <ShipmentDetailPage />
                     </RoleRoute>
@@ -470,7 +470,7 @@ const AppRoutes = () => (
             <Route
                 path="shipments/:id"
                 element={
-                    <RoleRoute allowedRoles={["VT-02", "VT-04"]}>
+                    <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
                         <ShipmentDetailPage />
                     </RoleRoute>
                 }
