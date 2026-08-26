@@ -98,7 +98,7 @@ export const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold mb-1">
