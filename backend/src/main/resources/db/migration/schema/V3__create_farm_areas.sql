@@ -10,6 +10,7 @@ CREATE TABLE farm_areas (
     area DECIMAL(10,2) NOT NULL,
     area_unit VARCHAR(20) NOT NULL,
     location POINT NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     CONSTRAINT pk_farm_areas PRIMARY KEY (id),
@@ -19,4 +20,5 @@ CREATE TABLE farm_areas (
 
 CREATE INDEX idx_farm_area_organization ON farm_areas (organization_id);
 CREATE INDEX idx_farm_area_crop_type ON farm_areas (crop_type);
+CREATE INDEX idx_farm_area_is_active ON farm_areas (is_active);
 CREATE SPATIAL INDEX idx_farm_area_location ON farm_areas (location);
