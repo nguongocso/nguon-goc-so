@@ -29,6 +29,7 @@ import {
   updateInputMaterial,
 } from '@/api/inputMaterialApi';
 import { MaterialGroup, MATERIAL_GROUP_LABELS } from '@/enums/materialGroup';
+import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import type { ProductCategory } from '@/types/productCategory';
 import type { InputMaterial } from '@/types/inputMaterial';
 
@@ -41,6 +42,13 @@ export const InputMaterialFormPage = () => {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [material, setMaterial] = useState<InputMaterial | null>(null);
+
+  useSetBreadcrumb([
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Quản trị' },
+    { label: 'Danh mục vật tư', href: '/admin/input-materials' },
+    { label: isEditMode ? (material ? `Chỉnh sửa: ${material.name}` : 'Chỉnh sửa vật tư') : 'Khai báo vật tư mới' },
+  ]);
 
   // Form states
   const [name, setName] = useState<string>('');

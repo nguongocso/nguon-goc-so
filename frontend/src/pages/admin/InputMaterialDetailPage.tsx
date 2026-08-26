@@ -33,6 +33,7 @@ import {
 import { getInputMaterialById, toggleInputMaterialStatus } from '@/api/inputMaterialApi';
 import { MaterialGroup, MATERIAL_GROUP_VARIANTS } from '@/enums/materialGroup';
 import { InputMaterialDeleteDialog } from '@/components/admin/input-material/InputMaterialDeleteDialog';
+import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import type { InputMaterial } from '@/types/inputMaterial';
 
 export const InputMaterialDetailPage = () => {
@@ -47,6 +48,17 @@ export const InputMaterialDetailPage = () => {
 
   // Lightbox Zoom Modal state
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+
+  useSetBreadcrumb(
+    material
+      ? [
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Quản trị' },
+          { label: 'Danh mục vật tư', href: '/admin/input-materials' },
+          { label: material.name },
+        ]
+      : null
+  );
 
   useEffect(() => {
     if (id) {
