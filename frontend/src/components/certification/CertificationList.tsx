@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -10,6 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Trash2 } from "lucide-react";
 import type { ProductionLotCertification } from "@/types/certification";
+import { CertificationStatusBadge } from "@/components/certification/CertificationStatusBadge";
 
 interface Props {
   certifications: ProductionLotCertification[];
@@ -70,11 +70,10 @@ export const CertificationList = ({
               <TableCell>{formatDate(cert.issueDate)}</TableCell>
               <TableCell>{formatDate(cert.expiryDate)}</TableCell>
               <TableCell>
-                {cert.isValid ? (
-                  <Badge variant="success">Còn hiệu lực</Badge>
-                ) : (
-                  <Badge variant="destructive">Hết hạn</Badge>
-                )}
+                <CertificationStatusBadge
+                  isValid={cert.isValid}
+                  expiryDate={cert.expiryDate}
+                />
               </TableCell>
               <TableCell className="max-w-[150px] truncate">
                 {cert.note || "—"}

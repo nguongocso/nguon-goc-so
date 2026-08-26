@@ -12,12 +12,11 @@ import vn.nguongocso.certification.dto.request.CreateCertificationRequest;
 import vn.nguongocso.certification.dto.response.CertificationResponse;
 import vn.nguongocso.certification.service.CertificationService;
 import vn.nguongocso.common.ApiResult;
-
-import java.util.List;
+import vn.nguongocso.common.PageResponse;
 
 /*
 * Controller quản lý chứng nhận cho tổ chức.
- */
+*/
 @RestController
 @RequestMapping("/api/v1/certifications")
 @RequiredArgsConstructor
@@ -40,15 +39,27 @@ public class CertificationController {
     }
 
     /**
-     * Lấy danh sách tất cả chứng nhận của tổ chức (VT-02)
-     * GET /api/v1/certifications
+     * Tìm kiếm chứng nhận của tổ chức, có phân trang (VT-02).
+     *
+     * <p>Từ khoá khớp tên / số hiệu / cơ quan cấp. Trạng thái:
+     * valid | expiring | expired. Sắp xếp theo sortBy (name | issueDate |
+     * expiryDate) và sortDir (asc | desc).</p>
+     *
+     * GET /api/v1/certifications?keyword=&status=&sortBy=&sortDir=&page=0&size=10
      */
     @GetMapping
     @PreAuthorize("hasRole('VT-02')")
-    public ResponseEntity<ApiResult<List<CertificationResponse>>> getAllCertifications(
+    public ResponseEntity<ApiResult<PageResponse<CertificationResponse>>> searchCertifications(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-        List<CertificationResponse> list = certificationService.getAllCertifications(currentUser);
-        return ResponseEntity.ok(ApiResult.success(list));
+        PageResponse<CertificationResponse> response = certificationService.searchCertifications(
+                keyword, status, sortBy, sortDir, page, size, currentUser);
+        return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 }
