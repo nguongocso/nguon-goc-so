@@ -23,6 +23,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { HelpButton } from '@/components/help/HelpButton';
 
 const POLL_INTERVAL_MS = 20_000;
 
@@ -163,13 +164,13 @@ export function SystemMonitoringPage() {
 
   if (!status) {
     return (
-      <div className="container mx-auto space-y-6 py-6">
+      <div className="space-y-6">
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-emerald-100 p-2.5 text-emerald-700">
             <HeartPulse className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Giám sát hệ thống</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Giám sát hệ thống</h1>
             <p className="text-sm text-muted-foreground">
               Tổng quan sức khỏe hệ thống trước buổi trình diễn
             </p>
@@ -186,23 +187,26 @@ export function SystemMonitoringPage() {
   }
 
   return (
-    <div className="container mx-auto space-y-6 py-6">
+    <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="rounded-xl bg-emerald-100 p-2.5 text-emerald-700">
             <HeartPulse className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Giám sát hệ thống</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Giám sát hệ thống</h1>
             <p className="text-sm text-muted-foreground">
               Tổng quan sức khỏe hệ thống trước buổi trình diễn
             </p>
           </div>
         </div>
-        <Button variant="outline" onClick={handleRefresh} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Làm mới
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="admin-system-monitoring" />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Làm mới
+          </Button>
+        </div>
       </div>
 
       <Card className={overall ? overall.bannerClass : ''}>

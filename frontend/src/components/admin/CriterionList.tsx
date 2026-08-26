@@ -180,42 +180,42 @@ export const CriterionList: React.FC<CriterionListProps> = ({ standardId }) => {
         <HelpButton screenKey="admin-standard-criteria" />
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 pb-4 flex flex-row items-center justify-between">
+          <CardTitle className="text-xl font-bold text-slate-900">
             Tiêu chí kiểm nghiệm
             <Badge variant="outline" className="ml-2 align-middle">
               {criteriaList.length} tiêu chí
             </Badge>
           </CardTitle>
-          <Button variant="create" onClick={openCreateForm}>
+          <Button variant="create" size="sm" onClick={openCreateForm}>
             <Plus className="h-4 w-4 mr-1" />
             Thêm mới
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {criteriaLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-12 text-muted-foreground">
               Đang tải tiêu chí...
             </div>
           ) : criteriaList.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-12 text-muted-foreground">
               Chưa có tiêu chí nào. Nhấn "Thêm mới" để tạo tiêu chí.
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Mã tiêu chí</TableHead>
-                    <TableHead>Tên tiêu chí</TableHead>
-                    <TableHead>Ghi chú</TableHead>
-                    <TableHead className="text-right">Thao tác</TableHead>
+                  <TableRow className="bg-slate-50/80">
+                    <TableHead className="font-semibold text-slate-700">Mã tiêu chí</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Tên tiêu chí</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Ghi chú</TableHead>
+                    <TableHead className="text-right font-semibold text-slate-700">Thao tác</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {criteriaList.map((criterion) => (
-                    <TableRow key={criterion.criteriaId}>
+                    <TableRow key={criterion.criteriaId} className="hover:bg-slate-50/60">
                       <TableCell className="font-medium">
                         {criterion.code}
                       </TableCell>

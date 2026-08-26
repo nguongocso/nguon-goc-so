@@ -317,7 +317,7 @@ export function CreatePreprocessingForm() {
   };
 
   return (
-    <Card className="mx-auto max-w-4xl border-emerald-100 shadow-sm">
+    <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
       <CardHeader className="border-b border-emerald-50 bg-emerald-50/40">
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">

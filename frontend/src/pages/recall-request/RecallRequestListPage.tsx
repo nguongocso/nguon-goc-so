@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -63,20 +63,27 @@ export const RecallRequestListPage = () => {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-xl font-bold">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             Yêu cầu thu hồi lô sản xuất
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <HelpButton screenKey="recall-request-list" />
-            <Button variant="outline" onClick={() => load()} disabled={loading}>
-              <RefreshCcw className="size-4 mr-1" /> Làm mới
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Quản lý và xét duyệt các yêu cầu thu hồi lô sản xuất trong hệ thống.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="recall-request-list" />
+          <Button variant="outline" size="sm" onClick={() => load()} disabled={loading}>
+            <RefreshCcw className="size-4 mr-1" /> Làm mới
+          </Button>
+        </div>
+      </div>
+
+      <Card className="border-slate-200 bg-white shadow-sm rounded-xl">
+        <CardContent className="pt-6">
           <div className="mb-4 flex items-center gap-2">
             {(['PENDING', 'APPROVED', 'REJECTED'] as RecallRequestStatus[]).map(
               (s) => (
@@ -106,18 +113,18 @@ export const RecallRequestListPage = () => {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Lô sản xuất</TableHead>
-                      <TableHead>Người yêu cầu</TableHead>
-                      <TableHead>Thời điểm</TableHead>
-                      <TableHead>Lý do</TableHead>
-                      <TableHead>Trạng thái</TableHead>
-                      <TableHead className="text-center">Thao tác</TableHead>
+                    <TableRow className="bg-slate-50">
+                      <TableHead className="font-semibold text-slate-700">Lô sản xuất</TableHead>
+                      <TableHead className="font-semibold text-slate-700">Người yêu cầu</TableHead>
+                      <TableHead className="font-semibold text-slate-700">Thời điểm</TableHead>
+                      <TableHead className="font-semibold text-slate-700">Lý do</TableHead>
+                      <TableHead className="font-semibold text-slate-700">Trạng thái</TableHead>
+                      <TableHead className="font-semibold text-slate-700 text-center">Thao tác</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {data.items.map((item) => (
-                      <TableRow key={item.id}>
+                      <TableRow key={item.id} className="hover:bg-slate-50/80">
                         <TableCell className="font-medium">{item.lotName}</TableCell>
                         <TableCell>{item.requestedBy?.fullName || '—'}</TableCell>
                         <TableCell>{formatDate(item.requestedAt)}</TableCell>

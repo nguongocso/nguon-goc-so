@@ -47,10 +47,10 @@ export default function CropAreaAnalysisPage() {
   }, []);
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             Phân tích theo vùng trồng và mùa vụ
           </h1>
           <p className="text-sm text-muted-foreground">

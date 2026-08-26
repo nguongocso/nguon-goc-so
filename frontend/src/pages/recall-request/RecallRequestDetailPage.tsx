@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -112,15 +112,13 @@ export const RecallRequestDetailPage = () => {
   }
 
   return (
-    <div className="container mx-auto max-w-3xl py-6 space-y-6">
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-xl font-bold">
-            Yêu cầu thu hồi: {request.lotName}
-          </CardTitle>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
           <div className="flex items-center gap-2">
-            <HelpButton screenKey="recall-request-detail" />
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              Yêu cầu thu hồi: {request.lotName}
+            </h1>
             <span
               className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                 STATUS_MAP[request.status]?.className || 'bg-gray-100 text-gray-700'
@@ -129,8 +127,15 @@ export const RecallRequestDetailPage = () => {
               {STATUS_MAP[request.status]?.label || request.status}
             </span>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground mt-1">
+            Chi tiết yêu cầu thu hồi lô sản xuất và nhật ký xét duyệt.
+          </p>
+        </div>
+        <HelpButton screenKey="recall-request-detail" />
+      </div>
+
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+        <CardContent className="space-y-4 pt-6">
           <dl className="divide-y rounded-lg border bg-slate-50 px-4">
             <div className="flex items-start justify-between gap-4 py-3">
               <dt className="text-sm text-muted-foreground">Lô sản xuất</dt>

@@ -10,10 +10,14 @@ export const CreateFarmAreaPage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto py-8 max-w-4xl">
-      
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Tạo vùng trồng mới</h1>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Tạo vùng trồng mới</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Khai báo thông tin vị trí bản đồ, diện tích và loại cây trồng của vùng canh tác.
+          </p>
+        </div>
         <HelpButton screenKey="farm-area-create" />
       </div>
       <CreateFarmAreaForm

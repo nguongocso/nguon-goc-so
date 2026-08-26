@@ -297,7 +297,7 @@ export function CreatePackagingForm() {
   if (loadingLots) return <div className="p-8 text-center">Đang tải...</div>;
 
   return (
-    <Card className="max-w-4xl mx-auto">
+    <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
       <CardHeader>
         <CardTitle>Ghi sự kiện đóng gói</CardTitle>
         <CardDescription>
