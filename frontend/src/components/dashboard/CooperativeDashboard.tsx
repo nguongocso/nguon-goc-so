@@ -57,21 +57,21 @@ export function CooperativeDashboard({ initialTab }: CooperativeDashboardProps) 
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Tổng quan hợp tác xã</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Theo dõi tình hình các lô sản xuất và thống kê tra cứu của hợp tác xã.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Tổng quan hợp tác xã</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Theo dõi tình hình các lô sản xuất và thống kê tra cứu của hợp tác xã.
+          </p>
+        </div>
+        <HelpButton screenKey="dashboard" />
       </div>
 
       <Tabs defaultValue={defaultTab} className="w-full">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <TabsList className="bg-white/80 backdrop-blur-sm border border-emerald-100 p-1 rounded-xl gap-1 min-h-11 max-w-full overflow-x-auto overflow-y-hidden">
-            <TabsTrigger value="overview" className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Tổng quan</TabsTrigger>
-            <TabsTrigger value="lookup-stats" className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Thống kê tra cứu</TabsTrigger>
-          </TabsList>
-          <HelpButton screenKey="dashboard" />
-        </div>
+        <TabsList className="bg-white/80 backdrop-blur-sm border border-emerald-100 p-1 rounded-xl gap-1 min-h-11 max-w-full overflow-x-auto overflow-y-hidden">
+          <TabsTrigger value="overview" className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Tổng quan</TabsTrigger>
+          <TabsTrigger value="lookup-stats" className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Thống kê tra cứu</TabsTrigger>
+        </TabsList>
 
         <TabsContent value="overview" className="space-y-6 mt-4">
           {/* Thẻ thống kê */}

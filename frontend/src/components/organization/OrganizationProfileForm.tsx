@@ -72,15 +72,17 @@ export const OrganizationProfileForm: React.FC = () => {
   }
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Hồ sơ tổ chức</CardTitle>
+    <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+      <CardHeader className="border-b border-slate-100 pb-4">
+        <CardTitle className="text-lg font-semibold text-slate-900">
+          Thông tin chi tiết
+        </CardTitle>
         <CardDescription>
-          {profile?.name} - Mã: {profile?.code}
+          {profile?.name} — Mã định danh: <span className="font-mono font-medium text-slate-700">{profile?.code}</span>
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Tên tổ chức *</Label>

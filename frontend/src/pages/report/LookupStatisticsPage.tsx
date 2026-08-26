@@ -148,11 +148,11 @@ export default function LookupStatisticsPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Thống kê lượt tra cứu</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Thống kê lượt tra cứu</h1>
           <p className="text-sm text-muted-foreground">
             Tổng hợp số lượt quét mã theo lô và thời gian
           </p>
@@ -167,12 +167,12 @@ export default function LookupStatisticsPage() {
       </div>
 
       {/* Bộ lọc */}
-      <Card className="border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm">
+      <Card className="border-slate-200 bg-white shadow-sm rounded-xl">
         <CardContent className="p-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Từ ngày */}
             <div className="space-y-1.5">
-              <Label htmlFor="startDate" className="text-sm font-medium text-emerald-800">
+              <Label htmlFor="startDate" className="text-sm font-medium text-slate-700">
                 Từ ngày
               </Label>
               <div className="relative">
@@ -189,7 +189,7 @@ export default function LookupStatisticsPage() {
 
             {/* Đến ngày */}
             <div className="space-y-1.5">
-              <Label htmlFor="endDate" className="text-sm font-medium text-emerald-800">
+              <Label htmlFor="endDate" className="text-sm font-medium text-slate-700">
                 Đến ngày
               </Label>
               <div className="relative">
@@ -198,7 +198,7 @@ export default function LookupStatisticsPage() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="pl-9 border-emerald-200 focus-visible:ring-emerald-100"
+                  className="pl-9 border-slate-200"
                 />
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               </div>
@@ -206,7 +206,7 @@ export default function LookupStatisticsPage() {
 
             {/* Nhóm theo */}
             <div className="space-y-1.5">
-              <Label htmlFor="groupBy" className="text-sm font-medium text-emerald-800">
+              <Label htmlFor="groupBy" className="text-sm font-medium text-slate-700">
                 Nhóm theo
               </Label>
               <Select

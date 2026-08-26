@@ -23,6 +23,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { HelpButton } from '@/components/help/HelpButton';
 import { LockTraceCodeDialog } from './components/LockTraceCodeDialog';
 
 const formatDateTime = (value: string | null) => {
@@ -87,25 +88,28 @@ export default function SuspectTraceCodeDetailPage() {
   };
 
   return (
-    <div className="container mx-auto space-y-6 py-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-start gap-3">
           <div className="rounded-xl bg-red-100 p-2.5 text-red-700">
             <ShieldAlert className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Chi tiết mã tem nghi vấn</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Chi tiết mã tem nghi vấn</h1>
             <p className="text-sm text-muted-foreground font-mono">
               {detail.codeValue}
             </p>
           </div>
         </div>
-        {detail.status === 'SUSPECT' && (
-          <Button variant="destructive" onClick={() => setShowLockDialog(true)}>
-            <Lock className="mr-2 h-4 w-4" />
-            Khóa mã tem
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="admin-suspect-trace-codes" />
+          {detail.status === 'SUSPECT' && (
+            <Button variant="destructive" onClick={() => setShowLockDialog(true)}>
+              <Lock className="mr-2 h-4 w-4" />
+              Khóa mã tem
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Summary Cards */}
