@@ -33,4 +33,6 @@ public class ProductCategoryResponse {
 	private Double humidityMin;
 
 	private Double humidityMax;
+
+	private Boolean requiresInspection;
 }

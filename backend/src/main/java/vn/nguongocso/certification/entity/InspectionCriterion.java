@@ -57,4 +57,11 @@ public class InspectionCriterion {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "standard_id")
     private Standard standard;
+
+    /**
+     * Tham chiếu đến chỉ tiêu gốc trong danh mục (nullable để không hồi tố dữ liệu cũ).
+     * Story: NCL-09-CN-009 BR-5, BR-7.
+     */
+    @Column(name = "criterion_id")
+    private Long criterionId;
 }
