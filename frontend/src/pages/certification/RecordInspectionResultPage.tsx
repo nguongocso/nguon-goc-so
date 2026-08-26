@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
 import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
@@ -8,7 +8,6 @@ import {
   Calendar,
   Check,
   CheckCircle2,
-  ChevronRight,
   ClipboardCheck,
   FileCheck2,
   FileText,
@@ -457,34 +456,7 @@ export const RecordInspectionResultPage: React.FC = () => {
 
       {/* SECTION 0: Top Header Card with Rounded Corners */}
       <Card className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-        <div>
-          {/* Breadcrumbs */}
-          <nav className="flex items-center space-x-2 text-xs text-slate-500 sm:text-sm">
-            <Link to="/dashboard" className="hover:text-[#2E7D32] transition-colors">
-              Dashboard
-            </Link>
-            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-            <Link to="/production-lots" className="hover:text-[#2E7D32] transition-colors">
-              Lô sản xuất
-            </Link>
-            {effectiveLotId && (
-              <>
-                <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-                <Link
-                  to={`/production-lots/${effectiveLotId}`}
-                  className="max-w-[150px] truncate hover:text-[#2E7D32] transition-colors sm:max-w-xs font-medium"
-                  title={lot?.name || detail.lotCode}
-                >
-                  {lot?.name || detail.lotCode}
-                </Link>
-              </>
-            )}
-            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-            <span className="font-semibold text-slate-800">Nhập kết quả kiểm nghiệm</span>
-          </nav>
-        </div>
-
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-slate-100 pt-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3.5">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E8F5E9] text-[#2E7D32] shadow-sm shrink-0">
                 <ShieldCheck className="h-6 w-6" />

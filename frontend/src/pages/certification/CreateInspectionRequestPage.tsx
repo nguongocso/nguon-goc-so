@@ -7,7 +7,6 @@ import {
   AlertCircle,
   AlertTriangle,
   Check,
-  ChevronRight,
   ClipboardCheck,
   Clock,
   ExternalLink,
@@ -470,32 +469,9 @@ export const CreateInspectionRequestPage: React.FC = () => {
         </Button>
       </div>
 
-      {/* SECTION 0: Header Card with Breadcrumb & Screen Help */}
+      {/* SECTION 0: Header Card & Screen Help */}
       <Card className="rounded-xl border-emerald-100 bg-white/80 backdrop-blur-sm p-5 shadow-sm">
-        <div>
-          {/* Breadcrumbs */}
-          <nav className="flex items-center space-x-2 text-xs text-muted-foreground sm:text-sm">
-            <Link to="/dashboard" className="hover:text-emerald-700 transition-colors">
-              Dashboard
-            </Link>
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-            <Link to="/production-lots" className="hover:text-emerald-700 transition-colors">
-              Lô sản xuất
-            </Link>
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-            <Link
-              to={`/production-lots/${effectiveLotId}`}
-              className="max-w-[150px] truncate hover:text-emerald-700 transition-colors font-medium sm:max-w-xs"
-              title={lot.name}
-            >
-              {lot.name}
-            </Link>
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="font-semibold text-foreground">Tạo yêu cầu kiểm nghiệm</span>
-          </nav>
-        </div>
-
-        <div className="mt-4 flex flex-col gap-4 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3.5">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 shadow-sm shrink-0">
               <FlaskConical className="h-6 w-6" />
