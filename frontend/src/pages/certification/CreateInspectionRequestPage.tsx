@@ -411,18 +411,8 @@ export const CreateInspectionRequestPage: React.FC = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div>
           <HelpButton screenKey="inspection-request-create" />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={loadInitialData}
-            disabled={isLoading}
-          >
-            <RotateCw className={`h-4 w-4 mr-1 ${isLoading ? "animate-spin" : ""}`} />
-            Tải lại
-          </Button>
         </div>
       </div>
 
