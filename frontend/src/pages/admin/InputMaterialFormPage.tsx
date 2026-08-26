@@ -54,7 +54,9 @@ export const InputMaterialFormPage = () => {
   const [applyToAllCrops, setApplyToAllCrops] = useState<boolean>(true);
   const [selectedCropIds, setSelectedCropIds] = useState<string[]>([]);
   const [referenceSource, setReferenceSource] = useState('');
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  // Array of images uploaded from device
+  const [images, setImages] = useState<string[]>([]);
 
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -96,25 +98,37 @@ export const InputMaterialFormPage = () => {
     }
   };
 
-  // Image Upload handler
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+  // Multiple Image Upload handler
+  const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const newImages: string[] = [];
+    let processedCount = 0;
+
+    files.forEach((file) => {
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('Dung lượng hình ảnh không được vượt quá 5MB');
+        toast.error(`Ảnh ${file.name} vượt quá dung lượng 5MB`);
+        processedCount++;
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        toast.success('Đã tải hình ảnh vật tư lên');
+        if (reader.result) {
+          newImages.push(reader.result as string);
+        }
+        processedCount++;
+        if (processedCount === files.length) {
+          setImages((prev) => [...prev, ...newImages]);
+          toast.success(`Đã tải thêm ${newImages.length} hình ảnh vật tư`);
+        }
       };
       reader.readAsDataURL(file);
-    }
+    });
   };
 
-  const handleRemoveImage = () => {
-    setImagePreview(null);
+  const handleRemoveImage = (indexToRemove: number) => {
+    setImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   const validate = () => {
@@ -189,14 +203,14 @@ export const InputMaterialFormPage = () => {
 
   if (loading) {
     return (
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
+      <div className="p-6 w-full space-y-6">
         <div className="h-8 w-8 animate-spin rounded-full border-3 border-emerald-600 border-t-transparent mx-auto" />
       </div>
     );
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 w-full space-y-6">
       {/* Top Header Single Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -223,9 +237,9 @@ export const InputMaterialFormPage = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Main Specs Form (2 Cols) */}
-          <div className="md:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Specs Form (2 Cols on large screens) */}
+          <div className="lg:col-span-2 space-y-6">
             {/* Card 1: Thông tin cơ bản */}
             <Card className="shadow-sm border-gray-200 dark:border-gray-800">
               <CardHeader className="pb-3 border-b border-gray-100 dark:border-gray-800">
@@ -413,56 +427,73 @@ export const InputMaterialFormPage = () => {
             </Card>
           </div>
 
-          {/* Right Column: Image Upload Box */}
+          {/* Right Column: Multiple Images Upload Card */}
           <div className="space-y-6">
             <Card className="shadow-sm border-gray-200 dark:border-gray-800">
-              <CardHeader className="pb-3 border-b border-gray-100 dark:border-gray-800">
+              <CardHeader className="pb-3 border-b border-gray-100 dark:border-gray-800 flex flex-row items-center justify-between">
                 <CardTitle className="text-base font-semibold flex items-center gap-2">
                   <ImageIcon className="h-5 w-5 text-blue-600" />
                   3. Hình ảnh vật tư từ thiết bị
                 </CardTitle>
+                <span className="text-xs text-muted-foreground font-normal">
+                  ({images.length} ảnh)
+                </span>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
-                <div className="flex flex-col items-center justify-center">
-                  {imagePreview ? (
-                    <div className="relative w-full aspect-square rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-inner group">
-                      <img
-                        src={imagePreview}
-                        alt="Hình ảnh vật tư"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={handleRemoveImage}
-                          className="h-8 px-3 text-xs"
+                {/* Upload Button Zone */}
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer bg-gray-50/50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors p-4 text-center">
+                  <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-full mb-1">
+                    <Upload className="h-6 w-6" />
+                  </div>
+                  <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                    Tải nhiều ảnh từ thiết bị
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    Bấm hoặc kéo thả ảnh (tối đa 5MB/ảnh)
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImagesChange}
+                    className="hidden"
+                  />
+                </label>
+
+                {/* Multiple Images Gallery Grid */}
+                {images.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      Danh sách ảnh đã thêm:
+                    </Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-72 overflow-y-auto p-1">
+                      {images.map((imgSrc, idx) => (
+                        <div
+                          key={idx}
+                          className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm group"
                         >
-                          <X className="h-4 w-4 mr-1" /> Xóa ảnh
-                        </Button>
-                      </div>
+                          <img
+                            src={imgSrc}
+                            alt={`Vật tư ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              onClick={() => handleRemoveImage(idx)}
+                              className="h-7 w-7 rounded-full"
+                              title="Xóa ảnh này"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer bg-gray-50/50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors p-6 text-center">
-                      <div className="p-4 bg-emerald-500/10 text-emerald-600 rounded-full mb-3">
-                        <Upload className="h-8 w-8" />
-                      </div>
-                      <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
-                        Thêm ảnh vật tư từ thiết bị
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        Kéo thả tệp ảnh hoặc bấm để chọn ảnh từ thiết bị (tối đa 5MB)
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-                </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
