@@ -23,6 +23,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { HelpButton } from '@/components/help/HelpButton';
 
 const POLL_INTERVAL_MS = 20_000;
 
@@ -199,10 +200,13 @@ export function SystemMonitoringPage() {
             </p>
           </div>
         </div>
-        <Button variant="outline" onClick={handleRefresh} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Làm mới
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="admin-system-monitoring" />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Làm mới
+          </Button>
+        </div>
       </div>
 
       <Card className={overall ? overall.bannerClass : ''}>

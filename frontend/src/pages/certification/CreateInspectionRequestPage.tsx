@@ -387,38 +387,32 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
   return (
     <form onSubmit={handleFormSubmit} className="space-y-6 pb-28">
-      {/* Top Action Toolbar (Aligned to the right on the same line as BackButton) */}
-      <div className="-mt-14 mb-4 flex justify-end">
-        <HelpButton screenKey="inspection-request-create" />
-      </div>
-
-      {/* SECTION 0: Header Card */}
-      <Card className="rounded-xl border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 shadow-sm shrink-0">
-              <FlaskConical className="h-6 w-6" />
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 shadow-sm shrink-0">
+            <FlaskConical className="h-6 w-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+                Tạo yêu cầu kiểm nghiệm chất lượng
+              </h1>
+              <Badge
+                variant="outline"
+                className="rounded-full border-emerald-300 bg-emerald-50 text-xs font-semibold text-emerald-800 px-2.5 py-0.5"
+              >
+                VT-02
+              </Badge>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-                  Tạo yêu cầu kiểm nghiệm chất lượng
-                </h1>
-                <Badge
-                  variant="outline"
-                  className="rounded-full border-emerald-300 bg-emerald-50 text-xs font-semibold text-emerald-800 px-2.5 py-0.5"
-                >
-                  VT-02
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground sm:text-sm mt-0.5">
-                Lập hồ sơ gửi mẫu phân tích chỉ tiêu an toàn thực phẩm cho lô:{" "}
-                <span className="font-semibold text-slate-900">{lot.name}</span>
-              </p>
-            </div>
+            <p className="text-xs text-muted-foreground sm:text-sm mt-0.5">
+              Lập hồ sơ gửi mẫu phân tích chỉ tiêu an toàn thực phẩm cho lô:{" "}
+              <span className="font-semibold text-slate-900">{lot.name}</span>
+            </p>
           </div>
         </div>
-      </Card>
+        <HelpButton screenKey="inspection-request-create" />
+      </div>
 
       {/* SECTION 1: 2-COLUMN MAIN CONTENT (70% Form Trái / 30% Đối Soát Phải) */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">

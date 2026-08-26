@@ -11,6 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { HelpButton } from '@/components/help/HelpButton';
 import { useWarehouseReceipt } from '@/hooks/useWarehouseReceipt';
 
 const ALLOWED_THRESHOLD = 2.0;
@@ -73,24 +74,26 @@ export default function WarehouseReceiptDetailPage() {
 
   return (
     <div className="max-w-4xl space-y-6">
-      {/* Back + Header */}
-      <div className="flex items-center justify-between">
-        <Badge
-          variant={isExceeded ? 'destructive' : 'outline'}
-          className={isExceeded ? 'rounded-full' : 'rounded-full text-emerald-700 border-emerald-300'}
-        >
-          {isExceeded ? 'Chênh lệch' : 'Khớp'}
-        </Badge>
-      </div>
-
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">
-          Nhập kho & đối chiếu
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          {detail.shipmentName || 'Chi tiết sự kiện nhập kho'}
-          {detail.recordedAt ? ` • ${formatDateTime(detail.recordedAt)}` : ''}
-        </p>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              Nhập kho & đối chiếu
+            </h1>
+            <Badge
+              variant={isExceeded ? 'destructive' : 'outline'}
+              className={isExceeded ? 'rounded-full' : 'rounded-full text-emerald-700 border-emerald-300'}
+            >
+              {isExceeded ? 'Chênh lệch' : 'Khớp'}
+            </Badge>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {detail.shipmentName || 'Chi tiết sự kiện nhập kho'}
+            {detail.recordedAt ? ` • ${formatDateTime(detail.recordedAt)}` : ''}
+          </p>
+        </div>
+        <HelpButton screenKey="warehouse-receipt" />
       </div>
 
       {/* Section 1 — Thông tin lô hàng */}

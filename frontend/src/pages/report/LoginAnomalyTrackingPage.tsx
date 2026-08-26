@@ -21,6 +21,7 @@ import {
   YAxis,
 } from 'recharts';
 import { toast } from 'sonner';
+import { HelpButton } from '@/components/help/HelpButton';
 
 import {
   getLoginAnomalies,
@@ -563,10 +564,13 @@ export default function LoginAnomalyTrackingPage() {
           </div>
         </div>
 
-        <Button variant="outline" onClick={() => void handleRefresh()} disabled={eventsLoading || suspiciousLoading || statsLoading}>
-          <RefreshCw className={`h-4 w-4 ${eventsLoading || suspiciousLoading || statsLoading ? 'animate-spin' : ''}`} />
-          Làm mới
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="report-login-anomalies" />
+          <Button variant="outline" size="sm" onClick={() => void handleRefresh()} disabled={eventsLoading || suspiciousLoading || statsLoading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${eventsLoading || suspiciousLoading || statsLoading ? 'animate-spin' : ''}`} />
+            Làm mới
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-5">

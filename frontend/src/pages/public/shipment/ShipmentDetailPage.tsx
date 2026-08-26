@@ -33,6 +33,7 @@ import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDi
 import { RecallShipmentDialog } from "@/components/shipment/RecallShipmentDialog";
 import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligibleDialog";
 import { ShipmentStatusBadge } from "@/components/shipment/ShipmentStatusBadge";
+import { HelpButton } from "@/components/help/HelpButton";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -213,17 +214,22 @@ export const ShipmentDetailPage = () => {
   return (
     <div className="space-y-6">
       {/* ── Top navigation bar ── */}
-      <Button
-        variant="outline"
-        onClick={() =>
-          navigate(`/production-lots/${lotId}`, {
-            state: { activeTab: "shipments" },
-          })
-        }
-      >
-        <ArrowLeft className="mr-1 h-4 w-4" />
-        Quay lại lô sản xuất
-      </Button>
+      <div className="flex items-center justify-between">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            navigate(`/production-lots/${lotId}`, {
+              state: { activeTab: "shipments" },
+            })
+          }
+          className="gap-1.5 text-slate-700"
+        >
+          <ArrowLeft className="mr-1 h-4 w-4" />
+          Quay lại lô sản xuất
+        </Button>
+        <HelpButton screenKey="shipment-detail" />
+      </div>
 
       {/* ── Header card ── */}
       <Card className="border-slate-200 bg-white shadow-sm rounded-xl">

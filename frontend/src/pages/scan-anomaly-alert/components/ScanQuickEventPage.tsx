@@ -17,9 +17,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -200,22 +197,23 @@ export default function ScanQuickEventPage() {
     (cameraState.step === "scanning" || cameraState.step === "camera-error");
 
   return (
-    <Card className="mx-auto max-w-2xl">
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
+    <div className="mx-auto max-w-2xl space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <CardTitle className="flex items-center gap-2">
-            <ScanLine className="h-5 w-5" />
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+            <ScanLine className="h-6 w-6 text-emerald-600" />
             Quét mã ghi sự kiện nhanh
-          </CardTitle>
-          <CardDescription>
-            Đưa mã QR/barcode in trên bao bì lô hàng vào khung hình. Hệ thống sẽ
-            tự xác định lô hàng và mở nhanh biểu mẫu ghi sự kiện phù hợp.
-          </CardDescription>
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Đưa mã QR/barcode in trên bao bì lô hàng vào khung hình để xác định và mở biểu mẫu ghi sự kiện phù hợp.
+          </p>
         </div>
         <HelpButton screenKey="scan-quick-event" />
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-4">
+      <Card>
+        <CardContent className="space-y-4 pt-6">
         {showCamera && (
           <>
             <div className="overflow-hidden rounded-lg bg-black">
@@ -398,5 +396,6 @@ export default function ScanQuickEventPage() {
         )}
       </CardContent>
     </Card>
+    </div>
   );
 }

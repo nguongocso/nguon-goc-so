@@ -550,11 +550,25 @@ export const ProductionLotDetailPage = () => {
 
   return (
     <div className="space-y-6">
+      {/* Top action row */}
+      <div className="flex items-center justify-between">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate("/production-lots")}
+          className="gap-1.5 text-slate-700"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Quay lại danh sách lô sản xuất
+        </Button>
+        <HelpButton screenKey="production-lot-detail" />
+      </div>
+
       {/* Thông tin chính */}
-      <Card className="border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm">
+      <Card className="border-slate-200 bg-white shadow-sm rounded-xl">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
           <div>
-            <CardTitle className="text-xl font-bold text-emerald-800">
+            <CardTitle className="text-xl font-bold text-slate-900">
               {lot.name}
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
@@ -562,7 +576,6 @@ export const ProductionLotDetailPage = () => {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <HelpButton screenKey="production-lot-detail" />
             {canRecordHarvest &&
               lot.status === "APPROVED" &&
               !showHarvestForm && (

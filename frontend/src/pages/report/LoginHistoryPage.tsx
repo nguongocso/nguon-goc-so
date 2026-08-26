@@ -15,6 +15,7 @@ import { LoginHistoryFilter } from "@/components/login-history/LoginHistoryFilte
 import { LoginHistoryTable } from "@/components/login-history/LoginHistoryTable";
 import { getLoginHistory } from "@/api/loginHistoryApi";
 import { useAuth } from "@/hooks/useAuth";
+import { HelpButton } from "@/components/help/HelpButton";
 import type { LoginHistoryItem, LoginHistoryParams } from "@/types/loginHistory";
 import type { PageResponse } from "@/types/common";
 
@@ -100,21 +101,25 @@ export default function LoginHistoryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Lịch sử đăng nhập</h1>
           <p className="text-sm text-muted-foreground">
             Xem lịch sử đăng nhập của tài khoản {user?.fullName}
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => fetchLoginHistory({ page, size })}
-          disabled={loading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} />
-          Làm mới
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="report-login-history" />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchLoginHistory({ page, size })}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} />
+            Làm mới
+          </Button>
+        </div>
       </div>
 
       <LoginHistoryFilter

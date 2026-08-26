@@ -23,6 +23,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { HelpButton } from '@/components/help/HelpButton';
 import { LockTraceCodeDialog } from './components/LockTraceCodeDialog';
 
 const formatDateTime = (value: string | null) => {
@@ -100,12 +101,15 @@ export default function SuspectTraceCodeDetailPage() {
             </p>
           </div>
         </div>
-        {detail.status === 'SUSPECT' && (
-          <Button variant="destructive" onClick={() => setShowLockDialog(true)}>
-            <Lock className="mr-2 h-4 w-4" />
-            Khóa mã tem
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="admin-suspect-trace-codes" />
+          {detail.status === 'SUSPECT' && (
+            <Button variant="destructive" onClick={() => setShowLockDialog(true)}>
+              <Lock className="mr-2 h-4 w-4" />
+              Khóa mã tem
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Summary Cards */}

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle, LoaderCircle } from 'lucide-react';
@@ -83,27 +83,21 @@ export const CreateRecallRequestPage = () => {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <Card className="border-red-100">
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex size-11 items-center justify-center rounded-full bg-red-100 text-red-700">
-                <AlertTriangle className="size-6" />
-              </div>
-              <div>
-                <CardTitle className="text-xl font-bold">
-                  Tạo yêu cầu thu hồi lô sản xuất
-                </CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Gửi yêu cầu để quản lý hợp tác xã xét duyệt. Yêu cầu sẽ được duyệt
-                  bởi người khác, không phải chính bạn.
-                </p>
-              </div>
-            </div>
-            <HelpButton screenKey="recall-request-create" />
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+            <AlertTriangle className="size-6 text-red-600" />
+            Tạo yêu cầu thu hồi lô sản xuất
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Gửi yêu cầu để người có thẩm quyền xét duyệt và kích hoạt quy trình thu hồi.
+          </p>
+        </div>
+        <HelpButton screenKey="recall-request-create" />
+      </div>
+
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+        <CardContent className="space-y-5 pt-6">
           <div className="space-y-1.5">
             <Label htmlFor="lotId">
               Lô sản xuất <span className="text-red-600">*</span>
