@@ -37,6 +37,9 @@ import CodeRangeListPage from "@/pages/admin/CodeRangeListPage";
 import ProductCategoryManagementPage from "@/pages/admin/ProductCategoryManagementPage";
 import CreateProductCategoryPage from "@/pages/admin/CreateProductCategoryPage";
 import EditProductCategoryPage from "@/pages/admin/EditProductCategoryPage";
+import InputMaterialManagementPage from "@/pages/admin/InputMaterialManagementPage";
+import { InputMaterialFormPage } from "@/pages/admin/InputMaterialFormPage";
+import { InputMaterialDetailPage } from "@/pages/admin/InputMaterialDetailPage";
 import StandardManagementPage from "@/pages/admin/StandardManagementPage";
 import CreateStandardPage from "@/pages/admin/CreateStandardPage";
 import EditStandardPage from "@/pages/admin/EditStandardPage";
@@ -663,6 +666,42 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-01"]}>
                         <EditProductCategoryPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/input-materials"
+                element={
+                    <RoleRoute allowedRoles={["VT-01", "VT-02", "VT-03", "VT-04"]}>
+                        <InputMaterialManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/input-materials/create"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <InputMaterialFormPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/input-materials/:id/edit"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <InputMaterialFormPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/input-materials/:id"
+                element={
+                    <RoleRoute allowedRoles={["VT-01", "VT-02", "VT-03", "VT-04"]}>
+                        <InputMaterialDetailPage />
                     </RoleRoute>
                 }
             />
