@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import {
-  ArrowLeft,
   Clock,
   ShieldCheck,
   Edit2,
@@ -21,10 +20,10 @@ import {
   User,
   AlertTriangle,
   Info,
+  PackageCheck,
 } from 'lucide-react';
 import { getInputMaterialById, toggleInputMaterialStatus } from '@/api/inputMaterialApi';
 import { MaterialGroup, MATERIAL_GROUP_VARIANTS } from '@/enums/materialGroup';
-import { InputMaterialFormModal } from '@/components/admin/input-material/InputMaterialFormModal';
 import { InputMaterialDeleteDialog } from '@/components/admin/input-material/InputMaterialDeleteDialog';
 import type { InputMaterial } from '@/types/inputMaterial';
 
@@ -35,8 +34,7 @@ export const InputMaterialDetailPage = () => {
   const [material, setMaterial] = useState<InputMaterial | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Modals
-  const [showEditModal, setShowEditModal] = useState<boolean>(false);
+  // Delete Dialog state
   const [showDeleteDialog, setShowDeleteDialog] = useState<boolean>(false);
 
   useEffect(() => {
@@ -50,7 +48,7 @@ export const InputMaterialDetailPage = () => {
       setLoading(true);
       const data = await getInputMaterialById(materialId);
       setMaterial(data);
-    } catch (error: any) {
+    } catch {
       toast.error('Không thể tải thông tin chi tiết vật tư đầu vào');
       navigate('/admin/input-materials');
     } finally {
@@ -75,12 +73,7 @@ export const InputMaterialDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={() => navigate('/admin/input-materials')}>
-            <ArrowLeft className="h-4 w-4 mr-1.5" /> Quay lại
-          </Button>
-        </div>
+      <div className="p-6 max-w-6xl mx-auto space-y-6">
         <Card className="shadow-sm">
           <CardContent className="p-12 text-center text-muted-foreground">
             <div className="flex flex-col items-center justify-center gap-3">
@@ -112,20 +105,18 @@ export const InputMaterialDetailPage = () => {
 
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
-      {/* Top Header & Breadcrumb */}
+      {/* Single Header Bar without duplicate back button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Link to="/admin/input-materials">
-            <Button variant="outline" size="sm" className="h-9 px-3">
-              <ArrowLeft className="h-4 w-4 mr-1.5" /> Quay lại danh sách
-            </Button>
-          </Link>
+          <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+            <PackageCheck className="h-6 w-6" />
+          </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
               Chi tiết vật tư đầu vào
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Mã vật tư: <span className="font-mono">{material.id}</span>
+              Mã định danh vật tư: <span className="font-mono">{material.id}</span>
             </p>
           </div>
         </div>
@@ -135,7 +126,7 @@ export const InputMaterialDetailPage = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowEditModal(true)}
+            onClick={() => navigate(`/admin/input-materials/${material.id}/edit`)}
             className="h-9 px-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
           >
             <Edit2 className="h-4 w-4 mr-1.5" /> Chỉnh sửa
@@ -343,14 +334,6 @@ export const InputMaterialDetailPage = () => {
           </Card>
         </div>
       </div>
-
-      {/* Form Modal Edit */}
-      <InputMaterialFormModal
-        open={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        onSuccess={() => fetchDetail(material.id)}
-        material={material}
-      />
 
       {/* Delete Dialog */}
       <InputMaterialDeleteDialog
