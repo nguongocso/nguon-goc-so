@@ -34,6 +34,7 @@ import {
   ShoppingCart,
   Key,
   WifiOff,
+  MapPin,
 } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import {
@@ -164,6 +165,12 @@ const MENU_GROUPS: MenuGroup[] = [
         label: "Tem nghi vấn",
         href: "/admin/suspect-trace-codes",
         allowedRoles: ["VT-01"] as const,
+      },
+      {
+        icon: <MapPin className="h-5 w-5" />,
+        label: "Phân công địa bàn",
+        href: "/admin/account-areas",
+        allowedRoles: ROLE_ACCESS.areaAssignment,
       },
       {
         icon: <MessageSquare className="h-5 w-5" />,
