@@ -1,6 +1,73 @@
 import apiClient from './axiosConfig';
-import type { ProductionLotCertification, AttachCertificationRequest, Certification, CreateCertificationRequest, CertificationResponse, LotTestCriteriaResult, CreateInspectionRequestPayload, InspectionRequestCreatedResponse, InspectionRequestListItem, InspectionRequestStatusQuery, InspectionRequestDetailResponse, InspectionCriterionResult, RecordCriterionResultPayload, RecordInspectionResultsPayload, InspectionResultFileUploadResponse, CanActivateSealCheck } from '@/types/certification';
+import type { ProductionLotCertification, AttachCertificationRequest, Certification, CreateCertificationRequest, CertificationResponse, LotTestCriteriaResult, CreateInspectionRequestPayload, InspectionRequestCreatedResponse, InspectionRequestListItem, InspectionRequestStatusQuery, InspectionRequestDetailResponse, InspectionCriterionResult, RecordCriterionResultPayload, RecordInspectionResultsPayload, InspectionResultFileUploadResponse, CanActivateSealCheck, TestingUnit, CreateTestingUnitRequest, UpdateTestingUnitRequest } from '@/types/certification';
 import type { PageResponse } from '@/types/common';
+
+// ============================================================
+// Danh mục đơn vị kiểm nghiệm dùng chung (NCL-11-CN-006 Phase 1)
+// ============================================================
+
+/**
+ * Lấy danh sách đơn vị kiểm nghiệm trong danh mục dùng chung.
+ * GET /api/v1/testing-units?isActive=&page=&size=
+ *
+ * Dùng cho dropdown chọn đơn vị khi tạo yêu cầu kiểm nghiệm
+ * (mặc định chỉ lấy đơn vị còn hiệu lực).
+ */
+export const getTestingUnits = async (params?: {
+  isActive?: boolean;
+  page?: number;
+  size?: number;
+}): Promise<PageResponse<TestingUnit>> => {
+  const searchParams = new URLSearchParams();
+  if (params?.isActive !== undefined) {
+    searchParams.set('isActive', String(params.isActive));
+  }
+  searchParams.set('page', String(params?.page ?? 0));
+  searchParams.set('size', String(params?.size ?? 200));
+  const response = await apiClient.get<{ data: PageResponse<TestingUnit> }>(
+    `/testing-units?${searchParams.toString()}`
+  );
+  return response.data.data;
+};
+
+/**
+ * Tạo mới đơn vị kiểm nghiệm (VT-01).
+ * POST /api/v1/testing-units
+ */
+export const createTestingUnit = async (
+  data: CreateTestingUnitRequest
+): Promise<TestingUnit> => {
+  const response = await apiClient.post<{ data: TestingUnit }>(
+    '/testing-units',
+    data
+  );
+  return response.data.data;
+};
+
+/**
+ * Cập nhật thông tin đơn vị kiểm nghiệm (VT-01).
+ * PUT /api/v1/testing-units/{testingUnitId}
+ */
+export const updateTestingUnit = async (
+  testingUnitId: string,
+  data: UpdateTestingUnitRequest
+): Promise<TestingUnit> => {
+  const response = await apiClient.put<{ data: TestingUnit }>(
+    `/testing-units/${testingUnitId}`,
+    data
+  );
+  return response.data.data;
+};
+
+/**
+ * Vô hiệu hoá đơn vị kiểm nghiệm - soft delete (VT-01).
+ * DELETE /api/v1/testing-units/{testingUnitId}
+ */
+export const deactivateTestingUnit = async (
+  testingUnitId: string
+): Promise<void> => {
+  await apiClient.delete(`/testing-units/${testingUnitId}`);
+};
 
 /**
  * Lấy danh sách chứng nhận đã gắn của một lô sản xuất

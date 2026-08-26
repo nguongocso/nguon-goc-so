@@ -41,7 +41,10 @@ import {
   getInspectionRequests,
   getLotCertifications,
   getLotTestCriteria,
+  getTestingUnits,
 } from "@/api/certificationApi";
+import type { TestingUnit } from "@/types/certification";
+import { TestingUnitSelect } from "@/components/testing-unit/TestingUnitSelect";
 import { CertificationList } from "@/components/certification/CertificationList";
 import { AttachCertificationDialog } from "@/components/certification/AttachCertificationDialog";
 import {
@@ -262,6 +265,10 @@ export const ProductionLotDetailPage = () => {
   const [criteriaLoading, setCriteriaLoading] = useState(false);
   const [criteriaError, setCriteriaError] = useState<string | null>(null);
   const [testingUnit, setTestingUnit] = useState("");
+  // NCL-11-CN-006 Phase 1: chọn đơn vị kiểm nghiệm từ danh mục dùng chung
+  const [testingUnitId, setTestingUnitId] = useState("");
+  const [testingUnits, setTestingUnits] = useState<TestingUnit[]>([]);
+  const [unitsLoading, setUnitsLoading] = useState(false);
   const [sampleSentDate, setSampleSentDate] = useState("");
   const [selectedCriteriaIds, setSelectedCriteriaIds] = useState<number[]>([]);
   const [touched, setTouched] = useState({
@@ -439,8 +446,37 @@ export const ProductionLotDetailPage = () => {
     }
   };
 
+  // Tải danh mục đơn vị kiểm nghiệm khi mở dialog tạo yêu cầu kiểm nghiệm
+  // (NCL-11-CN-006 Phase 1)
+  useEffect(() => {
+    if (!createDialogOpen) return;
+    let cancelled = false;
+    setUnitsLoading(true);
+    getTestingUnits({ isActive: true })
+      .then((res) => {
+        if (!cancelled) setTestingUnits(res.items ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setTestingUnits([]);
+      })
+      .finally(() => {
+        if (!cancelled) setUnitsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [createDialogOpen]);
+
   const today = toISODate(new Date());
   const trimmedTestingUnit = testingUnit.trim();
+  // NCL-11-CN-006 Phase 1: khi danh mục khả dụng thì bắt buộc chọn từ dropdown;
+  // nếu danh mục rỗng hoặc tải lỗi thì fallback về nhập tự do.
+  const useUnitCatalog = !unitsLoading && testingUnits.length > 0;
+  const selectedTestingUnit =
+    testingUnits.find((unit) => unit.id === testingUnitId) || null;
+  const unitFieldValid = useUnitCatalog
+    ? testingUnitId !== ""
+    : trimmedTestingUnit !== "";
   const isSampleDateValid =
     sampleSentDate !== "" && sampleSentDate <= today;
   const canSubmitCreate =
@@ -449,7 +485,7 @@ export const ProductionLotDetailPage = () => {
     criteriaError === null &&
     criteriaData !== null &&
     criteriaData.criteria.length > 0 &&
-    trimmedTestingUnit !== "" &&
+    unitFieldValid &&
     isSampleDateValid &&
     selectedCriteriaIds.length > 0;
 
@@ -493,6 +529,7 @@ export const ProductionLotDetailPage = () => {
     setDuplicateOpen(false);
     setDuplicateMessage("");
     setTestingUnit("");
+    setTestingUnitId("");
     setSampleSentDate("");
     setSelectedCriteriaIds([]);
     setTouched({ unit: false, date: false, criteria: false });
@@ -500,12 +537,18 @@ export const ProductionLotDetailPage = () => {
     setInspectionReloadKey((key) => key + 1);
   };
 
+  const buildUnitPayload = () => ({
+    testingUnitId: useUnitCatalog ? testingUnitId : null,
+    // Khi chọn từ danh mục, gửi tên snapshot của đơn vị để tương thích ngược
+    testingUnit: selectedTestingUnit?.name || trimmedTestingUnit,
+  });
+
   const submitCreate = async () => {
     if (!id || !canSubmitCreate) return;
     setSubmitting(true);
     try {
       await createInspectionRequest(id, {
-        testingUnit: trimmedTestingUnit,
+        ...buildUnitPayload(),
         sampleSentDate,
         criteriaIds: selectedCriteriaIds,
         confirmDuplicate: false,
@@ -542,7 +585,7 @@ export const ProductionLotDetailPage = () => {
     setSubmitting(true);
     try {
       await createInspectionRequest(id, {
-        testingUnit: trimmedTestingUnit,
+        ...buildUnitPayload(),
         sampleSentDate,
         criteriaIds: selectedCriteriaIds,
         confirmDuplicate: true,
@@ -1212,23 +1255,63 @@ export const ProductionLotDetailPage = () => {
                 ) : null}
               </div>
 
-              {/* Đơn vị kiểm nghiệm */}
+              {/* Đơn vị kiểm nghiệm - danh mục dùng chung NCL-11-CN-006 */}
               <div className="space-y-2">
                 <Label htmlFor="testingUnit">Đơn vị kiểm nghiệm *</Label>
-                <Input
-                  id="testingUnit"
-                  value={testingUnit}
-                  onChange={(event) => {
-                    setTestingUnit(event.target.value);
-                    setTouched((prev) => ({ ...prev, unit: true }));
-                  }}
-                  placeholder="VD: Phòng thí nghiệm Trung tâm..."
-                  maxLength={200}
-                  disabled={submitting}
-                />
-                {touched.unit && trimmedTestingUnit === "" && (
+
+                {useUnitCatalog ? (
+                  <>
+                    <TestingUnitSelect
+                      id="testingUnit"
+                      units={testingUnits}
+                      value={testingUnitId}
+                      onChange={(unit) => {
+                        setTestingUnitId(unit?.id || "");
+                        setTouched((prev) => ({ ...prev, unit: true }));
+                      }}
+                      invalid={touched.unit && !unitFieldValid}
+                      disabled={submitting}
+                    />
+                    {selectedTestingUnit?.contactInfo && (
+                      <p className="text-xs text-muted-foreground">
+                        Liên hệ: {selectedTestingUnit.contactInfo}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {unitsLoading ? (
+                      <div className="flex h-10 items-center gap-2 rounded-lg border border-input bg-white px-3 text-sm text-muted-foreground">
+                        <LoaderCircle className="h-4 w-4 animate-spin" />
+                        Đang tải danh mục đơn vị kiểm nghiệm...
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                          Danh mục đơn vị kiểm nghiệm chưa có dữ liệu. Vui lòng liên
+                          hệ Quản trị viên, hoặc nhập tên đơn vị tạm thời.
+                        </p>
+                        <Input
+                          id="testingUnit"
+                          value={testingUnit}
+                          onChange={(event) => {
+                            setTestingUnit(event.target.value);
+                            setTouched((prev) => ({ ...prev, unit: true }));
+                          }}
+                          placeholder="VD: Phòng thí nghiệm Trung tâm..."
+                          maxLength={200}
+                          disabled={submitting}
+                        />
+                      </>
+                    )}
+                  </>
+                )}
+
+                {touched.unit && !unitFieldValid && (
                   <p className="text-sm text-red-500" role="alert">
-                    Vui lòng nhập đơn vị kiểm nghiệm
+                    {useUnitCatalog
+                      ? "Vui lòng chọn đơn vị kiểm nghiệm từ danh mục"
+                      : "Vui lòng nhập đơn vị kiểm nghiệm"}
                   </p>
                 )}
               </div>

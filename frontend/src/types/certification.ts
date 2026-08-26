@@ -71,10 +71,46 @@ export interface LotTestCriteriaResult {
 }
 
 /**
+ * Đơn vị kiểm nghiệm trong danh mục dùng chung (NCL-11-CN-006 Phase 1).
+ * GET /api/v1/testing-units
+ */
+export interface TestingUnit {
+  id: string;
+  name: string;
+  accreditationCode: string;
+  contactInfo: string | null;
+  /** YYYY-MM-DD, null nếu không có ngày hết hạn. */
+  accreditationExpiryDate: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface CreateTestingUnitRequest {
+  name: string;
+  accreditationCode: string;
+  contactInfo?: string | null;
+  accreditationExpiryDate?: string | null;
+  isActive?: boolean;
+}
+
+export interface UpdateTestingUnitRequest {
+  name: string;
+  accreditationCode: string;
+  contactInfo?: string | null;
+  accreditationExpiryDate?: string | null;
+  isActive?: boolean;
+}
+
+/**
  * Payload tạo yêu cầu kiểm nghiệm.
  * POST /api/v1/production-lots/{lotId}/test-requests
+ *
+ * testingUnitId ưu tiên khi có (chọn từ danh mục đơn vị kiểm nghiệm).
+ * testingUnit giữ lại để tương thích ngược (nhập tự do khi không có danh mục).
  */
 export interface CreateInspectionRequestPayload {
+  testingUnitId?: string | null;
   testingUnit: string;
   sampleSentDate: string; // YYYY-MM-DD
   criteriaIds: number[];
