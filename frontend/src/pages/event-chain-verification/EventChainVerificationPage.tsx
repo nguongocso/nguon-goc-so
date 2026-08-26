@@ -35,18 +35,20 @@ export default function EventChainVerificationPage() {
   };
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Kiểm chứng tính toàn vẹn dòng sự kiện</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Kiểm chứng tính toàn vẹn dòng sự kiện
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Tính lại chuỗi băm liên kết của các sự kiện để xác minh dòng sự kiện lô hàng không bị can thiệp.
           </p>
         </div>
         <HelpButton screenKey="event-chain-verification" />
       </div>
 
-      <Card>
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShieldCheck className="size-5 text-emerald-600" />
@@ -80,7 +82,7 @@ export default function EventChainVerificationPage() {
       </Card>
 
       {result && (
-        <Card className={result.isIntegrityVerified ? 'border-emerald-200' : 'border-red-200'}>
+        <Card className={`rounded-xl shadow-sm bg-white ${result.isIntegrityVerified ? 'border-emerald-200' : 'border-red-200'}`}>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
               {result.isIntegrityVerified ? (
