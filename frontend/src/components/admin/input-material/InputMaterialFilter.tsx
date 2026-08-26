@@ -57,6 +57,9 @@ export const InputMaterialFilter = ({ onFilter, onReset, loading }: Props) => {
     onReset();
   };
 
+  const selectedGroupLabel = GROUP_OPTIONS.find((opt) => opt.value === group)?.label;
+  const selectedStatusLabel = STATUS_OPTIONS.find((opt) => opt.value === status)?.label;
+
   return (
     <Card className="shadow-sm border-emerald-100 dark:border-emerald-950">
       <CardContent className="p-4 sm:p-5">
@@ -83,11 +86,13 @@ export const InputMaterialFilter = ({ onFilter, onReset, loading }: Props) => {
               </Label>
               <Select value={group} onValueChange={(val: string | null) => setGroup(val || 'ALL')}>
                 <SelectTrigger size="sm" className="w-full h-9">
-                  <SelectValue placeholder="Tất cả nhóm vật tư" />
+                  <SelectValue placeholder="Tất cả nhóm vật tư">
+                    {selectedGroupLabel}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {GROUP_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
+                    <SelectItem key={opt.value} value={opt.value} label={opt.label}>
                       {opt.label}
                     </SelectItem>
                   ))}
@@ -102,11 +107,13 @@ export const InputMaterialFilter = ({ onFilter, onReset, loading }: Props) => {
               </Label>
               <Select value={status} onValueChange={(val: string | null) => setStatus(val || 'ALL')}>
                 <SelectTrigger size="sm" className="w-full h-9">
-                  <SelectValue placeholder="Tất cả trạng thái" />
+                  <SelectValue placeholder="Tất cả trạng thái">
+                    {selectedStatusLabel}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {STATUS_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
+                    <SelectItem key={opt.value} value={opt.value} label={opt.label}>
                       {opt.label}
                     </SelectItem>
                   ))}

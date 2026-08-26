@@ -201,11 +201,13 @@ export const InputMaterialFormModal = ({ open, onClose, onSuccess, material }: P
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Chọn nhóm vật tư" />
+                  <SelectValue placeholder="Chọn nhóm vật tư">
+                    {MATERIAL_GROUP_LABELS[materialGroup]}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {Object.values(MaterialGroup).map((grp) => (
-                    <SelectItem key={grp} value={grp}>
+                    <SelectItem key={grp} value={grp} label={MATERIAL_GROUP_LABELS[grp]}>
                       {MATERIAL_GROUP_LABELS[grp]}
                     </SelectItem>
                   ))}
