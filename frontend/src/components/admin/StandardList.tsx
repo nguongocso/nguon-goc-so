@@ -22,11 +22,7 @@ import {
 import { Plus, Pencil, RefreshCw } from "lucide-react";
 import {
   getStandards,
-  createStandard,
-  updateStandard,
 } from "@/api/standardApi";
-import { StandardForm } from "./StandardForm";
-import type { StandardFormValues } from "@/utils/validators";
 import type { Standard } from "@/types/standard";
 import { usePermission } from "@/hooks/usePermission";
 import { ROLE_ACCESS } from "@/config/roleAccess";
@@ -49,10 +45,6 @@ export const StandardList: React.FC = () => {
     undefined,
   );
   const [loading, setLoading] = useState(true);
-
-  const [formDialogOpen, setFormDialogOpen] = useState(false);
-  const [editingStandard, setEditingStandard] = useState<Standard | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
   const fetchStandards = async () => {
     setLoading(true);
@@ -77,61 +69,12 @@ export const StandardList: React.FC = () => {
     fetchStandards();
   }, [currentPage, isActiveFilter]);
 
-  const handleCreate = async (data: StandardFormValues) => {
-    setSubmitting(true);
-    try {
-      await createStandard({
-        name: data.name,
-        description: data.description || undefined,
-        issuingBody: data.issuingBody || undefined,
-      });
-      toast.success("Thêm tiêu chuẩn thành công");
-      setFormDialogOpen(false);
-      fetchStandards();
-    } catch (error: any) {
-      const msg = error.response?.data?.message || "Thêm tiêu chuẩn thất bại";
-      toast.error(msg);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleUpdate = async (data: StandardFormValues) => {
-    if (!editingStandard) return;
-    setSubmitting(true);
-    try {
-      await updateStandard(editingStandard.id, {
-        name: data.name,
-        description: data.description || undefined,
-        issuingBody: data.issuingBody || undefined,
-        isActive: data.isActive ?? true,
-      });
-      toast.success("Cập nhật tiêu chuẩn thành công");
-      setFormDialogOpen(false);
-      setEditingStandard(null);
-      fetchStandards();
-    } catch (error: any) {
-      const msg =
-        error.response?.data?.message || "Cập nhật tiêu chuẩn thất bại";
-      toast.error(msg);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const openCreateDialog = () => {
-    setEditingStandard(null);
-    setFormDialogOpen(true);
+    navigate("/admin/standards/create");
   };
 
   const openEditDialog = (standard: Standard) => {
-    setEditingStandard(standard);
-    setFormDialogOpen(true);
-  };
-
-  const closeDialog = () => {
-    setFormDialogOpen(false);
-    setEditingStandard(null);
+    navigate(`/admin/standards/${standard.id}/edit`);
   };
 
   const totalPages = Math.ceil(totalElements / PAGE_SIZE);
@@ -308,14 +251,6 @@ export const StandardList: React.FC = () => {
           )}
         </CardContent>
       </Card>
-
-      <StandardForm
-        open={formDialogOpen}
-        onClose={closeDialog}
-        onSubmit={editingStandard ? handleUpdate : handleCreate}
-        initialData={editingStandard}
-        isLoading={submitting}
-      />
     </>
   );
 };

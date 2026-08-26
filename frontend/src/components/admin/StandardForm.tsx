@@ -78,7 +78,7 @@ export const StandardForm: React.FC<StandardFormProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? 'Cập nhật tiêu chuẩn' : 'Thêm mới tiêu chuẩn'}
