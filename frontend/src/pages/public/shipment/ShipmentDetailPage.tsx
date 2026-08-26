@@ -33,6 +33,7 @@ import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDi
 import { RecallShipmentDialog } from "@/components/shipment/RecallShipmentDialog";
 import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligibleDialog";
 import { ShipmentStatusBadge } from "@/components/shipment/ShipmentStatusBadge";
+import { HelpButton } from "@/components/help/HelpButton";
 import { ROLE_ACCESS } from "@/config/roleAccess";
 import { usePermission } from "@/hooks/usePermission";
 import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
@@ -221,7 +222,7 @@ export const ShipmentDetailPage = () => {
 
   if (shipmentError || !shipment) {
     return (
-      <div className="container mx-auto py-10">
+      <div className="space-y-6">
         <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-5 text-red-700">
           <AlertCircle className="mt-0.5 size-5 shrink-0" />
           <div>
@@ -238,15 +239,15 @@ export const ShipmentDetailPage = () => {
   // ── Main render ────────────────────────────────────────────────────────────
 
   return (
-    <div className="container mx-auto space-y-6 py-6">
+    <div className="space-y-6">
       {/* ── Header card ── */}
-      <Card className="border-emerald-100 bg-white/80 shadow-sm backdrop-blur-sm">
+      <Card className="border-slate-200 bg-white shadow-sm rounded-xl">
         <CardContent className="pt-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             {/* Title + meta */}
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-bold text-emerald-800">
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                   {shipment.name}
                 </h1>
                 <ShipmentStatusBadge status={shipment.status} />
@@ -257,7 +258,8 @@ export const ShipmentDetailPage = () => {
             </div>
 
             {/* Action buttons */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <HelpButton screenKey="shipment-detail" />
               {canActivateThis && (
                 <Button
                   variant="create"

@@ -31,12 +31,10 @@ import {
 import {
   createInspectionRequest,
   getLotTestCriteria,
-  getTestingUnits,
 } from "@/api/certificationApi";
 import { getProductionLotById } from "@/api/productionLotApi";
-import type { LotTestCriteriaResult, TestingUnit } from "@/types/certification";
+import type { LotTestCriteriaResult } from "@/types/certification";
 import type { ProductionLot } from "@/types/productionLot";
-import { TestingUnitSelect } from "@/components/testing-unit/TestingUnitSelect";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -129,11 +127,6 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
   // --- Form State ---
   const [testingUnit, setTestingUnit] = useState("");
-  // NCL-11-CN-006 Phase 1: chọn đơn vị kiểm nghiệm từ danh mục dùng chung
-  const [testingUnitId, setTestingUnitId] = useState("");
-  const [testingUnits, setTestingUnits] = useState<TestingUnit[]>([]);
-  const [unitsLoading, setUnitsLoading] = useState(false);
-  const [unitsError, setUnitsError] = useState<string | null>(null);
   const [sampleSentDate, setSampleSentDate] = useState(today);
   const [sampleWeight, setSampleWeight] = useState("");
   const [deliveryMethod, setDeliveryMethod] = useState<"LAB_PICKUP" | "COURIER" | "SELF_DELIVERY">("LAB_PICKUP");
@@ -184,26 +177,12 @@ export const CreateInspectionRequestPage: React.FC = () => {
       setLot(lotRes);
       setCriteriaData(criteriaRes);
 
-      // Tải danh mục đơn vị kiểm nghiệm (nếu lỗi thì fallback về nhập tự do)
-      setUnitsLoading(true);
-      try {
-        const unitsRes = await getTestingUnits({ isActive: true });
-        setTestingUnits(unitsRes.items ?? []);
-        setUnitsError(null);
-      } catch {
-        setTestingUnits([]);
-        setUnitsError("Không thể tải danh mục đơn vị kiểm nghiệm.");
-      } finally {
-        setUnitsLoading(false);
-      }
-
       // Kiểm tra xem có bản nháp nào đã lưu trước đó không
       const savedDraft = localStorage.getItem(draftStorageKey);
       if (savedDraft) {
         try {
           const parsed = JSON.parse(savedDraft);
           if (parsed.testingUnit) setTestingUnit(parsed.testingUnit);
-          if (parsed.testingUnitId) setTestingUnitId(parsed.testingUnitId);
           if (parsed.sampleSentDate) setSampleSentDate(parsed.sampleSentDate);
           if (parsed.sampleWeight) setSampleWeight(parsed.sampleWeight);
           if (parsed.deliveryMethod) setDeliveryMethod(parsed.deliveryMethod);
@@ -311,7 +290,6 @@ export const CreateInspectionRequestPage: React.FC = () => {
   const handleSaveDraft = () => {
     const draftData = {
       testingUnit,
-      testingUnitId,
       sampleSentDate,
       sampleWeight,
       deliveryMethod,
@@ -329,7 +307,6 @@ export const CreateInspectionRequestPage: React.FC = () => {
   const handleClearDraft = () => {
     localStorage.removeItem(draftStorageKey);
     setTestingUnit("");
-    setTestingUnitId("");
     setSampleSentDate(today);
     setSampleWeight("");
     setDeliveryMethod("LAB_PICKUP");
@@ -344,25 +321,10 @@ export const CreateInspectionRequestPage: React.FC = () => {
     toast.info("Đã xóa trắng form và làm mới bản nháp.");
   };
 
-  // NCL-11-CN-006: chỉ hiển thị đơn vị còn hạn công nhận trong dropdown
-  const availableUnits = useMemo(() => {
-    const t = toISODate(new Date());
-    return testingUnits.filter(
-      (u) => !u.accreditationExpiryDate || u.accreditationExpiryDate >= t
-    );
-  }, [testingUnits]);
-
   // --- Validation Form ---
   const trimmedTestingUnit = testingUnit.trim();
-  // NCL-11-CN-006 Phase 1: khi danh mục khả dụng thì bắt buộc chọn từ dropdown;
-  // nếu danh mục rỗng hoặc tải lỗi thì fallback về nhập tự do.
-  const useUnitCatalog = !unitsError && !unitsLoading && testingUnits.length > 0;
-  const selectedTestingUnit =
-    availableUnits.find((unit) => unit.id === testingUnitId) || null;
   const isSampleDateValid = sampleSentDate !== "" && sampleSentDate <= today;
-  const isTestingUnitValid = useUnitCatalog
-    ? testingUnitId !== ""
-    : trimmedTestingUnit !== "";
+  const isTestingUnitValid = trimmedTestingUnit !== "";
   const isCriteriaSelectedValid = selectedCriteriaIds.length > 0;
 
   const canSubmit =
@@ -378,12 +340,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
     setTouched({ testingUnit: true, sampleSentDate: true, criteria: true });
 
     if (!canSubmit && !confirmDuplicate) {
-      if (!isTestingUnitValid)
-        toast.error(
-          useUnitCatalog
-            ? "Vui lòng chọn đơn vị kiểm nghiệm từ danh mục."
-            : "Vui lòng nhập đơn vị phòng kiểm nghiệm."
-        );
+      if (!isTestingUnitValid) toast.error("Vui lòng nhập đơn vị phòng kiểm nghiệm.");
       else if (!isSampleDateValid) toast.error("Ngày gửi mẫu không được lớn hơn ngày hiện tại.");
       else if (!isCriteriaSelectedValid) toast.error("Vui lòng chọn ít nhất một chỉ tiêu kiểm nghiệm.");
       return;
@@ -392,9 +349,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
     setSubmitting(true);
     try {
       await createInspectionRequest(effectiveLotId, {
-        testingUnitId: useUnitCatalog ? testingUnitId : null,
-        // Khi chọn từ danh mục, gửi tên snapshot của đơn vị để tương thích ngược
-        testingUnit: selectedTestingUnit?.name || trimmedTestingUnit,
+        testingUnit: trimmedTestingUnit,
         sampleSentDate,
         criteriaIds: selectedCriteriaIds,
         confirmDuplicate,
@@ -759,92 +714,45 @@ export const CreateInspectionRequestPage: React.FC = () => {
             </CardHeader>
 
             <CardContent className="p-5 space-y-4">
-              {/* Đơn vị kiểm nghiệm (Phòng Lab) - danh mục dùng chung NCL-11-CN-006 */}
+              {/* Đơn vị kiểm nghiệm (Phòng Lab) */}
               <div className="space-y-1.5">
                 <Label htmlFor="testingUnit" className="text-xs font-semibold text-foreground">
                   Đơn vị phòng Lab tiếp nhận <span className="text-red-600">*</span>
                 </Label>
+                <Input
+                  id="testingUnit"
+                  value={testingUnit}
+                  onChange={(e) => {
+                    setTestingUnit(e.target.value);
+                    setTouched((prev) => ({ ...prev, testingUnit: true }));
+                  }}
+                  placeholder="Nhập tên phòng thí nghiệm hoặc đơn vị kiểm nghiệm..."
+                  className="h-10 rounded-xl text-xs border-input"
+                  maxLength={200}
+                />
 
-                {useUnitCatalog ? (
-                  <>
-                    <TestingUnitSelect
-                      id="testingUnit"
-                      units={availableUnits}
-                      value={testingUnitId}
-                      onChange={(unit) => {
-                        setTestingUnitId(unit?.id || "");
+                {/* Quick suggestions */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-xs text-muted-foreground font-medium">Gợi ý nhanh:</span>
+                  {COMMON_LAB_SUGGESTIONS.slice(0, 3).map((lab) => (
+                    <button
+                      key={lab}
+                      type="button"
+                      onClick={() => {
+                        setTestingUnit(lab);
                         setTouched((prev) => ({ ...prev, testingUnit: true }));
                       }}
-                      invalid={touched.testingUnit && !isTestingUnitValid}
-                    />
-                    {selectedTestingUnit?.contactInfo && (
-                      <p className="text-xs text-muted-foreground">
-                        Liên hệ: {selectedTestingUnit.contactInfo}
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {unitsLoading ? (
-                      <div className="flex h-10 items-center gap-2 rounded-xl border border-input bg-white px-3 text-xs text-muted-foreground">
-                        <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-                        Đang tải danh mục đơn vị kiểm nghiệm...
-                      </div>
-                    ) : (
-                      <>
-                        {unitsError && (
-                          <p className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
-                            Không tải được danh mục đơn vị kiểm nghiệm. Vui lòng nhập tên
-                            đơn vị tạm thời.
-                          </p>
-                        )}
-                        {!unitsError && (
-                          <p className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
-                            Danh mục đơn vị kiểm nghiệm chưa có dữ liệu. Vui lòng liên hệ
-                            Quản trị viên, hoặc nhập tên đơn vị tạm thời.
-                          </p>
-                        )}
-                        <Input
-                          id="testingUnit"
-                          value={testingUnit}
-                          onChange={(e) => {
-                            setTestingUnit(e.target.value);
-                            setTouched((prev) => ({ ...prev, testingUnit: true }));
-                          }}
-                          placeholder="Nhập tên phòng thí nghiệm hoặc đơn vị kiểm nghiệm..."
-                          className="h-10 rounded-xl text-xs border-input"
-                          maxLength={200}
-                        />
-
-                        {/* Quick suggestions */}
-                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                          <span className="text-xs text-muted-foreground font-medium">Gợi ý nhanh:</span>
-                          {COMMON_LAB_SUGGESTIONS.slice(0, 3).map((lab) => (
-                            <button
-                              key={lab}
-                              type="button"
-                              onClick={() => {
-                                setTestingUnit(lab);
-                                setTouched((prev) => ({ ...prev, testingUnit: true }));
-                              }}
-                              className="rounded-lg border border-border bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 transition-colors truncate max-w-[260px]"
-                              title={lab}
-                            >
-                              {lab}
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </>
-                )}
+                      className="rounded-lg border border-border bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 transition-colors truncate max-w-[260px]"
+                      title={lab}
+                    >
+                      {lab}
+                    </button>
+                  ))}
+                </div>
 
                 {touched.testingUnit && !isTestingUnitValid && (
                   <p className="text-xs font-medium text-red-600 flex items-center gap-1">
-                    <AlertCircle className="h-3.5 w-3.5" />{" "}
-                    {useUnitCatalog
-                      ? "Vui lòng chọn đơn vị kiểm nghiệm từ danh mục."
-                      : "Vui lòng nhập tên đơn vị phòng Lab kiểm nghiệm."}
+                    <AlertCircle className="h-3.5 w-3.5" /> Vui lòng nhập tên đơn vị phòng Lab kiểm nghiệm.
                   </p>
                 )}
               </div>

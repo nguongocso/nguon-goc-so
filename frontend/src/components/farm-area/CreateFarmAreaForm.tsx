@@ -141,9 +141,9 @@ export const CreateFarmAreaForm = ({ onSuccess, onCancel }: Props) => {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <Card className="border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm">
-        <CardHeader className="border-b border-emerald-100 pb-4">
-          <CardTitle className="text-lg font-semibold text-emerald-800">
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 pb-4">
+          <CardTitle className="text-lg font-semibold text-slate-900">
             Thông tin vùng trồng
           </CardTitle>
         </CardHeader>

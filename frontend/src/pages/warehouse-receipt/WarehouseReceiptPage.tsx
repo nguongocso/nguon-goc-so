@@ -50,7 +50,7 @@ export default function WarehouseReceiptPage() {
   const totalPages = pageData?.totalPages ?? 0;
 
   return (
-    <div className="space-y-6 p-4">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -61,8 +61,8 @@ export default function WarehouseReceiptPage() {
         </div>
         <div className="flex items-center gap-2">
           <HelpButton screenKey="warehouse-receipt" />
-          <Button variant="view" onClick={() => setCreateOpen(true)}>
-            <Plus className="size-4" />
+          <Button variant="create" onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4 mr-1" />
             Nhập kho
           </Button>
         </div>
@@ -76,7 +76,7 @@ export default function WarehouseReceiptPage() {
       )}
 
       {/* Table Card */}
-      <Card>
+      <Card className="border-slate-200 bg-white shadow-sm rounded-xl">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Warehouse className="size-5 text-blue-700" />
@@ -95,8 +95,8 @@ export default function WarehouseReceiptPage() {
             <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
               <FileText className="mb-2 size-10" />
               <p className="text-sm">Chưa có sự kiện nhập kho nào.</p>
-              <Button variant="secondary" className="mt-4" onClick={() => setCreateOpen(true)}>
-                <Plus className="size-4" />
+              <Button variant="create" className="mt-4" onClick={() => setCreateOpen(true)}>
+                <Plus className="size-4 mr-1" />
                 Nhập kho
               </Button>
             </div>
@@ -105,21 +105,21 @@ export default function WarehouseReceiptPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-emerald-50/50">
-                      <TableHead className="text-emerald-800 font-semibold">Mã lô</TableHead>
-                      <TableHead className="text-emerald-800 font-semibold">Tên lô</TableHead>
-                      <TableHead className="text-emerald-800 font-semibold text-right">Số lượng KN</TableHead>
-                      <TableHead className="text-emerald-800 font-semibold text-right">Thực nhận</TableHead>
-                      <TableHead className="text-emerald-800 font-semibold text-right">Chênh lệch</TableHead>
-                      <TableHead className="text-emerald-800 font-semibold text-center">%</TableHead>
-                      <TableHead className="text-emerald-800 font-semibold">Ngày nhập</TableHead>
-                      <TableHead className="text-emerald-800 font-semibold">Người ghi</TableHead>
-                      <TableHead className="text-emerald-800 font-semibold text-center">Thao tác</TableHead>
+                    <TableRow className="bg-slate-50">
+                      <TableHead className="font-semibold text-slate-700">Mã lô</TableHead>
+                      <TableHead className="font-semibold text-slate-700">Tên lô</TableHead>
+                      <TableHead className="font-semibold text-slate-700 text-right">Số lượng KN</TableHead>
+                      <TableHead className="font-semibold text-slate-700 text-right">Thực nhận</TableHead>
+                      <TableHead className="font-semibold text-slate-700 text-right">Chênh lệch</TableHead>
+                      <TableHead className="font-semibold text-slate-700 text-center">%</TableHead>
+                      <TableHead className="font-semibold text-slate-700">Ngày nhập</TableHead>
+                      <TableHead className="font-semibold text-slate-700">Người ghi</TableHead>
+                      <TableHead className="font-semibold text-slate-700 text-center">Thao tác</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {list.map((receipt) => (
-                      <TableRow key={receipt.id} className="hover:bg-emerald-50/30">
+                      <TableRow key={receipt.id} className="hover:bg-slate-50/80">
                         <TableCell className="font-mono text-xs">
                           {receipt.traceCode || '—'}
                         </TableCell>
@@ -156,6 +156,7 @@ export default function WarehouseReceiptPage() {
                             size="icon-sm"
                             onClick={() => navigate(`/warehouse-receipt/${receipt.id}`)}
                             className="hover:bg-muted"
+                            title="Xem chi tiết"
                           >
                             <Eye className="size-4" />
                           </Button>
