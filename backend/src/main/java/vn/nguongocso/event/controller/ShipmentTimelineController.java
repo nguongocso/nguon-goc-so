@@ -17,7 +17,8 @@ import java.util.UUID;
 
 /**
  * Controller quản lý dòng sự kiện truy xuất của lô hàng.
- * Chỉ VT-02 mới được phép xem.
+ * VT-02 (Quản lý HTX), VT-03 (Người ghi sự kiện) và VT-04 (Doanh nghiệp thu mua)
+ * được phép xem.
  */
 @RestController
 @RequestMapping("/api/v1/shipments")
@@ -28,13 +29,13 @@ public class ShipmentTimelineController {
 
     /**
      * Xem dòng sự kiện truy xuất của một lô hàng.
-     * Chỉ VT-02 mới được phép.
+     * Cho phép VT-02, VT-03 và VT-04.
      *
      * @param shipmentId UUID của lô hàng
      * @return danh sách sự kiện theo thứ tự thời gian
      */
     @GetMapping("/{shipmentId}/chain-events")
-    @PreAuthorize("hasRole('VT-02')")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-03', 'VT-04')")
     public ResponseEntity<ApiResult<List<ChainEventResponse>>> getShipmentTimeline(
             @PathVariable UUID shipmentId) {
 

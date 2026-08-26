@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   AlertCircle,
   ArrowLeft,
@@ -21,7 +20,8 @@ import { getShipmentById } from "@/api/shipmentApi";
 import { getLocalDateString } from "@/utils/dateTime";
 import { getShipmentTimeline } from "@/api/chainEventApi";
 import { checkDossierEligibility, exportDossier } from "@/api/dossierApi";
-import { deleteDraft } from "@/api/eventValidationApi";
+import { useDeleteDraftShipment } from "@/hooks/useDeleteDraftShipment";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { useRecallShipment } from "@/hooks/useRecallShipment";
 import { activateShipmentStamps } from "@/api/shipmentApi";
 import type { Shipment } from "@/types/shipment";
@@ -32,25 +32,9 @@ import { ShipmentTimelineItem } from "@/components/shipment/ShipmentTimelineItem
 import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDialog";
 import { RecallShipmentDialog } from "@/components/shipment/RecallShipmentDialog";
 import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligibleDialog";
+import { ShipmentStatusBadge } from "@/components/shipment/ShipmentStatusBadge";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const STATUS_LABEL: Record<Shipment["status"], string> = {
-  DRAFT: "Nháp",
-  CODE_PRINTED: "Đã in mã",
-  ACTIVATED: "Đã kích hoạt",
-  RECALLED: "Đã thu hồi",
-};
-
-const STATUS_CLASS: Record<Shipment["status"], string> = {
-  DRAFT: "bg-status-draft/10 text-status-draft border-status-draft/20",
-  CODE_PRINTED:
-    "bg-status-packaged/10 text-status-packaged border-status-packaged/20",
-  ACTIVATED:
-    "bg-status-approved/10 text-status-approved border-status-approved/20",
-  RECALLED:
-    "bg-status-rejected/10 text-status-rejected border-status-rejected/20",
-};
 
 const formatDateTime = (value: string) => {
   const d = new Date(value);
@@ -184,18 +168,10 @@ export const ShipmentDetailPage = () => {
     }
   };
 
-  const handleDeleteDraft = async () => {
-    if (!shipment) return;
-    if (!confirm(`Bạn có chắc chắn muốn hủy bản nháp "${shipment.name}"?`))
-      return;
-    try {
-      await deleteDraft(shipment.id);
-      toast.success("Hủy bản nháp thành công");
-      navigate(-1);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message ?? "Không thể hủy bản nháp");
-    }
-  };
+  const [showDeleteDraftConfirm, setShowDeleteDraftConfirm] = useState(false);
+  const { deletingDraft, deleteDraftShipment } = useDeleteDraftShipment(() =>
+    navigate(-1),
+  );
 
   // ── Derived flags ──────────────────────────────────────────────────────────
   const canActivateThis =
@@ -259,12 +235,7 @@ export const ShipmentDetailPage = () => {
                 <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                   {shipment.name}
                 </h1>
-                <Badge
-                  variant="outline"
-                  className={`border text-xs font-semibold px-2.5 py-0.5 rounded-full ${STATUS_CLASS[shipment.status]}`}
-                >
-                  {STATUS_LABEL[shipment.status]}
-                </Badge>
+                <ShipmentStatusBadge status={shipment.status} />
               </div>
               <p className="font-mono text-xs text-muted-foreground">
                 {maskId(shipment.id)}
@@ -303,7 +274,7 @@ export const ShipmentDetailPage = () => {
                 <Button
                   variant="outline"
                   className="border-red-300 text-red-600 hover:bg-red-50"
-                  onClick={handleDeleteDraft}
+                  onClick={() => setShowDeleteDraftConfirm(true)}
                 >
                   Hủy nháp
                 </Button>
@@ -445,11 +416,7 @@ export const ShipmentDetailPage = () => {
                 <div className="grid gap-1 px-4 py-3 sm:grid-cols-[200px_1fr] sm:gap-4">
                   <dt className="text-sm text-muted-foreground">Trạng thái</dt>
                   <dd>
-                    <span
-                      className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${STATUS_CLASS[shipment.status]}`}
-                    >
-                      {STATUS_LABEL[shipment.status]}
-                    </span>
+                    <ShipmentStatusBadge status={shipment.status} />
                   </dd>
                 </div>
               </dl>
@@ -546,6 +513,20 @@ export const ShipmentDetailPage = () => {
         onClose={() => setIneligibleDialog({ open: false, missingDocs: [] })}
         missingDocs={ineligibleDialog.missingDocs}
         shipmentName={shipment.name}
+      />
+
+      <ConfirmDialog
+        open={showDeleteDraftConfirm}
+        onOpenChange={(open) => !open && setShowDeleteDraftConfirm(false)}
+        title="Hủy bản nháp lô hàng"
+        description={`Bạn có chắc chắn muốn hủy bản nháp "${shipment.name}"?`}
+        confirmLabel="Hủy nháp"
+        variant="destructive"
+        loading={deletingDraft}
+        onConfirm={async () => {
+          await deleteDraftShipment(shipment);
+          setShowDeleteDraftConfirm(false);
+        }}
       />
     </div>
   );

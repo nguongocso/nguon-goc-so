@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ProcurementShipmentList } from "@/components/shipment/ProcurementShipmentList";
 import { RecordProcurementDialog } from "@/components/procurement/RecordProcurementDialog";
+import { HelpButton } from "@/components/help/HelpButton";
 
 /**
  * Dashboard dành cho Doanh nghiệp thu mua (VT‑04).
@@ -29,6 +30,7 @@ export function ProcurementDashboard() {
             mua.
           </p>
         </div>
+        <HelpButton screenKey="dashboard" />
       </div>
 
       <ProcurementShipmentList

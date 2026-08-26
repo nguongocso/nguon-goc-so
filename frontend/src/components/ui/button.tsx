@@ -8,7 +8,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary-hover",
+        default: "bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600",
         outline:
           "border-primary bg-white text-primary hover:bg-primary-light aria-expanded:bg-primary-light aria-expanded:text-primary dark:border-primary dark:hover:bg-primary-light",
         secondary:
@@ -25,9 +25,9 @@ const buttonVariants = cva(
         edit:
           "bg-amber-500 text-white hover:bg-amber-600 dark:bg-amber-400 dark:hover:bg-amber-500",
         view:
-          "bg-sky-400 text-white hover:bg-sky-500 dark:bg-sky-300 dark:hover:bg-sky-400", // 🆕 Thêm view
+          "bg-sky-400 text-white hover:bg-sky-500 dark:bg-sky-300 dark:hover:bg-sky-400",
         delete:
-          "bg-red-600 text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600",
+          "border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:bg-destructive dark:hover:bg-destructive/90",
       },
       size: {
         default:
@@ -39,7 +39,7 @@ const buttonVariants = cva(
         "icon-xs":
           "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
         "icon-sm":
-          "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
+          "size-8 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
         "icon-lg": "size-11",
       },
     },

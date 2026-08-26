@@ -265,7 +265,14 @@ export const ProductionLotList = ({
                     "Thao tác",
                     "Chi tiết",
                   ].map((title) => (
-                    <TableHead key={title} className="text-emerald-800 font-semibold">
+                    <TableHead
+                      key={title}
+                      className={`text-emerald-800 font-semibold${
+                        title === "Thao tác" || title === "Chi tiết"
+                          ? " text-center"
+                          : ""
+                      }`}
+                    >
                       {title}
                     </TableHead>
                   ))}
@@ -324,56 +331,57 @@ export const ProductionLotList = ({
                         </TableCell>
 
                         <TableCell>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex justify-center gap-1">
                             {showEdit && (
                               <Button
-                                size="sm"
-                                variant="edit"
+                                size="icon-sm"
+                                variant="ghost"
+                                title="Chỉnh sửa"
                                 onClick={() => onEdit(lot.id)}
                               >
                                 <Pencil className="size-4" />
-                                Chỉnh sửa
                               </Button>
                             )}
                             {showSubmit && (
                               <Button
-                                size="sm"
+                                size="icon-sm"
+                                variant="ghost"
+                                title="Gửi duyệt"
                                 onClick={() => setConfirmingLot(lot)}
                               >
                                 <Send className="size-4" />
-                                Gửi duyệt
                               </Button>
                             )}
                             {showApprove && (
                               <Button
-                                size="sm"
-                                variant="search"
+                                size="icon-sm"
+                                variant="ghost"
+                                title="Duyệt lô"
                                 onClick={() => setApprovingLot(lot)}
                               >
                                 <ClipboardCheck className="size-4" />
-                                Duyệt lô
                               </Button>
                             )}
                             {showRecordFarmLog && (
                               <Button
-                                size="sm"
-                                variant="view"
+                                size="icon-sm"
+                                variant="ghost"
+                                title="Ghi nhật ký"
                                 onClick={() => onRecordFarmLog(lot.id)}
                               >
                                 <NotebookPen className="size-4" />
-                                Ghi nhật ký
                               </Button>
                             )}
                             {showRecordProcurement && (
                               <Button
-                                size="sm"
-                                variant="create"
+                                size="icon-sm"
+                                variant="ghost"
+                                title="Thu mua"
                                 onClick={() =>
                                   onRecordProcurement?.(lot.id)
                                 }
                               >
                                 <ShoppingCart className="size-4" />
-                                Thu mua
                               </Button>
                             )}
                             {!hasAction && (
@@ -384,7 +392,7 @@ export const ProductionLotList = ({
                           </div>
                         </TableCell>
 
-                        <TableCell>
+                        <TableCell className="text-center">
                           <Button
                             size="sm"
                             variant="outline"

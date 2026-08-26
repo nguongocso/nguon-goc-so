@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PackageOpen, CheckCircle2, Sprout, PackageCheck } from 'lucide-react';
 import type { ProductionLot } from '@/types/productionLot';
 import { IndustryReportPanel } from '@/components/report/IndustryReportPanel';
+import { HelpButton } from '@/components/help/HelpButton';
 
 export function ManagementDashboard() {
   const [productionLots, setProductionLots] = useState<ProductionLot[]>([]);
@@ -54,10 +55,13 @@ export function ManagementDashboard() {
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="bg-white/80 backdrop-blur-sm border border-emerald-100 p-1 rounded-xl gap-1 min-h-11 max-w-full overflow-x-auto overflow-y-hidden">
-          <TabsTrigger value="overview" className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Tổng quan</TabsTrigger>
-          <TabsTrigger value="industry-report" className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Báo cáo theo địa bàn</TabsTrigger>
-        </TabsList>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <TabsList className="bg-white/80 backdrop-blur-sm border border-emerald-100 p-1 rounded-xl gap-1 min-h-11 max-w-full overflow-x-auto overflow-y-hidden">
+            <TabsTrigger value="overview" className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Tổng quan</TabsTrigger>
+            <TabsTrigger value="industry-report" className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Báo cáo theo địa bàn</TabsTrigger>
+          </TabsList>
+          <HelpButton screenKey="dashboard" />
+        </div>
 
         <TabsContent value="overview" className="mt-4 space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

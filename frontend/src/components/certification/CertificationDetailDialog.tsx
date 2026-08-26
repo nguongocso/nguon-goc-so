@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import type { CertificationResponse } from '@/types/certification';
 import { CertificationStatusBadge } from '@/components/certification/CertificationStatusBadge';
+import { DetailField } from '@/components/common/detail/DetailField';
 import { CalendarDays, FileBadge, Building2, Hash } from 'lucide-react';
 
 interface Props {
@@ -45,10 +46,10 @@ export const CertificationDetailDialog = ({ certification, open, onClose }: Prop
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-[#111827]">
+          <DialogTitle className="text-xl font-bold text-foreground">
             {certification.name}
           </DialogTitle>
-          <DialogDescription className="text-[#6B7280]">
+          <DialogDescription>
             Thông tin chi tiết chứng nhận
           </DialogDescription>
         </DialogHeader>
@@ -56,7 +57,7 @@ export const CertificationDetailDialog = ({ certification, open, onClose }: Prop
         <div className="space-y-6 py-4">
           {/* Status */}
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-[#4B5563]">Trạng thái:</span>
+            <span className="text-sm font-medium text-muted-foreground">Trạng thái:</span>
             <CertificationStatusBadge
               isValid={certification.isValid}
               expiryDate={certification.expiryDate}
@@ -65,28 +66,28 @@ export const CertificationDetailDialog = ({ certification, open, onClose }: Prop
 
           {/* Info grid */}
           <div className="grid gap-4">
-            <DetailRow
-              icon={<Hash className="h-4 w-4 text-[#4B5563]" />}
+            <DetailField
+              icon={<Hash className="h-4 w-4 text-muted-foreground" />}
               label="Mã chứng nhận"
               value={certification.code}
             />
-            <DetailRow
-              icon={<FileBadge className="h-4 w-4 text-[#4B5563]" />}
+            <DetailField
+              icon={<FileBadge className="h-4 w-4 text-muted-foreground" />}
               label="Tên chứng nhận"
               value={certification.name}
             />
-            <DetailRow
-              icon={<Building2 className="h-4 w-4 text-[#4B5563]" />}
+            <DetailField
+              icon={<Building2 className="h-4 w-4 text-muted-foreground" />}
               label="Cơ quan cấp"
-              value={certification.issuedBy || '—'}
+              value={certification.issuedBy || undefined}
             />
-            <DetailRow
-              icon={<CalendarDays className="h-4 w-4 text-[#4B5563]" />}
+            <DetailField
+              icon={<CalendarDays className="h-4 w-4 text-muted-foreground" />}
               label="Ngày cấp"
               value={formatDate(certification.issueDate)}
             />
-            <DetailRow
-              icon={<CalendarDays className="h-4 w-4 text-[#D32F2F]" />}
+            <DetailField
+              icon={<CalendarDays className="h-4 w-4 text-destructive" />}
               label="Ngày hết hạn"
               value={formatDate(certification.expiryDate)}
             />
@@ -94,30 +95,30 @@ export const CertificationDetailDialog = ({ certification, open, onClose }: Prop
 
           {/* Expiration warning */}
           {daysRemaining !== null && daysRemaining <= 30 && (
-            <div className="rounded-lg border border-[#F9A825]/30 bg-[#FFF8E1] p-4">
-              <p className="text-sm font-medium text-[#F9A825]">
+            <div className="rounded-lg border border-warning/30 bg-warning-bg p-4">
+              <p className="text-sm font-medium text-warning">
                 ⚠️ Chứng nhận sẽ hết hạn trong {daysRemaining} ngày
               </p>
-              <p className="text-xs text-[#6B7280] mt-1">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Vui lòng gia hạn chứng nhận trước khi hết hạn để duy trì hiệu lực.
               </p>
             </div>
           )}
 
           {!certification.isValid && (
-            <div className="rounded-lg border border-[#D32F2F]/30 bg-[#FFEBEE] p-4">
-              <p className="text-sm font-medium text-[#D32F2F]">
+            <div className="rounded-lg border border-destructive/30 bg-error-bg p-4">
+              <p className="text-sm font-medium text-destructive">
                 ❌ Chứng nhận đã hết hạn
               </p>
-              <p className="text-xs text-[#6B7280] mt-1">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Chứng nhận này không còn hiệu lực và không thể gắn cho lô sản xuất.
               </p>
             </div>
           )}
 
           {/* Metadata */}
-          <div className="border-t border-[#E5E7EB] pt-4">
-            <p className="text-xs text-[#9CA3AF]">
+          <div className="border-t border-border pt-4">
+            <p className="text-xs text-muted-foreground">
               ID: {certification.id}
             </p>
           </div>
@@ -126,21 +127,3 @@ export const CertificationDetailDialog = ({ certification, open, onClose }: Prop
     </Dialog>
   );
 };
-
-const DetailRow = ({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) => (
-  <div className="flex items-start gap-3">
-    <div className="mt-0.5">{icon}</div>
-    <div className="flex-1 min-w-0">
-      <p className="text-xs font-medium text-[#9CA3AF] uppercase tracking-wider">{label}</p>
-      <p className="text-sm text-[#1F2937] font-medium break-words">{value}</p>
-    </div>
-  </div>
-);

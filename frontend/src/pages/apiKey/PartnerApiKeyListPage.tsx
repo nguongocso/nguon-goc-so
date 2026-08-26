@@ -206,8 +206,9 @@ export const PartnerApiKeyListPage: React.FC = () => {
             </div>
 
             {/* Nút làm mới */}
-            <Button variant="outline" size="icon" onClick={fetchApiKeys} title="Làm mới dữ liệu">
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <Button variant="outline" onClick={fetchApiKeys} disabled={loading}>
+              <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+              Làm mới
             </Button>
           </div>
 
@@ -293,10 +294,10 @@ export const PartnerApiKeyListPage: React.FC = () => {
                             <Button
                               variant="destructive"
                               size="sm"
-                              className="h-8 gap-1.5 bg-rose-600 hover:bg-rose-700 text-white"
+                              className="h-8 gap-1.5"
                               onClick={() => setRevokeKeyTarget(item)}
                             >
-                              <Ban className="w-3.5 h-3.5" />
+                              <Ban className="size-3.5" />
                               <span>Thu hồi</span>
                             </Button>
                           ) : (

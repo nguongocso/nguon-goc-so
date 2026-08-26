@@ -31,6 +31,7 @@ import { getFarmLogs } from "@/api/farmLogApi";
 import type { FarmLog } from "@/types/farmLog";
 import { useNavigate } from "react-router-dom";
 import { AttachmentManager } from "./AttachmentManager";
+import { DetailSection } from "@/components/common/detail/DetailSection";
 import type { PageResponse } from "@/types/common";
 
 // 👇 Định nghĩa interface
@@ -240,6 +241,7 @@ export function FarmLogList({
               <Input
                 className="pl-9"
                 placeholder="Tìm theo vật tư, ghi chú, người ghi..."
+                aria-label="Tìm kiếm nhật ký canh tác"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -251,7 +253,7 @@ export function FarmLogList({
                 if (value) setActivityFilter(value);
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-label="Lọc theo loại hoạt động">
                 <SelectValue placeholder="Loại hoạt động">
                   {getActivityLabel(activityFilter)}
                 </SelectValue>
@@ -270,6 +272,7 @@ export function FarmLogList({
               <Input
                 type="date"
                 placeholder="Từ ngày"
+                aria-label="Từ ngày"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
                 className="w-full"
@@ -278,6 +281,7 @@ export function FarmLogList({
               <Input
                 type="date"
                 placeholder="Đến ngày"
+                aria-label="Đến ngày"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
                 className="w-full"
@@ -355,7 +359,13 @@ export function FarmLogList({
                             {log.createdByName}
                           </TableCell>
                           <TableCell>
-                            <span className="inline-flex rounded-full bg-info-bg px-2.5 py-0.5 text-xs font-medium text-info">
+                            <span
+                              className="inline-flex rounded-full bg-info-bg px-2.5 py-0.5 text-xs font-medium text-info"
+                              aria-label={`Loại hoạt động: ${
+                                ACTIVITY_TYPE_LABELS[log.activityType] ||
+                                log.activityType
+                              }`}
+                            >
                               {ACTIVITY_TYPE_LABELS[log.activityType] ||
                                 log.activityType}
                             </span>
@@ -378,6 +388,13 @@ export function FarmLogList({
                               size="sm"
                               onClick={() => toggleExpand(log.id)}
                               className="flex items-center gap-1"
+                              aria-expanded={isExpanded}
+                              aria-controls={`farm-log-detail-${log.id}`}
+                              aria-label={
+                                isExpanded
+                                  ? "Thu gọn chi tiết nhật ký"
+                                  : "Xem chi tiết & quản lý chứng từ nhật ký"
+                              }
                               title={
                                 isExpanded
                                   ? "Thu gọn chi tiết"
@@ -397,28 +414,29 @@ export function FarmLogList({
 
                         {isExpanded && (
                           <TableRow className="bg-muted/30">
-                            <TableCell colSpan={8} className="p-4">
+                            <TableCell
+                              colSpan={8}
+                              className="p-4"
+                              id={`farm-log-detail-${log.id}`}
+                            >
                               <div className="space-y-4">
                                 {log.notes && (
-                                  <div>
-                                    <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
-                                      Ghi chú
-                                    </p>
+                                  <DetailSection title="Ghi chú">
                                     <p className="whitespace-pre-wrap text-sm">
                                       {log.notes}
                                     </p>
-                                  </div>
+                                  </DetailSection>
                                 )}
 
-                                <div>
-                                  <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-                                    Chứng từ
-                                  </p>
+                                <DetailSection
+                                  title="Chứng từ"
+                                  contentClassName="bg-card"
+                                >
                                   <AttachmentManager
                                     logId={log.id}
                                     onUpdate={loadLogs}
                                   />
-                                </div>
+                                </DetailSection>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -443,6 +461,7 @@ export function FarmLogList({
                   size="sm"
                   onClick={() => goToPage(page - 1)}
                   disabled={pageInfo.first}
+                  aria-label="Trang trước"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -454,6 +473,7 @@ export function FarmLogList({
                   size="sm"
                   onClick={() => goToPage(page + 1)}
                   disabled={pageInfo.last}
+                  aria-label="Trang sau"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>

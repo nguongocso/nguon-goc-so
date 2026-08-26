@@ -83,6 +83,8 @@ import FarmAreaListPage from "@/pages/farm-area/FarmAreaListPage";
 // ===== Certification =====
 import CreateCertificationPage from "@/pages/certification/CreateCertificationPage";
 import CertificationListPage from "@/pages/certification/CertificationListPage";
+import RecordInspectionResultPage from "@/pages/certification/RecordInspectionResultPage";
+import CreateInspectionRequestPage from "@/pages/certification/CreateInspectionRequestPage";
 
 // ===== Offline events =====
 import OfflineEventPage from "@/pages/offline/OfflineEventPage";
@@ -445,7 +447,7 @@ const AppRoutes = () => (
                 path="production-lots/:lotId/shipments/:shipmentId"
                 element={
                     <RoleRoute
-                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                        allowedRoles={["VT-01", "VT-02", "VT-03", "VT-04"]}
                     >
                         <ShipmentDetailPage />
                     </RoleRoute>
@@ -468,7 +470,7 @@ const AppRoutes = () => (
             <Route
                 path="shipments/:id"
                 element={
-                    <RoleRoute allowedRoles={["VT-02", "VT-04"]}>
+                    <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
                         <ShipmentDetailPage />
                     </RoleRoute>
                 }
@@ -818,6 +820,42 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-02"]}>
                         <CreateCertificationPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:lotId/inspection-requests/create"
+                element={
+                    <RoleRoute allowedRoles={["VT-02"]}>
+                        <CreateInspectionRequestPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:id/inspection-requests/create"
+                element={
+                    <RoleRoute allowedRoles={["VT-02"]}>
+                        <CreateInspectionRequestPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:lotId/inspection-requests/:requestId/results"
+                element={
+                    <RoleRoute allowedRoles={["VT-02"]}>
+                        <RecordInspectionResultPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="inspection-requests/:requestId/results"
+                element={
+                    <RoleRoute allowedRoles={["VT-02"]}>
+                        <RecordInspectionResultPage />
                     </RoleRoute>
                 }
             />
