@@ -28,7 +28,7 @@ import { createInvitation } from "@/api/invitationApi";
 import { getRoles } from "@/api/memberApi";
 import type { RoleOption } from "@/types/member";
 import { getRoleLabel } from "@/config/roleAccess";
-import { Loader2, Mail, MailPlus, Copy, Check, CheckCircle2 } from "lucide-react";
+import { Loader2, Mail, Copy, Check, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export const CreateInvitationForm: React.FC = () => {
@@ -117,10 +117,10 @@ export const CreateInvitationForm: React.FC = () => {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-6">
+    <div className="space-y-6">
 
         {createdInvitation && (
-          <Card className="border-emerald-200 bg-emerald-50/60 shadow-sm transition-all animate-in fade-in slide-in-from-top-2">
+          <Card className="border-emerald-200 bg-emerald-50/60 shadow-sm transition-all animate-in fade-in slide-in-from-top-2 rounded-xl">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2 text-emerald-800">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
@@ -163,22 +163,14 @@ export const CreateInvitationForm: React.FC = () => {
           </Card>
         )}
 
-        <Card className="border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm">
-          <CardHeader className="border-b border-emerald-100">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
-                <MailPlus className="h-5 w-5 text-emerald-700" />
-              </div>
-              <div>
-                <CardTitle className="text-xl font-bold text-emerald-800">
-                  Mời thành viên
-                </CardTitle>
-                <CardDescription>
-                  Gửi thư mời qua email để thành viên mới đăng ký và tham gia tổ
-                  chức.
-                </CardDescription>
-              </div>
-            </div>
+        <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+          <CardHeader className="border-b border-slate-100 pb-4">
+            <CardTitle className="text-lg font-semibold text-slate-900">
+              Thông tin lời mời
+            </CardTitle>
+            <CardDescription>
+              Nhập email người nhận, chọn vai trò và thiết lập thời hạn hiệu lực của lời mời.
+            </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit(onSubmit)}>
             <CardContent className="space-y-5 pt-6">

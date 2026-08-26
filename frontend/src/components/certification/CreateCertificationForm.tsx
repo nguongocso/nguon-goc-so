@@ -88,15 +88,17 @@ export const CreateCertificationForm: React.FC = () => {
   }
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Tạo mới chứng nhận cho tổ chức</CardTitle>
+    <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+      <CardHeader className="border-b border-slate-100 pb-4">
+        <CardTitle className="text-lg font-semibold text-slate-900">
+          Thông tin chứng nhận chất lượng
+        </CardTitle>
         <CardDescription>
-          Tạo mới chứng nhận dựa trên tiêu chuẩn chất lượng có sẵn.
+          Chọn tiêu chuẩn áp dụng, số hiệu chứng nhận, ngày cấp và ngày hết hạn.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-6">
           {/* Tiêu chuẩn */}
           <div className="space-y-2">
             <Label htmlFor="standardId">Tiêu chuẩn *</Label>

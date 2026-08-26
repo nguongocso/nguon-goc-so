@@ -115,16 +115,17 @@ export const CreateCodeRangeForm: React.FC = () => {
   }
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Cấp dải mã truy xuất</CardTitle>
+    <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+      <CardHeader className="border-b border-slate-100 pb-4">
+        <CardTitle className="text-lg font-semibold text-slate-900">
+          Thông tin cấp dải mã
+        </CardTitle>
         <CardDescription>
-          Cấp một dải mã mới cho tổ chức để sử dụng trong việc sinh tem truy
-          xuất.
+          Chọn tổ chức thụ hưởng, tiền tố mã định danh và hạn mức số lượng tem tối đa.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-6">
           {/* Tổ chức */}
           <div className="space-y-2">
             <Label htmlFor="organizationId">Tổ chức *</Label>

@@ -64,6 +64,10 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/production-lots", "Lô sản xuất"],
 
   // Shipments
+  [
+    "/production-lots/:productionLotId/shipments/create",
+    "Tạo lô hàng",
+  ],
   ["/shipments/:id", "Chi tiết lô hàng"],
 
   // Farm logs
@@ -85,17 +89,23 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   // Admin
   ["/admin/code-ranges/create", "Cấp dải mã"],
   ["/admin/code-ranges", "Dải mã truy xuất"],
+  ["/admin/product-categories/create", "Thêm loại nông sản"],
+  ["/admin/product-categories/:id/edit", "Cập nhật loại nông sản"],
   ["/admin/product-categories", "Danh mục sản phẩm"],
   ["/admin/input-materials/create", "Khai báo vật tư mới"],
   ["/admin/input-materials/:id/edit", "Chỉnh sửa vật tư"],
   ["/admin/input-materials/:id", "Chi tiết vật tư"],
   ["/admin/input-materials", "Danh mục vật tư"],
   ["/admin/standards/:standardId/criteria", "Tiêu chí đánh giá"],
+  ["/admin/standards/create", "Thêm tiêu chuẩn"],
+  ["/admin/standards/:id/edit", "Cập nhật tiêu chuẩn"],
   ["/admin/standards", "Tiêu chuẩn"],
   ["/admin/backup-restore", "Sao lưu & khôi phục"],
   ["/admin/system-monitoring", "Giám sát hệ thống"],
   ["/admin/suspect-trace-codes/:traceCodeId", "Chi tiết mã nghi vấn"],
   ["/admin/suspect-trace-codes", "Mã truy xuất nghi vấn"],
+  ["/integration/api-keys/create", "Cấp khóa API"],
+  ["/integration/api-keys", "Khóa API đối tác"],
 
   // Reports
   ["/reports/lookup-statistics", "Thống kê tra cứu"],
