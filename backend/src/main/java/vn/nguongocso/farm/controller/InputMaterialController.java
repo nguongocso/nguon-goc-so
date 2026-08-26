@@ -85,7 +85,7 @@ public class InputMaterialController {
 			@Valid @RequestBody CreateInputMaterialRequest request,
 			@AuthenticationPrincipal CustomUserDetails currentUser) {
 
-		permissionChecker.check("INPUT_MATERIAL", "CREATE");
+		permissionChecker.check("input_material", "CREATE");
 		UUID currentUserId = currentUser != null ? currentUser.getUserId() : null;
 		InputMaterialResponse response = inputMaterialService.createInputMaterial(request, currentUserId);
 		return ResponseEntity.status(HttpStatus.CREATED)
@@ -102,7 +102,7 @@ public class InputMaterialController {
 			@Valid @RequestBody UpdateInputMaterialRequest request,
 			@AuthenticationPrincipal CustomUserDetails currentUser) {
 
-		permissionChecker.check("INPUT_MATERIAL", "UPDATE");
+		permissionChecker.check("input_material", "UPDATE");
 		UUID currentUserId = currentUser != null ? currentUser.getUserId() : null;
 		InputMaterialResponse response = inputMaterialService.updateInputMaterial(id, request, currentUserId);
 		return ResponseEntity.ok(ApiResult.success(response));
@@ -117,7 +117,7 @@ public class InputMaterialController {
 			@PathVariable UUID id,
 			@RequestParam Boolean isActive) {
 
-		permissionChecker.check("INPUT_MATERIAL", "UPDATE");
+		permissionChecker.check("input_material", "UPDATE");
 		InputMaterialResponse response = inputMaterialService.toggleActiveStatus(id, isActive);
 		return ResponseEntity.ok(ApiResult.success(response));
 	}
@@ -128,7 +128,7 @@ public class InputMaterialController {
 	@DeleteMapping("/{id}")
 	@PreAuthorize("hasRole('VT-01')")
 	public ResponseEntity<ApiResult<Void>> delete(@PathVariable UUID id) {
-		permissionChecker.check("INPUT_MATERIAL", "DELETE");
+		permissionChecker.check("input_material", "DELETE");
 		inputMaterialService.deleteInputMaterial(id);
 		return ResponseEntity.ok(ApiResult.success(null));
 	}
