@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Plus, PackageCheck } from 'lucide-react';
 import { toast } from 'sonner';
@@ -6,13 +7,14 @@ import { usePermission } from '@/hooks/usePermission';
 import { getInputMaterials, toggleInputMaterialStatus } from '@/api/inputMaterialApi';
 import { InputMaterialFilter } from '@/components/admin/input-material/InputMaterialFilter';
 import { InputMaterialList } from '@/components/admin/input-material/InputMaterialList';
-import { InputMaterialFormModal } from '@/components/admin/input-material/InputMaterialFormModal';
 import { InputMaterialDeleteDialog } from '@/components/admin/input-material/InputMaterialDeleteDialog';
 import { HelpButton } from '@/components/help/HelpButton';
 import type { InputMaterial, InputMaterialQueryParams } from '@/types/inputMaterial';
 
 export default function InputMaterialManagementPage() {
+  const navigate = useNavigate();
   const canManage = usePermission(['VT-01'] as const);
+
   const [materials, setMaterials] = useState<InputMaterial[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -20,9 +22,7 @@ export default function InputMaterialManagementPage() {
   const [totalElements, setTotalElements] = useState(0);
   const [filterParams, setFilterParams] = useState<InputMaterialQueryParams>({});
 
-  // Modals state
-  const [openForm, setOpenForm] = useState(false);
-  const [editingMaterial, setEditingMaterial] = useState<InputMaterial | null>(null);
+  // Delete dialog state
   const [deletingMaterial, setDeletingMaterial] = useState<InputMaterial | null>(null);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
@@ -69,23 +69,17 @@ export default function InputMaterialManagementPage() {
     }
   };
 
+  const handleCreate = () => {
+    navigate('/admin/input-materials/create');
+  };
+
   const handleEdit = (material: InputMaterial) => {
-    setEditingMaterial(material);
-    setOpenForm(true);
+    navigate(`/admin/input-materials/${material.id}/edit`);
   };
 
   const handleDelete = (material: InputMaterial) => {
     setDeletingMaterial(material);
     setOpenDeleteDialog(true);
-  };
-
-  const handleFormClose = () => {
-    setOpenForm(false);
-    setEditingMaterial(null);
-  };
-
-  const handleFormSuccess = () => {
-    fetchMaterials(filterParams);
   };
 
   return (
@@ -109,7 +103,7 @@ export default function InputMaterialManagementPage() {
         <div className="flex items-center gap-3">
           <HelpButton screenKey="admin-input-materials" />
           {canManage && (
-            <Button onClick={() => setOpenForm(true)} variant="create">
+            <Button onClick={handleCreate} variant="create">
               <Plus className="h-4 w-4 mr-1.5" /> Thêm vật tư mới
             </Button>
           )}
@@ -131,14 +125,6 @@ export default function InputMaterialManagementPage() {
         onToggleActive={handleToggleActive}
         onDelete={handleDelete}
         canManage={canManage}
-      />
-
-      {/* Form Modal */}
-      <InputMaterialFormModal
-        open={openForm}
-        onClose={handleFormClose}
-        onSuccess={handleFormSuccess}
-        material={editingMaterial}
       />
 
       {/* Delete Dialog */}
