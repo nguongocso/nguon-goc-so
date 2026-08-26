@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
 import {
@@ -7,7 +7,6 @@ import {
   Calendar,
   Check,
   CheckCircle2,
-  ChevronRight,
   ClipboardCheck,
   FileCheck2,
   FileText,
@@ -434,72 +433,34 @@ export const RecordInspectionResultPage: React.FC = () => {
   return (
     <div className="space-y-6 pb-28">
       {/* Top Action Toolbar (Aligned to the right on the same line as BackButton) */}
-      <div className="-mt-14 mb-4 flex justify-end gap-2.5">
+      <div className="-mt-14 mb-4 flex justify-end">
         <HelpButton screenKey="inspection-result-record" />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => void loadData()}
-          disabled={loading}
-          className="rounded-xl text-xs h-9 px-3.5 bg-white border-slate-200 shadow-xs hover:bg-slate-50"
-          title="Tải lại dữ liệu"
-        >
-          <RotateCw className={`h-3.5 w-3.5 mr-1.5 ${loading ? "animate-spin" : ""}`} />
-          Tải lại
-        </Button>
       </div>
 
       {/* SECTION 0: Top Header Card with Rounded Corners */}
       <Card className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-        <div>
-          {/* Breadcrumbs */}
-          <nav className="flex items-center space-x-2 text-xs text-slate-500 sm:text-sm">
-            <Link to="/dashboard" className="hover:text-[#2E7D32] transition-colors">
-              Dashboard
-            </Link>
-            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-            <Link to="/production-lots" className="hover:text-[#2E7D32] transition-colors">
-              Lô sản xuất
-            </Link>
-            {effectiveLotId && (
-              <>
-                <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-                <Link
-                  to={`/production-lots/${effectiveLotId}`}
-                  className="max-w-[150px] truncate hover:text-[#2E7D32] transition-colors sm:max-w-xs font-medium"
-                  title={lot?.name || detail.lotCode}
-                >
-                  {lot?.name || detail.lotCode}
-                </Link>
-              </>
-            )}
-            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-            <span className="font-semibold text-slate-800">Nhập kết quả kiểm nghiệm</span>
-          </nav>
-        </div>
-
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-slate-100 pt-4">
-            <div className="flex items-center gap-3.5">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E8F5E9] text-[#2E7D32] shadow-sm shrink-0">
-                <ShieldCheck className="h-6 w-6" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold tracking-tight text-[#111827] sm:text-2xl">
-                  Ghi nhận kết quả kiểm nghiệm
-                </h1>
-                <p className="text-xs text-slate-500 sm:text-sm mt-0.5">
-                  Yêu cầu: <span className="font-mono font-semibold text-slate-700">#{detail.testRequestId.slice(0, 8)}</span>
-                  {" • "}Lô sản xuất: <span className="font-semibold text-slate-800">{lot?.name || detail.lotCode}</span>
-                </p>
-              </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E8F5E9] text-[#2E7D32] shadow-sm shrink-0">
+              <ShieldCheck className="h-6 w-6" />
             </div>
-
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              <span className="text-xs text-slate-500 font-medium">Trạng thái:</span>
-              {getStatusBadge(detail.status)}
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-[#111827] sm:text-2xl">
+                Ghi nhận kết quả kiểm nghiệm
+              </h1>
+              <p className="text-xs text-slate-500 sm:text-sm mt-0.5">
+                Yêu cầu: <span className="font-mono font-semibold text-slate-700">#{detail.testRequestId.slice(0, 8)}</span>
+                {" • "}Lô sản xuất: <span className="font-semibold text-slate-800">{lot?.name || detail.lotCode}</span>
+              </p>
             </div>
           </div>
-        </Card>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="text-xs text-slate-500 font-medium">Trạng thái:</span>
+            {getStatusBadge(detail.status)}
+          </div>
+        </div>
+      </Card>
 
         {/* SECTION 1: Summary Information Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -995,58 +956,64 @@ export const RecordInspectionResultPage: React.FC = () => {
         </div>
 
       {/* SECTION 5: Sticky Action Footer */}
-      <div className="fixed bottom-0 left-0 right-0 xl:left-[17rem] z-20 border-t border-[#E5E7EB] bg-white/95 px-4 py-3.5 backdrop-blur shadow-[0_-4px_12px_rgba(0,0,0,0.05)] transition-all duration-300">
-        <div className="container mx-auto flex flex-wrap items-center justify-between gap-3 px-2 sm:px-6">
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-600 sm:text-sm font-medium">
-              Tiến độ nhập: <strong className="text-[#2E7D32]">{filledCount}/{totalCriteria}</strong> chỉ tiêu đã hoàn tất ({progressPercent}%)
-            </span>
+      <div className="sticky bottom-4 z-20 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 font-bold text-xs">
+            {filledCount}/{totalCriteria}
           </div>
-
-          <div className="flex items-center gap-2.5">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                if (effectiveLotId) navigate(`/production-lots/${effectiveLotId}`);
-                else navigate("/production-lots");
-              }}
-              disabled={submitting}
-              className="rounded-xl text-xs text-slate-600 hover:text-slate-900 px-4 h-9"
-            >
-              Hủy bỏ
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => void loadData()}
-              disabled={submitting}
-              className="rounded-xl text-xs px-4 h-9"
-            >
-              Khôi phục ban đầu
-            </Button>
-
-            <Button
-              type="button"
-              variant="create"
-              onClick={() => void handleSubmit()}
-              disabled={!canSubmit || submitting}
-              className="rounded-xl bg-[#2E7D32] hover:bg-[#256B29] px-6 text-sm font-semibold shadow-sm h-9"
-            >
-              {submitting ? (
-                <>
-                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                  Đang lưu kết quả...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Lưu kết quả kiểm nghiệm
-                </>
-              )}
-            </Button>
+          <div>
+            <p className="text-xs font-semibold text-foreground">
+              Tiến độ nhập: {filledCount}/{totalCriteria} chỉ tiêu đã hoàn tất ({progressPercent}%)
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {isAllAnswered ? "Đã nhập đủ tất cả chỉ tiêu" : `Còn ${unsetCount} chỉ tiêu chưa nhập kết luận`}
+            </p>
           </div>
+        </div>
+
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              if (effectiveLotId) navigate(`/production-lots/${effectiveLotId}`);
+              else navigate("/production-lots");
+            }}
+            disabled={submitting}
+            className="rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50"
+          >
+            Hủy bỏ
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void loadData()}
+            disabled={submitting}
+            className="rounded-xl border-emerald-200 text-xs font-medium text-emerald-800 bg-emerald-50/50 hover:bg-emerald-100/60"
+          >
+            <RotateCw className="mr-1.5 h-3.5 w-3.5 text-emerald-700" /> Khôi phục ban đầu
+          </Button>
+
+          <Button
+            type="button"
+            variant="create"
+            onClick={() => void handleSubmit()}
+            disabled={!canSubmit || submitting}
+            className="rounded-xl text-xs font-semibold px-5 shadow-xs"
+          >
+            {submitting ? (
+              <>
+                <LoaderCircle className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                Đang lưu...
+              </>
+            ) : (
+              <>
+                <Save className="mr-1.5 h-3.5 w-3.5" />
+                Lưu kết quả kiểm nghiệm
+              </>
+            )}
+          </Button>
         </div>
       </div>
     </div>
