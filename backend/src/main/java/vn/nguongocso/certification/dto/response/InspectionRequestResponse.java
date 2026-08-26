@@ -31,6 +31,12 @@ public class InspectionRequestResponse {
     @JsonProperty("testingUnit")
     private String testingUnit;
 
+    /**
+     * ID đơn vị kiểm nghiệm trong danh mục dùng chung (null nếu yêu cầu cũ nhập tự do).
+     */
+    @JsonProperty("testingUnitId")
+    private UUID testingUnitId;
+
     @JsonProperty("sampleSentDate")
     private LocalDate sampleSentDate;
 

@@ -66,6 +66,15 @@ public class InspectionRequest {
     private String inspectionUnit;
 
     /**
+     * ID đơn vị kiểm nghiệm trong danh mục dùng chung (NCL-11-CN-006 Phase 1).
+     * <p>
+     * Nullable để tương thích ngược với các yêu cầu cũ nhập tự do.
+     * Khi có giá trị, {@link #inspectionUnit} lưu tên snapshot tại thời điểm tạo.
+     */
+    @Column(name = "testing_unit_id")
+    private UUID testingUnitId;
+
+    /**
      * Ngày gửi mẫu.
      */
     @Column(name = "sample_sent_date", nullable = false)

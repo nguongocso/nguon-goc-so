@@ -22,11 +22,13 @@ import vn.nguongocso.certification.entity.InspectionCriterionResult;
 import vn.nguongocso.certification.entity.InspectionRequest;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.certification.entity.Standard;
+import vn.nguongocso.certification.entity.TestingUnit;
 import vn.nguongocso.certification.enums.InspectionRequestStatus;
 import vn.nguongocso.certification.repository.InspectionCriterionDefinitionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
+import vn.nguongocso.certification.repository.TestingUnitRepository;
 import vn.nguongocso.certification.service.InspectionRequestService;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.event.enums.ChainEventType;
@@ -85,6 +87,15 @@ public class InspectionRequestServiceImpl
     private static final String MSG_INVALID_SAMPLE_DATE =
             "Ngày gửi mẫu không được để trống.";
 
+    private static final String MSG_TESTING_UNIT_NOT_FOUND =
+            "Đơn vị kiểm nghiệm không tồn tại trong danh mục.";
+
+    private static final String MSG_TESTING_UNIT_INACTIVE =
+            "Đơn vị kiểm nghiệm đã ngừng hoạt động, vui lòng chọn đơn vị khác.";
+
+    private static final String MSG_TESTING_UNIT_EXPIRED =
+            "Đơn vị kiểm nghiệm đã hết hạn công nhận, vui lòng chọn đơn vị khác.";
+
     private static final String MSG_REQUEST_NOT_FOUND =
             "Yêu cầu kiểm nghiệm không tồn tại.";
 
@@ -102,6 +113,8 @@ public class InspectionRequestServiceImpl
 
     private final InspectionCriterionResultRepository
             inspectionCriterionResultRepository;
+
+    private final TestingUnitRepository testingUnitRepository;
 
     private final Clock clock;
 
@@ -143,14 +156,48 @@ public class InspectionRequestServiceImpl
 
         /*
          * 4.1. Validate đơn vị kiểm nghiệm.
+         *
+         * NCL-11-CN-006 Phase 1: ưu tiên testingUnitId từ danh mục dùng chung.
+         * Khi có ID, tra cứu danh mục, kiểm tra trạng thái hiệu lực và ngày
+         * hết hạn công nhận, rồi dùng TÊN SNAPSHOT làm inspection_unit.
+         * Nếu không có ID, fallback về tên tự do (tương thích ngược).
          */
-        String testingUnit = request.getTestingUnit() == null
-                ? ""
-                : request.getTestingUnit().trim();
+        String testingUnit;
 
-        if (testingUnit.isBlank()) {
-            throw new BusinessException(
-                    "Đơn vị kiểm nghiệm không được để trống.");
+        if (request.getTestingUnitId() != null) {
+
+            TestingUnit testingUnitCatalog = testingUnitRepository
+                    .findById(request.getTestingUnitId())
+                    .orElseThrow(() ->
+                            new BusinessException(
+                                    MSG_TESTING_UNIT_NOT_FOUND));
+
+            if (!Boolean.TRUE.equals(testingUnitCatalog.getIsActive())) {
+                throw new BusinessException(
+                        MSG_TESTING_UNIT_INACTIVE);
+            }
+
+            LocalDate today = LocalDate.now(clock);
+            if (testingUnitCatalog.getAccreditationExpiryDate() != null
+                    && testingUnitCatalog.getAccreditationExpiryDate()
+                            .isBefore(today)) {
+
+                throw new BusinessException(
+                        MSG_TESTING_UNIT_EXPIRED);
+            }
+
+            testingUnit = testingUnitCatalog.getName();
+
+        } else {
+
+            testingUnit = request.getTestingUnit() == null
+                    ? ""
+                    : request.getTestingUnit().trim();
+
+            if (testingUnit.isBlank()) {
+                throw new BusinessException(
+                        "Đơn vị kiểm nghiệm không được để trống.");
+            }
         }
 
         /*
@@ -203,6 +250,7 @@ public class InspectionRequestServiceImpl
                 InspectionRequest.builder()
                         .productionLot(lot)
                         .inspectionUnit(testingUnit)
+                        .testingUnitId(request.getTestingUnitId())
                         .sampleSentDate(
                                 request.getSampleSentDate())
                         .status(
@@ -889,6 +937,8 @@ public class InspectionRequestServiceImpl
                                 .getName())
                 .testingUnit(
                         request.getInspectionUnit())
+                .testingUnitId(
+                        request.getTestingUnitId())
                 .sampleSentDate(
                         request.getSampleSentDate())
                 .status(
