@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Plus, PackageCheck } from 'lucide-react';
+import { PackageCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { usePermission } from '@/hooks/usePermission';
 import { getInputMaterials, toggleInputMaterialStatus } from '@/api/inputMaterialApi';
@@ -104,7 +104,7 @@ export default function InputMaterialManagementPage() {
           <HelpButton screenKey="admin-input-materials" />
           {canManage && (
             <Button onClick={handleCreate} variant="create">
-              <Plus className="h-4 w-4 mr-1.5" /> Thêm vật tư mới
+              + Thêm vật tư mới
             </Button>
           )}
         </div>

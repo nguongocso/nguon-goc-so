@@ -21,8 +21,6 @@ import {
   PackageCheck,
   Clock,
   ShieldCheck,
-  Save,
-  RotateCcw,
 } from 'lucide-react';
 import { getProductCategories } from '@/api/productCategoryApi';
 import {
@@ -500,11 +498,10 @@ export const InputMaterialFormPage = () => {
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
           <Link to="/admin/input-materials">
             <Button type="button" variant="outline" disabled={submitting}>
-              <RotateCcw className="h-4 w-4 mr-1.5" /> Hủy bỏ
+              Hủy bỏ
             </Button>
           </Link>
           <Button type="submit" variant="create" disabled={submitting} className="px-6">
-            <Save className="h-4 w-4 mr-1.5" />
             {submitting ? 'Đang lưu...' : isEditMode ? 'Lưu thay đổi' : 'Thêm vật tư mới'}
           </Button>
         </div>

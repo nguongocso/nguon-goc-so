@@ -14,8 +14,6 @@ import { toast } from 'sonner';
 import {
   Clock,
   ShieldCheck,
-  Edit2,
-  Trash2,
   FileText,
   CheckCircle2,
   Leaf,
@@ -142,7 +140,7 @@ export const InputMaterialDetailPage = () => {
             onClick={() => navigate(`/admin/input-materials/${material.id}/edit`)}
             className="h-9 px-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
           >
-            <Edit2 className="h-4 w-4 mr-1.5" /> Chỉnh sửa
+            Chỉnh sửa
           </Button>
           <Button
             variant="outline"
@@ -150,7 +148,7 @@ export const InputMaterialDetailPage = () => {
             onClick={() => setShowDeleteDialog(true)}
             className="h-9 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
           >
-            <Trash2 className="h-4 w-4 mr-1.5" /> Xóa
+            Xóa
           </Button>
         </div>
       </div>
