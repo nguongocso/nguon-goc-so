@@ -71,6 +71,7 @@ public class InspectionRequest {
      * Nullable để tương thích ngược với các yêu cầu cũ nhập tự do.
      * Khi có giá trị, {@link #inspectionUnit} lưu tên snapshot tại thời điểm tạo.
      */
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "testing_unit_id")
     private UUID testingUnitId;
 
