@@ -100,6 +100,66 @@ export const getShipmentByCode = async (
   return response.data.data;
 };
 
+/** Các trường tùy chọn in trên tem QR (NCL-04-CN-005). */
+export interface LabelIncludeFields {
+  productName?: boolean;
+  cooperativeName?: boolean;
+  lotCode?: boolean;
+  packagingDate?: boolean;
+}
+
+/** Payload xuất tem QR cho lô hàng (NCL-04-CN-005). */
+export interface ExportLabelsPayload {
+  /** Chỉ số bắt đầu trong danh sách mã đã sinh (mặc định 0). */
+  startIndex?: number;
+  /** Số tem cần xuất. */
+  count: number;
+  /** Khổ tem: "40x30" | "50x40" | "70x50" (mm). */
+  labelSize: string;
+  /** Các trường tùy chọn in trên tem. */
+  includeFields?: LabelIncludeFields;
+}
+
+/**
+ * Xuất file PDF chứa tem QR của lô hàng và tải về.
+ * POST /api/v1/shipments/{shipmentId}/labels/export
+ * Chỉ dành cho VT-02 (Quản lý HTX).
+ */
+export const exportQrLabels = async (
+  shipmentId: string,
+  payload: ExportLabelsPayload,
+): Promise<Blob> => {
+  try {
+    const response = await apiClient.post(
+      `/shipments/${shipmentId}/labels/export`,
+      payload,
+      {
+        responseType: 'blob',
+        timeout: 60000,
+      },
+    );
+    return response.data as Blob;
+  } catch (error: any) {
+    if (
+      error.response?.data instanceof Blob &&
+      error.response.data.type?.includes('application/json')
+    ) {
+      const text = await error.response.data.text();
+      let message = text || 'Lỗi khi xuất tem QR';
+      try {
+        const errJson = JSON.parse(text);
+        if (errJson?.message) {
+          message = errJson.message;
+        }
+      } catch {
+        // Không phải JSON hợp lệ → giữ nguyên text
+      }
+      throw new Error(message);
+    }
+    throw error;
+  }
+};
+
 /**
  * Lấy danh sách lô hàng đủ điều kiện thu mua (status = ACTIVATED).
  * Dùng cho Doanh nghiệp thu mua (VT-04).

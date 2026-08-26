@@ -21,6 +21,7 @@ import {
   MoreHorizontal,
   History,
   Eye,
+  QrCode,
 } from "lucide-react";
 import { useShipments } from "@/hooks/useShipments";
 import { useRecallShipment } from "@/hooks/useRecallShipment";
@@ -50,6 +51,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { useDeleteDraftShipment } from "@/hooks/useDeleteDraftShipment";
 import { checkCanActivateSeal } from "@/api/certificationApi";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { ExportLabelsDialog } from "@/components/shipment/ExportLabelsDialog";
 
 interface ShipmentListProps {
   productionLotId: string;
@@ -97,7 +99,13 @@ export const ShipmentList = ({
     shipmentName: "",
   });
 
+  // NCL-04-CN-005: Lô hàng đang được xuất tem QR
+  const [labelExportShipment, setLabelExportShipment] =
+    useState<Shipment | null>(null);
+
   const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
+  // NCL-04-CN-005: Chỉ VT-02 được xuất tem QR
+  const canExportLabels = usePermission(ROLE_ACCESS.labelExport);
 
   const {
     shipments,
@@ -245,13 +253,13 @@ export const ShipmentList = ({
 
   return (
     <>
-      <Card>
-        <CardHeader>
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle>Danh sách lô hàng</CardTitle>
+            <CardTitle className="text-xl font-bold text-slate-900">Danh sách lô hàng</CardTitle>
 
             {canCreate && productionLotStatus === "PACKAGED" && (
-              <Button onClick={() => setModalOpen(true)}>
+              <Button variant="create" size="sm" onClick={() => setModalOpen(true)}>
                 <Plus className="mr-1 h-4 w-4" />
                 Tạo lô hàng
               </Button>
@@ -259,31 +267,31 @@ export const ShipmentList = ({
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
-            <div className="py-8 text-center">Đang tải...</div>
+            <div className="py-12 text-center text-muted-foreground">Đang tải...</div>
           ) : shipments.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">
+            <div className="py-12 text-center text-muted-foreground">
               Chưa có lô hàng nào cho lô sản xuất này.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Tên lô hàng</TableHead>
-                    <TableHead className="text-center">Số lượng</TableHead>
-                    <TableHead>Quy cách</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead>Ngày tạo</TableHead>
-                    <TableHead className="text-center">Số mã</TableHead>
-                    <TableHead className="text-center">Thao tác</TableHead>
+                  <TableRow className="bg-slate-50/80">
+                    <TableHead className="font-semibold text-slate-700">Tên lô hàng</TableHead>
+                    <TableHead className="text-center font-semibold text-slate-700">Số lượng</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Quy cách</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Trạng thái</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Ngày tạo</TableHead>
+                    <TableHead className="text-center font-semibold text-slate-700">Số mã</TableHead>
+                    <TableHead className="text-center font-semibold text-slate-700">Thao tác</TableHead>
                   </TableRow>
                 </TableHeader>
 
                 <TableBody>
                   {shipments.map((shipment) => (
-                    <TableRow key={shipment.id}>
+                    <TableRow key={shipment.id} className="hover:bg-slate-50/60">
                       <TableCell className="font-medium">
                         {shipment.name}
                       </TableCell>
@@ -375,6 +383,21 @@ export const ShipmentList = ({
                                   Xuất hồ sơ GS1
                                 </DropdownMenuItem>
                               )}
+
+                              {/* NCL-04-CN-005: Xuất tem QR — chỉ VT-02, lô đã sinh mã và chưa thu hồi */}
+                              {canExportLabels &&
+                                shipment.status !== "DRAFT" &&
+                                shipment.status !== "RECALLED" &&
+                                (shipment.traceCodes?.length || 0) > 0 && (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      setLabelExportShipment(shipment)
+                                    }
+                                  >
+                                    <QrCode className="size-4" />
+                                    Xuất tem QR
+                                  </DropdownMenuItem>
+                                )}
 
                               {((canRecall &&
                                 shipment.status !== "RECALLED") ||
@@ -525,6 +548,13 @@ export const ShipmentList = ({
           setPendingDeleteDraft(null);
         }}
       />
+      {/* NCL-04-CN-005: Dialog xuất tem QR */}
+      <ExportLabelsDialog
+        open={labelExportShipment !== null}
+        shipment={labelExportShipment}
+        onClose={() => setLabelExportShipment(null)}
+      />
+
     </>
   );
 };

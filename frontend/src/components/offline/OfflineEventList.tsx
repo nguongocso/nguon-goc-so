@@ -132,18 +132,18 @@ export const OfflineEventList: React.FC = () => {
 
   if (events.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-8 text-center text-muted-foreground">
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+        <CardContent className="py-12 text-center text-muted-foreground">
           <Info className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-          <p>Không có sự kiện nào đang chờ đồng bộ.</p>
-          <p className="text-xs">Khi mất mạng, sự kiện sẽ được lưu tạm và xuất hiện ở đây.</p>
+          <p className="font-medium text-slate-700">Không có sự kiện nào đang chờ đồng bộ.</p>
+          <p className="text-xs text-muted-foreground mt-1">Khi mất mạng, sự kiện sẽ được lưu tạm và xuất hiện ở đây.</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card>
+    <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
       <CardHeader>
         <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="flex items-center gap-2">

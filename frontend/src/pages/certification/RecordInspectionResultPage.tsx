@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
+import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 import {
   AlertTriangle,
   Calendar,
@@ -91,6 +92,21 @@ export const RecordInspectionResultPage: React.FC = () => {
 
   const [detail, setDetail] = useState<InspectionRequestDetailResponse | null>(null);
   const [lot, setLot] = useState<ProductionLot | null>(null);
+
+  // ── Breadcrumb điều hướng thống nhất (thay nút "Quay lại") ────────────────
+  useSetBreadcrumb([
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Lô sản xuất", href: "/production-lots" },
+    ...(routeLotId || lot?.id
+      ? [
+          {
+            label: lot?.name || "Chi tiết lô",
+            href: `/production-lots/${routeLotId || lot?.id}`,
+          },
+        ]
+      : []),
+    { label: "Kết quả kiểm nghiệm" },
+  ]);
 
   const [rows, setRows] = useState<CriterionRowState[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -411,16 +427,6 @@ export const RecordInspectionResultPage: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0 flex gap-3">
-            <Button
-              variant="outline"
-              className="rounded-xl"
-              onClick={() => {
-                if (effectiveLotId) navigate(`/production-lots/${effectiveLotId}`);
-                else navigate("/production-lots");
-              }}
-            >
-              Quay lại
-            </Button>
             <Button variant="create" className="rounded-xl" onClick={() => void loadData()}>
               <RotateCw className="mr-1.5 h-4 w-4" /> Thử lại
             </Button>
@@ -432,35 +438,28 @@ export const RecordInspectionResultPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-28">
-      {/* Top Action Toolbar (Aligned to the right on the same line as BackButton) */}
-      <div className="-mt-14 mb-4 flex justify-end">
-        <HelpButton screenKey="inspection-result-record" />
-      </div>
-
-      {/* SECTION 0: Top Header Card with Rounded Corners */}
-      <Card className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E8F5E9] text-[#2E7D32] shadow-sm shrink-0">
-              <ShieldCheck className="h-6 w-6" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-[#111827] sm:text-2xl">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 shadow-sm shrink-0">
+            <ShieldCheck className="h-6 w-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
                 Ghi nhận kết quả kiểm nghiệm
               </h1>
-              <p className="text-xs text-slate-500 sm:text-sm mt-0.5">
-                Yêu cầu: <span className="font-mono font-semibold text-slate-700">#{detail.testRequestId.slice(0, 8)}</span>
-                {" • "}Lô sản xuất: <span className="font-semibold text-slate-800">{lot?.name || detail.lotCode}</span>
-              </p>
+              {getStatusBadge(detail.status)}
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span className="text-xs text-slate-500 font-medium">Trạng thái:</span>
-            {getStatusBadge(detail.status)}
+            <p className="text-xs text-muted-foreground sm:text-sm mt-0.5">
+              Yêu cầu: <span className="font-mono font-semibold text-slate-700">#{detail.testRequestId.slice(0, 8)}</span>
+              {" • "}Lô sản xuất: <span className="font-semibold text-slate-800">{lot?.name || detail.lotCode}</span>
+            </p>
           </div>
         </div>
-      </Card>
+
+        <HelpButton screenKey="inspection-result-record" />
+      </div>
 
         {/* SECTION 1: Summary Information Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

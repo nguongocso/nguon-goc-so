@@ -6,7 +6,7 @@ const CriteriaManagementPage: React.FC = () => {
   const { standardId } = useParams<{ standardId: string }>();
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6">
       <CriterionList standardId={standardId} />
     </div>
   );

@@ -155,7 +155,7 @@ export function CorrectPreprocessingForm() {
   };
 
   return (
-    <Card className="mx-auto max-w-4xl border-amber-100 shadow-sm">
+    <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-amber-800">
           <FilePenLine className="size-5" />

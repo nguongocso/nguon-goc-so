@@ -11,8 +11,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { HelpButton } from '@/components/help/HelpButton';
 import { getOrganizations } from '@/api/organizationApi';
 import { type Organization } from '@/types/organization';
 import { ORGANIZATION_TYPES } from '@/utils/constants';
@@ -31,7 +32,6 @@ export function OrganizationListPage() {
       setLoading(true);
       const data = await getOrganizations();
 
-      // ✅ Ánh xạ dữ liệu từ API sang kiểu Organization
       const mappedData: Organization[] = data.map((item: any) => ({
         id: item.organizationID,
         name: item.organizationName,
@@ -71,62 +71,72 @@ export function OrganizationListPage() {
   };
 
   return (
-    <div className="py-8">
-      
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Danh sách tổ chức</CardTitle>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchOrganizations}
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-              Làm mới
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Danh sách tổ chức
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Quản lý các hợp tác xã, doanh nghiệp và tổ chức trong hệ thống.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="organization-list" />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchOrganizations}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Làm mới
+          </Button>
+          {canCreate && (
+            <Button variant="create" size="sm" onClick={() => navigate('/organizations/create')}>
+              <PlusCircle className="h-4 w-4 mr-1" />
+              Tạo tổ chức
             </Button>
-            {canCreate && (
-              <Button variant="create" onClick={() => navigate('/organizations/create')}>
-                <PlusCircle className="h-4 w-4 mr-1" />
-                Tạo tổ chức
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
+          )}
+        </div>
+      </div>
+
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+        <CardContent className="p-0">
           {loading ? (
-            <div className="text-center py-8">Đang tải...</div>
+            <div className="text-center py-12 text-muted-foreground">Đang tải...</div>
           ) : organizations.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-12 text-muted-foreground">
               Chưa có tổ chức nào. Nhấn "Tạo tổ chức" để thêm mới.
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Mã</TableHead>
-                    <TableHead>Tên tổ chức</TableHead>
-                    <TableHead>Loại</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead>Ngày tạo</TableHead>
-                    <TableHead className="text-right">Thao tác</TableHead>
+                  <TableRow className="bg-slate-50/80">
+                    <TableHead className="font-semibold text-slate-700">Mã</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Tên tổ chức</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Loại</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Trạng thái</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Ngày tạo</TableHead>
+                    <TableHead className="text-right font-semibold text-slate-700">Thao tác</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {organizations.map((org) => (
-                    <TableRow key={org.id}>
-                      <TableCell className="font-medium">{org.code}</TableCell>
-                      <TableCell>{org.name}</TableCell>
+                    <TableRow key={org.id} className="hover:bg-slate-50/60">
+                      <TableCell className="font-medium text-slate-900">{org.code}</TableCell>
+                      <TableCell className="font-medium text-slate-900">{org.name}</TableCell>
                       <TableCell>{getTypeLabel(org.type)}</TableCell>
                       <TableCell>{getStatusBadge(org.status)}</TableCell>
                       <TableCell>{new Date(org.createdAt).toLocaleDateString('vi-VN')}</TableCell>
                       <TableCell className="text-right">
                         <Button
-                          variant="view"
+                          variant="outline"
                           size="sm"
                           onClick={() => navigate(`/organizations/${org.id}`)}
+                          className="h-8 text-xs"
                         >
                           Xem
                         </Button>

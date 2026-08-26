@@ -38,7 +38,6 @@ import type { PageResponse } from "@/types/common";
 interface FarmLogListProps {
   productionLotId: string;
   productionLotName?: string;
-  onBack?: () => void;
   /** Có quyền tạo nhật ký canh tác mới hay không (mặc định true để không phá các nơi gọi cũ). */
   canCreate?: boolean;
 }
@@ -91,7 +90,6 @@ const getActivityLabel = (value: string): string => {
 export function FarmLogList({
   productionLotId,
   productionLotName = "",
-  onBack,
   canCreate = true,
 }: FarmLogListProps) {
   const navigate = useNavigate();
@@ -217,12 +215,6 @@ export function FarmLogList({
           )}
         </div>
         <div className="flex gap-2">
-          {onBack && (
-            <Button variant="outline" onClick={onBack}>
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Quay lại
-            </Button>
-          )}
           {canCreate && (
             <Button variant="create" onClick={goToCreateLog}>
               <Plus className="h-4 w-4 mr-1" />
