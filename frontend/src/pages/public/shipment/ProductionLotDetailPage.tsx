@@ -1255,7 +1255,7 @@ export const ProductionLotDetailPage = () => {
               onClick={() => setDuplicateOpen(false)}
               disabled={submitting}
             >
-              Quay lại
+              Đóng
             </Button>
             <Button
               variant="create"

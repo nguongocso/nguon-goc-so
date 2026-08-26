@@ -1,5 +1,6 @@
 import axios from 'axios';
 import {
+  ArrowLeft,
   CheckCircle2,
   ClipboardList,
   FileText,
@@ -14,6 +15,7 @@ import {
   useState,
   type FormEvent,
 } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { uploadAttachment } from '@/api/attachmentApi';
@@ -128,6 +130,7 @@ export function CreateFarmLogForm({
   onCancel,
   onSubmit,
 }: CreateFarmLogFormProps) {
+  const navigate = useNavigate();
   const [form, setForm] = useState<FormState>(() =>
     createInitialForm(initialProductionLotId),
   );
@@ -380,14 +383,22 @@ export function CreateFarmLogForm({
         </CardContent>
 
         <CardFooter className="flex flex-col gap-3 border-t border-emerald-100 pt-4 sm:flex-row sm:justify-end">
-          <Button
+          <button
             type="button"
-            variant="outline"
-            onClick={onCancel}
-            className="w-full border-slate-300 text-slate-700 hover:bg-slate-50 sm:w-auto"
+            onClick={() => {
+              if (createdLog.productionLotId) {
+                navigate(
+                  `/production-lots/${createdLog.productionLotId}/farm-logs`,
+                );
+              } else {
+                onCancel();
+              }
+            }}
+            className="group inline-flex w-full items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-emerald-700 underline-offset-4 transition-colors hover:text-emerald-900 hover:underline sm:w-auto"
           >
-            Về danh sách
-          </Button>
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+            Quay lại lịch sử nhật ký canh tác
+          </button>
           <Button
             type="button"
             variant="create"

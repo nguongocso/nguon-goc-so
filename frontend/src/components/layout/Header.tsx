@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Check, LogOut, Menu, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Logo } from '@/components/common/Logo';
+import { BackLink } from '@/components/common/BackLink';
 import { cn } from '@/lib/utils';
 import {
   getMyOrganizations,
@@ -203,8 +204,8 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
     <>
       <header className="sticky top-0 z-40 border-b border-emerald-100 bg-white/80 backdrop-blur-md">
         <div className={cn(
-          "flex h-16 items-center gap-2 sm:gap-3",
-          isMobile ? "px-3" : "px-4 md:px-6",
+          "mx-auto flex h-16 w-full max-w-7xl items-center gap-2 sm:gap-3",
+          isMobile ? "px-3" : "px-3 sm:px-4 md:px-5 lg:px-6 xl:px-8",
         )}>
           {/* Hamburger menu button - visible on mobile only (tablet uses the sidebar expand toggle) */}
           {isMobile && onMenuClick && (
@@ -220,8 +221,9 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
             </Button>
           )}
 
-          {/* Page title area - mobile shows compact logo */}
-          <div className="min-w-0 flex-1">
+          {/* Page title area - back link + compact logo on mobile */}
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <BackLink compact={isMobile} />
             {isMobile && (
               <Link to="/dashboard" className="inline-flex">
                 <Logo height={36} />

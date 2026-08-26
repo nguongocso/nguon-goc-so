@@ -182,7 +182,7 @@ export const ApproveProductionLotDialog = ({
                 onClick={() => setMode('review')}
                 disabled={!!submitting}
               >
-                Quay lại
+                Quay lại bước duyệt
               </Button>
               <Button
                 type="button"

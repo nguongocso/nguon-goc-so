@@ -174,6 +174,7 @@ export const ShipmentDetailPage = () => {
   );
 
   // ── Derived flags ──────────────────────────────────────────────────────────
+  const backToLotId = lotId ?? shipment?.productionLotId;
   const canActivateThis =
     canActivate && shipment?.status === "CODE_PRINTED";
   const canRecallThis =
@@ -213,17 +214,20 @@ export const ShipmentDetailPage = () => {
   return (
     <div className="container mx-auto space-y-6 py-6">
       {/* ── Top navigation bar ── */}
-      <Button
-        variant="outline"
-        onClick={() =>
-          navigate(`/production-lots/${lotId}`, {
-            state: { activeTab: "shipments" },
-          })
-        }
-      >
-        <ArrowLeft className="mr-1 h-4 w-4" />
-        Quay lại lô sản xuất
-      </Button>
+      {backToLotId && (
+        <button
+          type="button"
+          onClick={() =>
+            navigate(`/production-lots/${backToLotId}`, {
+              state: { activeTab: "shipments" },
+            })
+          }
+          className="group inline-flex items-center gap-1.5 self-start rounded-md text-sm font-medium text-emerald-700 underline-offset-4 transition-colors hover:text-emerald-900 hover:underline"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+          Quay lại lô sản xuất
+        </button>
+      )}
 
       {/* ── Header card ── */}
       <Card className="border-emerald-100 bg-white/80 shadow-sm backdrop-blur-sm">
