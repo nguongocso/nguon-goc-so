@@ -421,6 +421,15 @@ export const ProductionLotDetailPage = () => {
     };
   }, [createDialogOpen]);
 
+  // NCL-11-CN-006: chỉ hiển thị đơn vị còn hạn công nhận trong dropdown.
+  // Hook phải nằm trên mọi early return (Rules of Hooks).
+  const availableUnits = useMemo(() => {
+    const t = toISODate(new Date());
+    return testingUnits.filter(
+      (u) => !u.accreditationExpiryDate || u.accreditationExpiryDate >= t
+    );
+  }, [testingUnits]);
+
   const canRecordHarvest =
     user?.roleCode === "VT-02" || user?.roleCode === "VT-03";
 
@@ -468,15 +477,6 @@ export const ProductionLotDetailPage = () => {
   };
 
   const today = toISODate(new Date());
-  // NCL-11-CN-006: chỉ hiển thị đơn vị còn hạn công nhận trong dropdown
-  const availableUnits = useMemo(
-    () =>
-      testingUnits.filter(
-        (u) =>
-          !u.accreditationExpiryDate || u.accreditationExpiryDate >= today
-      ),
-    [testingUnits, today]
-  );
   const trimmedTestingUnit = testingUnit.trim();
   // NCL-11-CN-006 Phase 1: khi danh mục khả dụng thì bắt buộc chọn từ dropdown;
   // nếu danh mục rỗng hoặc tải lỗi thì fallback về nhập tự do.
