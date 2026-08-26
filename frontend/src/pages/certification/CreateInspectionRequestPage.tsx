@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   Check,
-  ChevronRight,
   ClipboardCheck,
   Clock,
   ExternalLink,
