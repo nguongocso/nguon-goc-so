@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +39,6 @@ const statusFilterOptions = [
 ];
 
 export const StandardList: React.FC = () => {
-  const navigate = useNavigate();
   const canManage = usePermission(ROLE_ACCESS.standardManagement);
   const [standards, setStandards] = useState<Standard[]>([]);
   const [totalElements, setTotalElements] = useState(0);
@@ -247,16 +245,6 @@ export const StandardList: React.FC = () => {
                           {canManage && (
                             <TableCell className="text-right">
                               <div className="flex justify-end items-center gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    navigate(`/admin/standards/${std.id}/criteria`)
-                                  }
-                                  className="text-emerald-700 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 font-medium"
-                                >
-                                  Quản lý tiêu chí
-                                </Button>
                                 <Button
                                   variant="ghost"
                                   size="icon-sm"

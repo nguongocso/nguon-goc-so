@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { getProductCategories, updateProductCategory } from '@/api/productCategoryApi';
+import { setMandatoryInspection } from '@/api/inspectionCriterionApi';
+import { CategoryCriteriaDialog } from '@/components/admin/product-category/CategoryCriteriaDialog';
 import type { ProductCategory, ProductCategoryQueryParams } from '@/types/productCategory';
 import { ProductCategoryFilter } from '@/components/admin/product-category/ProductCategoryFilter';
 import { ProductCategoryList } from '@/components/admin/product-category/ProductCategoryList';
@@ -17,6 +19,8 @@ export default function ProductCategoryManagementPage() {
   const [openForm, setOpenForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<ProductCategory | null>(null);
   const [filterParams, setFilterParams] = useState<ProductCategoryQueryParams>({});
+  const [assignCategory, setAssignCategory] = useState<ProductCategory | null>(null);
+  const [togglingMandatoryId, setTogglingMandatoryId] = useState<string | null>(null);
 
   const fetchCategories = async (params?: ProductCategoryQueryParams) => {
     try {
@@ -63,6 +67,22 @@ export default function ProductCategoryManagementPage() {
     }
   };
 
+  const handleToggleMandatory = async (category: ProductCategory, required: boolean) => {
+    // Chặn gọi trùng khi Switch đang pending (TC-02 — không giữ success giả)
+    if (togglingMandatoryId) return;
+    setTogglingMandatoryId(category.id);
+    try {
+      await setMandatoryInspection(category.id, required);
+      toast.success(required ? 'Đã bật bắt buộc kiểm nghiệm' : 'Đã tắt bắt buộc kiểm nghiệm');
+      fetchCategories(filterParams);
+    } catch (error: any) {
+      // BR-3: backend từ chối nếu category chưa có chỉ tiêu kiểm nghiệm nào
+      toast.error(error.response?.data?.message || 'Không thể cập nhật bắt buộc kiểm nghiệm');
+    } finally {
+      setTogglingMandatoryId(null);
+    }
+  };
+
   const handleEdit = (category: ProductCategory) => {
     setEditingCategory(category);
     setOpenForm(true);
@@ -103,6 +123,9 @@ export default function ProductCategoryManagementPage() {
         onEdit={handleEdit}
         onToggleActive={handleToggleActive}
         canManage={canManage}
+        onToggleMandatory={handleToggleMandatory}
+        togglingMandatoryId={togglingMandatoryId}
+        onAssignCriteria={setAssignCategory}
       />
 
       <ProductCategoryForm
@@ -110,6 +133,13 @@ export default function ProductCategoryManagementPage() {
         onClose={handleFormClose}
         onSuccess={handleFormSuccess}
         category={editingCategory}
+      />
+
+      <CategoryCriteriaDialog
+        open={!!assignCategory}
+        onClose={() => setAssignCategory(null)}
+        onSuccess={() => fetchCategories(filterParams)}
+        category={assignCategory}
       />
     </div>
   );

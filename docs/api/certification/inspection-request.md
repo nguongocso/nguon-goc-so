@@ -9,8 +9,8 @@ Tai lieu nay phan biet ro yeu cau cua DOCX voi hanh vi da duoc implement. Ten lo
 
 1. VT-02 lay danh sach tieu chi ap dung cho lo qua `GET /api/v1/production-lots/{lotId}/test-criteria`.
 2. Backend chi cho phep tao yeu cau neu lo thuoc organization cua nguoi dung, co trang thai tu `APPROVED` tro len, khong bi `REJECTED`, va da co su kien `HARVEST`.
-3. Client gui don vi kiem nghiem, ngay gui mau va danh sach ID dinh nghia tieu chi qua `POST /api/v1/production-lots/{lotId}/test-requests`.
-4. Moi dinh nghia tieu chi phai ton tai va thuoc `Standard` da gan voi lo. Backend tao snapshot `InspectionCriterion` trong yeu cau, luu code/name/standard tai thoi diem tao.
+3. Client gui don vi kiem nghiem, ngay gui mau va danh sach ID chi tieu (tu danh muc dung chung) qua `POST /api/v1/production-lots/{lotId}/test-requests`.
+4. Moi chi tieu phai ton tai trong danh muc dung chung `inspection_criterion_catalog`, dang `ACTIVE` va duoc gan cho loai nong san cua lo qua bang `category_criteria` (NCL-09-CN-009). Backend tao snapshot `InspectionCriterion`, luu code/name va tham chieu `criterion_id` tai thoi diem tao (khong gan Standard).
 5. Yeu cau moi duoc tao voi trang thai domain `PENDING_RESULT`; response API tra ve chuoi `PENDING`.
 6. Neu da co yeu cau `PENDING_RESULT` cung bo tieu chi cho lo, backend tra `409 CONFLICT`, tru khi client gui `confirmDuplicate = true`.
 7. Sau khi tao yeu cau, ket qua co the duoc ghi tung tieu chi bang `POST`, hoac ghi toan bo bang `PUT` tai cap request. Chi tiet luong nay nam trong [inspection-result.md](inspection-result.md).
@@ -21,8 +21,9 @@ Tai lieu nay phan biet ro yeu cau cua DOCX voi hanh vi da duoc implement. Ten lo
 
 - Quyen: `VT-02`.
 - Lo phai thuoc organization hien tai va thoa dieu kien lo nhu muc 1.
-- Backend lay `Standard` dau tien trong danh sach certification cua lo, sau do lay cac `InspectionCriterionDefinition` cua standard theo `id ASC`.
-- Neu lo khong co certification hoac khong co standard hop le, response thanh cong voi danh sach `criteria` rong.
+- Backend lay bo chi tieu tu cau hinh loai nong san cua lo: cac chi tieu `ACTIVE` duoc gan qua bang `category_criteria` (NCL-09-CN-009).
+- `standardId`/`standardName` chi mang tinh hien thi, lay tu `Standard` cua certification dau tien cua lo (neu co); khong con quyet dinh bo chi tieu ap dung.
+- Neu lo khong co certification hoac standard hop le, response thanh cong; neu loai nong san chua duoc gan chi tieu nao, `criteria` la danh sach rong.
 
 Response data thuc te:
 
@@ -99,9 +100,9 @@ Response data thuc te:
 
 | HTTP | Dieu kien / thong diep thuc te |
 |---:|---|
-| `400` | Request rong; thieu `testingUnit`, `sampleSentDate` hoac `criteriaIds`; ngay gui mau o tuong lai; ID tieu chi null/trung; tieu chi khong ton tai; tieu chi khong thuoc standard cua lo |
+| `400` | Request rong; thieu `testingUnit`, `sampleSentDate` hoac `criteriaIds`; ngay gui mau o tuong lai; ID tieu chi null/trung; tieu chi khong ton tai; tieu chi da ngung su dung; tieu chi khong duoc gan cho loai nong san cua lo |
 | `404` | Lo khong ton tai trong organization hien tai |
-| `409` | Da co request `PENDING_RESULT` cung bo khoa `standardId:criterionCode` va `confirmDuplicate` khong phai `true` |
+| `409` | Da co request `PENDING_RESULT` cung bo khoa `scope:criterionCode` (legacy `<standardId>:<code>`, moi `CAT:<criterionId>:<code>`) va `confirmDuplicate` khong phai `true` |
 | `403` | Nguoi dung khong co role `VT-02` |
 
 Kiem tra trung lap khong phu thuoc thu tu danh sach. Vi du `[A, B]` va `[B, A]` la cung mot bo tieu chi. Chi request dang `PENDING_RESULT` moi duoc dung de phat hien trung lap.

@@ -35,8 +35,8 @@ import RecordTransportEventPage from "@/pages/transport-event/RecordTransportEve
 import CreateCodeRangePage from "@/pages/admin/CreateCodeRangePage";
 import CodeRangeListPage from "@/pages/admin/CodeRangeListPage";
 import ProductCategoryManagementPage from "@/pages/admin/ProductCategoryManagementPage";
+import InspectionCriteriaManagementPage from "@/pages/admin/InspectionCriteriaManagementPage";
 import StandardManagementPage from "@/pages/admin/StandardManagementPage";
-import CriteriaManagementPage from "@/pages/admin/CriteriaManagementPage";
 import SuspectTraceCodeListPage from "@/pages/admin/SuspectTraceCodeListPage";
 import SuspectTraceCodeDetailPage from "@/pages/admin/SuspectTraceCodeDetailPage";
 
@@ -633,23 +633,23 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="admin/inspection-criteria"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.inspectionCriteriaManagement}
+                    >
+                        <InspectionCriteriaManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="admin/standards"
                 element={
                     <RoleRoute
                         allowedRoles={ROLE_ACCESS.standardManagement}
                     >
                         <StandardManagementPage />
-                    </RoleRoute>
-                }
-            />
-
-            <Route
-                path="admin/standards/:standardId/criteria"
-                element={
-                    <RoleRoute
-                        allowedRoles={ROLE_ACCESS.standardManagement}
-                    >
-                        <CriteriaManagementPage />
                     </RoleRoute>
                 }
             />

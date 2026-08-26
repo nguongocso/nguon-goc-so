@@ -55,6 +55,13 @@ public interface CategoryCriterionRepository extends JpaRepository<CategoryCrite
     boolean existsByCriterion_Id(Long criterionId);
 
     /**
+     * Check if a specific criterion is assigned to the given product
+     * category. Used by NCL-11-CN-002 when validating criteria chosen
+     * for an inspection request of a production lot.
+     */
+    boolean existsByCategory_IdAndCriterion_Id(UUID categoryId, Long criterionId);
+
+    /**
      * Check if a specific criterion is assigned to a product category
      * that requires mandatory inspection (BR-3 invariant: mandatory ⇒ ≥1 criterion).
      */

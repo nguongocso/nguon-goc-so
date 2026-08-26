@@ -1,7 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Pencil, Eye, EyeOff } from 'lucide-react';
+import { Pencil, Eye, EyeOff, ListChecks } from 'lucide-react';
 import type { ProductCategory } from '@/types/productCategory';
 
 interface Props {
@@ -11,9 +12,29 @@ interface Props {
   onToggleActive: (id: string, currentActive: boolean) => void;
   /** Có quyền sửa/ẩn-hiện hay không (mặc định true để không phá các nơi gọi cũ). */
   canManage?: boolean;
+  /**
+   * Bật/tắt bắt buộc kiểm nghiệm (NCL-09-CN-009).
+   * Chỉ hiển thị cột khi cung cấp callback.
+   */
+  onToggleMandatory?: (category: ProductCategory, required: boolean) => void;
+  /** Id category đang gọi API bật/tắt để khóa Switch, tránh gọi trùng. */
+  togglingMandatoryId?: string | null;
+  /** Mở dialog gán bộ chỉ tiêu kiểm nghiệm cho category. */
+  onAssignCriteria?: (category: ProductCategory) => void;
 }
 
-export const ProductCategoryList = ({ categories, loading, onEdit, onToggleActive, canManage = true }: Props) => {
+export const ProductCategoryList = ({
+  categories,
+  loading,
+  onEdit,
+  onToggleActive,
+  canManage = true,
+  onToggleMandatory,
+  togglingMandatoryId,
+  onAssignCriteria,
+}: Props) => {
+  const showMandatoryColumn = !!onToggleMandatory;
+
   if (loading) return <div className="text-center py-8">Đang tải...</div>;
   if (!categories || categories.length === 0) return <div className="text-center py-8 text-muted-foreground">Không có loại nông sản nào.</div>;
 
@@ -26,6 +47,7 @@ export const ProductCategoryList = ({ categories, loading, onEdit, onToggleActiv
             <TableHead>Nhóm hàng</TableHead>
             <TableHead>Ngưỡng bảo quản</TableHead>
             <TableHead>Mô tả</TableHead>
+            {showMandatoryColumn && <TableHead>Bắt buộc kiểm nghiệm</TableHead>}
             <TableHead>Trạng thái</TableHead>
             {canManage && <TableHead className="text-right">Thao tác</TableHead>}
           </TableRow>
@@ -51,6 +73,22 @@ export const ProductCategoryList = ({ categories, loading, onEdit, onToggleActiv
                 })()}
               </TableCell>
               <TableCell>{category.description || '—'}</TableCell>
+              {showMandatoryColumn && (
+                <TableCell>
+                  {canManage ? (
+                    <Switch
+                      checked={!!category.requiresInspection}
+                      disabled={togglingMandatoryId === category.id}
+                      onCheckedChange={(checked) => onToggleMandatory(category, checked)}
+                      aria-label={`Bắt buộc kiểm nghiệm ${category.name}`}
+                    />
+                  ) : (
+                    <Badge variant={category.requiresInspection ? 'default' : 'secondary'}>
+                      {category.requiresInspection ? 'Bắt buộc' : 'Không'}
+                    </Badge>
+                  )}
+                </TableCell>
+              )}
               <TableCell>
                 <Badge variant={category.isActive ? 'default' : 'secondary'}>
                   {category.isActive ? 'Đang hoạt động' : 'Đã ẩn'}
@@ -59,7 +97,12 @@ export const ProductCategoryList = ({ categories, loading, onEdit, onToggleActiv
               {canManage && (
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon-sm" onClick={() => onEdit(category)} className="hover:bg-muted">
+                    {onAssignCriteria && (
+                      <Button variant="ghost" size="icon-sm" onClick={() => onAssignCriteria(category)} title="Gán bộ chỉ tiêu kiểm nghiệm" className="hover:bg-muted">
+                        <ListChecks className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="icon-sm" onClick={() => onEdit(category)} className="hover:bg-muted" title="Sửa loại nông sản">
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="icon-sm" onClick={() => onToggleActive(category.id, category.isActive)} className="hover:bg-muted">

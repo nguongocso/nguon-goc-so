@@ -86,7 +86,6 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/admin/code-ranges/create", "Cấp dải mã"],
   ["/admin/code-ranges", "Dải mã truy xuất"],
   ["/admin/product-categories", "Danh mục sản phẩm"],
-  ["/admin/standards/:standardId/criteria", "Tiêu chí đánh giá"],
   ["/admin/standards", "Tiêu chuẩn"],
   ["/admin/backup-restore", "Sao lưu & khôi phục"],
   ["/admin/system-monitoring", "Giám sát hệ thống"],

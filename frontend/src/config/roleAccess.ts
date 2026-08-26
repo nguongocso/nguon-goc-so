@@ -63,7 +63,11 @@ export const ROLE_ACCESS = {
 
   // ✅ NCL-12-CN-001 - Quản lý khóa truy cập đối tác bên thứ ba
   apiKeyManagement: ['VT-01', 'VT-02'] as const,
+
+  // ✅ NCL-09-CN-009 - Quản lý danh mục chỉ tiêu kiểm nghiệm
+  inspectionCriteriaManagement: ['VT-01'] as const,
 } as const satisfies Record<string, readonly AuthenticatedRoleCode[]>;
+
 
 export function hasAnyRole(
   userRole: string | undefined,
