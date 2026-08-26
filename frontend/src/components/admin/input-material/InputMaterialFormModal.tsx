@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
@@ -190,7 +189,8 @@ export const InputMaterialFormModal = ({ open, onClose, onSuccess, material }: P
               </Label>
               <Select
                 value={materialGroup}
-                onValueChange={(val) => {
+                onValueChange={(val: string | null) => {
+                  if (!val) return;
                   const grp = val as MaterialGroup;
                   setMaterialGroup(grp);
                   if (grp === MaterialGroup.PESTICIDE && (quarantineDays === '0' || quarantineDays === '')) {
@@ -265,20 +265,28 @@ export const InputMaterialFormModal = ({ open, onClose, onSuccess, material }: P
           {/* Nông sản áp dụng */}
           <div className="flex flex-col gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
             <Label className="text-sm font-semibold">Loại nông sản áp dụng</Label>
-            <RadioGroup
-              value={applyToAllCrops ? 'ALL' : 'CUSTOM'}
-              onValueChange={(val) => setApplyToAllCrops(val === 'ALL')}
-              className="flex gap-6"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="ALL" id="crop-all" />
-                <Label htmlFor="crop-all" className="cursor-pointer">Tất cả loại nông sản</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="CUSTOM" id="crop-custom" />
-                <Label htmlFor="crop-custom" className="cursor-pointer">Chỉ định danh mục nông sản</Label>
-              </div>
-            </RadioGroup>
+            <div className="flex gap-6">
+              <label className="flex items-center space-x-2 cursor-pointer text-sm">
+                <input
+                  type="radio"
+                  name="applyToAllCrops"
+                  checked={applyToAllCrops}
+                  onChange={() => setApplyToAllCrops(true)}
+                  className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                />
+                <span>Tất cả loại nông sản</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer text-sm">
+                <input
+                  type="radio"
+                  name="applyToAllCrops"
+                  checked={!applyToAllCrops}
+                  onChange={() => setApplyToAllCrops(false)}
+                  className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                />
+                <span>Chỉ định danh mục nông sản</span>
+              </label>
+            </div>
 
             {!applyToAllCrops && (
               <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-md border max-h-36 overflow-y-auto space-y-2">

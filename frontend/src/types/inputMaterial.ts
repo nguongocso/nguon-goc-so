@@ -1,11 +1,13 @@
-import { ProductCategory } from './productCategory';
+import type { ProductCategory } from './productCategory';
 
-export enum MaterialGroup {
-  PESTICIDE = 'PESTICIDE',
-  FERTILIZER = 'FERTILIZER',
-  BIOLOGICAL = 'BIOLOGICAL',
-  OTHER = 'OTHER',
-}
+export const MaterialGroup = {
+  PESTICIDE: 'PESTICIDE',
+  FERTILIZER: 'FERTILIZER',
+  BIOLOGICAL: 'BIOLOGICAL',
+  OTHER: 'OTHER',
+} as const;
+
+export type MaterialGroup = (typeof MaterialGroup)[keyof typeof MaterialGroup];
 
 export interface InputMaterial {
   id: string;

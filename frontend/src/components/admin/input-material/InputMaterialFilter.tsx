@@ -81,7 +81,7 @@ export const InputMaterialFilter = ({ onFilter, onReset, loading }: Props) => {
               <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                 Nhóm vật tư
               </Label>
-              <Select value={group} onValueChange={setGroup}>
+              <Select value={group} onValueChange={(val: string | null) => setGroup(val || 'ALL')}>
                 <SelectTrigger size="sm" className="w-full h-9">
                   <SelectValue placeholder="Tất cả nhóm vật tư" />
                 </SelectTrigger>
@@ -100,7 +100,7 @@ export const InputMaterialFilter = ({ onFilter, onReset, loading }: Props) => {
               <Label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                 Trạng thái
               </Label>
-              <Select value={status} onValueChange={setStatus}>
+              <Select value={status} onValueChange={(val: string | null) => setStatus(val || 'ALL')}>
                 <SelectTrigger size="sm" className="w-full h-9">
                   <SelectValue placeholder="Tất cả trạng thái" />
                 </SelectTrigger>
