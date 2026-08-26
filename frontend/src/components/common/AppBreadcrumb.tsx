@@ -85,13 +85,19 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   // Admin
   ["/admin/code-ranges/create", "Cấp dải mã"],
   ["/admin/code-ranges", "Dải mã truy xuất"],
+  ["/admin/product-categories/create", "Thêm loại nông sản"],
+  ["/admin/product-categories/:id/edit", "Cập nhật loại nông sản"],
   ["/admin/product-categories", "Danh mục sản phẩm"],
   ["/admin/standards/:standardId/criteria", "Tiêu chí đánh giá"],
+  ["/admin/standards/create", "Thêm tiêu chuẩn"],
+  ["/admin/standards/:id/edit", "Cập nhật tiêu chuẩn"],
   ["/admin/standards", "Tiêu chuẩn"],
   ["/admin/backup-restore", "Sao lưu & khôi phục"],
   ["/admin/system-monitoring", "Giám sát hệ thống"],
   ["/admin/suspect-trace-codes/:traceCodeId", "Chi tiết mã nghi vấn"],
   ["/admin/suspect-trace-codes", "Mã truy xuất nghi vấn"],
+  ["/integration/api-keys/create", "Cấp khóa API"],
+  ["/integration/api-keys", "Khóa API đối tác"],
 
   // Reports
   ["/reports/lookup-statistics", "Thống kê tra cứu"],

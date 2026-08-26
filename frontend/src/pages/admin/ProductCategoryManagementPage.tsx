@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
@@ -6,16 +7,14 @@ import { getProductCategories, updateProductCategory } from '@/api/productCatego
 import type { ProductCategory, ProductCategoryQueryParams } from '@/types/productCategory';
 import { ProductCategoryFilter } from '@/components/admin/product-category/ProductCategoryFilter';
 import { ProductCategoryList } from '@/components/admin/product-category/ProductCategoryList';
-import { ProductCategoryForm } from '@/components/admin/product-category/ProductCategoryForm';
 import { HelpButton } from '@/components/help/HelpButton';
 import { usePermission } from '@/hooks/usePermission';
 
 export default function ProductCategoryManagementPage() {
+  const navigate = useNavigate();
   const canManage = usePermission(['VT-01'] as const);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [openForm, setOpenForm] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<ProductCategory | null>(null);
   const [filterParams, setFilterParams] = useState<ProductCategoryQueryParams>({});
 
   const fetchCategories = async (params?: ProductCategoryQueryParams) => {
@@ -64,18 +63,7 @@ export default function ProductCategoryManagementPage() {
   };
 
   const handleEdit = (category: ProductCategory) => {
-    setEditingCategory(category);
-    setOpenForm(true);
-  };
-
-  const handleFormSuccess = () => {
-    setEditingCategory(null);
-    fetchCategories(filterParams);
-  };
-
-  const handleFormClose = () => {
-    setOpenForm(false);
-    setEditingCategory(null);
+    navigate(`/admin/product-categories/${category.id}/edit`);
   };
 
   return (
@@ -88,7 +76,7 @@ export default function ProductCategoryManagementPage() {
         <div className="flex items-center gap-3">
           <HelpButton screenKey="admin-product-categories" />
           {canManage && (
-            <Button onClick={() => setOpenForm(true)} variant="create">
+            <Button onClick={() => navigate('/admin/product-categories/create')} variant="create">
               <Plus className="h-4 w-4 mr-1" /> Thêm loại nông sản
             </Button>
           )}
@@ -103,13 +91,6 @@ export default function ProductCategoryManagementPage() {
         onEdit={handleEdit}
         onToggleActive={handleToggleActive}
         canManage={canManage}
-      />
-
-      <ProductCategoryForm
-        open={openForm}
-        onClose={handleFormClose}
-        onSuccess={handleFormSuccess}
-        category={editingCategory}
       />
     </div>
   );
