@@ -13,10 +13,7 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -181,17 +178,9 @@ export function TransportEventForm() {
   };
 
   return (
-    <Card className="mx-auto max-w-3xl">
-      <CardHeader>
-        <CardTitle>Ghi sự kiện vận chuyển</CardTitle>
-        <CardDescription>
-          Quét mã truy xuất của lô hàng, sau đó nhập thông tin chuyến vận
-          chuyển thực tế.
-        </CardDescription>
-      </CardHeader>
-
+    <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
       <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 pt-6">
           <ScanCodeField
             value={codeValue}
             onChange={(value) =>

@@ -128,17 +128,19 @@ export default function StorageConditionPage() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Điều kiện bảo quản</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Điều kiện bảo quản
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Ghi nhận nhiệt độ và độ ẩm trong quá trình vận chuyển. Dữ liệu mô phỏng, nhập tay.
           </p>
         </div>
         <HelpButton screenKey="storage-condition" />
       </div>
 
-      <Card>
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Thermometer className="size-5 text-orange-600" />

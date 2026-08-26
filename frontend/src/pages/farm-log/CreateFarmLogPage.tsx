@@ -1,6 +1,5 @@
 import {
   AlertCircle,
-  ClipboardPenLine,
   LoaderCircle,
   RefreshCw,
   ShieldCheck,
@@ -96,33 +95,21 @@ const CreateFarmLogPage = () => {
 
   return (
     <div className="space-y-6">
-      <header className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end">
+      <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">
-            <ClipboardPenLine className="size-4" />
-            Nhật ký canh tác
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             Ghi nhật ký canh tác
           </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Ghi nhận hoạt động thực tế, vật tư sử dụng và ngày thực hiện cho
-            lô sản xuất.
+          <p className="mt-1 text-sm text-muted-foreground">
+            Ghi nhận hoạt động thực tế, vật tư sử dụng và ngày thực hiện cho lô sản xuất.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <HelpButton screenKey="farm-log-create" />
-          <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
-            <ShieldCheck className="size-5 text-blue-700" />
-            <div>
-              <p className="text-xs font-bold text-blue-950">
-                Quyền ghi nhật ký
-              </p>
-              <p className="mt-0.5 text-xs text-blue-700">
-                Người ghi sự kiện · VT-03
-              </p>
-            </div>
+          <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-800">
+            <ShieldCheck className="size-4 text-blue-600" />
+            <span>Người ghi sự kiện · VT-03</span>
           </div>
         </div>
       </header>

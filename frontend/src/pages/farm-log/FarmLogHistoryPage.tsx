@@ -32,8 +32,15 @@ export default function FarmLogHistoryPage() {
 
   return (
     <div className="space-y-6">
-      
-      <div className="mb-4 flex justify-end">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Lịch sử nhật ký canh tác
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Theo dõi toàn bộ các hoạt động canh tác đã được ghi nhận cho lô sản xuất.
+          </p>
+        </div>
         <HelpButton screenKey="farm-log-history" />
       </div>
       {loading ? (
