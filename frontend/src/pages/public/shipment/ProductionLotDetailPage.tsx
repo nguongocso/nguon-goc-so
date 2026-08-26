@@ -400,6 +400,27 @@ export const ProductionLotDetailPage = () => {
     loadCanActivateCheck,
   ]);
 
+  // Tải danh mục đơn vị kiểm nghiệm khi mở dialog tạo yêu cầu kiểm nghiệm
+  // (NCL-11-CN-006 Phase 1)
+  useEffect(() => {
+    if (!createDialogOpen) return;
+    let cancelled = false;
+    setUnitsLoading(true);
+    getTestingUnits({ isActive: true })
+      .then((res) => {
+        if (!cancelled) setTestingUnits(res.items ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setTestingUnits([]);
+      })
+      .finally(() => {
+        if (!cancelled) setUnitsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [createDialogOpen]);
+
   const canRecordHarvest =
     user?.roleCode === "VT-02" || user?.roleCode === "VT-03";
 
@@ -445,27 +466,6 @@ export const ProductionLotDetailPage = () => {
       toast.error(error.response?.data?.message || "Không thể gỡ chứng nhận");
     }
   };
-
-  // Tải danh mục đơn vị kiểm nghiệm khi mở dialog tạo yêu cầu kiểm nghiệm
-  // (NCL-11-CN-006 Phase 1)
-  useEffect(() => {
-    if (!createDialogOpen) return;
-    let cancelled = false;
-    setUnitsLoading(true);
-    getTestingUnits({ isActive: true })
-      .then((res) => {
-        if (!cancelled) setTestingUnits(res.items ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setTestingUnits([]);
-      })
-      .finally(() => {
-        if (!cancelled) setUnitsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [createDialogOpen]);
 
   const today = toISODate(new Date());
   const trimmedTestingUnit = testingUnit.trim();
