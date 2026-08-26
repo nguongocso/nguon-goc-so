@@ -25,6 +25,11 @@ export async function getSeasonYieldComparison(
     searchParams.set("organizationId", params.organizationId);
   }
 
+  // NCL-742 §8: unitIds lặp `unitIds=a&unitIds=b` (URLSearchParams.append).
+  params.unitIds?.forEach((unitId) => {
+    searchParams.append("unitIds", unitId);
+  });
+
   const response = await apiClient.get<{
     data: SeasonYieldComparisonResponse;
   }>(ENDPOINT, { params: searchParams });
