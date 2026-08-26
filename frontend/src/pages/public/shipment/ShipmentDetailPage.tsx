@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   AlertCircle,
-  ArrowLeft,
   BadgeCheck,
   Ban,
   FileText,
@@ -36,6 +35,7 @@ import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligible
 import { ShipmentStatusBadge } from "@/components/shipment/ShipmentStatusBadge";
 import { ROLE_ACCESS } from "@/config/roleAccess";
 import { usePermission } from "@/hooks/usePermission";
+import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -189,6 +189,25 @@ export const ShipmentDetailPage = () => {
   const canDeleteDraft =
     shipment?.status === "DRAFT" || shipment?.status === "CODE_PRINTED";
 
+  // ── Breadcrumb điều hướng thống nhất (thay nút "Quay lại") ────────────────
+  useSetBreadcrumb(
+    shipment
+      ? [
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Lô sản xuất", href: "/production-lots" },
+          ...(lotId
+            ? [
+                {
+                  label: shipment.productionLotName || "Chi tiết lô",
+                  href: `/production-lots/${lotId}`,
+                },
+              ]
+            : []),
+          { label: shipment.name || "Chi tiết lô hàng" },
+        ]
+      : null,
+  );
+
   // ── Render guards ──────────────────────────────────────────────────────────
 
   if (loadingShipment) {
@@ -220,19 +239,6 @@ export const ShipmentDetailPage = () => {
 
   return (
     <div className="container mx-auto space-y-6 py-6">
-      {/* ── Top navigation bar ── */}
-      <Button
-        variant="outline"
-        onClick={() =>
-          navigate(`/production-lots/${lotId}`, {
-            state: { activeTab: "shipments" },
-          })
-        }
-      >
-        <ArrowLeft className="mr-1 h-4 w-4" />
-        Quay lại lô sản xuất
-      </Button>
-
       {/* ── Header card ── */}
       <Card className="border-emerald-100 bg-white/80 shadow-sm backdrop-blur-sm">
         <CardContent className="pt-6">

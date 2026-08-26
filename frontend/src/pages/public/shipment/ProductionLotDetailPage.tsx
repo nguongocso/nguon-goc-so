@@ -20,6 +20,7 @@ import { FarmLogList } from "@/components/farm-log/FarmLogList";
 import { usePermission } from "@/hooks/usePermission";
 import { ROLE_ACCESS } from "@/config/roleAccess";
 import { HarvestForm } from "@/components/trace-event/HarvestForm";
+import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 import { HelpButton } from "@/components/help/HelpButton";
 import type { ProductionLot } from "@/types/productionLot";
 import { toast } from "sonner";
@@ -271,6 +272,17 @@ export const ProductionLotDetailPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [duplicateMessage, setDuplicateMessage] = useState("");
+
+  // ── Breadcrumb điều hướng thống nhất (thay nút "Quay lại") ────────────────
+  useSetBreadcrumb(
+    lot
+      ? [
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Lô sản xuất", href: "/production-lots" },
+          { label: lot.name || "Chi tiết lô sản xuất" },
+        ]
+      : null,
+  );
 
 
 

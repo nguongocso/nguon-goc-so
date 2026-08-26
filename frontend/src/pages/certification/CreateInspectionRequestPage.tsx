@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
+import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 import {
   AlertCircle,
   AlertTriangle,
-  ArrowLeft,
   Check,
   ChevronRight,
   ClipboardCheck,
@@ -124,6 +124,25 @@ export const CreateInspectionRequestPage: React.FC = () => {
   const [criteriaData, setCriteriaData] = useState<LotTestCriteriaResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  // --- Breadcrumb điều hướng thống nhất (thay nút "Quay lại") ---
+  useSetBreadcrumb(
+    lot
+      ? [
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Lô sản xuất", href: "/production-lots" },
+          ...(effectiveLotId
+            ? [
+                {
+                  label: lot.name || "Chi tiết lô",
+                  href: `/production-lots/${effectiveLotId}`,
+                },
+              ]
+            : []),
+          { label: "Tạo yêu cầu kiểm nghiệm" },
+        ]
+      : null,
+  );
 
   // --- Form State ---
   const [testingUnit, setTestingUnit] = useState("");
@@ -419,13 +438,6 @@ export const CreateInspectionRequestPage: React.FC = () => {
               {loadError || "Lô sản xuất không tồn tại hoặc tài khoản không có quyền truy cập."}
             </p>
             <div className="mt-6 flex items-center gap-3">
-              <Button
-                variant="outline"
-                className="rounded-xl border-input bg-white"
-                onClick={() => navigate("/production-lots")}
-              >
-                <ArrowLeft className="mr-1.5 h-4 w-4" /> Quay lại danh sách lô
-              </Button>
               <Button
                 variant="create"
                 className="rounded-xl"
