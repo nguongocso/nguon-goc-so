@@ -35,8 +35,12 @@ import RecordTransportEventPage from "@/pages/transport-event/RecordTransportEve
 import CreateCodeRangePage from "@/pages/admin/CreateCodeRangePage";
 import CodeRangeListPage from "@/pages/admin/CodeRangeListPage";
 import ProductCategoryManagementPage from "@/pages/admin/ProductCategoryManagementPage";
-import InspectionCriteriaManagementPage from "@/pages/admin/InspectionCriteriaManagementPage";
+import CreateProductCategoryPage from "@/pages/admin/CreateProductCategoryPage";
+import EditProductCategoryPage from "@/pages/admin/EditProductCategoryPage";
 import StandardManagementPage from "@/pages/admin/StandardManagementPage";
+import CreateStandardPage from "@/pages/admin/CreateStandardPage";
+import EditStandardPage from "@/pages/admin/EditStandardPage";
+import InspectionCriteriaManagementPage from "@/pages/admin/InspectionCriteriaManagementPage";
 import SuspectTraceCodeListPage from "@/pages/admin/SuspectTraceCodeListPage";
 import SuspectTraceCodeDetailPage from "@/pages/admin/SuspectTraceCodeDetailPage";
 
@@ -58,6 +62,7 @@ import FarmLogHistoryPage from "@/pages/farm-log/FarmLogHistoryPage";
 // ===== Shipment =====
 import { ProductionLotDetailPage } from "@/pages/public/shipment/ProductionLotDetailPage";
 import { ShipmentDetailPage } from "@/pages/public/shipment/ShipmentDetailPage";
+import CreateShipmentPage from "@/pages/shipment/CreateShipmentPage";
 
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
@@ -117,6 +122,7 @@ import OrganizationDetailPage from "@/pages/organization/OrganizationDetailPage"
 
 // ===== Partner API Keys (NCL-12-CN-001) =====
 import PartnerApiKeyListPage from "@/pages/apiKey/PartnerApiKeyListPage";
+import CreatePartnerApiKeyPage from "@/pages/apiKey/CreatePartnerApiKeyPage";
 
 // ===== Product Feedback =====
 import ProductFeedbackManagementPage from "@/pages/product-feedback/ProductFeedbackManagementPage";
@@ -444,6 +450,17 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="production-lots/:productionLotId/shipments/create"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                    >
+                        <CreateShipmentPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="production-lots/:lotId/shipments/:shipmentId"
                 element={
                     <RoleRoute
@@ -633,12 +650,19 @@ const AppRoutes = () => (
             />
 
             <Route
-                path="admin/inspection-criteria"
+                path="admin/product-categories/create"
                 element={
-                    <RoleRoute
-                        allowedRoles={ROLE_ACCESS.inspectionCriteriaManagement}
-                    >
-                        <InspectionCriteriaManagementPage />
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <CreateProductCategoryPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/product-categories/:id/edit"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <EditProductCategoryPage />
                     </RoleRoute>
                 }
             />
@@ -650,6 +674,39 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.standardManagement}
                     >
                         <StandardManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/standards/create"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.standardManagement}
+                    >
+                        <CreateStandardPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/standards/:id/edit"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.standardManagement}
+                    >
+                        <EditStandardPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/inspection-criteria"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.inspectionCriteriaManagement}
+                    >
+                        <InspectionCriteriaManagementPage />
                     </RoleRoute>
                 }
             />
@@ -870,6 +927,15 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={ROLE_ACCESS.apiKeyManagement}>
                         <PartnerApiKeyListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="integration/api-keys/create"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.apiKeyManagement}>
+                        <CreatePartnerApiKeyPage />
                     </RoleRoute>
                 }
             />
