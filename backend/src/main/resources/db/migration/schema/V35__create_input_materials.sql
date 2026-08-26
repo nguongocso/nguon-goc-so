@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS input_materials (
     quarantine_days INT NOT NULL DEFAULT 0,
     apply_to_all_crops BOOLEAN NOT NULL DEFAULT TRUE,
     reference_source TEXT,
+    image_urls LONGTEXT,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_by CHAR(36),
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
