@@ -43,10 +43,10 @@ export default function FarmAreaListPage() {
   }, []);
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-emerald-800">Vùng trồng</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Vùng trồng</h1>
           <p className="text-sm text-muted-foreground">
             Quản lý các vùng trồng của tổ chức
           </p>
@@ -66,9 +66,9 @@ export default function FarmAreaListPage() {
         </div>
       </div>
 
-      <Card className="border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm">
-        <CardHeader className="border-b border-emerald-100">
-          <CardTitle className="text-lg font-semibold text-emerald-800">
+      <Card className="border-slate-200 bg-white shadow-sm rounded-xl">
+        <CardHeader className="border-b border-slate-100">
+          <CardTitle className="text-base font-semibold text-slate-900">
             Danh sách vùng trồng
           </CardTitle>
         </CardHeader>
@@ -81,25 +81,25 @@ export default function FarmAreaListPage() {
           ) : areas.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
               <MapPin className="mx-auto h-12 w-12 text-emerald-300" />
-              <p className="mt-2 font-semibold text-emerald-800">Chưa có vùng trồng nào</p>
+              <p className="mt-2 font-semibold text-slate-800">Chưa có vùng trồng nào</p>
               <p className="text-sm">Nhấn "Tạo vùng trồng" để thêm mới.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-emerald-50/50">
-                    <TableHead className="text-emerald-800 font-semibold">Tên vùng</TableHead>
-                    <TableHead className="text-emerald-800 font-semibold">Loại cây trồng</TableHead>
-                    <TableHead className="text-emerald-800 font-semibold">Diện tích</TableHead>
-                    <TableHead className="text-emerald-800 font-semibold">Vị trí (tọa độ)</TableHead>
-                    <TableHead className="text-emerald-800 font-semibold">Ngày tạo</TableHead>
+                  <TableRow className="bg-slate-50">
+                    <TableHead className="font-semibold text-slate-700">Tên vùng</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Loại cây trồng</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Diện tích</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Vị trí (tọa độ)</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Ngày tạo</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {areas.map((area) => (
-                    <TableRow key={area.id} className="hover:bg-emerald-50/30">
-                      <TableCell className="font-medium text-emerald-800">{area.name}</TableCell>
+                    <TableRow key={area.id} className="hover:bg-slate-50/80">
+                      <TableCell className="font-medium text-slate-900">{area.name}</TableCell>
                       <TableCell>{area.cropTypeName}</TableCell>
                       <TableCell>
                         {convertAreaFromHa(area.area, area.areaUnit).toLocaleString('vi-VN', {

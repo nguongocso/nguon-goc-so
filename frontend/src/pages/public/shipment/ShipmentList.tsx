@@ -25,9 +25,8 @@ import {
 } from "lucide-react";
 import { useShipments } from "@/hooks/useShipments";
 import { useRecallShipment } from "@/hooks/useRecallShipment";
-import type { Shipment, CreateShipmentPayload } from "@/types/shipment";
+import type { Shipment } from "@/types/shipment";
 import { getLocalDateString } from "@/utils/dateTime";
-import { CreateShipmentModal } from "@/components/shipment/CreateShipmentModal";
 import { ShipmentTimelineDialog } from "@/components/shipment/ShipmentTimelineDialog";
 import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDialog";
 import { RecallShipmentDialog } from "@/components/shipment/RecallShipmentDialog";
@@ -69,7 +68,6 @@ export const ShipmentList = ({
   canRecall,
 }: ShipmentListProps) => {
   const navigate = useNavigate();
-  const [modalOpen, setModalOpen] = useState(false);
 
   const [activatingShipment, setActivatingShipment] = useState<Shipment | null>(
     null,
@@ -110,8 +108,6 @@ export const ShipmentList = ({
   const {
     shipments,
     isLoading,
-    createShipment,
-    isCreating,
     activatingShipmentId,
     activateShipment,
     reload,
@@ -127,10 +123,6 @@ export const ShipmentList = ({
     null,
   );
   const { deletingDraft, deleteDraftShipment } = useDeleteDraftShipment(reload);
-
-  const handleCreate = async (payload: CreateShipmentPayload) => {
-    await createShipment(payload);
-  };
 
   // Chặn kích hoạt tem khi lô chưa đạt kiểm nghiệm / kết quả hết hiệu lực
   const handleActivateConfirm = async (shipmentId: string) => {
@@ -253,13 +245,13 @@ export const ShipmentList = ({
 
   return (
     <>
-      <Card>
-        <CardHeader>
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle>Danh sách lô hàng</CardTitle>
+            <CardTitle className="text-xl font-bold text-slate-900">Danh sách lô hàng</CardTitle>
 
             {canCreate && productionLotStatus === "PACKAGED" && (
-              <Button onClick={() => setModalOpen(true)}>
+              <Button variant="create" size="sm" onClick={() => navigate(`/production-lots/${productionLotId}/shipments/create`)}>
                 <Plus className="mr-1 h-4 w-4" />
                 Tạo lô hàng
               </Button>
@@ -267,31 +259,31 @@ export const ShipmentList = ({
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
-            <div className="py-8 text-center">Đang tải...</div>
+            <div className="py-12 text-center text-muted-foreground">Đang tải...</div>
           ) : shipments.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">
+            <div className="py-12 text-center text-muted-foreground">
               Chưa có lô hàng nào cho lô sản xuất này.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Tên lô hàng</TableHead>
-                    <TableHead className="text-center">Số lượng</TableHead>
-                    <TableHead>Quy cách</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead>Ngày tạo</TableHead>
-                    <TableHead className="text-center">Số mã</TableHead>
-                    <TableHead className="text-center">Thao tác</TableHead>
+                  <TableRow className="bg-slate-50/80">
+                    <TableHead className="font-semibold text-slate-700">Tên lô hàng</TableHead>
+                    <TableHead className="text-center font-semibold text-slate-700">Số lượng</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Quy cách</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Trạng thái</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Ngày tạo</TableHead>
+                    <TableHead className="text-center font-semibold text-slate-700">Số mã</TableHead>
+                    <TableHead className="text-center font-semibold text-slate-700">Thao tác</TableHead>
                   </TableRow>
                 </TableHeader>
 
                 <TableBody>
                   {shipments.map((shipment) => (
-                    <TableRow key={shipment.id}>
+                    <TableRow key={shipment.id} className="hover:bg-slate-50/60">
                       <TableCell className="font-medium">
                         {shipment.name}
                       </TableCell>
@@ -480,14 +472,6 @@ export const ShipmentList = ({
           )}
         </CardContent>
       </Card>
-
-      <CreateShipmentModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSubmit={handleCreate}
-        productionLotId={productionLotId}
-        loading={isCreating}
-      />
 
       <ShipmentTimelineDialog
         open={timelineDialog.open}

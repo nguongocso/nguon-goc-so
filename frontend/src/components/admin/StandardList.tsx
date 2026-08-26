@@ -22,11 +22,7 @@ import {
 import { Plus, Pencil, RefreshCw } from "lucide-react";
 import {
   getStandards,
-  createStandard,
-  updateStandard,
 } from "@/api/standardApi";
-import { StandardForm } from "./StandardForm";
-import type { StandardFormValues } from "@/utils/validators";
 import type { Standard } from "@/types/standard";
 import { usePermission } from "@/hooks/usePermission";
 import { ROLE_ACCESS } from "@/config/roleAccess";
@@ -49,10 +45,6 @@ export const StandardList: React.FC = () => {
     undefined,
   );
   const [loading, setLoading] = useState(true);
-
-  const [formDialogOpen, setFormDialogOpen] = useState(false);
-  const [editingStandard, setEditingStandard] = useState<Standard | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
   const fetchStandards = async () => {
     setLoading(true);
@@ -77,61 +69,12 @@ export const StandardList: React.FC = () => {
     fetchStandards();
   }, [currentPage, isActiveFilter]);
 
-  const handleCreate = async (data: StandardFormValues) => {
-    setSubmitting(true);
-    try {
-      await createStandard({
-        name: data.name,
-        description: data.description || undefined,
-        issuingBody: data.issuingBody || undefined,
-      });
-      toast.success("Thêm tiêu chuẩn thành công");
-      setFormDialogOpen(false);
-      fetchStandards();
-    } catch (error: any) {
-      const msg = error.response?.data?.message || "Thêm tiêu chuẩn thất bại";
-      toast.error(msg);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleUpdate = async (data: StandardFormValues) => {
-    if (!editingStandard) return;
-    setSubmitting(true);
-    try {
-      await updateStandard(editingStandard.id, {
-        name: data.name,
-        description: data.description || undefined,
-        issuingBody: data.issuingBody || undefined,
-        isActive: data.isActive ?? true,
-      });
-      toast.success("Cập nhật tiêu chuẩn thành công");
-      setFormDialogOpen(false);
-      setEditingStandard(null);
-      fetchStandards();
-    } catch (error: any) {
-      const msg =
-        error.response?.data?.message || "Cập nhật tiêu chuẩn thất bại";
-      toast.error(msg);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const openCreateDialog = () => {
-    setEditingStandard(null);
-    setFormDialogOpen(true);
+    navigate("/admin/standards/create");
   };
 
   const openEditDialog = (standard: Standard) => {
-    setEditingStandard(standard);
-    setFormDialogOpen(true);
-  };
-
-  const closeDialog = () => {
-    setFormDialogOpen(false);
-    setEditingStandard(null);
+    navigate(`/admin/standards/${standard.id}/edit`);
   };
 
   const totalPages = Math.ceil(totalElements / PAGE_SIZE);
@@ -146,10 +89,10 @@ export const StandardList: React.FC = () => {
 
   return (
     <>
-      <Card>
-        <CardHeader>
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 pb-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <CardTitle>Danh mục tiêu chuẩn chất lượng</CardTitle>
+            <CardTitle className="text-xl font-bold text-slate-900">Danh mục tiêu chuẩn chất lượng</CardTitle>
             <div className="flex flex-wrap items-center gap-2">
               <Select
                 value={currentFilterValue}
@@ -183,7 +126,7 @@ export const StandardList: React.FC = () => {
                 Làm mới
               </Button>
               {canManage && (
-                <Button onClick={openCreateDialog}>
+                <Button variant="create" size="sm" onClick={openCreateDialog}>
                   <Plus className="h-4 w-4 mr-1" />
                   Thêm tiêu chuẩn
                 </Button>
@@ -191,11 +134,11 @@ export const StandardList: React.FC = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {loading ? (
-            <div className="text-center py-8">Đang tải...</div>
+            <div className="text-center py-12 text-muted-foreground">Đang tải...</div>
           ) : standards.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-12 text-muted-foreground">
               Chưa có tiêu chuẩn nào trong danh mục.
             </div>
           ) : (
@@ -203,14 +146,14 @@ export const StandardList: React.FC = () => {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Tên tiêu chuẩn</TableHead>
-                      <TableHead>Cơ quan ban hành</TableHead>
-                      <TableHead>Mô tả</TableHead>
-                      <TableHead>Trạng thái</TableHead>
-                      <TableHead>Ngày tạo</TableHead>
+                    <TableRow className="bg-slate-50/80">
+                      <TableHead className="font-semibold text-slate-700">Tên tiêu chuẩn</TableHead>
+                      <TableHead className="font-semibold text-slate-700">Cơ quan ban hành</TableHead>
+                      <TableHead className="font-semibold text-slate-700">Mô tả</TableHead>
+                      <TableHead className="font-semibold text-slate-700">Trạng thái</TableHead>
+                      <TableHead className="font-semibold text-slate-700">Ngày tạo</TableHead>
                       {canManage && (
-                        <TableHead className="text-right">Thao tác</TableHead>
+                        <TableHead className="text-right font-semibold text-slate-700">Thao tác</TableHead>
                       )}
                     </TableRow>
                   </TableHeader>
@@ -308,14 +251,6 @@ export const StandardList: React.FC = () => {
           )}
         </CardContent>
       </Card>
-
-      <StandardForm
-        open={formDialogOpen}
-        onClose={closeDialog}
-        onSubmit={editingStandard ? handleUpdate : handleCreate}
-        initialData={editingStandard}
-        isLoading={submitting}
-      />
     </>
   );
 };

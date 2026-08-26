@@ -94,23 +94,17 @@ export function CreateOrganizationForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <Card className="w-full shadow-lg border-muted/50">
-        <CardHeader className="pb-3 pt-5 px-5">
-          <div className="flex items-center gap-3">
-            <div className="p-1.5 bg-primary/10 rounded-lg">
-              <Building2 className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-lg leading-tight">Tạo tổ chức mới</CardTitle>
-              <CardDescription className="text-xs mt-0.5">
-                Thiết lập tổ chức và tài khoản quản trị đầu tiên.
-              </CardDescription>
-            </div>
-          </div>
+      <Card className="w-full rounded-xl border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 pb-4 pt-5 px-5">
+          <CardTitle className="text-lg font-semibold text-slate-900">
+            Thông tin thiết lập tổ chức
+          </CardTitle>
+          <CardDescription className="text-xs text-muted-foreground mt-0.5">
+            Điền đầy đủ thông tin tổ chức, thông tin quản trị viên đầu tiên và thiết lập mật khẩu bảo mật.
+          </CardDescription>
         </CardHeader>
 
-        {/* CardContent không còn padding dưới dư thừa */}
-        <CardContent className="space-y-5 pt-0 pb-0 px-5">
+        <CardContent className="space-y-5 pt-6 pb-6 px-5">
           {/* Thông tin tổ chức */}
           <div className="rounded-xl border bg-muted/30 p-4 space-y-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground/80">

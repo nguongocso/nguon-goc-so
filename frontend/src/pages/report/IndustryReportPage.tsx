@@ -4,7 +4,7 @@ import { HelpButton } from '@/components/help/HelpButton';
 
 export default function IndustryReportPage() {
   return (
-    <div className="container mx-auto space-y-6 py-6">
+    <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900">

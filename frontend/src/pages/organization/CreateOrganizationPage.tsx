@@ -1,25 +1,26 @@
 import { CreateOrganizationForm } from "@/components/organization/CreateOrganizationForm";
-import { CreateOrganizationGuide } from "@/components/organization/CreateOrganizationGuide";
+import { HelpButton } from "@/components/help/HelpButton";
+import { Building2 } from "lucide-react";
 
 export function CreateOrganizationPage() {
   return (
-    <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
-      
-      {/* Grid 1 cột mặc định, chỉ chuyển 2 cột từ màn hình xl (1280px) */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-        {/* Form: toàn bộ chiều rộng trên mobile/laptop, 8 cột trên desktop lớn */}
-        <div className="xl:col-span-8">
-          <CreateOrganizationForm />
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+            <Building2 className="size-6 text-emerald-600" />
+            Tạo tổ chức mới
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Thiết lập tổ chức và tài khoản quản trị đầu tiên trong hệ thống.
+          </p>
         </div>
-        {/* Guide: ẩn trên mobile/laptop (đã có accordion riêng bên dưới), 4 cột trên desktop lớn */}
-        <aside className="hidden xl:block xl:col-span-4">
-          <CreateOrganizationGuide />
-        </aside>
+        <HelpButton screenKey="organization-create" />
       </div>
-      {/* Trên mobile/laptop, Guide accordion sẽ tự hiển thị bên trong component */}
-      <div className="xl:hidden mt-6">
-        <CreateOrganizationGuide />
-      </div>
+
+      <CreateOrganizationForm />
     </div>
   );
 }
+
+export default CreateOrganizationPage;

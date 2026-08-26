@@ -60,12 +60,8 @@ function HelpDrawer({ screenKey }: { screenKey: string }) {
         <SheetTitle>
           {isLoading ? "Đang tải hướng dẫn..." : data?.title ?? "Hướng dẫn sử dụng"}
         </SheetTitle>
-        <SheetDescription>
-          {!isLoading && data?.roleCode === "GENERAL"
-            ? "Hướng dẫn chung cho màn hình này."
-            : !isLoading && data
-              ? `Hướng dẫn dành cho vai trò của bạn.`
-              : ""}
+        <SheetDescription className="sr-only">
+          {data?.title ?? "Hướng dẫn sử dụng"}
         </SheetDescription>
       </SheetHeader>
 

@@ -21,6 +21,7 @@ import {
   YAxis,
 } from 'recharts';
 import { toast } from 'sonner';
+import { HelpButton } from '@/components/help/HelpButton';
 
 import {
   getLoginAnomalies,
@@ -546,7 +547,7 @@ export default function LoginAnomalyTrackingPage() {
   };
 
   return (
-    <div className="container mx-auto space-y-6 py-6">
+    <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="rounded-xl bg-emerald-100 p-2.5 text-emerald-700">
@@ -556,17 +557,20 @@ export default function LoginAnomalyTrackingPage() {
             <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
               Giám sát bảo mật
             </p>
-            <h1 className="text-2xl font-bold tracking-tight">Theo dõi đăng nhập bất thường</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Theo dõi đăng nhập bất thường</h1>
             <p className="text-sm text-muted-foreground">
               Tổng quan các sự kiện phát hiện bất thường, trạng thái xử lý và hành động khóa/mở khóa tài khoản.
             </p>
           </div>
         </div>
 
-        <Button variant="outline" onClick={() => void handleRefresh()} disabled={eventsLoading || suspiciousLoading || statsLoading}>
-          <RefreshCw className={`h-4 w-4 ${eventsLoading || suspiciousLoading || statsLoading ? 'animate-spin' : ''}`} />
-          Làm mới
-        </Button>
+        <div className="flex items-center gap-2">
+          <HelpButton screenKey="report-login-anomalies" />
+          <Button variant="outline" size="sm" onClick={() => void handleRefresh()} disabled={eventsLoading || suspiciousLoading || statsLoading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${eventsLoading || suspiciousLoading || statsLoading ? 'animate-spin' : ''}`} />
+            Làm mới
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-5">
