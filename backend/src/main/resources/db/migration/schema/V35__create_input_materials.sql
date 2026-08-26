@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS input_materials (
     updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT pk_input_materials PRIMARY KEY (id),
     CONSTRAINT uk_material_name_ingredient UNIQUE (name, active_ingredient)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB;
 
 CREATE INDEX idx_input_materials_group ON input_materials(material_group);
 CREATE INDEX idx_input_materials_active ON input_materials(is_active);
@@ -26,4 +26,4 @@ CREATE TABLE IF NOT EXISTS input_material_crop_types (
     CONSTRAINT pk_input_material_crop_types PRIMARY KEY (material_id, crop_category_id),
     CONSTRAINT fk_imct_material FOREIGN KEY (material_id) REFERENCES input_materials(id) ON DELETE CASCADE,
     CONSTRAINT fk_imct_crop FOREIGN KEY (crop_category_id) REFERENCES product_categories(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB;
