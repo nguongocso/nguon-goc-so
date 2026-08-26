@@ -4,6 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import {
   Clock,
@@ -22,6 +28,9 @@ import {
   Info,
   PackageCheck,
   Image as ImageIcon,
+  ZoomIn,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { getInputMaterialById, toggleInputMaterialStatus } from '@/api/inputMaterialApi';
 import { MaterialGroup, MATERIAL_GROUP_VARIANTS } from '@/enums/materialGroup';
@@ -37,6 +46,9 @@ export const InputMaterialDetailPage = () => {
 
   // Delete Dialog state
   const [showDeleteDialog, setShowDeleteDialog] = useState<boolean>(false);
+
+  // Lightbox Zoom Modal state
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -264,7 +276,7 @@ export const InputMaterialDetailPage = () => {
               </CardTitle>
               {material.imageUrls && material.imageUrls.length > 0 && (
                 <Badge variant="secondary" className="text-xs font-normal">
-                  {material.imageUrls.length} hình ảnh
+                  {material.imageUrls.length} hình ảnh (bấm để xem to)
                 </Badge>
               )}
             </CardHeader>
@@ -274,13 +286,18 @@ export const InputMaterialDetailPage = () => {
                   {material.imageUrls.map((imgSrc, idx) => (
                     <div
                       key={idx}
-                      className="group relative aspect-square rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm bg-gray-50 dark:bg-gray-900"
+                      onClick={() => setSelectedImageIndex(idx)}
+                      className="group relative aspect-square rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm bg-gray-50 dark:bg-gray-900 cursor-pointer"
+                      title="Bấm để phóng to xem ảnh"
                     >
                       <img
                         src={imgSrc}
                         alt={`${material.name} - Ảnh ${idx + 1}`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                       />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                        <ZoomIn className="h-6 w-6" />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -391,6 +408,67 @@ export const InputMaterialDetailPage = () => {
         }}
         material={material}
       />
+
+      {/* Image Lightbox Modal (Phóng to xem ảnh) */}
+      <Dialog open={selectedImageIndex !== null} onOpenChange={(v) => !v && setSelectedImageIndex(null)}>
+        <DialogContent className="max-w-4xl max-h-[92vh] p-4 flex flex-col items-center justify-center bg-gray-950/95 border-gray-800 text-white">
+          <DialogHeader className="w-full flex flex-row items-center justify-between border-b border-gray-800 pb-3 mb-2">
+            <DialogTitle className="text-sm font-semibold text-gray-200 flex items-center gap-2">
+              <ImageIcon className="h-4 w-4 text-emerald-400" />
+              <span>{material.name}</span>
+              {material.imageUrls && material.imageUrls.length > 1 && (
+                <span className="text-xs text-gray-400 font-normal">
+                  (Ảnh {selectedImageIndex !== null ? selectedImageIndex + 1 : 0} / {material.imageUrls.length})
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+
+          {selectedImageIndex !== null && material.imageUrls && material.imageUrls[selectedImageIndex] && (
+            <div className="relative w-full flex items-center justify-center overflow-hidden my-auto py-2">
+              <img
+                src={material.imageUrls[selectedImageIndex]}
+                alt={`${material.name} - Phóng to`}
+                className="max-h-[75vh] w-auto object-contain rounded-lg shadow-2xl transition-all"
+              />
+
+              {/* Button xem ảnh trước */}
+              {material.imageUrls.length > 1 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() =>
+                    setSelectedImageIndex((prev) =>
+                      prev !== null && prev > 0 ? prev - 1 : material.imageUrls!.length - 1
+                    )
+                  }
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white rounded-full h-10 w-10 shadow-md"
+                  title="Xem ảnh trước"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </Button>
+              )}
+
+              {/* Button xem ảnh sau */}
+              {material.imageUrls.length > 1 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() =>
+                    setSelectedImageIndex((prev) =>
+                      prev !== null && prev < material.imageUrls!.length - 1 ? prev + 1 : 0
+                    )
+                  }
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white rounded-full h-10 w-10 shadow-md"
+                  title="Xem ảnh kế tiếp"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </Button>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
