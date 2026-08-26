@@ -562,51 +562,9 @@ export const ProductionLotDetailPage = () => {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex gap-2">
-          {canRecordHarvest &&
-            lot.status === "APPROVED" &&
-            !showHarvestForm && (
-              <Button
-                onClick={() => setShowHarvestForm(true)}
-                variant="create"
-              >
-                <Sprout className="h-4 w-4 mr-1" />
-                Ghi nhận thu hoạch
-              </Button>
-            )}
-          {canRecordPreprocessing && (
-            <Button
-              onClick={() =>
-                navigate(
-                  `/preprocessing-events/create?productionLotId=${encodeURIComponent(lot.id)}`,
-                )
-              }
-              variant="create"
-            >
-              <Wheat className="h-4 w-4 mr-1" />
-              Ghi sơ chế
-            </Button>
-          )}
-          {canRecordPackaging && (
-            <Button
-              onClick={() =>
-                navigate(`/packaging-events/create?productionLotId=${lot.id}`)
-              }
-              variant="create"
-            >
-              <Package className="h-4 w-4 mr-1" />
-              Ghi đóng gói
-            </Button>
-          )}
-          <HelpButton screenKey="production-lot-detail" />
-        </div>
-      </div>
-
       {/* Thông tin chính */}
       <Card className="border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm">
-        <CardHeader className="flex flex-row items-start justify-between pb-4">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
           <div>
             <CardTitle className="text-xl font-bold text-emerald-800">
               {lot.name}
@@ -615,7 +573,43 @@ export const ProductionLotDetailPage = () => {
               Mã lô: {maskId(lot.id)}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <HelpButton screenKey="production-lot-detail" />
+            {canRecordHarvest &&
+              lot.status === "APPROVED" &&
+              !showHarvestForm && (
+                <Button
+                  onClick={() => setShowHarvestForm(true)}
+                  variant="create"
+                >
+                  <Sprout className="h-4 w-4 mr-1" />
+                  Ghi nhận thu hoạch
+                </Button>
+              )}
+            {canRecordPreprocessing && (
+              <Button
+                onClick={() =>
+                  navigate(
+                    `/preprocessing-events/create?productionLotId=${encodeURIComponent(lot.id)}`,
+                  )
+                }
+                variant="create"
+              >
+                <Wheat className="h-4 w-4 mr-1" />
+                Ghi sơ chế
+              </Button>
+            )}
+            {canRecordPackaging && (
+              <Button
+                onClick={() =>
+                  navigate(`/packaging-events/create?productionLotId=${lot.id}`)
+                }
+                variant="create"
+              >
+                <Package className="h-4 w-4 mr-1" />
+                Ghi đóng gói
+              </Button>
+            )}
             {getStatusBadge(lot.status)}
           </div>
         </CardHeader>

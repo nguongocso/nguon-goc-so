@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { HelpButton } from "@/components/help/HelpButton";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -265,6 +266,7 @@ export const MemberList = () => {
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
+                <HelpButton screenKey="member-permissions" />
                 <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
                   {filteredMembers.length} kết quả
                 </span>
