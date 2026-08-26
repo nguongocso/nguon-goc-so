@@ -46,3 +46,6 @@ backend/src/main/resources/application-local.properties
 docker-compose.override.yml
 .env
 !.env.example
+
+# Cache du lieu nguon cua scripts/generate-admin-units.mjs
+scripts/.cache-vn-admin-units.json
