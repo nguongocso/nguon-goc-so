@@ -36,6 +36,7 @@ import CreateCodeRangePage from "@/pages/admin/CreateCodeRangePage";
 import CodeRangeListPage from "@/pages/admin/CodeRangeListPage";
 import ProductCategoryManagementPage from "@/pages/admin/ProductCategoryManagementPage";
 import InputMaterialManagementPage from "@/pages/admin/InputMaterialManagementPage";
+import { InputMaterialDetailPage } from "@/pages/admin/InputMaterialDetailPage";
 import StandardManagementPage from "@/pages/admin/StandardManagementPage";
 import CriteriaManagementPage from "@/pages/admin/CriteriaManagementPage";
 import SuspectTraceCodeListPage from "@/pages/admin/SuspectTraceCodeListPage";
@@ -638,6 +639,15 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-01"]}>
                         <InputMaterialManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/input-materials/:id"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <InputMaterialDetailPage />
                     </RoleRoute>
                 }
             />

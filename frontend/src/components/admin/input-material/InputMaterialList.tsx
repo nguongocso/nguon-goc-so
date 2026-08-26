@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import {
   Table,
   TableBody,
@@ -10,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
-import { Edit2, Trash2, Clock, ShieldAlert, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit2, Trash2, Clock, ShieldAlert, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { MATERIAL_GROUP_VARIANTS } from '@/enums/materialGroup';
 import type { InputMaterial } from '@/types/inputMaterial';
 
@@ -39,6 +40,8 @@ export const InputMaterialList = ({
   onDelete,
   canManage,
 }: Props) => {
+  const navigate = useNavigate();
+
   if (loading) {
     return (
       <Card className="shadow-sm">
@@ -74,14 +77,12 @@ export const InputMaterialList = ({
             <TableHeader className="bg-gray-50/80 dark:bg-gray-900/50">
               <TableRow>
                 <TableHead className="w-[60px] text-center font-semibold">STT</TableHead>
-                <TableHead className="min-w-[180px] font-semibold">Tên vật tư & Hoạt chất</TableHead>
+                <TableHead className="min-w-[200px] font-semibold">Tên vật tư</TableHead>
                 <TableHead className="min-w-[150px] font-semibold">Nhóm vật tư</TableHead>
                 <TableHead className="w-[100px] text-center font-semibold">Đơn vị</TableHead>
                 <TableHead className="min-w-[140px] text-center font-semibold">Thời gian cách ly (PHI)</TableHead>
-                <TableHead className="min-w-[160px] font-semibold">Nông sản áp dụng</TableHead>
-                <TableHead className="min-w-[180px] font-semibold">Nguồn quy định</TableHead>
                 <TableHead className="w-[110px] text-center font-semibold">Trạng thái</TableHead>
-                {canManage && <TableHead className="w-[100px] text-center font-semibold">Thao tác</TableHead>}
+                <TableHead className="w-[140px] text-center font-semibold">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -94,14 +95,17 @@ export const InputMaterialList = ({
                       {page * 20 + index + 1}
                     </TableCell>
 
-                    {/* Tên vật tư & Hoạt chất */}
+                    {/* Tên vật tư */}
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                        <span
+                          className="font-semibold text-gray-900 dark:text-gray-100 hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer"
+                          onClick={() => navigate(`/admin/input-materials/${item.id}`)}
+                        >
                           {item.name}
                         </span>
                         {item.activeIngredient && (
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-muted-foreground truncate max-w-[240px]">
                             Hoạt chất: <span className="italic">{item.activeIngredient}</span>
                           </span>
                         )}
@@ -131,32 +135,6 @@ export const InputMaterialList = ({
                       </div>
                     </TableCell>
 
-                    {/* Nông sản áp dụng */}
-                    <TableCell>
-                      {item.applyToAllCrops ? (
-                        <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded">
-                          Tất cả nông sản
-                        </span>
-                      ) : item.applicableCropTypes && item.applicableCropTypes.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {item.applicableCropTypes.map((c) => (
-                            <Badge key={c.id} variant="secondary" className="text-[11px] px-1.5 py-0">
-                              {c.name}
-                            </Badge>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Chưa chỉ định</span>
-                      )}
-                    </TableCell>
-
-                    {/* Nguồn quy định tham chiếu */}
-                    <TableCell>
-                      <span className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2" title={item.referenceSource || ''}>
-                        {item.referenceSource || '—'}
-                      </span>
-                    </TableCell>
-
                     {/* Trạng thái */}
                     <TableCell className="text-center">
                       {canManage ? (
@@ -175,30 +153,43 @@ export const InputMaterialList = ({
                     </TableCell>
 
                     {/* Thao tác */}
-                    {canManage && (
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onEdit(item)}
-                            className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/50"
-                            title="Chỉnh sửa vật tư"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onDelete(item)}
-                            className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
-                            title="Xóa vật tư"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    )}
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        {/* Nút Xem chi tiết */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => navigate(`/admin/input-materials/${item.id}`)}
+                          className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
+                          title="Xem chi tiết vật tư"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+
+                        {canManage && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onEdit(item)}
+                              className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/50"
+                              title="Chỉnh sửa vật tư"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onDelete(item)}
+                              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
+                              title="Xóa vật tư"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
                   </TableRow>
                 );
               })}
