@@ -35,6 +35,7 @@ import RecordTransportEventPage from "@/pages/transport-event/RecordTransportEve
 import CreateCodeRangePage from "@/pages/admin/CreateCodeRangePage";
 import CodeRangeListPage from "@/pages/admin/CodeRangeListPage";
 import ProductCategoryManagementPage from "@/pages/admin/ProductCategoryManagementPage";
+import InputMaterialManagementPage from "@/pages/admin/InputMaterialManagementPage";
 import StandardManagementPage from "@/pages/admin/StandardManagementPage";
 import CriteriaManagementPage from "@/pages/admin/CriteriaManagementPage";
 import SuspectTraceCodeListPage from "@/pages/admin/SuspectTraceCodeListPage";
@@ -628,6 +629,15 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-01"]}>
                         <ProductCategoryManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/input-materials"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <InputMaterialManagementPage />
                     </RoleRoute>
                 }
             />
