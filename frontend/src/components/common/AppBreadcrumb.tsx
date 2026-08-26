@@ -174,7 +174,6 @@ function matchTemplate(
  * chữ thường, không có liên kết để tránh link 404.
  */
 const GROUP_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
-  ["/admin", "Quản trị"],
   ["/reports", "Báo cáo"],
   ["/permissions", "Phân quyền"],
   ["/alerts", "Cảnh báo"],
@@ -226,10 +225,11 @@ export function buildAutoBreadcrumb(pathname: string): BreadcrumbItem[] {
         href: prefix,
       });
     } else {
-      // Không phải route thật (vd /permissions, /reports) -> chỉ hiện nhãn
-      items.push({
-        label: matchTemplate(prefix, GROUP_TEMPLATES) ?? fallbackLabel,
-      });
+      // Không phải route thật -> chỉ hiện nhãn nếu có trong GROUP_TEMPLATES
+      const groupLabel = matchTemplate(prefix, GROUP_TEMPLATES);
+      if (groupLabel) {
+        items.push({ label: groupLabel });
+      }
     }
   }
   return items;

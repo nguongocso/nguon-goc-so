@@ -32,7 +32,6 @@ import {
 } from 'lucide-react';
 import { getInputMaterialById, toggleInputMaterialStatus } from '@/api/inputMaterialApi';
 import { MaterialGroup, MATERIAL_GROUP_VARIANTS } from '@/enums/materialGroup';
-import { InputMaterialDeleteDialog } from '@/components/admin/input-material/InputMaterialDeleteDialog';
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import type { InputMaterial } from '@/types/inputMaterial';
 
@@ -43,9 +42,6 @@ export const InputMaterialDetailPage = () => {
   const [material, setMaterial] = useState<InputMaterial | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Delete Dialog state
-  const [showDeleteDialog, setShowDeleteDialog] = useState<boolean>(false);
-
   // Lightbox Zoom Modal state
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
@@ -53,7 +49,6 @@ export const InputMaterialDetailPage = () => {
     material
       ? [
           { label: 'Dashboard', href: '/dashboard' },
-          { label: 'Quản trị' },
           { label: 'Danh mục vật tư', href: '/admin/input-materials' },
           { label: material.name },
         ]
@@ -142,26 +137,6 @@ export const InputMaterialDetailPage = () => {
               Thông tin chi tiết quy định sử dụng và thời gian cách ly an toàn (PHI)
             </p>
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate(`/admin/input-materials/${material.id}/edit`)}
-            className="h-9 px-3 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
-          >
-            Chỉnh sửa
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowDeleteDialog(true)}
-            className="h-9 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-          >
-            Xóa
-          </Button>
         </div>
       </div>
 
@@ -401,17 +376,6 @@ export const InputMaterialDetailPage = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Delete Dialog */}
-      <InputMaterialDeleteDialog
-        open={showDeleteDialog}
-        onClose={() => setShowDeleteDialog(false)}
-        onSuccess={() => {
-          toast.success('Đã xóa vật tư thành công');
-          navigate('/admin/input-materials');
-        }}
-        material={material}
-      />
 
       {/* Image Lightbox Modal (Phóng to xem ảnh) */}
       <Dialog open={selectedImageIndex !== null} onOpenChange={(v) => !v && setSelectedImageIndex(null)}>
