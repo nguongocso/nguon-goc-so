@@ -59,7 +59,7 @@ export function CorrectPackagingForm() {
   };
 
   return (
-    <Card className="max-w-4xl mx-auto">
+    <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
       <CardHeader>
         <CardTitle>Đính chính sự kiện đóng gói</CardTitle>
         <CardDescription>Cập nhật thông tin đóng gói (sự kiện gốc sẽ được giữ nguyên).</CardDescription>

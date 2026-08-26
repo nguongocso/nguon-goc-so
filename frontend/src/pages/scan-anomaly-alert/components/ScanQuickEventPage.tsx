@@ -197,7 +197,7 @@ export default function ScanQuickEventPage() {
     (cameraState.step === "scanning" || cameraState.step === "camera-error");
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -212,7 +212,7 @@ export default function ScanQuickEventPage() {
         <HelpButton screenKey="scan-quick-event" />
       </div>
 
-      <Card>
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
         <CardContent className="space-y-4 pt-6">
         {showCamera && (
           <>
