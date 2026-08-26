@@ -18,6 +18,8 @@ import vn.nguongocso.farm.repository.FarmLogRepository;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
+import vn.nguongocso.organization.service.AreaScopeResult;
+import vn.nguongocso.organization.service.AreaScopeService;
 import vn.nguongocso.export.dto.response.Qtn11ErrorDetailDto;
 import vn.nguongocso.report.dto.response.OpenDataExportDto;
 import vn.nguongocso.report.dto.response.OpenDataExportDto.*;
@@ -47,6 +49,7 @@ public class OpenDataExportServiceImpl implements OpenDataExportService {
     private final ShipmentRepository shipmentRepository;
     private final ChainEventRepository chainEventRepository;
     private final ReportAccessLogService reportAccessLogService;
+    private final AreaScopeService areaScopeService;
     private final ObjectMapper objectMapper;
 
     private static final String REGULATOR_ROLE = "VT-05";
@@ -66,7 +69,7 @@ public class OpenDataExportServiceImpl implements OpenDataExportService {
      */
     @Override
     @Transactional(readOnly = true)
-    public byte[] exportOpenData(String region, LocalDate fromDate, LocalDate toDate, String format,
+    public byte[] exportOpenData(String region, List<UUID> unitIds, LocalDate fromDate, LocalDate toDate, String format,
             CustomUserDetails currentUser, String ipAddress) {
         // 1. Phân quyền kiểm tra bảo mật (VT-05)
         validateRole(currentUser, ipAddress);
@@ -75,8 +78,32 @@ public class OpenDataExportServiceImpl implements OpenDataExportService {
         validateParams(region, fromDate, toDate, format);
 
         try {
-            // 3. Tìm các tổ chức thuộc địa bàn
-            List<Organization> organizations = organizationRepository.findByAddressContainingIgnoreCase(region);
+            // 3. Phạm vi địa bàn được phép xem (rule bảo mật số 1 NCL-670):
+            // VT-05 chưa được gán địa bàn nào => dataset rỗng, KHÔNG BAO GIỜ xuất toàn bộ.
+            AreaScopeResult scope = areaScopeService.resolveOrganizationsForReports(currentUser, unitIds);
+            if (scope.isEmptyScope()) {
+                reportAccessLogService.logAccess(
+                        currentUser.getUserId(),
+                        currentUser.getOrganizationId(),
+                        currentUser.getOrganizationId(),
+                        REPORT_NAME,
+                        true,
+                        ipAddress);
+                return renderEmptyDataset(format);
+            }
+
+            // 4. Tìm các tổ chức thuộc địa bàn
+            List<Organization> organizations =
+                    (region == null || region.isBlank())
+                            ? organizationRepository.findAll()
+                            : organizationRepository.findByAddressContainingIgnoreCase(region);
+
+            if (!scope.isAll()) {
+                organizations = organizations.stream()
+                        .filter(org -> scope.getOrganizationIds().contains(org.getOrganizationId()))
+                        .toList();
+            }
+
             if (organizations.isEmpty()) {
                 throw new BusinessException(EMPTY_DATA_MESSAGE);
             }
@@ -288,9 +315,8 @@ public class OpenDataExportServiceImpl implements OpenDataExportService {
     }
 
     private void validateParams(String region, LocalDate fromDate, LocalDate toDate, String format) {
-        if (region == null || region.isBlank()) {
-            throw new BusinessException("Tham số địa bàn không được để trống.");
-        }
+        // region tuỳ chọn từ NCL-743: cán bộ đã được gán địa bàn có thể xuất toàn
+        // bộ phạm vi của mình mà không cần nhập chuỗi địa bàn.
         if (fromDate == null || toDate == null || fromDate.isAfter(toDate)) {
             throw new BusinessException("Khoảng thời gian không hợp lệ.");
         }
@@ -298,6 +324,30 @@ public class OpenDataExportServiceImpl implements OpenDataExportService {
                 && !format.equalsIgnoreCase("CSV"))) {
             throw new BusinessException("Định dạng xuất dữ liệu không hợp lệ.");
         }
+    }
+
+    /**
+     * Dataset rỗng đúng cấu trúc từng định dạng — dùng cho VT-05 chưa được gán
+     * địa bàn nào (HTTP 200, không bao giờ trả dữ liệu ngoài phạm vi).
+     */
+    private byte[] renderEmptyDataset(String format) {
+        if ("XML".equalsIgnoreCase(format)) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+            sb.append("<OpenDataExport>\n");
+            sb.append("  <ProductionLots>\n");
+            sb.append("  </ProductionLots>\n");
+            sb.append("</OpenDataExport>");
+            return sb.toString().getBytes(StandardCharsets.UTF_8);
+        }
+        if ("CSV".equalsIgnoreCase(format)) {
+            StringBuilder sb = new StringBuilder();
+            sb.append('\ufeff');
+            sb.append(
+                    "lotId,lotCode,productCategory,expectedQuantity,expectedQuantityUnit,actualQuantity,plantingDate,harvestDate,status,organizationName,organizationAddress,farmAreaName,totalFarmLogs,totalShipments\n");
+            return sb.toString().getBytes(StandardCharsets.UTF_8);
+        }
+        return "[]".getBytes(StandardCharsets.UTF_8);
     }
 
     private Qtn11ErrorDetailDto checkLotQTN11Detail(ProductionLot lot, Map<UUID, List<FarmLog>> logsByLot,

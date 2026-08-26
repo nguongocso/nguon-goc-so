@@ -35,6 +35,7 @@ public class CropAreaAnalysisController {
             @RequestParam(required = false) UUID farmAreaId,
             @RequestParam(required = false) UUID productCategoryId,
             @RequestParam(required = false) UUID organizationId,
+            @RequestParam(required = false) List<UUID> unitIds,
             @AuthenticationPrincipal CustomUserDetails currentUser,
             HttpServletRequest request) {
 
@@ -45,6 +46,7 @@ public class CropAreaAnalysisController {
                 farmAreaId,
                 productCategoryId,
                 organizationId,
+                unitIds,
                 currentUser,
                 ipAddress);
 
@@ -60,6 +62,7 @@ public class CropAreaAnalysisController {
             @RequestParam(required = false) UUID farmAreaId,
             @RequestParam(required = false) UUID productCategoryId,
             @RequestParam(required = false) UUID organizationId,
+            @RequestParam(required = false) List<UUID> unitIds,
             @AuthenticationPrincipal CustomUserDetails currentUser,
             HttpServletRequest request) {
 
@@ -70,6 +73,7 @@ public class CropAreaAnalysisController {
                 farmAreaId,
                 productCategoryId,
                 organizationId,
+                unitIds,
                 currentUser,
                 ipAddress);
 

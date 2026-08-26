@@ -16,6 +16,8 @@ import vn.nguongocso.farm.entity.ProductCategory;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.organization.entity.Organization;
+import vn.nguongocso.organization.service.AreaScopeResult;
+import vn.nguongocso.organization.service.AreaScopeService;
 import vn.nguongocso.report.dto.response.CropAreaAnalysisResponse;
 import vn.nguongocso.report.service.impl.CropAreaAnalysisServiceImpl;
 
@@ -38,6 +40,9 @@ public class CropAreaAnalysisServiceTest {
 
     @Mock
     private ReportAccessLogService reportAccessLogService;
+
+    @Mock
+    private AreaScopeService areaScopeService;
 
     @InjectMocks
     private CropAreaAnalysisServiceImpl cropAreaAnalysisService;
@@ -73,6 +78,10 @@ public class CropAreaAnalysisServiceTest {
         lenient().when(managerDetails.getUserId()).thenReturn(userId);
         lenient().when(managerDetails.getOrganizationId()).thenReturn(userOrgId);
         lenient().when(managerDetails.getRoleCode()).thenReturn("VT-02");
+
+        // Mặc định cho phép xem toàn bộ (kịch bản VT-01 không lọc unitIds)
+        lenient().when(areaScopeService.resolveOrganizationsForReports(any(), any()))
+                .thenReturn(AreaScopeResult.all());
     }
 
     @Test
@@ -134,7 +143,7 @@ public class CropAreaAnalysisServiceTest {
 
         // When
         CropAreaAnalysisResponse response = cropAreaAnalysisService.getAnalysis(
-                year, null, null, null, regulatorDetails, ipAddress);
+                year, null, null, null, null, regulatorDetails, ipAddress);
 
         // Then
         // 1. Kiểm tra ghi log thành công
@@ -170,7 +179,7 @@ public class CropAreaAnalysisServiceTest {
 
         // When & Then
         assertThatThrownBy(() -> cropAreaAnalysisService.getAnalysis(
-                2026, null, null, null, managerDetails, ipAddress))
+                2026, null, null, null, null, managerDetails, ipAddress))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("Bạn không có quyền truy cập báo cáo phân tích ngành.");
 
@@ -191,7 +200,7 @@ public class CropAreaAnalysisServiceTest {
 
         // When
         CropAreaAnalysisResponse response = cropAreaAnalysisService.getAnalysis(
-                2026, null, null, null, adminDetails, ipAddress);
+                2026, null, null, null, null, adminDetails, ipAddress);
 
         // Then
         verify(reportAccessLogService).logAccess(userId, userOrgId, userOrgId, "CROP_AREA_ANALYSIS", true, ipAddress);
