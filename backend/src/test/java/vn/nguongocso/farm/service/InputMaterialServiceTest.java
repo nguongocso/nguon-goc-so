@@ -33,6 +33,9 @@ import vn.nguongocso.farm.repository.InputMaterialRepository;
 import vn.nguongocso.farm.repository.ProductCategoryRepository;
 import vn.nguongocso.farm.service.impl.InputMaterialServiceImpl;
 
+/**
+ * Unit Test kiểm thử các kịch bản nghiệp vụ quản lý danh mục vật tư (US NCL-09-CN-010).
+ */
 @ExtendWith(MockitoExtension.class)
 class InputMaterialServiceTest {
 
