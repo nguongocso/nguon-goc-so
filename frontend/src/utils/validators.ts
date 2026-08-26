@@ -21,6 +21,39 @@ export const loginSchema = z.object({
 
 export type LoginFormValues = z.infer<typeof loginSchema>;
 
+// ============================================================
+// Forgot Password & Reset Password (NCL-01-CN-008)
+// ============================================================
+
+export const forgotPasswordSchema = z.object({
+  emailOrUsername: z
+    .string()
+    .min(1, "Vui lòng nhập tên đăng nhập hoặc email"),
+});
+
+export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z
+  .object({
+    newPassword: z
+      .string()
+      .min(8, "Mật khẩu phải có ít nhất 8 ký tự")
+      .max(50, "Mật khẩu không được vượt quá 50 ký tự")
+      .regex(
+        PASSWORD_REGEX,
+        "Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt"
+      ),
+    confirmPassword: z
+      .string()
+      .min(1, "Vui lòng xác nhận mật khẩu mới"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Mật khẩu xác nhận không khớp",
+    path: ["confirmPassword"],
+  });
+
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+
 
 // ============================================================
 // Organization Profile

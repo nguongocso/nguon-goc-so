@@ -12,14 +12,18 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import vn.nguongocso.auth.dto.request.ForgotPasswordRequest;
 import vn.nguongocso.auth.dto.request.LoginRequest;
+import vn.nguongocso.auth.dto.request.ResetPasswordRequest;
 import vn.nguongocso.auth.dto.request.SelectOrganizationRequest;
 import vn.nguongocso.auth.dto.response.LoginResponse;
 import vn.nguongocso.auth.dto.response.OrganizationSelectionResponse;
 import vn.nguongocso.auth.dto.response.SelectOrganizationResponse;
 import vn.nguongocso.auth.dto.response.UserProfileResponse;
+import vn.nguongocso.auth.dto.response.ValidateResetTokenResponse;
 import vn.nguongocso.auth.service.AuthService;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.auth.service.PasswordResetService;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.permission.service.PermissionChecker;
@@ -32,6 +36,7 @@ import vn.nguongocso.permission.service.PermissionChecker;
  * </p>
  * <ul>
  *     <li>Đăng nhập bằng username/password.</li>
+ *     <li>Quên mật khẩu và đặt lại mật khẩu.</li>
  *     <li>Lấy thông tin user hiện tại.</li>
  *     <li>Lấy danh sách organization mà user có thể lựa chọn.</li>
  *     <li>Lựa chọn organization sau khi đăng nhập.</li>
@@ -44,6 +49,7 @@ import vn.nguongocso.permission.service.PermissionChecker;
 public class AuthController {
 
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
     private final PermissionChecker permissionChecker;
 
     /**
@@ -70,6 +76,56 @@ public class AuthController {
                 ApiResult.success(
                         authService.login(request)
                 )
+        );
+    }
+
+    /**
+     * Tiếp nhận yêu cầu đặt lại mật khẩu và gửi email hướng dẫn (NCL-01-CN-008).
+     * Luôn trả về 200 OK để chống dò quét tài khoản.
+     *
+     * @param request chứa email hoặc username
+     * @return kết quả thông báo chung
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResult<Void>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+
+        passwordResetService.requestPasswordReset(request);
+        return ResponseEntity.ok(
+                ApiResult.success(200, null)
+        );
+    }
+
+    /**
+     * Kiểm tra token đặt lại mật khẩu có hợp lệ và còn thời hạn hay không (NCL-01-CN-008).
+     *
+     * @param token chuỗi token từ URL
+     * @return trạng thái hợp lệ của token
+     */
+    @GetMapping("/reset-password/validate")
+    public ResponseEntity<ApiResult<ValidateResetTokenResponse>> validateResetToken(
+            @RequestParam("token") String token) {
+
+        return ResponseEntity.ok(
+                ApiResult.success(
+                        passwordResetService.validateToken(token)
+                )
+        );
+    }
+
+    /**
+     * Đặt lại mật khẩu mới bằng token đã xác thực (NCL-01-CN-008).
+     *
+     * @param request chứa token, mật khẩu mới và xác nhận mật khẩu
+     * @return kết quả đặt lại mật khẩu
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResult<Void>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+
+        passwordResetService.resetPassword(request);
+        return ResponseEntity.ok(
+                ApiResult.success(200, null)
         );
     }
 

@@ -15,6 +15,8 @@ import { useAuth } from "@/hooks/useAuth";
 // ===== Auth =====
 import LoginPage from "@/pages/auth/LoginPage";
 import OrganizationSelectionPage from "@/pages/auth/OrganizationSelectionPage";
+import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
 
 // ===== Pages – chung =====
 import { DashboardPage } from "@/pages/daskboard/DashboardPase";
@@ -269,6 +271,16 @@ const AppRoutes = () => (
         <Route
             path="/login"
             element={<LoginPage />}
+        />
+
+        <Route
+            path="/forgot-password"
+            element={<ForgotPasswordPage />}
+        />
+
+        <Route
+            path="/reset-password"
+            element={<ResetPasswordPage />}
         />
 
         {/*

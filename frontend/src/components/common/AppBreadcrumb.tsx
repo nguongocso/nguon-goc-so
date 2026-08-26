@@ -139,6 +139,8 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/recall-requests/:id", "Chi tiết yêu cầu thu hồi"],
   ["/recall-requests", "Yêu cầu thu hồi"],
   ["/product-feedbacks", "Phản hồi người dùng"],
+  ["/forgot-password", "Quên mật khẩu"],
+  ["/reset-password", "Đặt lại mật khẩu"],
 ];
 
 /** Tìm nhãn cho một tiền tố đường dẫn khớp với template trong danh sách cho trước. */
