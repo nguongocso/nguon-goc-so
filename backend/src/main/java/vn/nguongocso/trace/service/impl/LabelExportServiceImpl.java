@@ -28,6 +28,7 @@ import com.lowagie.text.Font;
 import com.lowagie.text.Image;
 import com.lowagie.text.PageSize;
 import com.lowagie.text.Phrase;
+import com.lowagie.text.pdf.BaseFont;
 import com.lowagie.text.pdf.ColumnText;
 import com.lowagie.text.pdf.PdfContentByte;
 import com.lowagie.text.pdf.PdfWriter;
@@ -81,6 +82,15 @@ public class LabelExportServiceImpl implements LabelExportService {
     private static final float LABEL_GAP_MM = 2f;
     private static final float LABEL_PADDING_MM = 1.5f;
     private static final int QR_PIXEL_SIZE = 300;
+
+    /** QR chiếm tối đa tỷ lệ này của cạnh ngắn hơn để chừa chỗ cho chữ (tránh cắt "..." mã truy xuất). */
+    private static final float QR_SIDE_RATIO = 0.62f;
+
+    /** Cỡ chữ nhỏ nhất khi co giãn để vừa bề rộng tem. */
+    private static final float MIN_FONT_SIZE = 3.5f;
+
+    /** Hệ số khoảng cách dòng theo cỡ chữ. */
+    private static final float LINE_HEIGHT_FACTOR = 1.35f;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
@@ -205,11 +215,9 @@ public class LabelExportServiceImpl implements LabelExportService {
             document.open();
             PdfContentByte cb = writer.getDirectContent();
 
-            float qrSide = Math.min(labelWidth, labelHeight) - 2 * padding;
-            float fontSize = clamp(labelHeight * 0.10f, 5f, 7f);
-            float lineHeight = fontSize * 1.4f;
-            Font codeFont = new Font(Font.HELVETICA, fontSize, Font.BOLD);
-            Font infoFont = new Font(Font.HELVETICA, fontSize, Font.NORMAL);
+            // QR chiếm tối đa 62% cạnh ngắn hơn của tem, phần còn lại dành cho chữ
+            float qrSide = Math.min(labelWidth, labelHeight) * QR_SIDE_RATIO;
+            float preferredSize = clamp(labelHeight * 0.10f, 5f, 7f);
             float textXOffset = padding * 2 + qrSide;
             float textMaxWidth = labelWidth - textXOffset - padding;
 
@@ -235,7 +243,7 @@ public class LabelExportServiceImpl implements LabelExportService {
                 drawLabel(cb, codes.get(i), shipment, fields,
                         x, yBottom, labelWidth, labelHeight,
                         qrSide, padding, textXOffset, textMaxWidth,
-                        lineHeight, codeFont, infoFont);
+                        preferredSize);
             }
 
             document.close();
@@ -249,12 +257,18 @@ public class LabelExportServiceImpl implements LabelExportService {
 
     /**
      * Vẽ một tem: ảnh QR bên trái, thông tin chữ bên phải.
+     *
+     * <p>
+     * Mã truy xuất không bao giờ bị cắt bằng "..." — cỡ chữ được co lại để vừa
+     * bề rộng tem. Các trường thông tin phụ được ngắt dòng theo từ khi cần và
+     * chỉ dùng "..." làm phương án cuối cùng.
+     * </p>
      */
     private void drawLabel(PdfContentByte cb, TraceCode traceCode, Shipment shipment,
             ExportLabelsRequest.IncludeFields fields,
             float x, float yBottom, float labelWidth, float labelHeight,
             float qrSide, float padding, float textXOffset, float textMaxWidth,
-            float lineHeight, Font codeFont, Font infoFont) throws WriterException, java.io.IOException {
+            float preferredSize) throws WriterException, java.io.IOException {
         // Ảnh QR mã hóa URL tra cứu công khai
         String qrUrl = buildTraceUrl(traceCode.getCodeValue());
         byte[] qrBytes = createQrPng(qrUrl, Math.max(QR_PIXEL_SIZE, (int) qrSide));
@@ -280,17 +294,58 @@ public class LabelExportServiceImpl implements LabelExportService {
             lines.add(new String[] { "PKG: " + DATE_FORMATTER.format(shipment.getCreatedAt()), "normal" });
         }
 
-        float yText = yBottom + labelHeight - padding - lineHeight;
-        for (String[] line : lines) {
-            if (yText < yBottom + padding) {
-                break; // Hết chỗ trong tem
+        try {
+            BaseFont boldBf = BaseFont.createFont(BaseFont.HELVETICA_BOLD,
+                    BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
+            BaseFont normBf = BaseFont.createFont(BaseFont.HELVETICA,
+                    BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
+
+            float topY = yBottom + labelHeight - padding;
+            float bottomLimit = yBottom + padding;
+
+            for (String[] line : lines) {
+                boolean bold = "bold".equals(line[1]);
+                BaseFont bf = bold ? boldBf : normBf;
+                int style = bold ? Font.BOLD : Font.NORMAL;
+
+                List<String> segments;
+                float size;
+                if (bold) {
+                    // Mã truy xuất: chỉ co cỡ chữ để vừa bề rộng, KHÔNG cắt "..."
+                    size = fitFontSize(line[0], bf, textMaxWidth, preferredSize, MIN_FONT_SIZE);
+                    segments = List.of(line[0]);
+                } else {
+                    segments = wrapText(line[0], bf, preferredSize, textMaxWidth);
+                    // Co cỡ chữ dùng chung nếu vẫn còn đoạn vượt bề rộng
+                    size = preferredSize;
+                    for (String seg : segments) {
+                        size = Math.min(size,
+                                fitFontSize(seg, bf, textMaxWidth, preferredSize, MIN_FONT_SIZE));
+                    }
+                    // Phương án cuối cùng cho trường phụ: cắt "..."
+                    List<String> fitted = new ArrayList<>(segments.size());
+                    for (String seg : segments) {
+                        if (bf.getWidthPoint(seg, size) > textMaxWidth) {
+                            seg = ellipsize(seg, bf, size, textMaxWidth);
+                        }
+                        fitted.add(seg);
+                    }
+                    segments = fitted;
+                }
+
+                Font font = new Font(Font.HELVETICA, size, style);
+                float lineHeight = size * LINE_HEIGHT_FACTOR;
+                for (String seg : segments) {
+                    if (topY - lineHeight < bottomLimit) {
+                        return; // Hết chỗ theo chiều dọc trong tem
+                    }
+                    ColumnText.showTextAligned(cb, Element.ALIGN_LEFT, new Phrase(seg, font),
+                            x + textXOffset, topY - lineHeight, 0);
+                    topY -= lineHeight;
+                }
             }
-            boolean bold = "bold".equals(line[1]);
-            Font font = bold ? codeFont : infoFont;
-            String text = truncate(line[0], font, textMaxWidth);
-            ColumnText.showTextAligned(cb, Element.ALIGN_LEFT, new Phrase(text, font),
-                    x + textXOffset, yText, 0);
-            yText -= lineHeight;
+        } catch (com.lowagie.text.DocumentException e) {
+            throw new java.io.IOException("Lỗi tải font cho PDF tem QR.", e);
         }
     }
 
@@ -320,18 +375,57 @@ public class LabelExportServiceImpl implements LabelExportService {
     }
 
     /**
-     * Cắt bớt văn bản nếu vượt quá chiều rộng cho phép.
+     * Tìm cỡ chữ lớn nhất (bước giảm 0.25pt) để văn bản vừa bề rộng cho phép.
      */
-    private String truncate(String text, Font font, float maxWidth) {
+    private float fitFontSize(String text, BaseFont bf, float maxWidth,
+            float preferredSize, float minSize) {
+        float size = preferredSize;
+        while (size > minSize && bf.getWidthPoint(text, size) > maxWidth) {
+            size -= 0.25f;
+        }
+        return Math.max(size, minSize);
+    }
+
+    /**
+     * Ngắt dòng văn bản theo từ để vừa bề rộng cho phép tại cỡ chữ cho trước.
+     * Văn bản không chứa khoảng trắng (ví dụ mã truy xuất) được giữ nguyên.
+     */
+    private List<String> wrapText(String text, BaseFont bf, float size, float maxWidth) {
+        List<String> result = new ArrayList<>();
+        if (bf.getWidthPoint(text, size) <= maxWidth || !text.contains(" ")) {
+            result.add(text);
+            return result;
+        }
+        StringBuilder current = new StringBuilder();
+        for (String word : text.split("\\s+")) {
+            String candidate = current.length() == 0 ? word : current + " " + word;
+            if (bf.getWidthPoint(candidate, size) <= maxWidth) {
+                current.setLength(0);
+                current.append(candidate);
+            } else {
+                if (current.length() > 0) {
+                    result.add(current.toString());
+                }
+                current.setLength(0);
+                current.append(word);
+            }
+        }
+        if (current.length() > 0) {
+            result.add(current.toString());
+        }
+        return result;
+    }
+
+    /**
+     * Cắt văn bản với dấu "..." — chỉ dùng làm phương án cuối cùng cho các
+     * trường thông tin phụ, không áp dụng cho mã truy xuất.
+     */
+    private String ellipsize(String text, BaseFont bf, float size, float maxWidth) {
         if (text == null || text.isEmpty() || maxWidth <= 0) {
             return "";
         }
-        if (font.getCalculatedBaseFont(true).getWidthPoint(text, font.getSize()) <= maxWidth) {
-            return text;
-        }
         String result = text;
-        while (result.length() > 1
-                && font.getCalculatedBaseFont(true).getWidthPoint(result + "...", font.getSize()) > maxWidth) {
+        while (result.length() > 1 && bf.getWidthPoint(result + "...", size) > maxWidth) {
             result = result.substring(0, result.length() - 1);
         }
         return result + "...";

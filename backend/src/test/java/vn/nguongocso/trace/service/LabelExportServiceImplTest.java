@@ -268,4 +268,22 @@ class LabelExportServiceImplTest {
         assertThat(response.getEndIndex()).isEqualTo(9);
         assertThat(new String(response.getPdfBytes(), 0, 4)).isEqualTo("%PDF");
     }
+
+    @Test
+    @DisplayName("Trường thông tin rất dài vẫn sinh PDF hợp lệ ở mọi khổ tem (co chữ/ngắt dòng)")
+    void exportLabels_longFieldValues_stillGeneratesPdf() {
+        organization.setName(
+                "Hop tac xa nong nghiep tong hop thi xa Son Tay va vung lan can dai nhat co the");
+        productionLot.getProductCategory()
+                .setName("Rau cu qua tuoi cac loai duoc trong theo tieu chuan VietGAP");
+        productionLot.setName("Lo san xuat vu dong xuan nam 2026 tai vung nguyen lieu Tay Bac");
+        stubHappyPath();
+
+        for (String labelSize : new String[] {"40x30", "50x40", "70x50"}) {
+            LabelExportResponse response = labelExportService.exportLabels(
+                    shipmentId, defaultRequest().count(3).labelSize(labelSize).build());
+            assertThat(response.getPdfBytes()).isNotNull();
+            assertThat(new String(response.getPdfBytes(), 0, 4)).isEqualTo("%PDF");
+        }
+    }
 }
