@@ -19,6 +19,7 @@ import OrganizationSelectionPage from "@/pages/auth/OrganizationSelectionPage";
 // ===== Pages – chung =====
 import { DashboardPage } from "@/pages/daskboard/DashboardPase";
 import { CreateFarmAreaPage } from "@/pages/farm-area/CreateFarmAreaPage";
+import { EditFarmAreaPage } from "@/pages/farm-area/EditFarmAreaPage";
 import CreateFarmLogPage from "@/pages/farm-log/CreateFarmLogPage";
 import ProductionLotEditPage from "@/pages/farm/ProductionLotEditPage";
 
@@ -390,6 +391,17 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.farmAreaCreate}
                     >
                         <CreateFarmAreaPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="farm-areas/:id/edit"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.farmAreaCreate}
+                    >
+                        <EditFarmAreaPage />
                     </RoleRoute>
                 }
             />
