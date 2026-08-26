@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   Info,
   PackageCheck,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { getInputMaterialById, toggleInputMaterialStatus } from '@/api/inputMaterialApi';
 import { MaterialGroup, MATERIAL_GROUP_VARIANTS } from '@/enums/materialGroup';
@@ -73,7 +74,7 @@ export const InputMaterialDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
+      <div className="p-6 w-full space-y-6">
         <Card className="shadow-sm">
           <CardContent className="p-12 text-center text-muted-foreground">
             <div className="flex flex-col items-center justify-center gap-3">
@@ -104,8 +105,8 @@ export const InputMaterialDetailPage = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6">
-      {/* Single Header Bar without duplicate back button */}
+    <div className="p-4 sm:p-6 w-full space-y-6">
+      {/* Top Header Bar without ID */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
@@ -113,10 +114,10 @@ export const InputMaterialDetailPage = () => {
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Chi tiết vật tư đầu vào
+              Chi tiết vật tư: {material.name}
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Mã định danh vật tư: <span className="font-mono">{material.id}</span>
+              Thông tin chi tiết quy định sử dụng và thời gian cách ly an toàn (PHI)
             </p>
           </div>
         </div>
@@ -192,7 +193,7 @@ export const InputMaterialDetailPage = () => {
       </Card>
 
       {/* Main Info Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Column 1: An toàn & Quy định */}
         <div className="space-y-6">
           {/* Card QTN-25 Pre-harvest Safety Alert */}
@@ -252,8 +253,31 @@ export const InputMaterialDetailPage = () => {
           </Card>
         </div>
 
-        {/* Column 2: Phạm vi áp dụng & Nhật ký */}
+        {/* Column 2: Hình ảnh vật tư & Phạm vi áp dụng */}
         <div className="space-y-6">
+          {/* Card Hình ảnh vật tư */}
+          <Card className="shadow-sm border-gray-200 dark:border-gray-800">
+            <CardHeader className="pb-3 border-b border-gray-100 dark:border-gray-800">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 text-blue-600" />
+                Hình ảnh sản phẩm & Vật tư
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center">
+                <div className={`p-5 rounded-2xl ${variant.bgClass} mb-3`}>
+                  {getGroupIcon(material.materialGroup)}
+                </div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {material.name}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Hình ảnh minh họa chuẩn danh mục vật tư nông nghiệp hệ thống Nguồn Gốc Số
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Loại nông sản áp dụng */}
           <Card className="shadow-sm border-gray-200 dark:border-gray-800">
             <CardHeader className="pb-3 border-b border-gray-100 dark:border-gray-800">
@@ -311,7 +335,7 @@ export const InputMaterialDetailPage = () => {
                   <User className="h-4 w-4" /> Người tạo:
                 </span>
                 <span className="font-medium text-gray-900 dark:text-gray-100">
-                  {material.createdBy ? `ID: ${material.createdBy}` : 'Quản trị viên nền tảng (VT-01)'}
+                  Quản trị viên nền tảng (VT-01)
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm py-2 border-b border-gray-100 dark:border-gray-800">
