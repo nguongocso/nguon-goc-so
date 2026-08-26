@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useLocation } from "react-router-dom";
 import {
   Breadcrumb,
@@ -124,12 +131,15 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/product-feedbacks", "Phản hồi người dùng"],
 ];
 
-/** Tìm nhãn cho một tiền tố đường dẫn khớp với template trong registry. */
-function matchTemplateLabel(prefixPath: string): string | null {
+/** Tìm nhãn cho một tiền tố đường dẫn khớp với template trong danh sách cho trước. */
+function matchTemplate(
+  prefixPath: string,
+  templates: ReadonlyArray<readonly [string, string]>,
+): string | null {
   const segs = prefixPath.split("/").filter(Boolean);
 
   let paramFallback: string | null = null;
-  for (const [template, label] of ROUTE_TEMPLATES) {
+  for (const [template, label] of templates) {
     const tsegs = template.split("/").filter(Boolean);
     if (tsegs.length !== segs.length) continue;
 
@@ -154,19 +164,69 @@ function matchTemplateLabel(prefixPath: string): string | null {
   return paramFallback;
 }
 
+/**
+ * Nhãn cho các đoạn đường dẫn trung gian KHÔNG phải là route thật
+ * (ví dụ /permissions, /reports, /admin). Các mục này hiển thị dạng
+ * chữ thường, không có liên kết để tránh link 404.
+ */
+const GROUP_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
+  ["/admin", "Quản trị"],
+  ["/reports", "Báo cáo"],
+  ["/permissions", "Phân quyền"],
+  ["/alerts", "Cảnh báo"],
+  ["/integration", "Tích hợp"],
+  ["/export", "Xuất dữ liệu"],
+  ["/preprocessing-events", "Sơ chế"],
+  ["/packaging-events", "Đóng gói"],
+  ["/transport-events", "Vận chuyển"],
+  ["/chain-events", "Sự kiện chuỗi"],
+  ["/farm-logs", "Nhật ký canh tác"],
+  ["/production-lots/:id/shipments", "Lô hàng"],
+  ["/production-lots/:id/inspection-requests", "Yêu cầu kiểm nghiệm"],
+  [
+    "/production-lots/:id/inspection-requests/:requestId",
+    "Chi tiết yêu cầu",
+  ],
+  ["/admin/standards/:standardId", "Chi tiết tiêu chuẩn"],
+];
+
+function capitalizeFirst(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 /** Sinh danh sách breadcrumb tự động từ pathname hiện tại. */
 export function buildAutoBreadcrumb(pathname: string): BreadcrumbItem[] {
   const segments = pathname.split("?")[0].split("/").filter(Boolean);
-  const items: BreadcrumbItem[] = [];
+  const items: BreadcrumbItem[] = [
+    { label: "Dashboard", href: "/dashboard" },
+  ];
 
   for (let i = 1; i <= segments.length; i += 1) {
     const prefix = `/${segments.slice(0, i).join("/")}`;
     const isLast = i === segments.length;
-    const label =
-      matchTemplateLabel(prefix) ??
-      decodeURIComponent(segments[i - 1]).replace(/-/g, " ");
+    const fallbackLabel = capitalizeFirst(
+      decodeURIComponent(segments[i - 1]).replace(/-/g, " "),
+    );
 
-    items.push(isLast ? { label } : { label, href: prefix });
+    if (isLast) {
+      // Trang hiện tại: không cần liên kết
+      const label =
+        matchTemplate(prefix, ROUTE_TEMPLATES) ??
+        matchTemplate(prefix, GROUP_TEMPLATES) ??
+        fallbackLabel;
+      items.push({ label });
+    } else if (matchTemplate(prefix, ROUTE_TEMPLATES) !== null) {
+      // Route trung gian tồn tại -> gắn liên kết
+      items.push({
+        label: matchTemplate(prefix, ROUTE_TEMPLATES) as string,
+        href: prefix,
+      });
+    } else {
+      // Không phải route thật (vd /permissions, /reports) -> chỉ hiện nhãn
+      items.push({
+        label: matchTemplate(prefix, GROUP_TEMPLATES) ?? fallbackLabel,
+      });
+    }
   }
   return items;
 }
@@ -194,12 +254,15 @@ export function BreadcrumbOverrideProvider({
 }) {
   const [override, setOverrideState] = useState<BreadcrumbItem[] | null>(null);
 
+  // QUAN TRỌNG: hàm setter phải ổn định (useCallback rỗng) để effect trong
+  // useSetBreadcrumb không bị chạy lại vô hạn khi override thay đổi.
+  const setOverride = useCallback((items: BreadcrumbItem[] | null) => {
+    setOverrideState(items);
+  }, []);
+
   const value = useMemo(
-    () => ({
-      override,
-      setOverride: (items: BreadcrumbItem[] | null) => setOverrideState(items),
-    }),
-    [override],
+    () => ({ override, setOverride }),
+    [override, setOverride],
   );
 
   return (
