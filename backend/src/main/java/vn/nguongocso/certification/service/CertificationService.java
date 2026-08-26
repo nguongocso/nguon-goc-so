@@ -5,6 +5,7 @@ import vn.nguongocso.certification.dto.request.AttachCertificationRequest;
 import vn.nguongocso.certification.dto.request.CreateCertificationRequest;
 import vn.nguongocso.certification.dto.response.CertificationResponse;
 import vn.nguongocso.certification.dto.response.ProductionLotCertificationResponse;
+import vn.nguongocso.common.PageResponse;
 
 import java.util.List;
 import java.util.UUID;
@@ -51,9 +52,31 @@ public interface CertificationService {
                         CustomUserDetails currentUser);
 
         /**
-         * Lấy tất cả chứng nhận của tổ chức hiện tại.
+         * Tìm kiếm chứng nhận của tổ chức hiện tại theo từ khoá và trạng thái
+         * hiệu lực, có phân trang và sắp xếp.
+         *
+         * <p>Ba trạng thái rời rạc (không giao nhau):
+         * {@code valid} = hết hạn sau hơn 30 ngày,
+         * {@code expiring} = còn hiệu lực trong vòng 30 ngày,
+         * {@code expired} = đã quá hạn.</p>
+         *
+         * @param keyword      từ khoá tìm theo tên / số hiệu / cơ quan cấp
+         *                     (null hoặc rỗng để bỏ qua).
+         * @param status       valid | expiring | expired (null để lấy tất cả).
+         * @param sortBy       trường sắp xếp (name | issueDate | expiryDate).
+         * @param sortDir      asc | desc (mặc định desc).
+         * @param page         chỉ số trang (bắt đầu từ 0).
+         * @param size         số bản ghi mỗi trang (tối đa 100).
+         * @param currentUser  người dùng hiện tại (scope theo tổ chức).
+         * @return trang dữ liệu chứng nhận kèm tổng số bản ghi.
          */
-        List<CertificationResponse> getAllCertifications(
+        PageResponse<CertificationResponse> searchCertifications(
+                        String keyword,
+                        String status,
+                        String sortBy,
+                        String sortDir,
+                        int page,
+                        int size,
                         CustomUserDetails currentUser);
 
         /**

@@ -2,6 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
+import {
+  AppBreadcrumb,
+  BreadcrumbOverrideProvider,
+} from '@/components/common/AppBreadcrumb';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -145,9 +149,17 @@ export function MainLayout() {
           isTablet={isTablet}
         />
         <main className="min-w-0 flex-1 px-3 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-3 md:px-5 md:pb-5 md:pt-4 lg:px-6 lg:pb-6 lg:pt-5 xl:px-8 xl:pb-8 xl:pt-6">
-          <div className="mx-auto w-full max-w-7xl">
-            <Outlet />
-          </div>
+          <BreadcrumbOverrideProvider>
+            <div className="mx-auto w-full max-w-7xl">
+              {/* Breadcrumb điều hướng thống nhất thay cho nút "Quay lại" */}
+              {location.pathname !== '/dashboard' && (
+                <div className="mb-4">
+                  <AppBreadcrumb />
+                </div>
+              )}
+              <Outlet />
+            </div>
+          </BreadcrumbOverrideProvider>
         </main>
       </div>
     </div>

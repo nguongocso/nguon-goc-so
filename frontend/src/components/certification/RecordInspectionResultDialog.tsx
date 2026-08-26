@@ -217,6 +217,23 @@ export function RecordInspectionResultDialog({
     [detail]
   );
 
+  /*
+   * Thống kê tổng hợp cập nhật trực tiếp theo trạng thái form,
+   * giúp người nhập thấy ngay tỷ lệ Đạt/Không đạt trước khi lưu.
+   */
+  const liveStats = useMemo(() => {
+    const total = detail?.criteria.length ?? 0;
+    let passed = 0;
+    let failed = 0;
+    for (const input of criteriaInputs) {
+      if (input.passed === true) passed++;
+      else if (input.passed === false) failed++;
+    }
+    const ratio =
+      total > 0 ? Math.round((failed / total) * 1000) / 10 : 0;
+    return { total, passed, failed, ratio };
+  }, [detail, criteriaInputs]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
@@ -253,6 +270,26 @@ export function RecordInspectionResultDialog({
               {recordedCount > 0 &&
                 ` Đã có ${recordedCount}/${detail.criteria.length} chỉ tiêu có kết quả, có thể sửa lại.`}
             </p>
+
+            {/* Tổng hợp kết quả kiểm nghiệm */}
+            <div
+              className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm"
+              aria-live="polite"
+              aria-label={`Kết quả kiểm nghiệm: đạt ${liveStats.passed} trên ${liveStats.total} chỉ tiêu, không đạt ${liveStats.failed} trên ${liveStats.total} chỉ tiêu, tỷ lệ không đạt ${liveStats.ratio} phần trăm`}
+            >
+              <span className="font-medium text-gray-700">
+                Kết quả kiểm nghiệm:
+              </span>
+              <span className="inline-flex items-center gap-1 font-medium text-emerald-700">
+                <ShieldCheck className="h-4 w-4" />
+                Đạt {liveStats.passed}/{liveStats.total} tiêu chí
+              </span>
+              <span className="inline-flex items-center gap-1 font-medium text-red-700">
+                <AlertTriangle className="h-4 w-4" />
+                Không đạt {liveStats.failed}/{liveStats.total} (
+                {liveStats.ratio}%)
+              </span>
+            </div>
 
             {/* Chỉ tiêu */}
             <div className="space-y-3">

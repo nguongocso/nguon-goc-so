@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   AlertCircle,
-  ArrowLeft,
   BadgeCheck,
   Ban,
   FileText,
@@ -28,11 +27,15 @@ import type { Shipment } from "@/types/shipment";
 import type { ChainEventResponse } from "@/types/packaging";
 import { maskId } from "@/lib/utils";
 import { QrCodeGrid } from "@/components/shipment/QrCodeGrid";
+import { ExportLabelsDialog } from "@/components/shipment/ExportLabelsDialog";
 import { ShipmentTimelineItem } from "@/components/shipment/ShipmentTimelineItem";
 import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDialog";
 import { RecallShipmentDialog } from "@/components/shipment/RecallShipmentDialog";
 import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligibleDialog";
 import { ShipmentStatusBadge } from "@/components/shipment/ShipmentStatusBadge";
+import { ROLE_ACCESS } from "@/config/roleAccess";
+import { usePermission } from "@/hooks/usePermission";
+import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -79,6 +82,8 @@ export const ShipmentDetailPage = () => {
   // ── Permissions ────────────────────────────────────────────────────────────
   const canActivate = user?.roleCode === "VT-02";
   const canRecall = user?.roleCode === "VT-02";
+  // NCL-04-CN-005: Chỉ VT-02 được xuất tem QR
+  const canExportLabels = usePermission(ROLE_ACCESS.labelExport);
 
   // ── Loaders ────────────────────────────────────────────────────────────────
 
@@ -173,14 +178,35 @@ export const ShipmentDetailPage = () => {
     navigate(-1),
   );
 
+  // NCL-04-CN-005: Dialog xuất tem QR
+  const [showLabelsDialog, setShowLabelsDialog] = useState(false);
+
   // ── Derived flags ──────────────────────────────────────────────────────────
-  const backToLotId = lotId ?? shipment?.productionLotId;
   const canActivateThis =
     canActivate && shipment?.status === "CODE_PRINTED";
   const canRecallThis =
     canRecall && shipment?.status !== "RECALLED";
   const canDeleteDraft =
     shipment?.status === "DRAFT" || shipment?.status === "CODE_PRINTED";
+
+  // ── Breadcrumb điều hướng thống nhất (thay nút "Quay lại") ────────────────
+  useSetBreadcrumb(
+    shipment
+      ? [
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Lô sản xuất", href: "/production-lots" },
+          ...(lotId
+            ? [
+                {
+                  label: shipment.productionLotName || "Chi tiết lô",
+                  href: `/production-lots/${lotId}`,
+                },
+              ]
+            : []),
+          { label: shipment.name || "Chi tiết lô hàng" },
+        ]
+      : null,
+  );
 
   // ── Render guards ──────────────────────────────────────────────────────────
 
@@ -213,22 +239,6 @@ export const ShipmentDetailPage = () => {
 
   return (
     <div className="container mx-auto space-y-6 py-6">
-      {/* ── Top navigation bar ── */}
-      {backToLotId && (
-        <button
-          type="button"
-          onClick={() =>
-            navigate(`/production-lots/${backToLotId}`, {
-              state: { activeTab: "shipments" },
-            })
-          }
-          className="group inline-flex items-center gap-1.5 self-start rounded-md text-sm font-medium text-emerald-700 underline-offset-4 transition-colors hover:text-emerald-900 hover:underline"
-        >
-          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-          Quay lại lô sản xuất
-        </button>
-      )}
-
       {/* ── Header card ── */}
       <Card className="border-emerald-100 bg-white/80 shadow-sm backdrop-blur-sm">
         <CardContent className="pt-6">
@@ -262,6 +272,21 @@ export const ShipmentDetailPage = () => {
                 <FileText className="mr-1 h-4 w-4" />
                 Xuất hồ sơ
               </Button>
+
+              {/* Export QR Labels — NCL-04-CN-005 */}
+              {canExportLabels &&
+                shipment.status !== "DRAFT" &&
+                shipment.status !== "RECALLED" &&
+                (shipment.traceCodes?.length || 0) > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowLabelsDialog(true)}
+                    className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  >
+                    <QrCode className="mr-1 h-4 w-4" />
+                    Xuất tem QR
+                  </Button>
+                )}
 
               {canRecallThis && (
                 <Button
@@ -531,6 +556,13 @@ export const ShipmentDetailPage = () => {
           await deleteDraftShipment(shipment);
           setShowDeleteDraftConfirm(false);
         }}
+      />
+
+      {/* NCL-04-CN-005: Dialog xuất tem QR */}
+      <ExportLabelsDialog
+        open={showLabelsDialog}
+        shipment={shipment}
+        onClose={() => setShowLabelsDialog(false)}
       />
     </div>
   );
