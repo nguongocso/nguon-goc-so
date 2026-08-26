@@ -344,13 +344,21 @@ export const CreateInspectionRequestPage: React.FC = () => {
     toast.info("Đã xóa trắng form và làm mới bản nháp.");
   };
 
+  // NCL-11-CN-006: chỉ hiển thị đơn vị còn hạn công nhận trong dropdown
+  const availableUnits = useMemo(() => {
+    const t = toISODate(new Date());
+    return testingUnits.filter(
+      (u) => !u.accreditationExpiryDate || u.accreditationExpiryDate >= t
+    );
+  }, [testingUnits]);
+
   // --- Validation Form ---
   const trimmedTestingUnit = testingUnit.trim();
   // NCL-11-CN-006 Phase 1: khi danh mục khả dụng thì bắt buộc chọn từ dropdown;
   // nếu danh mục rỗng hoặc tải lỗi thì fallback về nhập tự do.
   const useUnitCatalog = !unitsError && !unitsLoading && testingUnits.length > 0;
   const selectedTestingUnit =
-    testingUnits.find((unit) => unit.id === testingUnitId) || null;
+    availableUnits.find((unit) => unit.id === testingUnitId) || null;
   const isSampleDateValid = sampleSentDate !== "" && sampleSentDate <= today;
   const isTestingUnitValid = useUnitCatalog
     ? testingUnitId !== ""
@@ -761,7 +769,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
                   <>
                     <TestingUnitSelect
                       id="testingUnit"
-                      units={testingUnits}
+                      units={availableUnits}
                       value={testingUnitId}
                       onChange={(unit) => {
                         setTestingUnitId(unit?.id || "");

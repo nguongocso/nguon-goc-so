@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -468,12 +468,21 @@ export const ProductionLotDetailPage = () => {
   };
 
   const today = toISODate(new Date());
+  // NCL-11-CN-006: chỉ hiển thị đơn vị còn hạn công nhận trong dropdown
+  const availableUnits = useMemo(
+    () =>
+      testingUnits.filter(
+        (u) =>
+          !u.accreditationExpiryDate || u.accreditationExpiryDate >= today
+      ),
+    [testingUnits, today]
+  );
   const trimmedTestingUnit = testingUnit.trim();
   // NCL-11-CN-006 Phase 1: khi danh mục khả dụng thì bắt buộc chọn từ dropdown;
   // nếu danh mục rỗng hoặc tải lỗi thì fallback về nhập tự do.
   const useUnitCatalog = !unitsLoading && testingUnits.length > 0;
   const selectedTestingUnit =
-    testingUnits.find((unit) => unit.id === testingUnitId) || null;
+    availableUnits.find((unit) => unit.id === testingUnitId) || null;
   const unitFieldValid = useUnitCatalog
     ? testingUnitId !== ""
     : trimmedTestingUnit !== "";
@@ -1263,7 +1272,7 @@ export const ProductionLotDetailPage = () => {
                   <>
                     <TestingUnitSelect
                       id="testingUnit"
-                      units={testingUnits}
+                      units={availableUnits}
                       value={testingUnitId}
                       onChange={(unit) => {
                         setTestingUnitId(unit?.id || "");
