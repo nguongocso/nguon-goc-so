@@ -257,24 +257,46 @@ export const InputMaterialDetailPage = () => {
         <div className="space-y-6">
           {/* Card Hình ảnh vật tư */}
           <Card className="shadow-sm border-gray-200 dark:border-gray-800">
-            <CardHeader className="pb-3 border-b border-gray-100 dark:border-gray-800">
+            <CardHeader className="pb-3 border-b border-gray-100 dark:border-gray-800 flex flex-row items-center justify-between">
               <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <ImageIcon className="h-5 w-5 text-blue-600" />
                 Hình ảnh sản phẩm & Vật tư
               </CardTitle>
+              {material.imageUrls && material.imageUrls.length > 0 && (
+                <Badge variant="secondary" className="text-xs font-normal">
+                  {material.imageUrls.length} hình ảnh
+                </Badge>
+              )}
             </CardHeader>
             <CardContent className="pt-4">
-              <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center">
-                <div className={`p-5 rounded-2xl ${variant.bgClass} mb-3`}>
-                  {getGroupIcon(material.materialGroup)}
+              {material.imageUrls && material.imageUrls.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {material.imageUrls.map((imgSrc, idx) => (
+                    <div
+                      key={idx}
+                      className="group relative aspect-square rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm bg-gray-50 dark:bg-gray-900"
+                    >
+                      <img
+                        src={imgSrc}
+                        alt={`${material.name} - Ảnh ${idx + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                      />
+                    </div>
+                  ))}
                 </div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  {material.name}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Hình ảnh minh họa chuẩn danh mục vật tư nông nghiệp hệ thống Nguồn Gốc Số
-                </p>
-              </div>
+              ) : (
+                <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center">
+                  <div className={`p-5 rounded-2xl ${variant.bgClass} mb-3`}>
+                    {getGroupIcon(material.materialGroup)}
+                  </div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    {material.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Chưa tải lên hình ảnh chụp từ thiết bị.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

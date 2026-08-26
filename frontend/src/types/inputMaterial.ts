@@ -20,6 +20,7 @@ export interface InputMaterial {
   applyToAllCrops: boolean;
   applicableCropTypes: ProductCategory[];
   referenceSource: string | null;
+  imageUrls?: string[];
   isActive: boolean;
   createdBy?: string | null;
   createdAt?: string;
@@ -35,6 +36,7 @@ export interface CreateInputMaterialData {
   applyToAllCrops?: boolean;
   applicableCropTypeIds?: string[];
   referenceSource?: string;
+  imageUrls?: string[];
 }
 
 export interface UpdateInputMaterialData {
@@ -46,6 +48,7 @@ export interface UpdateInputMaterialData {
   applyToAllCrops?: boolean;
   applicableCropTypeIds?: string[];
   referenceSource?: string;
+  imageUrls?: string[];
   isActive?: boolean;
 }
 

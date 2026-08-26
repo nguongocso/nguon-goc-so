@@ -90,6 +90,9 @@ export const InputMaterialFormPage = () => {
       setApplyToAllCrops(data.applyToAllCrops ?? true);
       setSelectedCropIds(data.applicableCropTypes ? data.applicableCropTypes.map((c) => c.id) : []);
       setReferenceSource(data.referenceSource || '');
+      if (data.imageUrls && data.imageUrls.length > 0) {
+        setImages(data.imageUrls);
+      }
     } catch (error) {
       toast.error('Không thể tải thông tin vật tư cần chỉnh sửa');
       navigate('/admin/input-materials');
@@ -176,6 +179,7 @@ export const InputMaterialFormPage = () => {
         applyToAllCrops,
         applicableCropTypeIds: !applyToAllCrops ? selectedCropIds : undefined,
         referenceSource: referenceSource.trim() || undefined,
+        imageUrls: images,
       };
 
       if (isEditMode && id) {
