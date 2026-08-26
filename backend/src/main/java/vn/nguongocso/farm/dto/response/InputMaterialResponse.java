@@ -1,6 +1,7 @@
 package vn.nguongocso.farm.dto.response;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -40,6 +41,8 @@ public class InputMaterialResponse {
 	private Set<ProductCategoryResponse> applicableCropTypes;
 
 	private String referenceSource;
+
+	private List<String> imageUrls;
 
 	private Boolean isActive;
 

@@ -49,6 +49,9 @@ public class InputMaterial {
 	@Column(name = "reference_source", columnDefinition = "TEXT")
 	private String referenceSource;
 
+	@Column(name = "image_urls", columnDefinition = "LONGTEXT")
+	private String imageUrls;
+
 	@Column(name = "is_active", nullable = false)
 	private Boolean isActive;
 

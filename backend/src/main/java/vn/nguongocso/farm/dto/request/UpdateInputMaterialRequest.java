@@ -1,5 +1,6 @@
 package vn.nguongocso.farm.dto.request;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -46,6 +47,8 @@ public class UpdateInputMaterialRequest {
 	private Set<UUID> applicableCropTypeIds;
 
 	private String referenceSource;
+
+	private List<String> imageUrls;
 
 	private Boolean isActive;
 }

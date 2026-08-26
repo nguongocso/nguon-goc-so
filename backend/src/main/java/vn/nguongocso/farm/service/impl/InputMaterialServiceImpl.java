@@ -1,5 +1,7 @@
 package vn.nguongocso.farm.service.impl;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -55,6 +57,10 @@ public class InputMaterialServiceImpl implements InputMaterialService {
 		Boolean applyToAllCrops = request.getApplyToAllCrops() != null ? request.getApplyToAllCrops() : true;
 		Set<ProductCategory> cropCategories = resolveCropCategories(applyToAllCrops, request.getApplicableCropTypeIds());
 
+		String imageUrlsStr = (request.getImageUrls() != null && !request.getImageUrls().isEmpty())
+				? String.join(";;;", request.getImageUrls())
+				: null;
+
 		InputMaterial material = InputMaterial.builder()
 				.name(request.getName().trim())
 				.materialGroup(request.getMaterialGroup())
@@ -64,6 +70,7 @@ public class InputMaterialServiceImpl implements InputMaterialService {
 				.applyToAllCrops(applyToAllCrops)
 				.applicableCropTypes(cropCategories)
 				.referenceSource(request.getReferenceSource() != null ? request.getReferenceSource().trim() : null)
+				.imageUrls(imageUrlsStr)
 				.isActive(true)
 				.createdBy(currentUserId)
 				.build();
@@ -99,6 +106,11 @@ public class InputMaterialServiceImpl implements InputMaterialService {
 		material.setApplyToAllCrops(applyToAllCrops);
 		material.setApplicableCropTypes(cropCategories);
 		material.setReferenceSource(request.getReferenceSource() != null ? request.getReferenceSource().trim() : null);
+		
+		if (request.getImageUrls() != null) {
+			material.setImageUrls(request.getImageUrls().isEmpty() ? null : String.join(";;;", request.getImageUrls()));
+		}
+		
 		if (request.getIsActive() != null) {
 			material.setIsActive(request.getIsActive());
 		}
@@ -190,6 +202,10 @@ public class InputMaterialServiceImpl implements InputMaterialService {
 						.build())
 				.collect(Collectors.toSet());
 
+		List<String> imageUrlsList = (entity.getImageUrls() != null && !entity.getImageUrls().trim().isEmpty())
+				? Arrays.asList(entity.getImageUrls().split(";;;"))
+				: Collections.emptyList();
+
 		return InputMaterialResponse.builder()
 				.id(entity.getId())
 				.name(entity.getName())
@@ -201,6 +217,7 @@ public class InputMaterialServiceImpl implements InputMaterialService {
 				.applyToAllCrops(entity.getApplyToAllCrops())
 				.applicableCropTypes(cropResponses)
 				.referenceSource(entity.getReferenceSource())
+				.imageUrls(imageUrlsList)
 				.isActive(entity.getIsActive())
 				.createdBy(entity.getCreatedBy())
 				.createdAt(entity.getCreatedAt())
