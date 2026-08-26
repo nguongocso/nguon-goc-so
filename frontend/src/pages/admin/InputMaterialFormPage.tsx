@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
-  ArrowLeft,
   Upload,
   Image as ImageIcon,
   X,
@@ -232,12 +231,6 @@ export const InputMaterialFormPage = () => {
             </p>
           </div>
         </div>
-
-        <Link to="/admin/input-materials">
-          <Button variant="outline" size="sm" className="h-9 px-3">
-            <ArrowLeft className="h-4 w-4 mr-1.5" /> Hủy & Quay lại
-          </Button>
-        </Link>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
