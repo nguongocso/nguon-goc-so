@@ -64,6 +64,10 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/production-lots", "Lô sản xuất"],
 
   // Shipments
+  [
+    "/production-lots/:productionLotId/shipments/create",
+    "Tạo lô hàng",
+  ],
   ["/shipments/:id", "Chi tiết lô hàng"],
 
   // Farm logs

@@ -62,6 +62,7 @@ import FarmLogHistoryPage from "@/pages/farm-log/FarmLogHistoryPage";
 // ===== Shipment =====
 import { ProductionLotDetailPage } from "@/pages/public/shipment/ProductionLotDetailPage";
 import { ShipmentDetailPage } from "@/pages/public/shipment/ShipmentDetailPage";
+import CreateShipmentPage from "@/pages/shipment/CreateShipmentPage";
 
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
@@ -444,6 +445,17 @@ const AppRoutes = () => (
                         allowedRoles={["VT-01", "VT-02", "VT-03"]}
                     >
                         <ProductionLotDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:productionLotId/shipments/create"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                    >
+                        <CreateShipmentPage />
                     </RoleRoute>
                 }
             />
