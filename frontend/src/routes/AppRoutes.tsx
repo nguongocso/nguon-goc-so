@@ -138,6 +138,9 @@ import { CreateRecallRequestPage } from "@/pages/recall-request/CreateRecallRequ
 import { RecallRequestListPage } from "@/pages/recall-request/RecallRequestListPage";
 import { RecallRequestDetailPage } from "@/pages/recall-request/RecallRequestDetailPage";
 
+// ===== Area assignment (NCL-670 / NCL-742) =====
+import { AreaAssignmentPage } from "@/pages/admin/AreaAssignmentPage";
+
 // =====================================================
 // Constants
 // =====================================================
@@ -686,6 +689,18 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-01"]}>
                         <SuspectTraceCodeDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* NCL-670 / NCL-742 - Phân công địa bàn quản lý */}
+            <Route
+                path="admin/account-areas"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.areaAssignment}
+                    >
+                        <AreaAssignmentPage />
                     </RoleRoute>
                 }
             />
