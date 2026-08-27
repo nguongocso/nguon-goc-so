@@ -2,7 +2,40 @@ export interface TraceCode {
   id: string;
   codeValue: string;
   qrImage: string;
-  status: 'INACTIVE' | 'ACTIVE' | 'RECALLED';
+  status: 'INACTIVE' | 'ACTIVE' | 'RECALLED' | 'LOCKED' | 'SUSPECT' | 'CANCELLED';
+}
+
+export interface CancelTraceCodesPayload {
+  cancelType: 'RANGE' | 'SINGLE';
+  fromCode?: string;
+  toCode?: string;
+  codeValues?: string[];
+  reasonType: 'PRINT_ERROR' | 'PRINT_MISALIGNED' | 'PEELED_OFF_DAMAGED' | 'OTHER';
+  reasonNote?: string;
+}
+
+export interface CancelTraceCodesResult {
+  shipmentId: string;
+  totalCancelled: number;
+  refundedQuota: number;
+  remainingQuota: number;
+  cancelledAt: string;
+  cancelledBy: string;
+  message: string;
+}
+
+export interface LabelCancellationHistoryItem {
+  id: string;
+  shipmentId: string;
+  shipmentName: string;
+  cancelledByName: string;
+  cancelledAt: string;
+  quantity: number;
+  cancellationType: 'RANGE' | 'SINGLE';
+  rangeFromCode?: string;
+  rangeToCode?: string;
+  reasonType: string;
+  reasonNote?: string;
 }
 
 export interface Shipment {
