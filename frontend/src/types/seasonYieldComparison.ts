@@ -3,6 +3,8 @@ export interface SeasonYieldComparisonParams {
   farmAreaId?: string;
   productCategoryId?: string;
   organizationId?: string;
+  /** NCL-742 §8 — lặp query param `unitIds=a&unitIds=b`. */
+  unitIds?: string[];
 }
 
 export interface SeasonYieldItem {

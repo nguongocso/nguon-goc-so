@@ -110,13 +110,16 @@ public class SecurityConfig {
 
                         /*
                          * =================================================
-                         * LOGIN
+                         * LOGIN & PASSWORD RESET
                          * =================================================
                          *
                          * Chưa có JWT.
                          */
                         .requestMatchers(
-                                "/api/v1/auth/login"
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/forgot-password",
+                                "/api/v1/auth/reset-password",
+                                "/api/v1/auth/reset-password/validate"
                         ).permitAll()
 
                         /*

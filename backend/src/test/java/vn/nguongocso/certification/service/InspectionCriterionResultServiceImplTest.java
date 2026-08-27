@@ -7,12 +7,14 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,15 +35,19 @@ import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.InspectionCriterionResultRequest;
 import vn.nguongocso.certification.dto.response.CanActivateSealCheckResponse;
 import vn.nguongocso.certification.dto.response.InspectionCriterionResultResponse;
+import vn.nguongocso.certification.entity.CategoryCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterion;
+import vn.nguongocso.certification.entity.InspectionCriterionCatalog;
 import vn.nguongocso.certification.entity.InspectionCriterionResult;
 import vn.nguongocso.certification.entity.InspectionRequest;
 import vn.nguongocso.certification.enums.InspectionRequestStatus;
+import vn.nguongocso.certification.repository.CategoryCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.service.impl.InspectionCriterionResultServiceImpl;
 import vn.nguongocso.exception.BusinessException;
+import vn.nguongocso.farm.entity.ProductCategory;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.organization.entity.Organization;
@@ -73,6 +79,9 @@ class InspectionCriterionResultServiceImplTest {
     private InspectionRequestRepository requestRepository;
 
     @Mock
+    private CategoryCriterionRepository categoryCriterionRepository;
+
+    @Mock
     private ProductionLotRepository lotRepository;
 
     @Mock
@@ -92,6 +101,7 @@ class InspectionCriterionResultServiceImplTest {
 
     private User user;
     private CustomUserDetails currentUser;
+    private ProductCategory productCategory;
     private ProductionLot lot;
     private InspectionRequest inspectionRequest;
     private InspectionCriterion criterion;
@@ -142,6 +152,17 @@ class InspectionCriterionResultServiceImplTest {
         lot.setOrganization(organization);
 
         // =========================
+        // Loại nông sản mặc định: BẮT BUỘC kiểm nghiệm (QTN-21 xét
+        // điều kiện kích hoạt tem trên bộ chỉ tiêu gán cho category).
+        // =========================
+        productCategory = ProductCategory.builder()
+                .id(UUID.randomUUID())
+                .name("Rau ăn lá")
+                .requiresInspection(true)
+                .build();
+        lot.setProductCategory(productCategory);
+
+        // =========================
         // Mock inspection request
         // =========================
         inspectionRequest = InspectionRequest.builder()
@@ -175,6 +196,30 @@ class InspectionCriterionResultServiceImplTest {
                 .createdBy(user)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
+                .build();
+    }
+
+    /**
+     * Cấu hình bộ chỉ tiêu ACTIVE được gán cho loại nông sản của lô —
+     * cùng nguồn dữ liệu với GET /production-lots/{lotId}/test-criteria
+     * (category_criteria JOIN inspection_criterion_catalog, khớp với
+     * InspectionCriterion.criterionCode khi tạo yêu cầu kiểm nghiệm).
+     */
+    private void stubMandatoryCriteria(String... names) {
+        when(categoryCriterionRepository.findByCategoryIdAndCriteriaStatus(
+                productCategory.getId(), "ACTIVE"))
+                .thenReturn(Arrays.stream(names)
+                        .map(this::assignmentOf)
+                        .toList());
+    }
+
+    private CategoryCriterion assignmentOf(String name) {
+        return CategoryCriterion.builder()
+                .category(productCategory)
+                .criterion(InspectionCriterionCatalog.builder()
+                        .name(name)
+                        .status("ACTIVE")
+                        .build())
                 .build();
     }
 
@@ -263,16 +308,11 @@ class InspectionCriterionResultServiceImplTest {
                 lotId, orgId))
                 .thenReturn(Optional.of(lot));
 
-        when(requestRepository.findByProductionLot_IdOrderByCreatedAtDesc(lotId))
-                .thenReturn(List.of(inspectionRequest));
+        stubMandatoryCriteria("TEST_CODE", "OTHER_A", "OTHER_B");
 
-        when(resultRepository.countTotalCriteria(inspectionRequestId))
-                .thenReturn(3);
-
-        when(resultRepository.countPassedAndValidCriteria(
-                inspectionRequestId,
-                LocalDate.now()))
-                .thenReturn(0);
+        // Chưa có bất kỳ kết quả kiểm nghiệm nào trên lô
+        when(resultRepository.findAllByProductionLotId(productionLotId))
+                .thenReturn(List.of());
 
         // Act
         CanActivateSealCheckResponse response =
@@ -312,20 +352,23 @@ class InspectionCriterionResultServiceImplTest {
                 lotId, orgId))
                 .thenReturn(Optional.of(lot));
 
-        when(requestRepository.findByProductionLot_IdOrderByCreatedAtDesc(lotId))
-                .thenReturn(List.of(inspectionRequest));
+        stubMandatoryCriteria("TEST_CODE");
 
-        when(resultRepository.countTotalCriteria(inspectionRequestId))
-                .thenReturn(3);
+        // Kết quả mới nhất của chỉ tiêu bắt buộc đã quá hạn
+        InspectionCriterionResult expiredResult =
+                InspectionCriterionResult.builder()
+                        .id(UUID.randomUUID())
+                        .inspectionCriterion(criterion)
+                        .resultDate(LocalDate.now().minusMonths(1))
+                        .expiryDate(expiredDate)
+                        .passed(true)
+                        .createdBy(user)
+                        .createdAt(LocalDateTime.now().minusMonths(1))
+                        .updatedAt(LocalDateTime.now().minusMonths(1))
+                        .build();
 
-        when(resultRepository.countPassedAndValidCriteria(
-                inspectionRequestId,
-                LocalDate.now()))
-                .thenReturn(0);
-
-        when(resultRepository.findEarliestExpiryDateByInspectionRequest(
-                inspectionRequestId))
-                .thenReturn(Optional.of(expiredDate));
+        when(resultRepository.findAllByProductionLotId(productionLotId))
+                .thenReturn(List.of(expiredResult));
 
         // Act
         CanActivateSealCheckResponse response =
@@ -582,6 +625,67 @@ class InspectionCriterionResultServiceImplTest {
 
         verify(requestRepository)
                 .save(inspectionRequest);
+    }
+
+
+    // ============================================================
+    // TC-09b
+    // ============================================================
+
+    @Test
+    @DisplayName("TC-09b: Chỉ tiêu không đạt với resultDate/expiryDate null → Vẫn được chấp nhận, status FAILED")
+    void testRecordFailedCriteriaWithNullDates() {
+
+        // Arrange — passed = false, ngày được gửi null
+        InspectionCriterionResultRequest request =
+                InspectionCriterionResultRequest.builder()
+                        .criterionId(criterionId.toString())
+                        .resultDate(null)
+                        .expiryDate(null)
+                        .passed(false)
+                        .build();
+
+        result.setPassed(false);
+        result.setResultDate(null);
+        result.setExpiryDate(null);
+
+        when(criterionRepository.findById(criterionId))
+                .thenReturn(Optional.of(criterion));
+
+        when(resultRepository.findByInspectionCriterion_Id(criterionId))
+                .thenReturn(Optional.empty());
+
+        when(resultRepository.save(any(InspectionCriterionResult.class)))
+                .thenReturn(result);
+
+        when(resultRepository.countTotalCriteria(
+                inspectionRequestId))
+                .thenReturn(1);
+
+        when(resultRepository
+                .findByInspectionCriterion_InspectionRequest_Id(
+                        inspectionRequestId))
+                .thenReturn(List.of(result));
+
+        // Act
+        service.recordOrUpdateResult(
+                criterionId.toString(),
+                request,
+                currentUser);
+
+        // Assert — được lưu thành công, status = FAILED
+        assertThat(inspectionRequest.getStatus())
+                .isEqualTo(InspectionRequestStatus.FAILED);
+        verify(requestRepository).save(inspectionRequest);
+
+        // Kiểm tra entity được lưu có resultDate/expiryDate = null
+        ArgumentCaptor<InspectionCriterionResult> captor =
+                ArgumentCaptor.forClass(InspectionCriterionResult.class);
+        verify(resultRepository).save(captor.capture());
+        InspectionCriterionResult saved = captor.getValue();
+        assertThat(saved.getResultDate()).isNull();
+        assertThat(saved.getExpiryDate()).isNull();
+        assertThat(saved.getPassed()).isFalse();
     }
 
     // ============================================================
@@ -1060,12 +1164,102 @@ class InspectionCriterionResultServiceImplTest {
         verify(requestRepository).save(inspectionRequest);
     }
 
+
+    // ============================================================
+    // TC-19b
+    // ============================================================
+
+    @Test
+    @DisplayName("TC-19b: Batch có 1 chỉ tiêu Đạt + 1 chỉ tiêu Không đạt (null dates) → Lưu thành công, status FAILED")
+    void testRecordResultsBatchWithMixedPassAndFailNullDates() {
+
+        // Arrange — 2 chỉ tiêu: 1 đạt (có ngày), 1 không đạt (null dates)
+        UUID c2 = UUID.randomUUID();
+        InspectionCriterion criterion2 = InspectionCriterion.builder()
+                .id(c2)
+                .criterionCode("CODE_2")
+                .criterionName("Criterion 2")
+                .inspectionRequest(inspectionRequest)
+                .build();
+        inspectionRequest.setCriteria(List.of(criterion, criterion2));
+
+        LocalDate resultDate = LocalDate.now().minusDays(1);
+        LocalDate expiryDate = LocalDate.now().plusMonths(6);
+
+        InspectionCriterionResult r2 = InspectionCriterionResult.builder()
+                .id(UUID.randomUUID())
+                .inspectionCriterion(criterion2)
+                .resultDate(null)
+                .expiryDate(null)
+                .passed(false)
+                .createdBy(user)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        InspectionCriterionResult r1 = InspectionCriterionResult.builder()
+                .id(UUID.randomUUID())
+                .inspectionCriterion(criterion)
+                .resultDate(resultDate)
+                .expiryDate(expiryDate)
+                .passed(true)
+                .createdBy(user)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        List<InspectionCriterionResultRequest> items = List.of(
+                InspectionCriterionResultRequest.builder()
+                        .criterionId(criterionId.toString())
+                        .resultDate(resultDate)
+                        .expiryDate(expiryDate)
+                        .passed(true)
+                        .build(),
+                InspectionCriterionResultRequest.builder()
+                        .criterionId(c2.toString())
+                        .resultDate(null)
+                        .expiryDate(null)
+                        .passed(false)
+                        .build());
+
+        when(requestRepository.findById(inspectionRequestId))
+                .thenReturn(Optional.of(inspectionRequest));
+
+        // Chưa có kết quả nào → tạo mới
+        when(resultRepository.findByInspectionCriterion_Id(criterionId))
+                .thenReturn(Optional.empty());
+        when(resultRepository.findByInspectionCriterion_Id(c2))
+                .thenReturn(Optional.empty());
+
+        when(resultRepository.saveAll(anyList()))
+                .thenReturn(List.of(r1, r2));
+
+        when(resultRepository.countTotalCriteria(inspectionRequestId))
+                .thenReturn(2);
+        when(resultRepository
+                .findByInspectionCriterion_InspectionRequest_Id(inspectionRequestId))
+                .thenReturn(List.of(r1, r2));
+
+        // Act
+        List<InspectionCriterionResultResponse> responses =
+                service.recordResults(
+                        inspectionRequestId,
+                        items,
+                        currentUser);
+
+        // Assert — lưu thành công, status = FAILED (có chỉ tiêu không đạt)
+        assertThat(inspectionRequest.getStatus())
+                .isEqualTo(InspectionRequestStatus.FAILED);
+        assertThat(responses).hasSize(2);
+        verify(resultRepository).saveAll(anyList());
+        verify(requestRepository).save(inspectionRequest);
+    }
+
     // ============================================================
     // TC-20: QTN-21
     // ============================================================
 
     @Test
-    @DisplayName("TC-20: Request FAILED lịch sử không chặn tem nếu đã có bộ kết quả đạt còn hiệu lực (QTN-21)")
+    @DisplayName("TC-20: Kết quả FAILED cũ không chặn tem nếu lần kiểm nghiệm sau đạt hết chỉ tiêu gán cho lô (QTN-21)")
     void testCanActivateSealWithHistoricalFailedRequestAndValidPassedRequest() {
 
         // Arrange
@@ -1086,30 +1280,54 @@ class InspectionCriterionResultServiceImplTest {
                 .productionLot(lot)
                 .build();
 
+        InspectionCriterion failedCriterion = InspectionCriterion.builder()
+                .id(UUID.randomUUID())
+                .criterionCode("TEST_CODE")
+                .criterionName("Test Criterion")
+                .inspectionRequest(failedRequest)
+                .build();
+
+        InspectionCriterion passedCriterion = InspectionCriterion.builder()
+                .id(UUID.randomUUID())
+                .criterionCode("TEST_CODE")
+                .criterionName("Test Criterion")
+                .inspectionRequest(passedRequest)
+                .build();
+
         when(lotRepository.findByIdAndOrganization_OrganizationId(
                 productionLotId, orgId))
                 .thenReturn(Optional.of(lot));
 
-        when(requestRepository.findByProductionLot_IdOrderByCreatedAtDesc(
-                productionLotId))
-                .thenReturn(List.of(passedRequest, failedRequest));
+        stubMandatoryCriteria("TEST_CODE");
 
-        // Request FAILED lịch sử: 3 chỉ tiêu, không chỉ tiêu nào còn hiệu lực
-        when(resultRepository.countTotalCriteria(failedRequestId))
-                .thenReturn(3);
-        when(resultRepository.countPassedAndValidCriteria(
-                failedRequestId, today))
-                .thenReturn(0);
+        // Kết quả cũ (yêu cầu FAILED): không đạt
+        InspectionCriterionResult failedResult =
+                InspectionCriterionResult.builder()
+                        .id(UUID.randomUUID())
+                        .inspectionCriterion(failedCriterion)
+                        .resultDate(today.minusDays(10))
+                        .expiryDate(validExpiry)
+                        .passed(false)
+                        .createdBy(user)
+                        .createdAt(LocalDateTime.now().minusDays(10))
+                        .updatedAt(LocalDateTime.now().minusDays(10))
+                        .build();
 
-        // Request PASSED sau đó: 1 chỉ tiêu, đạt và còn hiệu lực
-        when(resultRepository.countTotalCriteria(passedRequestId))
-                .thenReturn(1);
-        when(resultRepository.countPassedAndValidCriteria(
-                passedRequestId, today))
-                .thenReturn(1);
-        when(resultRepository.findEarliestExpiryDateByInspectionRequest(
-                passedRequestId))
-                .thenReturn(Optional.of(validExpiry));
+        // Kết quả mới hơn (yêu cầu PASSED): đạt và còn hiệu lực
+        InspectionCriterionResult passedResult =
+                InspectionCriterionResult.builder()
+                        .id(UUID.randomUUID())
+                        .inspectionCriterion(passedCriterion)
+                        .resultDate(today.minusDays(1))
+                        .expiryDate(validExpiry)
+                        .passed(true)
+                        .createdBy(user)
+                        .createdAt(LocalDateTime.now().minusDays(1))
+                        .updatedAt(LocalDateTime.now().minusDays(1))
+                        .build();
+
+        when(resultRepository.findAllByProductionLotId(productionLotId))
+                .thenReturn(List.of(failedResult, passedResult));
 
         // Act
         CanActivateSealCheckResponse response =
@@ -1117,8 +1335,12 @@ class InspectionCriterionResultServiceImplTest {
                         productionLotId,
                         currentUser);
 
-        // Assert
+        // Assert: kết quả MỚI NHẤT theo từng chỉ tiêu là căn cứ quyết định
         assertThat(response.getCanActivate()).isTrue();
+        assertThat(response.getReason()).isNull();
+        assertThat(response.getTotalCriteria()).isEqualTo(1);
+        assertThat(response.getPassedCriteria()).isEqualTo(1);
+        assertThat(response.getFailedOrExpiredCriteria()).isZero();
         assertThat(response.getEarliestExpiryDate())
                 .isEqualTo(validExpiry);
     }
@@ -1139,18 +1361,42 @@ class InspectionCriterionResultServiceImplTest {
                 productionLotId, orgId))
                 .thenReturn(Optional.of(lot));
 
-        when(requestRepository.findByProductionLot_IdOrderByCreatedAtDesc(
-                productionLotId))
-                .thenReturn(List.of(inspectionRequest));
+        stubMandatoryCriteria("TEST_CODE", "OTHER_CRITERION");
 
-        when(resultRepository.countTotalCriteria(inspectionRequestId))
-                .thenReturn(1);
-        when(resultRepository.countPassedAndValidCriteria(
-                inspectionRequestId, today))
-                .thenReturn(0);
-        when(resultRepository.findEarliestExpiryDateByInspectionRequest(
-                inspectionRequestId))
-                .thenReturn(Optional.of(expiredExpiry));
+        // Chỉ tiêu chính: lần kiểm nghiệm mới nhất PASSED nhưng đã hết hạn
+        InspectionCriterionResult expiredMain =
+                InspectionCriterionResult.builder()
+                        .id(UUID.randomUUID())
+                        .inspectionCriterion(criterion)
+                        .resultDate(today.minusMonths(1))
+                        .expiryDate(expiredExpiry)
+                        .passed(true)
+                        .createdBy(user)
+                        .createdAt(LocalDateTime.now().minusMonths(1))
+                        .updatedAt(LocalDateTime.now().minusMonths(1))
+                        .build();
+
+        // Chỉ tiêu khác vẫn đạt và còn hiệu lực
+        InspectionCriterion otherCriterion = InspectionCriterion.builder()
+                .id(UUID.randomUUID())
+                .criterionCode("OTHER_CRITERION")
+                .criterionName("Other Criterion")
+                .inspectionRequest(inspectionRequest)
+                .build();
+        InspectionCriterionResult validOther =
+                InspectionCriterionResult.builder()
+                        .id(UUID.randomUUID())
+                        .inspectionCriterion(otherCriterion)
+                        .resultDate(today.minusMonths(1))
+                        .expiryDate(today.plusMonths(6))
+                        .passed(true)
+                        .createdBy(user)
+                        .createdAt(LocalDateTime.now().minusMonths(1))
+                        .updatedAt(LocalDateTime.now().minusMonths(1))
+                        .build();
+
+        when(resultRepository.findAllByProductionLotId(productionLotId))
+                .thenReturn(List.of(expiredMain, validOther));
 
         // Act
         CanActivateSealCheckResponse response =
@@ -1162,6 +1408,8 @@ class InspectionCriterionResultServiceImplTest {
         assertThat(response.getCanActivate()).isFalse();
         assertThat(response.getReason())
                 .contains("quá hạn");
+        assertThat(response.getTotalCriteria()).isEqualTo(2);
+        assertThat(response.getPassedCriteria()).isEqualTo(1);
     }
 
     // ============================================================
@@ -1180,18 +1428,11 @@ class InspectionCriterionResultServiceImplTest {
                 productionLotId, orgId))
                 .thenReturn(Optional.of(lot));
 
-        when(requestRepository.findByProductionLot_IdOrderByCreatedAtDesc(
-                productionLotId))
-                .thenReturn(List.of(inspectionRequest));
+        stubMandatoryCriteria("TEST_CODE");
 
-        when(resultRepository.countTotalCriteria(inspectionRequestId))
-                .thenReturn(1);
-        when(resultRepository.countPassedAndValidCriteria(
-                inspectionRequestId, today))
-                .thenReturn(1);
-        when(resultRepository.findEarliestExpiryDateByInspectionRequest(
-                inspectionRequestId))
-                .thenReturn(Optional.of(validExpiry));
+        // Kết quả duy nhất của chỉ tiêu bắt buộc: đạt và còn hiệu lực
+        when(resultRepository.findAllByProductionLotId(productionLotId))
+                .thenReturn(List.of(result));
 
         // Act
         CanActivateSealCheckResponse response =
@@ -1205,6 +1446,9 @@ class InspectionCriterionResultServiceImplTest {
                 .isNull();
         assertThat(response.getEarliestExpiryDate())
                 .isEqualTo(validExpiry);
+        assertThat(response.getTotalCriteria()).isEqualTo(1);
+        assertThat(response.getPassedCriteria()).isEqualTo(1);
+        assertThat(response.getFailedOrExpiredCriteria()).isZero();
     }
 
     // ============================================================
@@ -1212,7 +1456,7 @@ class InspectionCriterionResultServiceImplTest {
     // ============================================================
 
     @Test
-    @DisplayName("TC-23: Lô không có yêu cầu kiểm nghiệm nào → Không kích hoạt tem")
+    @DisplayName("TC-23: Lô bắt buộc kiểm nghiệm chưa có bất kỳ kết quả nào → Không kích hoạt tem")
     void testCanActivateSealWithoutAnyInspectionRequest() {
 
         // Arrange
@@ -1220,8 +1464,9 @@ class InspectionCriterionResultServiceImplTest {
                 productionLotId, orgId))
                 .thenReturn(Optional.of(lot));
 
-        when(requestRepository.findByProductionLot_IdOrderByCreatedAtDesc(
-                productionLotId))
+        stubMandatoryCriteria("TEST_CODE", "OTHER_CRITERION");
+
+        when(resultRepository.findAllByProductionLotId(productionLotId))
                 .thenReturn(List.of());
 
         // Act
@@ -1237,10 +1482,80 @@ class InspectionCriterionResultServiceImplTest {
         assertThat(response.getEarliestExpiryDate())
                 .isNull();
         assertThat(response.getTotalCriteria())
-                .isZero();
+                .isEqualTo(2);
         assertThat(response.getPassedCriteria())
                 .isZero();
         assertThat(response.getFailedOrExpiredCriteria())
-                .isZero();
+                .isEqualTo(2);
+    }
+
+    // ============================================================
+    // TC-24: QTN-21
+    // ============================================================
+
+    @Test
+    @DisplayName("TC-24: Loại nông sản không bắt buộc kiểm nghiệm → Luôn đủ điều kiện kích hoạt tem")
+    void testCanActivateSealWhenInspectionNotMandatory() {
+
+        // Arrange
+        ProductCategory optionalCategory = ProductCategory.builder()
+                .id(UUID.randomUUID())
+                .name("Không bắt buộc kiểm nghiệm")
+                .requiresInspection(false)
+                .build();
+
+        ProductionLot optionalLot = new ProductionLot();
+        optionalLot.setId(productionLotId);
+        optionalLot.setName("Lô tự do");
+        Organization organization = new Organization();
+        organization.setOrganizationId(orgId);
+        optionalLot.setOrganization(organization);
+        optionalLot.setProductCategory(optionalCategory);
+
+        when(lotRepository.findByIdAndOrganization_OrganizationId(
+                productionLotId, orgId))
+                .thenReturn(Optional.of(optionalLot));
+
+        // Act
+        CanActivateSealCheckResponse response =
+                service.checkCanActivateSeal(
+                        productionLotId,
+                        currentUser);
+
+        // Assert: không phụ thuộc yêu cầu/kết quả kiểm nghiệm nào
+        assertThat(response.getCanActivate()).isTrue();
+        assertThat(response.getReason()).isNull();
+        verifyNoInteractions(categoryCriterionRepository);
+    }
+
+    // ============================================================
+    // TC-25: QTN-21
+    // ============================================================
+
+    @Test
+    @DisplayName("TC-25: Bắt buộc kiểm nghiệm nhưng chưa cấu hình chỉ tiêu nào → Không kích hoạt tem")
+    void testCanActivateSealWithoutAssignedCriteria() {
+
+        // Arrange
+        when(lotRepository.findByIdAndOrganization_OrganizationId(
+                productionLotId, orgId))
+                .thenReturn(Optional.of(lot));
+
+        stubMandatoryCriteria(); // danh sách gán rỗng
+
+        when(resultRepository.findAllByProductionLotId(productionLotId))
+                .thenReturn(List.of());
+
+        // Act
+        CanActivateSealCheckResponse response =
+                service.checkCanActivateSeal(
+                        productionLotId,
+                        currentUser);
+
+        // Assert
+        assertThat(response.getCanActivate()).isFalse();
+        assertThat(response.getReason())
+                .contains("chưa được cấu hình");
+        assertThat(response.getTotalCriteria()).isZero();
     }
 }

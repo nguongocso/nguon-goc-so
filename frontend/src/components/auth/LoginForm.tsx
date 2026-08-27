@@ -458,6 +458,16 @@ export const LoginForm: React.FC = () => {
               {errors.password.message}
             </p>
           )}
+
+          <div className="flex justify-end px-2">
+            <button
+              type="button"
+              onClick={() => navigate("/forgot-password")}
+              className="text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:underline transition-colors"
+            >
+              Quên mật khẩu?
+            </button>
+          </div>
         </div>
 
         {/* =========================

@@ -60,16 +60,18 @@ public class InspectionCriterionResult {
     @JoinColumn(name = "inspection_criterion_id", nullable = false)
     private InspectionCriterion inspectionCriterion;
 
-    /**
+        /**
      * Ngày cấp kết quả kiểm nghiệm.
+     * Có thể null khi chỉ tiêu không đạt (passed = false).
      */
-    @Column(name = "result_date", nullable = false)
+    @Column(name = "result_date")
     private LocalDate resultDate;
 
     /**
      * Ngày hết hiệu lực của kết quả kiểm nghiệm.
+     * Có thể null khi chỉ tiêu không đạt (passed = false).
      */
-    @Column(name = "expiry_date", nullable = false)
+    @Column(name = "expiry_date")
     private LocalDate expiryDate;
 
     /**

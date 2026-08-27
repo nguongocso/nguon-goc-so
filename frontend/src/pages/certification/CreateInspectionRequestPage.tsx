@@ -7,8 +7,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   Check,
-  ChevronLeft,
-  ChevronRight,
   ClipboardCheck,
   Clock,
   ExternalLink,
@@ -26,10 +24,14 @@ import {
 
 import {
   createInspectionRequest,
+  getInspectionRequestDetail,
+  getInspectionRequests,
   getLotTestCriteria,
 } from "@/api/certificationApi";
 import { getProductionLotById } from "@/api/productionLotApi";
+import { getProductCategoryCriteria } from "@/api/inspectionCriterionApi";
 import type { LotTestCriteriaResult } from "@/types/certification";
+import type { InspectionCriterion } from "@/types/inspectionCriterion";
 import type { ProductionLot } from "@/types/productionLot";
 
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +48,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   AlertDialog,
   AlertDialogFooter,
   AlertDialogHeader,
@@ -53,7 +63,9 @@ import {
   AlertDialogTitle,
   AlertDialogDescription,
 } from "@/components/ui/alert-dialog";
+import { Pagination } from "@/components/common/Pagination";
 import { HelpButton } from "@/components/help/HelpButton";
+import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 
 // Helper chuyển ngày sang định dạng ISO YYYY-MM-DD
 const toISODate = (date: Date) => {
@@ -81,6 +93,25 @@ const getApiErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 const CRITERIA_PER_PAGE = 8;
+const HISTORY_PAGE_SIZE = 50;
+
+/**
+ * Khóa đối chiếu giữa chỉ tiêu của lô (GET /test-criteria) và
+ * chỉ tiêu snapshot trong các yêu cầu kiểm nghiệm cũ. Cả hai phía
+ * đều sinh từ `name` của chỉ tiêu trong danh mục dùng chung nên
+ * khớp chính xác sau khi chuẩn hóa.
+ */
+const normalizeCriterionKey = (value: string) => value.trim().toLowerCase();
+
+/** Một dòng chỉ tiêu trên bảng lựa chọn (đã gộp dữ liệu danh mục). */
+interface CriterionRow {
+  criteriaId: number;
+  code: string;
+  name: string;
+  unit: string | null;
+  maxThreshold: number | null;
+  isCreated: boolean;
+}
 
 export const CreateInspectionRequestPage: React.FC = () => {
   const { lotId: paramLotId, id: paramId } = useParams<{
@@ -94,7 +125,34 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
   // --- Dữ liệu tải từ server ---
   const [lot, setLot] = useState<ProductionLot | null>(null);
+
+  // ── Breadcrumb điều hướng thống nhất ───────────────────────────────────────
+  // Ghi đè breadcrumb tự sinh để BỎ crumb trung gian "Yêu cầu kiểm nghiệm"
+  // (/production-lots/:id/inspection-requests) vì route này không tồn tại
+  // (không có trang danh sách). Nhãn crumb lô dùng tên lô khi đã tải xong.
+  useSetBreadcrumb([
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Lô sản xuất", href: "/production-lots" },
+    ...(effectiveLotId
+      ? [
+          {
+            label: lot?.name || "Chi tiết lô sản xuất",
+            href: `/production-lots/${effectiveLotId}`,
+          },
+        ]
+      : []),
+    { label: "Tạo yêu cầu kiểm nghiệm" },
+  ]);
+
   const [criteriaData, setCriteriaData] = useState<LotTestCriteriaResult | null>(null);
+  /** Map catalog criteriaId -> {unit, maxThreshold} lấy từ bộ chỉ tiêu của loại nông sản. */
+  const [catalogCriteriaMap, setCatalogCriteriaMap] = useState<Map<number, InspectionCriterion>>(new Map());
+  /**
+   * Tập khóa chuẩn hóa các chỉ tiêu đã từng thuộc yêu cầu kiểm nghiệm
+   * của lô (deriving từ GET /test-requests + chi tiết từng request).
+   */
+  const [createdCriterionKeys, setCreatedCriterionKeys] = useState<Set<string>>(new Set());
+  const [isRefreshingHistory, setIsRefreshingHistory] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -106,7 +164,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
   // Search & Filter trong danh sách chỉ tiêu
   const [criteriaSearch, setCriteriaSearch] = useState("");
-  const [criteriaFilter, setCriteriaFilter] = useState<"ALL" | "SELECTED" | "UNSELECTED">("ALL");
+  const [criteriaFilter, setCriteriaFilter] = useState<"ALL" | "CREATED" | "NOT_CREATED">("ALL");
   const [criteriaPage, setCriteriaPage] = useState(1);
 
   // Validation Touch State
@@ -128,6 +186,116 @@ export const CreateInspectionRequestPage: React.FC = () => {
     [effectiveLotId]
   );
 
+  /**
+   * Thu thập tập khóa các chỉ tiêu đang BỊ CHẶN chọn lại khi tạo yêu cầu mới
+   * (tập "Đã tạo" của lô), dựa trên toàn bộ lịch sử YÊU CẦU KIỂM NGHIỆM.
+   *
+   * Quy tắc:
+   * - Chỉ tiêu chưa có kết quả hoặc kết quả chốt gần nhất là ĐẠT  -> bị chặn.
+   * - Chỉ tiêu được ghi nhận KHÔNG ĐẠT ở lần xét gần nhất -> KHÔNG bị chặn:
+   *   trạng thái hiển thị đặt lại thành "Chưa tạo" và cho phép chọn lại
+   *   để tạo yêu cầu kiểm nghiệm mới.
+   *
+   * "Gần nhất" xác định bằng createdAt của InspectionCriterionResult nên
+   * không phụ thuộc thứ tự sắp xếp danh sách request trả về.
+   *
+   * Duyệt phân trang GET /test-requests?lotId=... rồi lấy chi tiết từng
+   * request (GET /inspection-requests/{id}) để đọc kết quả snapshot.
+   * Toàn bộ dùng API sẵn có — không tạo endpoint mới.
+   */
+  const fetchCreatedCriterionKeys = useCallback(async (): Promise<Set<string>> => {
+    // Kết quả chốt gần nhất theo từng khóa chỉ tiêu (code đã chuẩn hóa)
+    const latestResultByKey = new Map<string, { passed: boolean; at: number }>();
+    // Khóa thuộc request nhưng chưa ghi kết quả (đang chờ / chưa hoàn tất)
+    const keysWithoutResult = new Set<string>();
+    let page = 0;
+    let totalPages = 1;
+    const requestIds: string[] = [];
+
+    while (page < totalPages) {
+      const pageRes = await getInspectionRequests({
+        lotId: effectiveLotId,
+        page,
+        size: HISTORY_PAGE_SIZE,
+      });
+      totalPages = pageRes.totalPages ?? 0;
+      requestIds.push(...pageRes.items.map((item) => item.testRequestId));
+      page += 1;
+    }
+
+    await Promise.all(
+      requestIds.map(async (requestId) => {
+        try {
+          const detail = await getInspectionRequestDetail(requestId);
+          detail.criteria?.forEach((criterion) => {
+            const key = normalizeCriterionKey(criterion.code || criterion.name);
+            if (!key) return;
+            if (criterion.result == null) {
+              keysWithoutResult.add(key);
+              return;
+            }
+            const at = Date.parse(criterion.result.createdAt ?? "") || 0;
+            const prev = latestResultByKey.get(key);
+            if (!prev || at >= prev.at) {
+              latestResultByKey.set(key, { passed: criterion.result.passed, at });
+            }
+          });
+        } catch {
+          // Bỏ qua lỗi lẻ của một request để không mất dữ liệu lịch sử còn lại
+        }
+      })
+    );
+
+    // Khóa bị chặn = chưa có kết quả, HOẶC kết quả chốt gần nhất là ĐẠT.
+    // Riêng kết quả chốt gần nhất KHÔNG ĐẠT -> mở lại lựa chọn ("Chưa tạo").
+    return new Set<string>([
+      ...keysWithoutResult,
+      ...[...latestResultByKey.entries()]
+        .filter(([, value]) => value.passed)
+        .map(([key]) => key),
+    ]);
+  }, [effectiveLotId]);
+
+  /**
+   * Tải lại dữ liệu bảng chỉ tiêu: chỉ tiêu áp dụng cho lô + đơn vị/ngưỡng
+   * từ bộ chỉ tiêu của loại nông sản + trạng thái Đã tạo/Chưa tạo từ lịch sử.
+   *
+   * Lưu ý: tập khóa trả về bởi fetchCreatedCriterionKeys là các khóa BỊ CHẶN.
+   * Chỉ tiêu từng bị ghi nhận KHÔNG ĐẠT ở lần xét gần nhất sẽ không nằm trong
+   * tập này -> hiển thị "Chưa tạo" và cho phép chọn để tạo yêu cầu kiểm tra lại.
+   */
+  const loadCriteriaSectionData = useCallback(
+    async (
+      productCategoryId: string
+    ): Promise<{ criteriaRes: LotTestCriteriaResult; createdKeys: Set<string> }> => {
+      const [criteriaRes, catalogRes, createdKeys] = await Promise.all([
+        getLotTestCriteria(effectiveLotId),
+        getProductCategoryCriteria(productCategoryId, true).catch(
+          () => [] as InspectionCriterion[]
+        ),
+        fetchCreatedCriterionKeys(),
+      ]);
+
+      setCriteriaData(criteriaRes);
+      setCatalogCriteriaMap(new Map(catalogRes.map((c) => [c.id, c])));
+      setCreatedCriterionKeys(createdKeys);
+
+      return { criteriaRes, createdKeys };
+    },
+    [effectiveLotId, fetchCreatedCriterionKeys]
+  );
+
+  /** Danh sách id chỉ tiêu còn được phép chọn trong danh sách đã tải. */
+  const getSelectableIdsFromRows = (
+    rows: { code: string; name: string; criteriaId: number }[],
+    createdKeys: Set<string>
+  ) =>
+    new Set(
+      rows
+        .filter((c) => !createdKeys.has(normalizeCriterionKey(c.code || c.name)))
+        .map((c) => c.criteriaId)
+    );
+
   // --- Tải dữ liệu ban đầu ---
   const loadInitialData = useCallback(async () => {
     if (!effectiveLotId) {
@@ -140,13 +308,14 @@ export const CreateInspectionRequestPage: React.FC = () => {
     setLoadError(null);
 
     try {
-      const [lotRes, criteriaRes] = await Promise.all([
-        getProductionLotById(effectiveLotId),
-        getLotTestCriteria(effectiveLotId),
-      ]);
-
+      const lotRes = await getProductionLotById(effectiveLotId);
       setLot(lotRes);
-      setCriteriaData(criteriaRes);
+
+      const { criteriaRes, createdKeys } = await loadCriteriaSectionData(
+        lotRes.productCategoryId
+      );
+
+      const selectableIds = getSelectableIdsFromRows(criteriaRes.criteria ?? [], createdKeys);
 
       // Kiểm tra xem có bản nháp nào đã lưu trước đó không
       const savedDraft = localStorage.getItem(draftStorageKey);
@@ -157,7 +326,10 @@ export const CreateInspectionRequestPage: React.FC = () => {
           if (parsed.sampleSentDate) setSampleSentDate(parsed.sampleSentDate);
           if (parsed.notes) setNotes(parsed.notes);
           if (Array.isArray(parsed.selectedCriteriaIds)) {
-            setSelectedCriteriaIds(parsed.selectedCriteriaIds);
+            // Chỉ khôi phục những chỉ tiêu chưa từng tạo yêu cầu cho lô
+            setSelectedCriteriaIds(
+              parsed.selectedCriteriaIds.filter((id: number) => selectableIds.has(id))
+            );
           }
           toast.info("Đã khôi phục bản nháp chưa gửi của lô sản xuất này.", {
             duration: 4000,
@@ -166,10 +338,8 @@ export const CreateInspectionRequestPage: React.FC = () => {
           // ignore corrupted draft
         }
       } else {
-        // Mặc định chọn toàn bộ chỉ tiêu của tiêu chuẩn
-        if (criteriaRes?.criteria?.length > 0) {
-          setSelectedCriteriaIds(criteriaRes.criteria.map((c) => c.criteriaId));
-        }
+        // Mặc định chọn toàn bộ chỉ tiêu CHƯA từng tạo yêu cầu kiểm nghiệm
+        setSelectedCriteriaIds([...selectableIds]);
       }
     } catch (err: unknown) {
       setLoadError(
@@ -181,28 +351,65 @@ export const CreateInspectionRequestPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [effectiveLotId, draftStorageKey]);
+  }, [effectiveLotId, draftStorageKey, loadCriteriaSectionData]);
 
   useEffect(() => {
     void loadInitialData();
   }, [loadInitialData]);
 
+  /**
+   * Refetch lại toàn bộ dữ liệu bảng chỉ tiêu từ server sau khi tạo
+   * yêu cầu thành công để trạng thái Đã tạo/Chưa tạo phản ánh chính xác
+   * dữ liệu backend (không dựa vào state local).
+   */
+  const refreshCriteriaSection = async () => {
+    if (!lot?.productCategoryId) return;
+    setIsRefreshingHistory(true);
+    try {
+      await loadCriteriaSectionData(lot.productCategoryId);
+    } catch {
+      // Không đổi trạng thái giả thành công; dữ liệu server sẽ được đồng bộ ở lần truy cập kế
+      toast.error("Không thể làm mới trạng thái chỉ tiêu sau khi tạo yêu cầu.");
+    } finally {
+      setIsRefreshingHistory(false);
+    }
+  };
+
+  // --- Dữ liệu dòng bảng chỉ tiêu (gộp đơn vị/ngưỡng + trạng thái Đã tạo từ lịch sử server) ---
+  const criterionRows = useMemo<CriterionRow[]>(() => {
+    if (!criteriaData?.criteria) return [];
+    return criteriaData.criteria.map((item) => {
+      const catalogEntry = catalogCriteriaMap.get(item.criteriaId);
+      return {
+        criteriaId: item.criteriaId,
+        code: item.code,
+        name: item.name,
+        unit: catalogEntry?.unit ?? null,
+        maxThreshold: catalogEntry?.maxThreshold ?? null,
+        isCreated: createdCriterionKeys.has(
+          normalizeCriterionKey(item.code || item.name)
+        ),
+      };
+    });
+  }, [criteriaData, catalogCriteriaMap, createdCriterionKeys]);
+
+  const totalCriteriaCount = criterionRows.length;
+  const createdCriteriaCount = criterionRows.filter((row) => row.isCreated).length;
+
   // --- Filter danh sách chỉ tiêu ---
   const filteredCriteria = useMemo(() => {
-    if (!criteriaData?.criteria) return [];
-
-    return criteriaData.criteria.filter((item) => {
+    return criterionRows.filter((item) => {
+      const keyword = criteriaSearch.trim().toLowerCase();
       const matchSearch =
-        criteriaSearch === "" ||
-        item.name.toLowerCase().includes(criteriaSearch.toLowerCase()) ||
-        item.code.toLowerCase().includes(criteriaSearch.toLowerCase());
+        keyword === "" ||
+        item.name.toLowerCase().includes(keyword) ||
+        item.code.toLowerCase().includes(keyword);
 
-      const isSelected = selectedCriteriaIds.includes(item.criteriaId);
-      if (criteriaFilter === "SELECTED") return matchSearch && isSelected;
-      if (criteriaFilter === "UNSELECTED") return matchSearch && !isSelected;
+      if (criteriaFilter === "CREATED") return matchSearch && item.isCreated;
+      if (criteriaFilter === "NOT_CREATED") return matchSearch && !item.isCreated;
       return matchSearch;
     });
-  }, [criteriaData, criteriaSearch, criteriaFilter, selectedCriteriaIds]);
+  }, [criterionRows, criteriaSearch, criteriaFilter]);
 
   // Phân trang danh sách chỉ tiêu
   const totalCriteriaPages = Math.max(1, Math.ceil(filteredCriteria.length / CRITERIA_PER_PAGE));
@@ -217,8 +424,12 @@ export const CreateInspectionRequestPage: React.FC = () => {
     setCriteriaPage(1);
   }, [criteriaSearch, criteriaFilter]);
 
-  // --- Xử lý chọn chỉ tiêu ---
+  // --- Xử lý chọn chỉ tiêu (checkbox chỉ thể hiện lựa chọn cho LẦN TẠO HIỆN TẠI) ---
   const toggleCriterion = (criteriaId: number, checked: boolean) => {
+    // Chỉ tiêu Đã tạo không được chọn lại cho cùng lô
+    const row = criterionRows.find((r) => r.criteriaId === criteriaId);
+    if (!row || row.isCreated || isRefreshingHistory) return;
+
     setTouched((prev) => ({ ...prev, criteria: true }));
     setSelectedCriteriaIds((prev) => {
       if (checked) {
@@ -229,9 +440,16 @@ export const CreateInspectionRequestPage: React.FC = () => {
   };
 
   const handleSelectAllCriteria = () => {
-    if (!criteriaData?.criteria) return;
+    if (isRefreshingHistory) return;
     setTouched((prev) => ({ ...prev, criteria: true }));
-    setSelectedCriteriaIds(criteriaData.criteria.map((c) => c.criteriaId));
+    setSelectedCriteriaIds((prev) => {
+      // Chỉ chọn các chỉ tiêu Chưa tạo trong kết quả lọc/tìm kiếm hiện tại
+      const next = new Set(prev);
+      filteredCriteria.forEach((row) => {
+        if (!row.isCreated) next.add(row.criteriaId);
+      });
+      return [...next];
+    });
   };
 
   const handleDeselectAllCriteria = () => {
@@ -260,11 +478,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
     setTestingUnit("");
     setSampleSentDate(today);
     setNotes("");
-    if (criteriaData?.criteria) {
-      setSelectedCriteriaIds(criteriaData.criteria.map((c) => c.criteriaId));
-    } else {
-      setSelectedCriteriaIds([]);
-    }
+    setSelectedCriteriaIds([...getSelectableIdsFromRows(criterionRows, createdCriterionKeys)]);
     setTouched({ testingUnit: false, sampleSentDate: false, criteria: false });
     toast.info("Đã xóa trắng form và làm mới bản nháp.");
   };
@@ -285,7 +499,23 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
   // --- Gửi yêu cầu kiểm nghiệm ---
   const handleSubmit = async (confirmDuplicate = false) => {
+    if (submitting) return; // chống double submit
+
     setTouched({ testingUnit: true, sampleSentDate: true, criteria: true });
+
+    // Loại bỏ an toàn các chỉ tiêu đã từng tạo yêu cầu trước khi gửi
+    // (phòng trường hợp state bị can thiệp từ devtools/DOM)
+    const selectableIds = getSelectableIdsFromRows(criterionRows, createdCriterionKeys);
+    const effectiveCriteriaIds = selectedCriteriaIds.filter((id) =>
+      selectableIds.has(id)
+    );
+
+    if (selectedCriteriaIds.length > 0 && effectiveCriteriaIds.length === 0) {
+      toast.error(
+        "Các chỉ tiêu đã chọn đều đã được tạo yêu cầu kiểm nghiệm cho lô này. Vui lòng chọn chỉ tiêu khác."
+      );
+      return;
+    }
 
     if (!canSubmit && !confirmDuplicate) {
       if (!isTestingUnitValid) toast.error("Vui lòng nhập đơn vị phòng kiểm nghiệm.");
@@ -294,12 +524,17 @@ export const CreateInspectionRequestPage: React.FC = () => {
       return;
     }
 
+    if (effectiveCriteriaIds.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một chỉ tiêu kiểm nghiệm.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       await createInspectionRequest(effectiveLotId, {
         testingUnit: trimmedTestingUnit,
         sampleSentDate,
-        criteriaIds: selectedCriteriaIds,
+        criteriaIds: effectiveCriteriaIds,
         confirmDuplicate,
       });
 
@@ -310,9 +545,24 @@ export const CreateInspectionRequestPage: React.FC = () => {
         description: `Đã gửi yêu cầu cho lô ${lot?.name || effectiveLotId} tới ${trimmedTestingUnit}.`,
       });
 
-      // Chuyển hướng về tab kiểm nghiệm của lô sản xuất
-      navigate(`/production-lots/${effectiveLotId}?tab=inspection`);
+      // Cập nhật tức thời các chỉ tiêu vừa gửi thành Đã tạo, sau đó
+      // refetch toàn bộ dữ liệu từ server để đảm bảo trạng thái chính xác
+      const submittedKeys = new Set(
+        criterionRows
+          .filter((row) => effectiveCriteriaIds.includes(row.criteriaId))
+          .map((row) => normalizeCriterionKey(row.code || row.name))
+      );
+      setCreatedCriterionKeys((prev) => new Set([...prev, ...submittedKeys]));
+
+      // Xóa lựa chọn của lần tạo hiện tại sau khi thành công
+      setSelectedCriteriaIds([]);
+      setTouched((prev) => ({ ...prev, criteria: false }));
+      setCriteriaFilter("ALL");
+      setCriteriaPage(1);
+
+      await refreshCriteriaSection();
     } catch (error: unknown) {
+      // API thất bại: giữ nguyên lựa chọn và trạng thái Chưa tạo để retry
       if (axios.isAxiosError(error) && error.response?.status === 409) {
         setDuplicateMessage(
           getApiErrorMessage(
@@ -382,7 +632,6 @@ export const CreateInspectionRequestPage: React.FC = () => {
     );
   }
 
-  const totalCriteriaCount = criteriaData?.criteria?.length || 0;
   const selectedCount = selectedCriteriaIds.length;
 
   return (
@@ -450,7 +699,13 @@ export const CreateInspectionRequestPage: React.FC = () => {
                         : "border-red-300 bg-red-50 text-red-700"
                     }`}
                   >
-                    Đã chọn: {selectedCount}/{totalCriteriaCount} chỉ tiêu
+                    Chọn cho lần này: {selectedCount} chỉ tiêu
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="rounded-full border-slate-300 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700"
+                  >
+                    Đã tạo: {createdCriteriaCount}/{totalCriteriaCount} chỉ tiêu
                   </Badge>
                 </div>
               </div>
@@ -482,41 +737,31 @@ export const CreateInspectionRequestPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Filter Pills */}
+                  {/* Filter Pills theo trạng thái của lô */}
                   <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white p-1">
-                    <button
-                      type="button"
-                      onClick={() => setCriteriaFilter("ALL")}
-                      className={`rounded-lg px-3.5 py-1.5 text-sm transition-all ${
-                        criteriaFilter === "ALL"
-                          ? "border border-primary bg-white font-semibold text-primary shadow-2xs"
-                          : "border border-transparent font-medium text-foreground/60 hover:text-foreground"
-                      }`}
-                    >
-                      Tất cả
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCriteriaFilter("SELECTED")}
-                      className={`rounded-lg px-3.5 py-1.5 text-sm transition-all ${
-                        criteriaFilter === "SELECTED"
-                          ? "border border-primary bg-white font-semibold text-primary shadow-2xs"
-                          : "border border-transparent font-medium text-foreground/60 hover:text-foreground"
-                      }`}
-                    >
-                      Đã chọn ({selectedCount})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCriteriaFilter("UNSELECTED")}
-                      className={`rounded-lg px-3.5 py-1.5 text-sm transition-all ${
-                        criteriaFilter === "UNSELECTED"
-                          ? "border border-primary bg-white font-semibold text-primary shadow-2xs"
-                          : "border border-transparent font-medium text-foreground/60 hover:text-foreground"
-                      }`}
-                    >
-                      Chưa chọn ({totalCriteriaCount - selectedCount})
-                    </button>
+                    {(
+                      [
+                        { value: "ALL", label: `Tất cả (${totalCriteriaCount})` },
+                        { value: "CREATED", label: `Đã tạo (${createdCriteriaCount})` },
+                        {
+                          value: "NOT_CREATED",
+                          label: `Chưa tạo (${totalCriteriaCount - createdCriteriaCount})`,
+                        },
+                      ] as const
+                    ).map((pill) => (
+                      <button
+                        key={pill.value}
+                        type="button"
+                        onClick={() => setCriteriaFilter(pill.value)}
+                        className={`rounded-lg px-3.5 py-1.5 text-sm transition-all ${
+                          criteriaFilter === pill.value
+                            ? "border border-primary bg-white font-semibold text-primary shadow-2xs"
+                            : "border border-transparent font-medium text-foreground/60 hover:text-foreground"
+                        }`}
+                      >
+                        {pill.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -553,95 +798,124 @@ export const CreateInspectionRequestPage: React.FC = () => {
                 </div>
               ) : filteredCriteria.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border p-8 text-center text-xs text-muted-foreground">
-                  Không tìm thấy chỉ tiêu nào phù hợp với từ khóa "{criteriaSearch}".
+                  {criteriaSearch.trim()
+                    ? `Không tìm thấy chỉ tiêu nào phù hợp với từ khóa "${criteriaSearch}".`
+                    : "Không có chỉ tiêu nào ở trạng thái này."}
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                    {paginatedCriteria.map((criterion) => {
-                      const isChecked = selectedCriteriaIds.includes(criterion.criteriaId);
-                      return (
-                        <div
-                          key={criterion.criteriaId}
-                          onClick={() => toggleCriterion(criterion.criteriaId, !isChecked)}
-                          className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-all ${
-                            isChecked
-                              ? "border-emerald-500 bg-emerald-50/40 shadow-2xs"
-                              : "border-border bg-white hover:border-input hover:bg-muted/40"
-                          }`}
-                        >
-                          <Checkbox
-                            id={`criterion-${criterion.criteriaId}`}
-                            checked={isChecked}
-                            onCheckedChange={(c) =>
-                              toggleCriterion(criterion.criteriaId, c === true)
-                            }
-                            className="mt-0.5"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <Label
-                              htmlFor={`criterion-${criterion.criteriaId}`}
-                              className="cursor-pointer text-xs font-semibold text-foreground leading-snug"
-                            >
-                              {criterion.name}
-                            </Label>
-                            <p className="font-mono text-xs text-muted-foreground mt-0.5">
-                              Mã: {criterion.code}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Thanh phân trang chỉ tiêu */}
-                  {totalCriteriaPages > 1 && (
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-border text-xs text-muted-foreground">
-                      <div>
-                        Hiển thị {(criteriaPage - 1) * CRITERIA_PER_PAGE + 1} -{" "}
-                        {Math.min(criteriaPage * CRITERIA_PER_PAGE, filteredCriteria.length)} trong tổng số{" "}
-                        <span className="font-semibold text-foreground">{filteredCriteria.length}</span> chỉ tiêu
-                      </div>
-                      <div className="flex items-center gap-1 self-end sm:self-auto">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={criteriaPage <= 1}
-                          onClick={() => setCriteriaPage((p) => Math.max(1, p - 1))}
-                          className="h-8 px-2.5 rounded-lg text-xs"
-                        >
-                          <ChevronLeft className="h-3.5 w-3.5 mr-1" /> Trước
-                        </Button>
-                        <div className="flex items-center gap-1 px-1">
-                          {Array.from({ length: totalCriteriaPages }, (_, i) => i + 1).map((p) => (
-                            <button
-                              key={p}
-                              type="button"
-                              onClick={() => setCriteriaPage(p)}
-                              className={`h-8 min-w-[32px] px-2 rounded-lg text-xs font-medium transition-colors ${
-                                criteriaPage === p
-                                  ? "bg-emerald-600 text-white shadow-xs"
-                                  : "bg-white border border-border text-foreground hover:bg-muted/50"
-                              }`}
-                            >
-                              {p}
-                            </button>
-                          ))}
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={criteriaPage >= totalCriteriaPages}
-                          onClick={() => setCriteriaPage((p) => Math.min(totalCriteriaPages, p + 1))}
-                          className="h-8 px-2.5 rounded-lg text-xs"
-                        >
-                          Sau <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                        </Button>
-                      </div>
+                  {/* Banner khi không còn chỉ tiêu Chưa tạo nào cho lô */}
+                  {createdCriteriaCount > 0 && createdCriteriaCount === totalCriteriaCount && (
+                    <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-xs text-amber-800">
+                      <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                      <span>
+                        Tất cả chỉ tiêu của lô này đã được tạo yêu cầu kiểm nghiệm. Bạn không thể
+                        tạo thêm yêu cầu mới cho lô này.
+                      </span>
                     </div>
                   )}
+
+                  <div className="rounded-md border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="w-12 text-center">STT</TableHead>
+                          <TableHead>Tên chỉ tiêu</TableHead>
+                          <TableHead>Đơn vị</TableHead>
+                          <TableHead>Ngưỡng tối đa</TableHead>
+                          <TableHead>Trạng thái</TableHead>
+                          <TableHead className="w-24 text-center">Thao tác</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                    <TableBody>
+                      {paginatedCriteria.map((criterion, index) => {
+                        const isChecked = selectedCriteriaIds.includes(criterion.criteriaId);
+                        return (
+                          <TableRow
+                            key={criterion.criteriaId}
+                            onClick={(e) => {
+                              // Click checkbox trong cột Thao tác tự xử lý qua onCheckedChange
+                              if ((e.target as HTMLElement).closest("button")) return;
+                              toggleCriterion(criterion.criteriaId, !isChecked);
+                            }}
+                            className={`transition-colors ${
+                              criterion.isCreated
+                                ? "cursor-not-allowed bg-muted/40 opacity-70"
+                                : isChecked
+                                  ? "cursor-pointer bg-emerald-50/40 hover:bg-muted/40"
+                                  : "cursor-pointer hover:bg-muted/40"
+                            }`}
+                          >
+                            <TableCell className="text-center font-medium text-muted-foreground">
+                              {(criteriaPage - 1) * CRITERIA_PER_PAGE + index + 1}
+                            </TableCell>
+                            <TableCell>
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold leading-snug text-foreground">
+                                  {criterion.name}
+                                </p>
+                                <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                                  {criterion.code}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap text-xs">
+                              {criterion.unit ?? "—"}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap text-xs">
+                              {criterion.maxThreshold !== null
+                                ? Number(criterion.maxThreshold)
+                                : "—"}
+                            </TableCell>
+                            <TableCell>
+                              {criterion.isCreated ? (
+                                <Badge
+                                  variant="outline"
+                                  className="rounded-full border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800"
+                                >
+                                  Đã tạo
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="rounded-full border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800"
+                                >
+                                  Chưa tạo
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Checkbox
+                                id={`criterion-${criterion.criteriaId}`}
+                                checked={isChecked}
+                                onCheckedChange={(c) =>
+                                  toggleCriterion(criterion.criteriaId, c === true)
+                                }
+                                disabled={criterion.isCreated || isRefreshingHistory}
+                                aria-label={`Chọn chỉ tiêu ${criterion.name}`}
+                                title={
+                                  criterion.isCreated
+                                    ? "Chỉ tiêu đã từng thuộc yêu cầu kiểm nghiệm của lô này"
+                                    : undefined
+                                }
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                  {/* Phân trang danh sách chỉ tiêu */}
+                  <Pagination
+                    currentPage={criteriaPage - 1}
+                    totalPages={totalCriteriaPages}
+                    totalElements={filteredCriteria.length}
+                    pageSize={CRITERIA_PER_PAGE}
+                    itemLabel="chỉ tiêu"
+                    onPageChange={(page) => setCriteriaPage(page + 1)}
+                  />
                 </div>
               )}
 
@@ -877,11 +1151,14 @@ export const CreateInspectionRequestPage: React.FC = () => {
           <div>
             <p className="text-xs font-semibold text-foreground">
               {selectedCount > 0
-                ? `Đã chọn ${selectedCount}/${totalCriteriaCount} chỉ tiêu kiểm nghiệm`
-                : "Chưa chọn chỉ tiêu nào"}
+                ? `Đã chọn ${selectedCount} chỉ tiêu cho yêu cầu hiện tại`
+                : "Chưa chọn chỉ tiêu nào cho yêu cầu hiện tại"}
             </p>
             <p className="text-xs text-muted-foreground">
-              {testingUnit.trim() ? `Đơn vị: ${testingUnit.trim()}` : "Chưa nhập đơn vị kiểm nghiệm"}
+              {createdCriteriaCount}/{totalCriteriaCount} chỉ tiêu đã tạo yêu cầu kiểm nghiệm ·{" "}
+              {testingUnit.trim()
+                ? `Đơn vị: ${testingUnit.trim()}`
+                : "Chưa nhập đơn vị kiểm nghiệm"}
             </p>
           </div>
         </div>
