@@ -126,6 +126,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     removeSelectionToken();
     setSelectionTokenState(null);
+
+    // Reset trạng thái xem thông báo email cho phiên đăng nhập mới
+    if (userData?.userId) {
+      sessionStorage.removeItem(`session_read_email_notice_${userData.userId}`);
+    }
   }, []);
 
   const updateUser = useCallback((updatedUserData: AuthUserInfo) => {
@@ -134,13 +139,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   const logout = useCallback(() => {
+    if (user?.userId) {
+      sessionStorage.removeItem(`session_read_email_notice_${user.userId}`);
+    }
+
     removeToken();
     removeSelectionToken();
 
     setTokenState(null);
     setSelectionTokenState(null);
     setUserState(null);
-  }, []);
+  }, [user?.userId]);
 
   return (
     <AuthContext.Provider

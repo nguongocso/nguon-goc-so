@@ -77,14 +77,14 @@ const NotificationsPage = () => {
     (!user.email || user.email.trim() === '')
   );
 
-  const emailNoticeKey = user ? `read_email_notice_${user.userId}` : '';
+  const emailNoticeKey = user ? `session_read_email_notice_${user.userId}` : '';
   const [isEmailNoticeRead, setIsEmailNoticeRead] = useState<boolean>(() => {
-    return emailNoticeKey ? localStorage.getItem(emailNoticeKey) === 'true' : false;
+    return emailNoticeKey ? sessionStorage.getItem(emailNoticeKey) === 'true' : false;
   });
 
   useEffect(() => {
     if (emailNoticeKey) {
-      setIsEmailNoticeRead(localStorage.getItem(emailNoticeKey) === 'true');
+      setIsEmailNoticeRead(sessionStorage.getItem(emailNoticeKey) === 'true');
     }
   }, [emailNoticeKey, user?.email]);
 
@@ -102,7 +102,7 @@ const NotificationsPage = () => {
 
   const handleEmailNoticeClick = () => {
     if (emailNoticeKey) {
-      localStorage.setItem(emailNoticeKey, 'true');
+      sessionStorage.setItem(emailNoticeKey, 'true');
       setIsEmailNoticeRead(true);
       void refreshUnreadCount();
     }

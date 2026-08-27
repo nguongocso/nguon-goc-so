@@ -30,15 +30,15 @@ export const NotificationBell = () => {
     (!user.email || user.email.trim() === '')
   );
 
-  const emailNoticeKey = user ? `read_email_notice_${user.userId}` : '';
+  const emailNoticeKey = user ? `session_read_email_notice_${user.userId}` : '';
   const [isEmailNoticeRead, setIsEmailNoticeRead] = useState<boolean>(() => {
-    return emailNoticeKey ? localStorage.getItem(emailNoticeKey) === 'true' : false;
+    return emailNoticeKey ? sessionStorage.getItem(emailNoticeKey) === 'true' : false;
   });
 
   // Đồng bộ trạng thái đã đọc khi user thay đổi hoặc email cập nhật
   useEffect(() => {
     if (emailNoticeKey) {
-      setIsEmailNoticeRead(localStorage.getItem(emailNoticeKey) === 'true');
+      setIsEmailNoticeRead(sessionStorage.getItem(emailNoticeKey) === 'true');
     }
   }, [emailNoticeKey, user?.email]);
 
@@ -62,7 +62,7 @@ export const NotificationBell = () => {
 
   const handleEmailNoticeClick = () => {
     if (emailNoticeKey) {
-      localStorage.setItem(emailNoticeKey, 'true');
+      sessionStorage.setItem(emailNoticeKey, 'true');
       setIsEmailNoticeRead(true);
     }
     setOpen(false);
