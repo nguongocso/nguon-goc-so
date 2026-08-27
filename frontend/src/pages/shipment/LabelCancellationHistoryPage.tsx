@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
+import { HelpButton } from '@/components/help/HelpButton';
 
 export default function LabelCancellationHistoryPage() {
   const { id: shipmentId, lotId } = useParams<{ id: string; lotId?: string }>();
@@ -200,6 +201,7 @@ export default function LabelCancellationHistoryPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <HelpButton screenKey="label-cancellation-history" />
           <Button
             variant="outline"
             size="sm"
