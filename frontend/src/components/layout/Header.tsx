@@ -48,6 +48,10 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
     user?.roleCode,
     ROLE_ACCESS.organizationProfile,
   );
+  const canOpenUserProfile = hasAnyRole(
+    user?.roleCode,
+    ROLE_ACCESS.userProfile,
+  );
 
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [organizations, setOrganizations] = useState<OrganizationSelection[]>([]);
@@ -176,11 +180,15 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
             )}
           </DropdownMenuItem>
         ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate('/profile')}>
-          <User className="mr-2 size-4 text-emerald-600" />
-          Hồ sơ người dùng
-        </DropdownMenuItem>
+        {(canOpenUserProfile || canOpenOrganizationProfile) && (
+          <DropdownMenuSeparator />
+        )}
+        {canOpenUserProfile && (
+          <DropdownMenuItem onClick={() => navigate('/profile')}>
+            <User className="mr-2 size-4 text-emerald-600" />
+            Hồ sơ người dùng
+          </DropdownMenuItem>
+        )}
         {canOpenOrganizationProfile && (
           <DropdownMenuItem onClick={() => navigate('/organizations/profile')}>
             Hồ sơ tổ chức hiện tại
@@ -188,7 +196,7 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
         )}
       </DropdownMenuContent>
     </DropdownMenu>
-  ) : (
+  ) : canOpenUserProfile ? (
     <Link
       to="/profile"
       className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-emerald-50"
@@ -196,6 +204,18 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
     >
       {accountContent}
     </Link>
+  ) : canOpenOrganizationProfile ? (
+    <Link
+      to="/organizations/profile"
+      className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-emerald-50"
+      title="Xem hồ sơ tổ chức"
+    >
+      {accountContent}
+    </Link>
+  ) : (
+    <div className="flex min-w-0 items-center gap-2 px-2 py-1.5">
+      {accountContent}
+    </div>
   );
 
   return (
