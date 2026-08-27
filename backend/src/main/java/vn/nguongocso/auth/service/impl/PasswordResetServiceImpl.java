@@ -69,13 +69,13 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         User user = userOpt.get();
         if (user.getEmail() == null || user.getEmail().isBlank()) {
             log.warn("Tài khoản userId={} không có địa chỉ email để nhận liên kết", user.getUserId());
-            return;
+            throw new BusinessException("Tài khoản chưa được cấu hình địa chỉ email để thực hiện đặt lại mật khẩu. Vui lòng liên hệ quản trị viên.");
         }
 
         // Không gửi email cho tài khoản đã bị vô hiệu hóa
         if (user.getStatus() != UserStatus.ACTIVE) {
             log.warn("Tài khoản userId={} không ở trạng thái ACTIVE (status={})", user.getUserId(), user.getStatus());
-            return;
+            throw new BusinessException("Tài khoản đang bị khóa hoặc ngưng hoạt động. Vui lòng liên hệ quản trị viên.");
         }
 
         // Kiểm tra Rate Limiting (chống spam/bruteforce)

@@ -104,6 +104,29 @@ class PasswordResetServiceTest {
     }
 
     @Test
+    @DisplayName("Báo lỗi khi tài khoản chưa được cấu hình địa chỉ email")
+    void requestPasswordReset_UserHasNoEmail_ThrowsBusinessException() {
+        User userWithoutEmail = User.builder()
+                .userId(UUID.randomUUID())
+                .userName("nongdan_no_email")
+                .fullName("No Email User")
+                .email(null)
+                .status(UserStatus.ACTIVE)
+                .build();
+
+        ForgotPasswordRequest request = new ForgotPasswordRequest("nongdan_no_email");
+
+        when(userRepository.findByEmail("nongdan_no_email")).thenReturn(Optional.empty());
+        when(userRepository.findByUserName("nongdan_no_email")).thenReturn(Optional.of(userWithoutEmail));
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> passwordResetService.requestPasswordReset(request));
+        assertEquals("Tài khoản chưa được cấu hình địa chỉ email để thực hiện đặt lại mật khẩu. Vui lòng liên hệ quản trị viên.", ex.getMessage());
+
+        verify(tokenRepository, never()).save(any());
+        verify(emailService, never()).sendPasswordResetEmail(any(), any(), any(), anyInt());
+    }
+
+    @Test
     @DisplayName("Rate limiting: Chặn gửi email khi yêu cầu vượt quá 5 lần/giờ")
     void requestPasswordReset_RateLimitExceeded() {
         ForgotPasswordRequest request = new ForgotPasswordRequest("nongdan@nguongocso.vn");
