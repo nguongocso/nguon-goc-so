@@ -19,6 +19,7 @@ import {
   ScanLine,
   ShieldCheck,
   Truck,
+  User,
   UserCheck,
   Users,
   Thermometer,
@@ -348,6 +349,12 @@ const MENU_GROUPS: MenuGroup[] = [
         label: "Giám sát hệ thống",
         href: "/admin/system-monitoring",
         allowedRoles: ["VT-01"] as const,
+      },
+      {
+        icon: <User className="h-5 w-5" />,
+        label: "Hồ sơ người dùng",
+        href: "/profile",
+        allowedRoles: ROLE_ACCESS.userProfile,
       },
       {
         icon: <UserCheck className="h-5 w-5" />,

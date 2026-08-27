@@ -51,6 +51,7 @@ public class AuthController {
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
     private final PermissionChecker permissionChecker;
+    private final vn.nguongocso.auth.repository.UserRepository userRepository;
 
     /**
      * Xác thực người dùng bằng username và password.
@@ -151,10 +152,16 @@ public class AuthController {
         List<String> permissions =
                 permissionChecker.getPermissionsForCurrentUser();
 
+        // Lấy thông tin mới nhất từ DB
+        vn.nguongocso.auth.entity.User user = userRepository.findById(userDetails.getUserId())
+                .orElse(userDetails.getUser());
+
         UserProfileResponse response = UserProfileResponse.builder()
                 .userId(userDetails.getUserId())
                 .username(userDetails.getUsername())
                 .fullName(userDetails.getFullName())
+                .phone(user != null ? user.getPhone() : null)
+                .email(user != null ? user.getEmail() : null)
                 .roleCode(userDetails.getRoleCode())
                 .roleName(userDetails.getRoleName())
                 .organizationId(userDetails.getOrganizationId())
@@ -163,6 +170,35 @@ public class AuthController {
                 .organizationType(userDetails.getOrganizationType())
                 .permissions(permissions)
                 .build();
+
+        return ResponseEntity.ok(
+                ApiResult.success(response)
+        );
+    }
+
+    /**
+     * Cập nhật thông tin hồ sơ cá nhân của user hiện tại.
+     */
+    @PutMapping("/profile")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResult<UserProfileResponse>> updateProfile(
+            @Valid @RequestBody vn.nguongocso.auth.dto.request.UpdateUserProfileRequest request) {
+
+        Authentication auth =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        CustomUserDetails userDetails =
+                (CustomUserDetails) auth.getPrincipal();
+
+        List<String> permissions =
+                permissionChecker.getPermissionsForCurrentUser();
+
+        UserProfileResponse response = authService.updateProfile(
+                userDetails.getUserId(),
+                userDetails,
+                request,
+                permissions
+        );
 
         return ResponseEntity.ok(
                 ApiResult.success(response)

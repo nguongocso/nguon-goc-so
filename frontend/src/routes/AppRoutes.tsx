@@ -54,9 +54,10 @@ import CorrectPackagingEventPage from "@/pages/packaging-event/CorrectPackagingE
 import CreatePreprocessingEventPage from "@/pages/preprocessing-event/CreatePreprocessingEventPage";
 import CorrectPreprocessingEventPage from "@/pages/preprocessing-event/CorrectPreprocessingEventPage";
 
-// ===== Organization =====
+// ===== Organization & Profile =====
 import { OrganizationListPage } from "@/pages/organization/OrganizationListPage";
 import CreateMemberPage from "@/pages/organization/CreateMemberPage";
+import UserProfilePage from "@/pages/profile/UserProfilePage";
 
 // ===== Farm logs =====
 import FarmLogHistoryPage from "@/pages/farm-log/FarmLogHistoryPage";
@@ -326,6 +327,18 @@ const AppRoutes = () => (
                 element={<DashboardPage />}
             />
 
+
+            {/* User Profile */}
+            <Route
+                path="profile"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.userProfile}
+                    >
+                        <UserProfilePage />
+                    </RoleRoute>
+                }
+            />
 
             {/* =================================================
           ORGANIZATION

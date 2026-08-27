@@ -605,4 +605,54 @@ public class AuthService {
                         .build())
                 .build();
     }
+
+    /**
+     * Cập nhật thông tin liên hệ (SĐT, email) của người dùng hiện tại.
+     */
+    @org.springframework.transaction.annotation.Transactional
+    public vn.nguongocso.auth.dto.response.UserProfileResponse updateProfile(
+            UUID userId,
+            CustomUserDetails userDetails,
+            vn.nguongocso.auth.dto.request.UpdateUserProfileRequest request,
+            List<String> permissions) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin người dùng"));
+
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            String newEmail = request.getEmail().trim();
+            userRepository.findByEmail(newEmail).ifPresent(existingUser -> {
+                if (!existingUser.getUserId().equals(userId)) {
+                    throw new BusinessException("Địa chỉ email đã được sử dụng bởi tài khoản khác");
+                }
+            });
+            user.setEmail(newEmail);
+        } else {
+            user.setEmail(null);
+        }
+
+        if (request.getPhone() != null && !request.getPhone().isBlank()) {
+            user.setPhone(request.getPhone().trim());
+        } else {
+            user.setPhone(null);
+        }
+
+        User savedUser = userRepository.save(user);
+        log.info("Cập nhật thông tin profile thành công cho userId={}", userId);
+
+        return vn.nguongocso.auth.dto.response.UserProfileResponse.builder()
+                .userId(savedUser.getUserId())
+                .username(savedUser.getUserName())
+                .fullName(savedUser.getFullName())
+                .phone(savedUser.getPhone())
+                .email(savedUser.getEmail())
+                .roleCode(userDetails.getRoleCode())
+                .roleName(userDetails.getRoleName())
+                .organizationId(userDetails.getOrganizationId())
+                .organizationCode(userDetails.getOrganizationCode())
+                .organizationName(userDetails.getOrganizationName())
+                .organizationType(userDetails.getOrganizationType())
+                .permissions(permissions)
+                .build();
+    }
 }

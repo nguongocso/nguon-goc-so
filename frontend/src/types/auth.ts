@@ -39,6 +39,11 @@ export interface ValidateResetTokenResponse {
   message: string;
 }
 
+export interface UpdateUserProfileRequest {
+  phone?: string | null;
+  email?: string | null;
+}
+
 export interface SelectOrganizationRequest {
   organizationId: string;
 }

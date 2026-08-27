@@ -1,11 +1,13 @@
 import type {
   ApiResult,
+  AuthUserInfo,
   ForgotPasswordRequest,
   LoginRequest,
   LoginResponse,
   ResetPasswordRequest,
   SelectOrganizationRequest,
   SelectOrganizationResponse,
+  UpdateUserProfileRequest,
   ValidateResetTokenResponse,
 } from "@/types/auth";
 
@@ -145,6 +147,20 @@ export const resetPassword = async (
 ): Promise<ApiResult<void>> => {
   const response = await apiClient.post<ApiResult<void>>(
     "/auth/reset-password",
+    data
+  );
+
+  return response.data;
+};
+
+/**
+ * Cập nhật thông tin hồ sơ cá nhân (SĐT, Email).
+ */
+export const updateUserProfile = async (
+  data: UpdateUserProfileRequest
+): Promise<ApiResult<AuthUserInfo>> => {
+  const response = await apiClient.put<ApiResult<AuthUserInfo>>(
+    "/auth/profile",
     data
   );
 

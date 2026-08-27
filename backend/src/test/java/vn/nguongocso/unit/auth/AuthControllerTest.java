@@ -23,6 +23,7 @@ import vn.nguongocso.auth.dto.request.SelectOrganizationRequest;
 import vn.nguongocso.auth.dto.response.LoginResponse;
 import vn.nguongocso.auth.dto.response.OrganizationSelectionResponse;
 import vn.nguongocso.auth.dto.response.SelectOrganizationResponse;
+import vn.nguongocso.auth.dto.response.UserProfileResponse;
 import vn.nguongocso.auth.dto.response.ValidateResetTokenResponse;
 import vn.nguongocso.auth.service.AuthService;
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -68,6 +69,9 @@ class AuthControllerTest {
 
         @MockitoBean
         private PermissionChecker permissionChecker;
+
+        @MockitoBean
+        private vn.nguongocso.auth.repository.UserRepository userRepository;
 
         private CustomUserDetails userDetails;
         private UUID userId;
@@ -381,5 +385,42 @@ class AuthControllerTest {
                                 .andExpect(jsonPath("$.status").value(200));
 
                 verify(passwordResetService, times(1)).resetPassword(any(ResetPasswordRequest.class));
+        }
+
+        @Test
+        void updateProfile_Success() throws Exception {
+                vn.nguongocso.auth.dto.request.UpdateUserProfileRequest request = vn.nguongocso.auth.dto.request.UpdateUserProfileRequest.builder()
+                                .phone("0987654321")
+                                .email("updated@example.com")
+                                .build();
+
+                UserProfileResponse response = UserProfileResponse.builder()
+                                .userId(userId)
+                                .username("minh_test")
+                                .fullName("Nguyen Van Minh")
+                                .phone("0987654321")
+                                .email("updated@example.com")
+                                .roleCode("VT-02")
+                                .roleName("Quản lý HTX")
+                                .organizationId(orgId)
+                                .organizationCode("ORG-01")
+                                .organizationName("HTX Nông Nghiệp")
+                                .organizationType(OrganizationType.COOPERATIVE)
+                                .permissions(List.of("PERMISSION_READ"))
+                                .build();
+
+                when(authService.updateProfile(eq(userId), eq(userDetails), any(), any()))
+                                .thenReturn(response);
+
+                mockMvc.perform(
+                                org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/v1/auth/profile")
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.phone").value("0987654321"))
+                                .andExpect(jsonPath("$.data.email").value("updated@example.com"));
+
+                verify(authService, times(1)).updateProfile(eq(userId), eq(userDetails), any(), any());
         }
 }

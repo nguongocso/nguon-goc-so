@@ -56,6 +56,36 @@ export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 
 // ============================================================
+// User Profile (Hồ sơ người dùng)
+// ============================================================
+
+export const userProfileSchema = z.object({
+  phone: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || /^(0[35789][0-9]{8})$/.test(val.trim()),
+      {
+        message:
+          "Số điện thoại không hợp lệ (10 số, bắt đầu bằng 03, 05, 07, 08, 09)",
+      }
+    ),
+
+  email: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim()),
+      {
+        message: "Địa chỉ email không hợp lệ",
+      }
+    ),
+});
+
+export type UserProfileFormValues = z.infer<typeof userProfileSchema>;
+
+
+// ============================================================
 // Organization Profile
 // ============================================================
 

@@ -176,27 +176,26 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
             )}
           </DropdownMenuItem>
         ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate('/profile')}>
+          <User className="mr-2 size-4 text-emerald-600" />
+          Hồ sơ người dùng
+        </DropdownMenuItem>
         {canOpenOrganizationProfile && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate('/organizations/profile')}>
-              Hồ sơ tổ chức hiện tại
-            </DropdownMenuItem>
-          </>
+          <DropdownMenuItem onClick={() => navigate('/organizations/profile')}>
+            Hồ sơ tổ chức hiện tại
+          </DropdownMenuItem>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
-  ) : canOpenOrganizationProfile ? (
+  ) : (
     <Link
-      to="/organizations/profile"
+      to="/profile"
       className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-emerald-50"
+      title="Xem hồ sơ người dùng"
     >
       {accountContent}
     </Link>
-  ) : (
-    <div className="flex min-w-0 items-center gap-2 px-2 py-1.5">
-      {accountContent}
-    </div>
   );
 
   return (

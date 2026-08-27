@@ -44,6 +44,8 @@ interface AuthContextType {
     user: AuthUserInfo
   ) => void;
 
+  updateUser: (user: AuthUserInfo) => void;
+
   logout: () => void;
 }
 
@@ -115,6 +117,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setSelectionTokenState(null);
   }, []);
 
+  const updateUser = useCallback((updatedUserData: AuthUserInfo) => {
+    setUser(updatedUserData);
+    setUserState(updatedUserData);
+  }, []);
+
   const logout = useCallback(() => {
     removeToken();
     removeSelectionToken();
@@ -133,6 +140,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         isLoading,
         loginWithSelection,
         completeLogin,
+        updateUser,
         logout,
       }}
     >

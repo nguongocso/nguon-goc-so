@@ -18,6 +18,9 @@ import {
 // ============================================================
 
 const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
+  // User Profile
+  ["/profile", "Hồ sơ người dùng"],
+
   // Organizations
   ["/organizations/profile", "Hồ sơ tổ chức"],
   ["/organizations/create", "Tạo tổ chức"],
