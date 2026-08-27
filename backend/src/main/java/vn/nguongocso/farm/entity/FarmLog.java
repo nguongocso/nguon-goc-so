@@ -67,6 +67,54 @@ public class FarmLog {
 	@Column(name = "notes", columnDefinition = "TEXT")
 	private String notes;
 
+	/**
+	 * Bản gốc của nhật ký khi bản ghi này là bản đính chính
+	 * (NCL-03-CN-006). Mọi bản đính chính đều trỏ trực tiếp tới bản gốc.
+	 */
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "original_farm_log_id")
+	private FarmLog originalFarmLogId;
+
+	/**
+	 * Đánh dấu bản ghi là bản đính chính (true) hay bản ghi thường (false).
+	 */
+	@Column(name = "is_correction", nullable = false)
+	private boolean isCorrection = false;
+
+	/**
+	 * Lý do đính chính (bắt buộc khi là bản đính chính).
+	 */
+	@Column(name = "correction_reason", columnDefinition = "TEXT")
+	private String correctionReason;
+
+	/**
+	 * Người thực hiện đính chính (khác người ghi nếu quản lý VT-02 sửa).
+	 */
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "corrected_by")
+	private User correctedBy;
+
+	/**
+	 * Đánh dấu bản ghi đã bị thay thế hiệu lực bởi một bản đính chính khác.
+	 */
+	@Column(name = "is_corrected", nullable = false)
+	private boolean isCorrected = false;
+
+	/**
+	 * Setter tường minh cho cờ đính chính (Lombok sinh tên isCorrection()
+	 * cho trường boolean có tiền tố "is").
+	 */
+	public void setIsCorrection(boolean correction) {
+		this.isCorrection = correction;
+	}
+
+	/**
+	 * Setter tường minh cho cờ đã bị đính chính.
+	 */
+	public void setIsCorrected(boolean corrected) {
+		this.isCorrected = corrected;
+	}
+
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "created_by", nullable = false)
 	private User createdBy;

@@ -55,4 +55,17 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 	 */
 	Page<TraceCode> findBySuspicionScoreGreaterThanEqualAndStatusIn(
 			Integer suspicionScore, List<TraceCodeStatus> statuses, Pageable pageable);
+
+	/**
+	 * NCL-03-CN-006: kiểm tra lô sản xuất đã có mã truy xuất được kích hoạt
+	 * (trạng thái khác INACTIVE — đã rời trạng thái dự thảo) trên bất kỳ lô
+	 * hàng nào của lô sản xuất hay chưa.
+	 *
+	 * @param productionLotId ID của lô sản xuất
+	 * @return true nếu đã có mã kích hoạt, ngược lại false
+	 */
+	@Query("SELECT COUNT(tc) > 0 FROM TraceCode tc "
+			+ "WHERE tc.shipment.productionLot.id = :productionLotId "
+			+ "AND tc.status <> vn.nguongocso.trace.enums.TraceCodeStatus.INACTIVE")
+	boolean existsActivatedByProductionLotId(@Param("productionLotId") UUID productionLotId);
 }

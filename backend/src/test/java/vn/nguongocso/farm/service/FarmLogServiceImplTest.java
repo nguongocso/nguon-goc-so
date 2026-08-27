@@ -76,6 +76,7 @@ class FarmLogServiceImplTest {
                 farmLogRepository,
                 productionLotRepository,
                 attachmentRepository,
+                Mockito.mock(vn.nguongocso.trace.repository.TraceCodeRepository.class),
                 eventPublisher,
                 clock);
 

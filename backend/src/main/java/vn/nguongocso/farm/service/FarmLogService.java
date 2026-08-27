@@ -3,6 +3,7 @@ package vn.nguongocso.farm.service;
 import java.util.UUID;
 
 import vn.nguongocso.common.PageResponse;
+import vn.nguongocso.farm.dto.request.CorrectFarmLogRequest;
 import vn.nguongocso.farm.dto.request.CreateFarmLogRequest;
 import vn.nguongocso.farm.dto.response.FarmLogResponse;
 
@@ -18,6 +19,18 @@ public interface FarmLogService {
      * @return thông tin nhật ký đã tạo
      */
     FarmLogResponse create(CreateFarmLogRequest request);
+
+    /**
+     * NCL-03-CN-006: đính chính một nhật ký canh tác.
+     *
+     * <p>Bản gốc được giữ nguyên và đánh dấu đã đính chính; hệ thống tạo một
+     * bản ghi mới liên kết tới bản gốc với lý do đính chính bắt buộc.</p>
+     *
+     * @param id      ID của nhật ký cần đính chính
+     * @param request dữ liệu đính chính và lý do
+     * @return thông tin bản ghi đính chính vừa tạo
+     */
+    FarmLogResponse correctFarmLog(UUID id, CorrectFarmLogRequest request);
 
     /**
      * Lấy danh sách nhật ký canh tác của lô sản xuất theo phân trang.

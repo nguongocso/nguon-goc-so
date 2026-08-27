@@ -83,6 +83,15 @@ public interface FarmLogRepository extends JpaRepository<FarmLog, UUID> {
 	boolean existsByMaterialIgnoreCase(@Param("materialName") String materialName);
 
 	/**
+	 * NCL-03-CN-006: lấy các bản đính chính liên kết tới một bản gốc
+	 * nhật ký canh tác, sắp xếp theo thời gian tạo giảm dần (mới nhất trước).
+	 *
+	 * @param originalFarmLogId ID của bản gốc
+	 * @return danh sách bản đính chính
+	 */
+	List<FarmLog> findByOriginalFarmLogId_IdOrderByCreatedAtDesc(UUID originalFarmLogId);
+
+	/**
 	 * Lấy danh sách nhật ký canh tác của các lô sản xuất theo danh sách ID của lô
 	 * sản xuất, sắp xếp theo ngày thực hiện tăng dần.
 	 *
