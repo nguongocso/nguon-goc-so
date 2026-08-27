@@ -30,6 +30,8 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
 
   // Farm areas
   ["/farm-areas/create", "Tạo vùng trồng"],
+  ["/farm-areas/:id/edit", "Chỉnh sửa vùng trồng"],
+  ["/chinhsuavungtrong/:id", "Chỉnh sửa vùng trồng"],
   ["/farm-areas", "Vùng trồng"],
 
   // Production lots

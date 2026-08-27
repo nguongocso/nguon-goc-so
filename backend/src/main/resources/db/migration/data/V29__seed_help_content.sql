@@ -387,9 +387,17 @@ VALUES
  NULL, 0, '2026-08-17 00:00:00', '2026-08-17 00:00:00'),
 
 -- ============================================================
--- 45. Tạo khu vực canh tác
+-- 45. Chỉnh sửa khu vực canh tác
 -- ============================================================
-('00000000-0000-0000-0000-000000000045', 'farm-area-create', 'GENERAL',
- 'Hướng dẫn tạo khu vực canh tác',
- '["Nhập tên và mã khu vực canh tác", "Nhập diện tích, vị trí (tọa độ nếu có)", "Chọn trạng thái hoạt động ban đầu", "Bấm Lưu để thêm khu vực vào hệ thống"]',
+('00000000-0000-0000-0000-000000000045', 'farm-area-edit', 'GENERAL',
+ 'Hướng dẫn chỉnh sửa khu vực canh tác',
+ '["Cập nhật tên và mã khu vực canh tác", "Cập nhật diện tích, vị trí (tọa độ nếu có)", "Chọn trạng thái hoạt động", "Bấm Lưu để cập nhật khu vực vào hệ thống"]',
+ NULL, 0, '2026-08-17 00:00:00', '2026-08-17 00:00:00'),
+
+-- ============================================================
+-- 46. Quản lý danh mục vật tư đầu vào
+-- ============================================================
+('00000000-0000-0000-0000-000000000046', 'admin-input-materials', 'GENERAL',
+ 'Hướng dẫn quản lý danh mục vật tư đầu vào',
+ '["Khai báo và quản lý danh mục vật tư dùng chung toàn hệ thống (Phân bón, Thuốc BVTV, Chế phẩm...)", "Cấu hình Thời gian cách ly (PHI) theo ngày cho từng loại vật tư", "Bật/Tắt công tắc trạng thái để Kích hoạt hoặc Ngừng sử dụng vật tư", "Bấm Thêm vật tư mới để khai báo vật tư mới kèm hoạt chất và hình ảnh"]',
  NULL, 0, '2026-08-17 00:00:00', '2026-08-17 00:00:00');
