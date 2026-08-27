@@ -17,9 +17,11 @@ import {
   MapPinned,
   MessageSquare,
   Package,
+  PackageCheck,
   ScanLine,
   ShieldCheck,
   Truck,
+  User,
   UserCheck,
   Users,
   Thermometer,
@@ -35,6 +37,7 @@ import {
   ShoppingCart,
   Key,
   WifiOff,
+  MapPin,
 } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import {
@@ -143,6 +146,12 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ROLE_ACCESS.inspectionCriteriaManagement,
       },
       {
+        icon: <PackageCheck className="h-5 w-5" />,
+        label: "Danh mục vật tư",
+        href: "/admin/input-materials",
+        allowedRoles: ["VT-01"] as const,
+      },
+      {
         icon: <BookOpen className="h-5 w-5" />,
         label: "Tiêu chuẩn chất lượng",
         href: "/admin/standards",
@@ -171,6 +180,12 @@ const MENU_GROUPS: MenuGroup[] = [
         label: "Tem nghi vấn",
         href: "/admin/suspect-trace-codes",
         allowedRoles: ["VT-01"] as const,
+      },
+      {
+        icon: <MapPin className="h-5 w-5" />,
+        label: "Phân công địa bàn",
+        href: "/admin/account-areas",
+        allowedRoles: ROLE_ACCESS.areaAssignment,
       },
       {
         icon: <MessageSquare className="h-5 w-5" />,
@@ -357,6 +372,12 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ["VT-01"] as const,
       },
       {
+        icon: <User className="h-5 w-5" />,
+        label: "Hồ sơ người dùng",
+        href: "/profile",
+        allowedRoles: ROLE_ACCESS.userProfile,
+      },
+      {
         icon: <UserCheck className="h-5 w-5" />,
         label: "Hồ sơ tổ chức",
         href: "/organizations/profile",
@@ -392,11 +413,13 @@ function MenuLink({
   collapsed,
   isActive,
   onNavigate,
+  showWarningDot = false,
 }: {
   item: MenuItem;
   collapsed: boolean;
   isActive: boolean;
   onNavigate?: () => void;
+  showWarningDot?: boolean;
 }) {
   const linkContent = (
     <Link
@@ -413,13 +436,29 @@ function MenuLink({
     >
       <span
         className={cn(
-          "flex-shrink-0",
+          "relative flex-shrink-0",
           isActive ? "text-white" : "text-emerald-500",
         )}
       >
         {item.icon}
+        {collapsed && showWarningDot && (
+          <span
+            className="absolute -top-1 -right-1 size-2 rounded-full bg-red-500 ring-2 ring-white"
+            title="Chưa cập nhật email"
+          />
+        )}
       </span>
-      {!collapsed && <span>{item.label}</span>}
+      {!collapsed && (
+        <span className="flex flex-1 items-center justify-between gap-2">
+          <span>{item.label}</span>
+          {showWarningDot && (
+            <span
+              className="size-2 rounded-full bg-red-500 ring-2 ring-white"
+              title="Chưa cập nhật email"
+            />
+          )}
+        </span>
+      )}
     </Link>
   );
 
@@ -443,14 +482,18 @@ function AccordionGroup({
   isGroupActive,
   onNavigate,
   defaultExpanded = false,
+  isMissingEmail = false,
 }: {
   group: MenuGroup;
   isActive: (item: MenuItem) => boolean;
   isGroupActive: boolean;
   onNavigate?: () => void;
   defaultExpanded?: boolean;
+  isMissingEmail?: boolean;
 }) {
   const [expanded, setExpanded] = React.useState(defaultExpanded);
+  const hasMissingEmailChild =
+    isMissingEmail && group.items.some((it) => it.href === "/profile");
 
   // Auto-expand when a child becomes active
   React.useEffect(() => {
@@ -475,6 +518,12 @@ function AccordionGroup({
       >
         <span className="flex-shrink-0 text-emerald-500">{group.icon}</span>
         <span className="flex-1 text-left">{group.label}</span>
+        {!expanded && hasMissingEmailChild && (
+          <span
+            className="size-2 rounded-full bg-red-500 ring-2 ring-white"
+            title="Chưa cập nhật email"
+          />
+        )}
         <span
           className="flex-shrink-0 text-emerald-400 transition-transform duration-200"
           style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
@@ -501,6 +550,7 @@ function AccordionGroup({
                 collapsed={false}
                 isActive={isActive(item)}
                 onNavigate={onNavigate}
+                showWarningDot={item.href === "/profile" && isMissingEmail}
               />
             ))}
           </div>
@@ -528,6 +578,12 @@ export function Sidebar({
     logout();
     setShowLogoutDialog(false);
   };
+
+  const isMissingEmail = Boolean(
+    user &&
+    hasAnyRole(user.roleCode, ROLE_ACCESS.userProfile) &&
+    (!user.email || user.email.trim() === "")
+  );
 
   const visibleGroups = filterVisibleGroups(MENU_GROUPS, user?.roleCode);
   const dashboardVisible = hasAnyRole(
@@ -635,6 +691,7 @@ export function Sidebar({
               collapsed={collapsed}
               isActive={isActive(DASHBOARD_ITEM)}
               onNavigate={onNavigate}
+              showWarningDot={DASHBOARD_ITEM.href === "/profile" && isMissingEmail}
             />
           </div>
         )}
@@ -658,6 +715,7 @@ export function Sidebar({
                     collapsed={collapsed}
                     isActive={isActive(item)}
                     onNavigate={onNavigate}
+                    showWarningDot={item.href === "/profile" && isMissingEmail}
                   />
                 ))}
               </div>
@@ -673,6 +731,7 @@ export function Sidebar({
                 isGroupActive={groupActive}
                 onNavigate={onNavigate}
                 defaultExpanded={groupActive}
+                isMissingEmail={isMissingEmail}
               />
             </div>
           );

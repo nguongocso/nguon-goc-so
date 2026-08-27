@@ -18,6 +18,9 @@ import {
 // ============================================================
 
 const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
+  // User Profile
+  ["/profile", "Hồ sơ người dùng"],
+
   // Organizations
   ["/organizations/profile", "Hồ sơ tổ chức"],
   ["/organizations/create", "Tạo tổ chức"],
@@ -30,6 +33,8 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
 
   // Farm areas
   ["/farm-areas/create", "Tạo vùng trồng"],
+  ["/farm-areas/:id/edit", "Chỉnh sửa vùng trồng"],
+  ["/chinhsuavungtrong/:id", "Chỉnh sửa vùng trồng"],
   ["/farm-areas", "Vùng trồng"],
 
   // Production lots
@@ -93,6 +98,10 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/admin/product-categories/:id/edit", "Cập nhật loại nông sản"],
   ["/admin/product-categories/:id/criteria", "Gán bộ chỉ tiêu kiểm nghiệm"],
   ["/admin/product-categories", "Danh mục sản phẩm"],
+  ["/admin/input-materials/create", "Khai báo vật tư mới"],
+  ["/admin/input-materials/:id/edit", "Chỉnh sửa vật tư"],
+  ["/admin/input-materials/:id", "Chi tiết vật tư"],
+  ["/admin/input-materials", "Danh mục vật tư"],
   ["/admin/inspection-criteria/create", "Thêm mới"],
   ["/admin/inspection-criteria", "Chỉ tiêu kiểm nghiệm"],
   ["/admin/standards/create", "Thêm tiêu chuẩn"],
@@ -141,6 +150,8 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/recall-requests/:id", "Chi tiết yêu cầu thu hồi"],
   ["/recall-requests", "Yêu cầu thu hồi"],
   ["/product-feedbacks", "Phản hồi người dùng"],
+  ["/forgot-password", "Quên mật khẩu"],
+  ["/reset-password", "Đặt lại mật khẩu"],
 ];
 
 /** Tìm nhãn cho một tiền tố đường dẫn khớp với template trong danh sách cho trước. */

@@ -27,9 +27,8 @@ export const useExportIndustryReport = (): UseExportIndustryReportResult => {
     try {
       const data = await getIndustrySummary(params);
       setReport(data);
-      if (!data.hasData) {
-        toast.info(data.message || 'Chưa có dữ liệu cho địa bàn và khoảng thời gian đã chọn.');
-      }
+      // hasData=false (vd VT-05 chưa gán địa bàn) do panel hiển thị
+      // empty-state thân thiện — không toast ở đây (NCL-742 §8).
     } catch (err: any) {
       const message =
         err.response?.data?.message ||

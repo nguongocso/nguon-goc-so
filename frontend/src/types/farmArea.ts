@@ -74,11 +74,22 @@ export interface FarmArea {
   longitude: number;
   area: number; // luôn là ha, backend trả về
   areaUnit: AreaUnit;
+  isActive: boolean;
+  associatedLotsCount?: number;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateFarmAreaRequest {
+  name: string;
+  cropType: string;
+  latitude: number;
+  longitude: number;
+  area: number;
+  areaUnit: AreaUnit;
+}
+
+export interface UpdateFarmAreaRequest {
   name: string;
   cropType: string;
   latitude: number;

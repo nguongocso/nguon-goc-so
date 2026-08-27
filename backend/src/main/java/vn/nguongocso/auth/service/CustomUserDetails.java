@@ -129,4 +129,12 @@ public class CustomUserDetails implements UserDetails {
         return roleName;
     }
 
+    public String getPhone() {
+        return user != null ? user.getPhone() : null;
+    }
+
+    public String getEmail() {
+        return user != null ? user.getEmail() : null;
+    }
+
 }

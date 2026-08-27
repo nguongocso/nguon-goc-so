@@ -16,14 +16,20 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import vn.nguongocso.auth.controller.AuthController;
+import vn.nguongocso.auth.dto.request.ForgotPasswordRequest;
 import vn.nguongocso.auth.dto.request.LoginRequest;
+import vn.nguongocso.auth.dto.request.ResetPasswordRequest;
 import vn.nguongocso.auth.dto.request.SelectOrganizationRequest;
 import vn.nguongocso.auth.dto.response.LoginResponse;
 import vn.nguongocso.auth.dto.response.OrganizationSelectionResponse;
 import vn.nguongocso.auth.dto.response.SelectOrganizationResponse;
+import vn.nguongocso.auth.dto.response.UserProfileResponse;
+import vn.nguongocso.auth.dto.response.ValidateResetTokenResponse;
+import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.AuthService;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.auth.service.CustomUserDetailsService;
+import vn.nguongocso.auth.service.PasswordResetService;
 import vn.nguongocso.config.JwtTokenProvider;
 import vn.nguongocso.config.SecurityConfig;
 import vn.nguongocso.organization.enums.OrganizationType;
@@ -39,6 +45,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/**
+ * Unit test cho AuthController sử dụng MockMvc.
+ */
 @WebMvcTest(AuthController.class)
 @Import(SecurityConfig.class)
 @ActiveProfiles("test")
@@ -54,6 +63,9 @@ class AuthControllerTest {
         private AuthService authService;
 
         @MockitoBean
+        private PasswordResetService passwordResetService;
+
+        @MockitoBean
         private JwtTokenProvider jwtTokenProvider;
 
         @MockitoBean
@@ -61,6 +73,9 @@ class AuthControllerTest {
 
         @MockitoBean
         private PermissionChecker permissionChecker;
+
+        @MockitoBean
+        private UserRepository userRepository;
 
         private CustomUserDetails userDetails;
         private UUID userId;
@@ -316,5 +331,100 @@ class AuthControllerTest {
                 verify(authService, times(1)).switchOrganization(
                                 eq(userId),
                                 any(SelectOrganizationRequest.class));
+        }
+
+        @Test
+        void forgotPassword_Success() throws Exception {
+                ForgotPasswordRequest request = new ForgotPasswordRequest("nongdan@nguongocso.vn");
+
+                doNothing().when(passwordResetService).requestPasswordReset(any(ForgotPasswordRequest.class));
+
+                mockMvc.perform(
+                                post("/api/v1/auth/forgot-password")
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.status").value(200));
+
+                verify(passwordResetService, times(1)).requestPasswordReset(any(ForgotPasswordRequest.class));
+        }
+
+        @Test
+        void validateResetToken_Success() throws Exception {
+                ValidateResetTokenResponse response = ValidateResetTokenResponse.builder()
+                                .valid(true)
+                                .message("Liên kết hợp lệ")
+                                .build();
+
+                when(passwordResetService.validateToken("test-token")).thenReturn(response);
+
+                mockMvc.perform(
+                                get("/api/v1/auth/reset-password/validate")
+                                                .param("token", "test-token"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.valid").value(true))
+                                .andExpect(jsonPath("$.data.message").value("Liên kết hợp lệ"));
+
+                verify(passwordResetService, times(1)).validateToken("test-token");
+        }
+
+        @Test
+        void resetPassword_Success() throws Exception {
+                ResetPasswordRequest request = ResetPasswordRequest.builder()
+                                .token("test-token")
+                                .newPassword("NewPass@123")
+                                .confirmPassword("NewPass@123")
+                                .build();
+
+                doNothing().when(passwordResetService).resetPassword(any(ResetPasswordRequest.class));
+
+                mockMvc.perform(
+                                post("/api/v1/auth/reset-password")
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.status").value(200));
+
+                verify(passwordResetService, times(1)).resetPassword(any(ResetPasswordRequest.class));
+        }
+
+        @Test
+        void updateProfile_Success() throws Exception {
+                vn.nguongocso.auth.dto.request.UpdateUserProfileRequest request = vn.nguongocso.auth.dto.request.UpdateUserProfileRequest.builder()
+                                .phone("0987654321")
+                                .email("updated@example.com")
+                                .build();
+
+                UserProfileResponse response = UserProfileResponse.builder()
+                                .userId(userId)
+                                .username("minh_test")
+                                .fullName("Nguyen Van Minh")
+                                .phone("0987654321")
+                                .email("updated@example.com")
+                                .roleCode("VT-02")
+                                .roleName("Quản lý HTX")
+                                .organizationId(orgId)
+                                .organizationCode("ORG-01")
+                                .organizationName("HTX Nông Nghiệp")
+                                .organizationType(OrganizationType.COOPERATIVE)
+                                .permissions(List.of("PERMISSION_READ"))
+                                .build();
+
+                when(authService.updateProfile(eq(userId), eq(userDetails), any(), any()))
+                                .thenReturn(response);
+
+                mockMvc.perform(
+                                org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/v1/auth/profile")
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.phone").value("0987654321"))
+                                .andExpect(jsonPath("$.data.email").value("updated@example.com"));
+
+                verify(authService, times(1)).updateProfile(eq(userId), eq(userDetails), any(), any());
         }
 }

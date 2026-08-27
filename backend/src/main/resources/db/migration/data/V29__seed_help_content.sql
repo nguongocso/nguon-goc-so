@@ -387,9 +387,33 @@ VALUES
  NULL, 0, '2026-08-17 00:00:00', '2026-08-17 00:00:00'),
 
 -- ============================================================
--- 45. Tạo khu vực canh tác
+-- 45. Chỉnh sửa khu vực canh tác
 -- ============================================================
-('00000000-0000-0000-0000-000000000045', 'farm-area-create', 'GENERAL',
- 'Hướng dẫn tạo khu vực canh tác',
- '["Nhập tên và mã khu vực canh tác", "Nhập diện tích, vị trí (tọa độ nếu có)", "Chọn trạng thái hoạt động ban đầu", "Bấm Lưu để thêm khu vực vào hệ thống"]',
- NULL, 0, '2026-08-17 00:00:00', '2026-08-17 00:00:00');
+('00000000-0000-0000-0000-000000000045', 'farm-area-edit', 'GENERAL',
+ 'Hướng dẫn chỉnh sửa khu vực canh tác',
+ '["Cập nhật tên và mã khu vực canh tác", "Cập nhật diện tích, vị trí (tọa độ nếu có)", "Chọn trạng thái hoạt động", "Bấm Lưu để cập nhật khu vực vào hệ thống"]',
+ NULL, 0, '2026-08-17 00:00:00', '2026-08-17 00:00:00'),
+
+-- ============================================================
+-- 46. Quản lý danh mục vật tư đầu vào
+-- ============================================================
+('00000000-0000-0000-0000-000000000046', 'admin-input-materials', 'GENERAL',
+ 'Hướng dẫn quản lý danh mục vật tư đầu vào',
+ '["Khai báo và quản lý danh mục vật tư dùng chung toàn hệ thống (Phân bón, Thuốc BVTV, Chế phẩm...)", "Cấu hình Thời gian cách ly (PHI) theo ngày cho từng loại vật tư", "Bật/Tắt công tắc trạng thái để Kích hoạt hoặc Ngừng sử dụng vật tư", "Bấm Thêm vật tư mới để khai báo vật tư mới kèm hoạt chất và hình ảnh"]',
+ NULL, 0, '2026-08-17 00:00:00', '2026-08-17 00:00:00'),
+
+-- ============================================================
+-- 47. Hủy tem in hỏng
+-- ============================================================
+('00000000-0000-0000-0000-000000000047', 'cancel-labels', 'GENERAL',
+ 'Hướng dẫn đánh dấu hủy tem in hỏng & hoàn hạn mức',
+ '["Gom danh sách tem in mờ, nhòe QR, lệch viền hoặc bị rách trong khi dán. Chỉ tem ở trạng thái Chưa kích hoạt (INACTIVE) mới được hủy.", "Chọn phương thức nhập mã: Chọn Theo khoảng mã (Range) nếu dải tem liên tiếp, hoặc Chọn Nhập từng mã lẻ (Single) và dùng súng quét mã vạch USB / dán danh sách mã.", "Chọn lý do tiêu hủy: Chọn lý do phù hợp (In mờ, in lệch, bong tróc). Nếu chọn Lý do khác, điền ghi chú giải trình chi tiết tối thiểu 10 ký tự.", "Xác nhận & Hoàn hạn mức: Bấm Xác nhận hủy & Hoàn hạn mức. Mã tem đổi sang CANCELLED và hạn mức dải mã của HTX được tự động hoàn trả ngay lập tức."]',
+ 'Ví dụ: Hủy khoảng mã HTX01-00000010 đến HTX01-00000025 do kẹt giấy máy in lô #2.', 0, '2026-08-27 00:00:00', '2026-08-27 00:00:00'),
+
+-- ============================================================
+-- 48. Lịch sử hủy tem
+-- ============================================================
+('00000000-0000-0000-0000-000000000048', 'label-cancellation-history', 'GENERAL',
+ 'Hướng dẫn tra cứu lịch sử hủy tem in hỏng',
+ '["Xem thẻ tổng quan thống kê: Tổng số tem đã hủy, số đợt thao tác và hạn mức dải mã đã hoàn trả.", "Sử dụng công cụ tìm kiếm theo mã tem, ghi chú giải trình hoặc tài khoản người thực hiện.", "Lọc danh sách theo phương thức (Khoảng mã / Mã lẻ) hoặc theo lý do tiêu hủy.", "Sử dụng thanh phân trang ở chân bảng để chuyển giữa các trang (tối đa 10 đợt/trang)."]',
+ 'Ví dụ: Lọc lý do "In hỏng/mờ/nhòe QR" để thống kê tổng số tem bị hỏng do mực in.', 0, '2026-08-27 00:00:00', '2026-08-27 00:00:00');

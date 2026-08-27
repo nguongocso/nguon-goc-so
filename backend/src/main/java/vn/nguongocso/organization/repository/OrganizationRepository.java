@@ -1,5 +1,6 @@
 package vn.nguongocso.organization.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,6 +15,18 @@ import vn.nguongocso.organization.enums.OrganizationType;
  * Repository cho thực thể Organization.
  */
 public interface OrganizationRepository extends JpaRepository<Organization, UUID> {
+
+    /**
+     * Tìm các tổ chức được map vào một trong các đơn vị hành chính (khớp cột
+     * {@code province_id} hoặc {@code commune_id}) — phục vụ lọc báo cáo theo
+     * địa bàn của VT-05 / bộ lọc unitIds.
+     *
+     * @param provinceIds danh sách ID đơn vị cấp tỉnh
+     * @param communeIds  danh sách ID đơn vị cấp xã
+     * @return danh sách tổ chức thuộc các địa bàn trên
+     */
+    List<Organization> findByProvince_IdInOrCommune_IdIn(Collection<UUID> provinceIds, Collection<UUID> communeIds);
+
     /**
      * Kiểm tra xem tổ chức có tồn tại theo mã hay không.
      *

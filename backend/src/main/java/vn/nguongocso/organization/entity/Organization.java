@@ -7,7 +7,10 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -66,6 +69,19 @@ public class Organization {
 
 	@Column
 	private String email;
+
+	/**
+	 * Tỉnh/thành phố nơi tổ chức hoạt động (nullable — đầu vào cho bộ lọc
+	 * báo cáo địa bàn của VT-05; chưa map thì để NULL).
+	 */
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "province_id")
+	private AdministrativeUnit province;
+
+	/** Xã/phường nơi tổ chức hoạt động (nullable). */
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "commune_id")
+	private AdministrativeUnit commune;
 
 	@Column(nullable = false, updatable = false, name = "created_at")
 	private LocalDateTime createdAt;

@@ -20,6 +20,12 @@ public class CropAreaAnalysisResponse {
     private List<SeasonAnalysisStats> bySeason;
 
     /**
+     * Thông báo bổ sung (VD: cán bộ chưa được phân công địa bàn quản lý nào);
+     * null khi không có.
+     */
+    private String message;
+
+    /**
      * DTO phản hồi thống kê theo khu vực canh tác.
      */
     @Getter

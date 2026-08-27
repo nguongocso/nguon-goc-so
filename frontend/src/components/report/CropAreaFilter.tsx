@@ -14,6 +14,7 @@ import { Search, X } from "lucide-react";
 import { getProductCategories } from "@/api/productCategoryApi";
 import { getFarmAreas } from "@/api/farmAreaApi";
 import { getOrganizations } from "@/api/organizationApi";
+import { ProvinceUnitMultiSelect } from "@/components/common/ProvinceUnitMultiSelect";
 import type { ProductCategory } from "@/types/productCategory";
 import type { FarmArea } from "@/types/farmArea";
 import type { Organization } from "@/types/organization";
@@ -35,6 +36,11 @@ export const CropAreaFilter = ({
   const [farmAreaId, setFarmAreaId] = useState("");
   const [productCategoryId, setProductCategoryId] = useState("");
   const [organizationId, setOrganizationId] = useState("");
+  const [unitIds, setUnitIds] = useState<string[]>([]);
+
+  // NCL-742 §8: bộ lọc địa bàn chỉ dành cho VT-01/VT-05.
+  const canFilterByUnit =
+    currentUserRole === "VT-01" || currentUserRole === "VT-05";
 
   const [productCategories, setProductCategories] = useState<ProductCategory[]>(
     [],
@@ -73,6 +79,7 @@ export const CropAreaFilter = ({
     if (farmAreaId) params.farmAreaId = farmAreaId;
     if (productCategoryId) params.productCategoryId = productCategoryId;
     if (organizationId) params.organizationId = organizationId;
+    if (canFilterByUnit && unitIds.length > 0) params.unitIds = unitIds;
     onFilter(params);
   };
 
@@ -81,6 +88,7 @@ export const CropAreaFilter = ({
     setFarmAreaId("");
     setProductCategoryId("");
     setOrganizationId("");
+    setUnitIds([]);
     onReset();
   };
 
@@ -103,7 +111,7 @@ export const CropAreaFilter = ({
     <Card className="border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm">
       <CardContent className="p-5">
         <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="year" className="text-sm font-medium text-emerald-800">
                 Năm
@@ -193,6 +201,13 @@ export const CropAreaFilter = ({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+
+            {canFilterByUnit && (
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-emerald-800">Địa bàn</Label>
+                <ProvinceUnitMultiSelect value={unitIds} onChange={setUnitIds} />
               </div>
             )}
 

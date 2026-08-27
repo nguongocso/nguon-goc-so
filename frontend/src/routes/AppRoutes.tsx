@@ -15,10 +15,13 @@ import { useAuth } from "@/hooks/useAuth";
 // ===== Auth =====
 import LoginPage from "@/pages/auth/LoginPage";
 import OrganizationSelectionPage from "@/pages/auth/OrganizationSelectionPage";
+import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
 
 // ===== Pages – chung =====
 import { DashboardPage } from "@/pages/daskboard/DashboardPase";
 import { CreateFarmAreaPage } from "@/pages/farm-area/CreateFarmAreaPage";
+import { EditFarmAreaPage } from "@/pages/farm-area/EditFarmAreaPage";
 import CreateFarmLogPage from "@/pages/farm-log/CreateFarmLogPage";
 import ProductionLotEditPage from "@/pages/farm/ProductionLotEditPage";
 
@@ -38,6 +41,9 @@ import ProductCategoryManagementPage from "@/pages/admin/ProductCategoryManageme
 import CreateProductCategoryPage from "@/pages/admin/CreateProductCategoryPage";
 import EditProductCategoryPage from "@/pages/admin/EditProductCategoryPage";
 import AssignInspectionCriteriaPage from "@/pages/admin/AssignInspectionCriteriaPage";
+import InputMaterialManagementPage from "@/pages/admin/InputMaterialManagementPage";
+import { InputMaterialFormPage } from "@/pages/admin/InputMaterialFormPage";
+import { InputMaterialDetailPage } from "@/pages/admin/InputMaterialDetailPage";
 import StandardManagementPage from "@/pages/admin/StandardManagementPage";
 import CreateStandardPage from "@/pages/admin/CreateStandardPage";
 import EditStandardPage from "@/pages/admin/EditStandardPage";
@@ -54,9 +60,10 @@ import CorrectPackagingEventPage from "@/pages/packaging-event/CorrectPackagingE
 import CreatePreprocessingEventPage from "@/pages/preprocessing-event/CreatePreprocessingEventPage";
 import CorrectPreprocessingEventPage from "@/pages/preprocessing-event/CorrectPreprocessingEventPage";
 
-// ===== Organization =====
+// ===== Organization & Profile =====
 import { OrganizationListPage } from "@/pages/organization/OrganizationListPage";
 import CreateMemberPage from "@/pages/organization/CreateMemberPage";
+import UserProfilePage from "@/pages/profile/UserProfilePage";
 
 // ===== Farm logs =====
 import FarmLogHistoryPage from "@/pages/farm-log/FarmLogHistoryPage";
@@ -65,6 +72,8 @@ import FarmLogHistoryPage from "@/pages/farm-log/FarmLogHistoryPage";
 import { ProductionLotDetailPage } from "@/pages/public/shipment/ProductionLotDetailPage";
 import { ShipmentDetailPage } from "@/pages/public/shipment/ShipmentDetailPage";
 import CreateShipmentPage from "@/pages/shipment/CreateShipmentPage";
+import LabelCancellationHistoryPage from "@/pages/shipment/LabelCancellationHistoryPage";
+import CancelLabelsPage from "@/pages/shipment/CancelLabelsPage";
 
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
@@ -145,6 +154,9 @@ import { SystemMonitoringPage } from "@/pages/admin/SystemMonitoringPage";
 import { CreateRecallRequestPage } from "@/pages/recall-request/CreateRecallRequestPage";
 import { RecallRequestListPage } from "@/pages/recall-request/RecallRequestListPage";
 import { RecallRequestDetailPage } from "@/pages/recall-request/RecallRequestDetailPage";
+
+// ===== Area assignment (NCL-670 / NCL-742) =====
+import { AreaAssignmentPage } from "@/pages/admin/AreaAssignmentPage";
 
 // =====================================================
 // Constants
@@ -273,6 +285,16 @@ const AppRoutes = () => (
             element={<LoginPage />}
         />
 
+        <Route
+            path="/forgot-password"
+            element={<ForgotPasswordPage />}
+        />
+
+        <Route
+            path="/reset-password"
+            element={<ResetPasswordPage />}
+        />
+
         {/*
       Bước trung gian sau khi login thành công.
 
@@ -316,6 +338,18 @@ const AppRoutes = () => (
                 element={<DashboardPage />}
             />
 
+
+            {/* User Profile */}
+            <Route
+                path="profile"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.userProfile}
+                    >
+                        <UserProfilePage />
+                    </RoleRoute>
+                }
+            />
 
             {/* =================================================
           ORGANIZATION
@@ -389,6 +423,28 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.farmAreaCreate}
                     >
                         <CreateFarmAreaPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="farm-areas/:id/edit"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.farmAreaCreate}
+                    >
+                        <EditFarmAreaPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="chinhsuavungtrong/:id"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.farmAreaCreate}
+                    >
+                        <EditFarmAreaPage />
                     </RoleRoute>
                 }
             />
@@ -491,6 +547,42 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
                         <ShipmentDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="shipments/:id/cancellation-history"
+                element={
+                    <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
+                        <LabelCancellationHistoryPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:lotId/shipments/:id/cancellation-history"
+                element={
+                    <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
+                        <LabelCancellationHistoryPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="shipments/:id/cancel-labels"
+                element={
+                    <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
+                        <CancelLabelsPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:lotId/shipments/:id/cancel-labels"
+                element={
+                    <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
+                        <CancelLabelsPage />
                     </RoleRoute>
                 }
             />
@@ -679,6 +771,42 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="admin/input-materials"
+                element={
+                    <RoleRoute allowedRoles={["VT-01", "VT-02", "VT-03", "VT-04"]}>
+                        <InputMaterialManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/input-materials/create"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <InputMaterialFormPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/input-materials/:id/edit"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <InputMaterialFormPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/input-materials/:id"
+                element={
+                    <RoleRoute allowedRoles={["VT-01", "VT-02", "VT-03", "VT-04"]}>
+                        <InputMaterialDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="admin/standards"
                 element={
                     <RoleRoute
@@ -765,6 +893,18 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-01"]}>
                         <SuspectTraceCodeDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* NCL-670 / NCL-742 - Phân công địa bàn quản lý */}
+            <Route
+                path="admin/account-areas"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.areaAssignment}
+                    >
+                        <AreaAssignmentPage />
                     </RoleRoute>
                 }
             />

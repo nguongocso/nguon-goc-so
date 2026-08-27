@@ -57,7 +57,7 @@ public class CropAreaAnalysisControllerTest {
                 .bySeason(Collections.emptyList())
                 .build();
 
-        when(cropAreaAnalysisService.getAnalysis(eq(2026), any(), any(), any(), any(), any()))
+        when(cropAreaAnalysisService.getAnalysis(eq(2026), any(), any(), any(), any(), any(), any()))
                 .thenReturn(mockedResponse);
 
         // When / Then
