@@ -25,6 +25,7 @@ import vn.nguongocso.auth.dto.response.OrganizationSelectionResponse;
 import vn.nguongocso.auth.dto.response.SelectOrganizationResponse;
 import vn.nguongocso.auth.dto.response.UserProfileResponse;
 import vn.nguongocso.auth.dto.response.ValidateResetTokenResponse;
+import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.AuthService;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.auth.service.CustomUserDetailsService;
@@ -44,6 +45,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/**
+ * Unit test cho AuthController sử dụng MockMvc.
+ */
 @WebMvcTest(AuthController.class)
 @Import(SecurityConfig.class)
 @ActiveProfiles("test")
@@ -71,7 +75,7 @@ class AuthControllerTest {
         private PermissionChecker permissionChecker;
 
         @MockitoBean
-        private vn.nguongocso.auth.repository.UserRepository userRepository;
+        private UserRepository userRepository;
 
         private CustomUserDetails userDetails;
         private UUID userId;

@@ -1,5 +1,11 @@
 package vn.nguongocso.unit.auth;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,7 +18,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import vn.nguongocso.auth.dto.request.ForgotPasswordRequest;
 import vn.nguongocso.auth.dto.request.ResetPasswordRequest;
-import vn.nguongocso.auth.dto.response.ValidateResetTokenResponse;
 import vn.nguongocso.auth.entity.PasswordResetToken;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.enums.UserStatus;
@@ -20,16 +25,26 @@ import vn.nguongocso.auth.repository.PasswordResetTokenRepository;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.PasswordResetService;
 import vn.nguongocso.auth.service.impl.PasswordResetServiceImpl;
-import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.mail.service.EmailService;
 
-import java.time.LocalDateTime;
-import java.util.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
+/**
+ * Kiểm thử tích hợp luồng quên và đặt lại mật khẩu người dùng (NCL-01-CN-008).
+ */
 @ExtendWith(MockitoExtension.class)
 class PasswordResetIntegrationTest {
 
@@ -42,7 +57,7 @@ class PasswordResetIntegrationTest {
     @Mock
     private EmailService emailService;
 
-    private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     private PasswordResetService passwordResetService;
 
@@ -87,7 +102,7 @@ class PasswordResetIntegrationTest {
         }).when(tokenRepository).save(any(PasswordResetToken.class));
 
         when(tokenRepository.findByUser_UserIdAndIsUsedFalse(testUserId)).thenAnswer(inv ->
-                tokenDb.stream().filter(t -> !t.isUsed()).toList()
+                tokenDb.stream().filter(token -> !token.isUsed()).toList()
         );
 
         // Lần 1: Yêu cầu reset -> sinh Token 1

@@ -1,8 +1,12 @@
 package vn.nguongocso.mail.service.impl;
 
+import java.io.UnsupportedEncodingException;
+
+import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -10,9 +14,16 @@ import org.springframework.stereotype.Service;
 
 import vn.nguongocso.mail.service.EmailService;
 
+/**
+ * Triển khai dịch vụ gửi email thông báo và xác thực qua Gmail SMTP bất đồng bộ.
+ */
 @Slf4j
 @Service
 public class EmailServiceImpl implements EmailService {
+
+    private static final String DEFAULT_CHARSET = "UTF-8";
+    private static final String SYSTEM_SENDER_NAME = "Nguồn Gốc Số - Hệ Thống Truy Xuất Nguồn Gốc";
+    private static final String RESET_PASSWORD_SUBJECT = "Yêu cầu đặt lại mật khẩu - Nguồn Gốc Số";
 
     private final JavaMailSender mailSender;
 
@@ -23,21 +34,35 @@ public class EmailServiceImpl implements EmailService {
         this.mailSender = mailSender;
     }
 
+    /**
+     * Gửi thư mời tham gia tổ chức bất đồng bộ qua Gmail HTML.
+     *
+     * @param toEmail          địa chỉ email người nhận
+     * @param organizationName tên tổ chức/HTX mời
+     * @param roleName         tên vai trò được phân công
+     * @param joinUrl          đường dẫn xác nhận tham gia chứa token
+     * @param expiryDays       thời hạn hiệu lực (ngày)
+     */
     @Async
     @Override
-    public void sendInvitationEmail(String toEmail, String organizationName, String roleName, String joinUrl, int expiryDays) {
+    public void sendInvitationEmail(
+            String toEmail,
+            String organizationName,
+            String roleName,
+            String joinUrl,
+            int expiryDays
+    ) {
         log.info("Đang xử lý gửi email bất đồng bộ tới: {}", toEmail);
 
-        if (fromEmail == null || fromEmail.isBlank()) {
-            log.warn("[MAIL FALLBACK] Chưa cấu hình spring.mail.username. Giả lập gửi mail qua log. Link: {}", joinUrl);
+        if (isEmailConfigMissing(joinUrl)) {
             return;
         }
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, DEFAULT_CHARSET);
 
-            helper.setFrom(fromEmail, "Nguồn Gốc Số - Hệ Thống Truy Xuất Nguồn Gốc");
+            helper.setFrom(fromEmail, SYSTEM_SENDER_NAME);
             helper.setTo(toEmail);
             helper.setSubject("Lời mời tham gia tổ chức " + organizationName + " - Nguồn Gốc Số");
 
@@ -46,40 +71,60 @@ public class EmailServiceImpl implements EmailService {
 
             mailSender.send(message);
             log.info("Đã gửi email thư mời thành công tới {}", toEmail);
-        } catch (Exception e) {
-            log.error("Gửi email thư mời tới {} thất bại: {}. Link truy cập thay thế: {}", toEmail, e.getMessage(), joinUrl);
+        } catch (MessagingException | UnsupportedEncodingException | MailException e) {
+            log.error("Gửi email thư mời tới {} thất bại: {}. Link thay thế: {}", toEmail, e.getMessage(), joinUrl);
         }
     }
 
+    /**
+     * Gửi email hướng dẫn đặt lại mật khẩu bất đồng bộ (NCL-01-CN-008).
+     *
+     * @param toEmail       địa chỉ email người nhận
+     * @param fullName      họ và tên người nhận
+     * @param resetUrl      đường dẫn đặt lại mật khẩu chứa token
+     * @param expiryMinutes thời hạn hiệu lực (phút)
+     */
     @Async
     @Override
     public void sendPasswordResetEmail(String toEmail, String fullName, String resetUrl, int expiryMinutes) {
         log.info("Đang xử lý gửi email đặt lại mật khẩu bất đồng bộ tới: {}", toEmail);
 
-        if (fromEmail == null || fromEmail.isBlank()) {
-            log.warn("[MAIL FALLBACK] Chưa cấu hình spring.mail.username. Giả lập gửi mail đặt lại mật khẩu qua log. Link: {}", resetUrl);
+        if (isEmailConfigMissing(resetUrl)) {
             return;
         }
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, DEFAULT_CHARSET);
 
-            helper.setFrom(fromEmail, "Nguồn Gốc Số - Hệ Thống Truy Xuất Nguồn Gốc");
+            helper.setFrom(fromEmail, SYSTEM_SENDER_NAME);
             helper.setTo(toEmail);
-            helper.setSubject("Yêu cầu đặt lại mật khẩu - Nguồn Gốc Số");
+            helper.setSubject(RESET_PASSWORD_SUBJECT);
 
             String htmlContent = buildPasswordResetHtmlTemplate(fullName, resetUrl, expiryMinutes);
             helper.setText(htmlContent, true);
 
             mailSender.send(message);
             log.info("Đã gửi email đặt lại mật khẩu thành công tới {}", toEmail);
-        } catch (Exception e) {
-            log.error("Gửi email đặt lại mật khẩu tới {} thất bại: {}. Link truy cập thay thế: {}", toEmail, e.getMessage(), resetUrl);
+        } catch (MessagingException | UnsupportedEncodingException | MailException e) {
+            log.error("Gửi email đặt lại mật khẩu tới {} thất bại: {}. Link: {}", toEmail, e.getMessage(), resetUrl);
         }
     }
 
-    private String buildInvitationHtmlTemplate(String organizationName, String roleName, String joinUrl, int expiryDays) {
+    private boolean isEmailConfigMissing(String fallbackUrl) {
+        if (fromEmail == null || fromEmail.isBlank()) {
+            log.warn("[MAIL FALLBACK] Chưa cấu hình spring.mail.username. Giả lập qua log. Link: {}", fallbackUrl);
+            return true;
+        }
+        return false;
+    }
+
+    private String buildInvitationHtmlTemplate(
+            String organizationName,
+            String roleName,
+            String joinUrl,
+            int expiryDays
+    ) {
         return """
                 <!DOCTYPE html>
                 <html>

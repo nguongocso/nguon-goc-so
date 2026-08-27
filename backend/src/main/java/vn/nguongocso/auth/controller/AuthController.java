@@ -1,26 +1,35 @@
 package vn.nguongocso.auth.controller;
 
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-
 import java.util.List;
 
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import vn.nguongocso.auth.dto.request.ForgotPasswordRequest;
 import vn.nguongocso.auth.dto.request.LoginRequest;
 import vn.nguongocso.auth.dto.request.ResetPasswordRequest;
 import vn.nguongocso.auth.dto.request.SelectOrganizationRequest;
+import vn.nguongocso.auth.dto.request.UpdateUserProfileRequest;
 import vn.nguongocso.auth.dto.response.LoginResponse;
 import vn.nguongocso.auth.dto.response.OrganizationSelectionResponse;
 import vn.nguongocso.auth.dto.response.SelectOrganizationResponse;
 import vn.nguongocso.auth.dto.response.UserProfileResponse;
 import vn.nguongocso.auth.dto.response.ValidateResetTokenResponse;
+import vn.nguongocso.auth.entity.User;
+import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.AuthService;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.auth.service.PasswordResetService;
@@ -51,7 +60,7 @@ public class AuthController {
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
     private final PermissionChecker permissionChecker;
-    private final vn.nguongocso.auth.repository.UserRepository userRepository;
+    private final UserRepository userRepository;
 
     /**
      * Xác thực người dùng bằng username và password.
@@ -153,7 +162,7 @@ public class AuthController {
                 permissionChecker.getPermissionsForCurrentUser();
 
         // Lấy thông tin mới nhất từ DB
-        vn.nguongocso.auth.entity.User user = userRepository.findById(userDetails.getUserId())
+        User user = userRepository.findById(userDetails.getUserId())
                 .orElse(userDetails.getUser());
 
         UserProfileResponse response = UserProfileResponse.builder()
@@ -182,7 +191,7 @@ public class AuthController {
     @PutMapping("/profile")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResult<UserProfileResponse>> updateProfile(
-            @Valid @RequestBody vn.nguongocso.auth.dto.request.UpdateUserProfileRequest request) {
+            @Valid @RequestBody UpdateUserProfileRequest request) {
 
         Authentication auth =
                 SecurityContextHolder.getContext().getAuthentication();
