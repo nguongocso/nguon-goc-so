@@ -116,8 +116,10 @@ export const UserProfileForm: React.FC = () => {
     );
   }
 
-  const roleName =
-    profile?.roleName || getRoleLabel(profile?.roleCode);
+  const roleLabel = getRoleLabel(profile?.roleCode);
+  const roleDisplay = profile?.roleCode
+    ? `${roleLabel} (${profile.roleCode})`
+    : roleLabel;
 
   return (
     <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
@@ -207,13 +209,9 @@ export const UserProfileForm: React.FC = () => {
               </Label>
               <Input
                 id="roleName"
-                value={
-                  roleName
-                    ? `${roleName} (${profile?.roleCode || ""})`
-                    : profile?.roleCode || ""
-                }
+                value={roleDisplay}
                 disabled
-                className="bg-slate-50/80 text-slate-600 cursor-not-allowed border-slate-200"
+                className="bg-slate-50/80 text-slate-600 cursor-not-allowed border-slate-200 font-medium"
               />
             </div>
 
