@@ -55,4 +55,19 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 	 */
 	Page<TraceCode> findBySuspicionScoreGreaterThanEqualAndStatusIn(
 			Integer suspicionScore, List<TraceCodeStatus> statuses, Pageable pageable);
+
+	/**
+	 * Tìm mã theo lô hàng và giá trị codeValue.
+	 */
+	Optional<TraceCode> findByShipmentIdAndCodeValue(UUID shipmentId, String codeValue);
+
+	/**
+	 * Lấy danh sách mã theo lô hàng và khoảng codeValue.
+	 */
+	List<TraceCode> findByShipmentIdAndCodeValueBetween(UUID shipmentId, String fromCode, String toCode);
+
+	/**
+	 * Lấy danh sách mã theo lô hàng và danh sách codeValue.
+	 */
+	List<TraceCode> findByShipmentIdAndCodeValueIn(UUID shipmentId, List<String> codeValues);
 }
