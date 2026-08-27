@@ -8,6 +8,8 @@ import {
     Calendar,
     Check,
     CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
     ClipboardCheck,
     Eye,
     FileCheck2,
@@ -1014,40 +1016,35 @@ export const RecordInspectionResultPage: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Phân trang — giống CertificationListPage */}
+                        {/* Phân trang — kiểu InspectionRequestHistoryModal */}
                         {filteredRows.length > 0 && (
-                            <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E7EB]">
-                                <div className="text-sm text-[#6B7280]">
-                                    Hiển thị {filteredRows.length > 0 ? page * pageSize + 1 : 0}–
-                                    {Math.min((page + 1) * pageSize, filteredRows.length)} trong
-                                    tổng số {filteredRows.length} chỉ tiêu
+                            <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-t border-[#E5E7EB] text-xs text-muted-foreground sm:text-sm">
+                                <div>
+                                    Hiển thị {page * pageSize + 1} –{" "}
+                                    {Math.min((page + 1) * pageSize, filteredRows.length)} trên tổng
+                                    số {filteredRows.length} chỉ tiêu
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex items-center gap-1">
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         disabled={page === 0}
-                                        onClick={() => setPage((p) => p - 1)}
+                                        onClick={() => setPage((p) => Math.max(0, p - 1))}
                                     >
-                                        Trước
+                                        <ChevronLeft className="mr-1 h-4 w-4" />
+                                        Trang trước
                                     </Button>
-                                    {Array.from({length: totalPages}, (_, i) => (
-                                        <Button
-                                            key={i}
-                                            variant={i === page ? "default" : "outline"}
-                                            size="sm"
-                                            onClick={() => setPage(i)}
-                                        >
-                                            {i + 1}
-                                        </Button>
-                                    ))}
+                                    <span className="px-2 font-medium tabular-nums">
+                                        {totalPages > 0 ? page + 1 : 0}/{totalPages}
+                                    </span>
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         disabled={page >= totalPages - 1}
                                         onClick={() => setPage((p) => p + 1)}
                                     >
-                                        Sau
+                                        Trang sau
+                                        <ChevronRight className="ml-1 h-4 w-4" />
                                     </Button>
                                 </div>
                             </div>

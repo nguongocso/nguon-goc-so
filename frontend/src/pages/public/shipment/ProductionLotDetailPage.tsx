@@ -63,6 +63,7 @@ import { getProductCategories } from "@/api/productCategoryApi";
 import { getProductCategoryCriteria } from "@/api/inspectionCriterionApi";
 import { CertificationList } from "@/components/certification/CertificationList";
 import { AttachCertificationDialog } from "@/components/certification/AttachCertificationDialog";
+import { InspectionRequestHistoryModal } from "@/components/certification/InspectionRequestHistoryModal";
 import {
   Table,
   TableBody,
@@ -318,6 +319,9 @@ export const ProductionLotDetailPage = () => {
   >([]);
   const [loadingCerts, setLoadingCerts] = useState(false);
   const [attachDialogOpen, setAttachDialogOpen] = useState(false);
+  // Modal mở rộng "Lịch sử yêu cầu kiểm nghiệm" (bảng hoàn chỉnh + phân trang)
+  const [showInspectionHistoryModal, setShowInspectionHistoryModal] =
+    useState(false);
 
   const [activeTab, setActiveTab] = useState("info");
 
@@ -783,6 +787,16 @@ export const ProductionLotDetailPage = () => {
   const pagedCriterionRows = filteredCriterionRows.slice(
     safeCriteriaPage * CRITERIA_PAGE_SIZE,
     (safeCriteriaPage + 1) * CRITERIA_PAGE_SIZE,
+  );
+  // Khoảng dòng hiển thị của trang hiện tại (dùng cho dòng mô tả phân trang
+  // theo cùng định dạng với InspectionRequestHistoryModal)
+  const criteriaRangeStart =
+    filteredCriterionRows.length === 0
+      ? 0
+      : safeCriteriaPage * CRITERIA_PAGE_SIZE + 1;
+  const criteriaRangeEnd = Math.min(
+    (safeCriteriaPage + 1) * CRITERIA_PAGE_SIZE,
+    filteredCriterionRows.length,
   );
 
   // Lịch sử yêu cầu: hiển thị gọn HISTORY_COLLAPSED_COUNT yêu cầu,
@@ -1258,11 +1272,11 @@ export const ProductionLotDetailPage = () => {
                         </div>
                       ) : (
                         <>
-                          {/* Desktop: bảng */}
-                          <div className="hidden md:block overflow-x-auto">
+                          {/* Desktop: bảng nằm gọn trong khung bo tròn có viền */}
+                          <div className="hidden overflow-x-auto rounded-md border bg-card md:block">
                             <Table className="table-fixed w-full">
                               <TableHeader>
-                                <TableRow>
+                                <TableRow className="bg-muted/50">
                                   <TableHead className="w-12 whitespace-normal text-center">
                                     STT
                                   </TableHead>
@@ -1288,7 +1302,10 @@ export const ProductionLotDetailPage = () => {
                               </TableHeader>
                               <TableBody>
                                 {pagedCriterionRows.map((row, index) => (
-                                  <TableRow key={row.criterion.code}>
+                                  <TableRow
+                                    key={row.criterion.code}
+                                    className="align-middle transition-colors hover:bg-muted/40"
+                                  >
                                     <TableCell className="text-center text-muted-foreground">
                                       {safeCriteriaPage * CRITERIA_PAGE_SIZE +
                                         index +
@@ -1423,36 +1440,46 @@ export const ProductionLotDetailPage = () => {
                     </>
                   )}
 
-                  {/* Phân trang bảng chỉ tiêu (client-side, 10 dòng/trang) */}
+                  {/* Phân trang bảng chỉ tiêu (client-side, kiểu InspectionRequestHistoryModal) */}
                   {!insightLoading &&
                     !insightError &&
                     filteredCriterionRows.length > 0 && (
-                      <div className="mt-4 flex items-center justify-end gap-3 border-t border-gray-100 pt-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={safeCriteriaPage === 0}
-                          onClick={() =>
-                            setCriteriaPage((page) => Math.max(0, page - 1))
-                          }
-                        >
-                          <ChevronLeft className="h-4 w-4 mr-1" /> Trước
-                        </Button>
-                        <span className="min-w-12 select-none text-center text-sm font-medium tabular-nums text-muted-foreground">
-                          {safeCriteriaPage + 1}/{totalCriteriaPages}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={safeCriteriaPage >= totalCriteriaPages - 1}
-                          onClick={() =>
-                            setCriteriaPage((page) =>
-                              Math.min(totalCriteriaPages - 1, page + 1),
-                            )
-                          }
-                        >
-                          Sau <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-3 text-xs text-muted-foreground sm:text-sm">
+                        <div>
+                          Hiển thị {criteriaRangeStart} – {criteriaRangeEnd}{" "}
+                          trên tổng số {filteredCriterionRows.length} chỉ tiêu
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={safeCriteriaPage === 0}
+                            onClick={() =>
+                              setCriteriaPage((page) => Math.max(0, page - 1))
+                            }
+                          >
+                            <ChevronLeft className="mr-1 h-4 w-4" />
+                            Trang trước
+                          </Button>
+                          <span className="px-2 font-medium tabular-nums">
+                            {safeCriteriaPage + 1}/{totalCriteriaPages}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={
+                              safeCriteriaPage >= totalCriteriaPages - 1
+                            }
+                            onClick={() =>
+                              setCriteriaPage((page) =>
+                                Math.min(totalCriteriaPages - 1, page + 1),
+                              )
+                            }
+                          >
+                            Trang sau
+                            <ChevronRight className="ml-1 h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     )}
 
@@ -1541,9 +1568,20 @@ export const ProductionLotDetailPage = () => {
               {/* ── Cột phải: Lịch sử yêu cầu kiểm nghiệm ────────────────── */}
               <Card className="border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-semibold">
-                    Lịch sử yêu cầu kiểm nghiệm
-                  </CardTitle>
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="text-lg font-semibold">
+                      Lịch sử yêu cầu kiểm nghiệm
+                    </CardTitle>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                      title="Mở rộng lịch sử yêu cầu kiểm nghiệm"
+                      onClick={() => setShowInspectionHistoryModal(true)}
+                    >
+                      &gt;&gt;&gt;
+                    </Button>
+                  </div>
                   <Button
                     onClick={openCreateDialog}
                     variant="create"
@@ -1760,6 +1798,13 @@ export const ProductionLotDetailPage = () => {
         onClose={() => setAttachDialogOpen(false)}
         lotId={id!}
         onSuccess={loadCertifications}
+      />
+
+      <InspectionRequestHistoryModal
+        open={showInspectionHistoryModal}
+        onClose={() => setShowInspectionHistoryModal(false)}
+        lotId={id!}
+        canInspect={canInspect}
       />
     </div>
   );

@@ -65,6 +65,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Pagination } from "@/components/common/Pagination";
 import { HelpButton } from "@/components/help/HelpButton";
+import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 
 // Helper chuyển ngày sang định dạng ISO YYYY-MM-DD
 const toISODate = (date: Date) => {
@@ -124,6 +125,25 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
   // --- Dữ liệu tải từ server ---
   const [lot, setLot] = useState<ProductionLot | null>(null);
+
+  // ── Breadcrumb điều hướng thống nhất ───────────────────────────────────────
+  // Ghi đè breadcrumb tự sinh để BỎ crumb trung gian "Yêu cầu kiểm nghiệm"
+  // (/production-lots/:id/inspection-requests) vì route này không tồn tại
+  // (không có trang danh sách). Nhãn crumb lô dùng tên lô khi đã tải xong.
+  useSetBreadcrumb([
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Lô sản xuất", href: "/production-lots" },
+    ...(effectiveLotId
+      ? [
+          {
+            label: lot?.name || "Chi tiết lô sản xuất",
+            href: `/production-lots/${effectiveLotId}`,
+          },
+        ]
+      : []),
+    { label: "Tạo yêu cầu kiểm nghiệm" },
+  ]);
+
   const [criteriaData, setCriteriaData] = useState<LotTestCriteriaResult | null>(null);
   /** Map catalog criteriaId -> {unit, maxThreshold} lấy từ bộ chỉ tiêu của loại nông sản. */
   const [catalogCriteriaMap, setCatalogCriteriaMap] = useState<Map<number, InspectionCriterion>>(new Map());
@@ -167,15 +187,27 @@ export const CreateInspectionRequestPage: React.FC = () => {
   );
 
   /**
-   * Thu thập tập khóa các chỉ tiêu đã từng thuộc YÊU CẦU KIỂM NGHIỆM
-   * nào đó của lô (bất kể trạng thái request).
+   * Thu thập tập khóa các chỉ tiêu đang BỊ CHẶN chọn lại khi tạo yêu cầu mới
+   * (tập "Đã tạo" của lô), dựa trên toàn bộ lịch sử YÊU CẦU KIỂM NGHIỆM.
+   *
+   * Quy tắc:
+   * - Chỉ tiêu chưa có kết quả hoặc kết quả chốt gần nhất là ĐẠT  -> bị chặn.
+   * - Chỉ tiêu được ghi nhận KHÔNG ĐẠT ở lần xét gần nhất -> KHÔNG bị chặn:
+   *   trạng thái hiển thị đặt lại thành "Chưa tạo" và cho phép chọn lại
+   *   để tạo yêu cầu kiểm nghiệm mới.
+   *
+   * "Gần nhất" xác định bằng createdAt của InspectionCriterionResult nên
+   * không phụ thuộc thứ tự sắp xếp danh sách request trả về.
    *
    * Duyệt phân trang GET /test-requests?lotId=... rồi lấy chi tiết từng
-   * request (GET /inspection-requests/{id}) để đọc `code` của chỉ tiêu
-   * snapshot. Toàn bộ dùng API sẵn có — không tạo endpoint mới.
+   * request (GET /inspection-requests/{id}) để đọc kết quả snapshot.
+   * Toàn bộ dùng API sẵn có — không tạo endpoint mới.
    */
   const fetchCreatedCriterionKeys = useCallback(async (): Promise<Set<string>> => {
-    const keys = new Set<string>();
+    // Kết quả chốt gần nhất theo từng khóa chỉ tiêu (code đã chuẩn hóa)
+    const latestResultByKey = new Map<string, { passed: boolean; at: number }>();
+    // Khóa thuộc request nhưng chưa ghi kết quả (đang chờ / chưa hoàn tất)
+    const keysWithoutResult = new Set<string>();
     let page = 0;
     let totalPages = 1;
     const requestIds: string[] = [];
@@ -196,7 +228,17 @@ export const CreateInspectionRequestPage: React.FC = () => {
         try {
           const detail = await getInspectionRequestDetail(requestId);
           detail.criteria?.forEach((criterion) => {
-            if (criterion.code) keys.add(normalizeCriterionKey(criterion.code));
+            const key = normalizeCriterionKey(criterion.code || criterion.name);
+            if (!key) return;
+            if (criterion.result == null) {
+              keysWithoutResult.add(key);
+              return;
+            }
+            const at = Date.parse(criterion.result.createdAt ?? "") || 0;
+            const prev = latestResultByKey.get(key);
+            if (!prev || at >= prev.at) {
+              latestResultByKey.set(key, { passed: criterion.result.passed, at });
+            }
           });
         } catch {
           // Bỏ qua lỗi lẻ của một request để không mất dữ liệu lịch sử còn lại
@@ -204,12 +246,23 @@ export const CreateInspectionRequestPage: React.FC = () => {
       })
     );
 
-    return keys;
+    // Khóa bị chặn = chưa có kết quả, HOẶC kết quả chốt gần nhất là ĐẠT.
+    // Riêng kết quả chốt gần nhất KHÔNG ĐẠT -> mở lại lựa chọn ("Chưa tạo").
+    return new Set<string>([
+      ...keysWithoutResult,
+      ...[...latestResultByKey.entries()]
+        .filter(([, value]) => value.passed)
+        .map(([key]) => key),
+    ]);
   }, [effectiveLotId]);
 
   /**
    * Tải lại dữ liệu bảng chỉ tiêu: chỉ tiêu áp dụng cho lô + đơn vị/ngưỡng
    * từ bộ chỉ tiêu của loại nông sản + trạng thái Đã tạo/Chưa tạo từ lịch sử.
+   *
+   * Lưu ý: tập khóa trả về bởi fetchCreatedCriterionKeys là các khóa BỊ CHẶN.
+   * Chỉ tiêu từng bị ghi nhận KHÔNG ĐẠT ở lần xét gần nhất sẽ không nằm trong
+   * tập này -> hiển thị "Chưa tạo" và cho phép chọn để tạo yêu cầu kiểm tra lại.
    */
   const loadCriteriaSectionData = useCallback(
     async (
