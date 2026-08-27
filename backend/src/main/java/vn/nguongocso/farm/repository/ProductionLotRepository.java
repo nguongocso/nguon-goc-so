@@ -42,6 +42,11 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
     List<ProductionLot> findByFarmAreaId(UUID farmAreaId);
 
     /**
+     * Đếm số lô sản xuất liên quan tới vùng trồng.
+     */
+    long countByFarmAreaId(UUID farmAreaId);
+
+    /**
      * Truy vấn tổng hợp số lô, sản lượng thực tế và dự kiến theo trạng thái của tổ
      * chức.
      */

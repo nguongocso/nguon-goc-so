@@ -85,6 +85,9 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             if (!farmArea.getOrganization().getOrganizationId().equals(orgId)) {
                 throw new BusinessException("Khu vực canh tác này không thuộc tổ chức của bạn");
             }
+            if (Boolean.FALSE.equals(farmArea.getIsActive())) {
+                throw new BusinessException("Vùng trồng '" + farmArea.getName() + "' hiện đã ngừng sử dụng, không thể chọn để tạo lô sản xuất mới");
+            }
         }
 
         ProductionLot productionLot = ProductionLot.builder()

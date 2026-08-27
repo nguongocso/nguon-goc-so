@@ -22,6 +22,7 @@ import {
   Clock,
   ShieldCheck,
 } from 'lucide-react';
+import { HelpButton } from '@/components/help/HelpButton';
 import { getProductCategories } from '@/api/productCategoryApi';
 import {
   createInputMaterial,
@@ -234,6 +235,7 @@ export const InputMaterialFormPage = () => {
             </p>
           </div>
         </div>
+        <HelpButton screenKey="admin-input-materials" />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6 w-full">
