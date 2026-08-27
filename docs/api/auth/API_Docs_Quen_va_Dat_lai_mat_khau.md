@@ -282,7 +282,7 @@ Xác thực token, kiểm tra mật khẩu mới và cập nhật mật khẩu n
 | HTTP Status | Trường hợp lỗi | Message phản hồi |
 | :---: | :--- | :--- |
 | `400` | Input trống / sai định dạng | *"Vui lòng nhập tên đăng nhập hoặc email"* / *"Mật khẩu không đạt độ mạnh yêu cầu"* |
-| `400` | Tài khoản chưa cấu hình email | *"Tài khoản chưa được cấu hình địa chỉ email để thực hiện đặt lại mật khẩu. Vui lòng liên hệ quản trị viên."* |
+| `400` | Tài khoản chưa cấu hình email | *"Tài khoản chưa được cập nhật địa chỉ email trên hệ thống để thực hiện đặt lại mật khẩu."* |
 | `400` | Tài khoản đang bị khóa/ngưng hoạt động | *"Tài khoản đang bị khóa hoặc ngưng hoạt động. Vui lòng liên hệ quản trị viên."* |
 | `400` | Mật khẩu xác nhận lệch | *"Xác nhận mật khẩu mới không khớp"* |
 | `400` | Mật khẩu mới trùng mật khẩu cũ | *"Mật khẩu mới không được trùng với mật khẩu hiện tại"* |
@@ -301,3 +301,42 @@ Xác thực token, kiểm tra mật khẩu mới và cập nhật mật khẩu n
   * Nút bấm hành động (CTA Button): **"Đặt lại mật khẩu"** dẫn tới `${FRONTEND_URL}/reset-password?token=${rawToken}`.
   * Cảnh báo thời hạn: Có hiệu lực trong **30 phút**.
   * Cảnh báo bảo mật: Nếu không phải bạn yêu cầu, vui lòng bỏ qua email này.
+
+---
+
+## 7. API Cập nhật Hồ sơ & Bổ sung Email Người dùng (User Profile & Email Management)
+
+Hỗ trợ người dùng (`VT-02` đến `VT-05`) chủ động xem và bổ sung/cập nhật thông tin email, số điện thoại để phục vụ tính năng quên & đặt lại mật khẩu.
+
+* **Endpoint:** `PUT /api/v1/auth/profile`
+* **Xác thực:** Yêu cầu Bearer Access JWT
+* **Phân quyền:** Dành cho các vai trò VT-02, VT-03, VT-04, VT-05
+
+#### Request Body (`application/json`):
+```json
+{
+  "phone": "0987654321",
+  "email": "nongdan@gmail.com"
+}
+```
+
+#### Response Success (`200 OK`):
+```json
+{
+  "success": true,
+  "status": 200,
+  "data": {
+    "userId": "c13bde2c-5360-4f1d-897b-d744f35084af",
+    "username": "nongdan01",
+    "fullName": "Trần Văn Hạnh",
+    "phone": "0987654321",
+    "email": "nongdan@gmail.com",
+    "roleCode": "VT-03",
+    "roleName": "Người ghi sự kiện",
+    "organizationId": "57dcf668-ad9e-420d-8905-5ae049e88a4e",
+    "organizationName": "Hợp tác xã Nông nghiệp Xanh"
+  },
+  "message": "Cập nhật hồ sơ thành công",
+  "timestamp": "2026-08-27T08:20:00.123Z"
+}
+```
