@@ -282,6 +282,8 @@ Xác thực token, kiểm tra mật khẩu mới và cập nhật mật khẩu n
 | HTTP Status | Trường hợp lỗi | Message phản hồi |
 | :---: | :--- | :--- |
 | `400` | Input trống / sai định dạng | *"Vui lòng nhập tên đăng nhập hoặc email"* / *"Mật khẩu không đạt độ mạnh yêu cầu"* |
+| `400` | Tài khoản chưa cấu hình email | *"Tài khoản chưa được cấu hình địa chỉ email để thực hiện đặt lại mật khẩu. Vui lòng liên hệ quản trị viên."* |
+| `400` | Tài khoản đang bị khóa/ngưng hoạt động | *"Tài khoản đang bị khóa hoặc ngưng hoạt động. Vui lòng liên hệ quản trị viên."* |
 | `400` | Mật khẩu xác nhận lệch | *"Xác nhận mật khẩu mới không khớp"* |
 | `400` | Mật khẩu mới trùng mật khẩu cũ | *"Mật khẩu mới không được trùng với mật khẩu hiện tại"* |
 | `400` | Token sai, đã dùng hoặc quá 30p | *"Liên kết đặt lại mật khẩu đã hết hạn hoặc không còn hiệu lực"* |
