@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, MapPin, ExternalLink, RefreshCw, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Plus, MapPin, ExternalLink, RefreshCw, Edit3, Trash2, PowerOff, CheckCircle2 } from 'lucide-react';
 import { HelpButton } from '@/components/help/HelpButton';
 import { toast } from 'sonner';
 import { getFarmAreas, toggleFarmAreaStatus } from '@/api/farmAreaApi';
@@ -168,30 +168,39 @@ export default function FarmAreaListPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => navigate(`/chinhsuavungtrong/${area.id}`)}
-                            className="h-8 px-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100"
+                            onClick={() => navigate(`/farm-areas/${area.id}/edit`)}
+                            className="h-8 px-2 text-slate-700 hover:text-blue-600 hover:bg-blue-50"
                             title="Sửa thông tin vùng trồng"
                           >
-                            <Pencil className="h-4 w-4" />
+                            <Edit3 className="h-4 w-4 mr-1" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleToggleStatus(area)}
-                            className="h-8 px-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100"
+                            className={`h-8 px-2 ${area.isActive
+                              ? 'text-amber-700 hover:text-amber-800 hover:bg-amber-50'
+                              : 'text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50'
+                              }`}
                             title={area.isActive ? 'Ngừng sử dụng vùng trồng' : 'Kích hoạt lại vùng trồng'}
                           >
                             {area.isActive ? (
-                              <EyeOff className="h-4 w-4" />
+                              <>
+                                <PowerOff className="h-3.5 w-3.5 mr-1" />
+                                Ngừng dùng
+                              </>
                             ) : (
-                              <Eye className="h-4 w-4" />
+                              <>
+                                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                Kích hoạt
+                              </>
                             )}
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setDeletingFarmArea(area)}
-                            className="h-8 px-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100"
+                            className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
                             title="Xóa vùng trồng"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -216,4 +225,4 @@ export default function FarmAreaListPage() {
       />
     </div>
   );
-}
+}
