@@ -392,11 +392,13 @@ function MenuLink({
   collapsed,
   isActive,
   onNavigate,
+  showWarningDot = false,
 }: {
   item: MenuItem;
   collapsed: boolean;
   isActive: boolean;
   onNavigate?: () => void;
+  showWarningDot?: boolean;
 }) {
   const linkContent = (
     <Link
@@ -413,13 +415,29 @@ function MenuLink({
     >
       <span
         className={cn(
-          "flex-shrink-0",
+          "relative flex-shrink-0",
           isActive ? "text-white" : "text-emerald-500",
         )}
       >
         {item.icon}
+        {showWarningDot && (
+          <span
+            className="absolute -top-1 -right-1 size-2 rounded-full bg-amber-500 ring-2 ring-white animate-pulse"
+            title="Chưa cập nhật email"
+          />
+        )}
       </span>
-      {!collapsed && <span>{item.label}</span>}
+      {!collapsed && (
+        <span className="flex flex-1 items-center justify-between gap-2">
+          <span>{item.label}</span>
+          {showWarningDot && (
+            <span
+              className="size-2 rounded-full bg-amber-500 ring-2 ring-white animate-pulse"
+              title="Chưa cập nhật email"
+            />
+          )}
+        </span>
+      )}
     </Link>
   );
 
@@ -443,12 +461,14 @@ function AccordionGroup({
   isGroupActive,
   onNavigate,
   defaultExpanded = false,
+  isMissingEmail = false,
 }: {
   group: MenuGroup;
   isActive: (item: MenuItem) => boolean;
   isGroupActive: boolean;
   onNavigate?: () => void;
   defaultExpanded?: boolean;
+  isMissingEmail?: boolean;
 }) {
   const [expanded, setExpanded] = React.useState(defaultExpanded);
 
@@ -501,6 +521,7 @@ function AccordionGroup({
                 collapsed={false}
                 isActive={isActive(item)}
                 onNavigate={onNavigate}
+                showWarningDot={item.href === "/profile" && isMissingEmail}
               />
             ))}
           </div>
@@ -528,6 +549,12 @@ export function Sidebar({
     logout();
     setShowLogoutDialog(false);
   };
+
+  const isMissingEmail = Boolean(
+    user &&
+    hasAnyRole(user.roleCode, ROLE_ACCESS.userProfile) &&
+    (!user.email || user.email.trim() === "")
+  );
 
   const visibleGroups = filterVisibleGroups(MENU_GROUPS, user?.roleCode);
   const dashboardVisible = hasAnyRole(
@@ -635,6 +662,7 @@ export function Sidebar({
               collapsed={collapsed}
               isActive={isActive(DASHBOARD_ITEM)}
               onNavigate={onNavigate}
+              showWarningDot={DASHBOARD_ITEM.href === "/profile" && isMissingEmail}
             />
           </div>
         )}
@@ -658,6 +686,7 @@ export function Sidebar({
                     collapsed={collapsed}
                     isActive={isActive(item)}
                     onNavigate={onNavigate}
+                    showWarningDot={item.href === "/profile" && isMissingEmail}
                   />
                 ))}
               </div>
@@ -673,6 +702,7 @@ export function Sidebar({
                 isGroupActive={groupActive}
                 onNavigate={onNavigate}
                 defaultExpanded={groupActive}
+                isMissingEmail={isMissingEmail}
               />
             </div>
           );

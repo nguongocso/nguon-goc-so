@@ -107,13 +107,25 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
   // Desktop: full name + role
   // Tablet: shortened name
   // Mobile: avatar only
+  const isMissingEmail = Boolean(
+    user &&
+    canOpenUserProfile &&
+    (!user.email || user.email.trim() === '')
+  );
+
   const userName = user?.fullName || user?.username || 'Người dùng';
   const shortName = userName.split(' ').pop() || userName.charAt(0);
 
   const accountContent = (
     <>
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 min-w-0">
+      <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 min-w-0">
         <User className="h-4 w-4" />
+        {isMissingEmail && (
+          <span
+            className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-amber-500 ring-2 ring-white animate-pulse"
+            title="Chưa cập nhật email"
+          />
+        )}
       </span>
       {/* Desktop: Show name and role */}
       {!isMobile && !isTablet && (
@@ -186,7 +198,13 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
         {canOpenUserProfile && (
           <DropdownMenuItem onClick={() => navigate('/profile')}>
             <User className="mr-2 size-4 text-emerald-600" />
-            Hồ sơ người dùng
+            <span className="flex-1">Hồ sơ người dùng</span>
+            {isMissingEmail && (
+              <span
+                className="size-2 rounded-full bg-amber-500 ring-2 ring-white animate-pulse"
+                title="Chưa cập nhật email"
+              />
+            )}
           </DropdownMenuItem>
         )}
         {canOpenOrganizationProfile && (
