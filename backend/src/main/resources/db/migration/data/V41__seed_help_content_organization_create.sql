@@ -1,5 +1,5 @@
 -- ============================================================
--- V37: Seed Help Content for Organization Create (NCL-01-CN-006)
+-- V41: Seed Help Content for Organization Create (NCL-01-CN-006)
 --
 -- Nội dung hướng dẫn tạo tổ chức mới cho screenKey 'organization-create'
 -- ============================================================
