@@ -21,6 +21,7 @@ import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
 // ===== Pages – chung =====
 import { DashboardPage } from "@/pages/daskboard/DashboardPase";
 import { CreateFarmAreaPage } from "@/pages/farm-area/CreateFarmAreaPage";
+import { EditFarmAreaPage } from "@/pages/farm-area/EditFarmAreaPage";
 import CreateFarmLogPage from "@/pages/farm-log/CreateFarmLogPage";
 import ProductionLotEditPage from "@/pages/farm/ProductionLotEditPage";
 
@@ -39,6 +40,9 @@ import CodeRangeListPage from "@/pages/admin/CodeRangeListPage";
 import ProductCategoryManagementPage from "@/pages/admin/ProductCategoryManagementPage";
 import CreateProductCategoryPage from "@/pages/admin/CreateProductCategoryPage";
 import EditProductCategoryPage from "@/pages/admin/EditProductCategoryPage";
+import InputMaterialManagementPage from "@/pages/admin/InputMaterialManagementPage";
+import { InputMaterialFormPage } from "@/pages/admin/InputMaterialFormPage";
+import { InputMaterialDetailPage } from "@/pages/admin/InputMaterialDetailPage";
 import StandardManagementPage from "@/pages/admin/StandardManagementPage";
 import CreateStandardPage from "@/pages/admin/CreateStandardPage";
 import EditStandardPage from "@/pages/admin/EditStandardPage";
@@ -417,6 +421,28 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="farm-areas/:id/edit"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.farmAreaCreate}
+                    >
+                        <EditFarmAreaPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="chinhsuavungtrong/:id"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.farmAreaCreate}
+                    >
+                        <EditFarmAreaPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="farm-areas"
                 element={
                     <RoleRoute allowedRoles={["VT-02"]}>
@@ -693,6 +719,45 @@ const AppRoutes = () => (
             />
 
             <Route
+<<<<<<< HEAD
+=======
+                path="admin/input-materials"
+                element={
+                    <RoleRoute allowedRoles={["VT-01", "VT-02", "VT-03", "VT-04"]}>
+                        <InputMaterialManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/input-materials/create"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <InputMaterialFormPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/input-materials/:id/edit"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <InputMaterialFormPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/input-materials/:id"
+                element={
+                    <RoleRoute allowedRoles={["VT-01", "VT-02", "VT-03", "VT-04"]}>
+                        <InputMaterialDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+>>>>>>> origin/develop
                 path="admin/standards"
                 element={
                     <RoleRoute

@@ -16,6 +16,7 @@ import {
   MapPinned,
   MessageSquare,
   Package,
+  PackageCheck,
   ScanLine,
   ShieldCheck,
   Truck,
@@ -134,6 +135,12 @@ const MENU_GROUPS: MenuGroup[] = [
         icon: <Layers className="h-5 w-5" />,
         label: "Danh mục nông sản",
         href: "/admin/product-categories",
+        allowedRoles: ["VT-01"] as const,
+      },
+      {
+        icon: <PackageCheck className="h-5 w-5" />,
+        label: "Danh mục vật tư",
+        href: "/admin/input-materials",
         allowedRoles: ["VT-01"] as const,
       },
       {

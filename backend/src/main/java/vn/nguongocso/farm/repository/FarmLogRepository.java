@@ -77,6 +77,12 @@ public interface FarmLogRepository extends JpaRepository<FarmLog, UUID> {
 	boolean existsByProductionLotId(@Param("productionLotId") UUID productionLotId);
 
 	/**
+	 * Kiểm tra xem vật tư có tên cho trước đã từng được dùng trong nhật ký canh tác hay chưa.
+	 */
+	@Query("SELECT COUNT(fl) > 0 FROM FarmLog fl WHERE LOWER(TRIM(fl.material)) = LOWER(TRIM(:materialName))")
+	boolean existsByMaterialIgnoreCase(@Param("materialName") String materialName);
+
+	/**
 	 * Lấy danh sách nhật ký canh tác của các lô sản xuất theo danh sách ID của lô
 	 * sản xuất, sắp xếp theo ngày thực hiện tăng dần.
 	 *
