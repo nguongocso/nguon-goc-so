@@ -18,6 +18,9 @@ import {
 // ============================================================
 
 const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
+  // User Profile
+  ["/profile", "Hồ sơ người dùng"],
+
   // Organizations
   ["/organizations/profile", "Hồ sơ tổ chức"],
   ["/organizations/create", "Tạo tổ chức"],
@@ -145,6 +148,8 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/recall-requests/:id", "Chi tiết yêu cầu thu hồi"],
   ["/recall-requests", "Yêu cầu thu hồi"],
   ["/product-feedbacks", "Phản hồi người dùng"],
+  ["/forgot-password", "Quên mật khẩu"],
+  ["/reset-password", "Đặt lại mật khẩu"],
 ];
 
 /** Tìm nhãn cho một tiền tố đường dẫn khớp với template trong danh sách cho trước. */

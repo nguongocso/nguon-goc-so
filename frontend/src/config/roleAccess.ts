@@ -62,8 +62,15 @@ export const ROLE_ACCESS = {
   // ✅ NCL-04-CN-005 - Xuất tem QR cho lô hàng để in
   labelExport: ['VT-02'] as const,
 
+  // ✅ NCL-670 - Phân công địa bàn quản lý cho cán bộ quản lý ngành (VT-05)
+  areaAssignment: ['VT-01'] as const,
+
+
   // ✅ NCL-12-CN-001 - Quản lý khóa truy cập đối tác bên thứ ba
   apiKeyManagement: ['VT-01', 'VT-02'] as const,
+
+  // ✅ Hồ sơ người dùng
+  userProfile: ['VT-02', 'VT-03', 'VT-04', 'VT-05'] as const,
 } as const satisfies Record<string, readonly AuthenticatedRoleCode[]>;
 
 export function hasAnyRole(

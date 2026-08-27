@@ -9,14 +9,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 
 import vn.nguongocso.auth.dto.request.LoginRequest;
 import vn.nguongocso.auth.dto.request.SelectOrganizationRequest;
+import vn.nguongocso.auth.dto.request.UpdateUserProfileRequest;
 import vn.nguongocso.auth.dto.response.LoginResponse;
 import vn.nguongocso.auth.dto.response.OrganizationSelectionResponse;
 import vn.nguongocso.auth.dto.response.SelectOrganizationResponse;
+import vn.nguongocso.auth.dto.response.UserProfileResponse;
 import vn.nguongocso.auth.entity.AccountLock;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.enums.AccountLockStatus;
@@ -527,6 +530,12 @@ public class AuthService {
                                     .fullName(
                                             userDetails.getFullName())
 
+                                    .phone(
+                                            userDetails.getPhone())
+
+                                    .email(
+                                            userDetails.getEmail())
+
                                     .organizationId(
                                             userDetails
                                                     .getOrganizationId()
@@ -596,6 +605,8 @@ public class AuthService {
                         .userId(userDetails.getUserId().toString())
                         .username(userDetails.getUsername())
                         .fullName(userDetails.getFullName())
+                        .phone(userDetails.getPhone())
+                        .email(userDetails.getEmail())
                         .organizationId(userDetails.getOrganizationId().toString())
                         .organizationCode(userDetails.getOrganizationCode())
                         .organizationName(userDetails.getOrganizationName())
@@ -603,6 +614,56 @@ public class AuthService {
                         .roleCode(userDetails.getRoleCode())
                         .roleName(userDetails.getRoleName())
                         .build())
+                .build();
+    }
+
+    /**
+     * Cập nhật thông tin liên hệ (SĐT, email) của người dùng hiện tại.
+     */
+    @Transactional
+    public UserProfileResponse updateProfile(
+            UUID userId,
+            CustomUserDetails userDetails,
+            UpdateUserProfileRequest request,
+            List<String> permissions) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin người dùng"));
+
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            String newEmail = request.getEmail().trim();
+            userRepository.findByEmail(newEmail).ifPresent(existingUser -> {
+                if (!existingUser.getUserId().equals(userId)) {
+                    throw new BusinessException("Địa chỉ email đã được sử dụng bởi tài khoản khác");
+                }
+            });
+            user.setEmail(newEmail);
+        } else {
+            user.setEmail(null);
+        }
+
+        if (request.getPhone() != null && !request.getPhone().isBlank()) {
+            user.setPhone(request.getPhone().trim());
+        } else {
+            user.setPhone(null);
+        }
+
+        User savedUser = userRepository.save(user);
+        log.info("Cập nhật thông tin profile thành công cho userId={}", userId);
+
+        return UserProfileResponse.builder()
+                .userId(savedUser.getUserId())
+                .username(savedUser.getUserName())
+                .fullName(savedUser.getFullName())
+                .phone(savedUser.getPhone())
+                .email(savedUser.getEmail())
+                .roleCode(userDetails.getRoleCode())
+                .roleName(userDetails.getRoleName())
+                .organizationId(userDetails.getOrganizationId())
+                .organizationCode(userDetails.getOrganizationCode())
+                .organizationName(userDetails.getOrganizationName())
+                .organizationType(userDetails.getOrganizationType())
+                .permissions(permissions)
                 .build();
     }
 }

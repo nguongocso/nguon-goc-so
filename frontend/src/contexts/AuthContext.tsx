@@ -18,6 +18,7 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
+import { getCurrent } from "@/api/authApi";
 
 interface AuthContextType {
   user: AuthUserInfo | null;
@@ -43,6 +44,8 @@ interface AuthContextType {
     accessToken: string,
     user: AuthUserInfo
   ) => void;
+
+  updateUser: (user: AuthUserInfo) => void;
 
   logout: () => void;
 }
@@ -72,6 +75,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     if (storedToken && storedUser) {
       setTokenState(storedToken);
       setUserState(storedUser);
+
+      // Đồng bộ thông tin mới nhất từ backend (phone, email)
+      getCurrent()
+        .then((res) => {
+          if (res.success && res.data) {
+            setUser(res.data);
+            setUserState(res.data);
+          }
+        })
+        .catch(() => {});
     }
 
     if (storedSelectionToken) {
@@ -113,16 +126,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
     removeSelectionToken();
     setSelectionTokenState(null);
+
+    // Reset trạng thái xem thông báo email cho phiên đăng nhập mới
+    if (userData?.userId) {
+      sessionStorage.removeItem(`session_read_email_notice_${userData.userId}`);
+    }
+  }, []);
+
+  const updateUser = useCallback((updatedUserData: AuthUserInfo) => {
+    setUser(updatedUserData);
+    setUserState(updatedUserData);
   }, []);
 
   const logout = useCallback(() => {
+    if (user?.userId) {
+      sessionStorage.removeItem(`session_read_email_notice_${user.userId}`);
+    }
+
     removeToken();
     removeSelectionToken();
 
     setTokenState(null);
     setSelectionTokenState(null);
     setUserState(null);
-  }, []);
+  }, [user?.userId]);
 
   return (
     <AuthContext.Provider
@@ -133,6 +160,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         isLoading,
         loginWithSelection,
         completeLogin,
+        updateUser,
         logout,
       }}
     >

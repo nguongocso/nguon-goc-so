@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { exportOpenData } from '@/api/exportApi';
 import { getProductCategories } from '@/api/productCategoryApi';
 import { getOrganizations } from '@/api/organizationApi';
+import { ProvinceUnitMultiSelect } from '@/components/common/ProvinceUnitMultiSelect';
 import { useAuth } from '@/hooks/useAuth';
 import type { Organization } from '@/types/organization';
 import type { ProductCategory } from '@/types/productCategory';
@@ -57,6 +58,9 @@ type QuickRangeKey = '7days' | '30days' | 'week' | 'month' | 'year' | null;
 export const ExportOpenDataForm = () => {
   const { user } = useAuth();
   const isAdmin = user?.roleCode === 'VT-01';
+  // NCL-742 §8: chọn địa bàn cho VT-01/VT-05 (mặc định route chỉ VT-05).
+  const canFilterByUnit = isAdmin || user?.roleCode === 'VT-05';
+  const [unitIds, setUnitIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -172,6 +176,7 @@ export const ExportOpenDataForm = () => {
       if (data.productCategoryIds?.length)
         payload.productCategoryIds = data.productCategoryIds;
       if (data.shipmentIds?.length) payload.shipmentIds = data.shipmentIds;
+      if (canFilterByUnit && unitIds.length > 0) payload.unitIds = unitIds;
 
       const blob = await exportOpenData(payload as Parameters<typeof exportOpenData>[0]);
 
@@ -329,6 +334,18 @@ export const ExportOpenDataForm = () => {
               {errors.organizationId && (
                 <p className="text-sm text-red-500">{errors.organizationId.message}</p>
               )}
+            </div>
+          )}
+
+          {/* Địa bàn – VT-01/VT-05 (NCL-742 §8) */}
+          {canFilterByUnit && (
+            <div className="space-y-2">
+              <Label>Địa bàn</Label>
+              <ProvinceUnitMultiSelect
+                value={unitIds}
+                onChange={setUnitIds}
+                disabled={submitting}
+              />
             </div>
           )}
 
