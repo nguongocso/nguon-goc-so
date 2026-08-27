@@ -145,7 +145,7 @@ export const ProductCategoryForm = ({
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {category ? "Cập nhật loại nông sản" : "Thêm mới loại nông sản"}

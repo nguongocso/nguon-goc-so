@@ -25,9 +25,8 @@ import {
 } from "lucide-react";
 import { useShipments } from "@/hooks/useShipments";
 import { useRecallShipment } from "@/hooks/useRecallShipment";
-import type { Shipment, CreateShipmentPayload } from "@/types/shipment";
+import type { Shipment } from "@/types/shipment";
 import { getLocalDateString } from "@/utils/dateTime";
-import { CreateShipmentModal } from "@/components/shipment/CreateShipmentModal";
 import { ShipmentTimelineDialog } from "@/components/shipment/ShipmentTimelineDialog";
 import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDialog";
 import { RecallShipmentDialog } from "@/components/shipment/RecallShipmentDialog";
@@ -69,7 +68,6 @@ export const ShipmentList = ({
   canRecall,
 }: ShipmentListProps) => {
   const navigate = useNavigate();
-  const [modalOpen, setModalOpen] = useState(false);
 
   const [activatingShipment, setActivatingShipment] = useState<Shipment | null>(
     null,
@@ -110,8 +108,6 @@ export const ShipmentList = ({
   const {
     shipments,
     isLoading,
-    createShipment,
-    isCreating,
     activatingShipmentId,
     activateShipment,
     reload,
@@ -127,10 +123,6 @@ export const ShipmentList = ({
     null,
   );
   const { deletingDraft, deleteDraftShipment } = useDeleteDraftShipment(reload);
-
-  const handleCreate = async (payload: CreateShipmentPayload) => {
-    await createShipment(payload);
-  };
 
   // Chặn kích hoạt tem khi lô chưa đạt kiểm nghiệm / kết quả hết hiệu lực
   const handleActivateConfirm = async (shipmentId: string) => {
@@ -259,7 +251,7 @@ export const ShipmentList = ({
             <CardTitle className="text-xl font-bold text-slate-900">Danh sách lô hàng</CardTitle>
 
             {canCreate && productionLotStatus === "PACKAGED" && (
-              <Button variant="create" size="sm" onClick={() => setModalOpen(true)}>
+              <Button variant="create" size="sm" onClick={() => navigate(`/production-lots/${productionLotId}/shipments/create`)}>
                 <Plus className="mr-1 h-4 w-4" />
                 Tạo lô hàng
               </Button>
@@ -480,14 +472,6 @@ export const ShipmentList = ({
           )}
         </CardContent>
       </Card>
-
-      <CreateShipmentModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSubmit={handleCreate}
-        productionLotId={productionLotId}
-        loading={isCreating}
-      />
 
       <ShipmentTimelineDialog
         open={timelineDialog.open}

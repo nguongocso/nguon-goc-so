@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   Key,
@@ -31,13 +32,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { getApiKeys } from '@/api/apiKeyApi';
 import type { PartnerApiKeyResponse, PartnerApiKeyStatus } from '@/types/apiKey';
 import { ApiKeyStatusBadge } from '@/components/apiKey/ApiKeyStatusBadge';
-import { CreateApiKeyModal } from '@/components/apiKey/CreateApiKeyModal';
 import { RawApiKeyModal } from '@/components/apiKey/RawApiKeyModal';
 import { RevokeApiKeyDialog } from '@/components/apiKey/RevokeApiKeyDialog';
 import { usePermission } from '@/hooks/usePermission';
 import { HelpButton } from '@/components/help/HelpButton';
 
 export const PartnerApiKeyListPage: React.FC = () => {
+  const navigate = useNavigate();
   const canManage = usePermission(['VT-01', 'VT-02']);
 
   const [keys, setKeys] = useState<PartnerApiKeyResponse[]>([]);
@@ -52,7 +53,6 @@ export const PartnerApiKeyListPage: React.FC = () => {
   const pageSize = 10;
 
   // States quản lý Modal
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<PartnerApiKeyResponse | null>(null);
   const [revokeKeyTarget, setRevokeKeyTarget] = useState<PartnerApiKeyResponse | null>(null);
 
@@ -87,12 +87,6 @@ export const PartnerApiKeyListPage: React.FC = () => {
     );
   }, [keys, search]);
 
-  const handleCreateSuccess = (createdKey: PartnerApiKeyResponse) => {
-    setIsCreateModalOpen(false);
-    setNewlyCreatedKey(createdKey);
-    fetchApiKeys();
-  };
-
   const handleRevokeSuccess = () => {
     fetchApiKeys();
   };
@@ -120,7 +114,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
           {canManage && (
             <Button
               variant="create"
-              onClick={() => setIsCreateModalOpen(true)}
+              onClick={() => navigate('/integration/api-keys/create')}
               className="shrink-0 gap-2 shadow-sm"
             >
               <PlusCircle className="w-4 h-4" />
@@ -347,12 +341,6 @@ export const PartnerApiKeyListPage: React.FC = () => {
       </Card>
 
       {/* Modals & Dialogs */}
-      <CreateApiKeyModal
-        open={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={handleCreateSuccess}
-      />
-
       <RawApiKeyModal
         open={!!newlyCreatedKey}
         apiKeyData={newlyCreatedKey}
