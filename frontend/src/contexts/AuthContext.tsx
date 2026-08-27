@@ -18,6 +18,7 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
+import { getCurrent } from "@/api/authApi";
 
 interface AuthContextType {
   user: AuthUserInfo | null;
@@ -74,6 +75,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     if (storedToken && storedUser) {
       setTokenState(storedToken);
       setUserState(storedUser);
+
+      // Đồng bộ thông tin mới nhất từ backend (phone, email)
+      getCurrent()
+        .then((res) => {
+          if (res.success && res.data) {
+            setUser(res.data);
+            setUserState(res.data);
+          }
+        })
+        .catch(() => {});
     }
 
     if (storedSelectionToken) {

@@ -527,6 +527,12 @@ public class AuthService {
                                     .fullName(
                                             userDetails.getFullName())
 
+                                    .phone(
+                                            userDetails.getPhone())
+
+                                    .email(
+                                            userDetails.getEmail())
+
                                     .organizationId(
                                             userDetails
                                                     .getOrganizationId()
@@ -596,6 +602,8 @@ public class AuthService {
                         .userId(userDetails.getUserId().toString())
                         .username(userDetails.getUsername())
                         .fullName(userDetails.getFullName())
+                        .phone(userDetails.getPhone())
+                        .email(userDetails.getEmail())
                         .organizationId(userDetails.getOrganizationId().toString())
                         .organizationCode(userDetails.getOrganizationCode())
                         .organizationName(userDetails.getOrganizationName())
