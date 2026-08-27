@@ -1,7 +1,12 @@
-import { Plus, ClipboardList } from 'lucide-react';
+import { Plus, ClipboardList, PencilLine } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { CorrectFarmLogDialog } from './CorrectFarmLogDialog';
 import { AttachmentManager } from './AttachmentManager';
+import { useAuth } from '@/hooks/useAuth';
+import { ROLE_ACCESS, hasAnyRole } from '@/config/roleAccess';
 import type { FarmLog } from '@/types/farmLog';
 
 interface FarmLogTabProps {
@@ -11,7 +16,32 @@ interface FarmLogTabProps {
 }
 
 export function FarmLogTab({ logs, onCreateLog, onLogUpdated }: FarmLogTabProps) {
+  const { user } = useAuth();
+  const [correctingLog, setCorrectingLog] = useState<FarmLog | null>(null);
   const openItems = logs.length > 0 ? [logs[0].id] : [];
+
+  /**
+   * NCL-03-CN-006: quyền hiển thị nút Đính chính theo vai trò.
+   * VT-02 được đính chính mọi nhật ký của tổ chức; VT-03 chỉ được
+   * đính chính nhật ký do chính mình ghi (bản ghi đã bị thay thế
+   * bởi bản đính chính khác sẽ không còn nút đính chính).
+   */
+  const canCorrectLog = (log: FarmLog): boolean => {
+    if (!hasAnyRole(user?.roleCode, ROLE_ACCESS.farmLogCorrect)) {
+      return false;
+    }
+    if (log.isCorrected) {
+      return false;
+    }
+
+    const isManager = user?.roleCode === 'VT-02';
+
+    if (!isManager) {
+      return !log.createdById || log.createdById === user?.userId;
+    }
+
+    return true;
+  };
 
   if (logs.length === 0) {
     return (
@@ -44,8 +74,16 @@ export function FarmLogTab({ logs, onCreateLog, onLogUpdated }: FarmLogTabProps)
                   <ClipboardList className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <div className="font-medium">
+                  <div className="flex flex-wrap items-center gap-2 font-medium">
                     {new Date(log.executedDate).toLocaleDateString('vi-VN')} — {log.activityType}
+                    {log.isCorrection && (
+                      <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                        Đính chính
+                      </Badge>
+                    )}
+                    {log.isCorrected && (
+                      <Badge variant="secondary">Đã đính chính</Badge>
+                    )}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     {log.attachments?.length || 0} chứng từ
@@ -54,9 +92,35 @@ export function FarmLogTab({ logs, onCreateLog, onLogUpdated }: FarmLogTabProps)
               </div>
             </AccordionTrigger>
             <AccordionContent>
+              {log.isCorrection && log.correctionReason && (
+                <div className="mb-4 p-3 border-l-4 border-amber-400 bg-amber-50 rounded-md">
+                  <p className="text-sm text-amber-900">
+                    <span className="font-semibold">Lý do đính chính:</span>{' '}
+                    {log.correctionReason}
+                  </p>
+                  {log.correctedByName && (
+                    <p className="mt-1 text-xs text-amber-700">
+                      Người đính chính: {log.correctedByName}
+                      {log.originalFarmLogId && ' · Liên kết tới bản gốc'}
+                    </p>
+                  )}
+                </div>
+              )}
               {log.notes && (
                 <div className="mb-4 p-3 bg-muted rounded-md">
                   <p className="text-sm text-muted-foreground">{log.notes}</p>
+                </div>
+              )}
+              {canCorrectLog(log) && (
+                <div className="mb-3 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCorrectingLog(log)}
+                  >
+                    <PencilLine className="mr-2 h-4 w-4" /> Đính chính
+                  </Button>
                 </div>
               )}
               <AttachmentManager logId={log.id} onUpdate={onLogUpdated} />
@@ -64,6 +128,17 @@ export function FarmLogTab({ logs, onCreateLog, onLogUpdated }: FarmLogTabProps)
           </AccordionItem>
         ))}
       </Accordion>
+
+      {correctingLog && (
+        <CorrectFarmLogDialog
+          log={correctingLog}
+          open
+          onOpenChange={(open) => {
+            if (!open) setCorrectingLog(null);
+          }}
+          onSuccess={() => onLogUpdated?.()}
+        />
+      )}
     </div>
   );
 }

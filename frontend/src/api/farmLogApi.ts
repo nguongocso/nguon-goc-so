@@ -4,6 +4,7 @@ import type {
   FarmLog,
   FarmLogQueryParams,
   CreateFarmLogRequest,
+  CorrectFarmLogRequest,
   FarmLogResponse,
 } from '@/types/farmLog';
 
@@ -46,5 +47,19 @@ export const createFarmLog = async (
     success: boolean;
     data: FarmLogResponse;
   }>('/farm-logs', payload);
+  return response.data.data;
+};
+
+/**
+ * NCL-03-CN-006: Đính chính một nhật ký canh tác.
+ */
+export const correctFarmLog = async (
+  id: string,
+  payload: CorrectFarmLogRequest
+): Promise<FarmLogResponse> => {
+  const response = await apiClient.post<{
+    success: boolean;
+    data: FarmLogResponse;
+  }>(`/farm-logs/${id}/correct`, payload);
   return response.data.data;
 };

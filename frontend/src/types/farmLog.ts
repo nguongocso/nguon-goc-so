@@ -20,9 +20,16 @@ export interface FarmLog {
   executedDate: string;
   notes: string | null;
   createdByName: string;
+  createdById?: string;
   createdAt: string;
   attachmentCount?: number;
   attachments?: Attachment[];
+  // NCL-03-CN-006: Đính chính nhật ký canh tác
+  originalFarmLogId?: string | null;
+  isCorrection?: boolean | null;
+  correctionReason?: string | null;
+  correctedByName?: string | null;
+  isCorrected?: boolean | null;
 }
 
 export interface FarmLogQueryParams {
@@ -42,3 +49,17 @@ export interface CreateFarmLogRequest {
 }
 
 export type FarmLogResponse = FarmLog;
+
+export interface FarmLogCorrectionData {
+  activityType?: FarmActivityType;
+  material?: string;
+  quantity?: number;
+  unit?: string;
+  executedDate?: string;
+  notes?: string;
+}
+
+export interface CorrectFarmLogRequest {
+  correctionData: FarmLogCorrectionData;
+  reason: string;
+}
