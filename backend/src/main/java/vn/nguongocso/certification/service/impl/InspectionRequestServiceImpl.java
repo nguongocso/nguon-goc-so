@@ -16,6 +16,7 @@ import vn.nguongocso.certification.dto.response.InspectionRequestDetailResponse;
 import vn.nguongocso.certification.dto.response.InspectionRequestListResponse;
 import vn.nguongocso.certification.dto.response.InspectionRequestResponse;
 import vn.nguongocso.certification.dto.response.ProductionLotTestCriteriaResponse;
+import vn.nguongocso.certification.entity.AccreditationScope;
 import vn.nguongocso.certification.entity.CategoryCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterionCatalog;
@@ -25,6 +26,7 @@ import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.certification.entity.Standard;
 import vn.nguongocso.certification.entity.TestingUnit;
 import vn.nguongocso.certification.enums.InspectionRequestStatus;
+import vn.nguongocso.certification.repository.AccreditationScopeRepository;
 import vn.nguongocso.certification.repository.CategoryCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionCatalogRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
@@ -122,6 +124,8 @@ public class InspectionRequestServiceImpl
             inspectionCriterionResultRepository;
 
     private final TestingUnitRepository testingUnitRepository;
+
+    private final AccreditationScopeRepository accreditationScopeRepository;
 
     private final Clock clock;
 
@@ -286,6 +290,13 @@ public class InspectionRequestServiceImpl
                 new HashSet<>();
 
         /*
+         * Map criteriaId -> tên chỉ tiêu đã được duyệt hợp lệ ở vòng lặp dưới.
+         * Dùng để mô tả các chỉ tiêu ngoài phạm vi công nhận (NCL-11-CN-006 Phase 2).
+         */
+        Map<Long, String> requestedCriterionNames =
+                new java.util.LinkedHashMap<>();
+
+        /*
          * 7. Xử lý từng criterion.
          */
         for (Long criteriaId : request.getCriteriaIds()) {
@@ -322,6 +333,11 @@ public class InspectionRequestServiceImpl
                 throw new BusinessException(
                         MSG_CRITERION_NOT_APPLICABLE);
             }
+
+            /* Lưu tên chỉ tiêu đã duyệt hợp lệ để mô tả cảnh báo phạm vi. */
+            requestedCriterionNames.put(
+                    criteriaId,
+                    catalogCriterion.getName());
 
             /*
              * 7.4. Tạo khóa criterion.
@@ -369,6 +385,46 @@ public class InspectionRequestServiceImpl
             inspectionRequest
                     .getCriteria()
                     .add(criterion);
+        }
+
+        /*
+         * 7.6. Kiểm tra phạm vi công nhận của đơn vị kiểm nghiệm
+         * (NCL-11-CN-006 Phase 2).
+         *
+         * Chỉ áp dụng khi yêu cầu chọn đơn vị từ danh mục dùng chung
+         * (testingUnitId != null). Nếu đơn vị có phạm vi công nhận được
+         * cấu hình (VT-01) và có chỉ tiêu được chọn nằm NGOÀI phạm vi,
+         * hệ thống KHÔNG chặn tạo yêu cầu mà chỉ đánh dấu cảnh báo để
+         * người kiểm định biết kết quả sẽ không được tự động công nhận.
+         *
+         * Lưu ý: nếu đơn vị chưa được cấu hình phạm vi (danh sách rỗng),
+         * không phát sinh cảnh báo để tránh nhiễu cho dữ liệu Phase 1.
+         */
+        if (request.getTestingUnitId() != null) {
+
+            List<AccreditationScope> scopes =
+                    accreditationScopeRepository
+                            .findByTestingUnitIdWithCriterion(
+                                    request.getTestingUnitId());
+
+            if (!scopes.isEmpty()) {
+
+                Set<Long> accreditedIds = scopes.stream()
+                        .map(scope -> scope.getCriterion().getId())
+                        .collect(Collectors.toSet());
+
+                List<String> outOfScopeNames = requestedCriterionNames.entrySet()
+                        .stream()
+                        .filter(entry -> !accreditedIds.contains(entry.getKey()))
+                        .map(Map.Entry::getValue)
+                        .toList();
+
+                if (!outOfScopeNames.isEmpty()) {
+                    inspectionRequest.setScopeWarning(Boolean.TRUE);
+                    inspectionRequest.setScopeWarningDetails(
+                            String.join(", ", outOfScopeNames));
+                }
+            }
         }
 
         /*
@@ -946,6 +1002,13 @@ public class InspectionRequestServiceImpl
                         request.getInspectionUnit())
                 .testingUnitId(
                         request.getTestingUnitId())
+                .hasScopeWarning(
+                        Boolean.TRUE.equals(
+                                request.getScopeWarning())
+                                ? Boolean.TRUE
+                                : Boolean.FALSE)
+                .scopeWarningDetails(
+                        request.getScopeWarningDetails())
                 .sampleSentDate(
                         request.getSampleSentDate())
                 .status(

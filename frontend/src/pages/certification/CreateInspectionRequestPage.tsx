@@ -27,6 +27,7 @@ import {
 
 import {
   createInspectionRequest,
+  getAccreditationScopes,
   getInspectionRequestDetail,
   getInspectionRequests,
   getLotTestCriteria,
@@ -48,6 +49,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -183,6 +185,9 @@ export const CreateInspectionRequestPage: React.FC = () => {
   const [testingUnits, setTestingUnits] = useState<TestingUnit[]>([]);
   const [unitsLoading, setUnitsLoading] = useState(false);
   const [unitsError, setUnitsError] = useState<string | null>(null);
+  // NCL-11-CN-006 Phase 2: phạm vi công nhận của đơn vị đã chọn
+  const [accreditedCriterionIds, setAccreditedCriterionIds] = useState<Set<number>>(new Set());
+  const [scopeLoading, setScopeLoading] = useState(false);
   const [sampleSentDate, setSampleSentDate] = useState(today);
   const [sampleWeight, setSampleWeight] = useState("");
   const [deliveryMethod, setDeliveryMethod] = useState<"LAB_PICKUP" | "COURIER" | "SELF_DELIVERY">("LAB_PICKUP");
@@ -577,6 +582,50 @@ export const CreateInspectionRequestPage: React.FC = () => {
   }, [testingUnits]);
   const selectedTestingUnit =
     availableUnits.find((unit) => unit.id === testingUnitId) || null;
+
+  // NCL-11-CN-006 Phase 2: khi chọn đơn vị từ danh mục, tải phạm vi công nhận.
+  useEffect(() => {
+    if (!testingUnitId) {
+      setAccreditedCriterionIds(new Set());
+      return;
+    }
+    let cancelled = false;
+    setScopeLoading(true);
+    getAccreditationScopes(testingUnitId)
+      .then((summary) => {
+        if (!cancelled) {
+          setAccreditedCriterionIds(
+            new Set(summary.accreditedCriteria.map((c) => c.id))
+          );
+        }
+      })
+      .catch(() => {
+        // Không chặn tạo yêu cầu khi không tải được phạm vi.
+        if (!cancelled) setAccreditedCriterionIds(new Set());
+      })
+      .finally(() => {
+        if (!cancelled) setScopeLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [testingUnitId]);
+
+  // NCL-11-CN-006 Phase 2: các chỉ tiêu đã chọn nằm NGOÀI phạm vi công nhận.
+  const nonAccreditedCriteria = useMemo(() => {
+    if (!testingUnitId || accreditedCriterionIds.size === 0) return [];
+    return criterionRows.filter(
+      (row) =>
+        selectedCriteriaIds.includes(row.criteriaId) &&
+        !accreditedCriterionIds.has(row.criteriaId)
+    );
+  }, [
+    testingUnitId,
+    accreditedCriterionIds,
+    criterionRows,
+    selectedCriteriaIds,
+  ]);
+
   const isSampleDateValid = sampleSentDate !== "" && sampleSentDate <= today;
   const isTestingUnitValid = useUnitCatalog
     ? testingUnitId !== ""
@@ -1028,6 +1077,42 @@ export const CreateInspectionRequestPage: React.FC = () => {
             </CardContent>
           </Card>
 
+          {/* NCL-11-CN-006 Phase 2: Cảnh báo phạm vi công nhận */}
+          {nonAccreditedCriteria.length > 0 && (
+            <Alert
+              variant="warning"
+              className="rounded-xl border-amber-200 bg-amber-50 text-amber-800"
+            >
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-800">
+                Cảnh báo phạm vi công nhận
+              </AlertTitle>
+              <AlertDescription className="text-amber-700">
+                Các chỉ tiêu sau{" "}
+                <strong>chưa được công nhận</strong> bởi đơn vị "
+                {selectedTestingUnit?.name ?? "đã chọn"}":
+                <ul className="mt-2 list-disc pl-4">
+                  {nonAccreditedCriteria.map((c) => (
+                    <li key={c.criteriaId}>
+                      <span className="font-mono">{c.code}</span> – {c.name}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-amber-600">
+                  Bạn vẫn có thể tạo yêu cầu, nhưng kết quả sẽ không được
+                  tự động công nhận bởi đơn vị này.
+                </p>
+                {scopeLoading && (
+                  <p className="mt-1 flex items-center gap-1 text-amber-600">
+                    <LoaderCircle className="h-3 w-3 animate-spin" />
+                    Đang tải phạm vi công nhận...
+                  </p>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
+
           {/* CARD 2: Thông tin gửi mẫu & Đơn vị kiểm nghiệm */}
           <Card className="rounded-xl border-slate-200 bg-white shadow-sm overflow-hidden">
             <CardHeader className="border-b border-border bg-muted/40 p-5">
@@ -1462,6 +1547,20 @@ export const CreateInspectionRequestPage: React.FC = () => {
             <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
               {duplicateMessage ||
                 "Hệ thống phát hiện lô sản xuất này đã có yêu cầu kiểm nghiệm đang chờ kết quả cho cùng bộ chỉ tiêu. Bạn có chắc chắn muốn tạo thêm yêu cầu mới không?"}
+              {/* NCL-11-CN-006 Phase 2: nhắc lại cảnh báo phạm vi công nhận khi xác nhận tạo trùng */}
+              {nonAccreditedCriteria.length > 0 && (
+                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800">
+                  <p className="font-semibold text-amber-800">
+                    ⚠️ Lưu ý phạm vi công nhận
+                  </p>
+                  <p className="mt-1 text-amber-700">
+                    {nonAccreditedCriteria.length} chỉ tiêu đang chọn chưa
+                    được công nhận bởi đơn vị "
+                    {selectedTestingUnit?.name ?? "đã chọn"}".
+                    Kết quả sẽ không được tự động công nhận.
+                  </p>
+                </div>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

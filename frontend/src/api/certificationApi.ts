@@ -1,6 +1,41 @@
 import apiClient from './axiosConfig';
-import type { ProductionLotCertification, AttachCertificationRequest, Certification, CreateCertificationRequest, CertificationResponse, LotTestCriteriaResult, CreateInspectionRequestPayload, InspectionRequestCreatedResponse, InspectionRequestListItem, InspectionRequestStatusQuery, InspectionRequestDetailResponse, InspectionCriterionResult, RecordCriterionResultPayload, RecordInspectionResultsPayload, InspectionResultFileUploadResponse, CanActivateSealCheck, TestingUnit, CreateTestingUnitRequest, UpdateTestingUnitRequest } from '@/types/certification';
+import type { ProductionLotCertification, AttachCertificationRequest, Certification, CreateCertificationRequest, CertificationResponse, LotTestCriteriaResult, CreateInspectionRequestPayload, InspectionRequestCreatedResponse, InspectionRequestListItem, InspectionRequestStatusQuery, InspectionRequestDetailResponse, InspectionCriterionResult, RecordCriterionResultPayload, RecordInspectionResultsPayload, InspectionResultFileUploadResponse, CanActivateSealCheck, TestingUnit, CreateTestingUnitRequest, UpdateTestingUnitRequest, AccreditationScopeSummary, UpdateAccreditationScopeRequest } from '@/types/certification';
 import type { PageResponse } from '@/types/common';
+
+// ============================================================
+// Phạm vi công nhận của đơn vị kiểm nghiệm (NCL-11-CN-006 Phase 2)
+// ============================================================
+
+/**
+ * Lấy phạm vi công nhận hiện tại của một đơn vị kiểm nghiệm.
+ * GET /api/v1/testing-units/{unitId}/accreditation-scopes
+ *
+ * Mọi vai trò đã xác thực đều đọc được — dùng để hiển thị cảnh báo
+ * khi tạo yêu cầu kiểm nghiệm.
+ */
+export const getAccreditationScopes = async (
+  unitId: string
+): Promise<AccreditationScopeSummary> => {
+  const response = await apiClient.get<{ data: AccreditationScopeSummary }>(
+    `/testing-units/${unitId}/accreditation-scopes`
+  );
+  return response.data.data;
+};
+
+/**
+ * Cập nhật (REPLACE-ALL) phạm vi công nhận của một đơn vị kiểm nghiệm (VT-01).
+ * PUT /api/v1/testing-units/{unitId}/accreditation-scopes
+ */
+export const updateAccreditationScopes = async (
+  unitId: string,
+  payload: UpdateAccreditationScopeRequest
+): Promise<AccreditationScopeSummary> => {
+  const response = await apiClient.put<{ data: AccreditationScopeSummary }>(
+    `/testing-units/${unitId}/accreditation-scopes`,
+    payload
+  );
+  return response.data.data;
+};
 
 // ============================================================
 // Danh mục đơn vị kiểm nghiệm dùng chung (NCL-11-CN-006 Phase 1)

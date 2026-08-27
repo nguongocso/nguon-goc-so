@@ -15,8 +15,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.CreateTestingUnitRequest;
+import vn.nguongocso.certification.dto.request.UpdateAccreditationScopeRequest;
 import vn.nguongocso.certification.dto.request.UpdateTestingUnitRequest;
+import vn.nguongocso.certification.dto.response.AccreditationScopeSummaryResponse;
 import vn.nguongocso.certification.dto.response.TestingUnitResponse;
+import vn.nguongocso.certification.service.AccreditationScopeService;
 import vn.nguongocso.certification.service.TestingUnitService;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.common.PageResponse;
@@ -33,6 +36,8 @@ import vn.nguongocso.common.PageResponse;
 public class TestingUnitController {
 
         private final TestingUnitService testingUnitService;
+
+        private final AccreditationScopeService accreditationScopeService;
 
         /**
          * Tạo mới đơn vị kiểm nghiệm trong danh mục dùng chung.
@@ -92,6 +97,45 @@ public class TestingUnitController {
                                 ApiResult.success(
                                                 HttpStatus.OK.value(),
                                                 PageResponse.from(result, result.getContent())));
+        }
+
+        /**
+         * Lấy phạm vi công nhận của một đơn vị kiểm nghiệm.
+         *
+         * GET /api/v1/testing-units/{testingUnitId}/accreditation-scopes
+         */
+        @GetMapping("/{testingUnitId}/accreditation-scopes")
+        @PreAuthorize("isAuthenticated()")
+        public ResponseEntity<ApiResult<AccreditationScopeSummaryResponse>> getAccreditationScopes(
+                        @PathVariable UUID testingUnitId) {
+
+                AccreditationScopeSummaryResponse response =
+                                accreditationScopeService.getAccreditationScope(testingUnitId);
+
+                return ResponseEntity.ok(
+                                ApiResult.success(HttpStatus.OK.value(), response));
+        }
+
+        /**
+         * Cập nhật (REPLACE-ALL) phạm vi công nhận của một đơn vị kiểm nghiệm.
+         *
+         * PUT /api/v1/testing-units/{testingUnitId}/accreditation-scopes
+         */
+        @PutMapping("/{testingUnitId}/accreditation-scopes")
+        @PreAuthorize("hasRole('VT-01')")
+        public ResponseEntity<ApiResult<AccreditationScopeSummaryResponse>> updateAccreditationScopes(
+                        @PathVariable UUID testingUnitId,
+                        @Valid @RequestBody UpdateAccreditationScopeRequest request,
+                        @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+                AccreditationScopeSummaryResponse response =
+                                accreditationScopeService.updateAccreditationScope(
+                                                testingUnitId,
+                                                request.getCriterionDefinitionIds(),
+                                                currentUser);
+
+                return ResponseEntity.ok(
+                                ApiResult.success(HttpStatus.OK.value(), response));
         }
 
         /**

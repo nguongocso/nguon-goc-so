@@ -103,6 +103,40 @@ export interface UpdateTestingUnitRequest {
 }
 
 /**
+ * Một dòng phạm vi công nhận của đơn vị kiểm nghiệm
+ * (NCL-11-CN-006 Phase 2).
+ */
+export interface AccreditationScope {
+  id: string;
+  testingUnitId: string;
+  testingUnitName: string;
+  /** Id chỉ tiêu trong danh mục dùng chung (inspection_criterion_catalog.id). */
+  criterionDefinitionId: number;
+  criterionCode: string;
+  criterionName: string;
+  createdAt: string;
+}
+
+/**
+ * Tóm tắt phạm vi công nhận của một đơn vị kiểm nghiệm.
+ * GET /api/v1/testing-units/{unitId}/accreditation-scopes
+ */
+export interface AccreditationScopeSummary {
+  testingUnitId: string;
+  testingUnitName: string;
+  accreditedCriteria: {
+    id: number;
+    code: string;
+    name: string;
+  }[];
+}
+
+/** Payload cập nhật phạm vi công nhận (REPLACE-ALL). */
+export interface UpdateAccreditationScopeRequest {
+  criterionDefinitionIds: number[];
+}
+
+/**
  * Payload tạo yêu cầu kiểm nghiệm.
  * POST /api/v1/production-lots/{lotId}/test-requests
  *

@@ -49,6 +49,8 @@ import CreateStandardPage from "@/pages/admin/CreateStandardPage";
 import EditStandardPage from "@/pages/admin/EditStandardPage";
 import InspectionCriteriaManagementPage from "@/pages/admin/InspectionCriteriaManagementPage";
 import CreateInspectionCriterionPage from "@/pages/admin/CreateInspectionCriterionPage";
+import TestingUnitManagementPage from "@/pages/admin/TestingUnitManagementPage";
+import TestingUnitScopeManagerPage from "@/pages/admin/TestingUnitScopeManagerPage";
 import SuspectTraceCodeListPage from "@/pages/admin/SuspectTraceCodeListPage";
 import SuspectTraceCodeDetailPage from "@/pages/admin/SuspectTraceCodeDetailPage";
 
@@ -857,6 +859,28 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.inspectionCriteriaManagement}
                     >
                         <InspectionCriteriaManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/testing-units"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.testingUnitScopeManagement}
+                    >
+                        <TestingUnitManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/testing-units/:id/scopes"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.testingUnitScopeManagement}
+                    >
+                        <TestingUnitScopeManagerPage />
                     </RoleRoute>
                 }
             />
