@@ -464,11 +464,15 @@ public class AuthService {
              * =====================================================
              * 5. Kiểm tra membership
              * =====================================================
+             *
+             * Đồng bộ với switchOrganization: membership đã bị vô hiệu
+             * hóa (QTN-32) không được nhận ACCESS token cho tổ chức này.
              */
-            if (orgUser.getStatus() == null) {
+            if (orgUser.getStatus() == null
+                    || orgUser.getStatus() != OrganizationUserStatus.ACTIVE) {
 
                 throw new BusinessException(
-                        "Trạng thái thành viên tổ chức không hợp lệ");
+                        "Tổ chức không còn hoạt động với tài khoản này");
             }
 
             /*
