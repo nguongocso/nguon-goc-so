@@ -94,6 +94,19 @@ const metricIcons: Record<string, React.ReactNode> = {
 };
 
 function MetricCard({ metric }: { metric: MetricItem }) {
+  const formatMetricValue = (val: string | number) => {
+    if (val === 'UP') return 'Hoạt động (UP)';
+    if (val === 'DOWN') return 'Ngừng hoạt động (DOWN)';
+    return val;
+  };
+
+  const formatThreshold = (threshold: string | number, unit: string) => {
+    if (threshold === 'UP' && unit === 'STATUS') return 'Hoạt động (UP)';
+    if (threshold === 'DOWN' && unit === 'STATUS') return 'Ngừng hoạt động (DOWN)';
+    if (unit === 'STATUS') return String(threshold);
+    return `${threshold} ${unit}`;
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -107,7 +120,7 @@ function MetricCard({ metric }: { metric: MetricItem }) {
       </CardHeader>
       <CardContent>
         <p className="text-2xl font-bold">
-          {metric.value}
+          {formatMetricValue(metric.value)}
           {metric.unit !== 'STATUS' && metric.unit ? (
             <span className="ml-1 text-sm font-normal text-muted-foreground">
               {metric.unit}
@@ -115,7 +128,7 @@ function MetricCard({ metric }: { metric: MetricItem }) {
           ) : null}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Ngưỡng: {metric.threshold} {metric.unit}
+          Ngưỡng: {formatThreshold(metric.threshold, metric.unit)}
         </p>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
           {metric.message}
