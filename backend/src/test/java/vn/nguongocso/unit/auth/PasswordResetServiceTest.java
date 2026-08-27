@@ -120,7 +120,7 @@ class PasswordResetServiceTest {
         when(userRepository.findByUserName("nongdan_no_email")).thenReturn(Optional.of(userWithoutEmail));
 
         BusinessException ex = assertThrows(BusinessException.class, () -> passwordResetService.requestPasswordReset(request));
-        assertEquals("Tài khoản chưa được cấu hình địa chỉ email để thực hiện đặt lại mật khẩu. Vui lòng liên hệ quản trị viên.", ex.getMessage());
+        assertEquals("Tài khoản chưa được cập nhật địa chỉ email trên hệ thống để thực hiện đặt lại mật khẩu.", ex.getMessage());
 
         verify(tokenRepository, never()).save(any());
         verify(emailService, never()).sendPasswordResetEmail(any(), any(), any(), anyInt());

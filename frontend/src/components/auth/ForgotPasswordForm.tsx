@@ -1,13 +1,25 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, CheckCircle2, LoaderCircle, UserRound } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  LoaderCircle,
+  MailWarning,
+  UserRound,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { forgotPassword } from "@/api/authApi";
 import {
@@ -20,6 +32,8 @@ const inputIconClass = "ml-[18px] size-[17px] shrink-0 text-emerald-600/70";
 export const ForgotPasswordForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isNoEmailModalOpen, setIsNoEmailModalOpen] = useState(false);
+  const [submittedIdentifier, setSubmittedIdentifier] = useState("");
   const navigate = useNavigate();
 
   const {
@@ -35,6 +49,7 @@ export const ForgotPasswordForm: React.FC = () => {
 
   const onSubmit = async (data: ForgotPasswordFormValues) => {
     setIsLoading(true);
+    setSubmittedIdentifier(data.emailOrUsername.trim());
     try {
       await forgotPassword(data);
       setIsSubmitted(true);
@@ -43,7 +58,15 @@ export const ForgotPasswordForm: React.FC = () => {
       const msg =
         error.response?.data?.message ||
         "Có lỗi xảy ra khi gửi yêu cầu. Vui lòng thử lại.";
-      toast.error(msg);
+      if (
+        msg.toLowerCase().includes("email") ||
+        msg.toLowerCase().includes("cấu hình") ||
+        msg.toLowerCase().includes("cập nhật")
+      ) {
+        setIsNoEmailModalOpen(true);
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -223,6 +246,81 @@ export const ForgotPasswordForm: React.FC = () => {
           </div>
         </form>
       )}
+
+      {/* Modal Popup thông báo khi tài khoản chưa cập nhật email */}
+      <Dialog open={isNoEmailModalOpen} onOpenChange={setIsNoEmailModalOpen}>
+        <DialogContent className="max-w-[490px] rounded-[24px] border border-amber-200/80 bg-white/95 p-6 shadow-2xl backdrop-blur-xl">
+          <div className="flex flex-col items-center text-center">
+            <div className="mb-3.5 flex size-14 items-center justify-center rounded-full bg-amber-100/90 text-amber-600 ring-8 ring-amber-50">
+              <MailWarning className="size-7" />
+            </div>
+
+            <DialogHeader className="text-center">
+              <DialogTitle className="text-xl font-bold tracking-tight text-stone-900">
+                Tài khoản chưa cập nhật email
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="mt-3.5 space-y-3 text-left text-[13px] leading-relaxed text-stone-600">
+              <p>
+                Do tài khoản{" "}
+                {submittedIdentifier ? (
+                  <strong className="font-semibold text-stone-900">
+                    "{submittedIdentifier}"
+                  </strong>
+                ) : (
+                  "của bạn"
+                )}{" "}
+                chưa được cập nhật địa chỉ email trên hệ thống, tính năng tự đặt
+                lại mật khẩu không thể thực hiện.
+              </p>
+
+              <div className="rounded-2xl border border-amber-200/80 bg-amber-50/70 p-3.5 text-amber-950">
+                <p className="mb-1 flex items-center gap-1.5 font-semibold text-amber-950">
+                  <span>👉</span> Cách xử lý:
+                </p>
+                <p className="text-xs leading-relaxed text-amber-900">
+                  Vui lòng liên hệ{" "}
+                  <strong>người quản lý tổ chức / HTX</strong> (người đã cấp
+                  tài khoản) để được hỗ trợ đặt lại mật khẩu trực tiếp.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/70 p-3.5 text-emerald-950">
+                <p className="mb-1 flex items-center gap-1.5 font-semibold text-emerald-950">
+                  <span>💡</span> Lưu ý:
+                </p>
+                <p className="text-xs leading-relaxed text-emerald-800">
+                  Sau khi đăng nhập lại thành công, bạn hãy vào mục{" "}
+                  <strong>Hồ sơ người dùng</strong> để bổ sung email, giúp việc
+                  tự lấy lại mật khẩu lần sau thuận tiện hơn.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex w-full flex-col gap-2.5">
+              <Button
+                type="button"
+                className="h-[48px] w-full rounded-full bg-green-600 text-sm font-semibold text-white shadow-lg shadow-green-200 transition-all duration-200 hover:bg-green-700"
+                onClick={() => {
+                  setIsNoEmailModalOpen(false);
+                  navigate("/login");
+                }}
+              >
+                Quay lại đăng nhập
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-[44px] w-full rounded-full border-stone-200 text-stone-600 transition-colors hover:bg-stone-50"
+                onClick={() => setIsNoEmailModalOpen(false)}
+              >
+                Đóng
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <p className="mt-6 text-center text-[0.72rem] text-stone-400">
         Bảo mật & minh bạch – Truy xuất nguồn gốc thực vật

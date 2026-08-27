@@ -69,7 +69,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         User user = userOpt.get();
         if (user.getEmail() == null || user.getEmail().isBlank()) {
             log.warn("Tài khoản userId={} không có địa chỉ email để nhận liên kết", user.getUserId());
-            throw new BusinessException("Tài khoản chưa được cấu hình địa chỉ email để thực hiện đặt lại mật khẩu. Vui lòng liên hệ quản trị viên.");
+            throw new BusinessException("Tài khoản chưa được cập nhật địa chỉ email trên hệ thống để thực hiện đặt lại mật khẩu.");
         }
 
         // Không gửi email cho tài khoản đã bị vô hiệu hóa
