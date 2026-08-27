@@ -122,7 +122,7 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
         <User className="h-4 w-4" />
         {isMissingEmail && (
           <span
-            className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-amber-500 ring-2 ring-white animate-pulse"
+            className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-red-500 ring-2 ring-white"
             title="Chưa cập nhật email"
           />
         )}
@@ -201,7 +201,7 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
             <span className="flex-1">Hồ sơ người dùng</span>
             {isMissingEmail && (
               <span
-                className="size-2 rounded-full bg-amber-500 ring-2 ring-white animate-pulse"
+                className="size-2 rounded-full bg-red-500 ring-2 ring-white"
                 title="Chưa cập nhật email"
               />
             )}

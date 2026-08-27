@@ -420,9 +420,9 @@ function MenuLink({
         )}
       >
         {item.icon}
-        {showWarningDot && (
+        {collapsed && showWarningDot && (
           <span
-            className="absolute -top-1 -right-1 size-2 rounded-full bg-amber-500 ring-2 ring-white animate-pulse"
+            className="absolute -top-1 -right-1 size-2 rounded-full bg-red-500 ring-2 ring-white"
             title="Chưa cập nhật email"
           />
         )}
@@ -432,7 +432,7 @@ function MenuLink({
           <span>{item.label}</span>
           {showWarningDot && (
             <span
-              className="size-2 rounded-full bg-amber-500 ring-2 ring-white animate-pulse"
+              className="size-2 rounded-full bg-red-500 ring-2 ring-white"
               title="Chưa cập nhật email"
             />
           )}
@@ -471,6 +471,8 @@ function AccordionGroup({
   isMissingEmail?: boolean;
 }) {
   const [expanded, setExpanded] = React.useState(defaultExpanded);
+  const hasMissingEmailChild =
+    isMissingEmail && group.items.some((it) => it.href === "/profile");
 
   // Auto-expand when a child becomes active
   React.useEffect(() => {
@@ -495,6 +497,12 @@ function AccordionGroup({
       >
         <span className="flex-shrink-0 text-emerald-500">{group.icon}</span>
         <span className="flex-1 text-left">{group.label}</span>
+        {!expanded && hasMissingEmailChild && (
+          <span
+            className="size-2 rounded-full bg-red-500 ring-2 ring-white"
+            title="Chưa cập nhật email"
+          />
+        )}
         <span
           className="flex-shrink-0 text-emerald-400 transition-transform duration-200"
           style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
