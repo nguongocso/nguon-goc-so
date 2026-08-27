@@ -11,4 +11,14 @@ public interface EmailService {
      * @param expiryDays     thời hạn hiệu lực (ngày)
      */
     void sendInvitationEmail(String toEmail, String organizationName, String roleName, String joinUrl, int expiryDays);
+
+    /**
+     * Gửi email hướng dẫn đặt lại mật khẩu bất đồng bộ (NCL-01-CN-008).
+     *
+     * @param toEmail       địa chỉ email người nhận
+     * @param fullName      họ và tên người nhận
+     * @param resetUrl      đường dẫn đặt lại mật khẩu chứa token
+     * @param expiryMinutes thời hạn hiệu lực (phút)
+     */
+    void sendPasswordResetEmail(String toEmail, String fullName, String resetUrl, int expiryMinutes);
 }

@@ -16,6 +16,34 @@ export interface LoginUserInfo {
   fullName: string;
 }
 
+export interface AuthContextType extends AuthState {
+  loginWithSelection: (data: LoginResponse) => Promise<void>;
+  completeLogin: (data: SelectOrganizationResponse) => Promise<void>;
+  logout: () => void;
+  refreshToken: () => Promise<void>;
+  updateUser: (user: AuthUserInfo) => void;
+}
+
+export interface ForgotPasswordRequest {
+  emailOrUsername: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface ValidateResetTokenResponse {
+  valid: boolean;
+  message: string;
+}
+
+export interface UpdateUserProfileRequest {
+  phone?: string | null;
+  email?: string | null;
+}
+
 export interface SelectOrganizationRequest {
   organizationId: string;
 }

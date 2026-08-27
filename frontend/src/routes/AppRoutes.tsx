@@ -15,6 +15,8 @@ import { useAuth } from "@/hooks/useAuth";
 // ===== Auth =====
 import LoginPage from "@/pages/auth/LoginPage";
 import OrganizationSelectionPage from "@/pages/auth/OrganizationSelectionPage";
+import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
 
 // ===== Pages – chung =====
 import { DashboardPage } from "@/pages/daskboard/DashboardPase";
@@ -56,9 +58,10 @@ import CorrectPackagingEventPage from "@/pages/packaging-event/CorrectPackagingE
 import CreatePreprocessingEventPage from "@/pages/preprocessing-event/CreatePreprocessingEventPage";
 import CorrectPreprocessingEventPage from "@/pages/preprocessing-event/CorrectPreprocessingEventPage";
 
-// ===== Organization =====
+// ===== Organization & Profile =====
 import { OrganizationListPage } from "@/pages/organization/OrganizationListPage";
 import CreateMemberPage from "@/pages/organization/CreateMemberPage";
+import UserProfilePage from "@/pages/profile/UserProfilePage";
 
 // ===== Farm logs =====
 import FarmLogHistoryPage from "@/pages/farm-log/FarmLogHistoryPage";
@@ -275,6 +278,16 @@ const AppRoutes = () => (
             element={<LoginPage />}
         />
 
+        <Route
+            path="/forgot-password"
+            element={<ForgotPasswordPage />}
+        />
+
+        <Route
+            path="/reset-password"
+            element={<ResetPasswordPage />}
+        />
+
         {/*
       Bước trung gian sau khi login thành công.
 
@@ -318,6 +331,18 @@ const AppRoutes = () => (
                 element={<DashboardPage />}
             />
 
+
+            {/* User Profile */}
+            <Route
+                path="profile"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.userProfile}
+                    >
+                        <UserProfilePage />
+                    </RoleRoute>
+                }
+            />
 
             {/* =================================================
           ORGANIZATION
