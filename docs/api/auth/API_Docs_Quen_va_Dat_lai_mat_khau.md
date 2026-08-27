@@ -3,15 +3,25 @@
 
 ---
 
+## 📝 Nhật ký thay đổi (Changelog)
+
+| Ngày | Phiên bản | Nhánh Git (Git Branch) | Nội dung thay đổi | Người thực hiện |
+| :--- | :---: | :--- | :--- | :--- |
+| **2026-08-27** | `v1.1.0` | `feature/NCL-01-CN-008-forgot-password` | Bổ sung Modal Popup chỉ dẫn khi chưa có email, đồng bộ cảnh báo Hộp thông báo/Chấm đỏ Sidebar-Header, API Profile & cập nhật bảng mã lỗi chuẩn | Fullstack Development Team |
+| **2026-08-26** | `v1.0.0` | `feature/NCL-01-CN-008-forgot-password` | Khởi tạo tài liệu đặc tả API Đặt lại mật khẩu khi quên (US NCL-01-CN-008, QTN-33) | Backend Development Team |
+
+---
+
 ## 1. Tổng quan User Story & Nghiệp vụ (Business Overview)
 
 | Thuộc tính | Chi tiết |
 | :--- | :--- |
 | **Mã User Story** | `NCL-01-CN-008` (Thuộc Epic `NCL-01`: Quản lý tài khoản và phân quyền đa tổ chức) |
+| **Nhánh Git (Git Branch)** | `feature/NCL-01-CN-008-forgot-password` |
 | **Tên tính năng** | Đặt lại mật khẩu khi quên |
-| **Actor (Tác nhân)** | Người ghi sự kiện (Nông dân/HTX), Quản lý hợp tác xã, Doanh nghiệp thu mua, Quản trị viên hệ thống |
-| **Mô tả Story** | *Là Người ghi sự kiện, tôi muốn tự đặt lại mật khẩu khi quên, để tiếp tục ghi dữ liệu ngay trong ngày thay vì chờ quản trị viên cấp lại tài khoản.* |
-| **Quy tắc nghiệp vụ** | `QTN-33`: Liên kết đặt lại mật khẩu dùng một lần và có thời hạn (30 phút). Số lần yêu cầu trong một giờ bị giới hạn (tối đa 5 lần/giờ). |
+| **Actor (Tác nhân)** | Người ghi sự kiện (VT-03 - Nông dân/HTX), Quản lý hợp tác xã (VT-02), Doanh nghiệp thu mua (VT-04), Cơ quan kiểm định (VT-05), Quản trị viên hệ thống (VT-01) |
+| **Mô tả Story** | *Là Người ghi sự kiện / Thành viên tổ chức, tôi muốn tự đặt lại mật khẩu khi quên, để tiếp tục ghi dữ liệu ngay trong ngày thay vì chờ quản trị viên cấp lại tài khoản.* |
+| **Quy tắc nghiệp vụ** | `QTN-33`: Liên kết đặt lại mật khẩu dùng một lần và có thời hạn (30 phút). Số lần yêu cầu trong một giờ bị giới hạn (tối đa 5 lần/giờ/tài khoản). |
 | **Tiêu chí nghiệm thu** | `NCL-01-CN-008-TC-01` (Luồng thành công), `TC-02` (Quá hạn 30p), `TC-03` (Token đã dùng), `TC-04` (Mật khẩu yếu/trùng mật khẩu cũ), `TC-05` (Lưu lịch sử & chấm dứt phiên cũ). |
 
 ---
@@ -73,15 +83,15 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 ## 3. Kiến trúc Bảo mật & Nguyên tắc Vận hành (Security Architecture)
 
 1. **Chống dò quét tài khoản (Anti-Account Enumeration):**
-   * Endpoint `POST /api/v1/auth/forgot-password` luôn trả về HTTP `200 OK` với thông điệp chung bất kể tài khoản có tồn tại hay không.
-   * Tuyệt đối không trả về các lỗi như *"Email không tồn tại"*, *"Tài khoản không tìm thấy"*.
+   * Endpoint `POST /api/v1/auth/forgot-password` luôn trả về HTTP `200 OK` với thông điệp chung nếu tài khoản không tồn tại trên hệ thống.
+   * Tuyệt đối không để lộ thông tin tài khoản không tồn tại qua mã lỗi nhằm ngăn chặn tấn công liệt kê người dùng (user enumeration).
 2. **Bảo vệ Token (Token Security):**
    * Sinh `rawToken` ngẫu nhiên chuẩn mật mã 32 bytes (256-bit entropy, Base64 URL-safe).
    * **Chỉ gửi `rawToken` qua Email.**
-   * **Database chỉ lưu trữ chuỗi băm `SHA-256(rawToken)`** (độ dài 64 ký tự). Ngay cả khi lộ cơ sở dữ liệu, kẻ tấn công cũng không thể đổi mật khẩu.
+   * **Database chỉ lưu trữ chuỗi băm `SHA-256(rawToken)`** (độ dài 64 ký tự). Ngay cả khi lộ cơ sở dữ liệu, kẻ tấn công cũng không thể sử dụng để đổi mật khẩu.
    * `rawToken` không được ghi vào logs hệ thống hoặc trả về qua response API.
 3. **Chống tấn công từ chối dịch vụ / Spam (Rate Limiting):**
-   * Mỗi tài khoản chỉ được yêu cầu tối đa **5 lần / 1 giờ**. Nếu vượt quá, backend âm thầm bỏ qua việc gửi mail.
+   * Mỗi tài khoản chỉ được yêu cầu tối đa **5 lần / 1 giờ**. Nếu vượt quá, backend âm thầm bỏ qua việc gửi mail để tránh spam hộp thư.
 4. **Vòng đời Token & Chống Race Condition (Atomic Token Invalidation):**
    * Thời hạn hiệu lực: **30 phút**.
    * Khi người dùng yêu cầu mã mới $\rightarrow$ mọi token cũ chưa dùng của user đó bị đánh dấu `is_used = 1`.
@@ -145,6 +155,16 @@ Tiếp nhận tên đăng nhập hoặc email, tạo mã token bảo mật và k
   "status": 200,
   "data": null,
   "message": null,
+  "timestamp": "2026-08-27T08:05:00.123Z"
+}
+```
+
+#### Response Lỗi Chưa cấu hình Email (`400 Bad Request`):
+```json
+{
+  "success": false,
+  "status": 400,
+  "message": "Tài khoản chưa được cập nhật địa chỉ email trên hệ thống để thực hiện đặt lại mật khẩu.",
   "timestamp": "2026-08-27T08:05:00.123Z"
 }
 ```
@@ -277,6 +297,86 @@ Xác thực token, kiểm tra mật khẩu mới và cập nhật mật khẩu n
 
 ---
 
+### 4.4. API Lấy Thông tin Tài khoản Hiện tại (Get Current User Profile)
+
+Lấy thông tin người dùng đang đăng nhập bao gồm quyền, tổ chức, số điện thoại và email mới nhất từ database.
+
+* **Endpoint:** `GET /api/v1/auth/me`
+* **Xác thực:** Yêu cầu Bearer Access JWT
+* **Phân quyền:** Dành cho tất cả người dùng đã xác thực (`isAuthenticated()`)
+
+#### Response Success (`200 OK`):
+```json
+{
+  "success": true,
+  "status": 200,
+  "data": {
+    "userId": "c13bde2c-5360-4f1d-897b-d744f35084af",
+    "username": "nongdan01",
+    "fullName": "Trần Văn Hạnh",
+    "phone": "0987654321",
+    "email": "nongdan@gmail.com",
+    "roleCode": "VT-03",
+    "roleName": "Người ghi sự kiện",
+    "organizationId": "57dcf668-ad9e-420d-8905-5ae049e88a4e",
+    "organizationCode": "HTX-XANH",
+    "organizationName": "Hợp tác xã Nông nghiệp Xanh",
+    "organizationType": "COOPERATIVE",
+    "permissions": ["farm_log:create", "farm_log:view"]
+  },
+  "timestamp": "2026-08-27T08:18:00.123Z"
+}
+```
+
+---
+
+### 4.5. API Cập nhật Hồ sơ & Bổ sung Email Người dùng (Update Profile & Email)
+
+Hỗ trợ người dùng (`VT-02` đến `VT-05`) chủ động cập nhật thông tin email, số điện thoại cá nhân để phục vụ luồng nhận mã đặt lại mật khẩu.
+
+* **Endpoint:** `PUT /api/v1/auth/profile`
+* **Xác thực:** Yêu cầu Bearer Access JWT
+* **Phân quyền:** Dành cho các vai trò `VT-02`, `VT-03`, `VT-04`, `VT-05` (`@PreAuthorize("isAuthenticated()")`)
+
+#### Request Body (`application/json`):
+```json
+{
+  "phone": "0987654321",
+  "email": "nongdan@gmail.com"
+}
+```
+
+| Trường | Kiểu | Bắt buộc | Ràng buộc | Mô tả |
+| :--- | :--- | :---: | :--- | :--- |
+| `phone` | `string` | Không | 10–11 chữ số hợp lệ | Số điện thoại liên lạc của người dùng |
+| `email` | `string` | Không | Chuẩn định dạng email | Email dùng để nhận liên kết đặt lại mật khẩu |
+
+#### Response Success (`200 OK`):
+```json
+{
+  "success": true,
+  "status": 200,
+  "data": {
+    "userId": "c13bde2c-5360-4f1d-897b-d744f35084af",
+    "username": "nongdan01",
+    "fullName": "Trần Văn Hạnh",
+    "phone": "0987654321",
+    "email": "nongdan@gmail.com",
+    "roleCode": "VT-03",
+    "roleName": "Người ghi sự kiện",
+    "organizationId": "57dcf668-ad9e-420d-8905-5ae049e88a4e",
+    "organizationCode": "HTX-XANH",
+    "organizationName": "Hợp tác xã Nông nghiệp Xanh",
+    "organizationType": "COOPERATIVE",
+    "permissions": ["farm_log:create", "farm_log:view"]
+  },
+  "message": "Cập nhật hồ sơ thành công",
+  "timestamp": "2026-08-27T08:20:00.123Z"
+}
+```
+
+---
+
 ## 5. Bảng Ánh xạ Mã lỗi Nghiệp vụ (Error Codes & Responses)
 
 | HTTP Status | Trường hợp lỗi | Message phản hồi |
@@ -304,39 +404,60 @@ Xác thực token, kiểm tra mật khẩu mới và cập nhật mật khẩu n
 
 ---
 
-## 7. API Cập nhật Hồ sơ & Bổ sung Email Người dùng (User Profile & Email Management)
+## 7. Đồng bộ Giao diện & Trải nghiệm Người dùng (Frontend UX / UI Synchronization)
 
-Hỗ trợ người dùng (`VT-02` đến `VT-05`) chủ động xem và bổ sung/cập nhật thông tin email, số điện thoại để phục vụ tính năng quên & đặt lại mật khẩu.
+Để đảm bảo người dùng không gặp sự cố quên mật khẩu khi chưa có email, hệ thống thiết kế cơ chế cảnh báo và chỉ dẫn xuyên suốt:
 
-* **Endpoint:** `PUT /api/v1/auth/profile`
-* **Xác thực:** Yêu cầu Bearer Access JWT
-* **Phân quyền:** Dành cho các vai trò VT-02, VT-03, VT-04, VT-05
+1. **Cảnh báo trong Hộp thông báo (`NotificationBell` / `NotificationPanel` / `NotificationsPage`):**
+   * Đối với các vai trò có quyền truy cập hồ sơ (`VT-02` $\rightarrow$ `VT-05`), nếu `user.email` trống, hệ thống hiển thị mục thông báo nổi bật màu cam `Cần bổ sung địa chỉ email`.
+   * Bấm vào thông báo sẽ điều hướng trực tiếp đến trang `/profile`.
+2. **Chấm đỏ chỉ báo (`Red Dot Indicator`):**
+   * **Sidebar:** Hiển thị 1 chấm đỏ duy nhất (`bg-red-500 ring-2 ring-white`) tại bên phải mục **"Hồ sơ người dùng"**. Khi nhóm **"Hệ thống"** bị thu gọn (`!expanded`), chấm đỏ sẽ hiển thị trên thanh tiêu đề nhóm "Hệ thống".
+   * **Header:** Hiển thị chấm đỏ trên Avatar người dùng và mục "Hồ sơ người dùng" trong menu dropdown.
+   * Khi người dùng cập nhật email thành công, toàn bộ chấm đỏ và thông báo sẽ tự động biến mất.
+3. **Cơ chế Reset Chấm đỏ theo Phiên Đăng nhập (Session-based Unread):**
+   * Trạng thái đã đọc thông báo nhắc email được lưu trong `sessionStorage` (`session_read_email_notice_${userId}`).
+   * Khi người dùng đăng xuất và đăng nhập lại ở phiên làm việc mới, nếu tài khoản vẫn chưa có email, chấm đỏ trên chuông thông báo sẽ **luôn xuất hiện trở lại** để nhắc nhở.
+4. **Modal Popup Chỉ dẫn khi Quên mật khẩu mà chưa có Email:**
+   * Khi người dùng nhập tên đăng nhập tại trang `/forgot-password`, nếu tài khoản chưa có email, hệ thống sẽ mở **Modal Popup** trực quan với nội dung:
+     * **Tiêu đề:** `Tài khoản chưa cập nhật email`
+     * **Nguyên nhân:** Do chưa cập nhật email nên không thể tự đặt lại mật khẩu.
+     * **Cách xử lý:** Hướng dẫn liên hệ người quản lý tổ chức/HTX (người đã tạo tài khoản) để cấp lại mật khẩu trực tiếp.
+     * **Lưu ý:** Nhắc nhở vào mục *Hồ sơ người dùng* cập nhật email sau khi đăng nhập lại thành công.
 
-#### Request Body (`application/json`):
-```json
-{
-  "phone": "0987654321",
-  "email": "nongdan@gmail.com"
-}
-```
+---
 
-#### Response Success (`200 OK`):
-```json
-{
-  "success": true,
-  "status": 200,
-  "data": {
-    "userId": "c13bde2c-5360-4f1d-897b-d744f35084af",
-    "username": "nongdan01",
-    "fullName": "Trần Văn Hạnh",
-    "phone": "0987654321",
-    "email": "nongdan@gmail.com",
-    "roleCode": "VT-03",
-    "roleName": "Người ghi sự kiện",
-    "organizationId": "57dcf668-ad9e-420d-8905-5ae049e88a4e",
-    "organizationName": "Hợp tác xã Nông nghiệp Xanh"
-  },
-  "message": "Cập nhật hồ sơ thành công",
-  "timestamp": "2026-08-27T08:20:00.123Z"
-}
-```
+## 8. Danh mục Mã nguồn Tham chiếu (Source Code References)
+
+### Backend:
+* `backend/src/main/java/vn/nguongocso/auth/controller/AuthController.java`
+* `backend/src/main/java/vn/nguongocso/auth/service/PasswordResetService.java`
+* `backend/src/main/java/vn/nguongocso/auth/service/impl/PasswordResetServiceImpl.java`
+* `backend/src/main/java/vn/nguongocso/auth/service/AuthService.java`
+* `backend/src/main/java/vn/nguongocso/auth/entity/PasswordResetToken.java`
+* `backend/src/main/java/vn/nguongocso/auth/repository/PasswordResetTokenRepository.java`
+* `backend/src/main/java/vn/nguongocso/auth/dto/request/ForgotPasswordRequest.java`
+* `backend/src/main/java/vn/nguongocso/auth/dto/request/ResetPasswordRequest.java`
+* `backend/src/main/java/vn/nguongocso/auth/dto/request/UpdateUserProfileRequest.java`
+* `backend/src/main/java/vn/nguongocso/auth/dto/response/ValidateResetTokenResponse.java`
+* `backend/src/main/java/vn/nguongocso/auth/dto/response/UserProfileResponse.java`
+* `backend/src/main/resources/db/migration/schema/V38__create_password_reset_tokens.sql`
+* `backend/src/test/java/vn/nguongocso/unit/auth/PasswordResetServiceTest.java`
+* `backend/src/test/java/vn/nguongocso/unit/auth/PasswordResetIntegrationTest.java`
+* `backend/src/test/java/vn/nguongocso/unit/auth/AuthControllerTest.java`
+
+### Frontend:
+* `frontend/src/pages/auth/ForgotPasswordPage.tsx`
+* `frontend/src/pages/auth/ResetPasswordPage.tsx`
+* `frontend/src/pages/profile/UserProfilePage.tsx`
+* `frontend/src/pages/notification/NotificationsPage.tsx`
+* `frontend/src/components/auth/ForgotPasswordForm.tsx`
+* `frontend/src/components/auth/ResetPasswordForm.tsx`
+* `frontend/src/components/notification/NotificationBell.tsx`
+* `frontend/src/components/notification/NotificationPanel.tsx`
+* `frontend/src/components/layout/Sidebar.tsx`
+* `frontend/src/components/layout/Header.tsx`
+* `frontend/src/contexts/AuthContext.tsx`
+* `frontend/src/api/authApi.ts`
+* `frontend/src/types/auth.ts`
+* `frontend/src/utils/validators.ts`
