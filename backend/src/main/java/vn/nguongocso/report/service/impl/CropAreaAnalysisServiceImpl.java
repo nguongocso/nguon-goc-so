@@ -8,6 +8,8 @@ import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.farm.entity.FarmArea;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
+import vn.nguongocso.organization.service.AreaScopeResult;
+import vn.nguongocso.organization.service.AreaScopeService;
 import vn.nguongocso.report.dto.response.CropAreaAnalysisResponse;
 import vn.nguongocso.report.dto.response.SeasonYieldComparisonResponse;
 import vn.nguongocso.report.dto.response.SeasonYieldItemResponse;
@@ -21,6 +23,11 @@ import java.util.stream.Collectors;
 /**
  * Service phân tích diện tích canh tác.
  *
+ * <p>
+ * Từ NCL-743: dữ liệu luôn giao trong phạm vi địa bàn đã gán khi caller là
+ * VT-05; cán bộ chưa được gán địa bàn nào nhận dữ liệu rỗng kèm thông báo.
+ * </p>
+ *
  * @author Triệu Văn Đại
  */
 @Service
@@ -28,6 +35,7 @@ import java.util.stream.Collectors;
 public class CropAreaAnalysisServiceImpl implements CropAreaAnalysisService {
         private final ProductionLotRepository productionLotRepository;
         private final ReportAccessLogService reportAccessLogService;
+        private final AreaScopeService areaScopeService;
 
         /**
          * Lấy dữ liệu phân tích diện tích canh tác theo năm, vùng trồng, loại sản phẩm
@@ -48,6 +56,7 @@ public class CropAreaAnalysisServiceImpl implements CropAreaAnalysisService {
                         UUID farmAreaId,
                         UUID productCategoryId,
                         UUID organizationId,
+                        List<UUID> unitIds,
                         CustomUserDetails currentUser,
                         String ipAddress) {
 
@@ -78,14 +87,35 @@ public class CropAreaAnalysisServiceImpl implements CropAreaAnalysisService {
                                 true,
                                 ipAddress);
 
+                // 1.1. Phạm vi địa bàn được phép xem (rule bảo mật số 1 NCL-670):
+                // VT-05 chưa được gán địa bàn nào => dữ liệu rỗng + thông báo, KHÔNG BAO GIỜ
+                // fallback sang toàn bộ dữ liệu.
+                AreaScopeResult scope = areaScopeService.resolveOrganizationsForReports(currentUser, unitIds);
+
+                if (scope.isEmptyScope()) {
+                        return buildEmptyAnalysis(AreaScopeService.UNASSIGNED_MESSAGE);
+                }
+
                 // 2. Xác định khoảng thời gian của mùa vụ nông nghiệp dựa trên năm lọc (QTN-03)
                 int targetYear = (year != null) ? year : LocalDate.now().getYear();
                 LocalDate startDate = LocalDate.of(targetYear - 1, 11, 1);
                 LocalDate endDate = LocalDate.of(targetYear, 10, 31);
 
-                // 3. Truy vấn dữ liệu từ DB
-                List<ProductionLot> lots = productionLotRepository.findLotsForAnalysis(
-                                startDate, endDate, farmAreaId, productCategoryId, organizationId);
+                // 3. Truy vấn dữ liệu từ DB trong phạm vi được phép
+                List<ProductionLot> lots;
+                if (scope.isAll()) {
+                        lots = productionLotRepository.findLotsForAnalysis(
+                                        startDate, endDate, farmAreaId, productCategoryId, organizationId);
+                } else {
+                        lots = productionLotRepository.findLotsForAnalysisInOrganizations(
+                                        startDate, endDate, farmAreaId, productCategoryId, scope.getOrganizationIds());
+                        if (organizationId != null) {
+                                lots = lots.stream()
+                                                .filter(lot -> organizationId
+                                                                .equals(lot.getOrganization().getOrganizationId()))
+                                                .toList();
+                        }
+                }
 
                 // Lọc các lô sản xuất hợp lệ (có liên kết vùng trồng)
                 List<ProductionLot> validLots = lots.stream()
@@ -94,16 +124,7 @@ public class CropAreaAnalysisServiceImpl implements CropAreaAnalysisService {
 
                 // Nếu dữ liệu trống, trả về cấu trúc rỗng chuẩn hóa (NCL-10-CN-001-TC-02)
                 if (validLots.isEmpty()) {
-                        return CropAreaAnalysisResponse.builder()
-                                        .summary(CropAreaAnalysisResponse.SummaryStats.builder()
-                                                        .totalLots(0L)
-                                                        .totalExpectedYield(0.0)
-                                                        .totalActualYield(0.0)
-                                                        .totalArea(0.0)
-                                                        .build())
-                                        .byArea(Collections.emptyList())
-                                        .bySeason(Collections.emptyList())
-                                        .build();
+                        return buildEmptyAnalysis(null);
                 }
 
                 // 4. Tính toán số liệu tổng quan (Summary)
@@ -256,6 +277,23 @@ public class CropAreaAnalysisServiceImpl implements CropAreaAnalysisService {
                 }
         }
 
+        /**
+         * Cấu trúc rỗng chuẩn hoá, kèm thông báo (nullable).
+         */
+        private CropAreaAnalysisResponse buildEmptyAnalysis(String message) {
+                return CropAreaAnalysisResponse.builder()
+                                .summary(CropAreaAnalysisResponse.SummaryStats.builder()
+                                                .totalLots(0L)
+                                                .totalExpectedYield(0.0)
+                                                .totalActualYield(0.0)
+                                                .totalArea(0.0)
+                                                .build())
+                                .byArea(Collections.emptyList())
+                                .bySeason(Collections.emptyList())
+                                .message(message)
+                                .build();
+        }
+
         private String getSeasonName(String code) {
                 switch (code) {
                         case "DONG_XUAN":
@@ -283,6 +321,7 @@ public class CropAreaAnalysisServiceImpl implements CropAreaAnalysisService {
                         UUID farmAreaId,
                         UUID productCategoryId,
                         UUID organizationId,
+                        List<UUID> unitIds,
                         CustomUserDetails currentUser,
                         String ipAddress) {
 
@@ -315,12 +354,41 @@ public class CropAreaAnalysisServiceImpl implements CropAreaAnalysisService {
                                 true,
                                 ipAddress);
 
-                // 2. Truy vấn dữ liệu
-                List<ProductionLot> lots = productionLotRepository.findLotsForSeasonYieldComparison(
-                                years,
-                                farmAreaId,
-                                productCategoryId,
-                                organizationId);
+                // 1.1. Phạm vi địa bàn được phép xem (rule bảo mật số 1 NCL-670)
+                AreaScopeResult scope = areaScopeService.resolveOrganizationsForReports(currentUser, unitIds);
+
+                if (scope.isEmptyScope()) {
+                        return SeasonYieldComparisonResponse.builder()
+                                        .hasData(false)
+                                        .message(AreaScopeService.UNASSIGNED_MESSAGE)
+                                        .baselineYear(null)
+                                        .baselineSeasonCode(null)
+                                        .baselineSeasonName(null)
+                                        .seasons(Collections.emptyList())
+                                        .build();
+                }
+
+                // 2. Truy vấn dữ liệu trong phạm vi được phép
+                List<ProductionLot> lots;
+                if (scope.isAll()) {
+                        lots = productionLotRepository.findLotsForSeasonYieldComparison(
+                                        years,
+                                        farmAreaId,
+                                        productCategoryId,
+                                        organizationId);
+                } else {
+                        lots = productionLotRepository.findLotsForSeasonYieldComparisonInOrganizations(
+                                        years,
+                                        farmAreaId,
+                                        productCategoryId,
+                                        scope.getOrganizationIds());
+                        if (organizationId != null) {
+                                lots = lots.stream()
+                                                .filter(lot -> organizationId
+                                                                .equals(lot.getOrganization().getOrganizationId()))
+                                                .toList();
+                        }
+                }
 
                 // 3. Không có dữ liệu
                 if (lots.isEmpty()) {

@@ -13,8 +13,11 @@ import lombok.RequiredArgsConstructor;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
+import vn.nguongocso.organization.constant.RoleCode;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
+import vn.nguongocso.organization.service.AreaScopeResult;
+import vn.nguongocso.organization.service.AreaScopeService;
 import vn.nguongocso.report.dto.response.IndustryReportResponse;
 import vn.nguongocso.report.dto.response.ProductBreakdownItem;
 import vn.nguongocso.report.excel.IndustryReportExcelGenerator;
@@ -24,6 +27,12 @@ import vn.nguongocso.trace.repository.ShipmentRepository;
 
 /**
  * Service xử lý báo cáo tổng hợp ngành (theo địa bàn và thời gian).
+ *
+ * <p>
+ * Từ NCL-743: kết quả luôn giao trong phạm vi địa bàn đã gán khi caller là
+ * VT-05. Cán bộ chưa được gán địa bàn nào nhận dữ liệu rỗng kèm thông báo —
+ * không bao giờ fallback sang toàn bộ dữ liệu.
+ * </p>
  */
 @Slf4j
 @Service
@@ -34,6 +43,7 @@ public class ReportServiceImpl implements ReportService {
     private final ShipmentRepository shipmentRepository;
     private final IndustryReportPdfGenerator pdfGenerator;
     private final IndustryReportExcelGenerator excelGenerator;
+    private final AreaScopeService areaScopeService;
 
     private static final String REGULATOR_ROLE = "VT-05";
     private static final String VIEW_PERMISSION_MESSAGE = "Bạn không có quyền xem báo cáo tổng hợp.";
@@ -48,14 +58,22 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public IndustryReportResponse getIndustrySummary(
             String region,
+            List<UUID> unitIds,
             LocalDate fromDate,
             LocalDate toDate) {
 
         CustomUserDetails currentUser = getCurrentUser();
         validateRole(currentUser);
-        validateRequest(region, fromDate, toDate);
+        validateDates(fromDate, toDate);
 
-        return buildIndustrySummary(region, fromDate, toDate);
+        AreaScopeResult scope = areaScopeService.resolveOrganizationsForReports(currentUser, unitIds);
+
+        // Chỉ bắt buộc region khi caller xem toàn hệ thống (VT-01 không lọc unitIds).
+        if (scope.isAll() && isBlank(region)) {
+            throw new BusinessException(EMPTY_REGION_MESSAGE);
+        }
+
+        return buildIndustrySummary(region, scope, fromDate, toDate);
     }
 
     /**
@@ -64,10 +82,11 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public byte[] exportIndustrySummary(
             String region,
+            List<UUID> unitIds,
             LocalDate fromDate,
             LocalDate toDate) {
 
-        return exportIndustrySummary(region, fromDate, toDate, "PDF");
+        return exportIndustrySummary(region, unitIds, fromDate, toDate, "PDF");
     }
 
     /**
@@ -76,19 +95,26 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public byte[] exportIndustrySummary(
             String region,
+            List<UUID> unitIds,
             LocalDate fromDate,
             LocalDate toDate,
             String format) {
 
         CustomUserDetails currentUser = getCurrentUser();
         validateRole(currentUser);
-        validateRequest(region, fromDate, toDate);
+        validateDates(fromDate, toDate);
 
         String normalizedFormat = format == null ? "PDF" : format.trim().toUpperCase();
 
         long startTime = System.currentTimeMillis();
         try {
-            IndustryReportResponse report = buildIndustrySummary(region, fromDate, toDate);
+            AreaScopeResult scope = areaScopeService.resolveOrganizationsForReports(currentUser, unitIds);
+
+            if (scope.isAll() && isBlank(region)) {
+                throw new BusinessException(EMPTY_REGION_MESSAGE);
+            }
+
+            IndustryReportResponse report = buildIndustrySummary(region, scope, fromDate, toDate);
 
             byte[] file = switch (normalizedFormat) {
                 case "PDF" -> pdfGenerator.generate(report);
@@ -97,10 +123,11 @@ public class ReportServiceImpl implements ReportService {
             };
 
             log.info("Export industry report succeeded. role={}, user={}, region={}, "
-                    + "fromDate={}, toDate={}, format={}, sizeBytes={}, durationMs={}",
+                    + "unitIds={}, fromDate={}, toDate={}, format={}, sizeBytes={}, durationMs={}",
                     currentUser.getRoleCode(),
                     currentUser.getUsername(),
                     region,
+                    unitIds,
                     fromDate,
                     toDate,
                     normalizedFormat,
@@ -139,35 +166,52 @@ public class ReportServiceImpl implements ReportService {
     }
 
     /**
-     * Kiểm tra người dùng có vai trò VT-05 (được xem báo cáo) hay không.
+     * Kiểm tra người dùng có vai trò VT-05 / VT-01 hay không.
      */
     private void validateRole(CustomUserDetails currentUser) {
-        if (!REGULATOR_ROLE.equals(currentUser.getRoleCode())) {
+        if (!REGULATOR_ROLE.equals(currentUser.getRoleCode())
+                && !RoleCode.ADMIN.equals(currentUser.getRoleCode())) {
             throw new BusinessException(VIEW_PERMISSION_MESSAGE);
         }
     }
 
     /**
-     * Kiểm tra đầu vào: region không rỗng, fromDate <= toDate.
+     * Kiểm tra fromDate <= toDate.
      */
-    private void validateRequest(String region, LocalDate fromDate, LocalDate toDate) {
-        if (region == null || region.isBlank()) {
-            throw new BusinessException(EMPTY_REGION_MESSAGE);
-        }
+    private void validateDates(LocalDate fromDate, LocalDate toDate) {
         if (fromDate == null || toDate == null || fromDate.isAfter(toDate)) {
             throw new BusinessException(INVALID_DATE_MESSAGE);
         }
     }
 
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
     /**
-     * Xây dựng báo cáo: lấy danh sách tổ chức và thống kê từ Shipment.
+     * Xây dựng báo cáo: lấy danh sách tổ chức trong phạm vi được phép và thống
+     * kê từ Shipment.
      */
     private IndustryReportResponse buildIndustrySummary(
             String region,
+            AreaScopeResult scope,
             LocalDate fromDate,
             LocalDate toDate) {
 
-        List<Organization> organizations = organizationRepository.findByAddressContainingIgnoreCase(region);
+        // Rule bảo mật số 1 NCL-670: cán bộ chưa được gán địa bàn nào => rỗng hoàn toàn.
+        if (scope.isEmptyScope()) {
+            return buildUnassignedResponse(region, fromDate, toDate);
+        }
+
+        List<Organization> organizations = isBlank(region)
+                ? organizationRepository.findAll()
+                : organizationRepository.findByAddressContainingIgnoreCase(region);
+
+        if (!scope.isAll()) {
+            organizations = organizations.stream()
+                    .filter(org -> scope.getOrganizationIds().contains(org.getOrganizationId()))
+                    .toList();
+        }
 
         if (organizations.isEmpty()) {
             return buildEmptyResponse(region, fromDate, toDate);
@@ -256,6 +300,28 @@ public class ReportServiceImpl implements ReportService {
         response.setTotalQuantity(0D);
         response.setProductBreakdown(List.of());
         response.setMessage("Không có dữ liệu phù hợp.");
+        return response;
+    }
+
+    /**
+     * Response rỗng bắt buộc cho VT-05 chưa được phân công địa bàn (release
+     * blocker TC-02): totals 0, breakdown rỗng, message chuẩn hợp đồng.
+     */
+    private IndustryReportResponse buildUnassignedResponse(
+            String region,
+            LocalDate fromDate,
+            LocalDate toDate) {
+
+        IndustryReportResponse response = new IndustryReportResponse();
+        response.setRegion(region);
+        response.setFromDate(fromDate);
+        response.setToDate(toDate);
+        response.setHasData(false);
+        response.setTotalOrganizations(0);
+        response.setTotalShipments(0);
+        response.setTotalQuantity(0D);
+        response.setProductBreakdown(List.of());
+        response.setMessage(AreaScopeService.UNASSIGNED_MESSAGE);
         return response;
     }
 }
