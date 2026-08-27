@@ -20,6 +20,7 @@ import {
   QrCode,
   ShieldAlert,
 } from 'lucide-react';
+import { HelpButton } from '@/components/help/HelpButton';
 import { toast } from 'sonner';
 
 export default function CancelLabelsPage() {
@@ -193,6 +194,7 @@ export default function CancelLabelsPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <HelpButton screenKey="shipment-detail" />
           <Button
             variant="outline"
             size="sm"
@@ -470,16 +472,65 @@ export default function CancelLabelsPage() {
             </CardContent>
           </Card>
 
-          {/* Help Tip Card */}
-          <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 text-xs text-blue-800 space-y-2">
-            <div className="flex items-center gap-1.5 font-semibold text-blue-900">
-              <HelpCircle className="size-4 text-blue-600" />
-              Hướng dẫn thao tác nhanh
-            </div>
-            <p className="text-blue-800/90 leading-relaxed">
-              Bạn có thể sử dụng súng quét mã vạch chuyên dụng cắm cổng USB. Đặt con trỏ vào ô nhập danh sách mã lẻ và bấm quét liên tục, các mã sẽ được xuống dòng tự động.
-            </p>
-          </div>
+          {/* Hướng dẫn các bước thực hiện chi tiết */}
+          <Card className="border-blue-200 bg-gradient-to-br from-blue-50/60 to-white shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-bold text-blue-900 flex items-center gap-2">
+                <HelpCircle className="size-4 text-blue-600" />
+                Hướng dẫn các bước thực hiện
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3.5 text-xs text-slate-700">
+              <div className="flex items-start gap-2.5">
+                <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white mt-0.5">
+                  1
+                </div>
+                <div>
+                  <p className="font-semibold text-blue-950">Kiểm tra tem bị hỏng:</p>
+                  <p className="mt-0.5 text-slate-600 leading-relaxed">
+                    Gom danh sách tem in mờ, nhòe QR, lệch viền hoặc bị rách trong khi dán. Chỉ tem ở trạng thái <em>Chưa kích hoạt (INACTIVE)</em> mới được hủy.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white mt-0.5">
+                  2
+                </div>
+                <div>
+                  <p className="font-semibold text-blue-950">Chọn phương thức nhập mã:</p>
+                  <ul className="mt-1 list-disc pl-4 space-y-1 text-slate-600">
+                    <li><strong>Dải mã liên tiếp:</strong> Chọn <em>"Theo khoảng mã"</em>, nhập mã đầu (From Code) & mã cuối (To Code).</li>
+                    <li><strong>Mã lẻ / rải rác:</strong> Chọn <em>"Nhập từng mã lẻ"</em> và dùng súng quét mã vạch USB hoặc dán danh sách mã vào ô.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white mt-0.5">
+                  3
+                </div>
+                <div>
+                  <p className="font-semibold text-blue-950">Chọn lý do tiêu hủy:</p>
+                  <p className="mt-0.5 text-slate-600 leading-relaxed">
+                    Chọn lý do phù hợp (In mờ, in lệch, bong tróc). Nếu chọn <em>"Lý do khác"</em>, vui lòng điền ghi chú chi tiết ít nhất 10 ký tự.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white mt-0.5">
+                  4
+                </div>
+                <div>
+                  <p className="font-semibold text-blue-950">Xác nhận & Hoàn hạn mức:</p>
+                  <p className="mt-0.5 text-slate-600 leading-relaxed">
+                    Bấm <em>"Xác nhận hủy & Hoàn hạn mức"</em>. Mã tem sẽ đổi sang <code>CANCELLED</code> và hạn mức dải mã của HTX được tự động cộng trả lại ngay lập tức.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
