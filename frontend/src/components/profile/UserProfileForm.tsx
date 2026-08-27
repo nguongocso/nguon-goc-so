@@ -289,6 +289,11 @@ export const UserProfileForm: React.FC = () => {
               {errors.email && (
                 <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
               )}
+              {!profile?.email && !isEditing && (
+                <p className="text-xs text-amber-600 font-medium mt-1">
+                  ⚠️ Chưa thiết lập email. Vui lòng bấm &ldquo;Chỉnh sửa&rdquo; để thêm email phục vụ việc đặt lại mật khẩu khi quên.
+                </p>
+              )}
             </div>
           </div>
         </CardContent>

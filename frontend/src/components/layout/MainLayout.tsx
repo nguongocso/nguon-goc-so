@@ -6,6 +6,7 @@ import {
   AppBreadcrumb,
   BreadcrumbOverrideProvider,
 } from '@/components/common/AppBreadcrumb';
+import { MissingEmailBanner } from '@/components/common/MissingEmailBanner';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -151,6 +152,9 @@ export function MainLayout() {
         <main className="min-w-0 flex-1 p-3 sm:p-4 md:p-5 lg:p-6 xl:p-8">
           <BreadcrumbOverrideProvider>
             <div className="mx-auto w-full max-w-7xl">
+              {/* Thông báo nhắc nhở bổ sung email khi tài khoản chưa có email */}
+              <MissingEmailBanner />
+
               {/* Breadcrumb điều hướng thống nhất thay cho nút "Quay lại" */}
               {location.pathname !== '/dashboard' && (
                 <div className="mb-4">
