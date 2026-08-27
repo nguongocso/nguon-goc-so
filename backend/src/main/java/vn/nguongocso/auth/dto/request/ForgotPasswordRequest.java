@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * DTO tiếp nhận yêu cầu quên mật khẩu của người dùng (NCL-01-CN-008).
+ */
 @Getter
 @Setter
 @NoArgsConstructor

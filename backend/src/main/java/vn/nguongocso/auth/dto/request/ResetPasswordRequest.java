@@ -9,6 +9,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * DTO tiếp nhận yêu cầu đặt lại mật khẩu mới cùng token xác thực (NCL-01-CN-008).
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,8 +25,8 @@ public class ResetPasswordRequest {
     @NotBlank(message = "Mật khẩu mới không được để trống")
     @Size(min = 8, max = 100, message = "Mật khẩu phải từ 8 đến 100 ký tự")
     @Pattern(
-        regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]+$",
-        message = "Mật khẩu phải chứa ít nhất một chữ hoa, một chữ thường, một số và một ký tự đặc biệt"
+            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]+$",
+            message = "Mật khẩu phải chứa ít nhất một chữ hoa, một chữ thường, một số và một ký tự đặc biệt"
     )
     private String newPassword;
 

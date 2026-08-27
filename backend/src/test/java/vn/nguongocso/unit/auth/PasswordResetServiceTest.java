@@ -1,10 +1,15 @@
 package vn.nguongocso.unit.auth;
 
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -23,16 +28,24 @@ import vn.nguongocso.auth.service.impl.PasswordResetServiceImpl;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.mail.service.EmailService;
 
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
+/**
+ * Đơn vị kiểm thử (Unit test) cho PasswordResetServiceImpl.
+ */
 @ExtendWith(MockitoExtension.class)
 class PasswordResetServiceTest {
 
@@ -119,8 +132,14 @@ class PasswordResetServiceTest {
         when(userRepository.findByEmail("nongdan_no_email")).thenReturn(Optional.empty());
         when(userRepository.findByUserName("nongdan_no_email")).thenReturn(Optional.of(userWithoutEmail));
 
-        BusinessException ex = assertThrows(BusinessException.class, () -> passwordResetService.requestPasswordReset(request));
-        assertEquals("Tài khoản chưa được cập nhật địa chỉ email trên hệ thống để thực hiện đặt lại mật khẩu.", ex.getMessage());
+        BusinessException ex = assertThrows(
+                BusinessException.class,
+                () -> passwordResetService.requestPasswordReset(request)
+        );
+        assertEquals(
+                "Tài khoản chưa được cập nhật địa chỉ email trên hệ thống để thực hiện đặt lại mật khẩu.",
+                ex.getMessage()
+        );
 
         verify(tokenRepository, never()).save(any());
         verify(emailService, never()).sendPasswordResetEmail(any(), any(), any(), anyInt());
@@ -227,7 +246,10 @@ class PasswordResetServiceTest {
                 .confirmPassword("MismatchPass@123")
                 .build();
 
-        BusinessException ex = assertThrows(BusinessException.class, () -> passwordResetService.resetPassword(request));
+        BusinessException ex = assertThrows(
+                BusinessException.class,
+                () -> passwordResetService.resetPassword(request)
+        );
         assertEquals("Xác nhận mật khẩu mới không khớp", ex.getMessage());
         verify(tokenRepository, never()).consumeToken(any(), any());
     }
@@ -251,7 +273,10 @@ class PasswordResetServiceTest {
         when(tokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(resetToken));
         when(passwordEncoder.matches("OldPassword@123", activeUser.getPasswordHash())).thenReturn(true);
 
-        BusinessException ex = assertThrows(BusinessException.class, () -> passwordResetService.resetPassword(request));
+        BusinessException ex = assertThrows(
+                BusinessException.class,
+                () -> passwordResetService.resetPassword(request)
+        );
         assertEquals("Mật khẩu mới không được trùng với mật khẩu hiện tại", ex.getMessage());
         verify(userRepository, never()).save(any());
     }
@@ -265,10 +290,12 @@ class PasswordResetServiceTest {
                 .confirmPassword("NewPass@123")
                 .build();
 
-        // Giả lập token đã bị request khác consume trước -> affectedRows = 0
         when(tokenRepository.consumeToken(anyString(), any(LocalDateTime.class))).thenReturn(0);
 
-        BusinessException ex = assertThrows(BusinessException.class, () -> passwordResetService.resetPassword(request));
+        BusinessException ex = assertThrows(
+                BusinessException.class,
+                () -> passwordResetService.resetPassword(request)
+        );
         assertEquals("Liên kết đặt lại mật khẩu đã hết hạn hoặc không còn hiệu lực", ex.getMessage());
         verify(userRepository, never()).save(any());
     }

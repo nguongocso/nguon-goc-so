@@ -9,14 +9,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 
 import vn.nguongocso.auth.dto.request.LoginRequest;
 import vn.nguongocso.auth.dto.request.SelectOrganizationRequest;
+import vn.nguongocso.auth.dto.request.UpdateUserProfileRequest;
 import vn.nguongocso.auth.dto.response.LoginResponse;
 import vn.nguongocso.auth.dto.response.OrganizationSelectionResponse;
 import vn.nguongocso.auth.dto.response.SelectOrganizationResponse;
+import vn.nguongocso.auth.dto.response.UserProfileResponse;
 import vn.nguongocso.auth.entity.AccountLock;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.enums.AccountLockStatus;
@@ -617,11 +620,11 @@ public class AuthService {
     /**
      * Cập nhật thông tin liên hệ (SĐT, email) của người dùng hiện tại.
      */
-    @org.springframework.transaction.annotation.Transactional
-    public vn.nguongocso.auth.dto.response.UserProfileResponse updateProfile(
+    @Transactional
+    public UserProfileResponse updateProfile(
             UUID userId,
             CustomUserDetails userDetails,
-            vn.nguongocso.auth.dto.request.UpdateUserProfileRequest request,
+            UpdateUserProfileRequest request,
             List<String> permissions) {
 
         User user = userRepository.findById(userId)
@@ -648,7 +651,7 @@ public class AuthService {
         User savedUser = userRepository.save(user);
         log.info("Cập nhật thông tin profile thành công cho userId={}", userId);
 
-        return vn.nguongocso.auth.dto.response.UserProfileResponse.builder()
+        return UserProfileResponse.builder()
                 .userId(savedUser.getUserId())
                 .username(savedUser.getUserName())
                 .fullName(savedUser.getFullName())
