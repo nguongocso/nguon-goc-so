@@ -27,6 +27,8 @@ import {
   Plus,
   Paperclip,
   Pencil,
+  MoreHorizontal,
+  ClipboardList,
 } from "lucide-react";
 import { getFarmLogs } from "@/api/farmLogApi";
 import type { FarmLog } from "@/types/farmLog";
@@ -38,14 +40,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { hasAnyRole, ROLE_ACCESS } from "@/config/roleAccess";
 import { cn } from "@/lib/utils";
 import {
+  ACTIVITY_TYPE_ICONS,
   ACTIVITY_TYPE_LABELS,
-  buildCorrectionMap,
+  buildFarmLogGroups,
   formatDateTime,
   getActivityLabel,
-  groupLogsWithCorrections,
+  getLatestEffective,
   isFieldChanged,
 } from "@/utils/farmLogCorrection";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // 👇 Định nghĩa interface
 interface FarmLogListProps {
@@ -60,18 +69,6 @@ interface FarmLogListProps {
 const ACTIVITY_TYPE_OPTIONS = Object.entries(ACTIVITY_TYPE_LABELS).map(
   ([value, label]) => ({ value, label }),
 );
-
-const formatDate = (dateStr: string) => {
-  try {
-    const d = new Date(dateStr);
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
-  } catch {
-    return dateStr;
-  }
-};
 
 export function FarmLogList({
   productionLotId,
@@ -192,15 +189,8 @@ export function FarmLogList({
     return result;
   }, [logs, searchTerm, activityFilter, dateFrom, dateTo, sortOrder]);
 
-  // NCL-03-CN-006 (GAP): nhóm bản gốc + bản đính chính liền kề nhau.
-  const groupedLogs = useMemo(
-    () => groupLogsWithCorrections(filteredLogs),
-    [filteredLogs],
-  );
-  const correctionMap = useMemo(
-    () => buildCorrectionMap(filteredLogs),
-    [filteredLogs],
-  );
+  // NCL-03-CN-006 (GAP): nhóm bản gốc + các bản đính chính thành một nhóm.
+  const groups = useMemo(() => buildFarmLogGroups(filteredLogs), [filteredLogs]);
 
   const goToPage = (newPage: number) => {
     if (newPage >= 0 && newPage < pageInfo.totalPages) {
@@ -208,8 +198,8 @@ export function FarmLogList({
     }
   };
 
-  const toggleExpand = (logId: string) => {
-    setExpandedLogId((current) => (current === logId ? null : logId));
+  const toggleExpand = (groupId: string) => {
+    setExpandedLogId((current) => (current === groupId ? null : groupId));
   };
 
   return (
@@ -344,10 +334,8 @@ export function FarmLogList({
                     <TableHead className="w-25">Ngày</TableHead>
                     <TableHead className="w-30">Người ghi</TableHead>
                     <TableHead className="w-35">Hoạt động</TableHead>
-                    <TableHead>Vật tư</TableHead>
-                    <TableHead className="w-20">Số lượng</TableHead>
+                    <TableHead>Vật tư & Số lượng</TableHead>
                     <TableHead>Ghi chú</TableHead>
-                    <TableHead className="w-35">Thời gian tạo</TableHead>
                     <TableHead className="w-30 text-center">Chứng từ</TableHead>
                     {enableCorrection && (
                       <TableHead className="w-30 text-center">
@@ -357,110 +345,87 @@ export function FarmLogList({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {groupedLogs.map((log) => {
-                    const isExpanded = expandedLogId === log.id;
-                    const showCorrect = enableCorrection && canCorrectLog(log);
-                    const isOriginalCorrected = log.isCorrected === true;
-                    const isCorrectionEntry = log.isCorrection === true;
-                    const correction = isOriginalCorrected
-                      ? correctionMap.get(log.id)
-                      : undefined;
+                  {groups.map((group) => {
+                    const effective = getLatestEffective(group);
+                    const hasCorrections = group.corrections.length > 0;
+                    const isExpanded = expandedLogId === group.original.id;
+                    const Icon = ACTIVITY_TYPE_ICONS[effective.activityType] ?? ClipboardList;
+                    const canCorrect = enableCorrection && canCorrectLog(effective);
+                    const colSpan = enableCorrection ? 7 : 6;
+
+                    const materialQuantity =
+                      effective.material && effective.quantity != null
+                        ? `${effective.material} – ${effective.quantity} ${effective.unit ?? ''}`
+                        : effective.material
+                          ? effective.material
+                          : effective.quantity != null
+                            ? `${effective.quantity} ${effective.unit ?? ''}`
+                            : null;
 
                     return (
-                      <Fragment key={log.id}>
+                      <Fragment key={group.original.id}>
                         <TableRow
                           className={cn(
                             "transition-colors",
                             isExpanded && "bg-muted/40",
-                            isOriginalCorrected &&
-                              "bg-slate-50/60 text-muted-foreground",
-                            isCorrectionEntry &&
-                              "bg-amber-50/70 border-l-4 border-amber-400",
+                            hasCorrections &&
+                              "bg-amber-50/40 border-l-4 border-amber-400",
                           )}
                         >
-                          <TableCell>{formatDate(log.executedDate)}</TableCell>
+                          <TableCell
+                            title={
+                              effective.createdAt
+                                ? `Tạo lúc: ${formatDateTime(effective.createdAt)}`
+                                : undefined
+                            }
+                          >
+                            {effective.executedDate}
+                          </TableCell>
                           <TableCell className="font-medium">
-                            {log.createdByName}
+                            {effective.createdByName}
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap items-center gap-1">
-                              <span
-                                className={cn(
-                                  "inline-flex rounded-full bg-info-bg px-2.5 py-0.5 text-xs font-medium text-info",
-                                  isFieldChanged(log, correction, "activityType") &&
-                                    "line-through decoration-red-400",
-                                )}
-                                aria-label={`Loại hoạt động: ${
-                                  ACTIVITY_TYPE_LABELS[log.activityType] ||
-                                  log.activityType
-                                }`}
-                              >
-                                {getActivityLabel(log.activityType)}
+                              <Icon className="mr-1 inline-block h-4 w-4 text-emerald-700" />
+                              <span className="inline-flex items-center gap-1 rounded-full bg-info-bg px-2 py-0.5 text-xs font-medium text-info">
+                                {getActivityLabel(effective.activityType)}
                               </span>
-                              {isOriginalCorrected && (
-                                <Badge className="bg-slate-200 text-slate-600 hover:bg-slate-200">
-                                  Gốc (Đã đính chính)
-                                </Badge>
-                              )}
-                              {isCorrectionEntry && (
+                              {hasCorrections ? (
                                 <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
-                                  Bản đính chính
+                                  Đã đính chính
                                 </Badge>
+                              ) : (
+                                <Badge variant="secondary">Bản gốc</Badge>
                               )}
                             </div>
                           </TableCell>
+                          <TableCell>{materialQuantity || "—"}</TableCell>
                           <TableCell
-                            className={cn(
-                              isFieldChanged(log, correction, "material") &&
-                                "line-through decoration-red-400",
-                            )}
+                            className="max-w-40 truncate"
+                            title={effective.notes ?? undefined}
                           >
-                            {log.material || "—"}
-                          </TableCell>
-                          <TableCell
-                            className={cn(
-                              isFieldChanged(log, correction, "quantity") &&
-                                "line-through decoration-red-400",
-                            )}
-                          >
-                            {log.quantity !== null && log.unit
-                              ? `${log.quantity} ${log.unit}`
+                            {effective.notes
+                              ? effective.notes.length > 30
+                                ? `${effective.notes.slice(0, 30)}…`
+                                : effective.notes
                               : "—"}
-                          </TableCell>
-                          <TableCell className="max-w-50 truncate">
-                            <span
-                              className={cn(
-                                isFieldChanged(log, correction, "notes") &&
-                                  "line-through decoration-red-400",
-                              )}
-                            >
-                              {log.notes || "—"}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {formatDateTime(log.createdAt)}
                           </TableCell>
                           <TableCell className="text-center">
                             <Button
                               variant="view"
                               size="sm"
-                              onClick={() => toggleExpand(log.id)}
+                              onClick={() => toggleExpand(group.original.id)}
                               className="flex items-center gap-1"
                               aria-expanded={isExpanded}
-                              aria-controls={`farm-log-detail-${log.id}`}
-                              aria-label={
-                                isExpanded
-                                  ? "Thu gọn chi tiết nhật ký"
-                                  : "Xem chi tiết & quản lý chứng từ nhật ký"
-                              }
+                              aria-label={isExpanded ? "Thu gọn" : "Xem chi tiết"}
                               title={
                                 isExpanded
-                                  ? "Thu gọn chi tiết"
+                                  ? "Thu gọn"
                                   : "Xem chi tiết & quản lý chứng từ"
                               }
                             >
                               <Paperclip className="h-4 w-4" />
-                              <span>{log.attachmentCount ?? 0}</span>
+                              <span>{effective.attachmentCount ?? 0}</span>
                               <ChevronDown
                                 className={`h-3.5 w-3.5 transition-transform ${
                                   isExpanded ? "rotate-180" : ""
@@ -468,40 +433,124 @@ export function FarmLogList({
                               />
                             </Button>
                           </TableCell>
-                          {showCorrect && (
+                          {enableCorrection && (
                             <TableCell className="text-center">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  navigate(`/farm-logs/${log.id}/correct`)
-                                }
-                                aria-label="Đính chính nhật ký"
-                                title="Đính chính"
-                                className="flex items-center gap-1"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                                <span>Đính chính</span>
-                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-input bg-white text-muted-foreground hover:bg-accent hover:text-foreground"
+                                  aria-label="Hành động"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {canCorrect && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        navigate(
+                                          `/farm-logs/${effective.id}/correct`,
+                                        )
+                                      }
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                      Đính chính
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      toggleExpand(group.original.id)
+                                    }
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                    {isExpanded
+                                      ? "Thu gọn chi tiết"
+                                      : "Xem chi tiết"}
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </TableCell>
                           )}
                         </TableRow>
 
-                        {isCorrectionEntry && (
+                        {hasCorrections && (
                           <TableRow className="bg-amber-50/40 border-l-4 border-amber-400">
-                            <TableCell
-                              colSpan={enableCorrection ? 9 : 8}
-                              className="py-1.5 pl-8 text-xs text-muted-foreground"
-                            >
-                              ✏️ Người sửa: {log.correctedByName ?? "—"} · Thời
-                              gian:{" "}
-                              {log.createdAt ? formatDateTime(log.createdAt) : "—"}{" "}
-                              · Lý do: {log.correctionReason ?? "—"}
-                              {log.originalFarmLogId && (
-                                <span className="ml-1 text-amber-700">
-                                  · Liên kết tới bản gốc
-                                </span>
-                              )}
+                            <TableCell colSpan={colSpan} className="pb-1 pt-2">
+                              <div className="space-y-2">
+                                <p className="px-2 text-xs font-semibold uppercase tracking-wide text-amber-700">
+                                  Giá trị gốc (đã đính chính)
+                                </p>
+                                <dl className="grid grid-cols-1 gap-x-6 gap-y-1 rounded-md border border-slate-200 bg-white p-3 text-xs sm:grid-cols-2">
+                                  <div className="flex justify-between gap-2">
+                                    <dt className="text-muted-foreground">
+                                      Hoạt động
+                                    </dt>
+                                    <dd
+                                      className={cn(
+                                        "font-medium",
+                                        isFieldChanged(group.original, effective, "activityType") &&
+                                          "line-through decoration-red-400",
+                                      )}
+                                    >
+                                      {getActivityLabel(group.original.activityType)}
+                                    </dd>
+                                  </div>
+                                  <div className="flex justify-between gap-2">
+                                    <dt className="text-muted-foreground">Ngày</dt>
+                                    <dd
+                                      className={cn(
+                                        "font-medium",
+                                        isFieldChanged(group.original, effective, "executedDate") &&
+                                          "line-through decoration-red-400",
+                                      )}
+                                    >
+                                      {group.original.executedDate}
+                                    </dd>
+                                  </div>
+                                  <div className="flex justify-between gap-2">
+                                    <dt className="text-muted-foreground">Vật tư</dt>
+                                    <dd
+                                      className={cn(
+                                        "font-medium",
+                                        isFieldChanged(group.original, effective, "material") &&
+                                          "line-through decoration-red-400",
+                                      )}
+                                    >
+                                      {group.original.material ?? "—"}
+                                    </dd>
+                                  </div>
+                                  <div className="flex justify-between gap-2">
+                                    <dt className="text-muted-foreground">Số lượng</dt>
+                                    <dd
+                                      className={cn(
+                                        "font-medium",
+                                        isFieldChanged(group.original, effective, "quantity") &&
+                                          "line-through decoration-red-400",
+                                      )}
+                                    >
+                                      {group.original.quantity != null
+                                        ? `${group.original.quantity} ${group.original.unit ?? ""}`
+                                        : "—"}
+                                    </dd>
+                                  </div>
+                                </dl>
+                                {group.corrections.map((c) => (
+                                  <div
+                                    key={c.id}
+                                    className="rounded-md border-l-4 border-amber-400 bg-amber-50 p-2 text-xs"
+                                  >
+                                    <p className="font-medium text-amber-900">
+                                      Lý do đính chính:{" "}
+                                      {c.correctionReason ?? "—"}
+                                    </p>
+                                    <p className="mt-1 text-amber-700">
+                                      ✏️ Người sửa: {c.correctedByName ?? "—"}{" "}
+                                      · Thời gian:{" "}
+                                      {c.createdAt
+                                        ? formatDateTime(c.createdAt)
+                                        : "—"}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
                             </TableCell>
                           </TableRow>
                         )}
@@ -509,15 +558,15 @@ export function FarmLogList({
                         {isExpanded && (
                           <TableRow className="bg-muted/30">
                             <TableCell
-                              colSpan={enableCorrection ? 9 : 8}
+                              colSpan={colSpan}
                               className="p-4"
-                              id={`farm-log-detail-${log.id}`}
+                              id={`farm-log-detail-${group.original.id}`}
                             >
                               <div className="space-y-4">
-                                {log.notes && (
+                                {effective.notes && (
                                   <DetailSection title="Ghi chú">
                                     <p className="whitespace-pre-wrap text-sm">
-                                      {log.notes}
+                                      {effective.notes}
                                     </p>
                                   </DetailSection>
                                 )}
@@ -527,7 +576,7 @@ export function FarmLogList({
                                   contentClassName="bg-card"
                                 >
                                   <AttachmentManager
-                                    logId={log.id}
+                                    logId={effective.id}
                                     onUpdate={loadLogs}
                                   />
                                 </DetailSection>

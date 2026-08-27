@@ -1,3 +1,13 @@
+import {
+  Bug,
+  Droplets,
+  FlaskConical,
+  MoreHorizontal,
+  Scissors,
+  Sprout,
+  Wheat,
+  type LucideIcon,
+} from 'lucide-react';
 import type { FarmLog } from '@/types/farmLog';
 
 /**
@@ -15,15 +25,36 @@ export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   OTHER: 'Khác',
 };
 
+/** Biểu tượng trực quan cho từng loại hoạt động canh tác. */
+export const ACTIVITY_TYPE_ICONS: Record<string, LucideIcon> = {
+  PLANTING: Sprout,
+  WATERING: Droplets,
+  FERTILIZING: FlaskConical,
+  PESTICIDE: Bug,
+  WEEDING: Scissors,
+  HARVESTING: Wheat,
+  OTHER: MoreHorizontal,
+};
+
 export const getActivityLabel = (value: string): string =>
   ACTIVITY_TYPE_LABELS[value] || value;
 
 /**
- * Nhóm danh sách nhật ký: mỗi bản gốc được theo sau bởi các bản đính chính
- * của nó (mới nhất trước). Bản đính chính lẻ (bản gốc không nằm trong danh
- * sách hiện tại) được nối ở cuối để không bị mất.
+ * Một nhóm nhật ký: bản gốc + danh sách các bản đính chính của nó
+ * (sắp xếp mới nhất trước). Hiển thị nhóm như một dòng duy nhất.
  */
-export function groupLogsWithCorrections(logs: FarmLog[]): FarmLog[] {
+export interface FarmLogGroup {
+  original: FarmLog;
+  /** Các bản đính chính, bản mới nhất đứng đầu. */
+  corrections: FarmLog[];
+}
+
+/**
+ * Nhóm danh sách nhật ký theo mối quan hệ bản gốc – bản đính chính.
+ * Bản đính chính lẻ (bản gốc không nằm trong danh sách hiện tại) được giữ
+ * như nhóm độc lập để không bị mất.
+ */
+export function buildFarmLogGroups(logs: FarmLog[]): FarmLogGroup[] {
   const correctionByOriginal = new Map<string, FarmLog[]>();
   const originals: FarmLog[] = [];
 
@@ -37,51 +68,35 @@ export function groupLogsWithCorrections(logs: FarmLog[]): FarmLog[] {
     }
   }
 
-  const grouped: FarmLog[] = [];
-  const seenIds = new Set<string>();
+  for (const arr of correctionByOriginal.values()) {
+    arr.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }
 
-  for (const original of originals) {
-    grouped.push(original);
-    seenIds.add(original.id);
-    const corrections = correctionByOriginal.get(original.id);
-    if (corrections) {
-      corrections.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-      for (const c of corrections) {
-        seenIds.add(c.id);
-        grouped.push(c);
+  const groups: FarmLogGroup[] = originals.map((original) => ({
+    original,
+    corrections: correctionByOriginal.get(original.id) ?? [],
+  }));
+
+  // Bản đính chính lẻ
+  const seenOriginals = new Set(originals.map((o) => o.id));
+  for (const [originalId, arr] of correctionByOriginal.entries()) {
+    if (!seenOriginals.has(originalId)) {
+      for (const c of arr) {
+        groups.push({ original: c, corrections: [] });
       }
     }
   }
 
-  for (const log of logs) {
-    if (!seenIds.has(log.id)) {
-      grouped.push(log);
-    }
-  }
-
-  return grouped;
+  return groups;
 }
 
 /**
- * Map: originalId → bản đính chính mới nhất (dùng để so sánh trường nào
- * thay đổi so với bản gốc).
+ * Giá trị hiệu lực của nhóm: bản đính chính mới nhất nếu có, ngược lại là bản gốc.
  */
-export function buildCorrectionMap(logs: FarmLog[]): Map<string, FarmLog> {
-  const map = new Map<string, FarmLog>();
-
-  for (const log of logs) {
-    if (log.isCorrection && log.originalFarmLogId) {
-      const existing = map.get(log.originalFarmLogId);
-      if (!existing || new Date(log.createdAt) > new Date(existing.createdAt)) {
-        map.set(log.originalFarmLogId, log);
-      }
-    }
-  }
-
-  return map;
+export function getLatestEffective(group: FarmLogGroup): FarmLog {
+  return group.corrections.length > 0 ? group.corrections[0] : group.original;
 }
 
 /**
@@ -110,3 +125,4 @@ export const formatDateTime = (dateStr: string) => {
     return dateStr;
   }
 };
+

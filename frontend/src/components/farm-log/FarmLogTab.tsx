@@ -1,4 +1,10 @@
-import { Plus, ClipboardList, PencilLine, Pencil } from 'lucide-react';
+import {
+  Plus,
+  ClipboardList,
+  PencilLine,
+  FileText,
+  Clock,
+} from 'lucide-react';
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,10 +15,13 @@ import { useNavigate } from 'react-router-dom';
 import { ROLE_ACCESS, hasAnyRole } from '@/config/roleAccess';
 import { cn } from '@/lib/utils';
 import {
-  ACTIVITY_TYPE_LABELS,
-  buildCorrectionMap,
+  ACTIVITY_TYPE_ICONS,
+  buildFarmLogGroups,
   formatDateTime,
-  groupLogsWithCorrections,
+  getActivityLabel,
+  getLatestEffective,
+  isFieldChanged,
+  type FarmLogGroup,
 } from '@/utils/farmLogCorrection';
 import type { FarmLog } from '@/types/farmLog';
 
@@ -26,27 +35,14 @@ export function FarmLogTab({ logs, onCreateLog, onLogUpdated }: FarmLogTabProps)
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const groupedLogs = useMemo(() => groupLogsWithCorrections(logs), [logs]);
-  const correctionMap = useMemo(() => buildCorrectionMap(logs), [logs]);
-  const openItems = logs.length > 0 ? [logs[0].id] : [];
+  const groups = useMemo(() => buildFarmLogGroups(logs), [logs]);
+  const openItems = groups.length > 0 ? [groups[0].original.id] : [];
 
-  /**
-   * NCL-03-CN-006: quyền hiển thị nút Đính chính theo vai trò.
-   */
   const canCorrectLog = (log: FarmLog): boolean => {
-    if (!hasAnyRole(user?.roleCode, ROLE_ACCESS.farmLogCorrect)) {
-      return false;
-    }
-    if (log.isCorrected) {
-      return false;
-    }
-
+    if (!hasAnyRole(user?.roleCode, ROLE_ACCESS.farmLogCorrect)) return false;
+    if (log.isCorrected) return false;
     const isManager = user?.roleCode === 'VT-02';
-
-    if (!isManager) {
-      return !log.createdById || log.createdById === user?.userId;
-    }
-
+    if (!isManager) return !log.createdById || log.createdById === user?.userId;
     return true;
   };
 
@@ -55,13 +51,119 @@ export function FarmLogTab({ logs, onCreateLog, onLogUpdated }: FarmLogTabProps)
       <div className="text-center py-12">
         <ClipboardList className="mx-auto h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">Chưa có nhật ký canh tác</h3>
-        <p className="text-sm text-muted-foreground">Nhấn "Thêm nhật ký" để ghi lại hoạt động</p>
+        <p className="text-sm text-muted-foreground">
+          Nhấn "Thêm nhật ký" để ghi lại hoạt động
+        </p>
         <Button onClick={onCreateLog} variant="create" className="mt-4">
           <Plus className="mr-2 h-4 w-4" /> Thêm nhật ký
         </Button>
       </div>
     );
   }
+
+  const renderCorrectionHistory = (group: FarmLogGroup) => {
+    if (group.corrections.length === 0) return null;
+    return (
+      <div className="mb-4 space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+          Lịch sử đính chính
+        </p>
+        {group.corrections.map((c) => (
+          <div
+            key={c.id}
+            className="rounded-md border-l-4 border-amber-400 bg-amber-50 p-3"
+          >
+            <p className="text-sm text-amber-900">
+              <span className="font-semibold">Lý do đính chính:</span>{' '}
+              {c.correctionReason ?? '—'}
+            </p>
+            <p className="mt-1 text-xs text-amber-700">
+              ✏️ Người sửa: {c.correctedByName ?? '—'} · Thời gian:{' '}
+              {c.createdAt ? formatDateTime(c.createdAt) : '—'}
+            </p>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderOriginal = (group: FarmLogGroup) => {
+    const latest = getLatestEffective(group);
+    if (group.corrections.length === 0) return null;
+    return (
+      <div className="mb-4 rounded-md border border-slate-200 bg-slate-50 p-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Giá trị gốc (đã đính chính)
+        </p>
+        <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Hoạt động</dt>
+            <dd
+              className={cn(
+                'font-medium',
+                isFieldChanged(group.original, latest, 'activityType') &&
+                  'line-through decoration-red-400',
+              )}
+            >
+              {getActivityLabel(group.original.activityType)}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Ngày thực hiện</dt>
+            <dd
+              className={cn(
+                'font-medium',
+                isFieldChanged(group.original, latest, 'executedDate') &&
+                  'line-through decoration-red-400',
+              )}
+            >
+              {group.original.executedDate}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Vật tư</dt>
+            <dd
+              className={cn(
+                'font-medium',
+                isFieldChanged(group.original, latest, 'material') &&
+                  'line-through decoration-red-400',
+              )}
+            >
+              {group.original.material ?? '—'}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Số lượng</dt>
+            <dd
+              className={cn(
+                'font-medium',
+                isFieldChanged(group.original, latest, 'quantity') &&
+                  'line-through decoration-red-400',
+              )}
+            >
+              {group.original.quantity != null
+                ? `${group.original.quantity} ${group.original.unit ?? ''}`
+                : '—'}
+            </dd>
+          </div>
+          {group.original.notes && (
+            <div className="sm:col-span-2">
+              <dt className="text-muted-foreground">Ghi chú gốc</dt>
+              <dd
+                className={cn(
+                  'whitespace-pre-wrap font-medium',
+                  isFieldChanged(group.original, latest, 'notes') &&
+                    'line-through decoration-red-400',
+                )}
+              >
+                {group.original.notes}
+              </dd>
+            </div>
+          )}
+        </dl>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -73,127 +175,89 @@ export function FarmLogTab({ logs, onCreateLog, onLogUpdated }: FarmLogTabProps)
       </div>
 
       <Accordion defaultValue={openItems} className="space-y-2">
-        {groupedLogs.map((log) => {
-          const isOriginalCorrected = log.isCorrected === true;
-          const isCorrectionEntry = log.isCorrection === true;
-          const correction = isOriginalCorrected
-            ? correctionMap.get(log.id)
-            : undefined;
-          // Trường nào bị thay đổi so với bản đính chính mới nhất
-          const isChanged = (current: unknown, other: unknown) =>
-            isOriginalCorrected &&
-            Boolean(correction) &&
-            String(current ?? '') !== String(other ?? '');
-
-          const activityLabel =
-            ACTIVITY_TYPE_LABELS[log.activityType] || log.activityType;
-          const originalActivity =
-            correction?.activityType
-              ? ACTIVITY_TYPE_LABELS[correction.activityType] ||
-                correction.activityType
-              : undefined;
+        {groups.map((group) => {
+          const effective = getLatestEffective(group);
+          const hasCorrections = group.corrections.length > 0;
+          const Icon = ACTIVITY_TYPE_ICONS[effective.activityType] ?? ClipboardList;
+          const canCorrect = canCorrectLog(effective);
 
           return (
             <AccordionItem
-              key={log.id}
-              value={log.id}
+              key={group.original.id}
+              value={group.original.id}
               className={cn(
                 'border rounded-lg px-4 transition-colors',
-                isOriginalCorrected && 'bg-slate-50/60 text-muted-foreground',
-                isCorrectionEntry &&
-                  'bg-amber-50/70 border-l-4 border-amber-400',
-                isCorrectionEntry && 'ml-6',
+                hasCorrections && 'bg-amber-50/40 border-l-4 border-amber-300',
               )}
             >
               <AccordionTrigger className="hover:no-underline">
                 <div className="flex items-center gap-3 text-left">
-                  <div
-                    className={cn(
-                      'w-8 h-8 rounded flex items-center justify-center',
-                      isCorrectionEntry
-                        ? 'bg-amber-100 text-amber-700'
-                        : 'bg-primary/10 text-primary',
-                    )}
-                  >
-                    {isCorrectionEntry ? (
-                      <Pencil className="h-4 w-4" />
-                    ) : (
-                      <ClipboardList className="h-4 w-4" />
-                    )}
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+                    <Icon className="h-4 w-4" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 font-medium">
-                      {isCorrectionEntry && (
+                      {hasCorrections ? (
                         <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
-                          Bản đính chính
+                          Đã đính chính
                         </Badge>
+                      ) : (
+                        <Badge variant="secondary">Bản gốc</Badge>
                       )}
-                      {isOriginalCorrected && (
-                        <Badge
-                          className="bg-slate-200 text-slate-600 hover:bg-slate-200"
-                        >
-                          Gốc (Đã đính chính)
-                        </Badge>
-                      )}
-                      <span
-                        className={cn(
-                          isChanged(activityLabel, originalActivity) &&
-                            'line-through decoration-red-400',
-                        )}
-                      >
-                        {new Date(log.executedDate).toLocaleDateString('vi-VN')}{' '}
-                        — {activityLabel}
+                      <span className="truncate">
+                        {effective.executedDate} —{' '}
+                        {getActivityLabel(effective.activityType)}
                       </span>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {log.attachments?.length || 0} chứng từ
+                    <div className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1">
+                        <FileText className="h-3.5 w-3.5" />
+                        {effective.attachmentCount ?? 0} chứng từ
+                      </span>
+                      {effective.material && (
+                        <span>
+                          {effective.material}
+                          {effective.quantity != null
+                            ? ` – ${effective.quantity} ${effective.unit ?? ''}`
+                            : ''}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
-                {isCorrectionEntry && (
-                  <div className="mb-4 p-3 border-l-4 border-amber-400 bg-amber-50 rounded-md">
-                    <p className="text-sm text-amber-900">
-                      <span className="font-semibold">Lý do đính chính:</span>{' '}
-                      {log.correctionReason}
-                    </p>
-                    {(log.correctedByName || log.createdAt) && (
-                      <p className="mt-1 text-xs text-amber-700">
-                        ✏️ Người sửa: {log.correctedByName ?? '—'} · Thời gian:{' '}
-                        {log.createdAt ? formatDateTime(log.createdAt) : '—'}
-                        {log.originalFarmLogId && ' · Liên kết tới bản gốc'}
-                      </p>
-                    )}
-                  </div>
-                )}
-                {log.notes && (
+                {renderOriginal(group)}
+                {renderCorrectionHistory(group)}
+                {effective.notes && (
                   <div className="mb-4 p-3 bg-muted rounded-md">
-                    <p
-                      className={cn(
-                        'text-sm text-muted-foreground',
-                        isOriginalCorrected &&
-                          correction?.notes !== log.notes &&
-                          'line-through decoration-red-400',
-                      )}
-                    >
-                      {log.notes}
+                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                      {effective.notes}
                     </p>
                   </div>
                 )}
-                {canCorrectLog(log) && (
-                  <div className="mb-3 flex justify-end">
+                {canCorrect && (
+                  <div className="mb-3 flex items-center justify-end gap-3">
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5" />
+                      Tạo lúc {formatDateTime(effective.createdAt)}
+                    </span>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/farm-logs/${log.id}/correct`)}
+                      onClick={() =>
+                        navigate(`/farm-logs/${effective.id}/correct`)
+                      }
                     >
                       <PencilLine className="mr-2 h-4 w-4" /> Đính chính
                     </Button>
                   </div>
                 )}
-                <AttachmentManager logId={log.id} onUpdate={onLogUpdated} />
+                <AttachmentManager
+                  logId={effective.id}
+                  onUpdate={onLogUpdated}
+                />
               </AccordionContent>
             </AccordionItem>
           );
