@@ -67,6 +67,8 @@ import FarmLogHistoryPage from "@/pages/farm-log/FarmLogHistoryPage";
 import { ProductionLotDetailPage } from "@/pages/public/shipment/ProductionLotDetailPage";
 import { ShipmentDetailPage } from "@/pages/public/shipment/ShipmentDetailPage";
 import CreateShipmentPage from "@/pages/shipment/CreateShipmentPage";
+import LabelCancellationHistoryPage from "@/pages/shipment/LabelCancellationHistoryPage";
+import CancelLabelsPage from "@/pages/shipment/CancelLabelsPage";
 
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
@@ -515,6 +517,42 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
                         <ShipmentDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="shipments/:id/cancellation-history"
+                element={
+                    <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
+                        <LabelCancellationHistoryPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:lotId/shipments/:id/cancellation-history"
+                element={
+                    <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
+                        <LabelCancellationHistoryPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="shipments/:id/cancel-labels"
+                element={
+                    <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
+                        <CancelLabelsPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:lotId/shipments/:id/cancel-labels"
+                element={
+                    <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
+                        <CancelLabelsPage />
                     </RoleRoute>
                 }
             />
