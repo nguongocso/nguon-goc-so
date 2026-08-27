@@ -20,7 +20,7 @@ public class CreateInspectionRequest {
     private LocalDate sampleSentDate;
 
     @NotEmpty(message = "Vui lòng chọn ít nhất một chỉ tiêu kiểm nghiệm.")
-    private List<Integer> criteriaIds;
+    private List<Long> criteriaIds;
 
     private Boolean confirmDuplicate = false;
 }

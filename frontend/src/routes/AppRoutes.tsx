@@ -40,13 +40,15 @@ import CodeRangeListPage from "@/pages/admin/CodeRangeListPage";
 import ProductCategoryManagementPage from "@/pages/admin/ProductCategoryManagementPage";
 import CreateProductCategoryPage from "@/pages/admin/CreateProductCategoryPage";
 import EditProductCategoryPage from "@/pages/admin/EditProductCategoryPage";
+import AssignInspectionCriteriaPage from "@/pages/admin/AssignInspectionCriteriaPage";
 import InputMaterialManagementPage from "@/pages/admin/InputMaterialManagementPage";
 import { InputMaterialFormPage } from "@/pages/admin/InputMaterialFormPage";
 import { InputMaterialDetailPage } from "@/pages/admin/InputMaterialDetailPage";
 import StandardManagementPage from "@/pages/admin/StandardManagementPage";
 import CreateStandardPage from "@/pages/admin/CreateStandardPage";
 import EditStandardPage from "@/pages/admin/EditStandardPage";
-import CriteriaManagementPage from "@/pages/admin/CriteriaManagementPage";
+import InspectionCriteriaManagementPage from "@/pages/admin/InspectionCriteriaManagementPage";
+import CreateInspectionCriterionPage from "@/pages/admin/CreateInspectionCriterionPage";
 import SuspectTraceCodeListPage from "@/pages/admin/SuspectTraceCodeListPage";
 import SuspectTraceCodeDetailPage from "@/pages/admin/SuspectTraceCodeDetailPage";
 
@@ -760,6 +762,15 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="admin/product-categories/:id/criteria"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <AssignInspectionCriteriaPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="admin/input-materials"
                 element={
                     <RoleRoute allowedRoles={["VT-01", "VT-02", "VT-03", "VT-04"]}>
@@ -829,12 +840,23 @@ const AppRoutes = () => (
             />
 
             <Route
-                path="admin/standards/:standardId/criteria"
+                path="admin/inspection-criteria/create"
                 element={
                     <RoleRoute
-                        allowedRoles={ROLE_ACCESS.standardManagement}
+                        allowedRoles={ROLE_ACCESS.inspectionCriteriaManagement}
                     >
-                        <CriteriaManagementPage />
+                        <CreateInspectionCriterionPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/inspection-criteria"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.inspectionCriteriaManagement}
+                    >
+                        <InspectionCriteriaManagementPage />
                     </RoleRoute>
                 }
             />

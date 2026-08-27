@@ -59,22 +59,4 @@ public interface ProductionLotCertificationRepository extends JpaRepository<Prod
             "JOIN FETCH plc.certification " +
             "WHERE plc.productionLot.id IN :productionLotIds")
     List<ProductionLotCertification> findByProductionLotIdIn(@Param("productionLotIds") List<UUID> productionLotIds);
-
-    /**
-     * Kiểm tra sự tồn tại của chứng nhận gắn vào lô sản xuất theo ID lô sản xuất và
-     * ID tiêu chuẩn.
-     *
-     * @param lotId      ID của lô sản xuất.
-     * @param standardId ID của tiêu chuẩn.
-     * @return true nếu tồn tại, ngược lại là false.
-     */
-    @Query("""
-                SELECT COUNT(plc) > 0
-                FROM ProductionLotCertification plc
-                WHERE plc.productionLot.id = :lotId
-                  AND plc.certification.standard.id = :standardId
-            """)
-    boolean existsByProductionLotIdAndStandardId(
-            @Param("lotId") UUID lotId,
-            @Param("standardId") UUID standardId);
 }
