@@ -317,6 +317,17 @@ export default function CorrectFarmLogPage() {
         </p>
       </header>
 
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+        <p className="font-medium">
+          📋 Hệ thống áp dụng nguyên tắc số hóa GAP
+        </p>
+        <p className="mt-1 leading-relaxed">
+          Bản ghi gốc sẽ được giữ nguyên để lưu vết lịch sử và không bị xóa. Chỉ
+          tạo bản đính chính mới với lý do rõ ràng. Mọi thay đổi đều được ghi
+          nhận người sửa và thời gian.
+        </p>
+      </div>
+
       <form onSubmit={handleSubmit} noValidate>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Cột trái: giá trị gốc (chỉ đọc) */}

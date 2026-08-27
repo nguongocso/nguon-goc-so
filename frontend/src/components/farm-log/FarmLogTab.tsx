@@ -1,4 +1,5 @@
-import { Plus, ClipboardList, PencilLine } from 'lucide-react';
+import { Plus, ClipboardList, PencilLine, Pencil } from 'lucide-react';
+import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -6,6 +7,13 @@ import { AttachmentManager } from './AttachmentManager';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { ROLE_ACCESS, hasAnyRole } from '@/config/roleAccess';
+import { cn } from '@/lib/utils';
+import {
+  ACTIVITY_TYPE_LABELS,
+  buildCorrectionMap,
+  formatDateTime,
+  groupLogsWithCorrections,
+} from '@/utils/farmLogCorrection';
 import type { FarmLog } from '@/types/farmLog';
 
 interface FarmLogTabProps {
@@ -17,13 +25,13 @@ interface FarmLogTabProps {
 export function FarmLogTab({ logs, onCreateLog, onLogUpdated }: FarmLogTabProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const groupedLogs = useMemo(() => groupLogsWithCorrections(logs), [logs]);
+  const correctionMap = useMemo(() => buildCorrectionMap(logs), [logs]);
   const openItems = logs.length > 0 ? [logs[0].id] : [];
 
   /**
    * NCL-03-CN-006: quyền hiển thị nút Đính chính theo vai trò.
-   * VT-02 được đính chính mọi nhật ký của tổ chức; VT-03 chỉ được
-   * đính chính nhật ký do chính mình ghi (bản ghi đã bị thay thế
-   * bởi bản đính chính khác sẽ không còn nút đính chính).
    */
   const canCorrectLog = (log: FarmLog): boolean => {
     if (!hasAnyRole(user?.roleCode, ROLE_ACCESS.farmLogCorrect)) {
@@ -65,67 +73,131 @@ export function FarmLogTab({ logs, onCreateLog, onLogUpdated }: FarmLogTabProps)
       </div>
 
       <Accordion defaultValue={openItems} className="space-y-2">
-        {logs.map((log) => (
-          <AccordionItem key={log.id} value={log.id} className="border rounded-lg px-4">
-            <AccordionTrigger className="hover:no-underline">
-              <div className="flex items-center gap-3 text-left">
-                <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center">
-                  <ClipboardList className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2 font-medium">
-                    {new Date(log.executedDate).toLocaleDateString('vi-VN')} — {log.activityType}
-                    {log.isCorrection && (
-                      <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
-                        Đính chính
-                      </Badge>
-                    )}
-                    {log.isCorrected && (
-                      <Badge variant="secondary">Đã đính chính</Badge>
-                    )}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {log.attachments?.length || 0} chứng từ
-                  </div>
-                </div>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              {log.isCorrection && log.correctionReason && (
-                <div className="mb-4 p-3 border-l-4 border-amber-400 bg-amber-50 rounded-md">
-                  <p className="text-sm text-amber-900">
-                    <span className="font-semibold">Lý do đính chính:</span>{' '}
-                    {log.correctionReason}
-                  </p>
-                  {log.correctedByName && (
-                    <p className="mt-1 text-xs text-amber-700">
-                      Người đính chính: {log.correctedByName}
-                      {log.originalFarmLogId && ' · Liên kết tới bản gốc'}
-                    </p>
-                  )}
-                </div>
+        {groupedLogs.map((log) => {
+          const isOriginalCorrected = log.isCorrected === true;
+          const isCorrectionEntry = log.isCorrection === true;
+          const correction = isOriginalCorrected
+            ? correctionMap.get(log.id)
+            : undefined;
+          // Trường nào bị thay đổi so với bản đính chính mới nhất
+          const isChanged = (current: unknown, other: unknown) =>
+            isOriginalCorrected &&
+            Boolean(correction) &&
+            String(current ?? '') !== String(other ?? '');
+
+          const activityLabel =
+            ACTIVITY_TYPE_LABELS[log.activityType] || log.activityType;
+          const originalActivity =
+            correction?.activityType
+              ? ACTIVITY_TYPE_LABELS[correction.activityType] ||
+                correction.activityType
+              : undefined;
+
+          return (
+            <AccordionItem
+              key={log.id}
+              value={log.id}
+              className={cn(
+                'border rounded-lg px-4 transition-colors',
+                isOriginalCorrected && 'bg-slate-50/60 text-muted-foreground',
+                isCorrectionEntry &&
+                  'bg-amber-50/70 border-l-4 border-amber-400',
+                isCorrectionEntry && 'ml-6',
               )}
-              {log.notes && (
-                <div className="mb-4 p-3 bg-muted rounded-md">
-                  <p className="text-sm text-muted-foreground">{log.notes}</p>
-                </div>
-              )}
-              {canCorrectLog(log) && (
-                <div className="mb-3 flex justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate(`/farm-logs/${log.id}/correct`)}
+            >
+              <AccordionTrigger className="hover:no-underline">
+                <div className="flex items-center gap-3 text-left">
+                  <div
+                    className={cn(
+                      'w-8 h-8 rounded flex items-center justify-center',
+                      isCorrectionEntry
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-primary/10 text-primary',
+                    )}
                   >
-                    <PencilLine className="mr-2 h-4 w-4" /> Đính chính
-                  </Button>
+                    {isCorrectionEntry ? (
+                      <Pencil className="h-4 w-4" />
+                    ) : (
+                      <ClipboardList className="h-4 w-4" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2 font-medium">
+                      {isCorrectionEntry && (
+                        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                          Bản đính chính
+                        </Badge>
+                      )}
+                      {isOriginalCorrected && (
+                        <Badge
+                          className="bg-slate-200 text-slate-600 hover:bg-slate-200"
+                        >
+                          Gốc (Đã đính chính)
+                        </Badge>
+                      )}
+                      <span
+                        className={cn(
+                          isChanged(activityLabel, originalActivity) &&
+                            'line-through decoration-red-400',
+                        )}
+                      >
+                        {new Date(log.executedDate).toLocaleDateString('vi-VN')}{' '}
+                        — {activityLabel}
+                      </span>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {log.attachments?.length || 0} chứng từ
+                    </div>
+                  </div>
                 </div>
-              )}
-              <AttachmentManager logId={log.id} onUpdate={onLogUpdated} />
-            </AccordionContent>
-          </AccordionItem>
-        ))}
+              </AccordionTrigger>
+              <AccordionContent>
+                {isCorrectionEntry && (
+                  <div className="mb-4 p-3 border-l-4 border-amber-400 bg-amber-50 rounded-md">
+                    <p className="text-sm text-amber-900">
+                      <span className="font-semibold">Lý do đính chính:</span>{' '}
+                      {log.correctionReason}
+                    </p>
+                    {(log.correctedByName || log.createdAt) && (
+                      <p className="mt-1 text-xs text-amber-700">
+                        ✏️ Người sửa: {log.correctedByName ?? '—'} · Thời gian:{' '}
+                        {log.createdAt ? formatDateTime(log.createdAt) : '—'}
+                        {log.originalFarmLogId && ' · Liên kết tới bản gốc'}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {log.notes && (
+                  <div className="mb-4 p-3 bg-muted rounded-md">
+                    <p
+                      className={cn(
+                        'text-sm text-muted-foreground',
+                        isOriginalCorrected &&
+                          correction?.notes !== log.notes &&
+                          'line-through decoration-red-400',
+                      )}
+                    >
+                      {log.notes}
+                    </p>
+                  </div>
+                )}
+                {canCorrectLog(log) && (
+                  <div className="mb-3 flex justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/farm-logs/${log.id}/correct`)}
+                    >
+                      <PencilLine className="mr-2 h-4 w-4" /> Đính chính
+                    </Button>
+                  </div>
+                )}
+                <AttachmentManager logId={log.id} onUpdate={onLogUpdated} />
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
       </Accordion>
     </div>
   );

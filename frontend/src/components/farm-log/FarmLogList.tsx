@@ -36,6 +36,16 @@ import { DetailSection } from "@/components/common/detail/DetailSection";
 import type { PageResponse } from "@/types/common";
 import { useAuth } from "@/hooks/useAuth";
 import { hasAnyRole, ROLE_ACCESS } from "@/config/roleAccess";
+import { cn } from "@/lib/utils";
+import {
+  ACTIVITY_TYPE_LABELS,
+  buildCorrectionMap,
+  formatDateTime,
+  getActivityLabel,
+  groupLogsWithCorrections,
+  isFieldChanged,
+} from "@/utils/farmLogCorrection";
+import { Badge } from "@/components/ui/badge";
 
 // 👇 Định nghĩa interface
 interface FarmLogListProps {
@@ -46,16 +56,6 @@ interface FarmLogListProps {
   /** NCL-03-CN-006: bật UI đính chính (cột "Hành động" + chuyển hướng). Mặc định false. */
   enableCorrection?: boolean;
 }
-
-const ACTIVITY_TYPE_LABELS: Record<string, string> = {
-  PLANTING: "Gieo trồng",
-  WATERING: "Tưới nước",
-  FERTILIZING: "Bón phân",
-  PESTICIDE: "Phun thuốc",
-  WEEDING: "Làm cỏ",
-  HARVESTING: "Thu hoạch",
-  OTHER: "Khác",
-};
 
 const ACTIVITY_TYPE_OPTIONS = Object.entries(ACTIVITY_TYPE_LABELS).map(
   ([value, label]) => ({ value, label }),
@@ -71,25 +71,6 @@ const formatDate = (dateStr: string) => {
   } catch {
     return dateStr;
   }
-};
-
-const formatDateTime = (dateStr: string) => {
-  try {
-    const d = new Date(dateStr);
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const year = d.getFullYear();
-    const hours = String(d.getHours()).padStart(2, "0");
-    const minutes = String(d.getMinutes()).padStart(2, "0");
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
-  } catch {
-    return dateStr;
-  }
-};
-
-const getActivityLabel = (value: string): string => {
-  if (value === "ALL") return "Tất cả loại";
-  return ACTIVITY_TYPE_LABELS[value] || value;
 };
 
 export function FarmLogList({
@@ -211,6 +192,16 @@ export function FarmLogList({
     return result;
   }, [logs, searchTerm, activityFilter, dateFrom, dateTo, sortOrder]);
 
+  // NCL-03-CN-006 (GAP): nhóm bản gốc + bản đính chính liền kề nhau.
+  const groupedLogs = useMemo(
+    () => groupLogsWithCorrections(filteredLogs),
+    [filteredLogs],
+  );
+  const correctionMap = useMemo(
+    () => buildCorrectionMap(filteredLogs),
+    [filteredLogs],
+  );
+
   const goToPage = (newPage: number) => {
     if (newPage >= 0 && newPage < pageInfo.totalPages) {
       setPage(newPage);
@@ -267,7 +258,9 @@ export function FarmLogList({
             >
               <SelectTrigger aria-label="Lọc theo loại hoạt động">
                 <SelectValue placeholder="Loại hoạt động">
-                  {getActivityLabel(activityFilter)}
+                  {activityFilter === "ALL"
+                    ? "Tất cả loại"
+                    : getActivityLabel(activityFilter)}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -364,38 +357,85 @@ export function FarmLogList({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredLogs.map((log) => {
+                  {groupedLogs.map((log) => {
                     const isExpanded = expandedLogId === log.id;
                     const showCorrect = enableCorrection && canCorrectLog(log);
+                    const isOriginalCorrected = log.isCorrected === true;
+                    const isCorrectionEntry = log.isCorrection === true;
+                    const correction = isOriginalCorrected
+                      ? correctionMap.get(log.id)
+                      : undefined;
+
                     return (
                       <Fragment key={log.id}>
                         <TableRow
-                          className={isExpanded ? "bg-muted/40" : ""}
+                          className={cn(
+                            "transition-colors",
+                            isExpanded && "bg-muted/40",
+                            isOriginalCorrected &&
+                              "bg-slate-50/60 text-muted-foreground",
+                            isCorrectionEntry &&
+                              "bg-amber-50/70 border-l-4 border-amber-400",
+                          )}
                         >
                           <TableCell>{formatDate(log.executedDate)}</TableCell>
                           <TableCell className="font-medium">
                             {log.createdByName}
                           </TableCell>
                           <TableCell>
-                            <span
-                              className="inline-flex rounded-full bg-info-bg px-2.5 py-0.5 text-xs font-medium text-info"
-                              aria-label={`Loại hoạt động: ${
-                                ACTIVITY_TYPE_LABELS[log.activityType] ||
-                                log.activityType
-                              }`}
-                            >
-                              {ACTIVITY_TYPE_LABELS[log.activityType] ||
-                                log.activityType}
-                            </span>
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span
+                                className={cn(
+                                  "inline-flex rounded-full bg-info-bg px-2.5 py-0.5 text-xs font-medium text-info",
+                                  isFieldChanged(log, correction, "activityType") &&
+                                    "line-through decoration-red-400",
+                                )}
+                                aria-label={`Loại hoạt động: ${
+                                  ACTIVITY_TYPE_LABELS[log.activityType] ||
+                                  log.activityType
+                                }`}
+                              >
+                                {getActivityLabel(log.activityType)}
+                              </span>
+                              {isOriginalCorrected && (
+                                <Badge className="bg-slate-200 text-slate-600 hover:bg-slate-200">
+                                  Gốc (Đã đính chính)
+                                </Badge>
+                              )}
+                              {isCorrectionEntry && (
+                                <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                                  Bản đính chính
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
-                          <TableCell>{log.material || "—"}</TableCell>
-                          <TableCell>
+                          <TableCell
+                            className={cn(
+                              isFieldChanged(log, correction, "material") &&
+                                "line-through decoration-red-400",
+                            )}
+                          >
+                            {log.material || "—"}
+                          </TableCell>
+                          <TableCell
+                            className={cn(
+                              isFieldChanged(log, correction, "quantity") &&
+                                "line-through decoration-red-400",
+                            )}
+                          >
                             {log.quantity !== null && log.unit
                               ? `${log.quantity} ${log.unit}`
                               : "—"}
                           </TableCell>
                           <TableCell className="max-w-50 truncate">
-                            {log.notes || "—"}
+                            <span
+                              className={cn(
+                                isFieldChanged(log, correction, "notes") &&
+                                  "line-through decoration-red-400",
+                              )}
+                            >
+                              {log.notes || "—"}
+                            </span>
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground">
                             {formatDateTime(log.createdAt)}
@@ -446,6 +486,25 @@ export function FarmLogList({
                             </TableCell>
                           )}
                         </TableRow>
+
+                        {isCorrectionEntry && (
+                          <TableRow className="bg-amber-50/40 border-l-4 border-amber-400">
+                            <TableCell
+                              colSpan={enableCorrection ? 9 : 8}
+                              className="py-1.5 pl-8 text-xs text-muted-foreground"
+                            >
+                              ✏️ Người sửa: {log.correctedByName ?? "—"} · Thời
+                              gian:{" "}
+                              {log.createdAt ? formatDateTime(log.createdAt) : "—"}{" "}
+                              · Lý do: {log.correctionReason ?? "—"}
+                              {log.originalFarmLogId && (
+                                <span className="ml-1 text-amber-700">
+                                  · Liên kết tới bản gốc
+                                </span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        )}
 
                         {isExpanded && (
                           <TableRow className="bg-muted/30">
