@@ -167,4 +167,25 @@ public interface InspectionCriterionResultRepository
     """)
     List<Object[]> countFailedCriteriaByRequestIds(
             @Param("requestIds") Collection<UUID> requestIds);
+
+    /**
+     * Lấy toàn bộ kết quả kiểm nghiệm thuộc MỌI yêu cầu của một lô
+     * sản xuất (join sẵn chỉ tiêu để so khớp theo criterionCode).
+     *
+     * Dùng cho điều kiện kích hoạt tem QTN-21 khi cần chọn kết quả
+     * MỚI NHẤT THEO TỪNG CHỈ TIÊU trên toàn lô, thay vì cộng dồn
+     * theo từng yêu cầu (cách cộng dồn sẽ đếm trùng chỉ tiêu xuất
+     * hiện ở nhiều yêu cầu kiểm thử lại).
+     *
+     * @param lotId ID của lô sản xuất.
+     * @return Danh sách kết quả kiểm nghiệm của lô.
+     */
+    @Query("""
+        SELECT r
+        FROM InspectionCriterionResult r
+            JOIN r.inspectionCriterion c
+        WHERE c.inspectionRequest.productionLot.id = :lotId
+    """)
+    List<InspectionCriterionResult> findAllByProductionLotId(
+            @Param("lotId") UUID lotId);
 }
