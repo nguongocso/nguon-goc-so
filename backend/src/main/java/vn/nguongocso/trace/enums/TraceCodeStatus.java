@@ -12,5 +12,7 @@ public enum TraceCodeStatus {
 
     LOCKED, // Đã khóa
 
-    RECALLED // Đã thu hồi
+    RECALLED, // Đã thu hồi
+
+    CANCELLED // Đã hủy (Tem in hỏng / in lệch / rách bong)
 }

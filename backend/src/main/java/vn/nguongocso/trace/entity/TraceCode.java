@@ -74,6 +74,19 @@ public class TraceCode {
     @Column(name = "lock_reason", columnDefinition = "TEXT")
     private String lockReason;
 
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cancelled_by")
+    private User cancelledBy;
+
+    @Column(name = "cancel_reason_type")
+    private String cancelReasonType;
+
+    @Column(name = "cancel_reason", columnDefinition = "TEXT")
+    private String cancelReason;
+
     @PrePersist
     protected void onCreate() {
         if (id == null) {

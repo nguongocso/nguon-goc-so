@@ -7,12 +7,23 @@ import {
   AlertCircle,
   BadgeCheck,
   Ban,
+  ChevronDown,
   FileText,
+  History,
   LoaderCircle,
+  MoreVertical,
   Package,
   QrCode,
   ScrollText,
+  Trash2,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getShipmentById } from "@/api/shipmentApi";
@@ -189,6 +200,8 @@ export const ShipmentDetailPage = () => {
     canRecall && shipment?.status !== "RECALLED";
   const canDeleteDraft =
     shipment?.status === "DRAFT" || shipment?.status === "CODE_PRINTED";
+  const canCancelLabels =
+    user?.roleCode === "VT-02" && shipment?.status !== "RECALLED";
 
   // ── Breadcrumb điều hướng thống nhất (thay nút "Quay lại") ────────────────
   useSetBreadcrumb(
@@ -270,46 +283,86 @@ export const ShipmentDetailPage = () => {
                 </Button>
               )}
 
-              <Button variant="outline" onClick={handleExportDossier}>
-                <FileText className="mr-1 h-4 w-4" />
-                Xuất hồ sơ
-              </Button>
+              {/* Dropdown chứa tất cả thao tác bổ sung */}
+              <DropdownMenu>
+                <DropdownMenuTrigger className="px-3 py-2 gap-1.5 border-slate-200 hover:bg-slate-50">
+                  <MoreVertical className="h-4 w-4 text-slate-600" />
+                  <span className="text-sm font-medium text-slate-700">Thao tác khác</span>
+                  <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem onClick={handleExportDossier} className="cursor-pointer">
+                    <FileText className="mr-2 h-4 w-4 text-slate-600" />
+                    Xuất hồ sơ
+                  </DropdownMenuItem>
 
-              {/* Export QR Labels — NCL-04-CN-005 */}
-              {canExportLabels &&
-                shipment.status !== "DRAFT" &&
-                shipment.status !== "RECALLED" &&
-                (shipment.traceCodes?.length || 0) > 0 && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowLabelsDialog(true)}
-                    className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                  >
-                    <QrCode className="mr-1 h-4 w-4" />
-                    Xuất tem QR
-                  </Button>
-                )}
+                  {canExportLabels &&
+                    shipment.status !== "DRAFT" &&
+                    shipment.status !== "RECALLED" &&
+                    (shipment.traceCodes?.length || 0) > 0 && (
+                      <DropdownMenuItem onClick={() => setShowLabelsDialog(true)} className="cursor-pointer">
+                        <QrCode className="mr-2 h-4 w-4 text-emerald-600" />
+                        Xuất tem QR
+                      </DropdownMenuItem>
+                    )}
 
-              {canRecallThis && (
-                <Button
-                  variant="outline"
-                  className="border-red-300 text-red-600 hover:bg-red-50"
-                  onClick={() => setShowRecallDialog(true)}
-                >
-                  <Ban className="mr-1 h-4 w-4" />
-                  Thu hồi
-                </Button>
-              )}
+                  {canCancelLabels && (
+                    <DropdownMenuItem
+                      onClick={() =>
+                        navigate(
+                          lotId
+                            ? `/production-lots/${lotId}/shipments/${shipment.id}/cancellation-history`
+                            : `/shipments/${shipment.id}/cancellation-history`,
+                        )
+                      }
+                      className="cursor-pointer"
+                    >
+                      <History className="mr-2 h-4 w-4 text-blue-600" />
+                      Lịch sử hủy tem
+                    </DropdownMenuItem>
+                  )}
 
-              {canDeleteDraft && (
-                <Button
-                  variant="outline"
-                  className="border-red-300 text-red-600 hover:bg-red-50"
-                  onClick={() => setShowDeleteDraftConfirm(true)}
-                >
-                  Hủy nháp
-                </Button>
-              )}
+                  {(canCancelLabels || canRecallThis || canDeleteDraft) && (
+                    <DropdownMenuSeparator />
+                  )}
+
+                  {canCancelLabels && (
+                    <DropdownMenuItem
+                      className="cursor-pointer text-red-600 focus:bg-red-50 focus:text-red-700"
+                      onClick={() =>
+                        navigate(
+                          lotId
+                            ? `/production-lots/${lotId}/shipments/${shipment.id}/cancel-labels`
+                            : `/shipments/${shipment.id}/cancel-labels`,
+                        )
+                      }
+                    >
+                      <Ban className="mr-2 h-4 w-4" />
+                      Hủy tem in hỏng
+                    </DropdownMenuItem>
+                  )}
+
+                  {canRecallThis && (
+                    <DropdownMenuItem
+                      className="cursor-pointer text-red-600 focus:bg-red-50 focus:text-red-700"
+                      onClick={() => setShowRecallDialog(true)}
+                    >
+                      <Ban className="mr-2 h-4 w-4" />
+                      Thu hồi lô hàng
+                    </DropdownMenuItem>
+                  )}
+
+                  {canDeleteDraft && (
+                    <DropdownMenuItem
+                      className="cursor-pointer text-red-600 focus:bg-red-50 focus:text-red-700"
+                      onClick={() => setShowDeleteDraftConfirm(true)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Hủy nháp
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
