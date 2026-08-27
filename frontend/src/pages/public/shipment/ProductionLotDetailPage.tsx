@@ -772,6 +772,7 @@ export const ProductionLotDetailPage = () => {
             productionLotId={lot.id}
             productionLotName={lot.name}
             canCreate={canCreateFarmLog}
+            enableCorrection
           />
         </TabsContent>
 

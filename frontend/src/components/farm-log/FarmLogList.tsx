@@ -26,13 +26,17 @@ import {
   FileText,
   Plus,
   Paperclip,
+  Pencil,
 } from "lucide-react";
 import { getFarmLogs } from "@/api/farmLogApi";
 import type { FarmLog } from "@/types/farmLog";
 import { useNavigate } from "react-router-dom";
 import { AttachmentManager } from "./AttachmentManager";
+import { CorrectFarmLogDialog } from "./CorrectFarmLogDialog";
 import { DetailSection } from "@/components/common/detail/DetailSection";
 import type { PageResponse } from "@/types/common";
+import { useAuth } from "@/hooks/useAuth";
+import { hasAnyRole, ROLE_ACCESS } from "@/config/roleAccess";
 
 // 👇 Định nghĩa interface
 interface FarmLogListProps {
@@ -40,6 +44,10 @@ interface FarmLogListProps {
   productionLotName?: string;
   /** Có quyền tạo nhật ký canh tác mới hay không (mặc định true để không phá các nơi gọi cũ). */
   canCreate?: boolean;
+  /** NCL-03-CN-006: bật UI đính chính (cột "Hành động" + dialog). Mặc định false. */
+  enableCorrection?: boolean;
+  /** NCL-03-CN-006: callback refresh danh sách sau khi đính chính thành công (tùy chọn). */
+  onLogUpdated?: () => void;
 }
 
 const ACTIVITY_TYPE_LABELS: Record<string, string> = {
@@ -91,8 +99,11 @@ export function FarmLogList({
   productionLotId,
   productionLotName = "",
   canCreate = true,
+  enableCorrection = false,
+  onLogUpdated,
 }: FarmLogListProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [logs, setLogs] = useState<FarmLog[]>([]);
   const [pageInfo, setPageInfo] = useState<
     Omit<PageResponse<FarmLog>, "items">
@@ -117,6 +128,22 @@ export function FarmLogList({
 
   // State row mở rộng: xem chi tiết + chứng từ inline
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+
+  // NCL-03-CN-006: nhật ký đang được đính chính
+  const [correctingLog, setCorrectingLog] = useState<FarmLog | null>(null);
+
+  /**
+   * NCL-03-CN-006: xác định người dùng hiện tại có được đính chính 1 nhật ký hay không.
+   * VT-02 được đính chính mọi nhật ký; VT-03 chỉ đính chính nhật ký do mình ghi.
+   */
+  const canCorrectLog = (log: FarmLog): boolean => {
+    if (!user) return false;
+    if (!hasAnyRole(user.roleCode, ROLE_ACCESS.farmLogCorrect)) return false;
+    if (log.isCorrected) return false; // đã bị đính chính rồi
+    if (user.roleCode === "VT-02") return true;
+    // VT-03: chỉ nhật ký của chính mình
+    return log.createdById === user.userId;
+  };
 
   const goToCreateLog = () => {
     navigate(`/farm-logs/create?productionLotId=${productionLotId}`);
@@ -336,11 +363,17 @@ export function FarmLogList({
                     <TableHead>Ghi chú</TableHead>
                     <TableHead className="w-35">Thời gian tạo</TableHead>
                     <TableHead className="w-30 text-center">Chứng từ</TableHead>
+                    {enableCorrection && (
+                      <TableHead className="w-30 text-center">
+                        Hành động
+                      </TableHead>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredLogs.map((log) => {
                     const isExpanded = expandedLogId === log.id;
+                    const showCorrect = enableCorrection && canCorrectLog(log);
                     return (
                       <Fragment key={log.id}>
                         <TableRow
@@ -402,12 +435,27 @@ export function FarmLogList({
                               />
                             </Button>
                           </TableCell>
+                          {showCorrect && (
+                            <TableCell className="text-center">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCorrectingLog(log)}
+                                aria-label="Đính chính nhật ký"
+                                title="Đính chính"
+                                className="flex items-center gap-1"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                <span>Đính chính</span>
+                              </Button>
+                            </TableCell>
+                          )}
                         </TableRow>
 
                         {isExpanded && (
                           <TableRow className="bg-muted/30">
                             <TableCell
-                              colSpan={8}
+                              colSpan={enableCorrection ? 9 : 8}
                               className="p-4"
                               id={`farm-log-detail-${log.id}`}
                             >
@@ -498,6 +546,22 @@ export function FarmLogList({
           )}
         </CardContent>
       </Card>
+
+      {/* NCL-03-CN-006: dialog đính chính nhật ký canh tác */}
+      {correctingLog && (
+        <CorrectFarmLogDialog
+          log={correctingLog}
+          open
+          onOpenChange={(open) => {
+            if (!open) setCorrectingLog(null);
+          }}
+          onSuccess={() => {
+            setCorrectingLog(null);
+            loadLogs();
+            onLogUpdated?.();
+          }}
+        />
+      )}
     </div>
   );
 }
