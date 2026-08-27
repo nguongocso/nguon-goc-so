@@ -28,9 +28,9 @@ export const ResetPasswordPage: React.FC = () => {
         Đăng nhập
       </Button>
 
-      <main className="flex w-full max-w-[450px] flex-col items-center z-10 my-auto px-4">
+      <main className="flex w-full max-w-[430px] flex-col items-center z-10 my-auto px-4">
         {/* Brand Logo */}
-        <div className="mb-8 flex justify-center">
+        <div className="mb-10 flex justify-center">
           <Logo
             height={150}
             showText={false}
