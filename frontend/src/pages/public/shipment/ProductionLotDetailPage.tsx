@@ -1295,7 +1295,7 @@ export const ProductionLotDetailPage = () => {
                                   <TableHead className="w-32 whitespace-normal">
                                     Trạng thái
                                   </TableHead>
-                                  <TableHead className="w-32 whitespace-normal">
+                                  <TableHead className="w-32 whitespace-normal text-center">
                                     Hiệu lực đến
                                   </TableHead>
                                 </TableRow>
@@ -1351,10 +1351,10 @@ export const ProductionLotDetailPage = () => {
                                     <TableCell className="whitespace-normal">
                                       {getCriterionRowStatusBadge(row.status)}
                                     </TableCell>
-                                    <TableCell className="whitespace-normal">
+                                    <TableCell className="whitespace-normal text-center">
                                       {row.result && row.result.expiryDate
-                                        ? formatDateOnly(row.result.expiryDate)
-                                        : "—"}
+                                          ? formatDateOnly(row.result.expiryDate)
+                                          : "—"}
                                     </TableCell>
                                   </TableRow>
                                 ))}
