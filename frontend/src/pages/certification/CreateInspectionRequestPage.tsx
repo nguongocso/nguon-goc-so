@@ -10,6 +10,7 @@ import {
   ClipboardCheck,
   Clock,
   ExternalLink,
+  FileText,
   FlaskConical,
   Info,
   Layers,
@@ -19,20 +20,25 @@ import {
   Save,
   Search,
   Send,
+  Trash2,
+  Upload,
   X,
 } from "lucide-react";
 
 import {
   createInspectionRequest,
+  getAccreditationScopes,
   getInspectionRequestDetail,
   getInspectionRequests,
   getLotTestCriteria,
+  getTestingUnits,
 } from "@/api/certificationApi";
 import { getProductionLotById } from "@/api/productionLotApi";
 import { getProductCategoryCriteria } from "@/api/inspectionCriterionApi";
-import type { LotTestCriteriaResult } from "@/types/certification";
+import type { LotTestCriteriaResult, TestingUnit } from "@/types/certification";
 import type { InspectionCriterion } from "@/types/inspectionCriterion";
 import type { ProductionLot } from "@/types/productionLot";
+import { TestingUnitSelect } from "@/components/testing-unit/TestingUnitSelect";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,6 +49,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -113,6 +120,21 @@ interface CriterionRow {
   isCreated: boolean;
 }
 
+// Định dạng kích thước tệp đính kèm
+const formatFileSize = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+interface AttachedFileItem {
+  id: string;
+  file: File;
+  name: string;
+  size: number;
+  type: string;
+}
+
 export const CreateInspectionRequestPage: React.FC = () => {
   const { lotId: paramLotId, id: paramId } = useParams<{
     lotId?: string;
@@ -158,9 +180,20 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
   // --- Form State ---
   const [testingUnit, setTestingUnit] = useState("");
+  // NCL-11-CN-006 Phase 1: chọn đơn vị kiểm nghiệm từ danh mục dùng chung
+  const [testingUnitId, setTestingUnitId] = useState("");
+  const [testingUnits, setTestingUnits] = useState<TestingUnit[]>([]);
+  const [unitsLoading, setUnitsLoading] = useState(false);
+  const [unitsError, setUnitsError] = useState<string | null>(null);
+  // NCL-11-CN-006 Phase 2: phạm vi công nhận của đơn vị đã chọn
+  const [accreditedCriterionIds, setAccreditedCriterionIds] = useState<Set<number>>(new Set());
+  const [scopeLoading, setScopeLoading] = useState(false);
   const [sampleSentDate, setSampleSentDate] = useState(today);
+  const [sampleWeight, setSampleWeight] = useState("");
+  const [deliveryMethod, setDeliveryMethod] = useState<"LAB_PICKUP" | "COURIER" | "SELF_DELIVERY">("LAB_PICKUP");
   const [notes, setNotes] = useState("");
   const [selectedCriteriaIds, setSelectedCriteriaIds] = useState<number[]>([]);
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFileItem[]>([]);
 
   // Search & Filter trong danh sách chỉ tiêu
   const [criteriaSearch, setCriteriaSearch] = useState("");
@@ -311,6 +344,19 @@ export const CreateInspectionRequestPage: React.FC = () => {
       const lotRes = await getProductionLotById(effectiveLotId);
       setLot(lotRes);
 
+      // NCL-11-CN-006: tải danh mục đơn vị kiểm nghiệm (nếu lỗi thì fallback nhập tự do)
+      setUnitsLoading(true);
+      try {
+        const unitsRes = await getTestingUnits({ isActive: true });
+        setTestingUnits(unitsRes.items ?? []);
+        setUnitsError(null);
+      } catch {
+        setTestingUnits([]);
+        setUnitsError("Không thể tải danh mục đơn vị kiểm nghiệm.");
+      } finally {
+        setUnitsLoading(false);
+      }
+
       const { criteriaRes, createdKeys } = await loadCriteriaSectionData(
         lotRes.productCategoryId
       );
@@ -323,7 +369,10 @@ export const CreateInspectionRequestPage: React.FC = () => {
         try {
           const parsed = JSON.parse(savedDraft);
           if (parsed.testingUnit) setTestingUnit(parsed.testingUnit);
+          if (parsed.testingUnitId) setTestingUnitId(parsed.testingUnitId);
           if (parsed.sampleSentDate) setSampleSentDate(parsed.sampleSentDate);
+          if (parsed.sampleWeight) setSampleWeight(parsed.sampleWeight);
+          if (parsed.deliveryMethod) setDeliveryMethod(parsed.deliveryMethod);
           if (parsed.notes) setNotes(parsed.notes);
           if (Array.isArray(parsed.selectedCriteriaIds)) {
             // Chỉ khôi phục những chỉ tiêu chưa từng tạo yêu cầu cho lô
@@ -457,11 +506,43 @@ export const CreateInspectionRequestPage: React.FC = () => {
     setSelectedCriteriaIds([]);
   };
 
+  // --- Xử lý File Upload client-side (NCL-11-CN-006) ---
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const newItems: AttachedFileItem[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      if (f.size > 10 * 1024 * 1024) {
+        toast.error(`Tệp "${f.name}" vượt quá dung lượng tối đa 10MB.`);
+        continue;
+      }
+      newItems.push({
+        id: `${Date.now()}_${i}`,
+        file: f,
+        name: f.name,
+        size: f.size,
+        type: f.type,
+      });
+    }
+
+    setAttachedFiles((prev) => [...prev, ...newItems]);
+    event.target.value = "";
+  };
+
+  const handleRemoveFile = (fileId: string) => {
+    setAttachedFiles((prev) => prev.filter((item) => item.id !== fileId));
+  };
+
   // --- Xử lý Lưu bản nháp (Draft) ---
   const handleSaveDraft = () => {
     const draftData = {
       testingUnit,
+      testingUnitId,
       sampleSentDate,
+      sampleWeight,
+      deliveryMethod,
       notes,
       selectedCriteriaIds,
       updatedAt: new Date().toISOString(),
@@ -476,8 +557,12 @@ export const CreateInspectionRequestPage: React.FC = () => {
   const handleClearDraft = () => {
     localStorage.removeItem(draftStorageKey);
     setTestingUnit("");
+    setTestingUnitId("");
     setSampleSentDate(today);
+    setSampleWeight("");
+    setDeliveryMethod("LAB_PICKUP");
     setNotes("");
+    setAttachedFiles([]);
     setSelectedCriteriaIds([...getSelectableIdsFromRows(criterionRows, createdCriterionKeys)]);
     setTouched({ testingUnit: false, sampleSentDate: false, criteria: false });
     toast.info("Đã xóa trắng form và làm mới bản nháp.");
@@ -485,8 +570,66 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
   // --- Validation Form ---
   const trimmedTestingUnit = testingUnit.trim();
+  // NCL-11-CN-006 Phase 1: khi danh mục khả dụng thì bắt buộc chọn từ dropdown;
+  // nếu danh mục rỗng hoặc tải lỗi thì fallback về nhập tự do.
+  const useUnitCatalog = !unitsError && !unitsLoading && testingUnits.length > 0;
+  // NCL-11-CN-006: chỉ hiển thị đơn vị còn hạn công nhận trong dropdown
+  const availableUnits = useMemo(() => {
+    const t = toISODate(new Date());
+    return testingUnits.filter(
+      (u) => !u.accreditationExpiryDate || u.accreditationExpiryDate >= t
+    );
+  }, [testingUnits]);
+  const selectedTestingUnit =
+    availableUnits.find((unit) => unit.id === testingUnitId) || null;
+
+  // NCL-11-CN-006 Phase 2: khi chọn đơn vị từ danh mục, tải phạm vi công nhận.
+  useEffect(() => {
+    if (!testingUnitId) {
+      setAccreditedCriterionIds(new Set());
+      return;
+    }
+    let cancelled = false;
+    setScopeLoading(true);
+    getAccreditationScopes(testingUnitId)
+      .then((summary) => {
+        if (!cancelled) {
+          setAccreditedCriterionIds(
+            new Set(summary.accreditedCriteria.map((c) => c.id))
+          );
+        }
+      })
+      .catch(() => {
+        // Không chặn tạo yêu cầu khi không tải được phạm vi.
+        if (!cancelled) setAccreditedCriterionIds(new Set());
+      })
+      .finally(() => {
+        if (!cancelled) setScopeLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [testingUnitId]);
+
+  // NCL-11-CN-006 Phase 2: các chỉ tiêu đã chọn nằm NGOÀI phạm vi công nhận.
+  const nonAccreditedCriteria = useMemo(() => {
+    if (!testingUnitId || accreditedCriterionIds.size === 0) return [];
+    return criterionRows.filter(
+      (row) =>
+        selectedCriteriaIds.includes(row.criteriaId) &&
+        !accreditedCriterionIds.has(row.criteriaId)
+    );
+  }, [
+    testingUnitId,
+    accreditedCriterionIds,
+    criterionRows,
+    selectedCriteriaIds,
+  ]);
+
   const isSampleDateValid = sampleSentDate !== "" && sampleSentDate <= today;
-  const isTestingUnitValid = trimmedTestingUnit !== "";
+  const isTestingUnitValid = useUnitCatalog
+    ? testingUnitId !== ""
+    : trimmedTestingUnit !== "";
   const isCriteriaSelectedValid = selectedCriteriaIds.length > 0;
 
   const canSubmit =
@@ -518,7 +661,12 @@ export const CreateInspectionRequestPage: React.FC = () => {
     }
 
     if (!canSubmit && !confirmDuplicate) {
-      if (!isTestingUnitValid) toast.error("Vui lòng nhập đơn vị phòng kiểm nghiệm.");
+      if (!isTestingUnitValid)
+        toast.error(
+          useUnitCatalog
+            ? "Vui lòng chọn đơn vị kiểm nghiệm từ danh mục."
+            : "Vui lòng nhập đơn vị phòng kiểm nghiệm."
+        );
       else if (!isSampleDateValid) toast.error("Ngày gửi mẫu không được lớn hơn ngày hiện tại.");
       else if (!isCriteriaSelectedValid) toast.error("Vui lòng chọn ít nhất một chỉ tiêu kiểm nghiệm.");
       return;
@@ -532,7 +680,9 @@ export const CreateInspectionRequestPage: React.FC = () => {
     setSubmitting(true);
     try {
       await createInspectionRequest(effectiveLotId, {
-        testingUnit: trimmedTestingUnit,
+        testingUnitId: useUnitCatalog ? testingUnitId : null,
+        // Khi chọn từ danh mục, gửi tên snapshot của đơn vị để tương thích ngược
+        testingUnit: selectedTestingUnit?.name || trimmedTestingUnit,
         sampleSentDate,
         criteriaIds: effectiveCriteriaIds,
         confirmDuplicate,
@@ -927,6 +1077,42 @@ export const CreateInspectionRequestPage: React.FC = () => {
             </CardContent>
           </Card>
 
+          {/* NCL-11-CN-006 Phase 2: Cảnh báo phạm vi công nhận */}
+          {nonAccreditedCriteria.length > 0 && (
+            <Alert
+              variant="warning"
+              className="rounded-xl border-amber-200 bg-amber-50 text-amber-800"
+            >
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-800">
+                Cảnh báo phạm vi công nhận
+              </AlertTitle>
+              <AlertDescription className="text-amber-700">
+                Các chỉ tiêu sau{" "}
+                <strong>chưa được công nhận</strong> bởi đơn vị "
+                {selectedTestingUnit?.name ?? "đã chọn"}":
+                <ul className="mt-2 list-disc pl-4">
+                  {nonAccreditedCriteria.map((c) => (
+                    <li key={c.criteriaId}>
+                      <span className="font-mono">{c.code}</span> – {c.name}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-amber-600">
+                  Bạn vẫn có thể tạo yêu cầu, nhưng kết quả sẽ không được
+                  tự động công nhận bởi đơn vị này.
+                </p>
+                {scopeLoading && (
+                  <p className="mt-1 flex items-center gap-1 text-amber-600">
+                    <LoaderCircle className="h-3 w-3 animate-spin" />
+                    Đang tải phạm vi công nhận...
+                  </p>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
+
           {/* CARD 2: Thông tin gửi mẫu & Đơn vị kiểm nghiệm */}
           <Card className="rounded-xl border-slate-200 bg-white shadow-sm overflow-hidden">
             <CardHeader className="border-b border-border bg-muted/40 p-5">
@@ -946,25 +1132,64 @@ export const CreateInspectionRequestPage: React.FC = () => {
             </CardHeader>
 
             <CardContent className="p-5 space-y-4">
-              {/* Đơn vị kiểm nghiệm (Phòng Lab) */}
+              {/* Đơn vị kiểm nghiệm (Phòng Lab) - danh mục dùng chung NCL-11-CN-006 */}
               <div className="space-y-1.5">
                 <Label htmlFor="testingUnit" className="text-xs font-semibold text-foreground">
                   Đơn vị phòng Lab tiếp nhận <span className="text-red-600">*</span>
                 </Label>
-                <Input
-                  id="testingUnit"
-                  value={testingUnit}
-                  onChange={(e) => {
-                    setTestingUnit(e.target.value);
-                    setTouched((prev) => ({ ...prev, testingUnit: true }));
-                  }}
-                  placeholder="Nhập tên phòng thí nghiệm hoặc đơn vị kiểm nghiệm..."
-                  className="h-10 rounded-xl text-xs border-input"
-                  maxLength={200}
-                />
+
+                {useUnitCatalog ? (
+                  <>
+                    <TestingUnitSelect
+                      id="testingUnit"
+                      units={availableUnits}
+                      value={testingUnitId}
+                      onChange={(unit) => {
+                        setTestingUnitId(unit?.id || "");
+                        setTouched((prev) => ({ ...prev, testingUnit: true }));
+                      }}
+                      invalid={touched.testingUnit && !isTestingUnitValid}
+                    />
+                    {selectedTestingUnit?.contactInfo && (
+                      <p className="text-xs text-muted-foreground">
+                        Liên hệ: {selectedTestingUnit.contactInfo}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {unitsLoading ? (
+                      <div className="flex h-10 items-center gap-2 rounded-xl border border-input bg-white px-3 text-xs text-muted-foreground">
+                        <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                        Đang tải danh mục đơn vị kiểm nghiệm...
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+                          Danh mục đơn vị kiểm nghiệm chưa có dữ liệu. Vui lòng liên hệ
+                          Quản trị viên, hoặc nhập tên đơn vị tạm thời.
+                        </p>
+                        <Input
+                          id="testingUnit"
+                          value={testingUnit}
+                          onChange={(e) => {
+                            setTestingUnit(e.target.value);
+                            setTouched((prev) => ({ ...prev, testingUnit: true }));
+                          }}
+                          placeholder="Nhập tên phòng thí nghiệm hoặc đơn vị kiểm nghiệm..."
+                          className="h-10 rounded-xl text-xs border-input"
+                          maxLength={200}
+                        />
+                      </>
+                    )}
+                  </>
+                )}
                 {touched.testingUnit && !isTestingUnitValid && (
                   <p className="text-xs font-medium text-red-600 flex items-center gap-1">
-                    <AlertCircle className="h-3.5 w-3.5" /> Vui lòng nhập tên đơn vị phòng Lab kiểm nghiệm.
+                    <AlertCircle className="h-3.5 w-3.5" />{" "}
+                    {useUnitCatalog
+                      ? "Vui lòng chọn đơn vị phòng Lab kiểm nghiệm từ danh mục."
+                      : "Vui lòng nhập tên đơn vị phòng Lab kiểm nghiệm."}
                   </p>
                 )}
               </div>
@@ -1008,6 +1233,107 @@ export const CreateInspectionRequestPage: React.FC = () => {
                   placeholder="Ghi chú điều kiện nhiệt độ bảo quản mẫu, hạn thử nghiệm, yêu cầu trả kết quả gấp..."
                   className="rounded-xl text-xs border-input resize-none"
                 />
+              </div>
+
+              {/* Khối lượng mẫu gửi */}
+              <div className="space-y-1.5">
+                <Label htmlFor="sampleWeight" className="text-xs font-semibold text-foreground">
+                  Khối lượng mẫu gửi
+                </Label>
+                <Input
+                  id="sampleWeight"
+                  value={sampleWeight}
+                  onChange={(e) => setSampleWeight(e.target.value)}
+                  placeholder="Ví dụ: 2 kg / 500 g / 1 lít..."
+                  className="h-10 rounded-xl text-xs border-input max-w-sm"
+                  maxLength={100}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Nhập khối lượng hoặc dung tích mẫu thực tế bàn giao cho phòng Lab.
+                </p>
+              </div>
+
+              {/* Phương thức bàn giao mẫu */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  Phương thức bàn giao mẫu
+                </Label>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  {[
+                    { id: "LAB_PICKUP", label: "Lab đến lấy mẫu" },
+                    { id: "COURIER", label: "Gửi qua chuyển phát" },
+                    { id: "SELF_DELIVERY", label: "Tự mang đến Lab" },
+                  ].map((m) => (
+                    <label
+                      key={m.id}
+                      className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-xs transition-all ${
+                        deliveryMethod === m.id
+                          ? "border-emerald-400 bg-emerald-50 text-emerald-900"
+                          : "border-input bg-white text-muted-foreground hover:border-emerald-300"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="deliveryMethod"
+                        className="h-3.5 w-3.5 accent-emerald-600"
+                        checked={deliveryMethod === m.id}
+                        onChange={() => setDeliveryMethod(m.id as "LAB_PICKUP" | "COURIER" | "SELF_DELIVERY")}
+                      />
+                      {m.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tệp đính kèm (phiếu yêu cầu, ảnh mẫu...) */}
+              <div className="space-y-1.5">
+                <Label htmlFor="attachedFiles" className="text-xs font-semibold text-foreground">
+                  Tệp đính kèm
+                </Label>
+                <label
+                  htmlFor="attachedFiles"
+                  className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/40 px-3 py-3 text-xs font-medium text-emerald-700 hover:bg-emerald-50 transition-colors"
+                >
+                  <Upload className="h-4 w-4" />
+                  Chọn tệp đính kèm (phiếu yêu cầu, ảnh mẫu...)
+                  <input
+                    id="attachedFiles"
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </label>
+                {attachedFiles.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-muted-foreground">
+                      Tệp đính kèm đã chọn ({attachedFiles.length}):
+                    </p>
+                    {attachedFiles.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <FileText className="h-4 w-4 text-emerald-600 shrink-0" />
+                          <div className="truncate">
+                            <p className="font-medium text-foreground truncate">{item.name}</p>
+                            <p className="text-xs text-muted-foreground">{formatFileSize(item.size)}</p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveFile(item.id)}
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600 rounded-lg"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -1221,6 +1547,20 @@ export const CreateInspectionRequestPage: React.FC = () => {
             <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
               {duplicateMessage ||
                 "Hệ thống phát hiện lô sản xuất này đã có yêu cầu kiểm nghiệm đang chờ kết quả cho cùng bộ chỉ tiêu. Bạn có chắc chắn muốn tạo thêm yêu cầu mới không?"}
+              {/* NCL-11-CN-006 Phase 2: nhắc lại cảnh báo phạm vi công nhận khi xác nhận tạo trùng */}
+              {nonAccreditedCriteria.length > 0 && (
+                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800">
+                  <p className="font-semibold text-amber-800">
+                    ⚠️ Lưu ý phạm vi công nhận
+                  </p>
+                  <p className="mt-1 text-amber-700">
+                    {nonAccreditedCriteria.length} chỉ tiêu đang chọn chưa
+                    được công nhận bởi đơn vị "
+                    {selectedTestingUnit?.name ?? "đã chọn"}".
+                    Kết quả sẽ không được tự động công nhận.
+                  </p>
+                </div>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

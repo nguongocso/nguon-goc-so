@@ -33,17 +33,20 @@ import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.CreateInspectionRequest;
 import vn.nguongocso.certification.dto.response.InspectionRequestDetailResponse;
 import vn.nguongocso.certification.dto.response.InspectionRequestResponse;
+import vn.nguongocso.certification.entity.AccreditationScope;
 import vn.nguongocso.certification.entity.InspectionCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterionCatalog;
 import vn.nguongocso.certification.entity.InspectionCriterionResult;
 import vn.nguongocso.certification.entity.InspectionRequest;
 import vn.nguongocso.certification.entity.Standard;
 import vn.nguongocso.certification.enums.InspectionRequestStatus;
+import vn.nguongocso.certification.repository.AccreditationScopeRepository;
 import vn.nguongocso.certification.repository.CategoryCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionCatalogRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
+import vn.nguongocso.certification.repository.TestingUnitRepository;
 import vn.nguongocso.certification.service.impl.DuplicateInspectionRequestException;
 import vn.nguongocso.certification.service.impl.InspectionRequestServiceImpl;
 import vn.nguongocso.event.enums.ChainEventType;
@@ -67,6 +70,9 @@ class InspectionRequestServiceImplTest {
     private InspectionCriterionCatalogRepository inspectionCriterionCatalogRepository;
 
     @Mock
+    private AccreditationScopeRepository accreditationScopeRepository;
+
+    @Mock
     private CategoryCriterionRepository categoryCriterionRepository;
 
     @Mock
@@ -77,6 +83,9 @@ class InspectionRequestServiceImplTest {
 
     @Mock
     private InspectionCriterionResultRepository inspectionCriterionResultRepository;
+
+    @Mock
+    private TestingUnitRepository testingUnitRepository;
 
     @Mock
     private Clock clock;
@@ -396,6 +405,98 @@ class InspectionRequestServiceImplTest {
     }
 
     /**
+     * NCL-11-CN-006 Phase 2: khi tạo yêu cầu chọn đơn vị từ danh mục
+     * (testingUnitId) và đơn vị có phạm vi công nhận, chỉ tiêu nằm
+     * NGOÀI phạm vi phải được đánh dấu cảnh báo (không chặn tạo).
+     */
+    @Test
+    void createInspectionRequest_shouldFlagScopeWarning_whenCriterionOutOfScope() {
+
+        CreateInspectionRequest request = new CreateInspectionRequest();
+        UUID testingUnitId = UUID.randomUUID();
+        request.setTestingUnitId(testingUnitId);
+        request.setTestingUnit("Lab ABC");
+        request.setSampleSentDate(LocalDate.now());
+        request.setCriteriaIds(List.of(101L, 102L));
+
+        when(productionLotRepository.findByIdAndOrganization_OrganizationId(lotId, orgId))
+                .thenReturn(Optional.of(lot));
+        when(chainEventRepository
+                .existsByProductionLotIdOrUnassignedEventDataAndEventType(
+                        lotId, lotId.toString(), ChainEventType.HARVEST))
+                .thenReturn(true);
+
+        /*
+         * Đơn vị kiểm nghiệm tồn tại trong danh mục.
+         */
+        when(testingUnitRepository.findById(testingUnitId))
+                .thenReturn(Optional.of(
+                        vn.nguongocso.certification.entity.TestingUnit.builder()
+                                .id(testingUnitId)
+                                .name("Lab ABC")
+                                .accreditationCode("VILAS-001")
+                                .isActive(true)
+                                .build()));
+
+        InspectionCriterionCatalog c1 = InspectionCriterionCatalog.builder()
+                .id(101L)
+                .name("Dư lượng thuốc trừ sâu")
+                .unit("mg/kg")
+                .maxThreshold(new java.math.BigDecimal("0.5"))
+                .status("ACTIVE")
+                .build();
+        InspectionCriterionCatalog c2 = InspectionCriterionCatalog.builder()
+                .id(102L)
+                .name("Kim loại nặng")
+                .unit("mg/kg")
+                .maxThreshold(new java.math.BigDecimal("1.0"))
+                .status("ACTIVE")
+                .build();
+
+        when(inspectionCriterionCatalogRepository.findById(101L))
+                .thenReturn(Optional.of(c1));
+        when(inspectionCriterionCatalogRepository.findById(102L))
+                .thenReturn(Optional.of(c2));
+        when(categoryCriterionRepository.existsByCategory_IdAndCriterion_Id(categoryId, 101L))
+                .thenReturn(true);
+        when(categoryCriterionRepository.existsByCategory_IdAndCriterion_Id(categoryId, 102L))
+                .thenReturn(true);
+
+        when(inspectionRequestRepository.findByProductionLot_IdAndStatus(
+                lotId, InspectionRequestStatus.PENDING_RESULT))
+                .thenReturn(List.of());
+        when(inspectionRequestRepository.save(any(InspectionRequest.class)))
+                .thenAnswer(invocation -> {
+                    InspectionRequest saved = invocation.getArgument(0);
+                    saved.setId(UUID.randomUUID());
+                    return saved;
+                });
+
+        /*
+         * Đơn vị có phạm vi công nhận: chỉ chứa chỉ tiêu 101.
+         * Chỉ tiêu 102 nằm ngoài phạm vi -> phát sinh cảnh báo.
+         */
+        AccreditationScope scope = AccreditationScope.builder()
+                .testingUnit(vn.nguongocso.certification.entity.TestingUnit.builder()
+                        .id(testingUnitId).name("Lab ABC").build())
+                .criterion(c1)
+                .criterionCode(c1.getName())
+                .criterionName(c1.getName())
+                .build();
+        when(accreditationScopeRepository.findByTestingUnitIdWithCriterion(testingUnitId))
+                .thenReturn(List.of(scope));
+
+        InspectionRequestResponse response =
+                inspectionRequestService.createInspectionRequest(lotId, request, currentUser);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getHasScopeWarning()).isTrue();
+        assertThat(response.getScopeWarningDetails())
+                .contains("Kim loại nặng");
+    }
+
+
+    /**
      * Regression test NCL-11-CN-002:
      *
      * HARVEST được ghi với shipment_id = NULL và productionLotId
@@ -408,6 +509,67 @@ class InspectionRequestServiceImplTest {
      *
      * để repository so khớp JSON event_data qua JSON_EXTRACT.
      */
+    /**
+     * NCL-11-CN-006 Phase 2: khi tất cả chỉ tiêu nằm trong phạm vi
+     * công nhận của đơn vị -> không có cảnh báo.
+     */
+    @Test
+    void createInspectionRequest_shouldNotFlagScopeWarning_whenAllCriteriaInScope() {
+
+        CreateInspectionRequest request = new CreateInspectionRequest();
+        UUID testingUnitId = UUID.randomUUID();
+        request.setTestingUnitId(testingUnitId);
+        request.setTestingUnit("Lab ABC");
+        request.setSampleSentDate(LocalDate.now());
+        request.setCriteriaIds(List.of(101L));
+
+        when(productionLotRepository.findByIdAndOrganization_OrganizationId(lotId, orgId))
+                .thenReturn(Optional.of(lot));
+        when(chainEventRepository
+                .existsByProductionLotIdOrUnassignedEventDataAndEventType(
+                        lotId, lotId.toString(), ChainEventType.HARVEST))
+                .thenReturn(true);
+        when(testingUnitRepository.findById(testingUnitId))
+                .thenReturn(Optional.of(
+                        vn.nguongocso.certification.entity.TestingUnit.builder()
+                                .id(testingUnitId)
+                                .name("Lab ABC")
+                                .accreditationCode("VILAS-001")
+                                .isActive(true)
+                                .build()));
+        when(inspectionCriterionCatalogRepository.findById(101L))
+                .thenReturn(Optional.of(catalogCriterion));
+        when(categoryCriterionRepository.existsByCategory_IdAndCriterion_Id(categoryId, 101L))
+                .thenReturn(true);
+        when(inspectionRequestRepository.findByProductionLot_IdAndStatus(
+                lotId, InspectionRequestStatus.PENDING_RESULT))
+                .thenReturn(List.of());
+        when(inspectionRequestRepository.save(any(InspectionRequest.class)))
+                .thenAnswer(invocation -> {
+                    InspectionRequest saved = invocation.getArgument(0);
+                    saved.setId(UUID.randomUUID());
+                    return saved;
+                });
+
+        AccreditationScope scope = AccreditationScope.builder()
+                .testingUnit(vn.nguongocso.certification.entity.TestingUnit.builder()
+                        .id(testingUnitId).name("Lab ABC").build())
+                .criterion(catalogCriterion)
+                .criterionCode(catalogCriterion.getName())
+                .criterionName(catalogCriterion.getName())
+                .build();
+        when(accreditationScopeRepository.findByTestingUnitIdWithCriterion(testingUnitId))
+                .thenReturn(List.of(scope));
+
+        InspectionRequestResponse response =
+                inspectionRequestService.createInspectionRequest(lotId, request, currentUser);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getHasScopeWarning()).isFalse();
+        assertThat(response.getScopeWarningDetails()).isNull();
+    }
+
+
     @Test
     void createInspectionRequest_shouldRecognizeHarvestStoredInEventData_whenNoShipmentLinked() {
 

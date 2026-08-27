@@ -146,6 +146,12 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ROLE_ACCESS.inspectionCriteriaManagement,
       },
       {
+        icon: <ShieldCheck className="h-5 w-5" />,
+        label: "Đơn vị kiểm nghiệm",
+        href: "/admin/testing-units",
+        allowedRoles: ROLE_ACCESS.testingUnitScopeManagement,
+      },
+      {
         icon: <PackageCheck className="h-5 w-5" />,
         label: "Danh mục vật tư",
         href: "/admin/input-materials",

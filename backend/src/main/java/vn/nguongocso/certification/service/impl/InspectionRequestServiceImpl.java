@@ -16,6 +16,7 @@ import vn.nguongocso.certification.dto.response.InspectionRequestDetailResponse;
 import vn.nguongocso.certification.dto.response.InspectionRequestListResponse;
 import vn.nguongocso.certification.dto.response.InspectionRequestResponse;
 import vn.nguongocso.certification.dto.response.ProductionLotTestCriteriaResponse;
+import vn.nguongocso.certification.entity.AccreditationScope;
 import vn.nguongocso.certification.entity.CategoryCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterionCatalog;
@@ -23,12 +24,15 @@ import vn.nguongocso.certification.entity.InspectionCriterionResult;
 import vn.nguongocso.certification.entity.InspectionRequest;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.certification.entity.Standard;
+import vn.nguongocso.certification.entity.TestingUnit;
 import vn.nguongocso.certification.enums.InspectionRequestStatus;
+import vn.nguongocso.certification.repository.AccreditationScopeRepository;
 import vn.nguongocso.certification.repository.CategoryCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionCatalogRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
+import vn.nguongocso.certification.repository.TestingUnitRepository;
 import vn.nguongocso.certification.service.InspectionRequestService;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.event.enums.ChainEventType;
@@ -90,6 +94,15 @@ public class InspectionRequestServiceImpl
     private static final String MSG_INVALID_SAMPLE_DATE =
             "Ngày gửi mẫu không được để trống.";
 
+    private static final String MSG_TESTING_UNIT_NOT_FOUND =
+            "Đơn vị kiểm nghiệm không tồn tại trong danh mục.";
+
+    private static final String MSG_TESTING_UNIT_INACTIVE =
+            "Đơn vị kiểm nghiệm đã ngừng hoạt động, vui lòng chọn đơn vị khác.";
+
+    private static final String MSG_TESTING_UNIT_EXPIRED =
+            "Đơn vị kiểm nghiệm đã hết hạn công nhận, vui lòng chọn đơn vị khác.";
+
     private static final String MSG_REQUEST_NOT_FOUND =
             "Yêu cầu kiểm nghiệm không tồn tại.";
 
@@ -109,6 +122,10 @@ public class InspectionRequestServiceImpl
 
     private final InspectionCriterionResultRepository
             inspectionCriterionResultRepository;
+
+    private final TestingUnitRepository testingUnitRepository;
+
+    private final AccreditationScopeRepository accreditationScopeRepository;
 
     private final Clock clock;
 
@@ -150,14 +167,48 @@ public class InspectionRequestServiceImpl
 
         /*
          * 4.1. Validate đơn vị kiểm nghiệm.
+         *
+         * NCL-11-CN-006 Phase 1: ưu tiên testingUnitId từ danh mục dùng chung.
+         * Khi có ID, tra cứu danh mục, kiểm tra trạng thái hiệu lực và ngày
+         * hết hạn công nhận, rồi dùng TÊN SNAPSHOT làm inspection_unit.
+         * Nếu không có ID, fallback về tên tự do (tương thích ngược).
          */
-        String testingUnit = request.getTestingUnit() == null
-                ? ""
-                : request.getTestingUnit().trim();
+        String testingUnit;
 
-        if (testingUnit.isBlank()) {
-            throw new BusinessException(
-                    "Đơn vị kiểm nghiệm không được để trống.");
+        if (request.getTestingUnitId() != null) {
+
+            TestingUnit testingUnitCatalog = testingUnitRepository
+                    .findById(request.getTestingUnitId())
+                    .orElseThrow(() ->
+                            new BusinessException(
+                                    MSG_TESTING_UNIT_NOT_FOUND));
+
+            if (!Boolean.TRUE.equals(testingUnitCatalog.getIsActive())) {
+                throw new BusinessException(
+                        MSG_TESTING_UNIT_INACTIVE);
+            }
+
+            LocalDate today = LocalDate.now(clock);
+            if (testingUnitCatalog.getAccreditationExpiryDate() != null
+                    && testingUnitCatalog.getAccreditationExpiryDate()
+                            .isBefore(today)) {
+
+                throw new BusinessException(
+                        MSG_TESTING_UNIT_EXPIRED);
+            }
+
+            testingUnit = testingUnitCatalog.getName();
+
+        } else {
+
+            testingUnit = request.getTestingUnit() == null
+                    ? ""
+                    : request.getTestingUnit().trim();
+
+            if (testingUnit.isBlank()) {
+                throw new BusinessException(
+                        "Đơn vị kiểm nghiệm không được để trống.");
+            }
         }
 
         /*
@@ -210,6 +261,7 @@ public class InspectionRequestServiceImpl
                 InspectionRequest.builder()
                         .productionLot(lot)
                         .inspectionUnit(testingUnit)
+                        .testingUnitId(request.getTestingUnitId())
                         .sampleSentDate(
                                 request.getSampleSentDate())
                         .status(
@@ -236,6 +288,13 @@ public class InspectionRequestServiceImpl
          */
         Set<String> requestedCriteriaKeys =
                 new HashSet<>();
+
+        /*
+         * Map criteriaId -> tên chỉ tiêu đã được duyệt hợp lệ ở vòng lặp dưới.
+         * Dùng để mô tả các chỉ tiêu ngoài phạm vi công nhận (NCL-11-CN-006 Phase 2).
+         */
+        Map<Long, String> requestedCriterionNames =
+                new java.util.LinkedHashMap<>();
 
         /*
          * 7. Xử lý từng criterion.
@@ -274,6 +333,11 @@ public class InspectionRequestServiceImpl
                 throw new BusinessException(
                         MSG_CRITERION_NOT_APPLICABLE);
             }
+
+            /* Lưu tên chỉ tiêu đã duyệt hợp lệ để mô tả cảnh báo phạm vi. */
+            requestedCriterionNames.put(
+                    criteriaId,
+                    catalogCriterion.getName());
 
             /*
              * 7.4. Tạo khóa criterion.
@@ -321,6 +385,46 @@ public class InspectionRequestServiceImpl
             inspectionRequest
                     .getCriteria()
                     .add(criterion);
+        }
+
+        /*
+         * 7.6. Kiểm tra phạm vi công nhận của đơn vị kiểm nghiệm
+         * (NCL-11-CN-006 Phase 2).
+         *
+         * Chỉ áp dụng khi yêu cầu chọn đơn vị từ danh mục dùng chung
+         * (testingUnitId != null). Nếu đơn vị có phạm vi công nhận được
+         * cấu hình (VT-01) và có chỉ tiêu được chọn nằm NGOÀI phạm vi,
+         * hệ thống KHÔNG chặn tạo yêu cầu mà chỉ đánh dấu cảnh báo để
+         * người kiểm định biết kết quả sẽ không được tự động công nhận.
+         *
+         * Lưu ý: nếu đơn vị chưa được cấu hình phạm vi (danh sách rỗng),
+         * không phát sinh cảnh báo để tránh nhiễu cho dữ liệu Phase 1.
+         */
+        if (request.getTestingUnitId() != null) {
+
+            List<AccreditationScope> scopes =
+                    accreditationScopeRepository
+                            .findByTestingUnitIdWithCriterion(
+                                    request.getTestingUnitId());
+
+            if (!scopes.isEmpty()) {
+
+                Set<Long> accreditedIds = scopes.stream()
+                        .map(scope -> scope.getCriterion().getId())
+                        .collect(Collectors.toSet());
+
+                List<String> outOfScopeNames = requestedCriterionNames.entrySet()
+                        .stream()
+                        .filter(entry -> !accreditedIds.contains(entry.getKey()))
+                        .map(Map.Entry::getValue)
+                        .toList();
+
+                if (!outOfScopeNames.isEmpty()) {
+                    inspectionRequest.setScopeWarning(Boolean.TRUE);
+                    inspectionRequest.setScopeWarningDetails(
+                            String.join(", ", outOfScopeNames));
+                }
+            }
         }
 
         /*
@@ -896,6 +1000,15 @@ public class InspectionRequestServiceImpl
                                 .getName())
                 .testingUnit(
                         request.getInspectionUnit())
+                .testingUnitId(
+                        request.getTestingUnitId())
+                .hasScopeWarning(
+                        Boolean.TRUE.equals(
+                                request.getScopeWarning())
+                                ? Boolean.TRUE
+                                : Boolean.FALSE)
+                .scopeWarningDetails(
+                        request.getScopeWarningDetails())
                 .sampleSentDate(
                         request.getSampleSentDate())
                 .status(
