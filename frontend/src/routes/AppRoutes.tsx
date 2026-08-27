@@ -719,8 +719,6 @@ const AppRoutes = () => (
             />
 
             <Route
-<<<<<<< HEAD
-=======
                 path="admin/input-materials"
                 element={
                     <RoleRoute allowedRoles={["VT-01", "VT-02", "VT-03", "VT-04"]}>
@@ -757,7 +755,6 @@ const AppRoutes = () => (
             />
 
             <Route
->>>>>>> origin/develop
                 path="admin/standards"
                 element={
                     <RoleRoute
