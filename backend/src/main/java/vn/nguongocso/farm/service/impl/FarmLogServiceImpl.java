@@ -332,6 +332,7 @@ public class FarmLogServiceImpl implements FarmLogService {
 				.executedDate(farmLog.getExecutedDate())
 				.notes(farmLog.getNotes())
 				.createdByName(farmLog.getCreatedBy().getFullName())
+				.createdById(farmLog.getCreatedBy().getUserId())
 				.createdAt(farmLog.getCreatedAt())
 				.originalFarmLogId(farmLog.getOriginalFarmLogId() != null
 						? farmLog.getOriginalFarmLogId().getId()

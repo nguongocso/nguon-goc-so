@@ -41,6 +41,8 @@ public class FarmLogResponse {
 
     private String createdByName;
 
+    private UUID createdById;
+
     private LocalDateTime createdAt;
 
     private List<AttachmentResponse> attachments;

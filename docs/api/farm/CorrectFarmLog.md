@@ -202,6 +202,7 @@ Các trường mới so với CreateFarmLog:
 
 | **Field** | **Ý nghĩa** |
 | --- | --- |
+| createdById | UUID của người ghi bản ghi (phục vụ kiểm tra quyền hiển thị nút Đính chính ở frontend) |
 | originalFarmLogId | ID bản gốc (null nếu là bản ghi thường) |
 | isCorrection | true nếu đây là bản ghi đính chính |
 | correctionReason | Lý do đính chính (null nếu bản ghi thường) |
