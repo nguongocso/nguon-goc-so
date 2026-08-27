@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
+  Eye,
   LoaderCircle,
   Package,
   Plus,
@@ -526,8 +527,8 @@ export const ProductionLotDetailPage = () => {
           const current = latest[result.criterionCode];
           const isNewer =
             !current ||
-            result.resultDate > current.resultDate ||
-            (result.resultDate === current.resultDate &&
+            (result.resultDate ?? "") > (current.resultDate ?? "") ||
+            ((result.resultDate ?? "") === (current.resultDate ?? "") &&
               result.updatedAt > current.updatedAt);
           if (isNewer) {
             latest[result.criterionCode] = result;
@@ -617,7 +618,7 @@ export const ProductionLotDetailPage = () => {
       const status: CriterionRowStatus = result
         ? !result.passed
           ? "FAILED"
-          : result.expiryDate >= today
+          : result.expiryDate && result.expiryDate >= today
             ? "VALID"
             : "EXPIRED"
         : pendingRequestId
@@ -1334,7 +1335,7 @@ export const ProductionLotDetailPage = () => {
                                       {getCriterionRowStatusBadge(row.status)}
                                     </TableCell>
                                     <TableCell className="whitespace-normal">
-                                      {row.result
+                                      {row.result && row.result.expiryDate
                                         ? formatDateOnly(row.result.expiryDate)
                                         : "—"}
                                     </TableCell>
@@ -1386,7 +1387,7 @@ export const ProductionLotDetailPage = () => {
                                   </span>
                                   <span>
                                     Hiệu lực đến:{" "}
-                                    {row.result
+                                    {row.result && row.result.expiryDate
                                       ? formatDateOnly(row.result.expiryDate)
                                       : "—"}
                                   </span>
@@ -1659,22 +1660,38 @@ export const ProductionLotDetailPage = () => {
                                   </span>
                                 )}
                               </p>
-                              {canInspect && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-xs font-semibold"
-                                  onClick={() =>
-                                    navigate(
-                                      `/production-lots/${id}/inspection-requests/${request.testRequestId}/results`,
-                                    )
-                                  }
-                                >
-                                  {request.status === "PENDING"
-                                    ? "Nhận kết quả"
-                                    : "Xem chi tiết"}
-                                </Button>
-                              )}
+                              {canInspect &&
+                                (request.status === "PASSED" ||
+                                request.status === "FAILED" ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 w-7 p-0 text-slate-600 hover:text-emerald-800 hover:bg-emerald-50"
+                                    title="Xem chi tiết kết quả kiểm nghiệm"
+                                    onClick={() =>
+                                      navigate(
+                                        `/production-lots/${id}/inspection-requests/${request.testRequestId}/results`,
+                                      )
+                                    }
+                                  >
+                                    <Eye className="h-3.5 w-3.5" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-xs font-semibold"
+                                    onClick={() =>
+                                      navigate(
+                                        `/production-lots/${id}/inspection-requests/${request.testRequestId}/results`,
+                                      )
+                                    }
+                                  >
+                                    {request.status === "PENDING"
+                                      ? "Nhận kết quả"
+                                      : "Xem chi tiết"}
+                                  </Button>
+                                ))}
                             </div>
                           </div>
                         ))}

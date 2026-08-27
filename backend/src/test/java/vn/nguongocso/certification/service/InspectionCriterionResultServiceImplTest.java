@@ -627,6 +627,67 @@ class InspectionCriterionResultServiceImplTest {
                 .save(inspectionRequest);
     }
 
+
+    // ============================================================
+    // TC-09b
+    // ============================================================
+
+    @Test
+    @DisplayName("TC-09b: Chỉ tiêu không đạt với resultDate/expiryDate null → Vẫn được chấp nhận, status FAILED")
+    void testRecordFailedCriteriaWithNullDates() {
+
+        // Arrange — passed = false, ngày được gửi null
+        InspectionCriterionResultRequest request =
+                InspectionCriterionResultRequest.builder()
+                        .criterionId(criterionId.toString())
+                        .resultDate(null)
+                        .expiryDate(null)
+                        .passed(false)
+                        .build();
+
+        result.setPassed(false);
+        result.setResultDate(null);
+        result.setExpiryDate(null);
+
+        when(criterionRepository.findById(criterionId))
+                .thenReturn(Optional.of(criterion));
+
+        when(resultRepository.findByInspectionCriterion_Id(criterionId))
+                .thenReturn(Optional.empty());
+
+        when(resultRepository.save(any(InspectionCriterionResult.class)))
+                .thenReturn(result);
+
+        when(resultRepository.countTotalCriteria(
+                inspectionRequestId))
+                .thenReturn(1);
+
+        when(resultRepository
+                .findByInspectionCriterion_InspectionRequest_Id(
+                        inspectionRequestId))
+                .thenReturn(List.of(result));
+
+        // Act
+        service.recordOrUpdateResult(
+                criterionId.toString(),
+                request,
+                currentUser);
+
+        // Assert — được lưu thành công, status = FAILED
+        assertThat(inspectionRequest.getStatus())
+                .isEqualTo(InspectionRequestStatus.FAILED);
+        verify(requestRepository).save(inspectionRequest);
+
+        // Kiểm tra entity được lưu có resultDate/expiryDate = null
+        ArgumentCaptor<InspectionCriterionResult> captor =
+                ArgumentCaptor.forClass(InspectionCriterionResult.class);
+        verify(resultRepository).save(captor.capture());
+        InspectionCriterionResult saved = captor.getValue();
+        assertThat(saved.getResultDate()).isNull();
+        assertThat(saved.getExpiryDate()).isNull();
+        assertThat(saved.getPassed()).isFalse();
+    }
+
     // ============================================================
     // TC-10
     // ============================================================
@@ -1100,6 +1161,96 @@ class InspectionCriterionResultServiceImplTest {
         assertThat(inspectionRequest.getStatus())
                 .isEqualTo(InspectionRequestStatus.PASSED);
 
+        verify(requestRepository).save(inspectionRequest);
+    }
+
+
+    // ============================================================
+    // TC-19b
+    // ============================================================
+
+    @Test
+    @DisplayName("TC-19b: Batch có 1 chỉ tiêu Đạt + 1 chỉ tiêu Không đạt (null dates) → Lưu thành công, status FAILED")
+    void testRecordResultsBatchWithMixedPassAndFailNullDates() {
+
+        // Arrange — 2 chỉ tiêu: 1 đạt (có ngày), 1 không đạt (null dates)
+        UUID c2 = UUID.randomUUID();
+        InspectionCriterion criterion2 = InspectionCriterion.builder()
+                .id(c2)
+                .criterionCode("CODE_2")
+                .criterionName("Criterion 2")
+                .inspectionRequest(inspectionRequest)
+                .build();
+        inspectionRequest.setCriteria(List.of(criterion, criterion2));
+
+        LocalDate resultDate = LocalDate.now().minusDays(1);
+        LocalDate expiryDate = LocalDate.now().plusMonths(6);
+
+        InspectionCriterionResult r2 = InspectionCriterionResult.builder()
+                .id(UUID.randomUUID())
+                .inspectionCriterion(criterion2)
+                .resultDate(null)
+                .expiryDate(null)
+                .passed(false)
+                .createdBy(user)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        InspectionCriterionResult r1 = InspectionCriterionResult.builder()
+                .id(UUID.randomUUID())
+                .inspectionCriterion(criterion)
+                .resultDate(resultDate)
+                .expiryDate(expiryDate)
+                .passed(true)
+                .createdBy(user)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        List<InspectionCriterionResultRequest> items = List.of(
+                InspectionCriterionResultRequest.builder()
+                        .criterionId(criterionId.toString())
+                        .resultDate(resultDate)
+                        .expiryDate(expiryDate)
+                        .passed(true)
+                        .build(),
+                InspectionCriterionResultRequest.builder()
+                        .criterionId(c2.toString())
+                        .resultDate(null)
+                        .expiryDate(null)
+                        .passed(false)
+                        .build());
+
+        when(requestRepository.findById(inspectionRequestId))
+                .thenReturn(Optional.of(inspectionRequest));
+
+        // Chưa có kết quả nào → tạo mới
+        when(resultRepository.findByInspectionCriterion_Id(criterionId))
+                .thenReturn(Optional.empty());
+        when(resultRepository.findByInspectionCriterion_Id(c2))
+                .thenReturn(Optional.empty());
+
+        when(resultRepository.saveAll(anyList()))
+                .thenReturn(List.of(r1, r2));
+
+        when(resultRepository.countTotalCriteria(inspectionRequestId))
+                .thenReturn(2);
+        when(resultRepository
+                .findByInspectionCriterion_InspectionRequest_Id(inspectionRequestId))
+                .thenReturn(List.of(r1, r2));
+
+        // Act
+        List<InspectionCriterionResultResponse> responses =
+                service.recordResults(
+                        inspectionRequestId,
+                        items,
+                        currentUser);
+
+        // Assert — lưu thành công, status = FAILED (có chỉ tiêu không đạt)
+        assertThat(inspectionRequest.getStatus())
+                .isEqualTo(InspectionRequestStatus.FAILED);
+        assertThat(responses).hasSize(2);
+        verify(resultRepository).saveAll(anyList());
         verify(requestRepository).save(inspectionRequest);
     }
 

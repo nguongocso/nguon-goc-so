@@ -159,14 +159,17 @@ public class InspectionCriterionResultServiceImpl
             throw new IllegalStateException(MSG_REQUEST_STATUS_INVALID);
         }
 
-        // Validate ngày cấp và ngày hết hiệu lực
-        if (request.getExpiryDate().isBefore(request.getResultDate())) {
-            throw new IllegalArgumentException(MSG_EXPIRY_BEFORE_RESULT_DATE);
-        }
+        // Validate ngày cấp và ngày hết hạn — chỉ bắt buộc khi chỉ tiêu ĐẠT
+        // Khi Không đạt (passed = false), resultDate / expiryDate được phép null
+        if (Boolean.TRUE.equals(request.getPassed())) {
+            if (request.getExpiryDate().isBefore(request.getResultDate())) {
+                throw new IllegalArgumentException(MSG_EXPIRY_BEFORE_RESULT_DATE);
+            }
 
-        // Kiểm tra xem ngày hết hiệu lực có >= hôm nay không
-        if (request.getExpiryDate().isBefore(LocalDate.now(clock))) {
-            throw new IllegalArgumentException(MSG_EXPIRY_IN_PAST);
+            // Kiểm tra xem ngày hết hạn có >= hôm nay không
+            if (request.getExpiryDate().isBefore(LocalDate.now(clock))) {
+                throw new IllegalArgumentException(MSG_EXPIRY_IN_PAST);
+            }
         }
 
         // Tìm hoặc tạo kết quả kiểm nghiệm
@@ -337,7 +340,7 @@ public class InspectionCriterionResultServiceImpl
         InspectionCriterionResult result = resultRepository
                 .findByInspectionCriterion_Id(criterionUUID)
                 .orElseThrow(() ->
-                    new BusinessException(MSG_RESULT_NOT_FOUND));
+                        new BusinessException(MSG_RESULT_NOT_FOUND));
 
         requireCriterionAccess(result.getInspectionCriterion(), currentUser);
 
@@ -351,7 +354,7 @@ public class InspectionCriterionResultServiceImpl
         InspectionCriterionResult result = resultRepository
                 .findById(resultUUID)
                 .orElseThrow(() ->
-                    new BusinessException(MSG_RESULT_NOT_FOUND));
+                        new BusinessException(MSG_RESULT_NOT_FOUND));
 
         requireCriterionAccess(result.getInspectionCriterion(), currentUser);
 
@@ -414,9 +417,9 @@ public class InspectionCriterionResultServiceImpl
         String newFileName =
                 UUID.randomUUID().toString().replace("-", "") + extension;
         String uploadDir = Paths.get(
-                baseDir,
-                inspectionResultRelativePath,
-                criterion.getInspectionRequest().getId().toString())
+                        baseDir,
+                        inspectionResultRelativePath,
+                        criterion.getInspectionRequest().getId().toString())
                 .toString();
         String filePath = Paths.get(uploadDir, newFileName).toString();
 
@@ -508,7 +511,7 @@ public class InspectionCriterionResultServiceImpl
         boolean mandatoryInspection =
                 category != null
                         && Boolean.TRUE.equals(
-                                category.getRequiresInspection());
+                        category.getRequiresInspection());
 
         LocalDate today = LocalDate.now(clock);
 
@@ -548,6 +551,12 @@ public class InspectionCriterionResultServiceImpl
         for (InspectionCriterionResult result : resultRepository
                 .findAllByProductionLotId(productionLotId)) {
 
+            // Bỏ qua chỉ tiêu không đạt — resultDate/expiryDate sẽ là null,
+            // không tham gia so sánh ngày để tìm kết quả mới nhất.
+            if (result.getResultDate() == null) {
+                continue;
+            }
+
             String code = result.getInspectionCriterion()
                     .getCriterionCode();
             InspectionCriterionResult current = latestByCode.get(code);
@@ -558,13 +567,13 @@ public class InspectionCriterionResultServiceImpl
             boolean isNewer =
                     current == null
                             || result.getResultDate()
-                                    .isAfter(current.getResultDate())
+                            .isAfter(current.getResultDate())
                             || (result.getResultDate()
-                                    .isEqual(current.getResultDate())
-                                    && resultUpdatedAt != null
-                                    && (currentUpdatedAt == null
-                                            || resultUpdatedAt.isAfter(
-                                                    currentUpdatedAt)));
+                            .isEqual(current.getResultDate())
+                            && resultUpdatedAt != null
+                            && (currentUpdatedAt == null
+                            || resultUpdatedAt.isAfter(
+                            currentUpdatedAt)));
 
             if (isNewer) {
                 latestByCode.put(code, result);
@@ -588,8 +597,13 @@ public class InspectionCriterionResultServiceImpl
                 continue;
             }
 
-            if (earliestExpiry == null
-                    || latest.getExpiryDate().isBefore(earliestExpiry)) {
+            // Đã kiểm tra !Boolean.TRUE.equals ở trên → chỉ tiêu đạt còn lại
+            // luôn có expiryDate khác null (do validation ở tầng service).
+            // earliestExpiry chỉ cập nhật cho chỉ tiêu đạt để tránh NPE.
+            if (Boolean.TRUE.equals(latest.getPassed())
+                    && latest.getExpiryDate() != null
+                    && (earliestExpiry == null
+                    || latest.getExpiryDate().isBefore(earliestExpiry))) {
                 earliestExpiry = latest.getExpiryDate();
             }
 
@@ -597,6 +611,7 @@ public class InspectionCriterionResultServiceImpl
                 continue;
             }
 
+            // Chỉ tiêu đạt luôn có expiryDate khác null (đã validate ở trên)
             if (latest.getExpiryDate().isBefore(today)) {
                 hasExpiredResult = true;
                 continue;
@@ -639,11 +654,11 @@ public class InspectionCriterionResultServiceImpl
 
     /**
      * Kiểm tra và cập nhật trạng thái yêu cầu kiểm nghiệm.
-     *
+     * <p>
      * - Chưa đủ kết quả cho tất cả chỉ tiêu: PENDING_RESULT.
      * - Tất cả chỉ tiêu đạt và còn hiệu lực: PASSED.
      * - Đã có đủ kết quả nhưng có chỉ tiêu không đạt / hết hạn: FAILED.
-     *
+     * <p>
      * Phương thức này phải được gọi SAU KHI toàn bộ kết quả đã được lưu
      * để trạng thái cuối được tính đúng một lần.
      */
@@ -679,7 +694,7 @@ public class InspectionCriterionResultServiceImpl
     /**
      * Kiểm tra quyền truy cập chỉ tiêu: chỉ tiêu phải thuộc yêu cầu kiểm nghiệm
      * của một lô thuộc tổ chức hiện tại của người dùng.
-     *
+     * <p>
      * Trả lỗi "không tồn tại" thay vì lỗi phân quyền để không làm lộ
      * dữ liệu của tổ chức khác.
      */
@@ -738,6 +753,13 @@ public class InspectionCriterionResultServiceImpl
             InspectionCriterionResultRequest item,
             LocalDate today) {
 
+        // Khi "Không đạt" (passed = false), resultDate / expiryDate được phép
+        // null — chỉ tiêu không đạt không có hiệu lực thời gian.
+        if (Boolean.FALSE.equals(item.getPassed())) {
+            return;
+        }
+
+        // Khi "Đạt" (passed = true), bắt buộc phải có ngày cấp và ngày hết hạn
         if (item.getResultDate() == null
                 || item.getExpiryDate() == null
                 || item.getPassed() == null) {
