@@ -146,8 +146,6 @@ public class EmailServiceImpl implements EmailService {
                     <style>
                         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f7f6; }
                         .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-                        .header { background: #059669; color: #ffffff; padding: 24px; text-align: center; }
-                        .header h1 { margin: 0; font-size: 24px; }
                         .content { padding: 32px 24px; }
                         .info-box { background: #f0fdf4; border-left: 4px solid #059669; padding: 16px; margin: 20px 0; border-radius: 4px; }
                         .info-item { margin-bottom: 8px; }
@@ -159,9 +157,6 @@ public class EmailServiceImpl implements EmailService {
                 </head>
                 <body>
                     <div class="container">
-                        <div class="header">
-                            <h1>🌱 Nguồn Gốc Số</h1>
-                        </div>
                         <div class="content">
                             <h2>Yêu cầu đặt lại mật khẩu</h2>
                             <p>Xin chào <strong>{{fullName}}</strong>,</p>
