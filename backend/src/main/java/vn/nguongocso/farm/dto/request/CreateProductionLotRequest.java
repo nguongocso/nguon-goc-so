@@ -18,6 +18,7 @@ public class CreateProductionLotRequest {
     @NotBlank(message = "Tên lô không được để trống")
     private String name;
 
+    @NotNull(message = "Vui lòng chọn vùng trồng")
     private UUID farmAreaId;
 
     @NotNull(message = "Vui lòng chọn loại nông sản")

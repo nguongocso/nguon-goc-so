@@ -16,6 +16,7 @@ import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.dto.request.ApproveProductionLotRequest;
+import vn.nguongocso.farm.dto.request.CreateProductionLotRequest;
 import vn.nguongocso.farm.dto.response.CreateProductionLotResponse;
 import vn.nguongocso.farm.entity.FarmArea;
 import vn.nguongocso.farm.entity.ProductCategory;
@@ -179,5 +180,56 @@ public class ProductionLotServiceTest {
         assertThatThrownBy(() -> productionLotService.approveProductionLot(lotId, request, userDetails))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Chỉ có thể duyệt lô đang ở trạng thái chờ duyệt");
+    }
+
+    private CreateProductionLotRequest createLotRequest(UUID farmAreaId) {
+        CreateProductionLotRequest request = new CreateProductionLotRequest();
+        request.setName("Lô xoài Cát Chu");
+        request.setFarmAreaId(farmAreaId);
+        request.setProductCategoryId(UUID.randomUUID());
+        request.setExpectedQuantity(100.0);
+        request.setExpectedQuantityUnit("kg");
+        return request;
+    }
+
+    @Test
+    void createProductionLot_shouldThrow_whenFarmAreaIdIsMissing() {
+        // Given
+        CreateProductionLotRequest request = createLotRequest(null);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(new User()));
+        when(organizationRepository.findById(orgId)).thenReturn(Optional.of(new Organization()));
+        when(productCategoryRepository.findById(request.getProductCategoryId()))
+                .thenReturn(Optional.of(new ProductCategory()));
+
+        // When & Then
+        assertThatThrownBy(() -> productionLotService.createProductionLot(request, userDetails))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Vui lòng chọn vùng trồng");
+        verify(productionLotRepository, never()).save(any(ProductionLot.class));
+    }
+
+    @Test
+    void createProductionLot_shouldThrow_whenFarmAreaBelongsToOtherOrg() {
+        // Given
+        UUID farmAreaId = UUID.randomUUID();
+        CreateProductionLotRequest request = createLotRequest(farmAreaId);
+
+        Organization otherOrg = new Organization();
+        otherOrg.setOrganizationId(UUID.randomUUID());
+        FarmArea otherOrgFarmArea = new FarmArea();
+        otherOrgFarmArea.setId(farmAreaId);
+        otherOrgFarmArea.setOrganization(otherOrg);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(new User()));
+        when(organizationRepository.findById(orgId)).thenReturn(Optional.of(new Organization()));
+        when(productCategoryRepository.findById(request.getProductCategoryId()))
+                .thenReturn(Optional.of(new ProductCategory()));
+        when(farmAreaRepository.findById(farmAreaId)).thenReturn(Optional.of(otherOrgFarmArea));
+
+        // When & Then
+        assertThatThrownBy(() -> productionLotService.createProductionLot(request, userDetails))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Khu vực canh tác này không thuộc tổ chức của bạn");
+        verify(productionLotRepository, never()).save(any(ProductionLot.class));
     }
 }

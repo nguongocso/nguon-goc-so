@@ -71,6 +71,10 @@ const CreateProductionLotForm = ({
       nextErrors.name = "Tên lô không được để trống.";
     }
 
+    if (!form.farmAreaId) {
+      nextErrors.farmAreaId = "Vui lòng chọn vùng trồng.";
+    }
+
     if (!form.productCategoryId) {
       nextErrors.productCategoryId = "Vui lòng chọn loại nông sản.";
     }
@@ -164,10 +168,7 @@ const CreateProductionLotForm = ({
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="farmAreaId">
-                Vùng trồng
-                <span className="font-normal text-slate-400">
-                  (không bắt buộc)
-                </span>
+                Vùng trồng <span className="text-red-600">*</span>
               </Label>
               <select
                 id="farmAreaId"
@@ -185,7 +186,7 @@ const CreateProductionLotForm = ({
                 }}
                 aria-invalid={Boolean(errors.farmAreaId)}
               >
-                <option value="">Không chọn vùng trồng</option>
+                <option value="">Chọn vùng trồng</option>
                 {farmAreas.map((area) => (
                   <option key={area.id} value={area.id}>
                     {area.name}
@@ -193,9 +194,6 @@ const CreateProductionLotForm = ({
                   </option>
                 ))}
               </select>
-              <p className="text-xs leading-5 text-slate-500">
-                Có thể bổ sung vùng trồng trước khi gửi lô sang bước chờ duyệt.
-              </p>
               {errors.farmAreaId && (
                 <p className="text-xs text-red-600">{errors.farmAreaId}</p>
               )}

@@ -225,10 +225,9 @@ class ProductionLotControllerTest {
 
     @Test
     void update_shouldReturn400_whenValidationFails() throws Exception {
-        // Given: Tên lô trống và sản lượng âm
+        // Given: Tên lô trống, sản lượng âm và thiếu vùng trồng
         UpdateProductionLotRequest invalidRequest = new UpdateProductionLotRequest();
         invalidRequest.setName("");
-        invalidRequest.setFarmAreaId(UUID.randomUUID());
         invalidRequest.setProductCategoryId(UUID.randomUUID());
         invalidRequest.setExpectedQuantity(-10.0);
         invalidRequest.setPlantingDate(LocalDate.now());
