@@ -1,6 +1,8 @@
 package vn.nguongocso.report.controller;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ContentDisposition;
@@ -29,15 +31,21 @@ public class ReportController {
 
     /**
      * Lấy báo cáo tổng hợp ngành dưới dạng JSON.
+     *
+     * <p>
+     * {@code region} tuỳ chọn với cán bộ quản lý ngành (VT-05) đã được gán địa
+     * bàn; {@code unitIds} lặp được ({@code ?unitIds=<uuid>&unitIds=<uuid>}).
+     * </p>
      */
     @GetMapping("/industry-summary")
     public ResponseEntity<IndustryReportResponse> getIndustrySummary(
-            @RequestParam String region,
+            @RequestParam(required = false) String region,
+            @RequestParam(required = false) List<UUID> unitIds,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
 
         return ResponseEntity.ok(
-                reportService.getIndustrySummary(region, fromDate, toDate));
+                reportService.getIndustrySummary(region, unitIds, fromDate, toDate));
     }
 
     /**
@@ -46,14 +54,15 @@ public class ReportController {
      */
     @GetMapping("/industry-summary/export")
     public ResponseEntity<byte[]> exportIndustrySummary(
-            @RequestParam String region,
+            @RequestParam(required = false) String region,
+            @RequestParam(required = false) List<UUID> unitIds,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(required = false, defaultValue = "PDF") String format) {
 
         String normalizedFormat = format == null ? "PDF" : format.trim().toUpperCase();
 
-        byte[] file = reportService.exportIndustrySummary(region, fromDate, toDate, normalizedFormat);
+        byte[] file = reportService.exportIndustrySummary(region, unitIds, fromDate, toDate, normalizedFormat);
 
         MediaType contentType;
         String fileName;

@@ -7,12 +7,10 @@ import {
   AlertTriangle,
   ArrowLeft,
   Check,
-  ChevronRight,
   ClipboardCheck,
   Clock,
   ExternalLink,
   FileText,
-  FileUp,
   FlaskConical,
   Info,
   Layers,
@@ -22,7 +20,6 @@ import {
   Save,
   Search,
   Send,
-  Sparkles,
   Trash2,
   Upload,
   X,
@@ -30,11 +27,15 @@ import {
 
 import {
   createInspectionRequest,
+  getInspectionRequestDetail,
+  getInspectionRequests,
   getLotTestCriteria,
   getTestingUnits,
 } from "@/api/certificationApi";
 import { getProductionLotById } from "@/api/productionLotApi";
+import { getProductCategoryCriteria } from "@/api/inspectionCriterionApi";
 import type { LotTestCriteriaResult, TestingUnit } from "@/types/certification";
+import type { InspectionCriterion } from "@/types/inspectionCriterion";
 import type { ProductionLot } from "@/types/productionLot";
 import { TestingUnitSelect } from "@/components/testing-unit/TestingUnitSelect";
 
@@ -52,6 +53,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   AlertDialog,
   AlertDialogFooter,
   AlertDialogHeader,
@@ -59,7 +68,9 @@ import {
   AlertDialogTitle,
   AlertDialogDescription,
 } from "@/components/ui/alert-dialog";
+import { Pagination } from "@/components/common/Pagination";
 import { HelpButton } from "@/components/help/HelpButton";
+import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 
 // Helper chuyển ngày sang định dạng ISO YYYY-MM-DD
 const toISODate = (date: Date) => {
@@ -86,15 +97,26 @@ const getApiErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
-// Gợi ý nhanh các đơn vị phòng kiểm nghiệm uy tín
-const COMMON_LAB_SUGGESTIONS = [
-  "Trung tâm Kỹ thuật Tiêu chuẩn Đo lường Chất lượng 3 (QUATEST 3)",
-  "Viện Kiểm nghiệm An toàn Vệ sinh Thực phẩm Quốc gia (NIFC)",
-  "Trung tâm Chất lượng Nông Lâm Thủy sản Vùng",
-  "Eurofins Sắc Ký Hải Đăng",
-  "Công ty Cổ phần Chứng nhận Vinacert",
-  "Phòng Thí nghiệm SGS Việt Nam",
-];
+const CRITERIA_PER_PAGE = 8;
+const HISTORY_PAGE_SIZE = 50;
+
+/**
+ * Khóa đối chiếu giữa chỉ tiêu của lô (GET /test-criteria) và
+ * chỉ tiêu snapshot trong các yêu cầu kiểm nghiệm cũ. Cả hai phía
+ * đều sinh từ `name` của chỉ tiêu trong danh mục dùng chung nên
+ * khớp chính xác sau khi chuẩn hóa.
+ */
+const normalizeCriterionKey = (value: string) => value.trim().toLowerCase();
+
+/** Một dòng chỉ tiêu trên bảng lựa chọn (đã gộp dữ liệu danh mục). */
+interface CriterionRow {
+  criteriaId: number;
+  code: string;
+  name: string;
+  unit: string | null;
+  maxThreshold: number | null;
+  isCreated: boolean;
+}
 
 // Định dạng kích thước tệp đính kèm
 const formatFileSize = (bytes: number) => {
@@ -123,7 +145,34 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
   // --- Dữ liệu tải từ server ---
   const [lot, setLot] = useState<ProductionLot | null>(null);
+
+  // ── Breadcrumb điều hướng thống nhất ───────────────────────────────────────
+  // Ghi đè breadcrumb tự sinh để BỎ crumb trung gian "Yêu cầu kiểm nghiệm"
+  // (/production-lots/:id/inspection-requests) vì route này không tồn tại
+  // (không có trang danh sách). Nhãn crumb lô dùng tên lô khi đã tải xong.
+  useSetBreadcrumb([
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Lô sản xuất", href: "/production-lots" },
+    ...(effectiveLotId
+      ? [
+          {
+            label: lot?.name || "Chi tiết lô sản xuất",
+            href: `/production-lots/${effectiveLotId}`,
+          },
+        ]
+      : []),
+    { label: "Tạo yêu cầu kiểm nghiệm" },
+  ]);
+
   const [criteriaData, setCriteriaData] = useState<LotTestCriteriaResult | null>(null);
+  /** Map catalog criteriaId -> {unit, maxThreshold} lấy từ bộ chỉ tiêu của loại nông sản. */
+  const [catalogCriteriaMap, setCatalogCriteriaMap] = useState<Map<number, InspectionCriterion>>(new Map());
+  /**
+   * Tập khóa chuẩn hóa các chỉ tiêu đã từng thuộc yêu cầu kiểm nghiệm
+   * của lô (deriving từ GET /test-requests + chi tiết từng request).
+   */
+  const [createdCriterionKeys, setCreatedCriterionKeys] = useState<Set<string>>(new Set());
+  const [isRefreshingHistory, setIsRefreshingHistory] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -143,7 +192,8 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
   // Search & Filter trong danh sách chỉ tiêu
   const [criteriaSearch, setCriteriaSearch] = useState("");
-  const [criteriaFilter, setCriteriaFilter] = useState<"ALL" | "SELECTED" | "UNSELECTED">("ALL");
+  const [criteriaFilter, setCriteriaFilter] = useState<"ALL" | "CREATED" | "NOT_CREATED">("ALL");
+  const [criteriaPage, setCriteriaPage] = useState(1);
 
   // Validation Touch State
   const [touched, setTouched] = useState({
@@ -164,6 +214,116 @@ export const CreateInspectionRequestPage: React.FC = () => {
     [effectiveLotId]
   );
 
+  /**
+   * Thu thập tập khóa các chỉ tiêu đang BỊ CHẶN chọn lại khi tạo yêu cầu mới
+   * (tập "Đã tạo" của lô), dựa trên toàn bộ lịch sử YÊU CẦU KIỂM NGHIỆM.
+   *
+   * Quy tắc:
+   * - Chỉ tiêu chưa có kết quả hoặc kết quả chốt gần nhất là ĐẠT  -> bị chặn.
+   * - Chỉ tiêu được ghi nhận KHÔNG ĐẠT ở lần xét gần nhất -> KHÔNG bị chặn:
+   *   trạng thái hiển thị đặt lại thành "Chưa tạo" và cho phép chọn lại
+   *   để tạo yêu cầu kiểm nghiệm mới.
+   *
+   * "Gần nhất" xác định bằng createdAt của InspectionCriterionResult nên
+   * không phụ thuộc thứ tự sắp xếp danh sách request trả về.
+   *
+   * Duyệt phân trang GET /test-requests?lotId=... rồi lấy chi tiết từng
+   * request (GET /inspection-requests/{id}) để đọc kết quả snapshot.
+   * Toàn bộ dùng API sẵn có — không tạo endpoint mới.
+   */
+  const fetchCreatedCriterionKeys = useCallback(async (): Promise<Set<string>> => {
+    // Kết quả chốt gần nhất theo từng khóa chỉ tiêu (code đã chuẩn hóa)
+    const latestResultByKey = new Map<string, { passed: boolean; at: number }>();
+    // Khóa thuộc request nhưng chưa ghi kết quả (đang chờ / chưa hoàn tất)
+    const keysWithoutResult = new Set<string>();
+    let page = 0;
+    let totalPages = 1;
+    const requestIds: string[] = [];
+
+    while (page < totalPages) {
+      const pageRes = await getInspectionRequests({
+        lotId: effectiveLotId,
+        page,
+        size: HISTORY_PAGE_SIZE,
+      });
+      totalPages = pageRes.totalPages ?? 0;
+      requestIds.push(...pageRes.items.map((item) => item.testRequestId));
+      page += 1;
+    }
+
+    await Promise.all(
+      requestIds.map(async (requestId) => {
+        try {
+          const detail = await getInspectionRequestDetail(requestId);
+          detail.criteria?.forEach((criterion) => {
+            const key = normalizeCriterionKey(criterion.code || criterion.name);
+            if (!key) return;
+            if (criterion.result == null) {
+              keysWithoutResult.add(key);
+              return;
+            }
+            const at = Date.parse(criterion.result.createdAt ?? "") || 0;
+            const prev = latestResultByKey.get(key);
+            if (!prev || at >= prev.at) {
+              latestResultByKey.set(key, { passed: criterion.result.passed, at });
+            }
+          });
+        } catch {
+          // Bỏ qua lỗi lẻ của một request để không mất dữ liệu lịch sử còn lại
+        }
+      })
+    );
+
+    // Khóa bị chặn = chưa có kết quả, HOẶC kết quả chốt gần nhất là ĐẠT.
+    // Riêng kết quả chốt gần nhất KHÔNG ĐẠT -> mở lại lựa chọn ("Chưa tạo").
+    return new Set<string>([
+      ...keysWithoutResult,
+      ...[...latestResultByKey.entries()]
+        .filter(([, value]) => value.passed)
+        .map(([key]) => key),
+    ]);
+  }, [effectiveLotId]);
+
+  /**
+   * Tải lại dữ liệu bảng chỉ tiêu: chỉ tiêu áp dụng cho lô + đơn vị/ngưỡng
+   * từ bộ chỉ tiêu của loại nông sản + trạng thái Đã tạo/Chưa tạo từ lịch sử.
+   *
+   * Lưu ý: tập khóa trả về bởi fetchCreatedCriterionKeys là các khóa BỊ CHẶN.
+   * Chỉ tiêu từng bị ghi nhận KHÔNG ĐẠT ở lần xét gần nhất sẽ không nằm trong
+   * tập này -> hiển thị "Chưa tạo" và cho phép chọn để tạo yêu cầu kiểm tra lại.
+   */
+  const loadCriteriaSectionData = useCallback(
+    async (
+      productCategoryId: string
+    ): Promise<{ criteriaRes: LotTestCriteriaResult; createdKeys: Set<string> }> => {
+      const [criteriaRes, catalogRes, createdKeys] = await Promise.all([
+        getLotTestCriteria(effectiveLotId),
+        getProductCategoryCriteria(productCategoryId, true).catch(
+          () => [] as InspectionCriterion[]
+        ),
+        fetchCreatedCriterionKeys(),
+      ]);
+
+      setCriteriaData(criteriaRes);
+      setCatalogCriteriaMap(new Map(catalogRes.map((c) => [c.id, c])));
+      setCreatedCriterionKeys(createdKeys);
+
+      return { criteriaRes, createdKeys };
+    },
+    [effectiveLotId, fetchCreatedCriterionKeys]
+  );
+
+  /** Danh sách id chỉ tiêu còn được phép chọn trong danh sách đã tải. */
+  const getSelectableIdsFromRows = (
+    rows: { code: string; name: string; criteriaId: number }[],
+    createdKeys: Set<string>
+  ) =>
+    new Set(
+      rows
+        .filter((c) => !createdKeys.has(normalizeCriterionKey(c.code || c.name)))
+        .map((c) => c.criteriaId)
+    );
+
   // --- Tải dữ liệu ban đầu ---
   const loadInitialData = useCallback(async () => {
     if (!effectiveLotId) {
@@ -176,15 +336,10 @@ export const CreateInspectionRequestPage: React.FC = () => {
     setLoadError(null);
 
     try {
-      const [lotRes, criteriaRes] = await Promise.all([
-        getProductionLotById(effectiveLotId),
-        getLotTestCriteria(effectiveLotId),
-      ]);
-
+      const lotRes = await getProductionLotById(effectiveLotId);
       setLot(lotRes);
-      setCriteriaData(criteriaRes);
 
-      // Tải danh mục đơn vị kiểm nghiệm (nếu lỗi thì fallback về nhập tự do)
+      // NCL-11-CN-006: tải danh mục đơn vị kiểm nghiệm (nếu lỗi thì fallback nhập tự do)
       setUnitsLoading(true);
       try {
         const unitsRes = await getTestingUnits({ isActive: true });
@@ -196,6 +351,12 @@ export const CreateInspectionRequestPage: React.FC = () => {
       } finally {
         setUnitsLoading(false);
       }
+
+      const { criteriaRes, createdKeys } = await loadCriteriaSectionData(
+        lotRes.productCategoryId
+      );
+
+      const selectableIds = getSelectableIdsFromRows(criteriaRes.criteria ?? [], createdKeys);
 
       // Kiểm tra xem có bản nháp nào đã lưu trước đó không
       const savedDraft = localStorage.getItem(draftStorageKey);
@@ -209,7 +370,10 @@ export const CreateInspectionRequestPage: React.FC = () => {
           if (parsed.deliveryMethod) setDeliveryMethod(parsed.deliveryMethod);
           if (parsed.notes) setNotes(parsed.notes);
           if (Array.isArray(parsed.selectedCriteriaIds)) {
-            setSelectedCriteriaIds(parsed.selectedCriteriaIds);
+            // Chỉ khôi phục những chỉ tiêu chưa từng tạo yêu cầu cho lô
+            setSelectedCriteriaIds(
+              parsed.selectedCriteriaIds.filter((id: number) => selectableIds.has(id))
+            );
           }
           toast.info("Đã khôi phục bản nháp chưa gửi của lô sản xuất này.", {
             duration: 4000,
@@ -218,10 +382,8 @@ export const CreateInspectionRequestPage: React.FC = () => {
           // ignore corrupted draft
         }
       } else {
-        // Mặc định chọn toàn bộ chỉ tiêu của tiêu chuẩn
-        if (criteriaRes?.criteria?.length > 0) {
-          setSelectedCriteriaIds(criteriaRes.criteria.map((c) => c.criteriaId));
-        }
+        // Mặc định chọn toàn bộ chỉ tiêu CHƯA từng tạo yêu cầu kiểm nghiệm
+        setSelectedCriteriaIds([...selectableIds]);
       }
     } catch (err: unknown) {
       setLoadError(
@@ -233,31 +395,85 @@ export const CreateInspectionRequestPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [effectiveLotId, draftStorageKey]);
+  }, [effectiveLotId, draftStorageKey, loadCriteriaSectionData]);
 
   useEffect(() => {
     void loadInitialData();
   }, [loadInitialData]);
 
+  /**
+   * Refetch lại toàn bộ dữ liệu bảng chỉ tiêu từ server sau khi tạo
+   * yêu cầu thành công để trạng thái Đã tạo/Chưa tạo phản ánh chính xác
+   * dữ liệu backend (không dựa vào state local).
+   */
+  const refreshCriteriaSection = async () => {
+    if (!lot?.productCategoryId) return;
+    setIsRefreshingHistory(true);
+    try {
+      await loadCriteriaSectionData(lot.productCategoryId);
+    } catch {
+      // Không đổi trạng thái giả thành công; dữ liệu server sẽ được đồng bộ ở lần truy cập kế
+      toast.error("Không thể làm mới trạng thái chỉ tiêu sau khi tạo yêu cầu.");
+    } finally {
+      setIsRefreshingHistory(false);
+    }
+  };
+
+  // --- Dữ liệu dòng bảng chỉ tiêu (gộp đơn vị/ngưỡng + trạng thái Đã tạo từ lịch sử server) ---
+  const criterionRows = useMemo<CriterionRow[]>(() => {
+    if (!criteriaData?.criteria) return [];
+    return criteriaData.criteria.map((item) => {
+      const catalogEntry = catalogCriteriaMap.get(item.criteriaId);
+      return {
+        criteriaId: item.criteriaId,
+        code: item.code,
+        name: item.name,
+        unit: catalogEntry?.unit ?? null,
+        maxThreshold: catalogEntry?.maxThreshold ?? null,
+        isCreated: createdCriterionKeys.has(
+          normalizeCriterionKey(item.code || item.name)
+        ),
+      };
+    });
+  }, [criteriaData, catalogCriteriaMap, createdCriterionKeys]);
+
+  const totalCriteriaCount = criterionRows.length;
+  const createdCriteriaCount = criterionRows.filter((row) => row.isCreated).length;
+
   // --- Filter danh sách chỉ tiêu ---
   const filteredCriteria = useMemo(() => {
-    if (!criteriaData?.criteria) return [];
-
-    return criteriaData.criteria.filter((item) => {
+    return criterionRows.filter((item) => {
+      const keyword = criteriaSearch.trim().toLowerCase();
       const matchSearch =
-        criteriaSearch === "" ||
-        item.name.toLowerCase().includes(criteriaSearch.toLowerCase()) ||
-        item.code.toLowerCase().includes(criteriaSearch.toLowerCase());
+        keyword === "" ||
+        item.name.toLowerCase().includes(keyword) ||
+        item.code.toLowerCase().includes(keyword);
 
-      const isSelected = selectedCriteriaIds.includes(item.criteriaId);
-      if (criteriaFilter === "SELECTED") return matchSearch && isSelected;
-      if (criteriaFilter === "UNSELECTED") return matchSearch && !isSelected;
+      if (criteriaFilter === "CREATED") return matchSearch && item.isCreated;
+      if (criteriaFilter === "NOT_CREATED") return matchSearch && !item.isCreated;
       return matchSearch;
     });
-  }, [criteriaData, criteriaSearch, criteriaFilter, selectedCriteriaIds]);
+  }, [criterionRows, criteriaSearch, criteriaFilter]);
 
-  // --- Xử lý chọn chỉ tiêu ---
+  // Phân trang danh sách chỉ tiêu
+  const totalCriteriaPages = Math.max(1, Math.ceil(filteredCriteria.length / CRITERIA_PER_PAGE));
+
+  const paginatedCriteria = useMemo(() => {
+    const start = (criteriaPage - 1) * CRITERIA_PER_PAGE;
+    return filteredCriteria.slice(start, start + CRITERIA_PER_PAGE);
+  }, [filteredCriteria, criteriaPage]);
+
+  // Tự động chuyển về trang 1 khi lọc hoặc tìm kiếm thay đổi
+  useEffect(() => {
+    setCriteriaPage(1);
+  }, [criteriaSearch, criteriaFilter]);
+
+  // --- Xử lý chọn chỉ tiêu (checkbox chỉ thể hiện lựa chọn cho LẦN TẠO HIỆN TẠI) ---
   const toggleCriterion = (criteriaId: number, checked: boolean) => {
+    // Chỉ tiêu Đã tạo không được chọn lại cho cùng lô
+    const row = criterionRows.find((r) => r.criteriaId === criteriaId);
+    if (!row || row.isCreated || isRefreshingHistory) return;
+
     setTouched((prev) => ({ ...prev, criteria: true }));
     setSelectedCriteriaIds((prev) => {
       if (checked) {
@@ -268,9 +484,16 @@ export const CreateInspectionRequestPage: React.FC = () => {
   };
 
   const handleSelectAllCriteria = () => {
-    if (!criteriaData?.criteria) return;
+    if (isRefreshingHistory) return;
     setTouched((prev) => ({ ...prev, criteria: true }));
-    setSelectedCriteriaIds(criteriaData.criteria.map((c) => c.criteriaId));
+    setSelectedCriteriaIds((prev) => {
+      // Chỉ chọn các chỉ tiêu Chưa tạo trong kết quả lọc/tìm kiếm hiện tại
+      const next = new Set(prev);
+      filteredCriteria.forEach((row) => {
+        if (!row.isCreated) next.add(row.criteriaId);
+      });
+      return [...next];
+    });
   };
 
   const handleDeselectAllCriteria = () => {
@@ -278,7 +501,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
     setSelectedCriteriaIds([]);
   };
 
-  // --- Xử lý File Upload Client-side ---
+  // --- Xử lý File Upload client-side (NCL-11-CN-006) ---
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -334,12 +557,8 @@ export const CreateInspectionRequestPage: React.FC = () => {
     setSampleWeight("");
     setDeliveryMethod("LAB_PICKUP");
     setNotes("");
-    if (criteriaData?.criteria) {
-      setSelectedCriteriaIds(criteriaData.criteria.map((c) => c.criteriaId));
-    } else {
-      setSelectedCriteriaIds([]);
-    }
     setAttachedFiles([]);
+    setSelectedCriteriaIds([...getSelectableIdsFromRows(criterionRows, createdCriterionKeys)]);
     setTouched({ testingUnit: false, sampleSentDate: false, criteria: false });
     toast.info("Đã xóa trắng form và làm mới bản nháp.");
   };
@@ -374,7 +593,23 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
   // --- Gửi yêu cầu kiểm nghiệm ---
   const handleSubmit = async (confirmDuplicate = false) => {
+    if (submitting) return; // chống double submit
+
     setTouched({ testingUnit: true, sampleSentDate: true, criteria: true });
+
+    // Loại bỏ an toàn các chỉ tiêu đã từng tạo yêu cầu trước khi gửi
+    // (phòng trường hợp state bị can thiệp từ devtools/DOM)
+    const selectableIds = getSelectableIdsFromRows(criterionRows, createdCriterionKeys);
+    const effectiveCriteriaIds = selectedCriteriaIds.filter((id) =>
+      selectableIds.has(id)
+    );
+
+    if (selectedCriteriaIds.length > 0 && effectiveCriteriaIds.length === 0) {
+      toast.error(
+        "Các chỉ tiêu đã chọn đều đã được tạo yêu cầu kiểm nghiệm cho lô này. Vui lòng chọn chỉ tiêu khác."
+      );
+      return;
+    }
 
     if (!canSubmit && !confirmDuplicate) {
       if (!isTestingUnitValid)
@@ -388,6 +623,11 @@ export const CreateInspectionRequestPage: React.FC = () => {
       return;
     }
 
+    if (effectiveCriteriaIds.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một chỉ tiêu kiểm nghiệm.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       await createInspectionRequest(effectiveLotId, {
@@ -395,7 +635,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
         // Khi chọn từ danh mục, gửi tên snapshot của đơn vị để tương thích ngược
         testingUnit: selectedTestingUnit?.name || trimmedTestingUnit,
         sampleSentDate,
-        criteriaIds: selectedCriteriaIds,
+        criteriaIds: effectiveCriteriaIds,
         confirmDuplicate,
       });
 
@@ -406,9 +646,24 @@ export const CreateInspectionRequestPage: React.FC = () => {
         description: `Đã gửi yêu cầu cho lô ${lot?.name || effectiveLotId} tới ${trimmedTestingUnit}.`,
       });
 
-      // Chuyển hướng về tab kiểm nghiệm của lô sản xuất
-      navigate(`/production-lots/${effectiveLotId}?tab=inspection`);
+      // Cập nhật tức thời các chỉ tiêu vừa gửi thành Đã tạo, sau đó
+      // refetch toàn bộ dữ liệu từ server để đảm bảo trạng thái chính xác
+      const submittedKeys = new Set(
+        criterionRows
+          .filter((row) => effectiveCriteriaIds.includes(row.criteriaId))
+          .map((row) => normalizeCriterionKey(row.code || row.name))
+      );
+      setCreatedCriterionKeys((prev) => new Set([...prev, ...submittedKeys]));
+
+      // Xóa lựa chọn của lần tạo hiện tại sau khi thành công
+      setSelectedCriteriaIds([]);
+      setTouched((prev) => ({ ...prev, criteria: false }));
+      setCriteriaFilter("ALL");
+      setCriteriaPage(1);
+
+      await refreshCriteriaSection();
     } catch (error: unknown) {
+      // API thất bại: giữ nguyên lựa chọn và trạng thái Chưa tạo để retry
       if (axios.isAxiosError(error) && error.response?.status === 409) {
         setDuplicateMessage(
           getApiErrorMessage(
@@ -425,32 +680,26 @@ export const CreateInspectionRequestPage: React.FC = () => {
     }
   };
 
-  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     void handleSubmit(false);
   };
 
-  // --- Trạng thái Loading ---
+  // --- RENDER GIAO DIỆN ---
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex min-h-[50vh] flex-col items-center justify-center rounded-xl border border-border bg-white p-12 text-center shadow-xs">
-          <LoaderCircle className="h-10 w-10 animate-spin text-emerald-600 mb-4" />
-          <h2 className="text-base font-semibold text-foreground">
-            Đang tải dữ liệu lô sản xuất và danh mục chỉ tiêu...
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-            Vui lòng chờ trong giây lát trong khi hệ thống kết nối với cơ sở dữ liệu.
-          </p>
-        </div>
+      <div className="flex min-h-[400px] flex-col items-center justify-center space-y-4">
+        <LoaderCircle className="h-10 w-10 animate-spin text-emerald-600" />
+        <p className="text-sm font-medium text-muted-foreground">
+          Đang tải thông tin lô sản xuất và danh mục chỉ tiêu...
+        </p>
       </div>
     );
   }
 
-  // --- Trạng thái Lỗi / Không tìm thấy Lô ---
   if (loadError || !lot) {
     return (
-      <div className="space-y-6">
+      <div className="mx-auto max-w-2xl py-12">
         <Card className="rounded-xl border-red-200 bg-red-50/50 p-8 shadow-xs">
           <CardContent className="flex flex-col items-center justify-center p-0 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600 mb-4">
@@ -484,81 +733,45 @@ export const CreateInspectionRequestPage: React.FC = () => {
     );
   }
 
-  const totalCriteriaCount = criteriaData?.criteria?.length || 0;
   const selectedCount = selectedCriteriaIds.length;
 
   return (
     <form onSubmit={handleFormSubmit} className="space-y-6 pb-28">
-      <div className="flex items-center justify-end gap-2">
-        <HelpButton screenKey="inspection-request-create" />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => void loadInitialData()}
-          className="h-9 rounded-xl border-border bg-white px-3 text-xs font-medium text-foreground shadow-xs hover:bg-muted/50"
-        >
-          <RotateCw className="mr-1.5 h-3.5 w-3.5" /> Tải lại
-        </Button>
-      </div>
-
-      {/* SECTION 0: Header Card with Breadcrumb & Screen Help */}
-      <Card className="rounded-xl border-emerald-100 bg-white/80 backdrop-blur-sm p-5 shadow-sm">
-        <div>
-          {/* Breadcrumbs */}
-          <nav className="flex items-center space-x-2 text-xs text-muted-foreground sm:text-sm">
-            <Link to="/dashboard" className="hover:text-emerald-700 transition-colors">
-              Dashboard
-            </Link>
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-            <Link to="/production-lots" className="hover:text-emerald-700 transition-colors">
-              Lô sản xuất
-            </Link>
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-            <Link
-              to={`/production-lots/${effectiveLotId}`}
-              className="max-w-[150px] truncate hover:text-emerald-700 transition-colors font-medium sm:max-w-xs"
-              title={lot.name}
-            >
-              {lot.name}
-            </Link>
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="font-semibold text-foreground">Tạo yêu cầu kiểm nghiệm</span>
-          </nav>
-        </div>
-
-        <div className="mt-4 flex flex-col gap-4 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 shadow-sm shrink-0">
-              <FlaskConical className="h-6 w-6" />
+      {/* Standard Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 shadow-sm shrink-0">
+            <FlaskConical className="h-6 w-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+                Tạo yêu cầu kiểm nghiệm chất lượng
+              </h1>
+              <Badge
+                variant="outline"
+                className="rounded-full border-emerald-300 bg-emerald-50 text-xs font-semibold text-emerald-800 px-2.5 py-0.5"
+              >
+                VT-02
+              </Badge>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                  Tạo yêu cầu kiểm nghiệm chất lượng
-                </h1>
-                <Badge
-                  variant="outline"
-                  className="rounded-lg border-emerald-300 bg-emerald-50 text-xs font-semibold text-emerald-800 px-2 py-0.5"
-                >
-                  VT-02
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground sm:text-sm mt-0.5">
-                Lập hồ sơ gửi mẫu phân tích chỉ tiêu an toàn thực phẩm cho lô:{" "}
-                <span className="font-semibold text-foreground">{lot.name}</span>
-              </p>
-            </div>
+            <p className="text-xs text-muted-foreground sm:text-sm mt-0.5">
+              Lập hồ sơ gửi mẫu phân tích chỉ tiêu an toàn thực phẩm cho lô:{" "}
+              <span className="font-semibold text-slate-900">{lot.name}</span>
+            </p>
           </div>
         </div>
-      </Card>
+        <div>
+          <HelpButton screenKey="inspection-request-create" />
+        </div>
+      </div>
 
       {/* SECTION 1: 2-COLUMN MAIN CONTENT (70% Form Trái / 30% Đối Soát Phải) */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* CỘT TRÁI (70% - lg:col-span-8) */}
         <div className="space-y-6 lg:col-span-8">
           {/* CARD 1: Bộ quy chuẩn & Lựa chọn chỉ tiêu phân tích */}
-          <Card className="rounded-xl border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden">
+          <Card className="rounded-xl border-slate-200 bg-white shadow-sm overflow-hidden">
             <CardHeader className="border-b border-border bg-muted/40 p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2.5">
@@ -587,7 +800,13 @@ export const CreateInspectionRequestPage: React.FC = () => {
                         : "border-red-300 bg-red-50 text-red-700"
                     }`}
                   >
-                    Đã chọn: {selectedCount}/{totalCriteriaCount} chỉ tiêu
+                    Chọn cho lần này: {selectedCount} chỉ tiêu
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="rounded-full border-slate-300 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700"
+                  >
+                    Đã tạo: {createdCriteriaCount}/{totalCriteriaCount} chỉ tiêu
                   </Badge>
                 </div>
               </div>
@@ -619,41 +838,31 @@ export const CreateInspectionRequestPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Filter Pills */}
-                  <div className="inline-flex items-center rounded-xl border border-emerald-100 bg-white/80 backdrop-blur-sm p-1">
-                    <button
-                      type="button"
-                      onClick={() => setCriteriaFilter("ALL")}
-                      className={`rounded-lg px-3.5 py-1.5 text-sm transition-all ${
-                        criteriaFilter === "ALL"
-                          ? "border border-primary bg-white font-semibold text-primary shadow-2xs"
-                          : "border border-transparent font-medium text-foreground/60 hover:text-foreground"
-                      }`}
-                    >
-                      Tất cả
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCriteriaFilter("SELECTED")}
-                      className={`rounded-lg px-3.5 py-1.5 text-sm transition-all ${
-                        criteriaFilter === "SELECTED"
-                          ? "border border-primary bg-white font-semibold text-primary shadow-2xs"
-                          : "border border-transparent font-medium text-foreground/60 hover:text-foreground"
-                      }`}
-                    >
-                      Đã chọn ({selectedCount})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCriteriaFilter("UNSELECTED")}
-                      className={`rounded-lg px-3.5 py-1.5 text-sm transition-all ${
-                        criteriaFilter === "UNSELECTED"
-                          ? "border border-primary bg-white font-semibold text-primary shadow-2xs"
-                          : "border border-transparent font-medium text-foreground/60 hover:text-foreground"
-                      }`}
-                    >
-                      Chưa chọn ({totalCriteriaCount - selectedCount})
-                    </button>
+                  {/* Filter Pills theo trạng thái của lô */}
+                  <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white p-1">
+                    {(
+                      [
+                        { value: "ALL", label: `Tất cả (${totalCriteriaCount})` },
+                        { value: "CREATED", label: `Đã tạo (${createdCriteriaCount})` },
+                        {
+                          value: "NOT_CREATED",
+                          label: `Chưa tạo (${totalCriteriaCount - createdCriteriaCount})`,
+                        },
+                      ] as const
+                    ).map((pill) => (
+                      <button
+                        key={pill.value}
+                        type="button"
+                        onClick={() => setCriteriaFilter(pill.value)}
+                        className={`rounded-lg px-3.5 py-1.5 text-sm transition-all ${
+                          criteriaFilter === pill.value
+                            ? "border border-primary bg-white font-semibold text-primary shadow-2xs"
+                            : "border border-transparent font-medium text-foreground/60 hover:text-foreground"
+                        }`}
+                      >
+                        {pill.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -679,7 +888,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Grid Danh sách chỉ tiêu */}
+              {/* Danh sách chỉ tiêu (Phân trang) */}
               {totalCriteriaCount === 0 ? (
                 <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-5 text-center text-sm text-amber-800">
                   <Info className="mx-auto h-6 w-6 text-amber-600 mb-2" />
@@ -690,44 +899,124 @@ export const CreateInspectionRequestPage: React.FC = () => {
                 </div>
               ) : filteredCriteria.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border p-8 text-center text-xs text-muted-foreground">
-                  Không tìm thấy chỉ tiêu nào phù hợp với từ khóa "{criteriaSearch}".
+                  {criteriaSearch.trim()
+                    ? `Không tìm thấy chỉ tiêu nào phù hợp với từ khóa "${criteriaSearch}".`
+                    : "Không có chỉ tiêu nào ở trạng thái này."}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 max-h-[380px] overflow-y-auto pr-1">
-                  {filteredCriteria.map((criterion) => {
-                    const isChecked = selectedCriteriaIds.includes(criterion.criteriaId);
-                    return (
-                      <div
-                        key={criterion.criteriaId}
-                        onClick={() => toggleCriterion(criterion.criteriaId, !isChecked)}
-                        className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-all ${
-                          isChecked
-                            ? "border-emerald-500 bg-emerald-50/40 shadow-2xs"
-                            : "border-border bg-white hover:border-input hover:bg-muted/40"
-                        }`}
-                      >
-                        <Checkbox
-                          id={`criterion-${criterion.criteriaId}`}
-                          checked={isChecked}
-                          onCheckedChange={(c) =>
-                            toggleCriterion(criterion.criteriaId, c === true)
-                          }
-                          className="mt-0.5"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <Label
-                            htmlFor={`criterion-${criterion.criteriaId}`}
-                            className="cursor-pointer text-xs font-semibold text-foreground leading-snug"
+                <div className="space-y-4">
+                  {/* Banner khi không còn chỉ tiêu Chưa tạo nào cho lô */}
+                  {createdCriteriaCount > 0 && createdCriteriaCount === totalCriteriaCount && (
+                    <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-xs text-amber-800">
+                      <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                      <span>
+                        Tất cả chỉ tiêu của lô này đã được tạo yêu cầu kiểm nghiệm. Bạn không thể
+                        tạo thêm yêu cầu mới cho lô này.
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="rounded-md border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="w-12 text-center">STT</TableHead>
+                          <TableHead>Tên chỉ tiêu</TableHead>
+                          <TableHead>Đơn vị</TableHead>
+                          <TableHead>Ngưỡng tối đa</TableHead>
+                          <TableHead>Trạng thái</TableHead>
+                          <TableHead className="w-24 text-center">Thao tác</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                    <TableBody>
+                      {paginatedCriteria.map((criterion, index) => {
+                        const isChecked = selectedCriteriaIds.includes(criterion.criteriaId);
+                        return (
+                          <TableRow
+                            key={criterion.criteriaId}
+                            onClick={(e) => {
+                              // Click checkbox trong cột Thao tác tự xử lý qua onCheckedChange
+                              if ((e.target as HTMLElement).closest("button")) return;
+                              toggleCriterion(criterion.criteriaId, !isChecked);
+                            }}
+                            className={`transition-colors ${
+                              criterion.isCreated
+                                ? "cursor-not-allowed bg-muted/40 opacity-70"
+                                : isChecked
+                                  ? "cursor-pointer bg-emerald-50/40 hover:bg-muted/40"
+                                  : "cursor-pointer hover:bg-muted/40"
+                            }`}
                           >
-                            {criterion.name}
-                          </Label>
-                          <p className="font-mono text-xs text-muted-foreground mt-0.5">
-                            Mã: {criterion.code}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
+                            <TableCell className="text-center font-medium text-muted-foreground">
+                              {(criteriaPage - 1) * CRITERIA_PER_PAGE + index + 1}
+                            </TableCell>
+                            <TableCell>
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold leading-snug text-foreground">
+                                  {criterion.name}
+                                </p>
+                                <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                                  {criterion.code}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap text-xs">
+                              {criterion.unit ?? "—"}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap text-xs">
+                              {criterion.maxThreshold !== null
+                                ? Number(criterion.maxThreshold)
+                                : "—"}
+                            </TableCell>
+                            <TableCell>
+                              {criterion.isCreated ? (
+                                <Badge
+                                  variant="outline"
+                                  className="rounded-full border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800"
+                                >
+                                  Đã tạo
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="rounded-full border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800"
+                                >
+                                  Chưa tạo
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Checkbox
+                                id={`criterion-${criterion.criteriaId}`}
+                                checked={isChecked}
+                                onCheckedChange={(c) =>
+                                  toggleCriterion(criterion.criteriaId, c === true)
+                                }
+                                disabled={criterion.isCreated || isRefreshingHistory}
+                                aria-label={`Chọn chỉ tiêu ${criterion.name}`}
+                                title={
+                                  criterion.isCreated
+                                    ? "Chỉ tiêu đã từng thuộc yêu cầu kiểm nghiệm của lô này"
+                                    : undefined
+                                }
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                  {/* Phân trang danh sách chỉ tiêu */}
+                  <Pagination
+                    currentPage={criteriaPage - 1}
+                    totalPages={totalCriteriaPages}
+                    totalElements={filteredCriteria.length}
+                    pageSize={CRITERIA_PER_PAGE}
+                    itemLabel="chỉ tiêu"
+                    onPageChange={(page) => setCriteriaPage(page + 1)}
+                  />
                 </div>
               )}
 
@@ -739,8 +1028,8 @@ export const CreateInspectionRequestPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* CARD 2: Thông tin gửi mẫu */}
-          <Card className="rounded-xl border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden">
+          {/* CARD 2: Thông tin gửi mẫu & Đơn vị kiểm nghiệm */}
+          <Card className="rounded-xl border-slate-200 bg-white shadow-sm overflow-hidden">
             <CardHeader className="border-b border-border bg-muted/40 p-5">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
@@ -751,7 +1040,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
                     2. Thông tin gửi mẫu & Đơn vị phòng kiểm nghiệm
                   </CardTitle>
                   <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                    Thông tin phòng Lab tiếp nhận, ngày bàn giao và các thông số mẫu thử
+                    Thông tin phòng Lab tiếp nhận, ngày bàn giao và các ghi chú gửi mẫu
                   </CardDescription>
                 </div>
               </div>
@@ -806,122 +1095,44 @@ export const CreateInspectionRequestPage: React.FC = () => {
                           className="h-10 rounded-xl text-xs border-input"
                           maxLength={200}
                         />
-
-                        {/* Quick suggestions */}
-                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                          <span className="text-xs text-muted-foreground font-medium">Gợi ý nhanh:</span>
-                          {COMMON_LAB_SUGGESTIONS.slice(0, 3).map((lab) => (
-                            <button
-                              key={lab}
-                              type="button"
-                              onClick={() => {
-                                setTestingUnit(lab);
-                                setTouched((prev) => ({ ...prev, testingUnit: true }));
-                              }}
-                              className="rounded-lg border border-border bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 transition-colors truncate max-w-[260px]"
-                              title={lab}
-                            >
-                              {lab}
-                            </button>
-                          ))}
-                        </div>
                       </>
                     )}
                   </>
                 )}
-
                 {touched.testingUnit && !isTestingUnitValid && (
                   <p className="text-xs font-medium text-red-600 flex items-center gap-1">
                     <AlertCircle className="h-3.5 w-3.5" />{" "}
                     {useUnitCatalog
-                      ? "Vui lòng chọn đơn vị kiểm nghiệm từ danh mục."
+                      ? "Vui lòng chọn đơn vị phòng Lab kiểm nghiệm từ danh mục."
                       : "Vui lòng nhập tên đơn vị phòng Lab kiểm nghiệm."}
                   </p>
                 )}
               </div>
 
-              {/* Grid 2 cột: Ngày gửi mẫu & Khối lượng mẫu */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {/* Ngày gửi mẫu */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="sampleSentDate" className="text-xs font-semibold text-foreground">
-                    Ngày gửi mẫu <span className="text-red-600">*</span>
-                  </Label>
-                  <Input
-                    id="sampleSentDate"
-                    type="date"
-                    value={sampleSentDate}
-                    max={today}
-                    onChange={(e) => {
-                      setSampleSentDate(e.target.value);
-                      setTouched((prev) => ({ ...prev, sampleSentDate: true }));
-                    }}
-                    className="h-10 rounded-xl text-xs border-input"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Ngày gửi mẫu không được lớn hơn ngày hiện tại ({today}).
-                  </p>
-                  {touched.sampleSentDate && !isSampleDateValid && (
-                    <p className="text-xs font-medium text-red-600 flex items-center gap-1">
-                      <AlertCircle className="h-3.5 w-3.5" /> Ngày gửi mẫu không hợp lệ hoặc lớn hơn ngày hiện tại.
-                    </p>
-                  )}
-                </div>
-
-                {/* Khối lượng mẫu (kg) */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="sampleWeight" className="text-xs font-semibold text-foreground">
-                    Khối lượng mẫu gửi (kg)
-                  </Label>
-                  <Input
-                    id="sampleWeight"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    placeholder="VD: 2.5"
-                    value={sampleWeight}
-                    onChange={(e) => setSampleWeight(e.target.value)}
-                    className="h-10 rounded-xl text-xs border-input"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Khối lượng mẫu đại diện trích từ lô sản xuất.
-                  </p>
-                </div>
-              </div>
-
-              {/* Phương thức giao nhận */}
+              {/* Ngày gửi mẫu */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-foreground">
-                  Phương thức giao nhận mẫu
+                <Label htmlFor="sampleSentDate" className="text-xs font-semibold text-foreground">
+                  Ngày gửi mẫu <span className="text-red-600">*</span>
                 </Label>
-                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-                  {[
-                    { id: "LAB_PICKUP", label: "Phòng Lab lấy mẫu", desc: "Chuyên viên Lab đến tận nơi" },
-                    { id: "COURIER", label: "Chuyển phát nhanh", desc: "Gửi qua bưu cục / Viettel Post" },
-                    { id: "SELF_DELIVERY", label: "Hợp tác xã tự nộp", desc: "Bàn giao trực tiếp tại Lab" },
-                  ].map((m) => (
-                    <label
-                      key={m.id}
-                      className={`flex cursor-pointer flex-col rounded-xl border p-3 transition-all ${
-                        deliveryMethod === m.id
-                          ? "border-emerald-600 bg-emerald-50/50 shadow-2xs"
-                          : "border-border bg-white hover:border-input"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="deliveryMethod"
-                          checked={deliveryMethod === m.id}
-                          onChange={() => setDeliveryMethod(m.id as any)}
-                          className="text-emerald-600 focus:ring-emerald-500"
-                        />
-                        <span className="text-xs font-semibold text-foreground">{m.label}</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground mt-1 pl-5">{m.desc}</span>
-                    </label>
-                  ))}
-                </div>
+                <Input
+                  id="sampleSentDate"
+                  type="date"
+                  max={today}
+                  value={sampleSentDate}
+                  onChange={(e) => {
+                    setSampleSentDate(e.target.value);
+                    setTouched((prev) => ({ ...prev, sampleSentDate: true }));
+                  }}
+                  className="h-10 rounded-xl text-xs border-input max-w-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Ngày gửi mẫu không được lớn hơn ngày hiện tại ({today}).
+                </p>
+                {touched.sampleSentDate && !isSampleDateValid && (
+                  <p className="text-xs font-medium text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3.5 w-3.5" /> Ngày gửi mẫu không hợp lệ hoặc lớn hơn ngày hiện tại.
+                  </p>
+                )}
               </div>
 
               {/* Ghi chú bảo quản & yêu cầu đặc biệt */}
@@ -931,66 +1142,92 @@ export const CreateInspectionRequestPage: React.FC = () => {
                 </Label>
                 <Textarea
                   id="notes"
-                  rows={2}
+                  rows={3}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Ghi chú điều kiện nhiệt độ bảo quản mẫu, hạn thử nghiệm, yêu cầu trả kết quả gấp..."
                   className="rounded-xl text-xs border-input resize-none"
                 />
               </div>
-            </CardContent>
-          </Card>
 
-          {/* CARD 3: Hồ sơ & Tài liệu đính kèm */}
-          <Card className="rounded-xl border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden">
-            <CardHeader className="border-b border-border bg-muted/40 p-5">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 text-purple-700">
-                  <FileUp className="h-5 w-5" />
-                </div>
-                <div>
-                  <CardTitle className="text-base font-semibold text-foreground">
-                    3. Hồ sơ đính kèm & Ảnh niêm phong mẫu
-                  </CardTitle>
-                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                    Đính kèm biên bản lấy mẫu hiện trường, ảnh chụp niêm phong hoặc phiếu bàn giao mẫu
-                  </CardDescription>
+              {/* Khối lượng mẫu gửi */}
+              <div className="space-y-1.5">
+                <Label htmlFor="sampleWeight" className="text-xs font-semibold text-foreground">
+                  Khối lượng mẫu gửi
+                </Label>
+                <Input
+                  id="sampleWeight"
+                  value={sampleWeight}
+                  onChange={(e) => setSampleWeight(e.target.value)}
+                  placeholder="Ví dụ: 2 kg / 500 g / 1 lít..."
+                  className="h-10 rounded-xl text-xs border-input max-w-sm"
+                  maxLength={100}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Nhập khối lượng hoặc dung tích mẫu thực tế bàn giao cho phòng Lab.
+                </p>
+              </div>
+
+              {/* Phương thức bàn giao mẫu */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  Phương thức bàn giao mẫu
+                </Label>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  {[
+                    { id: "LAB_PICKUP", label: "Lab đến lấy mẫu" },
+                    { id: "COURIER", label: "Gửi qua chuyển phát" },
+                    { id: "SELF_DELIVERY", label: "Tự mang đến Lab" },
+                  ].map((m) => (
+                    <label
+                      key={m.id}
+                      className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-xs transition-all ${
+                        deliveryMethod === m.id
+                          ? "border-emerald-400 bg-emerald-50 text-emerald-900"
+                          : "border-input bg-white text-muted-foreground hover:border-emerald-300"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="deliveryMethod"
+                        className="h-3.5 w-3.5 accent-emerald-600"
+                        checked={deliveryMethod === m.id}
+                        onChange={() => setDeliveryMethod(m.id as "LAB_PICKUP" | "COURIER" | "SELF_DELIVERY")}
+                      />
+                      {m.label}
+                    </label>
+                  ))}
                 </div>
               </div>
-            </CardHeader>
 
-            <CardContent className="p-5 space-y-4">
-              {/* Drag & Drop Upload Zone */}
-              <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-input bg-muted/40 p-6 text-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/20 transition-all">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 mb-3">
-                  <Upload className="h-6 w-6" />
-                </div>
-                <p className="text-xs font-semibold text-foreground">
-                  Nhấp để tải lên hoặc kéo thả tệp vào đây
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Hỗ trợ hình ảnh (PNG, JPG), tài liệu PDF (Tối đa 10MB/tệp)
-                </p>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*,.pdf"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-              </label>
-
-              {/* Danh sách tệp đã chọn */}
-              {attachedFiles.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-foreground">
-                    Tệp đính kèm đã chọn ({attachedFiles.length}):
-                  </p>
-                  <div className="divide-y divide-border rounded-xl border border-border bg-white">
+              {/* Tệp đính kèm (phiếu yêu cầu, ảnh mẫu...) */}
+              <div className="space-y-1.5">
+                <Label htmlFor="attachedFiles" className="text-xs font-semibold text-foreground">
+                  Tệp đính kèm
+                </Label>
+                <label
+                  htmlFor="attachedFiles"
+                  className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/40 px-3 py-3 text-xs font-medium text-emerald-700 hover:bg-emerald-50 transition-colors"
+                >
+                  <Upload className="h-4 w-4" />
+                  Chọn tệp đính kèm (phiếu yêu cầu, ảnh mẫu...)
+                  <input
+                    id="attachedFiles"
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </label>
+                {attachedFiles.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-muted-foreground">
+                      Tệp đính kèm đã chọn ({attachedFiles.length}):
+                    </p>
                     {attachedFiles.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between p-3 text-xs"
+                        className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <FileText className="h-4 w-4 text-emerald-600 shrink-0" />
@@ -1011,8 +1248,8 @@ export const CreateInspectionRequestPage: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -1020,7 +1257,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
         {/* CỘT PHẢI (30% - lg:col-span-4) - Sidebar Thông Tin & Quy Trình */}
         <div className="space-y-6 lg:col-span-4">
           {/* SIDEBAR CARD 1: Đối soát thông tin lô sản xuất */}
-          <Card className="rounded-xl border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden">
+          <Card className="rounded-xl border-slate-200 bg-white shadow-sm overflow-hidden">
             <CardHeader className="border-b border-border bg-muted/40 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -1077,7 +1314,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
           </Card>
 
           {/* SIDEBAR CARD 2: Pipeline 4 bước quy trình kiểm nghiệm */}
-          <Card className="rounded-xl border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm overflow-hidden">
+          <Card className="rounded-xl border-slate-200 bg-white shadow-sm overflow-hidden">
             <CardHeader className="border-b border-border bg-muted/40 p-4">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-emerald-700" />
@@ -1134,34 +1371,40 @@ export const CreateInspectionRequestPage: React.FC = () => {
                     <span className="text-xs font-medium">4</span>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-foreground">4. Kết luận & Kích hoạt tem</p>
+                    <p className="text-xs font-semibold text-foreground">4. Hoàn tất & Cấp mã QR</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Lô đủ điều kiện phát hành tem truy xuất điện tử
+                      Đồng bộ kết quả vào chuỗi truy xuất nguồn gốc
                     </p>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-
-          {/* SIDEBAR CARD 3: Lưu ý nghiệp vụ */}
-          <Card className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 shadow-2xs">
-            <div className="flex items-start gap-2.5">
-              <Sparkles className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-              <div className="space-y-1 text-xs text-amber-900">
-                <h4 className="font-bold">Lưu ý quản lý chất lượng</h4>
-                <p className="text-xs leading-relaxed text-amber-800">
-                  Theo quy định hệ thống, lô sản xuất phải đạt 100% các chỉ tiêu kiểm nghiệm còn hiệu lực mới đủ điều kiện kích hoạt tem truy xuất nguồn gốc.
-                </p>
-              </div>
-            </div>
-          </Card>
         </div>
       </div>
 
-      {/* SECTION 2: STICKY ACTION BAR */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-white/95 backdrop-blur-md px-4 py-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] xl:left-[17rem]">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-end gap-2">
+      {/* SECTION 2: STICKY BOTTOM ACTION BAR */}
+      <div className="sticky bottom-4 z-20 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 font-bold text-xs">
+            {selectedCount}
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-foreground">
+              {selectedCount > 0
+                ? `Đã chọn ${selectedCount} chỉ tiêu cho yêu cầu hiện tại`
+                : "Chưa chọn chỉ tiêu nào cho yêu cầu hiện tại"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {createdCriteriaCount}/{totalCriteriaCount} chỉ tiêu đã tạo yêu cầu kiểm nghiệm ·{" "}
+              {testingUnit.trim()
+                ? `Đơn vị: ${testingUnit.trim()}`
+                : "Chưa nhập đơn vị kiểm nghiệm"}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 self-end sm:self-auto">
           <Button
             type="button"
             variant="ghost"

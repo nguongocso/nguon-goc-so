@@ -2,6 +2,8 @@ export interface CropAreaAnalysisResponse {
   summary: SummaryStats;
   byArea: AreaAnalysisStats[];
   bySeason: SeasonAnalysisStats[];
+  /** NCL-742 §8 — message khi dữ liệu rỗng (vd VT-05 chưa gán địa bàn). */
+  message?: string | null;
 }
 
 export interface SummaryStats {
@@ -54,4 +56,6 @@ export interface CropAreaAnalysisParams {
   farmAreaId?: string;
   productCategoryId?: string;
   organizationId?: string;
+  /** NCL-742 §8 — lặp query param `unitIds=a&unitIds=b`. */
+  unitIds?: string[];
 }

@@ -274,6 +274,10 @@ public class PublicTraceServiceImpl implements PublicTraceService {
             throw new ResourceNotFoundException("Không tìm thấy lô hàng liên kết.");
         }
 
+        if (traceCode.getStatus() == TraceCodeStatus.CANCELLED) {
+            throw new BusinessException("Mã tem này đã được đánh dấu HỦY do sự cố in hỏng/lỗi tem và không có giá trị truy xuất nguồn gốc.");
+        }
+
         boolean isRecalled = shipment.getStatus() == ShipmentStatus.RECALLED;
         boolean isLocked = traceCode.getStatus() == TraceCodeStatus.LOCKED;
 

@@ -50,4 +50,8 @@ public class ProductCategory {
 
 	@Column(name = "humidity_max", columnDefinition = "DECIMAL(5,1)")
 	private Double humidityMax;
+
+	@Column(name = "requires_inspection", nullable = false)
+	@Builder.Default
+	private Boolean requiresInspection = false;
 }

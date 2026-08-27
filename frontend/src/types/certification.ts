@@ -232,8 +232,10 @@ export interface InspectionCriterionResult {
   criterionId: string;
   criterionCode: string;
   criterionName: string;
-  resultDate: string; // YYYY-MM-DD
-  expiryDate: string; // YYYY-MM-DD
+  /** Ngày cấp kết quả; null khi chỉ tiêu Không đạt (kết quả không có hiệu lực). */
+  resultDate: string | null; // YYYY-MM-DD
+  /** Ngày hết hiệu lực; null khi chỉ tiêu Không đạt. */
+  expiryDate: string | null; // YYYY-MM-DD
   /** true = đạt, false = không đạt. */
   passed: boolean;
   filePath: string | null;
@@ -248,8 +250,10 @@ export interface InspectionCriterionResult {
  */
 export interface RecordCriterionResultPayload {
   criterionId: string;
-  resultDate: string; // YYYY-MM-DD
-  expiryDate: string; // YYYY-MM-DD
+  /** Bắt buộc khi passed = true; được phép null khi passed = false. */
+  resultDate: string | null; // YYYY-MM-DD
+  /** Bắt buộc khi passed = true; được phép null khi passed = false. */
+  expiryDate: string | null; // YYYY-MM-DD
   passed: boolean;
   filePath?: string | null;
 }

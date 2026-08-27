@@ -40,6 +40,10 @@ public class FarmAreaResponse {
 
 	private AreaUnit areaUnit;
 
+	private Boolean isActive;
+
+	private Long associatedLotsCount;
+
 	private LocalDateTime createdAt;
 
 	private LocalDateTime updatedAt;

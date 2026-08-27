@@ -20,6 +20,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * Controller cung cấp API kết xuất dữ liệu mở theo lược đồ chuẩn.
@@ -36,7 +38,8 @@ public class OpenDataExportController {
     @GetMapping("/export")
     @PreAuthorize("hasRole('VT-05')")
     public ResponseEntity<byte[]> exportOpenData(
-            @RequestParam String region,
+            @RequestParam(required = false) String region,
+            @RequestParam(required = false) List<UUID> unitIds,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam String format,
@@ -44,12 +47,13 @@ public class OpenDataExportController {
             HttpServletRequest request) {
 
         String ipAddress = extractClientIp(request);
-        byte[] fileBytes = openDataExportService.exportOpenData(region, fromDate, toDate, format, currentUser,
-                ipAddress);
+        byte[] fileBytes = openDataExportService.exportOpenData(region, unitIds, fromDate, toDate, format,
+                currentUser, ipAddress);
 
         String fileExtension = format.toLowerCase();
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        String fileName = "open_data_" + region.replace(" ", "_") + "_" + timestamp + "." + fileExtension;
+        String safeRegion = (region == null || region.isBlank()) ? "phamvi" : region.replace(" ", "_");
+        String fileName = "open_data_" + safeRegion + "_" + timestamp + "." + fileExtension;
 
         MediaType mediaType;
         if ("XML".equalsIgnoreCase(format)) {

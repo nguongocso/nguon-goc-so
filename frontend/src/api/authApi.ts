@@ -1,9 +1,14 @@
 import type {
   ApiResult,
+  AuthUserInfo,
+  ForgotPasswordRequest,
   LoginRequest,
   LoginResponse,
+  ResetPasswordRequest,
   SelectOrganizationRequest,
   SelectOrganizationResponse,
+  UpdateUserProfileRequest,
+  ValidateResetTokenResponse,
 } from "@/types/auth";
 
 import type { OrganizationSelection } from "@/types/organization";
@@ -103,6 +108,61 @@ export const getCurrent = async (): Promise<
   const response = await apiClient.get<
     ApiResult<SelectOrganizationResponse["user"]>
   >("/auth/me");
+
+  return response.data;
+};
+
+/**
+ * Gửi yêu cầu đặt lại mật khẩu khi quên (NCL-01-CN-008).
+ */
+export const forgotPassword = async (
+  data: ForgotPasswordRequest
+): Promise<ApiResult<void>> => {
+  const response = await apiClient.post<ApiResult<void>>(
+    "/auth/forgot-password",
+    data
+  );
+
+  return response.data;
+};
+
+/**
+ * Kiểm tra token đặt lại mật khẩu hợp lệ (NCL-01-CN-008).
+ */
+export const validateResetToken = async (
+  token: string
+): Promise<ApiResult<ValidateResetTokenResponse>> => {
+  const response = await apiClient.get<ApiResult<ValidateResetTokenResponse>>(
+    `/auth/reset-password/validate?token=${encodeURIComponent(token)}`
+  );
+
+  return response.data;
+};
+
+/**
+ * Đặt lại mật khẩu mới (NCL-01-CN-008).
+ */
+export const resetPassword = async (
+  data: ResetPasswordRequest
+): Promise<ApiResult<void>> => {
+  const response = await apiClient.post<ApiResult<void>>(
+    "/auth/reset-password",
+    data
+  );
+
+  return response.data;
+};
+
+/**
+ * Cập nhật thông tin hồ sơ cá nhân (SĐT, Email).
+ */
+export const updateUserProfile = async (
+  data: UpdateUserProfileRequest
+): Promise<ApiResult<AuthUserInfo>> => {
+  const response = await apiClient.put<ApiResult<AuthUserInfo>>(
+    "/auth/profile",
+    data
+  );
 
   return response.data;
 };

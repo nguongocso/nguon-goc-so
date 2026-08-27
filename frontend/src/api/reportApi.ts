@@ -61,14 +61,14 @@ export const getIndustrySummary = async (
 ): Promise<IndustryReportResponse> => {
   const response = await apiClient.get<
     IndustryReportResponse | { success: boolean; data: IndustryReportResponse }
-  >('/reports/industry-summary', { params });
+  >('/reports/industry-summary', { params: buildIndustrySummaryParams(params) });
   return unwrapReportResponse(response.data);
 };
 export const exportIndustrySummary = async (
   params: IndustryReportParams & { format?: 'PDF' | 'EXCEL' }
 ): Promise<DownloadedReport> => {
   const response = await apiClient.get('/reports/industry-summary/export', {
-    params,
+    params: buildIndustrySummaryParams(params),
     responseType: 'blob',
   });
 
@@ -79,6 +79,23 @@ export const exportIndustrySummary = async (
 
   return { blob, fileName };
 };
+
+/**
+ * NCL-742 §8: `unitIds` phải lặp `unitIds=a&unitIds=b`. Serializer mặc định của
+ * axios phát `unitIds[]=a` (Spring @RequestParam không bắt được) nên tự build
+ * URLSearchParams để kiểm soát chuỗi query.
+ */
+function buildIndustrySummaryParams(
+  params: IndustryReportParams & { format?: 'PDF' | 'EXCEL' }
+): URLSearchParams {
+  const search = new URLSearchParams();
+  if (params.region) search.set('region', params.region);
+  if (params.fromDate) search.set('fromDate', params.fromDate);
+  if (params.toDate) search.set('toDate', params.toDate);
+  if (params.format) search.set('format', params.format);
+  params.unitIds?.forEach((unitId) => search.append('unitIds', unitId));
+  return search;
+}
 
 /**
  * Lấy tên file từ header Content-Disposition.

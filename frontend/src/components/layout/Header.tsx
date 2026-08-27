@@ -48,6 +48,10 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
     user?.roleCode,
     ROLE_ACCESS.organizationProfile,
   );
+  const canOpenUserProfile = hasAnyRole(
+    user?.roleCode,
+    ROLE_ACCESS.userProfile,
+  );
 
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [organizations, setOrganizations] = useState<OrganizationSelection[]>([]);
@@ -103,13 +107,25 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
   // Desktop: full name + role
   // Tablet: shortened name
   // Mobile: avatar only
+  const isMissingEmail = Boolean(
+    user &&
+    canOpenUserProfile &&
+    (!user.email || user.email.trim() === '')
+  );
+
   const userName = user?.fullName || user?.username || 'Người dùng';
   const shortName = userName.split(' ').pop() || userName.charAt(0);
 
   const accountContent = (
     <>
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 min-w-0">
+      <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 min-w-0">
         <User className="h-4 w-4" />
+        {isMissingEmail && (
+          <span
+            className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-red-500 ring-2 ring-white"
+            title="Chưa cập nhật email"
+          />
+        )}
       </span>
       {/* Desktop: Show name and role */}
       {!isMobile && !isTablet && (
@@ -176,20 +192,41 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
             )}
           </DropdownMenuItem>
         ))}
+        {(canOpenUserProfile || canOpenOrganizationProfile) && (
+          <DropdownMenuSeparator />
+        )}
+        {canOpenUserProfile && (
+          <DropdownMenuItem onClick={() => navigate('/profile')}>
+            <User className="mr-2 size-4 text-emerald-600" />
+            <span className="flex-1">Hồ sơ người dùng</span>
+            {isMissingEmail && (
+              <span
+                className="size-2 rounded-full bg-red-500 ring-2 ring-white"
+                title="Chưa cập nhật email"
+              />
+            )}
+          </DropdownMenuItem>
+        )}
         {canOpenOrganizationProfile && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate('/organizations/profile')}>
-              Hồ sơ tổ chức hiện tại
-            </DropdownMenuItem>
-          </>
+          <DropdownMenuItem onClick={() => navigate('/organizations/profile')}>
+            Hồ sơ tổ chức hiện tại
+          </DropdownMenuItem>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
+  ) : canOpenUserProfile ? (
+    <Link
+      to="/profile"
+      className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-emerald-50"
+      title="Xem hồ sơ người dùng"
+    >
+      {accountContent}
+    </Link>
   ) : canOpenOrganizationProfile ? (
     <Link
       to="/organizations/profile"
       className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-emerald-50"
+      title="Xem hồ sơ tổ chức"
     >
       {accountContent}
     </Link>

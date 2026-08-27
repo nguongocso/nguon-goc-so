@@ -27,6 +27,8 @@ import vn.nguongocso.farm.repository.FarmLogRepository;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
+import vn.nguongocso.organization.service.AreaScopeResult;
+import vn.nguongocso.organization.service.AreaScopeService;
 import vn.nguongocso.report.service.impl.OpenDataExportServiceImpl;
 import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
@@ -70,6 +72,9 @@ public class OpenDataExportServiceTest {
     private ReportAccessLogService reportAccessLogService;
 
     @Mock
+    private AreaScopeService areaScopeService;
+
+    @Mock
     private ObjectMapper objectMapper;
 
     @InjectMocks
@@ -97,13 +102,17 @@ public class OpenDataExportServiceTest {
         lenient().when(nonRegulatorDetails.getUserId()).thenReturn(userId);
         lenient().when(nonRegulatorDetails.getOrganizationId()).thenReturn(orgId);
         lenient().when(nonRegulatorDetails.getRoleCode()).thenReturn("VT-03"); // Recorder
+
+        // Mặc định cho phép xem toàn bộ tổ chức (giữ hành vi cũ cho test hiện có)
+        lenient().when(areaScopeService.resolveOrganizationsForReports(any(), any()))
+                .thenReturn(AreaScopeResult.all());
     }
 
     @Test
     void exportOpenData_shouldThrowAccessDenied_whenUserIsNotRegulator() {
         // When & Then
         assertThatThrownBy(() -> openDataExportService.exportOpenData(
-                "Phú Thọ", LocalDate.now().minusMonths(1), LocalDate.now(), "JSON", nonRegulatorDetails, ipAddress
+                "Phú Thọ", null, LocalDate.now().minusMonths(1), LocalDate.now(), "JSON", nonRegulatorDetails, ipAddress
         )).isInstanceOf(AccessDeniedException.class)
           .hasMessageContaining("Bạn không có quyền thực hiện chức năng này");
 
@@ -120,7 +129,7 @@ public class OpenDataExportServiceTest {
 
         // When & Then
         assertThatThrownBy(() -> openDataExportService.exportOpenData(
-                region, LocalDate.now().minusMonths(1), LocalDate.now(), "JSON", regulatorDetails, ipAddress
+                region, null, LocalDate.now().minusMonths(1), LocalDate.now(), "JSON", regulatorDetails, ipAddress
         )).isInstanceOf(BusinessException.class)
           .hasMessageContaining("Không có dữ liệu mở đủ điều kiện để xuất trong phạm vi đã chọn.");
 
@@ -144,7 +153,7 @@ public class OpenDataExportServiceTest {
 
         // When & Then
         assertThatThrownBy(() -> openDataExportService.exportOpenData(
-                region, from, to, "JSON", regulatorDetails, ipAddress
+                region, null, from, to, "JSON", regulatorDetails, ipAddress
         )).isInstanceOf(BusinessException.class)
           .hasMessageContaining("Không có dữ liệu mở đủ điều kiện để xuất trong phạm vi đã chọn.");
     }
@@ -179,7 +188,7 @@ public class OpenDataExportServiceTest {
 
         // When & Then
         assertThatThrownBy(() -> openDataExportService.exportOpenData(
-                region, from, to, "JSON", regulatorDetails, ipAddress
+                region, null, from, to, "JSON", regulatorDetails, ipAddress
         )).isInstanceOf(BusinessException.class)
           .hasMessageContaining("Không có dữ liệu mở đủ điều kiện để xuất trong phạm vi đã chọn.");
     }
@@ -276,7 +285,8 @@ public class OpenDataExportServiceTest {
         when(objectMapper.writerWithDefaultPrettyPrinter()).thenReturn(writer);
 
         // When
-        byte[] result = openDataExportService.exportOpenData(region, from, to, "JSON", regulatorDetails, ipAddress);
+        byte[] result = openDataExportService.exportOpenData(region, null, from, to, "JSON", regulatorDetails,
+                ipAddress);
 
         // Then
         assertThat(result).isNotNull();
@@ -338,7 +348,8 @@ public class OpenDataExportServiceTest {
         when(shipmentRepository.findByProductionLotIdIn(anyList())).thenReturn(Collections.emptyList());
 
         // When
-        byte[] result = openDataExportService.exportOpenData(region, from, to, "XML", regulatorDetails, ipAddress);
+        byte[] result = openDataExportService.exportOpenData(region, null, from, to, "XML", regulatorDetails,
+                ipAddress);
 
         // Then
         assertThat(result).isNotNull();
@@ -401,7 +412,8 @@ public class OpenDataExportServiceTest {
         when(shipmentRepository.findByProductionLotIdIn(anyList())).thenReturn(Collections.emptyList());
 
         // When
-        byte[] result = openDataExportService.exportOpenData(region, from, to, "CSV", regulatorDetails, ipAddress);
+        byte[] result = openDataExportService.exportOpenData(region, null, from, to, "CSV", regulatorDetails,
+                ipAddress);
 
         // Then
         assertThat(result).isNotNull();
