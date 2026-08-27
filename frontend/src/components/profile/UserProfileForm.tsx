@@ -116,10 +116,7 @@ export const UserProfileForm: React.FC = () => {
     );
   }
 
-  const roleLabel = getRoleLabel(profile?.roleCode);
-  const roleDisplay = profile?.roleCode
-    ? `${roleLabel} (${profile.roleCode})`
-    : roleLabel;
+  const roleDisplay = getRoleLabel(profile?.roleCode);
 
   return (
     <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
