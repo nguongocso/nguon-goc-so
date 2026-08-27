@@ -21,6 +21,7 @@ import { DashboardPage } from "@/pages/daskboard/DashboardPase";
 import { CreateFarmAreaPage } from "@/pages/farm-area/CreateFarmAreaPage";
 import { EditFarmAreaPage } from "@/pages/farm-area/EditFarmAreaPage";
 import CreateFarmLogPage from "@/pages/farm-log/CreateFarmLogPage";
+import CorrectFarmLogPage from "@/pages/farm-log/CorrectFarmLogPage";
 import ProductionLotEditPage from "@/pages/farm/ProductionLotEditPage";
 
 import { CreateOrganizationPage } from "@/pages/organization/CreateOrganizationPage";
@@ -531,6 +532,15 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.farmLogCreate}
                     >
                         <CreateFarmLogPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="farm-logs/:id/correct"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.farmLogCorrect}>
+                        <CorrectFarmLogPage />
                     </RoleRoute>
                 }
             />

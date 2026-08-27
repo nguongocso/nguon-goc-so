@@ -1,11 +1,10 @@
 import { Plus, ClipboardList, PencilLine } from 'lucide-react';
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { CorrectFarmLogDialog } from './CorrectFarmLogDialog';
 import { AttachmentManager } from './AttachmentManager';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { ROLE_ACCESS, hasAnyRole } from '@/config/roleAccess';
 import type { FarmLog } from '@/types/farmLog';
 
@@ -17,7 +16,7 @@ interface FarmLogTabProps {
 
 export function FarmLogTab({ logs, onCreateLog, onLogUpdated }: FarmLogTabProps) {
   const { user } = useAuth();
-  const [correctingLog, setCorrectingLog] = useState<FarmLog | null>(null);
+  const navigate = useNavigate();
   const openItems = logs.length > 0 ? [logs[0].id] : [];
 
   /**
@@ -117,7 +116,7 @@ export function FarmLogTab({ logs, onCreateLog, onLogUpdated }: FarmLogTabProps)
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setCorrectingLog(log)}
+                    onClick={() => navigate(`/farm-logs/${log.id}/correct`)}
                   >
                     <PencilLine className="mr-2 h-4 w-4" /> Đính chính
                   </Button>
@@ -128,17 +127,6 @@ export function FarmLogTab({ logs, onCreateLog, onLogUpdated }: FarmLogTabProps)
           </AccordionItem>
         ))}
       </Accordion>
-
-      {correctingLog && (
-        <CorrectFarmLogDialog
-          log={correctingLog}
-          open
-          onOpenChange={(open) => {
-            if (!open) setCorrectingLog(null);
-          }}
-          onSuccess={() => onLogUpdated?.()}
-        />
-      )}
     </div>
   );
 }

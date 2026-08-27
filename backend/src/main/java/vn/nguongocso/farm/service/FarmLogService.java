@@ -33,6 +33,15 @@ public interface FarmLogService {
     FarmLogResponse correctFarmLog(UUID id, CorrectFarmLogRequest request);
 
     /**
+     * NCL-03-CN-006: lấy chi tiết một nhật ký canh tác theo ID (người ghi sự
+     * kiện/Quản lý cùng tổ chức). Dùng cho trang đính chính nhật ký.
+     *
+     * @param id ID của nhật ký
+     * @return thông tin nhật ký
+     */
+    FarmLogResponse getFarmLog(UUID id);
+
+    /**
      * Lấy danh sách nhật ký canh tác của lô sản xuất theo phân trang.
      *
      * @param productionLotId mã lô sản xuất

@@ -416,4 +416,33 @@ public class FarmLogServiceImpl implements FarmLogService {
 
 		return PageResponse.from(farmLogs, responses);
 	}
+
+	/**
+	 * NCL-03-CN-006: lấy chi tiết một nhật ký canh tác theo ID, phục vụ trang
+	 * đính chính. Chỉ người ghi sự kiện (VT-03) hoặc Quản lý hợp tác xã (VT-02)
+	 * cùng tổ chức mới xem được.
+	 *
+	 * @param id ID của nhật ký
+	 * @return thông tin nhật ký
+	 */
+	@Override
+	public FarmLogResponse getFarmLog(UUID id) {
+
+		CustomUserDetails currentUser = getCurrentUser();
+
+		String roleCode = currentUser.getRoleCode();
+		if (!ORG_MANAGER_ROLE.equals(roleCode) && !EVENT_RECORDER_ROLE.equals(roleCode)) {
+			throw new BusinessException(HttpStatus.FORBIDDEN, VIEW_PERMISSION_MESSAGE);
+		}
+
+		FarmLog farmLog = farmLogRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException(FARM_LOG_NOT_FOUND_MESSAGE));
+
+		validateOrganizationAccess(currentUser, farmLog.getProductionLotId());
+
+		int count = attachmentRepository.countByFarmLogId(farmLog.getId());
+		FarmLogResponse response = toResponse(farmLog);
+		response.setAttachmentCount(count);
+		return response;
+	}
 }

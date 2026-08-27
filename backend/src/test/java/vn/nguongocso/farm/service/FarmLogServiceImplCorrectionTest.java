@@ -430,4 +430,31 @@ class FarmLogServiceImplCorrectionTest {
         assertThat(response.getIsCorrection()).isTrue();
         assertThat(originalLog.isCorrected()).isTrue();
     }
+
+    // ===== getFarmLog (trang đính chính) =====
+
+    @Test
+    @DisplayName("Lấy chi tiết nhật ký theo ID: người ghi sự kiện cùng tổ chức")
+    void getFarmLog_shouldReturnLog_whenAuthorized() {
+        loginAs(recorder);
+        when(farmLogRepository.findById(originalLog.getId()))
+                .thenReturn(Optional.of(originalLog));
+
+        FarmLogResponse response = farmLogService.getFarmLog(originalLog.getId());
+
+        assertThat(response.getId()).isEqualTo(originalLog.getId());
+        assertThat(response.getActivityType()).isEqualTo(FarmActivityType.FERTILIZING);
+    }
+
+    @Test
+    @DisplayName("Lấy chi tiết nhật ký theo ID: không tồn tại -> 404")
+    void getFarmLog_shouldFail_whenNotFound() {
+        loginAs(recorder);
+        UUID unknownId = UUID.randomUUID();
+        when(farmLogRepository.findById(unknownId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> farmLogService.getFarmLog(unknownId))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Không tìm thấy nhật ký canh tác");
+    }
 }

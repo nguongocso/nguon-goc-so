@@ -89,4 +89,19 @@ public class FarmLogController {
                         page,
                         size));
     }
+
+    /**
+     * NCL-03-CN-006: Lấy chi tiết một nhật ký canh tác theo ID, phục vụ trang
+     * đính chính nhật ký.
+     *
+     * @param id ID của nhật ký
+     * @return thông tin nhật ký
+     */
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
+    public ApiResult<FarmLogResponse> getFarmLog(@PathVariable UUID id) {
+
+        permissionChecker.check("FARM_LOG", "READ");
+        return ApiResult.success(farmLogService.getFarmLog(id));
+    }
 }

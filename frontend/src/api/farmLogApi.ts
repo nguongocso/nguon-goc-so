@@ -18,6 +18,18 @@ export const getFarmLogs = async (
   return response.data.data;
 };
 
+/**
+ * NCL-03-CN-006: lấy chi tiết một nhật ký canh tác theo ID (dùng cho trang
+ * đính chính /farm-logs/:id/correct).
+ */
+export const getFarmLogById = async (id: string): Promise<FarmLog> => {
+  const response = await apiClient.get<{
+    success: boolean;
+    data: FarmLog;
+  }>(`/farm-logs/${id}`);
+  return response.data.data;
+};
+
 export const getAllFarmLogsByProductionLot = async (
   productionLotId: string,
 ): Promise<FarmLog[]> => {

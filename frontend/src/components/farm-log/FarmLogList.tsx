@@ -32,7 +32,6 @@ import { getFarmLogs } from "@/api/farmLogApi";
 import type { FarmLog } from "@/types/farmLog";
 import { useNavigate } from "react-router-dom";
 import { AttachmentManager } from "./AttachmentManager";
-import { CorrectFarmLogDialog } from "./CorrectFarmLogDialog";
 import { DetailSection } from "@/components/common/detail/DetailSection";
 import type { PageResponse } from "@/types/common";
 import { useAuth } from "@/hooks/useAuth";
@@ -44,10 +43,8 @@ interface FarmLogListProps {
   productionLotName?: string;
   /** Có quyền tạo nhật ký canh tác mới hay không (mặc định true để không phá các nơi gọi cũ). */
   canCreate?: boolean;
-  /** NCL-03-CN-006: bật UI đính chính (cột "Hành động" + dialog). Mặc định false. */
+  /** NCL-03-CN-006: bật UI đính chính (cột "Hành động" + chuyển hướng). Mặc định false. */
   enableCorrection?: boolean;
-  /** NCL-03-CN-006: callback refresh danh sách sau khi đính chính thành công (tùy chọn). */
-  onLogUpdated?: () => void;
 }
 
 const ACTIVITY_TYPE_LABELS: Record<string, string> = {
@@ -100,7 +97,6 @@ export function FarmLogList({
   productionLotName = "",
   canCreate = true,
   enableCorrection = false,
-  onLogUpdated,
 }: FarmLogListProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -128,9 +124,6 @@ export function FarmLogList({
 
   // State row mở rộng: xem chi tiết + chứng từ inline
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
-
-  // NCL-03-CN-006: nhật ký đang được đính chính
-  const [correctingLog, setCorrectingLog] = useState<FarmLog | null>(null);
 
   /**
    * NCL-03-CN-006: xác định người dùng hiện tại có được đính chính 1 nhật ký hay không.
@@ -440,7 +433,9 @@ export function FarmLogList({
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setCorrectingLog(log)}
+                                onClick={() =>
+                                  navigate(`/farm-logs/${log.id}/correct`)
+                                }
                                 aria-label="Đính chính nhật ký"
                                 title="Đính chính"
                                 className="flex items-center gap-1"
@@ -546,22 +541,6 @@ export function FarmLogList({
           )}
         </CardContent>
       </Card>
-
-      {/* NCL-03-CN-006: dialog đính chính nhật ký canh tác */}
-      {correctingLog && (
-        <CorrectFarmLogDialog
-          log={correctingLog}
-          open
-          onOpenChange={(open) => {
-            if (!open) setCorrectingLog(null);
-          }}
-          onSuccess={() => {
-            setCorrectingLog(null);
-            loadLogs();
-            onLogUpdated?.();
-          }}
-        />
-      )}
     </div>
   );
 }
