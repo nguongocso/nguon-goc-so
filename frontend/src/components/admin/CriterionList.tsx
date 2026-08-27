@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { DataTablePagination } from "@/components/common/DataTablePagination";
 import {
   Table,
   TableBody,
@@ -21,7 +23,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 import {
   getStandards,
@@ -33,6 +35,8 @@ import {
 import type { InspectionCriterionFormValues } from "@/utils/validators";
 import type { InspectionCriterion } from "@/types/standard";
 import { CriterionForm } from "./CriterionForm";
+
+const PAGE_SIZE = 10;
 
 interface CriterionListProps {
   standardId?: string;
@@ -51,6 +55,25 @@ export const CriterionList: React.FC<CriterionListProps> = ({ standardId }) => {
     null,
   );
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+
+  const filteredCriteria = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    if (!keyword) return criteriaList;
+    return criteriaList.filter(
+      (criterion) =>
+        criterion.code.toLowerCase().includes(keyword) ||
+        criterion.name.toLowerCase().includes(keyword),
+    );
+  }, [criteriaList, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredCriteria.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const paginatedCriteria = filteredCriteria.slice(
+    safePage * PAGE_SIZE,
+    safePage * PAGE_SIZE + PAGE_SIZE,
+  );
 
   const fetchStandardName = async () => {
     if (!standardId) return;
@@ -181,29 +204,47 @@ export const CriterionList: React.FC<CriterionListProps> = ({ standardId }) => {
       </div>
 
       <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
-        <CardHeader className="border-b border-slate-100 pb-4 flex flex-row items-center justify-between">
+        <CardHeader className="border-b border-slate-100 pb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-xl font-bold text-slate-900">
             Tiêu chí kiểm nghiệm
             <Badge variant="outline" className="ml-2 align-middle">
-              {criteriaList.length} tiêu chí
+              {filteredCriteria.length} tiêu chí
             </Badge>
           </CardTitle>
-          <Button variant="create" size="sm" onClick={openCreateForm}>
-            <Plus className="h-4 w-4 mr-1" />
-            Thêm mới
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="relative w-full max-w-[240px]">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Tìm theo mã hoặc tên tiêu chí..."
+                aria-label="Tìm kiếm tiêu chí"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
+              />
+            </div>
+            <Button variant="create" size="sm" onClick={openCreateForm}>
+              <Plus className="h-4 w-4 mr-1" />
+              Thêm mới
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {criteriaLoading ? (
             <div className="text-center py-12 text-muted-foreground">
               Đang tải tiêu chí...
             </div>
-          ) : criteriaList.length === 0 ? (
+          ) : filteredCriteria.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              Chưa có tiêu chí nào. Nhấn "Thêm mới" để tạo tiêu chí.
+              {search.trim()
+                ? "Không tìm thấy tiêu chí phù hợp."
+                : "Chưa có tiêu chí nào. Nhấn \"Thêm mới\" để tạo tiêu chí."}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50/80">
@@ -214,7 +255,7 @@ export const CriterionList: React.FC<CriterionListProps> = ({ standardId }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {criteriaList.map((criterion) => (
+                  {paginatedCriteria.map((criterion) => (
                     <TableRow key={criterion.criteriaId} className="hover:bg-slate-50/60">
                       <TableCell className="font-medium">
                         {criterion.code}
@@ -249,7 +290,15 @@ export const CriterionList: React.FC<CriterionListProps> = ({ standardId }) => {
                   ))}
                 </TableBody>
               </Table>
-            </div>
+              </div>
+              <DataTablePagination
+                page={safePage}
+                pageSize={PAGE_SIZE}
+                totalElements={filteredCriteria.length}
+                onPageChange={setPage}
+                itemLabel="tiêu chí"
+              />
+            </>
           )}
         </CardContent>
       </Card>

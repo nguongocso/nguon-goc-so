@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { DataTablePagination } from "@/components/common/DataTablePagination";
 import { ApproveProductionLotDialog } from "./Approveproductionlotdialog";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -64,6 +65,8 @@ interface ProductionLotListProps {
   onRecordFarmLog: (id: string) => void;
   onRecordProcurement?: (lotId: string) => void;
 }
+
+const PAGE_SIZE = 10;
 
 const statusConfig: Record<
   ProductionLot["status"],
@@ -126,6 +129,7 @@ export const ProductionLotList = ({
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [page, setPage] = useState(0);
   const [confirmingLot, setConfirmingLot] =
     useState<ProductionLot | null>(null);
   const [approvingLot, setApprovingLot] =
@@ -160,6 +164,13 @@ export const ProductionLotList = ({
       return matchesSearch && matchesStatus;
     });
   }, [lots, search, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLots.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const paginatedLots = filteredLots.slice(
+    safePage * PAGE_SIZE,
+    safePage * PAGE_SIZE + PAGE_SIZE,
+  );
 
   const getStatusBadge = (status: ProductionLot["status"]) => {
     const config = statusConfig[status] || {
@@ -223,7 +234,10 @@ export const ProductionLotList = ({
               <Input
                 className="pl-9"
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(0);
+                }}
                 placeholder="Tìm tên lô, vùng trồng hoặc loại nông sản..."
                 aria-label="Tìm kiếm lô sản xuất"
               />
@@ -231,7 +245,10 @@ export const ProductionLotList = ({
 
             <Select
               value={statusFilter}
-              onValueChange={(value) => setStatusFilter(value || "")}
+              onValueChange={(value) => {
+                setStatusFilter(value || "");
+                setPage(0);
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Tất cả trạng thái">
@@ -292,7 +309,7 @@ export const ProductionLotList = ({
                 )}
 
                 {!isLoading &&
-                  filteredLots.map((lot) => {
+                  paginatedLots.map((lot) => {
                     const showEdit =
                       canEdit && lot.status === "DRAFT";
                     const showSubmit =
@@ -421,6 +438,16 @@ export const ProductionLotList = ({
               </div>
             )}
           </div>
+
+          {!isLoading && filteredLots.length > 0 && (
+            <DataTablePagination
+              page={safePage}
+              pageSize={PAGE_SIZE}
+              totalElements={filteredLots.length}
+              onPageChange={setPage}
+              itemLabel="lô sản xuất"
+            />
+          )}
         </CardContent>
       </Card>
 

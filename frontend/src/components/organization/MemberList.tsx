@@ -46,6 +46,9 @@ import {
   AlertDialogPopup,
 } from "@/components/ui/alert-dialog";
 import { getRoleLabel } from "@/config/roleAccess";
+import { DataTablePagination } from "@/components/common/DataTablePagination";
+
+const PAGE_SIZE = 10;
 
 const roleBadgeClasses: Record<string, string> = {
   "VT-02": "bg-blue-100 text-blue-700",
@@ -71,6 +74,7 @@ export const MemberList = () => {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [page, setPage] = useState(0);
   const [editingMember, setEditingMember] = useState<OrganizationMember | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState("");
 
@@ -137,6 +141,13 @@ export const MemberList = () => {
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [members, roleFilter, search, statusFilter, user]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredMembers.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const paginatedMembers = filteredMembers.slice(
+    safePage * PAGE_SIZE,
+    safePage * PAGE_SIZE + PAGE_SIZE,
+  );
 
   const openRoleDialog = (member: OrganizationMember) => {
     setEditingMember(member);
@@ -302,14 +313,20 @@ export const MemberList = () => {
               <Input
                 className="pl-9"
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(0);
+                }}
                 placeholder="Tìm kiếm thành viên..."
               />
             </div>
 
             <Select
               value={roleFilter}
-              onValueChange={(value) => setRoleFilter(value ?? '')}
+              onValueChange={(value) => {
+                setRoleFilter(value ?? '');
+                setPage(0);
+              }}
             >
               <SelectTrigger>
                 {getRoleFilterLabel()}
@@ -324,7 +341,10 @@ export const MemberList = () => {
 
             <Select
               value={statusFilter}
-              onValueChange={(value) => setStatusFilter(value ?? '')}
+              onValueChange={(value) => {
+                setStatusFilter(value ?? '');
+                setPage(0);
+              }}
             >
               <SelectTrigger>
                 {getStatusFilterLabel()}
@@ -372,7 +392,7 @@ export const MemberList = () => {
                   </TableRow>
                 )}
                 {!isLoading &&
-                  filteredMembers.map((member) => {
+                  paginatedMembers.map((member) => {
                     const inactive = member.status === "INACTIVE";
                     return (
                       <TableRow
@@ -450,6 +470,15 @@ export const MemberList = () => {
               </div>
             )}
           </div>
+          {!isLoading && filteredMembers.length > 0 && (
+            <DataTablePagination
+              page={safePage}
+              pageSize={PAGE_SIZE}
+              totalElements={filteredMembers.length}
+              onPageChange={setPage}
+              itemLabel="thành viên"
+            />
+          )}
         </CardContent>
       </Card>
 

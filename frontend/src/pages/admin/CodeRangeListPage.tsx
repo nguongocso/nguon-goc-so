@@ -11,13 +11,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { CodeRangeStatusResponse } from "@/types/codeRange";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
-import { useEffect, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { DataTablePagination } from "@/components/common/DataTablePagination";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { usePermission } from "@/hooks/usePermission";
 import { ROLE_ACCESS } from "@/config/roleAccess";
+
+const PAGE_SIZE = 10;
 
 const getStatusConfig = (status: string) => {
   switch (status) {
@@ -35,6 +39,8 @@ const getStatusConfig = (status: string) => {
 const CodeRangeListPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [ranges, setRanges] = useState<CodeRangeStatusResponse[]>([]);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
 
   const canCreate = usePermission(ROLE_ACCESS.codeRangeList);
 
@@ -51,6 +57,23 @@ const CodeRangeListPage: React.FC = () => {
     };
     fetchData();
   }, []);
+
+  const filteredRanges = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    if (!keyword) return ranges;
+    return ranges.filter(
+      (range) =>
+        (range.organizationName ?? "").toLowerCase().includes(keyword) ||
+        (range.prefix ?? "").toLowerCase().includes(keyword),
+    );
+  }, [ranges, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRanges.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const paginatedRanges = filteredRanges.slice(
+    safePage * PAGE_SIZE,
+    safePage * PAGE_SIZE + PAGE_SIZE,
+  );
 
   if (loading) {
     return (
@@ -90,26 +113,46 @@ const CodeRangeListPage: React.FC = () => {
       {/* Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base font-semibold">
-            Danh sách dải mã
-            <span className="ml-2 text-sm font-normal text-muted-foreground">
-              ({ranges.length})
-            </span>
-          </CardTitle>
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+            <CardTitle className="text-base font-semibold">
+              Danh sách dải mã
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({filteredRanges.length})
+              </span>
+            </CardTitle>
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Tìm theo tổ chức hoặc tiền tố..."
+                aria-label="Tìm kiếm dải mã"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {ranges.length === 0 ? (
+          {filteredRanges.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="rounded-full bg-muted p-4 mb-4">
                 <Plus className="h-8 w-8 text-muted-foreground" />
               </div>
-              <p className="text-muted-foreground">Chưa có dải mã nào</p>
+              <p className="text-muted-foreground">
+                {search.trim() ? "Không tìm thấy dải mã phù hợp" : "Chưa có dải mã nào"}
+              </p>
               <p className="text-sm text-muted-foreground/70 mt-1">
-                Nhấn "Cấp dải mã mới" để tạo dải mã cho tổ chức
+                {search.trim()
+                  ? "Hãy thử thay đổi từ khóa tìm kiếm."
+                  : "Nhấn \"Cấp dải mã mới\" để tạo dải mã cho tổ chức"}
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
@@ -122,7 +165,7 @@ const CodeRangeListPage: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ranges.map((range) => {
+                  {paginatedRanges.map((range) => {
                     const config = getStatusConfig(range.status);
                     return (
                       <TableRow
@@ -181,7 +224,15 @@ const CodeRangeListPage: React.FC = () => {
                   })}
                 </TableBody>
               </Table>
-            </div>
+              </div>
+              <DataTablePagination
+                page={safePage}
+                pageSize={PAGE_SIZE}
+                totalElements={filteredRanges.length}
+                onPageChange={setPage}
+                itemLabel="dải mã"
+              />
+            </>
           )}
         </CardContent>
       </Card>
