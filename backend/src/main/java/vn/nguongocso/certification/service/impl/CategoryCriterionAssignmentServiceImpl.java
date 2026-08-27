@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import vn.nguongocso.certification.dto.request.CategoryCriteriaRequest;
 import vn.nguongocso.certification.dto.request.MandatoryInspectionRequest;
 import vn.nguongocso.certification.dto.response.InspectionCriterionCatalogResponse;
@@ -27,6 +29,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of CategoryCriterionAssignmentService.
@@ -54,6 +57,13 @@ public class CategoryCriterionAssignmentServiceImpl implements CategoryCriterion
     private final CategoryCriterionRepository categoryCriterionRepository;
     private final InspectionCriterionCatalogRepository catalogRepository;
     private final InspectionCriterionRepository inspectionCriterionRepository;
+
+    /**
+     * Dùng để ép DELETE xuống DB ngay trước khi INSERT trong cùng transaction,
+     * tránh xung đột ràng buộc unique (category_id, criterion_id) khi gán.
+     */
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
     @Transactional(readOnly = true)
@@ -109,10 +119,37 @@ public class CategoryCriterionAssignmentServiceImpl implements CategoryCriterion
             throw new BusinessException(MSG_CANNOT_REMOVE_ALL_CRITERIA);
         }
 
-        // REPLACE semantics
-        categoryCriterionRepository.deleteByCategory_Id(categoryId);
+        // ---- CẬP NHẬT (upsert) IDEMPOTENT ----
+        // Lựa chọn mới = toAssign. So khớp với các chỉ tiêu đang gán hiện tại
+        // để chỉ: (1) thêm các chỉ tiêu MỚI, (2) xóa các chỉ tiêu đã bị bỏ,
+        // (3) giữ nguyên các chỉ tiêu vốn đã gán và vẫn đang được chọn.
+        // → KHÔNG bao giờ insert lại (category_id, criterion_id) đã tồn tại,
+        //   nên không thể vi phạm unique uk_category_criteria (fix lỗi 409 duplicate).
 
+        Set<Long> existingIds = new HashSet<>();
+        for (CategoryCriterion cc : categoryCriterionRepository.findByCategoryIdWithCriteria(categoryId)) {
+            existingIds.add(cc.getCriterion().getId());
+        }
+
+        Set<Long> desiredIds = toAssign.stream()
+                .map(InspectionCriterionCatalog::getId)
+                .collect(Collectors.toSet());
+
+        // (2) Xóa các gán đã bị bỏ khỏi lựa chọn.
+        List<Long> toRemove = existingIds.stream()
+                .filter(id -> !desiredIds.contains(id))
+                .toList();
+        if (!toRemove.isEmpty()) {
+            categoryCriterionRepository.deleteByCategory_IdAndCriterion_IdIn(categoryId, toRemove);
+            // Đảm bảo DELETE chạy xuống DB trước khi INSERT tiếp theo.
+            entityManager.flush();
+        }
+
+        // (1)+(3) Chỉ insert các chỉ tiêu MỚI; giữ nguyên các chỉ tiêu đã gán.
         for (InspectionCriterionCatalog criterion : toAssign) {
+            if (existingIds.contains(criterion.getId())) {
+                continue;
+            }
             CategoryCriterion assignment = CategoryCriterion.builder()
                     .category(category)
                     .criterion(criterion)

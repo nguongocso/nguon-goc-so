@@ -37,10 +37,12 @@ import CodeRangeListPage from "@/pages/admin/CodeRangeListPage";
 import ProductCategoryManagementPage from "@/pages/admin/ProductCategoryManagementPage";
 import CreateProductCategoryPage from "@/pages/admin/CreateProductCategoryPage";
 import EditProductCategoryPage from "@/pages/admin/EditProductCategoryPage";
+import AssignInspectionCriteriaPage from "@/pages/admin/AssignInspectionCriteriaPage";
 import StandardManagementPage from "@/pages/admin/StandardManagementPage";
 import CreateStandardPage from "@/pages/admin/CreateStandardPage";
 import EditStandardPage from "@/pages/admin/EditStandardPage";
 import InspectionCriteriaManagementPage from "@/pages/admin/InspectionCriteriaManagementPage";
+import CreateInspectionCriterionPage from "@/pages/admin/CreateInspectionCriterionPage";
 import SuspectTraceCodeListPage from "@/pages/admin/SuspectTraceCodeListPage";
 import SuspectTraceCodeDetailPage from "@/pages/admin/SuspectTraceCodeDetailPage";
 
@@ -668,6 +670,15 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="admin/product-categories/:id/criteria"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <AssignInspectionCriteriaPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="admin/standards"
                 element={
                     <RoleRoute
@@ -696,6 +707,17 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.standardManagement}
                     >
                         <EditStandardPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/inspection-criteria/create"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.inspectionCriteriaManagement}
+                    >
+                        <CreateInspectionCriterionPage />
                     </RoleRoute>
                 }
             />

@@ -17,10 +17,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import jakarta.persistence.EntityManager;
 
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.CategoryCriteriaRequest;
 import vn.nguongocso.certification.dto.request.MandatoryInspectionRequest;
+import vn.nguongocso.certification.entity.CategoryCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterionCatalog;
 import vn.nguongocso.certification.repository.CategoryCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionCatalogRepository;
@@ -51,6 +55,11 @@ class CategoryCriterionAssignmentServiceImplTest {
     @Mock
     private InspectionCriterionRepository inspectionCriterionRepository;
 
+    // Mock cho @PersistenceContext EntityManager dùng trong entityManager.flush()
+    // sau khi xóa hàng loạt (đảm bảo DELETE chạy trước INSERT).
+    @Mock
+    private EntityManager entityManager;
+
     @org.mockito.InjectMocks
     private CategoryCriterionAssignmentServiceImpl service;
 
@@ -66,6 +75,10 @@ class CategoryCriterionAssignmentServiceImplTest {
                 .requiresInspection(false)
                 .isActive(true)
                 .build();
+
+        // Mockito chỉ inject qua constructor (@RequiredArgsConstructor),
+        // nên cần inject tay EntityManager cho trường @PersistenceContext.
+        ReflectionTestUtils.setField(service, "entityManager", entityManager);
     }
 
     private CustomUserDetails admin() {
@@ -144,7 +157,7 @@ class CategoryCriterionAssignmentServiceImplTest {
 
         assertThatThrownBy(() -> service.assignCriteria(categoryId, request, admin()))
                 .isInstanceOf(BusinessException.class);
-        verify(categoryCriterionRepository, never()).deleteByCategory_Id(any());
+        verify(categoryCriterionRepository, never()).deleteByCategory_IdAndCriterion_IdIn(any(), any());
     }
 
     // only assign ACTIVE criteria; INACTIVE rejected
@@ -163,7 +176,7 @@ class CategoryCriterionAssignmentServiceImplTest {
 
         assertThatThrownBy(() -> service.assignCriteria(categoryId, request, admin()))
                 .isInstanceOf(BusinessException.class);
-        verify(categoryCriterionRepository, never()).deleteByCategory_Id(any());
+        verify(categoryCriterionRepository, never()).deleteByCategory_IdAndCriterion_IdIn(any(), any());
     }
 
     // assigning criteria allowed for admin
@@ -173,6 +186,7 @@ class CategoryCriterionAssignmentServiceImplTest {
         when(productCategoryRepository.existsById(categoryId)).thenReturn(true);
         when(categoryCriterionRepository.findByCategoryIdWithCriteria(categoryId))
                 .thenReturn(java.util.List.of());
+        when(inspectionCriterionRepository.findReferencedCriterionIds()).thenReturn(List.of());
         InspectionCriterionCatalog active = InspectionCriterionCatalog.builder()
                 .id(1L)
                 .name("Dư lượng")
@@ -185,7 +199,86 @@ class CategoryCriterionAssignmentServiceImplTest {
 
         service.assignCriteria(categoryId, request, admin());
 
-        verify(categoryCriterionRepository).deleteByCategory_Id(categoryId);
+        // Idempotent: không có gì cần xóa (chưa gán trước đó), chỉ insert 1 chỉ tiêu mới.
+        verify(categoryCriterionRepository, never()).deleteByCategory_IdAndCriterion_IdIn(any(), any());
         verify(categoryCriterionRepository).save(any());
+    }
+
+    // Không đánh lại (re-insert) các chỉ tiêu đã gán sẵn → không vi phạm unique (fix lỗi 409).
+    @Test
+    void assignCriteria_shouldNotReinsertAlreadyAssignedCriteria() {
+        when(productCategoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
+        when(productCategoryRepository.existsById(categoryId)).thenReturn(true);
+
+        InspectionCriterionCatalog a = InspectionCriterionCatalog.builder()
+                .id(1L)
+                .name("Dư lượng")
+                .status("ACTIVE")
+                .build();
+        InspectionCriterionCatalog b = InspectionCriterionCatalog.builder()
+                .id(2L)
+                .name("Vi sinh")
+                .status("ACTIVE")
+                .build();
+
+        // Đang gán sẵn: 1L.
+        CategoryCriterion existing = CategoryCriterion.builder()
+                .category(category)
+                .criterion(a)
+                .build();
+        when(categoryCriterionRepository.findByCategoryIdWithCriteria(categoryId))
+                .thenReturn(java.util.List.of(existing));
+        when(catalogRepository.findById(1L)).thenReturn(Optional.of(a));
+        when(catalogRepository.findById(2L)).thenReturn(Optional.of(b));
+        when(inspectionCriterionRepository.findReferencedCriterionIds()).thenReturn(List.of());
+
+        CategoryCriteriaRequest request = new CategoryCriteriaRequest();
+        request.setCriterionIds(List.of(1L, 2L)); // A đã-gán + B mới
+
+        service.assignCriteria(categoryId, request, admin());
+
+        // Chỉ xóa (không có: 1L vẫn giữ) ; chỉ insert B (2L) — KHÔNG insert lại A.
+        verify(categoryCriterionRepository, never()).deleteByCategory_IdAndCriterion_IdIn(any(), any());
+        verify(categoryCriterionRepository).save(any());
+    }
+
+    // Hủy gán: bỏ chọn 1 chỉ tiêu đã gán → chỉ xóa đúng chỉ tiêu đó.
+    @Test
+    void assignCriteria_shouldRemoveDeselectedCriterion() {
+        when(productCategoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
+        when(productCategoryRepository.existsById(categoryId)).thenReturn(true);
+
+        InspectionCriterionCatalog a = InspectionCriterionCatalog.builder()
+                .id(1L)
+                .name("Dư lượng")
+                .status("ACTIVE")
+                .build();
+        InspectionCriterionCatalog b = InspectionCriterionCatalog.builder()
+                .id(2L)
+                .name("Vi sinh")
+                .status("ACTIVE")
+                .build();
+
+        CategoryCriterion existingA = CategoryCriterion.builder()
+                .category(category)
+                .criterion(a)
+                .build();
+        CategoryCriterion existingB = CategoryCriterion.builder()
+                .category(category)
+                .criterion(b)
+                .build();
+        when(categoryCriterionRepository.findByCategoryIdWithCriteria(categoryId))
+                .thenReturn(java.util.List.of(existingA, existingB));
+        when(catalogRepository.findById(2L)).thenReturn(Optional.of(b));
+        when(inspectionCriterionRepository.findReferencedCriterionIds()).thenReturn(List.of());
+
+        // Lần 1: gán A+B. Lần này chỉ chọn B (bỏ A) → chỉ xóa A.
+        CategoryCriteriaRequest request = new CategoryCriteriaRequest();
+        request.setCriterionIds(List.of(2L));
+
+        service.assignCriteria(categoryId, request, admin());
+
+        verify(categoryCriterionRepository).deleteByCategory_IdAndCriterion_IdIn(categoryId, List.of(1L));
+        verify(categoryCriterionRepository, never()).save(any());
     }
 }

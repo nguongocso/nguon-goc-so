@@ -1,9 +1,11 @@
 package vn.nguongocso.certification.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import vn.nguongocso.certification.entity.CategoryCriterion;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -11,7 +13,7 @@ import java.util.UUID;
  * Repository for managing the category-criteria relationship.
  * Story: NCL-09-CN-009
  */
-public interface CategoryCriterionRepository extends JpaRepository<CategoryCriterion, Long> {
+public interface CategoryCriterionRepository extends JpaRepository<CategoryCriterion, UUID> {
 
     /**
      * Find all criteria assigned to a product category.
@@ -45,9 +47,15 @@ public interface CategoryCriterionRepository extends JpaRepository<CategoryCrite
             @Param("status") String status);
 
     /**
-     * Delete all criteria assignments for a category.
+     * Xóa các gán chỉ tiêu theo category + danh sách criterion cụ thể.
+     * Dùng khi người dùng bỏ chọn (deselect) một số chỉ tiêu — chỉ xóa đúng
+     * các bản ghi cần gỡ, không xóa toàn bộ để tránh insert lại gây trùng unique.
      */
-    void deleteByCategory_Id(UUID categoryId);
+    @Modifying
+    @Query("DELETE FROM CategoryCriterion cc WHERE cc.category.id = :categoryId AND cc.criterion.id IN :criterionIds")
+    int deleteByCategory_IdAndCriterion_IdIn(
+            @Param("categoryId") UUID categoryId,
+            @Param("criterionIds") Collection<Long> criterionIds);
 
     /**
      * Check if a specific criterion is assigned to any product category.
