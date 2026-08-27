@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { EditFarmAreaForm } from "@/components/farm-area/EditFarmAreaForm";
 import { HelpButton } from "@/components/help/HelpButton";
+import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 import { getFarmAreaById } from "@/api/farmAreaApi";
 import type { FarmArea } from "@/types/farmArea";
 import { toast } from "sonner";
@@ -12,6 +13,20 @@ export const EditFarmAreaPage: React.FC = () => {
   const navigate = useNavigate();
   const [farmArea, setFarmArea] = useState<FarmArea | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useSetBreadcrumb(
+    farmArea
+      ? [
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Vùng trồng", href: "/farm-areas" },
+        { label: `Chỉnh sửa ${farmArea.name}` },
+      ]
+      : [
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Vùng trồng", href: "/farm-areas" },
+        { label: "Chỉnh sửa vùng trồng" },
+      ]
+  );
 
   useEffect(() => {
     if (!id) return;

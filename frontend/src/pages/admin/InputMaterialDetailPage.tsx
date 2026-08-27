@@ -30,6 +30,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
+import { HelpButton } from '@/components/help/HelpButton';
 import { getInputMaterialById, toggleInputMaterialStatus } from '@/api/inputMaterialApi';
 import { MaterialGroup, MATERIAL_GROUP_VARIANTS } from '@/enums/materialGroup';
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
@@ -138,6 +139,7 @@ export const InputMaterialDetailPage = () => {
             </p>
           </div>
         </div>
+        <HelpButton screenKey="admin-input-materials" />
       </div>
 
       {/* Hero Card Banner */}

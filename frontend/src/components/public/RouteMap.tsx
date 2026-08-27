@@ -146,7 +146,7 @@ export const RouteMap = ({ events }: RouteMapProps) => {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div className="relative z-0 isolate bg-white rounded-xl shadow-sm overflow-hidden">
       <div ref={mapRef} style={{ height: '450px', width: '100%' }} />
       <div className="p-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-400 flex justify-between">
         <span>{locationEvents.length} điểm hành trình</span>

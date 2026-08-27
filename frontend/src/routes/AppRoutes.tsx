@@ -407,6 +407,17 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="chinhsuavungtrong/:id"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.farmAreaCreate}
+                    >
+                        <EditFarmAreaPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="farm-areas"
                 element={
                     <RoleRoute allowedRoles={["VT-02"]}>

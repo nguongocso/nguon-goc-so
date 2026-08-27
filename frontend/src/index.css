@@ -344,3 +344,10 @@
     border-radius: var(--radius-xl);
   }
 }
+
+/* Fix Leaflet map z-index stacking context so modals/drawers cover it properly */
+.leaflet-container {
+  z-index: 0 !important;
+  isolation: isolate;
+}
+

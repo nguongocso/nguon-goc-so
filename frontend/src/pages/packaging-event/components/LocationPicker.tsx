@@ -127,7 +127,7 @@ export function LocationPicker({
         height,
         width: '100%',
       }}
-      className="overflow-hidden rounded-md border"
+      className="relative z-0 isolate overflow-hidden rounded-md border"
     >
       <MapContainer
         center={defaultCenter}
