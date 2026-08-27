@@ -51,6 +51,18 @@ export function HelpButton({
   );
 }
 
+const HELP_TEXT_REPLACEMENTS: [string, string][] = [
+  ['PENDING/APPROVED/REJECTED', 'Chờ duyệt / Đã duyệt / Đã từ chối'],
+];
+
+function formatHelpStep(step: string): string {
+  let formatted = step;
+  for (const [search, replace] of HELP_TEXT_REPLACEMENTS) {
+    formatted = formatted.replaceAll(search, replace);
+  }
+  return formatted;
+}
+
 function HelpDrawer({ screenKey }: { screenKey: string }) {
   const { data, isLoading, error } = useHelp(screenKey);
 
@@ -91,7 +103,7 @@ function HelpDrawer({ screenKey }: { screenKey: string }) {
                     {index + 1}
                   </span>
                   <span className="text-sm leading-relaxed text-foreground">
-                    {step}
+                    {formatHelpStep(step)}
                   </span>
                 </li>
               ))}
