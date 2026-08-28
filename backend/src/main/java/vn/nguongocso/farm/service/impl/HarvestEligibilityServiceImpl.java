@@ -15,7 +15,12 @@ import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.farm.service.HarvestEligibilityService;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Triển khai dịch vụ tính toán điều kiện cách ly thu hoạch (NCL-681 / NCL-843).

@@ -1,5 +1,6 @@
 package vn.nguongocso.farm.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -76,5 +77,5 @@ public interface InputMaterialRepository extends JpaRepository<InputMaterial, UU
 			WHERE LOWER(TRIM(im.name)) = LOWER(TRIM(:name))
 			ORDER BY im.isActive DESC, im.quarantineDays DESC
 			""")
-	java.util.List<InputMaterial> findByNameNormalized(@Param("name") String name);
+	List<InputMaterial> findByNameNormalized(@Param("name") String name);
 }

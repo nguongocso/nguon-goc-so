@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 
 import vn.nguongocso.farm.entity.FarmLog;
 import vn.nguongocso.farm.entity.ProductionLot;
+import vn.nguongocso.farm.enums.FarmActivityType;
 import vn.nguongocso.farm.projection.FarmLogProjection;
 
 /**
@@ -103,5 +104,5 @@ public interface FarmLogRepository extends JpaRepository<FarmLog, UUID> {
 	@Query("SELECT fl FROM FarmLog fl WHERE fl.productionLotId.id = :productionLotId AND fl.activityType = :activityType ORDER BY fl.executedDate ASC")
 	List<FarmLog> findByProductionLotIdAndActivityType(
 			@Param("productionLotId") UUID productionLotId,
-			@Param("activityType") vn.nguongocso.farm.enums.FarmActivityType activityType);
+			@Param("activityType") FarmActivityType activityType);
 }

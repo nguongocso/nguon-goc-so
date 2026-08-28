@@ -196,7 +196,8 @@ public class ChainEventServiceImpl implements ChainEventService {
         chainEvent = chainEventRepository.save(chainEvent);
 
         String activityDesc = isEarlyHarvest
-                ? "Ghi nhận thu hoạch sớm cho lô " + lot.getName() + " (Đủ điều kiện: " + eligibility.getEligibleHarvestDate() + ") - Lý do: " + earlyHarvestReason
+                ? String.format("Ghi nhận thu hoạch sớm cho lô %s (Đủ điều kiện: %s) - Lý do: %s",
+                        lot.getName(), eligibility.getEligibleHarvestDate(), earlyHarvestReason)
                 : "Ghi sự kiện thu hoạch cho lô " + lot.getName();
 
         publishActivityLog(currentUser, activityDesc,
