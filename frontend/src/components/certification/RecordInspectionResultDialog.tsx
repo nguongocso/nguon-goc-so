@@ -78,8 +78,12 @@ export function RecordInspectionResultDialog({
           data.criteria.map((criterion) => ({
             criterionId: criterion.criterionId,
             passed: criterion.result?.passed ?? null,
-            resultDate: criterion.result?.resultDate ?? today,
-            expiryDate: criterion.result?.expiryDate ?? "",
+            resultDate: criterion.result
+              ? (criterion.result.resultDate ?? "")
+              : today,
+            expiryDate: criterion.result
+              ? (criterion.result.expiryDate ?? "")
+              : "",
             filePath: criterion.result?.filePath ?? "",
             selectedFileName: "",
             uploading: false,
@@ -102,6 +106,8 @@ export function RecordInspectionResultDialog({
   const dateErrorByCriterion = useMemo(() => {
     const errors: Record<string, string> = {};
     for (const input of criteriaInputs) {
+      // Chỉ tiêu Không đạt không có hiệu lực thời gian nên không bắt buộc ngày.
+      if (input.passed === false) continue;
       if (input.resultDate === "" || input.expiryDate === "") {
         errors[input.criterionId] = "Vui lòng nhập ngày cấp và ngày hết hiệu lực.";
         continue;
@@ -190,8 +196,8 @@ export function RecordInspectionResultDialog({
         {
           results: criteriaInputs.map((input) => ({
             criterionId: input.criterionId,
-            resultDate: input.resultDate,
-            expiryDate: input.expiryDate,
+            resultDate: input.resultDate || null,
+            expiryDate: input.expiryDate || null,
             passed: input.passed as boolean,
             filePath: input.filePath === "" ? null : input.filePath,
           })),

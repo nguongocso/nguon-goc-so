@@ -96,12 +96,14 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/admin/code-ranges", "Dải mã truy xuất"],
   ["/admin/product-categories/create", "Thêm loại nông sản"],
   ["/admin/product-categories/:id/edit", "Cập nhật loại nông sản"],
+  ["/admin/product-categories/:id/criteria", "Gán bộ chỉ tiêu kiểm nghiệm"],
   ["/admin/product-categories", "Danh mục sản phẩm"],
   ["/admin/input-materials/create", "Khai báo vật tư mới"],
   ["/admin/input-materials/:id/edit", "Chỉnh sửa vật tư"],
   ["/admin/input-materials/:id", "Chi tiết vật tư"],
   ["/admin/input-materials", "Danh mục vật tư"],
-  ["/admin/standards/:standardId/criteria", "Tiêu chí đánh giá"],
+  ["/admin/inspection-criteria/create", "Thêm mới"],
+  ["/admin/inspection-criteria", "Chỉ tiêu kiểm nghiệm"],
   ["/admin/standards/create", "Thêm tiêu chuẩn"],
   ["/admin/standards/:id/edit", "Cập nhật tiêu chuẩn"],
   ["/admin/standards", "Tiêu chuẩn"],
@@ -191,6 +193,7 @@ function matchTemplate(
  * chữ thường, không có liên kết để tránh link 404.
  */
 const GROUP_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
+  ["/admin", "Quản trị"],
   ["/reports", "Báo cáo"],
   ["/permissions", "Phân quyền"],
   ["/alerts", "Cảnh báo"],
@@ -242,11 +245,10 @@ export function buildAutoBreadcrumb(pathname: string): BreadcrumbItem[] {
         href: prefix,
       });
     } else {
-      // Không phải route thật -> chỉ hiện nhãn nếu có trong GROUP_TEMPLATES
-      const groupLabel = matchTemplate(prefix, GROUP_TEMPLATES);
-      if (groupLabel) {
-        items.push({ label: groupLabel });
-      }
+      // Không phải route thật (vd /permissions, /reports) -> chỉ hiện nhãn
+      items.push({
+        label: matchTemplate(prefix, GROUP_TEMPLATES) ?? fallbackLabel,
+      });
     }
   }
   return items;

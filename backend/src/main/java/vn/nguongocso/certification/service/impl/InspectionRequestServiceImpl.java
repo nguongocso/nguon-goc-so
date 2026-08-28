@@ -16,17 +16,23 @@ import vn.nguongocso.certification.dto.response.InspectionRequestDetailResponse;
 import vn.nguongocso.certification.dto.response.InspectionRequestListResponse;
 import vn.nguongocso.certification.dto.response.InspectionRequestResponse;
 import vn.nguongocso.certification.dto.response.ProductionLotTestCriteriaResponse;
+import vn.nguongocso.certification.entity.AccreditationScope;
+import vn.nguongocso.certification.entity.CategoryCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterion;
-import vn.nguongocso.certification.entity.InspectionCriterionDefinition;
+import vn.nguongocso.certification.entity.InspectionCriterionCatalog;
 import vn.nguongocso.certification.entity.InspectionCriterionResult;
 import vn.nguongocso.certification.entity.InspectionRequest;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.certification.entity.Standard;
+import vn.nguongocso.certification.entity.TestingUnit;
 import vn.nguongocso.certification.enums.InspectionRequestStatus;
-import vn.nguongocso.certification.repository.InspectionCriterionDefinitionRepository;
+import vn.nguongocso.certification.repository.AccreditationScopeRepository;
+import vn.nguongocso.certification.repository.CategoryCriterionRepository;
+import vn.nguongocso.certification.repository.InspectionCriterionCatalogRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
+import vn.nguongocso.certification.repository.TestingUnitRepository;
 import vn.nguongocso.certification.service.InspectionRequestService;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.event.enums.ChainEventType;
@@ -74,7 +80,10 @@ public class InspectionRequestServiceImpl
             "Chỉ tiêu kiểm nghiệm không tồn tại.";
 
     private static final String MSG_CRITERION_NOT_APPLICABLE =
-            "Chỉ tiêu kiểm nghiệm không thuộc tiêu chuẩn đã gắn với lô.";
+            "Chỉ tiêu kiểm nghiệm không được gán cho loại nông sản của lô.";
+
+    private static final String MSG_CRITERION_INACTIVE =
+            "Chỉ tiêu kiểm nghiệm đã ngừng sử dụng.";
 
     private static final String MSG_DUPLICATE_CRITERIA =
             "Danh sách chỉ tiêu kiểm nghiệm không được chứa chỉ tiêu trùng lặp.";
@@ -85,6 +94,15 @@ public class InspectionRequestServiceImpl
     private static final String MSG_INVALID_SAMPLE_DATE =
             "Ngày gửi mẫu không được để trống.";
 
+    private static final String MSG_TESTING_UNIT_NOT_FOUND =
+            "Đơn vị kiểm nghiệm không tồn tại trong danh mục.";
+
+    private static final String MSG_TESTING_UNIT_INACTIVE =
+            "Đơn vị kiểm nghiệm đã ngừng hoạt động, vui lòng chọn đơn vị khác.";
+
+    private static final String MSG_TESTING_UNIT_EXPIRED =
+            "Đơn vị kiểm nghiệm đã hết hạn công nhận, vui lòng chọn đơn vị khác.";
+
     private static final String MSG_REQUEST_NOT_FOUND =
             "Yêu cầu kiểm nghiệm không tồn tại.";
 
@@ -92,8 +110,10 @@ public class InspectionRequestServiceImpl
 
     private final InspectionRequestRepository inspectionRequestRepository;
 
-    private final InspectionCriterionDefinitionRepository
-            inspectionCriterionDefinitionRepository;
+    private final InspectionCriterionCatalogRepository
+            inspectionCriterionCatalogRepository;
+
+    private final CategoryCriterionRepository categoryCriterionRepository;
 
     private final ChainEventRepository chainEventRepository;
 
@@ -102,6 +122,10 @@ public class InspectionRequestServiceImpl
 
     private final InspectionCriterionResultRepository
             inspectionCriterionResultRepository;
+
+    private final TestingUnitRepository testingUnitRepository;
+
+    private final AccreditationScopeRepository accreditationScopeRepository;
 
     private final Clock clock;
 
@@ -143,14 +167,48 @@ public class InspectionRequestServiceImpl
 
         /*
          * 4.1. Validate đơn vị kiểm nghiệm.
+         *
+         * NCL-11-CN-006 Phase 1: ưu tiên testingUnitId từ danh mục dùng chung.
+         * Khi có ID, tra cứu danh mục, kiểm tra trạng thái hiệu lực và ngày
+         * hết hạn công nhận, rồi dùng TÊN SNAPSHOT làm inspection_unit.
+         * Nếu không có ID, fallback về tên tự do (tương thích ngược).
          */
-        String testingUnit = request.getTestingUnit() == null
-                ? ""
-                : request.getTestingUnit().trim();
+        String testingUnit;
 
-        if (testingUnit.isBlank()) {
-            throw new BusinessException(
-                    "Đơn vị kiểm nghiệm không được để trống.");
+        if (request.getTestingUnitId() != null) {
+
+            TestingUnit testingUnitCatalog = testingUnitRepository
+                    .findById(request.getTestingUnitId())
+                    .orElseThrow(() ->
+                            new BusinessException(
+                                    MSG_TESTING_UNIT_NOT_FOUND));
+
+            if (!Boolean.TRUE.equals(testingUnitCatalog.getIsActive())) {
+                throw new BusinessException(
+                        MSG_TESTING_UNIT_INACTIVE);
+            }
+
+            LocalDate today = LocalDate.now(clock);
+            if (testingUnitCatalog.getAccreditationExpiryDate() != null
+                    && testingUnitCatalog.getAccreditationExpiryDate()
+                            .isBefore(today)) {
+
+                throw new BusinessException(
+                        MSG_TESTING_UNIT_EXPIRED);
+            }
+
+            testingUnit = testingUnitCatalog.getName();
+
+        } else {
+
+            testingUnit = request.getTestingUnit() == null
+                    ? ""
+                    : request.getTestingUnit().trim();
+
+            if (testingUnit.isBlank()) {
+                throw new BusinessException(
+                        "Đơn vị kiểm nghiệm không được để trống.");
+            }
         }
 
         /*
@@ -165,10 +223,10 @@ public class InspectionRequestServiceImpl
         /*
          * Kiểm tra criterion ID bị null hoặc trùng.
          */
-        Set<Integer> requestedCriterionIds =
+        Set<Long> requestedCriterionIds =
                 new HashSet<>();
 
-        for (Integer criteriaId : request.getCriteriaIds()) {
+        for (Long criteriaId : request.getCriteriaIds()) {
 
             if (criteriaId == null) {
                 throw new BusinessException(
@@ -203,6 +261,7 @@ public class InspectionRequestServiceImpl
                 InspectionRequest.builder()
                         .productionLot(lot)
                         .inspectionUnit(testingUnit)
+                        .testingUnitId(request.getTestingUnitId())
                         .sampleSentDate(
                                 request.getSampleSentDate())
                         .status(
@@ -218,71 +277,79 @@ public class InspectionRequestServiceImpl
          *
          * Format:
          *
-         *     standardId:criterionCode
+         *     scope:criterionCode
          *
-         * Ví dụ:
+         * Trong đó scope:
+         * - "<standardId>" với dữ liệu legacy (snapshot gắn Standard).
+         * - "CAT:<criterionId>" với chỉ tiêu mới tham chiếu
+         *   danh mục dùng chung của NCL-09-CN-009.
          *
-         *     UUID:RESIDUE_PESTICIDE
-         *     UUID:HEAVY_METAL
-         *
-         * Dùng criterionCode vì InspectionCriterion snapshot
-         * đang lưu criterionCode thay vì criterionDefinitionId.
+         * Khóa phải đồng nhất với resolveCriterionKey() bên dưới.
          */
         Set<String> requestedCriteriaKeys =
                 new HashSet<>();
 
         /*
+         * Map criteriaId -> tên chỉ tiêu đã được duyệt hợp lệ ở vòng lặp dưới.
+         * Dùng để mô tả các chỉ tiêu ngoài phạm vi công nhận (NCL-11-CN-006 Phase 2).
+         */
+        Map<Long, String> requestedCriterionNames =
+                new java.util.LinkedHashMap<>();
+
+        /*
          * 7. Xử lý từng criterion.
          */
-        for (Integer criteriaId : request.getCriteriaIds()) {
+        for (Long criteriaId : request.getCriteriaIds()) {
 
             /*
-             * 7.1. Lấy định nghĩa criterion.
+             * 7.1. Lấy chỉ tiêu từ danh mục dùng chung (NCL-09-CN-009).
              */
-            InspectionCriterionDefinition criterionDefinition =
-                    inspectionCriterionDefinitionRepository
+            InspectionCriterionCatalog catalogCriterion =
+                    inspectionCriterionCatalogRepository
                             .findById(criteriaId)
                             .orElseThrow(() ->
                                     new BusinessException(
                                             MSG_CRITERION_NOT_FOUND));
 
             /*
-             * 7.2. Lấy Standard.
+             * 7.2. Chỉ tiêu phải đang ở trạng thái ACTIVE.
              */
-            Standard standard =
-                    criterionDefinition.getStandard();
-
-            if (standard == null) {
+            if (!"ACTIVE".equals(catalogCriterion.getStatus())) {
                 throw new BusinessException(
-                        MSG_CRITERION_NOT_APPLICABLE);
+                        MSG_CRITERION_INACTIVE);
             }
 
             /*
-             * 7.3. Kiểm tra Standard đã được gắn
-             * vào ProductionLot hay chưa.
+             * 7.3. Chỉ tiêu phải được gán cho loại nông sản
+             * của lô (cấu hình do NCL-09-CN-009 quản lý).
              */
-            boolean standardAttached =
-                    productionLotCertificationRepository
-                            .existsByProductionLotIdAndStandardId(
-                                    lot.getId(),
-                                    standard.getId());
+            boolean assignedToCategory =
+                    categoryCriterionRepository
+                            .existsByCategory_IdAndCriterion_Id(
+                                    lot.getProductCategory().getId(),
+                                    catalogCriterion.getId());
 
-            if (!standardAttached) {
+            if (!assignedToCategory) {
                 throw new BusinessException(
                         MSG_CRITERION_NOT_APPLICABLE);
             }
+
+            /* Lưu tên chỉ tiêu đã duyệt hợp lệ để mô tả cảnh báo phạm vi. */
+            requestedCriterionNames.put(
+                    criteriaId,
+                    catalogCriterion.getName());
 
             /*
              * 7.4. Tạo khóa criterion.
              *
              * QUAN TRỌNG:
-             * Dùng CODE thay vì ID để đồng nhất với
-             * resolveCriterionKey() bên dưới.
+             * Phải đồng nhất với resolveCriterionKey() bên dưới
+             * để so khớp duplicate request chính xác.
              */
             String criterionKey =
-                    standard.getId()
+                    "CAT:" + criteriaId
                             + ":"
-                            + criterionDefinition.getCode();
+                            + catalogCriterion.getName();
 
             /*
              * Nếu cùng criterion xuất hiện nhiều lần
@@ -298,22 +365,66 @@ public class InspectionRequestServiceImpl
             /*
              * 7.5. Tạo snapshot InspectionCriterion.
              *
-             * Code + name lấy từ DB.
+             * Name lấy từ danh mục; criterionId tham chiếu về
+             * bản ghi danh mục (nullable — không hồi tố dữ liệu cũ,
+             * BR-5/BR-7 của NCL-09-CN-009). Không gắn Standard vì
+             * chỉ tiêu mới không còn sở hữu theo tiêu chuẩn.
              */
             InspectionCriterion criterion =
                     InspectionCriterion.builder()
                             .inspectionRequest(
                                     inspectionRequest)
-                            .standard(standard)
                             .criterionCode(
-                                    criterionDefinition.getCode())
+                                    catalogCriterion.getName())
                             .criterionName(
-                                    criterionDefinition.getName())
+                                    catalogCriterion.getName())
+                            .criterionId(
+                                    catalogCriterion.getId())
                             .build();
 
             inspectionRequest
                     .getCriteria()
                     .add(criterion);
+        }
+
+        /*
+         * 7.6. Kiểm tra phạm vi công nhận của đơn vị kiểm nghiệm
+         * (NCL-11-CN-006 Phase 2).
+         *
+         * Chỉ áp dụng khi yêu cầu chọn đơn vị từ danh mục dùng chung
+         * (testingUnitId != null). Nếu đơn vị có phạm vi công nhận được
+         * cấu hình (VT-01) và có chỉ tiêu được chọn nằm NGOÀI phạm vi,
+         * hệ thống KHÔNG chặn tạo yêu cầu mà chỉ đánh dấu cảnh báo để
+         * người kiểm định biết kết quả sẽ không được tự động công nhận.
+         *
+         * Lưu ý: nếu đơn vị chưa được cấu hình phạm vi (danh sách rỗng),
+         * không phát sinh cảnh báo để tránh nhiễu cho dữ liệu Phase 1.
+         */
+        if (request.getTestingUnitId() != null) {
+
+            List<AccreditationScope> scopes =
+                    accreditationScopeRepository
+                            .findByTestingUnitIdWithCriterion(
+                                    request.getTestingUnitId());
+
+            if (!scopes.isEmpty()) {
+
+                Set<Long> accreditedIds = scopes.stream()
+                        .map(scope -> scope.getCriterion().getId())
+                        .collect(Collectors.toSet());
+
+                List<String> outOfScopeNames = requestedCriterionNames.entrySet()
+                        .stream()
+                        .filter(entry -> !accreditedIds.contains(entry.getKey()))
+                        .map(Map.Entry::getValue)
+                        .toList();
+
+                if (!outOfScopeNames.isEmpty()) {
+                    inspectionRequest.setScopeWarning(Boolean.TRUE);
+                    inspectionRequest.setScopeWarningDetails(
+                            String.join(", ", outOfScopeNames));
+                }
+            }
         }
 
         /*
@@ -391,62 +502,59 @@ public class InspectionRequestServiceImpl
 
         validateLot(lot);
 
+        /*
+         * Thông tin tiêu chuẩn (nếu có) vẫn lấy từ chứng nhận đầu tiên
+         * của lô — chỉ mang tính hiển thị, không còn quyết định
+         * bộ chỉ tiêu áp dụng.
+         */
         List<ProductionLotCertification> certifications =
                 productionLotCertificationRepository
                         .findByProductionLotId(
                                 lot.getId());
 
-        if (certifications.isEmpty()) {
-
-            return ProductionLotTestCriteriaResponse.builder()
-                    .lotId(lot.getId())
-                    .standardId(null)
-                    .standardName(null)
-                    .criteria(List.of())
-                    .build();
-        }
-
-        ProductionLotCertification firstCertification =
-                certifications.get(0);
-
         Standard standard =
-                firstCertification.getCertification() != null
-                        ? firstCertification
+                !certifications.isEmpty()
+                        && certifications.get(0).getCertification() != null
+                        ? certifications
+                        .get(0)
                         .getCertification()
                         .getStandard()
                         : null;
 
-        if (standard == null) {
-
-            return ProductionLotTestCriteriaResponse.builder()
-                    .lotId(lot.getId())
-                    .standardId(null)
-                    .standardName(null)
-                    .criteria(List.of())
-                    .build();
-        }
-
-        List<InspectionCriterionDefinition> definitions =
-                inspectionCriterionDefinitionRepository
-                        .findByStandard_IdOrderByIdAsc(
-                                standard.getId());
+        /*
+         * NCL-09-CN-009: bộ chỉ tiêu áp dụng cho lô lấy từ cấu hình
+         * của loại nông sản (chỉ tiêu ACTIVE được gán cho category),
+         * thay vì từ InspectionCriterionDefinition theo tiêu chuẩn cũ.
+         */
+        List<CategoryCriterion> assignments =
+                categoryCriterionRepository
+                        .findByCategoryIdAndCriteriaStatus(
+                                lot.getProductCategory().getId(),
+                                "ACTIVE");
 
         return ProductionLotTestCriteriaResponse.builder()
                 .lotId(lot.getId())
-                .standardId(standard.getId())
-                .standardName(standard.getName())
+                .standardId(
+                        standard != null
+                                ? standard.getId()
+                                : null)
+                .standardName(
+                        standard != null
+                                ? standard.getName()
+                                : null)
                 .criteria(
-                        definitions.stream()
-                                .map(def ->
+                        assignments.stream()
+                                .map(CategoryCriterion::getCriterion)
+                                .map(catalogCriterion ->
                                         ProductionLotTestCriteriaResponse
                                                 .TestCriterionItemResponse
                                                 .builder()
                                                 .criteriaId(
-                                                        def.getId())
+                                                        catalogCriterion.getId())
                                                 .code(
-                                                        def.getCode())
+                                                        catalogCriterion.getName())
                                                 .name(
-                                                        def.getName())
+                                                        catalogCriterion.getName())
                                                 .build())
                                 .toList())
                 .build();
@@ -815,13 +923,8 @@ public class InspectionRequestServiceImpl
                         .stream()
                         .filter(c ->
                                 c != null
-                                        && c.getStandard() != null
                                         && c.getCriterionCode() != null)
-                        .map(c ->
-                                c.getStandard()
-                                        .getId()
-                                        + ":"
-                                        + resolveCriterionKey(c))
+                        .map(this::resolveCriterionKey)
                         .collect(Collectors.toSet());
 
         return existingCriteriaKeys.equals(
@@ -831,13 +934,21 @@ public class InspectionRequestServiceImpl
     /**
      * Lấy khóa criterion từ InspectionCriterion hiện tại.
      *
-     * InspectionCriterion lưu criterionCode,
-     * vì vậy sử dụng criterionCode để đối chiếu.
+     * Scope theo nguồn gốc dữ liệu để không trùng khóa giữa:
+     * - Dữ liệu legacy: snapshot gắn Standard → "{standardId}:{code}".
+     * - Dữ liệu mới (NCL-09-CN-009): tham chiếu danh mục dùng chung
+     *   qua criterion_id → "CAT:{criterionId}:{code}".
+     *
+     * Khóa phải đồng nhất với khóa tạo trong createInspectionRequest().
      */
     private String resolveCriterionKey(
             InspectionCriterion criterion) {
 
-        return criterion.getCriterionCode();
+        String scope = criterion.getStandard() != null
+                ? criterion.getStandard().getId().toString()
+                : "CAT:" + criterion.getCriterionId();
+
+        return scope + ":" + criterion.getCriterionCode();
     }
 
     /**
@@ -889,6 +1000,15 @@ public class InspectionRequestServiceImpl
                                 .getName())
                 .testingUnit(
                         request.getInspectionUnit())
+                .testingUnitId(
+                        request.getTestingUnitId())
+                .hasScopeWarning(
+                        Boolean.TRUE.equals(
+                                request.getScopeWarning())
+                                ? Boolean.TRUE
+                                : Boolean.FALSE)
+                .scopeWarningDetails(
+                        request.getScopeWarningDetails())
                 .sampleSentDate(
                         request.getSampleSentDate())
                 .status(

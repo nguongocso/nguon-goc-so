@@ -66,6 +66,16 @@ public class InspectionRequest {
     private String inspectionUnit;
 
     /**
+     * ID đơn vị kiểm nghiệm trong danh mục dùng chung (NCL-11-CN-006 Phase 1).
+     * <p>
+     * Nullable để tương thích ngược với các yêu cầu cũ nhập tự do.
+     * Khi có giá trị, {@link #inspectionUnit} lưu tên snapshot tại thời điểm tạo.
+     */
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(name = "testing_unit_id")
+    private UUID testingUnitId;
+
+    /**
      * Ngày gửi mẫu.
      */
     @Column(name = "sample_sent_date", nullable = false)
@@ -90,6 +100,24 @@ public class InspectionRequest {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    /**
+     * Cờ cảnh báo phạm vi công nhận (NCL-11-CN-006 Phase 2).
+     * <p>
+     * = true khi yêu cầu chọn đơn vị kiểm nghiệm từ danh mục NHƯNG
+     * bộ chỉ tiêu gửi đi có ít nhất một chỉ tiêu nằm NGOÀI phạm vi
+     * công nhận của đơn vị. Chỉ mang tính cảnh báo, không chặn tạo.
+     */
+    @Column(name = "scope_warning", nullable = false)
+    @Builder.Default
+    private Boolean scopeWarning = Boolean.FALSE;
+
+    /**
+     * Chi tiết các chỉ tiêu ngoài phạm vi công nhận
+     * (snapshot tên, ngăn cách bởi dấu phẩy) để phục vụ hiển thị lịch sử.
+     */
+    @Column(name = "scope_warning_details", length = 2000)
+    private String scopeWarningDetails;
 
     @OneToMany(
         mappedBy = "inspectionRequest",

@@ -8,24 +8,6 @@ export interface Standard {
   updatedAt: string;
 }
 
-export interface InspectionCriterion {
-  criteriaId: number;
-  code: string;
-  name: string;
-  standardId: string;
-  standardName: string;
-  note?: string | null;
-  createdAt?: string | null;
-  updatedAt?: string | null;
-}
-
-export interface InspectionCriterionRequest {
-  standardId?: string;
-  criterionCode: string;
-  criterionName: string;
-  note?: string;
-}
-
 export interface CreateStandardRequest {
   name: string;
   description?: string;
