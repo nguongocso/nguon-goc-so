@@ -300,6 +300,136 @@ class ChainEventServiceImplTest {
     }
 
     @Test
+    void recordHarvestEvent_EarlyHarvest_ByManagerVT02_EmptyReason_ShouldThrowBusinessException() {
+        when(validUser.getRoleCode()).thenReturn("VT-02");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+        when(productionLotRepository.findById(request.getProductionLotId())).thenReturn(Optional.of(productionLot));
+
+        when(harvestEligibilityService.calculateHarvestEligibility(productionLot.getId())).thenReturn(
+                HarvestEligibilityResponse.builder()
+                        .determined(true)
+                        .eligibleHarvestDate(LocalDate.of(2026, 7, 28))
+                        .build());
+
+        request.setEarlyHarvestReason("");
+
+        assertThatThrownBy(() -> chainEventService.recordHarvestEvent(request, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Quản lý cần nhập lý do ghi đè bắt buộc");
+
+        verify(eventValidationService).logFailedAttempt(eq(request.getProductionLotId()), anyString(), eq(ChainEventType.HARVEST), anyString(), eq(validUser));
+    }
+
+    @Test
+    void recordHarvestEvent_EarlyHarvest_ByManagerVT02_WhitespaceReason_ShouldThrowBusinessException() {
+        when(validUser.getRoleCode()).thenReturn("VT-02");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+        when(productionLotRepository.findById(request.getProductionLotId())).thenReturn(Optional.of(productionLot));
+
+        when(harvestEligibilityService.calculateHarvestEligibility(productionLot.getId())).thenReturn(
+                HarvestEligibilityResponse.builder()
+                        .determined(true)
+                        .eligibleHarvestDate(LocalDate.of(2026, 7, 28))
+                        .build());
+
+        request.setEarlyHarvestReason("   \t  \n  ");
+
+        assertThatThrownBy(() -> chainEventService.recordHarvestEvent(request, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Quản lý cần nhập lý do ghi đè bắt buộc");
+
+        verify(eventValidationService).logFailedAttempt(eq(request.getProductionLotId()), anyString(), eq(ChainEventType.HARVEST), anyString(), eq(validUser));
+    }
+
+    @Test
+    void recordHarvestEvent_EarlyHarvest_ByAdminVT01_WithReason_ShouldSucceed() {
+        when(validUser.getRoleCode()).thenReturn("VT-01");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+        when(validUser.getUserId()).thenReturn(userId);
+        when(productionLotRepository.findById(request.getProductionLotId())).thenReturn(Optional.of(productionLot));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(actor));
+
+        when(harvestEligibilityService.calculateHarvestEligibility(productionLot.getId())).thenReturn(
+                HarvestEligibilityResponse.builder()
+                        .determined(true)
+                        .eligibleHarvestDate(LocalDate.of(2026, 7, 28))
+                        .build());
+
+        request.setEarlyHarvestReason("Chỉ đạo thu hoạch sớm từ Admin HTX");
+
+        ChainEvent mockSavedEvent = ChainEvent.builder()
+                .id(UUID.randomUUID())
+                .eventType(ChainEventType.HARVEST)
+                .eventData("{\"productionLotId\":\"" + productionLot.getId() + "\",\"earlyHarvest\":true}")
+                .recordedAt(LocalDateTime.now())
+                .recordedBy(actor)
+                .build();
+
+        when(chainEventRepository.save(any(ChainEvent.class))).thenReturn(mockSavedEvent);
+
+        ChainEventResponse response = chainEventService.recordHarvestEvent(request, validUser);
+
+        assertThat(response).isNotNull();
+        verify(chainEventRepository).save(any(ChainEvent.class));
+    }
+
+    @Test
+    void recordHarvestEvent_EarlyHarvest_ByRecorderVT03_EvenWithReason_ShouldThrowBusinessException() {
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+        when(productionLotRepository.findById(request.getProductionLotId())).thenReturn(Optional.of(productionLot));
+
+        when(harvestEligibilityService.calculateHarvestEligibility(productionLot.getId())).thenReturn(
+                HarvestEligibilityResponse.builder()
+                        .determined(true)
+                        .eligibleHarvestDate(LocalDate.of(2026, 7, 28))
+                        .build());
+
+        // Dù VT-03 cố tình truyền reason
+        request.setEarlyHarvestReason("Lý do tự điền");
+
+        assertThatThrownBy(() -> chainEventService.recordHarvestEvent(request, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Người ghi sự kiện không có quyền ghi đè thu hoạch sớm");
+
+        verify(eventValidationService).logFailedAttempt(eq(request.getProductionLotId()), anyString(), eq(ChainEventType.HARVEST), anyString(), eq(validUser));
+    }
+
+    @Test
+    void recordHarvestEvent_UnmatchedMaterial_ByManagerVT02_ShouldSucceed() {
+        when(validUser.getRoleCode()).thenReturn("VT-02");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+        when(validUser.getUserId()).thenReturn(userId);
+        when(productionLotRepository.findById(request.getProductionLotId())).thenReturn(Optional.of(productionLot));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(actor));
+
+        when(harvestEligibilityService.calculateHarvestEligibility(productionLot.getId())).thenReturn(
+                HarvestEligibilityResponse.builder()
+                        .determined(false)
+                        .eligibleHarvestDate(null)
+                        .unmatchedMaterials(List.of("Thuốc trừ sâu sinh học thảo mộc"))
+                        .build());
+
+        // Không cần truyền earlyHarvestReason khi determined = false
+        request.setEarlyHarvestReason(null);
+
+        ChainEvent mockSavedEvent = ChainEvent.builder()
+                .id(UUID.randomUUID())
+                .eventType(ChainEventType.HARVEST)
+                .eventData("{\"productionLotId\":\"" + productionLot.getId() + "\",\"earlyHarvest\":false,\"unmatchedMaterials\":[\"Thuốc trừ sâu sinh học thảo mộc\"]}")
+                .recordedAt(LocalDateTime.now())
+                .recordedBy(actor)
+                .build();
+
+        when(chainEventRepository.save(any(ChainEvent.class))).thenReturn(mockSavedEvent);
+
+        ChainEventResponse response = chainEventService.recordHarvestEvent(request, validUser);
+
+        assertThat(response).isNotNull();
+        verify(chainEventRepository).save(any(ChainEvent.class));
+    }
+
+    @Test
     void recordHarvestEvent_ThrowException_WhenRoleIsInvalid() {
         when(validUser.getRoleCode()).thenReturn("VT-06");
 
