@@ -7,9 +7,7 @@ import type {
   MemberStatus,
   OrganizationMember,
   ReactivateMemberRequest,
-  ReplacementCandidate,
   RoleOption,
-  UnfinishedLotsResponse,
 } from '@/types/member';
 
 const MEMBER_ENDPOINT = '/organization/members';
@@ -34,42 +32,9 @@ export const getOrganizationMembers = async (
 };
 
 /**
- * Precheck các lô chưa hoàn thành đang phân công cho thành viên
- * trước khi vô hiệu hóa (QTN-32).
- */
-export const getUnfinishedLots = async (
-  userId: string,
-): Promise<UnfinishedLotsResponse> => {
-  const response = await apiClient.get<ApiResult<UnfinishedLotsResponse>>(
-    `${MEMBER_ENDPOINT}/${userId}/unfinished-lots`,
-  );
-
-  return response.data.data;
-};
-
-/**
- * Danh sách thành viên đủ điều kiện thay thế (membership ACTIVE cùng
- * tổ chức, đủ quyền ghi sự kiện, tài khoản không bị khóa).
- * Danh sách rỗng là response 200 hợp lệ — không phải lỗi.
- */
-export const getReplacementCandidates = async (
-  userId: string,
-  params?: { lotId?: string; keyword?: string },
-): Promise<ReplacementCandidate[]> => {
-  const response = await apiClient.get<ApiResult<ReplacementCandidate[]>>(
-    `${MEMBER_ENDPOINT}/${userId}/replacement-candidates`,
-    { params },
-  );
-
-  return response.data.data;
-};
-
-/**
- * Vô hiệu hóa thành viên: thu hồi quyền, chấm dứt phiên, chuyển giao
- * lô cho người thay thế (nếu bắt buộc) và ghi audit log (QTN-32).
- *
- * Khi thành viên còn lô chưa hoàn thành mà chưa chọn người thay thế,
- * backend trả 409 kèm `errors` dạng ReplacementRequiredError.
+ * Vô hiệu hóa thành viên: thu hồi quyền, chấm dứt phiên và ghi audit log
+ * (QTN-32). Luồng chuyển giao lô (replacement) đã được gỡ bỏ vì hệ thống
+ * chưa có phân quyền ghi sự kiện theo lô (D-4).
  */
 export const deactivateMember = async (
   userId: string,

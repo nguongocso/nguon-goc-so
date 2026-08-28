@@ -1726,7 +1726,7 @@ export const ProductionLotDetailPage = () => {
                                     }
                                   >
                                     {request.status === "PENDING"
-                                      ? "Nhận kết quả"
+                                      ? "Ghi kết quả"
                                       : "Xem chi tiết"}
                                   </Button>
                                 ))}

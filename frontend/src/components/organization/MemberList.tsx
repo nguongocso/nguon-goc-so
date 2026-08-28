@@ -632,18 +632,13 @@ export const MemberList = () => {
         </AlertDialogPopup>
       </AlertDialog>
 
-      {/* Dialog vô hiệu hóa thành viên (kèm chọn người thay thế khi còn lô chưa hoàn thành) */}
+      {/* Dialog vô hiệu hóa thành viên */}
       <DeactivateMemberDialog
         member={deactivatingMember}
         deactivating={isDeactivating}
         onClose={() => setDeactivatingMember(null)}
-        onConfirm={(userId, reason, replacementUserId) =>
-          deactivate(
-            userId,
-            reason,
-            replacementUserId,
-            deactivatingMember?.fullName,
-          )
+        onConfirm={(userId, reason) =>
+          deactivate(userId, reason, deactivatingMember?.fullName)
         }
       />
 

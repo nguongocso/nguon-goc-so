@@ -87,13 +87,20 @@ public class CodeRangeService {
     /**
      * Lấy số lượng mã truy xuất còn lại của một tổ chức.
      *
+     * <p>
+     * Chỉ đọc để hiển thị nên dùng query KHÔNG khoá row. Nếu dùng query có
+     * {@code FOR UPDATE} (PESSIMISTIC_WRITE) thì MySQL sẽ báo lỗi 1792
+     * "Cannot execute statement in a READ ONLY transaction" vì phương thức này
+     * chạy trong transaction {@code readOnly = true}.
+     * </p>
+     *
      * @param organizationId ID của tổ chức
      * @return thông tin số mã còn lại
      */
     @Transactional(readOnly = true)
     public RemainingCodesResponse getRemainingCodesForOrganization(UUID organizationId) {
         return codeRangeRepository
-                .findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(organizationId)
+                .findFirstReadOnlyByOrganizationOrganizationIdOrderByCreatedAtDesc(organizationId)
                 .map(range -> RemainingCodesResponse.builder()
                         .remainingCount(Math.max(0, range.getTotalLimit() - range.getUsedCount()))
                         .totalLimit(range.getTotalLimit())

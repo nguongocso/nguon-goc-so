@@ -15,9 +15,9 @@ import lombok.Setter;
  * Yêu cầu vô hiệu hóa thành viên của tổ chức hiện tại (QTN-32).
  *
  * <p>
- * {@code replacementUserId} bắt buộc khi thành viên còn được phân công
- * vào lô chưa hoàn thành; khi truyền thì phải là thành viên đang hoạt
- * động cùng tổ chức và đủ quyền ghi sự kiện.
+ * Hiện chỉ yêu cầu {@code reason}; luồng chuyển giao lô
+ * (replacementUserId) đã tạm gỡ bỏ vì hệ thống chưa có phân quyền
+ * ghi sự kiện theo lô (D-4).
  * </p>
  */
 @Getter
@@ -33,11 +33,4 @@ public class DeactivateMemberRequest {
      */
     @NotBlank(message = "Lý do không được để trống")
     @Size(max = 500, message = "Lý do không được vượt quá 500 ký tự")
-    private String reason;
-
-    /**
-     * ID tài khoản người thay thế tiếp nhận các lô chưa hoàn thành
-     * (bắt buộc khi còn lô chưa hoàn thành).
-     */
-    private UUID replacementUserId;
-}
+    private String reason;}

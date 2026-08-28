@@ -26,9 +26,6 @@ import vn.nguongocso.alert.repository.ActivityLogRepository;
 import vn.nguongocso.auth.dto.request.DeactivateMemberRequest;
 import vn.nguongocso.auth.dto.request.ReactivateMemberRequest;
 import vn.nguongocso.auth.dto.response.OrganizationUserResponse;
-import vn.nguongocso.auth.dto.response.ReplacementCandidateResponse;
-import vn.nguongocso.auth.dto.response.ReplacementRequiredError;
-import vn.nguongocso.auth.dto.response.UnfinishedLotsResponse;
 import vn.nguongocso.auth.entity.Role;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.enums.UserStatus;
@@ -70,9 +67,6 @@ class OrganizationMemberDeactivationServiceIntegrationTest {
     private static final String ALREADY_INACTIVE_MESSAGE = "Thành viên đã ngừng hoạt động";
     private static final String ALREADY_ACTIVE_REACTIVATE_MESSAGE =
             "Thành viên đang hoạt động, không thể kích hoạt lại";
-    private static final String UNFINISHED_LOTS_MESSAGE =
-            "Thành viên đang được phân công vào 2 lô chưa hoàn thành. Vui lòng chọn người thay thế";
-    private static final String INVALID_REPLACEMENT_MESSAGE = "Người thay thế không hợp lệ";
     private static final String SELF_DEACTIVATION_MESSAGE = "Không thể tự vô hiệu hóa tài khoản của chính mình";
     private static final String FORBIDDEN_MESSAGE = "Bạn không có quyền thực hiện chức năng này";
     private static final String MEMBERSHIP_REVOKED_MESSAGE = "Thành viên đã bị vô hiệu hóa trong tổ chức này";
@@ -118,7 +112,6 @@ class OrganizationMemberDeactivationServiceIntegrationTest {
     private Role procurementRole;
     private User manager;
     private User recorder;
-    private User replacement;
     private User procurementMember;
     private User otherOrgManager;
     private User otherOrgRecorder;
@@ -152,9 +145,6 @@ class OrganizationMemberDeactivationServiceIntegrationTest {
 
         recorder = createUser("recorder-" + suffix, "Nguyễn Văn Ghi");
         attachMembership(recorder, cooperative, recorderRole);
-
-        replacement = createUser("replacement-" + suffix, "Lê Người Thay");
-        attachMembership(replacement, cooperative, recorderRole);
 
         procurementMember = createUser("procurement-" + suffix, "Phạm Thu Mua");
         attachMembership(procurementMember, cooperative, procurementRole);
@@ -207,94 +197,41 @@ class OrganizationMemberDeactivationServiceIntegrationTest {
         assertThat(auditLogs).hasSize(1);
         assertThat(auditLogs.get(0).getDescription())
                 .contains(recorder.getFullName())
-                .contains("nghỉ việc")
-                .contains("Người thay thế: Không");
+                .contains("nghỉ việc");
     }
 
-    // ==================== TC-02: còn 2 lô chưa hoàn thành ====================
+    // ==================== TC-02: không chuyển giao lô khi vô hiệu hóa ====================
 
     @Test
-    void tc02_memberWithTwoUnfinishedLots_isBlockedWithPendingLots() {
+    void tc02_memberWithUnfinishedLots_isDeactivatedWithoutTransfer() {
         loginAs(manager);
         ProductionLot lotA = createAndAssignLot("Lô xoài lô A", ProductionLotStatus.APPROVED, recorder);
         ProductionLot lotB = createAndAssignLot("Lô rau sạch khu A", ProductionLotStatus.PENDING, recorder);
 
-        assertThatThrownBy(() -> memberService.deactivateMember(
-                recorder.getUserId(),
-                DeactivateMemberRequest.builder()
-                        .reason("Thành viên nghỉ việc")
-                        .build()))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(ex -> {
-                    BusinessException be = (BusinessException) ex;
-                    assertThat(be.getStatus()).isEqualTo(HttpStatus.CONFLICT);
-                    assertThat(be.getMessage()).isEqualTo(UNFINISHED_LOTS_MESSAGE);
-                    assertThat(be.getDetails()).isInstanceOf(ReplacementRequiredError.class);
-                    ReplacementRequiredError details = (ReplacementRequiredError) be.getDetails();
-                    assertThat(details.getCode()).isEqualTo("MEMBER_HAS_UNFINISHED_LOTS");
-                    assertThat(details.isRequiresReplacement()).isTrue();
-                    assertThat(details.getPendingLots())
-                            .extracting(vn.nguongocso.auth.dto.response.MemberLotSummary::getLotId)
-                            .containsExactlyInAnyOrder(lotA.getId(), lotB.getId());
-                });
-
-        // Membership không bị đổi khi bị chặn.
-        OrganizationUser stored = organizationUserRepository
-                .findByOrganization_OrganizationIdAndUser_UserId(
-                        cooperative.getOrganizationId(), recorder.getUserId())
-                .orElseThrow();
-        assertThat(stored.getStatus()).isEqualTo(OrganizationUserStatus.ACTIVE);
-    }
-
-    // ==================== TC-03: chọn replacement hợp lệ ====================
-
-    @Test
-    void tc03_validReplacement_transfersAssignmentsAndDeactivates() {
-        loginAs(manager);
-        ProductionLot lotA = createAndAssignLot("Lô xoài lô A", ProductionLotStatus.APPROVED, recorder);
-        ProductionLot lotB = createAndAssignLot("Lô rau sạch khu A", ProductionLotStatus.PENDING, recorder);
-
-        List<ReplacementCandidateResponse> candidates = memberService.getReplacementCandidates(
-                recorder.getUserId(), null, null);
-        assertThat(candidates)
-                .extracting(ReplacementCandidateResponse::getUserId)
-                .containsExactly(replacement.getUserId());
-
+        // Không còn chuyển giao lô: thành viên vẫn bị vô hiệu hóa; các lô giữ
+        // tham chiếu người ghi cũ vì hệ thống chưa có phân quyền ghi sự kiện
+        // theo lô (D-4).
         memberService.deactivateMember(
                 recorder.getUserId(),
                 DeactivateMemberRequest.builder()
-                        .reason("Nghỉ việc, chuyển lô cho người thay thế")
-                        .replacementUserId(replacement.getUserId())
+                        .reason("Thành viên nghỉ việc")
                         .build());
-
-        List<LotAssignment> recorderAssignments = lotAssignmentRepository
-                .findByUser_UserIdAndOrganization_OrganizationIdAndActiveTrue(
-                        recorder.getUserId(), cooperative.getOrganizationId());
-        assertThat(recorderAssignments).isEmpty();
-
-        List<LotAssignment> replacementAssignments = lotAssignmentRepository
-                .findByUser_UserIdAndOrganization_OrganizationIdAndActiveTrue(
-                        replacement.getUserId(), cooperative.getOrganizationId());
-        assertThat(replacementAssignments)
-                .extracting(assignment -> assignment.getProductionLot().getId())
-                .containsExactlyInAnyOrder(lotA.getId(), lotB.getId());
-
-        // Bản ghi phân công cũ bị vô hiệu hóa chứ không bị xóa (bảo toàn lịch sử).
-        List<LotAssignment> releasedRows = lotAssignmentRepository.findAll().stream()
-                .filter(assignment -> assignment.getUser().getUserId().equals(recorder.getUserId()))
-                .collect(Collectors.toList());
-        assertThat(releasedRows).hasSize(2);
-        assertThat(releasedRows).allSatisfy(assignment -> {
-            assertThat(assignment.getActive()).isFalse();
-            assertThat(assignment.getReleasedAt()).isNotNull();
-        });
 
         OrganizationUser stored = organizationUserRepository
                 .findByOrganization_OrganizationIdAndUser_UserId(
                         cooperative.getOrganizationId(), recorder.getUserId())
                 .orElseThrow();
         assertThat(stored.getStatus()).isEqualTo(OrganizationUserStatus.INACTIVE);
+
+        List<LotAssignment> recorderAssignments = lotAssignmentRepository
+                .findByUser_UserIdAndOrganization_OrganizationIdAndActiveTrue(
+                        recorder.getUserId(), cooperative.getOrganizationId());
+        assertThat(recorderAssignments)
+                .extracting(a -> a.getProductionLot().getId())
+                .containsExactlyInAnyOrder(lotA.getId(), lotB.getId());
     }
+
+    // ==================== TC-03: bảo toàn dữ liệu lịch sử ====================
 
     // ==================== TC-04: bảo toàn dữ liệu lịch sử ====================
 
@@ -335,7 +272,7 @@ class OrganizationMemberDeactivationServiceIntegrationTest {
         loginAs(recorder);
 
         assertThatThrownBy(() -> memberService.deactivateMember(
-                replacement.getUserId(),
+                procurementMember.getUserId(),
                 DeactivateMemberRequest.builder()
                         .reason("Thử trái phép")
                         .build()))
@@ -454,7 +391,7 @@ class OrganizationMemberDeactivationServiceIntegrationTest {
 
         // Reactivate trên member đang ACTIVE cũng bị chặn 409.
         assertThatThrownBy(() -> memberService.reactivateMember(
-                replacement.getUserId(),
+                procurementMember.getUserId(),
                 ReactivateMemberRequest.builder()
                         .reason("Kích hoạt lại lặp")
                         .build()))
@@ -477,41 +414,6 @@ class OrganizationMemberDeactivationServiceIntegrationTest {
                 .hasMessage(SELF_DEACTIVATION_MESSAGE);
     }
 
-    @Test
-    void deactivate_invalidReplacement_isRejectedWithDetails() {
-        loginAs(manager);
-        createAndAssignLot("Lô xoài lô A", ProductionLotStatus.APPROVED, recorder);
-
-        // Tự thay chính mình.
-        assertThatThrownBy(() -> memberService.deactivateMember(
-                recorder.getUserId(),
-                DeactivateMemberRequest.builder()
-                        .reason("Nghỉ việc")
-                        .replacementUserId(recorder.getUserId())
-                        .build()))
-                .isInstanceOf(BusinessException.class)
-                .hasMessage(INVALID_REPLACEMENT_MESSAGE);
-
-        // Người thay thế không có quyền ghi sự kiện (VT-04).
-        assertThatThrownBy(() -> memberService.deactivateMember(
-                recorder.getUserId(),
-                DeactivateMemberRequest.builder()
-                        .reason("Nghỉ việc")
-                        .replacementUserId(procurementMember.getUserId())
-                        .build()))
-                .isInstanceOf(BusinessException.class)
-                .hasMessage(INVALID_REPLACEMENT_MESSAGE);
-
-        // Người thay thế thuộc tổ chức khác.
-        assertThatThrownBy(() -> memberService.deactivateMember(
-                recorder.getUserId(),
-                DeactivateMemberRequest.builder()
-                        .reason("Nghỉ việc")
-                        .replacementUserId(otherOrgRecorder.getUserId())
-                        .build()))
-                .isInstanceOf(BusinessException.class)
-                .hasMessage(INVALID_REPLACEMENT_MESSAGE);
-    }
 
     @Test
     void deactivate_lotInTerminalStatus_doesNotBlock() throws InterruptedException {
@@ -573,22 +475,6 @@ class OrganizationMemberDeactivationServiceIntegrationTest {
                 .hasMessageContaining("Trạng thái thành viên không hợp lệ");
     }
 
-    @Test
-    void getUnfinishedLots_returnsPendingLotsShape() {
-        loginAs(manager);
-        ProductionLot lotA = createAndAssignLot("Lô xoài lô A", ProductionLotStatus.APPROVED, recorder);
-        createAndAssignLot("Lô đã đóng", ProductionLotStatus.CLOSED, recorder);
-
-        UnfinishedLotsResponse response = memberService.getUnfinishedLotsOfMember(recorder.getUserId());
-
-        assertThat(response.getUserId()).isEqualTo(recorder.getUserId());
-        assertThat(response.isHasUnfinishedLots()).isTrue();
-        assertThat(response.isReplacementRequired()).isTrue();
-        assertThat(response.getTotal()).isEqualTo(1);
-        assertThat(response.getLots())
-                .extracting(vn.nguongocso.auth.dto.response.MemberLotSummary::getLotId)
-                .containsExactly(lotA.getId());
-    }
 
     // ==================== helpers ====================
 

@@ -14,11 +14,7 @@ import vn.nguongocso.auth.dto.request.AddMemberRequest;
 import vn.nguongocso.auth.dto.request.AssignRoleRequest;
 import vn.nguongocso.auth.dto.request.DeactivateMemberRequest;
 import vn.nguongocso.auth.dto.request.ReactivateMemberRequest;
-import vn.nguongocso.auth.dto.response.MemberLotSummary;
 import vn.nguongocso.auth.dto.response.OrganizationUserResponse;
-import vn.nguongocso.auth.dto.response.ReplacementCandidateResponse;
-import vn.nguongocso.auth.dto.response.ReplacementRequiredError;
-import vn.nguongocso.auth.dto.response.UnfinishedLotsResponse;
 import vn.nguongocso.auth.entity.Role;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.enums.UserStatus;
@@ -28,9 +24,6 @@ import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.exception.ResourceNotFoundException;
-import vn.nguongocso.farm.entity.LotAssignment;
-import vn.nguongocso.farm.entity.ProductionLot;
-import vn.nguongocso.farm.service.LotAssignmentService;
 import vn.nguongocso.organization.constant.RoleCode;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.entity.OrganizationUser;
@@ -60,7 +53,6 @@ public class OrganizationMemberService {
     private final RoleRepository roleRepository;
     private final OrganizationRepository organizationRepository;
     private final PasswordEncoder passwordEncoder;
-    private final LotAssignmentService lotAssignmentService;
     private final OrganizationRolePermissionRepository orgRolePermissionRepository;
 
     private final ApplicationEventPublisher eventPublisher;
@@ -134,104 +126,6 @@ public class OrganizationMemberService {
         } catch (IllegalArgumentException e) {
             throw new BusinessException("Trạng thái thành viên không hợp lệ: " + status);
         }
-    }
-
-    /**
-     * Precheck các lô chưa hoàn thành đang phân công cho thành viên
-     * trước khi vô hiệu hóa (QTN-32 mục 7).
-     */
-    public UnfinishedLotsResponse getUnfinishedLotsOfMember(UUID userId) {
-        OrganizationUser membership = loadMembershipInCurrentOrganization(userId);
-
-        List<LotAssignment> assignments = lotAssignmentService.findUnfinishedAssignments(
-                getCurrentOrganizationId(), membership.getUser().getUserId());
-
-        List<MemberLotSummary> lots = assignments.stream()
-                .map(this::toLotSummary)
-                .collect(Collectors.toList());
-
-        return UnfinishedLotsResponse.builder()
-                .userId(membership.getUser().getUserId())
-                .hasUnfinishedLots(!lots.isEmpty())
-                .total(lots.size())
-                .replacementRequired(!lots.isEmpty())
-                .lots(lots)
-                .build();
-    }
-
-    /**
-     * Danh sách thành viên đủ điều kiện thay thế thành viên sắp bị vô hiệu
-     * hóa: membership ACTIVE cùng tổ chức, khác thành viên bị vô hiệu hóa,
-     * tài khoản không bị khóa toàn cục và có quyền ghi sự kiện
-     * (vai trò VT-03 hoặc được cấp quyền {@code chain_event:CREATE}).
-     *
-     * @param userId  ID thành viên sắp bị vô hiệu hóa
-     * @param lotId   nếu truyền, chỉ trả về ứng viên cho lô đó
-     * @param keyword từ khóa tìm theo tên/username, không phân biệt hoa thường
-     */
-    public List<ReplacementCandidateResponse> getReplacementCandidates(UUID userId, UUID lotId, String keyword) {
-        UUID orgId = getCurrentOrganizationId();
-        OrganizationUser deactivating = loadMembershipInCurrentOrganization(userId);
-
-        List<UUID> pendingLotIds = lotAssignmentService
-                .findUnfinishedAssignments(orgId, deactivating.getUser().getUserId())
-                .stream()
-                .map(assignment -> assignment.getProductionLot().getId())
-                .filter(lotIds -> lotId == null || lotId.equals(lotIds))
-                .distinct()
-                .collect(Collectors.toList());
-
-        String normalizedKeyword = keyword == null ? null : keyword.trim().toLowerCase(Locale.ROOT);
-
-        return orgUserRepository
-                .findByOrganization_OrganizationIdAndStatus(orgId, OrganizationUserStatus.ACTIVE)
-                .stream()
-                .filter(member -> !member.getUser().getUserId().equals(userId))
-                .filter(member -> member.getUser().getStatus() == UserStatus.ACTIVE)
-                .filter(member -> hasEventRecordingPermission(orgId, member.getRole()))
-                .filter(member -> matchesKeyword(member, normalizedKeyword))
-                .map(member -> toReplacementCandidate(member, pendingLotIds))
-                .collect(Collectors.toList());
-    }
-
-    private boolean matchesKeyword(OrganizationUser member, String normalizedKeyword) {
-        if (normalizedKeyword == null || normalizedKeyword.isEmpty()) {
-            return true;
-        }
-        String fullName = member.getUser().getFullName();
-        String username = member.getUser().getUserName();
-        return (fullName != null && fullName.toLowerCase(Locale.ROOT).contains(normalizedKeyword))
-                || (username != null && username.toLowerCase(Locale.ROOT).contains(normalizedKeyword));
-    }
-
-    private ReplacementCandidateResponse toReplacementCandidate(OrganizationUser member, List<UUID> pendingLotIds) {
-        User user = member.getUser();
-        Role role = member.getRole();
-        return ReplacementCandidateResponse.builder()
-                .userId(user.getUserId())
-                .username(user.getUserName())
-                .fullName(user.getFullName())
-                .roleCode(role.getCode())
-                .roleName(role.getName())
-                .eligibleLotIds(List.copyOf(pendingLotIds))
-                .build();
-    }
-
-    /**
-     * Kiểm tra vai trò có quyền ghi sự kiện trong tổ chức:
-     * mặc định là VT-03, hoặc vai trò được cấu hình quyền
-     * {@code chain_event:CREATE} theo phân quyền theo tổ chức (QTN-01).
-     */
-    private boolean hasEventRecordingPermission(UUID orgId, Role role) {
-        if (RoleCode.EVENT_RECORDER.equals(role.getCode())) {
-            return true;
-        }
-        return orgRolePermissionRepository
-                .findByOrganization_OrganizationIdAndRole_RoleId(orgId, role.getRoleId())
-                .stream()
-                .filter(config -> Boolean.TRUE.equals(config.getEnabled()))
-                .anyMatch(config -> "chain_event".equals(config.getPermission().getResource())
-                        && "CREATE".equals(config.getPermission().getAction()));
     }
 
     /**
@@ -404,38 +298,17 @@ public class OrganizationMemberService {
         validateDeactivationScope(getCurrentRoleCode(), membership);
         validateNotLastActiveManager(orgId, membership);
 
-        List<LotAssignment> unfinishedAssignments = lotAssignmentService
-                .findUnfinishedAssignments(orgId, userId);
-
-        if (!unfinishedAssignments.isEmpty() && request.getReplacementUserId() == null) {
-            publishActivityLog(currentUser, "DEACTIVATE_BLOCKED",
-                    "Từ chối vô hiệu hóa thành viên " + targetUser.getFullName()
-                            + " vì còn " + unfinishedAssignments.size() + " lô chưa hoàn thành",
-                    "OrganizationUser",
-                    membership.getId().toString());
-            throw unfinishedLotConflict(unfinishedAssignments);
-        }
-
-        User replacementUser = null;
-        if (request.getReplacementUserId() != null) {
-            replacementUser = validateReplacementMember(orgId, userId, request.getReplacementUserId());
-        }
-
-        if (!unfinishedAssignments.isEmpty()) {
-            lotAssignmentService.transferActiveAssignments(
-                    orgId, userId, replacementUser, currentUser);
-        }
-
-        // Không xóa bản ghi, không đổi users.status và không đổi vai trò —
-        // vai trò cũ được giữ nguyên để kích hoạt lại đúng quyền ban đầu.
+        // Vô hiệu hóa trực tiếp. Lưu ý: nếu thành viên còn lô chưa hoàn
+        // thành thì các lô đó sẽ mất người ghi sự kiện — FE hiện thông báo
+        // cảnh báo để quản lý rà soát trước khi thực hiện. Hiện tại hệ thống
+        // chưa có phân quyền ghi sự kiện theo lô nên KHÔNG thực hiện chuyển
+        // giao lô (transferActiveAssignments được tạm gỡ bỏ — D-4/TC-02).
         membership.setStatus(OrganizationUserStatus.INACTIVE);
         membership = orgUserRepository.save(membership);
 
         publishActivityLog(currentUser, "DEACTIVATE",
                 "Vô hiệu hóa thành viên " + targetUser.getFullName() + " (" + targetUser.getUserName()
-                        + "). Lý do: " + request.getReason()
-                        + ". Người thay thế: "
-                        + (replacementUser != null ? replacementUser.getFullName() : "Không"),
+                        + "). Lý do: " + request.getReason(),
                 "OrganizationUser",
                 membership.getId().toString());
 
@@ -517,61 +390,6 @@ public class OrganizationMemberService {
             throw new BusinessException(HttpStatus.CONFLICT,
                     "Không thể vô hiệu hóa quản lý duy nhất còn lại của tổ chức");
         }
-    }
-
-    /**
-     * BR-4: người thay thế phải là membership ACTIVE cùng tổ chức, khác
-     * thành viên đang bị vô hiệu hóa, tài khoản không bị khóa toàn cục và
-     * đủ quyền ghi sự kiện.
-     */
-    private User validateReplacementMember(UUID orgId, UUID deactivatingUserId, UUID replacementUserId) {
-        if (replacementUserId.equals(deactivatingUserId)) {
-            throw invalidReplacement(replacementUserId);
-        }
-
-        return orgUserRepository
-                .findByOrganization_OrganizationIdAndUser_UserId(orgId, replacementUserId)
-                .filter(member -> member.getStatus() == OrganizationUserStatus.ACTIVE)
-                .filter(member -> member.getUser().getStatus() == UserStatus.ACTIVE)
-                .filter(member -> !member.getUser().getUserId().equals(deactivatingUserId))
-                .filter(member -> hasEventRecordingPermission(orgId, member.getRole()))
-                .map(OrganizationUser::getUser)
-                .orElseThrow(() -> invalidReplacement(replacementUserId));
-    }
-
-    private BusinessException invalidReplacement(UUID replacementUserId) {
-        Map<String, Object> details = new LinkedHashMap<>();
-        details.put("replacementUserId", replacementUserId.toString());
-        return new BusinessException("Người thay thế không hợp lệ", details);
-    }
-
-    /** BR-3: 409 kèm danh sách lô chưa hoàn thành để FE hiển thị chọn người thay thế. */
-    private BusinessException unfinishedLotConflict(List<LotAssignment> assignments) {
-        List<MemberLotSummary> pendingLots = assignments.stream()
-                .map(this::toLotSummary)
-                .collect(Collectors.toList());
-
-        ReplacementRequiredError details = ReplacementRequiredError.builder()
-                .code("MEMBER_HAS_UNFINISHED_LOTS")
-                .requiresReplacement(true)
-                .pendingLots(pendingLots)
-                .build();
-
-        return new BusinessException(HttpStatus.CONFLICT,
-                "Thành viên đang được phân công vào " + assignments.size()
-                        + " lô chưa hoàn thành. Vui lòng chọn người thay thế",
-                details);
-    }
-
-    private MemberLotSummary toLotSummary(LotAssignment assignment) {
-        ProductionLot lot = assignment.getProductionLot();
-        return MemberLotSummary.builder()
-                .lotId(lot.getId())
-                .lotName(lot.getName())
-                .lotStatus(lot.getStatus().name())
-                .plantingDate(lot.getPlantingDate())
-                .harvestDate(lot.getHarvestDate())
-                .build();
     }
 
     /**

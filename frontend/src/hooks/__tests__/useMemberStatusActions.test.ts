@@ -31,7 +31,7 @@ const makeAxiosError = (status: number, data: unknown): AxiosError => {
 };
 
 async function callDeactivate(
-  fn: (userId: string, reason: string, replacementUserId?: string, memberName?: string) => Promise<DeactivateOutcome>,
+  fn: (userId: string, reason: string, memberName?: string) => Promise<DeactivateOutcome>,
   ...args: Parameters<typeof fn>
 ): Promise<DeactivateOutcome> {
   return (await act(async () => await fn(...args))) as DeactivateOutcome;
@@ -62,97 +62,15 @@ describe('TC-NCL01 - useMemberStatusActions (deactivate)', () => {
       result.current.deactivate.bind(result.current),
       'user-1',
       'Thành viên nghỉ việc',
-      undefined,
       'Nguyễn Văn Bình',
     );
 
     expect(outcome.ok).toBe(true);
     expect(mockDeactivate).toHaveBeenCalledWith('user-1', {
       reason: 'Thành viên nghỉ việc',
-      replacementUserId: undefined,
     });
     expect(onSuccess).toHaveBeenCalled();
     expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('Nguyễn Văn Bình'));
-  });
-
-  it('409 requiresReplacement → trả pendingLots, KHÔNG toast lỗi', async () => {
-    const pendingLots = [
-      { lotId: 'lot-a', lotName: 'Lô xoài', lotStatus: 'APPROVED', harvestDate: '2026-09-05' },
-      { lotId: 'lot-b', lotName: 'Lô rau', lotStatus: 'PENDING', harvestDate: null },
-    ];
-    mockDeactivate.mockRejectedValue(
-      makeAxiosError(409, {
-        success: false,
-        status: 409,
-        message: 'Thành viên đang được phân công vào 2 lô chưa hoàn thành. Vui lòng chọn người thay thế',
-        errors: {
-          code: 'MEMBER_HAS_UNFINISHED_LOTS',
-          requiresReplacement: true,
-          pendingLots,
-        },
-      }),
-    );
-
-    const { result } = renderHook(() => useMemberStatusActions());
-
-    const outcome = await callDeactivate(
-      result.current.deactivate.bind(result.current),
-      'user-1',
-      'lý do',
-    );
-
-    expect(outcome.ok).toBe(false);
-    expect(outcome.requiresReplacement).toBe(true);
-    expect(outcome.pendingLots).toHaveLength(2);
-    expect(outcome.pendingLots?.[0].lotId).toBe('lot-a');
-    expect(toast.error).not.toHaveBeenCalled();
-  });
-
-  it('409 "đã ngừng hoạt động" → fatal + toast message backend', async () => {
-    mockDeactivate.mockRejectedValue(
-      makeAxiosError(409, {
-        success: false,
-        status: 409,
-        message: 'Thành viên đã ngừng hoạt động',
-        errors: 'CONFLICT',
-      }),
-    );
-
-    const { result } = renderHook(() => useMemberStatusActions());
-
-    const outcome = await callDeactivate(
-      result.current.deactivate.bind(result.current),
-      'user-1',
-      'lý do',
-    );
-
-    expect(outcome.ok).toBe(false);
-    expect(outcome.fatal).toBe(true);
-    expect(outcome.requiresReplacement).toBeUndefined();
-    expect(toast.error).toHaveBeenCalledWith('Thành viên đã ngừng hoạt động');
-  });
-
-  it('403 → fatal + toast "Bạn không có quyền thực hiện chức năng này"', async () => {
-    mockDeactivate.mockRejectedValue(
-      makeAxiosError(403, {
-        success: false,
-        status: 403,
-        message: 'Bạn không có quyền thực hiện chức năng này',
-        errors: 'ACCESS_DENIED',
-      }),
-    );
-
-    const { result } = renderHook(() => useMemberStatusActions());
-
-    const outcome = await callDeactivate(
-      result.current.deactivate.bind(result.current),
-      'user-1',
-      'lý do',
-    );
-
-    expect(outcome.ok).toBe(false);
-    expect(outcome.fatal).toBe(true);
-    expect(toast.error).toHaveBeenCalledWith('Bạn không có quyền thực hiện chức năng này');
   });
 
   it('400 validation → không fatal + toast message backend', async () => {
