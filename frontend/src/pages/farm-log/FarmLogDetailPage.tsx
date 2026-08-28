@@ -10,10 +10,18 @@ import {
   Calendar,
   Package,
   AlertTriangle,
+  Paperclip,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -97,9 +105,27 @@ export default function FarmLogDetailPage() {
     return true;
   }, [log, user]);
 
+  const breadcrumbItems = useMemo(() => {
+    return [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Lô sản xuất", href: "/production-lots" },
+      ...(log?.productionLotId
+        ? [
+            {
+              label: log.productionLotName || "Chi tiết lô",
+              href: `/production-lots/${log.productionLotId}`,
+            },
+          ]
+        : []),
+      { label: "Chi tiết nhật ký" },
+    ];
+  }, [log]);
+
+  useSetBreadcrumb(log ? breadcrumbItems : null);
+
   if (loading) {
     return (
-      <div className="container mx-auto py-8 max-w-4xl space-y-4">
+      <div className="container mx-auto py-8 max-w-7xl space-y-4">
         <Card className="h-64 flex items-center justify-center">
           <div className="flex flex-col items-center gap-2">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent"></div>
@@ -112,7 +138,7 @@ export default function FarmLogDetailPage() {
 
   if (error || !log) {
     return (
-      <div className="container mx-auto py-8 max-w-4xl space-y-4">
+      <div className="container mx-auto py-8 max-w-7xl space-y-4">
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
         </Button>
@@ -134,18 +160,7 @@ export default function FarmLogDetailPage() {
   const latestEffectiveLog = currentGroup && hasCorrections ? currentGroup.corrections[0] : log;
 
   return (
-    <div className="container mx-auto py-6 max-w-4xl space-y-6">
-      <div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate(-1)}
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại danh sách nhật ký
-        </Button>
-      </div>
-
+    <div className="container mx-auto py-6 max-w-7xl space-y-6">
       <Card className="shadow-xs">
         <CardHeader className="border-b bg-muted/20 pb-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -257,8 +272,27 @@ export default function FarmLogDetailPage() {
             </div>
           )}
 
-          {currentGroup && hasCorrections && (
-            <div className="space-y-4 pt-2">
+          {/* Tabs */}
+          <Tabs defaultValue="history" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="history" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Lịch sử đính chính
+              </TabsTrigger>
+              <TabsTrigger value="attachments" className="flex items-center gap-2">
+                <Paperclip className="h-4 w-4" />
+                Chứng từ
+                {log.attachmentCount !== undefined && log.attachmentCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center">
+                    {log.attachmentCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="history" className="mt-4 space-y-4">
+              {currentGroup && hasCorrections ? (
+                <>
               <div className="rounded-lg border border-amber-200 bg-card overflow-hidden shadow-xs">
                 <div className="bg-amber-50/80 px-4 py-2.5 border-b border-amber-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -327,34 +361,42 @@ export default function FarmLogDetailPage() {
                   </Table>
                 </div>
               </div>
+
+              <div className="space-y-2 pt-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                  <FileText className="h-3.5 w-3.5" /> LỊCH SỬ ĐÍNH CHÍNH
+                </p>
+                {currentGroup.corrections.map((c) => (
+                  <div key={c.id} className="rounded-md border border-amber-200 bg-amber-50/60 p-3 text-xs space-y-1.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-medium text-amber-950">
+                        <strong className="text-amber-900">Lý do đính chính:</strong> {c.correctionReason || "Không có lý do"}
+                      </span>
+                      <span className="text-amber-800/80">{c.createdAt ? formatDateTime(c.createdAt) : "—"}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between text-muted-foreground gap-2 pt-1 border-t border-amber-200/60 text-[11px]">
+                      <span>👤 Người thực hiện: <strong className="text-foreground">{c.correctedByName || "Hệ thống"}</strong></span>
+                      <span>Mã bản đính chính: <code className="bg-amber-100/80 px-1 py-0.5 rounded font-mono text-[10px] text-amber-900">{c.id.slice(0, 8)}</code></span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="mx-auto h-8 w-8 text-muted-foreground/50" />
+              <p className="mt-2 text-sm font-medium">Chưa có lịch sử đính chính</p>
+              <p className="text-xs text-muted-foreground">Bản ghi này là bản gốc và chưa được đính chính.</p>
             </div>
           )}
+        </TabsContent>
 
-          {currentGroup && hasCorrections && (
-            <div className="space-y-2 pt-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-                <FileText className="h-3.5 w-3.5" /> LỊCH SỬ ĐÍNH CHÍNH
-              </p>
-              {currentGroup.corrections.map((c) => (
-                <div key={c.id} className="rounded-md border border-amber-200 bg-amber-50/60 p-3 text-xs space-y-1.5">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-medium text-amber-950">
-                      <strong className="text-amber-900">Lý do đính chính:</strong> {c.correctionReason || "Không có lý do"}
-                    </span>
-                    <span className="text-amber-800/80">{c.createdAt ? formatDateTime(c.createdAt) : "—"}</span>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between text-muted-foreground gap-2 pt-1 border-t border-amber-200/60 text-[11px]">
-                    <span>👤 Người thực hiện: <strong className="text-foreground">{c.correctedByName || "Hệ thống"}</strong></span>
-                    <span>Mã bản đính chính: <code className="bg-amber-100/80 px-1 py-0.5 rounded font-mono text-[10px] text-amber-900">{c.id.slice(0, 8)}</code></span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
+        <TabsContent value="attachments" className="mt-4">
           <DetailSection title="Chứng từ đính kèm" contentClassName="bg-card">
             <AttachmentManager logId={log.id} />
           </DetailSection>
+        </TabsContent>
+      </Tabs>
         </CardContent>
       </Card>
     </div>
