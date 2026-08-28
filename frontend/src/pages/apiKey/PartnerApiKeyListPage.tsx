@@ -37,6 +37,13 @@ import { RevokeApiKeyDialog } from '@/components/apiKey/RevokeApiKeyDialog';
 import { usePermission } from '@/hooks/usePermission';
 import { HelpButton } from '@/components/help/HelpButton';
 
+const STATUS_LABELS: Record<string, string> = {
+  ALL: 'Tất cả trạng thái',
+  ACTIVE: 'Đang hoạt động',
+  REVOKED: 'Đã thu hồi',
+  EXPIRED: 'Hết hạn',
+};
+
 export const PartnerApiKeyListPage: React.FC = () => {
   const navigate = useNavigate();
   const canManage = usePermission(['VT-01', 'VT-02']);
@@ -187,7 +194,9 @@ export const PartnerApiKeyListPage: React.FC = () => {
               <div className="w-full sm:w-48">
                 <Select value={statusFilter} onValueChange={(val) => { if (val) setStatusFilter(val); setPage(0); }}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Lọc trạng thái" />
+                    <SelectValue placeholder="Lọc trạng thái">
+                      {STATUS_LABELS[statusFilter] || statusFilter}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">Tất cả trạng thái</SelectItem>

@@ -9,7 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { getActionLabel } from '@/utils/permissionLables';
+import { getActionLabel, getResourceLabel } from '@/utils/permissionLables';
 import type { PermissionItem } from '@/types/permission';
 
 interface PermissionGroupProps {
@@ -27,12 +27,13 @@ export const PermissionGroup: React.FC<PermissionGroupProps> = ({
   onToggle,
   disabled = false,
 }) => {
+  const displayLabel = getResourceLabel(resource) || resourceLabel;
   const isEventChain =
     resource === 'chain_event' ||
     resource === 'event_chain' ||
     resource === 'farm_log' ||
-    resourceLabel.toLowerCase().includes('sự kiện') ||
-    resourceLabel.toLowerCase().includes('canh tác');
+    displayLabel.toLowerCase().includes('sự kiện') ||
+    displayLabel.toLowerCase().includes('canh tác');
 
   const allEnabled = permissions.length > 0 && permissions.every((p) => p.isEnabled);
 
@@ -54,7 +55,7 @@ export const PermissionGroup: React.FC<PermissionGroupProps> = ({
       <div className="flex items-center justify-between pb-2 border-b border-slate-100">
         <div className="flex items-center gap-2">
           {isEventChain && <Layers className="h-5 w-5 text-emerald-600 shrink-0" />}
-          <h3 className="font-bold text-base text-slate-800">{resourceLabel}</h3>
+          <h3 className="font-bold text-base text-slate-800">{displayLabel}</h3>
           {isEventChain && (
             <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs">
               Sự kiện chuỗi
