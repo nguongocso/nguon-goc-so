@@ -133,8 +133,8 @@ function renderGroupComparison(
             <TableHeader className="bg-muted/40">
               <TableRow className="text-xs">
                 <TableHead className="w-1/4 font-semibold text-foreground">Trường thông tin</TableHead>
-                <TableHead className="w-3/8 font-semibold text-destructive">❌ Giá trị gốc (chưa đính chính)</TableHead>
-                <TableHead className="w-3/8 font-semibold text-emerald-700">✅ Giá trị hiệu lực (hiện tại)</TableHead>
+                <TableHead className="w-3/8 font-semibold text-destructive">GIÁ TRỊ GỐC</TableHead>
+                <TableHead className="w-3/8 font-semibold text-emerald-700">GIÁ TRỊ SAU ĐÍNH CHÍNH</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="text-xs divide-y">
@@ -160,7 +160,7 @@ function renderGroupComparison(
 
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-          <FileText className="h-3.5 w-3.5" /> Lịch sử lý do đính chính
+          <FileText className="h-3.5 w-3.5" /> LỊCH SỬ ĐÍNH CHÍNH
         </p>
         {group.corrections.map((c: FarmLog) => (
           <div key={c.id} className="rounded-md border border-amber-200 bg-amber-50/60 p-3 text-xs space-y-1.5">
@@ -449,6 +449,7 @@ export function FarmLogList({
                     <TableHead className="w-25">Ngày</TableHead>
                     <TableHead className="w-30">Người ghi</TableHead>
                     <TableHead className="w-35">Hoạt động</TableHead>
+                    <TableHead className="w-30">Trạng thái</TableHead>
                     <TableHead>Vật tư & Số lượng</TableHead>
                     <TableHead>Ghi chú</TableHead>
                     <TableHead className="w-30 text-center">Chứng từ</TableHead>

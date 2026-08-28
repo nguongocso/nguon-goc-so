@@ -13,6 +13,7 @@ export const ROLE_ACCESS = {
   productionLotApprove: ['VT-02'],
   farmLogCreate: ['VT-03'],
   farmLogCorrect: ['VT-02', 'VT-03'] as const,
+  farmLogView: ['VT-02', 'VT-03'] as const,
   preprocessingEventCreate: ['VT-02', 'VT-03'] as const,
   preprocessingEventCorrect: ['VT-02', 'VT-03'] as const,
   packagingEventCreate: ['VT-02', 'VT-03'] as const,
