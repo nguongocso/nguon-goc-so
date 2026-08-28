@@ -54,8 +54,8 @@ class MobileChainEventServiceImplTest {
     @Mock
     private EventValidationService eventValidationService;
 
-        @Mock
-        private ApplicationEventPublisher eventPublisher;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -323,6 +323,44 @@ class MobileChainEventServiceImplTest {
         assertThatThrownBy(() -> chainEventService.recordMobileEvent(request, validUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Quản lý cần nhập lý do ghi đè bắt buộc");
+
+        verify(eventValidationService).logFailedAttempt(
+                eq(request.getProductionLotId()),
+                eq(productionLot.getName()),
+                eq(ChainEventType.HARVEST),
+                anyString(),
+                eq(validUser));
+    }
+
+    @Test
+    void recordMobileEvent_Harvest_EarlyHarvest_ByAdminVT01_ShouldThrowBusinessException() {
+        // Given
+        RecordMobileEventRequest request = new RecordMobileEventRequest();
+        request.setProductionLotId(productionLot.getId());
+        request.setEventType(ChainEventType.HARVEST);
+        request.setRecordedAt(LocalDateTime.now());
+        request.setLatitude(20.9854);
+        request.setLongitude(105.7985);
+
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("quantity", 2500.0);
+        eventData.put("harvestDate", "2026-07-24");
+        eventData.put("earlyHarvestReason", "Admin override attempt");
+        request.setEventData(eventData);
+
+        when(validUser.getRoleCode()).thenReturn("VT-01");
+
+        when(productionLotRepository.findById(request.getProductionLotId())).thenReturn(Optional.of(productionLot));
+        when(harvestEligibilityService.calculateHarvestEligibility(productionLot.getId())).thenReturn(
+                vn.nguongocso.farm.dto.response.HarvestEligibilityResponse.builder()
+                        .determined(true)
+                        .eligibleHarvestDate(java.time.LocalDate.of(2026, 7, 28))
+                        .build());
+
+        // When & Then
+        assertThatThrownBy(() -> chainEventService.recordMobileEvent(request, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Chỉ Quản lý hợp tác xã (VT-02) mới có quyền ghi đè thu hoạch sớm");
 
         verify(eventValidationService).logFailedAttempt(
                 eq(request.getProductionLotId()),

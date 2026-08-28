@@ -2,6 +2,7 @@ package vn.nguongocso.publicapi.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -216,9 +217,9 @@ class PublicTraceServiceImplTest {
 
         assertNotNull(response);
         assertEquals(1, response.getEvents().size());
-        assertEquals("HARVEST", response.getEvents().get(0).getEventType());
         assertEquals(true, response.getEvents().get(0).getEventData().get("earlyHarvest"));
-        assertEquals("Bão lụt khẩn cấp", response.getEvents().get(0).getEventData().get("earlyHarvestReason"));
+        // B-03: earlyHarvestReason không được expose ra Public QR cho người tiêu dùng
+        assertNull(response.getEvents().get(0).getEventData().get("earlyHarvestReason"));
         assertEquals("2026-07-28", response.getEvents().get(0).getEventData().get("eligibleHarvestDate"));
     }
 

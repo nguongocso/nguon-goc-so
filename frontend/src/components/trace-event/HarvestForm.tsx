@@ -103,8 +103,9 @@ export const HarvestForm = ({
     selectedHarvestDate < eligibility.eligibleHarvestDate
   );
 
-  const isRecorderBlocked = Boolean(isEarlyHarvest && user?.roleCode === 'VT-03');
-  const canOverride = Boolean(isEarlyHarvest && (user?.roleCode === 'VT-02' || user?.roleCode === 'VT-01'));
+  // B-01: Chỉ Quản lý hợp tác xã (VT-02) mới có quyền ghi đè thu hoạch sớm
+  const canOverride = Boolean(isEarlyHarvest && user?.roleCode === 'VT-02');
+  const isOverrideBlocked = Boolean(isEarlyHarvest && user?.roleCode !== 'VT-02');
 
   const currentPosition =
     typeof lat === 'number' &&
@@ -192,9 +193,9 @@ export const HarvestForm = ({
   };
 
   const onSubmit = async (data: FormValues) => {
-    // Kiểm tra chặn với Người ghi sự kiện
-    if (isRecorderBlocked) {
-      const msg = `Lô sản xuất chưa hết thời gian cách ly (ngày đủ điều kiện: ${eligibility?.eligibleHarvestDate}). Người ghi sự kiện (VT-03) không có quyền ghi đè thu hoạch sớm.`;
+    // B-01: Kiểm tra chặn đối với các vai trò không phải Quản lý hợp tác xã (VT-02)
+    if (isOverrideBlocked) {
+      const msg = `Lô sản xuất chưa hết thời gian cách ly (ngày đủ điều kiện: ${eligibility?.eligibleHarvestDate}). Chỉ Quản lý hợp tác xã (VT-02) mới có quyền ghi đè thu hoạch sớm.`;
       setError(msg);
       toast.error(msg);
       return;
@@ -302,7 +303,7 @@ export const HarvestForm = ({
           {!loadingEligibility && eligibility?.determined && eligibility.eligibleHarvestDate && (
             <>
               {isEarlyHarvest ? (
-                isRecorderBlocked ? (
+                isOverrideBlocked ? (
                   <Alert variant="destructive" className="border-red-300 bg-red-50 text-red-900">
                     <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
                     <AlertDescription className="space-y-1 text-sm">
@@ -312,7 +313,7 @@ export const HarvestForm = ({
                         Bạn đang chọn ngày thu hoạch <strong>{selectedHarvestDate}</strong> (thu hoạch sớm).
                       </p>
                       <p className="text-xs text-red-700 font-medium pt-1">
-                        Vai trò Người ghi sự kiện (VT-03) không có quyền ghi đè thu hoạch sớm. Vui lòng liên hệ Quản lý HTX hoặc chọn ngày thu hoạch sau thời hạn cách ly.
+                        Chỉ Quản lý hợp tác xã (VT-02) mới có quyền ghi đè thu hoạch sớm kèm lý do bắt buộc. Vui lòng liên hệ Quản lý HTX hoặc chọn ngày thu hoạch sau thời hạn cách ly.
                       </p>
                     </AlertDescription>
                   </Alert>
@@ -489,8 +490,8 @@ export const HarvestForm = ({
           <Button
             type="submit"
             variant="create"
-            disabled={isSubmitting || isRecorderBlocked}
-            title={isRecorderBlocked ? 'Chưa hết thời gian cách ly - Người ghi sự kiện không có quyền ghi đè' : undefined}
+            disabled={isSubmitting || isOverrideBlocked}
+            title={isOverrideBlocked ? 'Chưa hết thời gian cách ly - Chỉ Quản lý HTX mới có quyền ghi đè' : undefined}
           >
             {isSubmitting && <LoaderCircle className="h-4 w-4 mr-2 animate-spin" />}
             {isSubmitting ? 'Đang ghi nhận...' : 'Ghi nhận thu hoạch'}

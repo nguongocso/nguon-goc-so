@@ -275,8 +275,8 @@ class HarvestEligibilityServiceImplTest {
     }
 
     @Test
-    @DisplayName("9. Nhật ký PESTICIDE thiếu executedDate -> determined = false")
-    void calculate_missingExecutedDate_shouldReturnUndetermined() {
+    @DisplayName("9. Nhật ký PESTICIDE thiếu executedDate -> ném BusinessException bắt buộc bổ sung trước (B-02)")
+    void calculate_missingExecutedDate_shouldThrowBusinessException() {
         when(productionLotRepository.existsById(lotId)).thenReturn(true);
 
         FarmLog log1 = FarmLog.builder()
@@ -288,11 +288,33 @@ class HarvestEligibilityServiceImplTest {
         when(farmLogRepository.findByProductionLotIdAndActivityType(lotId, FarmActivityType.PESTICIDE))
                 .thenReturn(List.of(log1));
 
-        HarvestEligibilityResponse result = harvestEligibilityService.calculateHarvestEligibility(lotId);
+        assertThatThrownBy(() -> harvestEligibilityService.calculateHarvestEligibility(lotId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Mục nhật ký sử dụng thuốc BVTV thiếu ngày thực hiện");
+    }
 
-        assertThat(result.isDetermined()).isFalse();
-        assertThat(result.getEligibleHarvestDate()).isNull();
-        assertThat(result.getUnmatchedMaterials()).containsExactly("Brightin 4.0EC");
+    @Test
+    @DisplayName("11. Nhiều nhật ký PESTICIDE nhưng có 1 log thiếu executedDate -> ném BusinessException (B-02)")
+    void calculate_multiplePesticideLogsOneMissingExecutedDate_shouldThrowBusinessException() {
+        when(productionLotRepository.existsById(lotId)).thenReturn(true);
+
+        FarmLog log1 = FarmLog.builder()
+                .activityType(FarmActivityType.PESTICIDE)
+                .material("Brightin 4.0EC")
+                .executedDate(LocalDate.of(2026, 8, 10))
+                .build();
+        FarmLog log2 = FarmLog.builder()
+                .activityType(FarmActivityType.PESTICIDE)
+                .material("Dithane M-45 80WP")
+                .executedDate(null)
+                .build();
+
+        when(farmLogRepository.findByProductionLotIdAndActivityType(lotId, FarmActivityType.PESTICIDE))
+                .thenReturn(List.of(log1, log2));
+
+        assertThatThrownBy(() -> harvestEligibilityService.calculateHarvestEligibility(lotId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Mục nhật ký sử dụng thuốc BVTV thiếu ngày thực hiện");
     }
 
     @Test

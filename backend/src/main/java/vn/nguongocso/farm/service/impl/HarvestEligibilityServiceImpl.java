@@ -53,14 +53,9 @@ public class HarvestEligibilityServiceImpl implements HarvestEligibilityService 
         Set<String> unmatchedSet = new LinkedHashSet<>();
 
         for (FarmLog logItem : pesticideLogs) {
-            // Kiểm tra executedDate
+            // Kiểm tra executedDate: nếu thiếu ngày thực hiện thì không thể xác định an toàn, bắt buộc bổ sung trước (B-02)
             if (logItem.getExecutedDate() == null) {
-                allResolved = false;
-                String matName = (logItem.getMaterial() != null && !logItem.getMaterial().trim().isEmpty())
-                        ? logItem.getMaterial().trim()
-                        : "(Chưa đặt tên)";
-                unmatchedSet.add(matName);
-                continue;
+                throw new BusinessException("Mục nhật ký sử dụng thuốc BVTV thiếu ngày thực hiện. Vui lòng bổ sung ngày trước khi thu hoạch.");
             }
 
             String rawMaterial = logItem.getMaterial();

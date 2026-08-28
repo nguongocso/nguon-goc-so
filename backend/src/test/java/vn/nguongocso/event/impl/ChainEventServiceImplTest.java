@@ -342,12 +342,9 @@ class ChainEventServiceImplTest {
     }
 
     @Test
-    void recordHarvestEvent_EarlyHarvest_ByAdminVT01_WithReason_ShouldSucceed() {
+    void recordHarvestEvent_EarlyHarvest_ByAdminVT01_ShouldThrowBusinessExceptionAndLogFailedAttempt() {
         when(validUser.getRoleCode()).thenReturn("VT-01");
-        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
-        when(validUser.getUserId()).thenReturn(userId);
         when(productionLotRepository.findById(request.getProductionLotId())).thenReturn(Optional.of(productionLot));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(actor));
 
         when(harvestEligibilityService.calculateHarvestEligibility(productionLot.getId())).thenReturn(
                 HarvestEligibilityResponse.builder()
@@ -357,20 +354,27 @@ class ChainEventServiceImplTest {
 
         request.setEarlyHarvestReason("Chỉ đạo thu hoạch sớm từ Admin HTX");
 
-        ChainEvent mockSavedEvent = ChainEvent.builder()
-                .id(UUID.randomUUID())
-                .eventType(ChainEventType.HARVEST)
-                .eventData("{\"productionLotId\":\"" + productionLot.getId() + "\",\"earlyHarvest\":true}")
-                .recordedAt(LocalDateTime.now())
-                .recordedBy(actor)
-                .build();
+        assertThatThrownBy(() -> chainEventService.recordHarvestEvent(request, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Chỉ Quản lý hợp tác xã (VT-02) mới có quyền ghi đè thu hoạch sớm");
 
-        when(chainEventRepository.save(any(ChainEvent.class))).thenReturn(mockSavedEvent);
+        verify(eventValidationService).logFailedAttempt(eq(request.getProductionLotId()), anyString(), eq(ChainEventType.HARVEST), anyString(), eq(validUser));
+    }
 
-        ChainEventResponse response = chainEventService.recordHarvestEvent(request, validUser);
+    @Test
+    void recordHarvestEvent_WhenPesticideLogMissingExecutedDate_ShouldThrowBusinessExceptionAndLogFailedAttempt() {
+        when(validUser.getRoleCode()).thenReturn("VT-02");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+        when(productionLotRepository.findById(request.getProductionLotId())).thenReturn(Optional.of(productionLot));
 
-        assertThat(response).isNotNull();
-        verify(chainEventRepository).save(any(ChainEvent.class));
+        when(harvestEligibilityService.calculateHarvestEligibility(productionLot.getId()))
+                .thenThrow(new BusinessException("Mục nhật ký sử dụng thuốc BVTV thiếu ngày thực hiện. Vui lòng bổ sung ngày trước khi thu hoạch."));
+
+        assertThatThrownBy(() -> chainEventService.recordHarvestEvent(request, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Mục nhật ký sử dụng thuốc BVTV thiếu ngày thực hiện");
+
+        verify(eventValidationService).logFailedAttempt(eq(request.getProductionLotId()), anyString(), eq(ChainEventType.HARVEST), anyString(), eq(validUser));
     }
 
     @Test
