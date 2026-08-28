@@ -12,6 +12,8 @@ import {
 
 import type { OrganizationSelection } from "@/types/organization";
 
+import { removeSelectionToken } from "@/utils/storage";
+
 const OrganizationSelectionPage: React.FC = () => {
   const navigate = useNavigate();
 
@@ -105,6 +107,24 @@ const OrganizationSelectionPage: React.FC = () => {
 
       navigate("/dashboard", { replace: true });
     } catch (error: any) {
+      /**
+       * ORG_SELECTION JWT hết hạn / không hợp lệ (401):
+       * gỡ selection token và quay về trang đăng nhập thay vì
+       * để user kẹt lại retry vô ích bằng token đã hết hạn.
+       */
+      if (error?.response?.status === 401) {
+        removeSelectionToken();
+
+        toast.error(
+          error.response?.data?.message ||
+            "Phiên chọn tổ chức đã hết hạn. Vui lòng đăng nhập lại."
+        );
+
+        navigate("/login", { replace: true });
+
+        return;
+      }
+
       const message =
         error.response?.data?.message ||
         error.message ||
