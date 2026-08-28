@@ -52,7 +52,7 @@ export const ProductCategoryList = ({
                         <TableHead>Mô tả</TableHead>
                         {showMandatoryColumn && <TableHead>Bắt buộc kiểm nghiệm</TableHead>}
                         <TableHead>Trạng thái</TableHead>
-                        {canManage && <TableHead className="text-right">Thao tác</TableHead>}
+                        {canManage && <TableHead className="text-center">Thao tác</TableHead>}
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -117,8 +117,8 @@ export const ProductCategoryList = ({
                                     </Badge>
                                 </TableCell>
                                 {canManage && (
-                                    <TableCell className="text-right">
-                                        <div className="flex justify-end gap-1">
+                                    <TableCell className="text-center">
+                                        <div className="flex justify-center gap-1">
                                             {onAssignCriteria && (
                                                 <Button variant="ghost" size="icon-sm"
                                                         onClick={() => onAssignCriteria(category)}

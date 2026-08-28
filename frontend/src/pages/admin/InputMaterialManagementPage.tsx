@@ -15,7 +15,7 @@ import { FilterSelect } from '@/components/common/FilterSelect';
 import { RefreshButton } from '@/components/common/RefreshButton';
 import { ListToolbar } from '@/components/common/ListToolbar';
 import { ListCard } from '@/components/common/ListCard';
-import { DataTablePagination } from '@/components/common/DataTablePagination';
+import { Pagination } from '@/components/common/Pagination';
 import { MaterialGroup, MATERIAL_GROUP_LABELS, MATERIAL_GROUP_VARIANTS } from '@/enums/materialGroup';
 import type { InputMaterial } from '@/types/inputMaterial';
 
@@ -280,12 +280,14 @@ export default function InputMaterialManagementPage() {
                 })}
               </TableBody>
             </Table>
-            <DataTablePagination
-              page={safePage}
-              pageSize={PAGE_SIZE}
+            <Pagination
+              currentPage={safePage}
+              totalPages={totalPages}
               totalElements={filtered.length}
-              onPageChange={setPage}
+              pageSize={PAGE_SIZE}
+              loading={loading}
               itemLabel="vật tư"
+              onPageChange={setPage}
             />
           </>
         )}

@@ -185,7 +185,14 @@ export const PartnerApiKeyListPage: React.FC = () => {
 
               {/* Lọc theo trạng thái */}
               <div className="w-full sm:w-48">
-                <Select value={statusFilter} onValueChange={(val) => { if (val) setStatusFilter(val); setPage(0); }}>
+                <Select value={statusFilter} onValueChange={(val) => { if (val) setStatusFilter(val); setPage(0); }}
+                  items={[
+                    { value: 'ALL', label: 'Tất cả trạng thái' },
+                    { value: 'ACTIVE', label: 'Đang hoạt động' },
+                    { value: 'REVOKED', label: 'Đã thu hồi' },
+                    { value: 'EXPIRED', label: 'Hết hạn' },
+                  ]}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Lọc trạng thái" />
                   </SelectTrigger>
@@ -218,7 +225,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
                   <TableHead className="text-center">Lượt gọi (Tổng / Lỗi)</TableHead>
                   <TableHead>Thời hạn hết hạn</TableHead>
                   <TableHead>Trạng thái</TableHead>
-                  {canManage && <TableHead className="text-right">Thao tác</TableHead>}
+                  {canManage && <TableHead className="text-center">Thao tác</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -283,16 +290,16 @@ export const PartnerApiKeyListPage: React.FC = () => {
                         <ApiKeyStatusBadge status={item.status} />
                       </TableCell>
                       {canManage && (
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">
                           {item.status === 'ACTIVE' ? (
                             <Button
-                              variant="destructive"
-                              size="sm"
-                              className="h-8 gap-1.5"
+                              variant="ghost"
+                              size="icon-sm"
                               onClick={() => setRevokeKeyTarget(item)}
+                              title="Thu hồi"
+                              className="text-destructive hover:text-destructive hover:bg-muted"
                             >
-                              <Ban className="size-3.5" />
-                              <span>Thu hồi</span>
+                              <Ban className="h-4 w-4" />
                             </Button>
                           ) : (
                             <span className="text-xs text-muted-foreground italic">Không có thao tác</span>

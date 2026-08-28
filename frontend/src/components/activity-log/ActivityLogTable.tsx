@@ -74,7 +74,7 @@ export const ActivityLogTable = ({ logs, loading }: Props) => {
               <TableHead className="w-[160px]">Hành động</TableHead>
               <TableHead className="w-[150px]">Đối tượng</TableHead>
               <TableHead>Mô tả</TableHead>
-              <TableHead className="w-[110px] text-right">Thao tác</TableHead>
+              <TableHead className="w-[110px] text-center">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -120,7 +120,7 @@ export const ActivityLogTable = ({ logs, loading }: Props) => {
                       {log.description || '—'}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-center">
                     <Button
                       variant="ghost"
                       size="sm"

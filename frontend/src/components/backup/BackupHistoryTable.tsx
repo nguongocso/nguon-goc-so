@@ -74,7 +74,7 @@ export const BackupHistoryTable = ({
             <TableHead>File</TableHead>
             <TableHead>Kích thước</TableHead>
             <TableHead>Trạng thái & Lỗi</TableHead>
-            <TableHead className="text-right">Thao tác</TableHead>
+            <TableHead className="text-center">Thao tác</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -104,8 +104,8 @@ export const BackupHistoryTable = ({
                   </div>
                 )}
               </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-1">
+              <TableCell className="text-center">
+                <div className="flex justify-center gap-1">
                   {item.operationType === 'BACKUP' && item.status === 'SUCCESS' && (
                     <>
                       <Button

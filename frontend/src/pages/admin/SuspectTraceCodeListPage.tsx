@@ -228,15 +228,14 @@ export default function SuspectTraceCodeListPage() {
               <Select
                 value={draftStatus}
                 onValueChange={(value) => value && setDraftStatus(value)}
+                items={[
+                  { value: 'ALL', label: 'Tất cả' },
+                  { value: 'SUSPECT', label: 'Nghi vấn' },
+                  { value: 'LOCKED', label: 'Đã khóa' },
+                ]}
               >
                 <SelectTrigger id="statusFilter">
-                  <span>
-                    {draftStatus === 'ALL'
-                      ? 'Tất cả'
-                      : draftStatus === 'SUSPECT'
-                        ? 'Nghi vấn'
-                        : 'Đã khóa'}
-                  </span>
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">Tất cả</SelectItem>

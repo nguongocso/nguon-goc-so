@@ -1,34 +1,28 @@
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { HelpButton } from "@/components/help/HelpButton";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
+import { Pagination } from "@/components/common/Pagination";
+import { ListPageHeader } from "@/components/common/ListPageHeader";
+import { ListCard } from "@/components/common/ListCard";
+import { ListToolbar } from "@/components/common/ListToolbar";
+import { SearchInput } from "@/components/common/SearchInput";
+import { FilterSelect } from "@/components/common/FilterSelect";
+import { RefreshButton } from "@/components/common/RefreshButton";
+import { DataTableShell } from "@/components/common/DataTableShell";
+import { StatusBadge } from "@/components/common/StatusBadge";
 import {
   assignMemberRole,
   getOrganizationMembers,
   getRoles,
 } from "@/api/memberApi";
 import type { OrganizationMember, RoleOption } from "@/types/member";
-import { Search, ShieldCheck, UserRoundCog, X, MailPlus } from "lucide-react";
+import { UserRoundCog, X, MailPlus } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -46,9 +40,21 @@ import {
   AlertDialogPopup,
 } from "@/components/ui/alert-dialog";
 import { getRoleLabel } from "@/config/roleAccess";
-import { DataTablePagination } from "@/components/common/DataTablePagination";
 
 const PAGE_SIZE = 10;
+
+const ROLE_FILTER_OPTIONS = [
+  { value: "ALL", label: "Tất cả vai trò" },
+  { value: "VT-02", label: "Quản lý hợp tác xã" },
+  { value: "VT-03", label: "Người ghi sự kiện" },
+  { value: "NONE", label: "Chưa cấp quyền" },
+];
+
+const STATUS_FILTER_OPTIONS = [
+  { value: "ALL", label: "Tất cả trạng thái" },
+  { value: "ACTIVE", label: "Đang hoạt động" },
+  { value: "INACTIVE", label: "Đã vô hiệu hóa" },
+];
 
 const roleBadgeClasses: Record<string, string> = {
   "VT-02": "bg-blue-100 text-blue-700",
@@ -93,23 +99,24 @@ export const MemberList = () => {
     (role) => role.roleId === Number(selectedRoleId),
   );
 
+  const fetchMembers = async () => {
+    try {
+      setIsLoading(true);
+      const [memberData, roleData] = await Promise.all([
+        getOrganizationMembers(),
+        getRoles(),
+      ]);
+      setMembers(memberData);
+      setRoles(roleData);
+    } catch {
+      toast.error("Không thể tải danh sách thành viên");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        const [memberData, roleData] = await Promise.all([
-          getOrganizationMembers(),
-          getRoles(),
-        ]);
-        setMembers(memberData);
-        setRoles(roleData);
-      } catch {
-        toast.error("Không thể tải danh sách thành viên");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    void loadData();
+    void fetchMembers();
   }, []);
 
   const findCurrentManager = (excludeUserId?: string) => {
@@ -217,18 +224,6 @@ export const MemberList = () => {
     }
   };
 
-  const getRoleFilterLabel = () => {
-    if (roleFilter === "ALL") return "Tất cả vai trò";
-    if (roleFilter === "NONE") return "Chưa cấp quyền";
-    return getRoleLabel(roleFilter);
-  };
-
-  const getStatusFilterLabel = () => {
-    if (statusFilter === "ALL") return "Tất cả trạng thái";
-    if (statusFilter === "ACTIVE") return "Đang hoạt động";
-    return "Đã vô hiệu hóa";
-  };
-
   const getSelectedRoleLabel = () => {
     if (!selectedRoleId) return "Chọn vai trò";
     const role = assignableRoles.find(r => r.roleId === Number(selectedRoleId));
@@ -237,250 +232,160 @@ export const MemberList = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-        <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-emerald-700">
-            Quản lý truy cập
-          </p>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
-            Cấp quyền cho thành viên
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Gán hoặc thu vai trò của thành viên trong tổ chức.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <HelpButton screenKey="member-permissions" />
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-            <ShieldCheck className="size-5 text-emerald-600" />
-            <div>
-              <p className="text-xs font-semibold text-slate-900">
-                Phạm vi tổ chức
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Đang thao tác với quyền {user?.roleCode}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Header trang */}
+      <ListPageHeader
+        icon={UserRoundCog}
+        title="Cấp quyền cho thành viên"
+        description="Gán hoặc thu vai trò của thành viên trong tổ chức."
+        actions={
+          <>
+            <HelpButton screenKey="member-permissions" />
+            {canCreate && (
+              <Button
+                size="sm"
+                variant="create"
+                onClick={() => navigate("/members/create")}
+              >
+                Thêm thành viên
+              </Button>
+            )}
+            {canInvite && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigate("/invitations/create")}
+              >
+                <MailPlus className="h-4 w-4 mr-1" />
+                Mời thành viên
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {/* Card chính */}
-      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
-        <CardHeader className="border-b border-slate-200 pb-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle className="text-lg font-bold text-slate-900">
-                Thành viên tổ chức
-              </CardTitle>
-              <CardDescription className="text-sm text-muted-foreground mt-1">
-                Danh sách thành viên hiện tại cùng vai trò và trạng thái.
-              </CardDescription>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                {filteredMembers.length} kết quả
-              </span>
-              {canCreate && (
-                <Button
-                  size="sm"
-                  variant="create"
-                  onClick={() => navigate("/members/create")}
-                >
-                  Thêm thành viên
-                </Button>
-              )}
-              {canInvite && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => navigate("/invitations/create")}
-                >
-                  <MailPlus className="h-4 w-4 mr-1" />
-                  Mời thành viên
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent className="p-0">
-          {/* Bộ lọc */}
-          <div className="grid gap-3 border-b border-slate-200 p-4 md:grid-cols-[1fr_220px_200px]">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-9"
+      <ListCard>
+        <ListToolbar
+          left={
+            <>
+              <SearchInput
+                placeholder="Tìm kiếm thành viên..."
                 value={search}
                 onChange={(event) => {
                   setSearch(event.target.value);
                   setPage(0);
                 }}
-                placeholder="Tìm kiếm thành viên..."
               />
-            </div>
-
-            <Select
-              value={roleFilter}
-              onValueChange={(value) => {
-                setRoleFilter(value ?? '');
-                setPage(0);
-              }}
-            >
-              <SelectTrigger>
-                {getRoleFilterLabel()}
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">Tất cả vai trò</SelectItem>
-                <SelectItem value="VT-02">Quản lý hợp tác xã</SelectItem>
-                <SelectItem value="VT-03">Người ghi sự kiện</SelectItem>
-                <SelectItem value="NONE">Chưa cấp quyền</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => {
-                setStatusFilter(value ?? '');
-                setPage(0);
-              }}
-            >
-              <SelectTrigger>
-                {getStatusFilterLabel()}
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-                <SelectItem value="ACTIVE">Đang hoạt động</SelectItem>
-                <SelectItem value="INACTIVE">Đã vô hiệu hóa</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              <FilterSelect
+                value={roleFilter}
+                onValueChange={(value) => {
+                  setRoleFilter(value ?? "ALL");
+                  setPage(0);
+                }}
+                options={ROLE_FILTER_OPTIONS}
+              />
+              <FilterSelect
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value ?? "ALL");
+                  setPage(0);
+                }}
+                options={STATUS_FILTER_OPTIONS}
+              />
+            </>
+          }
+          right={<RefreshButton onClick={fetchMembers} loading={isLoading} />}
+        />
 
           {/* Bảng */}
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50/80">
-                  {[
-                    "Tài khoản",
-                    "Họ và tên",
-                    "Email",
-                    "Số điện thoại",
-                    "Vai trò",
-                    "Trạng thái",
-                    ...(canCreate ? ["Thao tác"] : []),
-                  ].map((title) => (
-                    <TableHead
-                      key={title}
-                      className="font-semibold text-slate-700"
-                    >
-                      {title}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={canCreate ? 7 : 6}
-                      className="py-12 text-center text-muted-foreground"
-                    >
-                      Đang tải danh sách thành viên...
-                    </TableCell>
-                  </TableRow>
+          <DataTableShell
+            header={
+              <>
+                <TableHead className="w-12 text-center">STT</TableHead>
+                <TableHead>Tài khoản</TableHead>
+                <TableHead>Họ và tên</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Số điện thoại</TableHead>
+                <TableHead>Vai trò</TableHead>
+                <TableHead>Trạng thái</TableHead>
+                {canCreate && (
+                  <TableHead className="text-center">Thao tác</TableHead>
                 )}
-                {!isLoading &&
-                  paginatedMembers.map((member) => {
-                    const inactive = member.status === "INACTIVE";
-                    return (
-                      <TableRow
-                        key={member.id}
-                        className={
-                          inactive
-                            ? "bg-slate-50 opacity-70"
-                            : "hover:bg-slate-50/60"
-                        }
+              </>
+            }
+            body={paginatedMembers.map((member, index) => {
+              const inactive = member.status === "INACTIVE";
+              return (
+                <TableRow
+                  key={member.id}
+                  className={
+                    inactive
+                      ? "bg-slate-50 opacity-70"
+                      : "hover:bg-muted/40 transition-colors"
+                  }
+                >
+                  <TableCell className="text-center font-medium text-muted-foreground">
+                    {safePage * PAGE_SIZE + index + 1}
+                  </TableCell>
+                  <TableCell className="font-semibold text-slate-900">
+                    @{member.username}
+                  </TableCell>
+                  <TableCell className="font-medium text-slate-900">
+                    {member.fullName}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {member.email ?? "—"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {member.phone ?? "—"}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getRoleBadgeClass(member.roleCode)}`}
+                    >
+                      {getRoleLabel(member.roleCode || '') ?? "Chưa cấp quyền"}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge
+                      label={inactive ? "Đã vô hiệu hóa" : "Đang hoạt động"}
+                      tone={inactive ? "danger" : "success"}
+                    />
+                  </TableCell>
+                  {canCreate && (
+                    <TableCell className="text-center">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={inactive}
+                        onClick={() => openRoleDialog(member)}
+                        className="h-8 text-xs"
                       >
-                        <TableCell className="font-semibold text-slate-900">
-                          @{member.username}
-                        </TableCell>
-                        <TableCell className="font-medium text-slate-900">
-                          {member.fullName}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {member.email ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {member.phone ?? "—"}
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getRoleBadgeClass(member.roleCode)}`}
-                          >
-                            {getRoleLabel(member.roleCode || '') ?? "Chưa cấp quyền"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                              inactive
-                                ? "bg-red-50 text-red-600"
-                                : "bg-emerald-50 text-emerald-700"
-                            }`}
-                          >
-                            <span
-                              className={`size-2 shrink-0 rounded-full ${
-                                inactive ? "bg-red-500" : "bg-emerald-600"
-                              }`}
-                            />
-                            {inactive ? "Đã vô hiệu hóa" : "Đang hoạt động"}
-                          </span>
-                        </TableCell>
-                        {canCreate && (
-                          <TableCell>
-                            <div className="flex items-center gap-1.5">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={inactive}
-                                onClick={() => openRoleDialog(member)}
-                                className="h-8 text-xs"
-                              >
-                                {member.roleCode ? "Đổi vai trò" : "Cấp quyền"}
-                              </Button>
-                            </div>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    );
-                  })}
-              </TableBody>
-            </Table>
-            {!isLoading && !filteredMembers.length && (
-              <div className="grid place-items-center px-4 py-16 text-center">
-                <UserRoundCog className="mb-3 size-9 text-slate-300" />
-                <p className="font-semibold text-slate-900">
-                  Không tìm thấy thành viên
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Hãy thử thay đổi từ khóa hoặc bộ lọc.
-                </p>
-              </div>
-            )}
-          </div>
-          {!isLoading && filteredMembers.length > 0 && (
-            <DataTablePagination
-              page={safePage}
-              pageSize={PAGE_SIZE}
-              totalElements={filteredMembers.length}
-              onPageChange={setPage}
-              itemLabel="thành viên"
-            />
-          )}
-        </CardContent>
-      </Card>
+                        {member.roleCode ? "Đổi vai trò" : "Cấp quyền"}
+                      </Button>
+                    </TableCell>
+                  )}
+                </TableRow>
+              );
+            })}
+            loading={isLoading}
+            empty={!isLoading && filteredMembers.length === 0}
+            colSpan={canCreate ? 8 : 7}
+            loadingMessage="Đang tải danh sách thành viên..."
+            emptyMessage="Không tìm thấy thành viên nào."
+          />
+
+          {/* Phân trang */}
+          <Pagination
+            currentPage={safePage}
+            totalPages={totalPages}
+            totalElements={filteredMembers.length}
+            pageSize={PAGE_SIZE}
+            loading={isLoading}
+            itemLabel="thành viên"
+            onPageChange={setPage}
+          />
+        </ListCard>
 
       {/* Dialog cấp vai trò */}
       {editingMember && (

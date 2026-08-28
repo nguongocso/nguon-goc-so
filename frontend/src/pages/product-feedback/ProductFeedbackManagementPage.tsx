@@ -164,7 +164,7 @@ export default function ProductFeedbackManagementPage() {
                 <th className="px-4 py-3">Tổ chức</th>
                 <th className="px-4 py-3">Nội dung phản ánh</th>
                 <th className="px-4 py-3">Thời gian gửi</th>
-                <th className="px-4 py-3 text-right">Thao tác</th>
+                <th className="px-4 py-3 text-center">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -201,7 +201,7 @@ export default function ProductFeedbackManagementPage() {
                     <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                       {formatDate(fb.createdAt)}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-center">
                       <Button
                         variant="outline"
                         size="sm"

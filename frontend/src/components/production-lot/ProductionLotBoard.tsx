@@ -1,10 +1,14 @@
-import { approveProductionLot, submitProductionLot } from '@/api/productionLotApi';
+import {
+  approveProductionLot,
+  getProductionLots,
+  submitProductionLot,
+} from '@/api/productionLotApi';
 import { ProductionLotList } from '@/components/production-lot/ProductionLotList';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermission } from '@/hooks/usePermission';
 import { ROLE_ACCESS } from '@/config/roleAccess';
 import type { ProductionLot } from '@/types/productionLot';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -17,6 +21,8 @@ interface ProductionLotBoardProps {
   canApprove?: boolean;
   canRecordFarmLog?: boolean;
   onRecordProcurement?: (lotId: string) => void;
+  /** Ẩn khối tiêu đề của card (trang /production-lots đã có ListPageHeader riêng). */
+  hideCardHeader?: boolean;
 }
 
 export const ProductionLotBoard = ({
@@ -28,13 +34,33 @@ export const ProductionLotBoard = ({
   canApprove: propCanApprove,
   canRecordFarmLog: propCanRecordFarmLog,
   onRecordProcurement,
+  hideCardHeader = false,
 }: ProductionLotBoardProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [internalLots, setInternalLots] = useState<ProductionLot[]>([]);
   const [internalLoading, setInternalLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Nếu có prop lots thì dùng, ngược lại tự gọi API
+  // Nếu có prop lots thì dùng (chế độ controlled), ngược lại tự gọi API
+  const refresh = useCallback(
+    async (showTableLoading = false) => {
+      if (propLots !== undefined) return;
+      if (showTableLoading) setInternalLoading(true);
+      setIsRefreshing(true);
+      try {
+        const data = await getProductionLots();
+        setInternalLots(data);
+      } catch {
+        toast.error('Không thể tải danh sách lô sản xuất');
+      } finally {
+        setIsRefreshing(false);
+        setInternalLoading(false);
+      }
+    },
+    [propLots],
+  );
+
   useEffect(() => {
     if (propLots !== undefined) {
       setInternalLots(propLots);
@@ -42,20 +68,8 @@ export const ProductionLotBoard = ({
       return;
     }
 
-    const load = async () => {
-      setInternalLoading(true);
-      try {
-        const { getProductionLots } = await import('@/api/productionLotApi');
-        const data = await getProductionLots();
-        setInternalLots(data);
-      } catch {
-        toast.error('Không thể tải danh sách lô sản xuất');
-      } finally {
-        setInternalLoading(false);
-      }
-    };
-    load();
-  }, [propLots, propIsLoading]);
+    void refresh(true);
+  }, [propLots, propIsLoading, refresh]);
 
   const isLoading = propLots !== undefined ? propIsLoading || false : internalLoading;
   const lots = propLots !== undefined ? propLots : internalLots;
@@ -113,6 +127,9 @@ export const ProductionLotBoard = ({
         navigate(`/farm-logs/create?productionLotId=${encodeURIComponent(id)}`)
       }
       onRecordProcurement={onRecordProcurement}
+      hideCardHeader={hideCardHeader}
+      onRefresh={propLots !== undefined ? undefined : () => void refresh()}
+      isRefreshing={isRefreshing}
     />
   );
 };

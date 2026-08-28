@@ -90,7 +90,7 @@ export const StandardList: React.FC = () => {
             <TableHead>Mô tả</TableHead>
             <TableHead>Trạng thái</TableHead>
             <TableHead>Ngày tạo</TableHead>
-            {canManage && <TableHead className="text-right">Thao tác</TableHead>}
+            {canManage && <TableHead className="text-center">Thao tác</TableHead>}
         </>
     );
 
@@ -111,7 +111,7 @@ export const StandardList: React.FC = () => {
             </TableCell>
             <TableCell>{new Date(std.createdAt).toLocaleDateString("vi-VN")}</TableCell>
             {canManage && (
-                <TableCell className="text-right">
+                <TableCell className="text-center">
                     <Button
                         variant="ghost"
                         size="icon-sm"

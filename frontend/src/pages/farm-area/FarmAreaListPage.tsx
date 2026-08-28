@@ -115,7 +115,7 @@ export default function FarmAreaListPage() {
                     <TableHead className="font-semibold text-slate-700">Vị trí (tọa độ)</TableHead>
                     <TableHead className="font-semibold text-slate-700">Trạng thái</TableHead>
                     <TableHead className="font-semibold text-slate-700">Ngày tạo</TableHead>
-                    <TableHead className="font-semibold text-slate-700 text-right">Thao tác</TableHead>
+                    <TableHead className="font-semibold text-slate-700 text-center">Thao tác</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -163,8 +163,8 @@ export default function FarmAreaListPage() {
                       <TableCell className="text-muted-foreground">
                         {new Date(area.createdAt).toLocaleDateString('vi-VN')}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1.5">
                           <Button
                             variant="ghost"
                             size="sm"

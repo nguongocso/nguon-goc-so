@@ -1,28 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { PlusCircle, RefreshCw, Search } from 'lucide-react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Award, PlusCircle } from 'lucide-react';
+import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
+import { Pagination } from '@/components/common/Pagination';
+import { ListPageHeader } from '@/components/common/ListPageHeader';
+import { ListCard } from '@/components/common/ListCard';
+import { ListToolbar } from '@/components/common/ListToolbar';
+import { SearchInput } from '@/components/common/SearchInput';
+import { FilterSelect } from '@/components/common/FilterSelect';
+import { RefreshButton } from '@/components/common/RefreshButton';
+import { DataTableShell } from '@/components/common/DataTableShell';
 import { getCertifications } from '@/api/certificationApi';
 import type { CertificationResponse } from '@/types/certification';
 import type { PageResponse } from '@/types/common';
@@ -36,17 +25,12 @@ type SortField = 'name' | 'issueDate' | 'expiryDate' | 'status';
 const PAGE_SIZE = 10;
 const SEARCH_DEBOUNCE_MS = 400;
 
-// Mapping nhãn trạng thái
-const STATUS_LABELS: Record<string, string> = {
-  all: 'Tất cả trạng thái',
-  valid: 'Còn hiệu lực',
-  expiring: 'Sắp hết hạn',
-  expired: 'Hết hạn',
-};
-
-const getStatusLabel = (value: string): string => {
-  return STATUS_LABELS[value] || value;
-};
+const STATUS_FILTER_OPTIONS = [
+  { value: 'all', label: 'Tất cả trạng thái' },
+  { value: 'valid', label: 'Còn hiệu lực' },
+  { value: 'expiring', label: 'Sắp hết hạn' },
+  { value: 'expired', label: 'Hết hạn' },
+];
 
 const CertificationListPage = () => {
   const navigate = useNavigate();
@@ -123,180 +107,134 @@ const CertificationListPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#111827]">Quản lý chứng nhận</h1>
-          <p className="text-sm text-[#6B7280]">
-            Danh sách các chứng nhận của tổ chức bạn
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <HelpButton screenKey="certification-list" />
-          <Button variant="outline" size="sm" onClick={fetchCertifications} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-            Làm mới
-          </Button>
-          {canCreate && (
-            <Button variant="create" onClick={() => navigate('/certifications/create')}>
-              <PlusCircle className="h-4 w-4 mr-1" />
-              Tạo chứng nhận
-            </Button>
-          )}
-        </div>
-      </div>
+      {/* Header trang */}
+      <ListPageHeader
+        icon={Award}
+        title="Quản lý chứng nhận"
+        description="Danh sách các chứng nhận của tổ chức bạn"
+        actions={
+          <>
+            <HelpButton screenKey="certification-list" />
+            {canCreate && (
+              <Button variant="create" onClick={() => navigate('/certifications/create')}>
+                <PlusCircle className="h-4 w-4 mr-1" />
+                Tạo chứng nhận
+              </Button>
+            )}
+          </>
+        }
+      />
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9CA3AF]" />
-              <Input
+      {/* Card chính: toolbar + bảng + phân trang */}
+      <ListCard>
+        <ListToolbar
+          left={
+            <>
+              <SearchInput
                 placeholder="Tìm theo tên, mã hoặc cơ quan cấp..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-10"
               />
-            </div>
-            <Select
-              value={statusFilter}
-              onValueChange={(v) => {
-                setStatusFilter(v ?? 'all');
-                setPage(0);
-              }}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Trạng thái">
-                  {getStatusLabel(statusFilter)}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                <SelectItem value="valid">Còn hiệu lực</SelectItem>
-                <SelectItem value="expiring">Sắp hết hạn</SelectItem>
-                <SelectItem value="expired">Hết hạn</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="text-center py-12 text-[#6B7280]">Đang tải dữ liệu...</div>
-          ) : items.length === 0 ? (
-            <div className="text-center py-12 text-[#6B7280]">
-              {query || statusFilter !== 'all'
-                ? 'Không tìm thấy chứng nhận nào phù hợp với bộ lọc.'
-                : 'Chưa có chứng nhận nào. Nhấn "Tạo chứng nhận" để thêm mới.'}
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead
-                        className="cursor-pointer select-none"
-                        onClick={() => toggleSortDir('name')}
-                      >
-                        Tên chứng nhận{sortIndicator('name')}
-                      </TableHead>
-                      <TableHead>Mã</TableHead>
-                      <TableHead>Cơ quan cấp</TableHead>
-                      <TableHead
-                        className="cursor-pointer select-none"
-                        onClick={() => toggleSortDir('issueDate')}
-                      >
-                        Ngày cấp{sortIndicator('issueDate')}
-                      </TableHead>
-                      <TableHead
-                        className="cursor-pointer select-none"
-                        onClick={() => toggleSortDir('expiryDate')}
-                      >
-                        Ngày hết hạn{sortIndicator('expiryDate')}
-                      </TableHead>
-                      <TableHead
-                        className="cursor-pointer select-none"
-                        onClick={() => toggleSortDir('status')}
-                      >
-                        Trạng thái{sortIndicator('status')}
-                      </TableHead>
-                      <TableHead className="text-right">Thao tác</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((cert) => (
-                      <TableRow key={cert.id}>
-                        <TableCell className="font-medium">{cert.name}</TableCell>
-                        <TableCell className="font-mono text-sm">{cert.code}</TableCell>
-                        <TableCell>{cert.issuedBy || '—'}</TableCell>
-                        <TableCell>{formatDate(cert.issueDate)}</TableCell>
-                        <TableCell>{formatDate(cert.expiryDate)}</TableCell>
-                        <TableCell>
-                          <CertificationStatusBadge
-                            isValid={cert.isValid}
-                            expiryDate={cert.expiryDate}
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="view"
-                            size="sm"
-                            onClick={() => setSelectedCertId(cert.id)}
-                          >
-                            Xem
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Pagination */}
-              <div className="flex items-center justify-between px-6 py-4 border-t border-[#E5E7EB]">
-                <div className="text-sm text-[#6B7280]">
-                  Hiển thị {items.length > 0 ? page * PAGE_SIZE + 1 : 0}–
-                  {Math.min((page + 1) * PAGE_SIZE, totalElements)} trong
-                  tổng số {totalElements} chứng nhận
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page === 0}
-                    onClick={() => setPage((p) => p - 1)}
-                  >
-                    Trước
-                  </Button>
-                  {Array.from({ length: totalPages }, (_, i) => (
-                    <Button
-                      key={i}
-                      variant={i === page ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setPage(i)}
-                    >
-                      {i + 1}
-                    </Button>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page >= totalPages - 1}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    Sau
-                  </Button>
-                </div>
-              </div>
+              <FilterSelect
+                value={statusFilter}
+                onValueChange={(v) => {
+                  setStatusFilter(v ?? 'all');
+                  setPage(0);
+                }}
+                options={STATUS_FILTER_OPTIONS}
+              />
             </>
-          )}
-        </CardContent>
-      </Card>
+          }
+          right={<RefreshButton onClick={fetchCertifications} loading={loading} />}
+        />
+
+        {/* Bảng */}
+        <DataTableShell
+          header={
+            <>
+              <TableHead className="w-12 text-center">STT</TableHead>
+              <TableHead
+                className="cursor-pointer select-none"
+                onClick={() => toggleSortDir('name')}
+              >
+                Tên chứng nhận{sortIndicator('name')}
+              </TableHead>
+              <TableHead>Mã</TableHead>
+              <TableHead>Cơ quan cấp</TableHead>
+              <TableHead
+                className="cursor-pointer select-none"
+                onClick={() => toggleSortDir('issueDate')}
+              >
+                Ngày cấp{sortIndicator('issueDate')}
+              </TableHead>
+              <TableHead
+                className="cursor-pointer select-none"
+                onClick={() => toggleSortDir('expiryDate')}
+              >
+                Ngày hết hạn{sortIndicator('expiryDate')}
+              </TableHead>
+              <TableHead
+                className="cursor-pointer select-none"
+                onClick={() => toggleSortDir('status')}
+              >
+                Trạng thái{sortIndicator('status')}
+              </TableHead>
+              <TableHead className="text-center">Thao tác</TableHead>
+            </>
+          }
+          body={items.map((cert, index) => (
+            <TableRow key={cert.id} className="hover:bg-muted/40 transition-colors">
+              <TableCell className="text-center font-medium text-muted-foreground">
+                {page * PAGE_SIZE + index + 1}
+              </TableCell>
+              <TableCell className="max-w-[280px] truncate font-medium" title={cert.name}>
+                {cert.name}
+              </TableCell>
+              <TableCell className="whitespace-nowrap font-mono text-sm">{cert.code}</TableCell>
+              <TableCell className="max-w-[220px] truncate" title={cert.issuedBy || undefined}>
+                {cert.issuedBy || '—'}
+              </TableCell>
+              <TableCell className="whitespace-nowrap">{formatDate(cert.issueDate)}</TableCell>
+              <TableCell className="whitespace-nowrap">{formatDate(cert.expiryDate)}</TableCell>
+              <TableCell>
+                <CertificationStatusBadge
+                  isValid={cert.isValid}
+                  expiryDate={cert.expiryDate}
+                />
+              </TableCell>
+              <TableCell className="text-center">
+                <Button
+                  variant="view"
+                  size="sm"
+                  onClick={() => setSelectedCertId(cert.id)}
+                >
+                  Xem
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+          loading={loading}
+          empty={!loading && items.length === 0}
+          colSpan={8}
+          loadingMessage="Đang tải dữ liệu..."
+          emptyMessage={
+            query || statusFilter !== 'all'
+              ? 'Không tìm thấy chứng nhận nào phù hợp với bộ lọc.'
+              : 'Chưa có chứng nhận nào. Nhấn "Tạo chứng nhận" để thêm mới.'
+          }
+        />
+
+        {/* Phân trang */}
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalElements={totalElements}
+          pageSize={PAGE_SIZE}
+          loading={loading}
+          itemLabel="chứng nhận"
+          onPageChange={setPage}
+        />
+      </ListCard>
 
       {/* Detail Dialog */}
       <CertificationDetailDialog

@@ -112,7 +112,7 @@ export function OrganizationListPage() {
             <TableHead>Loại</TableHead>
             <TableHead>Trạng thái</TableHead>
             <TableHead>Ngày tạo</TableHead>
-            <TableHead className="text-right">Thao tác</TableHead>
+            <TableHead className="text-center">Thao tác</TableHead>
         </>
     );
 
@@ -126,7 +126,7 @@ export function OrganizationListPage() {
             <TableCell>{getTypeLabel(org.type)}</TableCell>
             <TableCell>{getStatusBadge(org.status)}</TableCell>
             <TableCell>{new Date(org.createdAt).toLocaleDateString('vi-VN')}</TableCell>
-            <TableCell className="text-right">
+            <TableCell className="text-center">
                 <Button
                     variant="outline"
                     size="sm"
