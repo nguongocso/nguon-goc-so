@@ -19,6 +19,9 @@ import vn.nguongocso.farm.dto.response.FarmLogResponse;
 import vn.nguongocso.farm.service.FarmLogService;
 import vn.nguongocso.permission.service.PermissionChecker;
 
+import vn.nguongocso.farm.dto.response.HarvestEligibilityResponse;
+import vn.nguongocso.farm.service.HarvestEligibilityService;
+
 /**
  * Controller quản lý nhật ký canh tác.
  */
@@ -28,6 +31,7 @@ import vn.nguongocso.permission.service.PermissionChecker;
 public class FarmLogController {
 
     private final FarmLogService farmLogService;
+    private final HarvestEligibilityService harvestEligibilityService;
     private final PermissionChecker permissionChecker;
 
     /**
@@ -65,5 +69,18 @@ public class FarmLogController {
                         productionLotId,
                         page,
                         size));
+    }
+
+    /**
+     * Kiểm tra và tính toán thời gian cách ly đủ điều kiện thu hoạch của lô sản xuất (NCL-681 / NCL-843).
+     *
+     * @param productionLotId mã lô sản xuất
+     * @return kết quả đánh giá điều kiện thu hoạch
+     */
+    @GetMapping("/harvest-eligibility")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
+    public ApiResult<HarvestEligibilityResponse> getHarvestEligibility(
+            @RequestParam UUID productionLotId) {
+        return ApiResult.success(harvestEligibilityService.calculateHarvestEligibility(productionLotId));
     }
 }

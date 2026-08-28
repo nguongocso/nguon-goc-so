@@ -67,4 +67,14 @@ public interface InputMaterialRepository extends JpaRepository<InputMaterial, UU
 	 */
 	@Query("SELECT im FROM InputMaterial im LEFT JOIN FETCH im.applicableCropTypes WHERE im.id = :id")
 	Optional<InputMaterial> findByIdWithCropTypes(@Param("id") UUID id);
+
+	/**
+	 * Tìm danh sách vật tư theo tên (không phân biệt hoa thường và khoảng trắng).
+	 */
+	@Query("""
+			SELECT im FROM InputMaterial im
+			WHERE LOWER(TRIM(im.name)) = LOWER(TRIM(:name))
+			ORDER BY im.isActive DESC, im.quarantineDays DESC
+			""")
+	java.util.List<InputMaterial> findByNameNormalized(@Param("name") String name);
 }
