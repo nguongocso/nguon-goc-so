@@ -17,7 +17,6 @@ import { getShipmentById } from '@/api/shipmentApi';
 import type { Shipment, LabelCancellationHistoryItem } from '@/types/shipment';
 import {
   Ban,
-  Calendar,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -25,7 +24,6 @@ import {
   Loader2,
   RefreshCw,
   Search,
-  UserCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
@@ -275,7 +273,7 @@ export default function LabelCancellationHistoryPage() {
       </div>
 
       {/* Main Table Card */}
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
         <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <CardTitle className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -321,7 +319,7 @@ export default function LabelCancellationHistoryPage() {
           </div>
         </CardHeader>
 
-        <CardContent className="p-0">
+        <CardContent className="p-4 sm:p-5">
           {filteredHistory.length === 0 ? (
             <div className="flex min-h-[300px] flex-col items-center justify-center p-8 text-center">
               <div className="flex size-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
@@ -351,7 +349,7 @@ export default function LabelCancellationHistoryPage() {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50/80 hover:bg-slate-50/80">
@@ -374,17 +372,11 @@ export default function LabelCancellationHistoryPage() {
                         </TableCell>
 
                         <TableCell className="text-xs font-medium text-slate-800 whitespace-nowrap">
-                          <div className="flex items-center gap-1.5">
-                            <Calendar className="size-3.5 text-slate-400" />
-                            {formatDate(item.cancelledAt)}
-                          </div>
+                          {formatDate(item.cancelledAt)}
                         </TableCell>
 
-                        <TableCell className="text-xs text-slate-700">
-                          <div className="flex items-center gap-1.5">
-                            <UserCheck className="size-3.5 text-emerald-600" />
-                            <span className="font-semibold">{item.cancelledByName || 'Tài khoản hệ thống'}</span>
-                          </div>
+                        <TableCell className="text-xs font-semibold text-slate-700">
+                          {item.cancelledByName || 'Tài khoản hệ thống'}
                         </TableCell>
 
                         <TableCell className="text-center">
@@ -441,7 +433,7 @@ export default function LabelCancellationHistoryPage() {
 
           {/* Pagination Footer */}
           {filteredHistory.length > 0 && (
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-slate-100 px-5 py-3.5 text-xs text-slate-600">
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-xs text-slate-600">
               <div>
                 Hiển thị <span className="font-semibold text-slate-900">{(currentPage - 1) * PAGE_SIZE + 1}</span> -{' '}
                 <span className="font-semibold text-slate-900">
