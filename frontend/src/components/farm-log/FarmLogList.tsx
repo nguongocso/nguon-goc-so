@@ -47,6 +47,7 @@ import {
   getActivityLabel,
   getLatestEffective,
   isFieldChanged,
+  type FarmLogGroup,
 } from "@/utils/farmLogCorrection";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -69,6 +70,120 @@ interface FarmLogListProps {
 const ACTIVITY_TYPE_OPTIONS = Object.entries(ACTIVITY_TYPE_LABELS).map(
   ([value, label]) => ({ value, label }),
 );
+
+function renderGroupComparison(
+  group: FarmLogGroup,
+  effective: FarmLog,
+  loadLogs: () => void,
+) {
+  const original = group.original;
+  const origActivity = getActivityLabel(original.activityType);
+  const effActivity = getActivityLabel(effective.activityType);
+  const activityChanged = original.activityType !== effective.activityType;
+
+  const origDate = original.executedDate;
+  const effDate = effective.executedDate;
+  const dateChanged = original.executedDate !== effective.executedDate;
+
+  const origMat = original.material || "Không có";
+  const effMat = effective.material || "Không có";
+  const matChanged = (original.material ?? "") !== (effective.material ?? "");
+
+  const origQtyUnit =
+    original.quantity != null
+      ? `${original.quantity} ${original.unit ?? ""}`.trim()
+      : "Không có";
+  const effQtyUnit =
+    effective.quantity != null
+      ? `${effective.quantity} ${effective.unit ?? ""}`.trim()
+      : "Không có";
+  const qtyUnitChanged =
+    original.quantity !== effective.quantity ||
+    original.unit !== effective.unit;
+
+  const origNotes = original.notes || "Không có";
+  const effNotes = effective.notes || "Không có";
+  const notesChanged = (original.notes ?? "") !== (effective.notes ?? "");
+
+  const rows = [
+    { label: "Loại hoạt động", orig: origActivity, eff: effActivity, changed: activityChanged },
+    { label: "Ngày thực hiện", orig: origDate, eff: effDate, changed: dateChanged },
+    { label: "Vật tư", orig: origMat, eff: effMat, changed: matChanged },
+    { label: "Số lượng & Đơn vị", orig: origQtyUnit, eff: effQtyUnit, changed: qtyUnitChanged },
+    { label: "Ghi chú", orig: origNotes, eff: effNotes, changed: notesChanged },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-amber-200 bg-card overflow-hidden shadow-xs">
+        <div className="bg-amber-50/80 px-4 py-2.5 border-b border-amber-200 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4 text-amber-700" />
+            <span className="text-xs font-semibold uppercase tracking-wide text-amber-900">
+              So sánh chi tiết đính chính (Chuẩn GAP)
+            </span>
+          </div>
+          <Badge variant="outline" className="border-amber-300 bg-amber-100/70 text-amber-800 text-xs font-medium">
+            {group.corrections.length} lần đính chính
+          </Badge>
+        </div>
+
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-muted/40">
+              <TableRow className="text-xs">
+                <TableHead className="w-1/4 font-semibold text-foreground">Trường thông tin</TableHead>
+                <TableHead className="w-3/8 font-semibold text-destructive">❌ Giá trị gốc (chưa đính chính)</TableHead>
+                <TableHead className="w-3/8 font-semibold text-emerald-700">✅ Giá trị hiệu lực (hiện tại)</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="text-xs divide-y">
+              {rows.map((r) => (
+                <TableRow key={r.label} className={cn(r.changed && "bg-amber-50/40")}>
+                  <TableCell className="font-medium text-foreground/80">{r.label}</TableCell>
+                  <TableCell>
+                    <span className={cn(r.changed && "line-through decoration-red-400 text-muted-foreground font-medium")}>
+                      {r.orig}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className={cn(r.changed ? "font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md inline-block" : "text-foreground")}>
+                      {r.eff}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+          <FileText className="h-3.5 w-3.5" /> Lịch sử lý do đính chính
+        </p>
+        {group.corrections.map((c: FarmLog) => (
+          <div key={c.id} className="rounded-md border border-amber-200 bg-amber-50/60 p-3 text-xs space-y-1.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-medium text-amber-950">
+                <strong className="text-amber-900">Lý do đính chính:</strong> {c.correctionReason || "Không có lý do"}
+              </span>
+              <span className="text-amber-800/80">{c.createdAt ? formatDateTime(c.createdAt) : "—"}</span>
+            </div>
+            <div className="flex flex-wrap items-center justify-between text-muted-foreground gap-2 pt-1 border-t border-amber-200/60 text-[11px]">
+              <span>👤 Người thực hiện: <strong className="text-foreground">{c.correctedByName || "Hệ thống"}</strong></span>
+              <span>Mã bản ghi đính chính: <code className="bg-amber-100/80 px-1 py-0.5 rounded font-mono text-[10px] text-amber-900">{c.id.slice(0, 8)}</code></span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <DetailSection title="Chứng từ kèm theo" contentClassName="bg-card">
+        <AttachmentManager logId={effective.id} onUpdate={loadLogs} />
+      </DetailSection>
+    </div>
+  );
+}
 
 export function FarmLogList({
   productionLotId,
@@ -562,25 +677,26 @@ export function FarmLogList({
                               className="p-4"
                               id={`farm-log-detail-${group.original.id}`}
                             >
-                              <div className="space-y-4">
-                                {effective.notes && (
-                                  <DetailSection title="Ghi chú">
-                                    <p className="whitespace-pre-wrap text-sm">
-                                      {effective.notes}
-                                    </p>
-                                  </DetailSection>
-                                )}
+                              {hasCorrections ? (
+                                renderGroupComparison(group, effective, loadLogs)
+                              ) : (
+                                <div className="space-y-4">
+                                  {effective.notes && (
+                                    <DetailSection title="Ghi chú">
+                                      <p className="whitespace-pre-wrap text-sm text-foreground/90">
+                                        {effective.notes}
+                                      </p>
+                                    </DetailSection>
+                                  )}
 
-                                <DetailSection
-                                  title="Chứng từ"
-                                  contentClassName="bg-card"
-                                >
-                                  <AttachmentManager
-                                    logId={effective.id}
-                                    onUpdate={loadLogs}
-                                  />
-                                </DetailSection>
-                              </div>
+                                  <DetailSection title="Chứng từ" contentClassName="bg-card">
+                                    <AttachmentManager
+                                      logId={effective.id}
+                                      onUpdate={loadLogs}
+                                    />
+                                  </DetailSection>
+                                </div>
+                              )}
                             </TableCell>
                           </TableRow>
                         )}
