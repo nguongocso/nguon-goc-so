@@ -5,6 +5,7 @@ export interface HarvestEventPayload {
   latitude?: number;
   longitude?: number;
   images?: string[];
+  earlyHarvestReason?: string;
 }
 
 export interface HarvestEventResponse {

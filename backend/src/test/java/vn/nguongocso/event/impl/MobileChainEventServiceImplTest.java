@@ -60,6 +60,9 @@ class MobileChainEventServiceImplTest {
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
 
+    @Mock
+    private vn.nguongocso.farm.service.HarvestEligibilityService harvestEligibilityService;
+
     @InjectMocks
     private ChainEventServiceImpl chainEventService;
 
@@ -113,6 +116,11 @@ class MobileChainEventServiceImplTest {
 
         when(productionLotRepository.findById(request.getProductionLotId())).thenReturn(Optional.of(productionLot));
         when(userRepository.findById(userId)).thenReturn(Optional.of(actor));
+        when(harvestEligibilityService.calculateHarvestEligibility(productionLot.getId())).thenReturn(
+                vn.nguongocso.farm.dto.response.HarvestEligibilityResponse.builder()
+                        .determined(true)
+                        .eligibleHarvestDate(null)
+                        .build());
 
         ChainEvent mockSavedEvent = ChainEvent.builder()
                 .id(UUID.randomUUID())

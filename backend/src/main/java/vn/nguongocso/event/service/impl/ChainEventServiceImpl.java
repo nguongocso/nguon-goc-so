@@ -44,6 +44,9 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
+import vn.nguongocso.farm.dto.response.HarvestEligibilityResponse;
+import vn.nguongocso.farm.service.HarvestEligibilityService;
+
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -68,6 +71,7 @@ public class ChainEventServiceImpl implements ChainEventService {
     private final PermissionChecker permissionChecker;
     private final OrganizationUserRepository organizationUserRepository;
     private final EventHashService eventHashService;
+    private final HarvestEligibilityService harvestEligibilityService;
     private final Clock clock;
 
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
@@ -99,6 +103,34 @@ public class ChainEventServiceImpl implements ChainEventService {
             throw e;
         }
 
+        // Kiểm tra thời gian cách ly thu hoạch (NCL-681 / QTN-25)
+        HarvestEligibilityResponse eligibility = harvestEligibilityService.calculateHarvestEligibility(lot.getId());
+
+        boolean isEarlyHarvest = false;
+        String earlyHarvestReason = null;
+
+        if (eligibility.isDetermined() && eligibility.getEligibleHarvestDate() != null
+                && request.getHarvestDate().isBefore(eligibility.getEligibleHarvestDate())) {
+            String roleCode = currentUser.getRoleCode();
+            if ("VT-03".equals(roleCode)) {
+                throw new BusinessException(
+                        "Lô sản xuất chưa hết thời gian cách ly (ngày đủ điều kiện: "
+                                + eligibility.getEligibleHarvestDate()
+                                + "). Người ghi sự kiện không có quyền ghi đè thu hoạch sớm.");
+            }
+
+            if ("VT-02".equals(roleCode) || "VT-01".equals(roleCode)) {
+                if (request.getEarlyHarvestReason() == null || request.getEarlyHarvestReason().trim().isEmpty()) {
+                    throw new BusinessException(
+                            "Thu hoạch trước ngày đủ điều kiện cách ly ("
+                                    + eligibility.getEligibleHarvestDate()
+                                    + "). Quản lý cần nhập lý do ghi đè bắt buộc.");
+                }
+                isEarlyHarvest = true;
+                earlyHarvestReason = request.getEarlyHarvestReason().trim();
+            }
+        }
+
         // Cập nhật trạng thái lô
         lot.setStatus(ProductionLotStatus.HARVESTED);
         lot.setHarvestDate(request.getHarvestDate());
@@ -119,6 +151,16 @@ public class ChainEventServiceImpl implements ChainEventService {
         }
         eventDataMap.put("deviceSource", request.getDeviceSource() != null ? request.getDeviceSource() : "WEB");
 
+        if (isEarlyHarvest) {
+            eventDataMap.put("earlyHarvest", true);
+            eventDataMap.put("earlyHarvestReason", earlyHarvestReason);
+            eventDataMap.put("eligibleHarvestDate", eligibility.getEligibleHarvestDate().toString());
+        }
+        if (!eligibility.isDetermined() && eligibility.getUnmatchedMaterials() != null
+                && !eligibility.getUnmatchedMaterials().isEmpty()) {
+            eventDataMap.put("unmatchedMaterials", eligibility.getUnmatchedMaterials());
+        }
+
         String eventDataJson = toJson(eventDataMap);
 
         User actor = getActor(currentUser);
@@ -134,7 +176,11 @@ public class ChainEventServiceImpl implements ChainEventService {
 
         chainEvent = chainEventRepository.save(chainEvent);
 
-        publishActivityLog(currentUser, "Ghi sự kiện thu hoạch cho lô " + lot.getName(),
+        String activityDesc = isEarlyHarvest
+                ? "Ghi nhận thu hoạch sớm cho lô " + lot.getName() + " (Đủ điều kiện: " + eligibility.getEligibleHarvestDate() + ") - Lý do: " + earlyHarvestReason
+                : "Ghi sự kiện thu hoạch cho lô " + lot.getName();
+
+        publishActivityLog(currentUser, activityDesc,
                 "ChainEvent", chainEvent.getId().toString());
 
         return buildResponse(chainEvent, eventDataMap, request.getLatitude(), request.getLongitude(), actor);
