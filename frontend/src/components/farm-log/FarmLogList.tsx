@@ -191,148 +191,145 @@ export function FarmLogList({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Lịch sử nhật ký canh tác</h1>
-          {productionLotName && (
-            <p className="text-sm text-muted-foreground">
-              Lô sản xuất:{" "}
-              <span className="font-medium">{productionLotName}</span>
-            </p>
-          )}
-        </div>
-        <div className="flex gap-2">
-          {canCreate && (
-            <Button variant="create" onClick={goToCreateLog}>
-              <Plus className="h-4 w-4 mr-1" />
-              Tạo nhật ký
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Bộ lọc */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                placeholder="Tìm theo vật tư, ghi chú, người ghi..."
-                aria-label="Tìm kiếm nhật ký canh tác"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+    <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+      <CardHeader className="border-b border-slate-100">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
+              <ClipboardList className="h-5 w-5 text-emerald-700" />
             </div>
-
-            <Select
-              value={activityFilter}
-              onValueChange={(value: string | null) => {
-                if (value) setActivityFilter(value);
-              }}
-            >
-              <SelectTrigger aria-label="Lọc theo loại hoạt động">
-                <SelectValue placeholder="Loại hoạt động">
-                  {activityFilter === "ALL"
-                    ? "Tất cả loại"
-                    : getActivityLabel(activityFilter)}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">Tất cả loại</SelectItem>
-                {ACTIVITY_TYPE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div className="flex items-center gap-2">
-              <Input
-                type="date"
-                placeholder="Từ ngày"
-                aria-label="Từ ngày"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full"
-              />
-              <span className="text-muted-foreground">→</span>
-              <Input
-                type="date"
-                placeholder="Đến ngày"
-                aria-label="Đến ngày"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-full"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant={sortOrder === "desc" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSortOrder("desc")}
-                className="flex-1"
-              >
-                Mới nhất
-              </Button>
-              <Button
-                variant={sortOrder === "asc" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSortOrder("asc")}
-                className="flex-1"
-              >
-                Cũ nhất
-              </Button>
+            <div>
+              <CardTitle className="text-xl font-bold text-slate-900">
+                Lịch sử nhật ký canh tác
+              </CardTitle>
+              {productionLotName ? (
+                <p className="text-sm text-muted-foreground">
+                  Lô sản xuất: <span className="font-medium text-slate-800">{productionLotName}</span>
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Tổng số: <span className="font-medium text-slate-800">{filteredLogs.length}</span> bản ghi
+                </p>
+              )}
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex gap-2">
+            {canCreate && (
+              <Button type="button" variant="create" onClick={goToCreateLog}>
+                <Plus className="mr-1.5 h-4 w-4" />
+                Thêm nhật ký
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-4 space-y-4">
+        {/* Bộ lọc */}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="Tìm theo vật tư, ghi chú, người ghi..."
+              aria-label="Tìm kiếm nhật ký canh tác"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
 
-      {/* Bảng danh sách */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Danh sách nhật ký</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Tổng số: {filteredLogs.length} bản ghi
-          </p>
-        </CardHeader>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : filteredLogs.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
-              <p className="mt-2 font-medium">Chưa có nhật ký canh tác</p>
-              <p className="text-sm">
-                Hãy kiểm tra lại lô sản xuất hoặc bộ lọc.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-25">Ngày</TableHead>
-                    <TableHead className="w-30">Người ghi</TableHead>
-                    <TableHead className="w-35">Hoạt động</TableHead>
-                    <TableHead className="w-30">Trạng thái</TableHead>
-                    <TableHead>Vật tư & Số lượng</TableHead>
-                    <TableHead>Ghi chú</TableHead>
-                    <TableHead className="w-30 text-center">Chứng từ</TableHead>
-                    {enableCorrection && (
-                      <TableHead className="w-30 text-center">
-                        Hành động
-                      </TableHead>
-                    )}
-                  </TableRow>
-                </TableHeader>
+          <Select
+            value={activityFilter}
+            onValueChange={(value: string | null) => {
+              if (value) setActivityFilter(value);
+            }}
+          >
+            <SelectTrigger aria-label="Lọc theo loại hoạt động">
+              <SelectValue placeholder="Loại hoạt động">
+                {activityFilter === "ALL"
+                  ? "Tất cả loại"
+                  : getActivityLabel(activityFilter)}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Tất cả loại</SelectItem>
+              {ACTIVITY_TYPE_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center gap-2">
+            <Input
+              type="date"
+              placeholder="Từ ngày"
+              aria-label="Từ ngày"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="w-full"
+            />
+            <span className="text-muted-foreground">→</span>
+            <Input
+              type="date"
+              placeholder="Đến ngày"
+              aria-label="Đến ngày"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant={sortOrder === "desc" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSortOrder("desc")}
+              className="flex-1"
+            >
+              Mới nhất
+            </Button>
+            <Button
+              variant={sortOrder === "asc" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSortOrder("asc")}
+              className="flex-1"
+            >
+              Cũ nhất
+            </Button>
+          </div>
+        </div>
+
+        {/* Bảng danh sách */}
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : filteredLogs.length === 0 ? (
+          <div className="grid place-items-center px-4 py-16 text-center">
+            <FileText className="mb-3 size-10 text-slate-300" />
+            <p className="font-semibold text-slate-900">Chưa có nhật ký canh tác</p>
+            <p className="mt-1 text-sm text-muted-foreground">Hãy kiểm tra lại lô sản xuất hoặc bộ lọc.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-slate-200">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50/80">
+                  <TableHead className="font-semibold text-slate-700 w-25">Ngày</TableHead>
+                  <TableHead className="font-semibold text-slate-700 w-30">Người ghi</TableHead>
+                  <TableHead className="font-semibold text-slate-700 w-35">Hoạt động</TableHead>
+                  <TableHead className="font-semibold text-slate-700 w-30">Trạng thái</TableHead>
+                  <TableHead className="font-semibold text-slate-700">Vật tư & Số lượng</TableHead>
+                  <TableHead className="font-semibold text-slate-700">Ghi chú</TableHead>
+                  <TableHead className="font-semibold text-slate-700 w-30 text-center">Chứng từ</TableHead>
+                  {enableCorrection && (
+                    <TableHead className="font-semibold text-slate-700 w-30 text-center">
+                      Hành động
+                    </TableHead>
+                  )}
+                </TableRow>
+              </TableHeader>
                 <TableBody>
                   {groups.map((group) => {
                     const effective = getLatestEffective(group);
@@ -350,7 +347,7 @@ export function FarmLogList({
                             : null;
 
                     return (
-                        <TableRow key={group.original.id} className="transition-colors hover:bg-muted/50">
+                        <TableRow key={group.original.id} className="hover:bg-slate-50/60 transition-colors">
                           <TableCell
                             title={
                               effective.createdAt
@@ -505,6 +502,5 @@ export function FarmLogList({
           )}
         </CardContent>
       </Card>
-    </div>
   );
 }

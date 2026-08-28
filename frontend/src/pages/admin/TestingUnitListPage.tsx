@@ -4,10 +4,11 @@ import { toast } from "sonner";
 import {
   BadgeCheck,
   CheckSquare,
+  Eye,
+  EyeOff,
   Loader2,
   Pencil,
   Plus,
-  PowerOff,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -16,12 +17,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -93,15 +89,16 @@ export default function TestingUnitListPage() {
   const [filter, setFilter] = useState<ActiveFilter>("all");
   const [page, setPage] = useState(0);
 
-  const [deactivateTarget, setDeactivateTarget] = useState<TestingUnit | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<TestingUnit | null>(
+    null,
+  );
   const [deactivateSubmitting, setDeactivateSubmitting] = useState(false);
 
   const fetchUnits = async () => {
     setLoading(true);
     try {
       const data = await getTestingUnits({
-        isActive:
-          filter === "all" ? undefined : filter === "active",
+        isActive: filter === "all" ? undefined : filter === "active",
         page: 0,
         size: LIST_SIZE,
       });
@@ -109,7 +106,7 @@ export default function TestingUnitListPage() {
     } catch (error: any) {
       toast.error(
         error.response?.data?.message ||
-          "Không thể tải danh sách đơn vị kiểm nghiệm"
+          "Không thể tải danh sách đơn vị kiểm nghiệm",
       );
     } finally {
       setLoading(false);
@@ -134,15 +131,13 @@ export default function TestingUnitListPage() {
     setDeactivateSubmitting(true);
     try {
       await deactivateTestingUnit(deactivateTarget.id);
-      toast.success(
-        `Đã ngừng hoạt động đơn vị "${deactivateTarget.name}"`
-      );
+      toast.success(`Đã ngừng hoạt động đơn vị "${deactivateTarget.name}"`);
       setDeactivateTarget(null);
       fetchUnits();
     } catch (error: any) {
       toast.error(
         error.response?.data?.message ||
-          "Không thể ngừng hoạt động đơn vị kiểm nghiệm"
+          "Không thể ngừng hoạt động đơn vị kiểm nghiệm",
       );
     } finally {
       setDeactivateSubmitting(false);
@@ -184,8 +179,8 @@ export default function TestingUnitListPage() {
             Đơn vị kiểm nghiệm
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Danh mục dùng chung — thêm, sửa, ngừng hoạt động và quản lý
-            phạm vi công nhận của các phòng thí nghiệm / đơn vị kiểm nghiệm.
+            Danh mục dùng chung — thêm, sửa, ngừng hoạt động và quản lý phạm vi
+            công nhận của các phòng thí nghiệm / đơn vị kiểm nghiệm.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -253,22 +248,26 @@ export default function TestingUnitListPage() {
           </div>
         </CardHeader>
 
-
-        <CardContent className="p-0">
+        <CardContent className="p-4 space-y-4">
           {loading ? (
             <div className="flex items-center justify-center py-16 text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin mr-2 text-emerald-600" />
               Đang tải danh sách đơn vị kiểm nghiệm...
             </div>
           ) : paginated.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-              <p className="text-sm text-muted-foreground">
+            <div className="grid place-items-center px-4 py-16 text-center">
+              <ShieldCheck className="mb-3 size-10 text-slate-300" />
+              <p className="font-semibold text-slate-900">
                 Chưa có đơn vị kiểm nghiệm nào phù hợp.
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Hãy thử thay đổi từ khóa hoặc bộ lọc trạng thái.
               </p>
               {canManage && (
                 <Button
                   variant="outline"
                   size="sm"
+                  className="mt-4"
                   onClick={() => navigate("/admin/testing-units/create")}
                 >
                   <Plus className="h-4 w-4 mr-1" />
@@ -277,123 +276,162 @@ export default function TestingUnitListPage() {
               )}
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="w-12 text-center">STT</TableHead>
-                  <TableHead>Tên đơn vị</TableHead>
-                  <TableHead>Mã công nhận</TableHead>
-                  <TableHead>Thông tin liên hệ</TableHead>
-                  <TableHead>Ngày hết hạn</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead className="text-right">Hành động</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginated.map((unit, index) => {
-                  const expired = isExpired(unit);
-                  return (
-                    <TableRow key={unit.id}>
-                      <TableCell className="text-center font-medium text-muted-foreground">
-                        {startIndex + index + 1}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
-                            <Users className="h-4 w-4" />
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50/80">
+                    <TableHead className="w-12 text-center font-semibold text-slate-700">
+                      STT
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Tên đơn vị
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Mã công nhận
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Thông tin liên hệ
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Ngày hết hạn
+                    </TableHead>
+                    <TableHead className="font-semibold text-slate-700">
+                      Trạng thái
+                    </TableHead>
+                    <TableHead className="text-right font-semibold text-slate-700">
+                      Hành động
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginated.map((unit, index) => {
+                    const expired = isExpired(unit);
+                    return (
+                      <TableRow
+                        key={unit.id}
+                        className="hover:bg-slate-50/60 transition-colors"
+                      >
+                        <TableCell className="text-center font-medium text-muted-foreground">
+                          {startIndex + index + 1}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+                              <Users className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-xs font-semibold text-foreground">
+                                {unit.name}
+                              </p>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-semibold text-foreground">
-                              {unit.name}
-                            </p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center gap-1 font-mono text-xs">
-                          <BadgeCheck className="h-3 w-3 text-emerald-600" />
-                          {unit.accreditationCode}
-                        </span>
-                      </TableCell>
-                      <TableCell className="max-w-[220px]">
-                        <p className="truncate text-xs text-muted-foreground" title={unit.contactInfo ?? undefined}>
-                          {unit.contactInfo || "—"}
-                        </p>
-                      </TableCell>
-                      <TableCell className="text-xs whitespace-nowrap">
-                        {unit.accreditationExpiryDate ? (
-                          <span className={expired ? "text-red-600 font-medium" : ""}>
-                            {unit.accreditationExpiryDate}
-                            {expired && " (đã hết hạn)"}
+                        </TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center gap-1 font-mono text-xs">
+                            <BadgeCheck className="h-3 w-3 text-emerald-600" />
+                            {unit.accreditationCode}
                           </span>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={unit.isActive ? "success" : "secondary"}
-                          className="rounded-full"
-                        >
-                          {unit.isActive ? "Đang hoạt động" : "Ngừng hoạt động"}
-                        </Badge>
-                      </TableCell>
-
-
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              navigate(`/admin/testing-units/${unit.id}/scopes`)
-                            }
-                            className="h-8 rounded-lg text-xs"
+                        </TableCell>
+                        <TableCell className="max-w-[220px]">
+                          <p
+                            className="truncate text-xs text-muted-foreground"
+                            title={unit.contactInfo ?? undefined}
                           >
-                            <CheckSquare className="h-3.5 w-3.5 mr-1 text-emerald-600" />
-                            Phạm vi
-                          </Button>
-                          {canManage && (
-                            <>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  navigate(`/admin/testing-units/${unit.id}/edit`)
-                                }
-                                className="h-8 rounded-lg text-xs"
-                                title="Chỉnh sửa"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setDeactivateTarget(unit)}
-                                disabled={!unit.isActive}
-                                className="h-8 rounded-lg text-xs text-destructive hover:text-destructive hover:bg-muted"
-                                title={
-                                  unit.isActive
-                                    ? "Ngừng hoạt động"
-                                    : "Đơn vị đã ngừng hoạt động"
-                                }
-                              >
-                                <PowerOff className="h-3.5 w-3.5" />
-                              </Button>
-                            </>
+                            {unit.contactInfo || "—"}
+                          </p>
+                        </TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {unit.accreditationExpiryDate ? (
+                            <span
+                              className={
+                                expired ? "text-red-600 font-medium" : ""
+                              }
+                            >
+                              {unit.accreditationExpiryDate}
+                              {expired && " (đã hết hạn)"}
+                            </span>
+                          ) : (
+                            "—"
                           )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={unit.isActive ? "success" : "outline"}
+                            className={`rounded-full ${
+                              unit.isActive
+                                ? ""
+                                : "border-slate-300 bg-slate-50/60 text-slate-400 font-normal"
+                            }`}
+                          >
+                            {unit.isActive
+                              ? "Đang hoạt động"
+                              : "Ngừng hoạt động"}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                navigate(
+                                  `/admin/testing-units/${unit.id}/scopes`,
+                                )
+                              }
+                              className="h-8 rounded-lg text-xs"
+                            >
+                              <CheckSquare className="h-3.5 w-3.5 mr-1 text-emerald-600" />
+                              Phạm vi
+                            </Button>
+                            {canManage && (
+                              <>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    navigate(
+                                      `/admin/testing-units/${unit.id}/edit`,
+                                    )
+                                  }
+                                  className="h-8 rounded-lg text-xs"
+                                  title="Chỉnh sửa"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setDeactivateTarget(unit)}
+                                  disabled={!unit.isActive}
+                                  className="h-8 w-8 p-0 rounded-lg hover:bg-muted"
+                                  title={
+                                    unit.isActive
+                                      ? "Ngừng hoạt động"
+                                      : "Đã ngừng hoạt động"
+                                  }
+                                >
+                                  {unit.isActive ? (
+                                    <EyeOff className="h-4 w-4 text-slate-600" />
+                                  ) : (
+                                    <Eye className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
-          <div className="p-4">
+          <div className="border-t border-slate-200 px-4 py-3">
             <Pagination
               currentPage={currentSafePage}
               totalPages={totalPages}
@@ -407,7 +445,6 @@ export default function TestingUnitListPage() {
         </CardContent>
       </Card>
 
-
       {/* AlertDialog xác nhận ngừng hoạt động */}
       <AlertDialog
         open={!!deactivateTarget}
@@ -415,11 +452,14 @@ export default function TestingUnitListPage() {
       >
         <AlertDialogPopup>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ngừng hoạt động đơn vị kiểm nghiệm</AlertDialogTitle>
+            <AlertDialogTitle>
+              Ngừng hoạt động đơn vị kiểm nghiệm
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Bạn có chắc muốn ngừng hoạt động đơn vị{" "}
               <strong>{deactivateTarget?.name}</strong> không? Đơn vị sẽ không
-              còn xuất hiện trong danh sách lựa chọn khi tạo yêu cầu kiểm nghiệm.
+              còn xuất hiện trong danh sách lựa chọn khi tạo yêu cầu kiểm
+              nghiệm.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -442,4 +482,3 @@ export default function TestingUnitListPage() {
     </div>
   );
 }
-
