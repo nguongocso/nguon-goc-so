@@ -28,7 +28,7 @@ import {
   getRoles,
 } from "@/api/memberApi";
 import type { OrganizationMember, RoleOption } from "@/types/member";
-import { Search, ShieldCheck, UserRoundCog, X, MailPlus, UserMinus } from "lucide-react";
+import { Search, ShieldCheck, UserRoundCog, X, MailPlus} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -457,14 +457,11 @@ export const MemberList = () => {
                                       : "Cấp quyền"}
                                   </Button>
                                   <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() =>
-                                      setDeactivatingMember(member)
-                                    }
-                                    className="h-8 border-red-200 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setDeactivatingMember(member)}
+                                      className="h-8 border-red-200 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
                                   >
-                                    <UserMinus className="size-3.5" />
                                     Vô hiệu hóa
                                   </Button>
                                 </>
