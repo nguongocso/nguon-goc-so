@@ -151,6 +151,7 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
 				.tempMax(category.getTempMax())
 				.humidityMin(category.getHumidityMin())
 				.humidityMax(category.getHumidityMax())
+				.requiresInspection(category.getRequiresInspection())
 				.build();
 	}
 }

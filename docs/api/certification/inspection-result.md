@@ -1,8 +1,8 @@
 # API Docs — Ghi nhận kết quả kiểm nghiệm và hiệu lực
 
-Cập nhật theo code hiện tại  
-Ngày cập nhật: 2026-08-16  
-Nguồn đối chiếu: backend certification module hiện hành  
+Cập nhật theo code hiện tại
+Ngày cập nhật: 2026-08-26
+Nguồn đối chiếu: backend certification module hiện hành
 
 Tài liệu này phản ánh đúng luồng đang được triển khai trong code hiện tại, không dựa trên thiết kế mô tả cũ hoặc quy trình chưa tồn tại trong backend.
 
@@ -12,11 +12,11 @@ Mục tiêu: mô tả cách ghi nhận kết quả kiểm nghiệm cho từng ch
 
 1) Quản lý hợp tác xã (VT-02) tạo yêu cầu kiểm nghiệm cho lô qua endpoint `POST /api/v1/production-lots/{lotId}/test-requests`.
 2) Khi tạo yêu cầu, hệ thống lưu từng chỉ tiêu kiểm nghiệm thành snapshot `InspectionCriterion`; request được tạo với `status = PENDING_RESULT`.
-3) Dựa trên yêu cầu đã tạo, đơn vị kiểm nghiệm thực hiện kiểm nghiệm và trả kết quả cho từng chỉ tiêu riêng lẻ.
-4) Ghi nhận kết quả thực tế được thực hiện qua endpoint `POST /api/v1/inspection-criteria/{criterionId}/results`.
-5) DTO kết quả kiểm nghiệm một chỉ tiêu gồm: `criterionId`, `resultDate`, `expiryDate`, `passed`, `filePath`.
-6) Hệ thống không có endpoint ghi nhận kết quả cho cả request cùng lúc; không có API `PUT /api/v1/inspection-requests/{requestId}/result` trong code hiện tại.
-7) Sau khi có kết quả, service kiểm tra điều kiện: tất cả chỉ tiêu của request phải có `passed = true` và `expiryDate >= ngày hiện tại`; nếu đủ điều kiện, request được cập nhật `status = PASSED`.
+3) Dựa trên yêu cầu đã tạo, đơn vị kiểm nghiệm thực hiện kiểm nghiệm và trả kết quả cho từng chỉ tiêu.
+4) Ghi nhận một chỉ tiêu qua `POST /api/v1/inspection-criteria/{criterionId}/results`; ghi toàn bộ chỉ tiêu qua `PUT /api/v1/inspection-requests/{requestId}/results`.
+5) DTO kết quả một chỉ tiêu gồm: `criterionId`, `resultDate`, `expiryDate`, `passed`, `filePath`.
+6) API batch bắt buộc payload bao phủ toàn bộ chỉ tiêu và validate toàn bộ trước khi lưu theo nguyên tắc all-or-nothing.
+7) Sau khi có kết quả, service kiểm tra điều kiện: tất cả chỉ tiêu phải có `passed = true` và `expiryDate >= ngày hiện tại`; nếu đủ điều kiện, request được cập nhật `status = PASSED`, nếu đủ kết quả nhưng có tiêu chí không đạt/hết hạn thì là `FAILED`.
 8) Dùng endpoint `POST /api/v1/production-lots/{lotId}/can-activate-seal` để kiểm tra lô có đủ điều kiện kích hoạt tem hay không.
 
 ## 2. Trạng thái hiện có trong code
@@ -25,17 +25,17 @@ Enum `InspectionRequestStatus` hiện có trong code: `PENDING_RESULT`, `PASSED`
 
 Không tồn tại enum `RESULTED` trong code hiện hành.
 
-Yêu cầu chỉ được phép ghi nhận kết quả khi `status == PENDING_RESULT`.
+Yêu cầu được phép ghi nhận/cập nhật kết quả khi `status == PENDING_RESULT` hoặc `status == FAILED`.
 
 Nếu tất cả chỉ tiêu đều đạt và còn hiệu lực thì service set status = `PASSED`.
 
-`FAILED` không được set bởi logic ghi nhận kết quả hiện tại; nó chỉ được tính toán/đánh giá qua kiểm tra `can-activate-seal` và các tiêu chí không đạt.
+`FAILED` được set khi request đã có đủ kết quả nhưng có ít nhất một tiêu chí không đạt hoặc hết hiệu lực. Request `FAILED` có thể được ghi/cập nhật lại kết quả.
 
 ## 3. Ràng buộc thực tế trong service
 
 ### 3.1. Chỉ Quản lý HTX (VT-02) được phép gọi các API ghi nhận kết quả và kiểm tra kích hoạt tem.
 
-### 3.2. `inspectionRequest` phải ở trạng thái `PENDING_RESULT` tại thời điểm ghi nhận kết quả.
+### 3.2. `inspectionRequest` phải ở trạng thái `PENDING_RESULT` hoặc `FAILED` tại thời điểm ghi nhận kết quả.
 
 ### 3.3. `resultDate` không được null; `expiryDate` không được null.
 
@@ -53,11 +53,14 @@ Nếu tất cả chỉ tiêu đều đạt và còn hiệu lực thì service se
 |---|---|---|---|---|---|
 | POST | `/api/v1/production-lots/{lotId}/test-requests` | Tạo yêu cầu kiểm nghiệm cho lô | VT-02 | `status = PENDING_RESULT` | API tạo request, không phải ghi kết quả |
 | GET | `/api/v1/test-requests` | Danh sách yêu cầu kiểm nghiệm | VT-02 | Hỗ trợ lọc `lotId/status/page/size` | Dùng `PageRequest` |
-| POST | `/api/v1/inspection-criteria/{criterionId}/results` | Ghi nhận hoặc cập nhật kết quả cho 1 chỉ tiêu | VT-02 | Khi request đang ở `PENDING_RESULT`; validate `resultDate`, `expiryDate`, `passed` | Đây là API chính đang có trong code |
+| POST | `/api/v1/inspection-criteria/{criterionId}/results` | Ghi nhận hoặc cập nhật kết quả cho 1 chỉ tiêu | VT-02 | Khi request ở `PENDING_RESULT` hoặc `FAILED`; validate `resultDate`, `expiryDate`, `passed` | Trả `201 CREATED` cả khi cập nhật |
+| PUT | `/api/v1/inspection-requests/{requestId}/results` | Ghi/cập nhật toàn bộ kết quả của request | VT-02 | Bắt buộc đủ mọi chỉ tiêu; validate trước khi lưu, all-or-nothing | Trả danh sách kết quả, `200 OK` |
 | GET | `/api/v1/inspection-requests/{requestId}/results` | Lấy toàn bộ kết quả thuộc một request | VT-02 | Trả danh sách `InspectionCriterionResultResponse` | Không chứa logic chốt status ở đây |
 | GET | `/api/v1/inspection-criteria/{criterionId}/result` | Lấy kết quả của 1 chỉ tiêu | VT-02 | Dựa trên `criterionId` | Tìm theo `InspectionCriterionResult` |
 | DELETE | `/api/v1/inspection-results/{resultId}` | Xóa kết quả kiểm nghiệm | VT-02 | Xóa rồi gọi `checkAndUpdateRequestStatus()` | Dùng để xoá lại kết quả nếu cần |
 | POST | `/api/v1/production-lots/{lotId}/can-activate-seal` | Kiểm tra lô có đủ điều kiện kích hoạt tem | VT-02 | `canActivate`, `reason`, `earliestExpiryDate`, `totalCriteria`, `passedCriteria` | Logic thực sự quyết định tem có thể kích hoạt hay không |
+| POST | `/api/v1/inspection-criteria/{criterionId}/result-file` | Upload phiếu kết quả | VT-02 | Multipart JPG/PNG/PDF, mặc định tối đa 5 MB | Trả `filePath` |
+| GET | `/api/v1/inspection-results/{resultId}/file` | Xem phiếu kết quả | VT-02 | Kiểm tra path nằm trong `app.upload.base-dir` | Trả resource file |
 
 ## 5. DTO thực tế
 
@@ -69,9 +72,7 @@ Nếu tất cả chỉ tiêu đều đạt và còn hiệu lực thì service se
 - `passed: Boolean` — true = đạt, false = không đạt
 - `filePath: String` — đường dẫn file phiếu kết quả (tùy chọn)
 
-Không tồn tại các trường `requestId`, `overallResult`, `resultFileUrl`, `criteriaResults` trong DTO hiện tại.
-
-Không có logic ghi nhận cả request bằng một payload tổng theo kiểu `PUT /inspection-requests/{requestId}/result`.
+Không tồn tại các trường `requestId`, `overallResult`, `resultFileUrl`, `criteriaResults` trong DTO kết quả một chỉ tiêu. DTO batch là `RecordInspectionResultsRequest`, chứa mảng `results` gồm các DTO kết quả một chỉ tiêu.
 
 ## 6. Logic kiểm tra hiệu lực và kích hoạt tem
 
@@ -89,14 +90,15 @@ Trong service `checkCanActivateSeal()`:
 
 ## 7. Kết luận cập nhật
 
-Đến thời điểm hiện tại, luồng chính xác trong hệ thống là: Tạo yêu cầu -> Ghi nhận kết quả cho từng chỉ tiêu riêng lẻ -> Kiểm tra hiệu lực -> Kiểm tra khả năng kích hoạt tem.
+Đến thời điểm hiện tại, luồng chính xác trong hệ thống là: Tạo yêu cầu -> Ghi nhận kết quả từng chỉ tiêu hoặc toàn bộ request -> Tự động chốt trạng thái -> Kiểm tra hiệu lực -> Kiểm tra khả năng kích hoạt tem.
 
-Điểm khác biệt quan trọng so với tài liệu cũ: không có trạng thái `RESULTED`, không có request-level result API, không có `overallResult` trong request.
+Điểm khác biệt quan trọng so với tài liệu cũ: không có trạng thái `RESULTED`, có request-level result API dạng `PUT`, và không có `overallResult` trong request.
 
 Các API hiện có thực sự đang hoạt động theo code là:
 
 - `POST /api/v1/production-lots/{lotId}/test-requests`
 - `POST /api/v1/inspection-criteria/{criterionId}/results`
+- `PUT /api/v1/inspection-requests/{requestId}/results`
 - `POST /api/v1/production-lots/{lotId}/can-activate-seal`
 
 Nếu cần thống nhất API contract cho tương lai, phải cập nhật lại doc này dựa trên code hiện hành, không dựa trên mô hình thiết kế chưa implement.

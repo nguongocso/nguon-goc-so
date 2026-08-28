@@ -9,6 +9,13 @@ import java.time.LocalDate;
 
 /**
  * DTO cho yêu cầu ghi nhận kết quả kiểm nghiệm một chỉ tiêu.
+ *
+ * <p>
+ * Khi {@code passed = false} (Không đạt), {@code resultDate}, {@code expiryDate}
+ * và {@code filePath} được phép là {@code null} vì chỉ tiêu không đạt không có
+ * hiệu lực thời gian. Khi {@code passed = true} (Đạt), cả ba trường này
+ * phải được cung cấp — validation được thực hiện ở tầng service.
+ * </p>
  */
 @Getter
 @Setter
@@ -23,14 +30,14 @@ public class InspectionCriterionResultRequest {
 
     /**
      * Ngày cấp kết quả kiểm nghiệm.
+     * Bắt buộc khi {@code passed = true}; được phép {@code null} khi {@code passed = false}.
      */
-    @NotNull(message = "Ngày cấp không được để trống.")
     private LocalDate resultDate;
 
     /**
      * Ngày hết hiệu lực của kết quả.
+     * Bắt buộc khi {@code passed = true}; được phép {@code null} khi {@code passed = false}.
      */
-    @NotNull(message = "Ngày hết hiệu lực không được để trống.")
     private LocalDate expiryDate;
 
     /**

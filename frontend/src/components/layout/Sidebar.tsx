@@ -9,6 +9,7 @@ import {
   FileText,
   Hash,
   History,
+  FlaskConical,
   Layers,
   LayoutDashboard,
   Lock,
@@ -137,6 +138,18 @@ const MENU_GROUPS: MenuGroup[] = [
         label: "Danh mục nông sản",
         href: "/admin/product-categories",
         allowedRoles: ["VT-01"] as const,
+      },
+      {
+        icon: <FlaskConical className="h-5 w-5" />,
+        label: "Chỉ tiêu kiểm nghiệm",
+        href: "/admin/inspection-criteria",
+        allowedRoles: ROLE_ACCESS.inspectionCriteriaManagement,
+      },
+      {
+        icon: <ShieldCheck className="h-5 w-5" />,
+        label: "Đơn vị kiểm nghiệm",
+        href: "/admin/testing-units",
+        allowedRoles: ROLE_ACCESS.testingUnitScopeManagement,
       },
       {
         icon: <PackageCheck className="h-5 w-5" />,
