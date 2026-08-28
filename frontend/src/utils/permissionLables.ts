@@ -43,6 +43,10 @@ export const resourceLabels: Record<string, string> = {
   code_range: 'Dải mã truy xuất',
   traceability: 'Truy xuất nguồn gốc',
   recall: 'Thu hồi lô',
+  input_material: 'Vật tư đầu vào',
+  product_feedback: 'Phản ánh sản phẩm',
+  administrative_unit: 'Đơn vị hành chính',
+  area_assignment: 'Phân công địa bàn',
 };
 
 /**
