@@ -331,7 +331,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
 
         switch (eventType) {
             case HARVEST:
-                keepFields(rawData, result, "productionLotName", "quantity", "harvestDate");
+                keepFields(rawData, result, "productionLotName", "quantity", "harvestDate", "earlyHarvest", "earlyHarvestReason", "eligibleHarvestDate", "unmatchedMaterials");
                 break;
             case PACKAGING:
                 keepFields(rawData, result, "productionLotName", "packagingSpecification", "packagingDate");

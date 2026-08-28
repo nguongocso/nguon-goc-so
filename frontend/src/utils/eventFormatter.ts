@@ -38,7 +38,11 @@ const KNOWN_FIELD_LABELS: Record<string, string> = {
   packagingDate: 'Ngày đóng gói',
   // Harvest
   harvestDate: 'Ngày thu hoạch',
-  quantity: 'Số lượng',
+  quantity: 'Số lượng (kg)',
+  earlyHarvest: 'Thu hoạch sớm',
+  earlyHarvestReason: 'Lý do thu hoạch sớm',
+  eligibleHarvestDate: 'Ngày đủ điều kiện cách ly',
+  unmatchedMaterials: 'Vật tư ngoài danh mục',
   // Transport
   fromLocation: 'Điểm xuất phát',
   toLocation: 'Điểm đến',
@@ -99,6 +103,11 @@ function isISODateString(value: string): boolean {
 export function formatEventValue(value: unknown): string {
   if (value === null || value === undefined) {
     return '';
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '';
+    return value.map((v) => formatEventValue(v)).join(', ');
   }
 
   if (typeof value === 'boolean') {
@@ -192,9 +201,14 @@ export function getTranslatedEventData(
 
   for (const [key, value] of Object.entries(data)) {
     // Skip internal / identifier-only fields
-    if (key === 'shipmentId' || key === 'productionLotId') continue;
+    if (key === 'shipmentId' || key === 'productionLotId' || key === 'deviceSource' || key === 'images') continue;
+
+    // Don't show "Thu hoạch sớm: Không" when earlyHarvest is false or normal harvest
+    if (key === 'earlyHarvest' && (value === false || value === 'false')) continue;
 
     if (isEventValueEmpty(value)) continue;
+
+    if (Array.isArray(value) && value.length === 0) continue;
 
     const label = formatFieldLabel(key);
     const formatted = formatEventValue(value);

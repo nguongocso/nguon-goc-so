@@ -194,4 +194,82 @@ class PublicTraceServiceImplTest {
         assertEquals("Dư lượng thuốc BVTV", response.getInspections().get(0).getCriterionName());
         assertEquals(true, response.getInspections().get(0).getPassed());
     }
+
+    @Test
+    void getPublicTrace_WhenHarvestEventHasEarlyHarvest_ShouldIncludeEarlyHarvestInEventData() {
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setName("Lô nông sản A");
+        shipment.setProductionLot(lot);
+
+        vn.nguongocso.event.entity.ChainEvent harvestEvent = vn.nguongocso.event.entity.ChainEvent.builder()
+                .id(UUID.randomUUID())
+                .eventType(vn.nguongocso.event.enums.ChainEventType.HARVEST)
+                .eventData("{\"productionLotId\":\"" + lot.getId() + "\",\"harvestDate\":\"2026-07-24\",\"quantity\":1500.0,\"earlyHarvest\":true,\"earlyHarvestReason\":\"Bão lụt khẩn cấp\",\"eligibleHarvestDate\":\"2026-07-28\"}")
+                .recordedAt(java.time.LocalDateTime.now())
+                .build();
+
+        when(chainEventRepository.findByShipmentIsNullAndEventTypeIn(any()))
+                .thenReturn(List.of(harvestEvent));
+
+        PublicTraceResponse response = publicTraceService.getPublicTrace(codeValue, null, null, "127.0.0.1", "test-agent");
+
+        assertNotNull(response);
+        assertEquals(1, response.getEvents().size());
+        assertEquals("HARVEST", response.getEvents().get(0).getEventType());
+        assertEquals(true, response.getEvents().get(0).getEventData().get("earlyHarvest"));
+        assertEquals("Bão lụt khẩn cấp", response.getEvents().get(0).getEventData().get("earlyHarvestReason"));
+        assertEquals("2026-07-28", response.getEvents().get(0).getEventData().get("eligibleHarvestDate"));
+    }
+
+    @Test
+    void getPublicTrace_WhenHarvestEventHasUnmatchedMaterials_ShouldIncludeUnmatchedInEventData() {
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setName("Lô nông sản B");
+        shipment.setProductionLot(lot);
+
+        vn.nguongocso.event.entity.ChainEvent harvestEvent = vn.nguongocso.event.entity.ChainEvent.builder()
+                .id(UUID.randomUUID())
+                .eventType(vn.nguongocso.event.enums.ChainEventType.HARVEST)
+                .eventData("{\"productionLotId\":\"" + lot.getId() + "\",\"harvestDate\":\"2026-07-24\",\"quantity\":1500.0,\"earlyHarvest\":false,\"unmatchedMaterials\":[\"Vật tư mới\"]}")
+                .recordedAt(java.time.LocalDateTime.now())
+                .build();
+
+        when(chainEventRepository.findByShipmentIsNullAndEventTypeIn(any()))
+                .thenReturn(List.of(harvestEvent));
+
+        PublicTraceResponse response = publicTraceService.getPublicTrace(codeValue, null, null, "127.0.0.1", "test-agent");
+
+        assertNotNull(response);
+        assertEquals(1, response.getEvents().size());
+        assertEquals("HARVEST", response.getEvents().get(0).getEventType());
+        assertEquals(false, response.getEvents().get(0).getEventData().get("earlyHarvest"));
+        assertNotNull(response.getEvents().get(0).getEventData().get("unmatchedMaterials"));
+    }
+
+    @Test
+    void getPublicTrace_WhenLegacyHarvestEventWithoutEarlyHarvestFields_ShouldNotCrash() {
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setName("Lô nông sản C");
+        shipment.setProductionLot(lot);
+
+        vn.nguongocso.event.entity.ChainEvent legacyEvent = vn.nguongocso.event.entity.ChainEvent.builder()
+                .id(UUID.randomUUID())
+                .eventType(vn.nguongocso.event.enums.ChainEventType.HARVEST)
+                .eventData("{\"productionLotId\":\"" + lot.getId() + "\",\"harvestDate\":\"2025-05-10\",\"quantity\":2000.0}")
+                .recordedAt(java.time.LocalDateTime.now())
+                .build();
+
+        when(chainEventRepository.findByShipmentIsNullAndEventTypeIn(any()))
+                .thenReturn(List.of(legacyEvent));
+
+        PublicTraceResponse response = publicTraceService.getPublicTrace(codeValue, null, null, "127.0.0.1", "test-agent");
+
+        assertNotNull(response);
+        assertEquals(1, response.getEvents().size());
+        assertEquals("HARVEST", response.getEvents().get(0).getEventType());
+        assertEquals(2000.0, response.getEvents().get(0).getEventData().get("quantity"));
+    }
 }
