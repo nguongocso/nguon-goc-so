@@ -85,4 +85,3 @@ export const correctFarmLog = async (
   }>(`/farm-logs/${id}/correct`, payload);
   return response.data.data;
 };
-};
