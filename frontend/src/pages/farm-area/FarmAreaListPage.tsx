@@ -250,7 +250,6 @@ const FarmAreaListPage: React.FC = () => {
         />
 
         <DataTableShell
-          className="px-3"
           header={header}
           body={body}
           loading={loading}

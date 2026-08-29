@@ -201,7 +201,6 @@ export default function FailedEventLogsPage() {
         />
 
         <DataTableShell
-          className="px-3"
           header={header}
           body={body}
           loading={loading}

@@ -143,7 +143,6 @@ export const RecallRequestListPage = () => {
         />
 
         <DataTableShell
-          className="px-3"
           colSpan={7}
           header={
             <>
