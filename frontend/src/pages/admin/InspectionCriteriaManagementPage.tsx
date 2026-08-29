@@ -196,23 +196,32 @@ export default function InspectionCriteriaManagementPage() {
                                 <Eye className="h-4 w-4" />
                             )}
                         </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => openEditDialog(criterion)}
-                            title="Sửa chỉ tiêu"
-                        >
-                            <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => setDeleteTarget(criterion)}
-                            title="Xóa chỉ tiêu"
-                            className="text-destructive hover:text-destructive hover:bg-muted"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {!criterion.referenced && (
+                            <>
+                                <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    onClick={() => openEditDialog(criterion)}
+                                    title="Sửa chỉ tiêu"
+                                >
+                                    <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    onClick={() => setDeleteTarget(criterion)}
+                                    title="Xóa chỉ tiêu"
+                                    className="text-destructive hover:text-destructive hover:bg-muted"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </>
+                        )}
+                        {criterion.referenced && (
+                            <span className="text-xs text-muted-foreground">
+                                Không xóa
+                            </span>
+                        )}
                     </div>
                 </TableCell>
             )}
@@ -269,7 +278,7 @@ export default function InspectionCriteriaManagementPage() {
                     header={header}
                     body={body}
                     loading={loading}
-                    empty={filtered.length === 0}
+                    empty={!loading && filtered.length === 0}
                     colSpan={canManage ? 7 : 6}
                     loadingMessage="Đang tải danh sách chỉ tiêu..."
                     emptyMessage="Chưa có chỉ tiêu kiểm nghiệm nào."

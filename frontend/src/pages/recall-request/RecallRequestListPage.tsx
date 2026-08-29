@@ -1,57 +1,103 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { PackageX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { ChevronLeft, ChevronRight, Eye, RefreshCcw } from 'lucide-react';
+import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { HelpButton } from '@/components/help/HelpButton';
+import { ListPageHeader } from '@/components/common/ListPageHeader';
+import { ListCard } from '@/components/common/ListCard';
+import { ListToolbar } from '@/components/common/ListToolbar';
+import { SearchInput } from '@/components/common/SearchInput';
+import { FilterSelect } from '@/components/common/FilterSelect';
+import { RefreshButton } from '@/components/common/RefreshButton';
+import { DataTableShell } from '@/components/common/DataTableShell';
+import { Pagination } from '@/components/common/Pagination';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import { getRecallRequests } from '@/api/recallApi';
 import type {
-  PageResponse,
   RecallRequest,
   RecallRequestStatus,
 } from '@/types/recallRequest';
 
-const STATUS_MAP: Record<string, { label: string; className: string }> = {
-  PENDING: { label: 'Chờ duyệt', className: 'bg-yellow-100 text-yellow-800' },
-  APPROVED: { label: 'Đã duyệt', className: 'bg-emerald-100 text-emerald-800' },
-  REJECTED: { label: 'Đã từ chối', className: 'bg-red-100 text-red-700' },
+const PAGE_SIZE = 10;
+
+const STATUS_FILTER_OPTIONS = [
+  { value: 'ALL', label: 'Tất cả trạng thái' },
+  { value: 'PENDING', label: 'Chờ duyệt' },
+  { value: 'APPROVED', label: 'Đã duyệt' },
+  { value: 'REJECTED', label: 'Đã từ chối' },
+];
+
+const STATUS_TONE: Record<RecallRequestStatus, 'warning' | 'success' | 'danger'> = {
+  PENDING: 'warning',
+  APPROVED: 'success',
+  REJECTED: 'danger',
+};
+
+const STATUS_LABEL: Record<RecallRequestStatus, string> = {
+  PENDING: 'Chờ duyệt',
+  APPROVED: 'Đã duyệt',
+  REJECTED: 'Đã từ chối',
 };
 
 export const RecallRequestListPage = () => {
   const navigate = useNavigate();
-  const [data, setData] = useState<PageResponse<RecallRequest> | null>(null);
-  const [status, setStatus] = useState<RecallRequestStatus>('PENDING');
-  const [page, setPage] = useState(0);
+  const [data, setData] = useState<RecallRequest[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('ALL');
+  const [page, setPage] = useState(0);
+
+  useSetBreadcrumb([
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Yêu cầu thu hồi' },
+  ]);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       const result = await getRecallRequests({
-        status,
-        page,
-        size: 10,
+        page: 0,
+        size: 1000,
       });
-      setData(result);
+      setData(result.items);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Không thể tải danh sách yêu cầu');
     } finally {
       setLoading(false);
     }
-  }, [status, page]);
+  }, []);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return data.filter((item) => {
+      const matchKeyword =
+        !q ||
+        item.lotName.toLowerCase().includes(q) ||
+        (item.requestedBy?.fullName ?? '').toLowerCase().includes(q) ||
+        item.reason.toLowerCase().includes(q);
+      const matchStatus =
+        status === 'ALL' ||
+        (status === 'PENDING' && item.status === 'PENDING') ||
+        (status === 'APPROVED' && item.status === 'APPROVED') ||
+        (status === 'REJECTED' && item.status === 'REJECTED');
+      return matchKeyword && matchStatus;
+    });
+  }, [data, search, status]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const paginated = useMemo(() => {
+    const start = safePage * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, safePage]);
 
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return '—';
@@ -64,125 +110,100 @@ export const RecallRequestListPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Yêu cầu thu hồi lô sản xuất
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Quản lý và xét duyệt các yêu cầu thu hồi lô sản xuất trong hệ thống.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <HelpButton screenKey="recall-request-list" />
-          <Button variant="outline" size="sm" onClick={() => load()} disabled={loading}>
-            <RefreshCcw className="size-4 mr-1" /> Làm mới
-          </Button>
-        </div>
-      </div>
+      <ListPageHeader
+        icon={PackageX}
+        title="Yêu cầu thu hồi lô sản xuất"
+        description="Quản lý và xét duyệt các yêu cầu thu hồi lô sản xuất trong hệ thống."
+        actions={<HelpButton screenKey="recall-request-list" />}
+      />
 
-      <Card className="border-slate-200 bg-white shadow-sm rounded-xl">
-        <CardContent className="pt-6">
-          <div className="mb-4 flex items-center gap-2">
-            {(['PENDING', 'APPROVED', 'REJECTED'] as RecallRequestStatus[]).map(
-              (s) => (
-                <Button
-                  key={s}
-                  variant={status === s ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => {
-                    setStatus(s);
-                    setPage(0);
-                  }}
-                >
-                  {STATUS_MAP[s].label}
-                </Button>
-              ),
-            )}
-          </div>
-
-          {loading ? (
-            <div className="py-8 text-center text-muted-foreground">Đang tải...</div>
-          ) : !data || data.items.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">
-              Không có yêu cầu thu hồi nào.
-            </div>
-          ) : (
+      <ListCard>
+        <ListToolbar
+          left={
             <>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-slate-50">
-                      <TableHead className="font-semibold text-slate-700">Lô sản xuất</TableHead>
-                      <TableHead className="font-semibold text-slate-700">Người yêu cầu</TableHead>
-                      <TableHead className="font-semibold text-slate-700">Thời điểm</TableHead>
-                      <TableHead className="font-semibold text-slate-700">Lý do</TableHead>
-                      <TableHead className="font-semibold text-slate-700">Trạng thái</TableHead>
-                      <TableHead className="font-semibold text-slate-700 text-center">Thao tác</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data.items.map((item) => (
-                      <TableRow key={item.id} className="hover:bg-slate-50/80">
-                        <TableCell className="font-medium">{item.lotName}</TableCell>
-                        <TableCell>{item.requestedBy?.fullName || '—'}</TableCell>
-                        <TableCell>{formatDate(item.requestedAt)}</TableCell>
-                        <TableCell className="max-w-[240px] truncate">
-                          {item.reason}
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                              STATUS_MAP[item.status]?.className ||
-                              'bg-gray-100 text-gray-700'
-                            }`}
-                          >
-                            {STATUS_MAP[item.status]?.label || item.status}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => navigate(`/recall-requests/${item.id}`)}
-                          >
-                            <Eye className="size-4 mr-1" /> Chi tiết
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {data.totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-between">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={data.first}
-                    onClick={() => setPage((p) => Math.max(0, p - 1))}
-                  >
-                    <ChevronLeft className="size-4" /> Trước
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Trang {data.page + 1} / {data.totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={data.last}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    Sau <ChevronRight className="size-4" />
-                  </Button>
-                </div>
-              )}
+              <SearchInput
+                placeholder="Tìm theo tên lô, người yêu cầu hoặc lý do..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
+              />
+              <FilterSelect
+                value={status}
+                onValueChange={(val) => {
+                  setStatus(val || 'ALL');
+                  setPage(0);
+                }}
+                options={STATUS_FILTER_OPTIONS}
+              />
             </>
-          )}
-        </CardContent>
-      </Card>
+          }
+          right={<RefreshButton onClick={load} loading={loading} />}
+        />
+
+        <DataTableShell
+          className="px-3"
+          colSpan={7}
+          header={
+            <>
+              <TableHead className="w-12 text-center">STT</TableHead>
+              <TableHead>Lô sản xuất</TableHead>
+              <TableHead>Người yêu cầu</TableHead>
+              <TableHead>Thời điểm</TableHead>
+              <TableHead>Lý do</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              <TableHead className="text-center">Thao tác</TableHead>
+            </>
+          }
+          body={paginated.map((item, index) => (
+            <TableRow key={item.id} className="hover:bg-muted/40 transition-colors">
+              <TableCell className="text-center font-medium text-muted-foreground">
+                {safePage * PAGE_SIZE + index + 1}
+              </TableCell>
+              <TableCell className="font-medium">{item.lotName}</TableCell>
+              <TableCell>{item.requestedBy?.fullName || '—'}</TableCell>
+              <TableCell>{formatDate(item.requestedAt)}</TableCell>
+              <TableCell className="max-w-[240px] truncate" title={item.reason}>
+                {item.reason}
+              </TableCell>
+              <TableCell>
+                <StatusBadge
+                  label={STATUS_LABEL[item.status]}
+                  tone={STATUS_TONE[item.status]}
+                />
+              </TableCell>
+              <TableCell className="text-center">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate(`/recall-requests/${item.id}`)}
+                >
+                  Chi tiết
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+          loading={loading}
+          empty={!loading && filtered.length === 0}
+          loadingMessage="Đang tải danh sách yêu cầu thu hồi..."
+          emptyMessage={
+            search || status !== 'ALL'
+              ? 'Không tìm thấy yêu cầu thu hồi nào phù hợp với bộ lọc.'
+              : 'Chưa có yêu cầu thu hồi nào.'
+          }
+        />
+
+        <Pagination
+          currentPage={safePage}
+          totalPages={totalPages}
+          totalElements={filtered.length}
+          pageSize={PAGE_SIZE}
+          loading={loading}
+          itemLabel="yêu cầu thu hồi"
+          onPageChange={setPage}
+        />
+      </ListCard>
     </div>
   );
 };

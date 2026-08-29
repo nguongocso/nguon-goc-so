@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ProductionLotBoard } from '@/components/production-lot/ProductionLotBoard';
 import { HelpButton } from '@/components/help/HelpButton';
 import { ListPageHeader } from '@/components/common/ListPageHeader';
+import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import { useAuth } from '@/hooks/useAuth';
 import { usePermission } from '@/hooks/usePermission';
 import { ROLE_ACCESS } from '@/config/roleAccess';
@@ -13,6 +14,11 @@ const ProductionLotListPage = () => {
   const { user } = useAuth();
   const canCreate = usePermission(ROLE_ACCESS.productionLotEdit);
   const canImport = user?.roleCode === 'VT-02'; // quyền nhập lô hàng loạt
+
+  useSetBreadcrumb([
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Lô sản xuất' },
+  ]);
 
   return (
     <div className="space-y-6">

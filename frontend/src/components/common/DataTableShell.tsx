@@ -24,6 +24,8 @@ interface DataTableShellProps {
   loadingMessage?: string;
   /** Thông báo khi rỗng. */
   emptyMessage?: string;
+  /** Nút hành động tùy chọn hiển thị dưới thông báo khi danh sách rỗng. */
+  emptyAction?: React.ReactNode;
   /** Class bọc ngoài bảng (mặc định theo chuẩn API key). */
   className?: string;
 }
@@ -41,6 +43,7 @@ export const DataTableShell: React.FC<DataTableShellProps> = ({
   colSpan = 1,
   loadingMessage = 'Đang tải dữ liệu...',
   emptyMessage = 'Không tìm thấy dữ liệu.',
+  emptyAction,
   className,
 }) => {
   const showStateRow = loading || empty;
@@ -61,7 +64,10 @@ export const DataTableShell: React.FC<DataTableShellProps> = ({
                     <span>{loadingMessage}</span>
                   </div>
                 ) : (
-                  emptyMessage
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <span>{emptyMessage}</span>
+                    {emptyAction}
+                  </div>
                 )}
               </TableCell>
             </TableRow>

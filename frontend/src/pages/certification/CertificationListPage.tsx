@@ -19,6 +19,7 @@ import { CertificationStatusBadge } from '@/components/certification/Certificati
 import { CertificationDetailDialog } from '@/components/certification/CertificationDetailDialog';
 import { usePermission } from '@/hooks/usePermission';
 import { HelpButton } from '@/components/help/HelpButton';
+import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 
 type SortField = 'name' | 'issueDate' | 'expiryDate' | 'status';
 
@@ -35,6 +36,11 @@ const STATUS_FILTER_OPTIONS = [
 const CertificationListPage = () => {
   const navigate = useNavigate();
   const canCreate = usePermission(['VT-02']);
+
+  useSetBreadcrumb([
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Chứng nhận' },
+  ]);
 
   const [data, setData] = useState<PageResponse<CertificationResponse> | null>(null);
   const [loading, setLoading] = useState(true);
