@@ -55,7 +55,7 @@ export const CertificationList = ({
             <TableHead>Trạng thái</TableHead>
             <TableHead>Ghi chú</TableHead>
             {canManage && (
-              <TableHead className="text-right">Thao tác</TableHead>
+              <TableHead className="text-center">Thao tác</TableHead>
             )}
           </TableRow>
         </TableHeader>
@@ -79,7 +79,7 @@ export const CertificationList = ({
                 {cert.note || "—"}
               </TableCell>
               {canManage && (
-                <TableCell className="text-right">
+                <TableCell className="text-center">
                   <Button
                     variant="ghost"
                     size="sm"

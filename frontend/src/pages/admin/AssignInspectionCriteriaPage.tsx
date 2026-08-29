@@ -62,9 +62,6 @@ const filterOptions: { value: AssignmentFilter; label: string }[] = [
     {value: "unassigned", label: "Chưa gán"},
 ];
 
-const getFilterLabel = (value: AssignmentFilter) =>
-    filterOptions.find((opt) => opt.value === value)?.label ?? "Trạng thái";
-
 /**
  * Trang "Gán bộ chỉ tiêu kiểm nghiệm" cho một loại nông sản.
  * Route: /admin/product-categories/:id/criteria
@@ -334,11 +331,11 @@ export default function AssignInspectionCriteriaPage() {
                                     className="h-9 pl-9"
                                 />
                             </form>
-                            <Select value={filter} onValueChange={handleFilterChange}>
+                            <Select value={filter} onValueChange={handleFilterChange}
+                                items={filterOptions}
+                            >
                                 <SelectTrigger size="sm" className="w-[180px]">
-                                    <SelectValue placeholder="Trạng thái">
-                                        {getFilterLabel(filter)}
-                                    </SelectValue>
+                                    <SelectValue placeholder="Trạng thái" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {filterOptions.map((opt) => (
@@ -367,7 +364,7 @@ export default function AssignInspectionCriteriaPage() {
                                     <TableHead>Ngưỡng tối đa</TableHead>
                                     <TableHead>Tiêu chuẩn tham chiếu</TableHead>
                                     <TableHead>Trạng thái</TableHead>
-                                    <TableHead className="text-right">Thao tác</TableHead>
+                                    <TableHead className="text-center">Thao tác</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -407,8 +404,8 @@ export default function AssignInspectionCriteriaPage() {
                                                         {isAssigned ? "Đã gán" : "Chưa gán"}
                                                     </Badge>
                                                 </TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="flex items-center justify-end gap-2">
+                                                <TableCell className="text-center">
+                                                    <div className="flex items-center justify-center gap-2">
                                                         <span className="text-xs text-muted-foreground">
                                                             {isSelected ? "Đã gán" : "Chưa gán"}
                                                         </span>

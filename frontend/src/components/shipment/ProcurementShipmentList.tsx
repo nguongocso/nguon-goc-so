@@ -31,6 +31,9 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { DataTablePagination } from "@/components/common/DataTablePagination";
+
+const PAGE_SIZE = 10;
 
 interface ProcurementShipmentListProps {
   /** Callback khi người dùng bấm "Ghi nhận thu mua" trên một lô hàng */
@@ -43,6 +46,7 @@ export function ProcurementShipmentList({
   const [shipments, setShipments] = useState<ProcurementShipment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
   const navigate = useNavigate();
 
   // Điều hướng tới trang chi tiết lô hàng. ProcurementShipment không chứa
@@ -91,6 +95,13 @@ export function ProcurementShipmentList({
             (shipment.productCategoryName ?? "").toLowerCase().includes(keyword),
     );
   }, [shipments, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const paginatedShipments = filtered.slice(
+    safePage * PAGE_SIZE,
+    safePage * PAGE_SIZE + PAGE_SIZE,
+  );
 
   const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
 
@@ -146,7 +157,10 @@ export function ProcurementShipmentList({
                 <Input
                     className="bg-white pl-9"
                     value={search}
-                    onChange={(event) => setSearch(event.target.value)}
+                    onChange={(event) => {
+                      setSearch(event.target.value);
+                      setPage(0);
+                    }}
                     placeholder="Tìm tên lô hàng, lô sản xuất hoặc loại nông sản..."
                     aria-label="Tìm kiếm lô hàng thu mua"
                 />
@@ -194,7 +208,7 @@ export function ProcurementShipmentList({
                   )}
 
                   {!isLoading &&
-                      filtered.map((shipment) => (
+                      paginatedShipments.map((shipment) => (
                           <TableRow key={shipment.id}>
                             <TableCell className="font-semibold text-foreground">
                               {shipment.name}
@@ -283,6 +297,15 @@ export function ProcurementShipmentList({
                 </TableBody>
               </Table>
             </div>
+            {!isLoading && filtered.length > 0 && (
+              <DataTablePagination
+                page={safePage}
+                pageSize={PAGE_SIZE}
+                totalElements={filtered.length}
+                onPageChange={setPage}
+                itemLabel="lô hàng"
+              />
+            )}
           </CardContent>
         </Card>
       </>

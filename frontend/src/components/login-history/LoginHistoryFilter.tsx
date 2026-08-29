@@ -57,7 +57,13 @@ export const LoginHistoryFilter = ({ onFilter, onReset, loading }: Props) => {
               >
                 Kết quả
               </Label>
-              <Select value={result} onValueChange={(value) => setResult(value ?? "")}>
+              <Select value={result} onValueChange={(value) => setResult(value ?? "")}
+                items={[
+                  { value: '', label: 'Tất cả' },
+                  { value: 'SUCCESS', label: 'Thành công' },
+                  { value: 'FAILED', label: 'Thất bại' },
+                ]}
+              >
                 <SelectTrigger id="login-result" className="border-emerald-200 focus:ring-emerald-100">
                   <SelectValue placeholder="Tất cả">
                     {getResultLabel(result)}

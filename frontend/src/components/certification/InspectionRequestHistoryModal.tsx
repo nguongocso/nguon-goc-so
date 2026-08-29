@@ -357,7 +357,7 @@ export const InspectionRequestHistoryModal = ({
                   <TableHead className="min-w-[120px]">Số chỉ tiêu</TableHead>
                   <TableHead className="min-w-[110px]">Trạng thái</TableHead>
                   {canInspect && (
-                    <TableHead className="w-[190px] text-right">
+                    <TableHead className="w-[190px] text-center">
                       Thao tác
                     </TableHead>
                   )}
@@ -440,8 +440,8 @@ export const InspectionRequestHistoryModal = ({
                         {getInspectionStatusBadge(request.status)}
                       </TableCell>
                       {canInspect && (
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-1.5">
                             {request.status === "PASSED" ||
                             request.status === "FAILED" ? (
                               <Button

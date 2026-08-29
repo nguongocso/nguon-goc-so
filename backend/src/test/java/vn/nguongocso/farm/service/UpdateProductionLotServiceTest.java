@@ -17,6 +17,7 @@ import org.springframework.security.access.AccessDeniedException;
 import vn.nguongocso.auth.entity.Role;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.exception.DuplicateResourceException;
 import vn.nguongocso.exception.ResourceNotFoundException;
 import vn.nguongocso.farm.dto.request.UpdateProductionLotRequest;
@@ -173,5 +174,18 @@ class UpdateProductionLotServiceTest {
         assertThatThrownBy(() -> productionLotService.updateProductionLot(lotId, request, userDetails))
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessage("Chỉ có thể cập nhật lô sản xuất khi đang ở trạng thái nháp");
+    }
+
+    @Test
+    void update_shouldThrow_whenFarmAreaIdIsMissing() {
+        // Given
+        request.setFarmAreaId(null);
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(productionLot));
+        when(productCategoryRepository.findById(categoryId)).thenReturn(Optional.of(productCategory));
+
+        // When & Then
+        assertThatThrownBy(() -> productionLotService.updateProductionLot(lotId, request, userDetails))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Vui lòng chọn vùng trồng");
     }
 }
