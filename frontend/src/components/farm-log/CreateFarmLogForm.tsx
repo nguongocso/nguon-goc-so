@@ -540,7 +540,7 @@ export function CreateFarmLogForm({
                   value={form.material}
                   onValueChange={(val) => updateField('material', val)}
                   onSelectMaterial={(selectedMaterial) => {
-                    if (selectedMaterial && selectedMaterial.unit && !form.unit) {
+                    if (selectedMaterial?.unit) {
                       updateField('unit', selectedMaterial.unit);
                     }
                   }}
