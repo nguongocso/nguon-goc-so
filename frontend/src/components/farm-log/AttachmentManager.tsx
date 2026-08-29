@@ -58,8 +58,22 @@ export function AttachmentManager({ logId, onUpdate }: AttachmentManagerProps) {
   // Upload dialog
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedFile) {
+      setFilePreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(selectedFile);
+    setFilePreviewUrl(url);
+
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [selectedFile]);
 
   // Preview dialog
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -171,14 +185,32 @@ export function AttachmentManager({ logId, onUpdate }: AttachmentManagerProps) {
     }
   };
 
+  const handlePreviewLocalFile = (file: File) => {
+    if (!filePreviewUrl) return;
+    setPreviewSrc(filePreviewUrl);
+    setPreviewType(file.type);
+    setPreviewFileName(file.name);
+    setPreviewOpen(true);
+  };
+
   const handleClosePreview = () => {
     setPreviewOpen(false);
-    if (previewSrc) {
+    if (previewSrc && previewSrc !== filePreviewUrl) {
       URL.revokeObjectURL(previewSrc);
     }
     setPreviewSrc('');
     setPreviewType('');
     setPreviewFileName('');
+  };
+
+  const handleUploadDialogClose = (open: boolean) => {
+    if (!open) {
+      setSelectedFile(null);
+      setDescription('');
+      setUploadDialogOpen(false);
+    } else {
+      setUploadDialogOpen(true);
+    }
   };
 
   // Download
@@ -365,50 +397,108 @@ export function AttachmentManager({ logId, onUpdate }: AttachmentManagerProps) {
       )}
 
       {/* Upload Dialog */}
-      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-  <DialogContent className="sm:max-w-md">
-    <DialogHeader>
-      <DialogTitle>Tải lên chứng từ</DialogTitle>
-    </DialogHeader>
-    <div className="space-y-4 py-2">
-      {/* File upload */}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="file" className="text-sm font-medium">
-          Chọn file <span className="text-red-500">*</span>
-        </Label>
-        <Input
-          id="file"
-          type="file"
-          accept=".jpg,.jpeg,.png,.pdf"
-          onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-        />
-        <p className="text-xs text-muted-foreground">Hỗ trợ JPG, PNG, PDF (≤5MB)</p>
-      </div>
+      <Dialog open={uploadDialogOpen} onOpenChange={handleUploadDialogClose}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Tải lên chứng từ</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {/* File upload */}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="file" className="text-sm font-medium">
+                Chọn file <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="file"
+                type="file"
+                accept=".jpg,.jpeg,.png,.pdf"
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+              />
+              <p className="text-xs text-muted-foreground">Hỗ trợ JPG, PNG, PDF (≤5MB)</p>
+            </div>
 
-      {/* Description */}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="desc" className="text-sm font-medium">
-          Mô tả (tùy chọn)
-        </Label>
-        <Input
-          id="desc"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Mô tả ngắn về chứng từ"
-        />
-      </div>
-    </div>
+            {/* File preview */}
+            {selectedFile && filePreviewUrl && (
+              <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">Xem trước</span>
+                  <span>{formatFileSize(selectedFile.size)}</span>
+                </div>
 
-    <div className="flex justify-end gap-2">
-      <Button variant="outline" onClick={() => setUploadDialogOpen(false)} disabled={isUploading}>
-        Hủy
-      </Button>
-      <Button variant="create" onClick={handleUpload} disabled={isUploading || !selectedFile}>
-        {isUploading ? 'Đang tải lên...' : 'Tải lên'}
-      </Button>
-    </div>
-  </DialogContent>
-</Dialog>
+                {selectedFile.type.startsWith('image/') ? (
+                  <div className="flex flex-col items-center justify-center gap-2 py-2">
+                    <img
+                      src={filePreviewUrl}
+                      alt={selectedFile.name}
+                      className="h-32 w-32 object-cover rounded-md cursor-pointer border hover:border-primary transition-colors shadow-xs"
+                      onClick={() => handlePreviewLocalFile(selectedFile)}
+                      title="Click để xem kích thước lớn"
+                    />
+                    <span className="text-xs text-muted-foreground truncate max-w-xs">
+                      {selectedFile.name}
+                    </span>
+                  </div>
+                ) : selectedFile.type === 'application/pdf' ? (
+                  <div className="flex items-center justify-between gap-4 p-2 bg-background rounded-md border">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileText className="h-9 w-9 text-red-500 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate" title={selectedFile.name}>
+                          {selectedFile.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatFileSize(selectedFile.size)}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePreviewLocalFile(selectedFile)}
+                      className="shrink-0"
+                    >
+                      <Eye className="mr-1.5 h-3.5 w-3.5" />
+                      Xem
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 p-2 bg-background rounded-md border">
+                    <File className="h-8 w-8 text-muted-foreground shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatFileSize(selectedFile.size)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Description */}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="desc" className="text-sm font-medium">
+                Mô tả (tùy chọn)
+              </Label>
+              <Input
+                id="desc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Mô tả ngắn về chứng từ"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => handleUploadDialogClose(false)} disabled={isUploading}>
+              Hủy
+            </Button>
+            <Button variant="create" onClick={handleUpload} disabled={isUploading || !selectedFile}>
+              {isUploading ? 'Đang tải lên...' : 'Tải lên'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={(open) => { if (!open) handleClosePreview(); }}>

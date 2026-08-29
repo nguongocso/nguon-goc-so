@@ -45,6 +45,7 @@ interface CreateFarmLogFormProps {
   onSubmit: (
     payload: CreateFarmLogRequest,
   ) => Promise<FarmLogResponse>;
+  onSuccess?: (log: FarmLogResponse) => void;
 }
 
 interface FormState {
@@ -127,6 +128,7 @@ export function CreateFarmLogForm({
   initialProductionLotId,
   onCancel,
   onSubmit,
+  onSuccess,
 }: CreateFarmLogFormProps) {
   const [form, setForm] = useState<FormState>(() =>
     createInitialForm(initialProductionLotId),
@@ -263,6 +265,11 @@ export function CreateFarmLogForm({
             toast.error(`Lỗi khi tải đính kèm "${file.name}"`);
           }
         }
+      }
+
+      if (onSuccess) {
+        onSuccess(created);
+        return;
       }
 
       setCreatedLog(created);

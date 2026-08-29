@@ -1,6 +1,7 @@
 package vn.nguongocso.farm.service.impl;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -21,7 +23,10 @@ import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.exception.BusinessException;
+import vn.nguongocso.exception.ResourceNotFoundException;
+import vn.nguongocso.farm.dto.request.CorrectFarmLogRequest;
 import vn.nguongocso.farm.dto.request.CreateFarmLogRequest;
+import vn.nguongocso.farm.dto.request.FarmLogCorrectionData;
 import vn.nguongocso.farm.dto.response.FarmLogResponse;
 import vn.nguongocso.farm.entity.FarmLog;
 import vn.nguongocso.farm.entity.ProductionLot;
@@ -30,6 +35,7 @@ import vn.nguongocso.farm.repository.FarmLogAttachmentRepository;
 import vn.nguongocso.farm.repository.FarmLogRepository;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.farm.service.FarmLogService;
+import vn.nguongocso.trace.repository.TraceCodeRepository;
 
 /**
  * Triển khai dịch vụ quản lý nhật ký canh tác.
@@ -42,6 +48,7 @@ public class FarmLogServiceImpl implements FarmLogService {
 	private final FarmLogRepository farmLogRepository;
 	private final ProductionLotRepository productionLotRepository;
 	private final FarmLogAttachmentRepository attachmentRepository;
+	private final TraceCodeRepository traceCodeRepository;
 
 	private final ApplicationEventPublisher eventPublisher;
 
@@ -57,7 +64,15 @@ public class FarmLogServiceImpl implements FarmLogService {
 
 	private static final String CREATE_PERMISSION_MESSAGE = "Bạn không có quyền ghi nhật ký canh tác.";
 	private static final String VIEW_PERMISSION_MESSAGE = "Bạn không có quyền xem lịch sử nhật ký canh tác.";
+	private static final String CORRECT_PERMISSION_MESSAGE = "Bạn không có quyền đính chính nhật ký canh tác.";
+	private static final String CORRECT_NOT_OWNER_MESSAGE = "Bạn chỉ được đính chính nhật ký do bạn ghi.";
+	private static final String FARM_LOG_NOT_FOUND_MESSAGE = "Không tìm thấy nhật ký canh tác";
+	private static final String NO_CHANGED_FIELD_MESSAGE = "Phải có ít nhất một trường được đính chính so với bản gốc.";
+	private static final String REASON_REQUIRED_MESSAGE = "Lý do đính chính không được để trống";
+	private static final String ACTIVATED_TRACE_CODE_MESSAGE =
+			"Lô sản xuất đã kích hoạt mã truy xuất. Bạn không thể đính chính nhật ký này.";
 	private static final String ORGANIZATION_ACCESS_MESSAGE = "Bạn không thuộc tổ chức của lô sản xuất.";
+
 	private static final String PRODUCTION_LOT_NOT_FOUND_MESSAGE = "Không tìm thấy lô sản xuất";
 	private static final String INVALID_LOT_STATUS_MESSAGE = "Chỉ được ghi nhật ký cho lô đã duyệt hoặc đang thu hoạch.";
 
@@ -76,7 +91,10 @@ public class FarmLogServiceImpl implements FarmLogService {
 
 		CustomUserDetails currentUser = getCurrentUser();
 
-		validateRole(currentUser, EVENT_RECORDER_ROLE, CREATE_PERMISSION_MESSAGE);
+		String roleCode = currentUser.getRoleCode();
+		if (!ORG_MANAGER_ROLE.equals(roleCode) && !EVENT_RECORDER_ROLE.equals(roleCode)) {
+			throw new BusinessException(CREATE_PERMISSION_MESSAGE);
+		}
 
 		ProductionLot productionLot = getProductionLot(request.getProductionLotId());
 
@@ -96,6 +114,165 @@ public class FarmLogServiceImpl implements FarmLogService {
 				saved.getId().toString());
 
 		return toResponse(saved);
+	}
+
+	/**
+	 * NCL-03-CN-006: Đính chính một nhật ký canh tác.
+	 *
+	 * <p>Bản gốc được giữ nguyên và đánh dấu đã đính chính; hệ thống tạo một
+	 * bản ghi mới liên kết tới bản gốc với lý do đính chính bắt buộc.</p>
+	 *
+	 * @param id      ID của nhật ký cần đính chính
+	 * @param request dữ liệu đính chính và lý do
+	 * @return thông tin bản ghi đính chính vừa tạo
+	 */
+	@Override
+	public FarmLogResponse correctFarmLog(UUID id, CorrectFarmLogRequest request) {
+
+		CustomUserDetails currentUser = getCurrentUser();
+
+		String roleCode = currentUser.getRoleCode();
+		boolean isManager = ORG_MANAGER_ROLE.equals(roleCode);
+
+		if (!isManager && !EVENT_RECORDER_ROLE.equals(roleCode)) {
+			throw new BusinessException(HttpStatus.FORBIDDEN, CORRECT_PERMISSION_MESSAGE);
+		}
+
+		FarmLog targetLog = farmLogRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException(FARM_LOG_NOT_FOUND_MESSAGE));
+
+		ProductionLot productionLot = targetLog.getProductionLotId();
+
+		validateOrganizationAccess(currentUser, productionLot);
+
+		// VT-03 chỉ được đính chính nhật ký do chính mình ghi.
+		if (!isManager && !targetLog.getCreatedBy().getUserId().equals(currentUser.getUserId())) {
+			throw new BusinessException(HttpStatus.FORBIDDEN, CORRECT_NOT_OWNER_MESSAGE);
+		}
+
+		if (request.getReason() == null || request.getReason().isBlank()) {
+			throw new BusinessException(REASON_REQUIRED_MESSAGE);
+		}
+
+		// Quyết về bản gốc của chuỗi và bản ghi hiệu lực hiện tại.
+		FarmLog root = resolveRoot(targetLog);
+		FarmLog effective = findLatestEffectiveVersion(root);
+
+		applyCorrectionChecks(isManager, productionLot, request.getCorrectionData(), effective);
+
+		User actor = currentUser.getUser();
+		LocalDateTime now = LocalDateTime.now(clock);
+
+		FarmLog correction = buildCorrection(effective, root, request, actor, now);
+		FarmLog saved = farmLogRepository.save(correction);
+
+		// Bản trước đó mất hiệu lực, bản gốc vẫn giữ nguyên dữ liệu ban đầu.
+		effective.setIsCorrected(true);
+		farmLogRepository.save(effective);
+
+		publishActivityLog(
+				currentUser,
+				"CORRECT",
+				"Đính chính nhật ký canh tác cho lô " + saved.getProductionLotId().getName(),
+				"FarmLog",
+				saved.getId().toString());
+
+		return toResponse(saved);
+	}
+
+	/**
+	 * NCL-03-CN-006: tìm bản gốc (root) của một nhật ký trong chuỗi đính chính.
+	 * Mọi bản đính chính đều trỏ trực tiếp tới bản gốc.
+	 */
+	private FarmLog resolveRoot(FarmLog log) {
+		FarmLog current = log;
+		while (current.isCorrection() && current.getOriginalFarmLogId() != null) {
+			current = current.getOriginalFarmLogId();
+		}
+		return current;
+	}
+
+	/**
+	 * NCL-03-CN-006: tìm bản ghi có hiệu lực hiện tại trong chuỗi đính chính —
+	 * là bản đính chính mới nhất chưa bị thay thế, hoặc chính bản gốc nếu chưa
+	 * có đính chính nào.
+	 */
+	private FarmLog findLatestEffectiveVersion(FarmLog root) {
+		List<FarmLog> corrections =
+				farmLogRepository.findByOriginalFarmLogId_IdOrderByCreatedAtDesc(root.getId());
+
+		for (FarmLog correction : corrections) {
+			if (!correction.isCorrected()) {
+				return correction;
+			}
+		}
+		return root;
+	}
+
+	/**
+	 * NCL-03-CN-006: kiểm tra nghiệp vụ trước khi tạo bản đính chính.
+	 */
+	private void applyCorrectionChecks(
+			boolean isManager,
+			ProductionLot productionLot,
+			FarmLogCorrectionData data,
+			FarmLog effective) {
+
+		// Ràng buộc mã truy xuất đã kích hoạt: chỉ VT-02 được tiếp tục.
+		if (!isManager && traceCodeRepository.existsActivatedByProductionLotId(productionLot.getId())) {
+			throw new BusinessException(HttpStatus.CONFLICT, ACTIVATED_TRACE_CODE_MESSAGE);
+		}
+
+		boolean changed =
+				isChanged(data.getActivityType(), effective.getActivityType())
+						|| isChanged(data.getMaterial(), effective.getMaterial())
+						|| isChanged(data.getQuantity(), effective.getQuantity())
+						|| isChanged(data.getUnit(), effective.getUnit())
+						|| isChanged(data.getExecutedDate(), effective.getExecutedDate())
+						|| isChanged(data.getNotes(), effective.getNotes());
+
+		if (!changed) {
+			throw new BusinessException(NO_CHANGED_FIELD_MESSAGE);
+		}
+
+		if (data.getExecutedDate() != null && data.getExecutedDate().isAfter(LocalDate.now(clock))) {
+			throw new BusinessException("Ngày thực hiện không được là ngày ở tương lai.");
+		}
+	}
+
+	private boolean isChanged(Object newValue, Object currentValue) {
+		return newValue != null && !newValue.equals(currentValue);
+	}
+
+	/**
+	 * NCL-03-CN-006: tạo bản ghi đính chính từ giá trị hiệu lực hiện tại,
+	 * chỉ thay đổi các trường được gửi trong request. productionLotId và
+	 * createdBy giữ theo bản gốc (không cho phép đổi lô / người ghi gốc).
+	 */
+	private FarmLog buildCorrection(
+			FarmLog effective,
+			FarmLog root,
+			CorrectFarmLogRequest request,
+			User correctedBy,
+			LocalDateTime createdAt) {
+
+		FarmLogCorrectionData data = request.getCorrectionData();
+
+		return FarmLog.builder()
+				.productionLotId(effective.getProductionLotId())
+				.activityType(data.getActivityType() != null ? data.getActivityType() : effective.getActivityType())
+				.material(data.getMaterial() != null ? data.getMaterial() : effective.getMaterial())
+				.quantity(data.getQuantity() != null ? data.getQuantity() : effective.getQuantity())
+				.unit(data.getUnit() != null ? data.getUnit() : effective.getUnit())
+				.executedDate(data.getExecutedDate() != null ? data.getExecutedDate() : effective.getExecutedDate())
+				.notes(data.getNotes() != null ? data.getNotes() : effective.getNotes())
+				.originalFarmLogId(root)
+				.isCorrection(true)
+				.correctionReason(request.getReason().trim())
+				.correctedBy(correctedBy)
+				.createdBy(correctedBy)
+				.createdAt(createdAt)
+				.build();
 	}
 
 	private void publishActivityLog(CustomUserDetails currentUser, String action, String description, String entityType,
@@ -158,7 +335,17 @@ public class FarmLogServiceImpl implements FarmLogService {
 				.executedDate(farmLog.getExecutedDate())
 				.notes(farmLog.getNotes())
 				.createdByName(farmLog.getCreatedBy().getFullName())
+				.createdById(farmLog.getCreatedBy().getUserId())
 				.createdAt(farmLog.getCreatedAt())
+				.originalFarmLogId(farmLog.getOriginalFarmLogId() != null
+						? farmLog.getOriginalFarmLogId().getId()
+						: null)
+				.isCorrection(farmLog.isCorrection())
+				.correctionReason(farmLog.getCorrectionReason())
+				.correctedByName(farmLog.getCorrectedBy() != null
+						? farmLog.getCorrectedBy().getFullName()
+						: null)
+				.isCorrected(farmLog.isCorrected())
 				.build();
 	}
 
@@ -224,23 +411,41 @@ public class FarmLogServiceImpl implements FarmLogService {
 		List<FarmLogResponse> responses = farmLogs.getContent().stream()
 				.map(log -> {
 					int count = attachmentRepository.countByFarmLogId(log.getId());
-					return FarmLogResponse.builder()
-							.id(log.getId())
-							.productionLotId(log.getProductionLotId().getId())
-							.productionLotName(log.getProductionLotId().getName())
-							.activityType(log.getActivityType())
-							.material(log.getMaterial())
-							.quantity(log.getQuantity())
-							.unit(log.getUnit())
-							.executedDate(log.getExecutedDate())
-							.notes(log.getNotes())
-							.createdByName(log.getCreatedBy().getFullName())
-							.createdAt(log.getCreatedAt())
-							.attachmentCount(count)
-							.build();
+					FarmLogResponse response = toResponse(log);
+					response.setAttachmentCount(count);
+					return response;
 				})
 				.toList();
 
 		return PageResponse.from(farmLogs, responses);
+	}
+
+	/**
+	 * NCL-03-CN-006: lấy chi tiết một nhật ký canh tác theo ID, phục vụ trang
+	 * đính chính. Chỉ người ghi sự kiện (VT-03) hoặc Quản lý hợp tác xã (VT-02)
+	 * cùng tổ chức mới xem được.
+	 *
+	 * @param id ID của nhật ký
+	 * @return thông tin nhật ký
+	 */
+	@Override
+	public FarmLogResponse getFarmLog(UUID id) {
+
+		CustomUserDetails currentUser = getCurrentUser();
+
+		String roleCode = currentUser.getRoleCode();
+		if (!ORG_MANAGER_ROLE.equals(roleCode) && !EVENT_RECORDER_ROLE.equals(roleCode)) {
+			throw new BusinessException(HttpStatus.FORBIDDEN, VIEW_PERMISSION_MESSAGE);
+		}
+
+		FarmLog farmLog = farmLogRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException(FARM_LOG_NOT_FOUND_MESSAGE));
+
+		validateOrganizationAccess(currentUser, farmLog.getProductionLotId());
+
+		int count = attachmentRepository.countByFarmLogId(farmLog.getId());
+		FarmLogResponse response = toResponse(farmLog);
+		response.setAttachmentCount(count);
+		return response;
 	}
 }
