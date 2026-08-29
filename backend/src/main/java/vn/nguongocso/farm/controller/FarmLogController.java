@@ -39,6 +39,7 @@ public class FarmLogController {
      * @return thông tin nhật ký vừa tạo
      */
     @PostMapping
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ApiResult<FarmLogResponse> create(
             @Valid @RequestBody CreateFarmLogRequest request) {
 
