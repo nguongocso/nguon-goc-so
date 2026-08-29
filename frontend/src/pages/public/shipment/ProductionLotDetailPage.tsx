@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -323,7 +323,16 @@ export const ProductionLotDetailPage = () => {
   const [showInspectionHistoryModal, setShowInspectionHistoryModal] =
     useState(false);
 
-  const [activeTab, setActiveTab] = useState("info");
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") || "info";
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   // Danh sách yêu cầu kiểm nghiệm (chỉ tải khi mở tab với vai trò VT-02)
   const [inspectionRequests, setInspectionRequests] = useState<
