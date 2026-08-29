@@ -23,11 +23,14 @@ import {
 } from "@/api/memberApi";
 import type { OrganizationMember, RoleOption } from "@/types/member";
 import { UserRoundCog, X, MailPlus } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
+import { useMemberStatusActions } from "@/hooks/useMemberStatusActions";
+import { DeactivateMemberDialog } from "@/components/organization/DeactivateMemberDialog";
+import { ReactivateMemberDialog } from "@/components/organization/ReactivateMemberDialog";
 import { ROLE_ACCESS } from "@/config/roleAccess";
 import {
   AlertDialog,
@@ -53,7 +56,7 @@ const ROLE_FILTER_OPTIONS = [
 const STATUS_FILTER_OPTIONS = [
   { value: "ALL", label: "Tất cả trạng thái" },
   { value: "ACTIVE", label: "Đang hoạt động" },
-  { value: "INACTIVE", label: "Đã vô hiệu hóa" },
+  { value: "INACTIVE", label: "Ngừng hoạt động" },
 ];
 
 const roleBadgeClasses: Record<string, string> = {
@@ -88,6 +91,10 @@ export const MemberList = () => {
   const [pendingMember, setPendingMember] = useState<OrganizationMember | null>(null);
   const [pendingRoleId, setPendingRoleId] = useState<number | null>(null);
   const [oldManager, setOldManager] = useState<OrganizationMember | null>(null);
+  const [deactivatingMember, setDeactivatingMember] =
+    useState<OrganizationMember | null>(null);
+  const [reactivatingMember, setReactivatingMember] =
+    useState<OrganizationMember | null>(null);
 
   const assignableRoles = useMemo(
     () =>
@@ -99,11 +106,13 @@ export const MemberList = () => {
     (role) => role.roleId === Number(selectedRoleId),
   );
 
-  const fetchMembers = async () => {
+  // Nạp TẤT CẢ thành viên (ACTIVE + INACTIVE) để phục vụ cả vô hiệu hóa
+  // lẫn kích hoạt lại (backend: status rỗng = tất cả membership).
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
       const [memberData, roleData] = await Promise.all([
-        getOrganizationMembers(),
+        getOrganizationMembers(""),
         getRoles(),
       ]);
       setMembers(memberData);
@@ -113,17 +122,29 @@ export const MemberList = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    void fetchMembers();
-  }, []);
+    void loadData();
+  }, [loadData]);
+
+  const { isDeactivating, isReactivating, deactivate, reactivate } =
+    useMemberStatusActions(loadData);
 
   const findCurrentManager = (excludeUserId?: string) => {
     return members.find(
       (m) => m.roleCode === "VT-02" && m.userId !== excludeUserId,
     );
   };
+
+  /**
+   * Trạng thái membership trong tổ chức (organization_users.status) —
+   * nguồn sự thật cho vô hiệu hóa/kích hoạt lại (NCL-01-CN-009).
+   * Fallback về `status` để tương thích khi backend chưa trả
+   * `membershipStatus`.
+   */
+  const isMembershipActive = (member: OrganizationMember) =>
+    (member.membershipStatus ?? member.status) === "ACTIVE";
 
   const filteredMembers = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -144,7 +165,8 @@ export const MemberList = () => {
           ? member.roleCode === null
           : member.roleCode === roleFilter);
       const matchesStatus =
-        statusFilter === "ALL" || member.status === statusFilter;
+        statusFilter === "ALL" ||
+        (member.membershipStatus ?? member.status) === statusFilter;
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [members, roleFilter, search, statusFilter, user]);
@@ -294,7 +316,7 @@ export const MemberList = () => {
               />
             </>
           }
-          right={<RefreshButton onClick={fetchMembers} loading={isLoading} />}
+          right={<RefreshButton onClick={loadData} loading={isLoading} />}
         />
 
           {/* Bảng */}
@@ -314,14 +336,14 @@ export const MemberList = () => {
               </>
             }
             body={paginatedMembers.map((member, index) => {
-              const inactive = member.status === "INACTIVE";
+              const active = isMembershipActive(member);
               return (
                 <TableRow
                   key={member.id}
                   className={
-                    inactive
-                      ? "bg-slate-50 opacity-70"
-                      : "hover:bg-muted/40 transition-colors"
+                    active
+                      ? "hover:bg-muted/40 transition-colors"
+                      : "bg-slate-50 opacity-70"
                   }
                 >
                   <TableCell className="text-center font-medium text-muted-foreground">
@@ -348,21 +370,43 @@ export const MemberList = () => {
                   </TableCell>
                   <TableCell>
                     <StatusBadge
-                      label={inactive ? "Đã vô hiệu hóa" : "Đang hoạt động"}
-                      tone={inactive ? "danger" : "success"}
+                      label={active ? "Đang hoạt động" : "Ngừng hoạt động"}
+                      tone={active ? "success" : "danger"}
                     />
                   </TableCell>
                   {canCreate && (
                     <TableCell className="text-center">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={inactive}
-                        onClick={() => openRoleDialog(member)}
-                        className="h-8 text-xs"
-                      >
-                        {member.roleCode ? "Đổi vai trò" : "Cấp quyền"}
-                      </Button>
+                      <div className="flex items-center justify-center gap-1">
+                        {active ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openRoleDialog(member)}
+                              className="h-8 text-xs"
+                            >
+                              {member.roleCode ? "Đổi vai trò" : "Cấp quyền"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setDeactivatingMember(member)}
+                              className="h-8 border-red-200 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                            >
+                              Vô hiệu hóa
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setReactivatingMember(member)}
+                            className="h-8 text-xs"
+                          >
+                            Kích hoạt lại
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>
@@ -518,6 +562,26 @@ export const MemberList = () => {
           </AlertDialogFooter>
         </AlertDialogPopup>
       </AlertDialog>
+
+      {/* Dialog vô hiệu hóa thành viên */}
+      <DeactivateMemberDialog
+        member={deactivatingMember}
+        deactivating={isDeactivating}
+        onClose={() => setDeactivatingMember(null)}
+        onConfirm={(userId, reason) =>
+          deactivate(userId, reason, deactivatingMember?.fullName)
+        }
+      />
+
+      {/* Dialog kích hoạt lại thành viên */}
+      <ReactivateMemberDialog
+        member={reactivatingMember}
+        reactivating={isReactivating}
+        onClose={() => setReactivatingMember(null)}
+        onConfirm={(userId, reason) =>
+          reactivate(userId, reason, reactivatingMember?.fullName)
+        }
+      />
     </div>
   );
 };
