@@ -54,10 +54,12 @@ export interface UpdateInputMaterialData {
 
 export interface InputMaterialQueryParams {
   keyword?: string;
+  search?: string;
   group?: MaterialGroup;
   isActive?: boolean;
   page?: number;
   size?: number;
+  limit?: number;
   sortBy?: string;
   sortDirection?: 'ASC' | 'DESC';
 }

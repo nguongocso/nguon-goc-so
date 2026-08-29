@@ -50,19 +50,24 @@ public class InputMaterialController {
 	@PreAuthorize("isAuthenticated()")
 	public ResponseEntity<ApiResult<Page<InputMaterialResponse>>> search(
 			@RequestParam(required = false) String keyword,
+			@RequestParam(required = false) String search,
 			@RequestParam(required = false) MaterialGroup group,
 			@RequestParam(required = false) Boolean isActive,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int size,
+			@RequestParam(required = false) Integer limit,
 			@RequestParam(defaultValue = "name") String sortBy,
 			@RequestParam(defaultValue = "ASC") String sortDirection) {
+
+		String effectiveKeyword = (keyword != null && !keyword.isBlank()) ? keyword : search;
+		int effectiveSize = (limit != null && limit > 0) ? limit : size;
 
 		Sort sort = sortDirection.equalsIgnoreCase("DESC")
 				? Sort.by(sortBy).descending()
 				: Sort.by(sortBy).ascending();
-		Pageable pageable = PageRequest.of(page, size, sort);
+		Pageable pageable = PageRequest.of(page, effectiveSize, sort);
 
-		Page<InputMaterialResponse> result = inputMaterialService.searchMaterials(keyword, group, isActive, pageable);
+		Page<InputMaterialResponse> result = inputMaterialService.searchMaterials(effectiveKeyword, group, isActive, pageable);
 		return ResponseEntity.ok(ApiResult.success(result));
 	}
 
