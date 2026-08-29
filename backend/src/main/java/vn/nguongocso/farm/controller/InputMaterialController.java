@@ -28,6 +28,7 @@ import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.farm.dto.request.CreateInputMaterialRequest;
 import vn.nguongocso.farm.dto.request.UpdateInputMaterialRequest;
 import vn.nguongocso.farm.dto.response.InputMaterialResponse;
+import vn.nguongocso.farm.enums.FarmActivityType;
 import vn.nguongocso.farm.enums.MaterialGroup;
 import vn.nguongocso.farm.service.InputMaterialService;
 import vn.nguongocso.permission.service.PermissionChecker;
@@ -50,19 +51,25 @@ public class InputMaterialController {
 	@PreAuthorize("isAuthenticated()")
 	public ResponseEntity<ApiResult<Page<InputMaterialResponse>>> search(
 			@RequestParam(required = false) String keyword,
+			@RequestParam(required = false) String search,
 			@RequestParam(required = false) MaterialGroup group,
+			@RequestParam(required = false) FarmActivityType activityType,
 			@RequestParam(required = false) Boolean isActive,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int size,
+			@RequestParam(required = false) Integer limit,
 			@RequestParam(defaultValue = "name") String sortBy,
 			@RequestParam(defaultValue = "ASC") String sortDirection) {
+
+		String effectiveKeyword = (keyword != null && !keyword.isBlank()) ? keyword : search;
+		int effectiveSize = (limit != null && limit > 0) ? limit : size;
 
 		Sort sort = sortDirection.equalsIgnoreCase("DESC")
 				? Sort.by(sortBy).descending()
 				: Sort.by(sortBy).ascending();
-		Pageable pageable = PageRequest.of(page, size, sort);
+		Pageable pageable = PageRequest.of(page, effectiveSize, sort);
 
-		Page<InputMaterialResponse> result = inputMaterialService.searchMaterials(keyword, group, isActive, pageable);
+		Page<InputMaterialResponse> result = inputMaterialService.searchMaterials(effectiveKeyword, group, activityType, isActive, pageable);
 		return ResponseEntity.ok(ApiResult.success(result));
 	}
 

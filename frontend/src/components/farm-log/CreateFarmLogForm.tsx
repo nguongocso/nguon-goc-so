@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 
 import { uploadAttachment } from '@/api/attachmentApi';
 import { AttachmentManager } from './AttachmentManager';
+import { InputMaterialSelect } from '@/components/input-material/InputMaterialSelect';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -534,13 +535,18 @@ export function CreateFarmLogForm({
                 >
                   Tên vật tư / Phân bón / Thuốc BVTV
                 </Label>
-                <Input
+                <InputMaterialSelect
                   id="material"
-                  type="text"
-                  placeholder="VD: Phun phân bón NPK 16-16-8, Thuốc trừ sâu Trichoderma..."
                   value={form.material}
-                  onChange={(e) => updateField('material', e.target.value)}
-                  className="h-10 border-slate-200 focus:border-emerald-600 focus:ring-emerald-100"
+                  onValueChange={(val) => updateField('material', val)}
+                  onSelectMaterial={(selectedMaterial) => {
+                    if (selectedMaterial?.unit) {
+                      updateField('unit', selectedMaterial.unit);
+                    }
+                  }}
+                  activityType={form.activityType as string}
+                  placeholder="Tìm kiếm vật tư, phân bón, thuốc BVTV..."
+                  disabled={isSubmitting}
                 />
               </div>
 

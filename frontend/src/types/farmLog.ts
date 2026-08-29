@@ -50,6 +50,12 @@ export interface CreateFarmLogRequest {
 
 export type FarmLogResponse = FarmLog;
 
+export interface HarvestEligibilityResponse {
+  determined: boolean;
+  eligibleHarvestDate: string | null;
+  unmatchedMaterials: string[];
+}
+
 export interface FarmLogCorrectionData {
   activityType?: FarmActivityType;
   material?: string;

@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Package, Truck, Sprout, Clipboard, Pencil, Wheat } from 'lucide-react';
+import { Calendar, MapPin, Package, Truck, Sprout, Clipboard, Pencil, Wheat, AlertTriangle } from 'lucide-react';
 import type { ChainEventResponse } from '@/types/packaging';
 import type { PreprocessingEventResponse } from '@/types/preprocessing';
 import { Button } from '@/components/ui/button';
@@ -49,14 +49,20 @@ export const ShipmentTimelineItem = ({ event, index, total }: Props) => {
   const label = getEventTypeLabel(event.eventType);
   const timestamp = formatDisplayDateTime(event.recordedAt);
 
+  const isEarlyHarvest =
+    event.eventType === 'HARVEST' &&
+    (event.eventData?.['earlyHarvest'] === true || event.eventData?.['earlyHarvest'] === 'true');
+
   // Extract and sort event data entries; hide internal fields
   const dataEntries = event.eventData
     ? Object.entries(event.eventData).filter(
-        ([key]) =>
+        ([key, value]) =>
           key !== 'productionLotId' &&
           key !== 'shipmentId' &&
           key !== 'deviceSource' &&
-          key !== 'images',
+          key !== 'images' &&
+          !(key === 'earlyHarvest' && (value === false || value === 'false')) &&
+          !(key === 'unmatchedMaterials' && Array.isArray(value) && value.length === 0),
       )
     : [];
 
@@ -82,7 +88,15 @@ export const ShipmentTimelineItem = ({ event, index, total }: Props) => {
       <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
         {/* Header: event type + timestamp */}
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="font-semibold text-gray-900">{label}</span>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-gray-900">{label}</span>
+            {isEarlyHarvest && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 border border-amber-200">
+                <AlertTriangle className="h-3 w-3 text-amber-600" />
+                Thu hoạch sớm
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-1.5 text-xs text-gray-400">
             <Calendar className="h-3 w-3" />
             <span>{timestamp}</span>
