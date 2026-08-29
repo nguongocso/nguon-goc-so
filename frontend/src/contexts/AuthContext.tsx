@@ -18,7 +18,16 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+
 import { getCurrent } from "@/api/authApi";
+
+import {
+  handleSessionExpiry,
+  resetSessionExpiryGuard,
+  SESSION_EXPIRED_EVENT,
+} from "@/utils/session";
 
 interface AuthContextType {
   user: AuthUserInfo | null;
@@ -150,6 +159,80 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setSelectionTokenState(null);
     setUserState(null);
   }, [user?.userId]);
+
+  /**
+   * ============================================================
+   * LOGOUT TẬP TRUNG KHI PHIÊN ĐĂNG NHẬP HẾT HẠN / MẤT TOKEN
+   * ============================================================
+   *
+   * handleSessionExpiry() (frontend/src/utils/session.ts) được gọi
+   * từ axios response interceptor khi protected API trả 401 hoặc
+   * 403 chưa-xác-thực (token thiếu / hết hạn / không hợp lệ), hoặc
+   * từ watchdog phía dưới khi token bị xóa khỏi localStorage.
+   *
+   * handleSessionExpiry() đã:
+   *   - clear access_token + selection_token + user_info (storage)
+   *
+   * Listener này chịu trách nhiệm phần React:
+   *   - reset user/token/selectionToken state (logout())
+   *   - toast thông báo CHỈ MỘT lần (guard đảm bảo idempotent)
+   *   - điều hướng về /login bằng SPA navigation (không reload,
+   *     không loop — đã ở /login thì handleSessionExpiry bỏ qua)
+   */
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      logout();
+
+      navigate("/login", { replace: true });
+
+      toast.error(
+        "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+      );
+
+      /**
+       * Guard đã xử lý xong: cho phép xử lý các lần hết hạn
+       * phiên TIẾP THEO (sau khi user đăng nhập lại).
+       */
+      resetSessionExpiryGuard();
+    };
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+
+    return () => {
+      window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    };
+  }, [logout, navigate]);
+
+  /**
+   * ============================================================
+   * WATCHDOG — PHÁT HIỆN TOKEN BỊ XÓA KHỎI STORAGE
+   * ============================================================
+   *
+   * React state không tự re-render khi localStorage bị thay đổi
+   * (ví dụ: localStorage.removeItem("access_token") từ DevTools).
+   *
+   * Khi vẫn đang "đăng nhập" trong state nhưng storage đã mất
+   * access token / user info → phiên không còn hợp lệ → logout
+   * tập trung + về /login mà không cần chờ request API lỗi.
+   *
+   * (PrivateRoute không phát hiện được trường hợp này vì nó chỉ
+   * đọc user từ context.)
+   */
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (!getToken() || !getUser()) {
+        handleSessionExpiry({ force: true });
+      }
+    }, 2000);
+
+    return () => window.clearInterval(intervalId);
+  }, [token]);
 
   return (
     <AuthContext.Provider

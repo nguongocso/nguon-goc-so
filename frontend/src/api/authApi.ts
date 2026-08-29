@@ -1,3 +1,5 @@
+import { isAxiosError } from 'axios';
+
 import type {
   ApiResult,
   AuthUserInfo,
@@ -38,20 +40,69 @@ export const login = async (
  *
  * API này sử dụng Selection JWT.
  */
+/**
+ * Chuỗi thông báo do backend trả khi thành viên không còn
+ * membership ACTIVE ở tổ chức nào (trạng thái tài khoản đã bị
+ * Vô hiệu hóa — NCL-01-CN-009). FE dùng để hiển thị message rõ nghĩa
+ * thay vì thông báo chung "chưa được gán tổ chức".
+ */
+export const MEMBERSHIP_INACTIVE_MESSAGE =
+  'Người dùng chưa được gán vào tổ chức nào';
+
+export const DEACTIVATED_ACCOUNT_MESSAGE =
+  'Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ với Quản lý hợp tác xã của bạn để được kích hoạt lại.';
+
+/**
+ * Nếu lỗi axios trả message trùng {@link MEMBERSHIP_INACTIVE_MESSAGE}
+ * (nghĩa vụ FE bởi backend chưa tạo status code riêng),
+ * thay bằng message rõ nghĩa cho người dùng bị Vô hiệu hóa.
+ */
+function withDeactivatedMessage<T>(error: unknown): ApiResult<T> {
+  if (isAxiosError(error)) {
+    const status = error.response?.status ?? 0;
+    const data = error.response?.data as ApiResult<unknown> | undefined;
+    const rawMessage = data?.message ?? '';
+    const message =
+      rawMessage === MEMBERSHIP_INACTIVE_MESSAGE
+        ? DEACTIVATED_ACCOUNT_MESSAGE
+        : rawMessage || DEACTIVATED_ACCOUNT_MESSAGE;
+    return {
+      success: false,
+      status,
+      message,
+      data: null as unknown as T,
+      errors: data?.errors,
+      path: data?.path,
+      timestamp: data?.timestamp ?? new Date().toISOString(),
+    };
+  }
+  return {
+    success: false,
+    status: 0,
+    message: DEACTIVATED_ACCOUNT_MESSAGE,
+    data: null as unknown as T,
+    errors: undefined,
+    path: undefined,
+    timestamp: new Date().toISOString(),
+  };
+}
+
 export const getOrganizations = async (
   selectionToken?: string
-): Promise<
-  ApiResult<OrganizationSelection[]>
-> => {
-  const response = await apiClient.get<
-    ApiResult<OrganizationSelection[]>
-  >("/auth/organizations", {
-    headers: selectionToken
-      ? { Authorization: `Bearer ${selectionToken}` }
-      : undefined,
-  });
+): Promise<ApiResult<OrganizationSelection[]>> => {
+  try {
+    const response = await apiClient.get<
+      ApiResult<OrganizationSelection[]>
+    >('/auth/organizations', {
+      headers: selectionToken
+        ? { Authorization: `Bearer ${selectionToken}` }
+        : undefined,
+    });
 
-  return response.data;
+    return response.data;
+  } catch (error: unknown) {
+    return withDeactivatedMessage<OrganizationSelection[]>(error);
+  }
 };
 
 /**

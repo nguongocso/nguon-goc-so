@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -43,6 +44,7 @@ import java.util.UUID;
  * ACCESS mới được phép thiết lập SecurityContext.
  * </p>
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -169,11 +171,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        UserDetails userDetails =
-                userDetailsService.loadUserByUserIdAndOrganizationId(
-                        userId,
-                        organizationId
-                );
+        /*
+         * Membership bị vô hiệu hóa (QTN-32) hoặc tài khoản bị khóa khiến
+         * việc load thất bại: KHÔNG thiết lập Authentication để request
+         * được xử lý như chưa đăng nhập (401/403) — đây là cơ chế chấm dứt
+         * phiên tức thời với JWT stateless. Ném exception qua filter sẽ
+         * biến thành 500 nên phải nuốt và bỏ qua.
+         */
+        UserDetails userDetails;
+        try {
+            userDetails = userDetailsService.loadUserByUserIdAndOrganizationId(
+                    userId,
+                    organizationId
+            );
+        } catch (Exception e) {
+            log.warn("Không xác thực được ACCESS token: userId={}, organizationId={}, reason={}",
+                    userId, organizationId, e.getMessage());
+            return;
+        }
 
         /*
          * Tạo Spring Security Authentication.

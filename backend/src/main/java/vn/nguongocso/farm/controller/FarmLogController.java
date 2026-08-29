@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,6 +15,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.common.PageResponse;
+import vn.nguongocso.farm.dto.request.CorrectFarmLogRequest;
 import vn.nguongocso.farm.dto.request.CreateFarmLogRequest;
 import vn.nguongocso.farm.dto.response.FarmLogResponse;
 import vn.nguongocso.farm.service.FarmLogService;
@@ -41,11 +43,33 @@ public class FarmLogController {
      * @return thông tin nhật ký vừa tạo
      */
     @PostMapping
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ApiResult<FarmLogResponse> create(
             @Valid @RequestBody CreateFarmLogRequest request) {
 
         permissionChecker.check("FARM_LOG", "CREATE");
         return ApiResult.success(farmLogService.create(request));
+    }
+
+    /**
+     * NCL-03-CN-006: Đính chính một nhật ký canh tác.
+     *
+     * <p>Bản gốc được giữ nguyên và đánh dấu đã đính chính; hệ thống tạo bản
+     * ghi mới liên kết tới bản gốc. Chỉ người ghi gốc (VT-03) hoặc Quản lý
+     * hợp tác xã (VT-02) được phép thực hiện.</p>
+     *
+     * @param id      ID của nhật ký cần đính chính
+     * @param request dữ liệu đính chính và lý do
+     * @return thông tin bản ghi đính chính vừa tạo
+     */
+    @PostMapping("/{id}/correct")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
+    public ApiResult<FarmLogResponse> correct(
+            @PathVariable UUID id,
+            @Valid @RequestBody CorrectFarmLogRequest request) {
+
+        permissionChecker.check("FARM_LOG", "UPDATE");
+        return ApiResult.success(farmLogService.correctFarmLog(id, request));
     }
 
     /**
@@ -82,5 +106,20 @@ public class FarmLogController {
     public ApiResult<HarvestEligibilityResponse> getHarvestEligibility(
             @RequestParam UUID productionLotId) {
         return ApiResult.success(harvestEligibilityService.calculateHarvestEligibility(productionLotId));
+    }
+
+    /**
+     * NCL-03-CN-006: Lấy chi tiết một nhật ký canh tác theo ID, phục vụ trang
+     * đính chính nhật ký.
+     *
+     * @param id ID của nhật ký
+     * @return thông tin nhật ký
+     */
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
+    public ApiResult<FarmLogResponse> getFarmLog(@PathVariable UUID id) {
+
+        permissionChecker.check("FARM_LOG", "READ");
+        return ApiResult.success(farmLogService.getFarmLog(id));
     }
 }
