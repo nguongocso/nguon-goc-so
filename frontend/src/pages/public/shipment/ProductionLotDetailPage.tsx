@@ -1020,6 +1020,7 @@ export const ProductionLotDetailPage = () => {
             productionLotId={lot.id}
             productionLotName={lot.name}
             canCreate={canCreateFarmLog}
+            enableCorrection
           />
         </TabsContent>
 
@@ -1295,7 +1296,7 @@ export const ProductionLotDetailPage = () => {
                                   <TableHead className="w-32 whitespace-normal">
                                     Trạng thái
                                   </TableHead>
-                                  <TableHead className="w-32 whitespace-normal text-center">
+                                  <TableHead className="w-32 whitespace-normal">
                                     Hiệu lực đến
                                   </TableHead>
                                 </TableRow>
@@ -1351,10 +1352,10 @@ export const ProductionLotDetailPage = () => {
                                     <TableCell className="whitespace-normal">
                                       {getCriterionRowStatusBadge(row.status)}
                                     </TableCell>
-                                    <TableCell className="whitespace-normal text-center">
+                                    <TableCell className="whitespace-normal">
                                       {row.result && row.result.expiryDate
-                                          ? formatDateOnly(row.result.expiryDate)
-                                          : "—"}
+                                        ? formatDateOnly(row.result.expiryDate)
+                                        : "—"}
                                     </TableCell>
                                   </TableRow>
                                 ))}
@@ -1726,7 +1727,7 @@ export const ProductionLotDetailPage = () => {
                                     }
                                   >
                                     {request.status === "PENDING"
-                                      ? "Ghi kết quả"
+                                      ? "Nhận kết quả"
                                       : "Xem chi tiết"}
                                   </Button>
                                 ))}
