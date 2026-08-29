@@ -971,8 +971,8 @@ export const CreateInspectionRequestPage: React.FC = () => {
                         <TableRow className="bg-muted/50">
                           <TableHead className="w-12 text-center">STT</TableHead>
                           <TableHead>Tên chỉ tiêu</TableHead>
-                          <TableHead>Đơn vị</TableHead>
                           <TableHead>Ngưỡng tối đa</TableHead>
+                          <TableHead>Đơn vị</TableHead>
                           <TableHead>Trạng thái</TableHead>
                           <TableHead className="w-24 text-center">Thao tác</TableHead>
                         </TableRow>
@@ -1004,18 +1004,15 @@ export const CreateInspectionRequestPage: React.FC = () => {
                                 <p className="text-xs font-semibold leading-snug text-foreground">
                                   {criterion.name}
                                 </p>
-                                <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
-                                  {criterion.code}
-                                </p>
                               </div>
                             </TableCell>
                             <TableCell className="whitespace-nowrap text-xs">
-                              {criterion.unit ?? "—"}
+                              {criterion.maxThreshold !== null
+                                  ? Number(criterion.maxThreshold)
+                                  : "—"}
                             </TableCell>
                             <TableCell className="whitespace-nowrap text-xs">
-                              {criterion.maxThreshold !== null
-                                ? Number(criterion.maxThreshold)
-                                : "—"}
+                              {criterion.unit ?? "—"}
                             </TableCell>
                             <TableCell>
                               {criterion.isCreated ? (
