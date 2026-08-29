@@ -331,7 +331,8 @@ public class PublicTraceServiceImpl implements PublicTraceService {
 
         switch (eventType) {
             case HARVEST:
-                keepFields(rawData, result, "productionLotName", "quantity", "harvestDate");
+                // B-03: Public trace chỉ hiển thị cờ earlyHarvest, eligibleHarvestDate, unmatchedMaterials; KHÔNG expose earlyHarvestReason
+                keepFields(rawData, result, "productionLotName", "quantity", "harvestDate", "earlyHarvest", "eligibleHarvestDate", "unmatchedMaterials");
                 break;
             case PACKAGING:
                 keepFields(rawData, result, "productionLotName", "packagingSpecification", "packagingDate");

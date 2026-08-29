@@ -62,6 +62,16 @@ export const createFarmLog = async (
   return response.data.data;
 };
 
+export const getHarvestEligibility = async (
+  productionLotId: string
+): Promise<import('@/types/farmLog').HarvestEligibilityResponse> => {
+  const response = await apiClient.get<{
+    success: boolean;
+    data: import('@/types/farmLog').HarvestEligibilityResponse;
+  }>('/farm-logs/harvest-eligibility', { params: { productionLotId } });
+  return response.data.data;
+};
+
 /**
  * NCL-03-CN-006: Đính chính một nhật ký canh tác.
  */

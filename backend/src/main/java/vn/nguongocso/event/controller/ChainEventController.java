@@ -48,10 +48,10 @@ public class ChainEventController {
 
     /**
      * API ghi nhận sự kiện thu hoạch cho lô sản xuất.
-     * Chỉ chấp nhận vai trò VT-02 (Quản lý HTX) và VT-03 (Người ghi sự kiện).
+     * Chấp nhận vai trò VT-01 (Admin), VT-02 (Quản lý HTX) và VT-03 (Người ghi sự kiện).
      */
     @PostMapping("/harvest")
-    @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<ChainEventResponse>> recordHarvest(
             @Valid @RequestBody RecordHarvestEventRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {

@@ -1,4 +1,4 @@
-import { Calendar, Package, Truck, Sprout, Clipboard } from 'lucide-react';
+import { Calendar, Package, Truck, Sprout, Clipboard, AlertTriangle } from 'lucide-react';
 import type { PublicChainEventItem } from '@/types/publicTrace';
 import {
   getEventTypeLabel,
@@ -33,6 +33,9 @@ export const Timeline = ({ events }: TimelineProps) => {
       {events.map((event, index) => {
         const Icon = EVENT_ICONS[event.eventType] || Calendar;
         const label = getEventTypeLabel(event.eventType);
+        const isEarlyHarvest =
+          event.eventType === 'HARVEST' &&
+          (event.eventData?.['earlyHarvest'] === true || event.eventData?.['earlyHarvest'] === 'true');
         const translatedData = getTranslatedEventData(
           event.eventType,
           (event.eventData as Record<string, unknown>) || {},
@@ -51,7 +54,15 @@ export const Timeline = ({ events }: TimelineProps) => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="font-semibold text-foreground">{label}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground">{label}</span>
+                      {isEarlyHarvest && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-600 border border-amber-500/20">
+                          <AlertTriangle className="h-3 w-3 text-amber-500" />
+                          Thu hoạch sớm
+                        </span>
+                      )}
+                    </div>
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       {formatDisplayDateTime(event.recordedAt)}

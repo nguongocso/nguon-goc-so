@@ -23,6 +23,7 @@ import vn.nguongocso.farm.dto.response.InputMaterialResponse;
 import vn.nguongocso.farm.dto.response.ProductCategoryResponse;
 import vn.nguongocso.farm.entity.InputMaterial;
 import vn.nguongocso.farm.entity.ProductCategory;
+import vn.nguongocso.farm.enums.FarmActivityType;
 import vn.nguongocso.farm.enums.MaterialGroup;
 import vn.nguongocso.farm.repository.FarmLogRepository;
 import vn.nguongocso.farm.repository.InputMaterialRepository;
@@ -152,10 +153,34 @@ public class InputMaterialServiceImpl implements InputMaterialService {
 
 	@Override
 	@Transactional(readOnly = true)
-	public Page<InputMaterialResponse> searchMaterials(String keyword, MaterialGroup group, Boolean isActive, Pageable pageable) {
+	public Page<InputMaterialResponse> searchMaterials(String keyword, MaterialGroup group, FarmActivityType activityType, Boolean isActive, Pageable pageable) {
 		String cleanKeyword = (keyword != null && !keyword.trim().isEmpty()) ? keyword.trim() : null;
-		return inputMaterialRepository.searchMaterials(cleanKeyword, group, isActive, pageable)
+
+		List<MaterialGroup> groups = null;
+		if (activityType != null) {
+			groups = getMaterialGroupsForActivity(activityType);
+			if (groups != null && groups.isEmpty()) {
+				return Page.empty(pageable);
+			}
+		}
+
+		return inputMaterialRepository.searchMaterials(cleanKeyword, group, groups, isActive, pageable)
 				.map(this::mapToResponse);
+	}
+
+	public List<MaterialGroup> getMaterialGroupsForActivity(FarmActivityType activityType) {
+		if (activityType == null) {
+			return null;
+		}
+		return switch (activityType) {
+			case FERTILIZING -> List.of(MaterialGroup.FERTILIZER);
+			case PESTICIDE -> List.of(MaterialGroup.PESTICIDE);
+			case PLANTING -> List.of(MaterialGroup.FERTILIZER, MaterialGroup.BIOLOGICAL, MaterialGroup.OTHER);
+			case WATERING -> List.of(MaterialGroup.OTHER);
+			case WEEDING -> List.of(MaterialGroup.PESTICIDE, MaterialGroup.OTHER);
+			case HARVESTING -> Collections.emptyList();
+			case OTHER -> Arrays.asList(MaterialGroup.values());
+		};
 	}
 
 	/**
