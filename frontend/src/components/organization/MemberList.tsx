@@ -28,12 +28,15 @@ import {
   getRoles,
 } from "@/api/memberApi";
 import type { OrganizationMember, RoleOption } from "@/types/member";
-import { Search, ShieldCheck, UserRoundCog, X, MailPlus } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Search, ShieldCheck, UserRoundCog, X, MailPlus} from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
+import { useMemberStatusActions } from "@/hooks/useMemberStatusActions";
+import { DeactivateMemberDialog } from "@/components/organization/DeactivateMemberDialog";
+import { ReactivateMemberDialog } from "@/components/organization/ReactivateMemberDialog";
 import { ROLE_ACCESS } from "@/config/roleAccess";
 import {
   AlertDialog,
@@ -78,6 +81,10 @@ export const MemberList = () => {
   const [pendingMember, setPendingMember] = useState<OrganizationMember | null>(null);
   const [pendingRoleId, setPendingRoleId] = useState<number | null>(null);
   const [oldManager, setOldManager] = useState<OrganizationMember | null>(null);
+  const [deactivatingMember, setDeactivatingMember] =
+    useState<OrganizationMember | null>(null);
+  const [reactivatingMember, setReactivatingMember] =
+    useState<OrganizationMember | null>(null);
 
   const assignableRoles = useMemo(
     () =>
@@ -89,24 +96,39 @@ export const MemberList = () => {
     (role) => role.roleId === Number(selectedRoleId),
   );
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        const [memberData, roleData] = await Promise.all([
-          getOrganizationMembers(),
-          getRoles(),
-        ]);
-        setMembers(memberData);
-        setRoles(roleData);
-      } catch {
-        toast.error("Không thể tải danh sách thành viên");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    void loadData();
+  // Nạp TẤT CẢ thành viên (ACTIVE + INACTIVE) để phục vụ cả vô hiệu hóa
+  // lẫn kích hoạt lại (backend: status rỗng = tất cả membership).
+  const loadData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const [memberData, roleData] = await Promise.all([
+        getOrganizationMembers(""),
+        getRoles(),
+      ]);
+      setMembers(memberData);
+      setRoles(roleData);
+    } catch {
+      toast.error("Không thể tải danh sách thành viên");
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
+
+  const { isDeactivating, isReactivating, deactivate, reactivate } =
+    useMemberStatusActions(loadData);
+
+  /**
+   * Trạng thái membership trong tổ chức (organization_users.status) —
+   * nguồn sự thật cho vô hiệu hóa/kích hoạt lại (NCL-01-CN-009).
+   * Fallback về `status` để tương thích khi backend chưa trả
+   * `membershipStatus`.
+   */
+  const isMembershipActive = (member: OrganizationMember) =>
+    (member.membershipStatus ?? member.status) === "ACTIVE";
 
   const findCurrentManager = (excludeUserId?: string) => {
     return members.find(
@@ -133,7 +155,8 @@ export const MemberList = () => {
           ? member.roleCode === null
           : member.roleCode === roleFilter);
       const matchesStatus =
-        statusFilter === "ALL" || member.status === statusFilter;
+        statusFilter === "ALL" ||
+        (member.membershipStatus ?? member.status) === statusFilter;
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [members, roleFilter, search, statusFilter, user]);
@@ -215,7 +238,7 @@ export const MemberList = () => {
   const getStatusFilterLabel = () => {
     if (statusFilter === "ALL") return "Tất cả trạng thái";
     if (statusFilter === "ACTIVE") return "Đang hoạt động";
-    return "Đã vô hiệu hóa";
+    return "Ngừng hoạt động";
   };
 
   const getSelectedRoleLabel = () => {
@@ -332,7 +355,7 @@ export const MemberList = () => {
               <SelectContent>
                 <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
                 <SelectItem value="ACTIVE">Đang hoạt động</SelectItem>
-                <SelectItem value="INACTIVE">Đã vô hiệu hóa</SelectItem>
+                <SelectItem value="INACTIVE">Ngừng hoạt động</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -373,14 +396,14 @@ export const MemberList = () => {
                 )}
                 {!isLoading &&
                   filteredMembers.map((member) => {
-                    const inactive = member.status === "INACTIVE";
+                    const active = isMembershipActive(member);
                     return (
                       <TableRow
                         key={member.id}
                         className={
-                          inactive
-                            ? "bg-slate-50 opacity-70"
-                            : "hover:bg-slate-50/60"
+                          active
+                            ? "hover:bg-slate-50/60"
+                            : "bg-slate-50 opacity-70"
                         }
                       >
                         <TableCell className="font-semibold text-slate-900">
@@ -405,31 +428,55 @@ export const MemberList = () => {
                         <TableCell>
                           <span
                             className={`inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                              inactive
-                                ? "bg-red-50 text-red-600"
-                                : "bg-emerald-50 text-emerald-700"
+                              active
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-red-50 text-red-600"
                             }`}
                           >
                             <span
                               className={`size-2 shrink-0 rounded-full ${
-                                inactive ? "bg-red-500" : "bg-emerald-600"
+                                active ? "bg-emerald-600" : "bg-red-500"
                               }`}
                             />
-                            {inactive ? "Đã vô hiệu hóa" : "Đang hoạt động"}
+                            {active ? "Đang hoạt động" : "Ngừng hoạt động"}
                           </span>
                         </TableCell>
                         {canCreate && (
                           <TableCell>
                             <div className="flex items-center gap-1.5">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={inactive}
-                                onClick={() => openRoleDialog(member)}
-                                className="h-8 text-xs"
-                              >
-                                {member.roleCode ? "Đổi vai trò" : "Cấp quyền"}
-                              </Button>
+                              {active ? (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => openRoleDialog(member)}
+                                    className="h-8 text-xs"
+                                  >
+                                    {member.roleCode
+                                      ? "Đổi vai trò"
+                                      : "Cấp quyền"}
+                                  </Button>
+                                  <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setDeactivatingMember(member)}
+                                      className="h-8 border-red-200 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                                  >
+                                    Vô hiệu hóa
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    setReactivatingMember(member)
+                                  }
+                                  className="h-8 text-xs"
+                                >
+                                  Kích hoạt lại
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         )}
@@ -584,6 +631,26 @@ export const MemberList = () => {
           </AlertDialogFooter>
         </AlertDialogPopup>
       </AlertDialog>
+
+      {/* Dialog vô hiệu hóa thành viên */}
+      <DeactivateMemberDialog
+        member={deactivatingMember}
+        deactivating={isDeactivating}
+        onClose={() => setDeactivatingMember(null)}
+        onConfirm={(userId, reason) =>
+          deactivate(userId, reason, deactivatingMember?.fullName)
+        }
+      />
+
+      {/* Dialog kích hoạt lại thành viên */}
+      <ReactivateMemberDialog
+        member={reactivatingMember}
+        reactivating={isReactivating}
+        onClose={() => setReactivatingMember(null)}
+        onConfirm={(userId, reason) =>
+          reactivate(userId, reason, reactivatingMember?.fullName)
+        }
+      />
     </div>
   );
 };

@@ -14,6 +14,7 @@ import vn.nguongocso.organization.repository.OrganizationRepository;
 import vn.nguongocso.trace.dto.request.CreateCodeRangeRequest;
 import vn.nguongocso.trace.dto.response.CodeRangeResponse;
 import vn.nguongocso.trace.dto.response.CodeRangeStatusResponse;
+import vn.nguongocso.trace.dto.response.RemainingCodesResponse;
 import vn.nguongocso.trace.entity.CodeRange;
 import vn.nguongocso.trace.repository.CodeRangeRepository;
 
@@ -189,5 +190,68 @@ public class CodeRangeServiceTest  {
         // Then
         assertThat(responses.get(0).getStatus()).isEqualTo("OK");
         assertThat(responses.get(0).getUsagePercent()).isEqualTo(70.0);
+    }
+
+    @Test
+    void getRemainingCodesForOrganization_shouldReturnRemaining_whenCodeRangeExists() {
+
+        // Given
+        CodeRange range = CodeRange.builder()
+                .id(UUID.randomUUID())
+                .prefix("893001")
+                .totalLimit(1000L)
+                .usedCount(400L)
+                .build();
+
+        when(codeRangeRepository.findFirstReadOnlyByOrganizationOrganizationIdOrderByCreatedAtDesc(orgId))
+                .thenReturn(Optional.of(range));
+
+        // When
+        RemainingCodesResponse response = codeRangeService.getRemainingCodesForOrganization(orgId);
+
+        // Then
+        assertThat(response.isHasCodeRange()).isTrue();
+        assertThat(response.getRemainingCount()).isEqualTo(600L);
+        assertThat(response.getTotalLimit()).isEqualTo(1000L);
+        assertThat(response.getUsedCount()).isEqualTo(400L);
+    }
+
+    @Test
+    void getRemainingCodesForOrganization_shouldClampToZero_whenUsedCountExceedsLimit() {
+
+        // Given
+        CodeRange range = CodeRange.builder()
+                .id(UUID.randomUUID())
+                .prefix("893001")
+                .totalLimit(100L)
+                .usedCount(250L)
+                .build();
+
+        when(codeRangeRepository.findFirstReadOnlyByOrganizationOrganizationIdOrderByCreatedAtDesc(orgId))
+                .thenReturn(Optional.of(range));
+
+        // When
+        RemainingCodesResponse response = codeRangeService.getRemainingCodesForOrganization(orgId);
+
+        // Then
+        assertThat(response.isHasCodeRange()).isTrue();
+        assertThat(response.getRemainingCount()).isZero();
+    }
+
+    @Test
+    void getRemainingCodesForOrganization_shouldReturnZero_whenOrganizationHasNoCodeRange() {
+
+        // Given
+        when(codeRangeRepository.findFirstReadOnlyByOrganizationOrganizationIdOrderByCreatedAtDesc(orgId))
+                .thenReturn(Optional.empty());
+
+        // When
+        RemainingCodesResponse response = codeRangeService.getRemainingCodesForOrganization(orgId);
+
+        // Then
+        assertThat(response.isHasCodeRange()).isFalse();
+        assertThat(response.getRemainingCount()).isZero();
+        assertThat(response.getTotalLimit()).isZero();
+        assertThat(response.getUsedCount()).isZero();
     }
 }

@@ -113,6 +113,11 @@ export const formatActionType = (action: string): string => {
 
     // Alert
     RESOLVE_ALERT: 'Xử lý cảnh báo',
+
+    // Organization & Member — NCL-01-CN-009 / QTN-32
+    DEACTIVATE: 'Vô hiệu hóa thành viên',
+    REACTIVATE: 'Kích hoạt lại thành viên',
+    DEACTIVATE_BLOCKED: 'Từ chối vô hiệu hóa thành viên',
   };
 
   const upper = action.toUpperCase();
@@ -241,10 +246,11 @@ export const getActionColor = (action: string): string => {
   ) {
     return 'bg-rose-100 text-rose-800 border-rose-200';
   }
-  if (
+    if (
     act.includes('RECALL') ||
     act.includes('LOCK') ||
-    act.includes('SUBMIT')
+    act.includes('SUBMIT') ||
+    act.includes('DEACTIVATE')
   ) {
     return 'bg-amber-100 text-amber-800 border-amber-200';
   }
