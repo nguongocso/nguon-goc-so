@@ -13,6 +13,7 @@ export interface InputMaterialSelectProps {
   disabled?: boolean;
   className?: string;
   id?: string;
+  activityType?: string;
 }
 
 const GROUP_BADGE_STYLES: Record<string, string> = {
@@ -30,6 +31,7 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
   disabled = false,
   className,
   id,
+  activityType,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState(value || '');
@@ -46,6 +48,7 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
     try {
       const response = await getInputMaterials({
         keyword: searchTerm.trim() || undefined,
+        activityType: activityType || undefined,
         isActive: true,
         size: 20,
       });
@@ -55,13 +58,13 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activityType]);
 
   useEffect(() => {
     if (!isOpen) return;
     const timer = setTimeout(() => fetchMaterials(query), 250);
     return () => clearTimeout(timer);
-  }, [query, isOpen, fetchMaterials]);
+  }, [query, isOpen, fetchMaterials, activityType]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

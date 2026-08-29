@@ -28,6 +28,7 @@ import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.farm.dto.request.CreateInputMaterialRequest;
 import vn.nguongocso.farm.dto.request.UpdateInputMaterialRequest;
 import vn.nguongocso.farm.dto.response.InputMaterialResponse;
+import vn.nguongocso.farm.enums.FarmActivityType;
 import vn.nguongocso.farm.enums.MaterialGroup;
 import vn.nguongocso.farm.service.InputMaterialService;
 import vn.nguongocso.permission.service.PermissionChecker;
@@ -52,6 +53,7 @@ public class InputMaterialController {
 			@RequestParam(required = false) String keyword,
 			@RequestParam(required = false) String search,
 			@RequestParam(required = false) MaterialGroup group,
+			@RequestParam(required = false) FarmActivityType activityType,
 			@RequestParam(required = false) Boolean isActive,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int size,
@@ -67,7 +69,7 @@ public class InputMaterialController {
 				: Sort.by(sortBy).ascending();
 		Pageable pageable = PageRequest.of(page, effectiveSize, sort);
 
-		Page<InputMaterialResponse> result = inputMaterialService.searchMaterials(effectiveKeyword, group, isActive, pageable);
+		Page<InputMaterialResponse> result = inputMaterialService.searchMaterials(effectiveKeyword, group, activityType, isActive, pageable);
 		return ResponseEntity.ok(ApiResult.success(result));
 	}
 

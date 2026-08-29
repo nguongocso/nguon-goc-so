@@ -56,6 +56,7 @@ export interface InputMaterialQueryParams {
   keyword?: string;
   search?: string;
   group?: MaterialGroup;
+  activityType?: string;
   isActive?: boolean;
   page?: number;
   size?: number;

@@ -544,6 +544,7 @@ export function CreateFarmLogForm({
                       updateField('unit', selectedMaterial.unit);
                     }
                   }}
+                  activityType={form.activityType as string}
                   placeholder="Tìm kiếm vật tư, phân bón, thuốc BVTV..."
                   disabled={isSubmitting}
                 />

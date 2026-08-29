@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import vn.nguongocso.farm.dto.request.CreateInputMaterialRequest;
 import vn.nguongocso.farm.dto.request.UpdateInputMaterialRequest;
 import vn.nguongocso.farm.dto.response.InputMaterialResponse;
+import vn.nguongocso.farm.enums.FarmActivityType;
 import vn.nguongocso.farm.enums.MaterialGroup;
 
 /**
@@ -43,5 +44,5 @@ public interface InputMaterialService {
 	/**
 	 * Tìm kiếm và phân trang danh mục vật tư đầu vào.
 	 */
-	Page<InputMaterialResponse> searchMaterials(String keyword, MaterialGroup group, Boolean isActive, Pageable pageable);
+	Page<InputMaterialResponse> searchMaterials(String keyword, MaterialGroup group, FarmActivityType activityType, Boolean isActive, Pageable pageable);
 }

@@ -47,7 +47,7 @@ public interface InputMaterialRepository extends JpaRepository<InputMaterial, UU
 			@Param("activeIngredient") String activeIngredient);
 
 	/**
-	 * Tìm kiếm vật tư theo từ khóa, nhóm vật tư và trạng thái active.
+	 * Tìm kiếm vật tư theo từ khóa, nhóm vật tư / danh sách nhóm và trạng thái active.
 	 */
 	@Query("""
 			SELECT DISTINCT im FROM InputMaterial im
@@ -55,11 +55,13 @@ public interface InputMaterialRepository extends JpaRepository<InputMaterial, UU
 			WHERE (:keyword IS NULL OR LOWER(im.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
 			       OR LOWER(im.activeIngredient) LIKE LOWER(CONCAT('%', :keyword, '%')))
 			AND (:group IS NULL OR im.materialGroup = :group)
+			AND (:groups IS NULL OR im.materialGroup IN :groups)
 			AND (:isActive IS NULL OR im.isActive = :isActive)
 			""")
 	Page<InputMaterial> searchMaterials(
 			@Param("keyword") String keyword,
 			@Param("group") MaterialGroup group,
+			@Param("groups") List<MaterialGroup> groups,
 			@Param("isActive") Boolean isActive,
 			Pageable pageable);
 
