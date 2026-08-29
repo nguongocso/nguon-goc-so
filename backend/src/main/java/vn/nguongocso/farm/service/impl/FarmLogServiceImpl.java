@@ -91,7 +91,10 @@ public class FarmLogServiceImpl implements FarmLogService {
 
 		CustomUserDetails currentUser = getCurrentUser();
 
-		validateRole(currentUser, EVENT_RECORDER_ROLE, CREATE_PERMISSION_MESSAGE);
+		String roleCode = currentUser.getRoleCode();
+		if (!ORG_MANAGER_ROLE.equals(roleCode) && !EVENT_RECORDER_ROLE.equals(roleCode)) {
+			throw new BusinessException(CREATE_PERMISSION_MESSAGE);
+		}
 
 		ProductionLot productionLot = getProductionLot(request.getProductionLotId());
 

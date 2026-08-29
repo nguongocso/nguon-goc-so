@@ -11,6 +11,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { correctFarmLog, getFarmLogById } from '@/api/farmLogApi';
+import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -136,6 +137,28 @@ export default function CorrectFarmLogPage() {
       cancelled = true;
     };
   }, [id]);
+
+  const breadcrumbItems = useMemo(() => {
+    return [
+      { label: 'Dashboard', href: '/dashboard' },
+      { label: 'Lô sản xuất', href: '/production-lots' },
+      ...(log?.productionLotId
+        ? [
+            {
+              label: log.productionLotName || 'Chi tiết lô',
+              href: `/production-lots/${log.productionLotId}`,
+            },
+            {
+              label: 'Nhật ký canh tác',
+              href: `/production-lots/${log.productionLotId}`,
+            },
+          ]
+        : []),
+      { label: 'Đính chính' },
+    ];
+  }, [log]);
+
+  useSetBreadcrumb(log ? breadcrumbItems : null);
 
   /**
    * So sánh dữ liệu đang nhập với bản gốc để gửi đúng các trường thay đổi.

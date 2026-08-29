@@ -163,6 +163,9 @@ const CreateFarmLogPage = () => {
           initialProductionLotId={initialProductionLotId}
           onCancel={() => navigate(-1)}
           onSubmit={handleSubmit}
+          onSuccess={(log) => {
+            navigate(`/production-lots/${log.productionLotId}?tab=farmlogs`);
+          }}
         />
       )}
     </div>
