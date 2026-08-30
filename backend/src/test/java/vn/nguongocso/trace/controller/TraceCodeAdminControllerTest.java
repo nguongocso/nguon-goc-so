@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -81,8 +82,23 @@ class TraceCodeAdminControllerTest {
 
         OrganizationUser orgUser = new OrganizationUser();
         orgUser.setOrganization(org);
+        orgUser.setUser(user);
 
         Role role = new Role();
+        role.setRoleId(1);
+        role.setCode(roleCode);
+        role.setName("Role " + roleCode);
+
+        return new CustomUserDetails(user, orgUser, role);
+    }
+
+    @BeforeEach
+    void setUp() {
+        adminUserId = UUID.randomUUID();
+        vt01User = createCustomUserDetails(adminUserId, "admin", "VT-01");
+        vt02User = createCustomUserDetails(UUID.randomUUID(), "manager", "VT-02");
+    }
+
     @Test
     void unlockTraceCode_happyPath_shouldReturnOk() throws Exception {
         UUID traceCodeId = UUID.randomUUID();
@@ -150,6 +166,9 @@ class TraceCodeAdminControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.codeValue").value(codeValue))
+                .andExpect(jsonPath("$.data.status").value("ACTIVE"));
+    }
+
     @Test
     void unlockTraceCode_forbiddenForNonVT01() throws Exception {
         UUID traceCodeId = UUID.randomUUID();
@@ -187,7 +206,7 @@ class TraceCodeAdminControllerTest {
 
         when(suspectDetectionService.unlockTraceCodeWithVerification(
                 eq(traceCodeId.toString()), any(UnlockTraceCodeRequest.class), eq(adminUserId), eq("Test User admin")))
-                .thenThrow(new BusinessException("Mã tem không ở trạng thái bị khóa."));
+                .thenThrow(new BusinessException(HttpStatus.CONFLICT, "Mã tem không ở trạng thái bị khóa."));
 
         mockMvc.perform(post("/api/v1/admin/trace-codes/" + traceCodeId + "/unlock")
                         .with(user(vt01User))
@@ -217,21 +236,5 @@ class TraceCodeAdminControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Không tìm thấy mã tem."));
-    }
-
-                .andExpect(jsonPath("$.data.status").value("ACTIVE"));
-    }
-
-        role.setCode(roleCode);
-        role.setName("Role " + roleCode);
-
-        return new CustomUserDetails(user, orgUser, role);
-    }
-
-    @BeforeEach
-    void setUp() {
-        adminUserId = UUID.randomUUID();
-        vt01User = createCustomUserDetails(adminUserId, "admin", "VT-01");
-        vt02User = createCustomUserDetails(UUID.randomUUID(), "manager", "VT-02");
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -375,7 +376,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
         TraceCode traceCode = findTraceCodeByIdOrCodeValue(codeOrId);
 
         if (traceCode.getStatus() != TraceCodeStatus.LOCKED) {
-            throw new BusinessException("Mã tem không ở trạng thái bị khóa.");
+            throw new BusinessException(HttpStatus.CONFLICT, "Mã tem không ở trạng thái bị khóa.");
         }
 
         String conclusion = request.getConclusion() != null ? request.getConclusion().trim() : "";
