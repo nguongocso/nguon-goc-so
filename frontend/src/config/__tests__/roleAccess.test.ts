@@ -24,4 +24,13 @@ describe('TC-F - Quyền truy cập màn hình Phân công địa bàn', () => {
     expect(hasAnyRole('VT-05', ROLE_ACCESS.areaAssignment)).toBe(false);
     expect(hasAnyRole(undefined, ROLE_ACCESS.areaAssignment)).toBe(false);
   });
+
+  it('ROLE_ACCESS.anomalyThresholdConfig chỉ dành cho VT-01', () => {
+    expect(ROLE_ACCESS.anomalyThresholdConfig).toEqual(['VT-01']);
+    expect(hasAnyRole('VT-01', ROLE_ACCESS.anomalyThresholdConfig)).toBe(true);
+    expect(hasAnyRole('VT-02', ROLE_ACCESS.anomalyThresholdConfig)).toBe(false);
+    expect(hasAnyRole('VT-03', ROLE_ACCESS.anomalyThresholdConfig)).toBe(false);
+    expect(hasAnyRole('VT-04', ROLE_ACCESS.anomalyThresholdConfig)).toBe(false);
+    expect(hasAnyRole('VT-05', ROLE_ACCESS.anomalyThresholdConfig)).toBe(false);
+  });
 });

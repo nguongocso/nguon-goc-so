@@ -111,6 +111,7 @@ const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/admin/system-monitoring", "Giám sát hệ thống"],
   ["/admin/suspect-trace-codes/:traceCodeId", "Chi tiết mã nghi vấn"],
   ["/admin/suspect-trace-codes", "Mã truy xuất nghi vấn"],
+  ["/admin/anomaly-thresholds", "Cấu hình ngưỡng quét bất thường"],
   ["/integration/api-keys/create", "Cấp khóa API"],
   ["/integration/api-keys", "Khóa API đối tác"],
 

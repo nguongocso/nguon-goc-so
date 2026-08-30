@@ -28,6 +28,7 @@ export const ROLE_ACCESS = {
   inspectionRequest: ['VT-02'] as const,
 
   scanAnomalyAlerts: ['VT-01', 'VT-02'] as const,
+  anomalyThresholdConfig: ['VT-01'] as const,
 
   procurementEvent: ['VT-04'] as const,
 
