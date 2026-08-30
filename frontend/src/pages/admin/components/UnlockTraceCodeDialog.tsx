@@ -80,6 +80,17 @@ export function UnlockTraceCodeDialog({
 
   return (
     <Dialog open={!!traceCode} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-emerald-700">
+            <Unlock className="h-5 w-5" />
+            Mở khóa mã tem sau xác minh
+          </DialogTitle>
+          <DialogDescription>
+            Khôi phục trạng thái hoạt động của mã tem, gỡ cảnh báo trên trang tra cứu công khai và gửi thông báo đến Hợp tác xã sở hữu.
+          </DialogDescription>
+        </DialogHeader>
+
         {traceCode && (
           <div className="space-y-4">
             <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
@@ -183,17 +194,6 @@ export function UnlockTraceCodeDialog({
             {submitting ? 'Đang xử lý...' : 'Xác nhận mở khóa'}
           </Button>
         </DialogFooter>
-
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-emerald-700">
-            <Unlock className="h-5 w-5" />
-            Mở khóa mã tem sau xác minh
-          </DialogTitle>
-          <DialogDescription>
-            Khôi phục trạng thái hoạt động của mã tem, gỡ cảnh báo trên trang tra cứu công khai và gửi thông báo đến Hợp tác xã sở hữu.
-          </DialogDescription>
-        </DialogHeader>
       </DialogContent>
     </Dialog>
   );

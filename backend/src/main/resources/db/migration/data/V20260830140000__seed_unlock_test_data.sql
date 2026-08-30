@@ -122,6 +122,7 @@ VALUES
     NOW()
 );
 
+
 -- 5. Seed Trace Codes with various statuses:
 -- 5.1. 5 LOCKED codes locked by admin
 INSERT IGNORE INTO trace_codes
@@ -238,6 +239,29 @@ SELECT
 FROM (
     SELECT 1 idx, 'Đã xác minh tem quét tại quầy trưng bày Hội chợ Nông sản Quốc tế 2026, sản phẩm chính hãng.' conclusion, 'Biên bản làm việc số 15/BB-HC ngày 28/08/2026 đính kèm' evidence
     UNION ALL SELECT 2, 'Đã đối soát hóa đơn bán lẻ và danh sách xuất kho tại chuỗi siêu thị WinMart, xác nhận tem hợp lệ.' conclusion, 'Hóa đơn GTGT điện tử số HD-0098231' evidence
+) t;
+
+-- 5.6. 5 SUSPECT trace codes (not yet locked)
+INSERT IGNORE INTO trace_codes
+    (id, shipment_id, code_value, qr_image, status, activated_at, activated_by, created_at,
+     suspicion_score, suspicion_reason)
+SELECT
+    CONCAT('00000000-0000-0000-0000-00000006000', t.idx),
+    '00000000-0000-0000-0000-000000000083',
+    CONCAT('NCL-TEST-SUS-', LPAD(t.idx, 2, '0')),
+    CONCAT('/files/qr/NCL-TEST-SUS-', LPAD(t.idx, 2, '0'), '.png'),
+    'SUSPECT',
+    DATE_SUB(NOW(), INTERVAL 4 DAY),
+    (SELECT user_id FROM users WHERE user_name = 'orgmanager' LIMIT 1),
+    DATE_SUB(NOW(), INTERVAL 4 DAY),
+    t.score,
+    t.susp_reason
+FROM (
+    SELECT 1 idx, 65 score, 'Quét bất thường từ 3 vị trí khác nhau trong 6 giờ' susp_reason
+    UNION ALL SELECT 2, 70, 'Số lượt quét vượt ngưỡng 15 lần trong 2 giờ'
+    UNION ALL SELECT 3, 60, 'Khoảng cách di chuyển không hợp lý giữa các lượt quét (>100km trong 45 phút)'
+    UNION ALL SELECT 4, 55, 'Tần suất quét tăng đột biến trong giờ cao điểm từ các IP lạ'
+    UNION ALL SELECT 5, 50, 'Quét từ nhiều thiết bị di động khác nhau trong thời gian ngắn'
 ) t;
 
 -- 6. Seed Scan Logs for locked codes
