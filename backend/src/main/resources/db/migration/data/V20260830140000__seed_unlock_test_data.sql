@@ -112,6 +112,16 @@ VALUES
 (
     '00000000-0000-0000-0000-000000000084',
     '00000000-0000-0000-0000-000000000082',
+    '00000000-0000-0000-0000-000000000080',
+    'Lô hàng Sầu Riêng phân phối Toàn quốc',
+    4000,
+    'Thùng gỗ 20kg chuyên dụng',
+    'ACTIVATED',
+    (SELECT user_id FROM users WHERE user_name = 'orgmanager' LIMIT 1),
+    NOW(),
+    NOW()
+);
+
 -- 5. Seed Trace Codes with various statuses:
 -- 5.1. 5 LOCKED codes locked by admin
 INSERT IGNORE INTO trace_codes
@@ -163,10 +173,6 @@ FROM (
     UNION ALL SELECT 3, 85, 'Quét lặp lại 18 lượt tại khu vực chợ đầu mối', 'Khóa do nghi ngờ tem bị photocopy dán trên sản phẩm khác'
 ) t;
 
-    '00000000-0000-0000-0000-000000000080',
-    'Lô hàng Sầu Riêng phân phối Toàn quốc',
-    4000,
-    'Thùng gỗ 20kg chuyên dụng',
 -- 5.3. 5 ACTIVE normal trace codes
 INSERT IGNORE INTO trace_codes
     (id, shipment_id, code_value, qr_image, status, activated_at, activated_by, created_at,
@@ -273,10 +279,4 @@ VALUES
     'Quận Hải Châu, TP. Đà Nẵng',
     TRUE,
     'Quét bất thường nhiều vị trí'
-);
-
-    'ACTIVATED',
-    (SELECT user_id FROM users WHERE user_name = 'orgmanager' LIMIT 1),
-    NOW(),
-    NOW()
 );
