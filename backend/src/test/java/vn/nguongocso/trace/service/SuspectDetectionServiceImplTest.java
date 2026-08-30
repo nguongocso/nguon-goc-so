@@ -22,11 +22,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.report.entity.TraceCodeScanLog;
 import vn.nguongocso.report.repository.TraceCodeScanLogRepository;
+import vn.nguongocso.trace.dto.request.UnlockTraceCodeRequest;
 import vn.nguongocso.trace.dto.response.SuspectTraceCodeDetailResponse;
+import vn.nguongocso.trace.dto.response.UnlockTraceCodeResponse;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
@@ -56,6 +59,9 @@ class SuspectDetectionServiceImplTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
+
     private SuspectDetectionServiceImpl service;
 
     private UUID traceCodeId;
@@ -64,7 +70,7 @@ class SuspectDetectionServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new SuspectDetectionServiceImpl(
-                traceCodeRepository, scanLogRepository, userRepository, notificationService);
+                traceCodeRepository, scanLogRepository, userRepository, notificationService, eventPublisher);
 
         traceCodeId = UUID.randomUUID();
 
@@ -234,5 +240,118 @@ class SuspectDetectionServiceImplTest {
     private Integer sumBreakdown(SuspectTraceCodeDetailResponse detail) {
         var b = detail.getAnomalyDetails().getScoreBreakdown();
         return b.getHighFrequency() + b.getImpossibleTravel() + b.getMultipleLocations();
+    }
+
+    @Test
+    void unlockTraceCodeWithVerification_happyPath_shouldUnlockSuccessfully() {
+        // Arrange
+        UUID adminId = UUID.randomUUID();
+        User admin = User.builder().userId(adminId).userName("admin01").build();
+        when(userRepository.findById(adminId)).thenReturn(Optional.of(admin));
+
+        UUID lockerId = UUID.randomUUID();
+        User locker = User.builder().userId(lockerId).userName("locker01").build();
+
+        traceCode.setStatus(TraceCodeStatus.LOCKED);
+        traceCode.setLockedBy(locker);
+        traceCode.setLockedAt(LocalDateTime.now().minusDays(1));
+        traceCode.setLockReason("Quét bất thường nhiều nơi");
+
+        UnlockTraceCodeRequest request = new UnlockTraceCodeRequest();
+        request.setConclusion("Đã xác minh vận đơn và đối soát thực tế, không có dấu hiệu giả mạo.");
+        request.setEvidence("Biên bản đối soát số 123");
+
+        // Act
+        var response = service.unlockTraceCodeWithVerification(traceCodeId.toString(), request, adminId, "Admin User");
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(TraceCodeStatus.ACTIVE.name(), response.getStatus());
+        assertEquals("NCL0001", response.getCodeValue());
+        assertEquals(adminId, response.getUnlockedBy());
+        assertEquals("Admin User", response.getUnlockedByName());
+        assertEquals(request.getConclusion(), response.getUnlockConclusion());
+        assertEquals(request.getEvidence(), response.getUnlockEvidence());
+        assertEquals(request.getConclusion(), response.getVerificationNote());
+        assertEquals(TraceCodeStatus.ACTIVE, traceCode.getStatus());
+        assertNotNull(traceCode.getUnlockedAt());
+
+        verify(traceCodeRepository).save(traceCode);
+        verify(notificationService).sendTraceCodeUnlockedNotification(traceCode);
+        verify(eventPublisher).publishEvent(any(vn.nguongocso.alert.event.ActivityLogEvent.class));
+    }
+
+    @Test
+    void unlockTraceCodeWithVerification_whenNotLocked_shouldThrowConflict() {
+        // Arrange
+        traceCode.setStatus(TraceCodeStatus.ACTIVE);
+        UUID adminId = UUID.randomUUID();
+        UnlockTraceCodeRequest request = new UnlockTraceCodeRequest();
+        request.setConclusion("Đã xác minh đầy đủ thông tin hợp lệ.");
+
+        // Act & Assert
+        vn.nguongocso.exception.BusinessException ex = org.junit.jupiter.api.Assertions.assertThrows(
+                vn.nguongocso.exception.BusinessException.class,
+                () -> service.unlockTraceCodeWithVerification(traceCodeId.toString(), request, adminId, "Admin User"));
+
+        assertEquals("Mã tem không ở trạng thái bị khóa.", ex.getMessage());
+    }
+
+    @Test
+    void unlockTraceCodeWithVerification_whenBlankConclusion_shouldThrowException() {
+        // Arrange
+        traceCode.setStatus(TraceCodeStatus.LOCKED);
+        UUID adminId = UUID.randomUUID();
+        UnlockTraceCodeRequest request = new UnlockTraceCodeRequest();
+        request.setConclusion("   ");
+
+        // Act & Assert
+        vn.nguongocso.exception.BusinessException ex = org.junit.jupiter.api.Assertions.assertThrows(
+                vn.nguongocso.exception.BusinessException.class,
+                () -> service.unlockTraceCodeWithVerification(traceCodeId.toString(), request, adminId, "Admin User"));
+
+        assertEquals("Kết luận xác minh không được để trống.", ex.getMessage());
+    }
+
+    @Test
+    void unlockTraceCodeWithVerification_sameAdminLocked_shortConclusion_shouldThrowException() {
+        // Arrange
+        UUID adminId = UUID.randomUUID();
+        User admin = User.builder().userId(adminId).userName("admin01").build();
+
+        traceCode.setStatus(TraceCodeStatus.LOCKED);
+        traceCode.setLockedBy(admin); // Same admin locked it
+
+        UnlockTraceCodeRequest request = new UnlockTraceCodeRequest();
+        request.setConclusion("Xác minh xong"); // < 20 chars
+
+        // Act & Assert
+        vn.nguongocso.exception.BusinessException ex = org.junit.jupiter.api.Assertions.assertThrows(
+                vn.nguongocso.exception.BusinessException.class,
+                () -> service.unlockTraceCodeWithVerification(traceCodeId.toString(), request, adminId, "Admin User"));
+
+        assertEquals("Quản trị viên đã khóa mã tem cần nhập kết luận xác minh chi tiết hơn (tối thiểu 20 ký tự).", ex.getMessage());
+    }
+
+    @Test
+    void unlockTraceCodeWithVerification_sameAdminLocked_detailedConclusion_shouldSucceed() {
+        // Arrange
+        UUID adminId = UUID.randomUUID();
+        User admin = User.builder().userId(adminId).userName("admin01").build();
+        when(userRepository.findById(adminId)).thenReturn(Optional.of(admin));
+
+        traceCode.setStatus(TraceCodeStatus.LOCKED);
+        traceCode.setLockedBy(admin); // Same admin locked it
+
+        UnlockTraceCodeRequest request = new UnlockTraceCodeRequest();
+        request.setConclusion("Đã kiểm tra lại toàn bộ nhật ký quét và hóa đơn phân phối hợp lệ."); // >= 20 chars
+
+        // Act
+        var response = service.unlockTraceCodeWithVerification(traceCodeId.toString(), request, adminId, "Admin User");
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(TraceCodeStatus.ACTIVE.name(), response.getStatus());
+        verify(traceCodeRepository).save(traceCode);
     }
 }
