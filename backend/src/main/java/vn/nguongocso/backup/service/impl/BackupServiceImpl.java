@@ -336,8 +336,23 @@ public class BackupServiceImpl implements BackupService {
         File file = new File(dir, fileName);
         File errFile = new File(dir, "mysqldump_error_" + timestamp + ".log");
 
+        String resolvedExecutable;
+        try {
+            resolvedExecutable = resolveMysqldumpPath();
+        } catch (IOException e) {
+            log.error("Failed to resolve mysqldump path", e);
+            if (file.exists()) {
+                file.delete();
+            }
+            if (errFile.exists()) {
+                errFile.delete();
+            }
+            self.updateStatus(history.getId(), BackupStatus.FAILED, null, null, null, e.getMessage());
+            return backupRestoreHistoryRepository.findById(history.getId()).orElse(history);
+        }
+
         List<String> command = new ArrayList<>();
-        command.add(mysqlDumpPath);
+        command.add(resolvedExecutable);
         command.add("-h");
         command.add(dbHost);
         command.add("-P");
@@ -464,6 +479,107 @@ public class BackupServiceImpl implements BackupService {
                 }
                 backupRestoreHistoryRepository.delete(history);
             }
+        }
+    }
+
+    /**
+     * Tự động giải quyết đường dẫn công cụ mysqldump.
+     * Thứ tự ưu tiên: Cấu hình app.backup.mysql-dump-path -> System PATH via `where`/`which` -> Thư mục mặc định -> Gọi trực tiếp mysqldump -> Báo lỗi.
+     */
+    public String resolveMysqldumpPath() throws IOException {
+        String configured = mysqlDumpPath != null ? mysqlDumpPath.trim() : "";
+
+        // 1. Nếu cấu hình được truyền và file tồn tại trên đĩa
+        if (!configured.isEmpty()) {
+            File file = new File(configured);
+            if (file.exists() && file.isFile()) {
+                log.info("Sử dụng đường dẫn mysqldump từ cấu hình: {}", file.getAbsolutePath());
+                return file.getAbsolutePath();
+            }
+        }
+
+        boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+        String execName = isWindows ? "mysqldump.exe" : "mysqldump";
+
+        // 2. Tìm kiếm trên System PATH thông qua `where` (Windows) hoặc `which` (Linux/macOS)
+        String foundByPath = findExecutableOnSystemPath(isWindows ? "where" : "which", execName);
+        if (foundByPath != null) {
+            log.info("Tìm thấy mysqldump trên System PATH: {}", foundByPath);
+            return foundByPath;
+        }
+
+        // 3. Thử các đường dẫn cài đặt mặc định phổ biến
+        List<String> commonPaths = getCommonMysqlPaths(isWindows, execName);
+        for (String path : commonPaths) {
+            File file = new File(path);
+            if (file.exists() && file.isFile()) {
+                log.info("Tìm thấy mysqldump tại vị trí mặc định: {}", file.getAbsolutePath());
+                return file.getAbsolutePath();
+            }
+        }
+
+        // 4. Kiểm tra xem lệnh "mysqldump" hoặc "mysqldump.exe" có thể thực thi trực tiếp từ PATH không
+        if (canExecuteCommand(execName)) {
+            log.info("Sử dụng mysqldump trực tiếp từ môi trường hệ thống");
+            return execName;
+        }
+
+        // 5. Ném ngoại lệ chi tiết nếu không tìm thấy
+        if (!configured.isEmpty()) {
+            throw new IOException("Đường dẫn mysqldump được cấu hình (" + configured
+                    + ") không tồn tại hoặc không phải là file hợp lệ. Vui lòng kiểm tra lại cấu hình MYSQL_DUMP_PATH.");
+        }
+
+        throw new IOException("Không tìm thấy công cụ mysqldump trên hệ thống. "
+                + "Vui lòng cài đặt MySQL Client hoặc cấu hình biến môi trường MYSQL_DUMP_PATH / thuộc tính app.backup.mysql-dump-path.");
+    }
+
+    private String findExecutableOnSystemPath(String finderTool, String binaryName) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder(finderTool, binaryName);
+            Process process = pb.start();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line = reader.readLine();
+                if (line != null && !line.trim().isEmpty()) {
+                    File file = new File(line.trim());
+                    if (file.exists() && file.isFile()) {
+                        return file.getAbsolutePath();
+                    }
+                }
+            }
+            process.waitFor();
+        } catch (Exception ignored) {
+            // Ignored
+        }
+        return null;
+    }
+
+    private List<String> getCommonMysqlPaths(boolean isWindows, String binaryName) {
+        List<String> paths = new ArrayList<>();
+        if (isWindows) {
+            paths.add("C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\" + binaryName);
+            paths.add("C:\\Program Files\\MySQL\\MySQL Server 8.4\\bin\\" + binaryName);
+            paths.add("C:\\Program Files\\MySQL\\MySQL Server 8.1\\bin\\" + binaryName);
+            paths.add("C:\\Program Files\\MySQL\\MySQL Server 5.7\\bin\\" + binaryName);
+            paths.add("C:\\Program Files (x86)\\MySQL\\MySQL Server 5.7\\bin\\" + binaryName);
+            paths.add("C:\\xampp\\mysql\\bin\\" + binaryName);
+            paths.add("C:\\inetpub\\mysql\\bin\\" + binaryName);
+        } else {
+            paths.add("/usr/bin/" + binaryName);
+            paths.add("/usr/local/bin/" + binaryName);
+            paths.add("/usr/local/mysql/bin/" + binaryName);
+            paths.add("/opt/homebrew/bin/" + binaryName);
+        }
+        return paths;
+    }
+
+    private boolean canExecuteCommand(String binaryName) {
+        try {
+            Process process = new ProcessBuilder(binaryName, "--version").start();
+            boolean finished = process.waitFor(3, TimeUnit.SECONDS);
+            return finished && process.exitValue() == 0;
+        } catch (Exception e) {
+            return false;
         }
     }
 }
