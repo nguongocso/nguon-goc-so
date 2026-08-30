@@ -23,12 +23,9 @@ import {
   MapPin,
   Search,
   ShieldAlert,
-  Unlock,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { LockTraceCodeDialog } from './components/LockTraceCodeDialog';
-import { UnlockTraceCodeDialog } from './components/UnlockTraceCodeDialog';
 import { HelpButton } from '@/components/help/HelpButton';
 import { ListPageHeader } from '@/components/common/ListPageHeader';
 import { ListCard } from '@/components/common/ListCard';
@@ -36,7 +33,6 @@ import { ListToolbar } from '@/components/common/ListToolbar';
 import { DataTableShell } from '@/components/common/DataTableShell';
 import { RefreshButton } from '@/components/common/RefreshButton';
 import { StatusBadge } from '@/components/common/StatusBadge';
-import { useAuth } from '@/hooks/useAuth';
 
 const EMPTY_PAGE: PageResponse<SuspectTraceCodeResponse> = {
   items: [],
@@ -61,7 +57,6 @@ const formatDateTime = (value: string | null) => {
 
 export default function SuspectTraceCodeListPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [draftMinScore, setDraftMinScore] = useState<string>('');
   const [draftStatus, setDraftStatus] = useState<string>('ALL');
   const [minScore, setMinScore] = useState<number | undefined>(undefined);
@@ -70,8 +65,6 @@ export default function SuspectTraceCodeListPage() {
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(20);
   const [loading, setLoading] = useState(true);
-  const [lockTarget, setLockTarget] = useState<SuspectTraceCodeResponse | null>(null);
-  const [unlockTarget, setUnlockTarget] = useState<SuspectTraceCodeResponse | null>(null);
 
   const suspectCount = useMemo(
     () => result.items.filter((item) => item.status === 'SUSPECT').length,
@@ -160,7 +153,6 @@ export default function SuspectTraceCodeListPage() {
       <TableHead>Lượt quét</TableHead>
       <TableHead>Địa điểm</TableHead>
       <TableHead>Trạng thái</TableHead>
-      <TableHead className="text-center">Thao tác</TableHead>
       <TableHead className="text-center">Chi tiết</TableHead>
     </>
   );
@@ -203,33 +195,6 @@ export default function SuspectTraceCodeListPage() {
         </p>
       </TableCell>
       <TableCell>{getStatusBadge(item.status)}</TableCell>
-      <TableCell>
-        <div className="flex justify-center gap-1">
-          {item.status === 'SUSPECT' && (
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              title="Khóa tem"
-              onClick={() => setLockTarget(item)}
-            >
-              <Lock className="size-4 text-red-600" />
-            </Button>
-          )}
-          {item.status === 'LOCKED' && (
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              title="Mở khóa tem"
-              onClick={() => setUnlockTarget(item)}
-            >
-              <Unlock className="size-4 text-emerald-600" />
-            </Button>
-          )}
-          {item.status !== 'SUSPECT' && item.status !== 'LOCKED' && (
-            <span className="text-sm text-muted-foreground">—</span>
-          )}
-        </div>
-      </TableCell>
       <TableCell>
         <div className="flex justify-center">
           <Button
@@ -363,7 +328,7 @@ export default function SuspectTraceCodeListPage() {
           body={body}
           loading={loading}
           empty={!loading && result.items.length === 0}
-          colSpan={9}
+          colSpan={8}
           loadingMessage="Đang tải danh sách mã tem nghi vấn..."
           emptyMessage="Không có mã tem nghi vấn"
         />
@@ -417,25 +382,6 @@ export default function SuspectTraceCodeListPage() {
           </div>
         )}
       </ListCard>
-
-      <LockTraceCodeDialog
-        traceCode={lockTarget}
-        onClose={() => setLockTarget(null)}
-        onSuccess={() => {
-          setLockTarget(null);
-          fetchData();
-        }}
-      />
-
-      <UnlockTraceCodeDialog
-        traceCode={unlockTarget}
-        currentUserId={user?.userId}
-        onClose={() => setUnlockTarget(null)}
-        onSuccess={() => {
-          setUnlockTarget(null);
-          fetchData();
-        }}
-      />
     </div>
   );
 }
