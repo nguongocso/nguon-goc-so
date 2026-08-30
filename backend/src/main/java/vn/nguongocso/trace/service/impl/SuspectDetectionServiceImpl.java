@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import vn.nguongocso.alert.dto.response.AnomalyThresholdResponse;
+import vn.nguongocso.alert.service.AnomalyThresholdService;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.common.PageResponse;
@@ -49,7 +51,6 @@ import vn.nguongocso.trace.service.SuspectDetectionService;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class SuspectDetectionServiceImpl implements SuspectDetectionService {
 
     // --- Thresholds per API doc ---
@@ -68,6 +69,28 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
     private final TraceCodeScanLogRepository scanLogRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final AnomalyThresholdService anomalyThresholdService;
+
+    public SuspectDetectionServiceImpl(
+            TraceCodeRepository traceCodeRepository,
+            TraceCodeScanLogRepository scanLogRepository,
+            UserRepository userRepository,
+            NotificationService notificationService) {
+        this(traceCodeRepository, scanLogRepository, userRepository, notificationService, null);
+    }
+
+    public SuspectDetectionServiceImpl(
+            TraceCodeRepository traceCodeRepository,
+            TraceCodeScanLogRepository scanLogRepository,
+            UserRepository userRepository,
+            NotificationService notificationService,
+            AnomalyThresholdService anomalyThresholdService) {
+        this.traceCodeRepository = traceCodeRepository;
+        this.scanLogRepository = scanLogRepository;
+        this.userRepository = userRepository;
+        this.notificationService = notificationService;
+        this.anomalyThresholdService = anomalyThresholdService;
+    }
 
     @Override
     @Transactional
@@ -98,7 +121,8 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                 .sorted(Comparator.comparing(TraceCodeScanLog::getScannedAt))
                 .collect(Collectors.toList());
 
-        SuspicionEvaluation evaluation = evaluate(sortedScans);
+        AnomalyThresholdResponse threshold = getEffectiveThreshold(traceCode);
+        SuspicionEvaluation evaluation = evaluate(sortedScans, threshold, traceCode);
 
         // Build suspicion reason
         StringBuilder reasonBuilder = new StringBuilder();
@@ -201,7 +225,8 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
 
         // Reuse the exact same scoring engine as evaluateSuspicion so the
         // breakdown always matches the persisted suspicionScore.
-        SuspicionEvaluation evaluation = evaluate(sortedScans);
+        AnomalyThresholdResponse threshold = getEffectiveThreshold(traceCode);
+        SuspicionEvaluation evaluation = evaluate(sortedScans, threshold, traceCode);
 
         AnomalyDetails anomalyDetails = AnomalyDetails.builder()
                 .totalScans(recentScans.size())
@@ -327,7 +352,12 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
      * @param sortedScans các lượt quét đã sắp xếp tăng dần theo thời gian
      * @return kết quả đánh giá (từng hạng mục + tổng điểm)
      */
-    private SuspicionEvaluation evaluate(List<TraceCodeScanLog> sortedScans) {
+    private SuspicionEvaluation evaluate(List<TraceCodeScanLog> sortedScans, AnomalyThresholdResponse threshold, TraceCode traceCode) {
+        int maxPerDay = (threshold != null && threshold.getMaxScansPerDay() != null) ? threshold.getMaxScansPerDay() : HIGH_FREQUENCY_THRESHOLD;
+        int maxPerHour = (threshold != null && threshold.getMaxScansPerHour() != null) ? threshold.getMaxScansPerHour() : 5;
+        double maxDistanceKm = (threshold != null && threshold.getMaxDistanceKmPer30Min() != null) ? threshold.getMaxDistanceKmPer30Min() : IMPOSSIBLE_TRAVEL_DISTANCE_KM;
+        int minTimeMinutes = (threshold != null && threshold.getMinTimeBetweenScansMinutes() != null) ? threshold.getMinTimeBetweenScansMinutes() : IMPOSSIBLE_TRAVEL_MINUTES;
+
         int highFreqScore = 0;
         int impossibleTravelScore = 0;
         int multipleLocationsScore = 0;
@@ -335,12 +365,24 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
         Double firstImpossibleDistanceKm = null;
         Long firstImpossibleMinutes = null;
 
-        // 1. High frequency: ≥ 10 scans in 24h
-        if (sortedScans.size() >= HIGH_FREQUENCY_THRESHOLD) {
+        // 1. High frequency: >= maxPerDay scans in 24h OR >= maxPerHour in any 1h window
+        if (sortedScans.size() >= maxPerDay) {
             highFreqScore = HIGH_FREQUENCY_SCORE;
+        } else {
+            for (int i = 0; i < sortedScans.size(); i++) {
+                LocalDateTime windowStart = sortedScans.get(i).getScannedAt();
+                LocalDateTime windowEnd = windowStart.plusHours(1);
+                long countInHour = sortedScans.stream()
+                        .filter(s -> !s.getScannedAt().isBefore(windowStart) && !s.getScannedAt().isAfter(windowEnd))
+                        .count();
+                if (countInHour >= maxPerHour) {
+                    highFreqScore = HIGH_FREQUENCY_SCORE;
+                    break;
+                }
+            }
         }
 
-        // 2. Impossible travel: > 50km within < 30 min between consecutive scans with coordinates
+        // 2. Impossible travel: > maxDistanceKm within < minTimeMinutes between consecutive scans with coordinates
         for (int i = 0; i < sortedScans.size() - 1; i++) {
             TraceCodeScanLog scan1 = sortedScans.get(i);
             TraceCodeScanLog scan2 = sortedScans.get(i + 1);
@@ -358,7 +400,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
 
             long minutesBetween = Duration.between(scan1.getScannedAt(), scan2.getScannedAt()).toMinutes();
 
-            if (distance > IMPOSSIBLE_TRAVEL_DISTANCE_KM && minutesBetween < IMPOSSIBLE_TRAVEL_MINUTES) {
+            if (distance > maxDistanceKm && minutesBetween <= minTimeMinutes) {
                 impossibleTravelCount++;
                 if (firstImpossibleDistanceKm == null) {
                     firstImpossibleDistanceKm = distance;
@@ -387,6 +429,18 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                 totalScore,
                 firstImpossibleDistanceKm,
                 firstImpossibleMinutes);
+    }
+
+    private AnomalyThresholdResponse getEffectiveThreshold(TraceCode traceCode) {
+        if (anomalyThresholdService == null || traceCode == null) {
+            return null;
+        }
+        UUID categoryId = null;
+        if (traceCode.getShipment() != null && traceCode.getShipment().getProductionLot() != null
+                && traceCode.getShipment().getProductionLot().getProductCategory() != null) {
+            categoryId = traceCode.getShipment().getProductionLot().getProductCategory().getId();
+        }
+        return anomalyThresholdService.getEffectiveThreshold(categoryId);
     }
 
     /**

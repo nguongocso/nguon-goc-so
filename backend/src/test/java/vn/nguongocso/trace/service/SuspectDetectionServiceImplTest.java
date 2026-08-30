@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,11 +23,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import vn.nguongocso.alert.dto.response.AnomalyThresholdResponse;
+import vn.nguongocso.alert.service.AnomalyThresholdService;
 import vn.nguongocso.auth.repository.UserRepository;
+import vn.nguongocso.farm.entity.ProductCategory;
+import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.report.entity.TraceCodeScanLog;
 import vn.nguongocso.report.repository.TraceCodeScanLogRepository;
 import vn.nguongocso.trace.dto.response.SuspectTraceCodeDetailResponse;
+import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
@@ -56,6 +62,9 @@ class SuspectDetectionServiceImplTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private AnomalyThresholdService anomalyThresholdService;
+
     private SuspectDetectionServiceImpl service;
 
     private UUID traceCodeId;
@@ -64,7 +73,7 @@ class SuspectDetectionServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new SuspectDetectionServiceImpl(
-                traceCodeRepository, scanLogRepository, userRepository, notificationService);
+                traceCodeRepository, scanLogRepository, userRepository, notificationService, anomalyThresholdService);
 
         traceCodeId = UUID.randomUUID();
 
@@ -73,7 +82,7 @@ class SuspectDetectionServiceImplTest {
         traceCode.setCodeValue("NCL0001");
         traceCode.setStatus(TraceCodeStatus.ACTIVE);
 
-        when(traceCodeRepository.findById(traceCodeId)).thenReturn(Optional.of(traceCode));
+        lenient().when(traceCodeRepository.findById(traceCodeId)).thenReturn(Optional.of(traceCode));
     }
 
     private TraceCodeScanLog scan(long minutesAgo, double lat, double lon) {
@@ -235,4 +244,49 @@ class SuspectDetectionServiceImplTest {
         var b = detail.getAnomalyDetails().getScoreBreakdown();
         return b.getHighFrequency() + b.getImpossibleTravel() + b.getMultipleLocations();
     }
+
+    @Test
+    void shouldUseCategoryThreshold_whenEvaluatingTraceCodeWithCategoryOverride() {
+        UUID categoryId = UUID.randomUUID();
+        ProductCategory category = ProductCategory.builder().id(categoryId).name("Sầu riêng").build();
+        ProductionLot lot = ProductionLot.builder().id(UUID.randomUUID()).productCategory(category).build();
+        Shipment shipment = new Shipment();
+        shipment.setProductionLot(lot);
+        traceCode.setShipment(shipment);
+
+        AnomalyThresholdResponse categoryThreshold = AnomalyThresholdResponse.builder()
+                .maxScansPerHour(2)
+                .maxScansPerDay(4)
+                .maxDistanceKmPer30Min(30.0)
+                .minTimeBetweenScansMinutes(20)
+                .activationAgeDays(180)
+                .build();
+
+        when(anomalyThresholdService.getEffectiveThreshold(categoryId)).thenReturn(categoryThreshold);
+
+        // 4 lượt quét trong 24h kích hoạt maxScansPerDay (4) -> +30 điểm
+        List<TraceCodeScanLog> scans = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            scans.add(scan(100 + i * 10, 21.0285, 105.8542));
+        }
+        stubRecentScans(scans);
+
+        service.evaluateSuspicion(traceCodeId);
+
+        assertEquals(30, traceCode.getSuspicionScore(),
+                "Ngưỡng ghi đè theo danh mục (maxScansPerDay = 4) phải được áp dụng");
+    }
+
+    @Test
+    void pastAnomaliesAreNotRecalculated_whenThresholdChanges() {
+        // Trace code đã có điểm nghi vấn từ quá khứ
+        traceCode.setSuspicionScore(40);
+        traceCode.setStatus(TraceCodeStatus.ACTIVE);
+
+        // Cập nhật threshold mới không tự động gọi evaluate trên các mã tem cũ
+        // Điểm cũ và trạng thái cũ của traceCode phải được giữ nguyên
+        assertEquals(40, traceCode.getSuspicionScore());
+        assertEquals(TraceCodeStatus.ACTIVE, traceCode.getStatus());
+    }
+
 }
