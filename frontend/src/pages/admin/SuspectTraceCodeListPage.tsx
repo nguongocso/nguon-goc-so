@@ -62,9 +62,9 @@ const formatDateTime = (value: string | null) => {
 export default function SuspectTraceCodeListPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [draftMinScore, setDraftMinScore] = useState<string>('30');
+  const [draftMinScore, setDraftMinScore] = useState<string>('');
   const [draftStatus, setDraftStatus] = useState<string>('ALL');
-  const [minScore, setMinScore] = useState<number | undefined>(30);
+  const [minScore, setMinScore] = useState<number | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [result, setResult] = useState<PageResponse<SuspectTraceCodeResponse>>(EMPTY_PAGE);
   const [page, setPage] = useState(0);
@@ -111,10 +111,13 @@ export default function SuspectTraceCodeListPage() {
   }, [minScore, statusFilter, page, size]);
 
   const applyFilters = () => {
-    const parsedScore = parseInt(draftMinScore, 10);
-    if (isNaN(parsedScore) || parsedScore < 0 || parsedScore > 100) {
-      toast.error('Điểm nghi vấn phải từ 0 đến 100');
-      return;
+    let parsedScore: number | undefined = undefined;
+    if (draftMinScore.trim() !== '') {
+      parsedScore = parseInt(draftMinScore, 10);
+      if (isNaN(parsedScore) || parsedScore < 0 || parsedScore > 100) {
+        toast.error('Điểm nghi vấn phải từ 0 đến 100');
+        return;
+      }
     }
     setPage(0);
     setMinScore(parsedScore);
@@ -122,10 +125,10 @@ export default function SuspectTraceCodeListPage() {
   };
 
   const resetFilters = () => {
-    setDraftMinScore('30');
+    setDraftMinScore('');
     setDraftStatus('ALL');
     setPage(0);
-    setMinScore(30);
+    setMinScore(undefined);
     setStatusFilter(undefined);
   };
 

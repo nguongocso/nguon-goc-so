@@ -164,13 +164,23 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
             } catch (IllegalArgumentException e) {
                 throw new BusinessException("Trạng thái không hợp lệ: " + statusStr);
             }
-            traceCodePage = traceCodeRepository.findBySuspicionScoreGreaterThanEqualAndStatus(
-                    effectiveMinScore, filterStatus, pageRequest);
+            if (minScore != null) {
+                traceCodePage = traceCodeRepository.findBySuspicionScoreGreaterThanEqualAndStatus(
+                        minScore, filterStatus, pageRequest);
+            } else {
+                traceCodePage = traceCodeRepository.findByStatus(filterStatus, pageRequest);
+            }
         } else {
-            traceCodePage = traceCodeRepository.findBySuspicionScoreGreaterThanEqualAndStatusIn(
-                    effectiveMinScore,
-                    List.of(TraceCodeStatus.SUSPECT, TraceCodeStatus.LOCKED),
-                    pageRequest);
+            if (minScore != null) {
+                traceCodePage = traceCodeRepository.findBySuspicionScoreGreaterThanEqualAndStatusIn(
+                        minScore,
+                        List.of(TraceCodeStatus.SUSPECT, TraceCodeStatus.LOCKED, TraceCodeStatus.ACTIVE),
+                        pageRequest);
+            } else {
+                traceCodePage = traceCodeRepository.findByStatusIn(
+                        List.of(TraceCodeStatus.SUSPECT, TraceCodeStatus.LOCKED, TraceCodeStatus.ACTIVE),
+                        pageRequest);
+            }
         }
 
         List<SuspectTraceCodeResponse> items = traceCodePage.getContent().stream()
