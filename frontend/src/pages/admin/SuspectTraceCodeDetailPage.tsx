@@ -15,16 +15,20 @@ import {
 import type { SuspectTraceCodeDetailResponse } from '@/types/suspectTraceCode';
 import {
   AlertTriangle,
+  CheckCircle2,
   Clock,
   Lock,
   MapPin,
   RefreshCw,
   ScanLine,
   ShieldAlert,
+  Unlock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { HelpButton } from '@/components/help/HelpButton';
 import { LockTraceCodeDialog } from './components/LockTraceCodeDialog';
+import { UnlockTraceCodeDialog } from './components/UnlockTraceCodeDialog';
+import { useAuth } from '@/hooks/useAuth';
 
 const formatDateTime = (value: string | null) => {
   if (!value) return '—';
@@ -41,9 +45,11 @@ const formatDateTime = (value: string | null) => {
 export default function SuspectTraceCodeDetailPage() {
   const { traceCodeId } = useParams<{ traceCodeId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [detail, setDetail] = useState<SuspectTraceCodeDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [showLockDialog, setShowLockDialog] = useState(false);
+  const [showUnlockDialog, setShowUnlockDialog] = useState(false);
 
   const fetchDetail = async () => {
     if (!traceCodeId) return;
@@ -109,6 +115,15 @@ export default function SuspectTraceCodeDetailPage() {
               Khóa mã tem
             </Button>
           )}
+          {detail.status === 'LOCKED' && (
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={() => setShowUnlockDialog(true)}
+            >
+              <Unlock className="mr-2 h-4 w-4" />
+              Mở khóa mã tem
+            </Button>
+          )}
         </div>
       </div>
 
@@ -129,18 +144,31 @@ export default function SuspectTraceCodeDetailPage() {
           <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-sm text-muted-foreground">Trạng thái</p>
-              {detail.status === 'SUSPECT' ? (
+              {detail.status === 'SUSPECT' && (
                 <Badge variant="outline" className="border-amber-300 text-amber-700 text-lg">
                   Nghi vấn
                 </Badge>
-              ) : (
+              )}
+              {detail.status === 'LOCKED' && (
                 <Badge variant="destructive" className="text-lg">
                   <Lock className="mr-1 h-4 w-4" />
                   Đã khóa
                 </Badge>
               )}
+              {detail.status === 'ACTIVE' && (
+                <Badge className="bg-emerald-600 text-white text-lg hover:bg-emerald-700">
+                  <CheckCircle2 className="mr-1 h-4 w-4" />
+                  Đã xác minh
+                </Badge>
+              )}
             </div>
-            <ShieldAlert className="h-8 w-8 text-red-500" />
+            {detail.status === 'ACTIVE' ? (
+              <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+            ) : detail.status === 'LOCKED' ? (
+              <ShieldAlert className="h-8 w-8 text-red-500" />
+            ) : (
+              <ShieldAlert className="h-8 w-8 text-amber-500" />
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -190,6 +218,18 @@ export default function SuspectTraceCodeDetailPage() {
                 </div>
               </>
             )}
+            {detail.unlockedAt && (
+              <>
+                <div>
+                  <p className="text-sm text-muted-foreground">Thời điểm mở khóa</p>
+                  <p className="font-medium">{formatDateTime(detail.unlockedAt)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Người mở khóa</p>
+                  <p className="font-medium">{detail.unlockedByName || '—'}</p>
+                </div>
+              </>
+            )}
           </div>
 
           {detail.suspicionReason && (
@@ -211,6 +251,21 @@ export default function SuspectTraceCodeDetailPage() {
                 <div>
                   <p className="font-medium text-red-900">Lý do khóa</p>
                   <p className="text-sm text-red-800">{detail.lockReason}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {detail.unlockConclusion && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                <div className="space-y-1">
+                  <p className="font-medium text-emerald-900">Kết luận xác minh mở khóa</p>
+                  <p className="text-sm text-emerald-800">{detail.unlockConclusion}</p>
+                  {detail.unlockEvidence && (
+                    <p className="text-xs text-emerald-700 italic">Bằng chứng: {detail.unlockEvidence}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -322,24 +377,51 @@ export default function SuspectTraceCodeDetailPage() {
       {showLockDialog && detail.status === 'SUSPECT' && (
         <LockTraceCodeDialog
           traceCode={{
-          id: detail.id,
-          codeValue: detail.codeValue,
-          shipmentName: detail.shipmentName,
-          status: detail.status,
-          suspicionScore: detail.suspicionScore,
-          suspicionReason: detail.suspicionReason,
-          scanCount: detail.scanCount,
-          uniqueLocations: detail.uniqueLocations,
-          firstScannedAt: detail.firstScannedAt,
-          lastScannedAt: detail.lastScannedAt,
-          lockedAt: detail.lockedAt,
-          lockedBy: detail.lockedBy,
-          lockedByName: detail.lockedByName,
+            id: detail.id,
+            codeValue: detail.codeValue,
+            shipmentName: detail.shipmentName,
+            status: detail.status,
+            suspicionScore: detail.suspicionScore,
+            suspicionReason: detail.suspicionReason,
+            scanCount: detail.scanCount,
+            uniqueLocations: detail.uniqueLocations,
+            firstScannedAt: detail.firstScannedAt,
+            lastScannedAt: detail.lastScannedAt,
+            lockedAt: detail.lockedAt,
+            lockedBy: detail.lockedBy,
+            lockedByName: detail.lockedByName,
             lockReason: detail.lockReason,
           }}
           onClose={() => setShowLockDialog(false)}
           onSuccess={() => {
             setShowLockDialog(false);
+            fetchDetail();
+          }}
+        />
+      )}
+
+      {showUnlockDialog && detail.status === 'LOCKED' && (
+        <UnlockTraceCodeDialog
+          traceCode={{
+            id: detail.id,
+            codeValue: detail.codeValue,
+            shipmentName: detail.shipmentName,
+            status: detail.status,
+            suspicionScore: detail.suspicionScore,
+            suspicionReason: detail.suspicionReason,
+            scanCount: detail.scanCount,
+            uniqueLocations: detail.uniqueLocations,
+            firstScannedAt: detail.firstScannedAt,
+            lastScannedAt: detail.lastScannedAt,
+            lockedAt: detail.lockedAt,
+            lockedBy: detail.lockedBy,
+            lockedByName: detail.lockedByName,
+            lockReason: detail.lockReason,
+          }}
+          currentUserId={user?.userId}
+          onClose={() => setShowUnlockDialog(false)}
+          onSuccess={() => {
+            setShowUnlockDialog(false);
             fetchDetail();
           }}
         />

@@ -4,6 +4,8 @@ import type {
   SuspectTraceCodeDetailResponse,
   LockTraceCodeRequest,
   LockTraceCodeResponse,
+  UnlockTraceCodeRequest,
+  UnlockTraceCodeResponse,
   PageResponse,
 } from '@/types/suspectTraceCode';
 
@@ -41,11 +43,11 @@ export const lockTraceCode = async (
 };
 
 export const unlockTraceCode = async (
-  traceCodeId: string,
-  request: LockTraceCodeRequest,
-): Promise<LockTraceCodeResponse> => {
+  codeOrId: string,
+  request: UnlockTraceCodeRequest,
+): Promise<UnlockTraceCodeResponse> => {
   const response = await apiClient.post<{
-    data: LockTraceCodeResponse;
-  }>(`${ADMIN_PREFIX}/${traceCodeId}/unlock`, request);
+    data: UnlockTraceCodeResponse;
+  }>(`${ADMIN_PREFIX}/${codeOrId}/unlock`, request);
   return response.data.data;
 };

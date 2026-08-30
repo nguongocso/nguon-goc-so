@@ -16,16 +16,19 @@ import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import type { SuspectTraceCodeResponse, PageResponse } from '@/types/suspectTraceCode';
 import {
   AlertTriangle,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Lock,
   MapPin,
   Search,
   ShieldAlert,
+  Unlock,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { LockTraceCodeDialog } from './components/LockTraceCodeDialog';
+import { UnlockTraceCodeDialog } from './components/UnlockTraceCodeDialog';
 import { HelpButton } from '@/components/help/HelpButton';
 import { ListPageHeader } from '@/components/common/ListPageHeader';
 import { ListCard } from '@/components/common/ListCard';
@@ -33,6 +36,7 @@ import { ListToolbar } from '@/components/common/ListToolbar';
 import { DataTableShell } from '@/components/common/DataTableShell';
 import { RefreshButton } from '@/components/common/RefreshButton';
 import { StatusBadge } from '@/components/common/StatusBadge';
+import { useAuth } from '@/hooks/useAuth';
 
 const EMPTY_PAGE: PageResponse<SuspectTraceCodeResponse> = {
   items: [],
@@ -57,6 +61,7 @@ const formatDateTime = (value: string | null) => {
 
 export default function SuspectTraceCodeListPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [draftMinScore, setDraftMinScore] = useState<string>('30');
   const [draftStatus, setDraftStatus] = useState<string>('ALL');
   const [minScore, setMinScore] = useState<number | undefined>(30);
@@ -66,6 +71,7 @@ export default function SuspectTraceCodeListPage() {
   const [size, setSize] = useState(20);
   const [loading, setLoading] = useState(true);
   const [lockTarget, setLockTarget] = useState<SuspectTraceCodeResponse | null>(null);
+  const [unlockTarget, setUnlockTarget] = useState<SuspectTraceCodeResponse | null>(null);
 
   const suspectCount = useMemo(
     () => result.items.filter((item) => item.status === 'SUSPECT').length,
@@ -73,6 +79,10 @@ export default function SuspectTraceCodeListPage() {
   );
   const lockedCount = useMemo(
     () => result.items.filter((item) => item.status === 'LOCKED').length,
+    [result.items],
+  );
+  const activeCount = useMemo(
+    () => result.items.filter((item) => item.status === 'ACTIVE').length,
     [result.items],
   );
 
@@ -125,6 +135,9 @@ export default function SuspectTraceCodeListPage() {
     }
     if (status === 'LOCKED') {
       return <StatusBadge label="Đã khóa" tone="danger" icon={Lock} />;
+    }
+    if (status === 'ACTIVE') {
+      return <StatusBadge label="Đã xác minh" tone="success" icon={CheckCircle2} />;
     }
     return <StatusBadge label={status} tone="neutral" />;
   };
@@ -189,16 +202,27 @@ export default function SuspectTraceCodeListPage() {
       <TableCell>{getStatusBadge(item.status)}</TableCell>
       <TableCell>
         <div className="flex justify-center gap-1">
-          {item.status === 'SUSPECT' ? (
+          {item.status === 'SUSPECT' && (
             <Button
               size="icon-sm"
               variant="ghost"
               title="Khóa tem"
               onClick={() => setLockTarget(item)}
             >
-              <Lock className="size-4" />
+              <Lock className="size-4 text-red-600" />
             </Button>
-          ) : (
+          )}
+          {item.status === 'LOCKED' && (
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              title="Mở khóa tem"
+              onClick={() => setUnlockTarget(item)}
+            >
+              <Unlock className="size-4 text-emerald-600" />
+            </Button>
+          )}
+          {item.status !== 'SUSPECT' && item.status !== 'LOCKED' && (
             <span className="text-sm text-muted-foreground">—</span>
           )}
         </div>
@@ -232,7 +256,7 @@ export default function SuspectTraceCodeListPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         <Card>
           <CardContent className="flex items-center justify-between p-4">
             <div>
@@ -263,6 +287,16 @@ export default function SuspectTraceCodeListPage() {
             <Lock className="h-8 w-8 text-red-500" />
           </CardContent>
         </Card>
+        <Card>
+          <CardContent className="flex items-center justify-between p-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Trang hiện tại</p>
+              <p className="text-2xl font-bold">{activeCount}</p>
+              <p className="text-xs text-muted-foreground">Đã xác minh</p>
+            </div>
+            <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+          </CardContent>
+        </Card>
       </div>
 
       <ListCard>
@@ -291,6 +325,7 @@ export default function SuspectTraceCodeListPage() {
                     { value: 'ALL', label: 'Tất cả' },
                     { value: 'SUSPECT', label: 'Nghi vấn' },
                     { value: 'LOCKED', label: 'Đã khóa' },
+                    { value: 'ACTIVE', label: 'Đã xác minh' },
                   ]}
                 >
                   <SelectTrigger id="statusFilter" className="w-40">
@@ -300,6 +335,7 @@ export default function SuspectTraceCodeListPage() {
                     <SelectItem value="ALL">Tất cả</SelectItem>
                     <SelectItem value="SUSPECT">Nghi vấn</SelectItem>
                     <SelectItem value="LOCKED">Đã khóa</SelectItem>
+                    <SelectItem value="ACTIVE">Đã xác minh</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -384,6 +420,16 @@ export default function SuspectTraceCodeListPage() {
         onClose={() => setLockTarget(null)}
         onSuccess={() => {
           setLockTarget(null);
+          fetchData();
+        }}
+      />
+
+      <UnlockTraceCodeDialog
+        traceCode={unlockTarget}
+        currentUserId={user?.userId}
+        onClose={() => setUnlockTarget(null)}
+        onSuccess={() => {
+          setUnlockTarget(null);
           fetchData();
         }}
       />

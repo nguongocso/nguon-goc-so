@@ -22,6 +22,8 @@ export const ACTION_LABELS: Record<string, string> = {
   RECALL: 'Thu hồi',
   RECALL_SHIPMENT: 'Thu hồi lô hàng',
   EXPORT: 'Xuất hồ sơ',
+  LOCK_TRACE_CODE: 'Khóa mã tem',
+  UNLOCK_TRACE_CODE: 'Mở khóa mã tem',
 
   // Authentication
   LOGIN: 'Đăng nhập',
@@ -49,6 +51,8 @@ export const ACTION_COLORS: Record<string, string> = {
   ACTIVATE: 'bg-info-bg text-info',
   RECALL: 'bg-warning-bg text-status-pending',
   RECALL_SHIPMENT: 'bg-warning-bg text-status-pending',
+  LOCK_TRACE_CODE: 'bg-error-bg text-destructive',
+  UNLOCK_TRACE_CODE: 'bg-success-bg text-success',
 
   EXPORT: 'bg-info-bg text-info',
 
