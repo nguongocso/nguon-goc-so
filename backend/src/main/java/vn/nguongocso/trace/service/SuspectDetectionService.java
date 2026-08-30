@@ -4,9 +4,11 @@ import java.util.UUID;
 
 import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.trace.dto.request.LockTraceCodeRequest;
+import vn.nguongocso.trace.dto.request.UnlockTraceCodeRequest;
 import vn.nguongocso.trace.dto.response.LockTraceCodeResponse;
 import vn.nguongocso.trace.dto.response.SuspectTraceCodeDetailResponse;
 import vn.nguongocso.trace.dto.response.SuspectTraceCodeResponse;
+import vn.nguongocso.trace.dto.response.UnlockTraceCodeResponse;
 
 /**
  * Service phát hiện và quản lý mã tem nghi vấn.
@@ -34,7 +36,12 @@ public interface SuspectDetectionService {
     LockTraceCodeResponse lockTraceCode(UUID traceCodeId, LockTraceCodeRequest request, UUID userId, String userName);
 
     /**
-     * Mở khóa mã tem.
+     * Mở khóa mã tem (hỗ trợ backward compatibility).
      */
     LockTraceCodeResponse unlockTraceCode(UUID traceCodeId, String reason, UUID userId, String userName);
+
+    /**
+     * Mở khóa mã tem sau khi xác minh theo ID hoặc mã code (NCL-08-CN-013).
+     */
+    UnlockTraceCodeResponse unlockTraceCodeWithVerification(String codeOrId, UnlockTraceCodeRequest request, UUID userId, String userName);
 }

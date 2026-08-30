@@ -19,13 +19,15 @@ import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.trace.dto.request.LockTraceCodeRequest;
+import vn.nguongocso.trace.dto.request.UnlockTraceCodeRequest;
 import vn.nguongocso.trace.dto.response.LockTraceCodeResponse;
 import vn.nguongocso.trace.dto.response.SuspectTraceCodeDetailResponse;
 import vn.nguongocso.trace.dto.response.SuspectTraceCodeResponse;
+import vn.nguongocso.trace.dto.response.UnlockTraceCodeResponse;
 import vn.nguongocso.trace.service.SuspectDetectionService;
 
 /**
- * Controller quản lý mã tem nghi vấn dành cho Quản trị viên nền tảng (VT-01).
+ * Controller quản lý mã tem nghi vấn và mở khóa dành cho Quản trị viên nền tảng (VT-01).
  */
 @RestController
 @RequestMapping("/api/v1/admin/trace-codes")
@@ -85,18 +87,23 @@ public class TraceCodeAdminController {
     }
 
     /**
-     * Mở khóa mã tem.
+     * Mở khóa mã tem sau khi xác minh (NCL-08-CN-013).
+     *
+     * <p>
+     * Hỗ trợ nhận diện qua traceCodeId (UUID) hoặc codeValue (String).
+     * Bắt buộc có kết luận xác minh (conclusion).
+     * </p>
      */
-    @PostMapping("/{traceCodeId}/unlock")
+    @PostMapping("/{codeOrId}/unlock")
     @PreAuthorize("hasRole('VT-01')")
-    public ResponseEntity<ApiResult<LockTraceCodeResponse>> unlockTraceCode(
-            @PathVariable UUID traceCodeId,
-            @Valid @RequestBody LockTraceCodeRequest request,
+    public ResponseEntity<ApiResult<UnlockTraceCodeResponse>> unlockTraceCode(
+            @PathVariable String codeOrId,
+            @Valid @RequestBody UnlockTraceCodeRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-        LockTraceCodeResponse response = suspectDetectionService.unlockTraceCode(
-                traceCodeId,
-                request.getReason(),
+        UnlockTraceCodeResponse response = suspectDetectionService.unlockTraceCodeWithVerification(
+                codeOrId,
+                request,
                 currentUser.getUserId(),
                 currentUser.getFullName());
 

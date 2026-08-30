@@ -39,6 +39,10 @@ public class PublicTraceResponse {
 
     private LocalDateTime lockedAt;
 
+    private String verificationNote;
+
+    private LocalDateTime unlockedAt;
+
     private List<PublicChainEventItem> events;
 
     private List<PublicInspectionCriterionResultDto> inspections;
