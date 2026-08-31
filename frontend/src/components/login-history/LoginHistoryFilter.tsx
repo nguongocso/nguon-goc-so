@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
@@ -47,69 +46,63 @@ export const LoginHistoryFilter = ({ onFilter, onReset, loading }: Props) => {
 
   return (
     <Card className="border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm">
-      <CardContent className="p-5">
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="login-result"
-                className="text-sm font-medium text-emerald-800"
-              >
-                Kết quả
-              </Label>
-              <Select value={result} onValueChange={(value) => setResult(value ?? "")}
-                items={[
-                  { value: '', label: 'Tất cả' },
-                  { value: 'SUCCESS', label: 'Thành công' },
-                  { value: 'FAILED', label: 'Thất bại' },
-                ]}
-              >
-                <SelectTrigger id="login-result" className="border-emerald-200 focus:ring-emerald-100">
-                  <SelectValue placeholder="Tất cả">
-                    {getResultLabel(result)}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Tất cả</SelectItem>
-                  <SelectItem value="SUCCESS">Thành công</SelectItem>
-                  <SelectItem value="FAILED">Thất bại</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      <CardContent className="p-3">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
+        >
+          <Select value={result} onValueChange={(value) => setResult(value ?? "")}>
+            <SelectTrigger
+              size="sm"
+              aria-label="Kết quả"
+              className="w-full sm:w-44 border-emerald-200 focus:ring-emerald-100"
+            >
+              <SelectValue placeholder="Tất cả">
+                {getResultLabel(result)}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Tất cả</SelectItem>
+              <SelectItem value="SUCCESS">Thành công</SelectItem>
+              <SelectItem value="FAILED">Thất bại</SelectItem>
+            </SelectContent>
+          </Select>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="login-start-date" className="text-sm font-medium text-emerald-800">
-                Từ ngày
-              </Label>
-              <Input
-                id="login-start-date"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="border-emerald-200 focus-visible:ring-emerald-100"
-              />
-            </div>
+          <Input
+            type="date"
+            aria-label="Từ ngày"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="h-8 w-full sm:w-40 border-emerald-200 focus-visible:ring-emerald-100"
+          />
 
-            <div className="space-y-1.5">
-              <Label htmlFor="login-end-date" className="text-sm font-medium text-emerald-800">
-                Đến ngày
-              </Label>
-              <Input
-                id="login-end-date"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="border-emerald-200 focus-visible:ring-emerald-100"
-              />
-            </div>
-          </div>
+          <Input
+            type="date"
+            aria-label="Đến ngày"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="h-8 w-full sm:w-40 border-emerald-200 focus-visible:ring-emerald-100"
+          />
 
-          <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-emerald-100">
-            <Button type="button" variant="delete" size="sm" onClick={handleReset} disabled={loading} className="gap-2">
+          <div className="flex items-center gap-2 sm:ml-auto">
+            <Button
+              type="button"
+              variant="delete"
+              size="sm"
+              onClick={handleReset}
+              disabled={loading}
+              className="gap-2"
+            >
               <X className="h-4 w-4" />
               Xóa bộ lọc
             </Button>
-            <Button type="submit" variant="search" size="sm" disabled={loading} className="gap-2">
+            <Button
+              type="submit"
+              variant="search"
+              size="sm"
+              disabled={loading}
+              className="gap-2"
+            >
               <Search className="h-4 w-4" />
               Tìm kiếm
             </Button>
