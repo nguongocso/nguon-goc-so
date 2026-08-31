@@ -1,21 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
   getOrganizationDetail,
   createOrganizationMember,
 } from "@/api/organizationApi";
 import type { OrganizationDetailResponse } from "@/types/organization";
-import { Plus } from "lucide-react";
+import { Plus, CircleUserRound } from "lucide-react";
 import type { AddMemberRequest } from "@/types/organization";
 import {
   CreateOrganizationMemberForm,
@@ -24,6 +16,17 @@ import {
 import { toast } from "sonner";
 import { getRoleLabel } from "@/config/roleAccess";
 import { AddExistingUserDialog } from "./AddExistingUserDialog";
+import { HelpButton } from "@/components/help/HelpButton";
+import { ListPageHeader } from "@/components/common/ListPageHeader";
+import { ListCard } from "@/components/common/ListCard";
+import { ListToolbar } from "@/components/common/ListToolbar";
+import { SearchInput } from "@/components/common/SearchInput";
+import { FilterSelect } from "@/components/common/FilterSelect";
+import { RefreshButton } from "@/components/common/RefreshButton";
+import { DataTableShell } from "@/components/common/DataTableShell";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { Pagination } from "@/components/common/Pagination";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 
 import {
   Dialog,
@@ -38,6 +41,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+const PAGE_SIZE = 10;
+
+const STATUS_FILTER_OPTIONS = [
+  { value: "ALL", label: "Tất cả trạng thái" },
+  { value: "ACTIVE", label: "Đang hoạt động" },
+  { value: "INACTIVE", label: "Ngừng hoạt động" },
+];
 
 // Hàm lấy danh sách role theo loại tổ chức
 const getAvailableRolesForType = (type: string) => {
@@ -56,8 +67,8 @@ const getAvailableRolesForType = (type: string) => {
   return [];
 };
 
-// Helper để render badge trạng thái với màu sắc và nhãn tiếng Việt
-const StatusBadge = ({ status }: { status: string }) => {
+// Helper để render badge trạng thái tổ chức với màu sắc và nhãn tiếng Việt
+const ProfileStatusBadge = ({ status }: { status: string }) => {
   const normalized = status.toUpperCase();
   const isActive = normalized === "ACTIVE";
 
@@ -69,6 +80,16 @@ const StatusBadge = ({ status }: { status: string }) => {
   return <Badge className={`${colorClasses} ml-2`}>{label}</Badge>;
 };
 
+const MemberStatusBadge = ({ status }: { status: string }) => {
+  const active = status.toUpperCase() === "ACTIVE";
+  return (
+    <StatusBadge
+      label={active ? "Đang hoạt động" : "Ngừng hoạt động"}
+      tone={active ? "success" : "danger"}
+    />
+  );
+};
+
 export function OrganizationDetail() {
   const { id } = useParams();
 
@@ -77,6 +98,11 @@ export function OrganizationDetail() {
   const [submitting, setSubmitting] = useState(false);
   const [openCreate, setOpenCreate] = useState(false);
   const [openAddExisting, setOpenAddExisting] = useState(false);
+
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [page, setPage] = useState(0);
 
   // Hàm fetch dữ liệu
   const fetchOrganizationDetail = async () => {
@@ -132,14 +158,78 @@ export function OrganizationDetail() {
     SYSTEM: "Tổ chức hệ thống",
   };
 
+  const availableRoles = getAvailableRolesForType(data?.profile.type ?? "");
+
+  const roleFilterOptions = useMemo(
+    () => [
+      { value: "ALL", label: "Tất cả vai trò" },
+      ...availableRoles.map((role) => ({
+        value: role.code,
+        label: role.name,
+      })),
+    ],
+    [availableRoles],
+  );
+
+  const filteredMembers = useMemo(() => {
+    if (!data) return [];
+    const keyword = search.trim().toLowerCase();
+    return data.members.filter((member) => {
+      const matchesSearch =
+        !keyword ||
+        [member.username, member.fullName, member.email, member.phone].some(
+          (value) => (value ?? "").toLowerCase().includes(keyword),
+        );
+      const matchesRole =
+        roleFilter === "ALL" || member.roleCode === roleFilter;
+      const matchesStatus =
+        statusFilter === "ALL" || member.status === statusFilter;
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [data, search, roleFilter, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredMembers.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const paginatedMembers = filteredMembers.slice(
+    safePage * PAGE_SIZE,
+    safePage * PAGE_SIZE + PAGE_SIZE,
+  );
+
   if (loading) return <div>Đang tải...</div>;
   if (!data) return <div>Không tìm thấy tổ chức</div>;
 
   const isSystem = data.profile.type === "SYSTEM";
-  const availableRoles = getAvailableRolesForType(data.profile.type);
 
   return (
     <div className="space-y-6">
+      {/* Header trang */}
+      <ListPageHeader
+        icon={CircleUserRound}
+        title="Chi tiết tổ chức"
+        description={`Quản lý tài khoản của ${data.profile.name}.`}
+        actions={
+          <>
+            <HelpButton screenKey="organization-detail" />
+            <DropdownMenu>
+              <DropdownMenuTrigger className="bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 h-9 gap-1.5 px-3 text-sm">
+                <Plus className="w-4 h-4" />
+                Thêm tài khoản
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setOpenCreate(true)}>
+                  Thêm mới
+                </DropdownMenuItem>
+                {!isSystem && (
+                  <DropdownMenuItem onClick={() => setOpenAddExisting(true)}>
+                    Thêm tài khoản đã có
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        }
+      />
+
       <Card>
         <CardHeader>
           <CardTitle>Thông tin tổ chức</CardTitle>
@@ -166,60 +256,99 @@ export function OrganizationDetail() {
           </div>
           <div>
             <b>Trạng thái:</b>
-            <StatusBadge status={data.profile.status} />
+            <ProfileStatusBadge status={data.profile.status} />
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
-          <CardTitle>Danh sách tài khoản</CardTitle>
-          <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-              <Plus className="w-4 h-4 mr-1" />
-              Thêm tài khoản
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setOpenCreate(true)}>
-                Thêm mới
-              </DropdownMenuItem>
-              {!isSystem && (
-                <DropdownMenuItem onClick={() => setOpenAddExisting(true)}>
-                  Thêm tài khoản đã có
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tài khoản</TableHead>
-                <TableHead>Họ tên</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Vai trò</TableHead>
-                <TableHead>Trạng thái</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.members.map((m) => (
-                <TableRow key={m.id}>
-                  <TableCell>{m.username}</TableCell>
-                  <TableCell>{m.fullName}</TableCell>
-                  <TableCell>{m.email}</TableCell>
-                  <TableCell>
-                    {m.roleCode ? getRoleLabel(m.roleCode) : m.roleName}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={m.status} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* Card chính: danh sách tài khoản */}
+      <ListCard>
+        <ListToolbar
+          left={
+            <>
+              <SearchInput
+                placeholder="Tìm theo tài khoản, họ tên, email..."
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(0);
+                }}
+              />
+              <FilterSelect
+                value={roleFilter}
+                onValueChange={(value) => {
+                  setRoleFilter(value ?? "ALL");
+                  setPage(0);
+                }}
+                options={roleFilterOptions}
+              />
+              <FilterSelect
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value ?? "ALL");
+                  setPage(0);
+                }}
+                options={STATUS_FILTER_OPTIONS}
+              />
+            </>
+          }
+          right={<RefreshButton onClick={fetchOrganizationDetail} loading={loading} />}
+        />
+
+        {/* Bảng */}
+        <DataTableShell
+          header={
+            <>
+              <TableHead className="w-12 text-center">STT</TableHead>
+              <TableHead>Tài khoản</TableHead>
+              <TableHead>Họ tên</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Vai trò</TableHead>
+              <TableHead>Trạng thái</TableHead>
+            </>
+          }
+          body={paginatedMembers.map((m, index) => (
+            <TableRow key={m.id} className="hover:bg-muted/40 transition-colors">
+              <TableCell className="text-center font-medium text-muted-foreground">
+                {safePage * PAGE_SIZE + index + 1}
+              </TableCell>
+              <TableCell className="font-semibold text-slate-900">
+                @{m.username}
+              </TableCell>
+              <TableCell className="font-medium text-slate-900">
+                {m.fullName}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {m.email || "—"}
+              </TableCell>
+              <TableCell>
+                <span className="rounded-full px-2.5 py-1 text-xs font-semibold bg-slate-100 text-slate-700">
+                  {getRoleLabel(m.roleCode)}
+                </span>
+              </TableCell>
+              <TableCell>
+                <MemberStatusBadge status={m.status} />
+              </TableCell>
+            </TableRow>
+          ))}
+          loading={loading}
+          empty={!loading && filteredMembers.length === 0}
+          colSpan={6}
+          loadingMessage="Đang tải danh sách tài khoản..."
+          emptyMessage="Không tìm thấy tài khoản nào."
+        />
+
+        {/* Phân trang */}
+        <Pagination
+          currentPage={safePage}
+          totalPages={totalPages}
+          totalElements={filteredMembers.length}
+          pageSize={PAGE_SIZE}
+          loading={loading}
+          itemLabel="tài khoản"
+          onPageChange={setPage}
+        />
+      </ListCard>
 
       <Dialog open={openCreate} onOpenChange={setOpenCreate}>
         <DialogContent className="max-w-2xl lg:max-w-4xl xl:max-w-6xl w-full p-4 sm:p-6 lg:p-8 max-h-[90vh] overflow-y-auto">
