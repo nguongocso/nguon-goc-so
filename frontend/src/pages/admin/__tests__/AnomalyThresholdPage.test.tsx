@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AnomalyThresholdPage } from '@/pages/admin/AnomalyThresholdPage';
 import type { AllThresholdsResponse, ImpactEstimationResult } from '@/types/anomalyThreshold';
@@ -73,10 +74,10 @@ describe('AnomalyThresholdPage (NCL-08-CN-014)', () => {
 
   it('hiển thị tiêu đề trang và danh sách cấu hình toàn cục & ghi đè danh mục', async () => {
     render(
-      <>
+      <MemoryRouter>
         <Toaster />
         <AnomalyThresholdPage />
-      </>,
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
@@ -89,10 +90,10 @@ describe('AnomalyThresholdPage (NCL-08-CN-014)', () => {
   it('kích hoạt ước lượng tác động khi bấm nút Xem ước lượng', async () => {
     const user = userEvent.setup();
     render(
-      <>
+      <MemoryRouter>
         <Toaster />
         <AnomalyThresholdPage />
-      </>,
+      </MemoryRouter>,
     );
 
     await waitFor(() => {
@@ -116,10 +117,10 @@ describe('AnomalyThresholdPage (NCL-08-CN-014)', () => {
     });
 
     render(
-      <>
+      <MemoryRouter>
         <Toaster />
         <AnomalyThresholdPage />
-      </>,
+      </MemoryRouter>,
     );
 
     await waitFor(() => {

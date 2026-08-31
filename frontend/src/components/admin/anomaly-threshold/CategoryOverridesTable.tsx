@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Table,
   TableBody,
@@ -26,8 +27,8 @@ import type { AnomalyThresholdConfig } from '@/types/anomalyThreshold';
 
 interface CategoryOverridesTableProps {
   overrides: AnomalyThresholdConfig[];
-  onAddClick: () => void;
-  onEditClick: (item: AnomalyThresholdConfig) => void;
+  onAddClick?: () => void;
+  onEditClick?: (item: AnomalyThresholdConfig) => void;
   onRefresh: () => void;
   loading?: boolean;
 }
@@ -39,8 +40,25 @@ export const CategoryOverridesTable: React.FC<CategoryOverridesTableProps> = ({
   onRefresh,
   loading = false,
 }) => {
+  const navigate = useNavigate();
   const [deleteTarget, setDeleteTarget] = useState<AnomalyThresholdConfig | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const handleAdd = () => {
+    if (onAddClick) {
+      onAddClick();
+    } else {
+      navigate('/admin/anomaly-thresholds/categories/create');
+    }
+  };
+
+  const handleEdit = (item: AnomalyThresholdConfig) => {
+    if (onEditClick) {
+      onEditClick(item);
+    } else {
+      navigate(`/admin/anomaly-thresholds/categories/${item.id || item.productCategoryId}/edit`);
+    }
+  };
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget || !deleteTarget.id) return;
@@ -69,7 +87,7 @@ export const CategoryOverridesTable: React.FC<CategoryOverridesTableProps> = ({
           </Badge>
         </div>
 
-        <Button onClick={onAddClick} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+        <Button onClick={handleAdd} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
           <Plus className="h-4 w-4 mr-1.5" />
           Thêm cấu hình theo loại
         </Button>
@@ -135,7 +153,7 @@ export const CategoryOverridesTable: React.FC<CategoryOverridesTableProps> = ({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => onEditClick(item)}
+                        onClick={() => handleEdit(item)}
                         className="h-8 w-8 text-muted-foreground hover:text-emerald-700 hover:bg-emerald-50"
                         title="Chỉnh sửa"
                       >

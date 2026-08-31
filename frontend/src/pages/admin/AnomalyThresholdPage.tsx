@@ -7,11 +7,9 @@ import { toast } from 'sonner';
 import { estimateImpact, getAllThresholds } from '@/api/anomalyThresholdApi';
 import { GlobalThresholdCard } from '@/components/admin/anomaly-threshold/GlobalThresholdCard';
 import { CategoryOverridesTable } from '@/components/admin/anomaly-threshold/CategoryOverridesTable';
-import { CategoryOverrideDialog } from '@/components/admin/anomaly-threshold/CategoryOverrideDialog';
 import { ImpactEstimationCard } from '@/components/admin/anomaly-threshold/ImpactEstimationCard';
 import type {
   AllThresholdsResponse,
-  AnomalyThresholdConfig,
   ImpactEstimationRequest,
   ImpactEstimationResult,
   UpdateGlobalThresholdRequest,
@@ -19,13 +17,12 @@ import type {
 
 export const AnomalyThresholdPage: React.FC = () => {
   useSetBreadcrumb([
-    { label: 'Cấu hình ngưỡng quét bất thường', href: '/admin/anomaly-thresholds' },
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Cấu hình ngưỡng quét bất thường' },
   ]);
 
   const [data, setData] = useState<AllThresholdsResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
-  const [editingItem, setEditingItem] = useState<AnomalyThresholdConfig | null>(null);
   const [globalImpactResult, setGlobalImpactResult] = useState<ImpactEstimationResult | null>(null);
   const [estimatingGlobal, setEstimatingGlobal] = useState<boolean>(false);
 
@@ -44,16 +41,6 @@ export const AnomalyThresholdPage: React.FC = () => {
   useEffect(() => {
     loadData();
   }, []);
-
-  const handleOpenAddDialog = () => {
-    setEditingItem(null);
-    setDialogOpen(true);
-  };
-
-  const handleOpenEditDialog = (item: AnomalyThresholdConfig) => {
-    setEditingItem(item);
-    setDialogOpen(true);
-  };
 
   const handleEstimateGlobalImpact = async (draft: UpdateGlobalThresholdRequest) => {
     try {
@@ -112,19 +99,8 @@ export const AnomalyThresholdPage: React.FC = () => {
       {/* Per-Category Overrides Section */}
       <CategoryOverridesTable
         overrides={data?.categoryOverrides || []}
-        onAddClick={handleOpenAddDialog}
-        onEditClick={handleOpenEditDialog}
         onRefresh={loadData}
         loading={loading}
-      />
-
-      {/* Add / Edit Category Override Dialog */}
-      <CategoryOverrideDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        initialData={editingItem}
-        onSuccess={loadData}
-        defaultGlobalValues={data?.global || null}
       />
     </div>
   );

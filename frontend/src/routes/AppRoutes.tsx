@@ -57,6 +57,7 @@ import TestingUnitScopeManagerPage from "@/pages/admin/TestingUnitScopeManagerPa
 import SuspectTraceCodeListPage from "@/pages/admin/SuspectTraceCodeListPage";
 import SuspectTraceCodeDetailPage from "@/pages/admin/SuspectTraceCodeDetailPage";
 import AnomalyThresholdPage from "@/pages/admin/AnomalyThresholdPage";
+import CategoryOverridePage from "@/pages/admin/CategoryOverridePage";
 
 // ===== Packaging =====
 import CreatePackagingEventPage from "@/pages/packaging-event/CreatePackagingEventPage";
@@ -965,6 +966,24 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={ROLE_ACCESS.anomalyThresholdConfig}>
                         <AnomalyThresholdPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/anomaly-thresholds/categories/create"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.anomalyThresholdConfig}>
+                        <CategoryOverridePage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/anomaly-thresholds/categories/:id/edit"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.anomalyThresholdConfig}>
+                        <CategoryOverridePage />
                     </RoleRoute>
                 }
             />
