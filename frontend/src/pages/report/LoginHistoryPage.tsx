@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -11,6 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ListCard } from "@/components/common/ListCard";
+import { ListPageHeader } from "@/components/common/ListPageHeader";
+import { Pagination } from "@/components/common/Pagination";
+import { RefreshButton } from "@/components/common/RefreshButton";
+import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 import { LoginHistoryFilter } from "@/components/login-history/LoginHistoryFilter";
 import { LoginHistoryTable } from "@/components/login-history/LoginHistoryTable";
 import { getLoginHistory } from "@/api/loginHistoryApi";
@@ -22,6 +26,11 @@ import type { PageResponse } from "@/types/common";
 export default function LoginHistoryPage() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  useSetBreadcrumb([
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Lịch sử đăng nhập" },
+  ]);
   const [records, setRecords] = useState<LoginHistoryItem[]>([]);
   const [pageInfo, setPageInfo] = useState<Omit<PageResponse<LoginHistoryItem>, "items">>({
     page: 0,
@@ -93,34 +102,23 @@ export default function LoginHistoryPage() {
     setSearchParams({});
   };
 
-  const goToPage = (newPage: number) => {
-    if (newPage >= 0 && newPage < pageInfo.totalPages) {
-      setPage(newPage);
-    }
-  };
-
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Lịch sử đăng nhập</h1>
-          <p className="text-sm text-muted-foreground">
-            Xem lịch sử đăng nhập của tài khoản {user?.fullName}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <HelpButton screenKey="report-login-history" />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fetchLoginHistory({ page, size })}
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} />
-            Làm mới
-          </Button>
-        </div>
-      </div>
+      <ListPageHeader
+        icon={ShieldCheck}
+        iconBoxClassName="bg-emerald-500/10"
+        title="Lịch sử đăng nhập"
+        description={`Xem lịch sử đăng nhập của tài khoản ${user?.fullName}`}
+        actions={
+          <>
+            <HelpButton screenKey="report-login-history" />
+            <RefreshButton
+              onClick={() => fetchLoginHistory({ page, size })}
+              loading={loading}
+            />
+          </>
+        }
+      />
 
       <LoginHistoryFilter
         onFilter={handleFilter}
@@ -128,68 +126,46 @@ export default function LoginHistoryPage() {
         loading={loading}
       />
 
-      <div className="bg-white rounded-lg border shadow-sm">
-        <div className="p-4 border-b flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">
-            Tổng số: {pageInfo.totalElements} bản ghi
-          </span>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Hiển thị</span>
-            <Select
-              value={String(size)}
-              onValueChange={(value) => {
-                setSize(Number(value));
-                setPage(0);
-              }}
-            >
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="Chọn size" />
-              </SelectTrigger>
-              <SelectContent>
-                {[5, 10, 20, 50].map((s) => (
-                  <SelectItem key={s} value={String(s)}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-sm text-muted-foreground">bản ghi</span>
-          </div>
+      <ListCard>
+        <div className="flex items-center justify-end gap-2">
+          <span className="text-sm text-muted-foreground">Hiển thị</span>
+          <Select
+            value={String(size)}
+            onValueChange={(value) => {
+              setSize(Number(value));
+              setPage(0);
+            }}
+          >
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="Chọn size" />
+            </SelectTrigger>
+            <SelectContent>
+              {[5, 10, 20, 50].map((s) => (
+                <SelectItem key={s} value={String(s)}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-sm text-muted-foreground">bản ghi</span>
         </div>
 
-        <div className="p-4">
-          <LoginHistoryTable records={records} loading={loading} />
-        </div>
+        <LoginHistoryTable
+          records={records}
+          loading={loading}
+          startIndex={page * size}
+        />
 
-        {!loading && pageInfo.totalPages > 1 && (
-          <div className="flex items-center justify-between border-t px-4 py-3">
-            <div className="text-sm text-muted-foreground">
-              Trang {pageInfo.page + 1} / {pageInfo.totalPages}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPage(page - 1)}
-                disabled={pageInfo.first}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm">
-                {pageInfo.page + 1} / {pageInfo.totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPage(page + 1)}
-                disabled={pageInfo.last}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
+        <Pagination
+          currentPage={pageInfo.page}
+          totalPages={pageInfo.totalPages}
+          totalElements={pageInfo.totalElements}
+          pageSize={size}
+          loading={loading}
+          itemLabel="bản ghi"
+          onPageChange={setPage}
+        />
+      </ListCard>
     </div>
   );
 }
