@@ -7,6 +7,7 @@ import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { ListCard } from "@/components/common/ListCard";
 import { ListToolbar } from "@/components/common/ListToolbar";
 import { SearchInput } from "@/components/common/SearchInput";
+import { FilterSelect } from "@/components/common/FilterSelect";
 import { RefreshButton } from "@/components/common/RefreshButton";
 import { DataTableShell } from "@/components/common/DataTableShell";
 import { Pagination } from "@/components/common/Pagination";
@@ -30,6 +31,7 @@ export function ProcurementShipmentList({
   const [shipments, setShipments] = useState<ProcurementShipment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [page, setPage] = useState(0);
   const navigate = useNavigate();
 
@@ -71,14 +73,15 @@ export function ProcurementShipmentList({
 
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase();
-    if (!keyword) return shipments;
     return shipments.filter(
       (shipment) =>
-        shipment.name.toLowerCase().includes(keyword) ||
-        (shipment.productionLotName ?? "").toLowerCase().includes(keyword) ||
-        (shipment.productCategoryName ?? "").toLowerCase().includes(keyword),
+        (statusFilter === "ALL" || shipment.status === statusFilter) &&
+        (!keyword ||
+          shipment.name.toLowerCase().includes(keyword) ||
+          (shipment.productionLotName ?? "").toLowerCase().includes(keyword) ||
+          (shipment.productCategoryName ?? "").toLowerCase().includes(keyword)),
     );
-  }, [shipments, search]);
+  }, [shipments, search, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
@@ -123,21 +126,34 @@ export function ProcurementShipmentList({
     <ListCard>
       <ListToolbar
         left={
-          <SearchInput
-            placeholder="Tìm tên lô hàng, lô sản xuất hoặc loại nông sản..."
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(0);
-            }}
-            aria-label="Tìm kiếm lô hàng thu mua"
-          />
+          <>
+            <SearchInput
+              placeholder="Tìm tên lô hàng, lô sản xuất hoặc loại nông sản..."
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(0);
+              }}
+              aria-label="Tìm kiếm lô hàng thu mua"
+            />
+            <FilterSelect
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value ?? "ALL");
+                setPage(0);
+              }}
+              options={[
+                { value: "ALL", label: "Tất cả trạng thái" },
+                { value: "ACTIVATED", label: "Đã kích hoạt" },
+              ]}
+            />
+          </>
         }
         right={<RefreshButton onClick={loadShipments} loading={isLoading} />}
       />
 
       <DataTableShell
-        colSpan={8}
+        colSpan={7}
         header={
           <>
             <TableHead className="w-12 text-center">STT</TableHead>
@@ -147,7 +163,6 @@ export function ProcurementShipmentList({
             <TableHead>Sản lượng</TableHead>
             <TableHead>Trạng thái</TableHead>
             <TableHead className="text-center">Thao tác</TableHead>
-            <TableHead className="text-center">Chi tiết</TableHead>
           </>
         }
         body={paginatedShipments.map((shipment, index) => (
@@ -175,43 +190,43 @@ export function ProcurementShipmentList({
             <TableCell>
               <ShipmentStatusBadge status={shipment.status} />
             </TableCell>
-            <TableCell>
-              <div className="flex flex-wrap items-center justify-center gap-2">
+            <TableCell className="text-center">
+              <div className="flex items-center justify-center gap-1">
                 <Button
-                  size="sm"
                   type="button"
-                  variant="default"
+                  variant="ghost"
+                  size="icon-sm"
                   title="Ghi nhận thu mua"
+                  className="hover:bg-muted"
                   onClick={() => onRecordProcurement(shipment.id)}
                 >
-                  <ShoppingCart className="mr-1 size-4" />
-                  Thu mua
+                  <ShoppingCart className="size-4" />
                 </Button>
 
                 {canExportGs1 && (
                   <Button
-                    size="sm"
                     type="button"
-                    variant="outline"
+                    variant="ghost"
+                    size="icon-sm"
                     title="Xuất hồ sơ GS1"
+                    className="hover:bg-muted"
                     onClick={() => handleExportGs1(shipment.id)}
                   >
-                    <FileJson className="mr-1 size-4" />
-                    Xuất GS1
+                    <FileJson className="size-4" />
                   </Button>
                 )}
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  title="Xem chi tiết"
+                  className="hover:bg-muted"
+                  onClick={() => handleViewDetail(shipment.id)}
+                >
+                  <Eye className="size-4" />
+                </Button>
               </div>
-            </TableCell>
-            <TableCell className="text-center">
-              <Button
-                size="sm"
-                type="button"
-                variant="outline"
-                onClick={() => handleViewDetail(shipment.id)}
-              >
-                <Eye className="mr-1 size-4" />
-                Chi tiết
-              </Button>
             </TableCell>
           </TableRow>
         ))}
@@ -219,7 +234,7 @@ export function ProcurementShipmentList({
         empty={!isLoading && filtered.length === 0}
         loadingMessage="Đang tải danh sách lô hàng..."
         emptyMessage={
-          search.trim()
+          search.trim() || statusFilter !== "ALL"
             ? "Không tìm thấy lô hàng phù hợp. Hãy thử thay đổi từ khóa tìm kiếm."
             : "Chưa có lô hàng nào sẵn sàng thu mua. Các lô hàng đã kích hoạt tem sẽ xuất hiện tại đây."
         }
