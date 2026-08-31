@@ -13,50 +13,42 @@
 
 -- 1. Đảm bảo Loại nông sản "Lúa" tồn tại
 INSERT IGNORE INTO product_categories (id, name, category_group, description, is_active)
-VALUES (
+SELECT
     '00000000-0000-0000-0000-000800000004',
     'Lúa',
     'Lương thực',
     'Lúa gạo kiểm thử phát hiện quét bất thường',
     TRUE
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM product_categories WHERE id = '00000000-0000-0000-0000-000800000004'
 );
 
 -- 2. Đảm bảo Ngưỡng quét bất thường cho Loại nông sản "Lúa" là 2 lượt / giờ
 INSERT INTO anomaly_thresholds
     (id, product_category_id, max_scans_per_hour, max_scans_per_day,
      max_distance_km_per_30min, min_time_between_scans_minutes, activation_age_days,
-     is_active, created_at, updated_at)
-VALUES (
+     is_active, created_by, updated_by, created_at, updated_at)
+SELECT
     'daa9db6f-ed69-4ddc-b122-ea644cb10b63',
     '00000000-0000-0000-0000-000800000004',
-    2, 30, 50.00, 30, 365, TRUE, NOW(), NOW()
-)
+    2, 30, 50.00, 30, 365, TRUE,
+    (SELECT user_id FROM users WHERE user_name = 'admin' LIMIT 1),
+    (SELECT user_id FROM users WHERE user_name = 'admin' LIMIT 1),
+    NOW(), NOW()
+FROM DUAL
 ON DUPLICATE KEY UPDATE
     max_scans_per_hour = 2,
     max_scans_per_day = 30,
     is_active = TRUE,
+    updated_by = (SELECT user_id FROM users WHERE user_name = 'admin' LIMIT 1),
     updated_at = NOW();
 
--- 3. Đảm bảo Lô sản xuất Lúa tồn tại
-INSERT IGNORE INTO production_lot
-    (id, organization_id, product_category_id, name, expected_quantity, expected_quantity_unit, status, created_at, updated_at)
-VALUES (
-    '00000000-0000-0000-0000-000200000004',
-    (SELECT organization_id FROM organizations WHERE code = 'DEMO_HTX' LIMIT 1),
-    '00000000-0000-0000-0000-000800000004',
-    'Lô Lúa ST25 Kiểm Thử Bất Thường',
-    1000.0,
-    'kg',
-    'PACKAGED',
-    NOW(),
-    NOW()
-);
-
--- 4. Tạo lô hàng cho Lô Lúa
+-- 3. Tạo lô hàng cho Lô Lúa (liên kết với production_lot Lúa có sẵn '00000000-0000-0000-0000-000200000004')
 INSERT IGNORE INTO shipments
     (id, production_lot_id, organization_id, name, total_quantity, packaging_info,
      status, created_by, created_at, updated_at)
-VALUES (
+SELECT
     '00000000-0000-0000-0000-000900000010',
     '00000000-0000-0000-0000-000200000004',
     (SELECT organization_id FROM organizations WHERE code = 'DEMO_HTX' LIMIT 1),
@@ -67,13 +59,16 @@ VALUES (
     (SELECT user_id FROM users WHERE user_name = 'orgmanager' LIMIT 1),
     NOW(),
     NOW()
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM shipments WHERE id = '00000000-0000-0000-0000-000900000010'
 );
 
--- 5. Tạo mã tem cho Lô hàng Lúa ST25
+-- 4. Tạo mã tem cho Lô hàng Lúa ST25
 INSERT INTO trace_codes
     (id, shipment_id, code_value, qr_image, status, activated_at, activated_by, created_at,
      suspicion_score, suspicion_reason)
-VALUES (
+SELECT
     '00000000-0000-0000-0000-000900000020',
     '00000000-0000-0000-0000-000900000010',
     'NCL-TEST-LUA-001',
@@ -84,17 +79,17 @@ VALUES (
     DATE_SUB(NOW(), INTERVAL 5 DAY),
     70,
     'Số lượt quét cao (3 lượt trong 24 giờ); Khoảng cách không hợp lý: 625km trong 20 phút'
-)
+FROM DUAL
 ON DUPLICATE KEY UPDATE
     status = 'SUSPECT',
     suspicion_score = 70,
     suspicion_reason = 'Số lượt quét cao (3 lượt trong 24 giờ); Khoảng cách không hợp lý: 625km trong 20 phút';
 
--- 6. Ba lượt quét trong vòng 40 phút (vượt ngưỡng maxScansPerHour = 2 của loại Lúa)
+-- 5. Ba lượt quét trong vòng 40 phút (vượt ngưỡng maxScansPerHour = 2 của loại Lúa)
 -- Lượt 1: T - 40 phút tại Hà Nội (21.0285, 105.8542)
 INSERT INTO trace_code_scan_logs
     (id, trace_code_id, scanned_at, ip_address, user_agent, latitude, longitude, location, is_abnormal, abnormal_reason)
-VALUES (
+SELECT
     '00000000-0000-0000-0000-000930000001',
     '00000000-0000-0000-0000-000900000020',
     DATE_SUB(NOW(), INTERVAL 40 MINUTE),
@@ -105,7 +100,7 @@ VALUES (
     'Hà Nội - Điểm quét bán lẻ 1',
     FALSE,
     NULL
-)
+FROM DUAL
 ON DUPLICATE KEY UPDATE
     scanned_at = DATE_SUB(NOW(), INTERVAL 40 MINUTE),
     location = 'Hà Nội - Điểm quét bán lẻ 1';
@@ -113,7 +108,7 @@ ON DUPLICATE KEY UPDATE
 -- Lượt 2: T - 20 phút tại Đà Nẵng (16.0544, 108.2022) (~625km từ Hà Nội sau 20 phút)
 INSERT INTO trace_code_scan_logs
     (id, trace_code_id, scanned_at, ip_address, user_agent, latitude, longitude, location, is_abnormal, abnormal_reason)
-VALUES (
+SELECT
     '00000000-0000-0000-0000-000930000002',
     '00000000-0000-0000-0000-000900000020',
     DATE_SUB(NOW(), INTERVAL 20 MINUTE),
@@ -124,7 +119,7 @@ VALUES (
     'Đà Nẵng - Điểm quét siêu thị',
     FALSE,
     NULL
-)
+FROM DUAL
 ON DUPLICATE KEY UPDATE
     scanned_at = DATE_SUB(NOW(), INTERVAL 20 MINUTE),
     location = 'Đà Nẵng - Điểm quét siêu thị';
@@ -132,7 +127,7 @@ ON DUPLICATE KEY UPDATE
 -- Lượt 3: T - 0 phút tại TP. Hồ Chí Minh (10.8231, 106.6297) (~600km từ Đà Nẵng sau 20 phút)
 INSERT INTO trace_code_scan_logs
     (id, trace_code_id, scanned_at, ip_address, user_agent, latitude, longitude, location, is_abnormal, abnormal_reason)
-VALUES (
+SELECT
     '00000000-0000-0000-0000-000930000003',
     '00000000-0000-0000-0000-000900000020',
     NOW(),
@@ -143,7 +138,9 @@ VALUES (
     'TP. Hồ Chí Minh - Điểm quét chợ đầu mối',
     FALSE,
     NULL
-)
+FROM DUAL
 ON DUPLICATE KEY UPDATE
     scanned_at = NOW(),
     location = 'TP. Hồ Chí Minh - Điểm quét chợ đầu mối';
+
+
