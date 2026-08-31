@@ -26,7 +26,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   // User Profile & Dashboard
-  ["/dashboard", "Dashboard"],
+  ["/dashboard", "Tổng quan"],
   ["/profile", "Hồ sơ người dùng"],
 
   // Organizations
@@ -441,7 +441,7 @@ export function buildAutoBreadcrumb(
   const cleanPath = pathname.split("?")[0].split("#")[0];
   const segments = cleanPath.split("/").filter(Boolean);
   const items: BreadcrumbItem[] = [
-    { label: "Dashboard", href: "/dashboard" },
+    { label: "Tổng quan", href: "/dashboard" },
   ];
 
   for (let i = 1; i <= segments.length; i += 1) {
@@ -521,7 +521,7 @@ export function BreadcrumbOverrideProvider({
  *
  * ```tsx
  * useSetBreadcrumb(lot ? [
- *   { label: "Dashboard", href: "/dashboard" },
+ *   { label: "Tổng quan", href: "/dashboard" },
  *   { label: "Lô sản xuất", href: "/production-lots" },
  *   { label: lot.name }, // trang hiện tại
  * ] : null);

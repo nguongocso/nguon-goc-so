@@ -84,7 +84,7 @@ describe("AppBreadcrumb - buildAutoBreadcrumb", () => {
   it("ẩn hoàn toàn các tiền tố nhóm (group prefix) không phải route thật", () => {
     const items = buildAutoBreadcrumb("/transport-events/record");
     expect(items).toEqual([
-      { label: "Dashboard", href: "/dashboard" },
+      { label: "Tổng quan", href: "/dashboard" },
       { label: "Ghi vận chuyển" },
     ]);
   });
@@ -92,7 +92,7 @@ describe("AppBreadcrumb - buildAutoBreadcrumb", () => {
   it("ẩn hoàn toàn /farm-logs khi vào /farm-logs/create", () => {
     const items = buildAutoBreadcrumb("/farm-logs/create");
     expect(items).toEqual([
-      { label: "Dashboard", href: "/dashboard" },
+      { label: "Tổng quan", href: "/dashboard" },
       { label: "Ghi nhật ký canh tác" },
     ]);
   });
@@ -100,7 +100,7 @@ describe("AppBreadcrumb - buildAutoBreadcrumb", () => {
   it("ẩn hoàn toàn route không có quyền truy cập (/recall-requests cho VT-03)", () => {
     const items = buildAutoBreadcrumb("/recall-requests/create", "VT-03");
     expect(items).toEqual([
-      { label: "Dashboard", href: "/dashboard" },
+      { label: "Tổng quan", href: "/dashboard" },
       { label: "Tạo yêu cầu thu hồi" },
     ]);
   });
@@ -108,7 +108,7 @@ describe("AppBreadcrumb - buildAutoBreadcrumb", () => {
   it("giữ lại route khi người dùng có quyền truy cập (/recall-requests cho VT-02)", () => {
     const items = buildAutoBreadcrumb("/recall-requests/create", "VT-02");
     expect(items).toEqual([
-      { label: "Dashboard", href: "/dashboard" },
+      { label: "Tổng quan", href: "/dashboard" },
       { label: "Yêu cầu thu hồi", href: "/recall-requests" },
       { label: "Tạo yêu cầu thu hồi" },
     ]);
@@ -153,7 +153,7 @@ describe("AppBreadcrumb Component Rendering", () => {
         <BreadcrumbOverrideProvider>
           <TestBreadcrumbOverride
             items={[
-              { label: "Dashboard", href: "/dashboard" },
+              { label: "Tổng quan", href: "/dashboard" },
               { label: "Yêu cầu thu hồi", href: "/recall-requests" },
               { label: "Tạo yêu cầu" },
             ]}
@@ -163,7 +163,7 @@ describe("AppBreadcrumb Component Rendering", () => {
     );
 
     // Dashboard là link
-    const dashboardLink = screen.getByRole("link", { name: "Dashboard" });
+    const dashboardLink = screen.getByRole("link", { name: "Tổng quan" });
     expect(dashboardLink).toHaveAttribute("href", "/dashboard");
 
     // Yêu cầu thu hồi bị ẨN HOÀN TOÀN vì VT-03 không có quyền truy cập /recall-requests
@@ -200,7 +200,7 @@ describe("AppBreadcrumb Component Rendering", () => {
         <BreadcrumbOverrideProvider>
           <TestBreadcrumbOverride
             items={[
-              { label: "Dashboard", href: "/dashboard" },
+              { label: "Tổng quan", href: "/dashboard" },
               { label: "Yêu cầu thu hồi", href: "/recall-requests" },
               { label: "Tạo yêu cầu" },
             ]}
@@ -210,7 +210,7 @@ describe("AppBreadcrumb Component Rendering", () => {
     );
 
     // Cả Dashboard và Yêu cầu thu hồi đều hiển thị và là link
-    const dashboardLink = screen.getByRole("link", { name: "Dashboard" });
+    const dashboardLink = screen.getByRole("link", { name: "Tổng quan" });
     expect(dashboardLink).toHaveAttribute("href", "/dashboard");
 
     const recallLink = screen.getByRole("link", { name: "Yêu cầu thu hồi" });
@@ -247,7 +247,7 @@ describe("AppBreadcrumb Component Rendering", () => {
         <BreadcrumbOverrideProvider>
           <TestBreadcrumbOverride
             items={[
-              { label: "Dashboard", href: "/dashboard" },
+              { label: "Tổng quan", href: "/dashboard" },
               { label: "Vận chuyển", href: "/transport-events" },
               { label: "Ghi vận chuyển" },
             ]}
@@ -257,7 +257,7 @@ describe("AppBreadcrumb Component Rendering", () => {
     );
 
     // Dashboard là link
-    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Tổng quan" })).toHaveAttribute(
       "href",
       "/dashboard",
     );
@@ -296,7 +296,7 @@ describe("AppBreadcrumb Component Rendering", () => {
         <BreadcrumbOverrideProvider>
           <TestBreadcrumbOverride
             items={[
-              { label: "Dashboard", href: "/dashboard" },
+              { label: "Tổng quan", href: "/dashboard" },
               { label: "Lô sản xuất", href: "/production-lots" },
               { label: "Chi tiết lô hàng" },
             ]}
@@ -306,7 +306,7 @@ describe("AppBreadcrumb Component Rendering", () => {
     );
 
     // Dashboard là link
-    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Tổng quan" })).toHaveAttribute(
       "href",
       "/dashboard",
     );
