@@ -23,6 +23,7 @@ import {
   userProfileSchema,
 } from "@/utils/validators";
 import { getRoleLabel } from "@/config/roleAccess";
+import { getAssetUrl } from "@/config/runtimeConfig";
 
 import {
   Card,
@@ -152,7 +153,15 @@ export const UserProfileForm: React.FC = () => {
       if (response.success && response.data) {
         const updated = response.data;
         setProfile(updated);
-        updateUser(updated as unknown as AuthUserInfo);
+        if (authUser) {
+          updateUser({
+            ...authUser,
+            fullName: updated.fullName,
+            phone: updated.phone,
+            email: updated.email,
+            avatarUrl: updated.avatarUrl !== undefined ? updated.avatarUrl : authUser.avatarUrl,
+          });
+        }
         setIsEditing(false);
         toast.success("Cập nhật thông tin hồ sơ thành công");
       } else {
@@ -215,7 +224,7 @@ export const UserProfileForm: React.FC = () => {
               <div className="size-20 rounded-full border-2 border-emerald-500/40 bg-emerald-100 flex items-center justify-center overflow-hidden text-emerald-800 font-bold text-2xl shadow-inner">
                 {avatarSrc ? (
                   <img
-                    src={avatarSrc}
+                    src={getAssetUrl(avatarSrc)}
                     alt={profile?.fullName || "Avatar"}
                     className="size-full object-cover"
                   />
