@@ -76,8 +76,8 @@ export const ROLE_ACCESS = {
   // ✅ NCL-11-CN-006 Phase 2 - Quản lý phạm vi công nhận của đơn vị kiểm nghiệm
   testingUnitScopeManagement: ['VT-01'] as const,
 
-  // ✅ Hồ sơ người dùng
-  userProfile: ['VT-02', 'VT-03', 'VT-04', 'VT-05'] as const,
+  // ✅ Hồ sơ người dùng (NCL-01-CN-010: Tất cả vai trò VT-01 -> VT-05)
+  userProfile: AUTHENTICATED_ROLE_CODES,
 } as const satisfies Record<string, readonly AuthenticatedRoleCode[]>;
 
 

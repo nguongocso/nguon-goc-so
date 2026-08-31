@@ -1,12 +1,23 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Building, Lock, Mail, Phone, Shield, User, UserCheck } from "lucide-react";
+import {
+  Building,
+  Camera,
+  Lock,
+  Mail,
+  Phone,
+  Shield,
+  UploadCloud,
+  User,
+  UserCheck,
+} from "lucide-react";
 
-import { getCurrent, updateUserProfile } from "@/api/authApi";
+import { getProfile, updateProfile, uploadAvatar } from "@/api/userApi";
 import { useAuth } from "@/hooks/useAuth";
-import type { AuthUserInfo, UpdateUserProfileRequest } from "@/types/auth";
+import type { AuthUserInfo } from "@/types/auth";
+import type { UserProfile } from "@/types/user";
 import {
   type UserProfileFormValues,
   userProfileSchema,
@@ -27,9 +38,11 @@ import { Input } from "@/components/ui/input";
 
 export const UserProfileForm: React.FC = () => {
   const { user: authUser, updateUser } = useAuth();
-  const [profile, setProfile] = useState<AuthUserInfo | null>(authUser);
+  const [profile, setProfile] = useState<UserProfile | AuthUserInfo | null>(authUser);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -39,61 +52,107 @@ export const UserProfileForm: React.FC = () => {
   } = useForm<UserProfileFormValues>({
     resolver: zodResolver(userProfileSchema),
     defaultValues: {
+      fullName: authUser?.fullName || "",
       phone: authUser?.phone || "",
       email: authUser?.email || "",
     },
   });
 
   useEffect(() => {
+    let isMounted = true;
     const fetchProfile = async () => {
       try {
-        const response = await getCurrent();
-        if (response.success && response.data) {
+        const response = await getProfile();
+        if (response.success && response.data && isMounted) {
           const data = response.data;
           setProfile(data);
-          updateUser(data);
           reset({
+            fullName: data.fullName || "",
             phone: data.phone || "",
             email: data.email || "",
           });
         }
       } catch {
-        // Fallback sang authUser hiện tại trong context
-        if (authUser) {
+        if (authUser && isMounted) {
           setProfile(authUser);
           reset({
+            fullName: authUser.fullName || "",
             phone: authUser.phone || "",
             email: authUser.email || "",
           });
         }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     void fetchProfile();
-  }, [reset, updateUser]);
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleCancel = () => {
     reset({
+      fullName: profile?.fullName || "",
       phone: profile?.phone || "",
       email: profile?.email || "",
     });
     setIsEditing(false);
   };
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Dung lượng ảnh không được vượt quá 5MB");
+      return;
+    }
+
+    try {
+      setUploadingAvatar(true);
+      const response = await uploadAvatar(file);
+      if (response.success && response.data) {
+        const newAvatarUrl = response.data.avatarUrl;
+        toast.success("Tải lên ảnh đại diện thành công");
+        setProfile((prev) => (prev ? { ...prev, avatarUrl: newAvatarUrl } : null));
+        if (authUser) {
+          updateUser({ ...authUser, avatarUrl: newAvatarUrl });
+        }
+      } else {
+        throw new Error(response.message || "Tải lên ảnh đại diện thất bại");
+      }
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Tải lên ảnh đại diện thất bại";
+      toast.error(message);
+    } finally {
+      setUploadingAvatar(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   const onSubmit = async (data: UserProfileFormValues) => {
     try {
-      const payload: UpdateUserProfileRequest = {
+      const payload = {
+        fullName: data.fullName.trim(),
         phone: data.phone ? data.phone.trim() : null,
         email: data.email ? data.email.trim() : null,
       };
 
-      const response = await updateUserProfile(payload);
+      const response = await updateProfile(payload);
       if (response.success && response.data) {
         const updated = response.data;
         setProfile(updated);
-        updateUser(updated);
+        updateUser(updated as unknown as AuthUserInfo);
         setIsEditing(false);
         toast.success("Cập nhật thông tin hồ sơ thành công");
       } else {
@@ -117,7 +176,7 @@ export const UserProfileForm: React.FC = () => {
   }
 
   const roleDisplay = getRoleLabel(profile?.roleCode);
-
+  const avatarSrc = profile?.avatarUrl;
   return (
     <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
       <CardHeader className="border-b border-slate-100 pb-4">
@@ -149,8 +208,63 @@ export const UserProfileForm: React.FC = () => {
       </CardHeader>
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-5 pt-6">
-          {/* Hàng 1: Tên đăng nhập & Họ và tên (Không thể sửa) */}
+        <CardContent className="space-y-6 pt-6">
+          {/* Khu vực ảnh đại diện */}
+          <div className="flex flex-col sm:flex-row items-center gap-5 p-4 rounded-lg bg-slate-50/70 border border-slate-200/80">
+            <div className="relative group">
+              <div className="size-20 rounded-full border-2 border-emerald-500/40 bg-emerald-100 flex items-center justify-center overflow-hidden text-emerald-800 font-bold text-2xl shadow-inner">
+                {avatarSrc ? (
+                  <img
+                    src={avatarSrc}
+                    alt={profile?.fullName || "Avatar"}
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  profile?.fullName?.charAt(0).toUpperCase() || "U"
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute bottom-0 right-0 p-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition-colors"
+                title="Thay đổi ảnh đại diện"
+              >
+                <Camera className="size-3.5" />
+              </button>
+            </div>
+
+            <div className="space-y-1 text-center sm:text-left flex-1">
+              <div className="flex items-center gap-2 justify-center sm:justify-start">
+                <span className="text-sm font-semibold text-slate-800">
+                  Ảnh đại diện tài khoản
+                </span>
+              </div>
+              <p className="text-xs text-slate-500">
+                Hỗ trợ định dạng JPG, PNG, GIF hoặc WEBP (tối đa 5MB).
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="mt-1 text-xs h-8 gap-1.5 border-slate-300"
+              >
+                <UploadCloud className="size-3.5 text-emerald-600" />
+                {uploadingAvatar ? "Đang tải lên..." : "Tải ảnh mới lên"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Hàng 1: Tên đăng nhập & Họ và tên */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label
@@ -176,21 +290,27 @@ export const UserProfileForm: React.FC = () => {
                 htmlFor="fullName"
                 className="flex items-center gap-1.5 text-slate-700 font-medium"
               >
-                <UserCheck className="size-4 text-slate-400" />
+                <UserCheck className="size-4 text-emerald-600" />
                 Họ và tên
-                <span title="Không thể thay đổi">
-                  <Lock className="size-3 text-slate-400 ml-1" />
-                </span>
               </Label>
               <Input
                 id="fullName"
-                value={profile?.fullName || ""}
-                disabled
-                className="bg-slate-50/80 text-slate-600 cursor-not-allowed border-slate-200"
+                {...register("fullName")}
+                disabled={!isEditing}
+                placeholder="Nhập họ và tên hiển thị"
+                className={
+                  isEditing
+                    ? "bg-white border-slate-300 focus-visible:ring-emerald-500"
+                    : "bg-slate-50/80 text-slate-600 border-slate-200"
+                }
               />
+              {errors.fullName && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.fullName.message}
+                </p>
+              )}
             </div>
           </div>
-
           {/* Hàng 2: Vai trò & Thuộc tổ chức (Không thể sửa) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -208,7 +328,7 @@ export const UserProfileForm: React.FC = () => {
                 id="roleName"
                 value={roleDisplay}
                 disabled
-                className="bg-slate-50/80 text-slate-600 cursor-not-allowed border-slate-200 font-medium"
+                className="bg-slate-50/80 text-slate-600 cursor-not-allowed border-slate-200"
               />
             </div>
 
@@ -218,7 +338,7 @@ export const UserProfileForm: React.FC = () => {
                 className="flex items-center gap-1.5 text-slate-700 font-medium"
               >
                 <Building className="size-4 text-slate-400" />
-                Thuộc tổ chức
+                Tổ chức
                 <span title="Không thể thay đổi">
                   <Lock className="size-3 text-slate-400 ml-1" />
                 </span>
@@ -240,7 +360,7 @@ export const UserProfileForm: React.FC = () => {
             </div>
           </div>
 
-          {/* Hàng 3: Số điện thoại & Email (Có thể sửa khi bấm Chỉnh sửa) */}
+          {/* Hàng 3: Số điện thoại & Email */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label
@@ -289,11 +409,6 @@ export const UserProfileForm: React.FC = () => {
               {errors.email && (
                 <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
               )}
-              {!profile?.email && !isEditing && (
-                <p className="text-xs text-amber-600 font-medium mt-1">
-                  ⚠️ Chưa thiết lập email. Vui lòng bấm &ldquo;Chỉnh sửa&rdquo; để thêm email phục vụ việc đặt lại mật khẩu khi quên.
-                </p>
-              )}
             </div>
           </div>
         </CardContent>
@@ -321,6 +436,7 @@ export const UserProfileForm: React.FC = () => {
                 type="submit"
                 variant="default"
                 disabled={isSubmitting}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
               </Button>

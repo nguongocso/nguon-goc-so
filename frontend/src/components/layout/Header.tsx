@@ -118,8 +118,16 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
 
   const accountContent = (
     <>
-      <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 min-w-0">
-        <User className="h-4 w-4" />
+      <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 min-w-0 overflow-hidden">
+        {user?.avatarUrl ? (
+          <img
+            src={user.avatarUrl}
+            alt={userName}
+            className="size-full rounded-full object-cover"
+          />
+        ) : (
+          <User className="h-4 w-4" />
+        )}
         {isMissingEmail && (
           <span
             className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-red-500 ring-2 ring-white"
