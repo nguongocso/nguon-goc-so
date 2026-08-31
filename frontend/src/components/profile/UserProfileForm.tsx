@@ -3,14 +3,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
-  Building,
   Camera,
-  Lock,
   Mail,
   Phone,
-  Shield,
   UploadCloud,
-  User,
   UserCheck,
 } from "lucide-react";
 
@@ -22,7 +18,6 @@ import {
   type UserProfileFormValues,
   userProfileSchema,
 } from "@/utils/validators";
-import { getRoleLabel } from "@/config/roleAccess";
 import { getAssetUrl } from "@/config/runtimeConfig";
 
 import {
@@ -184,7 +179,6 @@ export const UserProfileForm: React.FC = () => {
     );
   }
 
-  const roleDisplay = getRoleLabel(profile?.roleCode);
   const avatarSrc = profile?.avatarUrl;
   return (
     <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
@@ -273,100 +267,31 @@ export const UserProfileForm: React.FC = () => {
             </div>
           </div>
 
-          {/* Hàng 1: Tên đăng nhập & Họ và tên */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label
-                htmlFor="username"
-                className="flex items-center gap-1.5 text-slate-700 font-medium"
-              >
-                <User className="size-4 text-slate-400" />
-                Tên đăng nhập
-                <span title="Không thể thay đổi">
-                  <Lock className="size-3 text-slate-400 ml-1" />
-                </span>
-              </Label>
-              <Input
-                id="username"
-                value={profile?.username || ""}
-                disabled
-                className="bg-slate-50/80 text-slate-600 cursor-not-allowed border-slate-200"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label
-                htmlFor="fullName"
-                className="flex items-center gap-1.5 text-slate-700 font-medium"
-              >
-                <UserCheck className="size-4 text-emerald-600" />
-                Họ và tên
-              </Label>
-              <Input
-                id="fullName"
-                {...register("fullName")}
-                disabled={!isEditing}
-                placeholder="Nhập họ và tên hiển thị"
-                className={
-                  isEditing
-                    ? "bg-white border-slate-300 focus-visible:ring-emerald-500"
-                    : "bg-slate-50/80 text-slate-600 border-slate-200"
-                }
-              />
-              {errors.fullName && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.fullName.message}
-                </p>
-              )}
-            </div>
-          </div>
-          {/* Hàng 2: Vai trò & Thuộc tổ chức (Không thể sửa) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label
-                htmlFor="roleName"
-                className="flex items-center gap-1.5 text-slate-700 font-medium"
-              >
-                <Shield className="size-4 text-slate-400" />
-                Vai trò
-                <span title="Không thể thay đổi">
-                  <Lock className="size-3 text-slate-400 ml-1" />
-                </span>
-              </Label>
-              <Input
-                id="roleName"
-                value={roleDisplay}
-                disabled
-                className="bg-slate-50/80 text-slate-600 cursor-not-allowed border-slate-200"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label
-                htmlFor="organizationName"
-                className="flex items-center gap-1.5 text-slate-700 font-medium"
-              >
-                <Building className="size-4 text-slate-400" />
-                Tổ chức
-                <span title="Không thể thay đổi">
-                  <Lock className="size-3 text-slate-400 ml-1" />
-                </span>
-              </Label>
-              <Input
-                id="organizationName"
-                value={
-                  profile?.organizationName
-                    ? `${profile.organizationName}${
-                        profile.organizationCode
-                          ? ` (${profile.organizationCode})`
-                          : ""
-                      }`
-                    : "Chưa gán tổ chức"
-                }
-                disabled
-                className="bg-slate-50/80 text-slate-600 cursor-not-allowed border-slate-200"
-              />
-            </div>
+          {/* Họ và tên */}
+          <div className="space-y-2">
+            <Label
+              htmlFor="fullName"
+              className="flex items-center gap-1.5 text-slate-700 font-medium"
+            >
+              <UserCheck className="size-4 text-emerald-600" />
+              Họ và tên
+            </Label>
+            <Input
+              id="fullName"
+              {...register("fullName")}
+              disabled={!isEditing}
+              placeholder="Nhập họ và tên hiển thị"
+              className={
+                isEditing
+                  ? "bg-white border-slate-300 focus-visible:ring-emerald-500"
+                  : "bg-slate-50/80 text-slate-600 border-slate-200"
+              }
+            />
+            {errors.fullName && (
+              <p className="text-xs text-red-500 mt-1">
+                {errors.fullName.message}
+              </p>
+            )}
           </div>
 
           {/* Hàng 3: Số điện thoại & Email */}

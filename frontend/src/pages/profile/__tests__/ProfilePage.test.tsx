@@ -64,7 +64,7 @@ describe("NCL-01-CN-010 - ProfilePage & Password Change UI", () => {
     ).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue("farmer01")).toBeInTheDocument();
+      expect(screen.getByText("farmer01")).toBeInTheDocument();
       expect(screen.getByDisplayValue("Nguyễn Văn Nông Dân")).toBeInTheDocument();
     });
 
