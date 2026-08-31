@@ -1,5 +1,6 @@
 package vn.nguongocso.alert.service.impl;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -49,7 +50,7 @@ public class AnomalyThresholdServiceImpl implements AnomalyThresholdService {
 
     public static final int DEFAULT_MAX_SCANS_PER_HOUR = 5;
     public static final int DEFAULT_MAX_SCANS_PER_DAY = 10;
-    public static final double DEFAULT_MAX_DISTANCE_KM = 50.0;
+    public static final BigDecimal DEFAULT_MAX_DISTANCE_KM = new BigDecimal("50.00");
     public static final int DEFAULT_MIN_TIME_BETWEEN_SCANS_MINUTES = 30;
     public static final int DEFAULT_ACTIVATION_AGE_DAYS = 365;
 
@@ -107,7 +108,7 @@ public class AnomalyThresholdServiceImpl implements AnomalyThresholdService {
         AnomalyThreshold saved = anomalyThresholdRepository.save(entity);
 
         publishActivityLog(currentUser, "UPDATE_GLOBAL_ANOMALY_THRESHOLD",
-                String.format("Cập nhật cấu hình ngưỡng toàn cục: maxScansPerHour=%d, maxScansPerDay=%d, maxDistanceKm=%.1f, minTimeMinutes=%d, activationAgeDays=%d",
+                String.format("Cập nhật cấu hình ngưỡng toàn cục: maxScansPerHour=%d, maxScansPerDay=%d, maxDistanceKm=%s, minTimeMinutes=%d, activationAgeDays=%d",
                         request.getMaxScansPerHour(), request.getMaxScansPerDay(), request.getMaxDistanceKmPer30Min(),
                         request.getMinTimeBetweenScansMinutes(), request.getActivationAgeDays()),
                 "ANOMALY_THRESHOLD", saved.getId().toString());
@@ -155,7 +156,7 @@ public class AnomalyThresholdServiceImpl implements AnomalyThresholdService {
         AnomalyThreshold saved = anomalyThresholdRepository.save(entity);
 
         publishActivityLog(currentUser, "SAVE_CATEGORY_THRESHOLD_OVERRIDE",
-                String.format("Lưu cấu hình ghi đè ngưỡng cho danh mục [%s]: maxScansPerHour=%d, maxScansPerDay=%d, maxDistanceKm=%.1f, minTimeMinutes=%d, activationAgeDays=%d",
+                String.format("Lưu cấu hình ghi đè ngưỡng cho danh mục [%s]: maxScansPerHour=%d, maxScansPerDay=%d, maxDistanceKm=%s, minTimeMinutes=%d, activationAgeDays=%d",
                         category.getName(), request.getMaxScansPerHour(), request.getMaxScansPerDay(),
                         request.getMaxDistanceKmPer30Min(), request.getMinTimeBetweenScansMinutes(), request.getActivationAgeDays()),
                 "ANOMALY_THRESHOLD", saved.getId().toString());
@@ -231,7 +232,7 @@ public class AnomalyThresholdServiceImpl implements AnomalyThresholdService {
 
             TraceCode tc = scans.get(0).getTraceCode();
             boolean highFreq = checkHighFrequency(scans, request.getMaxScansPerHour(), request.getMaxScansPerDay());
-            boolean impossibleTravel = checkImpossibleTravel(scans, request.getMaxDistanceKmPer30Min(), request.getMinTimeBetweenScansMinutes());
+            boolean impossibleTravel = checkImpossibleTravel(scans, request.getMaxDistanceKmPer30Min().doubleValue(), request.getMinTimeBetweenScansMinutes());
             boolean activationAge = checkActivationAge(tc, scans, request.getActivationAgeDays());
 
             if (highFreq) highFrequencyCount++;

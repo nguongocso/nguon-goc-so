@@ -1,5 +1,7 @@
 package vn.nguongocso.alert.dto.request;
 
+import java.math.BigDecimal;
+
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -29,7 +31,7 @@ public class UpdateGlobalThresholdRequest {
 
     @NotNull(message = "Khoảng cách tối đa cho phép không được để trống")
     @DecimalMin(value = "0.0", message = "Khoảng cách tối đa cho phép phải không âm")
-    private Double maxDistanceKmPer30Min;
+    private BigDecimal maxDistanceKmPer30Min;
 
     @NotNull(message = "Thời gian tối thiểu giữa các lượt quét không được để trống")
     @Min(value = 0, message = "Thời gian tối thiểu giữa các lượt quét phải không âm")

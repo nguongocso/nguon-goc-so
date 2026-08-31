@@ -257,7 +257,7 @@ class SuspectDetectionServiceImplTest {
         AnomalyThresholdResponse categoryThreshold = AnomalyThresholdResponse.builder()
                 .maxScansPerHour(2)
                 .maxScansPerDay(4)
-                .maxDistanceKmPer30Min(30.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(30.0))
                 .minTimeBetweenScansMinutes(20)
                 .activationAgeDays(180)
                 .build();

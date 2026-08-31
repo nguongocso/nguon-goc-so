@@ -122,7 +122,7 @@ class AnomalyThresholdServiceImplTest {
         assertNotNull(response);
         assertEquals(5, response.getMaxScansPerHour());
         assertEquals(10, response.getMaxScansPerDay());
-        assertEquals(50.0, response.getMaxDistanceKmPer30Min());
+        assertEquals(new BigDecimal("50.00"), response.getMaxDistanceKmPer30Min());
         assertEquals(30, response.getMinTimeBetweenScansMinutes());
         assertEquals(365, response.getActivationAgeDays());
         assertTrue(response.getIsActive());
@@ -136,7 +136,7 @@ class AnomalyThresholdServiceImplTest {
                 .productCategory(null)
                 .maxScansPerHour(8)
                 .maxScansPerDay(15)
-                .maxDistanceKmPer30Min(60.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(60.0))
                 .minTimeBetweenScansMinutes(25)
                 .activationAgeDays(180)
                 .isActive(true)
@@ -152,7 +152,7 @@ class AnomalyThresholdServiceImplTest {
         assertNotNull(response);
         assertEquals(8, response.getMaxScansPerHour());
         assertEquals(15, response.getMaxScansPerDay());
-        assertEquals(60.0, response.getMaxDistanceKmPer30Min());
+        assertEquals(BigDecimal.valueOf(60.0), response.getMaxDistanceKmPer30Min());
         assertEquals(25, response.getMinTimeBetweenScansMinutes());
         assertEquals(180, response.getActivationAgeDays());
     }
@@ -172,7 +172,7 @@ class AnomalyThresholdServiceImplTest {
         UpdateGlobalThresholdRequest request = UpdateGlobalThresholdRequest.builder()
                 .maxScansPerHour(6)
                 .maxScansPerDay(12)
-                .maxDistanceKmPer30Min(70.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(70.0))
                 .minTimeBetweenScansMinutes(20)
                 .activationAgeDays(200)
                 .build();
@@ -182,7 +182,7 @@ class AnomalyThresholdServiceImplTest {
         assertNotNull(response);
         assertEquals(6, response.getMaxScansPerHour());
         assertEquals(12, response.getMaxScansPerDay());
-        assertEquals(70.0, response.getMaxDistanceKmPer30Min());
+        assertEquals(BigDecimal.valueOf(70.0), response.getMaxDistanceKmPer30Min());
 
         ArgumentCaptor<ActivityLogEvent> eventCaptor = ArgumentCaptor.forClass(ActivityLogEvent.class);
         verify(eventPublisher).publishEvent(eventCaptor.capture());
@@ -206,7 +206,7 @@ class AnomalyThresholdServiceImplTest {
                 .productCategoryId(categoryId)
                 .maxScansPerHour(3)
                 .maxScansPerDay(7)
-                .maxDistanceKmPer30Min(35.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(35.0))
                 .minTimeBetweenScansMinutes(15)
                 .activationAgeDays(90)
                 .build();
@@ -232,7 +232,7 @@ class AnomalyThresholdServiceImplTest {
                 .productCategoryId(categoryId)
                 .maxScansPerHour(3)
                 .maxScansPerDay(7)
-                .maxDistanceKmPer30Min(35.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(35.0))
                 .minTimeBetweenScansMinutes(15)
                 .activationAgeDays(90)
                 .build();
@@ -249,7 +249,7 @@ class AnomalyThresholdServiceImplTest {
                 .productCategory(categorySsauRieng)
                 .maxScansPerHour(3)
                 .maxScansPerDay(7)
-                .maxDistanceKmPer30Min(35.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(35.0))
                 .minTimeBetweenScansMinutes(15)
                 .activationAgeDays(90)
                 .isActive(true)
@@ -273,7 +273,7 @@ class AnomalyThresholdServiceImplTest {
                 .productCategory(null)
                 .maxScansPerHour(5)
                 .maxScansPerDay(10)
-                .maxDistanceKmPer30Min(50.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(50.0))
                 .minTimeBetweenScansMinutes(30)
                 .activationAgeDays(365)
                 .isActive(true)
@@ -293,7 +293,7 @@ class AnomalyThresholdServiceImplTest {
                 .productCategory(categorySsauRieng)
                 .maxScansPerHour(2)
                 .maxScansPerDay(4)
-                .maxDistanceKmPer30Min(20.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(20.0))
                 .minTimeBetweenScansMinutes(10)
                 .activationAgeDays(60)
                 .isActive(true)
@@ -307,7 +307,7 @@ class AnomalyThresholdServiceImplTest {
         assertNotNull(effective);
         assertEquals(2, effective.getMaxScansPerHour());
         assertEquals(4, effective.getMaxScansPerDay());
-        assertEquals(20.0, effective.getMaxDistanceKmPer30Min());
+        assertEquals(BigDecimal.valueOf(20.0), effective.getMaxDistanceKmPer30Min());
     }
 
     @Test
@@ -318,7 +318,7 @@ class AnomalyThresholdServiceImplTest {
                 .productCategory(null)
                 .maxScansPerHour(7)
                 .maxScansPerDay(14)
-                .maxDistanceKmPer30Min(55.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(55.0))
                 .minTimeBetweenScansMinutes(30)
                 .activationAgeDays(365)
                 .isActive(true)
@@ -380,7 +380,7 @@ class AnomalyThresholdServiceImplTest {
         ImpactEstimationRequest request = ImpactEstimationRequest.builder()
                 .maxScansPerHour(5)
                 .maxScansPerDay(10)
-                .maxDistanceKmPer30Min(50.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(50.0))
                 .minTimeBetweenScansMinutes(30)
                 .activationAgeDays(365)
                 .build();

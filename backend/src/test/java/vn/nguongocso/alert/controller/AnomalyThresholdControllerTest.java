@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -70,7 +71,7 @@ class AnomalyThresholdControllerTest {
                 .id(UUID.randomUUID())
                 .maxScansPerHour(5)
                 .maxScansPerDay(10)
-                .maxDistanceKmPer30Min(50.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(50.0))
                 .minTimeBetweenScansMinutes(30)
                 .activationAgeDays(365)
                 .isActive(true)
@@ -97,7 +98,7 @@ class AnomalyThresholdControllerTest {
         UpdateGlobalThresholdRequest request = UpdateGlobalThresholdRequest.builder()
                 .maxScansPerHour(6)
                 .maxScansPerDay(12)
-                .maxDistanceKmPer30Min(60.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(60.0))
                 .minTimeBetweenScansMinutes(30)
                 .activationAgeDays(365)
                 .build();
@@ -106,7 +107,7 @@ class AnomalyThresholdControllerTest {
                 .id(UUID.randomUUID())
                 .maxScansPerHour(6)
                 .maxScansPerDay(12)
-                .maxDistanceKmPer30Min(60.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(60.0))
                 .minTimeBetweenScansMinutes(30)
                 .activationAgeDays(365)
                 .isActive(true)
@@ -131,7 +132,7 @@ class AnomalyThresholdControllerTest {
         UpdateGlobalThresholdRequest invalidRequest = UpdateGlobalThresholdRequest.builder()
                 .maxScansPerHour(-1) // Số âm không hợp lệ
                 .maxScansPerDay(0)
-                .maxDistanceKmPer30Min(-5.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(-5.0))
                 .minTimeBetweenScansMinutes(-10)
                 .activationAgeDays(-30)
                 .build();
@@ -152,7 +153,7 @@ class AnomalyThresholdControllerTest {
                 .productCategoryId(catId)
                 .maxScansPerHour(4)
                 .maxScansPerDay(8)
-                .maxDistanceKmPer30Min(40.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(40.0))
                 .minTimeBetweenScansMinutes(20)
                 .activationAgeDays(180)
                 .build();
@@ -163,7 +164,7 @@ class AnomalyThresholdControllerTest {
                 .productCategoryName("Sầu riêng")
                 .maxScansPerHour(4)
                 .maxScansPerDay(8)
-                .maxDistanceKmPer30Min(40.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(40.0))
                 .minTimeBetweenScansMinutes(20)
                 .activationAgeDays(180)
                 .isActive(true)
@@ -201,7 +202,7 @@ class AnomalyThresholdControllerTest {
         ImpactEstimationRequest request = ImpactEstimationRequest.builder()
                 .maxScansPerHour(5)
                 .maxScansPerDay(10)
-                .maxDistanceKmPer30Min(50.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(50.0))
                 .minTimeBetweenScansMinutes(30)
                 .activationAgeDays(365)
                 .build();
@@ -244,7 +245,7 @@ class AnomalyThresholdControllerTest {
         UpdateGlobalThresholdRequest request = UpdateGlobalThresholdRequest.builder()
                 .maxScansPerHour(5)
                 .maxScansPerDay(10)
-                .maxDistanceKmPer30Min(50.0)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(50.0))
                 .minTimeBetweenScansMinutes(30)
                 .activationAgeDays(365)
                 .build();

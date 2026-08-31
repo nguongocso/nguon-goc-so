@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -79,6 +80,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
         this(traceCodeRepository, scanLogRepository, userRepository, notificationService, null);
     }
 
+    @Autowired
     public SuspectDetectionServiceImpl(
             TraceCodeRepository traceCodeRepository,
             TraceCodeScanLogRepository scanLogRepository,
@@ -355,7 +357,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
     private SuspicionEvaluation evaluate(List<TraceCodeScanLog> sortedScans, AnomalyThresholdResponse threshold, TraceCode traceCode) {
         int maxPerDay = (threshold != null && threshold.getMaxScansPerDay() != null) ? threshold.getMaxScansPerDay() : HIGH_FREQUENCY_THRESHOLD;
         int maxPerHour = (threshold != null && threshold.getMaxScansPerHour() != null) ? threshold.getMaxScansPerHour() : 5;
-        double maxDistanceKm = (threshold != null && threshold.getMaxDistanceKmPer30Min() != null) ? threshold.getMaxDistanceKmPer30Min() : IMPOSSIBLE_TRAVEL_DISTANCE_KM;
+        double maxDistanceKm = (threshold != null && threshold.getMaxDistanceKmPer30Min() != null) ? threshold.getMaxDistanceKmPer30Min().doubleValue() : IMPOSSIBLE_TRAVEL_DISTANCE_KM;
         int minTimeMinutes = (threshold != null && threshold.getMinTimeBetweenScansMinutes() != null) ? threshold.getMinTimeBetweenScansMinutes() : IMPOSSIBLE_TRAVEL_MINUTES;
 
         int highFreqScore = 0;

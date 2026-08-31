@@ -1,5 +1,6 @@
 package vn.nguongocso.alert.dto.response;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -29,7 +30,7 @@ public class AnomalyThresholdResponse {
 
     private Integer maxScansPerDay;
 
-    private Double maxDistanceKmPer30Min;
+    private BigDecimal maxDistanceKmPer30Min;
 
     private Integer minTimeBetweenScansMinutes;
 

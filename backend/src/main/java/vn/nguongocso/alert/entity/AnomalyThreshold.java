@@ -1,5 +1,6 @@
 package vn.nguongocso.alert.entity;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -58,7 +59,7 @@ public class AnomalyThreshold {
     private Integer maxScansPerDay;
 
     @Column(name = "max_distance_km_per_30min", nullable = false, precision = 10, scale = 2)
-    private Double maxDistanceKmPer30Min;
+    private BigDecimal maxDistanceKmPer30Min;
 
     @Column(name = "min_time_between_scans_minutes", nullable = false)
     private Integer minTimeBetweenScansMinutes;
