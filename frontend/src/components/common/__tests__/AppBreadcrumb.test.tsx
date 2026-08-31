@@ -268,4 +268,53 @@ describe("AppBreadcrumb Component Rendering", () => {
     // Trang hiện tại hiển thị bình thường
     expect(screen.getByText("Ghi vận chuyển")).toBeInTheDocument();
   });
+
+  it("ẩn hoàn toàn breadcrumb Lô sản xuất đối với VT-04 tại /shipments/:id", () => {
+    mockUseAuth.mockReturnValue({
+      user: {
+        userId: "user-4",
+        username: "vt04",
+        fullName: "Doanh nghiệp thu mua",
+        roleCode: "VT-04",
+        roleName: "Doanh nghiệp thu mua",
+        organizationId: "org-2",
+        organizationCode: "DN-01",
+        organizationName: "Doanh nghiệp 1",
+        organizationType: "ENTERPRISE",
+      },
+      token: "token",
+      selectionToken: null,
+      isLoading: false,
+      loginWithSelection: vi.fn(),
+      completeLogin: vi.fn(),
+      updateUser: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/shipments/shipment-123"]}>
+        <BreadcrumbOverrideProvider>
+          <TestBreadcrumbOverride
+            items={[
+              { label: "Dashboard", href: "/dashboard" },
+              { label: "Lô sản xuất", href: "/production-lots" },
+              { label: "Chi tiết lô hàng" },
+            ]}
+          />
+        </BreadcrumbOverrideProvider>
+      </MemoryRouter>,
+    );
+
+    // Dashboard là link
+    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
+      "href",
+      "/dashboard",
+    );
+
+    // Lô sản xuất bị ẩn hoàn toàn vì VT-04 không có quyền truy cập /production-lots
+    expect(screen.queryByText("Lô sản xuất")).toBeNull();
+
+    // Trang hiện tại
+    expect(screen.getByText("Chi tiết lô hàng")).toBeInTheDocument();
+  });
 });
