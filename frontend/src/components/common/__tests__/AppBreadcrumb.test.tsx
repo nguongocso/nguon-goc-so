@@ -81,26 +81,32 @@ describe("AppBreadcrumb - isRouteAccessible", () => {
 
 
 describe("AppBreadcrumb - buildAutoBreadcrumb", () => {
-  it("không gán href cho các tiền tố nhóm (group prefix) không phải route thật", () => {
+  it("ẩn hoàn toàn các tiền tố nhóm (group prefix) không phải route thật", () => {
     const items = buildAutoBreadcrumb("/transport-events/record");
     expect(items).toEqual([
       { label: "Dashboard", href: "/dashboard" },
-      { label: "Vận chuyển" },
       { label: "Ghi vận chuyển" },
     ]);
   });
 
-  it("không gán href cho /farm-logs khi vào /farm-logs/create", () => {
+  it("ẩn hoàn toàn /farm-logs khi vào /farm-logs/create", () => {
     const items = buildAutoBreadcrumb("/farm-logs/create");
     expect(items).toEqual([
       { label: "Dashboard", href: "/dashboard" },
-      { label: "Nhật ký canh tác" },
       { label: "Ghi nhật ký canh tác" },
     ]);
   });
 
-  it("gán href cho các route trung gian tồn tại thật", () => {
-    const items = buildAutoBreadcrumb("/recall-requests/create");
+  it("ẩn hoàn toàn route không có quyền truy cập (/recall-requests cho VT-03)", () => {
+    const items = buildAutoBreadcrumb("/recall-requests/create", "VT-03");
+    expect(items).toEqual([
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Tạo yêu cầu thu hồi" },
+    ]);
+  });
+
+  it("giữ lại route khi người dùng có quyền truy cập (/recall-requests cho VT-02)", () => {
+    const items = buildAutoBreadcrumb("/recall-requests/create", "VT-02");
     expect(items).toEqual([
       { label: "Dashboard", href: "/dashboard" },
       { label: "Yêu cầu thu hồi", href: "/recall-requests" },
@@ -120,7 +126,7 @@ function TestBreadcrumbOverride({
 }
 
 describe("AppBreadcrumb Component Rendering", () => {
-  it("render plain text cho breadcrumb không có quyền truy cập khi dùng useSetBreadcrumb (VT-03 với /recall-requests)", () => {
+  it("ẩn hoàn toàn breadcrumb không có quyền truy cập khi dùng useSetBreadcrumb (VT-03 với /recall-requests)", () => {
     mockUseAuth.mockReturnValue({
       user: {
         userId: "user-1",
@@ -160,11 +166,10 @@ describe("AppBreadcrumb Component Rendering", () => {
     const dashboardLink = screen.getByRole("link", { name: "Dashboard" });
     expect(dashboardLink).toHaveAttribute("href", "/dashboard");
 
-    // Yêu cầu thu hồi KHÔNG phải link vì VT-03 không có quyền truy cập /recall-requests
-    expect(screen.queryByRole("link", { name: "Yêu cầu thu hồi" })).toBeNull();
-    expect(screen.getByText("Yêu cầu thu hồi")).toBeInTheDocument();
+    // Yêu cầu thu hồi bị ẨN HOÀN TOÀN vì VT-03 không có quyền truy cập /recall-requests
+    expect(screen.queryByText("Yêu cầu thu hồi")).toBeNull();
 
-    // Trang hiện tại là text
+    // Trang hiện tại luôn hiển thị
     expect(screen.getByText("Tạo yêu cầu")).toBeInTheDocument();
   });
 
@@ -204,7 +209,7 @@ describe("AppBreadcrumb Component Rendering", () => {
       </MemoryRouter>,
     );
 
-    // Cả Dashboard và Yêu cầu thu hồi đều là link
+    // Cả Dashboard và Yêu cầu thu hồi đều hiển thị và là link
     const dashboardLink = screen.getByRole("link", { name: "Dashboard" });
     expect(dashboardLink).toHaveAttribute("href", "/dashboard");
 
@@ -215,7 +220,7 @@ describe("AppBreadcrumb Component Rendering", () => {
     expect(screen.getByText("Tạo yêu cầu")).toBeInTheDocument();
   });
 
-  it("render link không tồn tại như /transport-events dưới dạng plain text thay vì Link", () => {
+  it("ẩn hoàn toàn breadcrumb có link không tồn tại như /transport-events", () => {
     mockUseAuth.mockReturnValue({
       user: {
         userId: "user-1",
@@ -257,8 +262,10 @@ describe("AppBreadcrumb Component Rendering", () => {
       "/dashboard",
     );
 
-    // Vận chuyển không phải là link
-    expect(screen.queryByRole("link", { name: "Vận chuyển" })).toBeNull();
-    expect(screen.getByText("Vận chuyển")).toBeInTheDocument();
+    // Vận chuyển bị ẩn hoàn toàn
+    expect(screen.queryByText("Vận chuyển")).toBeNull();
+
+    // Trang hiện tại hiển thị bình thường
+    expect(screen.getByText("Ghi vận chuyển")).toBeInTheDocument();
   });
 });

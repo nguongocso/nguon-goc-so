@@ -434,8 +434,12 @@ function capitalizeFirst(text: string): string {
 }
 
 /** Sinh danh sách breadcrumb tự động từ pathname hiện tại. */
-export function buildAutoBreadcrumb(pathname: string): BreadcrumbItem[] {
-  const segments = pathname.split("?")[0].split("/").filter(Boolean);
+export function buildAutoBreadcrumb(
+  pathname: string,
+  userRole?: string,
+): BreadcrumbItem[] {
+  const cleanPath = pathname.split("?")[0].split("#")[0];
+  const segments = cleanPath.split("/").filter(Boolean);
   const items: BreadcrumbItem[] = [
     { label: "Dashboard", href: "/dashboard" },
   ];
@@ -448,23 +452,22 @@ export function buildAutoBreadcrumb(pathname: string): BreadcrumbItem[] {
     );
 
     if (isLast) {
-      // Trang hiện tại: không cần liên kết
+      // Trang hiện tại: luôn hiển thị, không cần liên kết
       const label =
         matchTemplate(prefix, ROUTE_TEMPLATES) ??
         matchTemplate(prefix, GROUP_TEMPLATES) ??
         fallbackLabel;
       items.push({ label });
-    } else if (matchTemplate(prefix, ROUTE_TEMPLATES) !== null) {
-      // Route trung gian tồn tại -> gắn liên kết
-      items.push({
-        label: matchTemplate(prefix, ROUTE_TEMPLATES) as string,
-        href: prefix,
-      });
     } else {
-      // Không phải route thật (vd /permissions, /reports) -> chỉ hiện nhãn
-      items.push({
-        label: matchTemplate(prefix, GROUP_TEMPLATES) ?? fallbackLabel,
-      });
+      // Đoạn đường dẫn trung gian: chỉ thêm nếu là route thật và user có quyền truy cập
+      const label = matchTemplate(prefix, ROUTE_TEMPLATES);
+      if (label && (userRole === undefined || isRouteAccessible(prefix, userRole))) {
+        items.push({
+          label,
+          href: prefix,
+        });
+      }
+      // Các tiền tố nhóm (group templates) hoặc route không có quyền truy cập sẽ bị ẩn hoàn toàn
     }
   }
   return items;
@@ -537,23 +540,23 @@ export function useSetBreadcrumb(items: BreadcrumbItem[] | null): void {
 /**
  * Breadcrumb hiển thị trong layout: dùng override của trang nếu có,
  * ngược lại tự sinh từ pathname theo route registry.
- * Tự động kiểm tra và lọc bỏ liên kết không tồn tại hoặc người dùng không có quyền truy cập.
+ * Tự động kiểm tra và lọc bỏ hoàn toàn các liên kết không tồn tại hoặc người dùng không có quyền truy cập.
  */
 export function AppBreadcrumb() {
   const location = useLocation();
   const { user } = useAuth();
   const { override } = useContext(BreadcrumbOverrideContext);
-  const rawItems = override ?? buildAutoBreadcrumb(location.pathname);
+  const rawItems =
+    override ?? buildAutoBreadcrumb(location.pathname, user?.roleCode);
 
-  // Validate từng item: nếu route không tồn tại hoặc user không có quyền -> hiển thị dạng plain text (bỏ href)
+  // Lọc bỏ hoàn toàn các mục không thể truy cập (route không tồn tại hoặc user không có quyền),
+  // luôn giữ lại mục cuối cùng (trang hiện tại).
   const items = useMemo(() => {
-    return rawItems.map((item) => {
-      if (!item.href) return item;
-      const accessible = isRouteAccessible(item.href, user?.roleCode);
-      if (!accessible) {
-        return { label: item.label };
-      }
-      return item;
+    return rawItems.filter((item, index) => {
+      const isLast = index === rawItems.length - 1;
+      if (isLast) return true;
+      if (!item.href) return false;
+      return isRouteAccessible(item.href, user?.roleCode);
     });
   }, [rawItems, user?.roleCode]);
 
