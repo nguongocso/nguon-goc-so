@@ -31,7 +31,7 @@ export function ProcurementShipmentList({
   const [shipments, setShipments] = useState<ProcurementShipment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [page, setPage] = useState(0);
   const navigate = useNavigate();
 
@@ -71,17 +71,34 @@ export function ProcurementShipmentList({
     void loadShipments();
   }, [loadShipments]);
 
+  // Danh mục nông sản suy ra từ dữ liệu đã tải (không hardcode) — giống pattern
+  // roleFilterOptions của OrganizationDetail: dữ liệu là nguồn sự thật
+  const categoryOptions = useMemo(() => {
+    const names = Array.from(
+      new Set(
+        shipments
+          .map((shipment) => shipment.productCategoryName)
+          .filter((name): name is string => Boolean(name)),
+      ),
+    );
+    return [
+      { value: "ALL", label: "Tất cả nông sản" },
+      ...names.map((name) => ({ value: name, label: name })),
+    ];
+  }, [shipments]);
+
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase();
     return shipments.filter(
       (shipment) =>
-        (statusFilter === "ALL" || shipment.status === statusFilter) &&
+        (categoryFilter === "ALL" ||
+          shipment.productCategoryName === categoryFilter) &&
         (!keyword ||
           shipment.name.toLowerCase().includes(keyword) ||
           (shipment.productionLotName ?? "").toLowerCase().includes(keyword) ||
           (shipment.productCategoryName ?? "").toLowerCase().includes(keyword)),
     );
-  }, [shipments, search, statusFilter]);
+  }, [shipments, search, categoryFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
@@ -137,15 +154,12 @@ export function ProcurementShipmentList({
               aria-label="Tìm kiếm lô hàng thu mua"
             />
             <FilterSelect
-              value={statusFilter}
+              value={categoryFilter}
               onValueChange={(value) => {
-                setStatusFilter(value ?? "ALL");
+                setCategoryFilter(value ?? "ALL");
                 setPage(0);
               }}
-              options={[
-                { value: "ALL", label: "Tất cả trạng thái" },
-                { value: "ACTIVATED", label: "Đã kích hoạt" },
-              ]}
+              options={categoryOptions}
             />
           </>
         }
@@ -234,7 +248,7 @@ export function ProcurementShipmentList({
         empty={!isLoading && filtered.length === 0}
         loadingMessage="Đang tải danh sách lô hàng..."
         emptyMessage={
-          search.trim() || statusFilter !== "ALL"
+          search.trim() || categoryFilter !== "ALL"
             ? "Không tìm thấy lô hàng phù hợp. Hãy thử thay đổi từ khóa tìm kiếm."
             : "Chưa có lô hàng nào sẵn sàng thu mua. Các lô hàng đã kích hoạt tem sẽ xuất hiện tại đây."
         }
