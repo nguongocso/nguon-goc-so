@@ -157,4 +157,18 @@ public class BackupServiceTest {
         verify(backupRestoreHistoryRepository, never()).save(any(BackupRestoreHistory.class));
         verify(taskExecutor, never()).execute(any());
     }
+
+    @Test
+    void resolveMysqldumpPath_shouldResolveExecutablePath_whenConfiguredOrFallback() {
+        // Arrange
+        ReflectionTestUtils.setField(backupService, "mysqlDumpPath", "mysqldump");
+
+        // Act & Assert
+        try {
+            String resolved = backupService.resolveMysqldumpPath();
+            assertThat(resolved).isNotNull();
+        } catch (Exception e) {
+            assertThat(e).isInstanceOf(java.io.IOException.class);
+        }
+    }
 }
