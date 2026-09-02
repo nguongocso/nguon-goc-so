@@ -95,6 +95,9 @@ public class ChainEventServiceImpl implements ChainEventService {
         HarvestEligibilityResponse eligibility;
         try {
             validateOrganization(lot, currentUser);
+            if (lot.getStatus() == ProductionLotStatus.CANCELLED) {
+                throw new BusinessException("Lô sản xuất đã bị hủy, không thể ghi sự kiện.");
+            }
             if (lot.getStatus() != ProductionLotStatus.APPROVED) {
                 throw new BusinessException("Lô sản xuất chưa được duyệt, không thể ghi sự kiện thu hoạch.");
             }
@@ -225,6 +228,9 @@ public class ChainEventServiceImpl implements ChainEventService {
 
         try {
             validateOrganization(lot, currentUser);
+            if (lot.getStatus() == ProductionLotStatus.CANCELLED) {
+                throw new BusinessException("Lô sản xuất đã bị hủy, không thể ghi sự kiện.");
+            }
             if (lot.getStatus() != ProductionLotStatus.HARVESTED) {
                 throw new BusinessException("Chỉ được ghi nhận sự kiện sơ chế cho lô đã thu hoạch.");
             }
@@ -408,6 +414,9 @@ public class ChainEventServiceImpl implements ChainEventService {
 
         try {
             validateOrganization(lot, currentUser);
+            if (lot.getStatus() == ProductionLotStatus.CANCELLED) {
+                throw new BusinessException("Lô sản xuất đã bị hủy, không thể ghi sự kiện.");
+            }
             if (lot.getStatus() != ProductionLotStatus.HARVESTED
                     && lot.getStatus() != ProductionLotStatus.PREPROCESSED) {
                 throw new BusinessException("Chỉ được ghi nhận sự kiện đóng gói cho lô đã thu hoạch hoặc đã sơ chế.");

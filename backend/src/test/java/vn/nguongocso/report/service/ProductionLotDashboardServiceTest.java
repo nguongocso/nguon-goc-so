@@ -115,6 +115,40 @@ public class ProductionLotDashboardServiceTest {
     }
 
     @Test
+    void getDashboard_shouldExcludeCancelledLots_fromSummaryTotals() {
+        // NCL-02-CN-006: lô đã hủy chỉ thống kê riêng ở byStatus["CANCELLED"],
+        // không tính vào tổng số lô/sản lượng đang canh tác (TC-08).
+        when(managerDetails.getOrganizationId()).thenReturn(userOrgId);
+        when(managerDetails.getUserId()).thenReturn(userId);
+        when(managerDetails.getRoleCode()).thenReturn("VT-02");
+
+        LocalDate startDate = LocalDate.of(2026, 6, 1);
+        LocalDate endDate = LocalDate.of(2026, 7, 31);
+        String ipAddress = "127.0.0.1";
+
+        List<Object[]> summaryData = new ArrayList<>();
+        summaryData.add(new Object[]{ProductionLotStatus.APPROVED, 2L, 200.0, 150.0});
+        summaryData.add(new Object[]{ProductionLotStatus.CANCELLED, 1L, 100.0, 0.0});
+
+        when(productionLotRepository.getDashboardSummaryAndStatus(userOrgId, startDate, endDate))
+                .thenReturn(summaryData);
+        when(productionLotRepository.getDashboardTimeSeriesData(userOrgId, startDate, endDate))
+                .thenReturn(Collections.emptyList());
+
+        // When
+        ProductionLotDashboardResponse response = productionLotService.getDashboard(
+                startDate, endDate, userOrgId, "MONTH", managerDetails, ipAddress);
+
+        // Then
+        assertThat(response.getByStatus().get("CANCELLED")).isEqualTo(1L);
+        assertThat(response.getSummary().getTotalLots()).isEqualTo(2L);
+        assertThat(response.getSummary().getTotalExpectedYield()).isEqualTo(200.0);
+        assertThat(response.getSummary().getTotalActualYield()).isEqualTo(150.0);
+        assertThat(response.getTimeSeries()).isEmpty();
+    }
+
+
+    @Test
     void getDashboard_shouldThrowAccessDenied_whenManagerQueriesOtherOrg() {
         when(managerDetails.getOrganizationId()).thenReturn(userOrgId);
         when(managerDetails.getUserId()).thenReturn(userId);

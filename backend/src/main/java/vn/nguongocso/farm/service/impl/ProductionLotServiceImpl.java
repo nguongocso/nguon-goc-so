@@ -455,6 +455,12 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
             byStatus.put(status.name(), count);
 
+            // NCL-02-CN-006: lô đã hủy không tính vào tổng sản lượng đang canh tác,
+            // chỉ thống kê riêng ở bucket byStatus["CANCELLED"].
+            if (status == ProductionLotStatus.CANCELLED) {
+                continue;
+            }
+
             totalLots += count;
             totalExpectedYield += expected;
             totalActualYield += actual;

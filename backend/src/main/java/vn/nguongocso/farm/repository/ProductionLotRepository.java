@@ -73,6 +73,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
                 FROM ProductionLot pl
                 WHERE pl.organization.organizationId = :organizationId
                   AND pl.plantingDate IS NOT NULL
+                  AND pl.status <> vn.nguongocso.farm.enums.ProductionLotStatus.CANCELLED
                   AND (:startDate IS NULL OR pl.plantingDate >= :startDate)
                   AND (:endDate IS NULL OR pl.plantingDate <= :endDate)
                 ORDER BY pl.plantingDate ASC
@@ -94,6 +95,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
                 JOIN FETCH pl.productCategory pc
                 JOIN FETCH pl.organization org
                 WHERE pl.plantingDate BETWEEN :startDate AND :endDate
+                  AND pl.status <> vn.nguongocso.farm.enums.ProductionLotStatus.CANCELLED
                   AND (:farmAreaId IS NULL OR fa.id = :farmAreaId)
                   AND (:productCategoryId IS NULL OR pc.id = :productCategoryId)
                   AND (:organizationId IS NULL OR org.organizationId = :organizationId)
@@ -116,6 +118,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
                 JOIN FETCH pl.productCategory pc
                 JOIN FETCH pl.organization org
                 WHERE pl.plantingDate BETWEEN :startDate AND :endDate
+                  AND pl.status <> vn.nguongocso.farm.enums.ProductionLotStatus.CANCELLED
                   AND (:farmAreaId IS NULL OR fa.id = :farmAreaId)
                   AND (:productCategoryId IS NULL OR pc.id = :productCategoryId)
                   AND org.organizationId IN :orgIds
@@ -137,6 +140,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
             JOIN FETCH pl.productCategory pc
             JOIN FETCH pl.organization org
             WHERE YEAR(pl.plantingDate) IN :years
+              AND pl.status <> vn.nguongocso.farm.enums.ProductionLotStatus.CANCELLED
               AND (:farmAreaId IS NULL OR fa.id = :farmAreaId)
               AND (:productCategoryId IS NULL OR pc.id = :productCategoryId)
               AND (:organizationId IS NULL OR org.organizationId = :organizationId)
@@ -158,6 +162,7 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
             JOIN FETCH pl.productCategory pc
             JOIN FETCH pl.organization org
             WHERE YEAR(pl.plantingDate) IN :years
+              AND pl.status <> vn.nguongocso.farm.enums.ProductionLotStatus.CANCELLED
               AND (:farmAreaId IS NULL OR fa.id = :farmAreaId)
               AND (:productCategoryId IS NULL OR pc.id = :productCategoryId)
               AND org.organizationId IN :orgIds
