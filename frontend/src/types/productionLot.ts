@@ -13,13 +13,25 @@ export interface ProductionLot {
   actualQuantity: number | null;
   plantingDate: string;
   harvestDate: string;
-  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'HARVESTED' | 'PREPROCESSED' | 'PACKAGED' | 'CLOSED' | 'RECALLED';
+  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'HARVESTED' | 'PREPROCESSED' | 'PACKAGED' | 'CLOSED' | 'RECALLED' | 'CANCELLED';
   approvalNotes: string | null;
   createdByName: string | null;
   // FIX: was `approvebyName` (typo, inconsistent casing) — corrected to approvedByName
   approvedByName: string | null;
+  // NCL-02-CN-006: thông tin hủy lô
+  cancellationReason: string | null;
+  cancellationNote: string | null;
+  cancelledByName: string | null;
+  cancelledAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CancelProductionLotRequest {
+  /** Lý do hủy — chọn 1 trong danh sách cố định (TC-03: bắt buộc) */
+  reason: string;
+  /** Diễn giải chi tiết lý do hủy (bắt buộc, tối đa 1000 ký tự) */
+  note: string;
 }
 
 export interface UpdateProductionLotRequest {
@@ -111,7 +123,7 @@ export interface ProductionLot {
   actualQuantity: number | null;
   plantingDate: string;
   harvestDate: string;
-  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'HARVESTED' | 'PREPROCESSED' | 'PACKAGED' | 'CLOSED' | 'RECALLED';
+  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'HARVESTED' | 'PREPROCESSED' | 'PACKAGED' | 'CLOSED' | 'RECALLED' | 'CANCELLED';
   approvalNotes: string | null;
   createdByName: string | null;
   // FIX: was `approvebyName` (typo, inconsistent casing) — corrected to approvedByName

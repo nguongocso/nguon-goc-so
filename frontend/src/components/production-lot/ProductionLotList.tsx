@@ -9,8 +9,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableHead, TableRow } from "@/components/ui/table";
-import type { ProductionLot } from "@/types/productionLot";
+import type {
+  CancelProductionLotRequest,
+  ProductionLot,
+} from "@/types/productionLot";
 import {
+  Ban,
   ClipboardCheck,
   FileUp,
   LoaderCircle,
@@ -33,6 +37,10 @@ import { SearchInput } from "@/components/common/SearchInput";
 import { StatusBadge, type StatusTone } from "@/components/common/StatusBadge";
 import { useAuth } from "@/hooks/useAuth";
 import { ApproveProductionLotDialog } from "./Approveproductionlotdialog";
+import {
+  CANCELLABLE_PRODUCTION_LOT_STATUSES,
+  CancelProductionLotDialog,
+} from "./CancelProductionLotDialog";
 
 interface ProductionLotListProps {
   lots: ProductionLot[];
@@ -42,6 +50,8 @@ interface ProductionLotListProps {
   canSubmitForApproval: boolean;
   canApprove: boolean;
   canRecordFarmLog: boolean;
+  /** NCL-02-CN-006: cho phép hủy lô (VT-02). */
+  canCancel: boolean;
   onCreate: () => void;
   onEdit: (id: string) => void;
   onSubmitForApproval: (id: string) => Promise<void>;
@@ -51,6 +61,8 @@ interface ProductionLotListProps {
     reason?: string,
   ) => Promise<void>;
   onRecordFarmLog: (id: string) => void;
+  /** NCL-02-CN-006: gọi API hủy lô kèm lý do + diễn giải. */
+  onCancel: (id: string, payload: CancelProductionLotRequest) => Promise<void>;
   onRecordProcurement?: (lotId: string) => void;
   /** Ẩn khối tiêu đề trong card (dùng khi trang đã có ListPageHeader riêng). */
   hideCardHeader?: boolean;
@@ -72,6 +84,7 @@ const STATUS_LABELS: Record<ProductionLot["status"], string> = {
   PACKAGED: "Đã đóng gói",
   CLOSED: "Đã kết thúc",
   RECALLED: "Đã thu hồi",
+  CANCELLED: "Đã hủy",
 };
 
 const STATUS_TONES: Record<ProductionLot["status"], StatusTone> = {
@@ -84,6 +97,7 @@ const STATUS_TONES: Record<ProductionLot["status"], StatusTone> = {
   PACKAGED: "info",
   CLOSED: "neutral",
   RECALLED: "danger",
+  CANCELLED: "danger",
 };
 
 const STATUS_FILTER_OPTIONS = [
@@ -102,11 +116,13 @@ export const ProductionLotList = ({
   canSubmitForApproval,
   canApprove,
   canRecordFarmLog,
+  canCancel,
   onCreate,
   onEdit,
   onSubmitForApproval,
   onDecideApproval,
   onRecordFarmLog,
+  onCancel,
   onRecordProcurement,
   hideCardHeader = false,
   onRefresh,
@@ -120,6 +136,8 @@ export const ProductionLotList = ({
   const [confirmingLot, setConfirmingLot] =
     useState<ProductionLot | null>(null);
   const [approvingLot, setApprovingLot] =
+    useState<ProductionLot | null>(null);
+  const [cancellingLot, setCancellingLot] =
     useState<ProductionLot | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -261,12 +279,16 @@ export const ProductionLotList = ({
               (lot.status === "APPROVED" || lot.status === "HARVESTED");
             const showRecordProcurement =
               !!onRecordProcurement && lot.status === "PACKAGED";
+            const showCancel =
+              canCancel &&
+              CANCELLABLE_PRODUCTION_LOT_STATUSES.includes(lot.status);
             const hasAction =
               showEdit ||
               showSubmit ||
               showApprove ||
               showRecordFarmLog ||
-              showRecordProcurement;
+              showRecordProcurement ||
+              showCancel;
 
             return (
               <TableRow
@@ -347,6 +369,16 @@ export const ProductionLotList = ({
                         <ShoppingCart className="size-4 text-blue-600" />
                       </Button>
                     )}
+                    {showCancel && (
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        title="Hủy lô"
+                        onClick={() => setCancellingLot(lot)}
+                      >
+                        <Ban className="size-4 text-red-600" />
+                      </Button>
+                    )}
                     {!hasAction && (
                       <span className="text-xs text-muted-foreground">—</span>
                     )}
@@ -425,6 +457,13 @@ export const ProductionLotList = ({
         lot={approvingLot}
         onClose={() => setApprovingLot(null)}
         onDecide={onDecideApproval}
+      />
+
+      <CancelProductionLotDialog
+        open={cancellingLot !== null}
+        lot={cancellingLot}
+        onClose={() => setCancellingLot(null)}
+        onCancel={onCancel}
       />
     </>
   );
