@@ -190,34 +190,71 @@ dữ liệu demo VT-02 (chi tiết: [DEMO_DATA.md](./DEMO_DATA.md)).
 
 ---
 
-## 7. Triển khai bằng CI/CD (đường chính)
+## 7. Quy trình Release & CI/CD
 
-Pipeline thực tế trong `.github/workflows/ci-cd.yml`:
+### 7.1 Release Flow (Development → Staging → Production)
+
+```text
+feature/*
+    ↓
+Pull Request → develop
+    ↓
+CI: backend-test + frontend-build
+    ↓
+Build & Push Docker images (commit-SHA tag, immutable)
+    ↓
+Deploy → staging (namespace: staging)
+    ↓
+Staging verification (TC-01, TC-03, TC-04)
+    ↓
+Release Candidate (develop → main via Pull Request)
+    ↓
+main
+    ↓
+Git tag v1.0.0 (annotated tag, trỏ đến release commit trên main)
+    ↓
+CI: backend-test + frontend-build
+    ↓
+Build & Push Docker images (commit-SHA tag, immutable)
+    ↓
+Deploy → production (namespace: production)
+    ↓
+rollout status + annotate change-cause + collect evidence
+    ↓
+Validate traceability consistency (tag→commit→image→K8s)
+```
+
+### 7.2 CI/CD Workflow Steps (`.github/workflows/ci-cd.yml`)
 
 ```text
 [Push develop/main OR workflow_dispatch(staging|production)]
         │
         ▼
-Job backend-test    → ./mvnw clean test (JDK 21, H2)
+Job backend-test    → ./mvnw clean test -Dgit.commit=${GITHUB_SHA}
         │
         ▼
 Job frontend-build  → npm ci + npm run lint + npm run build
         │
         ▼
 Job build-push      → docker login GHCR
-        │             tag = latest (main) | edge (develop)
-        │             build & push backend + frontend
-        │             (kèm tag github.sha)
+        │             build-args: GIT_COMMIT=${github.sha} + RELEASE_VERSION
+        │             labels: org.opencontainers.image.revision + version
+        │             tags: latest/edge (convenience) + github.sha (immutable)
         │
         ▼
 Job deploy          → environment: staging|production
                       setup kubectl + KUBECONFIG_B64
-                      sed thay image tag trong k8s/*.yaml
+                      sed: image tag → github.sha (immutable)
+                      sed: K8s labels (release-version, git-commit)
                       kubectl apply namespace/secrets/configmap/pv/services/deployments
                       patch NodePort frontend (31690 prod / 31691 staging)
                       patch configmap CORS + FRONTEND_URL + DB_NAME
                       apply ingress (ingress.yaml | ingress-staging.yaml)
                       kubectl rollout restart + rollout status (timeout 180s)
+                      annotate kubernetes.io/change-cause
+                      [main only] git tag v1.0.0 + git push origin v1.0.0
+                      collect release & deployment evidence (TC-04)
+                      validate traceability consistency (TC-04)
 ```
 
 Chạy thủ công:
@@ -273,38 +310,167 @@ kubectl -n production get pods
 
 ---
 
-## 10. Version & Deployment Time (TC-04)
+## 10. Git Tag & Semantic Versioning (TC-04)
 
-> 🔧 **Cập nhật 03/09/2026:** gap TC-04 đã được implement (build-info +
-> `/actuator/info` JWT-only + deploy image commit-SHA + CI evidence step).
+### 10.1 Semantic Versioning
+
+Release version theo chuẩn **MAJOR.MINOR.PATCH**:
+
+| Version | Ý nghĩa |
+|---|---|
+| `v1.0.0` | Release đầu tiên (MAJOR) |
+| `v1.0.1` | Patch fix |
+| `v1.1.0` | Minor feature |
+| `v2.0.0` | Breaking change |
+
+**Release Version = `1.0.0`** — được propagate vào:
+- `pom.xml` → `<version>1.0.0</version>` → build-info `build.version`
+- `package.json` → `"version": "1.0.0"`
+- Docker OCI label → `org.opencontainers.image.version=1.0.0`
+- Kubernetes label → `release-version: "1.0.0"`
+
+> Phân biệt rõ: **Application Version** (Maven artifact) ≠ **Release Version** (Git release).
+> `pom.xml` version giờ đồng bộ với release version `1.0.0`.
+
+### 10.2 Git Tag Creation
+
+Khi commit release được merge vào `main`, CI tự động tạo annotated tag:
+
+```bash
+git tag -a v1.0.0 -m "Release v1.0.0"
+git push origin v1.0.0
+```
+
+Tag phải trỏ chính xác đến release commit trên `main`:
+
+```bash
+git rev-list -n 1 v1.0.0    # → commit SHA
+git rev-parse HEAD          # → phải khớp với trên
+```
+
+**Quy tắc:**
+- Không dùng Git tag làm Docker deployment identity duy nhất.
+- Git tag dùng để nhận diện release.
+- **Commit SHA** là deployment identity (immutable).
+- Không deploy production bằng `latest` hoặc `edge`.
+
+### 10.3 Traceability Validation (CI)
+
+CI validate consistency — fail nếu mismatch:
+
+```text
+Git Tag (v1.0.0) → Commit SHA → Docker Image (:sha) → K8s Deployment
+                                            ↓
+                              Release Version → Build Info → OCI version label
+```
+
+---
+
+## 11. Rollback Procedure
+
+Rollback dựa trên **commit-SHA/image cụ thể** — không rollback bằng `latest`.
+
+### 11.1 Xác định image cần rollback
+
+```bash
+# Xem lịch sử rollout
+kubectl -n production rollout history deployment/backend
+
+# Xem image đang chạy
+kubectl -n production get deployment backend -o jsonpath='{.spec.template.spec.containers[0].image}'
+
+# Xem image các revision
+kubectl -n production rollout history deployment/backend --revision=1
+kubectl -n production rollout history deployment/backend --revision=2
+```
+
+### 11.2 Thực hiện rollback
+
+```bash
+# Cách 1: rollout undo (quay lại revision trước)
+kubectl -n production rollout undo deployment/backend
+
+# Cách 2: chỉ định image cụ thể (commit-SHA của version trước)
+kubectl -n production set image deployment/backend backend=ghcr.io/nguongocso/nguongocso-backend:<commit-sha-version-cu>
+
+# Verify
+kubectl -n production rollout status deployment/backend --timeout=180s
+```
+
+### 11.3 Ví dụ
+
+```text
+Production đang chạy: v1.0.1 (commit B, image:...:commit-B)
+  → phát hiện lỗi
+  → rollback
+  → v1.0.0 (commit A, image:...:commit-A)
+```
+
+---
+
+## 12. Release & Deployment Traceability (TC-04)
+
+> ✅ **Cập nhật 03/09/2026:** TC-04 đã được implement và verify runtime.
 > Chi tiết bằng chứng: `docs/presentation/TEST_EVIDENCE.md` §6.
 
-### 10.1 Cơ chế nhận biết version
+### 12.1 Cơ chế nhận biết version & traceability
 
 | Nguồn | Có triển khai? | Ý nghĩa |
 |---|---|---|
-| Docker image tag `github.sha` | ✅ (GHCR + deploy) | Mỗi build có SHA commit; **K8s deploy dùng đúng tag này** (bất kỳ) |
-| `:latest` / `:edge` | ✅ (GHCR) | Chỉ là convenience tag cho người xem; deploy KHÔNG dùng |
-| Build-info (`META-INF/build-info.properties`) | ✅ | `build.version=01`, `build.time`, `build.git.commit` — sinh bởi `spring-boot-maven-plugin:build-info` |
-| Actuator `/actuator/info` | ✅ (yêu cầu JWT) | Trả build version/time/commit; **không public** (không token → 403) |
-| Deployment time | ✅ | Pod `creationTimestamp` (UTC) = thời điểm rollout thực tế; deployment annotation `kubernetes.io/change-cause` = commit + run URL |
-| CI evidence log | ✅ | Step "Collect deployment evidence (TC-04)" sau rollout: Version/Commit/Image/Environment/Time |
-| Git tag | ❌ | Repository không dùng git tag (không cần cho traceability) |
-| Endpoint `/api/v1/version` riêng | ❌ | Không tạo — dùng `/actuator/info` là đủ (tránh over-engineering) |
+| Semantic release version (`1.0.0`) | ✅ | `pom.xml` + `package.json` + build-info + OCI labels + K8s labels |
+| Git tag (`v1.0.0`) | ✅ (trên main) | Annotated tag trỏ đến release commit |
+| Docker image tag `github.sha` | ✅ (GHCR + deploy) | Immutable — K8s deploy dùng đúng tag này |
+| `:latest` / `:edge` | ✅ (GHCR) | Chỉ convenience tag; deploy KHÔNG dùng |
+| Build-info (`META-INF/build-info.properties`) | ✅ | `build.version=1.0.0`, `build.time`, `build.git.commit` |
+| OCI metadata | ✅ | `org.opencontainers.image.version` + `.revision` |
+| Actuator `/actuator/info` | ✅ (yêu cầu JWT) | Trả build version/time/commit; **không public** |
+| K8s labels | ✅ | `release-version` + `git-commit` trên Deployment |
+| Deployment time | ✅ | Pod `creationTimestamp` (UTC) = thời điểm rollout thực tế |
+| CI evidence log | ✅ | Step "Collect release & deployment evidence (TC-04)" |
+| CI traceability validation | ✅ | Step "Validate traceability consistency (TC-04)" — fail on mismatch |
+| Endpoint `/api/v1/version` riêng | ❌ | Không tạo — dùng `/actuator/info` là đủ |
 
-### 10.2 Chuỗi truy vết
+### 12.2 Chuỗi truy vết đầy đủ
 
 ```text
-Version "01" → Git Commit → Docker Image :<commit-sha> → K8s Deployment → pod creationTimestamp
+Release Version (1.0.0)
+      ↓
+Git Tag (v1.0.0)
+      ↓
+Git Commit (f5fdb723...)
+      ↓
+Docker Image (:f5fdb723...)
+      ↓
+Kubernetes Deployment (production)
+      ↓
+Environment (production)
+      ↓
+Deployment Time (pod creationTimestamp)
+      ↓
+CI/CD Workflow Run (#250)
 ```
 
 Verify sau deploy:
 
 ```bash
-kubectl -n <ns> get deployment backend -o jsonpath='{.spec.template.spec.containers[0].image}'
-kubectl -n <ns> get pods -l app=backend -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp,IMAGE:.spec.containers[0].image
-kubectl -n <ns> rollout history deployment/backend
-kubectl -n <ns> exec deploy/backend -- curl -s -H "Authorization: Bearer <JWT>" localhost:8080/actuator/info
+# Image đang chạy
+kubectl -n production get deployment backend -o jsonpath='{.spec.template.spec.containers[0].image}'
+
+# Pod creation timestamp = deployment time
+kubectl -n production get pods -l app=backend -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp,IMAGE:.spec.containers[0].image
+
+# K8s labels
+kubectl -n production get deployment backend -o jsonpath='{.metadata.labels}'
+
+# Build info (yêu cầu JWT)
+kubectl -n production exec deploy/backend -- curl -s -H "Authorization: Bearer <JWT>" localhost:8080/actuator/info
+
+# Git tag
+git tag -l
+git rev-list -n 1 v1.0.0
+
+# Rollout history
+kubectl -n production rollout history deployment/backend
 ```
 
 > TC-04 chỉ coi là PASS khi có runtime evidence từ cluster — theo dõi

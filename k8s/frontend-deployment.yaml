@@ -11,6 +11,9 @@ metadata:
   name: frontend
   labels:
     app: frontend
+    # TC-04: Release metadata — CI/CD overrides these before apply.
+    release-version: "1.0.0"
+    git-commit: "placeholder"
 spec:
   replicas: 1
   selector:
@@ -20,12 +23,15 @@ spec:
     metadata:
       labels:
         app: frontend
+        # TC-04: Release metadata — CI/CD overrides these before apply.
+        release-version: "1.0.0"
+        git-commit: "placeholder"
     spec:
       imagePullSecrets:
         - name: ghcr-secret
       containers:
         - name: frontend
-          image: ghcr.io/nguongocso/nguongocso-frontend:latest
+          image: ghcr.io/nguongocso/nguongocso-frontend:placeholder
           imagePullPolicy: Always
           ports:
             - containerPort: 80
