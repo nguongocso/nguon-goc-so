@@ -2,7 +2,8 @@
 # Backend Deployment
 # ------------------------------------------------------------
 # Applies to both staging and production namespaces (via -n).
-# Image tag is rewritten by CI/CD before apply.
+# Image tag is rewritten by CI/CD before apply to the immutable
+# commit SHA (github.sha) for release traceability (TC-04).
 # ============================================================
 apiVersion: apps/v1
 kind: Deployment

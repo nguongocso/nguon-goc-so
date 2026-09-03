@@ -9,7 +9,15 @@
 > ✅ **Cập nhật 02/09/2026 — Phase 4 Final Verification:** TC-01 và TC-03 đã được
 > **kiểm chứng runtime thực tế** (API live trên backend đang chạy). TC-02 có bằng
 > chứng mức unit-test nhưng chưa verify UI đầy đủ → giữ `NOT VERIFIED`. TC-04 xác
-> nhận thêm bằng runtime → giữ `FAIL`. Chi tiết: mục 3.4, 5.4, 6.1; lịch sử mục 8.
+> nhận thêm bằng runtime → giữ `FAIL` (hiện trạng điều tra ngày đó: mục 6.6).
+> Chi tiết: mục 3.4, 5.4, 6.6; lịch sử mục 8.
+>
+> 🔧 **Cập nhật 03/09/2026 — TC-04 implementation hoàn tất:** gap TC-04 đã được
+> triển khai (build-info + `/actuator/info` JWT-only + deploy image commit-SHA +
+> CI evidence step — chi tiết mục 6). Local verify PASS — backend test 578/578,
+> `package -Pprod` OK (mục 6.2). Status chuyển `FAIL` → `NOT VERIFIED`, chờ
+> evidence runtime từ cluster sau lần deploy CI tiếp theo (mục 6.5) trước khi
+> đánh `PASS`.
 
 - Mã story: **NCL-10-CN-011-CV-05**
 - Tham chiếu: [DEMO_SCRIPT.md](./DEMO_SCRIPT.md),
@@ -24,7 +32,7 @@
 | **TC-01** — Luồng truy xuất đầy đủ (lô → sự kiện → kiểm nghiệm → tem → quét → tra cứu) | `PASS` ✅ | **E2E sống 02/09/2026** — chạy đủ chuỗi API thật trên 1 lô mới: tạo lô → duyệt → thu hoạch (201) → đóng gói (201) → lô hàng mã `HX00000011` → kích hoạt → tra cứu public (200, 2 sự kiện) → scan (200). Chi tiết mục 3.4 |
 | **TC-02** — Không dữ liệu → Dashboard/List → Empty state, không lộ lỗi kỹ thuật | `NOT VERIFIED` | UI code có empty-state pattern (mục 4) + unit test empty-state PASS (`AreaAssignmentPage.test.tsx` TC-A; Vitest 46/46 PASS 02/09/2026); **API-level đã kiểm chứng 02/09/2026**: org `DEMO_NSV` (VT-04, không có lô) → `GET /production-lots` trả **HTTP 200 `{"data":[]}`** (không 500, không lộ lỗi kỹ thuật); chưa verify UI walkthrough đầy đủ với DB trống |
 | **TC-03** — Unauthenticated → Protected page/API → Login/Unauthorized, không lộ dữ liệu | `PASS` ✅ (API) | **Runtime 02/09/2026:** 8/8 endpoint protected không token → **403 với body rỗng** (không lộ dữ liệu/stacktrace); token giả → 403; `GET /public/trace/HX00000001` không token → 200 (đúng thiết kế public). Chi tiết mục 5.4 |
-| **TC-04** — Deployment → Version → Deployment timestamp | `FAIL` (GAP) | Không tồn tại cơ chế version/deploy-time hiển thị (mục 6); xác nhận thêm runtime 02/09/2026: `/actuator/info` → 403, không có Git tag |
+| **TC-04** — Deployment → Version → Deployment timestamp | `NOT VERIFIED` (implemented 03/09/2026) | **Gap đã được implement** (mục 6): `build-info` → `/actuator/info` (vẫn yêu cầu JWT), K8s deploy image `:<commit-sha>`, deployment time = pod `creationTimestamp`, CI evidence step. Local verify PASS — test 578/578 + `package -Pprod` OK (mục 6.2); **chờ evidence runtime từ cluster** sau lần deploy CI tiếp theo (mục 6.5) trước khi đánh `PASS` |
 
 ---
 
@@ -237,44 +245,148 @@ làm nhanh trước demo để có screenshot.
 
 ## 6. TC-04 — Bằng chứng (Version & Deployment time)
 
-### 6.1 Hiện trạng (điều tra repository)
+### 6.1 Hiện trạng sau khi implement (03/09/2026)
 
-| Cơ chế | Kết quả |
+> Trước 03/09/2026: ❌ không có build-info, `/actuator/info` → 403 (và chưa expose
+> qua web), K8s deploy `latest`/`edge`, không có deployment time — xem lịch sử ở
+> mục 6.6 và `DEPLOYMENT.md` §10.
+
+| Cơ chế | Trước | Sau khi implement (03/09/2026) |
+|---|---|---|
+| Build info | ❌ Không có | ✅ `spring-boot-maven-plugin:build-info` → `META-INF/build-info.properties`: `build.version=01`, `build.time`, `build.git.commit` |
+| `/actuator/info` | ❌ 403 + chưa expose | ✅ Expose qua web (`management.endpoints.web.exposure.include=health,info`); **vẫn yêu cầu JWT** — security giữ nguyên, chỉ `/actuator/health` public (không vi phạm TC-03) |
+| Git commit ↔ image | ⚠️ GHCR có tag `github.sha` nhưng deploy không dùng | ✅ CI truyền `GIT_COMMIT` vào Docker build → JAR build-info `git.commit` + OCI label `org.opencontainers.image.revision` |
+| K8s deploy image | ❌ `latest`/`edge` (mutable) | ✅ CI deploy `ghcr.io/nguongocso/nguongocso-{backend,frontend}:<commit-sha>` (immutable; `latest`/`edge` vẫn được push cho convenience) |
+| Deployment time | ❌ Không có | ✅ Pod `creationTimestamp` (= thời điểm rollout thực tế, UTC) + annotation `kubernetes.io/change-cause` (commit + run URL) + CI evidence log |
+| CI evidence | ❌ Không có | ✅ Step **"Collect deployment evidence (TC-04)"** sau `rollout status`: in Version/Commit/Image/Environment/Deployment Time (không in secret) |
+
+### 6.2 Bằng chứng local (03/09/2026) — application-level
+
+**a) Backend test suite** — `./mvnw clean test -Dgit.commit=c5c516f3f176693e3fb018b2602e533632d2a5c4`
+(SPRING_PROFILES_ACTIVE=test):
+
+```text
+[INFO] Tests run: 578, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+```
+
+- 575 test cũ PASS + **3 test mới `BuildInfoActuatorTest` PASS**:
+  1. build-info được sinh với `version=01`, `build.time`, `git.commit`;
+  2. `GET /actuator/info` (có xác thực) → **200**, body chứa `build.version=01`,
+     `build.time`, commit — content thực tế qua security filter chain thật;
+  3. `GET /actuator/info` (không token) → **403** — xác nhận endpoint **không public**,
+     security policy không bị thay đổi vì TC-04.
+
+**b) Build production JAR** — `./mvnw clean package -Pprod -Dgit.commit=c5c516f3...`
+(cùng lệnh với Dockerfile, test đã chạy riêng ở CI):
+
+```text
+[INFO] BUILD SUCCESS
+target/backend-01.jar
+```
+
+`backend/target/classes/META-INF/build-info.properties` (nội dung thực tế):
+
+```properties
+build.artifact=backend
+build.git.commit=c5c516f3f176693e3fb018b2602e533632d2a5c4
+build.group=vn.nguongocso
+build.name=backend
+build.time=2026-09-03T03\:37\:14.460Z
+build.version=01
+```
+
+**c) Docker build với `--build-arg GIT_COMMIT=<commit>`:**
+
+- Backend — cơ chế đã được chứng minh: Dockerfile chạy `./mvnw clean package -Pprod -B
+  -Dgit.commit=${GIT_COMMIT}` (chính là lệnh đã verify ở (b) với commit thật), CI truyền
+  `build-args: GIT_COMMIT=${{ github.sha }}` và gắn OCI label
+  `org.opencontainers.image.revision=<sha>`. Build+push chính thức do CI thực hiện
+  (step *"Build & push backend image"* + log *"Log build traceability"*).
+- Frontend — **build local thành công** và kiểm chứng runtime OCI label:
+
+  ```text
+  $ docker build --build-arg GIT_COMMIT=c5c516f3f176693e3fb018b2602e533632d2a5c4 -t nguongocso-frontend:tc04-verify ./frontend   → OK
+  $ docker inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' nguongocso-frontend:tc04-verify
+  c5c516f3f176693e3fb018b2602e533632d2a5c4
+  ```
+
+### 6.3 Chuỗi truy vết Version → Commit → Image → Deployment → Time
+
+```text
+Version "01"  (pom.xml)
+   ↓  spring-boot-maven-plugin:build-info
+META-INF/build-info.properties  →  /actuator/info (yêu cầu JWT)
+   { "build": { "version": "01", "time": "...", "git": { "commit": "<sha>" } } }
+   ↓  CI: -Dgit.commit + --build-arg GIT_COMMIT + tag :<sha> + OCI label revision
+Docker Image  ghcr.io/nguongocso/nguongocso-backend:<commit-sha>
+   ↓  CI step "Set immutable commit-SHA images" → kubectl apply
+Kubernetes Deployment "backend" / "frontend" (staging | production)
+   ↓  kubectl rollout status → pod mới được tạo
+Deployment Time (UTC) = pod metadata.creationTimestamp = thời điểm rollout thực tế
+   (+ deployment annotation kubernetes.io/change-cause = commit + run URL)
+```
+
+> Deployment time **không giả lập, không hard-code** — lấy trực tiếp từ metadata
+> Kubernetes (pod `creationTimestamp`), đại diện thời điểm rollout/deployment thực tế.
+
+### 6.4 Cách verify sau mỗi lần deploy (runtime trên cluster)
+
+```bash
+# 1. Image đang chạy có phải commit-SHA image? (mục tiêu: image = backend:<sha>)
+kubectl -n <namespace> get deployment backend \
+  -o jsonpath='{.spec.template.spec.containers[0].image}'
+# kỳ vọng: ghcr.io/nguongocso/nguongocso-backend:<commit-sha>
+
+# 2. Deployment time = pod creationTimestamp (thời điểm rollout thực tế, UTC):
+kubectl -n <namespace> get pods -l app=backend \
+  -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp,IMAGE:.spec.containers[0].image
+
+# 3. Commit + run URL của lần deploy (change-cause):
+kubectl -n <namespace> rollout history deployment/backend
+
+# 4. Version / Build Time / Git Commit từ app.
+#    Endpoint YÊU CẦU JWT (không token → 403, đúng security TC-03) — dùng token hợp lệ:
+kubectl -n <namespace> exec deploy/backend -- \
+  curl -s -H "Authorization: Bearer <JWT>" localhost:8080/actuator/info
+# kỳ vọng: {"build":{"version":"01","time":"...","git":{"commit":"<sha>"},...}}
+
+# 5. Đối chiếu image tag ↔ commit trên GHCR (tag <sha> tồn tại, immutable):
+#    https://github.com/<owner>/nguongocso-backend/pkgs/container/nguongocso-backend
+```
+
+> ⚠️ Không làm `/actuator/info` thành public endpoint (không thêm permitAll).
+> Không expose bất kỳ secret nào (JWT_SECRET, DB password, KUBECONFIG_B64,
+> MAIL_PASSWORD, LOCATIONIQ_API_KEY) trong evidence.
+
+### 6.5 Evidence runtime từ CI (điền sau lần deploy tiếp theo)
+
+Sau khi push nhánh, CI sẽ tự in khối evidence ở step
+**"Collect deployment evidence (TC-04)"** (sau `rollout status`). Copy output thật vào đây:
+
+```text
+Version          : 01
+Git Commit       : <điền từ CI log — GITHUB_SHA>
+Docker Image     : ghcr.io/nguongocso/nguongocso-backend:<commit-sha>
+Environment      : staging | production
+Deployment Time  : <điền pod creationTimestamp, UTC>
+Workflow Run     : <URL GitHub Actions run>
+```
+
+> 🚦 **Điều kiện chuyển TC-04 = `PASS`:** mục 6.5 được điền bằng output thật từ CI
+> (hoặc bằng cách chạy tay các lệnh 6.4 trên cluster). Không đánh `PASS` khi chưa có
+> runtime evidence từ cluster; không tạo dữ liệu giả.
+
+### 6.6 Hiện trạng TRƯỚC khi implement (lưu giữ — điều tra 02/09/2026)
+
+| Cơ chế | Kết quả trước 03/09/2026 |
 |---|---|
 | Git tag | ❌ Không có tag nào trong repository |
-| Docker image tag | ⚠️ Có `latest`/`edge` + tag `github.sha` trên GHCR (CI `ci-cd.yml`) nhưng **không truy cập từ app** |
+| Docker image tag | ⚠️ Có `latest`/`edge` + tag `github.sha` trên GHCR (CI `ci-cd.yml`) nhưng deploy **không dùng** tag SHA |
 | GitHub Actions / CI/CD | ✅ Pipeline deploy tồn tại (chỉ chứng minh được "đã deploy bởi workflow", không cung cấp version hiển thị) |
 | Application version | ⚠️ `pom.xml` = `01`, `package.json` = `0.0.0` — không phải release version |
 | Deployment timestamp/audit | ❌ Không có bảng/UI/API deployment history |
 | Actuator `/actuator/info` | ❌ Không cấu hình build-info/git commit — **xác nhận runtime 02/09/2026: `curl /actuator/info` → `403`** |
-
-### 6.2 Trạng thái
-
-```text
-TC-04 = FAIL
-
-GAP — TC-04 deployment version/time tracking is not currently verifiable.
-```
-
-### 6.3 Cách chứng minh version nếu buộc phải ở buổi bảo vệ (thực tế hiện có)
-
-Bằng chứng tốt nhất hiện có là đối chiếu **image đang chạy** với **commit**:
-
-1. Lấy image hiện chạy:
-   ```bash
-   kubectl -n production get deploy backend -o jsonpath='{.spec.template.spec.containers[0].image}'
-   # kỳ vọng ghcr.io/<owner>/nguongocso-backend:<sha>
-   ```
-2. Lấy commit tương ứng từ GHCR (tag `sha`) hoặc từ CI log (`github.sha`).
-3. Lấy thời điểm container khởi động (≈ deployment time):
-   ```bash
-   kubectl -n production get pods -l app=backend -o jsonpath='{.items[*].metadata.creationTimestamp}'
-   ```
-4. Trình bày như minh chứng **thủ công** — không phải tính năng sẵn có của hệ thống.
-
-> ⚠️ Không tạo fake deployment record. Nếu cần tính năng version hiển thị
-> trong app → đây là **gap implementation** đã ghi nhận ở
-> `DEPLOYMENT.md` §10, quyết định ở phase sau.
 
 ---
 
@@ -312,3 +424,4 @@ Một số test tiêu biểu cho 4 TC:
 | 02/09/2026 | TC-03 | `NOT VERIFIED` → `PASS` (API) — 8/8 protected → 403 body rỗng, public → 200 (mục 5.4) | Trần Phương Đoàn |
 | 02/09/2026 | TC-04 | Giữ `FAIL` — xác nhận runtime `/actuator/info` → 403, không có Git tag | Trần Phương Đoàn |
 | 02/09/2026 | — | Build backend `clean verify` PASS 575/575; frontend build OK; Vitest 46/46 PASS | Trần Phương Đoàn |
+| 03/09/2026 | TC-04 | `FAIL` → `NOT VERIFIED` (implemented) — build-info + `/actuator/info` (JWT-only) + deploy image commit-SHA + change-cause + CI evidence step; local verify PASS: test 578/578 (3 test mới `BuildInfoActuatorTest`), `package -Pprod` OK, build-info chứa commit `c5c516f3` (mục 6) | Trần Phương Đoàn |

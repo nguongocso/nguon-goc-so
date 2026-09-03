@@ -275,28 +275,37 @@ kubectl -n production get pods
 
 ## 10. Version & Deployment Time (TC-04)
 
-### 10.1 Cơ chế nhận biết version hiện có
+> 🔧 **Cập nhật 03/09/2026:** gap TC-04 đã được implement (build-info +
+> `/actuator/info` JWT-only + deploy image commit-SHA + CI evidence step).
+> Chi tiết bằng chứng: `docs/presentation/TEST_EVIDENCE.md` §6.
+
+### 10.1 Cơ chế nhận biết version
 
 | Nguồn | Có triển khai? | Ý nghĩa |
 |---|---|---|
-| Docker image tag `github.sha` | ✅ (GHCR) | Mỗi build có SHA commit; có thể đối chiếu image ↔ commit |
-| `:latest` / `:edge` | ✅ | Chỉ phân biệt production/develop, không xác định commit |
-| Git tag | ❌ | Repository **không có tag** |
-| Endpoint version (vd `/api/v1/version`) | ❌ | Không tồn tại trong code |
-| Deployment history/timestamp trong app | ❌ | Không có bảng/UI deployment history |
-| Actuator `/actuator/info` build-info | ❌ | Không cấu hình build-info/git commit |
-| `pom.xml` version | ⚠️ | `01` — không mang ý nghĩa release |
+| Docker image tag `github.sha` | ✅ (GHCR + deploy) | Mỗi build có SHA commit; **K8s deploy dùng đúng tag này** (bất kỳ) |
+| `:latest` / `:edge` | ✅ (GHCR) | Chỉ là convenience tag cho người xem; deploy KHÔNG dùng |
+| Build-info (`META-INF/build-info.properties`) | ✅ | `build.version=01`, `build.time`, `build.git.commit` — sinh bởi `spring-boot-maven-plugin:build-info` |
+| Actuator `/actuator/info` | ✅ (yêu cầu JWT) | Trả build version/time/commit; **không public** (không token → 403) |
+| Deployment time | ✅ | Pod `creationTimestamp` (UTC) = thời điểm rollout thực tế; deployment annotation `kubernetes.io/change-cause` = commit + run URL |
+| CI evidence log | ✅ | Step "Collect deployment evidence (TC-04)" sau rollout: Version/Commit/Image/Environment/Time |
+| Git tag | ❌ | Repository không dùng git tag (không cần cho traceability) |
+| Endpoint `/api/v1/version` riêng | ❌ | Không tạo — dùng `/actuator/info` là đủ (tránh over-engineering) |
 
-### 10.2 Kết luận
+### 10.2 Chuỗi truy vết
 
 ```text
-GAP — TC-04 deployment version/time tracking is not currently verifiable.
+Version "01" → Git Commit → Docker Image :<commit-sha> → K8s Deployment → pod creationTimestamp
 ```
 
-Hiện tại cách duy nhất để xác định phiên bản đang chạy là đối chiếu
-**image đang chạy trong cluster** (kubectl get deploy -o yaml → image tag/sha)
-với **tag trên GHCR**. Không có endpoint hay UI hiển thị
-commit/version/deployment timestamp.
+Verify sau deploy:
 
-> Quyết định xử lý TC-04 (documentation-only hoặc thêm endpoint version tối
-> thiểu) nằm ở phase tiếp theo — **không tự ý thêm code trong phase này**.
+```bash
+kubectl -n <ns> get deployment backend -o jsonpath='{.spec.template.spec.containers[0].image}'
+kubectl -n <ns> get pods -l app=backend -o custom-columns=NAME:.metadata.name,CREATED:.metadata.creationTimestamp,IMAGE:.spec.containers[0].image
+kubectl -n <ns> rollout history deployment/backend
+kubectl -n <ns> exec deploy/backend -- curl -s -H "Authorization: Bearer <JWT>" localhost:8080/actuator/info
+```
+
+> TC-04 chỉ coi là PASS khi có runtime evidence từ cluster — theo dõi
+> `TEST_EVIDENCE.md` §6.5.

@@ -363,7 +363,7 @@ Sau khi chạy backend, truy cập:
 - **Swagger UI:** `http://localhost:8080/swagger-ui/index.html`
 - **OpenAPI JSON:** `http://localhost:8080/v3/api-docs`
 
-Hoặc xem file: [`docs/API/API_DOCS.md`](docs/API/API_DOCS.md)
+Hoặc xem file: [`docs/api/API_DOCS.md`](docs/API/API_DOCS.md)
 
 ---
 
@@ -501,8 +501,11 @@ MIT License – xem file [LICENSE](LICENSE) để biết chi tiết.
 
 ## 👨‍💻 Tác giả
 
-- **Nguyễn Văn A** – *Backend Lead* – [@email](mailto:a@example.com)
-- **Trần Văn B** – *Frontend Lead* – [@email](mailto:b@example.com)
+- **Trần Phương Đoàn** – *Backend Developer / Team Lead* – [doantran28092005@gmail.com](mailto:a@example.com)
+- **La Văn Hiến** – *Backend Developer* – [hienvla05@gmail.com](mailto:b@example.com)
+- **Triệu Văn Đại** – *Backend Developer* – [trieuvandai12035@gmail.com](mailto:b@example.com)
+- **La Văn Hiến** – *Frontend Developer* – [dtc235200572@ictu.edu.vn](mailto:b@example.com)
+- **La Văn Hiến** – *Frontend Developer* – [dtc235200874@ictu.edu.vn](mailto:b@example.com)
 
 ---
 
@@ -514,4 +517,4 @@ MIT License – xem file [LICENSE](LICENSE) để biết chi tiết.
 
 ---
 
-> **Xây dựng niềm tin – Minh bạch từ nông trại đến bàn ăn.** 🌾
+> **Xây dựng niềm tin – Minh bạch từ nông trại đến bàn ăn.** 
