@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
-import { RefreshCw, Trash2, X, Info } from 'lucide-react';
+import { RefreshCw, Trash2, X } from 'lucide-react';
 import type { OfflineEvent } from '@/types/offlineEvent';
 import { maskId } from '@/lib/utils';
 
@@ -134,9 +134,7 @@ export const OfflineEventList: React.FC = () => {
     return (
       <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
         <CardContent className="py-12 text-center text-muted-foreground">
-          <Info className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-          <p className="font-medium text-slate-700">Không có sự kiện nào đang chờ đồng bộ.</p>
-          <p className="text-xs text-muted-foreground mt-1">Khi mất mạng, sự kiện sẽ được lưu tạm và xuất hiện ở đây.</p>
+          <p>Không có sự kiện nào đang chờ đồng bộ.</p>
         </CardContent>
       </Card>
     );

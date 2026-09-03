@@ -74,6 +74,9 @@ export const ROLE_ACCESS = {
   // ✅ NCL-09-CN-009 - Quản lý danh mục chỉ tiêu kiểm nghiệm
   inspectionCriteriaManagement: ['VT-01'] as const,
 
+  // ✅ NCL-09-CN-011 - Quản lý mốc canh tác bắt buộc
+  cultivationMilestoneManagement: ['VT-01'] as const,
+
   // ✅ NCL-11-CN-006 Phase 2 - Quản lý phạm vi công nhận của đơn vị kiểm nghiệm
   testingUnitScopeManagement: ['VT-01'] as const,
 
