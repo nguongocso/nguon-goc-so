@@ -6,6 +6,8 @@ on:
       - develop
       - main
       - test/cicd
+      - 'release/**'
+      - 'hotfix/**'
   pull_request:
     branches:
       - develop
@@ -21,15 +23,76 @@ on:
         options:
           - staging
           - production
+      release_version:
+        description: "Release version (e.g. 1.1.0). Required for production deployment."
+        required: false
+        type: string
+        default: ""
 
 env:
   REGISTRY: ghcr.io
   BACKEND_IMAGE: ${{ github.repository_owner }}/nguongocso-backend
   FRONTEND_IMAGE: ${{ github.repository_owner }}/nguongocso-frontend
-  # TC-04: Semantic release version. Baked into build-info, OCI labels, K8s labels.
-  RELEASE_VERSION: "1.0.0"
 
 jobs:
+  # ==========================================================
+  # PREPARE RELEASE METADATA
+  # ==========================================================
+  prepare-release:
+    name: Prepare Release Metadata
+    runs-on: ubuntu-latest
+    outputs:
+      release-version: ${{ steps.determine-version.outputs.release-version }}
+      is-production: ${{ steps.determine-version.outputs.is-production }}
+    steps:
+      - name: Determine release version and type
+        id: determine-version
+        run: |
+          RELEASE_VERSION=""
+          IS_PRODUCTION="false"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "${{ github.event.inputs.environment }}" = "production" ] && [ -n "${{ github.event.inputs.release_version }}" ]; then
+              RELEASE_VERSION="${{ github.event.inputs.release_version }}"
+              IS_PRODUCTION="true"
+              echo "Production release triggered manually with version ${RELEASE_VERSION}"
+            else
+              RELEASE_VERSION="${{ github.event.inputs.release_version || '0.0.0-staging' }}"
+              IS_PRODUCTION="false"
+              echo "Staging deployment with version ${RELEASE_VERSION}"
+            fi
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            COMMIT_MSG=$(git log -1 --pretty=%B)
+            if echo "$COMMIT_MSG" | grep -qiE "Merge pull request.*from.*(release|hotfix)/v[0-9]+\\.[0-9]+\\.[0-9]+"; then
+              if echo "$COMMIT_MSG" | grep -oiE "(release|hotfix)/v[0-9]+\\.[0-9]+\\.[0-9]+" | head -1 | grep -oiE "v[0-9]+\\.[0-9]+\\.[0-9]+" > /dev/null; then
+                RELEASE_VERSION=$(echo "$COMMIT_MSG" | grep -oiE "(release|hotfix)/v[0-9]+\\.[0-9]+\\.[0-9]+" | head -1 | sed 's/.*\\/v//')
+                IS_PRODUCTION="true"
+                echo "Production release detected from merge: version ${RELEASE_VERSION}"
+              fi
+            else
+              RELEASE_VERSION="0.0.0-maintenance"
+              IS_PRODUCTION="false"
+              echo "Normal main commit detected - not a production release"
+            fi
+          elif [[ "${{ github.ref }}" =~ ^refs/heads/release/v[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then
+            RELEASE_VERSION=$(echo "${{ github.ref }}" | sed 's|.*/v||')
+            IS_PRODUCTION="false"
+            echo "Release branch push: version ${RELEASE_VERSION} (staging)"
+          elif [[ "${{ github.ref }}" =~ ^refs/heads/hotfix/v[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then
+            RELEASE_VERSION=$(echo "${{ github.ref }}" | sed 's|.*/v||')
+            IS_PRODUCTION="false"
+            echo "Hotfix branch push: version ${RELEASE_VERSION} (staging)"
+          else
+            RELEASE_VERSION="0.0.0-staging"
+            IS_PRODUCTION="false"
+            echo "Non-release branch: version ${RELEASE_VERSION}"
+          fi
+
+          echo "release-version=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
+          echo "is-production=${IS_PRODUCTION}" >> $GITHUB_OUTPUT
+          echo "Release Version: ${RELEASE_VERSION}"
+          echo "Is Production: ${IS_PRODUCTION}"
+
   # ==========================================================
   # BACKEND - TEST
   # ==========================================================
@@ -56,8 +119,6 @@ jobs:
       - name: Run backend tests
         env:
           SPRING_PROFILES_ACTIVE: test
-        # -Dgit.commit bakes the real commit into build-info so the test suite
-        # also verifies TC-04 traceability data (see BuildInfoActuatorTest).
         run: ./mvnw clean test -Dgit.commit=${{ github.sha }}
 
   # ==========================================================
@@ -94,12 +155,14 @@ jobs:
   # ==========================================================
   build-push:
     name: Build & Push Images
-    needs: [backend-test, frontend-build]
+    needs: [backend-test, frontend-build, prepare-release]
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    env:
+      RELEASE_VERSION: ${{ needs.prepare-release.outputs.release-version }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -114,23 +177,20 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # TC-04: mutable convenience tags (latest/edge) are kept for humans,
-      # but every push also receives an immutable commit-SHA tag which is
-      # what production/staging deployments use.
-      - name: Determine convenience image tag
+      - name: Determine image tag
         id: tag
         run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.environment }}"
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            TAG="production"
+          elif [ "${{ github.ref }}" = "refs/heads/develop" ]; then
+            TAG="develop"
           else
-            echo "tag=edge" >> "$GITHUB_OUTPUT"
+            TAG="edge"
           fi
-
-      - name: Log build traceability (Git Commit -> Docker Image)
-        run: |
-          echo "Git Commit     : ${{ github.sha }}"
-          echo "Backend image  : ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}"
-          echo "Frontend image : ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Using mutable tag: ${TAG}"
 
       - name: Build & push backend image
         uses: docker/build-push-action@v5
@@ -169,23 +229,27 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
+
   # ==========================================================
-  # DEPLOY TO KUBERNETES
+  # DEPLOY TO KUBERNETES - STAGING
   # ==========================================================
-  deploy:
-    name: Deploy to Kubernetes
-    needs: build-push
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+  deploy-staging:
+    name: Deploy to Staging
+    needs: [build-push, prepare-release]
+    if: |
+      (github.event_name == 'push' && github.ref != 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
+      packages: read
+    env:
+      RELEASE_VERSION: ${{ needs.prepare-release.outputs.release-version }}
     environment:
-      name: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
+      name: staging
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
-        with:
-          fetch-tags: true
 
       - name: Configure kubectl
         uses: azure/setup-kubectl@v4
@@ -203,44 +267,11 @@ jobs:
           kubectl cluster-info
           kubectl get nodes
 
-      # TC-04: Create Git annotated tag on main branch production releases.
-      # Tag points to the exact commit being released.
-      # This MUST happen BEFORE deployment so that if tag creation fails,
-      # the workflow fails fast without deploying an untagged release.
-      - name: Create Git tag on main (TC-04)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          # Configure Git identity for GitHub Actions (fixes "Committer identity unknown")
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          TAG="v${{ env.RELEASE_VERSION }}"
-
-          # NOTE: For annotated tags, git rev-parse "$TAG" returns the tag object SHA,
-          # NOT the commit SHA. We use git rev-list -n 1 "$TAG" to get the actual
-          # commit SHA that the tag points to.
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG already exists"
-            EXISTING_COMMIT="$(git rev-list -n 1 "$TAG")"
-            if [ "$EXISTING_COMMIT" != "${GITHUB_SHA}" ]; then
-              echo "FAIL: Tag $TAG points to $EXISTING_COMMIT, not ${GITHUB_SHA}"
-              echo "Refusing to overwrite release tag. Manual intervention required."
-              exit 1
-            fi
-            echo "Verified: Tag $TAG correctly points to ${GITHUB_SHA}"
-          else
-            git tag -a "$TAG" -m "Release $TAG" "${GITHUB_SHA}"
-            git push origin "$TAG"
-            echo "Created tag $TAG on ${GITHUB_SHA}"
-          fi
-          echo "Git Tag          : $TAG"
-          echo "Tag Commit       : $(git rev-list -n 1 $TAG)"
-
-      # TC-04: deploy the immutable commit-SHA image (NOT latest/edge) so the
-      # running container is traceable to the exact Git commit that produced it.
-      # Also rewrite K8s labels (release-version, git-commit) for traceability.
       - name: Set immutable commit-SHA images + release labels (TC-04)
+        env:
+          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
         run: |
+          NS="${KUBE_NAMESPACE:-nguongocso}"
           sed -i "s|image: ghcr.io/nguongocso/nguongocso-backend:.*|image: ghcr.io/nguongocso/nguongocso-backend:${{ github.sha }}|g" k8s/backend-deployment.yaml
           sed -i "s|image: ghcr.io/nguongocso/nguongocso-frontend:.*|image: ghcr.io/nguongocso/nguongocso-frontend:${{ github.sha }}|g" k8s/frontend-deployment.yaml
           sed -i "s|release-version: \".*\"|release-version: \"${{ env.RELEASE_VERSION }}\"|g" k8s/backend-deployment.yaml
@@ -248,79 +279,44 @@ jobs:
           sed -i "s|release-version: \".*\"|release-version: \"${{ env.RELEASE_VERSION }}\"|g" k8s/frontend-deployment.yaml
           sed -i "s|git-commit: \".*\"|git-commit: \"${{ github.sha }}\"|g" k8s/frontend-deployment.yaml
 
-      - name: Apply Kubernetes manifests
+      - name: Deploy to Kubernetes Staging
         env:
           KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
         run: |
           NS="${KUBE_NAMESPACE:-nguongocso}"
-          kubectl apply -f k8s/namespace.yaml
-          kubectl apply -f k8s/secrets.yaml -n "$NS"
-          kubectl apply -f k8s/configmap.yaml -n "$NS"
-          kubectl apply -f k8s/persistent-volumes.yaml -n "$NS"
+          kubectl apply -f k8s/namespace.yaml -n "$NS" 2>/dev/null || true
+          kubectl apply -f k8s/configmap.yaml -n "$NS" 2>/dev/null || true
+          kubectl apply -f k8s/secret.yaml -n "$NS" 2>/dev/null || true
+          kubectl apply -f k8s/pvc.yaml -n "$NS" 2>/dev/null || true
+          kubectl apply -f k8s/mysql.yaml -n "$NS" 2>/dev/null || true
           kubectl apply -f k8s/backend-service.yaml -n "$NS"
           kubectl apply -f k8s/backend-deployment.yaml -n "$NS"
           kubectl apply -f k8s/frontend-service.yaml -n "$NS"
           kubectl apply -f k8s/frontend-deployment.yaml -n "$NS"
-          # Ingress is applied per-environment in a dedicated step below
-          # (each namespace uses its own host via a separate manifest).
+          kubectl apply -f k8s/ingress-staging.yaml -n "$NS" 2>/dev/null || true
 
-      - name: Set frontend NodePort per environment
+      - name: Set frontend NodePort for staging
         env:
           KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
         run: |
           NS="${KUBE_NAMESPACE:-nguongocso}"
-          if [ "$NS" = "production" ]; then
-            PORT=31690
-          else
-            PORT=31691
-          fi
-          kubectl -n "$NS" patch svc frontend-service -p "{\"spec\":{\"ports\":[{\"port\":80,\"nodePort\":$PORT}]}}"
+          kubectl -n "$NS" patch svc frontend-service -p '{"spec":{"ports":[{"port":80,"nodePort":31691}]}}'
 
-      - name: Set CORS allowed origins per environment
+      - name: Set CORS allowed origins for staging
         env:
           KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
         run: |
           NS="${KUBE_NAMESPACE:-nguongocso}"
-          if [ "$NS" = "production" ]; then
-            ORIGINS="http://localhost,http://3.105.159.125:31690,https://agri-trace.online"
-            FRONTEND_URL="https://agri-trace.online"
-          else
-            ORIGINS="http://localhost,http://3.105.159.125:31691,https://staging.agri-trace.online"
-            FRONTEND_URL="https://staging.agri-trace.online"
-          fi
+          ORIGINS="http://localhost,http://3.105.159.125:31691,https://staging.agri-trace.online"
+          FRONTEND_URL="https://staging.agri-trace.online"
           kubectl -n "$NS" patch configmap backend-config -p "{\"data\":{\"ALLOWED_ORIGINS\":\"$ORIGINS\",\"FRONTEND_URL\":\"$FRONTEND_URL\"}}"
 
-      - name: Set database name per environment
+      - name: Set database name for staging
         env:
           KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
         run: |
           NS="${KUBE_NAMESPACE:-nguongocso}"
-          if [ "$NS" = "staging" ]; then
-            DB_NAME="nguongocso_staging_db"
-          else
-            DB_NAME="nguongocso_db"
-          fi
-          kubectl -n "$NS" patch configmap backend-config -p "{\"data\":{\"DB_NAME\":\"$DB_NAME\"}}"
-
-      - name: Apply Ingress per environment
-        env:
-          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
-        run: |
-          NS="${KUBE_NAMESPACE:-nguongocso}"
-          if [ "$NS" = "production" ]; then
-            kubectl apply -f k8s/ingress.yaml -n "$NS"
-          else
-            kubectl apply -f k8s/ingress-staging.yaml -n "$NS"
-          fi
-
-      - name: Apply MySQL (if using in-cluster)
-        env:
-          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
-        run: |
-          NS="${KUBE_NAMESPACE:-nguongocso}"
-          if [ -f k8s/mysql.yaml ]; then
-            kubectl apply -f k8s/mysql.yaml -n "$NS"
-          fi
+          kubectl -n "$NS" patch configmap backend-config -p '{"data":{"DB_NAME":"nguongocso_staging_db"}}'
 
       - name: Restart deployments
         env:
@@ -330,13 +326,12 @@ jobs:
           kubectl rollout restart deployment/backend -n "$NS"
           kubectl rollout restart deployment/frontend -n "$NS"
 
-      # TC-04: record what/why/when for `kubectl rollout history` / describe.
-      - name: Annotate deployments with change cause (TC-04)
+      - name: Annotate deployments with change cause
         env:
           KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
         run: |
           NS="${KUBE_NAMESPACE:-nguongocso}"
-          CAUSE="deploy commit ${GITHUB_SHA} via GitHub Actions run ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          CAUSE="staging deploy commit ${GITHUB_SHA} via GitHub Actions run ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           kubectl -n "$NS" annotate deployment/backend kubernetes.io/change-cause="$CAUSE" --overwrite
           kubectl -n "$NS" annotate deployment/frontend kubernetes.io/change-cause="$CAUSE" --overwrite
 
@@ -348,15 +343,190 @@ jobs:
           kubectl -n "$NS" rollout status deployment/backend --timeout=180s
           kubectl -n "$NS" rollout status deployment/frontend --timeout=180s
 
-      # TC-04: emit the Release Version -> Git Tag -> Git Commit -> Docker Image
-      # -> Kubernetes Deployment -> Deployment Time chain into the CI log.
-      # No secrets are printed (namespace name and credentials are never echoed).
+      - name: Collect staging deployment evidence
+        env:
+          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
+        run: |
+          NS="${KUBE_NAMESPACE:-nguongocso}"
+          BACKEND_IMAGE="$(kubectl -n "$NS" get deployment backend -o jsonpath='{.spec.template.spec.containers[0].image}')"
+          FRONTEND_IMAGE="$(kubectl -n "$NS" get deployment frontend -o jsonpath='{.spec.template.spec.containers[0].image}')"
+          echo "===================================================================="
+          echo " STAGING DEPLOYMENT"
+          echo "===================================================================="
+          echo ""
+          echo "Release Version  : ${{ env.RELEASE_VERSION }}"
+          echo "Git Commit       : ${GITHUB_SHA}"
+          echo "Environment      : staging"
+          echo ""
+          echo "Backend Image    : ${BACKEND_IMAGE}"
+          echo "Frontend Image   : ${FRONTEND_IMAGE}"
+          echo ""
+          echo "Workflow Run     : #${{ github.run_number }}"
+          echo "Workflow Run ID  : ${{ github.run_id }}"
+          echo "===================================================================="
+
+  # ==========================================================
+  # DEPLOY TO KUBERNETES - PRODUCTION
+  # ==========================================================
+  deploy-production:
+    name: Deploy to Production
+    needs: [build-push, prepare-release]
+    if: needs.prepare-release.outputs.is-production == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    env:
+      RELEASE_VERSION: ${{ needs.prepare-release.outputs.release-version }}
+    environment:
+      name: production
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Set up Kubeconfig from secrets
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${KUBECONFIG_B64}" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Test Kubernetes connection
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      # TC-04: Validate tag BEFORE deployment — fail fast if tag issue detected
+      - name: Pre-deployment tag validation (TC-04)
+        run: |
+          TAG="v${{ env.RELEASE_VERSION }}"
+          echo "Validating tag ${TAG} before production deployment..."
+          git fetch origin --tags 2>/dev/null || true
+          EXISTING_COMMIT="$(git rev-list -n 1 "$TAG" 2>/dev/null || echo "")"
+          if [ -n "$EXISTING_COMMIT" ]; then
+            echo "Tag ${TAG} already exists at commit ${EXISTING_COMMIT}"
+            if [ "$EXISTING_COMMIT" = "${GITHUB_SHA}" ]; then
+              echo "Tag ${TAG} already points to current commit ${GITHUB_SHA} — OK to proceed"
+            else
+              echo "FAIL: Tag ${TAG} exists at ${EXISTING_COMMIT} which differs from ${GITHUB_SHA}"
+              echo "Cannot overwrite existing release tag. Use a new release version."
+              exit 1
+            fi
+          else
+            echo "Tag ${TAG} does not exist — will be created"
+          fi
+
+      - name: Set immutable commit-SHA images + release labels (TC-04)
+        env:
+          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
+        run: |
+          NS="${KUBE_NAMESPACE:-nguongocso}"
+          sed -i "s|image: ghcr.io/nguongocso/nguongocso-backend:.*|image: ghcr.io/nguongocso/nguongocso-backend:${{ github.sha }}|g" k8s/backend-deployment.yaml
+          sed -i "s|image: ghcr.io/nguongocso/nguongocso-frontend:.*|image: ghcr.io/nguongocso/nguongocso-frontend:${{ github.sha }}|g" k8s/frontend-deployment.yaml
+          sed -i "s|release-version: \".*\"|release-version: \"${{ env.RELEASE_VERSION }}\"|g" k8s/backend-deployment.yaml
+          sed -i "s|git-commit: \".*\"|git-commit: \"${{ github.sha }}\"|g" k8s/backend-deployment.yaml
+          sed -i "s|release-version: \".*\"|release-version: \"${{ env.RELEASE_VERSION }}\"|g" k8s/frontend-deployment.yaml
+          sed -i "s|git-commit: \".*\"|git-commit: \"${{ github.sha }}\"|g" k8s/frontend-deployment.yaml
+
+      - name: Deploy to Kubernetes Production
+        env:
+          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
+        run: |
+          NS="${KUBE_NAMESPACE:-nguongocso}"
+          kubectl apply -f k8s/namespace.yaml -n "$NS" 2>/dev/null || true
+          kubectl apply -f k8s/configmap.yaml -n "$NS" 2>/dev/null || true
+          kubectl apply -f k8s/secret.yaml -n "$NS" 2>/dev/null || true
+          kubectl apply -f k8s/pvc.yaml -n "$NS" 2>/dev/null || true
+          kubectl apply -f k8s/mysql.yaml -n "$NS" 2>/dev/null || true
+          kubectl apply -f k8s/backend-service.yaml -n "$NS"
+          kubectl apply -f k8s/backend-deployment.yaml -n "$NS"
+          kubectl apply -f k8s/frontend-service.yaml -n "$NS"
+          kubectl apply -f k8s/frontend-deployment.yaml -n "$NS"
+          kubectl apply -f k8s/ingress.yaml -n "$NS" 2>/dev/null || true
+
+      - name: Set frontend NodePort for production
+        env:
+          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
+        run: |
+          NS="${KUBE_NAMESPACE:-nguongocso}"
+          kubectl -n "$NS" patch svc frontend-service -p '{"spec":{"ports":[{"port":80,"nodePort":31690}]}}'
+
+      - name: Set CORS allowed origins for production
+        env:
+          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
+        run: |
+          NS="${KUBE_NAMESPACE:-nguongocso}"
+          ORIGINS="http://localhost,http://3.105.159.125:31690,https://agri-trace.online"
+          FRONTEND_URL="https://agri-trace.online"
+          kubectl -n "$NS" patch configmap backend-config -p "{\"data\":{\"ALLOWED_ORIGINS\":\"$ORIGINS\",\"FRONTEND_URL\":\"$FRONTEND_URL\"}}"
+
+      - name: Set database name for production
+        env:
+          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
+        run: |
+          NS="${KUBE_NAMESPACE:-nguongocso}"
+          kubectl -n "$NS" patch configmap backend-config -p '{"data":{"DB_NAME":"nguongocso_db"}}'
+
+      - name: Restart deployments
+        env:
+          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
+        run: |
+          NS="${KUBE_NAMESPACE:-nguongocso}"
+          kubectl rollout restart deployment/backend -n "$NS"
+          kubectl rollout restart deployment/frontend -n "$NS"
+
+      - name: Annotate deployments with change cause (TC-04)
+        env:
+          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
+        run: |
+          NS="${KUBE_NAMESPACE:-nguongocso}"
+          CAUSE="production release v${{ env.RELEASE_VERSION }} commit ${{ github.sha }} via GitHub Actions run ${{ github.run_id }}"
+          kubectl -n "$NS" annotate deployment/backend kubernetes.io/change-cause="$CAUSE" --overwrite
+          kubectl -n "$NS" annotate deployment/frontend kubernetes.io/change-cause="$CAUSE" --overwrite
+
+      - name: Verify rollout
+        env:
+          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
+        run: |
+          NS="${KUBE_NAMESPACE:-nguongocso}"
+          kubectl -n "$NS" rollout status deployment/backend --timeout=180s
+          kubectl -n "$NS" rollout status deployment/frontend --timeout=180s
+
+      # TC-04: Create Git annotated tag — FAIL SAFE (idempotent, never overwrites)
+      - name: Create Git tag (TC-04)
+        run: |
+          TAG="v${{ env.RELEASE_VERSION }}"
+          echo "Creating tag ${TAG} for commit ${GITHUB_SHA}..."
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          EXISTING_COMMIT="$(git rev-list -n 1 "$TAG" 2>/dev/null || echo "")"
+          if [ -n "$EXISTING_COMMIT" ]; then
+            if [ "$EXISTING_COMMIT" = "${GITHUB_SHA}" ]; then
+              echo "Tag ${TAG} already exists at current commit — skipping creation"
+            else
+              echo "ERROR: Tag ${TAG} already exists at ${EXISTING_COMMIT}"
+              echo "Refusing to overwrite. This should have been caught in pre-deployment validation."
+              exit 1
+            fi
+          else
+            git tag -a "$TAG" -m "Release $TAG" "${GITHUB_SHA}"
+            git push origin "$TAG"
+            echo "Created and pushed tag ${TAG}"
+          fi
+          echo "Git Tag          : $TAG"
+          echo "Tag Commit       : $(git rev-list -n 1 $TAG)"
+
       - name: Collect release & deployment evidence (TC-04)
         env:
           KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
         run: |
           NS="${KUBE_NAMESPACE:-nguongocso}"
-          ENV_NAME="${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}"
           BACKEND_IMAGE="$(kubectl -n "$NS" get deployment backend -o jsonpath='{.spec.template.spec.containers[0].image}')"
           FRONTEND_IMAGE="$(kubectl -n "$NS" get deployment frontend -o jsonpath='{.spec.template.spec.containers[0].image}')"
           BACKEND_ROLLOUT_TIME="$(kubectl -n "$NS" get pods -l app=backend -o jsonpath='{.items[0].metadata.creationTimestamp}')"
@@ -364,15 +534,12 @@ jobs:
           echo "===================================================================="
           echo " RELEASE & DEPLOYMENT TRACEABILITY"
           echo "===================================================================="
+          echo ""
           echo "Release Version  : ${{ env.RELEASE_VERSION }}"
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "Git Tag          : v${{ env.RELEASE_VERSION }}"
-          else
-            echo "Git Tag          : (none — staging)"
-          fi
+          echo "Git Tag          : v${{ env.RELEASE_VERSION }}"
           echo "Git Commit       : ${GITHUB_SHA}"
           echo ""
-          echo "Environment      : ${ENV_NAME}"
+          echo "Environment      : production"
           echo ""
           echo "Backend Image    : ${BACKEND_IMAGE}"
           echo "Frontend Image   : ${FRONTEND_IMAGE}"
@@ -388,7 +555,6 @@ jobs:
           echo "===================================================================="
 
       # TC-04: Validate traceability consistency — fail CI on mismatch.
-      # Checks: Git tag -> commit, commit -> Docker image, image -> K8s running.
       - name: Validate traceability consistency (TC-04)
         env:
           KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
@@ -396,16 +562,14 @@ jobs:
           NS="${KUBE_NAMESPACE:-nguongocso}"
           echo "=== TC-04 Traceability Validation ==="
 
-          # 1. Git tag -> commit (only on main)
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            TAG="v${{ env.RELEASE_VERSION }}"
-            TAG_COMMIT="$(git rev-list -n 1 "$TAG" 2>/dev/null || echo "NONE")"
-            if [ "$TAG_COMMIT" != "${GITHUB_SHA}" ]; then
-              echo "FAIL: Git tag $TAG -> $TAG_COMMIT does not match GITHUB_SHA ${GITHUB_SHA}"
-              exit 1
-            fi
-            echo "PASS: Git tag $TAG -> commit ${GITHUB_SHA}"
+          # 1. Git tag -> commit
+          TAG="v${{ env.RELEASE_VERSION }}"
+          TAG_COMMIT="$(git rev-list -n 1 "$TAG" 2>/dev/null || echo "NONE")"
+          if [ "$TAG_COMMIT" != "${GITHUB_SHA}" ]; then
+            echo "FAIL: Git tag $TAG -> $TAG_COMMIT does not match GITHUB_SHA ${GITHUB_SHA}"
+            exit 1
           fi
+          echo "PASS: Git tag $TAG -> commit ${GITHUB_SHA}"
 
           # 2. GITHUB_SHA -> Docker image tag
           BACKEND_IMAGE="$(kubectl -n "$NS" get deployment backend -o jsonpath='{.spec.template.spec.containers[0].image}')"
