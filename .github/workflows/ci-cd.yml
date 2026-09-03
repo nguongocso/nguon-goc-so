@@ -26,6 +26,8 @@ env:
   REGISTRY: ghcr.io
   BACKEND_IMAGE: ${{ github.repository_owner }}/nguongocso-backend
   FRONTEND_IMAGE: ${{ github.repository_owner }}/nguongocso-frontend
+  # TC-04: Semantic release version. Baked into build-info, OCI labels, K8s labels.
+  RELEASE_VERSION: "1.0.0"
 
 jobs:
   # ==========================================================
@@ -138,8 +140,10 @@ jobs:
           push: true
           build-args: |
             GIT_COMMIT=${{ github.sha }}
+            RELEASE_VERSION=${{ env.RELEASE_VERSION }}
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ env.RELEASE_VERSION }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ steps.tag.outputs.tag }}
@@ -155,8 +159,10 @@ jobs:
           push: true
           build-args: |
             GIT_COMMIT=${{ github.sha }}
+            RELEASE_VERSION=${{ env.RELEASE_VERSION }}
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ env.RELEASE_VERSION }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ steps.tag.outputs.tag }}
@@ -195,10 +201,15 @@ jobs:
 
       # TC-04: deploy the immutable commit-SHA image (NOT latest/edge) so the
       # running container is traceable to the exact Git commit that produced it.
-      - name: Set immutable commit-SHA images
+      # Also rewrite K8s labels (release-version, git-commit) for traceability.
+      - name: Set immutable commit-SHA images + release labels (TC-04)
         run: |
           sed -i "s|image: ghcr.io/nguongocso/nguongocso-backend:.*|image: ghcr.io/nguongocso/nguongocso-backend:${{ github.sha }}|g" k8s/backend-deployment.yaml
           sed -i "s|image: ghcr.io/nguongocso/nguongocso-frontend:.*|image: ghcr.io/nguongocso/nguongocso-frontend:${{ github.sha }}|g" k8s/frontend-deployment.yaml
+          sed -i "s|release-version: \".*\"|release-version: \"${{ env.RELEASE_VERSION }}\"|g" k8s/backend-deployment.yaml
+          sed -i "s|git-commit: \".*\"|git-commit: \"${{ github.sha }}\"|g" k8s/backend-deployment.yaml
+          sed -i "s|release-version: \".*\"|release-version: \"${{ env.RELEASE_VERSION }}\"|g" k8s/frontend-deployment.yaml
+          sed -i "s|git-commit: \".*\"|git-commit: \"${{ github.sha }}\"|g" k8s/frontend-deployment.yaml
 
       - name: Apply Kubernetes manifests
         env:
@@ -300,10 +311,21 @@ jobs:
           kubectl -n "$NS" rollout status deployment/backend --timeout=180s
           kubectl -n "$NS" rollout status deployment/frontend --timeout=180s
 
-      # TC-04: emit the Version -> Git Commit -> Docker Image -> Kubernetes
-      # Deployment -> Deployment Time chain into the CI log. No secrets are
-      # printed (namespace name and credentials are never echoed).
-      - name: Collect deployment evidence (TC-04)
+      # TC-04: Create Git annotated tag on main branch production releases.
+      # Tag points to the exact commit being released.
+      - name: Create Git tag on main (TC-04)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          TAG="v${{ env.RELEASE_VERSION }}"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+          echo "Git Tag          : $TAG"
+          echo "Tag Commit       : $(git rev-list -n 1 $TAG)"
+
+      # TC-04: emit the Release Version -> Git Tag -> Git Commit -> Docker Image
+      # -> Kubernetes Deployment -> Deployment Time chain into the CI log.
+      # No secrets are printed (namespace name and credentials are never echoed).
+      - name: Collect release & deployment evidence (TC-04)
         env:
           KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
         run: |
@@ -313,15 +335,79 @@ jobs:
           FRONTEND_IMAGE="$(kubectl -n "$NS" get deployment frontend -o jsonpath='{.spec.template.spec.containers[0].image}')"
           BACKEND_ROLLOUT_TIME="$(kubectl -n "$NS" get pods -l app=backend -o jsonpath='{.items[0].metadata.creationTimestamp}')"
           FRONTEND_ROLLOUT_TIME="$(kubectl -n "$NS" get pods -l app=frontend -o jsonpath='{.items[0].metadata.creationTimestamp}')"
-          echo "=================================================================="
-          echo " TC-04 Deployment Evidence: Version -> Commit -> Image -> K8s"
-          echo "=================================================================="
-          echo "Version          : 01 (see /actuator/info — requires JWT)"
+          echo "===================================================================="
+          echo " RELEASE & DEPLOYMENT TRACEABILITY"
+          echo "===================================================================="
+          echo "Release Version  : ${{ env.RELEASE_VERSION }}"
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "Git Tag          : v${{ env.RELEASE_VERSION }}"
+          else
+            echo "Git Tag          : (none — staging)"
+          fi
           echo "Git Commit       : ${GITHUB_SHA}"
+          echo ""
           echo "Environment      : ${ENV_NAME}"
+          echo ""
           echo "Backend Image    : ${BACKEND_IMAGE}"
           echo "Frontend Image   : ${FRONTEND_IMAGE}"
-          echo "Deployment Time  : ${BACKEND_ROLLOUT_TIME} (UTC — backend pod creationTimestamp = rollout time)"
+          echo ""
+          echo "Deployment Time  : ${BACKEND_ROLLOUT_TIME} (UTC — backend pod creationTimestamp)"
           echo "Frontend Rollout : ${FRONTEND_ROLLOUT_TIME} (UTC)"
-          echo "Workflow Run     : ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          echo "=================================================================="
+          echo ""
+          echo "Workflow Run     : #${{ github.run_number }}"
+          echo "Workflow Run ID  : ${{ github.run_id }}"
+          echo "Workflow URL     : ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          echo ""
+          echo "Status           : SUCCESS"
+          echo "===================================================================="
+
+      # TC-04: Validate traceability consistency — fail CI on mismatch.
+      # Checks: Git tag -> commit, commit -> Docker image, image -> K8s running.
+      - name: Validate traceability consistency (TC-04)
+        env:
+          KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
+        run: |
+          NS="${KUBE_NAMESPACE:-nguongocso}"
+          echo "=== TC-04 Traceability Validation ==="
+
+          # 1. Git tag -> commit (only on main)
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            TAG="v${{ env.RELEASE_VERSION }}"
+            TAG_COMMIT="$(git rev-list -n 1 "$TAG" 2>/dev/null || echo "NONE")"
+            if [ "$TAG_COMMIT" != "${GITHUB_SHA}" ]; then
+              echo "FAIL: Git tag $TAG -> $TAG_COMMIT does not match GITHUB_SHA ${GITHUB_SHA}"
+              exit 1
+            fi
+            echo "PASS: Git tag $TAG -> commit ${GITHUB_SHA}"
+          fi
+
+          # 2. GITHUB_SHA -> Docker image tag
+          BACKEND_IMAGE="$(kubectl -n "$NS" get deployment backend -o jsonpath='{.spec.template.spec.containers[0].image}')"
+          FRONTEND_IMAGE="$(kubectl -n "$NS" get deployment frontend -o jsonpath='{.spec.template.spec.containers[0].image}')"
+          if [[ "$BACKEND_IMAGE" != *":${GITHUB_SHA}" ]]; then
+            echo "FAIL: Backend image ${BACKEND_IMAGE} does not use commit SHA ${GITHUB_SHA}"
+            exit 1
+          fi
+          if [[ "$FRONTEND_IMAGE" != *":${GITHUB_SHA}" ]]; then
+            echo "FAIL: Frontend image ${FRONTEND_IMAGE} does not use commit SHA ${GITHUB_SHA}"
+            exit 1
+          fi
+          echo "PASS: Docker images use commit SHA ${GITHUB_SHA}"
+
+          # 3. Release version -> K8s labels
+          K8S_VERSION="$(kubectl -n "$NS" get deployment backend -o jsonpath='{.metadata.labels.release-version}')"
+          if [ "$K8S_VERSION" != "${{ env.RELEASE_VERSION }}" ]; then
+            echo "FAIL: K8s release-version label ${K8S_VERSION} != ${{ env.RELEASE_VERSION }}"
+            exit 1
+          fi
+          echo "PASS: K8s release-version label = ${{ env.RELEASE_VERSION }}"
+
+          # 4. Git commit -> K8s labels
+          K8S_COMMIT="$(kubectl -n "$NS" get deployment backend -o jsonpath='{.metadata.labels.git-commit}')"
+          if [ "$K8S_COMMIT" != "${GITHUB_SHA}" ]; then
+            echo "FAIL: K8s git-commit label ${K8S_COMMIT} != ${GITHUB_SHA}"
+            exit 1
+          fi
+          echo "PASS: K8s git-commit label = ${GITHUB_SHA}"
+
+          echo "=== TC-04 All traceability checks PASSED ==="

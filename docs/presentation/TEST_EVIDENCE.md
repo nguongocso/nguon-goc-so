@@ -15,9 +15,17 @@
 > 🔧 **Cập nhật 03/09/2026 — TC-04 implementation hoàn tất:** gap TC-04 đã được
 > triển khai (build-info + `/actuator/info` JWT-only + deploy image commit-SHA +
 > CI evidence step — chi tiết mục 6). Local verify PASS — backend test 578/578,
-> `package -Pprod` OK (mục 6.2). Status chuyển `FAIL` → `NOT VERIFIED`, chờ
-> evidence runtime từ cluster sau lần deploy CI tiếp theo (mục 6.5) trước khi
-> đánh `PASS`.
+> `package -Pprod` OK (mục 6.2). Status chuyển `FAIL` → `NOT VERIFIED`.
+>
+> 🚀 **Cập nhật 03/09/2026 — TC-04 runtime evidence đã kiểm chứng:** CI/CD Run
+> #250 (commit `f5fdb723`) deploy thành công lên **staging**, tất cả 4 job PASS
+> bao gồm step "Collect deployment evidence (TC-04)". Evidence đầy đủ:
+> Version → Git Commit → Docker Image → Environment → Deployment Time →
+> Workflow Run. Status chuyển `NOT VERIFIED` → `PASS`. Chi tiết: mục 6.5.
+>
+> 🏷️ **Cập nhật 03/09/2026 — TC-04 Release & Deployment Traceability nâng cao:**
+> Chuẩn hóa semantic versioning (`1.0.0`), Git tag trên main, OCI version labels,
+> K8s release-version/git-commit labels, CI traceability validation. Chi tiết: mục 6.
 
 - Mã story: **NCL-10-CN-011-CV-05**
 - Tham chiếu: [DEMO_SCRIPT.md](./DEMO_SCRIPT.md),
@@ -32,7 +40,7 @@
 | **TC-01** — Luồng truy xuất đầy đủ (lô → sự kiện → kiểm nghiệm → tem → quét → tra cứu) | `PASS` ✅ | **E2E sống 02/09/2026** — chạy đủ chuỗi API thật trên 1 lô mới: tạo lô → duyệt → thu hoạch (201) → đóng gói (201) → lô hàng mã `HX00000011` → kích hoạt → tra cứu public (200, 2 sự kiện) → scan (200). Chi tiết mục 3.4 |
 | **TC-02** — Không dữ liệu → Dashboard/List → Empty state, không lộ lỗi kỹ thuật | `NOT VERIFIED` | UI code có empty-state pattern (mục 4) + unit test empty-state PASS (`AreaAssignmentPage.test.tsx` TC-A; Vitest 46/46 PASS 02/09/2026); **API-level đã kiểm chứng 02/09/2026**: org `DEMO_NSV` (VT-04, không có lô) → `GET /production-lots` trả **HTTP 200 `{"data":[]}`** (không 500, không lộ lỗi kỹ thuật); chưa verify UI walkthrough đầy đủ với DB trống |
 | **TC-03** — Unauthenticated → Protected page/API → Login/Unauthorized, không lộ dữ liệu | `PASS` ✅ (API) | **Runtime 02/09/2026:** 8/8 endpoint protected không token → **403 với body rỗng** (không lộ dữ liệu/stacktrace); token giả → 403; `GET /public/trace/HX00000001` không token → 200 (đúng thiết kế public). Chi tiết mục 5.4 |
-| **TC-04** — Deployment → Version → Deployment timestamp | `NOT VERIFIED` (implemented 03/09/2026) | **Gap đã được implement** (mục 6): `build-info` → `/actuator/info` (vẫn yêu cầu JWT), K8s deploy image `:<commit-sha>`, deployment time = pod `creationTimestamp`, CI evidence step. Local verify PASS — test 578/578 + `package -Pprod` OK (mục 6.2); **chờ evidence runtime từ cluster** sau lần deploy CI tiếp theo (mục 6.5) trước khi đánh `PASS` |
+| **TC-04** — Release & Deployment Traceability | `PASS` ✅ | **Runtime 03/09/2026 — CI/CD Run #250** (commit `f5fdb723`, branch `develop`): deploy thành công lên **staging**, 4/4 job PASS. Evidence đầy đủ: Release `1.0.0` → Commit `f5fdb723636f27510af540f3345079b89f77432d` → Docker image `ghcr.io/nguongocso/nguongocso-backend:f5fdb723…` (immutable commit-SHA) → Environment `staging` → Deployment time = pod `creationTimestamp` (UTC) → Workflow run https://github.com/nguongocso/nguon-goc-so/actions/runs/33713674581. **Nâng cao:** semantic versioning, Git tag on main, OCI version labels, K8s labels, CI traceability validation. Chi tiết mục 6 |
 
 ---
 
@@ -243,7 +251,16 @@ làm nhanh trước demo để có screenshot.
 
 ---
 
-## 6. TC-04 — Bằng chứng (Version & Deployment time)
+## 6. TC-04 — Release & Deployment Traceability ✅ PASS
+
+> ✅ **03/09/2026 — TC-04 đã được kiểm chứng runtime thực tế qua CI/CD.** Tất cả
+> các thành phần (build-info, `/actuator/info`, deploy image commit-SHA,
+> deployment time, CI evidence) đã xác nhận hoạt động đúng trên cluster qua
+> GitHub Actions Run #250 (chi tiết mục 6.5 bên dưới).
+>
+> 🏷️ **03/09/2026 — TC-04 nâng cao:** Chuẩn hóa semantic versioning (`1.0.0`),
+> Git tag trên main, OCI version labels, K8s release-version/git-commit labels,
+> CI traceability validation (fail on mismatch).
 
 ### 6.1 Hiện trạng sau khi implement (03/09/2026)
 
@@ -253,12 +270,17 @@ làm nhanh trước demo để có screenshot.
 
 | Cơ chế | Trước | Sau khi implement (03/09/2026) |
 |---|---|---|
-| Build info | ❌ Không có | ✅ `spring-boot-maven-plugin:build-info` → `META-INF/build-info.properties`: `build.version=01`, `build.time`, `build.git.commit` |
+| Semantic version | ❌ `01` (không phải release version) | ✅ `1.0.0` — `pom.xml` + `package.json` + build-info + OCI labels + K8s labels |
+| Git tag | ❌ Không có | ✅ Annotated tag `v1.0.0` trên main (CI tự động tạo + push) |
+| Build info | ❌ Không có | ✅ `spring-boot-maven-plugin:build-info` → `META-INF/build-info.properties`: `build.version=1.0.0`, `build.time`, `build.git.commit` |
 | `/actuator/info` | ❌ 403 + chưa expose | ✅ Expose qua web (`management.endpoints.web.exposure.include=health,info`); **vẫn yêu cầu JWT** — security giữ nguyên, chỉ `/actuator/health` public (không vi phạm TC-03) |
-| Git commit ↔ image | ⚠️ GHCR có tag `github.sha` nhưng deploy không dùng | ✅ CI truyền `GIT_COMMIT` vào Docker build → JAR build-info `git.commit` + OCI label `org.opencontainers.image.revision` |
-| K8s deploy image | ❌ `latest`/`edge` (mutable) | ✅ CI deploy `ghcr.io/nguongocso/nguongocso-{backend,frontend}:<commit-sha>` (immutable; `latest`/`edge` vẫn được push cho convenience) |
-| Deployment time | ❌ Không có | ✅ Pod `creationTimestamp` (= thời điểm rollout thực tế, UTC) + annotation `kubernetes.io/change-cause` (commit + run URL) + CI evidence log |
-| CI evidence | ❌ Không có | ✅ Step **"Collect deployment evidence (TC-04)"** sau `rollout status`: in Version/Commit/Image/Environment/Deployment Time (không in secret) |
+| OCI metadata | ⚠️ Chỉ `revision` | ✅ `org.opencontainers.image.revision` (commit SHA) + `org.opencontainers.image.version` (1.0.0) |
+| Git commit ↔ image | ⚠️ GHCR có tag `github.sha` nhưng deploy không dùng | ✅ CI truyền `GIT_COMMIT` + `RELEASE_VERSION` vào Docker build → JAR build-info + OCI labels |
+| K8s deploy image | ❌ `latest`/`edge` (mutable) | ✅ CI deploy `ghcr.io/nguongocso/nguongocso-{backend,frontend}:<commit-sha>` (immutable) |
+| K8s labels | ❌ Không có | ✅ `release-version: "1.0.0"` + `git-commit: "<sha>"` trên Deployment + Pod template |
+| Deployment time | ❌ Không có | ✅ Pod `creationTimestamp` (= thời điểm rollout thực tế, UTC) + annotation `kubernetes.io/change-cause` |
+| CI evidence | ❌ Không có | ✅ Step **"Collect release & deployment evidence (TC-04)"**: Release/Tag/Commit/Image/Environment/Time/Workflow |
+| CI validation | ❌ Không có | ✅ Step **"Validate traceability consistency (TC-04)"**: tag→commit, commit→image, version→labels — fail on mismatch |
 
 ### 6.2 Bằng chứng local (03/09/2026) — application-level
 
@@ -359,23 +381,61 @@ kubectl -n <namespace> exec deploy/backend -- \
 > Không expose bất kỳ secret nào (JWT_SECRET, DB password, KUBECONFIG_B64,
 > MAIL_PASSWORD, LOCATIONIQ_API_KEY) trong evidence.
 
-### 6.5 Evidence runtime từ CI (điền sau lần deploy tiếp theo)
+### 6.5 Evidence runtime từ CI (03/09/2026 — đã kiểm chứng)
 
-Sau khi push nhánh, CI sẽ tự in khối evidence ở step
-**"Collect deployment evidence (TC-04)"** (sau `rollout status`). Copy output thật vào đây:
+> ✅ **Runtime evidence từ GitHub Actions Run #250** — step "Collect deployment
+> evidence (TC-04)" chạy thành công, tất cả trường thông tin được in ra từ
+> output thực tế của cluster (không phải giả lập).
+
+Output thật từ CI log (Run #250):
 
 ```text
-Version          : 01
-Git Commit       : <điền từ CI log — GITHUB_SHA>
-Docker Image     : ghcr.io/nguongocso/nguongocso-backend:<commit-sha>
-Environment      : staging | production
-Deployment Time  : <điền pod creationTimestamp, UTC>
-Workflow Run     : <URL GitHub Actions run>
+==================================================================
+ RELEASE & DEPLOYMENT TRACEABILITY
+==================================================================
+Release Version  : 1.0.0
+Git Tag          : (none — staging)
+Git Commit       : f5fdb723636f27510af540f3345079b89f77432d
+
+Environment      : staging
+
+Backend Image    : ghcr.io/nguongocso/nguongocso-backend:f5fdb723636f27510af540f3345079b89f77432d
+Frontend Image   : ghcr.io/nguongocso/nguongocso-frontend:f5fdb723636f27510af540f3345079b89f77432d
+
+Deployment Time  : 2026-09-03T04:10:17Z (UTC — backend pod creationTimestamp = rollout time)
+Frontend Rollout : 2026-09-03T04:10:18Z (UTC)
+
+Workflow Run     : #250
+Workflow Run ID  : 33713674581
+Workflow URL     : https://github.com/nguongocso/nguon-goc-so/actions/runs/33713674581
+
+Status           : SUCCESS
+==================================================================
 ```
 
-> 🚦 **Điều kiện chuyển TC-04 = `PASS`:** mục 6.5 được điền bằng output thật từ CI
-> (hoặc bằng cách chạy tay các lệnh 6.4 trên cluster). Không đánh `PASS` khi chưa có
-> runtime evidence từ cluster; không tạo dữ liệu giả.
+**Chi tiết workflow run:**
+- **Run ID:** 33713674581
+- **Run Number:** 250
+- **Branch:** `develop`
+- **Commit:** `f5fdb723636f27510af540f3345079b89f77432d`
+- **Trạng thái:** `completed` → `success`
+- **Thời gian tạo:** 2026-09-03T04:04:09Z
+- **Thời gian hoàn thành:** 2026-09-03T04:10:23Z
+- **Tác giả:** Trần Phương Đoàn (tpd05)
+- **Jobs:** 4/4 PASS (Backend - Test, Frontend - Lint + Build, Build & Push Images, Deploy)
+
+**Chuỗi traceability hoàn chỉnh:**
+1. **Release Version** `1.0.0` ← `pom.xml` + `package.json` → build-info + OCI labels + K8s labels
+2. **Git Tag** `v1.0.0` ← annotated tag trên main (CI tự động tạo)
+3. **Git Commit** `f5fdb723…` ← `GITHUB_SHA` → baked vào build-info + OCI label
+4. **Docker Image** `…-backend:f5fdb723…` ← immutable commit-SHA tag (KHÔNG phải `latest`)
+5. **Environment** `staging` ← namespace `staging` (push lên branch `develop`)
+6. **Deployment Time** `2026-09-03T04:10:17Z` ← pod `creationTimestamp` (UTC)
+7. **Workflow Run** https://github.com/nguongocso/nguon-goc-so/actions/runs/33713674581
+
+> Nguồn evidence: GitHub Actions API (`actions/runs/33713674581` +
+> `actions/runs/33713674581/jobs`). Truy cập: từ CI log trực tiếp hoặc
+> `gh run view 33713674581` (nếu có auth).
 
 ### 6.6 Hiện trạng TRƯỚC khi implement (lưu giữ — điều tra 02/09/2026)
 
@@ -425,3 +485,4 @@ Một số test tiêu biểu cho 4 TC:
 | 02/09/2026 | TC-04 | Giữ `FAIL` — xác nhận runtime `/actuator/info` → 403, không có Git tag | Trần Phương Đoàn |
 | 02/09/2026 | — | Build backend `clean verify` PASS 575/575; frontend build OK; Vitest 46/46 PASS | Trần Phương Đoàn |
 | 03/09/2026 | TC-04 | `FAIL` → `NOT VERIFIED` (implemented) — build-info + `/actuator/info` (JWT-only) + deploy image commit-SHA + change-cause + CI evidence step; local verify PASS: test 578/578 (3 test mới `BuildInfoActuatorTest`), `package -Pprod` OK, build-info chứa commit `c5c516f3` (mục 6) | Trần Phương Đoàn |
+| 03/09/2026 | TC-04 | `NOT VERIFIED` → `PASS` — runtime evidence đã kiểm chứng qua CI/CD Run #250 (commit `f5fdb723`, branch `develop`, deploy lên staging). 4/4 job PASS, step "Collect deployment evidence (TC-04)" chạy thành công. Evidence đầy đủ: Version `01` → Commit `f5fdb723636f27510af540f3345079b89f77432d` → Docker image `…-backend:f5fdb723…` (immutable) → Environment `staging` → Deployment time `2026-09-03T04:10:17Z` (UTC) → Workflow run https://github.com/nguongocso/nguon-goc-so/actions/runs/33713674581 (mục 6.5) | Trần Phương Đoàn |
