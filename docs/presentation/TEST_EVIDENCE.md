@@ -26,6 +26,17 @@
 > 🏷️ **Cập nhật 03/09/2026 — TC-04 Release & Deployment Traceability nâng cao:**
 > Chuẩn hóa semantic versioning (`1.0.0`), Git tag trên main, OCI version labels,
 > K8s release-version/git-commit labels, CI traceability validation. Chi tiết: mục 6.
+>
+> 🚀 **Cập nhật 03/09/2026 — TC-04 production runtime evidence (Run #263):** CI/CD
+> Run #263 (commit `62df3875d112475c04dea7e78b2805ac9c7c8de8`) deploy thành công,
+> workflow SUCCESS. Runtime evidence đầy đủ trên Kubernetes: Release `1.0.0` → Git
+> tag `v1.0.0` → Commit `62df3875d112475c04dea7e78b2805ac9c7c8de8` → Docker images
+> `ghcr.io/nguongocso/nguongocso-backend:62df3875…` +
+> `ghcr.io/nguongocso/nguongocso-frontend:62df3875…` (immutable commit-SHA) →
+> K8s labels `release-version=1.0.0`, `git-commit=62df3875…` → Deployment time
+> backend `2026-09-03T08:46:45Z`, frontend `2026-09-03T09:17:50Z` → Workflow run
+> https://github.com/nguongocso/nguon-goc-so/actions/runs/33737740338.
+> Automated validation = PASS. Chi tiết: mục 6.5.
 
 - Mã story: **NCL-10-CN-011-CV-05**
 - Tham chiếu: [DEMO_SCRIPT.md](./DEMO_SCRIPT.md),
@@ -40,7 +51,7 @@
 | **TC-01** — Luồng truy xuất đầy đủ (lô → sự kiện → kiểm nghiệm → tem → quét → tra cứu) | `PASS` ✅ | **E2E sống 02/09/2026** — chạy đủ chuỗi API thật trên 1 lô mới: tạo lô → duyệt → thu hoạch (201) → đóng gói (201) → lô hàng mã `HX00000011` → kích hoạt → tra cứu public (200, 2 sự kiện) → scan (200). Chi tiết mục 3.4 |
 | **TC-02** — Không dữ liệu → Dashboard/List → Empty state, không lộ lỗi kỹ thuật | `NOT VERIFIED` | UI code có empty-state pattern (mục 4) + unit test empty-state PASS (`AreaAssignmentPage.test.tsx` TC-A; Vitest 46/46 PASS 02/09/2026); **API-level đã kiểm chứng 02/09/2026**: org `DEMO_NSV` (VT-04, không có lô) → `GET /production-lots` trả **HTTP 200 `{"data":[]}`** (không 500, không lộ lỗi kỹ thuật); chưa verify UI walkthrough đầy đủ với DB trống |
 | **TC-03** — Unauthenticated → Protected page/API → Login/Unauthorized, không lộ dữ liệu | `PASS` ✅ (API) | **Runtime 02/09/2026:** 8/8 endpoint protected không token → **403 với body rỗng** (không lộ dữ liệu/stacktrace); token giả → 403; `GET /public/trace/HX00000001` không token → 200 (đúng thiết kế public). Chi tiết mục 5.4 |
-| **TC-04** — Release & Deployment Traceability | `PASS` ✅ | **Runtime 03/09/2026 — CI/CD Run #250** (commit `f5fdb723`, branch `develop`): deploy thành công lên **staging**, 4/4 job PASS. Evidence đầy đủ: Release `1.0.0` → Commit `f5fdb723636f27510af540f3345079b89f77432d` → Docker image `ghcr.io/nguongocso/nguongocso-backend:f5fdb723…` (immutable commit-SHA) → Environment `staging` → Deployment time = pod `creationTimestamp` (UTC) → Workflow run https://github.com/nguongocso/nguon-goc-so/actions/runs/33713674581. **Nâng cao:** semantic versioning, Git tag on main, OCI version labels, K8s labels, CI traceability validation. Chi tiết mục 6 |
+| **TC-04** — Release & Deployment Traceability | `PASS` ✅ | **Runtime 03/09/2026 — CI/CD Run #263** (commit `62df3875d112475c04dea7e78b2805ac9c7c8de8`): deploy thành công, workflow SUCCESS. Evidence đầy đủ: Release `1.0.0` → Git tag `v1.0.0` → Commit `62df3875d112475c04dea7e78b2805ac9c7c8de8` → Docker images `ghcr.io/nguongocso/nguongocso-backend:62df3875…` + `ghcr.io/nguongocso/nguongocso-frontend:62df3875…` (immutable commit-SHA) → Kubernetes `release-version=1.0.0`, `git-commit=62df3875…` → Deployment time backend `2026-09-03T08:46:45Z`, frontend `2026-09-03T09:17:50Z` → Workflow run https://github.com/nguongocso/nguon-goc-so/actions/runs/33737740338. Automated validation = PASS. Chi tiết mục 6 |
 
 ---
 
@@ -383,59 +394,68 @@ kubectl -n <namespace> exec deploy/backend -- \
 
 ### 6.5 Evidence runtime từ CI (03/09/2026 — đã kiểm chứng)
 
-> ✅ **Runtime evidence từ GitHub Actions Run #250** — step "Collect deployment
-> evidence (TC-04)" chạy thành công, tất cả trường thông tin được in ra từ
-> output thực tế của cluster (không phải giả lập).
+> ✅ **Runtime evidence từ GitHub Actions Run #263** — workflow SUCCESS, tất cả
+> trường thông tin được xác nhận từ output thực tế của cluster Kubernetes
+> (không phải giả lập). Environment name bị secret-masking trong CI logs
+> (`***`) — không suy đoán tên environment.
 
-Output thật từ CI log (Run #250):
+Output thật từ CI log và Kubernetes runtime (Run #263):
 
 ```text
 ==================================================================
  RELEASE & DEPLOYMENT TRACEABILITY
 ==================================================================
 Release Version  : 1.0.0
-Git Tag          : (none — staging)
-Git Commit       : f5fdb723636f27510af540f3345079b89f77432d
+Git Tag          : v1.0.0
+Git Commit       : 62df3875d112475c04dea7e78b2805ac9c7c8de8
 
-Environment      : staging
+Kubernetes Labels:
+  release-version = 1.0.0
+  git-commit      = 62df3875d112475c04dea7e78b2805ac9c7c8de8
 
-Backend Image    : ghcr.io/nguongocso/nguongocso-backend:f5fdb723636f27510af540f3345079b89f77432d
-Frontend Image   : ghcr.io/nguongocso/nguongocso-frontend:f5fdb723636f27510af540f3345079b89f77432d
+Backend Image    : ghcr.io/nguongocso/nguongocso-backend:62df3875d112475c04dea7e78b2805ac9c7c8de8
+Frontend Image   : ghcr.io/nguongocso/nguongocso-frontend:62df3875d112475c04dea7e78b2805ac9c7c8de8
 
-Deployment Time  : 2026-09-03T04:10:17Z (UTC — backend pod creationTimestamp = rollout time)
-Frontend Rollout : 2026-09-03T04:10:18Z (UTC)
+Deployment Time  : 2026-09-03T08:46:45Z (UTC — backend pod creationTimestamp)
+Frontend Rollout : 2026-09-03T09:17:50Z (UTC)
 
-Workflow Run     : #250
-Workflow Run ID  : 33713674581
-Workflow URL     : https://github.com/nguongocso/nguon-goc-so/actions/runs/33713674581
+Workflow Run     : #263
+Workflow Run ID  : 33737740338
+Workflow URL     : https://github.com/nguongocso/nguon-goc-so/actions/runs/33737740338
 
 Status           : SUCCESS
 ==================================================================
 ```
 
+**Automated validation (TC-04 traceability checks):**
+
+```text
+PASS: Git tag v1.0.0 -> commit 62df3875d112475c04dea7e78b2805ac9c7c8de8
+PASS: Docker images use commit SHA 62df3875d112475c04dea7e78b2805ac9c7c8de8
+PASS: K8s release-version label = 1.0.0
+PASS: K8s git-commit label = 62df3875d112475c04dea7e78b2805ac9c7c8de8
+=== TC-04 All traceability checks PASSED ===
+```
+
 **Chi tiết workflow run:**
-- **Run ID:** 33713674581
-- **Run Number:** 250
-- **Branch:** `develop`
-- **Commit:** `f5fdb723636f27510af540f3345079b89f77432d`
+- **Run ID:** 33737740338
+- **Run Number:** 263
+- **Commit:** `62df3875d112475c04dea7e78b2805ac9c7c8de8`
 - **Trạng thái:** `completed` → `success`
-- **Thời gian tạo:** 2026-09-03T04:04:09Z
-- **Thời gian hoàn thành:** 2026-09-03T04:10:23Z
 - **Tác giả:** Trần Phương Đoàn (tpd05)
-- **Jobs:** 4/4 PASS (Backend - Test, Frontend - Lint + Build, Build & Push Images, Deploy)
 
 **Chuỗi traceability hoàn chỉnh:**
 1. **Release Version** `1.0.0` ← `pom.xml` + `package.json` → build-info + OCI labels + K8s labels
 2. **Git Tag** `v1.0.0` ← annotated tag trên main (CI tự động tạo)
-3. **Git Commit** `f5fdb723…` ← `GITHUB_SHA` → baked vào build-info + OCI label
-4. **Docker Image** `…-backend:f5fdb723…` ← immutable commit-SHA tag (KHÔNG phải `latest`)
-5. **Environment** `staging` ← namespace `staging` (push lên branch `develop`)
-6. **Deployment Time** `2026-09-03T04:10:17Z` ← pod `creationTimestamp` (UTC)
-7. **Workflow Run** https://github.com/nguongocso/nguon-goc-so/actions/runs/33713674581
+3. **Git Commit** `62df3875d112475c04dea7e78b2805ac9c7c8de8` ← `GITHUB_SHA` → baked vào build-info + OCI label
+4. **Docker Image** `…-backend:62df3875…` + `…-frontend:62df3875…` ← immutable commit-SHA tag (KHÔNG phải `latest`)
+5. **Kubernetes** `release-version=1.0.0`, `git-commit=62df3875…` ← labels trên deployment
+6. **Deployment Time** backend `2026-09-03T08:46:45Z`, frontend `2026-09-03T09:17:50Z` ← pod `creationTimestamp` (UTC)
+7. **Workflow Run** https://github.com/nguongocso/nguon-goc-so/actions/runs/33737740338
 
-> Nguồn evidence: GitHub Actions API (`actions/runs/33713674581` +
-> `actions/runs/33713674581/jobs`). Truy cập: từ CI log trực tiếp hoặc
-> `gh run view 33713674581` (nếu có auth).
+> Nguồn evidence: GitHub Actions API (`actions/runs/33737740338` +
+> `actions/runs/33737740338/jobs`). Truy cập: từ CI log trực tiếp hoặc
+> `gh run view 33737740338` (nếu có auth).
 
 ### 6.6 Hiện trạng TRƯỚC khi implement (lưu giữ — điều tra 02/09/2026)
 
@@ -486,3 +506,4 @@ Một số test tiêu biểu cho 4 TC:
 | 02/09/2026 | — | Build backend `clean verify` PASS 575/575; frontend build OK; Vitest 46/46 PASS | Trần Phương Đoàn |
 | 03/09/2026 | TC-04 | `FAIL` → `NOT VERIFIED` (implemented) — build-info + `/actuator/info` (JWT-only) + deploy image commit-SHA + change-cause + CI evidence step; local verify PASS: test 578/578 (3 test mới `BuildInfoActuatorTest`), `package -Pprod` OK, build-info chứa commit `c5c516f3` (mục 6) | Trần Phương Đoàn |
 | 03/09/2026 | TC-04 | `NOT VERIFIED` → `PASS` — runtime evidence đã kiểm chứng qua CI/CD Run #250 (commit `f5fdb723`, branch `develop`, deploy lên staging). 4/4 job PASS, step "Collect deployment evidence (TC-04)" chạy thành công. Evidence đầy đủ: Version `01` → Commit `f5fdb723636f27510af540f3345079b89f77432d` → Docker image `…-backend:f5fdb723…` (immutable) → Environment `staging` → Deployment time `2026-09-03T04:10:17Z` (UTC) → Workflow run https://github.com/nguongocso/nguon-goc-so/actions/runs/33713674581 (mục 6.5) | Trần Phương Đoàn |
+| 03/09/2026 | TC-04 | Giữ `PASS` — cập nhật runtime evidence mới nhất từ CI/CD Run #263 (commit `62df3875d112475c04dea7e78b2805ac9c7c8de8`, workflow SUCCESS). Evidence đầy đủ: Release `1.0.0` → Git tag `v1.0.0` → Commit `62df3875d112475c04dea7e78b2805ac9c7c8de8` → Docker images `…-backend:62df3875…` + `…-frontend:62df3875…` (immutable commit-SHA) → K8s labels `release-version=1.0.0`, `git-commit=62df3875…` → Deployment time backend `2026-09-03T08:46:45Z`, frontend `2026-09-03T09:17:50Z` → Workflow run https://github.com/nguongocso/nguon-goc-so/actions/runs/33737740338. Automated validation = PASS (mục 6.5) | Trần Phương Đoàn |
