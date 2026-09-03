@@ -26,6 +26,11 @@ RUN npm run build
 # ============================================================
 FROM nginx:1.27-alpine
 
+# TC-04: OCI label — Docker image → Git commit traceability.
+# CI passes --build-arg GIT_COMMIT=${{ github.sha }}; default for local builds.
+ARG GIT_COMMIT=local
+LABEL org.opencontainers.image.revision=${GIT_COMMIT}
+
 # Install envsubst (provided by gettext) plus a POSIX shell.
 # envsubst substitutes ${BACKEND_UPSTREAM} in the nginx template.
 RUN apk add --no-cache gettext
