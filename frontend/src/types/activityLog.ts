@@ -3,11 +3,16 @@ export interface ActivityLog {
   userId: string;
   username: string;
   fullName: string;
+  actorName?: string;
   action: string;
+  actionType?: string;
   description: string;
-  entityType: string;
-  entityId: string;
-  ipAddress: string;
+  entityType?: string;
+  targetType?: string;
+  entityId?: string;
+  targetId?: string;
+  ipAddress?: string;
+  details?: string;
   createdAt: string;
 }
 

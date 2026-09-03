@@ -1,6 +1,6 @@
 package vn.nguongocso.farm.dto.response;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import lombok.Builder;
@@ -24,6 +24,10 @@ public class ProductionLotImportHistoryResponse {
 
     private String status;
 
-    private Instant importedAt;
+    /**
+     * Thời điểm hoàn tất nhập dữ liệu, theo giờ nghiệp vụ
+     * (Asia/Ho_Chi_Minh) — thống nhất với createdAt của nhật ký canh tác.
+     */
+    private LocalDateTime importedAt;
 
 }

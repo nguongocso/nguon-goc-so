@@ -1,0 +1,1422 @@
+[
+  {
+    "file": "api\\attachmentApi.ts",
+    "lineNum": 34,
+    "code": "/** Xem file đính kèm (trả về Blob để hiển thị trong dialog). */"
+  },
+  {
+    "file": "api\\certificationApi.ts",
+    "lineNum": 132,
+    "code": "* Lấy chi tiết yêu cầu kiểm nghiệm để nhập kết quả."
+  },
+  {
+    "file": "api\\dossierApi.ts",
+    "lineNum": 60,
+    "code": "details: Record<string, unknown> | null;"
+  },
+  {
+    "file": "api\\recallApi.ts",
+    "lineNum": 32,
+    "code": "* Xem thông tin thu hồi hiện tại của một lô hàng (nếu có)."
+  },
+  {
+    "file": "api\\recallApi.ts",
+    "lineNum": 77,
+    "code": "* Lấy chi tiết một yêu cầu thu hồi (VT-02)."
+  },
+  {
+    "file": "api\\shipmentApi.ts",
+    "lineNum": 43,
+    "code": "* Lấy chi tiết một lô hàng theo ID"
+  },
+  {
+    "file": "api\\suspectTraceCodeApi.ts",
+    "lineNum": 29,
+    "code": "}>(`${ADMIN_PREFIX}/${traceCodeId}/suspect-detail`);"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 12,
+    "code": "import { DetailSection } from '@/components/common/detail/DetailSection';"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 13,
+    "code": "import { DetailField } from '@/components/common/detail/DetailField';"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 75,
+    "code": "* Activity Log detail dialog (extracted from ActivityLogTable)."
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 81,
+    "code": "export function ActivityLogDetailDialog({ log, onClose }: Props) {"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 83,
+    "code": "if (!log?.details) return null;"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 84,
+    "code": "return formatPayload(log.details);"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 89,
+    "code": "const hasPayload = Boolean(log.details && log.details !== log.description);"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 97,
+    "code": "<DialogTitle>Chi tiết nhật ký hoạt động</DialogTitle>"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 100,
+    "code": "Thông tin chi tiết thao tác được ghi nhận bởi hệ thống kiểm toán"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 177,
+    "code": "{log.description || 'Không có mô tả chi tiết'}"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 185,
+    "code": "description=\"Dữ liệu chi tiết (Payload) — JSON thô được ghi bởi hệ thống.\""
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 189,
+    "code": "<details className=\"group\">"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 190,
+    "code": "<summary className=\"flex cursor-pointer select-none items-center justify-between gap-2 bg-muted/40 px-4 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden\">"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 191,
+    "code": "Xem dữ liệu payload"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 197,
+    "code": "</details>"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogTable.tsx",
+    "lineNum": 12,
+    "code": "import { Eye } from 'lucide-react';"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogTable.tsx",
+    "lineNum": 14,
+    "code": "import { ActivityLogDetailDialog } from './ActivityLogDetailDialog';"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogTable.tsx",
+    "lineNum": 129,
+    "code": "title=\"Xem chi tiết thao tác\""
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogTable.tsx",
+    "lineNum": 131,
+    "code": "<Eye className=\"h-4 w-4\" />"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogTable.tsx",
+    "lineNum": 132,
+    "code": "<span className=\"text-xs font-medium\">Chi tiết</span>"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogTable.tsx",
+    "lineNum": 142,
+    "code": "{/* Modal Chi tiết hoạt động */}"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogTable.tsx",
+    "lineNum": 143,
+    "code": "<ActivityLogDetailDialog"
+  },
+  {
+    "file": "components\\admin\\product-category\\ProductCategoryForm.tsx",
+    "lineNum": 194,
+    "code": "placeholder=\"Mô tả chi tiết...\""
+  },
+  {
+    "file": "components\\admin\\product-category\\ProductCategoryList.tsx",
+    "lineNum": 4,
+    "code": "import { Pencil, Eye, EyeOff } from 'lucide-react';"
+  },
+  {
+    "file": "components\\admin\\product-category\\ProductCategoryList.tsx",
+    "lineNum": 66,
+    "code": "{category.isActive ? <EyeOff className=\"h-4 w-4\" /> : <Eye className=\"h-4 w-4\" />}"
+  },
+  {
+    "file": "components\\apiKey\\RawApiKeyModal.tsx",
+    "lineNum": 94,
+    "code": "{/* Chi tiết hạn mức & thời hạn */}"
+  },
+  {
+    "file": "components\\auth\\LoginForm.tsx",
+    "lineNum": 5,
+    "code": "Eye,"
+  },
+  {
+    "file": "components\\auth\\LoginForm.tsx",
+    "lineNum": 6,
+    "code": "EyeOff,"
+  },
+  {
+    "file": "components\\auth\\LoginForm.tsx",
+    "lineNum": 440,
+    "code": "<EyeOff"
+  },
+  {
+    "file": "components\\auth\\LoginForm.tsx",
+    "lineNum": 445,
+    "code": "<Eye"
+  },
+  {
+    "file": "components\\certification\\CertificationDetailDialog.tsx",
+    "lineNum": 10,
+    "code": "import { DetailField } from '@/components/common/detail/DetailField';"
+  },
+  {
+    "file": "components\\certification\\CertificationDetailDialog.tsx",
+    "lineNum": 40,
+    "code": "export const CertificationDetailDialog = ({ certification, open, onClose }: Props) => {"
+  },
+  {
+    "file": "components\\certification\\CertificationDetailDialog.tsx",
+    "lineNum": 53,
+    "code": "Thông tin chi tiết chứng nhận"
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 54,
+    "code": "const [detail, setDetail] = useState<InspectionRequestDetailResponse | null>(null);"
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 55,
+    "code": "const [detailLoading, setDetailLoading] = useState(false);"
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 56,
+    "code": "const [detailError, setDetailError] = useState<string | null>(null);"
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 91,
+    "code": "? error.response?.data?.message || \"Không thể tải chi tiết yêu cầu kiểm nghiệm\""
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 92,
+    "code": ": \"Không thể tải chi tiết yêu cầu kiểm nghiệm\""
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 128,
+    "code": "detail !== null &&"
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 185,
+    "code": "if (!canSubmit || !detail) return;"
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 189,
+    "code": "detail.testRequestId,"
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 216,
+    "code": "() => detail?.criteria.filter((criterion) => criterion.result !== null).length ?? 0,"
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 217,
+    "code": "[detail]"
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 229,
+    "code": "{detail"
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 230,
+    "code": "? `${detail.testingUnit} — Ngày gửi mẫu: ${detail.sampleSentDate}`"
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 235,
+    "code": "{detailLoading ? ("
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 238,
+    "code": "Đang tải chi tiết yêu cầu..."
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 240,
+    "code": ") : detailError ? ("
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 243,
+    "code": "<p>{detailError}</p>"
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 245,
+    "code": ") : detail ? ("
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 254,
+    "code": "` Đã có ${recordedCount}/${detail.criteria.length} chỉ tiêu có kết quả, có thể sửa lại.`}"
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 259,
+    "code": "{detail.criteria.map((criterion) => {"
+  },
+  {
+    "file": "components\\common\\detail\\DetailField.tsx",
+    "lineNum": 23,
+    "code": "* ShipmentDetailDialog, ScanAnomalyAlertDetailsDialog, CertificationDetailDialog"
+  },
+  {
+    "file": "components\\common\\detail\\DetailSection.tsx",
+    "lineNum": 27,
+    "code": "* Shared building block for detail interfaces: an uppercase section heading"
+  },
+  {
+    "file": "components\\common\\detail\\DetailSection.tsx",
+    "lineNum": 28,
+    "code": "* with the standard tinted content panel used across existing detail views"
+  },
+  {
+    "file": "components\\dashboard\\EventRecorderDashboard.tsx",
+    "lineNum": 11,
+    "code": "Chọn lô sản xuất để ghi nhật ký canh tác hoặc xem thông tin chi tiết."
+  },
+  {
+    "file": "components\\dashboard\\IndustryReportTab.tsx",
+    "lineNum": 112,
+    "code": "{isLoading ? 'Đang xem...' : 'Xem báo cáo'}"
+  },
+  {
+    "file": "components\\dashboard\\IndustryReportTab.tsx",
+    "lineNum": 194,
+    "code": "<p className=\"mb-2 text-sm font-semibold\">Chi tiết theo nhóm nông sản</p>"
+  },
+  {
+    "file": "components\\dashboard\\ProcurementDashboard.tsx",
+    "lineNum": 28,
+    "code": "Xem danh sách lô hàng đã kích hoạt tem và thực hiện ghi nhận thu"
+  },
+  {
+    "file": "components\\farm-log\\AttachmentManager.tsx",
+    "lineNum": 2,
+    "code": "import { Eye, Download, Trash2, Upload, File, FileText } from 'lucide-react';"
+  },
+  {
+    "file": "components\\farm-log\\AttachmentManager.tsx",
+    "lineNum": 283,
+    "code": "<Eye className=\"h-10 w-10 mb-1 animate-pulse\" />"
+  },
+  {
+    "file": "components\\farm-log\\AttachmentManager.tsx",
+    "lineNum": 295,
+    "code": "<Eye className=\"h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity\" />"
+  },
+  {
+    "file": "components\\farm-log\\AttachmentManager.tsx",
+    "lineNum": 332,
+    "code": "title=\"Xem\""
+  },
+  {
+    "file": "components\\farm-log\\AttachmentManager.tsx",
+    "lineNum": 333,
+    "code": "aria-label={`Xem chứng từ ${att.fileName}`}"
+  },
+  {
+    "file": "components\\farm-log\\AttachmentManager.tsx",
+    "lineNum": 335,
+    "code": "<Eye className=\"h-4 w-4\" />"
+  },
+  {
+    "file": "components\\farm-log\\CreateFarmLogForm.tsx",
+    "lineNum": 588,
+    "code": "Ghi chú chi tiết"
+  },
+  {
+    "file": "components\\farm-log\\CreateFarmLogForm.tsx",
+    "lineNum": 593,
+    "code": "placeholder=\"Mô tả chi tiết tình hình thời tiết, diện tích xử lý, phương pháp thực hiện...\""
+  },
+  {
+    "file": "components\\farm-log\\FarmLogList.tsx",
+    "lineNum": 34,
+    "code": "import { DetailSection } from \"@/components/common/detail/DetailSection\";"
+  },
+  {
+    "file": "components\\farm-log\\FarmLogList.tsx",
+    "lineNum": 120,
+    "code": "// State row mở rộng: xem chi tiết + chứng từ inline"
+  },
+  {
+    "file": "components\\farm-log\\FarmLogList.tsx",
+    "lineNum": 392,
+    "code": "aria-controls={`farm-log-detail-${log.id}`}"
+  },
+  {
+    "file": "components\\farm-log\\FarmLogList.tsx",
+    "lineNum": 395,
+    "code": "? \"Thu gọn chi tiết nhật ký\""
+  },
+  {
+    "file": "components\\farm-log\\FarmLogList.tsx",
+    "lineNum": 396,
+    "code": ": \"Xem chi tiết & quản lý chứng từ nhật ký\""
+  },
+  {
+    "file": "components\\farm-log\\FarmLogList.tsx",
+    "lineNum": 400,
+    "code": "? \"Thu gọn chi tiết\""
+  },
+  {
+    "file": "components\\farm-log\\FarmLogList.tsx",
+    "lineNum": 401,
+    "code": ": \"Xem chi tiết & quản lý chứng từ\""
+  },
+  {
+    "file": "components\\farm-log\\FarmLogList.tsx",
+    "lineNum": 420,
+    "code": "id={`farm-log-detail-${log.id}`}"
+  },
+  {
+    "file": "components\\notification\\NotificationPanel.tsx",
+    "lineNum": 131,
+    "code": "Xem tất cả"
+  },
+  {
+    "file": "components\\organization\\CreateMemberForm.tsx",
+    "lineNum": 7,
+    "code": "import { Eye, EyeOff } from 'lucide-react';"
+  },
+  {
+    "file": "components\\organization\\CreateMemberForm.tsx",
+    "lineNum": 161,
+    "code": "{showPassword ? <EyeOff className=\"size-4\" /> : <Eye className=\"size-4\" />}"
+  },
+  {
+    "file": "components\\organization\\CreateMemberForm.tsx",
+    "lineNum": 188,
+    "code": "{showConfirmPassword ? <EyeOff className=\"size-4\" /> : <Eye className=\"size-4\" />}"
+  },
+  {
+    "file": "components\\organization\\CreateOrganizationForm.tsx",
+    "lineNum": 8,
+    "code": "import { Eye, EyeOff, Building2, UserRound, ShieldCheck, Plus } from 'lucide-react';"
+  },
+  {
+    "file": "components\\organization\\CreateOrganizationForm.tsx",
+    "lineNum": 251,
+    "code": "{showPassword ? <EyeOff className=\"h-4 w-4\" /> : <Eye className=\"h-4 w-4\" />}"
+  },
+  {
+    "file": "components\\organization\\CreateOrganizationForm.tsx",
+    "lineNum": 292,
+    "code": "{showConfirmPassword ? <EyeOff className=\"h-4 w-4\" /> : <Eye className=\"h-4 w-4\" />}"
+  },
+  {
+    "file": "components\\organization\\OrganizationDetail.tsx",
+    "lineNum": 86,
+    "code": "const detail = await getOrganizationDetail(id);"
+  },
+  {
+    "file": "components\\organization\\OrganizationDetail.tsx",
+    "lineNum": 87,
+    "code": "setData(detail);"
+  },
+  {
+    "file": "components\\production-lot\\ImportProductionLotForm.tsx",
+    "lineNum": 1086,
+    "code": "Chi tiết lỗi"
+  },
+  {
+    "file": "components\\production-lot\\ImportProductionLotForm.tsx",
+    "lineNum": 1231,
+    "code": "? 'Xem danh sách lô'"
+  },
+  {
+    "file": "components\\production-lot\\ProductionLotList.tsx",
+    "lineNum": 266,
+    "code": "\"Chi tiết\","
+  },
+  {
+    "file": "components\\production-lot\\ProductionLotList.tsx",
+    "lineNum": 271,
+    "code": "title === \"Thao tác\" || title === \"Chi tiết\""
+  },
+  {
+    "file": "components\\production-lot\\ProductionLotList.tsx",
+    "lineNum": 404,
+    "code": "Chi tiết"
+  },
+  {
+    "file": "components\\public\\RouteMap.tsx",
+    "lineNum": 73,
+    "code": "const detailsHtml = Object.entries(translatedData)"
+  },
+  {
+    "file": "components\\public\\RouteMap.tsx",
+    "lineNum": 108,
+    "code": "${detailsHtml ? `<div style=\"margin-top: 6px;\">${detailsHtml}</div>` : ''}"
+  },
+  {
+    "file": "components\\public\\RouteMap.tsx",
+    "lineNum": 153,
+    "code": "<span>Click marker để xem chi tiết</span>"
+  },
+  {
+    "file": "components\\report\\IndustryReportFilter.tsx",
+    "lineNum": 75,
+    "code": "<Search className=\"h-4 w-4 mr-1\" /> Xem báo cáo"
+  },
+  {
+    "file": "components\\report\\IndustryReportPanel.tsx",
+    "lineNum": 225,
+    "code": "{isLoading ? 'Đang xem...' : 'Xem báo cáo'}"
+  },
+  {
+    "file": "components\\report\\IndustryReportPanel.tsx",
+    "lineNum": 307,
+    "code": "<p className=\"mb-2 text-sm font-semibold\">Chi tiết theo nhóm nông sản</p>"
+  },
+  {
+    "file": "components\\report\\SeasonYieldComparisonTable.tsx",
+    "lineNum": 58,
+    "code": "<CardTitle>Chi tiết so sánh</CardTitle>"
+  },
+  {
+    "file": "components\\report\\StatisticsSummary.tsx",
+    "lineNum": 2,
+    "code": "import { Eye, QrCode, AlertTriangle } from 'lucide-react';"
+  },
+  {
+    "file": "components\\report\\StatisticsSummary.tsx",
+    "lineNum": 14,
+    "code": "icon: Eye,"
+  },
+  {
+    "file": "components\\shipment\\ProcurementShipmentList.tsx",
+    "lineNum": 25,
+    "code": "Eye,"
+  },
+  {
+    "file": "components\\shipment\\ProcurementShipmentList.tsx",
+    "lineNum": 48,
+    "code": "// Điều hướng tới trang chi tiết lô hàng. ProcurementShipment không chứa"
+  },
+  {
+    "file": "components\\shipment\\ProcurementShipmentList.tsx",
+    "lineNum": 49,
+    "code": "// productionLotId nên cần lấy chi tiết trước để xây dựng route đầy đủ"
+  },
+  {
+    "file": "components\\shipment\\ProcurementShipmentList.tsx",
+    "lineNum": 64,
+    "code": "toast.error(\"Không thể tải chi tiết lô hàng.\");"
+  },
+  {
+    "file": "components\\shipment\\ProcurementShipmentList.tsx",
+    "lineNum": 167,
+    "code": "\"Chi tiết\","
+  },
+  {
+    "file": "components\\shipment\\ProcurementShipmentList.tsx",
+    "lineNum": 172,
+    "code": "title === \"Thao tác\" || title === \"Chi tiết\""
+  },
+  {
+    "file": "components\\shipment\\ProcurementShipmentList.tsx",
+    "lineNum": 256,
+    "code": "<Eye className=\"mr-1 size-4\" />"
+  },
+  {
+    "file": "components\\shipment\\ProcurementShipmentList.tsx",
+    "lineNum": 257,
+    "code": "Chi tiết"
+  },
+  {
+    "file": "components\\shipment\\QrCodeGrid.tsx",
+    "lineNum": 135,
+    "code": "Xem mã QR ở kích thước lớn."
+  },
+  {
+    "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+    "lineNum": 22,
+    "code": "import { DetailSection } from \"@/components/common/detail/DetailSection\";"
+  },
+  {
+    "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+    "lineNum": 23,
+    "code": "import { DetailField } from \"@/components/common/detail/DetailField\";"
+  },
+  {
+    "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+    "lineNum": 25,
+    "code": "interface ShipmentDetailDialogProps {"
+  },
+  {
+    "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+    "lineNum": 49,
+    "code": "export const ShipmentDetailDialog = ({"
+  },
+  {
+    "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+    "lineNum": 60,
+    "code": "}: ShipmentDetailDialogProps) => {"
+  },
+  {
+    "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+    "lineNum": 80,
+    "code": "<DialogTitle>Chi tiết lô hàng</DialogTitle>"
+  },
+  {
+    "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+    "lineNum": 82,
+    "code": "Thông tin chi tiết và mã QR của lô hàng."
+  },
+  {
+    "file": "components\\shipment\\ShipmentStatusBadge.tsx",
+    "lineNum": 18,
+    "code": "* subtle border already used by ShipmentDetailPage."
+  },
+  {
+    "file": "components\\shipment\\ShipmentStatusBadge.tsx",
+    "lineNum": 38,
+    "code": "* ShipmentDetailDialog, ShipmentDetailPage, ShipmentList and"
+  },
+  {
+    "file": "components\\shipment\\ShipmentTimelineContent.tsx",
+    "lineNum": 16,
+    "code": "* ShipmentDetailPage potentially later) keep their own lifecycle and pass"
+  },
+  {
+    "file": "config\\actionMappings.ts",
+    "lineNum": 6,
+    "code": "READ: 'Xem',"
+  },
+  {
+    "file": "hooks\\useWarehouseReceipt.ts",
+    "lineNum": 19,
+    "code": "detail: WarehouseReceiptResponse | null;"
+  },
+  {
+    "file": "hooks\\useWarehouseReceipt.ts",
+    "lineNum": 41,
+    "code": "const [detail, setDetail] = useState<WarehouseReceiptResponse | null>(null);"
+  },
+  {
+    "file": "hooks\\useWarehouseReceipt.ts",
+    "lineNum": 89,
+    "code": "err.response?.data?.message || 'Không thể tải chi tiết nhập kho.';"
+  },
+  {
+    "file": "hooks\\useWarehouseReceipt.ts",
+    "lineNum": 108,
+    "code": "detail,"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 40,
+    "code": "export default function SuspectTraceCodeDetailPage() {"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 43,
+    "code": "const [detail, setDetail] = useState<SuspectTraceCodeDetailResponse | null>(null);"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 55,
+    "code": "error.response?.data?.message || 'Không thể tải chi tiết mã tem',"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 75,
+    "code": "if (!detail) {"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 97,
+    "code": "<h1 className=\"text-2xl font-bold\">Chi tiết mã tem nghi vấn</h1>"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 99,
+    "code": "{detail.codeValue}"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 103,
+    "code": "{detail.status === 'SUSPECT' && ("
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 117,
+    "code": "<p className={`text-2xl font-bold ${getScoreColor(detail.suspicionScore)}`}>"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 118,
+    "code": "{detail.suspicionScore}/100"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 128,
+    "code": "{detail.status === 'SUSPECT' ? ("
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 146,
+    "code": "<p className=\"text-2xl font-bold\">{detail.anomalyDetails.totalScans}</p>"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 155,
+    "code": "<p className=\"text-2xl font-bold\">{detail.anomalyDetails.uniqueLocations}</p>"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 171,
+    "code": "<p className=\"font-medium\">{detail.shipmentName}</p>"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 175,
+    "code": "<p className=\"font-mono text-sm\">{detail.codeValue}</p>"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 177,
+    "code": "{detail.lockedAt && ("
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 181,
+    "code": "<p className=\"font-medium\">{formatDateTime(detail.lockedAt)}</p>"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 185,
+    "code": "<p className=\"font-medium\">{detail.lockedByName || '—'}</p>"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 191,
+    "code": "{detail.suspicionReason && ("
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 197,
+    "code": "<p className=\"text-sm text-amber-800\">{detail.suspicionReason}</p>"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 203,
+    "code": "{detail.lockReason && ("
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 209,
+    "code": "<p className=\"text-sm text-red-800\">{detail.lockReason}</p>"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 220,
+    "code": "<CardTitle className=\"text-base\">Chi tiết điểm nghi vấn</CardTitle>"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 229,
+    "code": "<Badge variant={detail.anomalyDetails.scoreBreakdown.highFrequency > 0 ? 'default' : 'secondary'}>"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 230,
+    "code": "+{detail.anomalyDetails.scoreBreakdown.highFrequency}"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 242,
+    "code": "{detail.anomalyDetails.impossibleTravelCount} cặp"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 244,
+    "code": "<Badge variant={detail.anomalyDetails.scoreBreakdown.impossibleTravel > 0 ? 'default' : 'secondary'}>"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 245,
+    "code": "+{detail.anomalyDetails.scoreBreakdown.impossibleTravel}"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 254,
+    "code": "<Badge variant={detail.anomalyDetails.scoreBreakdown.multipleLocations > 0 ? 'default' : 'secondary'}>"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 255,
+    "code": "+{detail.anomalyDetails.scoreBreakdown.multipleLocations}"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 260,
+    "code": "<span className={`text-lg font-bold ${getScoreColor(detail.suspicionScore)}`}>"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 261,
+    "code": "{detail.suspicionScore}/100"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 274,
+    "code": "{detail.scanLogs.length === 0 ? ("
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 290,
+    "code": "{detail.scanLogs.map((scan, index) => ("
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 318,
+    "code": "{showLockDialog && detail.status === 'SUSPECT' && ("
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 321,
+    "code": "id: detail.id,"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 322,
+    "code": "codeValue: detail.codeValue,"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 323,
+    "code": "shipmentName: detail.shipmentName,"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 324,
+    "code": "status: detail.status,"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 325,
+    "code": "suspicionScore: detail.suspicionScore,"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 326,
+    "code": "suspicionReason: detail.suspicionReason,"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 327,
+    "code": "scanCount: detail.scanCount,"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 328,
+    "code": "uniqueLocations: detail.uniqueLocations,"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 329,
+    "code": "firstScannedAt: detail.firstScannedAt,"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 330,
+    "code": "lastScannedAt: detail.lastScannedAt,"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 331,
+    "code": "lockedAt: detail.lockedAt,"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 332,
+    "code": "lockedBy: detail.lockedBy,"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 333,
+    "code": "lockedByName: detail.lockedByName,"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 334,
+    "code": "lockReason: detail.lockReason,"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeListPage.tsx",
+    "lineNum": 162,
+    "code": "Xem xét và khóa các mã tem có dấu hiệu quét bất thường"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeListPage.tsx",
+    "lineNum": 295,
+    "code": "<TableHead className=\"text-center\">Chi tiết</TableHead>"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeListPage.tsx",
+    "lineNum": 360,
+    "code": "Chi tiết"
+  },
+  {
+    "file": "pages\\certification\\CertificationListPage.tsx",
+    "lineNum": 29,
+    "code": "import { CertificationDetailDialog } from '@/components/certification/CertificationDetailDialog';"
+  },
+  {
+    "file": "pages\\certification\\CertificationListPage.tsx",
+    "lineNum": 285,
+    "code": "Xem"
+  },
+  {
+    "file": "pages\\certification\\CertificationListPage.tsx",
+    "lineNum": 336,
+    "code": "<CertificationDetailDialog"
+  },
+  {
+    "file": "pages\\event-chain-verification\\EventChainVerificationPage.tsx",
+    "lineNum": 2,
+    "code": "import { LoaderCircle, ShieldCheck, ShieldAlert, CheckCircle2, XCircle, Eye } from 'lucide-react';"
+  },
+  {
+    "file": "pages\\event-chain-verification\\EventChainVerificationPage.tsx",
+    "lineNum": 144,
+    "code": "<Eye className=\"size-4 text-muted-foreground\" />"
+  },
+  {
+    "file": "pages\\farm-area\\FarmAreaListPage.tsx",
+    "lineNum": 116,
+    "code": "title=\"Xem trên Google Maps\""
+  },
+  {
+    "file": "pages\\organization\\OrganizationDetailPage.tsx",
+    "lineNum": 3,
+    "code": "const OrganizationDetailPage = () => {"
+  },
+  {
+    "file": "pages\\organization\\OrganizationDetailPage.tsx",
+    "lineNum": 12,
+    "code": "export default OrganizationDetailPage;"
+  },
+  {
+    "file": "pages\\organization\\OrganizationListPage.tsx",
+    "lineNum": 131,
+    "code": "Xem"
+  },
+  {
+    "file": "pages\\packaging-event\\components\\CreatePackagingForm.tsx",
+    "lineNum": 243,
+    "code": "const details = getPackagingError(error);"
+  },
+  {
+    "file": "pages\\packaging-event\\components\\CreatePackagingForm.tsx",
+    "lineNum": 246,
+    "code": "details.isNetworkError"
+  },
+  {
+    "file": "pages\\packaging-event\\components\\CreatePackagingForm.tsx",
+    "lineNum": 248,
+    "code": ": details.message,"
+  },
+  {
+    "file": "pages\\packaging-event\\components\\CreatePackagingForm.tsx",
+    "lineNum": 272,
+    "code": "const details = getPackagingError(error);"
+  },
+  {
+    "file": "pages\\packaging-event\\components\\CreatePackagingForm.tsx",
+    "lineNum": 274,
+    "code": "details.missingActivities.length > 0 ||"
+  },
+  {
+    "file": "pages\\packaging-event\\components\\CreatePackagingForm.tsx",
+    "lineNum": 276,
+    "code": "details.message,"
+  },
+  {
+    "file": "pages\\packaging-event\\components\\CreatePackagingForm.tsx",
+    "lineNum": 281,
+    "code": "setEligibilityMessage(details.message);"
+  },
+  {
+    "file": "pages\\packaging-event\\components\\CreatePackagingForm.tsx",
+    "lineNum": 282,
+    "code": "setMissingActivities(details.missingActivities);"
+  },
+  {
+    "file": "pages\\packaging-event\\components\\CreatePackagingForm.tsx",
+    "lineNum": 283,
+    "code": "} else if (details.isNetworkError) {"
+  },
+  {
+    "file": "pages\\packaging-event\\components\\CreatePackagingForm.tsx",
+    "lineNum": 290,
+    "code": "setEligibilityMessage(details.message);"
+  },
+  {
+    "file": "pages\\packaging-event\\components\\CreatePackagingForm.tsx",
+    "lineNum": 293,
+    "code": "toast.error(details.message);"
+  },
+  {
+    "file": "pages\\packaging-event\\components\\CreatePackagingForm.tsx",
+    "lineNum": 365,
+    "code": "? \"Xem lịch sử nhật ký\""
+  },
+  {
+    "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+    "lineNum": 21,
+    "code": "import { DetailSection } from \"@/components/common/detail/DetailSection\";"
+  },
+  {
+    "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+    "lineNum": 22,
+    "code": "import { DetailField } from \"@/components/common/detail/DetailField\";"
+  },
+  {
+    "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+    "lineNum": 62,
+    "code": "const [detailOpen, setDetailOpen] = useState(false);"
+  },
+  {
+    "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+    "lineNum": 118,
+    "code": "Xem và xử lý các phản ánh từ người dùng về sản phẩm."
+  },
+  {
+    "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+    "lineNum": 210,
+    "code": "Xem chi tiết"
+  },
+  {
+    "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+    "lineNum": 274,
+    "code": "open={detailOpen}"
+  },
+  {
+    "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+    "lineNum": 300,
+    "code": "Chi tiết phản ánh"
+  },
+  {
+    "file": "pages\\public\\shipment\\ProductionLotDetailPage.tsx",
+    "lineNum": 217,
+    "code": "export const ProductionLotDetailPage = () => {"
+  },
+  {
+    "file": "pages\\public\\shipment\\ProductionLotDetailPage.tsx",
+    "lineNum": 595,
+    "code": "<HelpButton screenKey=\"production-lot-detail\" />"
+  },
+  {
+    "file": "pages\\public\\shipment\\ProductionLotDetailPage.tsx",
+    "lineNum": 699,
+    "code": "{/* Tabs chi tiết */}"
+  },
+  {
+    "file": "pages\\public\\shipment\\ShipmentDetailPage.tsx",
+    "lineNum": 46,
+    "code": "export const ShipmentDetailPage = () => {"
+  },
+  {
+    "file": "pages\\public\\shipment\\ShipmentList.tsx",
+    "lineNum": 23,
+    "code": "Eye,"
+  },
+  {
+    "file": "pages\\public\\shipment\\ShipmentList.tsx",
+    "lineNum": 323,
+    "code": "<Eye className=\"mr-1 h-3 w-3\" />"
+  },
+  {
+    "file": "pages\\public\\shipment\\ShipmentList.tsx",
+    "lineNum": 324,
+    "code": "Chi tiết"
+  },
+  {
+    "file": "pages\\recall-request\\RecallRequestDetailPage.tsx",
+    "lineNum": 21,
+    "code": "export const RecallRequestDetailPage = () => {"
+  },
+  {
+    "file": "pages\\recall-request\\RecallRequestDetailPage.tsx",
+    "lineNum": 123,
+    "code": "<HelpButton screenKey=\"recall-request-detail\" />"
+  },
+  {
+    "file": "pages\\recall-request\\RecallRequestListPage.tsx",
+    "lineNum": 14,
+    "code": "import { ChevronLeft, ChevronRight, Eye, RefreshCcw } from 'lucide-react';"
+  },
+  {
+    "file": "pages\\recall-request\\RecallRequestListPage.tsx",
+    "lineNum": 143,
+    "code": "<Eye className=\"size-4 mr-1\" /> Chi tiết"
+  },
+  {
+    "file": "pages\\report\\LoginHistoryPage.tsx",
+    "lineNum": 107,
+    "code": "Xem lịch sử đăng nhập của tài khoản {user?.fullName}"
+  },
+  {
+    "file": "pages\\report\\SeasonYieldComparisonPage.tsx",
+    "lineNum": 165,
+    "code": "detail=\"Tổ hợp năm và mùa vụ\""
+  },
+  {
+    "file": "pages\\report\\SeasonYieldComparisonPage.tsx",
+    "lineNum": 171,
+    "code": "detail={summary.baseline ? `${summary.baseline.seasonName} ${summary.baseline.year}` : \"Chưa xác định\"}"
+  },
+  {
+    "file": "pages\\report\\SeasonYieldComparisonPage.tsx",
+    "lineNum": 177,
+    "code": "detail={summary.highest ? `${summary.highest.seasonName} ${summary.highest.year}` : \"Chưa xác định\"}"
+  },
+  {
+    "file": "pages\\report\\SeasonYieldComparisonPage.tsx",
+    "lineNum": 183,
+    "code": "detail=\"Cộng theo các nhóm mùa vụ\""
+  },
+  {
+    "file": "pages\\report\\SeasonYieldComparisonPage.tsx",
+    "lineNum": 207,
+    "code": "detail,"
+  },
+  {
+    "file": "pages\\report\\SeasonYieldComparisonPage.tsx",
+    "lineNum": 212,
+    "code": "detail: string;"
+  },
+  {
+    "file": "pages\\report\\SeasonYieldComparisonPage.tsx",
+    "lineNum": 221,
+    "code": "<p className=\"mt-1 text-xs text-muted-foreground\">{detail}</p>"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\components\\ResolveScanAnomalyAlertDialog.tsx",
+    "lineNum": 84,
+    "code": "{alert.details.scanCount} lượt quét tại {alert.details.locations.length} vị trí"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+    "lineNum": 20,
+    "code": "import { DetailSection } from '@/components/common/detail/DetailSection';"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+    "lineNum": 21,
+    "code": "import { DetailField } from '@/components/common/detail/DetailField';"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+    "lineNum": 58,
+    "code": "<DialogTitle>Chi tiết cảnh báo tem quét bất thường</DialogTitle>"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+    "lineNum": 91,
+    "code": "<DetailField label=\"Số lượt quét\" value={`${alert.details.scanCount} lượt`} />"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+    "lineNum": 94,
+    "code": "value={`${alert.details.thresholdConfigured} vị trí`}"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+    "lineNum": 105,
+    "code": "title={`Các vị trí đã quét (${alert.details.locations.length})`}"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+    "lineNum": 120,
+    "code": "{alert.details.locations.map((location, index) => ("
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+    "lineNum": 80,
+    "code": "const [detailsAlert, setDetailsAlert] = useState<ScanAnomalyAlert | null>(null);"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+    "lineNum": 309,
+    "code": "<TableHead className=\"text-center\">Chi tiết</TableHead>"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+    "lineNum": 333,
+    "code": "<p>{alert.details.scanCount} lượt quét</p>"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+    "lineNum": 336,
+    "code": "{alert.details.locations.length} vị trí · ngưỡng {alert.details.thresholdConfigured}"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+    "lineNum": 368,
+    "code": "Chi tiết"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+    "lineNum": 431,
+    "code": "alert={detailsAlert}"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 18,
+    "code": "export default function WarehouseReceiptDetailPage() {"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 20,
+    "code": "const { detail, isLoadingDetail, error, fetchDetail } = useWarehouseReceipt();"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 58,
+    "code": "if (error || !detail) {"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 70,
+    "code": "const isExceeded = !!detail.isDiscrepancyExceeded;"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 71,
+    "code": "const hasCondition = !!detail.conditionNote && detail.conditionNote.trim() !== '';"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 72,
+    "code": "const hasReason = !!detail.reason && detail.reason.trim() !== '';"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 91,
+    "code": "{detail.shipmentName || 'Chi tiết sự kiện nhập kho'}"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 92,
+    "code": "{detail.recordedAt ? ` • ${formatDateTime(detail.recordedAt)}` : ''}"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 109,
+    "code": "{detail.traceCode || '—'}"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 114,
+    "code": "<p className=\"text-sm font-medium\">{detail.shipmentName || '—'}</p>"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 137,
+    "code": "{detail.declaredQuantity?.toLocaleString('vi-VN')} kg"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 143,
+    "code": "{detail.receivedQuantity?.toLocaleString('vi-VN')} kg"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 149,
+    "code": "{(detail.discrepancy ?? 0) >= 0 ? '+' : ''}"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 150,
+    "code": "{detail.discrepancy?.toLocaleString('vi-VN')} kg"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 156,
+    "code": "{(detail.discrepancyPercent ?? 0) >= 0 ? '+' : ''}"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 157,
+    "code": "{detail.discrepancyPercent}%"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 179,
+    "code": "<p className=\"text-sm text-foreground\">{detail.conditionNote}</p>"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 194,
+    "code": "<p className=\"text-sm text-foreground\">{detail.reason}</p>"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 211,
+    "code": "<p className=\"text-sm font-medium\">{detail.recordedBy || '—'}</p>"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 219,
+    "code": "{detail.recordedAt ? formatDateTime(detail.recordedAt) : '—'}"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 225,
+    "code": "{detail.receiptDate ? formatDate(detail.receiptDate) : '—'}"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptPage.tsx",
+    "lineNum": 3,
+    "code": "import { Plus, Warehouse, Eye, LoaderCircle, FileText } from 'lucide-react';"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptPage.tsx",
+    "lineNum": 160,
+    "code": "<Eye className=\"size-4\" />"
+  },
+  {
+    "file": "routes\\AppRoutes.tsx",
+    "lineNum": 41,
+    "code": "import SuspectTraceCodeDetailPage from \"@/pages/admin/SuspectTraceCodeDetailPage\";"
+  },
+  {
+    "file": "routes\\AppRoutes.tsx",
+    "lineNum": 59,
+    "code": "import { ProductionLotDetailPage } from \"@/pages/public/shipment/ProductionLotDetailPage\";"
+  },
+  {
+    "file": "routes\\AppRoutes.tsx",
+    "lineNum": 60,
+    "code": "import { ShipmentDetailPage } from \"@/pages/public/shipment/ShipmentDetailPage\";"
+  },
+  {
+    "file": "routes\\AppRoutes.tsx",
+    "lineNum": 92,
+    "code": "import WarehouseReceiptDetailPage from \"@/pages/warehouse-receipt/WarehouseReceiptDetailPage\";"
+  },
+  {
+    "file": "routes\\AppRoutes.tsx",
+    "lineNum": 114,
+    "code": "import OrganizationDetailPage from \"@/pages/organization/OrganizationDetailPage\";"
+  },
+  {
+    "file": "routes\\AppRoutes.tsx",
+    "lineNum": 137,
+    "code": "import { RecallRequestDetailPage } from \"@/pages/recall-request/RecallRequestDetailPage\";"
+  },
+  {
+    "file": "routes\\AppRoutes.tsx",
+    "lineNum": 439,
+    "code": "<ProductionLotDetailPage />"
+  },
+  {
+    "file": "routes\\AppRoutes.tsx",
+    "lineNum": 450,
+    "code": "<ShipmentDetailPage />"
+  },
+  {
+    "file": "routes\\AppRoutes.tsx",
+    "lineNum": 472,
+    "code": "<ShipmentDetailPage />"
+  },
+  {
+    "file": "routes\\AppRoutes.tsx",
+    "lineNum": 686,
+    "code": "<SuspectTraceCodeDetailPage />"
+  },
+  {
+    "file": "routes\\AppRoutes.tsx",
+    "lineNum": 888,
+    "code": "<WarehouseReceiptDetailPage />"
+  },
+  {
+    "file": "routes\\AppRoutes.tsx",
+    "lineNum": 941,
+    "code": "<OrganizationDetailPage />"
+  },
+  {
+    "file": "routes\\AppRoutes.tsx",
+    "lineNum": 1008,
+    "code": "<RecallRequestDetailPage />"
+  },
+  {
+    "file": "types\\activityLog.ts",
+    "lineNum": 15,
+    "code": "details?: string;"
+  },
+  {
+    "file": "types\\certification.ts",
+    "lineNum": 142,
+    "code": "* Chi tiết yêu cầu kiểm nghiệm để nhập kết quả."
+  },
+  {
+    "file": "types\\certification.ts",
+    "lineNum": 156,
+    "code": "* Một chỉ tiêu kiểm nghiệm trong chi tiết yêu cầu."
+  },
+  {
+    "file": "types\\eventValidation.ts",
+    "lineNum": 6,
+    "code": "details: {"
+  },
+  {
+    "file": "types\\scanAnomalyAlert.ts",
+    "lineNum": 25,
+    "code": "details: ScanAnomalyAlertDetails;"
+  },
+  {
+    "file": "utils\\activityLogFormatter.ts",
+    "lineNum": 17,
+    "code": "READ: 'Xem',"
+  },
+  {
+    "file": "utils\\permissionLables.ts",
+    "lineNum": 4,
+    "code": "READ: 'Xem danh sách & chi tiết',"
+  }
+]

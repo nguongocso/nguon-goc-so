@@ -21,7 +21,6 @@ export function CorrectPackagingForm() {
     register,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<CorrectPackagingFormValues>({
     resolver: zodResolver(correctPackagingSchema),
@@ -33,9 +32,6 @@ export function CorrectPackagingForm() {
       longitude: 0,
     },
   });
-
-  const lat = watch('latitude');
-  const lng = watch('longitude');
 
   const handleLocationSelect = (lat: number, lng: number) => {
     setValue('latitude', lat);
@@ -63,7 +59,7 @@ export function CorrectPackagingForm() {
   };
 
   return (
-    <Card className="max-w-4xl mx-auto">
+    <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
       <CardHeader>
         <CardTitle>Đính chính sự kiện đóng gói</CardTitle>
         <CardDescription>Cập nhật thông tin đóng gói (sự kiện gốc sẽ được giữ nguyên).</CardDescription>
@@ -90,10 +86,6 @@ export function CorrectPackagingForm() {
 
           <div className="space-y-2">
             <Label>Vị trí (click trên bản đồ)</Label>
-            <div className="flex gap-2">
-              <Input value={lat || ''} disabled placeholder="Vĩ độ" />
-              <Input value={lng || ''} disabled placeholder="Kinh độ" />
-            </div>
             <LocationPicker onLocationSelect={handleLocationSelect} height="300px" />
           </div>
         </CardContent>

@@ -18,32 +18,40 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.CreateInspectionRequest;
 import vn.nguongocso.certification.dto.response.InspectionRequestDetailResponse;
 import vn.nguongocso.certification.dto.response.InspectionRequestResponse;
+import vn.nguongocso.certification.entity.AccreditationScope;
 import vn.nguongocso.certification.entity.InspectionCriterion;
-import vn.nguongocso.certification.entity.InspectionCriterionDefinition;
+import vn.nguongocso.certification.entity.InspectionCriterionCatalog;
 import vn.nguongocso.certification.entity.InspectionCriterionResult;
 import vn.nguongocso.certification.entity.InspectionRequest;
 import vn.nguongocso.certification.entity.Standard;
 import vn.nguongocso.certification.enums.InspectionRequestStatus;
-import vn.nguongocso.certification.repository.InspectionCriterionDefinitionRepository;
+import vn.nguongocso.certification.repository.AccreditationScopeRepository;
+import vn.nguongocso.certification.repository.CategoryCriterionRepository;
+import vn.nguongocso.certification.repository.InspectionCriterionCatalogRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
+import vn.nguongocso.certification.repository.TestingUnitRepository;
 import vn.nguongocso.certification.service.impl.DuplicateInspectionRequestException;
 import vn.nguongocso.certification.service.impl.InspectionRequestServiceImpl;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
+import vn.nguongocso.farm.entity.ProductCategory;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
@@ -59,7 +67,13 @@ class InspectionRequestServiceImplTest {
     private InspectionRequestRepository inspectionRequestRepository;
 
     @Mock
-    private InspectionCriterionDefinitionRepository inspectionCriterionDefinitionRepository;
+    private InspectionCriterionCatalogRepository inspectionCriterionCatalogRepository;
+
+    @Mock
+    private AccreditationScopeRepository accreditationScopeRepository;
+
+    @Mock
+    private CategoryCriterionRepository categoryCriterionRepository;
 
     @Mock
     private ChainEventRepository chainEventRepository;
@@ -71,7 +85,13 @@ class InspectionRequestServiceImplTest {
     private InspectionCriterionResultRepository inspectionCriterionResultRepository;
 
     @Mock
+    private TestingUnitRepository testingUnitRepository;
+
+    @Mock
     private Clock clock;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private InspectionRequestServiceImpl inspectionRequestService;
@@ -87,7 +107,11 @@ class InspectionRequestServiceImplTest {
 
     private Standard standard;
 
-    private InspectionCriterionDefinition criterionDefinition;
+    private UUID categoryId;
+
+    private ProductCategory category;
+
+    private InspectionCriterionCatalog catalogCriterion;
 
     @BeforeEach
     void setUp() {
@@ -127,6 +151,8 @@ class InspectionRequestServiceImplTest {
         lenient().when(clock.getZone())
                 .thenReturn(ZoneId.systemDefault());
 
+        categoryId = UUID.randomUUID();
+
         /*
          * Production lot test.
          */
@@ -146,7 +172,7 @@ class InspectionRequestServiceImplTest {
                 .setOrganizationId(orgId);
 
         /*
-         * Standard test.
+         * Standard test (chỉ dùng cho snapshot legacy ở getDetail).
          */
         standard = new Standard();
 
@@ -156,21 +182,26 @@ class InspectionRequestServiceImplTest {
         standard.setName("VietGAP");
 
         /*
-         * Inspection criterion definition test.
+         * Product category của lô (NCL-09-CN-009).
          */
-        criterionDefinition =
-                new InspectionCriterionDefinition();
+        category = new ProductCategory();
 
-        criterionDefinition.setId(101);
+        category.setId(categoryId);
 
-        criterionDefinition.setCode(
-                "RESIDUE_PESTICIDE");
+        category.setName("Rau ăn lá");
 
-        criterionDefinition.setName(
-                "Dư lượng thuốc trừ sâu");
+        lot.setProductCategory(category);
 
-        criterionDefinition.setStandard(
-                standard);
+        /*
+         * Chỉ tiêu trong danh mục dùng chung (NCL-09-CN-009).
+         */
+        catalogCriterion = InspectionCriterionCatalog.builder()
+                .id(101L)
+                .name("Dư lượng thuốc trừ sâu")
+                .unit("mg/kg")
+                .maxThreshold(new java.math.BigDecimal("0.5"))
+                .status("ACTIVE")
+                .build();
     }
 
     /**
@@ -200,7 +231,7 @@ class InspectionRequestServiceImplTest {
                 LocalDate.now());
 
         request.setCriteriaIds(
-                List.of(101));
+                List.of(101L));
 
         /*
          * Production lot tồn tại
@@ -226,23 +257,23 @@ class InspectionRequestServiceImplTest {
                 .thenReturn(true);
 
         /*
-         * Criterion definition tồn tại.
+         * Chỉ tiêu tồn tại trong danh mục dùng chung.
          */
         when(
-                inspectionCriterionDefinitionRepository
-                        .findById(101))
+                inspectionCriterionCatalogRepository
+                        .findById(101L))
                 .thenReturn(
                         Optional.of(
-                                criterionDefinition));
+                                catalogCriterion));
 
         /*
-         * Standard VietGAP đã được gắn với lô.
+         * Chỉ tiêu được gán cho loại nông sản của lô.
          */
         when(
-                productionLotCertificationRepository
-                        .existsByProductionLotIdAndStandardId(
-                                lotId,
-                                standard.getId()))
+                categoryCriterionRepository
+                        .existsByCategory_IdAndCriterion_Id(
+                                categoryId,
+                                101L))
                 .thenReturn(true);
 
         /*
@@ -308,14 +339,15 @@ class InspectionRequestServiceImplTest {
                 .hasSize(1);
 
         /*
-         * Kiểm tra code.
+         * Kiểm tra code — code snapshot bằng tên chỉ tiêu
+         * trong danh mục dùng chung.
          */
         assertThat(
                 response.getCriteria()
                         .get(0)
                         .getCode())
                 .isEqualTo(
-                        "RESIDUE_PESTICIDE");
+                        "Dư lượng thuốc trừ sâu");
 
         /*
          * Kiểm tra name.
@@ -328,21 +360,20 @@ class InspectionRequestServiceImplTest {
                         "Dư lượng thuốc trừ sâu");
 
         /*
-         * Kiểm tra standard.
+         * Chỉ tiêu mới không còn gắn Standard —
+         * snapshot tham chiếu danh mục qua criterion_id.
          */
         assertThat(
                 response.getCriteria()
                         .get(0)
                         .getStandardId())
-                .isEqualTo(
-                        standard.getId());
+                .isNull();
 
         assertThat(
                 response.getCriteria()
                         .get(0)
                         .getStandardName())
-                .isEqualTo(
-                        "VietGAP");
+                .isNull();
 
         /*
          * Repository phải được gọi save().
@@ -350,7 +381,120 @@ class InspectionRequestServiceImplTest {
         verify(
                 inspectionRequestRepository)
                 .save(any(InspectionRequest.class));
+
+        /*
+         * TASK-27: tạo yêu cầu kiểm nghiệm phải ghi nhật ký hoạt động
+         * đúng action, đúng đối tượng, đúng người thực hiện.
+         */
+        ArgumentCaptor<ActivityLogEvent> logCaptor =
+                ArgumentCaptor.forClass(ActivityLogEvent.class);
+        verify(eventPublisher)
+                .publishEvent(logCaptor.capture());
+
+        ActivityLogEvent logEvent = logCaptor.getValue();
+        assertThat(logEvent.getAction())
+                .isEqualTo("CREATE_INSPECTION_REQUEST");
+        assertThat(logEvent.getEntityType())
+                .isEqualTo("INSPECTION_REQUEST");
+        assertThat(logEvent.getEntityId())
+                .isEqualTo(response.getTestRequestId().toString());
+        assertThat(logEvent.getOrganizationId())
+                .isEqualTo(orgId);
+        assertThat(logEvent.getTimestamp())
+                .isNotNull();
     }
+
+    /**
+     * NCL-11-CN-006 Phase 2: khi tạo yêu cầu chọn đơn vị từ danh mục
+     * (testingUnitId) và đơn vị có phạm vi công nhận, chỉ tiêu nằm
+     * NGOÀI phạm vi phải được đánh dấu cảnh báo (không chặn tạo).
+     */
+    @Test
+    void createInspectionRequest_shouldFlagScopeWarning_whenCriterionOutOfScope() {
+
+        CreateInspectionRequest request = new CreateInspectionRequest();
+        UUID testingUnitId = UUID.randomUUID();
+        request.setTestingUnitId(testingUnitId);
+        request.setTestingUnit("Lab ABC");
+        request.setSampleSentDate(LocalDate.now());
+        request.setCriteriaIds(List.of(101L, 102L));
+
+        when(productionLotRepository.findByIdAndOrganization_OrganizationId(lotId, orgId))
+                .thenReturn(Optional.of(lot));
+        when(chainEventRepository
+                .existsByProductionLotIdOrUnassignedEventDataAndEventType(
+                        lotId, lotId.toString(), ChainEventType.HARVEST))
+                .thenReturn(true);
+
+        /*
+         * Đơn vị kiểm nghiệm tồn tại trong danh mục.
+         */
+        when(testingUnitRepository.findById(testingUnitId))
+                .thenReturn(Optional.of(
+                        vn.nguongocso.certification.entity.TestingUnit.builder()
+                                .id(testingUnitId)
+                                .name("Lab ABC")
+                                .accreditationCode("VILAS-001")
+                                .isActive(true)
+                                .build()));
+
+        InspectionCriterionCatalog c1 = InspectionCriterionCatalog.builder()
+                .id(101L)
+                .name("Dư lượng thuốc trừ sâu")
+                .unit("mg/kg")
+                .maxThreshold(new java.math.BigDecimal("0.5"))
+                .status("ACTIVE")
+                .build();
+        InspectionCriterionCatalog c2 = InspectionCriterionCatalog.builder()
+                .id(102L)
+                .name("Kim loại nặng")
+                .unit("mg/kg")
+                .maxThreshold(new java.math.BigDecimal("1.0"))
+                .status("ACTIVE")
+                .build();
+
+        when(inspectionCriterionCatalogRepository.findById(101L))
+                .thenReturn(Optional.of(c1));
+        when(inspectionCriterionCatalogRepository.findById(102L))
+                .thenReturn(Optional.of(c2));
+        when(categoryCriterionRepository.existsByCategory_IdAndCriterion_Id(categoryId, 101L))
+                .thenReturn(true);
+        when(categoryCriterionRepository.existsByCategory_IdAndCriterion_Id(categoryId, 102L))
+                .thenReturn(true);
+
+        when(inspectionRequestRepository.findByProductionLot_IdAndStatus(
+                lotId, InspectionRequestStatus.PENDING_RESULT))
+                .thenReturn(List.of());
+        when(inspectionRequestRepository.save(any(InspectionRequest.class)))
+                .thenAnswer(invocation -> {
+                    InspectionRequest saved = invocation.getArgument(0);
+                    saved.setId(UUID.randomUUID());
+                    return saved;
+                });
+
+        /*
+         * Đơn vị có phạm vi công nhận: chỉ chứa chỉ tiêu 101.
+         * Chỉ tiêu 102 nằm ngoài phạm vi -> phát sinh cảnh báo.
+         */
+        AccreditationScope scope = AccreditationScope.builder()
+                .testingUnit(vn.nguongocso.certification.entity.TestingUnit.builder()
+                        .id(testingUnitId).name("Lab ABC").build())
+                .criterion(c1)
+                .criterionCode(c1.getName())
+                .criterionName(c1.getName())
+                .build();
+        when(accreditationScopeRepository.findByTestingUnitIdWithCriterion(testingUnitId))
+                .thenReturn(List.of(scope));
+
+        InspectionRequestResponse response =
+                inspectionRequestService.createInspectionRequest(lotId, request, currentUser);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getHasScopeWarning()).isTrue();
+        assertThat(response.getScopeWarningDetails())
+                .contains("Kim loại nặng");
+    }
+
 
     /**
      * Regression test NCL-11-CN-002:
@@ -365,6 +509,67 @@ class InspectionRequestServiceImplTest {
      *
      * để repository so khớp JSON event_data qua JSON_EXTRACT.
      */
+    /**
+     * NCL-11-CN-006 Phase 2: khi tất cả chỉ tiêu nằm trong phạm vi
+     * công nhận của đơn vị -> không có cảnh báo.
+     */
+    @Test
+    void createInspectionRequest_shouldNotFlagScopeWarning_whenAllCriteriaInScope() {
+
+        CreateInspectionRequest request = new CreateInspectionRequest();
+        UUID testingUnitId = UUID.randomUUID();
+        request.setTestingUnitId(testingUnitId);
+        request.setTestingUnit("Lab ABC");
+        request.setSampleSentDate(LocalDate.now());
+        request.setCriteriaIds(List.of(101L));
+
+        when(productionLotRepository.findByIdAndOrganization_OrganizationId(lotId, orgId))
+                .thenReturn(Optional.of(lot));
+        when(chainEventRepository
+                .existsByProductionLotIdOrUnassignedEventDataAndEventType(
+                        lotId, lotId.toString(), ChainEventType.HARVEST))
+                .thenReturn(true);
+        when(testingUnitRepository.findById(testingUnitId))
+                .thenReturn(Optional.of(
+                        vn.nguongocso.certification.entity.TestingUnit.builder()
+                                .id(testingUnitId)
+                                .name("Lab ABC")
+                                .accreditationCode("VILAS-001")
+                                .isActive(true)
+                                .build()));
+        when(inspectionCriterionCatalogRepository.findById(101L))
+                .thenReturn(Optional.of(catalogCriterion));
+        when(categoryCriterionRepository.existsByCategory_IdAndCriterion_Id(categoryId, 101L))
+                .thenReturn(true);
+        when(inspectionRequestRepository.findByProductionLot_IdAndStatus(
+                lotId, InspectionRequestStatus.PENDING_RESULT))
+                .thenReturn(List.of());
+        when(inspectionRequestRepository.save(any(InspectionRequest.class)))
+                .thenAnswer(invocation -> {
+                    InspectionRequest saved = invocation.getArgument(0);
+                    saved.setId(UUID.randomUUID());
+                    return saved;
+                });
+
+        AccreditationScope scope = AccreditationScope.builder()
+                .testingUnit(vn.nguongocso.certification.entity.TestingUnit.builder()
+                        .id(testingUnitId).name("Lab ABC").build())
+                .criterion(catalogCriterion)
+                .criterionCode(catalogCriterion.getName())
+                .criterionName(catalogCriterion.getName())
+                .build();
+        when(accreditationScopeRepository.findByTestingUnitIdWithCriterion(testingUnitId))
+                .thenReturn(List.of(scope));
+
+        InspectionRequestResponse response =
+                inspectionRequestService.createInspectionRequest(lotId, request, currentUser);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getHasScopeWarning()).isFalse();
+        assertThat(response.getScopeWarningDetails()).isNull();
+    }
+
+
     @Test
     void createInspectionRequest_shouldRecognizeHarvestStoredInEventData_whenNoShipmentLinked() {
 
@@ -381,7 +586,7 @@ class InspectionRequestServiceImplTest {
                 LocalDate.now());
 
         request.setCriteriaIds(
-                List.of(101));
+                List.of(101L));
 
         /*
          * Lô đã thu hoạch (status HARVESTED) nhưng chưa
@@ -419,23 +624,21 @@ class InspectionRequestServiceImplTest {
                 .thenReturn(true);
 
         /*
-         * Criterion definition tồn tại.
+         * Chỉ tiêu tồn tại trong danh mục dùng chung
+         * và được gán cho loại nông sản của lô.
          */
         when(
-                inspectionCriterionDefinitionRepository
-                        .findById(101))
+                inspectionCriterionCatalogRepository
+                        .findById(101L))
                 .thenReturn(
                         Optional.of(
-                                criterionDefinition));
+                                catalogCriterion));
 
-        /*
-         * Standard đã được gắn với lô.
-         */
         when(
-                productionLotCertificationRepository
-                        .existsByProductionLotIdAndStandardId(
-                                lotId,
-                                standard.getId()))
+                categoryCriterionRepository
+                        .existsByCategory_IdAndCriterion_Id(
+                                categoryId,
+                                101L))
                 .thenReturn(true);
 
         /*
@@ -526,7 +729,7 @@ class InspectionRequestServiceImplTest {
                 LocalDate.now());
 
         request.setCriteriaIds(
-                List.of(101));
+                List.of(101L));
 
         /*
          * ID của request cũ.
@@ -538,24 +741,23 @@ class InspectionRequestServiceImplTest {
                 UUID.randomUUID();
 
         /*
-         * Criterion của request cũ.
+         * Criterion của request cũ — snapshot mới
+         * tham chiếu danh mục qua criterionId,
+         * không gắn Standard.
          *
          * Quan trọng:
          *
-         * service hiện tại dùng:
-         *
-         * resolveCriterionKey()
-         *
-         * để lấy criterionCode.
+         * resolveCriterionKey() tạo khóa
+         * "CAT:<criterionId>:<code>" nên criterionId
+         * và criterionCode phải khớp request mới.
          */
         InspectionCriterion existingCriterion =
                 InspectionCriterion.builder()
                         .criterionCode(
-                                "RESIDUE_PESTICIDE")
+                                "Dư lượng thuốc trừ sâu")
                         .criterionName(
                                 "Dư lượng thuốc trừ sâu")
-                        .standard(
-                                standard)
+                        .criterionId(101L)
                         .build();
 
         /*
@@ -606,23 +808,21 @@ class InspectionRequestServiceImplTest {
                 .thenReturn(true);
 
         /*
-         * Criterion definition tồn tại.
+         * Chỉ tiêu tồn tại trong danh mục dùng chung
+         * và được gán cho loại nông sản của lô.
          */
         when(
-                inspectionCriterionDefinitionRepository
-                        .findById(101))
+                inspectionCriterionCatalogRepository
+                        .findById(101L))
                 .thenReturn(
                         Optional.of(
-                                criterionDefinition));
+                                catalogCriterion));
 
-        /*
-         * Standard đã được gắn với lô.
-         */
         when(
-                productionLotCertificationRepository
-                        .existsByProductionLotIdAndStandardId(
-                                lotId,
-                                standard.getId()))
+                categoryCriterionRepository
+                        .existsByCategory_IdAndCriterion_Id(
+                                categoryId,
+                                101L))
                 .thenReturn(true);
 
         /*

@@ -17,6 +17,8 @@ import type {
 import axios from "axios";
 import { CheckCircle2, PackageOpen, Sprout } from "lucide-react";
 import { useState, type FormEvent } from "react";
+import { getLocalDateString } from "@/utils/dateTime";
+import { selectAllOnFocus, preventMouseUpCollapse } from "@/utils/inputUtils";
 
 interface CreateProductionLotFormProps {
   farmAreas: FarmAreaOption[];
@@ -67,6 +69,10 @@ const CreateProductionLotForm = ({
 
     if (!form.name.trim()) {
       nextErrors.name = "Tên lô không được để trống.";
+    }
+
+    if (!form.farmAreaId) {
+      nextErrors.farmAreaId = "Vui lòng chọn vùng trồng.";
     }
 
     if (!form.productCategoryId) {
@@ -162,10 +168,7 @@ const CreateProductionLotForm = ({
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="farmAreaId">
-                Vùng trồng
-                <span className="font-normal text-slate-400">
-                  (không bắt buộc)
-                </span>
+                Vùng trồng <span className="text-red-600">*</span>
               </Label>
               <select
                 id="farmAreaId"
@@ -183,7 +186,7 @@ const CreateProductionLotForm = ({
                 }}
                 aria-invalid={Boolean(errors.farmAreaId)}
               >
-                <option value="">Không chọn vùng trồng</option>
+                <option value="">Chọn vùng trồng</option>
                 {farmAreas.map((area) => (
                   <option key={area.id} value={area.id}>
                     {area.name}
@@ -191,9 +194,6 @@ const CreateProductionLotForm = ({
                   </option>
                 ))}
               </select>
-              <p className="text-xs leading-5 text-slate-500">
-                Có thể bổ sung vùng trồng trước khi gửi lô sang bước chờ duyệt.
-              </p>
               {errors.farmAreaId && (
                 <p className="text-xs text-red-600">{errors.farmAreaId}</p>
               )}
@@ -253,6 +253,8 @@ const CreateProductionLotForm = ({
                     step="0.01"
                     className="pr-14"
                     value={form.expectedQuantity || ""}
+                    onFocus={selectAllOnFocus}
+                    onMouseUp={preventMouseUpCollapse}
                     onChange={(event) => {
                       setForm((current) => ({
                         ...current,
@@ -307,7 +309,7 @@ const CreateProductionLotForm = ({
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      const today = new Date().toISOString().split("T")[0];
+                      const today = getLocalDateString();
                       setForm((current) => ({
                         ...current,
                         plantingDate: today,
@@ -358,9 +360,8 @@ const CreateProductionLotForm = ({
           <Button
             type="submit"
             size="lg"
-            className="bg-emerald-700 text-white hover:bg-emerald-800"
-            disabled={isSubmitting}
             variant="create"
+            disabled={isSubmitting}
           >
             {isSubmitting ? "Đang tạo..." : "Tạo lô sản xuất"}
           </Button>

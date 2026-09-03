@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { AlertTriangle, Bell, CheckCircle2, Info } from 'lucide-react';
+import { AlertTriangle, Bell, CheckCircle2, Info, MailWarning } from 'lucide-react';
 import type { NotificationResponse, NotificationType } from '@/types/notification';
 import { cn } from '@/lib/utils';
 
@@ -7,6 +7,9 @@ interface NotificationPanelProps {
   items: NotificationResponse[];
   isLoading: boolean;
   onItemClick: (notification: NotificationResponse) => void;
+  isMissingEmail?: boolean;
+  isEmailNoticeRead?: boolean;
+  onEmailNoticeClick?: () => void;
 }
 
 const TYPE_ICON: Record<NotificationType, typeof Bell> = {
@@ -60,6 +63,9 @@ export const NotificationPanel = ({
   items,
   isLoading,
   onItemClick,
+  isMissingEmail = false,
+  isEmailNoticeRead = false,
+  onEmailNoticeClick,
 }: NotificationPanelProps) => {
   return (
     <div className="w-80 max-w-[90vw]">
@@ -68,11 +74,42 @@ export const NotificationPanel = ({
       </div>
 
       <div className="max-h-96 overflow-y-auto">
+        {/* Cảnh báo bổ sung email cho tài khoản */}
+        {isMissingEmail && (
+          <div className="border-b border-amber-100 bg-amber-50/75 transition-colors hover:bg-amber-100/70">
+            <button
+              type="button"
+              onClick={onEmailNoticeClick}
+              className="flex w-full items-start gap-3 px-3 py-3 text-left"
+            >
+              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-700">
+                <MailWarning className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center justify-between gap-1.5">
+                  <span className="truncate text-sm font-semibold text-amber-900">
+                    Cần bổ sung địa chỉ email
+                  </span>
+                  {!isEmailNoticeRead && (
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500 animate-pulse" />
+                  )}
+                </span>
+                <span className="mt-0.5 block text-xs text-amber-800/90 leading-relaxed">
+                  Vui lòng thêm email tài khoản để có thể sử dụng tính năng lấy lại mật khẩu khi quên.
+                </span>
+                <span className="mt-1 block text-[11px] font-semibold text-amber-700 underline">
+                  Cập nhật hồ sơ người dùng &rarr;
+                </span>
+              </span>
+            </button>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="flex justify-center py-8">
             <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-primary" />
           </div>
-        ) : items.length === 0 ? (
+        ) : items.length === 0 && !isMissingEmail ? (
           <div className="px-4 py-10 text-center text-muted-foreground">
             <Bell className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
             <p className="text-sm">Chưa có thông báo nào</p>

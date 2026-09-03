@@ -77,14 +77,18 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             throw new BusinessException("Loại nông sản này hiện đang ngưng hoạt động");
         }
 
-        FarmArea farmArea = null;
-        if (request.getFarmAreaId() != null) {
-            farmArea = farmAreaRepository.findById(request.getFarmAreaId())
-                    .orElseThrow(() -> new BusinessException("Không tìm thấy khu vực canh tác đã chọn"));
+        FarmArea farmArea;
+        if (request.getFarmAreaId() == null) {
+            throw new BusinessException("Vui lòng chọn vùng trồng");
+        }
+        farmArea = farmAreaRepository.findById(request.getFarmAreaId())
+                .orElseThrow(() -> new BusinessException("Không tìm thấy khu vực canh tác đã sélection"));
 
-            if (!farmArea.getOrganization().getOrganizationId().equals(orgId)) {
-                throw new BusinessException("Khu vực canh tác này không thuộc tổ chức của bạn");
-            }
+        if (!farmArea.getOrganization().getOrganizationId().equals(orgId)) {
+            throw new BusinessException("Khu vực canh tác này không thuộc tổ chức của bạn");
+        }
+        if (Boolean.FALSE.equals(farmArea.getIsActive())) {
+            throw new BusinessException("Vùng trồng '" + farmArea.getName() + "' hiện đã ngừng sử dụng, không thể chọn để tạo lô sản xuất mới");
         }
 
         ProductionLot productionLot = ProductionLot.builder()
@@ -282,14 +286,15 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             throw new vn.nguongocso.exception.BusinessException("Loại nông sản này hiện đang ngưng hoạt động");
         }
 
-        FarmArea farmArea = null;
-        if (request.getFarmAreaId() != null) {
-            farmArea = farmAreaRepository.findById(request.getFarmAreaId())
-                    .orElseThrow(() -> new vn.nguongocso.exception.BusinessException(
-                            "Không tìm thấy khu vực canh tác đã chọn"));
-            if (!farmArea.getOrganization().getOrganizationId().equals(orgId)) {
-                throw new vn.nguongocso.exception.BusinessException("Khu vực canh tác này không thuộc tổ chức của bạn");
-            }
+        FarmArea farmArea;
+        if (request.getFarmAreaId() == null) {
+            throw new vn.nguongocso.exception.BusinessException("Vui lòng chọn vùng trồng");
+        }
+        farmArea = farmAreaRepository.findById(request.getFarmAreaId())
+                .orElseThrow(() -> new vn.nguongocso.exception.BusinessException(
+                        "Không tìm thấy khu vực canh tác đã chọn"));
+        if (!farmArea.getOrganization().getOrganizationId().equals(orgId)) {
+            throw new vn.nguongocso.exception.BusinessException("Khu vực canh tác này không thuộc tổ chức của bạn");
         }
 
         productionLot.setName(request.getName());

@@ -1,50 +1,48 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import {
-  Key,
-  PlusCircle,
-  RefreshCw,
-  Search,
-  ShieldCheck,
-  Ban,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Key, PlusCircle, ShieldCheck, Ban } from 'lucide-react';
+import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { getApiKeys } from '@/api/apiKeyApi';
 import type { PartnerApiKeyResponse, PartnerApiKeyStatus } from '@/types/apiKey';
 import { ApiKeyStatusBadge } from '@/components/apiKey/ApiKeyStatusBadge';
-import { CreateApiKeyModal } from '@/components/apiKey/CreateApiKeyModal';
 import { RawApiKeyModal } from '@/components/apiKey/RawApiKeyModal';
 import { RevokeApiKeyDialog } from '@/components/apiKey/RevokeApiKeyDialog';
 import { usePermission } from '@/hooks/usePermission';
 import { HelpButton } from '@/components/help/HelpButton';
+import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
+import { ListPageHeader } from '@/components/common/ListPageHeader';
+import { ListCard } from '@/components/common/ListCard';
+import { ListToolbar } from '@/components/common/ListToolbar';
+import { SearchInput } from '@/components/common/SearchInput';
+import { FilterSelect } from '@/components/common/FilterSelect';
+import { RefreshButton } from '@/components/common/RefreshButton';
+import { DataTableShell } from '@/components/common/DataTableShell';
+import { Pagination } from '@/components/common/Pagination';
+
+const STATUS_OPTIONS = [
+  { value: 'ALL', label: 'Tất cả trạng thái' },
+  { value: 'ACTIVE', label: 'Đang hoạt động' },
+  { value: 'REVOKED', label: 'Đã thu hồi' },
+  { value: 'EXPIRED', label: 'Hết hạn' },
+];
 
 export const PartnerApiKeyListPage: React.FC = () => {
+  const navigate = useNavigate();
   const canManage = usePermission(['VT-01', 'VT-02']);
+
+  useSetBreadcrumb([
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Khóa API đối tác' },
+  ]);
 
   const [keys, setKeys] = useState<PartnerApiKeyResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  
+
   // Phân trang
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -52,7 +50,6 @@ export const PartnerApiKeyListPage: React.FC = () => {
   const pageSize = 10;
 
   // States quản lý Modal
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<PartnerApiKeyResponse | null>(null);
   const [revokeKeyTarget, setRevokeKeyTarget] = useState<PartnerApiKeyResponse | null>(null);
 
@@ -87,47 +84,34 @@ export const PartnerApiKeyListPage: React.FC = () => {
     );
   }, [keys, search]);
 
-  const handleCreateSuccess = (createdKey: PartnerApiKeyResponse) => {
-    setIsCreateModalOpen(false);
-    setNewlyCreatedKey(createdKey);
-    fetchApiKeys();
-  };
-
   const handleRevokeSuccess = () => {
     fetchApiKeys();
   };
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       {/* Header trang */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-600 dark:text-emerald-400">
-              <Key className="w-6 h-6" />
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Khóa API bên thứ ba (Partner API Keys)
-            </h1>
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Quản lý cấp khóa truy cập, hạn mức gọi API và thu hồi quyền tích hợp dữ liệu của các doanh nghiệp thu mua.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <HelpButton screenKey="admin-api-keys" />
-          {canManage && (
-            <Button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 gap-2 shadow-sm"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>Cấp khóa mới</span>
-            </Button>
-          )}
-        </div>
-      </div>
+      <ListPageHeader
+        icon={Key}
+        iconBoxClassName="bg-emerald-500/10"
+        title="Khóa API bên thứ ba (Partner API Keys)"
+        description="Quản lý cấp khóa truy cập, hạn mức gọi API và thu hồi quyền tích hợp dữ liệu của các doanh nghiệp thu mua."
+        actions={
+          <>
+            <HelpButton screenKey="admin-api-keys" />
+            {canManage && (
+              <Button
+                variant="create"
+                onClick={() => navigate('/integration/api-keys/create')}
+                className="shrink-0 gap-2 shadow-sm"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Cấp khóa mới</span>
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {/* Thẻ thống kê tổng quan */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -172,77 +156,42 @@ export const PartnerApiKeyListPage: React.FC = () => {
         </Card>
       </div>
 
-      {/* Thanh bộ lọc & Tìm kiếm */}
-      <Card>
-        <CardContent className="p-4 space-y-4">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              {/* Ô tìm kiếm */}
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Tìm theo tên đối tác hoặc tiền tố khóa..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
+      {/* Bộ lọc, tìm kiếm và bảng danh sách khóa API */}
+      <ListCard>
+        <ListToolbar
+          left={
+            <>
+              <SearchInput
+                placeholder="Tìm theo tên đối tác hoặc tiền tố khóa..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <FilterSelect
+                value={statusFilter}
+                onValueChange={(val) => { setStatusFilter(val || 'ALL'); setPage(0); }}
+                options={STATUS_OPTIONS}
+                placeholder="Lọc trạng thái"
+              />
+            </>
+          }
+          right={<RefreshButton onClick={fetchApiKeys} loading={loading} />}
+        />
 
-              {/* Lọc theo trạng thái */}
-              <div className="w-full sm:w-48">
-                <Select value={statusFilter} onValueChange={(val) => { if (val) setStatusFilter(val); setPage(0); }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Lọc trạng thái" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-                    <SelectItem value="ACTIVE">Đang hoạt động</SelectItem>
-                    <SelectItem value="REVOKED">Đã thu hồi</SelectItem>
-                    <SelectItem value="EXPIRED">Hết hạn</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Nút làm mới */}
-            <Button variant="outline" size="icon" onClick={fetchApiKeys} title="Làm mới dữ liệu">
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
-
-          {/* Bảng danh sách khóa API */}
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="w-12 text-center">STT</TableHead>
-                  <TableHead>Tên đối tác / Doanh nghiệp</TableHead>
-                  <TableHead>Mã nhận diện (Prefix)</TableHead>
-                  <TableHead className="text-center">Hạn mức (lượt/h)</TableHead>
-                  <TableHead className="text-center">Lượt gọi (Tổng / Lỗi)</TableHead>
-                  <TableHead>Thời hạn hết hạn</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  {canManage && <TableHead className="text-right">Thao tác</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <RefreshCw className="w-6 h-6 animate-spin text-emerald-600" />
-                        <span>Đang tải danh sách khóa API...</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : filteredKeys.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
-                      Không tìm thấy khóa truy cập nào.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredKeys.map((item, index) => (
+        <DataTableShell
+          header={
+            <>
+              <TableHead className="w-12 text-center">STT</TableHead>
+              <TableHead>Tên đối tác / Doanh nghiệp</TableHead>
+              <TableHead>Mã nhận diện (Prefix)</TableHead>
+              <TableHead className="text-center">Hạn mức (lượt/h)</TableHead>
+              <TableHead className="text-center">Lượt gọi (Tổng / Lỗi)</TableHead>
+              <TableHead>Thời hạn hết hạn</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              {canManage && <TableHead className="text-center">Thao tác</TableHead>}
+            </>
+          }
+          body={
+            filteredKeys.map((item, index) => (
                     <TableRow key={item.id} className="hover:bg-muted/40 transition-colors">
                       <TableCell className="text-center font-medium text-muted-foreground">
                         {page * pageSize + index + 1}
@@ -287,16 +236,16 @@ export const PartnerApiKeyListPage: React.FC = () => {
                         <ApiKeyStatusBadge status={item.status} />
                       </TableCell>
                       {canManage && (
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">
                           {item.status === 'ACTIVE' ? (
                             <Button
-                              variant="destructive"
-                              size="sm"
-                              className="h-8 gap-1.5 bg-rose-600 hover:bg-rose-700 text-white"
+                              variant="ghost"
+                              size="icon-sm"
                               onClick={() => setRevokeKeyTarget(item)}
+                              title="Thu hồi"
+                              className="text-destructive hover:text-destructive hover:bg-muted"
                             >
-                              <Ban className="w-3.5 h-3.5" />
-                              <span>Thu hồi</span>
+                              <Ban className="h-4 w-4" />
                             </Button>
                           ) : (
                             <span className="text-xs text-muted-foreground italic">Không có thao tác</span>
@@ -305,52 +254,27 @@ export const PartnerApiKeyListPage: React.FC = () => {
                       )}
                     </TableRow>
                   ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+            }
+            loading={loading}
+            empty={!loading && filteredKeys.length === 0}
+            colSpan={canManage ? 8 : 7}
+            loadingMessage="Đang tải danh sách khóa API..."
+            emptyMessage="Không tìm thấy khóa truy cập nào."
+          />
 
           {/* Controls phân trang */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-2 text-xs sm:text-sm text-muted-foreground">
-              <div>
-                Hiển thị {page * pageSize + 1} - {Math.min((page + 1) * pageSize, totalElements)} trên tổng số {totalElements} khóa
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                  disabled={page === 0 || loading}
-                >
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                  Trang trước
-                </Button>
-                <span className="px-2 font-medium">
-                  {page + 1} / {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                  disabled={page >= totalPages - 1 || loading}
-                >
-                  Trang sau
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalElements={totalElements}
+            pageSize={pageSize}
+            loading={loading}
+            itemLabel="khóa"
+            onPageChange={setPage}
+          />
+      </ListCard>
 
       {/* Modals & Dialogs */}
-      <CreateApiKeyModal
-        open={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={handleCreateSuccess}
-      />
-
       <RawApiKeyModal
         open={!!newlyCreatedKey}
         apiKeyData={newlyCreatedKey}

@@ -37,6 +37,7 @@ interface ApiDataResponse<T> {
 export const getFarmAreaOptions = async (): Promise<FarmAreaOption[]> => {
     const response = await apiClient.get<ApiDataResponse<FarmAreaOption[]>>(
         '/farm-areas',
+        { params: { activeOnly: true } }
     );
 
     return response.data.data;

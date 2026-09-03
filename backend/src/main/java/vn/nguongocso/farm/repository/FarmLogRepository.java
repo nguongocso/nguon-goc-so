@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 
 import vn.nguongocso.farm.entity.FarmLog;
 import vn.nguongocso.farm.entity.ProductionLot;
+import vn.nguongocso.farm.enums.FarmActivityType;
 import vn.nguongocso.farm.projection.FarmLogProjection;
 
 /**
@@ -77,6 +78,21 @@ public interface FarmLogRepository extends JpaRepository<FarmLog, UUID> {
 	boolean existsByProductionLotId(@Param("productionLotId") UUID productionLotId);
 
 	/**
+	 * Kiểm tra xem vật tư có tên cho trước đã từng được dùng trong nhật ký canh tác hay chưa.
+	 */
+	@Query("SELECT COUNT(fl) > 0 FROM FarmLog fl WHERE LOWER(TRIM(fl.material)) = LOWER(TRIM(:materialName))")
+	boolean existsByMaterialIgnoreCase(@Param("materialName") String materialName);
+
+	/**
+	 * NCL-03-CN-006: lấy các bản đính chính liên kết tới một bản gốc
+	 * nhật ký canh tác, sắp xếp theo thời gian tạo giảm dần (mới nhất trước).
+	 *
+	 * @param originalFarmLogId ID của bản gốc
+	 * @return danh sách bản đính chính
+	 */
+	List<FarmLog> findByOriginalFarmLogId_IdOrderByCreatedAtDesc(UUID originalFarmLogId);
+
+	/**
 	 * Lấy danh sách nhật ký canh tác của các lô sản xuất theo danh sách ID của lô
 	 * sản xuất, sắp xếp theo ngày thực hiện tăng dần.
 	 *
@@ -86,4 +102,16 @@ public interface FarmLogRepository extends JpaRepository<FarmLog, UUID> {
 	@Query("SELECT fl FROM FarmLog fl WHERE fl.productionLotId.id IN :productionLotIds ORDER BY fl.executedDate ASC")
 	List<FarmLog> findByProductionLotId_IdInOrderByExecutedDateAsc(
 			@Param("productionLotIds") List<UUID> productionLotIds);
+
+	/**
+	 * Lấy toàn bộ nhật ký canh tác của một lô sản xuất theo loại hoạt động.
+	 *
+	 * @param productionLotId ID của lô sản xuất
+	 * @param activityType    loại hoạt động (ví dụ: PESTICIDE)
+	 * @return danh sách nhật ký canh tác
+	 */
+	@Query("SELECT fl FROM FarmLog fl WHERE fl.productionLotId.id = :productionLotId AND fl.activityType = :activityType ORDER BY fl.executedDate ASC")
+	List<FarmLog> findByProductionLotIdAndActivityType(
+			@Param("productionLotId") UUID productionLotId,
+			@Param("activityType") FarmActivityType activityType);
 }

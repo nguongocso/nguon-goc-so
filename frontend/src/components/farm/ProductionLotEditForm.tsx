@@ -83,7 +83,8 @@ export const ProductionLotEditForm: React.FC = () => {
 
         reset({
           name: lotData.name,
-          farmAreaId: validFarmArea ? lotData.farmAreaId : null,
+          farmAreaId:
+            validFarmArea && lotData.farmAreaId ? lotData.farmAreaId : "",
           productCategoryId: validCategory ? lotData.productCategoryId : "",
           expectedQuantity: lotData.expectedQuantity,
           expectedQuantityUnit: lotData.expectedQuantityUnit || "kg",
@@ -140,9 +141,11 @@ export const ProductionLotEditForm: React.FC = () => {
   }
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Chỉnh sửa lô sản xuất</CardTitle>
+    <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+      <CardHeader className="border-b border-slate-100 pb-4">
+        <CardTitle className="text-lg font-semibold text-slate-900">
+          Thông tin chi tiết lô sản xuất
+        </CardTitle>
         <CardDescription>
           {lot.name} – Trạng thái:{" "}
           <span className="font-semibold">{lot.status}</span>
@@ -154,7 +157,7 @@ export const ProductionLotEditForm: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-6">
           {/* Tên lô */}
           <div className="space-y-2">
             <Label htmlFor="name">Tên lô *</Label>
@@ -204,11 +207,11 @@ export const ProductionLotEditForm: React.FC = () => {
 
           {/* Vùng trồng */}
           <div className="space-y-2">
-            <Label htmlFor="farmAreaId">Vùng trồng (không bắt buộc)</Label>
+            <Label htmlFor="farmAreaId">Vùng trồng *</Label>
             <Select
               value={selectedFarmArea || ""}
               onValueChange={(val) =>
-                setValue("farmAreaId", val || null, { shouldValidate: true })
+                setValue("farmAreaId", val ?? "", { shouldValidate: true })
               }
               disabled={!editable}
             >
@@ -219,7 +222,6 @@ export const ProductionLotEditForm: React.FC = () => {
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Không chọn</SelectItem>
                 {farmAreas.map((area) => (
                   <SelectItem key={area.id} value={area.id}>
                     {area.name}
@@ -227,6 +229,11 @@ export const ProductionLotEditForm: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
+            {errors.farmAreaId && (
+              <p className="text-sm text-red-500">
+                {errors.farmAreaId.message}
+              </p>
+            )}
           </div>
 
           {/* Sản lượng dự kiến */}

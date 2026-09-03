@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -7,8 +8,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Eye } from 'lucide-react';
 import type { ActivityLog } from '@/types/activityLog';
-import { getActionLabel, getActionColor } from '@/config/actionMappings';
+import { ActivityLogDetailDialog } from './ActivityLogDetailDialog';
+import {
+  formatActionType,
+  formatTargetType,
+  getActionColor,
+} from '@/utils/activityLogFormatter';
 
 interface Props {
   logs: ActivityLog[];
@@ -31,6 +39,8 @@ const formatDate = (iso: string) => {
 };
 
 export const ActivityLogTable = ({ logs, loading }: Props) => {
+  const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -48,56 +58,92 @@ export const ActivityLogTable = ({ logs, loading }: Props) => {
     );
   }
 
+  const getActionValue = (log: ActivityLog) => log.actionType || log.action;
+  const getTargetValue = (log: ActivityLog) => log.targetType || log.entityType || '';
+  const getTargetIdValue = (log: ActivityLog) => log.targetId || log.entityId || '';
+  const getActorValue = (log: ActivityLog) => log.actorName || log.fullName || log.username;
+
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Thời gian</TableHead>
-            <TableHead>Người thực hiện</TableHead>
-            <TableHead>Thao tác</TableHead>
-            <TableHead>Mô tả</TableHead>
-            <TableHead>Đối tượng</TableHead>
-            <TableHead>IP</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {logs.map((log) => (
-            <TableRow key={log.id}>
-              <TableCell className="whitespace-nowrap text-sm">
-                {formatDate(log.createdAt)}
-              </TableCell>
-              <TableCell>
-                <div>
-                  <div className="font-medium">{log.fullName}</div>
-                  <div className="text-xs text-muted-foreground">@{log.username}</div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <Badge className={getActionColor(log.action)}>
-                  {getActionLabel(log.action)}
-                </Badge>
-              </TableCell>
-              <TableCell className="max-w-[300px]">
-                <span className="truncate block">{log.description}</span>
-              </TableCell>
-              <TableCell>
-                {log.entityType && (
-                  <div>
-                    <span className="text-xs text-muted-foreground">{log.entityType}</span>
-                    {log.entityId && (
-                      <div className="text-xs font-mono text-muted-foreground truncate max-w-[80px]">
-                        {log.entityId}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </TableCell>
-              <TableCell className="text-xs font-mono">{log.ipAddress || '—'}</TableCell>
+    <>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[170px]">Thời gian</TableHead>
+              <TableHead className="w-[180px]">Người thực hiện</TableHead>
+              <TableHead className="w-[160px]">Hành động</TableHead>
+              <TableHead className="w-[150px]">Đối tượng</TableHead>
+              <TableHead>Mô tả</TableHead>
+              <TableHead className="w-[110px] text-center">Thao tác</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {logs.map((log) => {
+              const actionVal = getActionValue(log);
+              const targetVal = getTargetValue(log);
+              const targetIdVal = getTargetIdValue(log);
+
+              return (
+                <TableRow key={log.id} className="hover:bg-slate-50/80 transition-colors">
+                  <TableCell className="whitespace-nowrap text-sm text-slate-600 font-mono">
+                    {formatDate(log.createdAt)}
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium text-slate-800">{getActorValue(log)}</div>
+                      <div className="text-xs text-muted-foreground">@{log.username}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={`font-medium ${getActionColor(actionVal)}`}>
+                      {formatActionType(actionVal)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {targetVal ? (
+                      <div>
+                        <span className="text-sm font-medium text-slate-700">
+                          {formatTargetType(targetVal)}
+                        </span>
+                        {targetIdVal && (
+                          <div className="text-xs font-mono text-muted-foreground truncate max-w-[120px]" title={targetIdVal}>
+                            {targetIdVal}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="max-w-[320px]">
+                    <span className="truncate block text-sm text-slate-700" title={log.description}>
+                      {log.description || '—'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedLog(log)}
+                      className="h-8 px-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 gap-1"
+                      title="Xem chi tiết thao tác"
+                    >
+                      <Eye className="h-4 w-4" />
+                      <span className="text-xs font-medium">Chi tiết</span>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Modal Chi tiết hoạt động */}
+      <ActivityLogDetailDialog
+        log={selectedLog}
+        onClose={() => setSelectedLog(null)}
+      />
+    </>
   );
 };

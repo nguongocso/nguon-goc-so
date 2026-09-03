@@ -116,12 +116,10 @@ export function CorrectPreprocessingForm() {
     });
   };
 
-  const { locationLoading, fetchLocation } = useAutoGeolocation({
-    onLocation: (selectedLatitude, selectedLongitude) => {
-      handleLocationSelect(selectedLatitude, selectedLongitude);
-      toast.success("Đã lấy vị trí hiện tại");
+  useAutoGeolocation({
+    onLocation: (lat, lng) => {
+      handleLocationSelect(lat, lng);
     },
-    onError: (message) => toast.error(`Không thể lấy vị trí: ${message}`),
   });
 
   const onSubmit = async (values: CorrectPreprocessingFormValues) => {
@@ -157,7 +155,7 @@ export function CorrectPreprocessingForm() {
   };
 
   return (
-    <Card className="mx-auto max-w-4xl border-amber-100 shadow-sm">
+    <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-amber-800">
           <FilePenLine className="size-5" />
@@ -339,33 +337,18 @@ export function CorrectPreprocessingForm() {
           </div>
 
           <section className="space-y-3" aria-labelledby="correction-location-heading">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2
-                  id="correction-location-heading"
-                  className="flex items-center gap-2 font-semibold text-amber-800"
-                >
-                  <MapPin className="size-4" /> Vị trí đính chính
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Chọn lại nếu vị trí trong sự kiện gốc chưa chính xác.
-                </p>
-              </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={locationLoading || isSubmitting}
-                onClick={() => fetchLocation()}
+            <div>
+              <h2
+                id="correction-location-heading"
+                className="flex items-center gap-2 font-semibold text-amber-800"
               >
-                {locationLoading ? "Đang lấy vị trí..." : "Lấy vị trí hiện tại"}
-              </Button>
+                <MapPin className="size-4" /> Vị trí đính chính
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Chọn lại trên bản đồ nếu vị trí trong sự kiện gốc chưa chính xác.
+              </p>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Input value={currentPosition?.lat ?? ""} disabled placeholder="Vĩ độ" />
-              <Input value={currentPosition?.lng ?? ""} disabled placeholder="Kinh độ" />
-            </div>
             <LocationPicker
               onLocationSelect={handleLocationSelect}
               initialPosition={currentPosition}

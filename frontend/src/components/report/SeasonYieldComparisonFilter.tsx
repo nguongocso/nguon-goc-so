@@ -17,6 +17,7 @@ import type { FarmArea } from "@/types/farmArea";
 import type { Organization } from "@/types/organization";
 import type { ProductCategory } from "@/types/productCategory";
 import type { SeasonYieldComparisonParams } from "@/types/seasonYieldComparison";
+import { ProvinceUnitMultiSelect } from "@/components/common/ProvinceUnitMultiSelect";
 import { cn } from "@/lib/utils";
 
 const ALL_VALUE = "__all__";
@@ -43,9 +44,14 @@ export function SeasonYieldComparisonFilter({
   const [farmAreaId, setFarmAreaId] = useState(ALL_VALUE);
   const [productCategoryId, setProductCategoryId] = useState(ALL_VALUE);
   const [organizationId, setOrganizationId] = useState(ALL_VALUE);
+  const [unitIds, setUnitIds] = useState<string[]>([]);
   const [validationMessage, setValidationMessage] = useState("");
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [hasUnavailableOptions, setHasUnavailableOptions] = useState(false);
+
+  // NCL-742 §8: bộ lọc địa bàn chỉ dành cho VT-01/VT-05.
+  const canFilterByUnit =
+    currentUserRole === "VT-01" || currentUserRole === "VT-05";
 
   const [farmAreas, setFarmAreas] = useState<FarmArea[]>([]);
   const [productCategories, setProductCategories] = useState<ProductCategory[]>(
@@ -140,6 +146,7 @@ export function SeasonYieldComparisonFilter({
     ...(farmAreaId !== ALL_VALUE ? { farmAreaId } : {}),
     ...(productCategoryId !== ALL_VALUE ? { productCategoryId } : {}),
     ...(organizationId !== ALL_VALUE ? { organizationId } : {}),
+    ...(canFilterByUnit && unitIds.length > 0 ? { unitIds } : {}),
   });
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -156,6 +163,7 @@ export function SeasonYieldComparisonFilter({
     setFarmAreaId(ALL_VALUE);
     setProductCategoryId(ALL_VALUE);
     setOrganizationId(ALL_VALUE);
+    setUnitIds([]);
     setValidationMessage("");
     onCompare({ years: [...defaultYears] });
   };
@@ -287,6 +295,13 @@ export function SeasonYieldComparisonFilter({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+
+            {canFilterByUnit && (
+              <div className="space-y-2">
+                <Label>Địa bàn</Label>
+                <ProvinceUnitMultiSelect value={unitIds} onChange={setUnitIds} />
               </div>
             )}
           </div>

@@ -95,6 +95,10 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
 		category.setGroup(request.getGroup().trim());
 		category.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
 		category.setIsActive(true);
+		category.setTempMin(request.getTempMin());
+		category.setTempMax(request.getTempMax());
+		category.setHumidityMin(request.getHumidityMin());
+		category.setHumidityMax(request.getHumidityMax());
 
 		ProductCategory saved = productCategoryRepository.save(category);
 		log.info("Thêm mới loại nông sản thành công, ID={}", saved.getId());
@@ -126,6 +130,10 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
 		category.setGroup(request.getGroup().trim());
 		category.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
 		category.setIsActive(request.getIsActive());
+		category.setTempMin(request.getTempMin());
+		category.setTempMax(request.getTempMax());
+		category.setHumidityMin(request.getHumidityMin());
+		category.setHumidityMax(request.getHumidityMax());
 
 		ProductCategory updated = productCategoryRepository.save(category);
 		log.info("Cập nhật loại nông sản thành công, ID={}", updated.getId());
@@ -139,6 +147,11 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
 				.group(category.getGroup())
 				.description(category.getDescription())
 				.isActive(category.getIsActive())
+				.tempMin(category.getTempMin())
+				.tempMax(category.getTempMax())
+				.humidityMin(category.getHumidityMin())
+				.humidityMax(category.getHumidityMax())
+				.requiresInspection(category.getRequiresInspection())
 				.build();
 	}
 }

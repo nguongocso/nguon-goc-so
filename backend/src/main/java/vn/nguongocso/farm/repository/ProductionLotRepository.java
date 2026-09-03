@@ -7,6 +7,7 @@ import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,6 +41,11 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
      * @return Danh sách các lô sản xuất thuộc vùng trồng.
      */
     List<ProductionLot> findByFarmAreaId(UUID farmAreaId);
+
+    /**
+     * Đếm số lô sản xuất liên quan tới vùng trồng.
+     */
+    long countByFarmAreaId(UUID farmAreaId);
 
     /**
      * Truy vấn tổng hợp số lô, sản lượng thực tế và dự kiến theo trạng thái của tổ
@@ -100,6 +106,28 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
             @Param("organizationId") UUID organizationId);
 
     /**
+     * Như {@link #findLotsForAnalysis} nhưng giới hạn cứng trong danh sách tổ
+     * chức cho phép (lọc địa bàn VT-05 / bộ lọc unitIds của NCL-743).
+     */
+    @Query("""
+                SELECT pl
+                FROM ProductionLot pl
+                JOIN FETCH pl.farmArea fa
+                JOIN FETCH pl.productCategory pc
+                JOIN FETCH pl.organization org
+                WHERE pl.plantingDate BETWEEN :startDate AND :endDate
+                  AND (:farmAreaId IS NULL OR fa.id = :farmAreaId)
+                  AND (:productCategoryId IS NULL OR pc.id = :productCategoryId)
+                  AND org.organizationId IN :orgIds
+            """)
+    List<ProductionLot> findLotsForAnalysisInOrganizations(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("farmAreaId") UUID farmAreaId,
+            @Param("productCategoryId") UUID productCategoryId,
+            @Param("orgIds") Collection<UUID> orgIds);
+
+    /**
      * Lấy các lô sản xuất phục vụ so sánh sản lượng giữa nhiều mùa vụ.
      */
     @Query("""
@@ -118,6 +146,27 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
             @Param("farmAreaId") UUID farmAreaId,
             @Param("productCategoryId") UUID productCategoryId,
             @Param("organizationId") UUID organizationId);
+
+    /**
+     * Như {@link #findLotsForSeasonYieldComparison} nhưng giới hạn cứng trong
+     * danh sách tổ chức cho phép (lọc địa bàn VT-05 / bộ lọc unitIds).
+     */
+    @Query("""
+            SELECT pl
+            FROM ProductionLot pl
+            JOIN FETCH pl.farmArea fa
+            JOIN FETCH pl.productCategory pc
+            JOIN FETCH pl.organization org
+            WHERE YEAR(pl.plantingDate) IN :years
+              AND (:farmAreaId IS NULL OR fa.id = :farmAreaId)
+              AND (:productCategoryId IS NULL OR pc.id = :productCategoryId)
+              AND org.organizationId IN :orgIds
+            """)
+    List<ProductionLot> findLotsForSeasonYieldComparisonInOrganizations(
+            @Param("years") List<Integer> years,
+            @Param("farmAreaId") UUID farmAreaId,
+            @Param("productCategoryId") UUID productCategoryId,
+            @Param("orgIds") Collection<UUID> orgIds);
 
     /**
      * Lấy danh sách lô sản xuất đủ điều kiện xuất dữ liệu mở (QTN-11).

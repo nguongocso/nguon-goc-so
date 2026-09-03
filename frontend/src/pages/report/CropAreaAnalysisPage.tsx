@@ -7,6 +7,7 @@ import { CropAreaSummaryCards } from "@/components/report/CropAreaSummaryCards";
 import { AreaAnalysisTable } from "@/components/report/AreaAnalysisTable";
 import { SeasonAnalysisTable } from "@/components/report/SeasonAnalysisTable";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { RefreshCw } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
@@ -47,10 +48,10 @@ export default function CropAreaAnalysisPage() {
   }, []);
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
             Phân tích theo vùng trồng và mùa vụ
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -81,6 +82,12 @@ export default function CropAreaAnalysisPage() {
 
       {loading ? (
         <div className="flex justify-center py-12">Đang tải...</div>
+      ) : data && data.byArea.length === 0 && data.bySeason.length === 0 ? (
+        <Card>
+          <CardContent className="flex items-center justify-center py-12 text-center text-muted-foreground">
+            <p>{data.message || "Chưa có dữ liệu phân tích cho bộ lọc hiện tại."}</p>
+          </CardContent>
+        </Card>
       ) : data ? (
         <>
           <CropAreaSummaryCards summary={data.summary} />

@@ -1,0 +1,278 @@
+[
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 173,
+    "line": "title=\"Nội dung thao tác\"",
+    "context": "          </DetailSection>\r\n\r\n          {/* Description */}\r\n          <DetailSection\r\n            title=\"Nội dung thao tác\"\r\n            icon={<FileText className=\"h-4 w-4 text-emerald-600\" />}\r\n          >\r\n            <p className=\"text-sm leading-relaxed\">\r\n              {log.description || 'Không có mô tả chi tiết'}\r"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 184,
+    "line": "title=\"Dữ liệu kỹ thuật\"",
+    "context": "\r\n          {/* Raw payload — technical, secondary, collapsed by default */}\r\n          {hasPayload && formattedPayload !== null && (\r\n            <DetailSection\r\n              title=\"Dữ liệu kỹ thuật\"\r\n              description=\"Dữ liệu chi tiết (Payload) — JSON thô được ghi bởi hệ thống.\"\r\n              icon={<Braces className=\"h-4 w-4 text-muted-foreground\" />}\r\n              contentClassName=\"overflow-hidden p-0\"\r\n            >\r"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogTable.tsx",
+    "lineNum": 124,
+    "line": "<Button",
+    "context": "                      {log.description || '—'}\r\n                    </span>\r\n                  </TableCell>\r\n                  <TableCell className=\"text-right\">\r\n                    <Button\r\n                      variant=\"ghost\"\r\n                      size=\"sm\"\r\n                      onClick={() => setSelectedLog(log)}\r\n                      className=\"h-8 px-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 gap-1\"\r"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogTable.tsx",
+    "lineNum": 127,
+    "line": "onClick={() => setSelectedLog(log)}",
+    "context": "                  <TableCell className=\"text-right\">\r\n                    <Button\r\n                      variant=\"ghost\"\r\n                      size=\"sm\"\r\n                      onClick={() => setSelectedLog(log)}\r\n                      className=\"h-8 px-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 gap-1\"\r\n                      title=\"Xem chi tiết thao tác\"\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogTable.tsx",
+    "lineNum": 129,
+    "line": "title=\"Xem chi tiết thao tác\"",
+    "context": "                      variant=\"ghost\"\r\n                      size=\"sm\"\r\n                      onClick={() => setSelectedLog(log)}\r\n                      className=\"h-8 px-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 gap-1\"\r\n                      title=\"Xem chi tiết thao tác\"\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r\n                      <span className=\"text-xs font-medium\">Chi tiết</span>\r\n                    </Button>\r"
+  },
+  {
+    "file": "components\\admin\\product-category\\ProductCategoryList.tsx",
+    "lineNum": 62,
+    "line": "<Button variant=\"ghost\" size=\"icon-sm\" onClick={() => onEdit(category)} className=\"hover:bg-muted\">",
+    "context": "              </TableCell>\r\n              {canManage && (\r\n                <TableCell className=\"text-right\">\r\n                  <div className=\"flex justify-end gap-1\">\r\n                    <Button variant=\"ghost\" size=\"icon-sm\" onClick={() => onEdit(category)} className=\"hover:bg-muted\">\r\n                      <Pencil className=\"h-4 w-4\" />\r\n                    </Button>\r\n                    <Button variant=\"ghost\" size=\"icon-sm\" onClick={() => onToggleActive(category.id, category.isActive)} className=\"hover:bg-muted\">\r\n                      {category.isActive ? <EyeOff className=\"h-4 w-4\" /> : <Eye className=\"h-4 w-4\" />}\r"
+  },
+  {
+    "file": "components\\admin\\product-category\\ProductCategoryList.tsx",
+    "lineNum": 65,
+    "line": "<Button variant=\"ghost\" size=\"icon-sm\" onClick={() => onToggleActive(category.id, category.isActive)} className=\"hover:bg-muted\">",
+    "context": "                  <div className=\"flex justify-end gap-1\">\r\n                    <Button variant=\"ghost\" size=\"icon-sm\" onClick={() => onEdit(category)} className=\"hover:bg-muted\">\r\n                      <Pencil className=\"h-4 w-4\" />\r\n                    </Button>\r\n                    <Button variant=\"ghost\" size=\"icon-sm\" onClick={() => onToggleActive(category.id, category.isActive)} className=\"hover:bg-muted\">\r\n                      {category.isActive ? <EyeOff className=\"h-4 w-4\" /> : <Eye className=\"h-4 w-4\" />}\r\n                    </Button>\r\n                  </div>\r\n                </TableCell>\r"
+  },
+  {
+    "file": "components\\farm-log\\AttachmentManager.tsx",
+    "lineNum": 330,
+    "line": "onClick={() => handleView(att)}",
+    "context": "                    <Button\r\n                      variant=\"ghost\"\r\n                      size=\"icon\"\r\n                      className=\"h-8 w-8\"\r\n                      onClick={() => handleView(att)}\r\n                      disabled={viewingId === att.id}\r\n                      title=\"Xem\"\r\n                      aria-label={`Xem chứng từ ${att.fileName}`}\r\n                    >\r"
+  },
+  {
+    "file": "components\\farm-log\\AttachmentManager.tsx",
+    "lineNum": 332,
+    "line": "title=\"Xem\"",
+    "context": "                      size=\"icon\"\r\n                      className=\"h-8 w-8\"\r\n                      onClick={() => handleView(att)}\r\n                      disabled={viewingId === att.id}\r\n                      title=\"Xem\"\r\n                      aria-label={`Xem chứng từ ${att.fileName}`}\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r\n                    </Button>\r"
+  },
+  {
+    "file": "components\\farm-log\\AttachmentManager.tsx",
+    "lineNum": 337,
+    "line": "<Button",
+    "context": "                      aria-label={`Xem chứng từ ${att.fileName}`}\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r\n                    </Button>\r\n                    <Button\r\n                      variant=\"ghost\"\r\n                      size=\"icon\"\r\n                      className=\"h-8 w-8\"\r\n                      onClick={() => handleDownload(att)}\r"
+  },
+  {
+    "file": "components\\farm-log\\FarmLogList.tsx",
+    "lineNum": 398,
+    "line": "title={",
+    "context": "                                isExpanded\r\n                                  ? \"Thu gọn chi tiết nhật ký\"\r\n                                  : \"Xem chi tiết & quản lý chứng từ nhật ký\"\r\n                              }\r\n                              title={\r\n                                isExpanded\r\n                                  ? \"Thu gọn chi tiết\"\r\n                                  : \"Xem chi tiết & quản lý chứng từ\"\r\n                              }\r"
+  },
+  {
+    "file": "components\\layout\\Header.tsx",
+    "lineNum": 182,
+    "line": "<DropdownMenuItem onClick={() => navigate('/organizations/profile')}>",
+    "context": "        ))}\r\n        {canOpenOrganizationProfile && (\r\n          <>\r\n            <DropdownMenuSeparator />\r\n            <DropdownMenuItem onClick={() => navigate('/organizations/profile')}>\r\n              Hồ sơ tổ chức hiện tại\r\n            </DropdownMenuItem>\r\n          </>\r\n        )}\r"
+  },
+  {
+    "file": "components\\layout\\Header.tsx",
+    "lineNum": 190,
+    "line": "<Link",
+    "context": "        )}\r\n      </DropdownMenuContent>\r\n    </DropdownMenu>\r\n  ) : canOpenOrganizationProfile ? (\r\n    <Link\r\n      to=\"/organizations/profile\"\r\n      className=\"flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-emerald-50\"\r\n    >\r\n      {accountContent}\r"
+  },
+  {
+    "file": "components\\notification\\NotificationPanel.tsx",
+    "lineNum": 127,
+    "line": "<Link",
+    "context": "        )}\r\n      </div>\r\n\r\n      <div className=\"border-t px-3 py-2\">\r\n        <Link\r\n          to=\"/notifications\"\r\n          className=\"block text-center text-sm font-medium text-primary hover:text-primary-hover\"\r\n        >\r\n          Xem tất cả\r"
+  },
+  {
+    "file": "components\\organization\\CreateMemberForm.tsx",
+    "lineNum": 157,
+    "line": "onClick={() => setShowPassword((prev) => !prev)}",
+    "context": "              />\r\n              <button\r\n                type=\"button\"\r\n                tabIndex={-1}\r\n                onClick={() => setShowPassword((prev) => !prev)}\r\n                aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}\r\n                className=\"absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground hover:text-foreground\"\r\n              >\r\n                {showPassword ? <EyeOff className=\"size-4\" /> : <Eye className=\"size-4\" />}\r"
+  },
+  {
+    "file": "components\\organization\\CreateMemberForm.tsx",
+    "lineNum": 184,
+    "line": "onClick={() => setShowConfirmPassword((prev) => !prev)}",
+    "context": "              />\r\n              <button\r\n                type=\"button\"\r\n                tabIndex={-1}\r\n                onClick={() => setShowConfirmPassword((prev) => !prev)}\r\n                aria-label={showConfirmPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}\r\n                className=\"absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground hover:text-foreground\"\r\n              >\r\n                {showConfirmPassword ? <EyeOff className=\"size-4\" /> : <Eye className=\"size-4\" />}\r"
+  },
+  {
+    "file": "components\\organization\\CreateOrganizationForm.tsx",
+    "lineNum": 247,
+    "line": "onClick={() => setShowPassword((prev) => !prev)}",
+    "context": "                  />\r\n                  <button\r\n                    type=\"button\"\r\n                    tabIndex={-1}\r\n                    onClick={() => setShowPassword((prev) => !prev)}\r\n                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}\r\n                    className=\"absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground\"\r\n                  >\r\n                    {showPassword ? <EyeOff className=\"h-4 w-4\" /> : <Eye className=\"h-4 w-4\" />}\r"
+  },
+  {
+    "file": "components\\organization\\CreateOrganizationForm.tsx",
+    "lineNum": 288,
+    "line": "onClick={() => setShowConfirmPassword((prev) => !prev)}",
+    "context": "                  />\r\n                  <button\r\n                    type=\"button\"\r\n                    tabIndex={-1}\r\n                    onClick={() => setShowConfirmPassword((prev) => !prev)}\r\n                    aria-label={showConfirmPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}\r\n                    className=\"absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground\"\r\n                  >\r\n                    {showConfirmPassword ? <EyeOff className=\"h-4 w-4\" /> : <Eye className=\"h-4 w-4\" />}\r"
+  },
+  {
+    "file": "components\\production-lot\\ProductionLotList.tsx",
+    "lineNum": 205,
+    "line": "<Button",
+    "context": "                  Tạo lô sản xuất\r\n                </Button>\r\n              )}\r\n              {canImport && (\r\n                <Button\r\n                  type=\"button\"\r\n                  variant=\"outline\"\r\n                  className=\"border-emerald-200 text-emerald-700 hover:bg-emerald-50\"\r\n                  onClick={() => navigate(\"/production-lots/import\")}\r"
+  },
+  {
+    "file": "components\\production-lot\\ProductionLotList.tsx",
+    "lineNum": 209,
+    "line": "onClick={() => navigate(\"/production-lots/import\")}",
+    "context": "                <Button\r\n                  type=\"button\"\r\n                  variant=\"outline\"\r\n                  className=\"border-emerald-200 text-emerald-700 hover:bg-emerald-50\"\r\n                  onClick={() => navigate(\"/production-lots/import\")}\r\n                >\r\n                  <FileUp className=\"size-4\" />\r\n                  Nhập lô hàng loạt\r\n                </Button>\r"
+  },
+  {
+    "file": "components\\production-lot\\ProductionLotList.tsx",
+    "lineNum": 400,
+    "line": "onClick={() =>",
+    "context": "                          <Button\r\n                            size=\"sm\"\r\n                            variant=\"outline\"\r\n                            className=\"border-emerald-200 text-emerald-700 hover:bg-emerald-50\"\r\n                            onClick={() =>\r\n                              navigate(`/production-lots/${lot.id}`)\r\n                            }\r\n                          >\r\n                            Chi tiết\r"
+  },
+  {
+    "file": "components\\report\\IndustryReportFilter.tsx",
+    "lineNum": 77,
+    "line": "<Button type=\"button\" variant=\"outline\" onClick={handleReset} disabled={loading}>",
+    "context": "                variant=\"view\"\r\n              >\r\n                <Search className=\"h-4 w-4 mr-1\" /> Xem báo cáo\r\n              </Button>\r\n              <Button type=\"button\" variant=\"outline\" onClick={handleReset} disabled={loading}>\r\n                <X className=\"h-4 w-4 mr-1\" /> Xóa\r\n              </Button>\r\n            </div>\r\n          </div>\r"
+  },
+  {
+    "file": "components\\shipment\\ProcurementShipmentList.tsx",
+    "lineNum": 250,
+    "line": "<Button",
+    "context": "                              </div>\r\n                            </TableCell>\r\n\r\n                            <TableCell className=\"text-center\">\r\n                              <Button\r\n                                  size=\"sm\"\r\n                                  type=\"button\"\r\n                                  variant=\"outline\"\r\n                                  onClick={() => handleViewDetail(shipment.id)}\r"
+  },
+  {
+    "file": "components\\shipment\\ProcurementShipmentList.tsx",
+    "lineNum": 254,
+    "line": "onClick={() => handleViewDetail(shipment.id)}",
+    "context": "                              <Button\r\n                                  size=\"sm\"\r\n                                  type=\"button\"\r\n                                  variant=\"outline\"\r\n                                  onClick={() => handleViewDetail(shipment.id)}\r\n                              >\r\n                                <Eye className=\"mr-1 size-4\" />\r\n                                Chi tiết\r\n                              </Button>\r"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeListPage.tsx",
+    "lineNum": 355,
+    "line": "<Button",
+    "context": "                        </div>\r\n                      </TableCell>\r\n                      <TableCell>\r\n                        <div className=\"flex justify-center\">\r\n                          <Button\r\n                            size=\"sm\"\r\n                            variant=\"outline\"\r\n                            onClick={() => navigate(`/admin/suspect-trace-codes/${item.id}`)}\r\n                          >\r"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeListPage.tsx",
+    "lineNum": 358,
+    "line": "onClick={() => navigate(`/admin/suspect-trace-codes/${item.id}`)}",
+    "context": "                        <div className=\"flex justify-center\">\r\n                          <Button\r\n                            size=\"sm\"\r\n                            variant=\"outline\"\r\n                            onClick={() => navigate(`/admin/suspect-trace-codes/${item.id}`)}\r\n                          >\r\n                            Chi tiết\r\n                          </Button>\r\n                        </div>\r"
+  },
+  {
+    "file": "pages\\certification\\CertificationListPage.tsx",
+    "lineNum": 280,
+    "line": "<Button",
+    "context": "                            expiryDate={cert.expiryDate}\r\n                          />\r\n                        </TableCell>\r\n                        <TableCell className=\"text-right\">\r\n                          <Button\r\n                            variant=\"view\"\r\n                            size=\"sm\"\r\n                            onClick={() => setSelectedCertId(cert.id)}\r\n                          >\r"
+  },
+  {
+    "file": "pages\\certification\\CertificationListPage.tsx",
+    "lineNum": 283,
+    "line": "onClick={() => setSelectedCertId(cert.id)}",
+    "context": "                        <TableCell className=\"text-right\">\r\n                          <Button\r\n                            variant=\"view\"\r\n                            size=\"sm\"\r\n                            onClick={() => setSelectedCertId(cert.id)}\r\n                          >\r\n                            Xem\r\n                          </Button>\r\n                        </TableCell>\r"
+  },
+  {
+    "file": "pages\\farm-area\\FarmAreaListPage.tsx",
+    "lineNum": 116,
+    "line": "title=\"Xem trên Google Maps\"",
+    "context": "                          href={`https://www.google.com/maps?q=${area.latitude},${area.longitude}`}\r\n                          target=\"_blank\"\r\n                          rel=\"noopener noreferrer\"\r\n                          className=\"inline-flex items-center gap-1 text-xs font-mono text-emerald-700 hover:text-emerald-800 hover:underline\"\r\n                          title=\"Xem trên Google Maps\"\r\n                        >\r\n                          <MapPin className=\"h-3 w-3 text-emerald-500\" />\r\n                          {area.latitude.toFixed(4)}, {area.longitude.toFixed(4)}\r\n                          <ExternalLink className=\"h-3 w-3 opacity-50\" />\r"
+  },
+  {
+    "file": "pages\\organization\\OrganizationListPage.tsx",
+    "lineNum": 90,
+    "line": "<Button variant=\"create\" onClick={() => navigate('/organizations/create')}>",
+    "context": "              <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />\r\n              Làm mới\r\n            </Button>\r\n            {canCreate && (\r\n              <Button variant=\"create\" onClick={() => navigate('/organizations/create')}>\r\n                <PlusCircle className=\"h-4 w-4 mr-1\" />\r\n                Tạo tổ chức\r\n              </Button>\r\n            )}\r"
+  },
+  {
+    "file": "pages\\organization\\OrganizationListPage.tsx",
+    "lineNum": 126,
+    "line": "<Button",
+    "context": "                      <TableCell>{getTypeLabel(org.type)}</TableCell>\r\n                      <TableCell>{getStatusBadge(org.status)}</TableCell>\r\n                      <TableCell>{new Date(org.createdAt).toLocaleDateString('vi-VN')}</TableCell>\r\n                      <TableCell className=\"text-right\">\r\n                        <Button\r\n                          variant=\"view\"\r\n                          size=\"sm\"\r\n                          onClick={() => navigate(`/organizations/${org.id}`)}\r\n                        >\r"
+  },
+  {
+    "file": "pages\\organization\\OrganizationListPage.tsx",
+    "lineNum": 129,
+    "line": "onClick={() => navigate(`/organizations/${org.id}`)}",
+    "context": "                      <TableCell className=\"text-right\">\r\n                        <Button\r\n                          variant=\"view\"\r\n                          size=\"sm\"\r\n                          onClick={() => navigate(`/organizations/${org.id}`)}\r\n                        >\r\n                          Xem\r\n                        </Button>\r\n                      </TableCell>\r"
+  },
+  {
+    "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+    "lineNum": 205,
+    "line": "<Button",
+    "context": "                    <td className=\"px-4 py-3 text-muted-foreground whitespace-nowrap\">\r\n                      {formatDate(fb.createdAt)}\r\n                    </td>\r\n                    <td className=\"px-4 py-3 text-right\">\r\n                      <Button\r\n                        variant=\"outline\"\r\n                        size=\"sm\"\r\n                        onClick={() => handleViewDetail(fb)}\r\n                      >\r"
+  },
+  {
+    "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+    "lineNum": 208,
+    "line": "onClick={() => handleViewDetail(fb)}",
+    "context": "                    <td className=\"px-4 py-3 text-right\">\r\n                      <Button\r\n                        variant=\"outline\"\r\n                        size=\"sm\"\r\n                        onClick={() => handleViewDetail(fb)}\r\n                      >\r\n                        Xem chi tiết\r\n                      </Button>\r\n                    </td>\r"
+  },
+  {
+    "file": "pages\\public\\shipment\\ShipmentDetailPage.tsx",
+    "lineNum": 216,
+    "line": "<Button",
+    "context": "\r\n  return (\r\n    <div className=\"container mx-auto space-y-6 py-6\">\r\n      {/* ── Top navigation bar ── */}\r\n      <Button\r\n        variant=\"outline\"\r\n        onClick={() =>\r\n          navigate(`/production-lots/${lotId}`, {\r\n            state: { activeTab: \"shipments\" },\r"
+  },
+  {
+    "file": "pages\\public\\shipment\\ShipmentDetailPage.tsx",
+    "lineNum": 218,
+    "line": "onClick={() =>",
+    "context": "    <div className=\"container mx-auto space-y-6 py-6\">\r\n      {/* ── Top navigation bar ── */}\r\n      <Button\r\n        variant=\"outline\"\r\n        onClick={() =>\r\n          navigate(`/production-lots/${lotId}`, {\r\n            state: { activeTab: \"shipments\" },\r\n          })\r\n        }\r"
+  },
+  {
+    "file": "pages\\public\\shipment\\ShipmentList.tsx",
+    "lineNum": 317,
+    "line": "onClick={() =>",
+    "context": "                          <Button\r\n                            size=\"sm\"\r\n                            variant=\"outline\"\r\n                            className=\"h-auto px-2.5 py-1 text-xs\"\r\n                            onClick={() =>\r\n                              navigate(\r\n                                `/production-lots/${productionLotId}/shipments/${shipment.id}`,\r\n                              )\r\n                            }\r"
+  },
+  {
+    "file": "pages\\recall-request\\RecallRequestListPage.tsx",
+    "lineNum": 138,
+    "line": "<Button",
+    "context": "                            {STATUS_MAP[item.status]?.label || item.status}\r\n                          </span>\r\n                        </TableCell>\r\n                        <TableCell className=\"text-center\">\r\n                          <Button\r\n                            size=\"sm\"\r\n                            variant=\"outline\"\r\n                            onClick={() => navigate(`/recall-requests/${item.id}`)}\r\n                          >\r"
+  },
+  {
+    "file": "pages\\recall-request\\RecallRequestListPage.tsx",
+    "lineNum": 141,
+    "line": "onClick={() => navigate(`/recall-requests/${item.id}`)}",
+    "context": "                        <TableCell className=\"text-center\">\r\n                          <Button\r\n                            size=\"sm\"\r\n                            variant=\"outline\"\r\n                            onClick={() => navigate(`/recall-requests/${item.id}`)}\r\n                          >\r\n                            <Eye className=\"size-4 mr-1\" /> Chi tiết\r\n                          </Button>\r\n                        </TableCell>\r"
+  },
+  {
+    "file": "pages\\report\\FailedEventLogsPage.tsx",
+    "lineNum": 172,
+    "line": "onClick={() => toggleExpand(log.id)}",
+    "context": "                                expandedLogId === log.id\r\n                                  ? 'bg-amber-50 border border-amber-200'\r\n                                  : 'hover:bg-amber-50/50 border border-transparent'\r\n                              }`}\r\n                              onClick={() => toggleExpand(log.id)}\r\n                              title=\"Bấm để xem đầy đủ\"\r\n                            >\r\n                              <div className={`${expandedLogId === log.id ? '' : 'line-clamp-2'} text-sm text-amber-800`}>\r\n                                {log.failureReason}\r"
+  },
+  {
+    "file": "pages\\report\\FailedEventLogsPage.tsx",
+    "lineNum": 173,
+    "line": "title=\"Bấm để xem đầy đủ\"",
+    "context": "                                  ? 'bg-amber-50 border border-amber-200'\r\n                                  : 'hover:bg-amber-50/50 border border-transparent'\r\n                              }`}\r\n                              onClick={() => toggleExpand(log.id)}\r\n                              title=\"Bấm để xem đầy đủ\"\r\n                            >\r\n                              <div className={`${expandedLogId === log.id ? '' : 'line-clamp-2'} text-sm text-amber-800`}>\r\n                                {log.failureReason}\r\n                              </div>\r"
+  },
+  {
+    "file": "pages\\report\\LoginHistoryPage.tsx",
+    "lineNum": 110,
+    "line": "<Button",
+    "context": "          <p className=\"text-sm text-muted-foreground\">\r\n            Xem lịch sử đăng nhập của tài khoản {user?.fullName}\r\n          </p>\r\n        </div>\r\n        <Button\r\n          variant=\"outline\"\r\n          onClick={() => fetchLoginHistory({ page, size })}\r\n          disabled={loading}\r\n        >\r"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+    "lineNum": 363,
+    "line": "<Button",
+    "context": "                        </div>\r\n                      </TableCell>\r\n                      <TableCell>\r\n                        <div className=\"flex justify-center\">\r\n                          <Button\r\n                            variant=\"outline\"\r\n                            size=\"sm\"\r\n                            onClick={() => setDetailsAlert(alert)}\r\n                          >\r"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+    "lineNum": 366,
+    "line": "onClick={() => setDetailsAlert(alert)}",
+    "context": "                        <div className=\"flex justify-center\">\r\n                          <Button\r\n                            variant=\"outline\"\r\n                            size=\"sm\"\r\n                            onClick={() => setDetailsAlert(alert)}\r\n                          >\r\n                            Chi tiết\r\n                          </Button>\r\n                        </div>\r"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptPage.tsx",
+    "lineNum": 154,
+    "line": "<Button",
+    "context": "                          {formatDate(receipt.receiptDate)}\r\n                        </TableCell>\r\n                        <TableCell className=\"text-sm\">{receipt.recordedBy}</TableCell>\r\n                        <TableCell className=\"text-center\">\r\n                          <Button\r\n                            variant=\"ghost\"\r\n                            size=\"icon-sm\"\r\n                            onClick={() => navigate(`/warehouse-receipt/${receipt.id}`)}\r\n                            className=\"hover:bg-muted\"\r"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptPage.tsx",
+    "lineNum": 157,
+    "line": "onClick={() => navigate(`/warehouse-receipt/${receipt.id}`)}",
+    "context": "                        <TableCell className=\"text-center\">\r\n                          <Button\r\n                            variant=\"ghost\"\r\n                            size=\"icon-sm\"\r\n                            onClick={() => navigate(`/warehouse-receipt/${receipt.id}`)}\r\n                            className=\"hover:bg-muted\"\r\n                          >\r\n                            <Eye className=\"size-4\" />\r\n                          </Button>\r"
+  }
+]

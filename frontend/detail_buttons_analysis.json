@@ -1,0 +1,1830 @@
+{
+  "components\\activity-log\\ActivityLogDetailDialog.tsx": [
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 12,
+      "codeLine": "import { DetailSection } from '@/components/common/detail/DetailSection';",
+      "context": "} from '@/components/ui/dialog';\r\nimport { Badge } from '@/components/ui/badge';\r\nimport { Button } from '@/components/ui/button';\r\nimport { DetailSection } from '@/components/common/detail/DetailSection';\r\nimport { DetailField } from '@/components/common/detail/DetailField';\r\nimport {\r\n  Activity,\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 13,
+      "codeLine": "import { DetailField } from '@/components/common/detail/DetailField';",
+      "context": "import { Badge } from '@/components/ui/badge';\r\nimport { Button } from '@/components/ui/button';\r\nimport { DetailSection } from '@/components/common/detail/DetailSection';\r\nimport { DetailField } from '@/components/common/detail/DetailField';\r\nimport {\r\n  Activity,\r\n  Braces,\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 81,
+      "codeLine": "export function ActivityLogDetailDialog({ log, onClose }: Props) {",
+      "context": " * actor/action/time → target → human-readable description → raw payload last,\r\n * collapsed by default as clearly secondary technical information.\r\n */\r\nexport function ActivityLogDetailDialog({ log, onClose }: Props) {\r\n  const formattedPayload = useMemo(() => {\r\n    if (!log?.details) return null;\r\n    return formatPayload(log.details);\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 97,
+      "codeLine": "<DialogTitle>Chi tiết nhật ký hoạt động</DialogTitle>",
+      "context": "        <DialogHeader>\r\n          <div className=\"flex items-center gap-2 text-emerald-700\">\r\n            <Info className=\"h-5 w-5\" />\r\n            <DialogTitle>Chi tiết nhật ký hoạt động</DialogTitle>\r\n          </div>\r\n          <DialogDescription>\r\n            Thông tin chi tiết thao tác được ghi nhận bởi hệ thống kiểm toán\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 100,
+      "codeLine": "Thông tin chi tiết thao tác được ghi nhận bởi hệ thống kiểm toán",
+      "context": "            <DialogTitle>Chi tiết nhật ký hoạt động</DialogTitle>\r\n          </div>\r\n          <DialogDescription>\r\n            Thông tin chi tiết thao tác được ghi nhận bởi hệ thống kiểm toán\r\n          </DialogDescription>\r\n        </DialogHeader>\r\n\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 106,
+      "codeLine": "<DetailSection",
+      "context": "\r\n        <div className=\"space-y-4 py-2\">\r\n          {/* Actor / Action / Time / IP */}\r\n          <DetailSection\r\n            title=\"Người thực hiện & Thời gian\"\r\n            contentClassName=\"grid gap-3 sm:grid-cols-2\"\r\n          >\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 110,
+      "codeLine": "<DetailField",
+      "context": "            title=\"Người thực hiện & Thời gian\"\r\n            contentClassName=\"grid gap-3 sm:grid-cols-2\"\r\n          >\r\n            <DetailField\r\n              label=\"Người thực hiện\"\r\n              icon={<User className=\"h-3.5 w-3.5 text-muted-foreground\" />}\r\n              value={\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 123,
+      "codeLine": "<DetailField",
+      "context": "              }\r\n            />\r\n\r\n            <DetailField\r\n              label=\"Hành động\"\r\n              icon={<Activity className=\"h-3.5 w-3.5 text-muted-foreground\" />}\r\n              value={\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 136,
+      "codeLine": "<DetailField",
+      "context": "              }\r\n            />\r\n\r\n            <DetailField\r\n              label=\"Thời gian\"\r\n              icon={<Calendar className=\"h-3.5 w-3.5 text-muted-foreground\" />}\r\n              mono\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 143,
+      "codeLine": "<DetailField",
+      "context": "              value={formatDate(log.createdAt)}\r\n            />\r\n\r\n            <DetailField\r\n              label=\"Địa chỉ IP\"\r\n              icon={<MapPin className=\"h-3.5 w-3.5 text-muted-foreground\" />}\r\n              mono\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 149,
+      "codeLine": "</DetailSection>",
+      "context": "              mono\r\n              value={log.ipAddress || 'Không xác định'}\r\n            />\r\n          </DetailSection>\r\n\r\n          {/* Target */}\r\n          <DetailSection\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 152,
+      "codeLine": "<DetailSection",
+      "context": "          </DetailSection>\r\n\r\n          {/* Target */}\r\n          <DetailSection\r\n            title=\"Đối tượng tác động\"\r\n            icon={<Layers className=\"h-4 w-4 text-emerald-600\" />}\r\n          >\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 157,
+      "codeLine": "<DetailField",
+      "context": "            icon={<Layers className=\"h-4 w-4 text-emerald-600\" />}\r\n          >\r\n            <div className=\"grid gap-3\">\r\n              <DetailField\r\n                label=\"Loại đối tượng\"\r\n                value={formatTargetType(getTargetValue(log))}\r\n              />\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 162,
+      "codeLine": "<DetailField",
+      "context": "                value={formatTargetType(getTargetValue(log))}\r\n              />\r\n              {getTargetIdValue(log) && (\r\n                <DetailField\r\n                  label=\"Mã định danh (ID)\"\r\n                  mono\r\n                  value={getTargetIdValue(log)}\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 169,
+      "codeLine": "</DetailSection>",
+      "context": "                />\r\n              )}\r\n            </div>\r\n          </DetailSection>\r\n\r\n          {/* Description */}\r\n          <DetailSection\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 172,
+      "codeLine": "<DetailSection",
+      "context": "          </DetailSection>\r\n\r\n          {/* Description */}\r\n          <DetailSection\r\n            title=\"Nội dung thao tác\"\r\n            icon={<FileText className=\"h-4 w-4 text-emerald-600\" />}\r\n          >\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 177,
+      "codeLine": "{log.description || 'Không có mô tả chi tiết'}",
+      "context": "            icon={<FileText className=\"h-4 w-4 text-emerald-600\" />}\r\n          >\r\n            <p className=\"text-sm leading-relaxed\">\r\n              {log.description || 'Không có mô tả chi tiết'}\r\n            </p>\r\n          </DetailSection>\r\n\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 179,
+      "codeLine": "</DetailSection>",
+      "context": "            <p className=\"text-sm leading-relaxed\">\r\n              {log.description || 'Không có mô tả chi tiết'}\r\n            </p>\r\n          </DetailSection>\r\n\r\n          {/* Raw payload — technical, secondary, collapsed by default */}\r\n          {hasPayload && formattedPayload !== null && (\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 183,
+      "codeLine": "<DetailSection",
+      "context": "\r\n          {/* Raw payload — technical, secondary, collapsed by default */}\r\n          {hasPayload && formattedPayload !== null && (\r\n            <DetailSection\r\n              title=\"Dữ liệu kỹ thuật\"\r\n              description=\"Dữ liệu chi tiết (Payload) — JSON thô được ghi bởi hệ thống.\"\r\n              icon={<Braces className=\"h-4 w-4 text-muted-foreground\" />}\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 185,
+      "codeLine": "description=\"Dữ liệu chi tiết (Payload) — JSON thô được ghi bởi hệ thống.\"",
+      "context": "          {hasPayload && formattedPayload !== null && (\r\n            <DetailSection\r\n              title=\"Dữ liệu kỹ thuật\"\r\n              description=\"Dữ liệu chi tiết (Payload) — JSON thô được ghi bởi hệ thống.\"\r\n              icon={<Braces className=\"h-4 w-4 text-muted-foreground\" />}\r\n              contentClassName=\"overflow-hidden p-0\"\r\n            >\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 191,
+      "codeLine": "Xem dữ liệu payload",
+      "context": "            >\r\n              <details className=\"group\">\r\n                <summary className=\"flex cursor-pointer select-none items-center justify-between gap-2 bg-muted/40 px-4 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden\">\r\n                  Xem dữ liệu payload\r\n                  <ChevronDown className=\"h-3.5 w-3.5 transition-transform group-open:rotate-180\" />\r\n                </summary>\r\n                <pre className=\"max-h-60 overflow-auto whitespace-pre-wrap break-all bg-slate-900 p-3 font-mono text-xs leading-relaxed text-slate-100\">\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+      "line": 198,
+      "codeLine": "</DetailSection>",
+      "context": "                  {formattedPayload}\r\n                </pre>\r\n              </details>\r\n            </DetailSection>\r\n          )}\r\n        </div>\r\n\r"
+    }
+  ],
+  "components\\activity-log\\ActivityLogTable.tsx": [
+    {
+      "file": "components\\activity-log\\ActivityLogTable.tsx",
+      "line": 12,
+      "codeLine": "import { Eye } from 'lucide-react';",
+      "context": "} from '@/components/ui/table';\r\nimport { Badge } from '@/components/ui/badge';\r\nimport { Button } from '@/components/ui/button';\r\nimport { Eye } from 'lucide-react';\r\nimport type { ActivityLog } from '@/types/activityLog';\r\nimport { ActivityLogDetailDialog } from './ActivityLogDetailDialog';\r\nimport {\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogTable.tsx",
+      "line": 14,
+      "codeLine": "import { ActivityLogDetailDialog } from './ActivityLogDetailDialog';",
+      "context": "import { Button } from '@/components/ui/button';\r\nimport { Eye } from 'lucide-react';\r\nimport type { ActivityLog } from '@/types/activityLog';\r\nimport { ActivityLogDetailDialog } from './ActivityLogDetailDialog';\r\nimport {\r\n  formatActionType,\r\n  formatTargetType,\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogTable.tsx",
+      "line": 129,
+      "codeLine": "title=\"Xem chi tiết thao tác\"",
+      "context": "                      size=\"sm\"\r\n                      onClick={() => setSelectedLog(log)}\r\n                      className=\"h-8 px-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 gap-1\"\r\n                      title=\"Xem chi tiết thao tác\"\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r\n                      <span className=\"text-xs font-medium\">Chi tiết</span>\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogTable.tsx",
+      "line": 131,
+      "codeLine": "<Eye className=\"h-4 w-4\" />",
+      "context": "                      className=\"h-8 px-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 gap-1\"\r\n                      title=\"Xem chi tiết thao tác\"\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r\n                      <span className=\"text-xs font-medium\">Chi tiết</span>\r\n                    </Button>\r\n                  </TableCell>\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogTable.tsx",
+      "line": 132,
+      "codeLine": "<span className=\"text-xs font-medium\">Chi tiết</span>",
+      "context": "                      title=\"Xem chi tiết thao tác\"\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r\n                      <span className=\"text-xs font-medium\">Chi tiết</span>\r\n                    </Button>\r\n                  </TableCell>\r\n                </TableRow>\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogTable.tsx",
+      "line": 142,
+      "codeLine": "{/* Modal Chi tiết hoạt động */}",
+      "context": "        </Table>\r\n      </div>\r\n\r\n      {/* Modal Chi tiết hoạt động */}\r\n      <ActivityLogDetailDialog\r\n        log={selectedLog}\r\n        onClose={() => setSelectedLog(null)}\r"
+    },
+    {
+      "file": "components\\activity-log\\ActivityLogTable.tsx",
+      "line": 143,
+      "codeLine": "<ActivityLogDetailDialog",
+      "context": "      </div>\r\n\r\n      {/* Modal Chi tiết hoạt động */}\r\n      <ActivityLogDetailDialog\r\n        log={selectedLog}\r\n        onClose={() => setSelectedLog(null)}\r\n      />\r"
+    }
+  ],
+  "components\\admin\\product-category\\ProductCategoryForm.tsx": [
+    {
+      "file": "components\\admin\\product-category\\ProductCategoryForm.tsx",
+      "line": 194,
+      "codeLine": "placeholder=\"Mô tả chi tiết...\"",
+      "context": "            <Textarea\r\n              id=\"description\"\r\n              {...register(\"description\")}\r\n              placeholder=\"Mô tả chi tiết...\"\r\n              rows={3}\r\n            />\r\n          </div>\r"
+    }
+  ],
+  "components\\admin\\product-category\\ProductCategoryList.tsx": [
+    {
+      "file": "components\\admin\\product-category\\ProductCategoryList.tsx",
+      "line": 4,
+      "codeLine": "import { Pencil, Eye, EyeOff } from 'lucide-react';",
+      "context": "import { Button } from '@/components/ui/button';\r\nimport { Badge } from '@/components/ui/badge';\r\nimport { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';\r\nimport { Pencil, Eye, EyeOff } from 'lucide-react';\r\nimport type { ProductCategory } from '@/types/productCategory';\r\n\r\ninterface Props {\r"
+    },
+    {
+      "file": "components\\admin\\product-category\\ProductCategoryList.tsx",
+      "line": 66,
+      "codeLine": "{category.isActive ? <EyeOff className=\"h-4 w-4\" /> : <Eye className=\"h-4 w-4\" />}",
+      "context": "                      <Pencil className=\"h-4 w-4\" />\r\n                    </Button>\r\n                    <Button variant=\"ghost\" size=\"icon-sm\" onClick={() => onToggleActive(category.id, category.isActive)} className=\"hover:bg-muted\">\r\n                      {category.isActive ? <EyeOff className=\"h-4 w-4\" /> : <Eye className=\"h-4 w-4\" />}\r\n                    </Button>\r\n                  </div>\r\n                </TableCell>\r"
+    }
+  ],
+  "components\\apiKey\\RawApiKeyModal.tsx": [
+    {
+      "file": "components\\apiKey\\RawApiKeyModal.tsx",
+      "line": 94,
+      "codeLine": "{/* Chi tiết hạn mức & thời hạn */}",
+      "context": "            </div>\r\n          </div>\r\n\r\n          {/* Chi tiết hạn mức & thời hạn */}\r\n          <div className=\"grid grid-cols-2 gap-2 p-3 rounded-lg bg-muted/40 text-xs\">\r\n            <div>\r\n              <span className=\"text-muted-foreground block\">Hạn mức gọi:</span>\r"
+    }
+  ],
+  "components\\auth\\LoginForm.tsx": [
+    {
+      "file": "components\\auth\\LoginForm.tsx",
+      "line": 5,
+      "codeLine": "Eye,",
+      "context": "import { useForm } from \"react-hook-form\";\r\nimport { zodResolver } from \"@hookform/resolvers/zod\";\r\nimport {\r\n  Eye,\r\n  EyeOff,\r\n  LoaderCircle,\r\n  LockKeyhole,\r"
+    },
+    {
+      "file": "components\\auth\\LoginForm.tsx",
+      "line": 6,
+      "codeLine": "EyeOff,",
+      "context": "import { zodResolver } from \"@hookform/resolvers/zod\";\r\nimport {\r\n  Eye,\r\n  EyeOff,\r\n  LoaderCircle,\r\n  LockKeyhole,\r\n  UserRound,\r"
+    },
+    {
+      "file": "components\\auth\\LoginForm.tsx",
+      "line": 440,
+      "codeLine": "<EyeOff",
+      "context": "              }\r\n            >\r\n              {showPassword ? (\r\n                <EyeOff\r\n                  className=\"size-[17px]\"\r\n                  aria-hidden=\"true\"\r\n                />\r"
+    },
+    {
+      "file": "components\\auth\\LoginForm.tsx",
+      "line": 445,
+      "codeLine": "<Eye",
+      "context": "                  aria-hidden=\"true\"\r\n                />\r\n              ) : (\r\n                <Eye\r\n                  className=\"size-[17px]\"\r\n                  aria-hidden=\"true\"\r\n                />\r"
+    }
+  ],
+  "components\\certification\\CertificationDetailDialog.tsx": [
+    {
+      "file": "components\\certification\\CertificationDetailDialog.tsx",
+      "line": 10,
+      "codeLine": "import { DetailField } from '@/components/common/detail/DetailField';",
+      "context": "} from '@/components/ui/dialog';\r\nimport type { CertificationResponse } from '@/types/certification';\r\nimport { CertificationStatusBadge } from '@/components/certification/CertificationStatusBadge';\r\nimport { DetailField } from '@/components/common/detail/DetailField';\r\nimport { CalendarDays, FileBadge, Building2, Hash } from 'lucide-react';\r\n\r\ninterface Props {\r"
+    },
+    {
+      "file": "components\\certification\\CertificationDetailDialog.tsx",
+      "line": 40,
+      "codeLine": "export const CertificationDetailDialog = ({ certification, open, onClose }: Props) => {",
+      "context": "  return Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));\r\n};\r\n\r\nexport const CertificationDetailDialog = ({ certification, open, onClose }: Props) => {\r\n  if (!certification) return null;\r\n\r\n  const daysRemaining = getDaysRemaining(certification.expiryDate, certification.isValid);\r"
+    },
+    {
+      "file": "components\\certification\\CertificationDetailDialog.tsx",
+      "line": 53,
+      "codeLine": "Thông tin chi tiết chứng nhận",
+      "context": "            {certification.name}\r\n          </DialogTitle>\r\n          <DialogDescription>\r\n            Thông tin chi tiết chứng nhận\r\n          </DialogDescription>\r\n        </DialogHeader>\r\n\r"
+    },
+    {
+      "file": "components\\certification\\CertificationDetailDialog.tsx",
+      "line": 69,
+      "codeLine": "<DetailField",
+      "context": "\r\n          {/* Info grid */}\r\n          <div className=\"grid gap-4\">\r\n            <DetailField\r\n              icon={<Hash className=\"h-4 w-4 text-muted-foreground\" />}\r\n              label=\"Mã chứng nhận\"\r\n              value={certification.code}\r"
+    },
+    {
+      "file": "components\\certification\\CertificationDetailDialog.tsx",
+      "line": 74,
+      "codeLine": "<DetailField",
+      "context": "              label=\"Mã chứng nhận\"\r\n              value={certification.code}\r\n            />\r\n            <DetailField\r\n              icon={<FileBadge className=\"h-4 w-4 text-muted-foreground\" />}\r\n              label=\"Tên chứng nhận\"\r\n              value={certification.name}\r"
+    },
+    {
+      "file": "components\\certification\\CertificationDetailDialog.tsx",
+      "line": 79,
+      "codeLine": "<DetailField",
+      "context": "              label=\"Tên chứng nhận\"\r\n              value={certification.name}\r\n            />\r\n            <DetailField\r\n              icon={<Building2 className=\"h-4 w-4 text-muted-foreground\" />}\r\n              label=\"Cơ quan cấp\"\r\n              value={certification.issuedBy || undefined}\r"
+    },
+    {
+      "file": "components\\certification\\CertificationDetailDialog.tsx",
+      "line": 84,
+      "codeLine": "<DetailField",
+      "context": "              label=\"Cơ quan cấp\"\r\n              value={certification.issuedBy || undefined}\r\n            />\r\n            <DetailField\r\n              icon={<CalendarDays className=\"h-4 w-4 text-muted-foreground\" />}\r\n              label=\"Ngày cấp\"\r\n              value={formatDate(certification.issueDate)}\r"
+    },
+    {
+      "file": "components\\certification\\CertificationDetailDialog.tsx",
+      "line": 89,
+      "codeLine": "<DetailField",
+      "context": "              label=\"Ngày cấp\"\r\n              value={formatDate(certification.issueDate)}\r\n            />\r\n            <DetailField\r\n              icon={<CalendarDays className=\"h-4 w-4 text-destructive\" />}\r\n              label=\"Ngày hết hạn\"\r\n              value={formatDate(certification.expiryDate)}\r"
+    }
+  ],
+  "components\\certification\\RecordInspectionResultDialog.tsx": [
+    {
+      "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+      "line": 22,
+      "codeLine": "import { getInspectionRequestDetail, recordInspectionRequestResults, uploadInspectionResultFile } from \"@/api/certificationApi\";",
+      "context": "} from \"@/components/ui/dialog\";\r\nimport { Input } from \"@/components/ui/input\";\r\nimport { Label } from \"@/components/ui/label\";\r\nimport { getInspectionRequestDetail, recordInspectionRequestResults, uploadInspectionResultFile } from \"@/api/certificationApi\";\r\nimport type { InspectionRequestDetailResponse } from \"@/types/certification\";\r\n\r\nconst toISODate = (date: Date) => {\r"
+    },
+    {
+      "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+      "line": 23,
+      "codeLine": "import type { InspectionRequestDetailResponse } from \"@/types/certification\";",
+      "context": "import { Input } from \"@/components/ui/input\";\r\nimport { Label } from \"@/components/ui/label\";\r\nimport { getInspectionRequestDetail, recordInspectionRequestResults, uploadInspectionResultFile } from \"@/api/certificationApi\";\r\nimport type { InspectionRequestDetailResponse } from \"@/types/certification\";\r\n\r\nconst toISODate = (date: Date) => {\r\n  const month = String(date.getMonth() + 1).padStart(2, \"0\");\r"
+    },
+    {
+      "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+      "line": 54,
+      "codeLine": "const [detail, setDetail] = useState<InspectionRequestDetailResponse | null>(null);",
+      "context": "  requestId,\r\n  onRecorded,\r\n}: RecordInspectionResultDialogProps) {\r\n  const [detail, setDetail] = useState<InspectionRequestDetailResponse | null>(null);\r\n  const [detailLoading, setDetailLoading] = useState(false);\r\n  const [detailError, setDetailError] = useState<string | null>(null);\r\n\r"
+    },
+    {
+      "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+      "line": 55,
+      "codeLine": "const [detailLoading, setDetailLoading] = useState(false);",
+      "context": "  onRecorded,\r\n}: RecordInspectionResultDialogProps) {\r\n  const [detail, setDetail] = useState<InspectionRequestDetailResponse | null>(null);\r\n  const [detailLoading, setDetailLoading] = useState(false);\r\n  const [detailError, setDetailError] = useState<string | null>(null);\r\n\r\n  const [criteriaInputs, setCriteriaInputs] = useState<CriterionInputState[]>([]);\r"
+    },
+    {
+      "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+      "line": 56,
+      "codeLine": "const [detailError, setDetailError] = useState<string | null>(null);",
+      "context": "}: RecordInspectionResultDialogProps) {\r\n  const [detail, setDetail] = useState<InspectionRequestDetailResponse | null>(null);\r\n  const [detailLoading, setDetailLoading] = useState(false);\r\n  const [detailError, setDetailError] = useState<string | null>(null);\r\n\r\n  const [criteriaInputs, setCriteriaInputs] = useState<CriterionInputState[]>([]);\r\n  const [touched, setTouched] = useState(false);\r"
+    },
+    {
+      "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+      "line": 66,
+      "codeLine": "setDetail(null);",
+      "context": "\r\n  useEffect(() => {\r\n    if (!open || !requestId) return;\r\n    setDetail(null);\r\n    setDetailError(null);\r\n    setCriteriaInputs([]);\r\n    setTouched(false);\r"
+    },
+    {
+      "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+      "line": 67,
+      "codeLine": "setDetailError(null);",
+      "context": "  useEffect(() => {\r\n    if (!open || !requestId) return;\r\n    setDetail(null);\r\n    setDetailError(null);\r\n    setCriteriaInputs([]);\r\n    setTouched(false);\r\n    setSubmitting(false);\r"
+    },
+    {
+      "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+      "line": 72,
+      "codeLine": "const loadDetail = async () => {",
+      "context": "    setTouched(false);\r\n    setSubmitting(false);\r\n\r\n    const loadDetail = async () => {\r\n      try {\r\n        setDetailLoading(true);\r\n        const data = await getInspectionRequestDetail(requestId);\r"
+    },
+    {
+      "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+      "line": 74,
+      "codeLine": "setDetailLoading(true);",
+      "context": "\r\n    const loadDetail = async () => {\r\n      try {\r\n        setDetailLoading(true);\r\n        const data = await getInspectionRequestDetail(requestId);\r\n        setDetail(data);\r\n        setCriteriaInputs(\r"
+    },
+    {
+      "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+      "line": 75,
+      "codeLine": "const data = await getInspectionRequestDetail(requestId);",
+      "context": "    const loadDetail = async () => {\r\n      try {\r\n        setDetailLoading(true);\r\n        const data = await getInspectionRequestDetail(requestId);\r\n        setDetail(data);\r\n        setCriteriaInputs(\r\n          data.criteria.map((criterion) => ({\r"
+    },
+    {
+      "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+      "line": 76,
+      "codeLine": "setDetail(data);",
+      "context": "      try {\r\n        setDetailLoading(true);\r\n        const data = await getInspectionRequestDetail(requestId);\r\n        setDetail(data);\r\n        setCriteriaInputs(\r\n          data.criteria.map((criterion) => ({\r\n            criterionId: criterion.criterionId,\r"
+    },
+    {
+      "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+      "line": 89,
+      "codeLine": "setDetailError(",
+      "context": "          }))\r\n        );\r\n      } catch (error) {\r\n        setDetailError(\r\n          axios.isAxiosError(error)\r\n            ? error.response?.data?.message || \"Không thể tải chi tiết yêu cầu kiểm nghiệm\"\r\n            : \"Không thể tải chi tiết yêu cầu kiểm nghiệm\"\r"
+    },
+    {
+      "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+      "line": 91,
+      "codeLine": "? error.response?.data?.message || \"Không thể tải chi tiết yêu cầu kiểm nghiệm\"",
+      "context": "      } catch (error) {\r\n        setDetailError(\r\n          axios.isAxiosError(error)\r\n            ? error.response?.data?.message || \"Không thể tải chi tiết yêu cầu kiểm nghiệm\"\r\n            : \"Không thể tải chi tiết yêu cầu kiểm nghiệm\"\r\n        );\r\n      } finally {\r"
+    },
+    {
+      "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+      "line": 92,
+      "codeLine": ": \"Không thể tải chi tiết yêu cầu kiểm nghiệm\"",
+      "context": "        setDetailError(\r\n          axios.isAxiosError(error)\r\n            ? error.response?.data?.message || \"Không thể tải chi tiết yêu cầu kiểm nghiệm\"\r\n            : \"Không thể tải chi tiết yêu cầu kiểm nghiệm\"\r\n        );\r\n      } finally {\r\n        setDetailLoading(false);\r"
+    },
+    {
+      "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+      "line": 95,
+      "codeLine": "setDetailLoading(false);",
+      "context": "            : \"Không thể tải chi tiết yêu cầu kiểm nghiệm\"\r\n        );\r\n      } finally {\r\n        setDetailLoading(false);\r\n      }\r\n    };\r\n    void loadDetail();\r"
+    },
+    {
+      "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+      "line": 98,
+      "codeLine": "void loadDetail();",
+      "context": "        setDetailLoading(false);\r\n      }\r\n    };\r\n    void loadDetail();\r\n    // eslint-disable-next-line react-hooks/exhaustive-deps\r\n  }, [open, requestId]);\r\n\r"
+    },
+    {
+      "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+      "line": 238,
+      "codeLine": "Đang tải chi tiết yêu cầu...",
+      "context": "        {detailLoading ? (\r\n          <div className=\"flex items-center justify-center gap-2 py-10 text-muted-foreground\">\r\n            <LoaderCircle className=\"h-5 w-5 animate-spin text-emerald-500\" />\r\n            Đang tải chi tiết yêu cầu...\r\n          </div>\r\n        ) : detailError ? (\r\n          <div className=\"flex flex-col items-center gap-3 py-10 text-muted-foreground\">\r"
+    }
+  ],
+  "components\\common\\detail\\DetailField.tsx": [
+    {
+      "file": "components\\common\\detail\\DetailField.tsx",
+      "line": 5,
+      "codeLine": "interface DetailFieldProps {",
+      "context": "\r\nimport { cn } from \"@/lib/utils\";\r\n\r\ninterface DetailFieldProps {\r\n  /** Field label, rendered small and muted above the value. */\r\n  label: string;\r\n  /**\r"
+    },
+    {
+      "file": "components\\common\\detail\\DetailField.tsx",
+      "line": 23,
+      "codeLine": "* ShipmentDetailDialog, ScanAnomalyAlertDetailsDialog, CertificationDetailDialog",
+      "context": "\r\n/**\r\n * Shared label/value primitive extracted from the identical patterns in\r\n * ShipmentDetailDialog, ScanAnomalyAlertDetailsDialog, CertificationDetailDialog\r\n * and the Product Feedback sheet.\r\n *\r\n * Designed to sit inside a responsive grid:\r"
+    },
+    {
+      "file": "components\\common\\detail\\DetailField.tsx",
+      "line": 29,
+      "codeLine": "export function DetailField({",
+      "context": " * Designed to sit inside a responsive grid:\r\n *   <div className=\"grid gap-3 sm:grid-cols-2\">…</div>\r\n */\r\nexport function DetailField({\r\n  label,\r\n  value,\r\n  icon,\r"
+    },
+    {
+      "file": "components\\common\\detail\\DetailField.tsx",
+      "line": 35,
+      "codeLine": "}: DetailFieldProps) {",
+      "context": "  icon,\r\n  mono = false,\r\n  className,\r\n}: DetailFieldProps) {\r\n  const isEmpty =\r\n    value === null ||\r\n    value === undefined ||\r"
+    }
+  ],
+  "components\\common\\detail\\DetailSection.tsx": [
+    {
+      "file": "components\\common\\detail\\DetailSection.tsx",
+      "line": 5,
+      "codeLine": "interface DetailSectionProps {",
+      "context": "\r\nimport { cn } from \"@/lib/utils\";\r\n\r\ninterface DetailSectionProps {\r\n  /** Section heading, rendered as a small uppercase label. */\r\n  title: string;\r\n  /** Optional secondary line rendered under the title. */\r"
+    },
+    {
+      "file": "components\\common\\detail\\DetailSection.tsx",
+      "line": 33,
+      "codeLine": "export function DetailSection({",
+      "context": " *\r\n * Pure presentation only — it owns spacing/typography, not layout or data.\r\n */\r\nexport function DetailSection({\r\n  title,\r\n  description,\r\n  icon,\r"
+    },
+    {
+      "file": "components\\common\\detail\\DetailSection.tsx",
+      "line": 40,
+      "codeLine": "}: DetailSectionProps) {",
+      "context": "  children,\r\n  className,\r\n  contentClassName,\r\n}: DetailSectionProps) {\r\n  return (\r\n    <section className={cn(\"min-w-0\", className)}>\r\n      <div className=\"mb-2 flex items-center gap-1.5\">\r"
+    }
+  ],
+  "components\\dashboard\\EventRecorderDashboard.tsx": [
+    {
+      "file": "components\\dashboard\\EventRecorderDashboard.tsx",
+      "line": 11,
+      "codeLine": "Chọn lô sản xuất để ghi nhật ký canh tác hoặc xem thông tin chi tiết.",
+      "context": "          Ghi nhật ký canh tác\r\n        </h1>\r\n        <p className=\"mt-1 text-sm text-slate-500\">\r\n          Chọn lô sản xuất để ghi nhật ký canh tác hoặc xem thông tin chi tiết.\r\n        </p>\r\n      </div>\r\n\r"
+    }
+  ],
+  "components\\dashboard\\IndustryReportTab.tsx": [
+    {
+      "file": "components\\dashboard\\IndustryReportTab.tsx",
+      "line": 112,
+      "codeLine": "{isLoading ? 'Đang xem...' : 'Xem báo cáo'}",
+      "context": "                ) : (\r\n                  <SearchCheck className=\"size-4\" />\r\n                )}\r\n                {isLoading ? 'Đang xem...' : 'Xem báo cáo'}\r\n              </Button>\r\n            </div>\r\n          </div>\r"
+    },
+    {
+      "file": "components\\dashboard\\IndustryReportTab.tsx",
+      "line": 194,
+      "codeLine": "<p className=\"mb-2 text-sm font-semibold\">Chi tiết theo nhóm nông sản</p>",
+      "context": "\r\n            {report.productBreakdown.length > 0 && (\r\n              <div>\r\n                <p className=\"mb-2 text-sm font-semibold\">Chi tiết theo nhóm nông sản</p>\r\n                <Table>\r\n                  <TableHeader>\r\n                    <TableRow>\r"
+    }
+  ],
+  "components\\dashboard\\ProcurementDashboard.tsx": [
+    {
+      "file": "components\\dashboard\\ProcurementDashboard.tsx",
+      "line": 28,
+      "codeLine": "Xem danh sách lô hàng đã kích hoạt tem và thực hiện ghi nhận thu",
+      "context": "            Thu mua nông sản\r\n          </h1>\r\n          <p className=\"mt-1 text-sm text-slate-500\">\r\n            Xem danh sách lô hàng đã kích hoạt tem và thực hiện ghi nhận thu\r\n            mua.\r\n          </p>\r\n        </div>\r"
+    }
+  ],
+  "components\\export\\ExportOpenDataForm.tsx": [
+    {
+      "file": "components\\export\\ExportOpenDataForm.tsx",
+      "line": 38,
+      "codeLine": "type Qtn11ErrorDetail,",
+      "context": "} from '@/utils/validators';\r\nimport {\r\n  Qtn11ErrorModal,\r\n  type Qtn11ErrorDetail,\r\n} from './Qtn11ErrorModal';\r\n\r\n// Helper: format date to datetime-local string (YYYY-MM-DDTHH:mm)\r"
+    },
+    {
+      "file": "components\\export\\ExportOpenDataForm.tsx",
+      "line": 66,
+      "codeLine": "const [qtn11Errors, setQtn11Errors] = useState<Qtn11ErrorDetail[]>([]);",
+      "context": "  const [categories, setCategories] = useState<ProductCategory[]>([]);\r\n  const [activeQuickRange, setActiveQuickRange] = useState<QuickRangeKey>(null);\r\n  const [qtn11ErrorModalOpen, setQtn11ErrorModalOpen] = useState(false);\r\n  const [qtn11Errors, setQtn11Errors] = useState<Qtn11ErrorDetail[]>([]);\r\n\r\n  const {\r\n    control,\r"
+    },
+    {
+      "file": "components\\export\\ExportOpenDataForm.tsx",
+      "line": 194,
+      "codeLine": "const json: { message?: string; errors?: Qtn11ErrorDetail[] } = JSON.parse(text);",
+      "context": "      if (axiosError.response?.data instanceof Blob) {\r\n        const text = await axiosError.response.data.text();\r\n        try {\r\n          const json: { message?: string; errors?: Qtn11ErrorDetail[] } = JSON.parse(text);\r\n          if (json.errors && Array.isArray(json.errors) && json.errors.length > 0) {\r\n            setQtn11Errors(json.errors);\r\n            setQtn11ErrorModalOpen(true);\r"
+    }
+  ],
+  "components\\export\\Qtn11ErrorModal.tsx": [
+    {
+      "file": "components\\export\\Qtn11ErrorModal.tsx",
+      "line": 14,
+      "codeLine": "export interface Qtn11ErrorDetail {",
+      "context": "import { Badge } from '@/components/ui/badge';\r\nimport { Card, CardContent } from '@/components/ui/card';\r\n\r\nexport interface Qtn11ErrorDetail {\r\n  id?: string;\r\n  name?: string;\r\n  lotCode?: string;\r"
+    },
+    {
+      "file": "components\\export\\Qtn11ErrorModal.tsx",
+      "line": 20,
+      "codeLine": "missingDocDetails?: string[];",
+      "context": "  lotCode?: string;\r\n  missingEvents?: string[];\r\n  missingDocs?: boolean;\r\n  missingDocDetails?: string[];\r\n}\r\n\r\ninterface Qtn11ErrorModalProps {\r"
+    },
+    {
+      "file": "components\\export\\Qtn11ErrorModal.tsx",
+      "line": 26,
+      "codeLine": "errors: Qtn11ErrorDetail[];",
+      "context": "interface Qtn11ErrorModalProps {\r\n  open: boolean;\r\n  onClose: () => void;\r\n  errors: Qtn11ErrorDetail[];\r\n}\r\n\r\nexport const Qtn11ErrorModal = ({\r"
+    },
+    {
+      "file": "components\\export\\Qtn11ErrorModal.tsx",
+      "line": 92,
+      "codeLine": "{((item.missingDocDetails && item.missingDocDetails.length > 0) || item.missingDocs) && (",
+      "context": "                )}\r\n\r\n                {/* Missing Docs */}\r\n                {((item.missingDocDetails && item.missingDocDetails.length > 0) || item.missingDocs) && (\r\n                  <div className=\"space-y-1.5\">\r\n                    <div className=\"flex items-center gap-1.5 text-xs font-medium text-red-700 dark:text-red-400\">\r\n                      <FileX className=\"h-4 w-4\" />\r"
+    },
+    {
+      "file": "components\\export\\Qtn11ErrorModal.tsx",
+      "line": 99,
+      "codeLine": "{item.missingDocDetails && item.missingDocDetails.length > 0 ? (",
+      "context": "                      <span>Thiếu chứng từ / nhật ký:</span>\r\n                    </div>\r\n                    <div className=\"space-y-1 pl-5\">\r\n                      {item.missingDocDetails && item.missingDocDetails.length > 0 ? (\r\n                        item.missingDocDetails.map((doc, idx) => (\r\n                          <div key={idx} className=\"text-xs text-red-800 dark:text-red-300 flex items-start gap-1\">\r\n                            <span className=\"text-red-500\">•</span>\r"
+    },
+    {
+      "file": "components\\export\\Qtn11ErrorModal.tsx",
+      "line": 100,
+      "codeLine": "item.missingDocDetails.map((doc, idx) => (",
+      "context": "                    </div>\r\n                    <div className=\"space-y-1 pl-5\">\r\n                      {item.missingDocDetails && item.missingDocDetails.length > 0 ? (\r\n                        item.missingDocDetails.map((doc, idx) => (\r\n                          <div key={idx} className=\"text-xs text-red-800 dark:text-red-300 flex items-start gap-1\">\r\n                            <span className=\"text-red-500\">•</span>\r\n                            <span>{doc}</span>\r"
+    }
+  ],
+  "components\\farm-log\\AttachmentManager.tsx": [
+    {
+      "file": "components\\farm-log\\AttachmentManager.tsx",
+      "line": 2,
+      "codeLine": "import { Eye, Download, Trash2, Upload, File, FileText } from 'lucide-react';",
+      "context": "import { useEffect, useState, useCallback } from 'react';\r\nimport { Eye, Download, Trash2, Upload, File, FileText } from 'lucide-react';\r\nimport { Button } from '@/components/ui/button';\r\nimport { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';\r\nimport {\r"
+    },
+    {
+      "file": "components\\farm-log\\AttachmentManager.tsx",
+      "line": 283,
+      "codeLine": "<Eye className=\"h-10 w-10 mb-1 animate-pulse\" />",
+      "context": "                      />\r\n                    ) : (\r\n                      <div className=\"flex flex-col items-center text-muted-foreground\">\r\n                        <Eye className=\"h-10 w-10 mb-1 animate-pulse\" />\r\n                        <span className=\"text-xs\">Đang tải...</span>\r\n                      </div>\r\n                    )\r"
+    },
+    {
+      "file": "components\\farm-log\\AttachmentManager.tsx",
+      "line": 295,
+      "codeLine": "<Eye className=\"h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity\" />",
+      "context": "                  )}\r\n                  {/* Overlay on hover */}\r\n                  <div className=\"absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center\">\r\n                    <Eye className=\"h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity\" />\r\n                  </div>\r\n                </div>\r\n\r"
+    },
+    {
+      "file": "components\\farm-log\\AttachmentManager.tsx",
+      "line": 332,
+      "codeLine": "title=\"Xem\"",
+      "context": "                      className=\"h-8 w-8\"\r\n                      onClick={() => handleView(att)}\r\n                      disabled={viewingId === att.id}\r\n                      title=\"Xem\"\r\n                      aria-label={`Xem chứng từ ${att.fileName}`}\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r"
+    },
+    {
+      "file": "components\\farm-log\\AttachmentManager.tsx",
+      "line": 333,
+      "codeLine": "aria-label={`Xem chứng từ ${att.fileName}`}",
+      "context": "                      onClick={() => handleView(att)}\r\n                      disabled={viewingId === att.id}\r\n                      title=\"Xem\"\r\n                      aria-label={`Xem chứng từ ${att.fileName}`}\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r\n                    </Button>\r"
+    },
+    {
+      "file": "components\\farm-log\\AttachmentManager.tsx",
+      "line": 335,
+      "codeLine": "<Eye className=\"h-4 w-4\" />",
+      "context": "                      title=\"Xem\"\r\n                      aria-label={`Xem chứng từ ${att.fileName}`}\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r\n                    </Button>\r\n                    <Button\r\n                      variant=\"ghost\"\r"
+    }
+  ],
+  "components\\farm-log\\CreateFarmLogForm.tsx": [
+    {
+      "file": "components\\farm-log\\CreateFarmLogForm.tsx",
+      "line": 588,
+      "codeLine": "Ghi chú chi tiết",
+      "context": "                  htmlFor=\"notes\"\r\n                  className=\"font-semibold text-slate-800\"\r\n                >\r\n                  Ghi chú chi tiết\r\n                </Label>\r\n                <Textarea\r\n                  id=\"notes\"\r"
+    },
+    {
+      "file": "components\\farm-log\\CreateFarmLogForm.tsx",
+      "line": 593,
+      "codeLine": "placeholder=\"Mô tả chi tiết tình hình thời tiết, diện tích xử lý, phương pháp thực hiện...\"",
+      "context": "                <Textarea\r\n                  id=\"notes\"\r\n                  rows={3}\r\n                  placeholder=\"Mô tả chi tiết tình hình thời tiết, diện tích xử lý, phương pháp thực hiện...\"\r\n                  value={form.notes}\r\n                  onChange={(e) => updateField('notes', e.target.value)}\r\n                  className=\"border-slate-200 focus:border-emerald-600 focus:ring-emerald-100\"\r"
+    }
+  ],
+  "components\\farm-log\\FarmLogList.tsx": [
+    {
+      "file": "components\\farm-log\\FarmLogList.tsx",
+      "line": 34,
+      "codeLine": "import { DetailSection } from \"@/components/common/detail/DetailSection\";",
+      "context": "import type { FarmLog } from \"@/types/farmLog\";\r\nimport { useNavigate } from \"react-router-dom\";\r\nimport { AttachmentManager } from \"./AttachmentManager\";\r\nimport { DetailSection } from \"@/components/common/detail/DetailSection\";\r\nimport type { PageResponse } from \"@/types/common\";\r\n\r\n// 👇 Định nghĩa interface\r"
+    },
+    {
+      "file": "components\\farm-log\\FarmLogList.tsx",
+      "line": 120,
+      "codeLine": "// State row mở rộng: xem chi tiết + chứng từ inline",
+      "context": "  const [dateTo, setDateTo] = useState(\"\");\r\n  const [sortOrder, setSortOrder] = useState<\"asc\" | \"desc\">(\"desc\");\r\n\r\n  // State row mở rộng: xem chi tiết + chứng từ inline\r\n  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);\r\n\r\n  const goToCreateLog = () => {\r"
+    },
+    {
+      "file": "components\\farm-log\\FarmLogList.tsx",
+      "line": 395,
+      "codeLine": "? \"Thu gọn chi tiết nhật ký\"",
+      "context": "                              aria-controls={`farm-log-detail-${log.id}`}\r\n                              aria-label={\r\n                                isExpanded\r\n                                  ? \"Thu gọn chi tiết nhật ký\"\r\n                                  : \"Xem chi tiết & quản lý chứng từ nhật ký\"\r\n                              }\r\n                              title={\r"
+    },
+    {
+      "file": "components\\farm-log\\FarmLogList.tsx",
+      "line": 396,
+      "codeLine": ": \"Xem chi tiết & quản lý chứng từ nhật ký\"",
+      "context": "                              aria-label={\r\n                                isExpanded\r\n                                  ? \"Thu gọn chi tiết nhật ký\"\r\n                                  : \"Xem chi tiết & quản lý chứng từ nhật ký\"\r\n                              }\r\n                              title={\r\n                                isExpanded\r"
+    },
+    {
+      "file": "components\\farm-log\\FarmLogList.tsx",
+      "line": 400,
+      "codeLine": "? \"Thu gọn chi tiết\"",
+      "context": "                              }\r\n                              title={\r\n                                isExpanded\r\n                                  ? \"Thu gọn chi tiết\"\r\n                                  : \"Xem chi tiết & quản lý chứng từ\"\r\n                              }\r\n                            >\r"
+    },
+    {
+      "file": "components\\farm-log\\FarmLogList.tsx",
+      "line": 401,
+      "codeLine": ": \"Xem chi tiết & quản lý chứng từ\"",
+      "context": "                              title={\r\n                                isExpanded\r\n                                  ? \"Thu gọn chi tiết\"\r\n                                  : \"Xem chi tiết & quản lý chứng từ\"\r\n                              }\r\n                            >\r\n                              <Paperclip className=\"h-4 w-4\" />\r"
+    },
+    {
+      "file": "components\\farm-log\\FarmLogList.tsx",
+      "line": 424,
+      "codeLine": "<DetailSection title=\"Ghi chú\">",
+      "context": "                            >\r\n                              <div className=\"space-y-4\">\r\n                                {log.notes && (\r\n                                  <DetailSection title=\"Ghi chú\">\r\n                                    <p className=\"whitespace-pre-wrap text-sm\">\r\n                                      {log.notes}\r\n                                    </p>\r"
+    },
+    {
+      "file": "components\\farm-log\\FarmLogList.tsx",
+      "line": 428,
+      "codeLine": "</DetailSection>",
+      "context": "                                    <p className=\"whitespace-pre-wrap text-sm\">\r\n                                      {log.notes}\r\n                                    </p>\r\n                                  </DetailSection>\r\n                                )}\r\n\r\n                                <DetailSection\r"
+    },
+    {
+      "file": "components\\farm-log\\FarmLogList.tsx",
+      "line": 431,
+      "codeLine": "<DetailSection",
+      "context": "                                  </DetailSection>\r\n                                )}\r\n\r\n                                <DetailSection\r\n                                  title=\"Chứng từ\"\r\n                                  contentClassName=\"bg-card\"\r\n                                >\r"
+    },
+    {
+      "file": "components\\farm-log\\FarmLogList.tsx",
+      "line": 439,
+      "codeLine": "</DetailSection>",
+      "context": "                                    logId={log.id}\r\n                                    onUpdate={loadLogs}\r\n                                  />\r\n                                </DetailSection>\r\n                              </div>\r\n                            </TableCell>\r\n                          </TableRow>\r"
+    }
+  ],
+  "components\\notification\\NotificationPanel.tsx": [
+    {
+      "file": "components\\notification\\NotificationPanel.tsx",
+      "line": 131,
+      "codeLine": "Xem tất cả",
+      "context": "          to=\"/notifications\"\r\n          className=\"block text-center text-sm font-medium text-primary hover:text-primary-hover\"\r\n        >\r\n          Xem tất cả\r\n        </Link>\r\n      </div>\r\n    </div>\r"
+    }
+  ],
+  "components\\organization\\CreateMemberForm.tsx": [
+    {
+      "file": "components\\organization\\CreateMemberForm.tsx",
+      "line": 7,
+      "codeLine": "import { Eye, EyeOff } from 'lucide-react';",
+      "context": "import { zodResolver } from '@hookform/resolvers/zod';\r\nimport { z } from 'zod';\r\nimport { toast } from 'sonner';\r\nimport { Eye, EyeOff } from 'lucide-react';\r\nimport { Button } from '@/components/ui/button';\r\nimport { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';\r\nimport { Input } from '@/components/ui/input';\r"
+    },
+    {
+      "file": "components\\organization\\CreateMemberForm.tsx",
+      "line": 161,
+      "codeLine": "{showPassword ? <EyeOff className=\"size-4\" /> : <Eye className=\"size-4\" />}",
+      "context": "                aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}\r\n                className=\"absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground hover:text-foreground\"\r\n              >\r\n                {showPassword ? <EyeOff className=\"size-4\" /> : <Eye className=\"size-4\" />}\r\n              </button>\r\n            </div>\r\n            <p className=\"text-xs text-muted-foreground\">\r"
+    },
+    {
+      "file": "components\\organization\\CreateMemberForm.tsx",
+      "line": 188,
+      "codeLine": "{showConfirmPassword ? <EyeOff className=\"size-4\" /> : <Eye className=\"size-4\" />}",
+      "context": "                aria-label={showConfirmPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}\r\n                className=\"absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground hover:text-foreground\"\r\n              >\r\n                {showConfirmPassword ? <EyeOff className=\"size-4\" /> : <Eye className=\"size-4\" />}\r\n              </button>\r\n            </div>\r\n            {errors.confirmPassword && <p className=\"text-sm text-red-500\">{errors.confirmPassword.message}</p>}\r"
+    }
+  ],
+  "components\\organization\\CreateOrganizationForm.tsx": [
+    {
+      "file": "components\\organization\\CreateOrganizationForm.tsx",
+      "line": 8,
+      "codeLine": "import { Eye, EyeOff, Building2, UserRound, ShieldCheck, Plus } from 'lucide-react';",
+      "context": "import { createOrganization } from '@/api/organizationApi';\r\nimport { toast } from 'sonner';\r\nimport { useNavigate } from 'react-router-dom';\r\nimport { Eye, EyeOff, Building2, UserRound, ShieldCheck, Plus } from 'lucide-react';\r\nimport { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';\r\nimport { Label } from '@/components/ui/label';\r\nimport { Input } from '@/components/ui/input';\r"
+    },
+    {
+      "file": "components\\organization\\CreateOrganizationForm.tsx",
+      "line": 251,
+      "codeLine": "{showPassword ? <EyeOff className=\"h-4 w-4\" /> : <Eye className=\"h-4 w-4\" />}",
+      "context": "                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}\r\n                    className=\"absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground\"\r\n                  >\r\n                    {showPassword ? <EyeOff className=\"h-4 w-4\" /> : <Eye className=\"h-4 w-4\" />}\r\n                  </button>\r\n                </div>\r\n                {errors.password && (\r"
+    },
+    {
+      "file": "components\\organization\\CreateOrganizationForm.tsx",
+      "line": 292,
+      "codeLine": "{showConfirmPassword ? <EyeOff className=\"h-4 w-4\" /> : <Eye className=\"h-4 w-4\" />}",
+      "context": "                    aria-label={showConfirmPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}\r\n                    className=\"absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground\"\r\n                  >\r\n                    {showConfirmPassword ? <EyeOff className=\"h-4 w-4\" /> : <Eye className=\"h-4 w-4\" />}\r\n                  </button>\r\n                </div>\r\n                {errors.confirmPassword && (\r"
+    }
+  ],
+  "components\\organization\\OrganizationDetail.tsx": [
+    {
+      "file": "components\\organization\\OrganizationDetail.tsx",
+      "line": 14,
+      "codeLine": "getOrganizationDetail,",
+      "context": "} from \"@/components/ui/table\";\r\nimport { Badge } from \"@/components/ui/badge\";\r\nimport {\r\n  getOrganizationDetail,\r\n  createOrganizationMember,\r\n} from \"@/api/organizationApi\";\r\nimport type { OrganizationDetailResponse } from \"@/types/organization\";\r"
+    },
+    {
+      "file": "components\\organization\\OrganizationDetail.tsx",
+      "line": 17,
+      "codeLine": "import type { OrganizationDetailResponse } from \"@/types/organization\";",
+      "context": "  getOrganizationDetail,\r\n  createOrganizationMember,\r\n} from \"@/api/organizationApi\";\r\nimport type { OrganizationDetailResponse } from \"@/types/organization\";\r\nimport { Plus } from \"lucide-react\";\r\nimport type { AddMemberRequest } from \"@/types/organization\";\r\nimport {\r"
+    },
+    {
+      "file": "components\\organization\\OrganizationDetail.tsx",
+      "line": 72,
+      "codeLine": "export function OrganizationDetail() {",
+      "context": "  return <Badge className={`${colorClasses} ml-2`}>{label}</Badge>;\r\n};\r\n\r\nexport function OrganizationDetail() {\r\n  const { id } = useParams();\r\n\r\n  const [data, setData] = useState<OrganizationDetailResponse | null>(null);\r"
+    },
+    {
+      "file": "components\\organization\\OrganizationDetail.tsx",
+      "line": 75,
+      "codeLine": "const [data, setData] = useState<OrganizationDetailResponse | null>(null);",
+      "context": "export function OrganizationDetail() {\r\n  const { id } = useParams();\r\n\r\n  const [data, setData] = useState<OrganizationDetailResponse | null>(null);\r\n  const [loading, setLoading] = useState(true);\r\n  const [submitting, setSubmitting] = useState(false);\r\n  const [openCreate, setOpenCreate] = useState(false);\r"
+    },
+    {
+      "file": "components\\organization\\OrganizationDetail.tsx",
+      "line": 82,
+      "codeLine": "const fetchOrganizationDetail = async () => {",
+      "context": "  const [openAddExisting, setOpenAddExisting] = useState(false);\r\n\r\n  // Hàm fetch dữ liệu\r\n  const fetchOrganizationDetail = async () => {\r\n    if (!id) return;\r\n    try {\r\n      setLoading(true);\r"
+    },
+    {
+      "file": "components\\organization\\OrganizationDetail.tsx",
+      "line": 86,
+      "codeLine": "const detail = await getOrganizationDetail(id);",
+      "context": "    if (!id) return;\r\n    try {\r\n      setLoading(true);\r\n      const detail = await getOrganizationDetail(id);\r\n      setData(detail);\r\n    } catch (error) {\r\n      toast.error(\"Không thể tải thông tin tổ chức\");\r"
+    },
+    {
+      "file": "components\\organization\\OrganizationDetail.tsx",
+      "line": 96,
+      "codeLine": "fetchOrganizationDetail();",
+      "context": "  };\r\n\r\n  useEffect(() => {\r\n    fetchOrganizationDetail();\r\n  }, [id]);\r\n\r\n  const handleCreateMember = async (\r"
+    },
+    {
+      "file": "components\\organization\\OrganizationDetail.tsx",
+      "line": 116,
+      "codeLine": "await fetchOrganizationDetail();",
+      "context": "    try {\r\n      setSubmitting(true);\r\n      await createOrganizationMember(id, payload);\r\n      await fetchOrganizationDetail();\r\n      setOpenCreate(false);\r\n      toast.success(\"Thêm tài khoản thành công\");\r\n    } catch (error: any) {\r"
+    },
+    {
+      "file": "components\\organization\\OrganizationDetail.tsx",
+      "line": 245,
+      "codeLine": "onSuccess={fetchOrganizationDetail}",
+      "context": "          open={openAddExisting}\r\n          onOpenChange={setOpenAddExisting}\r\n          organizationId={data.profile.organizationId}\r\n          onSuccess={fetchOrganizationDetail}\r\n          availableRoles={availableRoles}\r\n        />\r\n      )}\r"
+    }
+  ],
+  "components\\production-lot\\ImportProductionLotForm.tsx": [
+    {
+      "file": "components\\production-lot\\ImportProductionLotForm.tsx",
+      "line": 1086,
+      "codeLine": "Chi tiết lỗi",
+      "context": "                0 && (\r\n                  <div>\r\n                    <h4 className=\"mb-2 font-medium\">\r\n                      Chi tiết lỗi\r\n                      theo dòng\r\n                    </h4>\r\n\r"
+    },
+    {
+      "file": "components\\production-lot\\ImportProductionLotForm.tsx",
+      "line": 1231,
+      "codeLine": "? 'Xem danh sách lô'",
+      "context": "                >\r\n                  {result.status ===\r\n                    'SUCCESS'\r\n                    ? 'Xem danh sách lô'\r\n                    : 'Đóng'}\r\n                </Button>\r\n              </DialogFooter>\r"
+    }
+  ],
+  "components\\production-lot\\ProductionLotList.tsx": [
+    {
+      "file": "components\\production-lot\\ProductionLotList.tsx",
+      "line": 266,
+      "codeLine": "\"Chi tiết\",",
+      "context": "                    \"Nông sản\",\r\n                    \"Trạng thái\",\r\n                    \"Thao tác\",\r\n                    \"Chi tiết\",\r\n                  ].map((title) => (\r\n                    <TableHead\r\n                      key={title}\r"
+    },
+    {
+      "file": "components\\production-lot\\ProductionLotList.tsx",
+      "line": 271,
+      "codeLine": "title === \"Thao tác\" || title === \"Chi tiết\"",
+      "context": "                    <TableHead\r\n                      key={title}\r\n                      className={`text-emerald-800 font-semibold${\r\n                        title === \"Thao tác\" || title === \"Chi tiết\"\r\n                          ? \" text-center\"\r\n                          : \"\"\r\n                      }`}\r"
+    },
+    {
+      "file": "components\\production-lot\\ProductionLotList.tsx",
+      "line": 404,
+      "codeLine": "Chi tiết",
+      "context": "                              navigate(`/production-lots/${lot.id}`)\r\n                            }\r\n                          >\r\n                            Chi tiết\r\n                          </Button>\r\n                        </TableCell>\r\n                      </TableRow>\r"
+    }
+  ],
+  "components\\public\\RouteMap.tsx": [
+    {
+      "file": "components\\public\\RouteMap.tsx",
+      "line": 153,
+      "codeLine": "<span>Click marker để xem chi tiết</span>",
+      "context": "      <div ref={mapRef} style={{ height: '450px', width: '100%' }} />\r\n      <div className=\"p-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-400 flex justify-between\">\r\n        <span>{locationEvents.length} điểm hành trình</span>\r\n        <span>Click marker để xem chi tiết</span>\r\n      </div>\r\n    </div>\r\n  );\r"
+    }
+  ],
+  "components\\report\\IndustryReportFilter.tsx": [
+    {
+      "file": "components\\report\\IndustryReportFilter.tsx",
+      "line": 75,
+      "codeLine": "<Search className=\"h-4 w-4 mr-1\" /> Xem báo cáo",
+      "context": "                disabled={loading || !region || !fromDate || !toDate}\r\n                variant=\"view\"\r\n              >\r\n                <Search className=\"h-4 w-4 mr-1\" /> Xem báo cáo\r\n              </Button>\r\n              <Button type=\"button\" variant=\"outline\" onClick={handleReset} disabled={loading}>\r\n                <X className=\"h-4 w-4 mr-1\" /> Xóa\r"
+    }
+  ],
+  "components\\report\\IndustryReportPanel.tsx": [
+    {
+      "file": "components\\report\\IndustryReportPanel.tsx",
+      "line": 225,
+      "codeLine": "{isLoading ? 'Đang xem...' : 'Xem báo cáo'}",
+      "context": "                ) : (\r\n                  <SearchCheck className=\"size-4\" />\r\n                )}\r\n                {isLoading ? 'Đang xem...' : 'Xem báo cáo'}\r\n              </Button>\r\n            </div>\r\n          </div>\r"
+    },
+    {
+      "file": "components\\report\\IndustryReportPanel.tsx",
+      "line": 307,
+      "codeLine": "<p className=\"mb-2 text-sm font-semibold\">Chi tiết theo nhóm nông sản</p>",
+      "context": "\r\n            {report.productBreakdown.length > 0 && (\r\n              <div>\r\n                <p className=\"mb-2 text-sm font-semibold\">Chi tiết theo nhóm nông sản</p>\r\n                <Table>\r\n                  <TableHeader>\r\n                    <TableRow>\r"
+    }
+  ],
+  "components\\report\\SeasonYieldComparisonTable.tsx": [
+    {
+      "file": "components\\report\\SeasonYieldComparisonTable.tsx",
+      "line": 58,
+      "codeLine": "<CardTitle>Chi tiết so sánh</CardTitle>",
+      "context": "  return (\r\n    <Card>\r\n      <CardHeader>\r\n        <CardTitle>Chi tiết so sánh</CardTitle>\r\n        <CardDescription>\r\n          Chênh lệch được tính so với mùa vụ gốc do backend lựa chọn.\r\n        </CardDescription>\r"
+    }
+  ],
+  "components\\report\\StatisticsSummary.tsx": [
+    {
+      "file": "components\\report\\StatisticsSummary.tsx",
+      "line": 2,
+      "codeLine": "import { Eye, QrCode, AlertTriangle } from 'lucide-react';",
+      "context": "import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';\r\nimport { Eye, QrCode, AlertTriangle } from 'lucide-react';\r\nimport type { SummaryStats } from '@/types/lookupStatistics';\r\n\r\ninterface Props {\r"
+    },
+    {
+      "file": "components\\report\\StatisticsSummary.tsx",
+      "line": 14,
+      "codeLine": "icon: Eye,",
+      "context": "    {\r\n      label: 'Tổng lượt quét',\r\n      value: stats.totalScans.toLocaleString('vi-VN'),\r\n      icon: Eye,\r\n      color: 'text-info',\r\n      bg: 'bg-info-bg',\r\n    },\r"
+    }
+  ],
+  "components\\shipment\\ProcurementShipmentList.tsx": [
+    {
+      "file": "components\\shipment\\ProcurementShipmentList.tsx",
+      "line": 25,
+      "codeLine": "Eye,",
+      "context": "import { usePermission } from \"@/hooks/usePermission\";\r\nimport { useNavigate } from \"react-router-dom\";\r\nimport {\r\n  Eye,\r\n  FileJson,\r\n  LoaderCircle,\r\n  Package,\r"
+    },
+    {
+      "file": "components\\shipment\\ProcurementShipmentList.tsx",
+      "line": 48,
+      "codeLine": "// Điều hướng tới trang chi tiết lô hàng. ProcurementShipment không chứa",
+      "context": "  const [search, setSearch] = useState(\"\");\r\n  const navigate = useNavigate();\r\n\r\n  // Điều hướng tới trang chi tiết lô hàng. ProcurementShipment không chứa\r\n  // productionLotId nên cần lấy chi tiết trước để xây dựng route đầy đủ\r\n  // /production-lots/:lotId/shipments/:shipmentId (back button hoạt động).\r\n  const handleViewDetail = async (shipmentId: string) => {\r"
+    },
+    {
+      "file": "components\\shipment\\ProcurementShipmentList.tsx",
+      "line": 49,
+      "codeLine": "// productionLotId nên cần lấy chi tiết trước để xây dựng route đầy đủ",
+      "context": "  const navigate = useNavigate();\r\n\r\n  // Điều hướng tới trang chi tiết lô hàng. ProcurementShipment không chứa\r\n  // productionLotId nên cần lấy chi tiết trước để xây dựng route đầy đủ\r\n  // /production-lots/:lotId/shipments/:shipmentId (back button hoạt động).\r\n  const handleViewDetail = async (shipmentId: string) => {\r\n    try {\r"
+    },
+    {
+      "file": "components\\shipment\\ProcurementShipmentList.tsx",
+      "line": 51,
+      "codeLine": "const handleViewDetail = async (shipmentId: string) => {",
+      "context": "  // Điều hướng tới trang chi tiết lô hàng. ProcurementShipment không chứa\r\n  // productionLotId nên cần lấy chi tiết trước để xây dựng route đầy đủ\r\n  // /production-lots/:lotId/shipments/:shipmentId (back button hoạt động).\r\n  const handleViewDetail = async (shipmentId: string) => {\r\n    try {\r\n      const data = await getShipmentById(shipmentId);\r\n\r"
+    },
+    {
+      "file": "components\\shipment\\ProcurementShipmentList.tsx",
+      "line": 64,
+      "codeLine": "toast.error(\"Không thể tải chi tiết lô hàng.\");",
+      "context": "        `/production-lots/${data.productionLotId}/shipments/${shipmentId}`,\r\n      );\r\n    } catch {\r\n      toast.error(\"Không thể tải chi tiết lô hàng.\");\r\n    }\r\n  };\r\n\r"
+    },
+    {
+      "file": "components\\shipment\\ProcurementShipmentList.tsx",
+      "line": 167,
+      "codeLine": "\"Chi tiết\",",
+      "context": "                      \"Sản lượng\",\r\n                      \"Trạng thái\",\r\n                      \"Thao tác\",\r\n                      \"Chi tiết\",\r\n                    ].map((title) => (\r\n                        <TableHead\r\n                            key={title}\r"
+    },
+    {
+      "file": "components\\shipment\\ProcurementShipmentList.tsx",
+      "line": 172,
+      "codeLine": "title === \"Thao tác\" || title === \"Chi tiết\"",
+      "context": "                        <TableHead\r\n                            key={title}\r\n                            className={\r\n                              title === \"Thao tác\" || title === \"Chi tiết\"\r\n                                  ? \"text-center\"\r\n                                  : undefined\r\n                            }\r"
+    },
+    {
+      "file": "components\\shipment\\ProcurementShipmentList.tsx",
+      "line": 254,
+      "codeLine": "onClick={() => handleViewDetail(shipment.id)}",
+      "context": "                                  size=\"sm\"\r\n                                  type=\"button\"\r\n                                  variant=\"outline\"\r\n                                  onClick={() => handleViewDetail(shipment.id)}\r\n                              >\r\n                                <Eye className=\"mr-1 size-4\" />\r\n                                Chi tiết\r"
+    },
+    {
+      "file": "components\\shipment\\ProcurementShipmentList.tsx",
+      "line": 256,
+      "codeLine": "<Eye className=\"mr-1 size-4\" />",
+      "context": "                                  variant=\"outline\"\r\n                                  onClick={() => handleViewDetail(shipment.id)}\r\n                              >\r\n                                <Eye className=\"mr-1 size-4\" />\r\n                                Chi tiết\r\n                              </Button>\r\n                            </TableCell>\r"
+    },
+    {
+      "file": "components\\shipment\\ProcurementShipmentList.tsx",
+      "line": 257,
+      "codeLine": "Chi tiết",
+      "context": "                                  onClick={() => handleViewDetail(shipment.id)}\r\n                              >\r\n                                <Eye className=\"mr-1 size-4\" />\r\n                                Chi tiết\r\n                              </Button>\r\n                            </TableCell>\r\n                          </TableRow>\r"
+    }
+  ],
+  "components\\shipment\\QrCodeGrid.tsx": [
+    {
+      "file": "components\\shipment\\QrCodeGrid.tsx",
+      "line": 135,
+      "codeLine": "Xem mã QR ở kích thước lớn.",
+      "context": "            <DialogHeader>\r\n              <DialogTitle>Mã QR: {preview.code}</DialogTitle>\r\n              <DialogDescription>\r\n                Xem mã QR ở kích thước lớn.\r\n              </DialogDescription>\r\n            </DialogHeader>\r\n            <img\r"
+    }
+  ],
+  "components\\shipment\\ShipmentDetailDialog.tsx": [
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 22,
+      "codeLine": "import { DetailSection } from \"@/components/common/detail/DetailSection\";",
+      "context": "import { maskId } from \"@/lib/utils\";\r\nimport { QrCodeGrid } from \"./QrCodeGrid\";\r\nimport { ShipmentStatusBadge } from \"./ShipmentStatusBadge\";\r\nimport { DetailSection } from \"@/components/common/detail/DetailSection\";\r\nimport { DetailField } from \"@/components/common/detail/DetailField\";\r\n\r\ninterface ShipmentDetailDialogProps {\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 23,
+      "codeLine": "import { DetailField } from \"@/components/common/detail/DetailField\";",
+      "context": "import { QrCodeGrid } from \"./QrCodeGrid\";\r\nimport { ShipmentStatusBadge } from \"./ShipmentStatusBadge\";\r\nimport { DetailSection } from \"@/components/common/detail/DetailSection\";\r\nimport { DetailField } from \"@/components/common/detail/DetailField\";\r\n\r\ninterface ShipmentDetailDialogProps {\r\n  open: boolean;\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 25,
+      "codeLine": "interface ShipmentDetailDialogProps {",
+      "context": "import { DetailSection } from \"@/components/common/detail/DetailSection\";\r\nimport { DetailField } from \"@/components/common/detail/DetailField\";\r\n\r\ninterface ShipmentDetailDialogProps {\r\n  open: boolean;\r\n  shipment: Shipment | null;\r\n  onClose: () => void;\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 49,
+      "codeLine": "export const ShipmentDetailDialog = ({",
+      "context": "  return date.toLocaleString(\"vi-VN\");\r\n};\r\n\r\nexport const ShipmentDetailDialog = ({\r\n  open,\r\n  shipment,\r\n  onClose,\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 60,
+      "codeLine": "}: ShipmentDetailDialogProps) => {",
+      "context": "  onExportDossier,\r\n  onDeleteDraft,\r\n  onViewTimeline,\r\n}: ShipmentDetailDialogProps) => {\r\n  // Derive action visibility from shipment status & permissions\r\n  const showActivate =\r\n    canActivate && shipment?.status === \"CODE_PRINTED\";\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 80,
+      "codeLine": "<DialogTitle>Chi tiết lô hàng</DialogTitle>",
+      "context": "    >\r\n      <DialogContent className=\"flex max-h-[90vh] w-[95vw] max-w-6xl flex-col overflow-hidden\">\r\n        <DialogHeader>\r\n          <DialogTitle>Chi tiết lô hàng</DialogTitle>\r\n          <DialogDescription>\r\n            Thông tin chi tiết và mã QR của lô hàng.\r\n          </DialogDescription>\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 82,
+      "codeLine": "Thông tin chi tiết và mã QR của lô hàng.",
+      "context": "        <DialogHeader>\r\n          <DialogTitle>Chi tiết lô hàng</DialogTitle>\r\n          <DialogDescription>\r\n            Thông tin chi tiết và mã QR của lô hàng.\r\n          </DialogDescription>\r\n        </DialogHeader>\r\n\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 132,
+      "codeLine": "<DetailSection",
+      "context": "              >\r\n                <div className=\"space-y-4\">\r\n                  {/* Shipment information */}\r\n                  <DetailSection\r\n                    title=\"Thông tin lô hàng\"\r\n                    contentClassName=\"grid gap-3 sm:grid-cols-2\"\r\n                  >\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 136,
+      "codeLine": "<DetailField",
+      "context": "                    title=\"Thông tin lô hàng\"\r\n                    contentClassName=\"grid gap-3 sm:grid-cols-2\"\r\n                  >\r\n                    <DetailField\r\n                      label=\"Lô sản xuất\"\r\n                      value={shipment.productionLotName || undefined}\r\n                    />\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 140,
+      "codeLine": "<DetailField",
+      "context": "                      label=\"Lô sản xuất\"\r\n                      value={shipment.productionLotName || undefined}\r\n                    />\r\n                    <DetailField\r\n                      label=\"ID lô sản xuất\"\r\n                      mono\r\n                      value={maskId(shipment.productionLotId)}\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 145,
+      "codeLine": "<DetailField",
+      "context": "                      mono\r\n                      value={maskId(shipment.productionLotId)}\r\n                    />\r\n                    <DetailField\r\n                      label=\"Số lượng\"\r\n                      value={shipment.totalQuantity.toLocaleString(\"vi-VN\")}\r\n                    />\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 149,
+      "codeLine": "<DetailField",
+      "context": "                      label=\"Số lượng\"\r\n                      value={shipment.totalQuantity.toLocaleString(\"vi-VN\")}\r\n                    />\r\n                    <DetailField\r\n                      label=\"Quy cách đóng gói\"\r\n                      value={\r\n                        shipment.packagingInfo ? (\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 159,
+      "codeLine": "<DetailField",
+      "context": "                        ) : undefined\r\n                      }\r\n                    />\r\n                    <DetailField\r\n                      label=\"Số mã truy xuất\"\r\n                      value={shipment.traceCodes.length.toLocaleString(\"vi-VN\")}\r\n                    />\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 163,
+      "codeLine": "</DetailSection>",
+      "context": "                      label=\"Số mã truy xuất\"\r\n                      value={shipment.traceCodes.length.toLocaleString(\"vi-VN\")}\r\n                    />\r\n                  </DetailSection>\r\n\r\n                  {/* Recording metadata */}\r\n                  <DetailSection title=\"Thông tin ghi nhận\">\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 166,
+      "codeLine": "<DetailSection title=\"Thông tin ghi nhận\">",
+      "context": "                  </DetailSection>\r\n\r\n                  {/* Recording metadata */}\r\n                  <DetailSection title=\"Thông tin ghi nhận\">\r\n                    <div className=\"grid gap-3 sm:grid-cols-2\">\r\n                      <DetailField\r\n                        label=\"Người tạo\"\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 168,
+      "codeLine": "<DetailField",
+      "context": "                  {/* Recording metadata */}\r\n                  <DetailSection title=\"Thông tin ghi nhận\">\r\n                    <div className=\"grid gap-3 sm:grid-cols-2\">\r\n                      <DetailField\r\n                        label=\"Người tạo\"\r\n                        value={shipment.createdByName || undefined}\r\n                      />\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 172,
+      "codeLine": "<DetailField",
+      "context": "                        label=\"Người tạo\"\r\n                        value={shipment.createdByName || undefined}\r\n                      />\r\n                      <DetailField\r\n                        label=\"Ngày tạo\"\r\n                        value={formatDateTime(shipment.createdAt)}\r\n                      />\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+      "line": 177,
+      "codeLine": "</DetailSection>",
+      "context": "                        value={formatDateTime(shipment.createdAt)}\r\n                      />\r\n                    </div>\r\n                  </DetailSection>\r\n                </div>\r\n              </TabsContent>\r\n\r"
+    }
+  ],
+  "components\\shipment\\ShipmentStatusBadge.tsx": [
+    {
+      "file": "components\\shipment\\ShipmentStatusBadge.tsx",
+      "line": 18,
+      "codeLine": "* subtle border already used by ShipmentDetailPage.",
+      "context": "/**\r\n * Presentation-only mapping using the project's --status-* design tokens.\r\n * Colors mirror the existing pills (bg-status-x/10 + text-status-x), with the\r\n * subtle border already used by ShipmentDetailPage.\r\n */\r\nconst SHIPMENT_STATUS_CLASSES: Record<ShipmentStatus, string> = {\r\n  DRAFT: \"bg-status-draft/10 text-status-draft border-status-draft/20\",\r"
+    },
+    {
+      "file": "components\\shipment\\ShipmentStatusBadge.tsx",
+      "line": 38,
+      "codeLine": "* ShipmentDetailDialog, ShipmentDetailPage, ShipmentList and",
+      "context": "/**\r\n * Single presentation component for shipment statuses.\r\n * Replaces the duplicated label/class maps previously kept independently in\r\n * ShipmentDetailDialog, ShipmentDetailPage, ShipmentList and\r\n * ProcurementShipmentList. It intentionally contains NO permission or business\r\n * logic — authorization stays with callers (usePermission / ROLE_ACCESS).\r\n */\r"
+    }
+  ],
+  "components\\shipment\\ShipmentTimelineContent.tsx": [
+    {
+      "file": "components\\shipment\\ShipmentTimelineContent.tsx",
+      "line": 16,
+      "codeLine": "* ShipmentDetailPage potentially later) keep their own lifecycle and pass",
+      "context": " * states plus the vertical event stepper.\r\n *\r\n * Owns no data fetching — callers (ShipmentTimelineDialog today,\r\n * ShipmentDetailPage potentially later) keep their own lifecycle and pass\r\n * resolved state down. Rendering is identical to what previously lived\r\n * inline in ShipmentTimelineDialog.\r\n */\r"
+    }
+  ],
+  "components\\shipment\\ShipmentTimelineItem.tsx": [
+    {
+      "file": "components\\shipment\\ShipmentTimelineItem.tsx",
+      "line": 105,
+      "codeLine": "{/* Event Details */}",
+      "context": "          <div className=\"my-3 border-t border-gray-100\" />\r\n        )}\r\n\r\n        {/* Event Details */}\r\n        {dataEntries.length > 0 && (\r\n          <div className=\"space-y-1.5\">\r\n            {dataEntries.map(([key, value]) => {\r"
+    }
+  ],
+  "pages\\admin\\SuspectTraceCodeDetailPage.tsx": [
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 3,
+      "codeLine": "import { getSuspectDetail } from '@/api/suspectTraceCodeApi';",
+      "context": "import { useEffect, useState } from 'react';\r\nimport { useNavigate, useParams } from 'react-router-dom';\r\nimport { getSuspectDetail } from '@/api/suspectTraceCodeApi';\r\nimport { Badge } from '@/components/ui/badge';\r\nimport { Button } from '@/components/ui/button';\r\nimport { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 15,
+      "codeLine": "import type { SuspectTraceCodeDetailResponse } from '@/types/suspectTraceCode';",
+      "context": "  TableHeader,\r\n  TableRow,\r\n} from '@/components/ui/table';\r\nimport type { SuspectTraceCodeDetailResponse } from '@/types/suspectTraceCode';\r\nimport {\r\n  AlertTriangle,\r\n  Clock,\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 40,
+      "codeLine": "export default function SuspectTraceCodeDetailPage() {",
+      "context": "  });\r\n};\r\n\r\nexport default function SuspectTraceCodeDetailPage() {\r\n  const { traceCodeId } = useParams<{ traceCodeId: string }>();\r\n  const navigate = useNavigate();\r\n  const [detail, setDetail] = useState<SuspectTraceCodeDetailResponse | null>(null);\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 43,
+      "codeLine": "const [detail, setDetail] = useState<SuspectTraceCodeDetailResponse | null>(null);",
+      "context": "export default function SuspectTraceCodeDetailPage() {\r\n  const { traceCodeId } = useParams<{ traceCodeId: string }>();\r\n  const navigate = useNavigate();\r\n  const [detail, setDetail] = useState<SuspectTraceCodeDetailResponse | null>(null);\r\n  const [loading, setLoading] = useState(true);\r\n  const [showLockDialog, setShowLockDialog] = useState(false);\r\n\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 47,
+      "codeLine": "const fetchDetail = async () => {",
+      "context": "  const [loading, setLoading] = useState(true);\r\n  const [showLockDialog, setShowLockDialog] = useState(false);\r\n\r\n  const fetchDetail = async () => {\r\n    if (!traceCodeId) return;\r\n    try {\r\n      setLoading(true);\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 51,
+      "codeLine": "const data = await getSuspectDetail(traceCodeId);",
+      "context": "    if (!traceCodeId) return;\r\n    try {\r\n      setLoading(true);\r\n      const data = await getSuspectDetail(traceCodeId);\r\n      setDetail(data);\r\n    } catch (error: any) {\r\n      toast.error(\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 52,
+      "codeLine": "setDetail(data);",
+      "context": "    try {\r\n      setLoading(true);\r\n      const data = await getSuspectDetail(traceCodeId);\r\n      setDetail(data);\r\n    } catch (error: any) {\r\n      toast.error(\r\n        error.response?.data?.message || 'Không thể tải chi tiết mã tem',\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 55,
+      "codeLine": "error.response?.data?.message || 'Không thể tải chi tiết mã tem',",
+      "context": "      setDetail(data);\r\n    } catch (error: any) {\r\n      toast.error(\r\n        error.response?.data?.message || 'Không thể tải chi tiết mã tem',\r\n      );\r\n      navigate('/admin/suspect-trace-codes');\r\n    } finally {\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 64,
+      "codeLine": "fetchDetail();",
+      "context": "  };\r\n\r\n  useEffect(() => {\r\n    fetchDetail();\r\n  }, [traceCodeId]);\r\n\r\n  if (loading) {\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 97,
+      "codeLine": "<h1 className=\"text-2xl font-bold\">Chi tiết mã tem nghi vấn</h1>",
+      "context": "            <ShieldAlert className=\"h-6 w-6\" />\r\n          </div>\r\n          <div>\r\n            <h1 className=\"text-2xl font-bold\">Chi tiết mã tem nghi vấn</h1>\r\n            <p className=\"text-sm text-muted-foreground font-mono\">\r\n              {detail.codeValue}\r\n            </p>\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 146,
+      "codeLine": "<p className=\"text-2xl font-bold\">{detail.anomalyDetails.totalScans}</p>",
+      "context": "          <CardContent className=\"flex items-center justify-between p-4\">\r\n            <div>\r\n              <p className=\"text-sm text-muted-foreground\">Lượt quét (24h)</p>\r\n              <p className=\"text-2xl font-bold\">{detail.anomalyDetails.totalScans}</p>\r\n            </div>\r\n            <ScanLine className=\"h-8 w-8 text-blue-500\" />\r\n          </CardContent>\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 155,
+      "codeLine": "<p className=\"text-2xl font-bold\">{detail.anomalyDetails.uniqueLocations}</p>",
+      "context": "          <CardContent className=\"flex items-center justify-between p-4\">\r\n            <div>\r\n              <p className=\"text-sm text-muted-foreground\">Địa điểm</p>\r\n              <p className=\"text-2xl font-bold\">{detail.anomalyDetails.uniqueLocations}</p>\r\n            </div>\r\n            <MapPin className=\"h-8 w-8 text-emerald-500\" />\r\n          </CardContent>\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 220,
+      "codeLine": "<CardTitle className=\"text-base\">Chi tiết điểm nghi vấn</CardTitle>",
+      "context": "      {/* Score Breakdown */}\r\n      <Card>\r\n        <CardHeader>\r\n          <CardTitle className=\"text-base\">Chi tiết điểm nghi vấn</CardTitle>\r\n        </CardHeader>\r\n        <CardContent>\r\n          <div className=\"space-y-3\">\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 229,
+      "codeLine": "<Badge variant={detail.anomalyDetails.scoreBreakdown.highFrequency > 0 ? 'default' : 'secondary'}>",
+      "context": "                <ScanLine className=\"h-4 w-4 text-blue-500\" />\r\n                <span className=\"text-sm\">Tần suất quét cao ({'>'}= 10 lượt/24h)</span>\r\n              </div>\r\n              <Badge variant={detail.anomalyDetails.scoreBreakdown.highFrequency > 0 ? 'default' : 'secondary'}>\r\n                +{detail.anomalyDetails.scoreBreakdown.highFrequency}\r\n              </Badge>\r\n            </div>\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 230,
+      "codeLine": "+{detail.anomalyDetails.scoreBreakdown.highFrequency}",
+      "context": "                <span className=\"text-sm\">Tần suất quét cao ({'>'}= 10 lượt/24h)</span>\r\n              </div>\r\n              <Badge variant={detail.anomalyDetails.scoreBreakdown.highFrequency > 0 ? 'default' : 'secondary'}>\r\n                +{detail.anomalyDetails.scoreBreakdown.highFrequency}\r\n              </Badge>\r\n            </div>\r\n            <div className=\"flex items-center justify-between rounded-lg border p-3\">\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 242,
+      "codeLine": "{detail.anomalyDetails.impossibleTravelCount} cặp",
+      "context": "              </div>\r\n              <div className=\"flex items-center gap-2\">\r\n                <span className=\"text-xs text-muted-foreground\">\r\n                  {detail.anomalyDetails.impossibleTravelCount} cặp\r\n                </span>\r\n                <Badge variant={detail.anomalyDetails.scoreBreakdown.impossibleTravel > 0 ? 'default' : 'secondary'}>\r\n                  +{detail.anomalyDetails.scoreBreakdown.impossibleTravel}\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 244,
+      "codeLine": "<Badge variant={detail.anomalyDetails.scoreBreakdown.impossibleTravel > 0 ? 'default' : 'secondary'}>",
+      "context": "                <span className=\"text-xs text-muted-foreground\">\r\n                  {detail.anomalyDetails.impossibleTravelCount} cặp\r\n                </span>\r\n                <Badge variant={detail.anomalyDetails.scoreBreakdown.impossibleTravel > 0 ? 'default' : 'secondary'}>\r\n                  +{detail.anomalyDetails.scoreBreakdown.impossibleTravel}\r\n                </Badge>\r\n              </div>\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 245,
+      "codeLine": "+{detail.anomalyDetails.scoreBreakdown.impossibleTravel}",
+      "context": "                  {detail.anomalyDetails.impossibleTravelCount} cặp\r\n                </span>\r\n                <Badge variant={detail.anomalyDetails.scoreBreakdown.impossibleTravel > 0 ? 'default' : 'secondary'}>\r\n                  +{detail.anomalyDetails.scoreBreakdown.impossibleTravel}\r\n                </Badge>\r\n              </div>\r\n            </div>\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 254,
+      "codeLine": "<Badge variant={detail.anomalyDetails.scoreBreakdown.multipleLocations > 0 ? 'default' : 'secondary'}>",
+      "context": "                <MapPin className=\"h-4 w-4 text-emerald-500\" />\r\n                <span className=\"text-sm\">Nhiều địa điểm ({'>'}= 5 địa điểm/24h)</span>\r\n              </div>\r\n              <Badge variant={detail.anomalyDetails.scoreBreakdown.multipleLocations > 0 ? 'default' : 'secondary'}>\r\n                +{detail.anomalyDetails.scoreBreakdown.multipleLocations}\r\n              </Badge>\r\n            </div>\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 255,
+      "codeLine": "+{detail.anomalyDetails.scoreBreakdown.multipleLocations}",
+      "context": "                <span className=\"text-sm\">Nhiều địa điểm ({'>'}= 5 địa điểm/24h)</span>\r\n              </div>\r\n              <Badge variant={detail.anomalyDetails.scoreBreakdown.multipleLocations > 0 ? 'default' : 'secondary'}>\r\n                +{detail.anomalyDetails.scoreBreakdown.multipleLocations}\r\n              </Badge>\r\n            </div>\r\n            <div className=\"flex items-center justify-between rounded-lg border-2 border-primary/20 bg-primary/5 p-3\">\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+      "line": 339,
+      "codeLine": "fetchDetail();",
+      "context": "          onClose={() => setShowLockDialog(false)}\r\n          onSuccess={() => {\r\n            setShowLockDialog(false);\r\n            fetchDetail();\r\n          }}\r\n        />\r\n      )}\r"
+    }
+  ],
+  "pages\\admin\\SuspectTraceCodeListPage.tsx": [
+    {
+      "file": "pages\\admin\\SuspectTraceCodeListPage.tsx",
+      "line": 162,
+      "codeLine": "Xem xét và khóa các mã tem có dấu hiệu quét bất thường",
+      "context": "          <div>\r\n            <h1 className=\"text-2xl font-bold\">Quản lý mã tem nghi vấn</h1>\r\n            <p className=\"text-sm text-muted-foreground\">\r\n              Xem xét và khóa các mã tem có dấu hiệu quét bất thường\r\n            </p>\r\n          </div>\r\n        </div>\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeListPage.tsx",
+      "line": 295,
+      "codeLine": "<TableHead className=\"text-center\">Chi tiết</TableHead>",
+      "context": "                    <TableHead>Địa điểm</TableHead>\r\n                    <TableHead>Trạng thái</TableHead>\r\n                    <TableHead className=\"text-center\">Thao tác</TableHead>\r\n                    <TableHead className=\"text-center\">Chi tiết</TableHead>\r\n                  </TableRow>\r\n                </TableHeader>\r\n                <TableBody>\r"
+    },
+    {
+      "file": "pages\\admin\\SuspectTraceCodeListPage.tsx",
+      "line": 360,
+      "codeLine": "Chi tiết",
+      "context": "                            variant=\"outline\"\r\n                            onClick={() => navigate(`/admin/suspect-trace-codes/${item.id}`)}\r\n                          >\r\n                            Chi tiết\r\n                          </Button>\r\n                        </div>\r\n                      </TableCell>\r"
+    }
+  ],
+  "pages\\certification\\CertificationListPage.tsx": [
+    {
+      "file": "pages\\certification\\CertificationListPage.tsx",
+      "line": 29,
+      "codeLine": "import { CertificationDetailDialog } from '@/components/certification/CertificationDetailDialog';",
+      "context": "import { getAllCertifications } from '@/api/certificationApi';\r\nimport type { CertificationResponse } from '@/types/certification';\r\nimport { CertificationStatusBadge } from '@/components/certification/CertificationStatusBadge';\r\nimport { CertificationDetailDialog } from '@/components/certification/CertificationDetailDialog';\r\nimport { usePermission } from '@/hooks/usePermission';\r\nimport { HelpButton } from '@/components/help/HelpButton';\r\n\r"
+    },
+    {
+      "file": "pages\\certification\\CertificationListPage.tsx",
+      "line": 285,
+      "codeLine": "Xem",
+      "context": "                            size=\"sm\"\r\n                            onClick={() => setSelectedCertId(cert.id)}\r\n                          >\r\n                            Xem\r\n                          </Button>\r\n                        </TableCell>\r\n                      </TableRow>\r"
+    },
+    {
+      "file": "pages\\certification\\CertificationListPage.tsx",
+      "line": 335,
+      "codeLine": "{/* Detail Dialog */}",
+      "context": "        </CardContent>\r\n      </Card>\r\n\r\n      {/* Detail Dialog */}\r\n      <CertificationDetailDialog\r\n        certification={selectedCertId ? certifications.find((c) => c.id === selectedCertId) ?? null : null}\r\n        open={!!selectedCertId}\r"
+    },
+    {
+      "file": "pages\\certification\\CertificationListPage.tsx",
+      "line": 336,
+      "codeLine": "<CertificationDetailDialog",
+      "context": "      </Card>\r\n\r\n      {/* Detail Dialog */}\r\n      <CertificationDetailDialog\r\n        certification={selectedCertId ? certifications.find((c) => c.id === selectedCertId) ?? null : null}\r\n        open={!!selectedCertId}\r\n        onClose={() => setSelectedCertId(null)}\r"
+    }
+  ],
+  "pages\\event-chain-verification\\EventChainVerificationPage.tsx": [
+    {
+      "file": "pages\\event-chain-verification\\EventChainVerificationPage.tsx",
+      "line": 2,
+      "codeLine": "import { LoaderCircle, ShieldCheck, ShieldAlert, CheckCircle2, XCircle, Eye } from 'lucide-react';",
+      "context": "import { useState } from 'react';\r\nimport { LoaderCircle, ShieldCheck, ShieldAlert, CheckCircle2, XCircle, Eye } from 'lucide-react';\r\nimport { Button } from '@/components/ui/button';\r\nimport { Input } from '@/components/ui/input';\r\nimport { Label } from '@/components/ui/label';\r"
+    },
+    {
+      "file": "pages\\event-chain-verification\\EventChainVerificationPage.tsx",
+      "line": 144,
+      "codeLine": "<Eye className=\"size-4 text-muted-foreground\" />",
+      "context": "                      </p>\r\n                    )}\r\n                  </div>\r\n                  <Eye className=\"size-4 text-muted-foreground\" />\r\n                </div>\r\n              ))}\r\n            </div>\r"
+    }
+  ],
+  "pages\\farm-area\\FarmAreaListPage.tsx": [
+    {
+      "file": "pages\\farm-area\\FarmAreaListPage.tsx",
+      "line": 116,
+      "codeLine": "title=\"Xem trên Google Maps\"",
+      "context": "                          target=\"_blank\"\r\n                          rel=\"noopener noreferrer\"\r\n                          className=\"inline-flex items-center gap-1 text-xs font-mono text-emerald-700 hover:text-emerald-800 hover:underline\"\r\n                          title=\"Xem trên Google Maps\"\r\n                        >\r\n                          <MapPin className=\"h-3 w-3 text-emerald-500\" />\r\n                          {area.latitude.toFixed(4)}, {area.longitude.toFixed(4)}\r"
+    }
+  ],
+  "pages\\organization\\OrganizationDetailPage.tsx": [
+    {
+      "file": "pages\\organization\\OrganizationDetailPage.tsx",
+      "line": 1,
+      "codeLine": "import { OrganizationDetail } from \"@/components/organization/OrganizationDetail\";",
+      "context": "import { OrganizationDetail } from \"@/components/organization/OrganizationDetail\";\r\n\r\nconst OrganizationDetailPage = () => {\r\n  return (\r"
+    },
+    {
+      "file": "pages\\organization\\OrganizationDetailPage.tsx",
+      "line": 3,
+      "codeLine": "const OrganizationDetailPage = () => {",
+      "context": "import { OrganizationDetail } from \"@/components/organization/OrganizationDetail\";\r\n\r\nconst OrganizationDetailPage = () => {\r\n  return (\r\n    <div className=\"container mx-auto py-8\">\r\n      \r"
+    },
+    {
+      "file": "pages\\organization\\OrganizationDetailPage.tsx",
+      "line": 7,
+      "codeLine": "<OrganizationDetail />",
+      "context": "  return (\r\n    <div className=\"container mx-auto py-8\">\r\n      \r\n      <OrganizationDetail />\r\n    </div>\r\n  );\r\n};\r"
+    },
+    {
+      "file": "pages\\organization\\OrganizationDetailPage.tsx",
+      "line": 12,
+      "codeLine": "export default OrganizationDetailPage;",
+      "context": "  );\r\n};\r\n\r\nexport default OrganizationDetailPage;"
+    }
+  ],
+  "pages\\organization\\OrganizationListPage.tsx": [
+    {
+      "file": "pages\\organization\\OrganizationListPage.tsx",
+      "line": 131,
+      "codeLine": "Xem",
+      "context": "                          size=\"sm\"\r\n                          onClick={() => navigate(`/organizations/${org.id}`)}\r\n                        >\r\n                          Xem\r\n                        </Button>\r\n                      </TableCell>\r\n                    </TableRow>\r"
+    }
+  ],
+  "pages\\packaging-event\\components\\CreatePackagingForm.tsx": [
+    {
+      "file": "pages\\packaging-event\\components\\CreatePackagingForm.tsx",
+      "line": 365,
+      "codeLine": "? \"Xem lịch sử nhật ký\"",
+      "context": "            message={eligibilityMessage || undefined}\r\n            actionLabel={\r\n              user?.roleCode === \"VT-02\"\r\n                ? \"Xem lịch sử nhật ký\"\r\n                : \"Ghi bổ sung nhật ký\"\r\n            }\r\n            onAction={\r"
+    }
+  ],
+  "pages\\product-feedback\\ProductFeedbackManagementPage.tsx": [
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 21,
+      "codeLine": "import { DetailSection } from \"@/components/common/detail/DetailSection\";",
+      "context": "  SheetHeader,\r\n  SheetTitle,\r\n} from \"@/components/ui/sheet\";\r\nimport { DetailSection } from \"@/components/common/detail/DetailSection\";\r\nimport { DetailField } from \"@/components/common/detail/DetailField\";\r\nimport { ChevronLeft, ChevronRight, RefreshCw, MessageSquare } from \"lucide-react\";\r\nimport { HelpButton } from \"@/components/help/HelpButton\";\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 22,
+      "codeLine": "import { DetailField } from \"@/components/common/detail/DetailField\";",
+      "context": "  SheetTitle,\r\n} from \"@/components/ui/sheet\";\r\nimport { DetailSection } from \"@/components/common/detail/DetailSection\";\r\nimport { DetailField } from \"@/components/common/detail/DetailField\";\r\nimport { ChevronLeft, ChevronRight, RefreshCw, MessageSquare } from \"lucide-react\";\r\nimport { HelpButton } from \"@/components/help/HelpButton\";\r\nimport { toast } from \"sonner\";\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 62,
+      "codeLine": "const [detailOpen, setDetailOpen] = useState(false);",
+      "context": "  const [page, setPage] = useState(0);\r\n  const [size, setSize] = useState(10);\r\n  const [selectedFeedback, setSelectedFeedback] = useState<ProductFeedback | null>(null);\r\n  const [detailOpen, setDetailOpen] = useState(false);\r\n\r\n  const fetchFeedbacks = useCallback(async () => {\r\n    try {\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 97,
+      "codeLine": "const handleViewDetail = (feedback: ProductFeedback) => {",
+      "context": "    fetchFeedbacks();\r\n  };\r\n\r\n  const handleViewDetail = (feedback: ProductFeedback) => {\r\n    setSelectedFeedback(feedback);\r\n    setDetailOpen(true);\r\n  };\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 99,
+      "codeLine": "setDetailOpen(true);",
+      "context": "\r\n  const handleViewDetail = (feedback: ProductFeedback) => {\r\n    setSelectedFeedback(feedback);\r\n    setDetailOpen(true);\r\n  };\r\n\r\n  const handleCloseDetail = () => {\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 102,
+      "codeLine": "const handleCloseDetail = () => {",
+      "context": "    setDetailOpen(true);\r\n  };\r\n\r\n  const handleCloseDetail = () => {\r\n    setDetailOpen(false);\r\n    setSelectedFeedback(null);\r\n  };\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 103,
+      "codeLine": "setDetailOpen(false);",
+      "context": "  };\r\n\r\n  const handleCloseDetail = () => {\r\n    setDetailOpen(false);\r\n    setSelectedFeedback(null);\r\n  };\r\n\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 118,
+      "codeLine": "Xem và xử lý các phản ánh từ người dùng về sản phẩm.",
+      "context": "            Nhận phản ánh\r\n          </h1>\r\n          <p className=\"text-sm text-muted-foreground\">\r\n            Xem và xử lý các phản ánh từ người dùng về sản phẩm.\r\n          </p>\r\n        </div>\r\n        <div className=\"flex items-center gap-2\">\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 208,
+      "codeLine": "onClick={() => handleViewDetail(fb)}",
+      "context": "                      <Button\r\n                        variant=\"outline\"\r\n                        size=\"sm\"\r\n                        onClick={() => handleViewDetail(fb)}\r\n                      >\r\n                        Xem chi tiết\r\n                      </Button>\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 210,
+      "codeLine": "Xem chi tiết",
+      "context": "                        size=\"sm\"\r\n                        onClick={() => handleViewDetail(fb)}\r\n                      >\r\n                        Xem chi tiết\r\n                      </Button>\r\n                    </td>\r\n                  </tr>\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 272,
+      "codeLine": "{/* Detail Sheet */}",
+      "context": "        )}\r\n      </div>\r\n\r\n      {/* Detail Sheet */}\r\n      <FeedbackDetailSheet\r\n        open={detailOpen}\r\n        feedback={selectedFeedback}\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 273,
+      "codeLine": "<FeedbackDetailSheet",
+      "context": "      </div>\r\n\r\n      {/* Detail Sheet */}\r\n      <FeedbackDetailSheet\r\n        open={detailOpen}\r\n        feedback={selectedFeedback}\r\n        onClose={handleCloseDetail}\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 276,
+      "codeLine": "onClose={handleCloseDetail}",
+      "context": "      <FeedbackDetailSheet\r\n        open={detailOpen}\r\n        feedback={selectedFeedback}\r\n        onClose={handleCloseDetail}\r\n      />\r\n    </div>\r\n  );\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 282,
+      "codeLine": "// ─── Detail Sheet (Sheet primitive) ───────────────────────",
+      "context": "  );\r\n}\r\n\r\n// ─── Detail Sheet (Sheet primitive) ───────────────────────\r\n\r\nfunction FeedbackDetailSheet({\r\n  feedback,\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 284,
+      "codeLine": "function FeedbackDetailSheet({",
+      "context": "\r\n// ─── Detail Sheet (Sheet primitive) ───────────────────────\r\n\r\nfunction FeedbackDetailSheet({\r\n  feedback,\r\n  open,\r\n  onClose,\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 300,
+      "codeLine": "Chi tiết phản ánh",
+      "context": "          <>\r\n            <SheetHeader className=\"border-b px-6 py-4\">\r\n              <SheetTitle className=\"text-lg font-semibold text-foreground\">\r\n                Chi tiết phản ánh\r\n              </SheetTitle>\r\n              <SheetDescription className=\"text-sm text-muted-foreground\">\r\n                Nội dung phản ánh từ người dùng về sản phẩm.\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 310,
+      "codeLine": "<DetailSection title=\"Thông tin phản ánh\" contentClassName=\"space-y-3\">",
+      "context": "            {/* Content */}\r\n            <div className=\"min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-4\">\r\n              {/* Section: Thông tin phản ánh */}\r\n              <DetailSection title=\"Thông tin phản ánh\" contentClassName=\"space-y-3\">\r\n                <DetailField label=\"Mã phản ánh\" mono value={maskId(feedback.id)} />\r\n                <DetailField\r\n                  label=\"Nội dung\"\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 311,
+      "codeLine": "<DetailField label=\"Mã phản ánh\" mono value={maskId(feedback.id)} />",
+      "context": "            <div className=\"min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-4\">\r\n              {/* Section: Thông tin phản ánh */}\r\n              <DetailSection title=\"Thông tin phản ánh\" contentClassName=\"space-y-3\">\r\n                <DetailField label=\"Mã phản ánh\" mono value={maskId(feedback.id)} />\r\n                <DetailField\r\n                  label=\"Nội dung\"\r\n                  value={\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 312,
+      "codeLine": "<DetailField",
+      "context": "              {/* Section: Thông tin phản ánh */}\r\n              <DetailSection title=\"Thông tin phản ánh\" contentClassName=\"space-y-3\">\r\n                <DetailField label=\"Mã phản ánh\" mono value={maskId(feedback.id)} />\r\n                <DetailField\r\n                  label=\"Nội dung\"\r\n                  value={\r\n                    <span className=\"block whitespace-pre-wrap font-normal leading-relaxed\">\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 320,
+      "codeLine": "<DetailField label=\"Thời gian gửi\" value={formatDate(feedback.createdAt)} />",
+      "context": "                    </span>\r\n                  }\r\n                />\r\n                <DetailField label=\"Thời gian gửi\" value={formatDate(feedback.createdAt)} />\r\n              </DetailSection>\r\n\r\n              {/* Section: Thông tin sản phẩm */}\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 321,
+      "codeLine": "</DetailSection>",
+      "context": "                  }\r\n                />\r\n                <DetailField label=\"Thời gian gửi\" value={formatDate(feedback.createdAt)} />\r\n              </DetailSection>\r\n\r\n              {/* Section: Thông tin sản phẩm */}\r\n              <DetailSection title=\"Thông tin sản phẩm\" contentClassName=\"space-y-3\">\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 324,
+      "codeLine": "<DetailSection title=\"Thông tin sản phẩm\" contentClassName=\"space-y-3\">",
+      "context": "              </DetailSection>\r\n\r\n              {/* Section: Thông tin sản phẩm */}\r\n              <DetailSection title=\"Thông tin sản phẩm\" contentClassName=\"space-y-3\">\r\n                <DetailField label=\"Lô sản xuất\" value={feedback.productionLotName} />\r\n                <DetailField label=\"Mã lô sản xuất\" mono value={maskId(feedback.productionLotId)} />\r\n                <DetailField label=\"Loại nông sản\" value={feedback.productCategoryName || undefined} />\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 325,
+      "codeLine": "<DetailField label=\"Lô sản xuất\" value={feedback.productionLotName} />",
+      "context": "\r\n              {/* Section: Thông tin sản phẩm */}\r\n              <DetailSection title=\"Thông tin sản phẩm\" contentClassName=\"space-y-3\">\r\n                <DetailField label=\"Lô sản xuất\" value={feedback.productionLotName} />\r\n                <DetailField label=\"Mã lô sản xuất\" mono value={maskId(feedback.productionLotId)} />\r\n                <DetailField label=\"Loại nông sản\" value={feedback.productCategoryName || undefined} />\r\n              </DetailSection>\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 326,
+      "codeLine": "<DetailField label=\"Mã lô sản xuất\" mono value={maskId(feedback.productionLotId)} />",
+      "context": "              {/* Section: Thông tin sản phẩm */}\r\n              <DetailSection title=\"Thông tin sản phẩm\" contentClassName=\"space-y-3\">\r\n                <DetailField label=\"Lô sản xuất\" value={feedback.productionLotName} />\r\n                <DetailField label=\"Mã lô sản xuất\" mono value={maskId(feedback.productionLotId)} />\r\n                <DetailField label=\"Loại nông sản\" value={feedback.productCategoryName || undefined} />\r\n              </DetailSection>\r\n\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 327,
+      "codeLine": "<DetailField label=\"Loại nông sản\" value={feedback.productCategoryName || undefined} />",
+      "context": "              <DetailSection title=\"Thông tin sản phẩm\" contentClassName=\"space-y-3\">\r\n                <DetailField label=\"Lô sản xuất\" value={feedback.productionLotName} />\r\n                <DetailField label=\"Mã lô sản xuất\" mono value={maskId(feedback.productionLotId)} />\r\n                <DetailField label=\"Loại nông sản\" value={feedback.productCategoryName || undefined} />\r\n              </DetailSection>\r\n\r\n              {/* Section: Thông tin tổ chức */}\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 328,
+      "codeLine": "</DetailSection>",
+      "context": "                <DetailField label=\"Lô sản xuất\" value={feedback.productionLotName} />\r\n                <DetailField label=\"Mã lô sản xuất\" mono value={maskId(feedback.productionLotId)} />\r\n                <DetailField label=\"Loại nông sản\" value={feedback.productCategoryName || undefined} />\r\n              </DetailSection>\r\n\r\n              {/* Section: Thông tin tổ chức */}\r\n              <DetailSection title=\"Thông tin tổ chức\" contentClassName=\"space-y-3\">\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 331,
+      "codeLine": "<DetailSection title=\"Thông tin tổ chức\" contentClassName=\"space-y-3\">",
+      "context": "              </DetailSection>\r\n\r\n              {/* Section: Thông tin tổ chức */}\r\n              <DetailSection title=\"Thông tin tổ chức\" contentClassName=\"space-y-3\">\r\n                <DetailField label=\"Tổ chức\" value={feedback.organizationName || undefined} />\r\n                <DetailField label=\"Mã tổ chức\" mono value={maskId(feedback.organizationId) || undefined} />\r\n              </DetailSection>\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 332,
+      "codeLine": "<DetailField label=\"Tổ chức\" value={feedback.organizationName || undefined} />",
+      "context": "\r\n              {/* Section: Thông tin tổ chức */}\r\n              <DetailSection title=\"Thông tin tổ chức\" contentClassName=\"space-y-3\">\r\n                <DetailField label=\"Tổ chức\" value={feedback.organizationName || undefined} />\r\n                <DetailField label=\"Mã tổ chức\" mono value={maskId(feedback.organizationId) || undefined} />\r\n              </DetailSection>\r\n            </div>\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 333,
+      "codeLine": "<DetailField label=\"Mã tổ chức\" mono value={maskId(feedback.organizationId) || undefined} />",
+      "context": "              {/* Section: Thông tin tổ chức */}\r\n              <DetailSection title=\"Thông tin tổ chức\" contentClassName=\"space-y-3\">\r\n                <DetailField label=\"Tổ chức\" value={feedback.organizationName || undefined} />\r\n                <DetailField label=\"Mã tổ chức\" mono value={maskId(feedback.organizationId) || undefined} />\r\n              </DetailSection>\r\n            </div>\r\n\r"
+    },
+    {
+      "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+      "line": 334,
+      "codeLine": "</DetailSection>",
+      "context": "              <DetailSection title=\"Thông tin tổ chức\" contentClassName=\"space-y-3\">\r\n                <DetailField label=\"Tổ chức\" value={feedback.organizationName || undefined} />\r\n                <DetailField label=\"Mã tổ chức\" mono value={maskId(feedback.organizationId) || undefined} />\r\n              </DetailSection>\r\n            </div>\r\n\r\n            {/* Footer */}\r"
+    }
+  ],
+  "pages\\public\\JoinOrganizationPage.tsx": [
+    {
+      "file": "pages\\public\\JoinOrganizationPage.tsx",
+      "line": 21,
+      "codeLine": "getInvitationDetails,",
+      "context": "  type AcceptInvitationFormValues,\r\n} from '@/utils/validators';\r\nimport {\r\n  getInvitationDetails,\r\n  acceptInvitation,\r\n} from '@/api/invitationApi';\r\nimport type { InvitationPublicResponse } from '@/types/invitation';\r"
+    },
+    {
+      "file": "pages\\public\\JoinOrganizationPage.tsx",
+      "line": 83,
+      "codeLine": "const data = await getInvitationDetails(token);",
+      "context": "        return;\r\n      }\r\n      try {\r\n        const data = await getInvitationDetails(token);\r\n        setInvitation(data);\r\n        if (data.isExistingUser) {\r\n          setValue('userName', 'existing_member');\r"
+    }
+  ],
+  "pages\\public\\shipment\\ProductionLotDetailPage.tsx": [
+    {
+      "file": "pages\\public\\shipment\\ProductionLotDetailPage.tsx",
+      "line": 217,
+      "codeLine": "export const ProductionLotDetailPage = () => {",
+      "context": "  return fallback;\r\n};\r\n\r\nexport const ProductionLotDetailPage = () => {\r\n  const { id } = useParams<{ id: string }>();\r\n  const navigate = useNavigate();\r\n  const { user } = useAuth();\r"
+    },
+    {
+      "file": "pages\\public\\shipment\\ProductionLotDetailPage.tsx",
+      "line": 699,
+      "codeLine": "{/* Tabs chi tiết */}",
+      "context": "        />\r\n      )}\r\n\r\n      {/* Tabs chi tiết */}\r\n      <Tabs value={activeTab} onValueChange={setActiveTab} className=\"w-full\">\r\n        <TabsList className=\"bg-white/80 backdrop-blur-sm border border-emerald-100 p-1 rounded-xl gap-1 min-h-11 max-w-full overflow-x-auto overflow-y-hidden\">\r\n          <TabsTrigger\r"
+    }
+  ],
+  "pages\\public\\shipment\\ShipmentDetailPage.tsx": [
+    {
+      "file": "pages\\public\\shipment\\ShipmentDetailPage.tsx",
+      "line": 46,
+      "codeLine": "export const ShipmentDetailPage = () => {",
+      "context": "\r\n// ─── Component ────────────────────────────────────────────────────────────────\r\n\r\nexport const ShipmentDetailPage = () => {\r\n  const { lotId, shipmentId } = useParams<{\r\n    lotId: string;\r\n    shipmentId: string;\r"
+    }
+  ],
+  "pages\\public\\shipment\\ShipmentList.tsx": [
+    {
+      "file": "pages\\public\\shipment\\ShipmentList.tsx",
+      "line": 23,
+      "codeLine": "Eye,",
+      "context": "  Ban,\r\n  MoreHorizontal,\r\n  History,\r\n  Eye,\r\n} from \"lucide-react\";\r\nimport { useShipments } from \"@/hooks/useShipments\";\r\nimport { useRecallShipment } from \"@/hooks/useRecallShipment\";\r"
+    },
+    {
+      "file": "pages\\public\\shipment\\ShipmentList.tsx",
+      "line": 323,
+      "codeLine": "<Eye className=\"mr-1 h-3 w-3\" />",
+      "context": "                              )\r\n                            }\r\n                          >\r\n                            <Eye className=\"mr-1 h-3 w-3\" />\r\n                            Chi tiết\r\n                          </Button>\r\n\r"
+    },
+    {
+      "file": "pages\\public\\shipment\\ShipmentList.tsx",
+      "line": 324,
+      "codeLine": "Chi tiết",
+      "context": "                            }\r\n                          >\r\n                            <Eye className=\"mr-1 h-3 w-3\" />\r\n                            Chi tiết\r\n                          </Button>\r\n\r\n                          <DropdownMenu>\r"
+    }
+  ],
+  "pages\\recall-request\\RecallRequestDetailPage.tsx": [
+    {
+      "file": "pages\\recall-request\\RecallRequestDetailPage.tsx",
+      "line": 21,
+      "codeLine": "export const RecallRequestDetailPage = () => {",
+      "context": "  REJECTED: { label: 'Đã từ chối', className: 'bg-red-100 text-red-700' },\r\n};\r\n\r\nexport const RecallRequestDetailPage = () => {\r\n  const { id } = useParams<{ id: string }>();\r\n  const navigate = useNavigate();\r\n  const { user } = useAuth();\r"
+    }
+  ],
+  "pages\\recall-request\\RecallRequestListPage.tsx": [
+    {
+      "file": "pages\\recall-request\\RecallRequestListPage.tsx",
+      "line": 14,
+      "codeLine": "import { ChevronLeft, ChevronRight, Eye, RefreshCcw } from 'lucide-react';",
+      "context": "  TableHeader,\r\n  TableRow,\r\n} from '@/components/ui/table';\r\nimport { ChevronLeft, ChevronRight, Eye, RefreshCcw } from 'lucide-react';\r\nimport { HelpButton } from '@/components/help/HelpButton';\r\nimport { getRecallRequests } from '@/api/recallApi';\r\nimport type {\r"
+    },
+    {
+      "file": "pages\\recall-request\\RecallRequestListPage.tsx",
+      "line": 143,
+      "codeLine": "<Eye className=\"size-4 mr-1\" /> Chi tiết",
+      "context": "                            variant=\"outline\"\r\n                            onClick={() => navigate(`/recall-requests/${item.id}`)}\r\n                          >\r\n                            <Eye className=\"size-4 mr-1\" /> Chi tiết\r\n                          </Button>\r\n                        </TableCell>\r\n                      </TableRow>\r"
+    }
+  ],
+  "pages\\report\\LoginHistoryPage.tsx": [
+    {
+      "file": "pages\\report\\LoginHistoryPage.tsx",
+      "line": 107,
+      "codeLine": "Xem lịch sử đăng nhập của tài khoản {user?.fullName}",
+      "context": "        <div>\r\n          <h1 className=\"text-2xl font-bold\">Lịch sử đăng nhập</h1>\r\n          <p className=\"text-sm text-muted-foreground\">\r\n            Xem lịch sử đăng nhập của tài khoản {user?.fullName}\r\n          </p>\r\n        </div>\r\n        <Button\r"
+    }
+  ],
+  "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx": [
+    {
+      "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+      "line": 20,
+      "codeLine": "import { DetailSection } from '@/components/common/detail/DetailSection';",
+      "context": "  TableRow,\r\n} from '@/components/ui/table';\r\nimport type { ScanAnomalyAlert } from '@/types/scanAnomalyAlert';\r\nimport { DetailSection } from '@/components/common/detail/DetailSection';\r\nimport { DetailField } from '@/components/common/detail/DetailField';\r\nimport { AlertTriangle, CheckCircle2, MapPin } from 'lucide-react';\r\n\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+      "line": 21,
+      "codeLine": "import { DetailField } from '@/components/common/detail/DetailField';",
+      "context": "} from '@/components/ui/table';\r\nimport type { ScanAnomalyAlert } from '@/types/scanAnomalyAlert';\r\nimport { DetailSection } from '@/components/common/detail/DetailSection';\r\nimport { DetailField } from '@/components/common/detail/DetailField';\r\nimport { AlertTriangle, CheckCircle2, MapPin } from 'lucide-react';\r\n\r\ninterface Props {\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+      "line": 42,
+      "codeLine": "export function ScanAnomalyAlertDetailsDialog({",
+      "context": "  });\r\n};\r\n\r\nexport function ScanAnomalyAlertDetailsDialog({\r\n  alert,\r\n  onClose,\r\n  onResolve,\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+      "line": 58,
+      "codeLine": "<DialogTitle>Chi tiết cảnh báo tem quét bất thường</DialogTitle>",
+      "context": "                  <AlertTriangle className=\"h-5 w-5\" />\r\n                </div>\r\n                <div className=\"space-y-1\">\r\n                  <DialogTitle>Chi tiết cảnh báo tem quét bất thường</DialogTitle>\r\n                  <DialogDescription>\r\n                    Mã cảnh báo: <span className=\"font-mono\">{alert.id}</span>\r\n                  </DialogDescription>\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+      "line": 66,
+      "codeLine": "<DetailSection",
+      "context": "              </div>\r\n            </DialogHeader>\r\n\r\n            <DetailSection\r\n              title=\"Tổng quan cảnh báo\"\r\n              contentClassName=\"grid gap-3 sm:grid-cols-2\"\r\n            >\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+      "line": 70,
+      "codeLine": "<DetailField",
+      "context": "              title=\"Tổng quan cảnh báo\"\r\n              contentClassName=\"grid gap-3 sm:grid-cols-2\"\r\n            >\r\n              <DetailField\r\n                label=\"Mức độ\"\r\n                value={\r\n                  <Badge\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+      "line": 81,
+      "codeLine": "<DetailField",
+      "context": "                  </Badge>\r\n                }\r\n              />\r\n              <DetailField\r\n                label=\"Trạng thái\"\r\n                value={\r\n                  <Badge variant={alert.status === 'PENDING' ? 'secondary' : 'outline'}>\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+      "line": 89,
+      "codeLine": "<DetailField label=\"Mã TraceCode\" mono value={alert.relatedEntityId} />",
+      "context": "                  </Badge>\r\n                }\r\n              />\r\n              <DetailField label=\"Mã TraceCode\" mono value={alert.relatedEntityId} />\r\n              <DetailField label=\"Thời điểm tạo\" value={formatDateTime(alert.createdAt)} />\r\n              <DetailField label=\"Số lượt quét\" value={`${alert.details.scanCount} lượt`} />\r\n              <DetailField\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+      "line": 90,
+      "codeLine": "<DetailField label=\"Thời điểm tạo\" value={formatDateTime(alert.createdAt)} />",
+      "context": "                }\r\n              />\r\n              <DetailField label=\"Mã TraceCode\" mono value={alert.relatedEntityId} />\r\n              <DetailField label=\"Thời điểm tạo\" value={formatDateTime(alert.createdAt)} />\r\n              <DetailField label=\"Số lượt quét\" value={`${alert.details.scanCount} lượt`} />\r\n              <DetailField\r\n                label=\"Ngưỡng cấu hình\"\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+      "line": 91,
+      "codeLine": "<DetailField label=\"Số lượt quét\" value={`${alert.details.scanCount} lượt`} />",
+      "context": "              />\r\n              <DetailField label=\"Mã TraceCode\" mono value={alert.relatedEntityId} />\r\n              <DetailField label=\"Thời điểm tạo\" value={formatDateTime(alert.createdAt)} />\r\n              <DetailField label=\"Số lượt quét\" value={`${alert.details.scanCount} lượt`} />\r\n              <DetailField\r\n                label=\"Ngưỡng cấu hình\"\r\n                value={`${alert.details.thresholdConfigured} vị trí`}\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+      "line": 92,
+      "codeLine": "<DetailField",
+      "context": "              <DetailField label=\"Mã TraceCode\" mono value={alert.relatedEntityId} />\r\n              <DetailField label=\"Thời điểm tạo\" value={formatDateTime(alert.createdAt)} />\r\n              <DetailField label=\"Số lượt quét\" value={`${alert.details.scanCount} lượt`} />\r\n              <DetailField\r\n                label=\"Ngưỡng cấu hình\"\r\n                value={`${alert.details.thresholdConfigured} vị trí`}\r\n              />\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+      "line": 98,
+      "codeLine": "<DetailField label=\"Xử lý lúc\" value={formatDateTime(alert.resolvedAt)} />",
+      "context": "              />\r\n              {alert.status === 'RESOLVED' && (\r\n                <>\r\n                  <DetailField label=\"Xử lý lúc\" value={formatDateTime(alert.resolvedAt)} />\r\n                  <DetailField label=\"Người xử lý\" mono value={alert.resolvedBy || undefined} />\r\n                </>\r\n              )}\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+      "line": 99,
+      "codeLine": "<DetailField label=\"Người xử lý\" mono value={alert.resolvedBy || undefined} />",
+      "context": "              {alert.status === 'RESOLVED' && (\r\n                <>\r\n                  <DetailField label=\"Xử lý lúc\" value={formatDateTime(alert.resolvedAt)} />\r\n                  <DetailField label=\"Người xử lý\" mono value={alert.resolvedBy || undefined} />\r\n                </>\r\n              )}\r\n            </DetailSection>\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+      "line": 102,
+      "codeLine": "</DetailSection>",
+      "context": "                  <DetailField label=\"Người xử lý\" mono value={alert.resolvedBy || undefined} />\r\n                </>\r\n              )}\r\n            </DetailSection>\r\n\r\n            <DetailSection\r\n              title={`Các vị trí đã quét (${alert.details.locations.length})`}\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+      "line": 104,
+      "codeLine": "<DetailSection",
+      "context": "              )}\r\n            </DetailSection>\r\n\r\n            <DetailSection\r\n              title={`Các vị trí đã quét (${alert.details.locations.length})`}\r\n              icon={<MapPin className=\"h-4 w-4 text-amber-600\" />}\r\n              contentClassName=\"overflow-hidden p-0\"\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+      "line": 146,
+      "codeLine": "</DetailSection>",
+      "context": "                  </TableBody>\r\n                </Table>\r\n              </div>\r\n            </DetailSection>\r\n\r\n            <DialogFooter>\r\n              <Button variant=\"outline\" onClick={onClose}>Đóng</Button>\r"
+    }
+  ],
+  "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx": [
+    {
+      "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+      "line": 41,
+      "codeLine": "import { ScanAnomalyAlertDetailsDialog } from './components/ScanAnomalyAlertDetailsDialog';",
+      "context": "} from 'lucide-react';\r\nimport { toast } from 'sonner';\r\nimport { ResolveScanAnomalyAlertDialog } from './components/ResolveScanAnomalyAlertDialog';\r\nimport { ScanAnomalyAlertDetailsDialog } from './components/ScanAnomalyAlertDetailsDialog';\r\nimport { HelpButton } from '@/components/help/HelpButton';\r\n\r\ninterface AlertFilters {\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+      "line": 80,
+      "codeLine": "const [detailsAlert, setDetailsAlert] = useState<ScanAnomalyAlert | null>(null);",
+      "context": "  const [page, setPage] = useState(0);\r\n  const [size, setSize] = useState(20);\r\n  const [loading, setLoading] = useState(true);\r\n  const [detailsAlert, setDetailsAlert] = useState<ScanAnomalyAlert | null>(null);\r\n  const [resolveAlert, setResolveAlert] = useState<ScanAnomalyAlert | null>(null);\r\n\r\n  const pendingOnPage = useMemo(\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+      "line": 144,
+      "codeLine": "setDetailsAlert(null);",
+      "context": "  };\r\n\r\n  const openResolveDialog = (alert: ScanAnomalyAlert) => {\r\n    setDetailsAlert(null);\r\n    setResolveAlert(alert);\r\n  };\r\n\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+      "line": 309,
+      "codeLine": "<TableHead className=\"text-center\">Chi tiết</TableHead>",
+      "context": "                    <TableHead>Dữ liệu quét</TableHead>\r\n                    <TableHead>Trạng thái</TableHead>\r\n                    <TableHead className=\"text-center\">Thao tác</TableHead>\r\n                    <TableHead className=\"text-center\">Chi tiết</TableHead>\r\n                  </TableRow>\r\n                </TableHeader>\r\n                <TableBody>\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+      "line": 366,
+      "codeLine": "onClick={() => setDetailsAlert(alert)}",
+      "context": "                          <Button\r\n                            variant=\"outline\"\r\n                            size=\"sm\"\r\n                            onClick={() => setDetailsAlert(alert)}\r\n                          >\r\n                            Chi tiết\r\n                          </Button>\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+      "line": 368,
+      "codeLine": "Chi tiết",
+      "context": "                            size=\"sm\"\r\n                            onClick={() => setDetailsAlert(alert)}\r\n                          >\r\n                            Chi tiết\r\n                          </Button>\r\n                        </div>\r\n                      </TableCell>\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+      "line": 430,
+      "codeLine": "<ScanAnomalyAlertDetailsDialog",
+      "context": "        </CardContent>\r\n      </Card>\r\n\r\n      <ScanAnomalyAlertDetailsDialog\r\n        alert={detailsAlert}\r\n        onClose={() => setDetailsAlert(null)}\r\n        onResolve={openResolveDialog}\r"
+    },
+    {
+      "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+      "line": 432,
+      "codeLine": "onClose={() => setDetailsAlert(null)}",
+      "context": "\r\n      <ScanAnomalyAlertDetailsDialog\r\n        alert={detailsAlert}\r\n        onClose={() => setDetailsAlert(null)}\r\n        onResolve={openResolveDialog}\r\n      />\r\n      <ResolveScanAnomalyAlertDialog\r"
+    }
+  ],
+  "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx": [
+    {
+      "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+      "line": 18,
+      "codeLine": "export default function WarehouseReceiptDetailPage() {",
+      "context": "\r\nconst ALLOWED_THRESHOLD = 2.0;\r\n\r\nexport default function WarehouseReceiptDetailPage() {\r\n  const { eventId } = useParams<{ eventId: string }>();\r\n  const { detail, isLoadingDetail, error, fetchDetail } = useWarehouseReceipt();\r\n\r"
+    },
+    {
+      "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+      "line": 20,
+      "codeLine": "const { detail, isLoadingDetail, error, fetchDetail } = useWarehouseReceipt();",
+      "context": "\r\nexport default function WarehouseReceiptDetailPage() {\r\n  const { eventId } = useParams<{ eventId: string }>();\r\n  const { detail, isLoadingDetail, error, fetchDetail } = useWarehouseReceipt();\r\n\r\n  useEffect(() => {\r\n    if (eventId) {\r"
+    },
+    {
+      "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+      "line": 24,
+      "codeLine": "fetchDetail(eventId);",
+      "context": "\r\n  useEffect(() => {\r\n    if (eventId) {\r\n      fetchDetail(eventId);\r\n    }\r\n  }, [eventId, fetchDetail]);\r\n\r"
+    },
+    {
+      "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+      "line": 26,
+      "codeLine": "}, [eventId, fetchDetail]);",
+      "context": "    if (eventId) {\r\n      fetchDetail(eventId);\r\n    }\r\n  }, [eventId, fetchDetail]);\r\n\r\n  const formatDate = (iso: string) => {\r\n    try {\r"
+    },
+    {
+      "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+      "line": 49,
+      "codeLine": "if (isLoadingDetail) {",
+      "context": "  };\r\n\r\n  // Loading state\r\n  if (isLoadingDetail) {\r\n    return (\r\n      <div className=\"flex items-center justify-center py-24\">\r\n        <LoaderCircle className=\"size-6 animate-spin text-muted-foreground\" />\r"
+    },
+    {
+      "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+      "line": 91,
+      "codeLine": "{detail.shipmentName || 'Chi tiết sự kiện nhập kho'}",
+      "context": "          Nhập kho & đối chiếu\r\n        </h1>\r\n        <p className=\"mt-1 text-sm text-slate-500\">\r\n          {detail.shipmentName || 'Chi tiết sự kiện nhập kho'}\r\n          {detail.recordedAt ? ` • ${formatDateTime(detail.recordedAt)}` : ''}\r\n        </p>\r\n      </div>\r"
+    }
+  ],
+  "pages\\warehouse-receipt\\WarehouseReceiptPage.tsx": [
+    {
+      "file": "pages\\warehouse-receipt\\WarehouseReceiptPage.tsx",
+      "line": 3,
+      "codeLine": "import { Plus, Warehouse, Eye, LoaderCircle, FileText } from 'lucide-react';",
+      "context": "import { useEffect, useState } from 'react';\r\nimport { useNavigate } from 'react-router-dom';\r\nimport { Plus, Warehouse, Eye, LoaderCircle, FileText } from 'lucide-react';\r\nimport { HelpButton } from '@/components/help/HelpButton';\r\nimport { Button } from '@/components/ui/button';\r\nimport { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';\r"
+    },
+    {
+      "file": "pages\\warehouse-receipt\\WarehouseReceiptPage.tsx",
+      "line": 160,
+      "codeLine": "<Eye className=\"size-4\" />",
+      "context": "                            onClick={() => navigate(`/warehouse-receipt/${receipt.id}`)}\r\n                            className=\"hover:bg-muted\"\r\n                          >\r\n                            <Eye className=\"size-4\" />\r\n                          </Button>\r\n                        </TableCell>\r\n                      </TableRow>\r"
+    }
+  ],
+  "routes\\AppRoutes.tsx": [
+    {
+      "file": "routes\\AppRoutes.tsx",
+      "line": 41,
+      "codeLine": "import SuspectTraceCodeDetailPage from \"@/pages/admin/SuspectTraceCodeDetailPage\";",
+      "context": "import StandardManagementPage from \"@/pages/admin/StandardManagementPage\";\r\nimport CriteriaManagementPage from \"@/pages/admin/CriteriaManagementPage\";\r\nimport SuspectTraceCodeListPage from \"@/pages/admin/SuspectTraceCodeListPage\";\r\nimport SuspectTraceCodeDetailPage from \"@/pages/admin/SuspectTraceCodeDetailPage\";\r\n\r\n// ===== Packaging =====\r\nimport CreatePackagingEventPage from \"@/pages/packaging-event/CreatePackagingEventPage\";\r"
+    },
+    {
+      "file": "routes\\AppRoutes.tsx",
+      "line": 59,
+      "codeLine": "import { ProductionLotDetailPage } from \"@/pages/public/shipment/ProductionLotDetailPage\";",
+      "context": "import FarmLogHistoryPage from \"@/pages/farm-log/FarmLogHistoryPage\";\r\n\r\n// ===== Shipment =====\r\nimport { ProductionLotDetailPage } from \"@/pages/public/shipment/ProductionLotDetailPage\";\r\nimport { ShipmentDetailPage } from \"@/pages/public/shipment/ShipmentDetailPage\";\r\n\r\n// ===== Public =====\r"
+    },
+    {
+      "file": "routes\\AppRoutes.tsx",
+      "line": 60,
+      "codeLine": "import { ShipmentDetailPage } from \"@/pages/public/shipment/ShipmentDetailPage\";",
+      "context": "\r\n// ===== Shipment =====\r\nimport { ProductionLotDetailPage } from \"@/pages/public/shipment/ProductionLotDetailPage\";\r\nimport { ShipmentDetailPage } from \"@/pages/public/shipment/ShipmentDetailPage\";\r\n\r\n// ===== Public =====\r\nimport PublicHomePage from \"@/pages/public/PublicHomePage\";\r"
+    },
+    {
+      "file": "routes\\AppRoutes.tsx",
+      "line": 92,
+      "codeLine": "import WarehouseReceiptDetailPage from \"@/pages/warehouse-receipt/WarehouseReceiptDetailPage\";",
+      "context": "\r\n// ===== Warehouse Receipt (NCL-05-CN-006) =====\r\nimport WarehouseReceiptPage from \"@/pages/warehouse-receipt/WarehouseReceiptPage\";\r\nimport WarehouseReceiptDetailPage from \"@/pages/warehouse-receipt/WarehouseReceiptDetailPage\";\r\n\r\n// ===== Storage Condition (NCL-05-CN-007) =====\r\nimport StorageConditionPage from \"@/pages/storage-condition/StorageConditionPage\";\r"
+    },
+    {
+      "file": "routes\\AppRoutes.tsx",
+      "line": 113,
+      "codeLine": "// ===== Organization Detail =====",
+      "context": "// ===== Scan Quick Event =====\r\nimport ScanQuickEventPage from \"@/pages/scan-anomaly-alert/components/ScanQuickEventPage\";\r\n\r\n// ===== Organization Detail =====\r\nimport OrganizationDetailPage from \"@/pages/organization/OrganizationDetailPage\";\r\n\r\n// ===== Partner API Keys (NCL-12-CN-001) =====\r"
+    },
+    {
+      "file": "routes\\AppRoutes.tsx",
+      "line": 114,
+      "codeLine": "import OrganizationDetailPage from \"@/pages/organization/OrganizationDetailPage\";",
+      "context": "import ScanQuickEventPage from \"@/pages/scan-anomaly-alert/components/ScanQuickEventPage\";\r\n\r\n// ===== Organization Detail =====\r\nimport OrganizationDetailPage from \"@/pages/organization/OrganizationDetailPage\";\r\n\r\n// ===== Partner API Keys (NCL-12-CN-001) =====\r\nimport PartnerApiKeyListPage from \"@/pages/apiKey/PartnerApiKeyListPage\";\r"
+    },
+    {
+      "file": "routes\\AppRoutes.tsx",
+      "line": 137,
+      "codeLine": "import { RecallRequestDetailPage } from \"@/pages/recall-request/RecallRequestDetailPage\";",
+      "context": "// ===== Recall requests (NCL-08-CN-008) =====\r\nimport { CreateRecallRequestPage } from \"@/pages/recall-request/CreateRecallRequestPage\";\r\nimport { RecallRequestListPage } from \"@/pages/recall-request/RecallRequestListPage\";\r\nimport { RecallRequestDetailPage } from \"@/pages/recall-request/RecallRequestDetailPage\";\r\n\r\n// =====================================================\r\n// Constants\r"
+    },
+    {
+      "file": "routes\\AppRoutes.tsx",
+      "line": 439,
+      "codeLine": "<ProductionLotDetailPage />",
+      "context": "                    <RoleRoute\r\n                        allowedRoles={[\"VT-01\", \"VT-02\", \"VT-03\"]}\r\n                    >\r\n                        <ProductionLotDetailPage />\r\n                    </RoleRoute>\r\n                }\r\n            />\r"
+    },
+    {
+      "file": "routes\\AppRoutes.tsx",
+      "line": 450,
+      "codeLine": "<ShipmentDetailPage />",
+      "context": "                    <RoleRoute\r\n                        allowedRoles={[\"VT-01\", \"VT-02\", \"VT-03\", \"VT-04\"]}\r\n                    >\r\n                        <ShipmentDetailPage />\r\n                    </RoleRoute>\r\n                }\r\n            />\r"
+    },
+    {
+      "file": "routes\\AppRoutes.tsx",
+      "line": 472,
+      "codeLine": "<ShipmentDetailPage />",
+      "context": "                path=\"shipments/:id\"\r\n                element={\r\n                    <RoleRoute allowedRoles={[\"VT-02\", \"VT-03\", \"VT-04\"]}>\r\n                        <ShipmentDetailPage />\r\n                    </RoleRoute>\r\n                }\r\n            />\r"
+    },
+    {
+      "file": "routes\\AppRoutes.tsx",
+      "line": 686,
+      "codeLine": "<SuspectTraceCodeDetailPage />",
+      "context": "                path=\"admin/suspect-trace-codes/:traceCodeId\"\r\n                element={\r\n                    <RoleRoute allowedRoles={[\"VT-01\"]}>\r\n                        <SuspectTraceCodeDetailPage />\r\n                    </RoleRoute>\r\n                }\r\n            />\r"
+    },
+    {
+      "file": "routes\\AppRoutes.tsx",
+      "line": 888,
+      "codeLine": "<WarehouseReceiptDetailPage />",
+      "context": "                path=\"warehouse-receipt/:eventId\"\r\n                element={\r\n                    <RoleRoute allowedRoles={ROLE_ACCESS.warehouseReceipt}>\r\n                        <WarehouseReceiptDetailPage />\r\n                    </RoleRoute>\r\n                }\r\n            />\r"
+    },
+    {
+      "file": "routes\\AppRoutes.tsx",
+      "line": 941,
+      "codeLine": "<OrganizationDetailPage />",
+      "context": "                    <RoleRoute\r\n                        allowedRoles={ROLE_ACCESS.organizationList}\r\n                    >\r\n                        <OrganizationDetailPage />\r\n                    </RoleRoute>\r\n                }\r\n            />\r"
+    },
+    {
+      "file": "routes\\AppRoutes.tsx",
+      "line": 1008,
+      "codeLine": "<RecallRequestDetailPage />",
+      "context": "                    <RoleRoute\r\n                        allowedRoles={ROLE_ACCESS.recallRequestManage}\r\n                    >\r\n                        <RecallRequestDetailPage />\r\n                    </RoleRoute>\r\n                }\r\n            />\r"
+    }
+  ]
+}

@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
-  ArrowLeft,
   CheckCircle2,
   AlertTriangle,
   LoaderCircle,
@@ -9,17 +8,16 @@ import {
   User,
   CalendarClock,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { HelpButton } from '@/components/help/HelpButton';
 import { useWarehouseReceipt } from '@/hooks/useWarehouseReceipt';
 
 const ALLOWED_THRESHOLD = 2.0;
 
 export default function WarehouseReceiptDetailPage() {
   const { eventId } = useParams<{ eventId: string }>();
-  const navigate = useNavigate();
   const { detail, isLoadingDetail, error, fetchDetail } = useWarehouseReceipt();
 
   useEffect(() => {
@@ -61,10 +59,6 @@ export default function WarehouseReceiptDetailPage() {
   if (error || !detail) {
     return (
       <div className="mx-auto max-w-3xl space-y-6 p-4">
-        <Button variant="ghost" onClick={() => navigate('/warehouse-receipt')}>
-          <ArrowLeft className="size-4" />
-          Quay lại
-        </Button>
         <Alert variant="destructive">
           <AlertDescription>
             {error || 'Không tìm thấy sự kiện nhập kho.'}
@@ -79,29 +73,27 @@ export default function WarehouseReceiptDetailPage() {
   const hasReason = !!detail.reason && detail.reason.trim() !== '';
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-4">
-      {/* Back + Header */}
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => navigate('/warehouse-receipt')}>
-          <ArrowLeft className="size-4" />
-          Quay lại
-        </Button>
-        <Badge
-          variant={isExceeded ? 'destructive' : 'outline'}
-          className={isExceeded ? '' : 'text-emerald-700 border-emerald-300'}
-        >
-          {isExceeded ? 'Chênh lệch' : 'Khớp'}
-        </Badge>
-      </div>
-
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">
-          Nhập kho & đối chiếu
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          {detail.shipmentName || 'Chi tiết sự kiện nhập kho'}
-          {detail.recordedAt ? ` • ${formatDateTime(detail.recordedAt)}` : ''}
-        </p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              Nhập kho & đối chiếu
+            </h1>
+            <Badge
+              variant={isExceeded ? 'destructive' : 'outline'}
+              className={isExceeded ? 'rounded-full' : 'rounded-full text-emerald-700 border-emerald-300'}
+            >
+              {isExceeded ? 'Chênh lệch' : 'Khớp'}
+            </Badge>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {detail.shipmentName || 'Chi tiết sự kiện nhập kho'}
+            {detail.recordedAt ? ` • ${formatDateTime(detail.recordedAt)}` : ''}
+          </p>
+        </div>
+        <HelpButton screenKey="warehouse-receipt" />
       </div>
 
       {/* Section 1 — Thông tin lô hàng */}

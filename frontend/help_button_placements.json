@@ -1,0 +1,296 @@
+[
+  {
+    "file": "components\\admin\\CriterionList.tsx",
+    "lineNum": 180,
+    "line": "<HelpButton screenKey=\"admin-standard-criteria\" />",
+    "context": "                ? `Tiêu chuẩn: ${standardName}`\r\n                : \"Không tìm thấy tiêu chuẩn\"}\r\n          </p>\r\n        </div>\r\n        <HelpButton screenKey=\"admin-standard-criteria\" />\r\n      </div>\r\n\r\n      <Card>\r\n        <CardHeader className=\"flex flex-row items-center justify-between\">\r"
+  },
+  {
+    "file": "components\\dashboard\\AdminDashboard.tsx",
+    "lineNum": 83,
+    "line": "<HelpButton screenKey=\"dashboard\" />",
+    "context": "  return (\r\n    <div className=\"space-y-6\">\r\n      <div className=\"flex items-center justify-between\">\r\n        <h1 className=\"text-2xl font-bold\">Quản trị hệ thống</h1>\r\n        <HelpButton screenKey=\"dashboard\" />\r\n      </div>\r\n\r\n      <Tabs defaultValue={defaultTab} className=\"w-full\">\r\n        <TabsList className=\"bg-white/80 backdrop-blur-sm border border-emerald-100 p-1 rounded-xl gap-1 min-h-11 max-w-full overflow-x-auto overflow-y-hidden\">\r"
+  },
+  {
+    "file": "components\\dashboard\\CooperativeDashboard.tsx",
+    "lineNum": 67,
+    "line": "<HelpButton screenKey=\"dashboard\" />",
+    "context": "          <p className=\"mt-1 text-sm text-slate-500\">\r\n            Theo dõi tình hình các lô sản xuất và thống kê tra cứu của hợp tác xã.\r\n          </p>\r\n        </div>\r\n        <HelpButton screenKey=\"dashboard\" />\r\n      </div>\r\n\r\n      <Tabs defaultValue={defaultTab} className=\"w-full\">\r\n        <TabsList className=\"bg-white/80 backdrop-blur-sm border border-emerald-100 p-1 rounded-xl gap-1 min-h-11 max-w-full overflow-x-auto overflow-y-hidden\">\r"
+  },
+  {
+    "file": "components\\dashboard\\EventRecorderDashboard.tsx",
+    "lineNum": 16,
+    "line": "<HelpButton screenKey=\"dashboard\" />",
+    "context": "          <p className=\"mt-1 text-sm text-slate-500\">\r\n            Chọn lô sản xuất để ghi nhật ký canh tác hoặc xem thông tin chi tiết.\r\n          </p>\r\n        </div>\r\n        <HelpButton screenKey=\"dashboard\" />\r\n      </div>\r\n\r\n      <ProductionLotBoard\r\n        canCreate={false}\r"
+  },
+  {
+    "file": "components\\dashboard\\ManagementDashboard.tsx",
+    "lineNum": 57,
+    "line": "<HelpButton screenKey=\"dashboard\" />",
+    "context": "          <p className=\"mt-1 text-sm text-muted-foreground\">\r\n            Thống kê tình hình sản xuất và truy xuất nguồn gốc.\r\n          </p>\r\n        </div>\r\n        <HelpButton screenKey=\"dashboard\" />\r\n      </div>\r\n\r\n      <Tabs defaultValue=\"overview\" className=\"w-full\">\r\n        <TabsList className=\"bg-white/80 backdrop-blur-sm border border-emerald-100 p-1 rounded-xl gap-1 min-h-11 max-w-full overflow-x-auto overflow-y-hidden\">\r"
+  },
+  {
+    "file": "components\\dashboard\\ProcurementDashboard.tsx",
+    "lineNum": 33,
+    "line": "<HelpButton screenKey=\"dashboard\" />",
+    "context": "            Xem danh sách lô hàng đã kích hoạt tem và thực hiện ghi nhận thu\r\n            mua.\r\n          </p>\r\n        </div>\r\n        <HelpButton screenKey=\"dashboard\" />\r\n      </div>\r\n\r\n      <ProcurementShipmentList\r\n        onRecordProcurement={handleRecordProcurement}\r"
+  },
+  {
+    "file": "pages\\admin\\BackupRestorePage.tsx",
+    "lineNum": 68,
+    "line": "<HelpButton screenKey=\"admin-backup-restore\" />",
+    "context": "            Quản lý lịch sao lưu tự động và phục hồi dữ liệu khi cần thiết\r\n          </p>\r\n        </div>\r\n        <div className=\"flex items-center gap-2\">\r\n          <HelpButton screenKey=\"admin-backup-restore\" />\r\n          <Button\r\n            variant=\"outline\"\r\n            onClick={() => {\r\n              fetchSchedule();\r"
+  },
+  {
+    "file": "pages\\admin\\CodeRangeListPage.tsx",
+    "lineNum": 77,
+    "line": "<HelpButton screenKey=\"admin-code-range-list\" />",
+    "context": "            Quản lý các dải mã truy xuất đã cấp cho tổ chức\r\n          </p>\r\n        </div>\r\n        <div className=\"flex items-center gap-2\">\r\n          <HelpButton screenKey=\"admin-code-range-list\" />\r\n          {canCreate && (\r\n            <Link to=\"/admin/code-ranges/create\">\r\n              {/* CHANGED: thêm variant=\"create\" */}\r\n              <Button className=\"shrink-0\" variant=\"create\">\r"
+  },
+  {
+    "file": "pages\\admin\\CreateCodeRangePage.tsx",
+    "lineNum": 9,
+    "line": "<HelpButton screenKey=\"admin-code-range-create\" />",
+    "context": "  return (\r\n    <div className=\"container mx-auto py-8\">\r\n      \r\n      <div className=\"mb-6 flex justify-end\">\r\n        <HelpButton screenKey=\"admin-code-range-create\" />\r\n      </div>\r\n      <CreateCodeRangeForm />\r\n    </div>\r\n  );\r"
+  },
+  {
+    "file": "pages\\admin\\ProductCategoryManagementPage.tsx",
+    "lineNum": 89,
+    "line": "<HelpButton screenKey=\"admin-product-categories\" />",
+    "context": "          <h1 className=\"text-2xl font-bold\">Quản lý danh mục loại nông sản</h1>\r\n          <p className=\"text-sm text-muted-foreground\">Thêm, sửa, ẩn/hiện các loại nông sản dùng chung</p>\r\n        </div>\r\n        <div className=\"flex items-center gap-3\">\r\n          <HelpButton screenKey=\"admin-product-categories\" />\r\n          {canManage && (\r\n            <Button onClick={() => setOpenForm(true)} variant=\"create\">\r\n              <Plus className=\"h-4 w-4 mr-1\" /> Thêm loại nông sản\r\n            </Button>\r"
+  },
+  {
+    "file": "pages\\admin\\StandardManagementPage.tsx",
+    "lineNum": 15,
+    "line": "<HelpButton screenKey=\"admin-standards\" />",
+    "context": "          <p className=\"text-sm text-muted-foreground\">\r\n            Quản lý danh mục tiêu chuẩn chất lượng dùng chung cho toàn nền tảng.\r\n          </p>\r\n        </div>\r\n        <HelpButton screenKey=\"admin-standards\" />\r\n      </div>\r\n      <StandardList />\r\n    </div>\r\n  );\r"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeListPage.tsx",
+    "lineNum": 167,
+    "line": "<HelpButton screenKey=\"admin-suspect-trace-codes\" />",
+    "context": "            </p>\r\n          </div>\r\n        </div>\r\n        <div className=\"flex items-center gap-2\">\r\n          <HelpButton screenKey=\"admin-suspect-trace-codes\" />\r\n          <Button variant=\"outline\" onClick={fetchData} disabled={loading}>\r\n            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />\r\n            Làm mới\r\n          </Button>\r"
+  },
+  {
+    "file": "pages\\apiKey\\PartnerApiKeyListPage.tsx",
+    "lineNum": 119,
+    "line": "<HelpButton screenKey=\"admin-api-keys\" />",
+    "context": "          </p>\r\n        </div>\r\n\r\n        <div className=\"flex items-center gap-2\">\r\n          <HelpButton screenKey=\"admin-api-keys\" />\r\n          {canManage && (\r\n            <Button\r\n              onClick={() => setIsCreateModalOpen(true)}\r\n              variant=\"create\"\r"
+  },
+  {
+    "file": "pages\\certification\\CertificationListPage.tsx",
+    "lineNum": 165,
+    "line": "<HelpButton screenKey=\"certification-list\" />",
+    "context": "            Danh sách các chứng nhận của tổ chức bạn\r\n          </p>\r\n        </div>\r\n        <div className=\"flex gap-2\">\r\n          <HelpButton screenKey=\"certification-list\" />\r\n          <Button variant=\"outline\" size=\"sm\" onClick={fetchCertifications} disabled={loading}>\r\n            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />\r\n            Làm mới\r\n          </Button>\r"
+  },
+  {
+    "file": "pages\\certification\\CreateCertificationPage.tsx",
+    "lineNum": 10,
+    "line": "<HelpButton screenKey=\"certification-create\" />",
+    "context": "  return (\r\n    <div className=\"container mx-auto py-8\">\r\n      \r\n      <div className=\"mb-6 flex justify-end\">\r\n        <HelpButton screenKey=\"certification-create\" />\r\n      </div>\r\n      <CreateCertificationForm />\r\n    </div>\r\n  );\r"
+  },
+  {
+    "file": "pages\\event-chain-verification\\EventChainVerificationPage.tsx",
+    "lineNum": 46,
+    "line": "<HelpButton screenKey=\"event-chain-verification\" />",
+    "context": "          <p className=\"mt-1 text-sm text-slate-500\">\r\n            Tính lại chuỗi băm liên kết của các sự kiện để xác minh dòng sự kiện lô hàng không bị can thiệp.\r\n          </p>\r\n        </div>\r\n        <HelpButton screenKey=\"event-chain-verification\" />\r\n      </div>\r\n\r\n      <Card>\r\n        <CardHeader>\r"
+  },
+  {
+    "file": "pages\\export\\ExportOpenDataPage.tsx",
+    "lineNum": 9,
+    "line": "<HelpButton screenKey=\"export-open-data\" />",
+    "context": "  return (\r\n    <div className=\"container mx-auto py-8\">\r\n      \r\n      <div className=\"mb-6 flex justify-end\">\r\n        <HelpButton screenKey=\"export-open-data\" />\r\n      </div>\r\n      <ExportOpenDataForm />\r\n    </div>\r\n  );\r"
+  },
+  {
+    "file": "pages\\farm\\ProductionLotEditPage.tsx",
+    "lineNum": 9,
+    "line": "<HelpButton screenKey=\"production-lot-edit\" />",
+    "context": "  return (\r\n    <div className=\"container mx-auto py-8\">\r\n      \r\n      <div className=\"mb-6 flex justify-end\">\r\n        <HelpButton screenKey=\"production-lot-edit\" />\r\n      </div>\r\n      <ProductionLotEditForm />\r\n    </div>\r\n  );\r"
+  },
+  {
+    "file": "pages\\farm-area\\CreateFarmAreaPage.tsx",
+    "lineNum": 17,
+    "line": "<HelpButton screenKey=\"farm-area-create\" />",
+    "context": "    <div className=\"container mx-auto py-8 max-w-4xl\">\r\n      \r\n      <div className=\"mb-6 flex items-center justify-between\">\r\n        <h1 className=\"text-2xl font-bold\">Tạo vùng trồng mới</h1>\r\n        <HelpButton screenKey=\"farm-area-create\" />\r\n      </div>\r\n      <CreateFarmAreaForm\r\n        onSuccess={handleSuccess}\r\n        onCancel={() => navigate('/farm-areas')}\r"
+  },
+  {
+    "file": "pages\\farm-area\\FarmAreaListPage.tsx",
+    "lineNum": 55,
+    "line": "<HelpButton screenKey=\"farm-area-list\" />",
+    "context": "            Quản lý các vùng trồng của tổ chức\r\n          </p>\r\n        </div>\r\n        <div className=\"flex gap-2\">\r\n          <HelpButton screenKey=\"farm-area-list\" />\r\n          <Button variant=\"outline\" onClick={fetchAreas} disabled={loading}>\r\n            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />\r\n            Làm mới\r\n          </Button>\r"
+  },
+  {
+    "file": "pages\\farm-log\\CreateFarmLogPage.tsx",
+    "lineNum": 120,
+    "line": "<HelpButton screenKey=\"farm-log-create\" />",
+    "context": "            </p>\r\n          </div>\r\n\r\n          <div className=\"flex items-center gap-3\">\r\n            <HelpButton screenKey=\"farm-log-create\" />\r\n            <div className=\"flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3\">\r\n              <ShieldCheck className=\"size-5 text-blue-700\" />\r\n              <div>\r\n                <p className=\"text-xs font-bold text-blue-950\">\r"
+  },
+  {
+    "file": "pages\\farm-log\\FarmLogHistoryPage.tsx",
+    "lineNum": 37,
+    "line": "<HelpButton screenKey=\"farm-log-history\" />",
+    "context": "  return (\r\n    <div className=\"container mx-auto py-6\">\r\n      \r\n      <div className=\"mb-4 flex justify-end\">\r\n        <HelpButton screenKey=\"farm-log-history\" />\r\n      </div>\r\n      {loading ? (\r\n        <div>Đang tải...</div>\r\n      ) : (\r"
+  },
+  {
+    "file": "pages\\notification\\NotificationsPage.tsx",
+    "lineNum": 84,
+    "line": "<HelpButton screenKey=\"notifications\" />",
+    "context": "          <p className=\"text-sm text-muted-foreground\">\r\n            Danh sách việc cần làm và cảnh báo liên quan đến tài khoản của bạn.\r\n          </p>\r\n        </div>\r\n        <HelpButton screenKey=\"notifications\" />\r\n      </div>\r\n\r\n      <div className=\"flex gap-2\">\r\n        {(\r"
+  },
+  {
+    "file": "pages\\offline\\OfflineEventPage.tsx",
+    "lineNum": 16,
+    "line": "<HelpButton screenKey=\"offline-events\" />",
+    "context": "          <p className=\"text-muted-foreground text-sm\">\r\n            Khi bạn ở vùng không có mạng, sự kiện sẽ được lưu tạm và tự động đồng bộ khi có kết nối.\r\n          </p>\r\n        </div>\r\n        <HelpButton screenKey=\"offline-events\" />\r\n      </div>\r\n      <OfflineEventList />\r\n    </div>\r\n  );\r"
+  },
+  {
+    "file": "pages\\organization\\MemberPermissionsPage.tsx",
+    "lineNum": 9,
+    "line": "<HelpButton screenKey=\"member-permissions\" />",
+    "context": "  return (\r\n    <>\r\n      \r\n      <div className=\"flex justify-end\">\r\n        <HelpButton screenKey=\"member-permissions\" />\r\n      </div>\r\n      <MemberList />\r\n    </>\r\n  );\r"
+  },
+  {
+    "file": "pages\\packaging-event\\CorrectPackagingEventPage.tsx",
+    "lineNum": 9,
+    "line": "<HelpButton screenKey=\"packaging-event-correct\" />",
+    "context": "  return (\r\n    <>\r\n      \r\n      <div className=\"flex justify-end\">\r\n        <HelpButton screenKey=\"packaging-event-correct\" />\r\n      </div>\r\n      <CorrectPackagingForm />\r\n    </>\r\n  );\r"
+  },
+  {
+    "file": "pages\\packaging-event\\CreatePackagingEventPage.tsx",
+    "lineNum": 9,
+    "line": "<HelpButton screenKey=\"packaging-event-create\" />",
+    "context": "  return (\r\n    <>\r\n      \r\n      <div className=\"flex justify-end\">\r\n        <HelpButton screenKey=\"packaging-event-create\" />\r\n      </div>\r\n      <CreatePackagingForm />\r\n    </>\r\n  );\r"
+  },
+  {
+    "file": "pages\\permission\\RolePermissionConfigPage.tsx",
+    "lineNum": 19,
+    "line": "<HelpButton screenKey=\"permission-config\" />",
+    "context": "              Bật/tắt quyền theo nhóm chức năng và các sự kiện chuỗi cho vai trò Người ghi sự kiện trong hợp tác xã.\r\n              Cấu hình áp dụng cho tất cả người ghi sự kiện của tổ chức bạn.\r\n            </CardDescription>\r\n          </div>\r\n          <HelpButton screenKey=\"permission-config\" />\r\n        </CardHeader>\r\n        <CardContent>\r\n          <RolePermissionConfig />\r\n        </CardContent>\r"
+  },
+  {
+    "file": "pages\\preprocessing-event\\CorrectPreprocessingEventPage.tsx",
+    "lineNum": 9,
+    "line": "<HelpButton screenKey=\"preprocessing-event-correct\" />",
+    "context": "  return (\r\n    <>\r\n      \r\n      <div className=\"flex justify-end\">\r\n        <HelpButton screenKey=\"preprocessing-event-correct\" />\r\n      </div>\r\n      <CorrectPreprocessingForm />\r\n    </>\r\n  );\r"
+  },
+  {
+    "file": "pages\\preprocessing-event\\CreatePreprocessingEventPage.tsx",
+    "lineNum": 9,
+    "line": "<HelpButton screenKey=\"preprocessing-event-create\" />",
+    "context": "  return (\r\n    <>\r\n      \r\n      <div className=\"flex justify-end\">\r\n        <HelpButton screenKey=\"preprocessing-event-create\" />\r\n      </div>\r\n      <CreatePreprocessingForm />\r\n    </>\r\n  );\r"
+  },
+  {
+    "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+    "lineNum": 122,
+    "line": "<HelpButton screenKey=\"product-feedback\" />",
+    "context": "            Xem và xử lý các phản ánh từ người dùng về sản phẩm.\r\n          </p>\r\n        </div>\r\n        <div className=\"flex items-center gap-2\">\r\n          <HelpButton screenKey=\"product-feedback\" />\r\n          <Button\r\n            variant=\"outline\"\r\n            size=\"sm\"\r\n            onClick={handleRefresh}\r"
+  },
+  {
+    "file": "pages\\production-lot\\CreateProductionLotPage.tsx",
+    "lineNum": 74,
+    "line": "<HelpButton screenKey=\"production-lot-create\" />",
+    "context": "            </p>\r\n          </div>\r\n\r\n          <div className=\"flex items-center gap-3\">\r\n            <HelpButton screenKey=\"production-lot-create\" />\r\n            <div className=\"flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3\">\r\n              <ShieldCheck className=\"size-5 text-blue-700\" />\r\n              <div>\r\n                <p className=\"text-xs font-bold text-blue-950\">Phạm vi tổ chức</p>\r"
+  },
+  {
+    "file": "pages\\production-lot\\ImportProductionLotPage.tsx",
+    "lineNum": 10,
+    "line": "<HelpButton screenKey=\"production-lot-import\" />",
+    "context": "  return (\r\n    <div className=\"container mx-auto py-8\">\r\n      \r\n      <div className=\"mb-6 flex justify-end\">\r\n        <HelpButton screenKey=\"production-lot-import\" />\r\n      </div>\r\n      <ImportProductionLotForm />\r\n    </div>\r\n  );\r"
+  },
+  {
+    "file": "pages\\production-lot\\ProductionLotListPage.tsx",
+    "lineNum": 20,
+    "line": "<HelpButton screenKey=\"production-lot-list\" />",
+    "context": "            <p className=\"mt-2 text-sm text-slate-500\">\r\n              Quản lý các lô sản xuất thuộc phạm vi tổ chức của bạn.\r\n            </p>\r\n          </div>\r\n          <HelpButton screenKey=\"production-lot-list\" />\r\n        </header>\r\n\r\n        <ProductionLotBoard />\r\n      </div>\r"
+  },
+  {
+    "file": "pages\\public\\shipment\\ProductionLotDetailPage.tsx",
+    "lineNum": 595,
+    "line": "<HelpButton screenKey=\"production-lot-detail\" />",
+    "context": "              <Package className=\"h-4 w-4 mr-1\" />\r\n              Ghi đóng gói\r\n            </Button>\r\n          )}\r\n          <HelpButton screenKey=\"production-lot-detail\" />\r\n        </div>\r\n      </div>\r\n\r\n      {/* Thông tin chính */}\r"
+  },
+  {
+    "file": "pages\\recall-request\\CreateRecallRequestPage.tsx",
+    "lineNum": 103,
+    "line": "<HelpButton screenKey=\"recall-request-create\" />",
+    "context": "                  bởi người khác, không phải chính bạn.\r\n                </p>\r\n              </div>\r\n            </div>\r\n            <HelpButton screenKey=\"recall-request-create\" />\r\n          </div>\r\n        </CardHeader>\r\n        <CardContent className=\"space-y-5\">\r\n          <div className=\"space-y-1.5\">\r"
+  },
+  {
+    "file": "pages\\recall-request\\RecallRequestDetailPage.tsx",
+    "lineNum": 123,
+    "line": "<HelpButton screenKey=\"recall-request-detail\" />",
+    "context": "          <CardTitle className=\"text-xl font-bold\">\r\n            Yêu cầu thu hồi: {request.lotName}\r\n          </CardTitle>\r\n          <div className=\"flex items-center gap-2\">\r\n            <HelpButton screenKey=\"recall-request-detail\" />\r\n            <span\r\n              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${\r\n                STATUS_MAP[request.status]?.className || 'bg-gray-100 text-gray-700'\r\n              }`}\r"
+  },
+  {
+    "file": "pages\\recall-request\\RecallRequestListPage.tsx",
+    "lineNum": 73,
+    "line": "<HelpButton screenKey=\"recall-request-list\" />",
+    "context": "          <CardTitle className=\"text-xl font-bold\">\r\n            Yêu cầu thu hồi lô sản xuất\r\n          </CardTitle>\r\n          <div className=\"flex items-center gap-2\">\r\n            <HelpButton screenKey=\"recall-request-list\" />\r\n            <Button variant=\"outline\" onClick={() => load()} disabled={loading}>\r\n              <RefreshCcw className=\"size-4 mr-1\" /> Làm mới\r\n            </Button>\r\n          </div>\r"
+  },
+  {
+    "file": "pages\\report\\ActivityLogPage.tsx",
+    "lineNum": 114,
+    "line": "<HelpButton screenKey=\"report-activity-log\" />",
+    "context": "            Theo dõi và kiểm tra toàn bộ nhật ký thao tác trong tổ chức\r\n          </p>\r\n        </div>\r\n        <div className=\"flex items-center gap-2\">\r\n          <HelpButton screenKey=\"report-activity-log\" />\r\n          <Button\r\n            variant=\"outline\"\r\n            onClick={() => fetchLogs({ page, size })}\r\n            disabled={loading}\r"
+  },
+  {
+    "file": "pages\\report\\CropAreaAnalysisPage.tsx",
+    "lineNum": 61,
+    "line": "<HelpButton screenKey=\"report-crop-area-analysis\" />",
+    "context": "            Tổng hợp sản lượng và số lô theo vùng trồng, mùa vụ\r\n          </p>\r\n        </div>\r\n        <div className=\"flex items-center gap-2\">\r\n          <HelpButton screenKey=\"report-crop-area-analysis\" />\r\n          <Button\r\n            variant=\"outline\"\r\n            onClick={() => fetchData(params)}\r\n            disabled={loading}\r"
+  },
+  {
+    "file": "pages\\report\\FailedEventLogsPage.tsx",
+    "lineNum": 109,
+    "line": "<HelpButton screenKey=\"report-failed-events\" />",
+    "context": "              </p>\r\n            </div>\r\n          </div>\r\n          <div className=\"flex items-center gap-2\">\r\n            <HelpButton screenKey=\"report-failed-events\" />\r\n            <Button variant=\"outline\" onClick={fetchLogs} disabled={loading} className=\"border-emerald-200 hover:bg-emerald-50\">\r\n              <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />\r\n              Làm mới\r\n            </Button>\r"
+  },
+  {
+    "file": "pages\\report\\IndustryReportPage.tsx",
+    "lineNum": 18,
+    "line": "<HelpButton screenKey=\"report-industry\" />",
+    "context": "          <p className=\"mt-1 text-sm text-muted-foreground\">\r\n            Tổng hợp sản lượng và lô hàng theo địa bàn và khoảng thời gian.\r\n          </p>\r\n        </div>\r\n        <HelpButton screenKey=\"report-industry\" />\r\n      </div>\r\n\r\n      <IndustryReportPanel />\r\n    </div>\r"
+  },
+  {
+    "file": "pages\\report\\LookupStatisticsPage.tsx",
+    "lineNum": 161,
+    "line": "<HelpButton screenKey=\"report-lookup-statistics\" />",
+    "context": "            Tổng hợp số lượt quét mã theo lô và thời gian\r\n          </p>\r\n        </div>\r\n        <div className=\"flex items-center gap-2\">\r\n          <HelpButton screenKey=\"report-lookup-statistics\" />\r\n          <Button variant=\"outline\" onClick={fetchStats} disabled={loading}>\r\n            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />\r\n            Làm mới\r\n          </Button>\r"
+  },
+  {
+    "file": "pages\\report\\SeasonYieldComparisonPage.tsx",
+    "lineNum": 102,
+    "line": "<HelpButton screenKey=\"report-season-yield\" />",
+    "context": "            Đối chiếu tổng sản lượng, số lô và mức tăng giảm giữa các mùa vụ theo dữ liệu hiện có.\r\n          </p>\r\n        </div>\r\n        <div className=\"flex items-center gap-2\">\r\n          <HelpButton screenKey=\"report-season-yield\" />\r\n          <Button variant=\"outline\" onClick={() => void loadComparison(lastParams)} disabled={loading}>\r\n            <RefreshCw className={loading ? \"animate-spin\" : \"\"} />\r\n            Làm mới\r\n          </Button>\r"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\components\\ScanQuickEventPage.tsx",
+    "lineNum": 215,
+    "line": "<HelpButton screenKey=\"scan-quick-event\" />",
+    "context": "            Đưa mã QR/barcode in trên bao bì lô hàng vào khung hình. Hệ thống sẽ\r\n            tự xác định lô hàng và mở nhanh biểu mẫu ghi sự kiện phù hợp.\r\n          </CardDescription>\r\n        </div>\r\n        <HelpButton screenKey=\"scan-quick-event\" />\r\n      </CardHeader>\r\n\r\n      <CardContent className=\"space-y-4\">\r\n        {showCamera && (\r"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+    "lineNum": 163,
+    "line": "<HelpButton screenKey=\"alert-scan-anomaly\" />",
+    "context": "            </p>\r\n          </div>\r\n        </div>\r\n        <div className=\"flex items-center gap-2\">\r\n          <HelpButton screenKey=\"alert-scan-anomaly\" />\r\n          <Button variant=\"outline\" onClick={fetchAlerts} disabled={loading}>\r\n            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />\r\n            Làm mới\r\n          </Button>\r"
+  },
+  {
+    "file": "pages\\storage-condition\\StorageConditionPage.tsx",
+    "lineNum": 138,
+    "line": "<HelpButton screenKey=\"storage-condition\" />",
+    "context": "          <p className=\"mt-1 text-sm text-slate-500\">\r\n            Ghi nhận nhiệt độ và độ ẩm trong quá trình vận chuyển. Dữ liệu mô phỏng, nhập tay.\r\n          </p>\r\n        </div>\r\n        <HelpButton screenKey=\"storage-condition\" />\r\n      </div>\r\n\r\n      <Card>\r\n        <CardHeader>\r"
+  },
+  {
+    "file": "pages\\transport-event\\RecordTransportEventPage.tsx",
+    "lineNum": 9,
+    "line": "<HelpButton screenKey=\"transport-event-record\" />",
+    "context": "  return (\r\n    <>\r\n      \r\n      <div className=\"flex justify-end\">\r\n        <HelpButton screenKey=\"transport-event-record\" />\r\n      </div>\r\n      <TransportEventForm />\r\n    </>\r\n  );\r"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptPage.tsx",
+    "lineNum": 63,
+    "line": "<HelpButton screenKey=\"warehouse-receipt\" />",
+    "context": "            Theo dõi và ghi nhận nhập kho cho các lô hàng đã thu mua.\r\n          </p>\r\n        </div>\r\n        <div className=\"flex items-center gap-2\">\r\n          <HelpButton screenKey=\"warehouse-receipt\" />\r\n          <Button variant=\"view\" onClick={() => setCreateOpen(true)}>\r\n            <Plus className=\"size-4\" />\r\n            Nhập kho\r\n          </Button>\r"
+  }
+]

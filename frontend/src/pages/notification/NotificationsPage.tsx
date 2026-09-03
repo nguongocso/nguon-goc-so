@@ -1,11 +1,14 @@
-import { useState } from 'react';
-import { AlertTriangle, Bell, CheckCircle2, ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AlertTriangle, Bell, CheckCircle2, ChevronLeft, ChevronRight, Info, MailWarning } from 'lucide-react';
 import { HelpButton } from '@/components/help/HelpButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useUnreadCount } from '@/hooks/useUnreadCount';
+import { useAuth } from '@/hooks/useAuth';
+import { hasAnyRole, ROLE_ACCESS } from '@/config/roleAccess';
 import type { NotificationResponse, NotificationType } from '@/types/notification';
 
 type ReadFilter = 'ALL' | 'UNREAD' | 'READ';
@@ -57,6 +60,8 @@ const formatDateTime = (iso: string) => {
 };
 
 const NotificationsPage = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<ReadFilter>('ALL');
   const isRead = filter === 'ALL' ? undefined : filter === 'READ';
 
@@ -66,17 +71,49 @@ const NotificationsPage = () => {
   });
   const { refresh: refreshUnreadCount } = useUnreadCount();
 
+  const isMissingEmail = Boolean(
+    user &&
+    hasAnyRole(user.roleCode, ROLE_ACCESS.userProfile) &&
+    (!user.email || user.email.trim() === '')
+  );
+
+  const emailNoticeKey = user ? `session_read_email_notice_${user.userId}` : '';
+  const [isEmailNoticeRead, setIsEmailNoticeRead] = useState<boolean>(() => {
+    return emailNoticeKey ? sessionStorage.getItem(emailNoticeKey) === 'true' : false;
+  });
+
+  useEffect(() => {
+    if (emailNoticeKey) {
+      setIsEmailNoticeRead(sessionStorage.getItem(emailNoticeKey) === 'true');
+    }
+  }, [emailNoticeKey, user?.email]);
+
+  const showEmailNotice =
+    isMissingEmail &&
+    (filter === 'ALL' ||
+      (filter === 'UNREAD' && !isEmailNoticeRead) ||
+      (filter === 'READ' && isEmailNoticeRead));
+
   const handleItemClick = (notification: NotificationResponse) => {
     if (!notification.isRead) {
       void markAsRead(notification.id).then(() => refreshUnreadCount());
     }
   };
 
+  const handleEmailNoticeClick = () => {
+    if (emailNoticeKey) {
+      sessionStorage.setItem(emailNoticeKey, 'true');
+      setIsEmailNoticeRead(true);
+      void refreshUnreadCount();
+    }
+    navigate('/profile');
+  };
+
   return (
-    <div className="container mx-auto max-w-3xl space-y-6 py-8">
-      <div className="flex items-start justify-between gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Thông báo</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Thông báo</h1>
           <p className="text-sm text-muted-foreground">
             Danh sách việc cần làm và cảnh báo liên quan đến tài khoản của bạn.
           </p>
@@ -113,13 +150,45 @@ const NotificationsPage = () => {
             <div className="flex justify-center py-12">
               <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-primary" />
             </div>
-          ) : items.length === 0 ? (
+          ) : items.length === 0 && !showEmailNotice ? (
             <div className="px-4 py-16 text-center text-muted-foreground">
               <Bell className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
               <p className="font-medium">Chưa có thông báo nào</p>
             </div>
           ) : (
             <ul className="divide-y">
+              {showEmailNotice && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={handleEmailNoticeClick}
+                    className="flex w-full items-start gap-3 bg-amber-50/80 px-4 py-4 text-left transition-colors hover:bg-amber-100/70"
+                  >
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-700">
+                      <MailWarning className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-1.5">
+                        <span className="font-medium text-amber-950">
+                          Cần bổ sung địa chỉ email
+                        </span>
+                        {!isEmailNoticeRead && (
+                          <span
+                            className="size-2 shrink-0 rounded-full bg-red-500 ring-2 ring-white"
+                            title="Chưa đọc"
+                          />
+                        )}
+                      </span>
+                      <span className="mt-1 block text-sm text-amber-900/90 leading-relaxed">
+                        Vui lòng thêm email tài khoản để có thể sử dụng tính năng lấy lại mật khẩu khi quên.
+                      </span>
+                      <span className="mt-2 inline-flex items-center text-xs font-semibold text-amber-700 underline">
+                        Cập nhật hồ sơ người dùng ngay &rarr;
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              )}
               {items.map((item) => {
                 const Icon = TYPE_ICON[item.type] || Bell;
                 return (

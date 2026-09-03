@@ -5,6 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.nguongocso.alert.event.ActivityLogEvent;
@@ -22,6 +26,7 @@ import vn.nguongocso.certification.repository.CertificationRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
 import vn.nguongocso.certification.repository.StandardRepository;
 import vn.nguongocso.certification.service.CertificationService;
+import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.exception.ResourceNotFoundException;
@@ -53,6 +58,16 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class CertificationServiceImpl implements CertificationService {
+
+    /** Các trường cho phép sắp xếp danh sách chứng nhận. */
+    private static final java.util.Set<String> ALLOWED_SORT_FIELDS = java.util.Set.of("name", "issueDate", "expiryDate");
+
+    /** Trường sắp xếp mặc định (khớp hành vi UI: mới cấp lên đầu). */
+    private static final String DEFAULT_SORT_FIELD = "issueDate";
+
+    /** Số bản ghi tối đa mỗi trang. */
+    private static final int MAX_PAGE_SIZE = 100;
+
     private final ProductionLotRepository productionLotRepository;
     private final CertificationRepository certificationRepository;
     private final ProductionLotCertificationRepository plCertificationRepository;
@@ -226,16 +241,63 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     /**
-     * Lấy danh sách chứng nhận của người dùng hiện tại.
+     * Tìm kiếm chứng nhận của tổ chức hiện tại theo từ khoá và trạng thái
+     * hiệu lực, có phân trang và sắp xếp.
+     *
+     * <p>Từ khoá khớp tên, số hiệu hoặc cơ quan cấp (không phân biệt hoa/thường).
+     * Ba trạng thái rời rạc khớp với badge hiển thị: "valid" là chứng nhận còn
+     * hiệu lực quá {@code warningThresholdDays} ngày, "expiring" là còn hiệu
+     * lực trong vòng ngưỡng đó, "expired" là đã quá hạn.
+     * Kết quả luôn scope trong tổ chức của người dùng hiện tại.</p>
      */
     @Override
     @Transactional(readOnly = true)
-    public List<CertificationResponse> getAllCertifications(CustomUserDetails currentUser) {
-        List<Certification> certs = certificationRepository.findAllByOrganizationId(
-                currentUser.getOrganizationId());
-        return certs.stream()
+    public PageResponse<CertificationResponse> searchCertifications(String keyword, String status,
+            String sortBy, String sortDir, int page, int size, CustomUserDetails currentUser) {
+        if (page < 0) {
+            page = 0;
+        }
+        if (size <= 0) {
+            size = 10;
+        }
+        if (size > MAX_PAGE_SIZE) {
+            size = MAX_PAGE_SIZE;
+        }
+
+        String normalizedKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        String normalizedStatus = isValidStatusFilter(status) ? status.trim().toLowerCase() : null;
+        Sort sort = buildSort(sortBy, sortDir);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        LocalDate today = LocalDate.now();
+        LocalDate threshold = today.plusDays(warningThresholdDays);
+
+        Page<Certification> result = certificationRepository.search(
+                currentUser.getOrganizationId(),
+                normalizedKeyword,
+                normalizedStatus,
+                today,
+                threshold,
+                pageable);
+
+        List<CertificationResponse> items = result.getContent().stream()
                 .map(this::toCertificationResponse)
                 .collect(Collectors.toList());
+
+        return PageResponse.from(result, items);
+    }
+
+    private boolean isValidStatusFilter(String status) {
+        return status != null
+                && (status.equalsIgnoreCase("valid")
+                        || status.equalsIgnoreCase("expiring")
+                        || status.equalsIgnoreCase("expired"));
+    }
+
+    private Sort buildSort(String sortBy, String sortDir) {
+        String field = (sortBy != null && ALLOWED_SORT_FIELDS.contains(sortBy)) ? sortBy : DEFAULT_SORT_FIELD;
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        return Sort.by(direction, field);
     }
 
     private CertificationResponse toCertificationResponse(Certification cert) {

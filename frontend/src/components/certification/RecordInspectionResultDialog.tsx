@@ -78,8 +78,12 @@ export function RecordInspectionResultDialog({
           data.criteria.map((criterion) => ({
             criterionId: criterion.criterionId,
             passed: criterion.result?.passed ?? null,
-            resultDate: criterion.result?.resultDate ?? today,
-            expiryDate: criterion.result?.expiryDate ?? "",
+            resultDate: criterion.result
+              ? (criterion.result.resultDate ?? "")
+              : today,
+            expiryDate: criterion.result
+              ? (criterion.result.expiryDate ?? "")
+              : "",
             filePath: criterion.result?.filePath ?? "",
             selectedFileName: "",
             uploading: false,
@@ -102,6 +106,8 @@ export function RecordInspectionResultDialog({
   const dateErrorByCriterion = useMemo(() => {
     const errors: Record<string, string> = {};
     for (const input of criteriaInputs) {
+      // Chỉ tiêu Không đạt không có hiệu lực thời gian nên không bắt buộc ngày.
+      if (input.passed === false) continue;
       if (input.resultDate === "" || input.expiryDate === "") {
         errors[input.criterionId] = "Vui lòng nhập ngày cấp và ngày hết hiệu lực.";
         continue;
@@ -190,8 +196,8 @@ export function RecordInspectionResultDialog({
         {
           results: criteriaInputs.map((input) => ({
             criterionId: input.criterionId,
-            resultDate: input.resultDate,
-            expiryDate: input.expiryDate,
+            resultDate: input.resultDate || null,
+            expiryDate: input.expiryDate || null,
             passed: input.passed as boolean,
             filePath: input.filePath === "" ? null : input.filePath,
           })),
@@ -216,6 +222,23 @@ export function RecordInspectionResultDialog({
     () => detail?.criteria.filter((criterion) => criterion.result !== null).length ?? 0,
     [detail]
   );
+
+  /*
+   * Thống kê tổng hợp cập nhật trực tiếp theo trạng thái form,
+   * giúp người nhập thấy ngay tỷ lệ Đạt/Không đạt trước khi lưu.
+   */
+  const liveStats = useMemo(() => {
+    const total = detail?.criteria.length ?? 0;
+    let passed = 0;
+    let failed = 0;
+    for (const input of criteriaInputs) {
+      if (input.passed === true) passed++;
+      else if (input.passed === false) failed++;
+    }
+    const ratio =
+      total > 0 ? Math.round((failed / total) * 1000) / 10 : 0;
+    return { total, passed, failed, ratio };
+  }, [detail, criteriaInputs]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -253,6 +276,26 @@ export function RecordInspectionResultDialog({
               {recordedCount > 0 &&
                 ` Đã có ${recordedCount}/${detail.criteria.length} chỉ tiêu có kết quả, có thể sửa lại.`}
             </p>
+
+            {/* Tổng hợp kết quả kiểm nghiệm */}
+            <div
+              className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm"
+              aria-live="polite"
+              aria-label={`Kết quả kiểm nghiệm: đạt ${liveStats.passed} trên ${liveStats.total} chỉ tiêu, không đạt ${liveStats.failed} trên ${liveStats.total} chỉ tiêu, tỷ lệ không đạt ${liveStats.ratio} phần trăm`}
+            >
+              <span className="font-medium text-gray-700">
+                Kết quả kiểm nghiệm:
+              </span>
+              <span className="inline-flex items-center gap-1 font-medium text-emerald-700">
+                <ShieldCheck className="h-4 w-4" />
+                Đạt {liveStats.passed}/{liveStats.total} tiêu chí
+              </span>
+              <span className="inline-flex items-center gap-1 font-medium text-red-700">
+                <AlertTriangle className="h-4 w-4" />
+                Không đạt {liveStats.failed}/{liveStats.total} (
+                {liveStats.ratio}%)
+              </span>
+            </div>
 
             {/* Chỉ tiêu */}
             <div className="space-y-3">

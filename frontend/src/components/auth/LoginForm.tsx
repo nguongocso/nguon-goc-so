@@ -458,6 +458,16 @@ export const LoginForm: React.FC = () => {
               {errors.password.message}
             </p>
           )}
+
+          <div className="flex justify-end px-2">
+            <button
+              type="button"
+              onClick={() => navigate("/forgot-password")}
+              className="text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:underline transition-colors"
+            >
+              Quên mật khẩu?
+            </button>
+          </div>
         </div>
 
         {/* =========================
@@ -467,13 +477,13 @@ export const LoginForm: React.FC = () => {
           type="submit"
           className={cn(
             "mt-0.5 h-[52px] w-full rounded-full",
-            "bg-emerald-600",
+            "bg-green-600",
             "text-[0.92rem] font-semibold text-white",
-            "shadow-lg shadow-emerald-200",
-            "hover:bg-emerald-700",
+            "shadow-lg shadow-green-200",
+            "hover:bg-green-700",
             "transition-all duration-200",
             "focus-visible:border-white",
-            "focus-visible:ring-emerald-300/50"
+            "focus-visible:ring-green-300/50"
           )}
           disabled={isLoading}
         >

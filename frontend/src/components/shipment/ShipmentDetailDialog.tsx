@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,10 +15,17 @@ import {
   FileText,
   History,
   Package,
+  QrCode,
   Trash2,
 } from "lucide-react";
 import { maskId } from "@/lib/utils";
 import { QrCodeGrid } from "./QrCodeGrid";
+import { ExportLabelsDialog } from "./ExportLabelsDialog";
+import { ShipmentStatusBadge } from "./ShipmentStatusBadge";
+import { DetailSection } from "@/components/common/detail/DetailSection";
+import { DetailField } from "@/components/common/detail/DetailField";
+import { ROLE_ACCESS } from "@/config/roleAccess";
+import { usePermission } from "@/hooks/usePermission";
 
 interface ShipmentDetailDialogProps {
   open: boolean;
@@ -32,20 +40,6 @@ interface ShipmentDetailDialogProps {
   onDeleteDraft: (shipment: Shipment) => void;
   onViewTimeline: (shipment: Shipment) => void;
 }
-
-const statusLabelMap: Record<Shipment["status"], string> = {
-  DRAFT: "Nháp",
-  CODE_PRINTED: "Đã in mã",
-  ACTIVATED: "Đã kích hoạt",
-  RECALLED: "Đã thu hồi",
-};
-
-const statusClassMap: Record<Shipment["status"], string> = {
-  DRAFT: "bg-status-draft/10 text-status-draft",
-  CODE_PRINTED: "bg-status-packaged/10 text-status-packaged",
-  ACTIVATED: "bg-status-approved/10 text-status-approved",
-  RECALLED: "bg-status-rejected/10 text-status-rejected",
-};
 
 const formatDateTime = (value: string): string => {
   const date = new Date(value);
@@ -77,15 +71,20 @@ export const ShipmentDetailDialog = ({
   const showDeleteDraft =
     shipment?.status === "DRAFT" || shipment?.status === "CODE_PRINTED";
 
+  // NCL-04-CN-005: Chỉ VT-02 được xuất tem QR
+  const canExportLabels = usePermission(ROLE_ACCESS.labelExport);
+  const [showLabelsDialog, setShowLabelsDialog] = useState(false);
+
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
-          onClose();
-        }
-      }}
-    >
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            onClose();
+          }
+        }}
+      >
       <DialogContent className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Chi tiết lô hàng</DialogTitle>
@@ -115,13 +114,7 @@ export const ShipmentDetailDialog = ({
                     {shipment.name}
                   </h3>
 
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      statusClassMap[shipment.status]
-                    }`}
-                  >
-                    {statusLabelMap[shipment.status]}
-                  </span>
+                  <ShipmentStatusBadge status={shipment.status} />
                 </div>
 
                 <p className="mt-1 break-all text-sm text-muted-foreground">
@@ -144,66 +137,55 @@ export const ShipmentDetailDialog = ({
                 value="info"
                 className="flex-1 overflow-y-auto mt-3 pr-1"
               >
-                <dl className="divide-y rounded-lg border">
-                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
-                    <dt className="text-sm text-muted-foreground">
-                      Lô sản xuất
-                    </dt>
-                    <dd className="text-sm font-medium">
-                      {shipment.productionLotName || "—"}
-                    </dd>
-                  </div>
+                <div className="space-y-4">
+                  {/* Shipment information */}
+                  <DetailSection
+                    title="Thông tin lô hàng"
+                    contentClassName="grid gap-3 sm:grid-cols-2"
+                  >
+                    <DetailField
+                      label="Lô sản xuất"
+                      value={shipment.productionLotName || undefined}
+                    />
+                    <DetailField
+                      label="ID lô sản xuất"
+                      mono
+                      value={maskId(shipment.productionLotId)}
+                    />
+                    <DetailField
+                      label="Số lượng"
+                      value={shipment.totalQuantity.toLocaleString("vi-VN")}
+                    />
+                    <DetailField
+                      label="Quy cách đóng gói"
+                      value={
+                        shipment.packagingInfo ? (
+                          <span className="block whitespace-pre-wrap font-normal">
+                            {shipment.packagingInfo}
+                          </span>
+                        ) : undefined
+                      }
+                    />
+                    <DetailField
+                      label="Số mã truy xuất"
+                      value={shipment.traceCodes.length.toLocaleString("vi-VN")}
+                    />
+                  </DetailSection>
 
-                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
-                    <dt className="text-sm text-muted-foreground">
-                      ID lô sản xuất
-                    </dt>
-                    <dd className="break-all text-sm font-medium">
-                      {maskId(shipment.productionLotId)}
-                    </dd>
-                  </div>
-
-                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
-                    <dt className="text-sm text-muted-foreground">Số lượng</dt>
-                    <dd className="text-sm font-medium">
-                      {shipment.totalQuantity.toLocaleString("vi-VN")}
-                    </dd>
-                  </div>
-
-                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
-                    <dt className="text-sm text-muted-foreground">
-                      Quy cách đóng gói
-                    </dt>
-                    <dd className="whitespace-pre-wrap text-sm font-medium">
-                      {shipment.packagingInfo || "—"}
-                    </dd>
-                  </div>
-
-                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
-                    <dt className="text-sm text-muted-foreground">
-                      Số mã truy xuất
-                    </dt>
-                    <dd className="text-sm font-medium">
-                      {shipment.traceCodes.length.toLocaleString("vi-VN")}
-                    </dd>
-                  </div>
-
-                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
-                    <dt className="text-sm text-muted-foreground">
-                      Người tạo
-                    </dt>
-                    <dd className="text-sm font-medium">
-                      {shipment.createdByName || "—"}
-                    </dd>
-                  </div>
-
-                  <div className="grid gap-1 px-4 py-3 sm:grid-cols-[180px_1fr] sm:gap-4">
-                    <dt className="text-sm text-muted-foreground">Ngày tạo</dt>
-                    <dd className="text-sm font-medium">
-                      {formatDateTime(shipment.createdAt)}
-                    </dd>
-                  </div>
-                </dl>
+                  {/* Recording metadata */}
+                  <DetailSection title="Thông tin ghi nhận">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <DetailField
+                        label="Người tạo"
+                        value={shipment.createdByName || undefined}
+                      />
+                      <DetailField
+                        label="Ngày tạo"
+                        value={formatDateTime(shipment.createdAt)}
+                      />
+                    </div>
+                  </DetailSection>
+                </div>
               </TabsContent>
 
               {/* Tab: Mã QR */}
@@ -245,6 +227,22 @@ export const ShipmentDetailDialog = ({
                 <FileText className="mr-1.5 size-3.5" />
                 Xuất hồ sơ
               </Button>
+
+              {/* Export QR Labels — NCL-04-CN-005 */}
+              {canExportLabels &&
+                shipment.status !== "DRAFT" &&
+                shipment.status !== "RECALLED" &&
+                (shipment.traceCodes?.length || 0) > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowLabelsDialog(true)}
+                    className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  >
+                    <QrCode className="mr-1.5 size-3.5" />
+                    Xuất tem QR
+                  </Button>
+                )}
 
               {/* Kích hoạt — conditional */}
               {showActivate && (
@@ -297,6 +295,14 @@ export const ShipmentDetailDialog = ({
           </div>
         )}
       </DialogContent>
-    </Dialog>
+      </Dialog>
+
+      {/* NCL-04-CN-005: Dialog xuất tem QR */}
+      <ExportLabelsDialog
+        open={showLabelsDialog}
+        shipment={shipment}
+        onClose={() => setShowLabelsDialog(false)}
+      />
+    </>
   );
 };

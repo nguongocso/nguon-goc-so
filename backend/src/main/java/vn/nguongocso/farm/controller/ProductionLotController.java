@@ -1,7 +1,6 @@
 package vn.nguongocso.farm.controller;
 
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -183,10 +182,7 @@ public class ProductionLotController {
                                                 .successCount(h.getSuccessCount())
                                                 .failedCount(h.getFailedCount())
                                                 .status(h.getStatus().name())
-                                                .importedAt(
-                                                                h.getImportedAt()
-                                                                                .toInstant(
-                                                                                                ZoneOffset.UTC))
+                                                .importedAt(h.getImportedAt())
                                                 .build())
                                 .toList();
 

@@ -1,10 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
+import { getLocalDateString } from '@/utils/dateTime';
 import {
   AlertCircle,
   Download,
   FileBarChart,
   LoaderCircle,
+  MapPin,
+  MapPinOff,
   SearchCheck,
   CalendarDays,
 } from 'lucide-react';
@@ -29,11 +32,21 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useExportIndustryReport } from '@/hooks/useExportIndustryReport';
+import { useAuth } from '@/hooks/useAuth';
+import { useAdministrativeUnits } from '@/hooks/useAdministrativeUnits';
+import { getMyAreas } from '@/api/areaAssignmentApi';
+import { AdministrativeUnitCascadeSelect } from '@/components/common/AdministrativeUnitCascadeSelect';
+import { Badge } from '@/components/ui/badge';
+import {
+  NO_ASSIGNED_AREA_MESSAGE,
+  NO_ASSIGNED_AREA_HINT,
+} from '@/constants/reportMessages';
+import type { AssignedArea } from '@/types/areaAssignment';
 import { cn } from '@/lib/utils';
 
 const filterSchema = z
   .object({
-    region: z.string().trim().min(1, 'Vui lòng nhập địa bàn'),
+    unitIds: z.array(z.string()),
     fromDate: z.string().min(1, 'Vui lòng chọn ngày bắt đầu'),
     toDate: z.string().min(1, 'Vui lòng chọn ngày kết thúc'),
   })
@@ -46,7 +59,7 @@ type QuickRange = 'today' | 'week' | 'month' | 'year' | null;
 
 function getQuickRangeDates(range: QuickRange): { from: string; to: string } {
   const now = new Date();
-  const to = now.toISOString().split('T')[0];
+  const to = getLocalDateString(now);
   let from = to;
 
   if (range === 'today') {
@@ -54,22 +67,23 @@ function getQuickRangeDates(range: QuickRange): { from: string; to: string } {
   } else if (range === 'week') {
     const d = new Date(now);
     d.setDate(d.getDate() - 7);
-    from = d.toISOString().split('T')[0];
+    from = getLocalDateString(d);
   } else if (range === 'month') {
     const d = new Date(now);
     d.setDate(d.getDate() - 30);
-    from = d.toISOString().split('T')[0];
+    from = getLocalDateString(d);
   } else if (range === 'year') {
     const d = new Date(now);
     d.setFullYear(d.getFullYear() - 1);
-    from = d.toISOString().split('T')[0];
+    from = getLocalDateString(d);
   }
 
   return { from, to };
 }
 
 export function IndustryReportPanel() {
-  const [region, setRegion] = useState('');
+  const { user } = useAuth();
+  const [unitIds, setUnitIds] = useState<string[]>([]);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [format, setFormat] = useState<'PDF' | 'EXCEL'>('PDF');
@@ -82,8 +96,8 @@ export function IndustryReportPanel() {
     useExportIndustryReport();
 
   const trimmedParams = useMemo(
-    () => ({ region: region.trim(), fromDate, toDate }),
-    [region, fromDate, toDate],
+    () => ({ unitIds, fromDate, toDate }),
+    [unitIds, fromDate, toDate],
   );
 
   const validate = () => {
@@ -95,6 +109,25 @@ export function IndustryReportPanel() {
     setFormError(null);
     return true;
   };
+
+  // VT-05: hiển thị địa bàn đang phụ trách (chỉ đọc) — NCL-742 §6.
+  const isRegulator = user?.roleCode === 'VT-05';
+  const [myAreas, setMyAreas] = useState<AssignedArea[]>([]);
+  const { units, loading: unitsLoading } = useAdministrativeUnits();
+  useEffect(() => {
+    if (!isRegulator) return;
+    let cancelled = false;
+    getMyAreas()
+      .then((areas) => {
+        if (!cancelled) setMyAreas(areas);
+      })
+      .catch(() => {
+        // Không chặn việc xem báo cáo nếu không tải được địa bàn của tôi.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isRegulator]);
 
   // Hàm áp dụng quick range
   const applyQuickRange = (range: QuickRange) => {
@@ -145,6 +178,25 @@ export function IndustryReportPanel() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {isRegulator && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3">
+              <p className="text-sm text-emerald-900">
+                Bạn đang phụ trách <span className="font-semibold">{myAreas.length}</span> địa bàn
+              </p>
+              {myAreas.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {myAreas.map((area) => (
+                    <Badge key={area.assignmentId} variant="outline" className="gap-1 bg-white">
+                      <MapPin className="h-3 w-3 text-emerald-500" />
+                      {area.unitName}
+                      <span className="font-normal text-muted-foreground">({area.provinceName})</span>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Quick range buttons */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-muted-foreground mr-1">Chọn nhanh:</span>
@@ -186,16 +238,20 @@ export function IndustryReportPanel() {
             )}
           </div>
 
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="space-y-2">
-              <Label htmlFor="region">Địa bàn *</Label>
-              <Input
-                id="region"
-                value={region}
-                onChange={(e) => setRegion(e.target.value)}
-                placeholder="VD: Phú Thọ"
+          <div className="space-y-2">
+            <Label>Địa bàn</Label>
+            <div className="rounded-lg border p-3">
+              <AdministrativeUnitCascadeSelect
+                units={units}
+                value={unitIds}
+                onChange={setUnitIds}
+                disabled={unitsLoading}
+                loading={unitsLoading}
               />
             </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="fromDate">Từ ngày *</Label>
               <Input
@@ -244,12 +300,22 @@ export function IndustryReportPanel() {
       )}
 
       {!isLoading && report && !report.hasData && (
-        <Alert>
-          <AlertCircle className="size-4" />
-          <AlertDescription>
-            {report.message || 'Chưa có dữ liệu cho địa bàn và khoảng thời gian đã chọn.'}
-          </AlertDescription>
-        </Alert>
+        report.message === NO_ASSIGNED_AREA_MESSAGE ? (
+          <Card>
+            <CardContent className="flex flex-col items-center py-10 text-center">
+              <MapPinOff className="mb-3 size-10 text-muted-foreground" />
+              <p className="font-medium">{NO_ASSIGNED_AREA_MESSAGE}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{NO_ASSIGNED_AREA_HINT}</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Alert>
+            <AlertCircle className="size-4" />
+            <AlertDescription>
+              {report.message || 'Chưa có dữ liệu cho địa bàn và khoảng thời gian đã chọn.'}
+            </AlertDescription>
+          </Alert>
+        )
       )}
 
       {!isLoading && report?.hasData && (
@@ -257,13 +323,20 @@ export function IndustryReportPanel() {
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <CardTitle>Kết quả — {report.region}</CardTitle>
+                <CardTitle>
+                  Kết quả{report.region ? ` — ${report.region}` : ''}
+                </CardTitle>
                 <CardDescription>
                   {report.fromDate} → {report.toDate}
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
-                <Select value={format} onValueChange={(v) => v && setFormat(v as 'PDF' | 'EXCEL')}>
+                <Select value={format} onValueChange={(v) => v && setFormat(v as 'PDF' | 'EXCEL')}
+                  items={[
+                    { value: 'PDF', label: 'PDF' },
+                    { value: 'EXCEL', label: 'EXCEL' },
+                  ]}
+                >
                   <SelectTrigger className="w-28">
                     <SelectValue />
                   </SelectTrigger>

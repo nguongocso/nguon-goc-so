@@ -11,7 +11,9 @@ export const ROLE_ACCESS = {
   productionLotList: ['VT-02', 'VT-03'],
   productionLotEdit: ['VT-02'],
   productionLotApprove: ['VT-02'],
-  farmLogCreate: ['VT-03'],
+  farmLogCreate: ['VT-02', 'VT-03'] as const,
+  farmLogCorrect: ['VT-02', 'VT-03'] as const,
+  farmLogView: ['VT-02', 'VT-03'] as const,
   preprocessingEventCreate: ['VT-02', 'VT-03'] as const,
   preprocessingEventCorrect: ['VT-02', 'VT-03'] as const,
   packagingEventCreate: ['VT-02', 'VT-03'] as const,
@@ -58,9 +60,29 @@ export const ROLE_ACCESS = {
   // ✅ NCL-12-CN-003 - Xuất hồ sơ truy xuất theo lược đồ GS1 mô phỏng
   gs1DossierExport: ['VT-02', 'VT-04'] as const,
 
+  // ✅ NCL-04-CN-005 - Xuất tem QR cho lô hàng để in
+  labelExport: ['VT-02'] as const,
+
+  // ✅ NCL-670 - Phân công địa bàn quản lý cho cán bộ quản lý ngành (VT-05)
+  areaAssignment: ['VT-01'] as const,
+
+
   // ✅ NCL-12-CN-001 - Quản lý khóa truy cập đối tác bên thứ ba
   apiKeyManagement: ['VT-01', 'VT-02'] as const,
+
+  // ✅ NCL-09-CN-009 - Quản lý danh mục chỉ tiêu kiểm nghiệm
+  inspectionCriteriaManagement: ['VT-01'] as const,
+
+  // ✅ NCL-09-CN-011 - Quản lý mốc canh tác bắt buộc
+  cultivationMilestoneManagement: ['VT-01'] as const,
+
+  // ✅ NCL-11-CN-006 Phase 2 - Quản lý phạm vi công nhận của đơn vị kiểm nghiệm
+  testingUnitScopeManagement: ['VT-01'] as const,
+
+  // ✅ Hồ sơ người dùng
+  userProfile: ['VT-02', 'VT-03', 'VT-04', 'VT-05'] as const,
 } as const satisfies Record<string, readonly AuthenticatedRoleCode[]>;
+
 
 export function hasAnyRole(
   userRole: string | undefined,

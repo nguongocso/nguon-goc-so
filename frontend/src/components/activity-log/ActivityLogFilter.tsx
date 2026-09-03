@@ -11,11 +11,46 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, X } from "lucide-react";
-import { ACTION_LABELS } from "@/config/actionMappings";
+import { formatActionType } from "@/utils/activityLogFormatter";
 
-const ACTION_OPTIONS = Object.entries(ACTION_LABELS).map(([value, label]) => ({
+const FILTER_ACTIONS = [
+  "CREATE",
+  "UPDATE",
+  "DELETE",
+  "APPROVE",
+  "REJECT",
+  "SUBMIT",
+  "ACTIVATE",
+  "LOCK",
+  "UNLOCK",
+  "LOGIN",
+  "LOGOUT",
+  "UPDATE_ORGANIZATION_PROFILE",
+  "CREATE_API_KEY",
+  "REVOKE_API_KEY",
+  "CREATE_INSPECTION_REQUEST",
+  "RECORD_INSPECTION_RESULT",
+  "UPDATE_INSPECTION_RESULT",
+  "RECORD_INSPECTION_RESULTS",
+  "DELETE_INSPECTION_RESULT",
+  "UPLOAD_INSPECTION_RESULT_FILE",
+  "UPDATE_ROLE_PERMISSIONS",
+  "CREATE_FARM_AREA",
+  "DELETE_SHIPMENT_DRAFT",
+  "RESOLVE_ALERT",
+  "RECORD_EVENT",
+  "EXPORT",
+  "EXPORT_DOSSIER",
+  "GS1_DOSSIER_EXPORT",
+  "ATTACH_CERTIFICATION",
+  "CREATE_CERTIFICATION",
+  "UPDATE_PRODUCT_CATEGORY",
+  "RECALL",
+];
+
+const ACTION_OPTIONS = FILTER_ACTIONS.map((value) => ({
   value,
-  label,
+  label: formatActionType(value),
 }));
 
 interface Props {

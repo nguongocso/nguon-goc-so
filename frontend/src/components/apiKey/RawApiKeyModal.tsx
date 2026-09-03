@@ -42,7 +42,7 @@ export const RawApiKeyModal: React.FC<RawApiKeyModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="sm:max-w-md border-amber-200 dark:border-amber-900">
+      <DialogContent className="sm:max-w-xl border-amber-200 dark:border-amber-900">
         <DialogHeader>
           <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-semibold mb-1">
             <Key className="w-5 h-5" />
@@ -72,8 +72,8 @@ export const RawApiKeyModal: React.FC<RawApiKeyModalProps> = ({
               <Button
                 type="button"
                 size="sm"
-                variant="secondary"
-                className="shrink-0 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                variant="create"
+                className="shrink-0"
                 onClick={handleCopy}
               >
                 {copied ? (

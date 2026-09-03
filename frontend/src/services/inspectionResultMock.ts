@@ -51,6 +51,10 @@ export const mockFetchPublicInspections = async (
       productionLotId: "mock-public-lot",
       lotName: "Lô sản xuất mẫu",
       hasInspection: false,
+      totalCriteria: 0,
+      passedCriteria: 0,
+      failedCriteriaCount: 0,
+      failedRatio: 0.0,
       inspections: [],
     };
   }
@@ -66,18 +70,40 @@ export const mockFetchPublicInspections = async (
   const expiryDate = new Date(now);
   expiryDate.setMonth(expiryDate.getMonth() + 5);
 
+  const passedCount = passed ? 2 : 0;
+  const failedCount = 2 - passedCount;
+  const failedRatio = Math.round((failedCount / 2) * 1000) / 10;
+
   return {
     productionLotId: "mock-public-lot",
     lotName: "Lô sản xuất mẫu",
     hasInspection: true,
+    totalCriteria: 2,
+    passedCriteria: passedCount,
+    failedCriteriaCount: failedCount,
+    failedRatio: failedRatio,
     inspections: [
       {
-        requestId: `mock-request-${seed}`,
-        overallResult: passed ? "PASSED" : "FAILED",
-        overallResultLabel: passed ? "Đạt" : "Không đạt",
-        issueDate: toISODate(issueDate),
+        id: `mock-res-${seed}-1`,
+        criterionName: "Dư lượng thuốc BVTV (Pesticide Residue)",
+        standardValue: "≤ 0.01 mg/kg (QCVN 01-188:2020/BNNPTNT)",
+        measuredValue: passed ? "0.002 mg/kg" : "0.045 mg/kg",
+        passed: passed,
+        inspectorName: "Nguyễn Văn Kiểm Nghiệm",
+        inspectionDate: toISODate(issueDate),
         expiryDate: toISODate(expiryDate),
-        statusLabel: passed ? "Đạt" : "Không đạt",
+        laboratoryName: "Trung tâm Kiểm nghiệm Nông sản Quốc gia",
+      },
+      {
+        id: `mock-res-${seed}-2`,
+        criterionName: "Kim loại nặng - Chì (Pb)",
+        standardValue: "≤ 0.2 mg/kg (QCVN 8-2:2011/BYT)",
+        measuredValue: passed ? "0.01 mg/kg" : "0.35 mg/kg",
+        passed: passed,
+        inspectorName: "Trần Thị Kiểm Nghiệm",
+        inspectionDate: toISODate(issueDate),
+        expiryDate: toISODate(expiryDate),
+        laboratoryName: "Trung tâm Kiểm nghiệm Nông sản Quốc gia",
       },
     ],
   };

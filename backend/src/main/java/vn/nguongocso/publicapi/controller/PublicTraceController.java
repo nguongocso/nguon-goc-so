@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import vn.nguongocso.common.ApiResult;
+import vn.nguongocso.publicapi.dto.response.PublicInspectionResponse;
 import vn.nguongocso.publicapi.dto.response.PublicLotCertificationsResponse;
 import vn.nguongocso.publicapi.dto.response.PublicTraceResponse;
 import vn.nguongocso.publicapi.service.PublicTraceService;
@@ -96,6 +97,19 @@ public class PublicTraceController {
 
         PublicLotCertificationsResponse response =
                 publicTraceService.getPublicCertifications(codeValue);
+
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Lấy danh sách kết quả kiểm nghiệm công khai của lô hàng (TASK-16 / CV-04).
+     */
+    @GetMapping("/{codeValue}/inspections")
+    public ResponseEntity<ApiResult<PublicInspectionResponse>> getPublicInspections(
+            @PathVariable String codeValue) {
+
+        PublicInspectionResponse response =
+                publicTraceService.getPublicInspections(codeValue);
 
         return ResponseEntity.ok(ApiResult.success(response));
     }

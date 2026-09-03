@@ -6,6 +6,7 @@ import {
   type CreateCodeRangeFormValues,
   createCodeRangeSchema,
 } from "@/utils/validators";
+import { selectAllOnFocus, preventMouseUpCollapse } from "@/utils/inputUtils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -48,7 +49,7 @@ export const CreateCodeRangeForm: React.FC = () => {
     defaultValues: {
       organizationId: "",
       prefix: "",
-      totalLimit: 0,
+      totalLimit: undefined,
     },
   });
 
@@ -114,16 +115,17 @@ export const CreateCodeRangeForm: React.FC = () => {
   }
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Cấp dải mã truy xuất</CardTitle>
+    <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+      <CardHeader className="border-b border-slate-100 pb-4">
+        <CardTitle className="text-lg font-semibold text-slate-900">
+          Thông tin cấp dải mã
+        </CardTitle>
         <CardDescription>
-          Cấp một dải mã mới cho tổ chức để sử dụng trong việc sinh tem truy
-          xuất.
+          Chọn tổ chức thụ hưởng, tiền tố mã định danh và hạn mức số lượng tem tối đa.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-6">
           {/* Tổ chức */}
           <div className="space-y-2">
             <Label htmlFor="organizationId">Tổ chức *</Label>
@@ -170,7 +172,8 @@ export const CreateCodeRangeForm: React.FC = () => {
               placeholder="893001"
             />
             <p className="text-sm text-gray-500">
-              Duy nhất, chỉ chứa chữ hoa và số. Nhập chính xác định dạng.
+              Duy nhất trong hệ thống, chỉ gồm chữ hoa (A–Z) và chữ số, tối đa
+              50 ký tự. Ví dụ: 893001.
             </p>
             {errors.prefix && (
               <p className="text-sm text-red-500">{errors.prefix.message}</p>
@@ -185,6 +188,8 @@ export const CreateCodeRangeForm: React.FC = () => {
               type="number"
               step="1"
               {...register("totalLimit")}
+              onFocus={selectAllOnFocus}
+              onMouseUp={preventMouseUpCollapse}
               placeholder="Nhập số lượng tem tối đa"
             />
             <p className="text-sm text-gray-500">

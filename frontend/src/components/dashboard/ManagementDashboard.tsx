@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PackageOpen, CheckCircle2, Sprout, PackageCheck } from 'lucide-react';
 import type { ProductionLot } from '@/types/productionLot';
 import { IndustryReportPanel } from '@/components/report/IndustryReportPanel';
+import { HelpButton } from '@/components/help/HelpButton';
 
 export function ManagementDashboard() {
   const [productionLots, setProductionLots] = useState<ProductionLot[]>([]);
@@ -44,13 +45,16 @@ export function ManagementDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          Quản lý ngành – Báo cáo tổng hợp
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Thống kê tình hình sản xuất và truy xuất nguồn gốc.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            Quản lý ngành – Báo cáo tổng hợp
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Thống kê tình hình sản xuất và truy xuất nguồn gốc.
+          </p>
+        </div>
+        <HelpButton screenKey="dashboard" />
       </div>
 
       <Tabs defaultValue="overview" className="w-full">

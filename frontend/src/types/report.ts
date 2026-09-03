@@ -25,7 +25,10 @@ export interface IndustryReportExportResponse {
 }
 
 export interface IndustryReportParams {
-  region: string;
+  /** Bỏ bắt buộc từ NCL-670/742 §8 — lọc theo địa bàn qua `unitIds`. */
+  region?: string;
   fromDate: string;
   toDate: string;
+  /** UUID đơn vị hành chính; axios phải serialize thành `unitIds=a&unitIds=b`. */
+  unitIds?: string[];
 }

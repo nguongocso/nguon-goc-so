@@ -27,6 +27,8 @@ import vn.nguongocso.auth.service.CustomUserDetailsService;
 import vn.nguongocso.config.JwtTokenProvider;
 import vn.nguongocso.config.SecurityConfig;
 import vn.nguongocso.permission.service.PermissionChecker;
+import vn.nguongocso.publicapi.dto.response.PublicInspectionCriterionResultDto;
+import vn.nguongocso.publicapi.dto.response.PublicInspectionResponse;
 import vn.nguongocso.publicapi.dto.response.PublicTraceResponse;
 import vn.nguongocso.publicapi.service.PublicTraceService;
 
@@ -129,5 +131,39 @@ class PublicTraceControllerTest {
 
         verify(publicTraceService).recordPublicScan(
                 eq(codeValue), isNull(), isNull(), anyString(), any());
+    }
+
+    /**
+     * GET /public/trace/{codeValue}/inspections = lấy kết quả kiểm nghiệm công khai.
+     */
+    @Test
+    void getPublicInspections_ShouldReturnInspectionResponse() throws Exception {
+        String codeValue = "TEST123";
+        PublicInspectionCriterionResultDto criterion = PublicInspectionCriterionResultDto.builder()
+                .id(UUID.randomUUID().toString())
+                .criterionName("Dư lượng thuốc BVTV")
+                .standardValue("QCVN 01-188:2020/BNNPTNT")
+                .measuredValue("0.002 mg/kg")
+                .passed(true)
+                .laboratoryName("TT Kiểm nghiệm")
+                .build();
+
+        PublicInspectionResponse response = PublicInspectionResponse.builder()
+                .productionLotId(UUID.randomUUID())
+                .lotName("Lô chè Tân Cương")
+                .hasInspection(true)
+                .inspections(java.util.List.of(criterion))
+                .build();
+
+        when(publicTraceService.getPublicInspections(codeValue)).thenReturn(response);
+
+        mockMvc.perform(get("/api/v1/public/trace/{codeValue}/inspections", codeValue))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.lotName").value("Lô chè Tân Cương"))
+                .andExpect(jsonPath("$.data.inspections[0].criterionName").value("Dư lượng thuốc BVTV"))
+                .andExpect(jsonPath("$.data.inspections[0].passed").value(true));
+
+        verify(publicTraceService).getPublicInspections(codeValue);
     }
 }

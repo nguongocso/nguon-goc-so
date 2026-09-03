@@ -17,6 +17,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { HelpButton } from "@/components/help/HelpButton";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  NO_ASSIGNED_AREA_MESSAGE,
+} from "@/constants/reportMessages";
 import type {
   SeasonYieldComparisonParams,
   SeasonYieldComparisonResponse,
@@ -85,13 +88,13 @@ export default function SeasonYieldComparisonPage() {
   const hasComparisonData = Boolean(data?.hasData && data.seasons.length > 0);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="mb-2 flex items-center gap-2 text-sm font-medium text-primary">
             <BarChart3 className="h-4 w-4" /> Báo cáo sản lượng
           </div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl text-slate-900">
             So sánh sản lượng giữa các mùa vụ
           </h1>
           <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
@@ -136,7 +139,7 @@ export default function SeasonYieldComparisonPage() {
             <AlertCircle className="mb-3 h-10 w-10 text-destructive" />
             <h2 className="text-lg font-semibold">Không tải được dữ liệu</h2>
             <p className="mt-1 max-w-xl text-muted-foreground">{errorMessage}</p>
-            <Button className="mt-4" onClick={() => void loadComparison(lastParams)}>
+            <Button variant="outline" className="mt-4" onClick={() => void loadComparison(lastParams)}>
               Thử lại
             </Button>
           </CardContent>
@@ -145,12 +148,12 @@ export default function SeasonYieldComparisonPage() {
 
       {!loading && !errorMessage && !hasComparisonData && (
         <Card>
-          <CardContent className="flex flex-col items-center py-14 text-center">
-            <CalendarRange className="mb-3 h-11 w-11 text-muted-foreground" />
-            <h2 className="text-lg font-semibold">Chưa có dữ liệu để so sánh</h2>
-            <p className="mt-1 max-w-xl text-muted-foreground">
-              {data?.message || "Hãy thử chọn thêm năm hoặc thay đổi bộ lọc."}
-            </p>
+          <CardContent className="flex items-center justify-center py-14 text-center text-muted-foreground">
+            {data?.message === NO_ASSIGNED_AREA_MESSAGE ? (
+              <p>{NO_ASSIGNED_AREA_MESSAGE}</p>
+            ) : (
+              <p>{data?.message || "Chưa có dữ liệu để so sánh."}</p>
+            )}
           </CardContent>
         </Card>
       )}

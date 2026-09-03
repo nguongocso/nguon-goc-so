@@ -1,0 +1,410 @@
+[
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 97,
+    "lineContent": "<DialogTitle>Chi tiết nhật ký hoạt động</DialogTitle>",
+    "context": "      <DialogContent className=\"max-w-lg\">\r\n        <DialogHeader>\r\n          <div className=\"flex items-center gap-2 text-emerald-700\">\r\n            <Info className=\"h-5 w-5\" />\r\n            <DialogTitle>Chi tiết nhật ký hoạt động</DialogTitle>\r\n          </div>\r\n          <DialogDescription>\r\n            Thông tin chi tiết thao tác được ghi nhận bởi hệ thống kiểm toán\r\n          </DialogDescription>\r"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 100,
+    "lineContent": "Thông tin chi tiết thao tác được ghi nhận bởi hệ thống kiểm toán",
+    "context": "            <Info className=\"h-5 w-5\" />\r\n            <DialogTitle>Chi tiết nhật ký hoạt động</DialogTitle>\r\n          </div>\r\n          <DialogDescription>\r\n            Thông tin chi tiết thao tác được ghi nhận bởi hệ thống kiểm toán\r\n          </DialogDescription>\r\n        </DialogHeader>\r\n\r\n        <div className=\"space-y-4 py-2\">\r"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 177,
+    "lineContent": "{log.description || 'Không có mô tả chi tiết'}",
+    "context": "            title=\"Nội dung thao tác\"\r\n            icon={<FileText className=\"h-4 w-4 text-emerald-600\" />}\r\n          >\r\n            <p className=\"text-sm leading-relaxed\">\r\n              {log.description || 'Không có mô tả chi tiết'}\r\n            </p>\r\n          </DetailSection>\r\n\r\n          {/* Raw payload — technical, secondary, collapsed by default */}\r"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 185,
+    "lineContent": "description=\"Dữ liệu chi tiết (Payload) — JSON thô được ghi bởi hệ thống.\"",
+    "context": "          {/* Raw payload — technical, secondary, collapsed by default */}\r\n          {hasPayload && formattedPayload !== null && (\r\n            <DetailSection\r\n              title=\"Dữ liệu kỹ thuật\"\r\n              description=\"Dữ liệu chi tiết (Payload) — JSON thô được ghi bởi hệ thống.\"\r\n              icon={<Braces className=\"h-4 w-4 text-muted-foreground\" />}\r\n              contentClassName=\"overflow-hidden p-0\"\r\n            >\r\n              <details className=\"group\">\r"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogDetailDialog.tsx",
+    "lineNum": 191,
+    "lineContent": "Xem dữ liệu payload",
+    "context": "              contentClassName=\"overflow-hidden p-0\"\r\n            >\r\n              <details className=\"group\">\r\n                <summary className=\"flex cursor-pointer select-none items-center justify-between gap-2 bg-muted/40 px-4 py-2.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground [&::-webkit-details-marker]:hidden\">\r\n                  Xem dữ liệu payload\r\n                  <ChevronDown className=\"h-3.5 w-3.5 transition-transform group-open:rotate-180\" />\r\n                </summary>\r\n                <pre className=\"max-h-60 overflow-auto whitespace-pre-wrap break-all bg-slate-900 p-3 font-mono text-xs leading-relaxed text-slate-100\">\r\n                  {formattedPayload}\r"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogTable.tsx",
+    "lineNum": 129,
+    "lineContent": "title=\"Xem chi tiết thao tác\"",
+    "context": "                      variant=\"ghost\"\r\n                      size=\"sm\"\r\n                      onClick={() => setSelectedLog(log)}\r\n                      className=\"h-8 px-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 gap-1\"\r\n                      title=\"Xem chi tiết thao tác\"\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r\n                      <span className=\"text-xs font-medium\">Chi tiết</span>\r\n                    </Button>\r"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogTable.tsx",
+    "lineNum": 132,
+    "lineContent": "<span className=\"text-xs font-medium\">Chi tiết</span>",
+    "context": "                      className=\"h-8 px-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 gap-1\"\r\n                      title=\"Xem chi tiết thao tác\"\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r\n                      <span className=\"text-xs font-medium\">Chi tiết</span>\r\n                    </Button>\r\n                  </TableCell>\r\n                </TableRow>\r\n              );\r"
+  },
+  {
+    "file": "components\\activity-log\\ActivityLogTable.tsx",
+    "lineNum": 142,
+    "lineContent": "{/* Modal Chi tiết hoạt động */}",
+    "context": "          </TableBody>\r\n        </Table>\r\n      </div>\r\n\r\n      {/* Modal Chi tiết hoạt động */}\r\n      <ActivityLogDetailDialog\r\n        log={selectedLog}\r\n        onClose={() => setSelectedLog(null)}\r\n      />\r"
+  },
+  {
+    "file": "components\\admin\\product-category\\ProductCategoryForm.tsx",
+    "lineNum": 194,
+    "lineContent": "placeholder=\"Mô tả chi tiết...\"",
+    "context": "            </Label>\r\n            <Textarea\r\n              id=\"description\"\r\n              {...register(\"description\")}\r\n              placeholder=\"Mô tả chi tiết...\"\r\n              rows={3}\r\n            />\r\n          </div>\r\n\r"
+  },
+  {
+    "file": "components\\apiKey\\RawApiKeyModal.tsx",
+    "lineNum": 94,
+    "lineContent": "{/* Chi tiết hạn mức & thời hạn */}",
+    "context": "              </Button>\r\n            </div>\r\n          </div>\r\n\r\n          {/* Chi tiết hạn mức & thời hạn */}\r\n          <div className=\"grid grid-cols-2 gap-2 p-3 rounded-lg bg-muted/40 text-xs\">\r\n            <div>\r\n              <span className=\"text-muted-foreground block\">Hạn mức gọi:</span>\r\n              <span className=\"font-semibold text-foreground\">{apiKeyData.rateLimitPerHour} lượt / giờ</span>\r"
+  },
+  {
+    "file": "components\\certification\\CertificationDetailDialog.tsx",
+    "lineNum": 53,
+    "lineContent": "Thông tin chi tiết chứng nhận",
+    "context": "          <DialogTitle className=\"text-xl font-bold text-foreground\">\r\n            {certification.name}\r\n          </DialogTitle>\r\n          <DialogDescription>\r\n            Thông tin chi tiết chứng nhận\r\n          </DialogDescription>\r\n        </DialogHeader>\r\n\r\n        <div className=\"space-y-6 py-4\">\r"
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 91,
+    "lineContent": "? error.response?.data?.message || \"Không thể tải chi tiết yêu cầu kiểm nghiệm\"",
+    "context": "        );\r\n      } catch (error) {\r\n        setDetailError(\r\n          axios.isAxiosError(error)\r\n            ? error.response?.data?.message || \"Không thể tải chi tiết yêu cầu kiểm nghiệm\"\r\n            : \"Không thể tải chi tiết yêu cầu kiểm nghiệm\"\r\n        );\r\n      } finally {\r\n        setDetailLoading(false);\r"
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 92,
+    "lineContent": ": \"Không thể tải chi tiết yêu cầu kiểm nghiệm\"",
+    "context": "      } catch (error) {\r\n        setDetailError(\r\n          axios.isAxiosError(error)\r\n            ? error.response?.data?.message || \"Không thể tải chi tiết yêu cầu kiểm nghiệm\"\r\n            : \"Không thể tải chi tiết yêu cầu kiểm nghiệm\"\r\n        );\r\n      } finally {\r\n        setDetailLoading(false);\r\n      }\r"
+  },
+  {
+    "file": "components\\certification\\RecordInspectionResultDialog.tsx",
+    "lineNum": 238,
+    "lineContent": "Đang tải chi tiết yêu cầu...",
+    "context": "\r\n        {detailLoading ? (\r\n          <div className=\"flex items-center justify-center gap-2 py-10 text-muted-foreground\">\r\n            <LoaderCircle className=\"h-5 w-5 animate-spin text-emerald-500\" />\r\n            Đang tải chi tiết yêu cầu...\r\n          </div>\r\n        ) : detailError ? (\r\n          <div className=\"flex flex-col items-center gap-3 py-10 text-muted-foreground\">\r\n            <AlertTriangle className=\"h-6 w-6 text-amber-500\" />\r"
+  },
+  {
+    "file": "components\\dashboard\\EventRecorderDashboard.tsx",
+    "lineNum": 11,
+    "lineContent": "Chọn lô sản xuất để ghi nhật ký canh tác hoặc xem thông tin chi tiết.",
+    "context": "        <h1 className=\"text-2xl font-bold text-slate-900\">\r\n          Ghi nhật ký canh tác\r\n        </h1>\r\n        <p className=\"mt-1 text-sm text-slate-500\">\r\n          Chọn lô sản xuất để ghi nhật ký canh tác hoặc xem thông tin chi tiết.\r\n        </p>\r\n      </div>\r\n\r\n      <ProductionLotBoard\r"
+  },
+  {
+    "file": "components\\dashboard\\IndustryReportTab.tsx",
+    "lineNum": 112,
+    "lineContent": "{isLoading ? 'Đang xem...' : 'Xem báo cáo'}",
+    "context": "                  <LoaderCircle className=\"size-4 animate-spin\" />\r\n                ) : (\r\n                  <SearchCheck className=\"size-4\" />\r\n                )}\r\n                {isLoading ? 'Đang xem...' : 'Xem báo cáo'}\r\n              </Button>\r\n            </div>\r\n          </div>\r\n\r"
+  },
+  {
+    "file": "components\\dashboard\\IndustryReportTab.tsx",
+    "lineNum": 194,
+    "lineContent": "<p className=\"mb-2 text-sm font-semibold\">Chi tiết theo nhóm nông sản</p>",
+    "context": "            </div>\r\n\r\n            {report.productBreakdown.length > 0 && (\r\n              <div>\r\n                <p className=\"mb-2 text-sm font-semibold\">Chi tiết theo nhóm nông sản</p>\r\n                <Table>\r\n                  <TableHeader>\r\n                    <TableRow>\r\n                      <TableHead>Loại nông sản</TableHead>\r"
+  },
+  {
+    "file": "components\\dashboard\\ProcurementDashboard.tsx",
+    "lineNum": 28,
+    "lineContent": "Xem danh sách lô hàng đã kích hoạt tem và thực hiện ghi nhận thu",
+    "context": "          <h1 className=\"text-2xl font-bold text-slate-900\">\r\n            Thu mua nông sản\r\n          </h1>\r\n          <p className=\"mt-1 text-sm text-slate-500\">\r\n            Xem danh sách lô hàng đã kích hoạt tem và thực hiện ghi nhận thu\r\n            mua.\r\n          </p>\r\n        </div>\r\n      </div>\r"
+  },
+  {
+    "file": "components\\farm-log\\AttachmentManager.tsx",
+    "lineNum": 332,
+    "lineContent": "title=\"Xem\"",
+    "context": "                      size=\"icon\"\r\n                      className=\"h-8 w-8\"\r\n                      onClick={() => handleView(att)}\r\n                      disabled={viewingId === att.id}\r\n                      title=\"Xem\"\r\n                      aria-label={`Xem chứng từ ${att.fileName}`}\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r\n                    </Button>\r"
+  },
+  {
+    "file": "components\\farm-log\\AttachmentManager.tsx",
+    "lineNum": 333,
+    "lineContent": "aria-label={`Xem chứng từ ${att.fileName}`}",
+    "context": "                      className=\"h-8 w-8\"\r\n                      onClick={() => handleView(att)}\r\n                      disabled={viewingId === att.id}\r\n                      title=\"Xem\"\r\n                      aria-label={`Xem chứng từ ${att.fileName}`}\r\n                    >\r\n                      <Eye className=\"h-4 w-4\" />\r\n                    </Button>\r\n                    <Button\r"
+  },
+  {
+    "file": "components\\farm-log\\CreateFarmLogForm.tsx",
+    "lineNum": 588,
+    "lineContent": "Ghi chú chi tiết",
+    "context": "                <Label\r\n                  htmlFor=\"notes\"\r\n                  className=\"font-semibold text-slate-800\"\r\n                >\r\n                  Ghi chú chi tiết\r\n                </Label>\r\n                <Textarea\r\n                  id=\"notes\"\r\n                  rows={3}\r"
+  },
+  {
+    "file": "components\\farm-log\\CreateFarmLogForm.tsx",
+    "lineNum": 593,
+    "lineContent": "placeholder=\"Mô tả chi tiết tình hình thời tiết, diện tích xử lý, phương pháp thực hiện...\"",
+    "context": "                </Label>\r\n                <Textarea\r\n                  id=\"notes\"\r\n                  rows={3}\r\n                  placeholder=\"Mô tả chi tiết tình hình thời tiết, diện tích xử lý, phương pháp thực hiện...\"\r\n                  value={form.notes}\r\n                  onChange={(e) => updateField('notes', e.target.value)}\r\n                  className=\"border-slate-200 focus:border-emerald-600 focus:ring-emerald-100\"\r\n                />\r"
+  },
+  {
+    "file": "components\\farm-log\\FarmLogList.tsx",
+    "lineNum": 120,
+    "lineContent": "// State row mở rộng: xem chi tiết + chứng từ inline",
+    "context": "  const [dateFrom, setDateFrom] = useState(\"\");\r\n  const [dateTo, setDateTo] = useState(\"\");\r\n  const [sortOrder, setSortOrder] = useState<\"asc\" | \"desc\">(\"desc\");\r\n\r\n  // State row mở rộng: xem chi tiết + chứng từ inline\r\n  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);\r\n\r\n  const goToCreateLog = () => {\r\n    navigate(`/farm-logs/create?productionLotId=${productionLotId}`);\r"
+  },
+  {
+    "file": "components\\farm-log\\FarmLogList.tsx",
+    "lineNum": 395,
+    "lineContent": "? \"Thu gọn chi tiết nhật ký\"",
+    "context": "                              aria-expanded={isExpanded}\r\n                              aria-controls={`farm-log-detail-${log.id}`}\r\n                              aria-label={\r\n                                isExpanded\r\n                                  ? \"Thu gọn chi tiết nhật ký\"\r\n                                  : \"Xem chi tiết & quản lý chứng từ nhật ký\"\r\n                              }\r\n                              title={\r\n                                isExpanded\r"
+  },
+  {
+    "file": "components\\farm-log\\FarmLogList.tsx",
+    "lineNum": 396,
+    "lineContent": ": \"Xem chi tiết & quản lý chứng từ nhật ký\"",
+    "context": "                              aria-controls={`farm-log-detail-${log.id}`}\r\n                              aria-label={\r\n                                isExpanded\r\n                                  ? \"Thu gọn chi tiết nhật ký\"\r\n                                  : \"Xem chi tiết & quản lý chứng từ nhật ký\"\r\n                              }\r\n                              title={\r\n                                isExpanded\r\n                                  ? \"Thu gọn chi tiết\"\r"
+  },
+  {
+    "file": "components\\farm-log\\FarmLogList.tsx",
+    "lineNum": 400,
+    "lineContent": "? \"Thu gọn chi tiết\"",
+    "context": "                                  : \"Xem chi tiết & quản lý chứng từ nhật ký\"\r\n                              }\r\n                              title={\r\n                                isExpanded\r\n                                  ? \"Thu gọn chi tiết\"\r\n                                  : \"Xem chi tiết & quản lý chứng từ\"\r\n                              }\r\n                            >\r\n                              <Paperclip className=\"h-4 w-4\" />\r"
+  },
+  {
+    "file": "components\\farm-log\\FarmLogList.tsx",
+    "lineNum": 401,
+    "lineContent": ": \"Xem chi tiết & quản lý chứng từ\"",
+    "context": "                              }\r\n                              title={\r\n                                isExpanded\r\n                                  ? \"Thu gọn chi tiết\"\r\n                                  : \"Xem chi tiết & quản lý chứng từ\"\r\n                              }\r\n                            >\r\n                              <Paperclip className=\"h-4 w-4\" />\r\n                              <span>{log.attachmentCount ?? 0}</span>\r"
+  },
+  {
+    "file": "components\\notification\\NotificationPanel.tsx",
+    "lineNum": 131,
+    "lineContent": "Xem tất cả",
+    "context": "        <Link\r\n          to=\"/notifications\"\r\n          className=\"block text-center text-sm font-medium text-primary hover:text-primary-hover\"\r\n        >\r\n          Xem tất cả\r\n        </Link>\r\n      </div>\r\n    </div>\r\n  );\r"
+  },
+  {
+    "file": "components\\production-lot\\ImportProductionLotForm.tsx",
+    "lineNum": 1086,
+    "lineContent": "Chi tiết lỗi",
+    "context": "                result.errors.length >\r\n                0 && (\r\n                  <div>\r\n                    <h4 className=\"mb-2 font-medium\">\r\n                      Chi tiết lỗi\r\n                      theo dòng\r\n                    </h4>\r\n\r\n                    <div className=\"overflow-x-auto rounded-lg border\">\r"
+  },
+  {
+    "file": "components\\production-lot\\ImportProductionLotForm.tsx",
+    "lineNum": 1231,
+    "lineContent": "? 'Xem danh sách lô'",
+    "context": "                  }\r\n                >\r\n                  {result.status ===\r\n                    'SUCCESS'\r\n                    ? 'Xem danh sách lô'\r\n                    : 'Đóng'}\r\n                </Button>\r\n              </DialogFooter>\r\n            </div>\r"
+  },
+  {
+    "file": "components\\production-lot\\ProductionLotList.tsx",
+    "lineNum": 266,
+    "lineContent": "\"Chi tiết\",",
+    "context": "                    \"Vùng trồng\",\r\n                    \"Nông sản\",\r\n                    \"Trạng thái\",\r\n                    \"Thao tác\",\r\n                    \"Chi tiết\",\r\n                  ].map((title) => (\r\n                    <TableHead\r\n                      key={title}\r\n                      className={`text-emerald-800 font-semibold${\r"
+  },
+  {
+    "file": "components\\production-lot\\ProductionLotList.tsx",
+    "lineNum": 271,
+    "lineContent": "title === \"Thao tác\" || title === \"Chi tiết\"",
+    "context": "                  ].map((title) => (\r\n                    <TableHead\r\n                      key={title}\r\n                      className={`text-emerald-800 font-semibold${\r\n                        title === \"Thao tác\" || title === \"Chi tiết\"\r\n                          ? \" text-center\"\r\n                          : \"\"\r\n                      }`}\r\n                    >\r"
+  },
+  {
+    "file": "components\\production-lot\\ProductionLotList.tsx",
+    "lineNum": 404,
+    "lineContent": "Chi tiết",
+    "context": "                            onClick={() =>\r\n                              navigate(`/production-lots/${lot.id}`)\r\n                            }\r\n                          >\r\n                            Chi tiết\r\n                          </Button>\r\n                        </TableCell>\r\n                      </TableRow>\r\n                    );\r"
+  },
+  {
+    "file": "components\\public\\RouteMap.tsx",
+    "lineNum": 153,
+    "lineContent": "<span>Click marker để xem chi tiết</span>",
+    "context": "    <div className=\"bg-white rounded-xl shadow-sm overflow-hidden\">\r\n      <div ref={mapRef} style={{ height: '450px', width: '100%' }} />\r\n      <div className=\"p-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-400 flex justify-between\">\r\n        <span>{locationEvents.length} điểm hành trình</span>\r\n        <span>Click marker để xem chi tiết</span>\r\n      </div>\r\n    </div>\r\n  );\r\n};"
+  },
+  {
+    "file": "components\\report\\IndustryReportFilter.tsx",
+    "lineNum": 75,
+    "lineContent": "<Search className=\"h-4 w-4 mr-1\" /> Xem báo cáo",
+    "context": "                type=\"submit\"\r\n                disabled={loading || !region || !fromDate || !toDate}\r\n                variant=\"view\"\r\n              >\r\n                <Search className=\"h-4 w-4 mr-1\" /> Xem báo cáo\r\n              </Button>\r\n              <Button type=\"button\" variant=\"outline\" onClick={handleReset} disabled={loading}>\r\n                <X className=\"h-4 w-4 mr-1\" /> Xóa\r\n              </Button>\r"
+  },
+  {
+    "file": "components\\report\\IndustryReportPanel.tsx",
+    "lineNum": 225,
+    "lineContent": "{isLoading ? 'Đang xem...' : 'Xem báo cáo'}",
+    "context": "                  <LoaderCircle className=\"size-4 animate-spin\" />\r\n                ) : (\r\n                  <SearchCheck className=\"size-4\" />\r\n                )}\r\n                {isLoading ? 'Đang xem...' : 'Xem báo cáo'}\r\n              </Button>\r\n            </div>\r\n          </div>\r\n\r"
+  },
+  {
+    "file": "components\\report\\IndustryReportPanel.tsx",
+    "lineNum": 307,
+    "lineContent": "<p className=\"mb-2 text-sm font-semibold\">Chi tiết theo nhóm nông sản</p>",
+    "context": "            </div>\r\n\r\n            {report.productBreakdown.length > 0 && (\r\n              <div>\r\n                <p className=\"mb-2 text-sm font-semibold\">Chi tiết theo nhóm nông sản</p>\r\n                <Table>\r\n                  <TableHeader>\r\n                    <TableRow>\r\n                      <TableHead>Loại nông sản</TableHead>\r"
+  },
+  {
+    "file": "components\\report\\SeasonYieldComparisonTable.tsx",
+    "lineNum": 58,
+    "lineContent": "<CardTitle>Chi tiết so sánh</CardTitle>",
+    "context": "}: SeasonYieldComparisonTableProps) {\r\n  return (\r\n    <Card>\r\n      <CardHeader>\r\n        <CardTitle>Chi tiết so sánh</CardTitle>\r\n        <CardDescription>\r\n          Chênh lệch được tính so với mùa vụ gốc do backend lựa chọn.\r\n        </CardDescription>\r\n      </CardHeader>\r"
+  },
+  {
+    "file": "components\\shipment\\ProcurementShipmentList.tsx",
+    "lineNum": 48,
+    "lineContent": "// Điều hướng tới trang chi tiết lô hàng. ProcurementShipment không chứa",
+    "context": "  const [isLoading, setIsLoading] = useState(true);\r\n  const [search, setSearch] = useState(\"\");\r\n  const navigate = useNavigate();\r\n\r\n  // Điều hướng tới trang chi tiết lô hàng. ProcurementShipment không chứa\r\n  // productionLotId nên cần lấy chi tiết trước để xây dựng route đầy đủ\r\n  // /production-lots/:lotId/shipments/:shipmentId (back button hoạt động).\r\n  const handleViewDetail = async (shipmentId: string) => {\r\n    try {\r"
+  },
+  {
+    "file": "components\\shipment\\ProcurementShipmentList.tsx",
+    "lineNum": 49,
+    "lineContent": "// productionLotId nên cần lấy chi tiết trước để xây dựng route đầy đủ",
+    "context": "  const [search, setSearch] = useState(\"\");\r\n  const navigate = useNavigate();\r\n\r\n  // Điều hướng tới trang chi tiết lô hàng. ProcurementShipment không chứa\r\n  // productionLotId nên cần lấy chi tiết trước để xây dựng route đầy đủ\r\n  // /production-lots/:lotId/shipments/:shipmentId (back button hoạt động).\r\n  const handleViewDetail = async (shipmentId: string) => {\r\n    try {\r\n      const data = await getShipmentById(shipmentId);\r"
+  },
+  {
+    "file": "components\\shipment\\ProcurementShipmentList.tsx",
+    "lineNum": 64,
+    "lineContent": "toast.error(\"Không thể tải chi tiết lô hàng.\");",
+    "context": "      navigate(\r\n        `/production-lots/${data.productionLotId}/shipments/${shipmentId}`,\r\n      );\r\n    } catch {\r\n      toast.error(\"Không thể tải chi tiết lô hàng.\");\r\n    }\r\n  };\r\n\r\n  const loadShipments = useCallback(async () => {\r"
+  },
+  {
+    "file": "components\\shipment\\ProcurementShipmentList.tsx",
+    "lineNum": 167,
+    "lineContent": "\"Chi tiết\",",
+    "context": "                      \"Nông sản\",\r\n                      \"Sản lượng\",\r\n                      \"Trạng thái\",\r\n                      \"Thao tác\",\r\n                      \"Chi tiết\",\r\n                    ].map((title) => (\r\n                        <TableHead\r\n                            key={title}\r\n                            className={\r"
+  },
+  {
+    "file": "components\\shipment\\ProcurementShipmentList.tsx",
+    "lineNum": 172,
+    "lineContent": "title === \"Thao tác\" || title === \"Chi tiết\"",
+    "context": "                    ].map((title) => (\r\n                        <TableHead\r\n                            key={title}\r\n                            className={\r\n                              title === \"Thao tác\" || title === \"Chi tiết\"\r\n                                  ? \"text-center\"\r\n                                  : undefined\r\n                            }\r\n                        >\r"
+  },
+  {
+    "file": "components\\shipment\\ProcurementShipmentList.tsx",
+    "lineNum": 257,
+    "lineContent": "Chi tiết",
+    "context": "                                  variant=\"outline\"\r\n                                  onClick={() => handleViewDetail(shipment.id)}\r\n                              >\r\n                                <Eye className=\"mr-1 size-4\" />\r\n                                Chi tiết\r\n                              </Button>\r\n                            </TableCell>\r\n                          </TableRow>\r\n                      ))}\r"
+  },
+  {
+    "file": "components\\shipment\\QrCodeGrid.tsx",
+    "lineNum": 135,
+    "lineContent": "Xem mã QR ở kích thước lớn.",
+    "context": "          <DialogContent className=\"w-full max-w-sm sm:max-w-md\">\r\n            <DialogHeader>\r\n              <DialogTitle>Mã QR: {preview.code}</DialogTitle>\r\n              <DialogDescription>\r\n                Xem mã QR ở kích thước lớn.\r\n              </DialogDescription>\r\n            </DialogHeader>\r\n            <img\r\n              src={preview.src}\r"
+  },
+  {
+    "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+    "lineNum": 80,
+    "lineContent": "<DialogTitle>Chi tiết lô hàng</DialogTitle>",
+    "context": "      }}\r\n    >\r\n      <DialogContent className=\"flex max-h-[90vh] w-[95vw] max-w-6xl flex-col overflow-hidden\">\r\n        <DialogHeader>\r\n          <DialogTitle>Chi tiết lô hàng</DialogTitle>\r\n          <DialogDescription>\r\n            Thông tin chi tiết và mã QR của lô hàng.\r\n          </DialogDescription>\r\n        </DialogHeader>\r"
+  },
+  {
+    "file": "components\\shipment\\ShipmentDetailDialog.tsx",
+    "lineNum": 82,
+    "lineContent": "Thông tin chi tiết và mã QR của lô hàng.",
+    "context": "      <DialogContent className=\"flex max-h-[90vh] w-[95vw] max-w-6xl flex-col overflow-hidden\">\r\n        <DialogHeader>\r\n          <DialogTitle>Chi tiết lô hàng</DialogTitle>\r\n          <DialogDescription>\r\n            Thông tin chi tiết và mã QR của lô hàng.\r\n          </DialogDescription>\r\n        </DialogHeader>\r\n\r\n        {/* No data */}\r"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 55,
+    "lineContent": "error.response?.data?.message || 'Không thể tải chi tiết mã tem',",
+    "context": "      const data = await getSuspectDetail(traceCodeId);\r\n      setDetail(data);\r\n    } catch (error: any) {\r\n      toast.error(\r\n        error.response?.data?.message || 'Không thể tải chi tiết mã tem',\r\n      );\r\n      navigate('/admin/suspect-trace-codes');\r\n    } finally {\r\n      setLoading(false);\r"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 97,
+    "lineContent": "<h1 className=\"text-2xl font-bold\">Chi tiết mã tem nghi vấn</h1>",
+    "context": "          <div className=\"rounded-xl bg-red-100 p-2.5 text-red-700\">\r\n            <ShieldAlert className=\"h-6 w-6\" />\r\n          </div>\r\n          <div>\r\n            <h1 className=\"text-2xl font-bold\">Chi tiết mã tem nghi vấn</h1>\r\n            <p className=\"text-sm text-muted-foreground font-mono\">\r\n              {detail.codeValue}\r\n            </p>\r\n          </div>\r"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeDetailPage.tsx",
+    "lineNum": 220,
+    "lineContent": "<CardTitle className=\"text-base\">Chi tiết điểm nghi vấn</CardTitle>",
+    "context": "\r\n      {/* Score Breakdown */}\r\n      <Card>\r\n        <CardHeader>\r\n          <CardTitle className=\"text-base\">Chi tiết điểm nghi vấn</CardTitle>\r\n        </CardHeader>\r\n        <CardContent>\r\n          <div className=\"space-y-3\">\r\n            <div className=\"flex items-center justify-between rounded-lg border p-3\">\r"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeListPage.tsx",
+    "lineNum": 162,
+    "lineContent": "Xem xét và khóa các mã tem có dấu hiệu quét bất thường",
+    "context": "          </div>\r\n          <div>\r\n            <h1 className=\"text-2xl font-bold\">Quản lý mã tem nghi vấn</h1>\r\n            <p className=\"text-sm text-muted-foreground\">\r\n              Xem xét và khóa các mã tem có dấu hiệu quét bất thường\r\n            </p>\r\n          </div>\r\n        </div>\r\n        <div className=\"flex items-center gap-2\">\r"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeListPage.tsx",
+    "lineNum": 295,
+    "lineContent": "<TableHead className=\"text-center\">Chi tiết</TableHead>",
+    "context": "                    <TableHead>Lượt quét</TableHead>\r\n                    <TableHead>Địa điểm</TableHead>\r\n                    <TableHead>Trạng thái</TableHead>\r\n                    <TableHead className=\"text-center\">Thao tác</TableHead>\r\n                    <TableHead className=\"text-center\">Chi tiết</TableHead>\r\n                  </TableRow>\r\n                </TableHeader>\r\n                <TableBody>\r\n                  {result.items.map((item) => (\r"
+  },
+  {
+    "file": "pages\\admin\\SuspectTraceCodeListPage.tsx",
+    "lineNum": 360,
+    "lineContent": "Chi tiết",
+    "context": "                            size=\"sm\"\r\n                            variant=\"outline\"\r\n                            onClick={() => navigate(`/admin/suspect-trace-codes/${item.id}`)}\r\n                          >\r\n                            Chi tiết\r\n                          </Button>\r\n                        </div>\r\n                      </TableCell>\r\n                    </TableRow>\r"
+  },
+  {
+    "file": "pages\\certification\\CertificationListPage.tsx",
+    "lineNum": 285,
+    "lineContent": "Xem",
+    "context": "                            variant=\"view\"\r\n                            size=\"sm\"\r\n                            onClick={() => setSelectedCertId(cert.id)}\r\n                          >\r\n                            Xem\r\n                          </Button>\r\n                        </TableCell>\r\n                      </TableRow>\r\n                    ))}\r"
+  },
+  {
+    "file": "pages\\farm-area\\FarmAreaListPage.tsx",
+    "lineNum": 116,
+    "lineContent": "title=\"Xem trên Google Maps\"",
+    "context": "                          href={`https://www.google.com/maps?q=${area.latitude},${area.longitude}`}\r\n                          target=\"_blank\"\r\n                          rel=\"noopener noreferrer\"\r\n                          className=\"inline-flex items-center gap-1 text-xs font-mono text-emerald-700 hover:text-emerald-800 hover:underline\"\r\n                          title=\"Xem trên Google Maps\"\r\n                        >\r\n                          <MapPin className=\"h-3 w-3 text-emerald-500\" />\r\n                          {area.latitude.toFixed(4)}, {area.longitude.toFixed(4)}\r\n                          <ExternalLink className=\"h-3 w-3 opacity-50\" />\r"
+  },
+  {
+    "file": "pages\\organization\\OrganizationListPage.tsx",
+    "lineNum": 131,
+    "lineContent": "Xem",
+    "context": "                          variant=\"view\"\r\n                          size=\"sm\"\r\n                          onClick={() => navigate(`/organizations/${org.id}`)}\r\n                        >\r\n                          Xem\r\n                        </Button>\r\n                      </TableCell>\r\n                    </TableRow>\r\n                  ))}\r"
+  },
+  {
+    "file": "pages\\packaging-event\\components\\CreatePackagingForm.tsx",
+    "lineNum": 365,
+    "lineContent": "? \"Xem lịch sử nhật ký\"",
+    "context": "            missingActivities={missingActivities}\r\n            message={eligibilityMessage || undefined}\r\n            actionLabel={\r\n              user?.roleCode === \"VT-02\"\r\n                ? \"Xem lịch sử nhật ký\"\r\n                : \"Ghi bổ sung nhật ký\"\r\n            }\r\n            onAction={\r\n              eligibilityStatus === \"ineligible\" && selectedLotId\r"
+  },
+  {
+    "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+    "lineNum": 118,
+    "lineContent": "Xem và xử lý các phản ánh từ người dùng về sản phẩm.",
+    "context": "          <h1 className=\"text-2xl font-bold tracking-tight text-foreground\">\r\n            Nhận phản ánh\r\n          </h1>\r\n          <p className=\"text-sm text-muted-foreground\">\r\n            Xem và xử lý các phản ánh từ người dùng về sản phẩm.\r\n          </p>\r\n        </div>\r\n        <div className=\"flex items-center gap-2\">\r\n          <HelpButton screenKey=\"product-feedback\" />\r"
+  },
+  {
+    "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+    "lineNum": 210,
+    "lineContent": "Xem chi tiết",
+    "context": "                        variant=\"outline\"\r\n                        size=\"sm\"\r\n                        onClick={() => handleViewDetail(fb)}\r\n                      >\r\n                        Xem chi tiết\r\n                      </Button>\r\n                    </td>\r\n                  </tr>\r\n                ))\r"
+  },
+  {
+    "file": "pages\\product-feedback\\ProductFeedbackManagementPage.tsx",
+    "lineNum": 300,
+    "lineContent": "Chi tiết phản ánh",
+    "context": "        {feedback && (\r\n          <>\r\n            <SheetHeader className=\"border-b px-6 py-4\">\r\n              <SheetTitle className=\"text-lg font-semibold text-foreground\">\r\n                Chi tiết phản ánh\r\n              </SheetTitle>\r\n              <SheetDescription className=\"text-sm text-muted-foreground\">\r\n                Nội dung phản ánh từ người dùng về sản phẩm.\r\n              </SheetDescription>\r"
+  },
+  {
+    "file": "pages\\public\\shipment\\ProductionLotDetailPage.tsx",
+    "lineNum": 699,
+    "lineContent": "{/* Tabs chi tiết */}",
+    "context": "          onCancel={() => setShowHarvestForm(false)}\r\n        />\r\n      )}\r\n\r\n      {/* Tabs chi tiết */}\r\n      <Tabs value={activeTab} onValueChange={setActiveTab} className=\"w-full\">\r\n        <TabsList className=\"bg-white/80 backdrop-blur-sm border border-emerald-100 p-1 rounded-xl gap-1 min-h-11 max-w-full overflow-x-auto overflow-y-hidden\">\r\n          <TabsTrigger\r\n            value=\"info\"\r"
+  },
+  {
+    "file": "pages\\public\\shipment\\ShipmentList.tsx",
+    "lineNum": 324,
+    "lineContent": "Chi tiết",
+    "context": "                              )\r\n                            }\r\n                          >\r\n                            <Eye className=\"mr-1 h-3 w-3\" />\r\n                            Chi tiết\r\n                          </Button>\r\n\r\n                          <DropdownMenu>\r\n                            <DropdownMenuTrigger\r"
+  },
+  {
+    "file": "pages\\recall-request\\RecallRequestListPage.tsx",
+    "lineNum": 143,
+    "lineContent": "<Eye className=\"size-4 mr-1\" /> Chi tiết",
+    "context": "                            size=\"sm\"\r\n                            variant=\"outline\"\r\n                            onClick={() => navigate(`/recall-requests/${item.id}`)}\r\n                          >\r\n                            <Eye className=\"size-4 mr-1\" /> Chi tiết\r\n                          </Button>\r\n                        </TableCell>\r\n                      </TableRow>\r\n                    ))}\r"
+  },
+  {
+    "file": "pages\\report\\LoginHistoryPage.tsx",
+    "lineNum": 107,
+    "lineContent": "Xem lịch sử đăng nhập của tài khoản {user?.fullName}",
+    "context": "      <div className=\"flex items-center justify-between\">\r\n        <div>\r\n          <h1 className=\"text-2xl font-bold\">Lịch sử đăng nhập</h1>\r\n          <p className=\"text-sm text-muted-foreground\">\r\n            Xem lịch sử đăng nhập của tài khoản {user?.fullName}\r\n          </p>\r\n        </div>\r\n        <Button\r\n          variant=\"outline\"\r"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\components\\ScanAnomalyAlertDetailsDialog.tsx",
+    "lineNum": 58,
+    "lineContent": "<DialogTitle>Chi tiết cảnh báo tem quét bất thường</DialogTitle>",
+    "context": "                <div className=\"rounded-full bg-amber-100 p-2 text-amber-700\">\r\n                  <AlertTriangle className=\"h-5 w-5\" />\r\n                </div>\r\n                <div className=\"space-y-1\">\r\n                  <DialogTitle>Chi tiết cảnh báo tem quét bất thường</DialogTitle>\r\n                  <DialogDescription>\r\n                    Mã cảnh báo: <span className=\"font-mono\">{alert.id}</span>\r\n                  </DialogDescription>\r\n                </div>\r"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+    "lineNum": 309,
+    "lineContent": "<TableHead className=\"text-center\">Chi tiết</TableHead>",
+    "context": "                    <TableHead>Mã TraceCode</TableHead>\r\n                    <TableHead>Dữ liệu quét</TableHead>\r\n                    <TableHead>Trạng thái</TableHead>\r\n                    <TableHead className=\"text-center\">Thao tác</TableHead>\r\n                    <TableHead className=\"text-center\">Chi tiết</TableHead>\r\n                  </TableRow>\r\n                </TableHeader>\r\n                <TableBody>\r\n                  {result.content.map((alert) => (\r"
+  },
+  {
+    "file": "pages\\scan-anomaly-alert\\ScanAnomalyAlertPage.tsx",
+    "lineNum": 368,
+    "lineContent": "Chi tiết",
+    "context": "                            variant=\"outline\"\r\n                            size=\"sm\"\r\n                            onClick={() => setDetailsAlert(alert)}\r\n                          >\r\n                            Chi tiết\r\n                          </Button>\r\n                        </div>\r\n                      </TableCell>\r\n                    </TableRow>\r"
+  },
+  {
+    "file": "pages\\warehouse-receipt\\WarehouseReceiptDetailPage.tsx",
+    "lineNum": 91,
+    "lineContent": "{detail.shipmentName || 'Chi tiết sự kiện nhập kho'}",
+    "context": "        <h1 className=\"text-2xl font-bold text-slate-900\">\r\n          Nhập kho & đối chiếu\r\n        </h1>\r\n        <p className=\"mt-1 text-sm text-slate-500\">\r\n          {detail.shipmentName || 'Chi tiết sự kiện nhập kho'}\r\n          {detail.recordedAt ? ` • ${formatDateTime(detail.recordedAt)}` : ''}\r\n        </p>\r\n      </div>\r\n\r"
+  }
+]

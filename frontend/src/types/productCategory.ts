@@ -8,6 +8,8 @@ export interface ProductCategory {
   tempMax?: number;
   humidityMin?: number;
   humidityMax?: number;
+  /** Cờ bắt buộc kiểm nghiệm khi kích hoạt tem (NCL-09-CN-009). */
+  requiresInspection?: boolean;
 }
 
 export interface ProductCategoryCreateRequest {

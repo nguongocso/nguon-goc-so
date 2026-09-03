@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Camera, Loader2, MapPin } from "lucide-react";
+import { Camera, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +36,7 @@ import {
   getLocalDateTimeString,
   isoToLocalDateTimeInputValue,
 } from "@/utils/dateTime";
+import { selectAllOnFocus, preventMouseUpCollapse } from "@/utils/inputUtils";
 import {
   mobileEventSchema,
   type MobileEventFormValues,
@@ -61,7 +62,7 @@ const getInitialFormValues = (): MobileEventFormValues => ({
   images: [],
   harvestDate: getLocalDateString(),
   packagingDate: getLocalDateString(),
-  quantity: 0,
+  quantity: undefined,
   packagingSpecification: "",
 });
 
@@ -109,8 +110,7 @@ export const RecordMobileEventForm: React.FC<Props> = ({
 
   const eventType = watch("eventType");
 
-  const { locationLoading, fetchLocation: getLocation } =
-    useAutoGeolocation({
+  useAutoGeolocation({
       onLocation: (latitude, longitude) => {
         setValue("latitude", latitude, {
           shouldValidate: true,
@@ -406,7 +406,7 @@ export const RecordMobileEventForm: React.FC<Props> = ({
                         getLocalDateString(),
                       );
 
-                      setValue("quantity", 0);
+                      setValue("quantity", undefined);
                     }
 
                     if (
@@ -503,89 +503,7 @@ export const RecordMobileEventForm: React.FC<Props> = ({
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <Label>Vị trí GPS *</Label>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => getLocation()}
-                disabled={
-                  locationLoading || isSubmitting
-                }
-              >
-                {locationLoading ? (
-                  <Loader2 className="mr-1 size-4 animate-spin" />
-                ) : (
-                  <MapPin className="mr-1 size-4" />
-                )}
-
-                {locationLoading
-                  ? "Đang lấy vị trí"
-                  : "Lấy vị trí"}
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <Controller
-                name="latitude"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    type="number"
-                    step="any"
-                    placeholder="Vĩ độ"
-                    value={field.value ?? ""}
-                    onChange={(event) => {
-                      const value =
-                        event.target.value;
-
-                      field.onChange(
-                        value === ""
-                          ? 0
-                          : Number(value),
-                      );
-                    }}
-                    onBlur={field.onBlur}
-                    name={field.name}
-                    ref={field.ref}
-                    disabled={
-                      isSubmitting || locationLoading
-                    }
-                  />
-                )}
-              />
-
-              <Controller
-                name="longitude"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    type="number"
-                    step="any"
-                    placeholder="Kinh độ"
-                    value={field.value ?? ""}
-                    onChange={(event) => {
-                      const value =
-                        event.target.value;
-
-                      field.onChange(
-                        value === ""
-                          ? 0
-                          : Number(value),
-                      );
-                    }}
-                    onBlur={field.onBlur}
-                    name={field.name}
-                    ref={field.ref}
-                    disabled={
-                      isSubmitting || locationLoading
-                    }
-                  />
-                )}
-              />
-            </div>
+            <Label>Vị trí GPS * (Click chọn trên bản đồ)</Label>
 
             {(errors.latitude ||
               errors.longitude) && (
@@ -611,6 +529,8 @@ export const RecordMobileEventForm: React.FC<Props> = ({
                       step="0.01"
                       placeholder="Nhập sản lượng"
                       value={field.value ?? ""}
+                      onFocus={selectAllOnFocus}
+                      onMouseUp={preventMouseUpCollapse}
                       onChange={(event) => {
                         const value =
                           event.target.value;
@@ -793,9 +713,7 @@ export const RecordMobileEventForm: React.FC<Props> = ({
           <Button
             type="submit"
             className="w-full"
-            disabled={
-              isSubmitting || locationLoading
-            }
+            disabled={isSubmitting}
           >
             {isSubmitting ? (
               <>

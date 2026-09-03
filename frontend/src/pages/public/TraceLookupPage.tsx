@@ -257,26 +257,28 @@ export default function TraceLookupPage() {
    * Có lỗi khi tra cứu.
    */
   if (error) {
+    const isCancelledError = error.includes('đã được đánh dấu HỦY') || error.includes('HỦY');
+
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
-            <MapPin className="h-6 w-6 text-red-500" />
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+        <div className="max-w-md w-full rounded-2xl bg-white p-8 text-center shadow-md border border-slate-100">
+          <div className={`mx-auto flex size-14 items-center justify-center rounded-full ${isCancelledError ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'}`}>
+            <MessageSquareWarning className="size-8" />
           </div>
 
-          <h2 className="mt-4 text-xl font-bold text-gray-900">
-            Không tìm thấy
+          <h2 className="mt-5 text-xl font-bold text-slate-900">
+            {isCancelledError ? 'Cảnh Báo: Mã Tem Đã Hủy' : 'Mã Không Hợp Lệ'}
           </h2>
 
-          <p className="mt-2 text-gray-600">
+          <p className="mt-3 text-sm leading-relaxed text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-200">
             {error}
           </p>
 
           <Link
             to="/"
-            className="mt-6 inline-flex items-center gap-2 font-medium text-emerald-600 hover:text-emerald-700"
+            className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 shadow-sm"
           >
-            <Home className="h-4 w-4" />
+            <Home className="size-4" />
             Về trang chủ
           </Link>
         </div>
@@ -328,6 +330,8 @@ export default function TraceLookupPage() {
         {/* Thông tin sản phẩm */}
         <ProductInfo
           productName={data.productName}
+          lotName={data.lotName}
+          lotCode={data.lotCode}
           shipmentCode={data.shipmentCode}
           status={data.shipmentStatus}
         />
@@ -357,6 +361,7 @@ export default function TraceLookupPage() {
 
         {/* Kết quả kiểm nghiệm công khai */}
         <PublicInspectionSection
+          inspections={inspectionData?.inspections ?? data.inspections}
           data={inspectionData}
           isLoading={inspectionLoading}
           error={inspectionError}

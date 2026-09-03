@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 import vn.nguongocso.certification.entity.InspectionCriterionResult;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -145,4 +146,46 @@ public interface InspectionCriterionResultRepository
     """)
     int countTotalCriteria(
             @Param("inspectionRequestId") UUID inspectionRequestId);
+
+    /**
+     * Đếm số lượng chỉ tiêu KHÔNG ĐẠT (passed = false) cho từng
+     * yêu cầu kiểm nghiệm trong một danh sách, bằng một truy vấn
+     * duy nhất để tránh N+1 khi map trang danh sách yêu cầu.
+     *
+     * Lưu ý: chỉ đếm kết quả có passed = false. Các kết quả hết hạn
+     * nhưng passed = true KHÔNG được tính là không đạt.
+     *
+     * @param requestIds Danh sách ID yêu cầu kiểm nghiệm.
+     * @return Danh sách mảng [requestId, số chỉ tiêu không đạt].
+     */
+    @Query("""
+        SELECT r.inspectionCriterion.inspectionRequest.id, COUNT(r)
+        FROM InspectionCriterionResult r
+        WHERE r.inspectionCriterion.inspectionRequest.id IN :requestIds
+          AND r.passed = false
+        GROUP BY r.inspectionCriterion.inspectionRequest.id
+    """)
+    List<Object[]> countFailedCriteriaByRequestIds(
+            @Param("requestIds") Collection<UUID> requestIds);
+
+    /**
+     * Lấy toàn bộ kết quả kiểm nghiệm thuộc MỌI yêu cầu của một lô
+     * sản xuất (join sẵn chỉ tiêu để so khớp theo criterionCode).
+     *
+     * Dùng cho điều kiện kích hoạt tem QTN-21 khi cần chọn kết quả
+     * MỚI NHẤT THEO TỪNG CHỈ TIÊU trên toàn lô, thay vì cộng dồn
+     * theo từng yêu cầu (cách cộng dồn sẽ đếm trùng chỉ tiêu xuất
+     * hiện ở nhiều yêu cầu kiểm thử lại).
+     *
+     * @param lotId ID của lô sản xuất.
+     * @return Danh sách kết quả kiểm nghiệm của lô.
+     */
+    @Query("""
+        SELECT r
+        FROM InspectionCriterionResult r
+            JOIN r.inspectionCriterion c
+        WHERE c.inspectionRequest.productionLot.id = :lotId
+    """)
+    List<InspectionCriterionResult> findAllByProductionLotId(
+            @Param("lotId") UUID lotId);
 }

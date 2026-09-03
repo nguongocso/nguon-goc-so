@@ -20,10 +20,28 @@ export const checkDossierEligibility = async (shipmentId: string): Promise<Dossi
  * Xuất và tải hồ sơ PDF
  */
 export const exportDossier = async (shipmentId: string): Promise<Blob> => {
-  const response = await apiClient.get(`/shipments/${shipmentId}/dossier/export`, {
-    responseType: 'blob',
-  });
-  return response.data;
+  try {
+    const response = await apiClient.get(`/shipments/${shipmentId}/dossier/export`, {
+      responseType: 'blob',
+      timeout: 30000,
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data instanceof Blob && error.response.data.type?.includes('application/json')) {
+      const text = await error.response.data.text();
+      let message = text || 'Không đủ điều kiện hoặc lỗi khi tạo hồ sơ truy xuất';
+      try {
+        const errJson = JSON.parse(text);
+        if (errJson?.message) {
+          message = errJson.message;
+        }
+      } catch {
+        // Không phải JSON hợp lệ → giữ nguyên text
+      }
+      throw new Error(message);
+    }
+    throw error;
+  }
 };
 
 export interface Gs1EventLocation {
@@ -87,22 +105,40 @@ export const exportGs1Dossier = async (
   format: 'json' | 'xml' = 'json',
   includeMapping = true,
 ): Promise<{ blob: Blob; fileName: string }> => {
-  const response = await apiClient.get(`/shipments/${shipmentId}/dossier/gs1`, {
-    params: { format, includeMapping },
-    responseType: 'blob',
-  });
+  try {
+    const response = await apiClient.get(`/shipments/${shipmentId}/dossier/gs1`, {
+      params: { format, includeMapping },
+      responseType: 'blob',
+      timeout: 30000,
+    });
 
-  const contentDisposition = response.headers?.['content-disposition'];
-  let fileName = `GS1_Ho_so_truy_xuat_${shipmentId}.${format}`;
+    const contentDisposition = response.headers?.['content-disposition'];
+    let fileName = `GS1_Ho_so_truy_xuat_${shipmentId}.${format}`;
 
-  if (contentDisposition) {
-    const match = String(contentDisposition).match(
-      /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/,
-    );
-    if (match && match[1]) {
-      fileName = match[1].replace(/['"]/g, '');
+    if (contentDisposition) {
+      const match = String(contentDisposition).match(
+        /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/,
+      );
+      if (match && match[1]) {
+        fileName = match[1].replace(/['"]/g, '');
+      }
     }
-  }
 
-  return { blob: response.data as Blob, fileName };
+    return { blob: response.data as Blob, fileName };
+  } catch (error: any) {
+    if (error.response?.data instanceof Blob && error.response.data.type?.includes('application/json')) {
+      const text = await error.response.data.text();
+      let message = text || 'Lỗi khi tạo hồ sơ GS1';
+      try {
+        const errJson = JSON.parse(text);
+        if (errJson?.message) {
+          message = errJson.message;
+        }
+      } catch {
+        // Không phải JSON hợp lệ → giữ nguyên text
+      }
+      throw new Error(message);
+    }
+    throw error;
+  }
 };

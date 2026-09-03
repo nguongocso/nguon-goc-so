@@ -17,6 +17,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { ScanAnomalyAlert } from '@/types/scanAnomalyAlert';
+import { DetailSection } from '@/components/common/detail/DetailSection';
+import { DetailField } from '@/components/common/detail/DetailField';
 import { AlertTriangle, CheckCircle2, MapPin } from 'lucide-react';
 
 interface Props {
@@ -61,60 +63,50 @@ export function ScanAnomalyAlertDetailsDialog({
               </div>
             </DialogHeader>
 
-            <div className="grid gap-3 rounded-lg border bg-muted/20 p-4 sm:grid-cols-2">
-              <div>
-                <p className="text-xs text-muted-foreground">Mức độ</p>
-                <Badge
-                  variant={alert.severity === 'HIGH' ? 'destructive' : 'outline'}
-                  className={alert.severity === 'MEDIUM' ? 'border-amber-300 text-amber-700' : undefined}
-                >
-                  {alert.severity === 'HIGH' ? 'Cao' : 'Trung bình'}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Trạng thái</p>
-                <Badge variant={alert.status === 'PENDING' ? 'secondary' : 'outline'}>
-                  {alert.status === 'PENDING' ? 'Chờ xử lý' : 'Đã xử lý'}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Mã TraceCode</p>
-                <p className="break-all font-mono text-sm">{alert.relatedEntityId}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Thời điểm tạo</p>
-                <p className="text-sm font-medium">{formatDateTime(alert.createdAt)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Số lượt quét</p>
-                <p className="text-sm font-medium">{alert.details.scanCount} lượt</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Ngưỡng cấu hình</p>
-                <p className="text-sm font-medium">{alert.details.thresholdConfigured} vị trí</p>
-              </div>
+            <DetailSection
+              title="Tổng quan cảnh báo"
+              contentClassName="grid gap-3 sm:grid-cols-2"
+            >
+              <DetailField
+                label="Mức độ"
+                value={
+                  <Badge
+                    variant={alert.severity === 'HIGH' ? 'destructive' : 'outline'}
+                    className={alert.severity === 'MEDIUM' ? 'border-amber-300 text-amber-700' : undefined}
+                  >
+                    {alert.severity === 'HIGH' ? 'Cao' : 'Trung bình'}
+                  </Badge>
+                }
+              />
+              <DetailField
+                label="Trạng thái"
+                value={
+                  <Badge variant={alert.status === 'PENDING' ? 'secondary' : 'outline'}>
+                    {alert.status === 'PENDING' ? 'Chờ xử lý' : 'Đã xử lý'}
+                  </Badge>
+                }
+              />
+              <DetailField label="Mã TraceCode" mono value={alert.relatedEntityId} />
+              <DetailField label="Thời điểm tạo" value={formatDateTime(alert.createdAt)} />
+              <DetailField label="Số lượt quét" value={`${alert.details.scanCount} lượt`} />
+              <DetailField
+                label="Ngưỡng cấu hình"
+                value={`${alert.details.thresholdConfigured} vị trí`}
+              />
               {alert.status === 'RESOLVED' && (
                 <>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Xử lý lúc</p>
-                    <p className="text-sm font-medium">{formatDateTime(alert.resolvedAt)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Người xử lý</p>
-                    <p className="break-all font-mono text-sm">{alert.resolvedBy || '—'}</p>
-                  </div>
+                  <DetailField label="Xử lý lúc" value={formatDateTime(alert.resolvedAt)} />
+                  <DetailField label="Người xử lý" mono value={alert.resolvedBy || undefined} />
                 </>
               )}
-            </div>
+            </DetailSection>
 
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-amber-600" />
-                <h3 className="font-medium">
-                  Các vị trí đã quét ({alert.details.locations.length})
-                </h3>
-              </div>
-              <div className="overflow-x-auto rounded-lg border">
+            <DetailSection
+              title={`Các vị trí đã quét (${alert.details.locations.length})`}
+              icon={<MapPin className="h-4 w-4 text-amber-600" />}
+              contentClassName="overflow-hidden p-0"
+            >
+              <div className="overflow-x-auto bg-card">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -151,7 +143,7 @@ export function ScanAnomalyAlertDetailsDialog({
                   </TableBody>
                 </Table>
               </div>
-            </div>
+            </DetailSection>
 
             <DialogFooter>
               <Button variant="outline" onClick={onClose}>Đóng</Button>

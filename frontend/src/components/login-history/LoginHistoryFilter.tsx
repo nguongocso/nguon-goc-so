@@ -39,6 +39,12 @@ export const LoginHistoryFilter = ({ onFilter, onReset, loading }: Props) => {
     onReset();
   };
 
+  const getResultLabel = (value: string) => {
+    if (value === "SUCCESS") return "Thành công";
+    if (value === "FAILED") return "Thất bại";
+    return "Tất cả";
+  };
+
   return (
     <Card className="border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm">
       <CardContent className="p-5">
@@ -51,9 +57,17 @@ export const LoginHistoryFilter = ({ onFilter, onReset, loading }: Props) => {
               >
                 Kết quả
               </Label>
-              <Select value={result} onValueChange={(value) => setResult(value ?? "")}>
+              <Select value={result} onValueChange={(value) => setResult(value ?? "")}
+                items={[
+                  { value: '', label: 'Tất cả' },
+                  { value: 'SUCCESS', label: 'Thành công' },
+                  { value: 'FAILED', label: 'Thất bại' },
+                ]}
+              >
                 <SelectTrigger id="login-result" className="border-emerald-200 focus:ring-emerald-100">
-                  <SelectValue placeholder="Tất cả" />
+                  <SelectValue placeholder="Tất cả">
+                    {getResultLabel(result)}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Tất cả</SelectItem>

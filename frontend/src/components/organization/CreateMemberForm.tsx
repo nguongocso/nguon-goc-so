@@ -126,13 +126,17 @@ export function CreateMemberForm() {
   if (isLoading) return <div className="p-8 text-center">Đang tải...</div>;
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Thêm thành viên mới</CardTitle>
-        <CardDescription>Nhập thông tin thành viên để thêm vào tổ chức.</CardDescription>
+    <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+      <CardHeader className="border-b border-slate-100 pb-4">
+        <CardTitle className="text-lg font-semibold text-slate-900">
+          Thông tin tài khoản thành viên
+        </CardTitle>
+        <CardDescription>
+          Nhập đầy đủ tên đăng nhập, mật khẩu khởi tạo và chọn vai trò phân quyền.
+        </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-6">
           {/* Tên đăng nhập */}
           <div className="space-y-2">
             <Label htmlFor="username">Tên đăng nhập *</Label>

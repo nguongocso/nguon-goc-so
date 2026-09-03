@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -23,6 +24,7 @@ import vn.nguongocso.alert.dto.response.ResolveAlertResponse;
 import vn.nguongocso.alert.entity.Alert;
 import vn.nguongocso.alert.enums.AlertStatus;
 import vn.nguongocso.alert.enums.AlertType;
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.alert.repository.AlertRepository;
 import vn.nguongocso.alert.service.AlertService;
 import vn.nguongocso.certification.entity.Certification;
@@ -30,6 +32,7 @@ import vn.nguongocso.certification.repository.CertificationRepository;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.organization.dto.response.OrganizationProfileResponse;
 import vn.nguongocso.organization.entity.OrganizationUser;
@@ -52,6 +55,7 @@ public class AlertServiceImpl implements AlertService {
         private final ObjectMapper objectMapper;
         private final CertificationRepository certificationRepository;
         private final OrganizationService organizationService;
+        private final ApplicationEventPublisher eventPublisher;
 
         /** Lấy danh sách cảnh báo quét bất thường. */
         @Override
@@ -156,6 +160,15 @@ public class AlertServiceImpl implements AlertService {
 
                 Alert resolvedAlert = alertRepository.save(alert);
 
+                // Ghi nhật ký hoạt động (TASK-27): xử lý cảnh báo
+                publishActivityLog(
+                                getCurrentUserDetails(),
+                                "RESOLVE_ALERT",
+                                "Xử lý cảnh báo " + resolvedAlert.getType()
+                                                + " (ID " + resolvedAlert.getId() + ")",
+                                "ALERT",
+                                resolvedAlert.getId().toString());
+
                 return toResolveAlertResponse(resolvedAlert);
         }
 
@@ -175,6 +188,45 @@ public class AlertServiceImpl implements AlertService {
                                 userDetails.getUser().getUserId())
                                 .orElseThrow(() -> new BusinessException(
                                                 "Người dùng không tồn tại."));
+        }
+
+        /**
+         * Lấy thông tin người dùng đã xác thực từ security context (TASK-27).
+         */
+        private CustomUserDetails getCurrentUserDetails() {
+
+                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+                if (authentication == null
+                                || !(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
+
+                        throw new BusinessException(
+                                        "Người dùng chưa đăng nhập.");
+                }
+
+                return userDetails;
+        }
+
+        /**
+         * Ghi nhật ký hoạt động theo convention của hệ thống (TASK-27).
+         * <p>
+         * Actor lấy từ người dùng đã xác thực trong security context,
+         * organization lấy từ organization của người thực hiện.
+         */
+        private void publishActivityLog(CustomUserDetails currentUser, String action, String description,
+                        String entityType, String entityId) {
+                eventPublisher.publishEvent(ActivityLogEvent.builder()
+                                .userId(currentUser.getUserId())
+                                .username(currentUser.getUsername())
+                                .fullName(currentUser.getFullName())
+                                .organizationId(currentUser.getOrganizationId())
+                                .action(action)
+                                .description(description)
+                                .entityType(entityType)
+                                .entityId(entityId)
+                                .ipAddress(IpUtils.getClientIp())
+                                .timestamp(LocalDateTime.now())
+                                .build());
         }
 
         /** Lấy tất cả vai trò của người dùng trong các tổ chức. */

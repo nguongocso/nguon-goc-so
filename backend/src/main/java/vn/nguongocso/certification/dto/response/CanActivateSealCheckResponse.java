@@ -35,17 +35,18 @@ public class CanActivateSealCheckResponse {
     private LocalDate earliestExpiryDate;
 
     /**
-     * Tổng số chỉ tiêu yêu cầu kiểm nghiệm.
+     * Tổng số chỉ tiêu bắt buộc đang được gán (ACTIVE) cho loại nông
+     * sản của lô — cùng nguồn với GET test-criteria.
      */
     private Integer totalCriteria;
 
     /**
-     * Số chỉ tiêu đã có kết quả đạt.
+     * Số chỉ tiêu có kết quả MỚI NHẤT đạt và còn hiệu lực.
      */
     private Integer passedCriteria;
 
     /**
-     * Số chỉ tiêu không đạt hoặc quá hạn.
+     * Số chỉ tiêu chưa có kết quả / không đạt / đã quá hạn.
      */
     private Integer failedOrExpiredCriteria;
 }

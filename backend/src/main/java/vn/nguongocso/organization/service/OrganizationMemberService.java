@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -11,6 +12,8 @@ import org.springframework.stereotype.Service;
 import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.dto.request.AddMemberRequest;
 import vn.nguongocso.auth.dto.request.AssignRoleRequest;
+import vn.nguongocso.auth.dto.request.DeactivateMemberRequest;
+import vn.nguongocso.auth.dto.request.ReactivateMemberRequest;
 import vn.nguongocso.auth.dto.response.OrganizationUserResponse;
 import vn.nguongocso.auth.entity.Role;
 import vn.nguongocso.auth.entity.User;
@@ -27,9 +30,13 @@ import vn.nguongocso.organization.entity.OrganizationUser;
 import vn.nguongocso.organization.enums.OrganizationUserStatus;
 import vn.nguongocso.organization.repository.OrganizationRepository;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
+import vn.nguongocso.permission.repository.OrganizationRolePermissionRepository;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -46,6 +53,7 @@ public class OrganizationMemberService {
     private final RoleRepository roleRepository;
     private final OrganizationRepository organizationRepository;
     private final PasswordEncoder passwordEncoder;
+    private final OrganizationRolePermissionRepository orgRolePermissionRepository;
 
     private final ApplicationEventPublisher eventPublisher;
 
@@ -84,13 +92,40 @@ public class OrganizationMemberService {
     }
 
     // business methods
-    public List<OrganizationUserResponse> getMembersOfCurrentOrganization() {
+    /**
+     * Lấy danh sách thành viên của tổ chức hiện tại theo trạng thái membership.
+     *
+     * <p>
+     * {@code status} nhận {@code ACTIVE}/{@code INACTIVE}; bỏ qua tham số
+     * thì mặc định trả về {@code ACTIVE} (giữ hành vi cũ), truyền giá trị
+     * rỗng thì trả về tất cả phục vụ màn hình kích hoạt lại thành viên.
+     * </p>
+     */
+    public List<OrganizationUserResponse> getMembersOfCurrentOrganization(String status) {
         UUID orgId = getCurrentOrganizationId();
-        List<OrganizationUser> orgUsers = orgUserRepository
-                .findByOrganization_OrganizationIdAndStatus(orgId, OrganizationUserStatus.ACTIVE);
+        List<OrganizationUser> orgUsers;
+
+        if (status == null) {
+            orgUsers = orgUserRepository
+                    .findByOrganization_OrganizationIdAndStatus(orgId, OrganizationUserStatus.ACTIVE);
+        } else if (status.isBlank()) {
+            orgUsers = orgUserRepository.findByOrganization_OrganizationId(orgId);
+        } else {
+            orgUsers = orgUserRepository
+                    .findByOrganization_OrganizationIdAndStatus(orgId, parseMembershipStatus(status));
+        }
+
         return orgUsers.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    private OrganizationUserStatus parseMembershipStatus(String status) {
+        try {
+            return OrganizationUserStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("Trạng thái thành viên không hợp lệ: " + status);
+        }
     }
 
     /**
@@ -229,6 +264,148 @@ public class OrganizationMemberService {
         return toResponse(orgUser);
     }
 
+    /**
+     * Vô hiệu hóa thành viên của tổ chức hiện tại: thu hồi toàn bộ quyền
+     * ngay lập tức, chuyển giao lô chưa hoàn thành cho người thay thế
+     * (nếu có), chấm dứt phiên đang mở và ghi audit log (QTN-32).
+     *
+     * <p>
+     * Toàn bộ thao tác ghi (chuyển giao phân công + đổi trạng thái
+     * membership) chạy trong cùng transaction. Phiên đăng nhập đang mở bị
+     * chấm dứt tức thời nhờ kiểm tra trạng thái membership ở luồng xác
+     * thực từng request
+     * ({@code CustomUserDetailsService.loadUserByUserIdAndOrganizationId}).
+     * </p>
+     */
+    @Transactional
+    public OrganizationUserResponse deactivateMember(UUID userId, DeactivateMemberRequest request) {
+        UUID orgId = getCurrentOrganizationId();
+        CustomUserDetails currentUser = getCurrentUser();
+
+        validateNotSelfDeactivation(currentUser.getUserId(), userId);
+
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Thành viên không tồn tại"));
+
+        OrganizationUser membership = orgUserRepository
+                .findByOrganization_OrganizationIdAndUser_UserId(orgId, userId)
+                .orElseThrow(() -> new BusinessException("Thành viên không thuộc tổ chức này"));
+
+        if (membership.getStatus() != OrganizationUserStatus.ACTIVE) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Thành viên đã ngừng hoạt động");
+        }
+
+        validateDeactivationScope(getCurrentRoleCode(), membership);
+        validateNotLastActiveManager(orgId, membership);
+
+        // Vô hiệu hóa trực tiếp. Lưu ý: nếu thành viên còn lô chưa hoàn
+        // thành thì các lô đó sẽ mất người ghi sự kiện — FE hiện thông báo
+        // cảnh báo để quản lý rà soát trước khi thực hiện. Hiện tại hệ thống
+        // chưa có phân quyền ghi sự kiện theo lô nên KHÔNG thực hiện chuyển
+        // giao lô (transferActiveAssignments được tạm gỡ bỏ — D-4/TC-02).
+        membership.setStatus(OrganizationUserStatus.INACTIVE);
+        membership = orgUserRepository.save(membership);
+
+        publishActivityLog(currentUser, "DEACTIVATE",
+                "Vô hiệu hóa thành viên " + targetUser.getFullName() + " (" + targetUser.getUserName()
+                        + "). Lý do: " + request.getReason(),
+                "OrganizationUser",
+                membership.getId().toString());
+
+        log.info("Vô hiệu hóa thành viên thành công: userId={}, orgId={}, actor={}",
+                userId, orgId, currentUser.getUserId());
+
+        return toResponse(membership);
+    }
+
+    /**
+     * Kích hoạt lại thành viên đã ngừng hoạt động, bắt buộc nhập lý do.
+     * Vai trò cũ lưu trong {@code organization_users.role_id} được giữ
+     * nguyên (không tự cấp lại quyền); phân công lô cũ không được hồi tố.
+     */
+    @Transactional
+    public OrganizationUserResponse reactivateMember(UUID userId, ReactivateMemberRequest request) {
+        UUID orgId = getCurrentOrganizationId();
+        CustomUserDetails currentUser = getCurrentUser();
+
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Thành viên không tồn tại"));
+
+        OrganizationUser membership = orgUserRepository
+                .findByOrganization_OrganizationIdAndUser_UserId(orgId, userId)
+                .orElseThrow(() -> new BusinessException("Thành viên không thuộc tổ chức này"));
+
+        if (membership.getStatus() != OrganizationUserStatus.INACTIVE) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Thành viên đang hoạt động, không thể kích hoạt lại");
+        }
+
+        membership.setStatus(OrganizationUserStatus.ACTIVE);
+        membership = orgUserRepository.save(membership);
+
+        publishActivityLog(currentUser, "REACTIVATE",
+                "Kích hoạt lại thành viên " + targetUser.getFullName() + " (" + targetUser.getUserName()
+                        + "). Lý do: " + request.getReason(),
+                "OrganizationUser",
+                membership.getId().toString());
+
+        log.info("Kích hoạt lại thành viên thành công: userId={}, orgId={}, actor={}",
+                userId, orgId, currentUser.getUserId());
+
+        return toResponse(membership);
+    }
+
+    // ==================== deactivate/reactivate helpers ====================
+
+    /** BR-9: không cho phép vô hiệu hóa chính mình. */
+    private void validateNotSelfDeactivation(UUID currentUserId, UUID targetUserId) {
+        if (currentUserId.equals(targetUserId)) {
+            throw new BusinessException("Không thể tự vô hiệu hóa tài khoản của chính mình");
+        }
+    }
+
+    /**
+     * Phạm vi vai trò khi vô hiệu hóa: người thao tác phải là VT-01/VT-02
+     * (tầng 2 phòng thủ, tầng 1 là {@code @PreAuthorize} trên controller);
+     * VT-02 chỉ được vô hiệu hóa thành viên vai trò Người ghi sự kiện
+     * (khớp {@code validateAssignableRole}).
+     */
+    private void validateDeactivationScope(String currentRoleCode, OrganizationUser targetMembership) {
+        if (!RoleCode.ADMIN.equals(currentRoleCode) && !RoleCode.ORG_MANAGER.equals(currentRoleCode)) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "Bạn không có quyền thực hiện chức năng này");
+        }
+        if (RoleCode.ORG_MANAGER.equals(currentRoleCode)
+                && !RoleCode.EVENT_RECORDER.equals(targetMembership.getRole().getCode())) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "Quản lý hợp tác xã không thể vô hiệu hóa vai trò này");
+        }
+    }
+
+    /** Không cho vô hiệu hóa quản lý duy nhất còn lại của tổ chức. */
+    private void validateNotLastActiveManager(UUID orgId, OrganizationUser targetMembership) {
+        if (!RoleCode.ORG_MANAGER.equals(targetMembership.getRole().getCode())) {
+            return;
+        }
+        long activeManagers = orgUserRepository.countByOrganization_OrganizationIdAndStatusAndRole_Code(
+                orgId, OrganizationUserStatus.ACTIVE, RoleCode.ORG_MANAGER);
+        if (activeManagers <= 1) {
+            throw new BusinessException(HttpStatus.CONFLICT,
+                    "Không thể vô hiệu hóa quản lý duy nhất còn lại của tổ chức");
+        }
+    }
+
+    /**
+     * Load membership của một thành viên trong tổ chức hiện tại (scope
+     * theo JWT). User không tồn tại → 404; không thuộc tổ chức hiện tại
+     * → 400 (không lộ thông tin membership chéo tổ chức).
+     */
+    private OrganizationUser loadMembershipInCurrentOrganization(UUID userId) {
+        UUID orgId = getCurrentOrganizationId();
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Thành viên không tồn tại"));
+        return orgUserRepository
+                .findByOrganization_OrganizationIdAndUser_UserId(orgId, userId)
+                .orElseThrow(() -> new BusinessException("Thành viên không thuộc tổ chức này"));
+    }
+
     private CustomUserDetails getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
@@ -269,6 +446,7 @@ public class OrganizationMemberService {
                 .roleCode(role.getCode())
                 .roleName(role.getName())
                 .status(user.getStatus())
+                .membershipStatus(orgUser.getStatus())
                 .joinedAt(orgUser.getJoinedAt())
                 .build();
     }

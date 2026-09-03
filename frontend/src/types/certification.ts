@@ -71,10 +71,80 @@ export interface LotTestCriteriaResult {
 }
 
 /**
+ * Đơn vị kiểm nghiệm trong danh mục dùng chung (NCL-11-CN-006 Phase 1).
+ * GET /api/v1/testing-units
+ */
+export interface TestingUnit {
+  id: string;
+  name: string;
+  accreditationCode: string;
+  contactInfo: string | null;
+  /** YYYY-MM-DD, null nếu không có ngày hết hạn. */
+  accreditationExpiryDate: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface CreateTestingUnitRequest {
+  name: string;
+  accreditationCode: string;
+  contactInfo?: string | null;
+  accreditationExpiryDate?: string | null;
+  isActive?: boolean;
+}
+
+export interface UpdateTestingUnitRequest {
+  name: string;
+  accreditationCode: string;
+  contactInfo?: string | null;
+  accreditationExpiryDate?: string | null;
+  isActive?: boolean;
+}
+
+/**
+ * Một dòng phạm vi công nhận của đơn vị kiểm nghiệm
+ * (NCL-11-CN-006 Phase 2).
+ */
+export interface AccreditationScope {
+  id: string;
+  testingUnitId: string;
+  testingUnitName: string;
+  /** Id chỉ tiêu trong danh mục dùng chung (inspection_criterion_catalog.id). */
+  criterionDefinitionId: number;
+  criterionCode: string;
+  criterionName: string;
+  createdAt: string;
+}
+
+/**
+ * Tóm tắt phạm vi công nhận của một đơn vị kiểm nghiệm.
+ * GET /api/v1/testing-units/{unitId}/accreditation-scopes
+ */
+export interface AccreditationScopeSummary {
+  testingUnitId: string;
+  testingUnitName: string;
+  accreditedCriteria: {
+    id: number;
+    code: string;
+    name: string;
+  }[];
+}
+
+/** Payload cập nhật phạm vi công nhận (REPLACE-ALL). */
+export interface UpdateAccreditationScopeRequest {
+  criterionDefinitionIds: number[];
+}
+
+/**
  * Payload tạo yêu cầu kiểm nghiệm.
  * POST /api/v1/production-lots/{lotId}/test-requests
+ *
+ * testingUnitId ưu tiên khi có (chọn từ danh mục đơn vị kiểm nghiệm).
+ * testingUnit giữ lại để tương thích ngược (nhập tự do khi không có danh mục).
  */
 export interface CreateInspectionRequestPayload {
+  testingUnitId?: string | null;
   testingUnit: string;
   sampleSentDate: string; // YYYY-MM-DD
   criteriaIds: number[];
@@ -136,6 +206,10 @@ export interface InspectionRequestListItem {
   testingUnit: string;
   sampleSentDate: string;
   criteriaCount: number;
+  /** Số chỉ tiêu không đạt (passed = false); không tính chưa có kết quả/hết hạn. */
+  failedCriteriaCount: number;
+  /** Tỷ lệ chỉ tiêu không đạt trên tổng số chỉ tiêu (%), 1 chữ số thập phân. */
+  failedRatio: number;
 }
 
 /**
@@ -149,6 +223,16 @@ export interface InspectionRequestDetailResponse {
   status: InspectionRequestStatusDisplay;
   testingUnit: string;
   sampleSentDate: string;
+  /** Tổng số chỉ tiêu kiểm nghiệm của yêu cầu. */
+  totalCriteria: number;
+  /** Số chỉ tiêu đã có kết quả kiểm nghiệm được ghi nhận. */
+  evaluatedCriteria: number;
+  /** Số chỉ tiêu đạt (passed = true). */
+  passedCriteria: number;
+  /** Số chỉ tiêu không đạt (passed = false). */
+  failedCriteriaCount: number;
+  /** Tỷ lệ chỉ tiêu không đạt trên tổng số chỉ tiêu (%), 1 chữ số thập phân. */
+  failedRatio: number;
   criteria: InspectionRequestDetailCriterion[];
 }
 
@@ -182,8 +266,10 @@ export interface InspectionCriterionResult {
   criterionId: string;
   criterionCode: string;
   criterionName: string;
-  resultDate: string; // YYYY-MM-DD
-  expiryDate: string; // YYYY-MM-DD
+  /** Ngày cấp kết quả; null khi chỉ tiêu Không đạt (kết quả không có hiệu lực). */
+  resultDate: string | null; // YYYY-MM-DD
+  /** Ngày hết hiệu lực; null khi chỉ tiêu Không đạt. */
+  expiryDate: string | null; // YYYY-MM-DD
   /** true = đạt, false = không đạt. */
   passed: boolean;
   filePath: string | null;
@@ -198,8 +284,10 @@ export interface InspectionCriterionResult {
  */
 export interface RecordCriterionResultPayload {
   criterionId: string;
-  resultDate: string; // YYYY-MM-DD
-  expiryDate: string; // YYYY-MM-DD
+  /** Bắt buộc khi passed = true; được phép null khi passed = false. */
+  resultDate: string | null; // YYYY-MM-DD
+  /** Bắt buộc khi passed = true; được phép null khi passed = false. */
+  expiryDate: string | null; // YYYY-MM-DD
   passed: boolean;
   filePath?: string | null;
 }

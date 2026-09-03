@@ -22,6 +22,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.GZIPInputStream;
 
@@ -160,6 +161,9 @@ public class RestoreServiceImpl implements RestoreService {
         BackupRestoreHistory restoreRecord = BackupRestoreHistory.builder()
                 .operationType(BackupOperationType.RESTORE)
                 .status(BackupStatus.IN_PROGRESS)
+                .fileName(targetBackup.getFileName())
+                .filePath(targetBackup.getFilePath())
+                .fileSize(targetBackup.getFileSize())
                 .reference(targetBackup)
                 .createdBy(creator)
                 .build();
@@ -244,8 +248,10 @@ public class RestoreServiceImpl implements RestoreService {
      * Reads sql.gz and feeds it directly into mysql client process.
      */
     private void performRestore(File backupFile) throws IOException, InterruptedException {
+        String resolvedExecutable = resolveMysqlPath();
+
         List<String> command = new ArrayList<>();
-        command.add(mysqlPath);
+        command.add(resolvedExecutable);
         command.add("-h");
         command.add(dbHost);
         command.add("-P");
@@ -289,6 +295,101 @@ public class RestoreServiceImpl implements RestoreService {
         if (exitCode != 0) {
             throw new IOException(
                     "mysql CLI exited with code: " + exitCode + ". Detail: " + outputMsg.toString().trim());
+        }
+    }
+
+    /**
+     * Tự động giải quyết đường dẫn công cụ mysql client.
+     */
+    public String resolveMysqlPath() throws IOException {
+        String configured = mysqlPath != null ? mysqlPath.trim() : "";
+
+        if (!configured.isEmpty()) {
+            File file = new File(configured);
+            if (file.exists() && file.isFile()) {
+                log.info("Sử dụng đường dẫn mysql từ cấu hình: {}", file.getAbsolutePath());
+                return file.getAbsolutePath();
+            }
+        }
+
+        boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+        String execName = isWindows ? "mysql.exe" : "mysql";
+
+        String foundByPath = findExecutableOnSystemPath(isWindows ? "where" : "which", execName);
+        if (foundByPath != null) {
+            log.info("Tìm thấy mysql trên System PATH: {}", foundByPath);
+            return foundByPath;
+        }
+
+        List<String> commonPaths = getCommonMysqlPaths(isWindows, execName);
+        for (String path : commonPaths) {
+            File file = new File(path);
+            if (file.exists() && file.isFile()) {
+                log.info("Tìm thấy mysql tại vị trí mặc định: {}", file.getAbsolutePath());
+                return file.getAbsolutePath();
+            }
+        }
+
+        if (canExecuteCommand(execName)) {
+            log.info("Sử dụng mysql trực tiếp từ môi trường hệ thống");
+            return execName;
+        }
+
+        if (!configured.isEmpty()) {
+            throw new IOException("Đường dẫn mysql được cấu hình (" + configured
+                    + ") không tồn tại hoặc không phải là file hợp lệ. Vui lòng kiểm tra lại cấu hình MYSQL_PATH.");
+        }
+
+        throw new IOException("Không tìm thấy công cụ mysql trên hệ thống. "
+                + "Vui lòng cài đặt MySQL Client hoặc cấu hình biến môi trường MYSQL_PATH / thuộc tính app.backup.mysql-path.");
+    }
+
+    private String findExecutableOnSystemPath(String finderTool, String binaryName) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder(finderTool, binaryName);
+            Process process = pb.start();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line = reader.readLine();
+                if (line != null && !line.trim().isEmpty()) {
+                    File file = new File(line.trim());
+                    if (file.exists() && file.isFile()) {
+                        return file.getAbsolutePath();
+                    }
+                }
+            }
+            process.waitFor();
+        } catch (Exception ignored) {
+            // Ignored
+        }
+        return null;
+    }
+
+    private List<String> getCommonMysqlPaths(boolean isWindows, String binaryName) {
+        List<String> paths = new ArrayList<>();
+        if (isWindows) {
+            paths.add("C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\" + binaryName);
+            paths.add("C:\\Program Files\\MySQL\\MySQL Server 8.4\\bin\\" + binaryName);
+            paths.add("C:\\Program Files\\MySQL\\MySQL Server 8.1\\bin\\" + binaryName);
+            paths.add("C:\\Program Files\\MySQL\\MySQL Server 5.7\\bin\\" + binaryName);
+            paths.add("C:\\Program Files (x86)\\MySQL\\MySQL Server 5.7\\bin\\" + binaryName);
+            paths.add("C:\\xampp\\mysql\\bin\\" + binaryName);
+            paths.add("C:\\inetpub\\mysql\\bin\\" + binaryName);
+        } else {
+            paths.add("/usr/bin/" + binaryName);
+            paths.add("/usr/local/bin/" + binaryName);
+            paths.add("/usr/local/mysql/bin/" + binaryName);
+            paths.add("/opt/homebrew/bin/" + binaryName);
+        }
+        return paths;
+    }
+
+    private boolean canExecuteCommand(String binaryName) {
+        try {
+            Process process = new ProcessBuilder(binaryName, "--version").start();
+            boolean finished = process.waitFor(3, TimeUnit.SECONDS);
+            return finished && process.exitValue() == 0;
+        } catch (Exception e) {
+            return false;
         }
     }
 }

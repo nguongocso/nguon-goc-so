@@ -27,7 +27,7 @@ public class ProductionLotTestCriteriaResponse {
     @Builder
     public static class TestCriterionItemResponse {
         @JsonProperty("criteriaId")
-        private Integer criteriaId;
+        private Long criteriaId;
 
         @JsonProperty("code")
         private String code;

@@ -40,4 +40,9 @@ public class RecordHarvestEventRequest {
      * Nguồn thiết bị ghi sự kiện, mặc định "WEB".
      */
     private String deviceSource = "WEB";
+
+    /**
+     * Lý do thu hoạch trước thời gian cách ly (bắt buộc đối với VT-02 / VT-01 khi thu hoạch sớm).
+     */
+    private String earlyHarvestReason;
 }

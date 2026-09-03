@@ -62,6 +62,20 @@ public interface OrganizationUserRepository extends JpaRepository<OrganizationUs
 	/** Tìm người dùng trong tổ chức theo ID tổ chức và mã vai trò. */
 	Optional<OrganizationUser> findByOrganization_OrganizationIdAndRole_Code(UUID organizationId, String roleCode);
 
+	/**
+	 * Đếm số membership đang hoạt động của một vai trò trong tổ chức,
+	 * dùng để bảo vệ rule "không vô hiệu hóa quản lý duy nhất còn lại".
+	 *
+	 * @param organizationId ID của tổ chức
+	 * @param status         trạng thái membership
+	 * @param roleCode       mã vai trò
+	 * @return số membership khớp điều kiện
+	 */
+	long countByOrganization_OrganizationIdAndStatusAndRole_Code(
+			UUID organizationId,
+			OrganizationUserStatus status,
+			String roleCode);
+
 	/** Lấy tất cả người dùng theo vai trò. */
 	List<OrganizationUser> findAllByRole_Code(String roleCode);
 

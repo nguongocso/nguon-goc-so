@@ -17,7 +17,17 @@ services:
       - mysql_data:/var/lib/mysql
 
     healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}" ]
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "127.0.0.1",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD}"
+        ]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -27,8 +37,6 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       additional_contexts:
-        # Seed the builder with the host Maven repository (~/.m2) so cold
-        # builds only download missing artifacts instead of everything.
         m2repo: ~/.m2
 
     restart: unless-stopped
@@ -66,6 +74,10 @@ services:
       LOCATIONIQ_API_KEY: ${LOCATIONIQ_API_KEY}
       LOCATIONIQ_BASE_URL: ${LOCATIONIQ_BASE_URL}
 
+      # Múi giờ nghiệp vụ (mặc định Asia/Ho_Chi_Minh). Dùng chung cho Clock
+      # nghiệp vụ (app.timezone) và múi giờ mặc định của JVM.qw
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Ho_Chi_Minh}
+
       JAVA_OPTS: ${JAVA_OPTS}
 
     ports:
@@ -90,7 +102,7 @@ services:
     restart: unless-stopped
 
     environment:
-      API_BASE_URL: /api/v1
+      API_BASE_URL: ${VITE_API_URL}
       BACKEND_UPSTREAM: http://backend:${BACKEND_CONTAINER_PORT}
 
     ports:

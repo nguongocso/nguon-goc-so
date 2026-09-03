@@ -173,4 +173,20 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
                         @Param("productionLotId") UUID productionLotId,
                         @Param("productionLotIdText") String productionLotIdText,
                         @Param("eventType") ChainEventType eventType);
+
+        /**
+         * Kiểm tra sự tồn tại của sự kiện thu mua (PROCUREMENT, không phải đính chính)
+         * của một lô hàng.
+         *
+         * @param shipmentId ID lô hàng
+         * @param eventType  loại sự kiện cần kiểm tra
+         * @return true nếu tồn tại ít nhất một sự kiện hợp lệ
+         */
+        @Query("SELECT COUNT(ce) > 0 FROM ChainEvent ce " +
+                "WHERE ce.shipment.id = :shipmentId " +
+                "AND ce.eventType = :eventType " +
+                "AND ce.isCorrection = false")
+        boolean existsByShipmentIdAndEventType(
+                @Param("shipmentId") UUID shipmentId,
+                @Param("eventType") ChainEventType eventType);
 }

@@ -1,12 +1,12 @@
 -- ============================================================
--- V23: Partner API Keys (NCL-12-CN-001 - Issue and Revoke API Key for Third-Party)
+-- V27: Partner API Keys (NCL-12-CN-001 - Issue and Revoke API Key for Third-Party)
 -- ============================================================
 
 CREATE TABLE partner_api_keys (
     id CHAR(36) NOT NULL,
     organization_id CHAR(36) NOT NULL,
     partner_name VARCHAR(255) NOT NULL,
-    key_prefix VARCHAR(16) NOT NULL,
+    key_prefix VARCHAR(32) NOT NULL,
     key_hash VARCHAR(64) NOT NULL UNIQUE,
     rate_limit_per_hour INT NOT NULL,
     expires_at DATETIME NOT NULL,

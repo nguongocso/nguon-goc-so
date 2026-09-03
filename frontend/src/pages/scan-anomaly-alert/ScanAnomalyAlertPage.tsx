@@ -30,7 +30,6 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Eye,
   MapPin,
   RefreshCw,
   Search,
@@ -147,14 +146,14 @@ export default function ScanAnomalyAlertPage() {
   };
 
   return (
-    <div className="container mx-auto space-y-6 py-6">
+    <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="rounded-xl bg-amber-100 p-2.5 text-amber-700">
             <ShieldAlert className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Cảnh báo tem quét bất thường</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Cảnh báo tem quét bất thường</h1>
             <p className="text-sm text-muted-foreground">
               Phát hiện mã có dấu hiệu được quét tại nhiều vị trí khác nhau
             </p>
@@ -162,15 +161,15 @@ export default function ScanAnomalyAlertPage() {
         </div>
         <div className="flex items-center gap-2">
           <HelpButton screenKey="alert-scan-anomaly" />
-          <Button variant="outline" onClick={fetchAlerts} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          <Button variant="outline" size="sm" onClick={fetchAlerts} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
             Làm mới
           </Button>
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
+        <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
           <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-sm text-muted-foreground">Theo bộ lọc</p>
@@ -180,7 +179,7 @@ export default function ScanAnomalyAlertPage() {
             <AlertTriangle className="h-8 w-8 text-amber-500" />
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
           <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-sm text-muted-foreground">Trang hiện tại</p>
@@ -190,7 +189,7 @@ export default function ScanAnomalyAlertPage() {
             <RefreshCw className="h-8 w-8 text-blue-500" />
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
           <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-sm text-muted-foreground">Trang hiện tại</p>
@@ -202,9 +201,9 @@ export default function ScanAnomalyAlertPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
         <CardHeader>
-          <CardTitle className="text-base">Bộ lọc cảnh báo</CardTitle>
+          <CardTitle className="text-base font-semibold text-slate-900">Bộ lọc cảnh báo</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
@@ -270,7 +269,7 @@ export default function ScanAnomalyAlertPage() {
               <X className="h-4 w-4" />
               Xóa bộ lọc
             </Button>
-            <Button onClick={applyFilters} disabled={loading}>
+            <Button variant="search" onClick={applyFilters} disabled={loading}>
               <Search className="h-4 w-4" />
               Tìm kiếm
             </Button>
@@ -278,9 +277,9 @@ export default function ScanAnomalyAlertPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Danh sách cảnh báo</CardTitle>
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 pb-4 flex flex-row items-center justify-between">
+          <CardTitle className="text-base font-semibold text-slate-900">Danh sách cảnh báo</CardTitle>
           <span className="text-sm text-muted-foreground">
             Tổng số: {result.totalElements} cảnh báo
           </span>
@@ -291,27 +290,26 @@ export default function ScanAnomalyAlertPage() {
               <RefreshCw className="h-7 w-7 animate-spin text-primary" />
             </div>
           ) : result.content.length === 0 ? (
-            <div className="flex flex-col items-center py-16 text-center text-muted-foreground">
-              <CheckCircle2 className="mb-3 h-10 w-10 text-emerald-500" />
-              <p className="font-medium text-foreground">Không có cảnh báo phù hợp</p>
-              <p className="text-sm">Hãy thử thay đổi trạng thái hoặc khoảng thời gian lọc.</p>
+            <div className="flex items-center justify-center py-16 text-center text-muted-foreground">
+              <p>Chưa có dữ liệu cảnh báo.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Thời gian tạo</TableHead>
-                    <TableHead>Mức độ</TableHead>
-                    <TableHead>Mã TraceCode</TableHead>
-                    <TableHead>Dữ liệu quét</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead className="text-right">Thao tác</TableHead>
+                  <TableRow className="bg-slate-50/80">
+                    <TableHead className="font-semibold text-slate-700">Thời gian tạo</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Mức độ</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Mã TraceCode</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Dữ liệu quét</TableHead>
+                    <TableHead className="font-semibold text-slate-700">Trạng thái</TableHead>
+                    <TableHead className="text-center font-semibold text-slate-700">Thao tác</TableHead>
+                    <TableHead className="text-center font-semibold text-slate-700">Chi tiết</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {result.content.map((alert) => (
-                    <TableRow key={alert.id}>
+                    <TableRow key={alert.id} className="hover:bg-slate-50/60">
                       <TableCell className="whitespace-nowrap text-sm">
                         {formatDateTime(alert.createdAt)}
                       </TableCell>
@@ -343,25 +341,30 @@ export default function ScanAnomalyAlertPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-center gap-1">
+                          {alert.status === 'PENDING' ? (
+                            <Button
+                              size="icon-sm"
+                              variant="ghost"
+                              title="Xử lý cảnh báo"
+                              onClick={() => openResolveDialog(alert)}
+                            >
+                              <CheckCircle2 className="size-4" />
+                            </Button>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">—</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-center">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => setDetailsAlert(alert)}
                           >
-                            <Eye className="h-4 w-4" />
                             Chi tiết
                           </Button>
-                          {alert.status === 'PENDING' && (
-                            <Button
-                              size="sm"
-                              onClick={() => openResolveDialog(alert)}
-                              className="bg-emerald-600 hover:bg-emerald-700"
-                            >
-                              <CheckCircle2 className="h-4 w-4" />
-                              Xử lý
-                            </Button>
-                          )}
                         </div>
                       </TableCell>
                     </TableRow>

@@ -1,5 +1,7 @@
 package vn.nguongocso.farm.service.impl;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -81,6 +83,13 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
         private final ActivityLogService activityLogService;
 
         private final ProductionLotImportExcelGenerator excelGenerator;
+
+        /**
+         * Clock nghiệp vụ theo múi giờ cấu hình (app.timezone, mặc định
+         * Asia/Ho_Chi_Minh). Dùng để ghi createdAt của FarmLog tạo từ import
+         * đúng giờ Việt Nam, không phụ thuộc timezone của JVM/container.
+         */
+        private final Clock clock;
 
         /**
          * Nhập dữ liệu lô sản xuất từ tệp Excel.
@@ -289,6 +298,9 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
 
                 List<FarmLog> farmLogs = new ArrayList<>();
 
+                // Thời gian tạo chung cho cả đợt import, theo múi giờ nghiệp vụ.
+                LocalDateTime importedAt = LocalDateTime.now(clock);
+
                 for (ValidImportRow item : validRows) {
 
                         ProductionLotImportRow row = item.getRow();
@@ -308,6 +320,10 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
                                                         .executedDate(row.getExecutedDate())
                                                         .notes(row.getNote())
                                                         .createdBy(userDetails.getUser())
+                                                        // Ghi thời gian tạo theo múi giờ nghiệp vụ
+                                                        // (Asia/Ho_Chi_Minh), không dùng
+                                                        // LocalDateTime.now() mặc định của JVM.
+                                                        .createdAt(importedAt)
                                                         .build());
                 }
 
@@ -577,9 +593,7 @@ public class ProductionLotImportServiceImpl implements ProductionLotImportServic
                                 .failedCount(history.getFailedCount())
                                 .savedLotIds(savedLotIds)
                                 .errors(rowErrors)
-                                .importedAt(
-                                                history.getImportedAt()
-                                                                .toInstant(java.time.ZoneOffset.UTC))
+                                .importedAt(history.getImportedAt())
                                 .build();
         }
 

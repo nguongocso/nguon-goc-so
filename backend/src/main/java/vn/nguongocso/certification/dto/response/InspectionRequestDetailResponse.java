@@ -35,6 +35,38 @@ public class InspectionRequestDetailResponse {
     @JsonProperty("sampleSentDate")
     private LocalDate sampleSentDate;
 
+    /**
+     * Tổng số chỉ tiêu kiểm nghiệm của yêu cầu.
+     */
+    @JsonProperty("totalCriteria")
+    private int totalCriteria;
+
+    /**
+     * Số chỉ tiêu đã có kết quả kiểm nghiệm được ghi nhận.
+     */
+    @JsonProperty("evaluatedCriteria")
+    private int evaluatedCriteria;
+
+    /**
+     * Số chỉ tiêu đạt (passed = true).
+     */
+    @JsonProperty("passedCriteria")
+    private int passedCriteria;
+
+    /**
+     * Số chỉ tiêu không đạt (passed = false).
+     * Không tính các chỉ tiêu hết hạn hoặc chưa có kết quả.
+     */
+    @JsonProperty("failedCriteriaCount")
+    private int failedCriteriaCount;
+
+    /**
+     * Tỷ lệ chỉ tiêu không đạt trên tổng số chỉ tiêu (%),
+     * làm tròn 1 chữ số thập phân. Bằng 0.0 khi không có chỉ tiêu.
+     */
+    @JsonProperty("failedRatio")
+    private double failedRatio;
+
     @JsonProperty("criteria")
     private List<InspectionRequestDetailCriterionResponse> criteria;
 }

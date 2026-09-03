@@ -1,321 +1,198 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Plus, Pencil, RefreshCw, ListChecks } from "lucide-react";
-import {
-  getStandards,
-  createStandard,
-  updateStandard,
-} from "@/api/standardApi";
-import { StandardForm } from "./StandardForm";
-import type { StandardFormValues } from "@/utils/validators";
-import type { Standard } from "@/types/standard";
-import { usePermission } from "@/hooks/usePermission";
-import { ROLE_ACCESS } from "@/config/roleAccess";
+import React, {useEffect, useState, useMemo} from "react";
+import {useNavigate} from "react-router-dom";
+import {toast} from "sonner";
+import {Button} from "@/components/ui/button";
+import {TableCell, TableHead, TableRow} from "@/components/ui/table";
+import {Pencil, Plus, Award} from "lucide-react";
+import {getStandards} from "@/api/standardApi";
+import type {Standard} from "@/types/standard";
+import {usePermission} from "@/hooks/usePermission";
+import {ROLE_ACCESS} from "@/config/roleAccess";
+import {Pagination} from "@/components/common/Pagination";
+import {ListPageHeader} from "@/components/common/ListPageHeader";
+import {ListCard} from "@/components/common/ListCard";
+import {ListToolbar} from "@/components/common/ListToolbar";
+import {SearchInput} from "@/components/common/SearchInput";
+import {FilterSelect} from "@/components/common/FilterSelect";
+import {RefreshButton} from "@/components/common/RefreshButton";
+import {DataTableShell} from "@/components/common/DataTableShell";
+import {StatusBadge} from "@/components/common/StatusBadge";
+import {HelpButton} from "@/components/help/HelpButton";
 
 const PAGE_SIZE = 10;
 
-const statusFilterOptions = [
-  { value: "all", label: "Tất cả" },
-  { value: "true", label: "Đang hoạt động" },
-  { value: "false", label: "Không hoạt động" },
+const STATUS_OPTIONS = [
+    {value: "ALL", label: "Tất cả trạng thái"},
+    {value: "true", label: "Đang hoạt động"},
+    {value: "false", label: "Không hoạt động"},
 ];
 
 export const StandardList: React.FC = () => {
-  const navigate = useNavigate();
-  const canManage = usePermission(ROLE_ACCESS.standardManagement);
-  const [standards, setStandards] = useState<Standard[]>([]);
-  const [totalElements, setTotalElements] = useState(0);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(
-    undefined,
-  );
-  const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+    const canManage = usePermission(ROLE_ACCESS.standardManagement);
+    const [standards, setStandards] = useState<Standard[]>([]);
+    const [loading, setLoading] = useState(true);
 
-  const [formDialogOpen, setFormDialogOpen] = useState(false);
-  const [editingStandard, setEditingStandard] = useState<Standard | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+    // Tìm kiếm, lọc (client-side) & phân trang
+    const [search, setSearch] = useState("");
+    const [status, setStatus] = useState("ALL");
+    const [page, setPage] = useState(0);
 
-  const fetchStandards = async () => {
-    setLoading(true);
-    try {
-      const data = await getStandards({
-        isActive: isActiveFilter,
-        page: currentPage,
-        size: PAGE_SIZE,
-      });
-      setStandards(data.items);
-      setTotalElements(data.totalElements);
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message || "Không thể tải danh sách tiêu chuẩn",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    const fetchStandards = async () => {
+        setLoading(true);
+        try {
+            const data = await getStandards({ isActive: undefined, page: 0, size: 1000 });
+            setStandards(data.items);
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Không thể tải danh sách tiêu chuẩn");
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  useEffect(() => {
-    fetchStandards();
-  }, [currentPage, isActiveFilter]);
+    useEffect(() => {
+        fetchStandards();
+    }, []);
 
-  const handleCreate = async (data: StandardFormValues) => {
-    setSubmitting(true);
-    try {
-      await createStandard({
-        name: data.name,
-        description: data.description || undefined,
-        issuingBody: data.issuingBody || undefined,
-      });
-      toast.success("Thêm tiêu chuẩn thành công");
-      setFormDialogOpen(false);
-      fetchStandards();
-    } catch (error: any) {
-      const msg = error.response?.data?.message || "Thêm tiêu chuẩn thất bại";
-      toast.error(msg);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    const filtered = useMemo(() => {
+        const q = search.toLowerCase().trim();
+        return standards.filter((s) => {
+            const matchKeyword =
+                !q ||
+                s.name.toLowerCase().includes(q) ||
+                (s.issuingBody?.toLowerCase().includes(q) ?? false);
+            const matchStatus =
+                status === "ALL" || (status === "true" ? s.isActive : !s.isActive);
+            return matchKeyword && matchStatus;
+        });
+    }, [standards, search, status]);
 
-  const handleUpdate = async (data: StandardFormValues) => {
-    if (!editingStandard) return;
-    setSubmitting(true);
-    try {
-      await updateStandard(editingStandard.id, {
-        name: data.name,
-        description: data.description || undefined,
-        issuingBody: data.issuingBody || undefined,
-        isActive: data.isActive ?? true,
-      });
-      toast.success("Cập nhật tiêu chuẩn thành công");
-      setFormDialogOpen(false);
-      setEditingStandard(null);
-      fetchStandards();
-    } catch (error: any) {
-      const msg =
-        error.response?.data?.message || "Cập nhật tiêu chuẩn thất bại";
-      toast.error(msg);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    const safePage = Math.min(page, totalPages - 1);
+    const paginated = useMemo(() => {
+        const start = safePage * PAGE_SIZE;
+        return filtered.slice(start, start + PAGE_SIZE);
+    }, [filtered, safePage]);
 
-  const openCreateDialog = () => {
-    setEditingStandard(null);
-    setFormDialogOpen(true);
-  };
+    const openCreateDialog = () => {
+        navigate("/admin/standards/create");
+    };
 
-  const openEditDialog = (standard: Standard) => {
-    setEditingStandard(standard);
-    setFormDialogOpen(true);
-  };
+    const openEditDialog = (standard: Standard) => {
+        navigate(`/admin/standards/${standard.id}/edit`);
+    };
 
-  const closeDialog = () => {
-    setFormDialogOpen(false);
-    setEditingStandard(null);
-  };
+    const header = (
+        <>
+            <TableHead className="w-12 text-center">STT</TableHead>
+            <TableHead>Tên tiêu chuẩn</TableHead>
+            <TableHead>Cơ quan ban hành</TableHead>
+            <TableHead>Mô tả</TableHead>
+            <TableHead>Trạng thái</TableHead>
+            <TableHead>Ngày tạo</TableHead>
+            {canManage && <TableHead className="text-center">Thao tác</TableHead>}
+        </>
+    );
 
-  const totalPages = Math.ceil(totalElements / PAGE_SIZE);
+    const body = paginated.map((std, index) => (
+        <TableRow key={std.id} className="hover:bg-muted/40 transition-colors">
+            <TableCell className="text-center font-medium text-muted-foreground">
+                {safePage * PAGE_SIZE + index + 1}
+            </TableCell>
+            <TableCell className="font-medium text-foreground">{std.name}</TableCell>
+            <TableCell>{std.issuingBody || "—"}</TableCell>
+            <TableCell className="max-w-xs truncate">{std.description || "—"}</TableCell>
+            <TableCell>
+                {std.isActive ? (
+                    <StatusBadge label="Hoạt động" tone="success" />
+                ) : (
+                    <StatusBadge label="Không hoạt động" tone="neutral" />
+                )}
+            </TableCell>
+            <TableCell>{new Date(std.createdAt).toLocaleDateString("vi-VN")}</TableCell>
+            {canManage && (
+                <TableCell className="text-center">
+                    <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => openEditDialog(std)}
+                        disabled={!std.isActive}
+                        title="Sửa tiêu chuẩn"
+                    >
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+                </TableCell>
+            )}
+        </TableRow>
+    ));
 
-  const getStatusFilterLabel = (value: string) => {
-    const option = statusFilterOptions.find((opt) => opt.value === value);
-    return option ? option.label : "Trạng thái";
-  };
 
-  const currentFilterValue =
-    isActiveFilter === undefined ? "all" : String(isActiveFilter);
+    return (
+        <div className="space-y-6">
+            {/* Header trang */}
+            <ListPageHeader
+                icon={Award}
+                title="Quản lý tiêu chuẩn chất lượng"
+                description="Quản lý danh mục tiêu chuẩn chất lượng dùng chung cho toàn nền tảng."
+                actions={
+                    <>
+                        <HelpButton screenKey="admin-standards" />
+                        {canManage && (
+                            <Button variant="create" size="sm" onClick={openCreateDialog}>
+                                <Plus className="h-4 w-4 mr-1" />
+                                Thêm tiêu chuẩn
+                            </Button>
+                        )}
+                    </>
+                }
+            />
 
-  return (
-    <>
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <CardTitle>Danh mục tiêu chuẩn chất lượng</CardTitle>
-            <div className="flex flex-wrap items-center gap-2">
-              <Select
-                value={currentFilterValue}
-                onValueChange={(val) => {
-                  if (val === "all") setIsActiveFilter(undefined);
-                  else setIsActiveFilter(val === "true");
-                }}
-              >
-                <SelectTrigger size="sm" className="w-[180px]">
-                  <SelectValue placeholder="Trạng thái">
-                    {getStatusFilterLabel(currentFilterValue)}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {statusFilterOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={fetchStandards}
-                disabled={loading}
-              >
-                <RefreshCw
-                  className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`}
+            {/* Thẻ chung: bộ lọc + bảng + phân trang */}
+            <ListCard>
+                <ListToolbar
+                    left={
+                        <>
+                            <SearchInput
+                                placeholder="Tìm theo tên tiêu chuẩn hoặc cơ quan ban hành..."
+                                value={search}
+                                onChange={(e) => {
+                                    setSearch(e.target.value);
+                                    setPage(0);
+                                }}
+                            />
+                            <FilterSelect
+                                value={status}
+                                onValueChange={(val) => {
+                                    setStatus(val || "ALL");
+                                    setPage(0);
+                                }}
+                                options={STATUS_OPTIONS}
+                            />
+                        </>
+                    }
+                    right={<RefreshButton onClick={fetchStandards} loading={loading} />}
                 />
-                Làm mới
-              </Button>
-              {canManage && (
-                <Button onClick={openCreateDialog}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Thêm tiêu chuẩn
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-8">Đang tải...</div>
-          ) : standards.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Chưa có tiêu chuẩn nào trong danh mục.
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tên tiêu chuẩn</TableHead>
-                      <TableHead>Cơ quan ban hành</TableHead>
-                      <TableHead>Mô tả</TableHead>
-                      <TableHead>Trạng thái</TableHead>
-                      <TableHead>Ngày tạo</TableHead>
-                      {canManage && (
-                        <TableHead className="text-right">Thao tác</TableHead>
-                      )}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {standards.map((std) => {
-                      const isActive = std.isActive;
-                      return (
-                        <TableRow
-                          key={std.id}
-                          className={!isActive ? "opacity-60" : ""}
-                        >
-                          <TableCell className="font-medium">
-                            {std.name}
-                          </TableCell>
-                          <TableCell>{std.issuingBody || "---"}</TableCell>
-                          <TableCell className="max-w-xs truncate">
-                            {std.description || "---"}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={isActive ? "default" : "outline"}
-                              className={
-                                !isActive
-                                  ? "text-muted-foreground bg-muted/50 border-muted-foreground/20"
-                                  : ""
-                              }
-                            >
-                              {isActive ? "Hoạt động" : "Không hoạt động"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {new Date(std.createdAt).toLocaleDateString("vi-VN")}
-                          </TableCell>
-                          {canManage && (
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-1">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    navigate(`/admin/standards/${std.id}/criteria`)
-                                  }
-                                  title="Quản lý tiêu chí"
-                                >
-                                  <ListChecks className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => openEditDialog(std)}
-                                  disabled={!isActive}
-                                  className={!isActive ? "text-muted-foreground" : ""}
-                                  title="Sửa tiêu chuẩn"
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <div className="text-sm text-muted-foreground">
-                    Hiển thị {currentPage * PAGE_SIZE + 1} -{" "}
-                    {Math.min((currentPage + 1) * PAGE_SIZE, totalElements)}{" "}
-                    trong tổng số {totalElements} tiêu chuẩn
-                  </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage === 0}
-                      onClick={() => setCurrentPage((p) => p - 1)}
-                    >
-                      Trước
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage >= totalPages - 1}
-                      onClick={() => setCurrentPage((p) => p + 1)}
-                    >
-                      Sau
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+                <DataTableShell
+                    header={header}
+                    body={body}
+                    loading={loading}
+                    empty={filtered.length === 0}
+                    colSpan={canManage ? 7 : 6}
+                    loadingMessage="Đang tải danh sách tiêu chuẩn..."
+                    emptyMessage="Chưa có tiêu chuẩn nào trong danh mục."
+                />
 
-      <StandardForm
-        open={formDialogOpen}
-        onClose={closeDialog}
-        onSubmit={editingStandard ? handleUpdate : handleCreate}
-        initialData={editingStandard}
-        isLoading={submitting}
-      />
-    </>
-  );
+                <Pagination
+                    currentPage={safePage}
+                    totalPages={totalPages}
+                    totalElements={filtered.length}
+                    pageSize={PAGE_SIZE}
+                    loading={loading}
+                    itemLabel="tiêu chuẩn"
+                    onPageChange={setPage}
+                />
+            </ListCard>
+        </div>
+    );
 };

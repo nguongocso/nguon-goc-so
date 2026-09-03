@@ -1,6 +1,108 @@
 import apiClient from './axiosConfig';
-import type { ProductionLotCertification, AttachCertificationRequest, Certification, CreateCertificationRequest, CertificationResponse, LotTestCriteriaResult, CreateInspectionRequestPayload, InspectionRequestCreatedResponse, InspectionRequestListItem, InspectionRequestStatusQuery, InspectionRequestDetailResponse, InspectionCriterionResult, RecordCriterionResultPayload, RecordInspectionResultsPayload, InspectionResultFileUploadResponse, CanActivateSealCheck } from '@/types/certification';
+import type { ProductionLotCertification, AttachCertificationRequest, Certification, CreateCertificationRequest, CertificationResponse, LotTestCriteriaResult, CreateInspectionRequestPayload, InspectionRequestCreatedResponse, InspectionRequestListItem, InspectionRequestStatusQuery, InspectionRequestDetailResponse, InspectionCriterionResult, RecordCriterionResultPayload, RecordInspectionResultsPayload, InspectionResultFileUploadResponse, CanActivateSealCheck, TestingUnit, CreateTestingUnitRequest, UpdateTestingUnitRequest, AccreditationScopeSummary, UpdateAccreditationScopeRequest } from '@/types/certification';
 import type { PageResponse } from '@/types/common';
+
+// ============================================================
+// Phạm vi công nhận của đơn vị kiểm nghiệm (NCL-11-CN-006 Phase 2)
+// ============================================================
+
+/**
+ * Lấy phạm vi công nhận hiện tại của một đơn vị kiểm nghiệm.
+ * GET /api/v1/testing-units/{unitId}/accreditation-scopes
+ *
+ * Mọi vai trò đã xác thực đều đọc được — dùng để hiển thị cảnh báo
+ * khi tạo yêu cầu kiểm nghiệm.
+ */
+export const getAccreditationScopes = async (
+  unitId: string
+): Promise<AccreditationScopeSummary> => {
+  const response = await apiClient.get<{ data: AccreditationScopeSummary }>(
+    `/testing-units/${unitId}/accreditation-scopes`
+  );
+  return response.data.data;
+};
+
+/**
+ * Cập nhật (REPLACE-ALL) phạm vi công nhận của một đơn vị kiểm nghiệm (VT-01).
+ * PUT /api/v1/testing-units/{unitId}/accreditation-scopes
+ */
+export const updateAccreditationScopes = async (
+  unitId: string,
+  payload: UpdateAccreditationScopeRequest
+): Promise<AccreditationScopeSummary> => {
+  const response = await apiClient.put<{ data: AccreditationScopeSummary }>(
+    `/testing-units/${unitId}/accreditation-scopes`,
+    payload
+  );
+  return response.data.data;
+};
+
+// ============================================================
+// Danh mục đơn vị kiểm nghiệm dùng chung (NCL-11-CN-006 Phase 1)
+// ============================================================
+
+/**
+ * Lấy danh sách đơn vị kiểm nghiệm trong danh mục dùng chung.
+ * GET /api/v1/testing-units?isActive=&page=&size=
+ *
+ * Dùng cho dropdown chọn đơn vị khi tạo yêu cầu kiểm nghiệm
+ * (mặc định chỉ lấy đơn vị còn hiệu lực).
+ */
+export const getTestingUnits = async (params?: {
+  isActive?: boolean;
+  page?: number;
+  size?: number;
+}): Promise<PageResponse<TestingUnit>> => {
+  const searchParams = new URLSearchParams();
+  if (params?.isActive !== undefined) {
+    searchParams.set('isActive', String(params.isActive));
+  }
+  searchParams.set('page', String(params?.page ?? 0));
+  searchParams.set('size', String(params?.size ?? 200));
+  const response = await apiClient.get<{ data: PageResponse<TestingUnit> }>(
+    `/testing-units?${searchParams.toString()}`
+  );
+  return response.data.data;
+};
+
+/**
+ * Tạo mới đơn vị kiểm nghiệm (VT-01).
+ * POST /api/v1/testing-units
+ */
+export const createTestingUnit = async (
+  data: CreateTestingUnitRequest
+): Promise<TestingUnit> => {
+  const response = await apiClient.post<{ data: TestingUnit }>(
+    '/testing-units',
+    data
+  );
+  return response.data.data;
+};
+
+/**
+ * Cập nhật thông tin đơn vị kiểm nghiệm (VT-01).
+ * PUT /api/v1/testing-units/{testingUnitId}
+ */
+export const updateTestingUnit = async (
+  testingUnitId: string,
+  data: UpdateTestingUnitRequest
+): Promise<TestingUnit> => {
+  const response = await apiClient.put<{ data: TestingUnit }>(
+    `/testing-units/${testingUnitId}`,
+    data
+  );
+  return response.data.data;
+};
+
+/**
+ * Vô hiệu hoá đơn vị kiểm nghiệm - soft delete (VT-01).
+ * DELETE /api/v1/testing-units/{testingUnitId}
+ */
+export const deactivateTestingUnit = async (
+  testingUnitId: string
+): Promise<void> => {
+  await apiClient.delete(`/testing-units/${testingUnitId}`);
+};
 
 /**
  * Lấy danh sách chứng nhận đã gắn của một lô sản xuất
@@ -57,12 +159,45 @@ export const createCertification = async (
 };
 
 /**
- * Lấy danh sách tất cả chứng nhận của tổ chức
- * GET /api/v1/certifications
+ * Tham số tìm kiếm chứng nhận của tổ chức (phân trang, lọc, sắp xếp).
  */
-export const getAllCertifications = async (): Promise<CertificationResponse[]> => {
-  const response = await apiClient.get<{ data: CertificationResponse[] }>(
-    '/certifications'
+export interface GetCertificationsParams {
+  keyword?: string;
+  status?: 'valid' | 'expiring' | 'expired';
+  sortBy?: 'name' | 'issueDate' | 'expiryDate';
+  sortDir?: 'asc' | 'desc';
+  page?: number;
+  size?: number;
+}
+
+/**
+ * Tìm kiếm chứng nhận của tổ chức (server-side pagination + search)
+ * GET /api/v1/certifications?keyword=&status=&sortBy=&sortDir=&page=&size=
+ */
+export const getCertifications = async (
+  params: GetCertificationsParams
+): Promise<PageResponse<CertificationResponse>> => {
+  const searchParams = new URLSearchParams();
+  if (params.keyword?.trim()) {
+    searchParams.set('keyword', params.keyword.trim());
+  }
+  if (params.status) {
+    searchParams.set('status', params.status);
+  }
+  if (params.sortBy) {
+    searchParams.set('sortBy', params.sortBy);
+  }
+  if (params.sortDir) {
+    searchParams.set('sortDir', params.sortDir);
+  }
+  if (params.page !== undefined) {
+    searchParams.set('page', String(params.page));
+  }
+  if (params.size !== undefined) {
+    searchParams.set('size', String(params.size));
+  }
+  const response = await apiClient.get<{ data: PageResponse<CertificationResponse> }>(
+    `/certifications?${searchParams.toString()}`
   );
   return response.data.data;
 };
@@ -207,7 +342,23 @@ export const uploadInspectionResultFile = async (
   formData.append('file', file);
   const response = await apiClient.post<{
     data: InspectionResultFileUploadResponse;
-  }>(`/inspection-criteria/${criterionId}/result-file`, formData);
+  }>(
+    `/inspection-criteria/${criterionId}/result-file`,
+    formData,
+    {
+      headers: {
+        /**
+         * Override Content-Type mặc định 'application/json' của apiClient.
+         * Nếu không override, axios sẽ serialize FormData thành JSON và
+         * backend trả 415 vì endpoint khai báo
+         * consumes = MULTIPART_FORM_DATA_VALUE.
+         * Axios tự thay header này bằng multipart/form-data kèm boundary
+         * khi gửi đi (giống uploadAttachment / importProductionLots).
+         */
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
   return response.data.data;
 };
 

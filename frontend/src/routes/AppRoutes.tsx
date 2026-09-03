@@ -15,11 +15,16 @@ import { useAuth } from "@/hooks/useAuth";
 // ===== Auth =====
 import LoginPage from "@/pages/auth/LoginPage";
 import OrganizationSelectionPage from "@/pages/auth/OrganizationSelectionPage";
+import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
 
 // ===== Pages – chung =====
 import { DashboardPage } from "@/pages/daskboard/DashboardPase";
 import { CreateFarmAreaPage } from "@/pages/farm-area/CreateFarmAreaPage";
+import { EditFarmAreaPage } from "@/pages/farm-area/EditFarmAreaPage";
 import CreateFarmLogPage from "@/pages/farm-log/CreateFarmLogPage";
+import CorrectFarmLogPage from "@/pages/farm-log/CorrectFarmLogPage";
+import FarmLogDetailPage from "@/pages/farm-log/FarmLogDetailPage";
 import ProductionLotEditPage from "@/pages/farm/ProductionLotEditPage";
 
 import { CreateOrganizationPage } from "@/pages/organization/CreateOrganizationPage";
@@ -35,8 +40,23 @@ import RecordTransportEventPage from "@/pages/transport-event/RecordTransportEve
 import CreateCodeRangePage from "@/pages/admin/CreateCodeRangePage";
 import CodeRangeListPage from "@/pages/admin/CodeRangeListPage";
 import ProductCategoryManagementPage from "@/pages/admin/ProductCategoryManagementPage";
+import CreateProductCategoryPage from "@/pages/admin/CreateProductCategoryPage";
+import EditProductCategoryPage from "@/pages/admin/EditProductCategoryPage";
+import AssignInspectionCriteriaPage from "@/pages/admin/AssignInspectionCriteriaPage";
+import InputMaterialManagementPage from "@/pages/admin/InputMaterialManagementPage";
+import { InputMaterialFormPage } from "@/pages/admin/InputMaterialFormPage";
+import { InputMaterialDetailPage } from "@/pages/admin/InputMaterialDetailPage";
 import StandardManagementPage from "@/pages/admin/StandardManagementPage";
-import CriteriaManagementPage from "@/pages/admin/CriteriaManagementPage";
+import CreateStandardPage from "@/pages/admin/CreateStandardPage";
+import EditStandardPage from "@/pages/admin/EditStandardPage";
+import InspectionCriteriaManagementPage from "@/pages/admin/InspectionCriteriaManagementPage";
+import CreateInspectionCriterionPage from "@/pages/admin/CreateInspectionCriterionPage";
+import CultivationMilestoneManagementPage from "@/pages/admin/CultivationMilestoneManagementPage";
+import CreateCultivationMilestonePage from "@/pages/admin/CreateCultivationMilestonePage";
+import EditCultivationMilestonePage from "@/pages/admin/EditCultivationMilestonePage";
+import TestingUnitListPage from "@/pages/admin/TestingUnitListPage";
+import TestingUnitFormPage from "@/pages/admin/TestingUnitFormPage";
+import TestingUnitScopeManagerPage from "@/pages/admin/TestingUnitScopeManagerPage";
 import SuspectTraceCodeListPage from "@/pages/admin/SuspectTraceCodeListPage";
 import SuspectTraceCodeDetailPage from "@/pages/admin/SuspectTraceCodeDetailPage";
 
@@ -48,17 +68,21 @@ import CorrectPackagingEventPage from "@/pages/packaging-event/CorrectPackagingE
 import CreatePreprocessingEventPage from "@/pages/preprocessing-event/CreatePreprocessingEventPage";
 import CorrectPreprocessingEventPage from "@/pages/preprocessing-event/CorrectPreprocessingEventPage";
 
-// ===== Organization =====
+// ===== Organization & Profile =====
 import { OrganizationListPage } from "@/pages/organization/OrganizationListPage";
 import CreateMemberPage from "@/pages/organization/CreateMemberPage";
+import UserProfilePage from "@/pages/profile/UserProfilePage";
 
 // ===== Farm logs =====
 import FarmLogHistoryPage from "@/pages/farm-log/FarmLogHistoryPage";
 import AttachmentManagementPage from "@/pages/farm-log/AttachmentManagementPage";
 
 // ===== Shipment =====
-import { ProductionLotDetailPage } from "@/pages/shipment/ProductionLotDetailPage";
-import { ShipmentDetailPage } from "@/pages/shipment/ShipmentDetailPage";
+import { ProductionLotDetailPage } from "@/pages/public/shipment/ProductionLotDetailPage";
+import { ShipmentDetailPage } from "@/pages/public/shipment/ShipmentDetailPage";
+import CreateShipmentPage from "@/pages/shipment/CreateShipmentPage";
+import LabelCancellationHistoryPage from "@/pages/shipment/LabelCancellationHistoryPage";
+import CancelLabelsPage from "@/pages/shipment/CancelLabelsPage";
 
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
@@ -84,12 +108,11 @@ import FarmAreaListPage from "@/pages/farm-area/FarmAreaListPage";
 // ===== Certification =====
 import CreateCertificationPage from "@/pages/certification/CreateCertificationPage";
 import CertificationListPage from "@/pages/certification/CertificationListPage";
+import RecordInspectionResultPage from "@/pages/certification/RecordInspectionResultPage";
+import CreateInspectionRequestPage from "@/pages/certification/CreateInspectionRequestPage";
 
 // ===== Offline events =====
 import OfflineEventPage from "@/pages/offline/OfflineEventPage";
-
-// ===== Procurement =====
-import ProcurementEventPage from "@/pages/procurement-event/procurement-event";
 
 // ===== Warehouse Receipt (NCL-05-CN-006) =====
 import WarehouseReceiptPage from "@/pages/warehouse-receipt/WarehouseReceiptPage";
@@ -119,6 +142,7 @@ import OrganizationDetailPage from "@/pages/organization/OrganizationDetailPage"
 
 // ===== Partner API Keys (NCL-12-CN-001) =====
 import PartnerApiKeyListPage from "@/pages/apiKey/PartnerApiKeyListPage";
+import CreatePartnerApiKeyPage from "@/pages/apiKey/CreatePartnerApiKeyPage";
 
 // ===== Product Feedback =====
 import ProductFeedbackManagementPage from "@/pages/product-feedback/ProductFeedbackManagementPage";
@@ -139,6 +163,9 @@ import { SystemMonitoringPage } from "@/pages/admin/SystemMonitoringPage";
 import { CreateRecallRequestPage } from "@/pages/recall-request/CreateRecallRequestPage";
 import { RecallRequestListPage } from "@/pages/recall-request/RecallRequestListPage";
 import { RecallRequestDetailPage } from "@/pages/recall-request/RecallRequestDetailPage";
+
+// ===== Area assignment (NCL-670 / NCL-742) =====
+import { AreaAssignmentPage } from "@/pages/admin/AreaAssignmentPage";
 
 // =====================================================
 // Constants
@@ -267,6 +294,16 @@ const AppRoutes = () => (
             element={<LoginPage />}
         />
 
+        <Route
+            path="/forgot-password"
+            element={<ForgotPasswordPage />}
+        />
+
+        <Route
+            path="/reset-password"
+            element={<ResetPasswordPage />}
+        />
+
         {/*
       Bước trung gian sau khi login thành công.
 
@@ -310,6 +347,18 @@ const AppRoutes = () => (
                 element={<DashboardPage />}
             />
 
+
+            {/* User Profile */}
+            <Route
+                path="profile"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.userProfile}
+                    >
+                        <UserProfilePage />
+                    </RoleRoute>
+                }
+            />
 
             {/* =================================================
           ORGANIZATION
@@ -388,6 +437,28 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="farm-areas/:id/edit"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.farmAreaCreate}
+                    >
+                        <EditFarmAreaPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="chinhsuavungtrong/:id"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.farmAreaCreate}
+                    >
+                        <EditFarmAreaPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="farm-areas"
                 element={
                     <RoleRoute allowedRoles={["VT-02"]}>
@@ -446,10 +517,21 @@ const AppRoutes = () => (
             />
 
             <Route
-                path="production-lots/:lotId/shipments/:shipmentId"
+                path="production-lots/:productionLotId/shipments/create"
                 element={
                     <RoleRoute
                         allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                    >
+                        <CreateShipmentPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:lotId/shipments/:shipmentId"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-01", "VT-02", "VT-03", "VT-04"]}
                     >
                         <ShipmentDetailPage />
                     </RoleRoute>
@@ -472,8 +554,44 @@ const AppRoutes = () => (
             <Route
                 path="shipments/:id"
                 element={
-                    <RoleRoute allowedRoles={["VT-02", "VT-04"]}>
+                    <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
                         <ShipmentDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="shipments/:id/cancellation-history"
+                element={
+                    <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
+                        <LabelCancellationHistoryPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:lotId/shipments/:id/cancellation-history"
+                element={
+                    <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
+                        <LabelCancellationHistoryPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="shipments/:id/cancel-labels"
+                element={
+                    <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
+                        <CancelLabelsPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:lotId/shipments/:id/cancel-labels"
+                element={
+                    <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
+                        <CancelLabelsPage />
                     </RoleRoute>
                 }
             />
@@ -490,6 +608,24 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.farmLogCreate}
                     >
                         <CreateFarmLogPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="farm-logs/:id/correct"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.farmLogCorrect}>
+                        <CorrectFarmLogPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="farm-logs/:id"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.farmLogView}>
+                        <FarmLogDetailPage />
                     </RoleRoute>
                 }
             />
@@ -644,6 +780,69 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="admin/product-categories/create"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <CreateProductCategoryPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/product-categories/:id/edit"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <EditProductCategoryPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/product-categories/:id/criteria"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <AssignInspectionCriteriaPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/input-materials"
+                element={
+                    <RoleRoute allowedRoles={["VT-01", "VT-02", "VT-03", "VT-04"]}>
+                        <InputMaterialManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/input-materials/create"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <InputMaterialFormPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/input-materials/:id/edit"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <InputMaterialFormPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/input-materials/:id"
+                element={
+                    <RoleRoute allowedRoles={["VT-01", "VT-02", "VT-03", "VT-04"]}>
+                        <InputMaterialDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="admin/standards"
                 element={
                     <RoleRoute
@@ -655,12 +854,116 @@ const AppRoutes = () => (
             />
 
             <Route
-                path="admin/standards/:standardId/criteria"
+                path="admin/standards/create"
                 element={
                     <RoleRoute
                         allowedRoles={ROLE_ACCESS.standardManagement}
                     >
-                        <CriteriaManagementPage />
+                        <CreateStandardPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/standards/:id/edit"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.standardManagement}
+                    >
+                        <EditStandardPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/inspection-criteria/create"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.inspectionCriteriaManagement}
+                    >
+                        <CreateInspectionCriterionPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/inspection-criteria"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.inspectionCriteriaManagement}
+                    >
+                        <InspectionCriteriaManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/cultivation-milestones/create"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.cultivationMilestoneManagement}
+                    >
+                        <CreateCultivationMilestonePage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/cultivation-milestones/:id/edit"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.cultivationMilestoneManagement}
+                    >
+                        <EditCultivationMilestonePage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/cultivation-milestones"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.cultivationMilestoneManagement}
+                    >
+                        <CultivationMilestoneManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/testing-units"
+                element={
+                    <RoleRoute allowedRoles={AUTHENTICATED_ROLE_CODES}>
+                        <TestingUnitListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/testing-units/create"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <TestingUnitFormPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/testing-units/:id/edit"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <TestingUnitFormPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/testing-units/:id/scopes"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.testingUnitScopeManagement}
+                    >
+                        <TestingUnitScopeManagerPage />
                     </RoleRoute>
                 }
             />
@@ -697,6 +1000,18 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-01"]}>
                         <SuspectTraceCodeDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* NCL-670 / NCL-742 - Phân công địa bàn quản lý */}
+            <Route
+                path="admin/account-areas"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.areaAssignment}
+                    >
+                        <AreaAssignmentPage />
                     </RoleRoute>
                 }
             />
@@ -835,6 +1150,42 @@ const AppRoutes = () => (
                 }
             />
 
+            <Route
+                path="production-lots/:lotId/inspection-requests/create"
+                element={
+                    <RoleRoute allowedRoles={["VT-02"]}>
+                        <CreateInspectionRequestPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:id/inspection-requests/create"
+                element={
+                    <RoleRoute allowedRoles={["VT-02"]}>
+                        <CreateInspectionRequestPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:lotId/inspection-requests/:requestId/results"
+                element={
+                    <RoleRoute allowedRoles={["VT-02"]}>
+                        <RecordInspectionResultPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="inspection-requests/:requestId/results"
+                element={
+                    <RoleRoute allowedRoles={["VT-02"]}>
+                        <RecordInspectionResultPage />
+                    </RoleRoute>
+                }
+            />
+
 
             {/* =================================================
           PARTNER API KEYS (NCL-12-CN-001)
@@ -845,6 +1196,15 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={ROLE_ACCESS.apiKeyManagement}>
                         <PartnerApiKeyListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="integration/api-keys/create"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.apiKeyManagement}>
+                        <CreatePartnerApiKeyPage />
                     </RoleRoute>
                 }
             />
@@ -880,23 +1240,6 @@ const AppRoutes = () => (
                     </RoleRoute>
                 }
             />
-
-
-            {/* =================================================
-          PROCUREMENT
-      ================================================= */}
-
-            <Route
-                path="procurement-event"
-                element={
-                    <RoleRoute
-                        allowedRoles={ROLE_ACCESS.procurementEvent}
-                    >
-                        <ProcurementEventPage />
-                    </RoleRoute>
-                }
-            />
-
 
             {/* =================================================
           WAREHOUSE RECEIPT (NCL-05-CN-006)

@@ -151,7 +151,12 @@ export function IndustryReportTab() {
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
-                <Select value={format} onValueChange={(v) => v && setFormat(v as 'PDF' | 'EXCEL')}>
+                <Select value={format} onValueChange={(v) => v && setFormat(v as 'PDF' | 'EXCEL')}
+                  items={[
+                    { value: 'PDF', label: 'PDF' },
+                    { value: 'EXCEL', label: 'EXCEL' },
+                  ]}
+                >
                   <SelectTrigger className="w-28">
                     <SelectValue />
                   </SelectTrigger>

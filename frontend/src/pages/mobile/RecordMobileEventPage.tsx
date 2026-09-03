@@ -35,6 +35,7 @@ const RecordMobileEventPage: React.FC = () => {
 
   return (
     <div className="container max-w-md mx-auto py-4 px-2">
+      
       <RecordMobileEventForm lots={lots} onSuccess={handleSuccess} />
     </div>
   );

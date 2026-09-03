@@ -2,24 +2,30 @@ package vn.nguongocso.certification.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.InspectionCriterionResultRequest;
 import vn.nguongocso.certification.dto.response.CanActivateSealCheckResponse;
 import vn.nguongocso.certification.dto.response.InspectionCriterionResultResponse;
+import vn.nguongocso.certification.entity.CategoryCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterionResult;
 import vn.nguongocso.certification.entity.InspectionRequest;
 import vn.nguongocso.certification.enums.InspectionRequestStatus;
+import vn.nguongocso.certification.repository.CategoryCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.service.InspectionCriterionResultService;
+import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
+import vn.nguongocso.farm.entity.ProductCategory;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 
@@ -30,7 +36,9 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -114,8 +122,10 @@ public class InspectionCriterionResultServiceImpl
     private final InspectionCriterionResultRepository resultRepository;
     private final InspectionCriterionRepository criterionRepository;
     private final InspectionRequestRepository requestRepository;
+    private final CategoryCriterionRepository categoryCriterionRepository;
     private final ProductionLotRepository lotRepository;
     private final Clock clock;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${app.upload.base-dir}")
     private String baseDir;
@@ -149,19 +159,25 @@ public class InspectionCriterionResultServiceImpl
             throw new IllegalStateException(MSG_REQUEST_STATUS_INVALID);
         }
 
-        // Validate ngày cấp và ngày hết hiệu lực
-        if (request.getExpiryDate().isBefore(request.getResultDate())) {
-            throw new IllegalArgumentException(MSG_EXPIRY_BEFORE_RESULT_DATE);
-        }
+        // Validate ngày cấp và ngày hết hạn — chỉ bắt buộc khi chỉ tiêu ĐẠT
+        // Khi Không đạt (passed = false), resultDate / expiryDate được phép null
+        if (Boolean.TRUE.equals(request.getPassed())) {
+            if (request.getExpiryDate().isBefore(request.getResultDate())) {
+                throw new IllegalArgumentException(MSG_EXPIRY_BEFORE_RESULT_DATE);
+            }
 
-        // Kiểm tra xem ngày hết hiệu lực có >= hôm nay không
-        if (request.getExpiryDate().isBefore(LocalDate.now(clock))) {
-            throw new IllegalArgumentException(MSG_EXPIRY_IN_PAST);
+            // Kiểm tra xem ngày hết hạn có >= hôm nay không
+            if (request.getExpiryDate().isBefore(LocalDate.now(clock))) {
+                throw new IllegalArgumentException(MSG_EXPIRY_IN_PAST);
+            }
         }
 
         // Tìm hoặc tạo kết quả kiểm nghiệm
-        InspectionCriterionResult result = resultRepository
-                .findByInspectionCriterion_Id(criterionUUID)
+        Optional<InspectionCriterionResult> existingResult = resultRepository
+                .findByInspectionCriterion_Id(criterionUUID);
+        boolean isNewResult = existingResult.isEmpty();
+
+        InspectionCriterionResult result = existingResult
                 .orElseGet(() -> InspectionCriterionResult.builder()
                         .inspectionCriterion(criterion)
                         .createdBy(currentUser.getUser())
@@ -178,6 +194,17 @@ public class InspectionCriterionResultServiceImpl
 
         // Cập nhật trạng thái yêu cầu kiểm nghiệm nếu tất cả chỉ tiêu đều đạt
         checkAndUpdateRequestStatus(inspectionRequest);
+
+        // Ghi nhật ký hoạt động (TASK-27): phân biệt rõ thao tác ghi mới và cập nhật
+        publishActivityLog(
+                currentUser,
+                isNewResult ? "RECORD_INSPECTION_RESULT" : "UPDATE_INSPECTION_RESULT",
+                (isNewResult ? "Ghi" : "Cập nhật") + " kết quả kiểm nghiệm cho chỉ tiêu '"
+                        + criterion.getCriterionName() + "' của yêu cầu kiểm nghiệm ID "
+                        + inspectionRequest.getId()
+                        + (Boolean.TRUE.equals(request.getPassed()) ? " (đạt)" : " (không đạt)"),
+                "INSPECTION_CRITERION_RESULT",
+                result.getId().toString());
 
         return toResponse(result);
     }
@@ -271,6 +298,18 @@ public class InspectionCriterionResultServiceImpl
         // ============================================================
         checkAndUpdateRequestStatus(inspectionRequest);
 
+        // ============================================================
+        // 4. Ghi nhật ký hoạt động (TASK-27): một bản ghi duy nhất
+        //    cho toàn bộ thao tác ghi kết quả hàng loạt
+        // ============================================================
+        publishActivityLog(
+                currentUser,
+                "RECORD_INSPECTION_RESULTS",
+                "Ghi " + results.size() + " kết quả kiểm nghiệm cho yêu cầu kiểm nghiệm ID "
+                        + inspectionRequest.getId(),
+                "INSPECTION_REQUEST",
+                inspectionRequest.getId().toString());
+
         return results.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -301,7 +340,7 @@ public class InspectionCriterionResultServiceImpl
         InspectionCriterionResult result = resultRepository
                 .findByInspectionCriterion_Id(criterionUUID)
                 .orElseThrow(() ->
-                    new BusinessException(MSG_RESULT_NOT_FOUND));
+                        new BusinessException(MSG_RESULT_NOT_FOUND));
 
         requireCriterionAccess(result.getInspectionCriterion(), currentUser);
 
@@ -315,17 +354,30 @@ public class InspectionCriterionResultServiceImpl
         InspectionCriterionResult result = resultRepository
                 .findById(resultUUID)
                 .orElseThrow(() ->
-                    new BusinessException(MSG_RESULT_NOT_FOUND));
+                        new BusinessException(MSG_RESULT_NOT_FOUND));
 
         requireCriterionAccess(result.getInspectionCriterion(), currentUser);
 
         InspectionRequest inspectionRequest =
                 result.getInspectionCriterion().getInspectionRequest();
 
+        // Lưu thông tin mô tả trước khi xóa để ghi nhật ký hoạt động
+        String criterionName = result.getInspectionCriterion().getCriterionName();
+        UUID requestId = inspectionRequest.getId();
+
         resultRepository.delete(result);
 
         // Cập nhật trạng thái yêu cầu sau khi xóa
         checkAndUpdateRequestStatus(inspectionRequest);
+
+        // Ghi nhật ký hoạt động (TASK-27)
+        publishActivityLog(
+                currentUser,
+                "DELETE_INSPECTION_RESULT",
+                "Xóa kết quả kiểm nghiệm của chỉ tiêu '" + criterionName
+                        + "' thuộc yêu cầu kiểm nghiệm ID " + requestId,
+                "INSPECTION_CRITERION_RESULT",
+                resultUUID.toString());
     }
 
     @Override
@@ -365,9 +417,9 @@ public class InspectionCriterionResultServiceImpl
         String newFileName =
                 UUID.randomUUID().toString().replace("-", "") + extension;
         String uploadDir = Paths.get(
-                baseDir,
-                inspectionResultRelativePath,
-                criterion.getInspectionRequest().getId().toString())
+                        baseDir,
+                        inspectionResultRelativePath,
+                        criterion.getInspectionRequest().getId().toString())
                 .toString();
         String filePath = Paths.get(uploadDir, newFileName).toString();
 
@@ -383,6 +435,17 @@ public class InspectionCriterionResultServiceImpl
         } catch (IOException e) {
             throw new BusinessException(MSG_FILE_SAVE_ERROR);
         }
+
+        // Ghi nhật ký hoạt động (TASK-27): chỉ ghi tên tệp, không ghi nội dung tệp
+        publishActivityLog(
+                currentUser,
+                "UPLOAD_INSPECTION_RESULT_FILE",
+                "Tải lên phiếu kết quả kiểm nghiệm cho chỉ tiêu '"
+                        + criterion.getCriterionName() + "' của yêu cầu kiểm nghiệm ID "
+                        + criterion.getInspectionRequest().getId()
+                        + (originalFilename != null ? " (tệp " + originalFilename + ")" : ""),
+                "INSPECTION_CRITERION",
+                criterionUUID.toString());
 
         return filePath;
     }
@@ -440,18 +503,23 @@ public class InspectionCriterionResultServiceImpl
                         currentUser.getOrganizationId())
                 .orElseThrow(() -> new BusinessException(MSG_LOT_NOT_FOUND));
 
-        // Lấy danh sách yêu cầu kiểm nghiệm của lô
-        List<InspectionRequest> requests = requestRepository
-                .findByProductionLot_IdOrderByCreatedAtDesc(productionLotId);
+        /*
+         * NCL-09-CN-009: loại nông sản KHÔNG bắt buộc kiểm nghiệm thì
+         * luôn đủ điều kiện kích hoạt tem — không phụ thuộc kết quả.
+         */
+        ProductCategory category = lot.getProductCategory();
+        boolean mandatoryInspection =
+                category != null
+                        && Boolean.TRUE.equals(
+                        category.getRequiresInspection());
 
-        // QTN-21: lô chưa có bất kỳ yêu cầu/kết quả kiểm nghiệm nào thì
-        // không đủ điều kiện kích hoạt tem — cần kết quả kiểm nghiệm
-        // đạt và còn hiệu lực.
-        if (requests.isEmpty()) {
+        LocalDate today = LocalDate.now(clock);
+
+        if (!mandatoryInspection) {
             return CanActivateSealCheckResponse.builder()
                     .productionLotId(productionLotId.toString())
-                    .canActivate(false)
-                    .reason("Lô chưa có kết quả kiểm nghiệm đạt còn hiệu lực")
+                    .canActivate(true)
+                    .reason(null)
                     .earliestExpiryDate(null)
                     .totalCriteria(0)
                     .passedCriteria(0)
@@ -460,70 +528,116 @@ public class InspectionCriterionResultServiceImpl
         }
 
         /*
-         * QTN-21: lô được phép kích hoạt tem khi TỒN TẠI một bộ kết quả
-         * kiểm nghiệm đạt (overall PASSED) và còn hiệu lực
-         * (expiryDate >= ngày nghiệp vụ hiện tại).
+         * Bắt buộc kiểm nghiệm: điều kiện kích hoạt tem xét trên TỔNG BỘ
+         * CHỈ TIÊU ACTIVE được gán cho loại nông sản của lô (cùng nguồn
+         * dữ liệu với GET /production-lots/{lotId}/test-criteria).
          *
-         * Một request lịch sử FAILED/hết hạn không chặn vĩnh viễn lô nếu
-         * đã có một lần kiểm nghiệm hợp lệ sau đó.
+         * Từng chỉ tiêu phải có kết quả MỚI NHẤT ĐẠT và CÒN HIỆU LỰC
+         * (expiryDate >= ngày nghiệp vụ hiện tại). Nếu một chỉ tiêu bị
+         * kiểm thử lại nhiều lần qua các yêu cầu khác nhau thì kết quả
+         * mới nhất là căn cứ quyết định.
          */
-        LocalDate today = LocalDate.now(clock);
-        boolean canActivate = false;
-        String reason = null;
-        LocalDate validSetEarliestExpiry = null;
-        LocalDate anyRequestEarliestExpiry = null;
-        int totalCriteria = 0;
+        List<CategoryCriterion> assignments =
+                categoryCriterionRepository
+                        .findByCategoryIdAndCriteriaStatus(
+                                category.getId(),
+                                "ACTIVE");
+
+        int totalCriteria = assignments.size();
+
+        // Kết quả mới nhất theo mã chỉ tiêu trên toàn bộ yêu cầu của lô
+        Map<String, InspectionCriterionResult> latestByCode =
+                new HashMap<>();
+        for (InspectionCriterionResult result : resultRepository
+                .findAllByProductionLotId(productionLotId)) {
+
+            // Bỏ qua chỉ tiêu không đạt — resultDate/expiryDate sẽ là null,
+            // không tham gia so sánh ngày để tìm kết quả mới nhất.
+            if (result.getResultDate() == null) {
+                continue;
+            }
+
+            String code = result.getInspectionCriterion()
+                    .getCriterionCode();
+            InspectionCriterionResult current = latestByCode.get(code);
+            LocalDateTime resultUpdatedAt = result.getUpdatedAt();
+            LocalDateTime currentUpdatedAt =
+                    current == null ? null : current.getUpdatedAt();
+
+            boolean isNewer =
+                    current == null
+                            || result.getResultDate()
+                            .isAfter(current.getResultDate())
+                            || (result.getResultDate()
+                            .isEqual(current.getResultDate())
+                            && resultUpdatedAt != null
+                            && (currentUpdatedAt == null
+                            || resultUpdatedAt.isAfter(
+                            currentUpdatedAt)));
+
+            if (isNewer) {
+                latestByCode.put(code, result);
+            }
+        }
+
+        /*
+         * Đánh giá từng chỉ tiêu gán cho lô trên kết quả mới nhất:
+         * chưa có kết quả / không đạt / hết hạn đều làm mất điều kiện.
+         */
         int passedCriteria = 0;
         boolean hasExpiredResult = false;
-        boolean hasRequestWithoutValidResult = false;
+        LocalDate earliestExpiry = null;
 
-        for (InspectionRequest request : requests) {
-            int requestTotal = resultRepository.countTotalCriteria(request.getId());
-            int requestPassed = resultRepository
-                    .countPassedAndValidCriteria(request.getId(), today);
+        for (CategoryCriterion assignment : assignments) {
+            String code = assignment.getCriterion().getName();
+            InspectionCriterionResult latest = latestByCode.get(code);
 
-            totalCriteria += requestTotal;
-            passedCriteria += requestPassed;
-
-            Optional<LocalDate> expiryDate = resultRepository
-                    .findEarliestExpiryDateByInspectionRequest(request.getId());
-
-            if (expiryDate.isPresent()) {
-                LocalDate expiry = expiryDate.get();
-
-                if (anyRequestEarliestExpiry == null
-                        || expiry.isBefore(anyRequestEarliestExpiry)) {
-                    anyRequestEarliestExpiry = expiry;
-                }
-
-                if (expiry.isBefore(today)) {
-                    hasExpiredResult = true;
-                }
+            // Chưa có bất kỳ kết quả kiểm nghiệm nào cho chỉ tiêu này
+            if (latest == null) {
+                continue;
             }
 
-            if (requestTotal > 0 && requestTotal == requestPassed) {
-                canActivate = true;
-
-                if (expiryDate.isPresent()
-                        && (validSetEarliestExpiry == null
-                        || expiryDate.get().isBefore(validSetEarliestExpiry))) {
-                    validSetEarliestExpiry = expiryDate.get();
-                }
-            } else if (requestTotal > 0) {
-                hasRequestWithoutValidResult = true;
+            // Đã kiểm tra !Boolean.TRUE.equals ở trên → chỉ tiêu đạt còn lại
+            // luôn có expiryDate khác null (do validation ở tầng service).
+            // earliestExpiry chỉ cập nhật cho chỉ tiêu đạt để tránh NPE.
+            if (Boolean.TRUE.equals(latest.getPassed())
+                    && latest.getExpiryDate() != null
+                    && (earliestExpiry == null
+                    || latest.getExpiryDate().isBefore(earliestExpiry))) {
+                earliestExpiry = latest.getExpiryDate();
             }
+
+            if (!Boolean.TRUE.equals(latest.getPassed())) {
+                continue;
+            }
+
+            // Chỉ tiêu đạt luôn có expiryDate khác null (đã validate ở trên)
+            if (latest.getExpiryDate().isBefore(today)) {
+                hasExpiredResult = true;
+                continue;
+            }
+
+            passedCriteria++;
         }
 
+        boolean canActivate =
+                totalCriteria > 0
+                        && passedCriteria == totalCriteria;
+
+        String reason = null;
         if (!canActivate) {
-            if (hasExpiredResult) {
+            if (totalCriteria == 0) {
+                reason =
+                        "Loại nông sản bắt buộc kiểm nghiệm nhưng chưa "
+                                + "được cấu hình chỉ tiêu kiểm nghiệm";
+            } else if (hasExpiredResult) {
                 reason = "Kết quả kiểm nghiệm đã quá hạn";
-            } else if (hasRequestWithoutValidResult) {
-                reason = "Lô chưa có kết quả kiểm nghiệm đạt cho tất cả chỉ tiêu";
+            } else {
+                reason =
+                        "Lô chưa có kết quả kiểm nghiệm đạt cho tất cả "
+                                + "chỉ tiêu";
             }
         }
-
-        LocalDate earliestExpiry =
-                canActivate ? validSetEarliestExpiry : anyRequestEarliestExpiry;
 
         int failedOrExpired = totalCriteria - passedCriteria;
 
@@ -540,11 +654,11 @@ public class InspectionCriterionResultServiceImpl
 
     /**
      * Kiểm tra và cập nhật trạng thái yêu cầu kiểm nghiệm.
-     *
+     * <p>
      * - Chưa đủ kết quả cho tất cả chỉ tiêu: PENDING_RESULT.
      * - Tất cả chỉ tiêu đạt và còn hiệu lực: PASSED.
      * - Đã có đủ kết quả nhưng có chỉ tiêu không đạt / hết hạn: FAILED.
-     *
+     * <p>
      * Phương thức này phải được gọi SAU KHI toàn bộ kết quả đã được lưu
      * để trạng thái cuối được tính đúng một lần.
      */
@@ -580,7 +694,7 @@ public class InspectionCriterionResultServiceImpl
     /**
      * Kiểm tra quyền truy cập chỉ tiêu: chỉ tiêu phải thuộc yêu cầu kiểm nghiệm
      * của một lô thuộc tổ chức hiện tại của người dùng.
-     *
+     * <p>
      * Trả lỗi "không tồn tại" thay vì lỗi phân quyền để không làm lộ
      * dữ liệu của tổ chức khác.
      */
@@ -639,6 +753,13 @@ public class InspectionCriterionResultServiceImpl
             InspectionCriterionResultRequest item,
             LocalDate today) {
 
+        // Khi "Không đạt" (passed = false), resultDate / expiryDate được phép
+        // null — chỉ tiêu không đạt không có hiệu lực thời gian.
+        if (Boolean.FALSE.equals(item.getPassed())) {
+            return;
+        }
+
+        // Khi "Đạt" (passed = true), bắt buộc phải có ngày cấp và ngày hết hạn
         if (item.getResultDate() == null
                 || item.getExpiryDate() == null
                 || item.getPassed() == null) {
@@ -653,6 +774,33 @@ public class InspectionCriterionResultServiceImpl
         if (item.getExpiryDate().isBefore(today)) {
             throw new BusinessException(MSG_EXPIRY_IN_PAST);
         }
+    }
+
+    /**
+     * Ghi nhật ký hoạt động theo convention của hệ thống (TASK-27).
+     * <p>
+     * Actor lấy từ người dùng đã xác thực trong security context,
+     * organization lấy từ organization của người thực hiện.
+     */
+    private void publishActivityLog(
+            CustomUserDetails currentUser,
+            String action,
+            String description,
+            String entityType,
+            String entityId) {
+
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+                .userId(currentUser.getUserId())
+                .username(currentUser.getUsername())
+                .fullName(currentUser.getFullName())
+                .organizationId(currentUser.getOrganizationId())
+                .action(action)
+                .description(description)
+                .entityType(entityType)
+                .entityId(entityId)
+                .ipAddress(IpUtils.getClientIp())
+                .timestamp(LocalDateTime.now())
+                .build());
     }
 
     /**

@@ -45,6 +45,10 @@ public class SelectOrganizationResponse {
 
         private String fullName;
 
+        private String phone;
+
+        private String email;
+
         private String organizationId;
 
         private String organizationCode;

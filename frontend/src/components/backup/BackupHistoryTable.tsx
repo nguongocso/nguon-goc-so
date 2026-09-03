@@ -73,8 +73,8 @@ export const BackupHistoryTable = ({
             <TableHead>Loại</TableHead>
             <TableHead>File</TableHead>
             <TableHead>Kích thước</TableHead>
-            <TableHead>Trạng thái</TableHead>
-            <TableHead className="text-right">Thao tác</TableHead>
+            <TableHead>Trạng thái & Lỗi</TableHead>
+            <TableHead className="text-center">Thao tác</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -91,46 +91,50 @@ export const BackupHistoryTable = ({
                 {item.fileName || '—'}
               </TableCell>
               <TableCell>{formatFileSize(item.fileSize)}</TableCell>
-              <TableCell>
+              <TableCell className="max-w-[340px]">
                 <Badge className={statusConfig[item.status].className}>
                   {statusConfig[item.status].label}
                 </Badge>
                 {item.errorMessage && (
-                  <div className="text-xs text-destructive mt-1 truncate max-w-[150px]">
+                  <div
+                    className="text-[11px] font-mono text-rose-700 dark:text-rose-300 mt-1.5 p-2 rounded bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 whitespace-pre-wrap break-words leading-relaxed shadow-xs"
+                    title={item.errorMessage}
+                  >
                     {item.errorMessage}
                   </div>
                 )}
               </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-1">
+              <TableCell className="text-center">
+                <div className="flex justify-center gap-1">
                   {item.operationType === 'BACKUP' && item.status === 'SUCCESS' && (
                     <>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon-sm"
                         onClick={() => onDownload(item.id)}
                         disabled={disabled}
                         title="Tải xuống"
+                        className="hover:bg-muted"
                       >
                         <Download className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon-sm"
                         onClick={() => onDelete(item.id)}
                         disabled={disabled}
                         title="Xóa bản sao lưu"
-                        className="text-destructive hover:text-destructive"
+                        className="text-destructive hover:text-destructive hover:bg-muted"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon-sm"
                         onClick={() => onRestore(item.id)}
                         disabled={disabled}
                         title="Phục hồi dữ liệu"
-                        className="text-warning hover:text-warning"
+                        className="text-warning hover:text-warning hover:bg-muted"
                       >
                         <RotateCcw className="h-4 w-4" />
                       </Button>

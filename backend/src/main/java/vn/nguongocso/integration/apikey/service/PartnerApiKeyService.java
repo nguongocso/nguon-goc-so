@@ -13,16 +13,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.security.SecurityUtils;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.integration.apikey.dto.request.CreateApiKeyRequest;
 import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyResponse;
@@ -49,6 +52,7 @@ public class PartnerApiKeyService {
     private final PartnerApiKeyRepository partnerApiKeyRepository;
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     // Bộ nhớ tạm đếm số lượt gọi trong 1 giờ: Key = apiKeyId + ":" + yyyyMMddHH
     private final Map<String, AtomicInteger> hourlyRateLimitMap = new ConcurrentHashMap<>();
@@ -103,6 +107,12 @@ public class PartnerApiKeyService {
         log.info("Đã cấp khóa truy cập cho đối tác '{}', orgId={}, keyPrefix={}",
                 savedKey.getPartnerName(), organizationId, keyPrefix);
 
+        // Ghi nhật ký hoạt động (TASK-27): không ghi rawApiKey/keyHash vì là dữ liệu nhạy cảm
+        publishActivityLog(currentUser, "CREATE_API_KEY",
+                "Cấp khóa truy cập cho đối tác '" + savedKey.getPartnerName()
+                        + "' (mã khóa " + savedKey.getKeyPrefix() + "...)",
+                "PARTNER_API_KEY", savedKey.getId().toString());
+
         PartnerApiKeyResponse response = mapToResponse(savedKey);
         // Gán rawApiKey DUY NHẤT LẦN NÀY
         response.setRawApiKey(rawApiKey);
@@ -153,6 +163,12 @@ public class PartnerApiKeyService {
         PartnerApiKey updatedKey = partnerApiKeyRepository.save(apiKey);
         log.info("Đã thu hồi khóa truy cập id={}, partnerName={}, orgId={}",
                 apiKeyId, updatedKey.getPartnerName(), organizationId);
+
+        // Ghi nhật ký hoạt động (TASK-27)
+        publishActivityLog(currentUser, "REVOKE_API_KEY",
+                "Thu hồi khóa truy cập của đối tác '" + updatedKey.getPartnerName()
+                        + "' (mã khóa " + updatedKey.getKeyPrefix() + "...)",
+                "PARTNER_API_KEY", updatedKey.getId().toString());
 
         return mapToResponse(updatedKey);
     }
@@ -253,7 +269,34 @@ public class PartnerApiKeyService {
         return hexString.toString();
     }
 
+    /**
+     * Ghi nhật ký hoạt động theo convention của hệ thống (TASK-27).
+     * <p>
+     * Actor lấy từ security context hiện tại (không tin dữ liệu client),
+     * organization lấy từ organization của người thực hiện.
+     */
+    private void publishActivityLog(CustomUserDetails currentUser, String action, String description,
+            String entityType, String entityId) {
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+                .userId(currentUser.getUserId())
+                .username(currentUser.getUsername())
+                .fullName(currentUser.getFullName())
+                .organizationId(currentUser.getOrganizationId())
+                .action(action)
+                .description(description)
+                .entityType(entityType)
+                .entityId(entityId)
+                .ipAddress(IpUtils.getClientIp())
+                .timestamp(LocalDateTime.now())
+                .build());
+    }
+
     private PartnerApiKeyResponse mapToResponse(PartnerApiKey key) {
+        PartnerApiKeyStatus status = key.getStatus();
+        if (status == PartnerApiKeyStatus.ACTIVE && key.getExpiresAt() != null && LocalDateTime.now().isAfter(key.getExpiresAt())) {
+            status = PartnerApiKeyStatus.EXPIRED;
+        }
+
         return PartnerApiKeyResponse.builder()
                 .id(key.getId())
                 .organizationId(key.getOrganization().getOrganizationId())
@@ -261,7 +304,7 @@ public class PartnerApiKeyService {
                 .keyPrefix(key.getKeyPrefix())
                 .rateLimitPerHour(key.getRateLimitPerHour())
                 .expiresAt(key.getExpiresAt())
-                .status(key.getStatus())
+                .status(status)
                 .totalCalls(key.getTotalCalls())
                 .failedCalls(key.getFailedCalls())
                 .lastCalledAt(key.getLastCalledAt())

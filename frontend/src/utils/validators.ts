@@ -21,6 +21,69 @@ export const loginSchema = z.object({
 
 export type LoginFormValues = z.infer<typeof loginSchema>;
 
+// ============================================================
+// Forgot Password & Reset Password (NCL-01-CN-008)
+// ============================================================
+
+export const forgotPasswordSchema = z.object({
+  emailOrUsername: z
+    .string()
+    .min(1, "Vui lòng nhập tên đăng nhập hoặc email"),
+});
+
+export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z
+  .object({
+    newPassword: z
+      .string()
+      .min(8, "Mật khẩu phải có ít nhất 8 ký tự")
+      .max(50, "Mật khẩu không được vượt quá 50 ký tự")
+      .regex(
+        PASSWORD_REGEX,
+        "Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt"
+      ),
+    confirmPassword: z
+      .string()
+      .min(1, "Vui lòng xác nhận mật khẩu mới"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Mật khẩu xác nhận không khớp",
+    path: ["confirmPassword"],
+  });
+
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+
+
+// ============================================================
+// User Profile (Hồ sơ người dùng)
+// ============================================================
+
+export const userProfileSchema = z.object({
+  phone: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || /^(0[35789][0-9]{8})$/.test(val.trim()),
+      {
+        message:
+          "Số điện thoại không hợp lệ (10 số, bắt đầu bằng 03, 05, 07, 08, 09)",
+      }
+    ),
+
+  email: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim()),
+      {
+        message: "Địa chỉ email không hợp lệ",
+      }
+    ),
+});
+
+export type UserProfileFormValues = z.infer<typeof userProfileSchema>;
+
 
 // ============================================================
 // Organization Profile
@@ -89,7 +152,6 @@ export const createOrganizationSchema = z
                 'COOPERATIVE',
                 'ENTERPRISE',
                 'GOVERNMENT',
-                'SYSTEM',
             ],
             {
                 required_error:
@@ -213,8 +275,10 @@ export const updateProductionLotSchema = z.object({
 
     farmAreaId: z
         .string()
-        .nullable()
-        .optional(),
+        .min(
+            1,
+            'Vui lòng chọn vùng trồng',
+        ),
 
     productCategoryId: z
         .string()
@@ -492,27 +556,6 @@ export const standardFormSchema = z.object({
 
 export type StandardFormValues =
     z.infer<typeof standardFormSchema>;
-
-export const inspectionCriterionSchema = z.object({
-    criterionCode: z
-        .string()
-        .min(1, 'Mã tiêu chí không được để trống')
-        .max(100, 'Mã tiêu chí tối đa 100 ký tự'),
-
-    criterionName: z
-        .string()
-        .min(1, 'Tên tiêu chí không được để trống')
-        .max(255, 'Tên tiêu chí tối đa 255 ký tự'),
-
-    note: z
-        .string()
-        .max(1000, 'Ghi chú không được vượt quá 1000 ký tự')
-        .optional()
-        .or(z.literal('')),
-});
-
-export type InspectionCriterionFormValues =
-    z.infer<typeof inspectionCriterionSchema>;
 
 
 // ============================================================

@@ -44,6 +44,9 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
+import vn.nguongocso.farm.dto.response.HarvestEligibilityResponse;
+import vn.nguongocso.farm.service.HarvestEligibilityService;
+
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -68,7 +71,9 @@ public class ChainEventServiceImpl implements ChainEventService {
     private final PermissionChecker permissionChecker;
     private final OrganizationUserRepository organizationUserRepository;
     private final EventHashService eventHashService;
+    private final HarvestEligibilityService harvestEligibilityService;
     private final Clock clock;
+    private final vn.nguongocso.certification.service.MilestoneValidationService milestoneValidationService;
 
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
@@ -88,15 +93,54 @@ public class ChainEventServiceImpl implements ChainEventService {
         ProductionLot lot = productionLotRepository.findById(request.getProductionLotId())
                 .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất."));
 
+        HarvestEligibilityResponse eligibility;
         try {
             validateOrganization(lot, currentUser);
             if (lot.getStatus() != ProductionLotStatus.APPROVED) {
                 throw new BusinessException("Lô sản xuất chưa được duyệt, không thể ghi sự kiện thu hoạch.");
             }
+            // Kiểm tra thời gian cách ly thu hoạch (NCL-681 / QTN-25 / NCL-847 / B-02)
+            eligibility = harvestEligibilityService.calculateHarvestEligibility(lot.getId());
         } catch (BusinessException e) {
             eventValidationService.logFailedAttempt(request.getProductionLotId(), lot.getName(),
                     ChainEventType.HARVEST, e.getMessage(), currentUser);
             throw e;
+        }
+
+        boolean isEarlyHarvest = false;
+        String earlyHarvestReason = null;
+
+        if (eligibility.isDetermined() && eligibility.getEligibleHarvestDate() != null
+                && request.getHarvestDate().isBefore(eligibility.getEligibleHarvestDate())) {
+            String roleCode = currentUser.getRoleCode();
+
+            // B-01: Chỉ Quản lý hợp tác xã (VT-02) được phép ghi đè thu hoạch sớm kèm lý do bắt buộc
+            if ("VT-02".equals(roleCode)) {
+                if (request.getEarlyHarvestReason() == null || request.getEarlyHarvestReason().trim().isEmpty()) {
+                    String errorMsg = "Thu hoạch trước ngày đủ điều kiện cách ly ("
+                            + eligibility.getEligibleHarvestDate()
+                            + "). Quản lý cần nhập lý do ghi đè bắt buộc.";
+                    eventValidationService.logFailedAttempt(request.getProductionLotId(), lot.getName(),
+                            ChainEventType.HARVEST, errorMsg, currentUser);
+                    throw new BusinessException(errorMsg);
+                }
+                isEarlyHarvest = true;
+                earlyHarvestReason = request.getEarlyHarvestReason().trim();
+            } else if ("VT-03".equals(roleCode)) {
+                String errorMsg = "Lô sản xuất chưa hết thời gian cách ly (ngày đủ điều kiện: "
+                        + eligibility.getEligibleHarvestDate()
+                        + "). Người ghi sự kiện không có quyền ghi đè thu hoạch sớm.";
+                eventValidationService.logFailedAttempt(request.getProductionLotId(), lot.getName(),
+                        ChainEventType.HARVEST, errorMsg, currentUser);
+                throw new BusinessException(errorMsg);
+            } else {
+                String errorMsg = "Lô sản xuất chưa hết thời gian cách ly (ngày đủ điều kiện: "
+                        + eligibility.getEligibleHarvestDate()
+                        + "). Chỉ Quản lý hợp tác xã (VT-02) mới có quyền ghi đè thu hoạch sớm.";
+                eventValidationService.logFailedAttempt(request.getProductionLotId(), lot.getName(),
+                        ChainEventType.HARVEST, errorMsg, currentUser);
+                throw new BusinessException(errorMsg);
+            }
         }
 
         // Cập nhật trạng thái lô
@@ -119,6 +163,24 @@ public class ChainEventServiceImpl implements ChainEventService {
         }
         eventDataMap.put("deviceSource", request.getDeviceSource() != null ? request.getDeviceSource() : "WEB");
 
+        if (isEarlyHarvest) {
+            eventDataMap.put("earlyHarvest", true);
+            eventDataMap.put("earlyHarvestReason", earlyHarvestReason);
+            eventDataMap.put("eligibleHarvestDate", eligibility.getEligibleHarvestDate().toString());
+        } else {
+            eventDataMap.put("earlyHarvest", false);
+            if (eligibility.isDetermined() && eligibility.getEligibleHarvestDate() != null) {
+                eventDataMap.put("eligibleHarvestDate", eligibility.getEligibleHarvestDate().toString());
+            } else {
+                eventDataMap.put("eligibleHarvestDate", null);
+            }
+        }
+
+        if (!eligibility.isDetermined() && eligibility.getUnmatchedMaterials() != null
+                && !eligibility.getUnmatchedMaterials().isEmpty()) {
+            eventDataMap.put("unmatchedMaterials", eligibility.getUnmatchedMaterials());
+        }
+
         String eventDataJson = toJson(eventDataMap);
 
         User actor = getActor(currentUser);
@@ -134,7 +196,12 @@ public class ChainEventServiceImpl implements ChainEventService {
 
         chainEvent = chainEventRepository.save(chainEvent);
 
-        publishActivityLog(currentUser, "Ghi sự kiện thu hoạch cho lô " + lot.getName(),
+        String activityDesc = isEarlyHarvest
+                ? String.format("Ghi nhận thu hoạch sớm cho lô %s (Đủ điều kiện: %s) - Lý do: %s",
+                        lot.getName(), eligibility.getEligibleHarvestDate(), earlyHarvestReason)
+                : "Ghi sự kiện thu hoạch cho lô " + lot.getName();
+
+        publishActivityLog(currentUser, activityDesc,
                 "ChainEvent", chainEvent.getId().toString());
 
         return buildResponse(chainEvent, eventDataMap, request.getLatitude(), request.getLongitude(), actor);
@@ -351,6 +418,11 @@ public class ChainEventServiceImpl implements ChainEventService {
             }
             if (lot.getHarvestDate() != null && request.getPackagingDate().isBefore(lot.getHarvestDate())) {
                 throw new BusinessException("Ngày đóng gói phải sau hoặc bằng ngày thu hoạch của lô sản xuất.");
+            }
+            // NCL-09-CN-011: Validate mandatory milestones before packaging
+            java.util.List<String> missingMilestones = milestoneValidationService.validateMilestoneCompletion(lot);
+            if (!missingMilestones.isEmpty()) {
+                throw new BusinessException("Lô chưa đủ mốc canh tác bắt buộc: " + String.join(", ", missingMilestones));
             }
         } catch (BusinessException e) {
             eventValidationService.logFailedAttempt(request.getProductionLotId(), lot.getName(),
@@ -624,12 +696,15 @@ public class ChainEventServiceImpl implements ChainEventService {
 
     private void validateEventPermission(CustomUserDetails currentUser) {
         String role = currentUser.getRoleCode();
-        if (!"VT-02".equals(role) && !"VT-03".equals(role)) {
+        if (!"VT-01".equals(role) && !"VT-02".equals(role) && !"VT-03".equals(role)) {
             throw new BusinessException("Chỉ thành viên được cấp quyền trong tổ chức mới được ghi sự kiện.");
         }
     }
 
     private void validateOrganization(ProductionLot lot, CustomUserDetails currentUser) {
+        if ("VT-01".equals(currentUser.getRoleCode())) {
+            return;
+        }
         if (!lot.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
             throw new BusinessException(HttpStatus.FORBIDDEN,
                     "Bạn không thuộc tổ chức quản lý của lô sản xuất này.");
@@ -763,6 +838,11 @@ public class ChainEventServiceImpl implements ChainEventService {
         harvestRequest.setQuantity(quantity);
         harvestRequest.setLatitude(request.getLatitude());
         harvestRequest.setLongitude(request.getLongitude());
+
+        Object earlyHarvestReasonObj = request.getEventData().get("earlyHarvestReason");
+        if (earlyHarvestReasonObj != null && !earlyHarvestReasonObj.toString().trim().isEmpty()) {
+            harvestRequest.setEarlyHarvestReason(earlyHarvestReasonObj.toString().trim());
+        }
 
         // Delegate to the shared online method — ensures identical validation, status
         // updates, and error logging

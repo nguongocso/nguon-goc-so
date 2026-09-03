@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { ShoppingCart } from "lucide-react";
 import { ProcurementShipmentList } from "@/components/shipment/ProcurementShipmentList";
 import { RecordProcurementDialog } from "@/components/procurement/RecordProcurementDialog";
-import { Button } from "@/components/ui/button";
+import { HelpButton } from "@/components/help/HelpButton";
 
 /**
  * Dashboard dành cho Doanh nghiệp thu mua (VT‑04).
@@ -19,11 +18,6 @@ export function ProcurementDashboard() {
     setDialogOpen(true);
   };
 
-  const handleOpenNewProcurement = () => {
-    setSelectedShipmentId(undefined);
-    setDialogOpen(true);
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -36,10 +30,7 @@ export function ProcurementDashboard() {
             mua.
           </p>
         </div>
-        <Button onClick={handleOpenNewProcurement}>
-          <ShoppingCart className="mr-2 size-4" />
-          Ghi nhận thu mua mới
-        </Button>
+        <HelpButton screenKey="dashboard" />
       </div>
 
       <ProcurementShipmentList
