@@ -104,4 +104,11 @@ context.md
 npm_member_check.txt
 dev-server.log
 
+# Build output locked by another process; do not track
+frontend/dist_old_locked/
+
+# Dev-only / local data seeds (kept on disk, loaded once into the local DB)
+backend/src/main/resources/db/migration/data/V64__seed_cultivation_milestones.sql
+backend/src/main/resources/db/migration/data/V66__seed_cultivation_milestones.sql
+
 docs/postman/
