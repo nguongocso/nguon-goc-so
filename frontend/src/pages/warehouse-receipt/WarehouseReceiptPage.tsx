@@ -171,19 +171,6 @@ export default function WarehouseReceiptPage() {
               ? 'Không tìm thấy sự kiện nhập kho nào phù hợp với bộ lọc.'
               : 'Chưa có sự kiện nhập kho nào.'
           }
-          emptyAction={
-            !search && (
-              <Button
-                type="button"
-                variant="create"
-                size="sm"
-                onClick={() => setCreateOpen(true)}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Nhập kho
-              </Button>
-            )
-          }
         />
 
         {!isLoadingList && filtered.length > 0 && (
