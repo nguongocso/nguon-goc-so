@@ -72,6 +72,7 @@ import UserProfilePage from "@/pages/profile/UserProfilePage";
 
 // ===== Farm logs =====
 import FarmLogHistoryPage from "@/pages/farm-log/FarmLogHistoryPage";
+import AttachmentManagementPage from "@/pages/farm-log/AttachmentManagementPage";
 
 // ===== Shipment =====
 import { ProductionLotDetailPage } from "@/pages/public/shipment/ProductionLotDetailPage";
@@ -631,6 +632,15 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-02"]}>
                         <FarmLogHistoryPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="farm-logs/:logId/attachments"
+                element={
+                    <RoleRoute allowedRoles={["VT-02", "VT-03"]}>
+                        <AttachmentManagementPage />
                     </RoleRoute>
                 }
             />
