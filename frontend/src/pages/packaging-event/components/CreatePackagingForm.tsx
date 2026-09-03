@@ -148,11 +148,11 @@ export function CreatePackagingForm() {
     const fetchLot = async () => {
       setLoadingLot(true);
       setLotLoadError(null);
+      setEligibilityStatus("checking");
       try {
         const data = await getProductionLotById(sourceLotId);
         setLot(data);
         eligibilityRequestRef.current += 1;
-        setEligibilityStatus("checking");
         void checkFarmLogEligibility(sourceLotId);
       } catch {
         setLot(null);
@@ -366,44 +366,54 @@ export function CreatePackagingForm() {
                 : ""}
             </div>
           </div>
-          <LotValidationStatus
-            isValid={validation?.valid ?? null}
-            message={validation?.message || ""}
-            loading={loading}
-            className="mt-2"
-          />
-          <FarmLogEligibilityAlert
-            status={eligibilityStatus}
-            productionLotName={selectedLot.name}
-            missingActivities={missingActivities}
-            message={eligibilityMessage || undefined}
-            actionLabel={
-              user?.roleCode === "VT-02"
-                ? "Xem lịch sử nhật ký"
-                : "Ghi bổ sung nhật ký"
-            }
-            onAction={
-              eligibilityStatus === "ineligible" && sourceLotId
-                ? () =>
-                  navigate(
-                    user?.roleCode === "VT-02"
-                      ? `/production-lots/${sourceLotId}/farm-logs`
-                      : `/farm-logs/create?productionLotId=${encodeURIComponent(sourceLotId)}`,
-                  )
-                : undefined
-            }
-            onRetry={
-              eligibilityStatus === "error" ||
-                eligibilityStatus === "ineligible"
-                ? () => void checkFarmLogEligibility(sourceLotId)
-                : undefined
-            }
-          />
+          {loading ? (
+            <LotValidationStatus
+              isValid={null}
+              message=""
+              loading
+              className="mt-2"
+            />
+          ) : validation && !validation.valid ? (
+            <LotValidationStatus
+              isValid={validation.valid}
+              message={validation.message}
+              className="mt-2"
+            />
+          ) : (
+            <FarmLogEligibilityAlert
+              status={eligibilityStatus}
+              productionLotName={selectedLot.name}
+              missingActivities={missingActivities}
+              message={eligibilityMessage || undefined}
+              actionLabel={
+                user?.roleCode === "VT-02"
+                  ? "Xem lịch sử nhật ký"
+                  : "Ghi bổ sung nhật ký"
+              }
+              onAction={
+                eligibilityStatus === "ineligible" && sourceLotId
+                  ? () =>
+                    navigate(
+                      user?.roleCode === "VT-02"
+                        ? `/production-lots/${sourceLotId}/farm-logs`
+                        : `/farm-logs/create?productionLotId=${encodeURIComponent(sourceLotId)}`,
+                    )
+                  : undefined
+              }
+              onRetry={
+                eligibilityStatus === "error" ||
+                  eligibilityStatus === "ineligible"
+                  ? () => void checkFarmLogEligibility(sourceLotId)
+                  : undefined
+              }
+            />
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="packagingSpecification">Quy cách đóng gói *</Label>
             <Input
               id="packagingSpecification"
+              placeholder="VD: Bao 60kg, Túi 500g x 20 túi/thùng..."
               {...register("packagingSpecification")}
             />
             {errors.packagingSpecification && (
