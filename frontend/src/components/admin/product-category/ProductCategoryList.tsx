@@ -33,10 +33,10 @@ export const ProductCategoryList = ({
                                         onToggleActive,
                                         canManage = true,
                                         startIndex = 0,
-                                        onToggleMandatory,
-                                        togglingMandatoryId,
-                                        onAssignCriteria,
-                                    }: Props) => {
+    onToggleMandatory,
+    togglingMandatoryId,
+    onAssignCriteria,
+}: Props) => {
     const showMandatoryColumn = !!onToggleMandatory;
     const colSpan = 6 + (showMandatoryColumn ? 1 : 0) + (canManage ? 1 : 0);
 
@@ -110,7 +110,7 @@ export const ProductCategoryList = ({
                             <Button variant="ghost" size="icon-sm"
                                     onClick={() => onAssignCriteria(category)}
                                     title="Gán bộ chỉ tiêu kiểm nghiệm" className="hover:bg-muted">
-                                <ListChecks className="h-4 w-4"/>
+                                    <ListChecks className="h-4 w-4"/>
                             </Button>
                         )}
                         <Button variant="ghost" size="icon-sm" onClick={() => onEdit(category)}

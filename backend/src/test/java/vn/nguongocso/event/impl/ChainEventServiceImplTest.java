@@ -91,6 +91,9 @@ class ChainEventServiceImplTest {
     @Mock
     private Clock clock;
 
+    @Mock
+    private vn.nguongocso.certification.service.MilestoneValidationService milestoneValidationService;
+
     @InjectMocks
     private ChainEventServiceImpl chainEventService;
 
@@ -506,6 +509,8 @@ class ChainEventServiceImplTest {
 
         when(productionLotRepository.findById(productionLot.getId())).thenReturn(Optional.of(productionLot));
         when(userRepository.findById(userId)).thenReturn(Optional.of(actor));
+        when(milestoneValidationService.validateMilestoneCompletion(any(ProductionLot.class)))
+                .thenReturn(List.of());
 
         ChainEvent mockSavedEvent = ChainEvent.builder()
                 .id(UUID.randomUUID())

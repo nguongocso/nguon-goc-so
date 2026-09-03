@@ -6,6 +6,7 @@ import {
   Bell,
   BookOpen,
   Building2,
+  CalendarCheck,
   FileText,
   Hash,
   History,
@@ -144,6 +145,12 @@ const MENU_GROUPS: MenuGroup[] = [
         label: "Chỉ tiêu kiểm nghiệm",
         href: "/admin/inspection-criteria",
         allowedRoles: ROLE_ACCESS.inspectionCriteriaManagement,
+      },
+      {
+        icon: <CalendarCheck className="h-5 w-5" />,
+        label: "Mốc canh tác",
+        href: "/admin/cultivation-milestones",
+        allowedRoles: ROLE_ACCESS.cultivationMilestoneManagement,
       },
       {
         icon: <ShieldCheck className="h-5 w-5" />,
