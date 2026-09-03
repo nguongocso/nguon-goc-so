@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -18,7 +19,13 @@ import {
   createCultivationMilestone,
   updateCultivationMilestone,
 } from "@/api/cultivationMilestoneApi";
+import { getProductCategories } from "@/api/productCategoryApi";
+import { getActiveStandards } from "@/api/standardApi";
 import type { CultivationMilestone } from "@/types/cultivationMilestone";
+import type { ProductCategory } from "@/types/productCategory";
+import type { Standard } from "@/types/standard";
+
+const ALL_SCOPE = "__all__";
 
 const ACTIVITY_TYPE_OPTIONS = [
   { value: "PLANTING", label: "Gieo trồng" },
@@ -42,11 +49,14 @@ const formSchema = z.object({
     .or(z.literal("")),
   activityType: z.string().min(1, "Vui lòng chọn loại hoạt động"),
   expectedDaysFromPlanting: z
-    .number({ invalid_type_error: "Số ngày phải là số nguyên dương" })
+    .number({ invalid_type_error: "Số ngày phải là số nguyên" })
     .int("Số ngày phải là số nguyên")
-    .positive("Số ngày phải lớn hơn 0")
+    .min(0, "Số ngày phải lớn hơn hoặc bằng 0")
     .optional()
     .nullable(),
+  productCategoryId: z.string().nullable(),
+  standardId: z.string().nullable(),
+  isMandatory: z.boolean(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -64,6 +74,10 @@ export const CultivationMilestoneFormContent = ({
   onCancel,
   open = true,
 }: CultivationMilestoneFormContentProps) => {
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [standards, setStandards] = useState<Standard[]>([]);
+  const [scopeLoading, setScopeLoading] = useState(false);
+
   const {
     register,
     control,
@@ -77,8 +91,37 @@ export const CultivationMilestoneFormContent = ({
       description: "",
       activityType: "",
       expectedDaysFromPlanting: null,
+      productCategoryId: ALL_SCOPE,
+      standardId: ALL_SCOPE,
+      isMandatory: true,
     },
   });
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setScopeLoading(true);
+    void getProductCategories({})
+      .then((data) => {
+        if (!cancelled) setCategories(data || []);
+      })
+      .catch(() => {
+        if (!cancelled) setCategories([]);
+      })
+      .finally(() => {
+        if (!cancelled) setScopeLoading(false);
+      });
+    getActiveStandards()
+      .then((data) => {
+        if (!cancelled) setStandards(data || []);
+      })
+      .catch(() => {
+        if (!cancelled) setStandards([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -88,34 +131,52 @@ export const CultivationMilestoneFormContent = ({
         description: milestone.description ?? "",
         activityType: milestone.activityType,
         expectedDaysFromPlanting: milestone.expectedDaysFromPlanting ?? null,
+        productCategoryId: milestone.productCategoryId ?? ALL_SCOPE,
+        standardId: milestone.standardId ?? ALL_SCOPE,
+        isMandatory: milestone.isMandatory,
       });
     } else {
-      reset({ name: "", description: "", activityType: "", expectedDaysFromPlanting: null });
+      reset({
+        name: "",
+        description: "",
+        activityType: "",
+        expectedDaysFromPlanting: null,
+        productCategoryId: ALL_SCOPE,
+        standardId: ALL_SCOPE,
+        isMandatory: true,
+      });
     }
   }, [milestone, open, reset]);
+
+  const toPayload = (values: FormValues) => ({
+    name: values.name.trim(),
+    description: values.description?.trim() || undefined,
+    activityType: values.activityType,
+    expectedDaysFromPlanting: values.expectedDaysFromPlanting ?? undefined,
+    productCategoryId:
+      values.productCategoryId === ALL_SCOPE
+        ? null
+        : values.productCategoryId || null,
+    standardId:
+      values.standardId === ALL_SCOPE ? null : values.standardId || null,
+    isMandatory: values.isMandatory,
+  });
 
   const onSubmit = async (values: FormValues) => {
     try {
       if (milestone) {
-        await updateCultivationMilestone(milestone.id, {
-          name: values.name.trim(),
-          description: values.description?.trim() || undefined,
-          activityType: values.activityType,
-          expectedDaysFromPlanting: values.expectedDaysFromPlanting ?? undefined,
-        });
+        await updateCultivationMilestone(milestone.id, toPayload(values));
         toast.success("Cập nhật mốc canh tác thành công");
       } else {
-        await createCultivationMilestone({
-          name: values.name.trim(),
-          description: values.description?.trim() || undefined,
-          activityType: values.activityType,
-          expectedDaysFromPlanting: values.expectedDaysFromPlanting ?? undefined,
-        });
+        await createCultivationMilestone(toPayload(values));
         toast.success("Thêm mới mốc canh tác thành công");
       }
       onSuccess();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Có lỗi xảy ra");
+      toast.error(
+        error.response?.data?.message ||
+          (error.response?.data?.message || "Có lỗi xảy ra")
+      );
     }
   };
 
@@ -130,7 +191,12 @@ export const CultivationMilestoneFormContent = ({
           name="activityType"
           control={control}
           render={({ field }) => (
-            <Select value={field.value} onValueChange={field.onChange} disabled={isSubmitting}>
+            <Select
+              value={field.value}
+              onValueChange={field.onChange}
+              disabled={isSubmitting}
+              items={ACTIVITY_TYPE_OPTIONS}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Chọn loại hoạt động" />
               </SelectTrigger>
@@ -147,6 +213,9 @@ export const CultivationMilestoneFormContent = ({
         {errors.activityType && (
           <p className="text-sm text-red-500">{errors.activityType.message}</p>
         )}
+        <p className="text-xs text-muted-foreground">
+          Dùng để đối chiếu với nhật ký canh tác khi kiểm tra đóng gói.
+        </p>
       </div>
 
       {/* Tên mốc */}
@@ -163,7 +232,7 @@ export const CultivationMilestoneFormContent = ({
           <p className="text-sm text-red-500">{errors.name.message}</p>
         )}
         <p className="text-xs text-muted-foreground">
-          Tên mốc không được trùng trong cùng một loại hoạt động.
+          Tên mốc không được trùng trong cùng một loại nông sản và tiêu chuẩn.
         </p>
       </div>
 
@@ -182,6 +251,82 @@ export const CultivationMilestoneFormContent = ({
         )}
       </div>
 
+      {/* Loại nông sản áp dụng */}
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-sm font-medium">
+          Loại nông sản áp dụng
+        </Label>
+        <Controller
+          name="productCategoryId"
+          control={control}
+          render={({ field }) => (
+            <Select
+              value={field.value ?? ALL_SCOPE}
+              onValueChange={field.onChange}
+              disabled={scopeLoading || isSubmitting}
+              items={[
+                { value: ALL_SCOPE, label: "Áp dụng cho toàn bộ loại nông sản" },
+                ...categories.map((c) => ({ value: c.id, label: c.name })),
+              ]}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Chọn loại nông sản" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_SCOPE}>
+                  Áp dụng cho toàn bộ loại nông sản
+                </SelectItem>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        <p className="text-xs text-muted-foreground">
+          Chọn "toàn bộ loại" nếu mốc áp dụng cho mọi loại nông sản.
+        </p>
+      </div>
+
+      {/* Tiêu chuẩn áp dụng */}
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-sm font-medium">Tiêu chuẩn áp dụng</Label>
+        <Controller
+          name="standardId"
+          control={control}
+          render={({ field }) => (
+            <Select
+              value={field.value ?? ALL_SCOPE}
+              onValueChange={field.onChange}
+              disabled={scopeLoading || isSubmitting}
+              items={[
+                { value: ALL_SCOPE, label: "Áp dụng cho mọi tiêu chuẩn" },
+                ...standards.map((s) => ({ value: s.id, label: s.name })),
+              ]}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Chọn tiêu chuẩn" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[220px]">
+                <SelectItem value={ALL_SCOPE}>
+                  Áp dụng cho mọi tiêu chuẩn
+                </SelectItem>
+                {standards.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        <p className="text-xs text-muted-foreground">
+          Chọn "mọi tiêu chuẩn" nếu mốc áp dụng cho mọi tiêu chuẩn của lô.
+        </p>
+      </div>
+
       {/* Số ngày dự kiến từ ngày gieo trồng */}
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="expectedDaysFromPlanting" className="text-sm font-medium">
@@ -190,7 +335,7 @@ export const CultivationMilestoneFormContent = ({
         <Input
           id="expectedDaysFromPlanting"
           type="number"
-          min="1"
+          min="0"
           placeholder="VD: 30"
           {...register("expectedDaysFromPlanting", {
             setValueAs: (value: unknown) =>
@@ -205,8 +350,29 @@ export const CultivationMilestoneFormContent = ({
           </p>
         )}
         <p className="text-xs text-muted-foreground">
-          Thông tin tham khảo,用于 hiển thị trên giao diện.
+          Thông tin tham khảo, dùng để hiển thị trên giao diện.
         </p>
+      </div>
+
+      {/* Bắt buộc */}
+      <div className="flex items-center justify-between rounded-lg border border-slate-100 p-3">
+        <div className="flex flex-col gap-0.5">
+          <Label className="text-sm font-medium">Bắt buộc</Label>
+          <p className="text-xs text-muted-foreground">
+            Mốc bắt buộc sẽ được đối chiếu khi đóng gói lô.
+          </p>
+        </div>
+        <Controller
+          name="isMandatory"
+          control={control}
+          render={({ field }) => (
+            <Switch
+              checked={field.value}
+              onCheckedChange={field.onChange}
+              disabled={isSubmitting}
+            />
+          )}
+        />
       </div>
 
       {/* Nút hành động */}

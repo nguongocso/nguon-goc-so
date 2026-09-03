@@ -1,7 +1,7 @@
 import {Button} from '@/components/ui/button';
 import {Switch} from '@/components/ui/switch';
 import {TableCell, TableHead, TableRow} from '@/components/ui/table';
-import {Pencil, Eye, EyeOff, ListChecks, CalendarCheck} from 'lucide-react';
+import {Pencil, Eye, EyeOff, ListChecks} from 'lucide-react';
 import type {ProductCategory} from '@/types/productCategory';
 import {DataTableShell} from '@/components/common/DataTableShell';
 import {StatusBadge} from '@/components/common/StatusBadge';
@@ -24,8 +24,6 @@ interface Props {
     togglingMandatoryId?: string | null;
     /** Điều hướng đến trang gán bộ chỉ tiêu kiểm nghiệm cho category. */
     onAssignCriteria?: (category: ProductCategory) => void;
-    /** Điều hướng đến trang gán mốc canh tác bắt buộc cho category. */
-    onAssignMilestones?: (category: ProductCategory) => void;
 }
 
 export const ProductCategoryList = ({
@@ -38,7 +36,6 @@ export const ProductCategoryList = ({
     onToggleMandatory,
     togglingMandatoryId,
     onAssignCriteria,
-    onAssignMilestones,
 }: Props) => {
     const showMandatoryColumn = !!onToggleMandatory;
     const colSpan = 6 + (showMandatoryColumn ? 1 : 0) + (canManage ? 1 : 0);
@@ -113,14 +110,7 @@ export const ProductCategoryList = ({
                             <Button variant="ghost" size="icon-sm"
                                     onClick={() => onAssignCriteria(category)}
                                     title="Gán bộ chỉ tiêu kiểm nghiệm" className="hover:bg-muted">
-                                <ListChecks className="h-4 w-4"/>
-                            </Button>
-                        )}
-                        {onAssignMilestones && (
-                            <Button variant="ghost" size="icon-sm"
-                                    onClick={() => onAssignMilestones(category)}
-                                    title="Gán mốc canh tác bắt buộc" className="hover:bg-muted">
-                                <CalendarCheck className="h-4 w-4"/>
+                                    <ListChecks className="h-4 w-4"/>
                             </Button>
                         )}
                         <Button variant="ghost" size="icon-sm" onClick={() => onEdit(category)}

@@ -4,10 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.nguongocso.certification.entity.CultivationMilestoneCatalog;
+import vn.nguongocso.certification.entity.CultivationMilestone;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
-import vn.nguongocso.certification.entity.ProductCategoryMilestone;
-import vn.nguongocso.certification.repository.ProductCategoryMilestoneRepository;
+import vn.nguongocso.certification.repository.CultivationMilestoneRepository;
 import vn.nguongocso.certification.service.MilestoneValidationService;
 import vn.nguongocso.farm.entity.FarmLog;
 import vn.nguongocso.farm.entity.ProductionLot;
@@ -31,7 +30,7 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class MilestoneValidationServiceImpl implements MilestoneValidationService {
 
-    private final ProductCategoryMilestoneRepository categoryMilestoneRepository;
+    private final CultivationMilestoneRepository milestoneRepository;
     private final FarmLogRepository farmLogRepository;
 
     @Override
@@ -47,8 +46,8 @@ public class MilestoneValidationServiceImpl implements MilestoneValidationServic
                 .toList();
 
         // Step 2: Query mandatory milestones for this category + standard scope
-        List<ProductCategoryMilestone> mandatoryMilestones =
-                categoryMilestoneRepository.findMandatoryMilestonesForValidation(categoryId, standardIds);
+        List<CultivationMilestone> mandatoryMilestones =
+                milestoneRepository.findMandatoryMilestonesForValidation(categoryId, standardIds);
 
         if (mandatoryMilestones.isEmpty()) {
             return List.of();
@@ -69,8 +68,7 @@ public class MilestoneValidationServiceImpl implements MilestoneValidationServic
         Map<FarmActivityType, Integer> usedCountsByType = new java.util.HashMap<>();
         List<String> missingMilestones = new ArrayList<>();
 
-        for (ProductCategoryMilestone pcm : mandatoryMilestones) {
-            CultivationMilestoneCatalog milestone = pcm.getMilestone();
+        for (CultivationMilestone milestone : mandatoryMilestones) {
             FarmActivityType activityType;
             try {
                 activityType = FarmActivityType.valueOf(milestone.getActivityType());

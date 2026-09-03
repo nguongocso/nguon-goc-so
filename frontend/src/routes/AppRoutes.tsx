@@ -53,7 +53,6 @@ import InspectionCriteriaManagementPage from "@/pages/admin/InspectionCriteriaMa
 import CreateInspectionCriterionPage from "@/pages/admin/CreateInspectionCriterionPage";
 import CultivationMilestoneManagementPage from "@/pages/admin/CultivationMilestoneManagementPage";
 import CreateCultivationMilestonePage from "@/pages/admin/CreateCultivationMilestonePage";
-import AssignMilestonesPage from "@/pages/admin/AssignMilestonesPage";
 import TestingUnitListPage from "@/pages/admin/TestingUnitListPage";
 import TestingUnitFormPage from "@/pages/admin/TestingUnitFormPage";
 import TestingUnitScopeManagerPage from "@/pages/admin/TestingUnitScopeManagerPage";
@@ -792,15 +791,6 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-01"]}>
                         <AssignInspectionCriteriaPage />
-                    </RoleRoute>
-                }
-            />
-
-            <Route
-                path="admin/product-categories/:id/milestones"
-                element={
-                    <RoleRoute allowedRoles={["VT-01"]}>
-                        <AssignMilestonesPage />
                     </RoleRoute>
                 }
             />

@@ -13,11 +13,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import vn.nguongocso.certification.entity.Certification;
-import vn.nguongocso.certification.entity.CultivationMilestoneCatalog;
-import vn.nguongocso.certification.entity.ProductCategoryMilestone;
+import vn.nguongocso.certification.entity.CultivationMilestone;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.certification.entity.Standard;
-import vn.nguongocso.certification.repository.ProductCategoryMilestoneRepository;
+import vn.nguongocso.certification.repository.CultivationMilestoneRepository;
 import vn.nguongocso.certification.service.impl.MilestoneValidationServiceImpl;
 import vn.nguongocso.farm.entity.FarmLog;
 import vn.nguongocso.farm.entity.ProductCategory;
@@ -33,7 +32,7 @@ import vn.nguongocso.farm.repository.FarmLogRepository;
 class MilestoneValidationServiceImplTest {
 
     @Mock
-    private ProductCategoryMilestoneRepository categoryMilestoneRepository;
+    private CultivationMilestoneRepository milestoneRepository;
 
     @Mock
     private FarmLogRepository farmLogRepository;
@@ -47,24 +46,20 @@ class MilestoneValidationServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new MilestoneValidationServiceImpl(categoryMilestoneRepository, farmLogRepository);
+        service = new MilestoneValidationServiceImpl(milestoneRepository, farmLogRepository);
         categoryId = UUID.randomUUID();
         lotId = UUID.randomUUID();
         category = ProductCategory.builder().id(categoryId).name("Rau ăn lá").isActive(true).build();
         lot = ProductionLot.builder().id(lotId).productCategory(category).build();
     }
 
-    private CultivationMilestoneCatalog milestone(Long id, String name, String activityType) {
-        return CultivationMilestoneCatalog.builder()
+    private CultivationMilestone milestone(Long id, String name, String activityType) {
+        return CultivationMilestone.builder()
                 .id(id)
                 .name(name)
                 .activityType(activityType)
-                .status("ACTIVE")
+                .isMandatory(true)
                 .build();
-    }
-
-    private ProductCategoryMilestone assignment(CultivationMilestoneCatalog m, Standard s) {
-        return ProductCategoryMilestone.builder().milestone(m).standard(s).isMandatory(true).build();
     }
 
     private ProductionLotCertification certWithStandard(Standard standard) {
@@ -87,11 +82,11 @@ class MilestoneValidationServiceImplTest {
         Standard standard = Standard.builder().id(UUID.randomUUID()).name("VietGAP").build();
         lot.setCertifications(List.of(certWithStandard(standard)));
 
-        CultivationMilestoneCatalog planting = milestone(1L, "Gieo trồng", "PLANTING");
-        CultivationMilestoneCatalog fertilizing = milestone(2L, "Bón phân đợt 1", "FERTILIZING");
-        when(categoryMilestoneRepository.findMandatoryMilestonesForValidation(
+        CultivationMilestone planting = milestone(1L, "Gieo trồng", "PLANTING");
+        CultivationMilestone fertilizing = milestone(2L, "Bón phân đợt 1", "FERTILIZING");
+        when(milestoneRepository.findMandatoryMilestonesForValidation(
                         categoryId, List.of(standard.getId())))
-                .thenReturn(List.of(assignment(planting, standard), assignment(fertilizing, null)));
+                .thenReturn(List.of(planting, fertilizing));
         when(farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lotId))
                 .thenReturn(List.of(
                         log(FarmActivityType.PLANTING, false),
@@ -108,11 +103,11 @@ class MilestoneValidationServiceImplTest {
         Standard standard = Standard.builder().id(UUID.randomUUID()).name("VietGAP").build();
         lot.setCertifications(List.of(certWithStandard(standard)));
 
-        CultivationMilestoneCatalog planting = milestone(1L, "Gieo trồng", "PLANTING");
-        CultivationMilestoneCatalog fertilizing = milestone(2L, "Bón phân đợt hai", "FERTILIZING");
-        when(categoryMilestoneRepository.findMandatoryMilestonesForValidation(
+        CultivationMilestone planting = milestone(1L, "Gieo trồng", "PLANTING");
+        CultivationMilestone fertilizing = milestone(2L, "Bón phân đợt hai", "FERTILIZING");
+        when(milestoneRepository.findMandatoryMilestonesForValidation(
                         categoryId, List.of(standard.getId())))
-                .thenReturn(List.of(assignment(planting, standard), assignment(fertilizing, null)));
+                .thenReturn(List.of(planting, fertilizing));
         when(farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lotId))
                 .thenReturn(List.of(log(FarmActivityType.PLANTING, false)));
 
@@ -126,17 +121,15 @@ class MilestoneValidationServiceImplTest {
     void validate_shouldOnlyConsiderGlobalWhenNoCertifications() {
         lot.setCertifications(List.of());
 
-        CultivationMilestoneCatalog global = milestone(1L, "Gieo trồng", "PLANTING");
-        CultivationMilestoneCatalog standardScoped = milestone(2L, "Mốc theo chuẩn", "FERTILIZING");
+        CultivationMilestone global = milestone(1L, "Gieo trồng", "PLANTING");
         // Repository trả về chỉ GLOBAL vì standardIds rỗng
-        when(categoryMilestoneRepository.findMandatoryMilestonesForValidation(categoryId, List.of()))
-                .thenReturn(List.of(assignment(global, null)));
+        when(milestoneRepository.findMandatoryMilestonesForValidation(categoryId, List.of()))
+                .thenReturn(List.of(global));
         when(farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lotId))
                 .thenReturn(List.of(log(FarmActivityType.PLANTING, false)));
 
         List<String> missing = service.validateMilestoneCompletion(lot);
 
-        // standardScoped không được xét
         assertThat(missing).isEmpty();
     }
 
@@ -146,11 +139,11 @@ class MilestoneValidationServiceImplTest {
         Standard standard = Standard.builder().id(UUID.randomUUID()).name("GlobalGAP").build();
         lot.setCertifications(List.of(certWithStandard(standard)));
 
-        CultivationMilestoneCatalog a = milestone(1L, "Bón phân đợt 1", "FERTILIZING");
-        CultivationMilestoneCatalog b = milestone(2L, "Bón phân đợt 2", "FERTILIZING");
-        when(categoryMilestoneRepository.findMandatoryMilestonesForValidation(
+        CultivationMilestone a = milestone(1L, "Bón phân đợt 1", "FERTILIZING");
+        CultivationMilestone b = milestone(2L, "Bón phân đợt 2", "FERTILIZING");
+        when(milestoneRepository.findMandatoryMilestonesForValidation(
                         categoryId, List.of(standard.getId())))
-                .thenReturn(List.of(assignment(a, standard), assignment(b, standard)));
+                .thenReturn(List.of(a, b));
         when(farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lotId))
                 .thenReturn(List.of(log(FarmActivityType.FERTILIZING, false)));
 
@@ -165,10 +158,10 @@ class MilestoneValidationServiceImplTest {
         Standard standard = Standard.builder().id(UUID.randomUUID()).name("VietGAP").build();
         lot.setCertifications(List.of(certWithStandard(standard)));
 
-        CultivationMilestoneCatalog planting = milestone(1L, "Gieo trồng", "PLANTING");
-        when(categoryMilestoneRepository.findMandatoryMilestonesForValidation(
+        CultivationMilestone planting = milestone(1L, "Gieo trồng", "PLANTING");
+        when(milestoneRepository.findMandatoryMilestonesForValidation(
                         categoryId, List.of(standard.getId())))
-                .thenReturn(List.of(assignment(planting, standard)));
+                .thenReturn(List.of(planting));
         // Log PLANTING bị đính chính -> không tính
         when(farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lotId))
                 .thenReturn(List.of(log(FarmActivityType.PLANTING, true)));
@@ -184,10 +177,10 @@ class MilestoneValidationServiceImplTest {
         Standard standard = Standard.builder().id(UUID.randomUUID()).name("VietGAP").build();
         lot.setCertifications(List.of(certWithStandard(standard)));
 
-        CultivationMilestoneCatalog weird = milestone(1L, "Mốc lạ", "NOT_A_REAL_TYPE");
-        when(categoryMilestoneRepository.findMandatoryMilestonesForValidation(
+        CultivationMilestone weird = milestone(1L, "Mốc lạ", "NOT_A_REAL_TYPE");
+        when(milestoneRepository.findMandatoryMilestonesForValidation(
                         categoryId, List.of(standard.getId())))
-                .thenReturn(List.of(assignment(weird, standard)));
+                .thenReturn(List.of(weird));
         when(farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lotId))
                 .thenReturn(List.of());
 
@@ -200,7 +193,7 @@ class MilestoneValidationServiceImplTest {
     @Test
     void validate_shouldReturnEmptyWhenNoMandatoryMilestones() {
         lot.setCertifications(List.of());
-        when(categoryMilestoneRepository.findMandatoryMilestonesForValidation(categoryId, List.of()))
+        when(milestoneRepository.findMandatoryMilestonesForValidation(categoryId, List.of()))
                 .thenReturn(List.of());
 
         List<String> missing = service.validateMilestoneCompletion(lot);

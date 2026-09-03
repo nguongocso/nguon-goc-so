@@ -6,12 +6,12 @@ import lombok.Getter;
 import java.time.LocalDateTime;
 
 /**
- * Response DTO for cultivation milestone catalog entries.
+ * Response DTO cho mốc canh tác (bảng hợp nhất).
  * Story: NCL-09-CN-011
  */
 @Getter
 @Builder
-public class CultivationMilestoneCatalogResponse {
+public class CultivationMilestoneResponse {
 
     @JsonProperty("id")
     private Long id;
@@ -28,11 +28,20 @@ public class CultivationMilestoneCatalogResponse {
     @JsonProperty("expectedDaysFromPlanting")
     private Integer expectedDaysFromPlanting;
 
-    @JsonProperty("status")
-    private String status;
+    @JsonProperty("productCategoryId")
+    private String productCategoryId;
 
-    @JsonProperty("referenced")
-    private boolean referenced;
+    @JsonProperty("productCategoryName")
+    private String productCategoryName;
+
+    @JsonProperty("standardId")
+    private String standardId;
+
+    @JsonProperty("standardName")
+    private String standardName;
+
+    @JsonProperty("isMandatory")
+    private boolean isMandatory;
 
     @JsonProperty("createdAt")
     private LocalDateTime createdAt;
