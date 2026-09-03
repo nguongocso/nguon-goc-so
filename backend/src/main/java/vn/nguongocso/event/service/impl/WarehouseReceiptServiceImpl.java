@@ -15,7 +15,6 @@ import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.PageResponse;
-import vn.nguongocso.common.annotation.Auditable;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.event.dto.request.WarehouseReceiptRequest;
 import vn.nguongocso.event.dto.response.WarehouseReceiptResponse;
@@ -65,7 +64,6 @@ public class WarehouseReceiptServiceImpl implements WarehouseReceiptService {
 
     @Override
     @Transactional
-    @Auditable(action = "RECORD_WAREHOUSE_RECEIPT", entityType = "CHAIN_EVENT", description = "'Ghi nhận nhập kho cho mã tem: ' + #request.codeValue + ', Số lượng thực nhận: ' + #request.receivedQuantity")
     public WarehouseReceiptResponse recordWarehouseReceipt(WarehouseReceiptRequest request, CustomUserDetails currentUser) {
 
         // 1. Validate role: only VT-04 (Procurement Company)

@@ -17,7 +17,6 @@ import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
-import vn.nguongocso.common.annotation.Auditable;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.event.dto.request.*;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
@@ -85,7 +84,6 @@ public class ChainEventServiceImpl implements ChainEventService {
      */
     @Override
     @Transactional
-    @Auditable(action = "RECORD_HARVEST_EVENT", entityType = "CHAIN_EVENT", description = "'Ghi nhận sự kiện thu hoạch cho lô sản xuất ID: ' + #request.productionLotId + ', Sản lượng: ' + #request.quantity + ' kg'")
     public ChainEventResponse recordHarvestEvent(RecordHarvestEventRequest request, CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
 
@@ -215,7 +213,6 @@ public class ChainEventServiceImpl implements ChainEventService {
      */
     @Override
     @Transactional
-    @Auditable(action = "RECORD_PREPROCESSING_EVENT", entityType = "CHAIN_EVENT", description = "'Ghi nhận sự kiện sơ chế cho lô sản xuất ID: ' + #request.productionLotId + ', Khối lượng vào: ' + #request.inputQuantity + ' kg, Khối lượng ra: ' + #request.outputQuantity + ' kg'")
     public ChainEventResponse recordPreprocessingEvent(RecordPreprocessingEventRequest request,
             CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
@@ -305,7 +302,6 @@ public class ChainEventServiceImpl implements ChainEventService {
      */
     @Override
     @Transactional
-    @Auditable(action = "CORRECT_PREPROCESSING_EVENT", entityType = "CHAIN_EVENT", description = "'Đính chính thông tin sơ chế cho sự kiện gốc ID: ' + #originalEventId")
     public ChainEventResponse correctPreprocessingEvent(UUID originalEventId, CorrectPreprocessingEventRequest request,
             CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
@@ -399,7 +395,6 @@ public class ChainEventServiceImpl implements ChainEventService {
      */
     @Override
     @Transactional
-    @Auditable(action = "RECORD_PACKAGING_EVENT", entityType = "CHAIN_EVENT", description = "'Ghi nhận sự kiện đóng gói cho lô sản xuất ID: ' + #request.productionLotId + ', Quy cách: ' + #request.packagingSpecification")
     public ChainEventResponse recordPackagingEvent(RecordPackagingEventRequest request, CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
 
@@ -469,7 +464,6 @@ public class ChainEventServiceImpl implements ChainEventService {
      */
     @Override
     @Transactional
-    @Auditable(action = "CORRECT_PACKAGING_EVENT", entityType = "CHAIN_EVENT", description = "'Đính chính thông tin đóng gói cho sự kiện gốc ID: ' + #originalEventId")
     public ChainEventResponse correctPackagingEvent(UUID originalEventId, CorrectPackagingEventRequest request,
             CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
@@ -540,7 +534,6 @@ public class ChainEventServiceImpl implements ChainEventService {
      */
     @Override
     @Transactional
-    @Auditable(action = "RECORD_TRANSPORT_EVENT", entityType = "CHAIN_EVENT", description = "'Ghi nhận sự kiện vận chuyển mã tem: ' + #request.codeValue + ', Từ: ' + #request.fromLocation + ', Đến: ' + #request.toLocation")
     public ChainEventResponse recordTransportEvent(RecordTransportEventRequest request, CustomUserDetails currentUser) {
         if (!"VT-03".equals(currentUser.getRoleCode())) {
             throw new BusinessException("Bạn không có quyền ghi sự kiện vận chuyển.");
@@ -974,7 +967,6 @@ public class ChainEventServiceImpl implements ChainEventService {
      */
     @Override
     @Transactional
-    @Auditable(action = "RECORD_STORAGE_CONDITION", entityType = "CHAIN_EVENT", description = "'Ghi nhận điều kiện bảo quản mã tem: ' + #request.codeValue + ', Nhiệt độ: ' + #request.temperature + '°C, Độ ẩm: ' + #request.humidity + '%'")
     public StorageConditionResponse recordStorageCondition(StorageConditionRequest request,
             CustomUserDetails currentUser) {
 

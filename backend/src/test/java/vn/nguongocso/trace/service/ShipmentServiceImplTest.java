@@ -22,6 +22,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import org.springframework.context.ApplicationEventPublisher;
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.auth.entity.User;
@@ -195,6 +196,7 @@ class ShipmentServiceImplTest {
         verify(productionLotRepository).findById(productionLotId);
         verify(codeRangeRepository).findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(organizationId);
         verify(qrCodeService, times(50)).generateQRCode(anyString(), any(), any(), any());
+        verify(eventPublisher).publishEvent(any(ActivityLogEvent.class));
     }
 
     @Test
@@ -388,6 +390,7 @@ class ShipmentServiceImplTest {
 
         verify(shipmentRepository).save(shipment);
         verify(traceCodeRepository).saveAll(anyList());
+        verify(eventPublisher).publishEvent(any(ActivityLogEvent.class));
     }
 
     @Test

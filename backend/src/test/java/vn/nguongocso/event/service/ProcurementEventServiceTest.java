@@ -10,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.event.dto.request.RecordProcurementEventRequest;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
 import vn.nguongocso.event.entity.ChainEvent;
@@ -96,6 +97,7 @@ public class ProcurementEventServiceTest {
         assertThat(response.getShipmentId()).isEqualTo(shipmentId);
         assertThat(response.getEventData().get("receivedQuantity")).isEqualTo(100L);
         verify(chainEventService).saveWithChainHash(any(ChainEvent.class));
+        verify(eventPublisher).publishEvent(any(ActivityLogEvent.class));
     }
 
     @Test
