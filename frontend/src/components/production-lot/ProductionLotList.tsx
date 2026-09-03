@@ -100,7 +100,10 @@ const STATUS_TONES: Record<ProductionLot["status"], StatusTone> = {
   CANCELLED: "danger",
 };
 
+// NCL-02-CN-006: mặc định "Đang canh tác" = mọi trạng thái trừ "Đã hủy",
+// để lô đã hủy không nằm mãi trong danh sách đang canh tác.
 const STATUS_FILTER_OPTIONS = [
+  { value: "ACTIVE", label: "Đang canh tác" },
   { value: "ALL", label: "Tất cả trạng thái" },
   ...Object.entries(STATUS_LABELS).map(([value, label]) => ({
     value,
@@ -131,7 +134,8 @@ export const ProductionLotList = ({
   const navigate = useNavigate();
   const { user } = useAuth();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
+  // NCL-02-CN-006: mặc định chỉ hiển thị các lô đang canh tác (ẩn lô đã hủy)
+  const [statusFilter, setStatusFilter] = useState("ACTIVE");
   const [page, setPage] = useState(0);
   const [confirmingLot, setConfirmingLot] =
     useState<ProductionLot | null>(null);
@@ -164,8 +168,12 @@ export const ProductionLotList = ({
           lot.farmAreaName ?? "",
           lot.productCategoryName ?? "",
         ].some((value) => value.toLowerCase().includes(keyword));
+      // NCL-02-CN-006: "Đang canh tác" loại bỏ các lô đã hủy.
       const matchesStatus =
-        statusFilter === "ALL" || lot.status === statusFilter;
+        statusFilter === "ALL" ||
+        (statusFilter === "ACTIVE"
+          ? lot.status !== "CANCELLED"
+          : lot.status === statusFilter);
       return matchesSearch && matchesStatus;
     });
   }, [lots, search, statusFilter]);
@@ -177,7 +185,9 @@ export const ProductionLotList = ({
     safePage * PAGE_SIZE + PAGE_SIZE,
   );
 
-  const hasActiveFilter = search.trim() !== "" || statusFilter !== "ALL";
+  const hasActiveFilter =
+    search.trim() !== "" ||
+    (statusFilter !== "ALL" && statusFilter !== "ACTIVE");
 
   const renderStatus = (status: ProductionLot["status"]) => {
     const label = STATUS_LABELS[status];
@@ -243,7 +253,7 @@ export const ProductionLotList = ({
               <FilterSelect
                 value={statusFilter}
                 onValueChange={(value) => {
-                  setStatusFilter(value ?? "ALL");
+                  setStatusFilter(value ?? "ACTIVE");
                   setPage(0);
                 }}
                 options={STATUS_FILTER_OPTIONS}
