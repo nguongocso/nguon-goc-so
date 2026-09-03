@@ -73,6 +73,7 @@ public class ChainEventServiceImpl implements ChainEventService {
     private final EventHashService eventHashService;
     private final HarvestEligibilityService harvestEligibilityService;
     private final Clock clock;
+    private final vn.nguongocso.certification.service.MilestoneValidationService milestoneValidationService;
 
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
@@ -417,6 +418,11 @@ public class ChainEventServiceImpl implements ChainEventService {
             }
             if (lot.getHarvestDate() != null && request.getPackagingDate().isBefore(lot.getHarvestDate())) {
                 throw new BusinessException("Ngày đóng gói phải sau hoặc bằng ngày thu hoạch của lô sản xuất.");
+            }
+            // NCL-09-CN-011: Validate mandatory milestones before packaging
+            java.util.List<String> missingMilestones = milestoneValidationService.validateMilestoneCompletion(lot);
+            if (!missingMilestones.isEmpty()) {
+                throw new BusinessException("Lô chưa đủ mốc canh tác bắt buộc: " + String.join(", ", missingMilestones));
             }
         } catch (BusinessException e) {
             eventValidationService.logFailedAttempt(request.getProductionLotId(), lot.getName(),

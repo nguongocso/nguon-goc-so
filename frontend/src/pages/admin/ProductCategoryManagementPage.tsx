@@ -125,6 +125,10 @@ export default function ProductCategoryManagementPage() {
         navigate(`/admin/product-categories/${category.id}/criteria`);
     };
 
+    const handleAssignMilestones = (category: ProductCategory) => {
+        navigate(`/admin/product-categories/${category.id}/milestones`);
+    };
+
 
     return (
         <div className="space-y-6">
@@ -189,6 +193,7 @@ export default function ProductCategoryManagementPage() {
                     onToggleMandatory={handleToggleMandatory}
                     togglingMandatoryId={togglingMandatoryId}
                     onAssignCriteria={handleAssignCriteria}
+                    onAssignMilestones={handleAssignMilestones}
                 />
 
                 <Pagination

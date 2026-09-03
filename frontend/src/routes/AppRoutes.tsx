@@ -51,6 +51,9 @@ import CreateStandardPage from "@/pages/admin/CreateStandardPage";
 import EditStandardPage from "@/pages/admin/EditStandardPage";
 import InspectionCriteriaManagementPage from "@/pages/admin/InspectionCriteriaManagementPage";
 import CreateInspectionCriterionPage from "@/pages/admin/CreateInspectionCriterionPage";
+import CultivationMilestoneManagementPage from "@/pages/admin/CultivationMilestoneManagementPage";
+import CreateCultivationMilestonePage from "@/pages/admin/CreateCultivationMilestonePage";
+import AssignMilestonesPage from "@/pages/admin/AssignMilestonesPage";
 import TestingUnitListPage from "@/pages/admin/TestingUnitListPage";
 import TestingUnitFormPage from "@/pages/admin/TestingUnitFormPage";
 import TestingUnitScopeManagerPage from "@/pages/admin/TestingUnitScopeManagerPage";
@@ -794,6 +797,15 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="admin/product-categories/:id/milestones"
+                element={
+                    <RoleRoute allowedRoles={["VT-01"]}>
+                        <AssignMilestonesPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="admin/input-materials"
                 element={
                     <RoleRoute allowedRoles={["VT-01", "VT-02", "VT-03", "VT-04"]}>
@@ -880,6 +892,28 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.inspectionCriteriaManagement}
                     >
                         <InspectionCriteriaManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/cultivation-milestones/create"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.cultivationMilestoneManagement}
+                    >
+                        <CreateCultivationMilestonePage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/cultivation-milestones"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.cultivationMilestoneManagement}
+                    >
+                        <CultivationMilestoneManagementPage />
                     </RoleRoute>
                 }
             />
