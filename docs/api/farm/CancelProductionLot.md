@@ -26,16 +26,16 @@
 
 ```json
 {
-  "reason": "mất mùa do thời tiết",
+  "reason": "Mất mùa do thời tiết",
   "note": "Mưa lớn kéo dài khiến toàn bộ diện tích bị ngập úng, không thể thu hoạch."
 }
 ```
 
-> **`reason` (bắt buộc):** lý do hủy, chọn 1 trong danh sách cố định:
-> - `mất mùa do thời tiết`
-> - `sâu bệnh`
-> - `khai báo nhầm`
-> - `lý do khác`
+> **`reason` (bắt buộc):** lý do hủy, chọn 1 trong danh sách cố định (hiển thị trên UI viết hoa chữ đầu):
+> - `Mất mùa do thời tiết`
+> - `Sâu bệnh`
+> - `Khai báo nhầm`
+> - `Lý do khác`
 >
 > **`note` (bắt buộc):** diễn giải chi tiết lý do hủy — tối đa 1000 ký tự.
 >
@@ -87,4 +87,4 @@
 ## 2. Phạm vi của Story (liên quan)
 
 - **Lô đã sinh mã** phải đi theo luồng thu hồi lô (`ShipmentRecall`) chứ **không** được hủy — xem `docs/api/trace/ShipmentRecall.md`.
-- Cập nhật vòng đời lô sản xuất: các trạng thái được phép hủy là `DRAFT`, `PENDING`, `REJECTED`, `APPROVED`, `HARVESTED`, `PREPROCESSED` (mọi lô chưa sinh mã truy xuất và chưa ở trạng thái cuối).
+- Điều kiện hủy **duy nhất** theo tài liệu gốc (mô tả story I77 / precondition J77 của `NCL-02-CN-006`): *"Hệ thống chỉ cho hủy khi lô chưa sinh mã truy xuất"* — **không giới hạn trạng thái**. Lô `PACKAGED` (đã đóng gói) nhưng chưa tạo lô hàng/sinh mã **vẫn được hủy**. Backend chỉ chặn thêm các trạng thái cuối `CANCELLED` / `CLOSED` / `RECALLED` (thực tế đều đã sinh mã nên bị chặn sẵn bởi gate mã truy xuất).

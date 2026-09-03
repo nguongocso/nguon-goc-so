@@ -26,6 +26,12 @@ import type {
 /**
  * Các trạng thái được phép hủy — mọi lô chưa sinh mã truy xuất
  * và chưa ở trạng thái cuối (NCL-02-CN-006).
+ *
+ * Theo tài liệu gốc ("Bản sao của Bản sao của Nguồn Gốc Số.xlsx", ROW 77,
+ * cột mô tả I77 / precondition J77): điều kiện DUY NHẤT để hủy là "chưa sinh
+ * mã truy xuất", không giới hạn trạng thái — lô đã đóng gói (PACKAGED) nhưng
+ * chưa tạo lô hàng vẫn được hủy. Chỉ chặn trạng thái cuối CANCELLED /
+ * CLOSED / RECALLED (thực tế đều đã sinh mã, backend tự chặn qua gate mã).
  */
 export const CANCELLABLE_PRODUCTION_LOT_STATUSES: ProductionLot['status'][] = [
   'DRAFT',
@@ -34,13 +40,14 @@ export const CANCELLABLE_PRODUCTION_LOT_STATUSES: ProductionLot['status'][] = [
   'APPROVED',
   'HARVESTED',
   'PREPROCESSED',
+  'PACKAGED',
 ];
 
 const CANCEL_REASONS = [
-  'mất mùa do thời tiết',
-  'sâu bệnh',
-  'khai báo nhầm',
-  'lý do khác',
+  'Mất mùa do thời tiết',
+  'Sâu bệnh',
+  'Khai báo nhầm',
+  'Lý do khác',
 ] as const;
 
 interface CancelProductionLotDialogProps {

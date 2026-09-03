@@ -284,6 +284,35 @@ public class ProductionLotServiceTest {
         verify(productionLotRepository, never()).save(any(ProductionLot.class));
     }
 
+    @Test
+    void cancelProductionLot_shouldCancelPackagedLot_whenNoTraceCodes() {
+        // Given — theo tài liệu gốc (I77/J77): điều kiện hủy duy nhất là
+        // "chưa sinh mã truy xuất"; lô PACKAGED chưa tạo lô hàng vẫn được hủy.
+        ProductionLot lot = createPendingLot();
+        lot.setStatus(ProductionLotStatus.PACKAGED);
+        User canceller = new User();
+        canceller.setUserId(userId);
+        canceller.setFullName("Quản lý HTX");
+
+        CancelProductionLotRequest request = new CancelProductionLotRequest();
+        request.setReason("Khai báo nhầm");
+        request.setNote("Đóng gói nhầm lô của vụ trước");
+
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+        when(shipmentRepository.findByProductionLotId(lotId)).thenReturn(List.of());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(canceller));
+        when(productionLotRepository.save(any(ProductionLot.class))).thenReturn(lot);
+
+        // When
+        CreateProductionLotResponse response =
+                productionLotService.cancelProductionLot(lotId, request, userDetails);
+
+        // Then
+        assertThat(response.getStatus()).isEqualTo(ProductionLotStatus.CANCELLED.name());
+        assertThat(lot.getStatus()).isEqualTo(ProductionLotStatus.CANCELLED);
+        verify(productionLotRepository).save(lot);
+    }
+
     private CreateProductionLotRequest createLotRequest(UUID farmAreaId) {
         CreateProductionLotRequest request = new CreateProductionLotRequest();
         request.setName("Lô xoài Cát Chu");
