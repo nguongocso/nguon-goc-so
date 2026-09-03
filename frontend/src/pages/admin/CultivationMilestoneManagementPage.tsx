@@ -19,7 +19,6 @@ import { usePermission } from "@/hooks/usePermission";
 import { ROLE_ACCESS } from "@/config/roleAccess";
 import { getCultivationMilestones } from "@/api/cultivationMilestoneApi";
 import type { CultivationMilestone } from "@/types/cultivationMilestone";
-import { CultivationMilestoneForm } from "@/components/admin/cultivation-milestone/CultivationMilestoneForm";
 
 const PAGE_SIZE = 10;
 
@@ -53,9 +52,6 @@ export default function CultivationMilestoneManagementPage() {
   const [search, setSearch] = useState("");
   const [activityType, setActivityType] = useState("ALL");
   const [page, setPage] = useState(0);
-
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingMilestone, setEditingMilestone] = useState<CultivationMilestone | null>(null);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -91,14 +87,8 @@ export default function CultivationMilestoneManagementPage() {
     return filtered.slice(start, start + PAGE_SIZE);
   }, [filtered, safePage]);
 
-  const openEditDialog = (milestone: CultivationMilestone) => {
-    setEditingMilestone(milestone);
-    setFormOpen(true);
-  };
-
-  const closeForm = () => {
-    setFormOpen(false);
-    setEditingMilestone(null);
+  const openEditPage = (milestone: CultivationMilestone) => {
+    navigate(`/admin/cultivation-milestones/${milestone.id}/edit`);
   };
 
   useSetBreadcrumb([
@@ -125,8 +115,8 @@ export default function CultivationMilestoneManagementPage() {
         {safePage * PAGE_SIZE + index + 1}
       </TableCell>
       <TableCell className="font-medium text-foreground">{milestone.name}</TableCell>
-      <TableCell>{milestone.productCategoryName ?? "Toàn bộ loại"}</TableCell>
-      <TableCell>{milestone.standardName ?? "Mọi tiêu chuẩn"}</TableCell>
+      <TableCell>{milestone.productCategoryName ?? "Tất cả"}</TableCell>
+      <TableCell>{milestone.standardName ?? "Tất cả"}</TableCell>
       <TableCell>{ACTIVITY_LABELS[milestone.activityType] || milestone.activityType}</TableCell>
       <TableCell className="text-center">
         {milestone.expectedDaysFromPlanting ?? "—"}
@@ -135,7 +125,7 @@ export default function CultivationMilestoneManagementPage() {
         {milestone.isMandatory ? (
           <Badge variant="default">Bắt buộc</Badge>
         ) : (
-          <Badge variant="secondary">Tùy chọn</Badge>
+          <Badge variant="secondary">Không bắt buộc</Badge>
         )}
       </TableCell>
       {canManage && (
@@ -143,7 +133,7 @@ export default function CultivationMilestoneManagementPage() {
           <Button
             variant="ghost"
             size="icon-sm"
-            onClick={() => openEditDialog(milestone)}
+            onClick={() => openEditPage(milestone)}
             title="Sửa mốc canh tác"
           >
             <Pencil className="h-4 w-4" />
@@ -158,7 +148,7 @@ export default function CultivationMilestoneManagementPage() {
       <ListPageHeader
         icon={CalendarCheck}
         title="Quản lý mốc canh tác bắt buộc"
-        description="Khai báo mốc canh tác theo loại nông sản, tiêu chuẩn và mức bắt buộc"
+        description="Bộ mốc canh tác được áp dụng theo tiêu chuẩn và loại nông sản gắn cho lô"
         actions={
           <>
             <HelpButton screenKey="admin-cultivation-milestones" />
@@ -216,13 +206,6 @@ export default function CultivationMilestoneManagementPage() {
           onPageChange={setPage}
         />
       </ListCard>
-
-      <CultivationMilestoneForm
-        open={formOpen}
-        onClose={closeForm}
-        onSuccess={fetchAll}
-        milestone={editingMilestone}
-      />
     </div>
   );
 }

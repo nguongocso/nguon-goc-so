@@ -4,6 +4,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -182,198 +188,237 @@ export const CultivationMilestoneFormContent = ({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      {/* Loại hoạt động */}
-      <div className="flex flex-col gap-1.5">
-        <Label className="text-sm font-medium">
-          Loại hoạt động <span className="text-red-500">*</span>
-        </Label>
-        <Controller
-          name="activityType"
-          control={control}
-          render={({ field }) => (
-            <Select
-              value={field.value}
-              onValueChange={field.onChange}
-              disabled={isSubmitting}
-              items={ACTIVITY_TYPE_OPTIONS}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Chọn loại hoạt động" />
-              </SelectTrigger>
-              <SelectContent>
-                {ACTIVITY_TYPE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-        {errors.activityType && (
-          <p className="text-sm text-red-500">{errors.activityType.message}</p>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Dùng để đối chiếu với nhật ký canh tác khi kiểm tra đóng gói.
-        </p>
-      </div>
-
-      {/* Tên mốc */}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="name" className="text-sm font-medium">
-          Tên mốc canh tác <span className="text-red-500">*</span>
-        </Label>
-        <Input
-          id="name"
-          {...register("name")}
-          placeholder="VD: Bón phân đợt 1"
-        />
-        {errors.name && (
-          <p className="text-sm text-red-500">{errors.name.message}</p>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Tên mốc không được trùng trong cùng một loại nông sản và tiêu chuẩn.
-        </p>
-      </div>
-
-      {/* Mô tả */}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="description" className="text-sm font-medium">
-          Mô tả
-        </Label>
-        <Input
-          id="description"
-          {...register("description")}
-          placeholder="Mô tả ngắn về mốc canh tác"
-        />
-        {errors.description && (
-          <p className="text-sm text-red-500">{errors.description.message}</p>
-        )}
-      </div>
-
-      {/* Loại nông sản áp dụng */}
-      <div className="flex flex-col gap-1.5">
-        <Label className="text-sm font-medium">
-          Loại nông sản áp dụng
-        </Label>
-        <Controller
-          name="productCategoryId"
-          control={control}
-          render={({ field }) => (
-            <Select
-              value={field.value ?? ALL_SCOPE}
-              onValueChange={field.onChange}
-              disabled={scopeLoading || isSubmitting}
-              items={[
-                { value: ALL_SCOPE, label: "Áp dụng cho toàn bộ loại nông sản" },
-                ...categories.map((c) => ({ value: c.id, label: c.name })),
-              ]}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Chọn loại nông sản" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_SCOPE}>
-                  Áp dụng cho toàn bộ loại nông sản
-                </SelectItem>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-        <p className="text-xs text-muted-foreground">
-          Chọn "toàn bộ loại" nếu mốc áp dụng cho mọi loại nông sản.
-        </p>
-      </div>
-
-      {/* Tiêu chuẩn áp dụng */}
-      <div className="flex flex-col gap-1.5">
-        <Label className="text-sm font-medium">Tiêu chuẩn áp dụng</Label>
-        <Controller
-          name="standardId"
-          control={control}
-          render={({ field }) => (
-            <Select
-              value={field.value ?? ALL_SCOPE}
-              onValueChange={field.onChange}
-              disabled={scopeLoading || isSubmitting}
-              items={[
-                { value: ALL_SCOPE, label: "Áp dụng cho mọi tiêu chuẩn" },
-                ...standards.map((s) => ({ value: s.id, label: s.name })),
-              ]}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Chọn tiêu chuẩn" />
-              </SelectTrigger>
-              <SelectContent className="max-h-[220px]">
-                <SelectItem value={ALL_SCOPE}>
-                  Áp dụng cho mọi tiêu chuẩn
-                </SelectItem>
-                {standards.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-        <p className="text-xs text-muted-foreground">
-          Chọn "mọi tiêu chuẩn" nếu mốc áp dụng cho mọi tiêu chuẩn của lô.
-        </p>
-      </div>
-
-      {/* Số ngày dự kiến từ ngày gieo trồng */}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="expectedDaysFromPlanting" className="text-sm font-medium">
-          Số ngày dự kiến từ ngày gieo trồng
-        </Label>
-        <Input
-          id="expectedDaysFromPlanting"
-          type="number"
-          min="0"
-          placeholder="VD: 30"
-          {...register("expectedDaysFromPlanting", {
-            setValueAs: (value: unknown) =>
-              value === "" || value === null || value === undefined
-                ? null
-                : Number(value),
-          })}
-        />
-        {errors.expectedDaysFromPlanting && (
-          <p className="text-sm text-red-500">
-            {errors.expectedDaysFromPlanting.message}
-          </p>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Thông tin tham khảo, dùng để hiển thị trên giao diện.
-        </p>
-      </div>
-
-      {/* Bắt buộc */}
-      <div className="flex items-center justify-between rounded-lg border border-slate-100 p-3">
-        <div className="flex flex-col gap-0.5">
-          <Label className="text-sm font-medium">Bắt buộc</Label>
-          <p className="text-xs text-muted-foreground">
-            Mốc bắt buộc sẽ được đối chiếu khi đóng gói lô.
-          </p>
-        </div>
-        <Controller
-          name="isMandatory"
-          control={control}
-          render={({ field }) => (
-            <Switch
-              checked={field.value}
-              onCheckedChange={field.onChange}
-              disabled={isSubmitting}
+      {/* Nhóm 1 — Thông tin mốc */}
+      <Card size="sm">
+        <CardHeader className="border-b border-slate-100 py-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Thông tin mốc
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-5 space-y-4">
+          {/* Tên mốc */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="name" className="text-sm font-medium">
+              Tên mốc canh tác <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="name"
+              {...register("name")}
+              placeholder="VD: Bón phân đợt 1"
             />
-          )}
-        />
-      </div>
+            {errors.name && (
+              <p className="text-sm text-red-500">{errors.name.message}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Tên mốc không được trùng trong cùng một loại nông sản và tiêu
+              chuẩn.
+            </p>
+          </div>
+
+          {/* Loại hoạt động */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-sm font-medium">
+              Loại hoạt động <span className="text-red-500">*</span>
+            </Label>
+            <Controller
+              name="activityType"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={isSubmitting}
+                  items={ACTIVITY_TYPE_OPTIONS}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Chọn loại hoạt động" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ACTIVITY_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.activityType && (
+              <p className="text-sm text-red-500">
+                {errors.activityType.message}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Dùng để đối chiếu với nhật ký canh tác khi kiểm tra đóng gói.
+            </p>
+          </div>
+
+          {/* Mô tả */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="description" className="text-sm font-medium">
+              Mô tả
+            </Label>
+            <Input
+              id="description"
+              {...register("description")}
+              placeholder="Mô tả ngắn về mốc canh tác"
+            />
+            {errors.description && (
+              <p className="text-sm text-red-500">
+                {errors.description.message}
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Nhóm 2 — Phạm vi áp dụng */}
+      <Card size="sm">
+        <CardHeader className="border-b border-slate-100 py-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Phạm vi áp dụng
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-5 space-y-4">
+          {/* Loại nông sản áp dụng */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-sm font-medium">
+              Loại nông sản áp dụng
+            </Label>
+            <Controller
+              name="productCategoryId"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  value={field.value ?? ALL_SCOPE}
+                  onValueChange={field.onChange}
+                  disabled={scopeLoading || isSubmitting}
+                  items={[
+                    { value: ALL_SCOPE, label: "Tất cả loại nông sản" },
+                    ...categories.map((c) => ({ value: c.id, label: c.name })),
+                  ]}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Chọn loại nông sản" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_SCOPE}>
+                      Tất cả loại nông sản
+                    </SelectItem>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <p className="text-xs text-muted-foreground">
+              Chọn "Tất cả" nếu mốc áp dụng cho mọi loại nông sản.
+            </p>
+          </div>
+
+          {/* Tiêu chuẩn áp dụng */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-sm font-medium">Tiêu chuẩn áp dụng</Label>
+            <Controller
+              name="standardId"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  value={field.value ?? ALL_SCOPE}
+                  onValueChange={field.onChange}
+                  disabled={scopeLoading || isSubmitting}
+                  items={[
+                    { value: ALL_SCOPE, label: "Tất cả tiêu chuẩn" },
+                    ...standards.map((s) => ({ value: s.id, label: s.name })),
+                  ]}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Chọn tiêu chuẩn" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[220px]">
+                    <SelectItem value={ALL_SCOPE}>Tất cả tiêu chuẩn</SelectItem>
+                    {standards.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <p className="text-xs text-muted-foreground">
+              Chọn "Tất cả" nếu mốc áp dụng cho mọi tiêu chuẩn của lô.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Nhóm 3 — Quy định */}
+      <Card size="sm">
+        <CardHeader className="border-b border-slate-100 py-3">
+          <CardTitle className="text-base font-semibold text-slate-900">
+            Quy định
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-5 space-y-4">
+          {/* Bắt buộc */}
+          <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
+            <div className="flex flex-col gap-0.5">
+              <Label className="text-sm font-medium">Bắt buộc</Label>
+              <p className="text-xs text-muted-foreground">
+                Mốc bắt buộc phải có nhật ký trước khi đóng gói.
+              </p>
+            </div>
+            <Controller
+              name="isMandatory"
+              control={control}
+              render={({ field }) => (
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  disabled={isSubmitting}
+                />
+              )}
+            />
+          </div>
+
+          {/* Thời điểm dự kiến */}
+          <div className="flex flex-col gap-1.5">
+            <Label
+              htmlFor="expectedDaysFromPlanting"
+              className="text-sm font-medium"
+            >
+              Thời điểm dự kiến
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="expectedDaysFromPlanting"
+                type="number"
+                min="0"
+                placeholder="VD: 30"
+                className="w-28"
+                {...register("expectedDaysFromPlanting", {
+                  setValueAs: (value: unknown) =>
+                    value === "" || value === null || value === undefined
+                      ? null
+                      : Number(value),
+                })}
+              />
+              <span className="text-sm text-muted-foreground">
+                ngày sau gieo trồng
+              </span>
+            </div>
+            {errors.expectedDaysFromPlanting && (
+              <p className="text-sm text-red-500">
+                {errors.expectedDaysFromPlanting.message}
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Nút hành động */}
       <div className="flex justify-end gap-2 pt-2">
