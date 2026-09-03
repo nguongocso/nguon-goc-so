@@ -20,6 +20,7 @@ export const EditCultivationMilestonePage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [milestone, setMilestone] = useState<CultivationMilestone | null>(null);
+  const [isMandatory, setIsMandatory] = useState(true);
 
   useSetBreadcrumb([
     { label: "Dashboard", href: "/dashboard" },
@@ -34,6 +35,7 @@ export const EditCultivationMilestonePage: React.FC = () => {
         setLoading(true);
         const data = await getCultivationMilestone(Number(id));
         setMilestone(data);
+        setIsMandatory(data.isMandatory);
       } catch (error: any) {
         toast.error(
           error.response?.data?.message ||
@@ -73,20 +75,24 @@ export const EditCultivationMilestonePage: React.FC = () => {
       </div>
 
       <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
-        <CardHeader className="border-b border-slate-100 pb-4">
-          <CardTitle className="text-lg font-semibold text-slate-900">
-            Thông tin mốc canh tác
-          </CardTitle>
-          <CardDescription>
-            Cập nhật thông tin mốc canh tác: tên, loại hoạt động, phạm vi áp
-            dụng (loại nông sản và tiêu chuẩn), mức bắt buộc và thời điểm dự
-            kiến.
-          </CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between gap-4 border-b border-slate-100 pb-4">
+          <div>
+            <CardTitle className="text-lg font-semibold text-slate-900">
+              Thông tin mốc canh tác
+            </CardTitle>
+            <CardDescription>
+              Cập nhật thông tin mốc canh tác: tên, loại hoạt động, phạm vi áp
+              dụng (loại nông sản và tiêu chuẩn), mức bắt buộc và thời điểm dự
+              kiến.
+            </CardDescription>
+          </div>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="px-5 pt-4 pb-5">
           <CultivationMilestoneFormContent
             open
             milestone={milestone}
+            isMandatory={isMandatory}
+            onMandatoryChange={setIsMandatory}
             onSuccess={() => navigate("/admin/cultivation-milestones")}
             onCancel={() => navigate("/admin/cultivation-milestones")}
           />

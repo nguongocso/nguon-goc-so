@@ -62,7 +62,6 @@ const formSchema = z.object({
     .nullable(),
   productCategoryId: z.string().nullable(),
   standardId: z.string().nullable(),
-  isMandatory: z.boolean(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -72,6 +71,8 @@ export interface CultivationMilestoneFormContentProps {
   onSuccess: () => void;
   onCancel: () => void;
   open?: boolean;
+  isMandatory: boolean;
+  onMandatoryChange: (value: boolean) => void;
 }
 
 export const CultivationMilestoneFormContent = ({
@@ -79,6 +80,8 @@ export const CultivationMilestoneFormContent = ({
   onSuccess,
   onCancel,
   open = true,
+  isMandatory,
+  onMandatoryChange,
 }: CultivationMilestoneFormContentProps) => {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [standards, setStandards] = useState<Standard[]>([]);
@@ -99,7 +102,6 @@ export const CultivationMilestoneFormContent = ({
       expectedDaysFromPlanting: null,
       productCategoryId: ALL_SCOPE,
       standardId: ALL_SCOPE,
-      isMandatory: true,
     },
   });
 
@@ -136,10 +138,9 @@ export const CultivationMilestoneFormContent = ({
         name: milestone.name,
         description: milestone.description ?? "",
         activityType: milestone.activityType,
-        expectedDaysFromPlanting: milestone.expectedDaysFromPlanting ?? null,
+        expectedDaysFromPlanting: milestone.expectedDaysFromPlanting,
         productCategoryId: milestone.productCategoryId ?? ALL_SCOPE,
         standardId: milestone.standardId ?? ALL_SCOPE,
-        isMandatory: milestone.isMandatory,
       });
     } else {
       reset({
@@ -149,7 +150,6 @@ export const CultivationMilestoneFormContent = ({
         expectedDaysFromPlanting: null,
         productCategoryId: ALL_SCOPE,
         standardId: ALL_SCOPE,
-        isMandatory: true,
       });
     }
   }, [milestone, open, reset]);
@@ -165,7 +165,7 @@ export const CultivationMilestoneFormContent = ({
         : values.productCategoryId || null,
     standardId:
       values.standardId === ALL_SCOPE ? null : values.standardId || null,
-    isMandatory: values.isMandatory,
+    isMandatory,
   });
 
   const onSubmit = async (values: FormValues) => {
@@ -187,15 +187,15 @@ export const CultivationMilestoneFormContent = ({
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {/* Nhóm 1 — Thông tin mốc */}
-      <Card size="sm">
-        <CardHeader className="border-b border-slate-100 py-3">
-          <CardTitle className="text-base font-semibold text-slate-900">
+      <Card size="sm" className="rounded-none border-emerald-100 bg-transparent p-0">
+        <CardHeader className="border-b border-emerald-100 bg-emerald-50/60 px-5 py-3">
+          <CardTitle className="text-base font-semibold text-emerald-950">
             Thông tin mốc
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-5 space-y-4">
+        <CardContent className="grid grid-cols-1 gap-4 px-5 pt-4 pb-4 md:grid-cols-2">
           {/* Tên mốc */}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="name" className="text-sm font-medium">
@@ -269,17 +269,51 @@ export const CultivationMilestoneFormContent = ({
               </p>
             )}
           </div>
+
+          {/* Thời điểm dự kiến */}
+          <div className="flex flex-col gap-1.5">
+            <Label
+              htmlFor="expectedDaysFromPlanting"
+              className="text-sm font-medium"
+            >
+              Thời điểm dự kiến
+            </Label>
+            <Input
+              id="expectedDaysFromPlanting"
+              type="number"
+              min="0"
+              placeholder="Bao nhiêu ngày sau khi gieo trồng"
+              {...register("expectedDaysFromPlanting", {
+                setValueAs: (value: unknown) =>
+                  value === "" || value === null || value === undefined
+                    ? null
+                    : Number(value),
+              })}
+            />
+            {errors.expectedDaysFromPlanting && (
+              <p className="text-sm text-red-500">
+                {errors.expectedDaysFromPlanting.message}
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
 
       {/* Nhóm 2 — Phạm vi áp dụng */}
-      <Card size="sm">
-        <CardHeader className="border-b border-slate-100 py-3">
-          <CardTitle className="text-base font-semibold text-slate-900">
+      <Card size="sm" className="rounded-none border-blue-100 bg-transparent p-0">
+        <CardHeader className="flex flex-row items-center justify-between gap-4 border-b border-blue-100 bg-blue-50/60 px-5 py-3">
+          <CardTitle className="text-base font-semibold text-blue-950">
             Phạm vi áp dụng
           </CardTitle>
+          <div className="flex items-center gap-2">
+            <Label className="text-sm font-medium">Bắt buộc</Label>
+            <Switch
+              checked={isMandatory}
+              onCheckedChange={onMandatoryChange}
+            />
+          </div>
         </CardHeader>
-        <CardContent className="pt-5 space-y-4">
+        <CardContent className="grid grid-cols-1 gap-4 px-5 pt-4 pb-4 md:grid-cols-2">
           {/* Loại nông sản áp dụng */}
           <div className="flex flex-col gap-1.5">
             <Label className="text-sm font-medium">
@@ -356,76 +390,22 @@ export const CultivationMilestoneFormContent = ({
         </CardContent>
       </Card>
 
-      {/* Nhóm 3 — Quy định */}
-      <Card size="sm">
-        <CardHeader className="border-b border-slate-100 py-3">
-          <CardTitle className="text-base font-semibold text-slate-900">
-            Quy định
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-5 space-y-4">
-          {/* Bắt buộc */}
-          <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
-            <div className="flex flex-col gap-0.5">
-              <Label className="text-sm font-medium">Bắt buộc</Label>
-              <p className="text-xs text-muted-foreground">
-                Mốc bắt buộc phải có nhật ký trước khi đóng gói.
-              </p>
-            </div>
-            <Controller
-              name="isMandatory"
-              control={control}
-              render={({ field }) => (
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  disabled={isSubmitting}
-                />
-              )}
-            />
-          </div>
-
-          {/* Thời điểm dự kiến */}
-          <div className="flex flex-col gap-1.5">
-            <Label
-              htmlFor="expectedDaysFromPlanting"
-              className="text-sm font-medium"
-            >
-              Thời điểm dự kiến
-            </Label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="expectedDaysFromPlanting"
-                type="number"
-                min="0"
-                placeholder="VD: 30"
-                className="w-28"
-                {...register("expectedDaysFromPlanting", {
-                  setValueAs: (value: unknown) =>
-                    value === "" || value === null || value === undefined
-                      ? null
-                      : Number(value),
-                })}
-              />
-              <span className="text-sm text-muted-foreground">
-                ngày sau gieo trồng
-              </span>
-            </div>
-            {errors.expectedDaysFromPlanting && (
-              <p className="text-sm text-red-500">
-                {errors.expectedDaysFromPlanting.message}
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Nút hành động */}
-      <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
+      <div className="flex justify-end gap-2 pt-1">
+        <Button
+          type="button"
+          variant="outline"
+          className="h-10"
+          onClick={onCancel}
+        >
           Hủy
         </Button>
-        <Button type="submit" variant="create" disabled={isSubmitting}>
+        <Button
+          type="submit"
+          variant="create"
+          className="h-10"
+          disabled={isSubmitting}
+        >
           <Plus className="h-4 w-4 mr-1.5" />
           {isSubmitting ? "Đang lưu..." : milestone ? "Cập nhật" : "Thêm mới"}
         </Button>

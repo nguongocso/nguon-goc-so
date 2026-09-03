@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarCheck } from "lucide-react";
 import {
@@ -20,6 +20,8 @@ export const CreateCultivationMilestonePage: React.FC = () => {
     { label: "Mốc canh tác", href: "/admin/cultivation-milestones" },
     { label: "Thêm mới" },
   ]);
+
+  const [isMandatory, setIsMandatory] = useState(true);
 
   return (
     <div className="space-y-6">
@@ -47,9 +49,11 @@ export const CreateCultivationMilestonePage: React.FC = () => {
             tiêu chuẩn), mức bắt buộc và thời điểm dự kiến.
           </CardDescription>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="px-5 pt-4 pb-5">
           <CultivationMilestoneFormContent
             milestone={null}
+            isMandatory={isMandatory}
+            onMandatoryChange={setIsMandatory}
             onSuccess={() => navigate("/admin/cultivation-milestones")}
             onCancel={() => navigate("/admin/cultivation-milestones")}
           />
