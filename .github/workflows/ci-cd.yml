@@ -45,6 +45,11 @@ jobs:
       release-version: ${{ steps.determine-version.outputs.release-version }}
       is-production: ${{ steps.determine-version.outputs.is-production }}
     steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Determine release version and type
         id: determine-version
         run: |
