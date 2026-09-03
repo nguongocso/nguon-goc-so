@@ -177,11 +177,15 @@ jobs:
     needs: build-push
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     environment:
       name: ${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
+        with:
+          fetch-tags: true
 
       - name: Configure kubectl
         uses: azure/setup-kubectl@v4
@@ -198,6 +202,39 @@ jobs:
         run: |
           kubectl cluster-info
           kubectl get nodes
+
+      # TC-04: Create Git annotated tag on main branch production releases.
+      # Tag points to the exact commit being released.
+      # This MUST happen BEFORE deployment so that if tag creation fails,
+      # the workflow fails fast without deploying an untagged release.
+      - name: Create Git tag on main (TC-04)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          # Configure Git identity for GitHub Actions (fixes "Committer identity unknown")
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          TAG="v${{ env.RELEASE_VERSION }}"
+
+          # NOTE: For annotated tags, git rev-parse "$TAG" returns the tag object SHA,
+          # NOT the commit SHA. We use git rev-list -n 1 "$TAG" to get the actual
+          # commit SHA that the tag points to.
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists"
+            EXISTING_COMMIT="$(git rev-list -n 1 "$TAG")"
+            if [ "$EXISTING_COMMIT" != "${GITHUB_SHA}" ]; then
+              echo "FAIL: Tag $TAG points to $EXISTING_COMMIT, not ${GITHUB_SHA}"
+              echo "Refusing to overwrite release tag. Manual intervention required."
+              exit 1
+            fi
+            echo "Verified: Tag $TAG correctly points to ${GITHUB_SHA}"
+          else
+            git tag -a "$TAG" -m "Release $TAG" "${GITHUB_SHA}"
+            git push origin "$TAG"
+            echo "Created tag $TAG on ${GITHUB_SHA}"
+          fi
+          echo "Git Tag          : $TAG"
+          echo "Tag Commit       : $(git rev-list -n 1 $TAG)"
 
       # TC-04: deploy the immutable commit-SHA image (NOT latest/edge) so the
       # running container is traceable to the exact Git commit that produced it.
@@ -310,17 +347,6 @@ jobs:
           NS="${KUBE_NAMESPACE:-nguongocso}"
           kubectl -n "$NS" rollout status deployment/backend --timeout=180s
           kubectl -n "$NS" rollout status deployment/frontend --timeout=180s
-
-      # TC-04: Create Git annotated tag on main branch production releases.
-      # Tag points to the exact commit being released.
-      - name: Create Git tag on main (TC-04)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          TAG="v${{ env.RELEASE_VERSION }}"
-          git tag -a "$TAG" -m "Release $TAG"
-          git push origin "$TAG"
-          echo "Git Tag          : $TAG"
-          echo "Tag Commit       : $(git rev-list -n 1 $TAG)"
 
       # TC-04: emit the Release Version -> Git Tag -> Git Commit -> Docker Image
       # -> Kubernetes Deployment -> Deployment Time chain into the CI log.
