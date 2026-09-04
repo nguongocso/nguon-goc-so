@@ -147,4 +147,10 @@ public interface TraceCodeScanLogRepository extends JpaRepository<TraceCodeScanL
         List<TraceCodeScanLog> findByTraceCodeIdAndScannedAtGreaterThanEqualOrderByScannedAtDesc(
                         UUID traceCodeId,
                         LocalDateTime scannedAt);
+
+        /**
+         * Lấy tất cả các lượt quét từ một thời điểm trở lại đây, sắp xếp theo thời gian quét tăng dần.
+         */
+        List<TraceCodeScanLog> findByScannedAtGreaterThanEqualOrderByScannedAtAsc(LocalDateTime scannedAt);
+
 }

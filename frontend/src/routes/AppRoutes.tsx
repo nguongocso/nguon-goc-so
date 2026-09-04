@@ -59,6 +59,8 @@ import TestingUnitFormPage from "@/pages/admin/TestingUnitFormPage";
 import TestingUnitScopeManagerPage from "@/pages/admin/TestingUnitScopeManagerPage";
 import SuspectTraceCodeListPage from "@/pages/admin/SuspectTraceCodeListPage";
 import SuspectTraceCodeDetailPage from "@/pages/admin/SuspectTraceCodeDetailPage";
+import AnomalyThresholdPage from "@/pages/admin/AnomalyThresholdPage";
+import CategoryOverridePage from "@/pages/admin/CategoryOverridePage";
 
 // ===== Packaging =====
 import CreatePackagingEventPage from "@/pages/packaging-event/CreatePackagingEventPage";
@@ -1000,6 +1002,34 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-01"]}>
                         <SuspectTraceCodeDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* NCL-08-CN-014 - Cấu hình ngưỡng quét bất thường */}
+            <Route
+                path="admin/anomaly-thresholds"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.anomalyThresholdConfig}>
+                        <AnomalyThresholdPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/anomaly-thresholds/categories/create"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.anomalyThresholdConfig}>
+                        <CategoryOverridePage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/anomaly-thresholds/categories/:id/edit"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.anomalyThresholdConfig}>
+                        <CategoryOverridePage />
                     </RoleRoute>
                 }
             />

@@ -39,6 +39,7 @@ import {
   Key,
   WifiOff,
   MapPin,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import {
@@ -193,6 +194,12 @@ const MENU_GROUPS: MenuGroup[] = [
         label: "Tem nghi vấn",
         href: "/admin/suspect-trace-codes",
         allowedRoles: ["VT-01"] as const,
+      },
+      {
+        icon: <SlidersHorizontal className="h-5 w-5" />,
+        label: "Ngưỡng quét bất thường",
+        href: "/admin/anomaly-thresholds",
+        allowedRoles: ROLE_ACCESS.anomalyThresholdConfig,
       },
       {
         icon: <MapPin className="h-5 w-5" />,
