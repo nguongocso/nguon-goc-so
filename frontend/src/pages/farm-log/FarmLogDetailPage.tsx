@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft,
   ClipboardList,
   FileText,
   Pencil,
@@ -123,7 +122,7 @@ export default function FarmLogDetailPage() {
     ];
   }, [log]);
 
-  useSetBreadcrumb(log ? breadcrumbItems : null);
+  useSetBreadcrumb(breadcrumbItems);
 
   if (loading) {
     return (
@@ -143,9 +142,6 @@ export default function FarmLogDetailPage() {
   if (error || !log) {
     return (
       <div className="container mx-auto py-8 max-w-7xl space-y-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
-        </Button>
         <Card className="border-destructive/30 bg-destructive/5 text-center py-12">
           <CardContent className="space-y-4 pt-6">
             <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
@@ -155,7 +151,6 @@ export default function FarmLogDetailPage() {
             <p className="text-sm text-muted-foreground">
               {error || "Nhật ký không tồn tại."}
             </p>
-            <Button onClick={() => navigate(-1)}>Quay lại danh sách</Button>
           </CardContent>
         </Card>
       </div>

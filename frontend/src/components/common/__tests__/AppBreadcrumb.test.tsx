@@ -113,6 +113,32 @@ describe("AppBreadcrumb - buildAutoBreadcrumb", () => {
       { label: "Tạo yêu cầu thu hồi" },
     ]);
   });
+
+  it("giữ liên kết danh sách khi vào chi tiết lô sản xuất", () => {
+    const items = buildAutoBreadcrumb(
+      "/production-lots/lot-uuid-123",
+      "VT-02",
+    );
+
+    expect(items).toEqual([
+      { label: "Tổng quan", href: "/dashboard" },
+      { label: "Lô sản xuất", href: "/production-lots" },
+      { label: "Chi tiết lô sản xuất" },
+    ]);
+  });
+
+  it("giữ liên kết danh sách khi quản trị phạm vi đơn vị kiểm nghiệm", () => {
+    const items = buildAutoBreadcrumb(
+      "/admin/testing-units/unit-uuid-123/scopes",
+      "VT-01",
+    );
+
+    expect(items).toEqual([
+      { label: "Tổng quan", href: "/dashboard" },
+      { label: "Đơn vị kiểm nghiệm", href: "/admin/testing-units" },
+      { label: "Phạm vi công nhận" },
+    ]);
+  });
 });
 
 // Component hỗ trợ test useSetBreadcrumb

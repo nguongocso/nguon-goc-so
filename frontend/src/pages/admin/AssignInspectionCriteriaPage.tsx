@@ -1,8 +1,7 @@
 import {useEffect, useState} from "react";
-import {useNavigate, useParams} from "react-router-dom";
+import {useParams} from "react-router-dom";
 import {toast} from "sonner";
 import {
-    ArrowLeft,
     ListChecks,
     Loader2,
     RefreshCw,
@@ -72,8 +71,6 @@ const filterOptions: { value: AssignmentFilter; label: string }[] = [
  */
 export default function AssignInspectionCriteriaPage() {
     const {id} = useParams<{ id: string }>();
-    const navigate = useNavigate();
-
     // Loại nông sản đang được cấu hình dữ liệu.
     const [category, setCategory] = useState<ProductCategory | null>(null);
     const [categoryLoading, setCategoryLoading] = useState(true);
@@ -444,11 +441,7 @@ export default function AssignInspectionCriteriaPage() {
             </Card>
 
             {/* Footer actions */}
-            <div className="flex items-center justify-between border-t pt-4">
-                <Button variant="outline" onClick={() => navigate("/admin/product-categories")} disabled={saving}>
-                    <ArrowLeft className="h-4 w-4 mr-1"/>
-                    Quay lại
-                </Button>
+            <div className="flex items-center justify-end border-t pt-4">
                 <Button onClick={handleSave} disabled={catalogLoading || saving}>
                     {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin"/> : <Save className="h-4 w-4 mr-1"/>}
                     {saving ? "Đang lưu..." : "Lưu bộ chỉ tiêu"}

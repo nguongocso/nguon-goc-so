@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  ArrowLeft,
   BadgeCheck,
   ListChecks,
   Loader2,
@@ -70,8 +69,6 @@ const filterOptions: { value: ScopeFilter; label: string }[] = [
  */
 export default function TestingUnitScopeManagerPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-
   const [unit, setUnit] = useState<TestingUnit | null>(null);
   const [unitLoading, setUnitLoading] = useState(true);
 
@@ -486,15 +483,7 @@ export default function TestingUnitScopeManagerPage() {
       </Card>
 
       {/* Footer actions */}
-      <div className="flex items-center justify-between border-t pt-4">
-        <Button
-          variant="outline"
-          onClick={() => navigate("/admin/testing-units")}
-          disabled={saving}
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Quay lại
-        </Button>
+      <div className="flex items-center justify-end border-t pt-4">
         <Button onClick={handleSave} disabled={catalogLoading || saving}>
           {saving ? (
             <Loader2 className="h-4 w-4 mr-1 animate-spin" />

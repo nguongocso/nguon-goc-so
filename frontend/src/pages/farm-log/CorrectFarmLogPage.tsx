@@ -1,7 +1,6 @@
 import axios from 'axios';
 import {
   AlertTriangle,
-  ArrowLeft,
   CheckCircle2,
   LoaderCircle,
   PencilLine,
@@ -158,7 +157,7 @@ export default function CorrectFarmLogPage() {
     ];
   }, [log]);
 
-  useSetBreadcrumb(log ? breadcrumbItems : null);
+  useSetBreadcrumb(breadcrumbItems);
 
   /**
    * So sánh dữ liệu đang nhập với bản gốc để gửi đúng các trường thay đổi.
@@ -288,9 +287,6 @@ export default function CorrectFarmLogPage() {
             <p className="mt-2 text-sm leading-6 text-red-700">
               {loadError || 'Không tìm thấy nhật ký canh tác.'}
             </p>
-            <Button variant="outline" className="mt-4" onClick={goBack}>
-              <ArrowLeft className="mr-2 size-4" /> Quay lại
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -311,9 +307,6 @@ export default function CorrectFarmLogPage() {
               Bản ghi này đã bị thay thế hiệu lực bởi một bản đính chính khác.
               Vui lòng xem bản ghi đính chính mới nhất trong lịch sử nhật ký.
             </p>
-            <Button variant="outline" className="mt-4" onClick={goBack}>
-              <ArrowLeft className="mr-2 size-4" /> Quay lại
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -323,13 +316,6 @@ export default function CorrectFarmLogPage() {
   return (
     <div className="space-y-6">
       <header>
-        <button
-          type="button"
-          onClick={goBack}
-          className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-emerald-700 hover:underline"
-        >
-          <ArrowLeft className="size-4" /> Quay lại lịch sử nhật ký
-        </button>
         <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900">
           <PencilLine className="size-6 text-amber-600" />
           Đính chính nhật ký canh tác

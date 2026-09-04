@@ -1,12 +1,18 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
 import { AttachmentManager } from "@/components/farm-log/AttachmentManager";
+import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 
 export default function AttachmentManagementPage() {
   const { logId } = useParams<{ logId: string }>();
-  const navigate = useNavigate();
+
+  useSetBreadcrumb([
+    { label: "Tổng quan", href: "/dashboard" },
+    ...(logId
+      ? [{ label: "Chi tiết nhật ký", href: `/farm-logs/${logId}` }]
+      : []),
+    { label: "Quản lý chứng từ" },
+  ]);
 
   if (!logId) {
     return (
@@ -18,13 +24,7 @@ export default function AttachmentManagementPage() {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Quay lại
-        </Button>
-        <h1 className="text-2xl font-bold">Quản lý chứng từ</h1>
-      </div>
+      <h1 className="text-2xl font-bold">Quản lý chứng từ</h1>
 
       <Card>
         <CardHeader>

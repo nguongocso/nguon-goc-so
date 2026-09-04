@@ -1133,18 +1133,20 @@ export const RecordInspectionResultPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2 self-end sm:self-auto">
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => {
-                            if (effectiveLotId) navigate(`/production-lots/${effectiveLotId}`);
-                            else navigate("/production-lots");
-                        }}
-                        disabled={submitting}
-                        className="rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    >
-                        {isReadOnly ? "Quay lại" : "Hủy bỏ"}
-                    </Button>
+                    {!isReadOnly && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => {
+                                if (effectiveLotId) navigate(`/production-lots/${effectiveLotId}`);
+                                else navigate("/production-lots");
+                            }}
+                            disabled={submitting}
+                            className="rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        >
+                            Hủy bỏ
+                        </Button>
+                    )}
 
                     {!isReadOnly && (
                         <Button

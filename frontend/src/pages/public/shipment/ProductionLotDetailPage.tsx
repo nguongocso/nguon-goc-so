@@ -851,16 +851,7 @@ export const ProductionLotDetailPage = () => {
   return (
     <div className="space-y-6">
       {/* Top action row */}
-      <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate("/production-lots")}
-          className="gap-1.5 text-slate-700"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Quay lại danh sách lô sản xuất
-        </Button>
+      <div className="flex items-center justify-end">
         <HelpButton screenKey="production-lot-detail" />
       </div>
 

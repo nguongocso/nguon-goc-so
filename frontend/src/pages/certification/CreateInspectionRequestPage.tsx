@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
 import {
   AlertCircle,
   AlertTriangle,
-  ArrowLeft,
   Check,
   ClipboardCheck,
   Clock,
@@ -142,7 +141,6 @@ export const CreateInspectionRequestPage: React.FC = () => {
   }>();
   const effectiveLotId = paramLotId || paramId || "";
 
-  const navigate = useNavigate();
   const today = useMemo(() => toISODate(new Date()), []);
 
   // --- Dữ liệu tải từ server ---
@@ -761,13 +759,6 @@ export const CreateInspectionRequestPage: React.FC = () => {
               {loadError || "Lô sản xuất không tồn tại hoặc tài khoản không có quyền truy cập."}
             </p>
             <div className="mt-6 flex items-center gap-3">
-              <Button
-                variant="outline"
-                className="rounded-xl border-input bg-white"
-                onClick={() => navigate("/production-lots")}
-              >
-                <ArrowLeft className="mr-1.5 h-4 w-4" /> Quay lại danh sách lô
-              </Button>
               <Button
                 variant="create"
                 className="rounded-xl"

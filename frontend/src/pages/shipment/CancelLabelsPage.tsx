@@ -156,14 +156,6 @@ export default function CancelLabelsPage() {
           <div>
             <p className="font-semibold">Không thể tải dữ liệu lô hàng</p>
             <p className="mt-1 text-sm">{shipmentError || 'Lô hàng không tồn tại.'}</p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/production-lots')}
-              className="mt-4 border-red-300 text-red-700 hover:bg-red-100"
-            >
-              Quay lại danh sách lô
-            </Button>
           </div>
         </div>
       </div>
