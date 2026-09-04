@@ -1,5 +1,6 @@
 import {
   approveProductionLot,
+  cancelProductionLot,
   getProductionLots,
   submitProductionLot,
 } from '@/api/productionLotApi';
@@ -7,7 +8,10 @@ import { ProductionLotList } from '@/components/production-lot/ProductionLotList
 import { useAuth } from '@/hooks/useAuth';
 import { usePermission } from '@/hooks/usePermission';
 import { ROLE_ACCESS } from '@/config/roleAccess';
-import type { ProductionLot } from '@/types/productionLot';
+import type {
+  CancelProductionLotRequest,
+  ProductionLot,
+} from '@/types/productionLot';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -20,6 +24,7 @@ interface ProductionLotBoardProps {
   canSubmitForApproval?: boolean;
   canApprove?: boolean;
   canRecordFarmLog?: boolean;
+  canCancel?: boolean;
   onRecordProcurement?: (lotId: string) => void;
   /** Ẩn khối tiêu đề của card (trang /production-lots đã có ListPageHeader riêng). */
   hideCardHeader?: boolean;
@@ -33,6 +38,7 @@ export const ProductionLotBoard = ({
   canSubmitForApproval: propCanSubmitForApproval,
   canApprove: propCanApprove,
   canRecordFarmLog: propCanRecordFarmLog,
+  canCancel: propCanCancel,
   onRecordProcurement,
   hideCardHeader = false,
 }: ProductionLotBoardProps) => {
@@ -84,6 +90,9 @@ export const ProductionLotBoard = ({
   const canRecordFarmLog = propCanRecordFarmLog !== undefined
     ? propCanRecordFarmLog
     : user?.roleCode === 'VT-03';
+  // NCL-02-CN-006: chỉ VT-02 được hủy lô
+  const canCancelByRole = usePermission(ROLE_ACCESS.productionLotCancel);
+  const canCancel = propCanCancel !== undefined ? propCanCancel : canCancelByRole;
 
   const handleSubmitForApproval = async (id: string) => {
     try {
@@ -110,6 +119,25 @@ export const ProductionLotBoard = ({
     }
   };
 
+  // NCL-02-CN-006: hủy lô sản xuất kèm lý do + diễn giải
+  const handleCancelProductionLot = async (
+    id: string,
+    payload: CancelProductionLotRequest,
+  ) => {
+    try {
+      await cancelProductionLot(id, payload);
+      if (propLots === undefined) {
+        await refresh();
+      }
+      toast.success('Đã hủy lô sản xuất.');
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message || 'Không thể hủy lô sản xuất.';
+      toast.error(message);
+      throw error;
+    }
+  };
+
   return (
     <ProductionLotList
       lots={lots}
@@ -119,6 +147,7 @@ export const ProductionLotBoard = ({
       canSubmitForApproval={canSubmitForApproval}
       canApprove={canApprove}
       canRecordFarmLog={canRecordFarmLog}
+      canCancel={canCancel}
       onCreate={() => navigate('/production-lots/create')}
       onEdit={(id) => navigate(`/production-lots/${id}/edit`)}
       onSubmitForApproval={handleSubmitForApproval}
@@ -126,6 +155,7 @@ export const ProductionLotBoard = ({
       onRecordFarmLog={(id) =>
         navigate(`/farm-logs/create?productionLotId=${encodeURIComponent(id)}`)
       }
+      onCancel={handleCancelProductionLot}
       onRecordProcurement={onRecordProcurement}
       hideCardHeader={hideCardHeader}
       onRefresh={propLots !== undefined ? undefined : () => void refresh()}

@@ -40,7 +40,8 @@ export function CooperativeDashboard({ initialTab }: CooperativeDashboardProps) 
   }, []);
 
   const statistics = useMemo(() => ({
-    total: productionLots.length,
+    // NCL-02-CN-006: lô đã hủy không tính vào tổng số lô đang canh tác
+    total: productionLots.filter((lot) => lot.status !== 'CANCELLED').length,
     draft: productionLots.filter((lot) => lot.status === 'DRAFT').length,
     pending: productionLots.filter((lot) => lot.status === 'PENDING').length,
     approved: productionLots.filter((lot) => lot.status === 'APPROVED').length,

@@ -11,6 +11,7 @@ export const ROLE_ACCESS = {
   productionLotList: ['VT-02', 'VT-03'],
   productionLotEdit: ['VT-02'],
   productionLotApprove: ['VT-02'],
+  productionLotCancel: ['VT-02'],
   farmLogCreate: ['VT-02', 'VT-03'] as const,
   farmLogCorrect: ['VT-02', 'VT-03'] as const,
   farmLogView: ['VT-02', 'VT-03'] as const,

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.CultivationMilestoneRequest;
 import vn.nguongocso.certification.dto.response.CultivationMilestoneResponse;
+import vn.nguongocso.certification.dto.response.MilestoneEligibilityResponse;
 import vn.nguongocso.certification.service.CultivationMilestoneService;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.common.PageResponse;
@@ -47,6 +48,15 @@ public class CultivationMilestoneController {
                 milestoneService.searchMilestones(keyword, activityType, categoryId, standardId,
                         globalOnly, pageable, currentUser);
         return ApiResult.success(PageResponse.from(result, result.getContent()));
+    }
+
+    @GetMapping("/eligibility")
+    @PreAuthorize("hasAnyRole('VT-01','VT-02','VT-03')")
+    public ApiResult<MilestoneEligibilityResponse> eligibility(
+            @RequestParam UUID productionLotId,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        return ApiResult.success(
+                milestoneService.getPackagingEligibility(productionLotId, currentUser));
     }
 
     @GetMapping("/{id}")

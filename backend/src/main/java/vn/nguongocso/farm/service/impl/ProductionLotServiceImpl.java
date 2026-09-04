@@ -1,15 +1,16 @@
 package vn.nguongocso.farm.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import vn.nguongocso.common.annotation.Auditable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.nguongocso.alert.event.ActivityLogEvent;
+import vn.nguongocso.common.annotation.Auditable;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.farm.dto.request.ApproveProductionLotRequest;
+import vn.nguongocso.farm.dto.request.CancelProductionLotRequest;
 import vn.nguongocso.farm.dto.request.CreateProductionLotRequest;
 import vn.nguongocso.farm.dto.request.UpdateProductionLotRequest;
 import vn.nguongocso.farm.dto.response.CreateProductionLotResponse;
@@ -31,6 +32,7 @@ import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
 import vn.nguongocso.report.dto.response.ProductionLotDashboardResponse;
 import vn.nguongocso.report.service.ReportAccessLogService;
+import vn.nguongocso.trace.repository.ShipmentRepository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -52,13 +54,13 @@ public class ProductionLotServiceImpl implements ProductionLotService {
     private final UserRepository userRepository;
     private final OrganizationRepository organizationRepository;
     private final ReportAccessLogService reportAccessLogService;
+    private final ShipmentRepository shipmentRepository;
 
     private final ApplicationEventPublisher eventPublisher;
 
     /** Tạo lô sản xuất mới. */
     @Override
     @Transactional
-    @Auditable(action = "CREATE_PRODUCTION_LOT", entityType = "PRODUCTION_LOT", description = "'Tạo lô sản xuất mới: ' + #request.name")
     public CreateProductionLotResponse createProductionLot(CreateProductionLotRequest request,
             CustomUserDetails userDetails) {
         log.info("Bắt đầu xử lý tạo lô sản xuất với tên={}", request.getName());
@@ -144,7 +146,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
     /** Phê duyệt hoặc từ chối lô sản xuất. */
     @Override
     @Transactional
-    @Auditable(action = "APPROVE_PRODUCTION_LOT", entityType = "PRODUCTION_LOT", description = "'Duyệt lô sản xuất ID: ' + #lotId + ', Kết quả duyệt: ' + #request.approved")
     public CreateProductionLotResponse approveProductionLot(UUID lotId, ApproveProductionLotRequest request,
             CustomUserDetails userDetails) {
         log.info("Bắt đầu duyệt lô sản xuất với id={}", lotId);
@@ -194,10 +195,59 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         return mapToResponse(saved);
     }
 
+    /** Hủy lô sản xuất và ghi lý do (NCL-02-CN-006). */
+    @Override
+    @Transactional
+    @Auditable(action = "CANCEL_PRODUCTION_LOT", entityType = "PRODUCTION_LOT", description = "'Hủy lô sản xuất ID: ' + #lotId + ', lý do: ' + #request.reason")
+    public CreateProductionLotResponse cancelProductionLot(UUID lotId, CancelProductionLotRequest request,
+            CustomUserDetails userDetails) {
+        log.info("Bắt đầu hủy lô sản xuất với id={}", lotId);
+
+        UUID orgId = userDetails.getOrganizationId();
+        UUID userId = userDetails.getUserId();
+
+        ProductionLot lot = productionLotRepository.findById(lotId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất"));
+
+        if (!lot.getOrganization().getOrganizationId().equals(orgId)) {
+            throw new BusinessException("Lô sản xuất không thuộc tổ chức của bạn");
+        }
+
+        if (lot.getStatus() == ProductionLotStatus.CANCELLED
+                || lot.getStatus() == ProductionLotStatus.CLOSED
+                || lot.getStatus() == ProductionLotStatus.RECALLED) {
+            throw new BusinessException("Lô đã ở trạng thái " + lot.getStatus().name() + ", không thể hủy");
+        }
+
+        boolean hasTraceCodes = !shipmentRepository.findByProductionLotId(lotId).isEmpty();
+        if (hasTraceCodes) {
+            throw new BusinessException("Lô đã sinh mã truy xuất, không thể hủy. Vui lòng sử dụng luồng thu hồi lô");
+        }
+
+        User cancelledBy = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin tài khoản"));
+
+        lot.setStatus(ProductionLotStatus.CANCELLED);
+        lot.setCancellationReason(request.getReason());
+        lot.setCancellationNote(request.getNote());
+        lot.setCancelledBy(cancelledBy);
+        lot.setCancelledAt(LocalDateTime.now());
+
+        ProductionLot saved = productionLotRepository.save(lot);
+
+        publishActivityLog(
+                userDetails,
+                "CANCEL",
+                "Hủy lô sản xuất " + saved.getName() + " với lý do: " + request.getReason(),
+                "ProductionLot",
+                saved.getId().toString());
+
+        return mapToResponse(saved);
+    }
+
     /** Gửi lô sản xuất sang trạng thái chờ duyệt. */
     @Override
     @Transactional
-    @Auditable(action = "SUBMIT_PRODUCTION_LOT_FOR_APPROVAL", entityType = "PRODUCTION_LOT", description = "'Gửi yêu cầu duyệt lô sản xuất ID: ' + #lotId")
     public CreateProductionLotResponse submitForApproval(UUID lotId, CustomUserDetails userDetails) {
         UUID orgId = userDetails.getOrganizationId();
 
@@ -251,6 +301,10 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .approvalNotes(lot.getApprovalNotes())
                 .createdByName(lot.getCreatedBy() != null ? lot.getCreatedBy().getFullName() : null)
                 .approvedByName(lot.getApprovedBy() != null ? lot.getApprovedBy().getFullName() : null)
+                .cancellationReason(lot.getCancellationReason())
+                .cancellationNote(lot.getCancellationNote())
+                .cancelledByName(lot.getCancelledBy() != null ? lot.getCancelledBy().getFullName() : null)
+                .cancelledAt(lot.getCancelledAt())
                 .createdAt(lot.getCreatedAt())
                 .updatedAt(lot.getUpdatedAt())
                 .build();
@@ -259,7 +313,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
     /** Cập nhật thông tin lô sản xuất. */
     @Override
     @Transactional
-    @Auditable(action = "UPDATE_PRODUCTION_LOT", entityType = "PRODUCTION_LOT", description = "'Cập nhật lô sản xuất ID: ' + #id + ', Tên mới: ' + #request.name")
     public UpdateProductionLotResponse updateProductionLot(UUID id, UpdateProductionLotRequest request,
             CustomUserDetails userDetails) {
         log.info("Bắt đầu xử lý cập nhật lô sản xuất với id={}", id);
@@ -397,6 +450,12 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             Double actual = row[3] != null ? (Double) row[3] : 0.0;
 
             byStatus.put(status.name(), count);
+
+            // NCL-02-CN-006: lô đã hủy không tính vào tổng sản lượng đang canh tác,
+            // chỉ thống kê riêng ở bucket byStatus["CANCELLED"].
+            if (status == ProductionLotStatus.CANCELLED) {
+                continue;
+            }
 
             totalLots += count;
             totalExpectedYield += expected;

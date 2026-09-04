@@ -4,6 +4,7 @@ import type {
   CultivationMilestone,
   CultivationMilestoneRequest,
   CultivationMilestoneQueryParams,
+  MilestoneEligibilityResponse,
 } from '@/types/cultivationMilestone';
 
 /**
@@ -57,6 +58,22 @@ export const updateCultivationMilestone = async (
   const response = await apiClient.put<{ data: CultivationMilestone }>(
     `/cultivation-milestones/${id}`,
     data
+  );
+  return response.data.data;
+};
+
+/**
+ * Kiểm tra lô đã đủ mốc canh tác bắt buộc (loại nông sản + tiêu chuẩn của lô)
+ * để ghi sự kiện đóng gói (NCL-09-CN-011). Đây là nguồn chân lý duy nhất —
+ * cùng thuật toán với lúc ghi sự kiện.
+ * GET /api/v1/cultivation-milestones/eligibility?productionLotId=...
+ */
+export const getPackagingEligibility = async (
+  productionLotId: string
+): Promise<MilestoneEligibilityResponse> => {
+  const response = await apiClient.get<{ data: MilestoneEligibilityResponse }>(
+    '/cultivation-milestones/eligibility',
+    { params: { productionLotId } }
   );
   return response.data.data;
 };

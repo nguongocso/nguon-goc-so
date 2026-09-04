@@ -35,6 +35,13 @@ public class MilestoneValidationServiceImpl implements MilestoneValidationServic
 
     @Override
     public List<String> validateMilestoneCompletion(ProductionLot lot) {
+        return findMissingMilestones(lot).stream()
+                .map(CultivationMilestone::getName)
+                .toList();
+    }
+
+    @Override
+    public List<CultivationMilestone> findMissingMilestones(ProductionLot lot) {
         UUID categoryId = lot.getProductCategory().getId();
 
         // Step 1: Get standard_ids from lot's certifications
@@ -66,7 +73,7 @@ public class MilestoneValidationServiceImpl implements MilestoneValidationServic
         // Step 5: Match required milestones to farm logs (1:1)
         // Each required milestone needs exactly one FarmLog with matching activity_type
         Map<FarmActivityType, Integer> usedCountsByType = new java.util.HashMap<>();
-        List<String> missingMilestones = new ArrayList<>();
+        List<CultivationMilestone> missingMilestones = new ArrayList<>();
 
         for (CultivationMilestone milestone : mandatoryMilestones) {
             FarmActivityType activityType;
@@ -74,7 +81,7 @@ public class MilestoneValidationServiceImpl implements MilestoneValidationServic
                 activityType = FarmActivityType.valueOf(milestone.getActivityType());
             } catch (IllegalArgumentException e) {
                 log.warn("Unknown activity type '{}' in milestone {}", milestone.getActivityType(), milestone.getId());
-                missingMilestones.add(milestone.getName());
+                missingMilestones.add(milestone);
                 continue;
             }
 
@@ -86,7 +93,7 @@ public class MilestoneValidationServiceImpl implements MilestoneValidationServic
                 usedCountsByType.put(activityType, usedCount + 1);
             } else {
                 // No more farm logs available for this activity type
-                missingMilestones.add(milestone.getName());
+                missingMilestones.add(milestone);
             }
         }
 

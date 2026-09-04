@@ -3,7 +3,6 @@ package vn.nguongocso.event.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import vn.nguongocso.common.annotation.Auditable;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
@@ -50,7 +49,6 @@ public class ProcurementEventServiceImpl implements ProcurementEventService {
     /** Ghi nhận sự kiện thu mua. */
     @Override
     @Transactional
-    @Auditable(action = "RECORD_PROCUREMENT_EVENT", entityType = "CHAIN_EVENT", description = "'Ghi nhận sự kiện thu mua cho lô hàng ID: ' + #request.shipmentId + ', Số lượng nhận: ' + #request.receivedQuantity")
     public ChainEventResponse recordProcurementEvent(RecordProcurementEventRequest request, CustomUserDetails currentUser) {
 
         // 1. Kiểm tra quyền: Chỉ VT-04 mới được ghi sự kiện thu mua
