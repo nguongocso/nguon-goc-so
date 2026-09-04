@@ -42,8 +42,11 @@ FROM eclipse-temurin:21-jre
 
 # Re-declared for this stage (value injected by CI --build-arg GIT_COMMIT).
 ARG GIT_COMMIT=local
-# TC-04: OCI label — Docker image → Git commit traceability.
+# TC-04: OCI labels — Docker image → Git commit traceability.
+# CI passes --build-arg RELEASE_VERSION; default for local builds.
+ARG RELEASE_VERSION=1.0.0
 LABEL org.opencontainers.image.revision=${GIT_COMMIT}
+LABEL org.opencontainers.image.version=${RELEASE_VERSION}
 
 WORKDIR /app
 

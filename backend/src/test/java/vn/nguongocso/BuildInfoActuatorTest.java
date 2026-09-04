@@ -22,7 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *
  * Xác minh rằng bản build luôn mang thông tin truy vết:
  *
- *     Version  → build.version  (pom.xml)
+ *     Version  → build.version  (pom.xml, release version 1.0.0)
  *     Commit   → build.git.commit (CI truyền -Dgit.commit=&lt;github.sha&gt;)
  *     Build Time → build.time
  *
@@ -51,7 +51,7 @@ class BuildInfoActuatorTest {
     @DisplayName("TC-04: build-info sinh ra với version, build time và git commit")
     void buildInfoShouldContainVersionBuildTimeAndCommit() {
         assertThat(buildProperties).isNotNull();
-        assertThat(buildProperties.getVersion()).isEqualTo("01");
+        assertThat(buildProperties.getVersion()).isEqualTo("1.0.0");
         assertThat(buildProperties.getTime()).isNotNull();
         // CI truyền -Dgit.commit=<github.sha>; build local mặc định "local".
         assertThat(String.valueOf(buildProperties.get("git.commit"))).isNotBlank();
@@ -65,7 +65,7 @@ class BuildInfoActuatorTest {
 
         mockMvc.perform(get("/actuator/info"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.build.version").value("01"))
+                .andExpect(jsonPath("$.build.version").value("1.0.0"))
                 .andExpect(jsonPath("$.build.time").isNotEmpty())
                 // Commit phải xuất hiện trong response (bất kể shape lồng nhau).
                 .andExpect(content().string(containsString(commit)));

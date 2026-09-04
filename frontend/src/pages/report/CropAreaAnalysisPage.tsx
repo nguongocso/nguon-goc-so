@@ -9,12 +9,8 @@ import { SeasonAnalysisTable } from "@/components/report/SeasonAnalysisTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { MapPinOff, RefreshCw, SearchX } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
-import {
-  NO_ASSIGNED_AREA_HINT,
-  NO_ASSIGNED_AREA_MESSAGE,
-} from "@/constants/reportMessages";
 
 export default function CropAreaAnalysisPage() {
   const { user } = useAuth();
@@ -88,23 +84,8 @@ export default function CropAreaAnalysisPage() {
         <div className="flex justify-center py-12">Đang tải...</div>
       ) : data && data.byArea.length === 0 && data.bySeason.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center py-12 text-center">
-            {data.message === NO_ASSIGNED_AREA_MESSAGE ? (
-              <>
-                <MapPinOff className="mb-3 h-10 w-10 text-muted-foreground" />
-                <p className="font-medium">{NO_ASSIGNED_AREA_MESSAGE}</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {NO_ASSIGNED_AREA_HINT}
-                </p>
-              </>
-            ) : (
-              <>
-                <SearchX className="mb-3 h-10 w-10 text-muted-foreground" />
-                <p className="font-medium">
-                  {data.message || "Chưa có dữ liệu phân tích cho bộ lọc hiện tại."}
-                </p>
-              </>
-            )}
+          <CardContent className="flex items-center justify-center py-12 text-center text-muted-foreground">
+            <p>{data.message || "Chưa có dữ liệu phân tích cho bộ lọc hiện tại."}</p>
           </CardContent>
         </Card>
       ) : data ? (

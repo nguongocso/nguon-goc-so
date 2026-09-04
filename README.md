@@ -451,21 +451,43 @@ npm run build
 ### Branch Strategy
 
 ```text
-main          → Production
-develop       → Integration
+main          → Production (deploy từ đây)
+develop       → Integration / Staging
 feature/*     → New features
 bugfix/*      → Bug fixes
 release/*     → Release preparation
 hotfix/*      → Emergency fixes
 ```
 
-### Git Workflow
+### Git Workflow — Development → Staging → Production
 
-1. **Checkout develop:** `git checkout develop`
-2. **Create feature branch:** `git checkout -b feature/NCL-XX-short-desc`
-3. **Commit changes:** `git commit -m "feat: add something"`
-4. **Push:** `git push origin feature/NCL-XX-short-desc`
-5. **Create Pull Request** to `develop`
+```text
+feature/*
+    ↓
+Pull Request → develop
+    ↓
+CI: backend-test + frontend-build
+    ↓
+Build & Push Docker images (commit-SHA tag, immutable)
+    ↓
+Deploy → staging (namespace: staging)
+    ↓
+Staging verification (TC-01, TC-03, TC-04)
+    ↓
+Release Candidate (develop → main via Pull Request)
+    ↓
+main
+    ↓
+Git tag v1.0.0 (annotated tag, trỏ đến release commit)
+    ↓
+CI: backend-test + frontend-build
+    ↓
+Build & Push Docker images (commit-SHA tag, immutable)
+    ↓
+Deploy → production (namespace: production)
+    ↓
+rollout status + collect evidence + validate traceability
+```
 
 ### Commit Convention
 
@@ -504,8 +526,8 @@ MIT License – xem file [LICENSE](LICENSE) để biết chi tiết.
 - **Trần Phương Đoàn** – *Backend Developer / Team Lead* – [doantran28092005@gmail.com](mailto:a@example.com)
 - **La Văn Hiến** – *Backend Developer* – [hienvla05@gmail.com](mailto:b@example.com)
 - **Triệu Văn Đại** – *Backend Developer* – [trieuvandai12035@gmail.com](mailto:b@example.com)
-- **La Văn Hiến** – *Frontend Developer* – [dtc235200572@ictu.edu.vn](mailto:b@example.com)
-- **La Văn Hiến** – *Frontend Developer* – [dtc235200874@ictu.edu.vn](mailto:b@example.com)
+- **Trần Văn Nhu** – *Frontend Developer* – [dtc235200572@ictu.edu.vn](mailto:b@example.com)
+- **Lê Xuân Dương** – *Frontend Developer* – [dtc235200874@ictu.edu.vn](mailto:b@example.com)
 
 ---
 
