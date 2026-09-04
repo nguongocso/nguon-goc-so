@@ -1,53 +1,44 @@
 import React, { type ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
+  AlertTriangle,
   Award,
-  BarChart,
-  BarChart3,
   Bell,
   BookOpen,
-  Box,
-  Bug,
   Building2,
-  ChevronDown,
-  ClipboardList,
-  Clock,
-  Database,
+  CalendarCheck,
   FileText,
-  FlaskConical,
-  GitCompare,
   Hash,
   History,
-  Key,
-  KeyRound,
+  FlaskConical,
   Layers,
   LayoutDashboard,
   Lock,
   LogOut,
-  MapPin,
   MapPinned,
-  Megaphone,
   MessageSquare,
-  Microscope,
-  Monitor,
   Package,
   PackageCheck,
-  PieChart,
   ScanLine,
-  Settings,
-  ShieldAlert,
-  ShoppingCart,
-  Thermometer,
-  TrendingUp,
+  ShieldCheck,
   Truck,
   User,
   UserCheck,
   Users,
-  UserX,
-  Verified,
+  Thermometer,
   Warehouse,
-  WifiOff,
   X,
+  TrendingUp,
+  Activity,
+  GitCompare,
+  PieChart,
+  Database,
+  ChevronDown,
+  Settings,
+  ShoppingCart,
+  Key,
+  WifiOff,
+  MapPin,
 } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import {
@@ -111,7 +102,7 @@ interface SidebarProps {
 
 const DASHBOARD_ITEM: MenuItem = {
   icon: <LayoutDashboard className="h-5 w-5" />,
-  label: "Tổng quan",
+  label: "Dashboard",
   href: "/dashboard",
   allowedRoles: ROLE_ACCESS.dashboard,
 };
@@ -137,7 +128,7 @@ const MENU_GROUPS: MenuGroup[] = [
         activePaths: ["/members", "/invitations/create"],
       },
       {
-        icon: <KeyRound className="h-5 w-5" />,
+        icon: <ShieldCheck className="h-5 w-5" />,
         label: "Cấu hình phân quyền",
         href: "/permissions/config",
         allowedRoles: ROLE_ACCESS.rolePermissionConfig,
@@ -156,7 +147,13 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ROLE_ACCESS.inspectionCriteriaManagement,
       },
       {
-        icon: <Microscope className="h-5 w-5" />,
+        icon: <CalendarCheck className="h-5 w-5" />,
+        label: "Mốc canh tác",
+        href: "/admin/cultivation-milestones",
+        allowedRoles: ROLE_ACCESS.cultivationMilestoneManagement,
+      },
+      {
+        icon: <ShieldCheck className="h-5 w-5" />,
         label: "Đơn vị kiểm nghiệm",
         href: "/admin/testing-units",
         allowedRoles: ROLE_ACCESS.testingUnitScopeManagement,
@@ -216,7 +213,7 @@ const MENU_GROUPS: MenuGroup[] = [
   {
     id: "operations",
     label: "Vận hành sản xuất",
-    icon: <Box className="h-5 w-5" />,
+    icon: <Package className="h-5 w-5" />,
     items: [
       {
         icon: <MapPinned className="h-5 w-5" />,
@@ -256,13 +253,13 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ROLE_ACCESS.storageCondition,
       },
       {
-        icon: <ShieldAlert className="h-5 w-5" />,
+        icon: <AlertTriangle className="h-5 w-5" />,
         label: "Cảnh báo tem bất thường",
         href: "/alerts/scan-anomaly",
         allowedRoles: ROLE_ACCESS.scanAnomalyAlerts,
       },
       {
-        icon: <Bug className="h-5 w-5" />,
+        icon: <AlertTriangle className="h-5 w-5" />,
         label: "Nhật ký lỗi sự kiện",
         href: "/failed-event-logs",
         allowedRoles: ["VT-02", "VT-03"] as const,
@@ -274,14 +271,14 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: AUTHENTICATED_ROLE_CODES,
       },
       {
-        icon: <Megaphone className="h-5 w-5" />,
+        icon: <AlertTriangle className="h-5 w-5" />,
         label: "Tạo yêu cầu thu hồi",
         href: "/recall-requests/create",
         allowedRoles: ROLE_ACCESS.recallRequestCreate,
         activePaths: ["/recall-requests/create"],
       },
       {
-        icon: <ClipboardList className="h-5 w-5" />,
+        icon: <AlertTriangle className="h-5 w-5" />,
         label: "Danh sách yêu cầu thu hồi",
         href: "/recall-requests",
         allowedRoles: ROLE_ACCESS.recallRequestManage,
@@ -294,7 +291,7 @@ const MENU_GROUPS: MenuGroup[] = [
   {
     id: "reports",
     label: "Thống kê & Báo cáo",
-    icon: <BarChart className="h-5 w-5" />,
+    icon: <PieChart className="h-5 w-5" />,
     items: [
       {
         icon: <PieChart className="h-5 w-5" />,
@@ -303,7 +300,7 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ["VT-01", "VT-02"] as const,
       },
       {
-        icon: <BarChart3 className="h-5 w-5" />,
+        icon: <Activity className="h-5 w-5" />,
         label: "Phân tích vùng trồng",
         href: "/reports/crop-area-analysis",
         allowedRoles: ["VT-01", "VT-05"] as const,
@@ -352,7 +349,7 @@ const MENU_GROUPS: MenuGroup[] = [
     icon: <Settings className="h-5 w-5" />,
     items: [
       {
-        icon: <Verified className="h-5 w-5" />,
+        icon: <ShieldCheck className="h-5 w-5" />,
         label: "Kiểm chứng dòng sự kiện",
         href: "/event-chain-verification",
         allowedRoles: ROLE_ACCESS.eventChainVerification,
@@ -364,13 +361,13 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ["VT-02"] as const,
       },
       {
-        icon: <Clock className="h-5 w-5" />,
+        icon: <ShieldCheck className="h-5 w-5" />,
         label: "Lịch sử đăng nhập",
         href: "/login-history",
         allowedRoles: AUTHENTICATED_ROLE_CODES,
       },
       {
-        icon: <UserX className="h-5 w-5" />,
+        icon: <AlertTriangle className="h-5 w-5" />,
         label: "Theo dõi đăng nhập bất thường",
         href: "/login-anomalies",
         allowedRoles: ["VT-01"] as const,
@@ -382,7 +379,7 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ["VT-01"] as const,
       },
       {
-        icon: <Monitor className="h-5 w-5" />,
+        icon: <Activity className="h-5 w-5" />,
         label: "Giám sát hệ thống",
         href: "/admin/system-monitoring",
         allowedRoles: ["VT-01"] as const,
