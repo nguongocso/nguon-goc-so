@@ -38,7 +38,7 @@ const CertificationListPage = () => {
   const canCreate = usePermission(['VT-02']);
 
   useSetBreadcrumb([
-    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Tổng quan', href: '/dashboard' },
     { label: 'Chứng nhận' },
   ]);
 
