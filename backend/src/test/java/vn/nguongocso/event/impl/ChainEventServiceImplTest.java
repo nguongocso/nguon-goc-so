@@ -38,6 +38,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.event.dto.request.RecordHarvestEventRequest;
 import vn.nguongocso.event.dto.request.RecordPackagingEventRequest;
 import vn.nguongocso.event.dto.request.RecordTransportEventRequest;
@@ -199,6 +200,7 @@ class ChainEventServiceImplTest {
 
         verify(productionLotRepository, times(1)).save(productionLot);
         verify(chainEventRepository, times(1)).save(any(ChainEvent.class));
+        verify(eventPublisher).publishEvent(any(ActivityLogEvent.class));
     }
 
     @Test
@@ -530,6 +532,7 @@ class ChainEventServiceImplTest {
         assertThat(response.getEventType()).isEqualTo(ChainEventType.PACKAGING);
         assertThat(productionLot.getStatus()).isEqualTo(ProductionLotStatus.PACKAGED);
         verify(productionLotRepository, times(1)).save(productionLot);
+        verify(eventPublisher).publishEvent(any(ActivityLogEvent.class));
     }
 
     @Test
@@ -594,6 +597,7 @@ class ChainEventServiceImplTest {
 
         verify(chainEventRepository, times(1)).save(any(ChainEvent.class));
         verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
+        verify(eventPublisher).publishEvent(any(ActivityLogEvent.class));
     }
     
     @Test
@@ -724,6 +728,7 @@ class ChainEventServiceImplTest {
         assertThat(productionLot.getActualQuantity()).isEqualTo(900.0);
         verify(productionLotRepository, times(1)).save(productionLot);
         verify(chainEventRepository, times(1)).save(any(ChainEvent.class));
+        verify(eventPublisher).publishEvent(any(ActivityLogEvent.class));
     }
 
     @Test

@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -95,6 +96,7 @@ public class ProductionLotServiceTest {
         // Then
         assertThat(response.getStatus()).isEqualTo(ProductionLotStatus.APPROVED.name());
         verify(productionLotRepository).save(lot);
+        verify(eventPublisher).publishEvent(any(ActivityLogEvent.class));
         assertThat(lot.getApprovedBy()).isEqualTo(approver);
         assertThat(lot.getApprovalNotes()).isNull();
     }
