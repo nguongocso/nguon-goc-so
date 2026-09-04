@@ -1,5 +1,6 @@
 package vn.nguongocso.certification.service;
 
+import vn.nguongocso.certification.entity.CultivationMilestone;
 import vn.nguongocso.farm.entity.ProductionLot;
 
 import java.util.List;
@@ -19,4 +20,14 @@ public interface MilestoneValidationService {
      * @return list of missing mandatory milestone names (empty = all satisfied)
      */
     List<String> validateMilestoneCompletion(ProductionLot lot);
+
+    /**
+     * Validate that all mandatory milestones are satisfied by farm logs,
+     * returning the full milestone entities for the missing ones so callers
+     * can expose structured details (name + activity type).
+     *
+     * @param lot the production lot to validate
+     * @return list of missing mandatory milestones (empty = all satisfied)
+     */
+    List<CultivationMilestone> findMissingMilestones(ProductionLot lot);
 }

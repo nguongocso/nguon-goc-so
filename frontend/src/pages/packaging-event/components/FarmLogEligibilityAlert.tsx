@@ -1,4 +1,3 @@
-import type { FarmActivityType } from "@/types/farmLog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -21,22 +20,13 @@ export type FarmLogEligibilityStatus =
 interface FarmLogEligibilityAlertProps {
   status: FarmLogEligibilityStatus;
   productionLotName?: string;
-  missingActivities?: FarmActivityType[];
+  /** Tên các mốc canh tác bắt buộc còn thiếu (từ backend). */
+  missingMilestones?: string[];
   message?: string;
   actionLabel?: string;
   onAction?: () => void;
   onRetry?: () => void;
 }
-
-const activityLabels: Record<FarmActivityType, string> = {
-  PLANTING: "Gieo trồng",
-  WATERING: "Tưới nước",
-  FERTILIZING: "Bón phân",
-  PESTICIDE: "Phun thuốc bảo vệ thực vật",
-  WEEDING: "Làm cỏ",
-  HARVESTING: "Thu hoạch",
-  OTHER: "Hoạt động khác",
-};
 
 const statusStyles: Record<
   FarmLogEligibilityStatus,
@@ -81,7 +71,7 @@ const statusStyles: Record<
 export function FarmLogEligibilityAlert({
   status,
   productionLotName,
-  missingActivities = [],
+  missingMilestones = [],
   message,
   actionLabel,
   onAction,
@@ -92,39 +82,39 @@ export function FarmLogEligibilityAlert({
   const content = {
     unselected: {
       icon: ClipboardCheck,
-      title: "Chọn lô để kiểm tra nhật ký",
+      title: "Chọn lô để kiểm tra mốc canh tác",
       description:
-        "Hệ thống sẽ kiểm tra hồ sơ canh tác trước khi cho phép ghi sự kiện đóng gói.",
+        "Hệ thống sẽ kiểm tra mốc canh tác bắt buộc trước khi cho phép ghi sự kiện đóng gói.",
     },
     idle: {
       icon: ClipboardCheck,
-      title: "Sẵn sàng kiểm tra nhật ký",
+      title: "Sẵn sàng kiểm tra mốc canh tác",
       description: productionLotName
-        ? `Nhật ký của lô “${productionLotName}” sẽ được kiểm tra khi bạn ghi sự kiện đóng gói.`
-        : "Nhật ký của lô sẽ được kiểm tra khi bạn ghi sự kiện đóng gói.",
+        ? `Mốc canh tác của lô “${productionLotName}” sẽ được kiểm tra khi bạn ghi sự kiện đóng gói.`
+        : "Mốc canh tác của lô sẽ được kiểm tra khi bạn ghi sự kiện đóng gói.",
     },
     checking: {
       icon: LoaderCircle,
-      title: "Đang kiểm tra nhật ký canh tác",
+      title: "Đang kiểm tra mốc canh tác",
       description:
-        "Vui lòng chờ trong khi hệ thống đối chiếu các hoạt động bắt buộc.",
+        "Vui lòng chờ trong khi hệ thống đối chiếu các mốc canh tác bắt buộc.",
     },
     eligible: {
       icon: CheckCircle2,
-      title: "Nhật ký canh tác hợp lệ",
+      title: "Đủ điều kiện đóng gói",
       description:
-        message ?? "Lô sản xuất đủ điều kiện để ghi sự kiện đóng gói.",
+        message ?? "Lô sản xuất đã đáp ứng đủ mốc canh tác bắt buộc.",
     },
     ineligible: {
       icon: TriangleAlert,
       title: "Chưa đủ điều kiện đóng gói",
       description:
         message ??
-        "Lô sản xuất còn thiếu nhật ký bắt buộc. Vui lòng bổ sung trước khi tiếp tục.",
+        "Lô sản xuất còn thiếu mốc canh tác bắt buộc. Vui lòng bổ sung trước khi tiếp tục.",
     },
     error: {
       icon: XCircle,
-      title: "Không thể kiểm tra nhật ký",
+      title: "Không thể kiểm tra mốc canh tác",
       description:
         message ?? "Đã xảy ra lỗi khi kiểm tra. Vui lòng thử lại.",
     },
@@ -166,18 +156,18 @@ export function FarmLogEligibilityAlert({
             {content.description}
           </p>
 
-          {status === "ineligible" && missingActivities.length > 0 && (
+          {status === "ineligible" && missingMilestones.length > 0 && (
             <div className="mt-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">
-                Nhật ký còn thiếu
+                Mốc canh tác còn thiếu
               </p>
               <ul className="mt-2 flex flex-wrap gap-2">
-                {missingActivities.map((activity) => (
+                {missingMilestones.map((milestoneName) => (
                   <li
                     className="rounded-full border border-amber-200 bg-white px-3 py-1 text-xs font-semibold text-amber-800"
-                    key={activity}
+                    key={milestoneName}
                   >
-                    {activityLabels[activity]}
+                    {milestoneName}
                   </li>
                 ))}
               </ul>

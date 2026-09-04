@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.CultivationMilestoneRequest;
 import vn.nguongocso.certification.dto.response.CultivationMilestoneResponse;
+import vn.nguongocso.certification.dto.response.MilestoneEligibilityResponse;
 
 import java.util.UUID;
 
@@ -25,4 +26,15 @@ public interface CultivationMilestoneService {
 
     CultivationMilestoneResponse updateMilestone(
             Long id, CultivationMilestoneRequest request, CustomUserDetails currentUser);
+
+    /**
+     * NCL-09-CN-011: Kiểm tra lô sản xuất đã đủ mốc canh tác bắt buộc (theo
+     * loại nông sản + tiêu chuẩn của lô) để ghi sự kiện đóng gói chưa.
+     *
+     * @param productionLotId ID lô sản xuất
+     * @param currentUser     người dùng hiện tại (kiểm tra ranh giới tổ chức)
+     * @return kết quả kiểm tra kèm danh sách mốc còn thiếu
+     */
+    MilestoneEligibilityResponse getPackagingEligibility(
+            UUID productionLotId, CustomUserDetails currentUser);
 }

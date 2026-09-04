@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { getAllFarmLogsByProductionLot } from "@/api/farmLogApi";
+import { getPackagingEligibility } from "@/api/cultivationMilestoneApi";
 import { getProductionLotById } from "@/api/productionLotApi";
 import { getLocalDateString } from "@/utils/dateTime";
 import {
@@ -20,7 +20,6 @@ import {
   type RecordPackagingFormValues,
 } from "@/utils/validators/packagingEventSchema";
 import type { ProductionLot } from "@/types/productionLot";
-import type { FarmActivityType } from "@/types/farmLog";
 import { recordPackagingEvent } from "@/api/packagingApi";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -37,51 +36,19 @@ import { useLotValidation } from "@/hooks/useLotValidation";
 import { useAutoGeolocation } from "@/hooks/useAutoGeolocation";
 import { LotValidationStatus } from "@/components/event-validation/LotValidationStatus";
 
-const farmActivityTypes: FarmActivityType[] = [
-  "PLANTING",
-  "WATERING",
-  "FERTILIZING",
-  "PESTICIDE",
-  "WEEDING",
-  "HARVESTING",
-  "OTHER",
-];
-
-const requiredFarmActivities: FarmActivityType[] = [
-  "PLANTING",
-  "FERTILIZING",
-  "PESTICIDE",
-  "HARVESTING",
-];
-
-interface PackagingErrorPayload {
-  message?: string;
-  data?: {
-    missingActivities?: string[];
-  };
-}
-
 const getPackagingError = (error: unknown) => {
-  if (!isAxiosError<PackagingErrorPayload>(error)) {
+  if (!isAxiosError<{ message?: string }>(error)) {
     return {
       message: "Có lỗi xảy ra khi ghi sự kiện đóng gói",
-      missingActivities: [] as FarmActivityType[],
       isNetworkError: true,
     };
   }
 
-  const payload = error.response?.data;
-  const message = payload?.message ?? "Có lỗi xảy ra khi ghi sự kiện đóng gói";
-  const fromResponse = payload?.data?.missingActivities ?? [];
-  const normalizedMessage = message.toUpperCase();
-  const missingActivities = farmActivityTypes.filter(
-    (activity) =>
-      fromResponse.includes(activity) || normalizedMessage.includes(activity),
-  );
+  const message =
+    error.response?.data?.message ?? "Có lỗi xảy ra khi ghi sự kiện đóng gói";
 
   return {
     message,
-    missingActivities,
     isNetworkError: !error.response,
   };
 };
@@ -103,9 +70,7 @@ export function CreatePackagingForm() {
   const [eligibilityStatus, setEligibilityStatus] =
     useState<FarmLogEligibilityStatus>("unselected");
   const [eligibilityMessage, setEligibilityMessage] = useState("");
-  const [missingActivities, setMissingActivities] = useState<
-    FarmActivityType[]
-  >([]);
+  const [missingMilestones, setMissingMilestones] = useState<string[]>([]);
   const eligibilityRequestRef = useRef(0);
 
   const { validation, loading } = useLotValidation(sourceLotId, "PACKAGING");
@@ -192,34 +157,33 @@ export function CreatePackagingForm() {
     },
   });
 
+  // NCL-09-CN-011: điều kiện đóng gói do backend quyết định theo mốc canh tác
+  // bắt buộc (loại nông sản + tiêu chuẩn của lô) — frontend chỉ hiển thị kết quả.
   const checkFarmLogEligibility = async (productionLotId: string) => {
     const requestId = ++eligibilityRequestRef.current;
 
     setEligibilityStatus("checking");
     setEligibilityMessage("");
-    setMissingActivities([]);
+    setMissingMilestones([]);
 
     try {
-      const logs = await getAllFarmLogsByProductionLot(productionLotId);
+      const eligibility = await getPackagingEligibility(productionLotId);
       if (requestId !== eligibilityRequestRef.current) return;
 
-      const recordedActivities = new Set(logs.map((log) => log.activityType));
-      const missing = requiredFarmActivities.filter(
-        (activity) => !recordedActivities.has(activity),
-      );
-
-      if (missing.length > 0) {
+      if (!eligibility.eligible) {
         setEligibilityStatus("ineligible");
         setEligibilityMessage(
-          "Lô sản xuất còn thiếu nhật ký bắt buộc. Vui lòng bổ sung trước khi đóng gói.",
+          "Lô sản xuất chưa đủ mốc canh tác bắt buộc. Vui lòng bổ sung nhật ký trước khi đóng gói.",
         );
-        setMissingActivities(missing);
+        setMissingMilestones(
+          eligibility.missingMilestones.map((milestone) => milestone.name),
+        );
         return;
       }
 
       setEligibilityStatus("eligible");
       setEligibilityMessage(
-        "Lô đã có đủ nhật ký gieo trồng, bón phân, phun thuốc và thu hoạch.",
+        "Lô đã đáp ứng đầy đủ mốc canh tác bắt buộc theo tiêu chuẩn và loại nông sản.",
       );
     } catch (error: unknown) {
       if (requestId !== eligibilityRequestRef.current) return;
@@ -228,7 +192,7 @@ export function CreatePackagingForm() {
       setEligibilityStatus("error");
       setEligibilityMessage(
         details.isNetworkError
-          ? "Không thể kết nối để kiểm tra nhật ký. Vui lòng thử lại."
+          ? "Không thể kết nối để kiểm tra mốc canh tác. Vui lòng thử lại."
           : details.message,
       );
     }
@@ -236,7 +200,7 @@ export function CreatePackagingForm() {
 
   const onSubmit = async (values: RecordPackagingFormValues) => {
     if (eligibilityStatus !== "eligible") {
-      toast.error("Cần kiểm tra đủ nhật ký trước khi đóng gói");
+      toast.error("Cần kiểm tra đủ mốc canh tác trước khi đóng gói");
       await checkFarmLogEligibility(values.productionLotId);
       return;
     }
@@ -254,20 +218,27 @@ export function CreatePackagingForm() {
       navigate("/production-lots");
     } catch (error: unknown) {
       const details = getPackagingError(error);
-      const missingLogError =
-        details.missingActivities.length > 0 ||
-        /thiếu.*nhật ký|nhật ký.*(?:chưa|không).*đầy đủ|không đủ điều kiện đóng gói/i.test(
-          details.message,
-        );
+      // Backend chặn vì thiếu mốc canh tác bắt buộc (race: cấu hình mốc hoặc
+      // nhật ký đổi sau lần kiểm tra gần nhất) -> làm mới danh sách từ backend.
+      const milestoneError = /chưa đủ mốc canh tác/i.test(details.message);
 
-      if (missingLogError) {
+      if (milestoneError) {
         setEligibilityStatus("ineligible");
         setEligibilityMessage(details.message);
-        setMissingActivities(details.missingActivities);
+        try {
+          const eligibility = await getPackagingEligibility(
+            values.productionLotId,
+          );
+          setMissingMilestones(
+            eligibility.missingMilestones.map((milestone) => milestone.name),
+          );
+        } catch {
+          setMissingMilestones([]);
+        }
       } else if (details.isNetworkError) {
         setEligibilityStatus("error");
         setEligibilityMessage(
-          "Không thể kết nối để kiểm tra nhật ký. Vui lòng thử lại.",
+          "Không thể kết nối để ghi sự kiện đóng gói. Vui lòng thử lại.",
         );
       } else {
         setEligibilityStatus("error");
@@ -383,7 +354,7 @@ export function CreatePackagingForm() {
             <FarmLogEligibilityAlert
               status={eligibilityStatus}
               productionLotName={selectedLot.name}
-              missingActivities={missingActivities}
+              missingMilestones={missingMilestones}
               message={eligibilityMessage || undefined}
               actionLabel={
                 user?.roleCode === "VT-02"
