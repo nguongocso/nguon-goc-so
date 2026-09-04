@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   AlertTriangle,
+  Ban,
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
@@ -19,7 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { getProductionLotById } from "@/api/productionLotApi";
+import { cancelProductionLot, getProductionLotById } from "@/api/productionLotApi";
 import { ShipmentList } from "@/pages/public/shipment/ShipmentList";
 import { FarmLogList } from "@/components/farm-log/FarmLogList";
 import { usePermission } from "@/hooks/usePermission";
@@ -27,7 +28,14 @@ import { ROLE_ACCESS } from "@/config/roleAccess";
 import { HarvestForm } from "@/components/trace-event/HarvestForm";
 import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 import { HelpButton } from "@/components/help/HelpButton";
-import type { ProductionLot } from "@/types/productionLot";
+import type {
+  CancelProductionLotRequest,
+  ProductionLot,
+} from "@/types/productionLot";
+import {
+  CANCELLABLE_PRODUCTION_LOT_STATUSES,
+  CancelProductionLotDialog,
+} from "@/components/production-lot/CancelProductionLotDialog";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -106,6 +114,10 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
   },
   RECALLED: {
     label: "Đã thu hồi",
+    className: "bg-red-100 text-red-800 border-red-300",
+  },
+  CANCELLED: {
+    label: "Đã hủy",
     className: "bg-red-100 text-red-800 border-red-300",
   },
   COMPLETED: {
@@ -311,9 +323,11 @@ export const ProductionLotDetailPage = () => {
     ROLE_ACCESS.preprocessingEventCreate,
   );
   const canInspect = usePermission(ROLE_ACCESS.inspectionRequest);
+  const canCancelLot = usePermission(ROLE_ACCESS.productionLotCancel);
   const [lot, setLot] = useState<ProductionLot | null>(null);
   const [loading, setLoading] = useState(true);
   const [showHarvestForm, setShowHarvestForm] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [certifications, setCertifications] = useState<
     ProductionLotCertification[]
   >([]);
@@ -409,6 +423,25 @@ export const ProductionLotDetailPage = () => {
       toast.error("Không thể tải thông tin lô sản xuất");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // NCL-02-CN-006: hủy lô sản xuất kèm lý do + diễn giải
+  const handleCancelProductionLot = async (
+    _id: string,
+    payload: CancelProductionLotRequest,
+  ) => {
+    if (!lot) return;
+    try {
+      await cancelProductionLot(lot.id, payload);
+      toast.success("Đã hủy lô sản xuất.");
+      setCancelDialogOpen(false);
+      await loadLot();
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message || "Không thể hủy lô sản xuất.";
+      toast.error(message);
+      throw error;
     }
   };
 
@@ -878,10 +911,50 @@ export const ProductionLotDetailPage = () => {
                 Ghi đóng gói
               </Button>
             )}
+            {canCancelLot &&
+              CANCELLABLE_PRODUCTION_LOT_STATUSES.includes(lot.status) && (
+                <Button
+                  onClick={() => setCancelDialogOpen(true)}
+                  variant="delete"
+                >
+                  <Ban className="h-4 w-4 mr-1" />
+                  Hủy lô
+                </Button>
+              )}
             {getStatusBadge(lot.status)}
           </div>
         </CardHeader>
         <CardContent>
+          {lot.status === "CANCELLED" && (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4">
+              <div className="flex items-center gap-2">
+                <Ban className="h-5 w-5 text-red-600" />
+                <span className="font-semibold text-red-800">
+                  Lô sản xuất đã bị hủy
+                </span>
+              </div>
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-red-800">
+                <p>
+                  <span className="font-medium">Lý do hủy:</span>{" "}
+                  {lot.cancellationReason ?? "—"}
+                </p>
+                <p>
+                  <span className="font-medium">Người hủy:</span>{" "}
+                  {lot.cancelledByName ?? "—"}
+                </p>
+                <p className="sm:col-span-2">
+                  <span className="font-medium">Diễn giải:</span>{" "}
+                  {lot.cancellationNote ?? "—"}
+                </p>
+                {lot.cancelledAt && (
+                  <p className="sm:col-span-2">
+                    <span className="font-medium">Thời gian hủy:</span>{" "}
+                    {new Date(lot.cancelledAt).toLocaleString("vi-VN")}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Ô thông tin */}
             <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
@@ -1028,8 +1101,8 @@ export const ProductionLotDetailPage = () => {
           <FarmLogList
             productionLotId={lot.id}
             productionLotName={lot.name}
-            canCreate={canCreateFarmLog}
-            enableCorrection
+            canCreate={canCreateFarmLog && lot.status !== "CANCELLED"}
+            enableCorrection={lot.status !== "CANCELLED"}
           />
         </TabsContent>
 
@@ -1815,6 +1888,13 @@ export const ProductionLotDetailPage = () => {
         onClose={() => setShowInspectionHistoryModal(false)}
         lotId={id!}
         canInspect={canInspect}
+      />
+
+      <CancelProductionLotDialog
+        open={cancelDialogOpen}
+        lot={lot}
+        onClose={() => setCancelDialogOpen(false)}
+        onCancel={handleCancelProductionLot}
       />
     </div>
   );

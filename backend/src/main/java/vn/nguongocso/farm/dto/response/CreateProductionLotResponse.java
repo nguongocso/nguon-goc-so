@@ -47,6 +47,14 @@ public class CreateProductionLotResponse {
 
         private String approvedByName;
 
+        private String cancellationReason;
+
+        private String cancellationNote;
+
+        private String cancelledByName;
+
+        private LocalDateTime cancelledAt;
+
         private LocalDateTime createdAt;
 
         private LocalDateTime updatedAt;
