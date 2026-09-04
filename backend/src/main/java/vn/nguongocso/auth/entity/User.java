@@ -48,6 +48,9 @@ public class User {
     @Column
     private String email;
 
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserStatus status;

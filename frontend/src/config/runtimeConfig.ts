@@ -65,6 +65,23 @@ export function getAssetBaseUrl(): string {
   return apiBase.replace(/\/api(?:\/v1)?\/?$/, "").replace(/\/$/, "");
 }
 
+/** Resolve a full URL for an asset path (e.g. /uploads/avatar/xxx.png). */
+export function getAssetUrl(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("data:") ||
+    url.startsWith("blob:")
+  ) {
+    return url;
+  }
+  const assetBase = getAssetBaseUrl();
+  if (!assetBase) return url;
+  const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+  return `${assetBase}${cleanUrl}`;
+}
+
 /** Ensure the value ends with /api/v1. */
 function normalizeApiBaseUrl(raw: string): string {
   const value = raw.trim();

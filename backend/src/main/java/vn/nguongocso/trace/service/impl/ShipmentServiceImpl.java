@@ -21,7 +21,6 @@ import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.PageResponse;
-import vn.nguongocso.common.annotation.Auditable;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.ProductionLot;
@@ -82,7 +81,6 @@ public class ShipmentServiceImpl implements ShipmentService {
      * @throws BusinessException nếu không đủ điều kiện tạo lô hàng
      */
     @Override
-    @Auditable(action = "CREATE", entityType = "SHIPMENT", description = "'Tạo mới lô hàng cho lô sản xuất ID: ' + #request.productionLotId + ', Số lượng: ' + #request.totalQuantity")
     public ShipmentResponse createShipment(CreateShipmentRequest request) {
 
         CustomUserDetails currentUser = getCurrentUser();
@@ -143,7 +141,6 @@ public class ShipmentServiceImpl implements ShipmentService {
      * @throws BusinessException nếu không đủ điều kiện kích hoạt tem
      */
     @Override
-    @Auditable(action = "ACTIVATE", entityType = "SHIPMENT", description = "'Kích hoạt tem cho lô hàng ID: ' + #shipmentId")
     public ShipmentResponse activateShipmentStamps(UUID shipmentId) {
         CustomUserDetails currentUser = getCurrentUser();
 

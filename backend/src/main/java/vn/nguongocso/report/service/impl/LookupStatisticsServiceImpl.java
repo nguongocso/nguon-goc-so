@@ -118,18 +118,25 @@ public class LookupStatisticsServiceImpl implements LookupStatisticsService {
         Page<TraceCodeScanLog> rawLogs = traceCodeScanLogRepository.findAbnormalScans(targetOrgId, productionLotId,
                 startDateTime, endDateTime, pageable);
 
-        return rawLogs.map(log -> AbnormalScanResponse.builder()
-                .scanId(log.getId())
-                .codeValue(log.getTraceCode().getCodeValue())
-                .lotName(log.getTraceCode().getShipment().getProductionLot().getName())
-                .scannedAt(log.getScannedAt())
-                .ipAddress(log.getIpAddress())
-                .userAgent(log.getUserAgent())
-                .location(log.getLocation())
-                .latitude(log.getLatitude() != null ? log.getLatitude().doubleValue() : null)
-                .longitude(log.getLongitude() != null ? log.getLongitude().doubleValue() : null)
-                .reason(log.getAbnormalReason())
-                .build());
+        return rawLogs.map(log -> {
+            String codeVal = log.getTraceCode() != null ? log.getTraceCode().getCodeValue() : "";
+            String lotName = (log.getTraceCode() != null && log.getTraceCode().getShipment() != null && log.getTraceCode().getShipment().getProductionLot() != null)
+                    ? log.getTraceCode().getShipment().getProductionLot().getName()
+                    : "";
+
+            return AbnormalScanResponse.builder()
+                    .scanId(log.getId())
+                    .codeValue(codeVal)
+                    .lotName(lotName)
+                    .scannedAt(log.getScannedAt())
+                    .ipAddress(log.getIpAddress())
+                    .userAgent(log.getUserAgent())
+                    .location(log.getLocation())
+                    .latitude(log.getLatitude() != null ? log.getLatitude().doubleValue() : null)
+                    .longitude(log.getLongitude() != null ? log.getLongitude().doubleValue() : null)
+                    .reason(log.getAbnormalReason())
+                    .build();
+        });
     }
 
     private UUID validateAndGetOrganizationId(UUID organizationId, CustomUserDetails currentUser) {

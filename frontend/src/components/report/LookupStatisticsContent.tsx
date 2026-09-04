@@ -67,8 +67,13 @@ export default function LookupStatisticsContent() {
         page,
         size: 10,
       });
-      setAbnormalScans(data.content);
-      setTotalPages(data.pageable.totalPages);
+      setAbnormalScans(data?.content || []);
+      const total =
+        data?.page?.totalPages ??
+        data?.totalPages ??
+        data?.pageable?.totalPages ??
+        1;
+      setTotalPages(total > 0 ? total : 1);
     } catch (error: any) {
       const msg = error.response?.data?.message || 'Không thể tải danh sách bất thường';
       toast.error(msg);

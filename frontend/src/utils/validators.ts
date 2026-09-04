@@ -56,10 +56,15 @@ export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 
 // ============================================================
-// User Profile (Hồ sơ người dùng)
+// User Profile (Hồ sơ người dùng - NCL-01-CN-010)
 // ============================================================
 
 export const userProfileSchema = z.object({
+  fullName: z
+    .string()
+    .min(1, "Họ và tên không được để trống")
+    .max(255, "Họ và tên tối đa 255 ký tự"),
+
   phone: z
     .string()
     .optional()
@@ -83,6 +88,31 @@ export const userProfileSchema = z.object({
 });
 
 export type UserProfileFormValues = z.infer<typeof userProfileSchema>;
+
+// ============================================================
+// Change Password (Đổi mật khẩu chủ động - NCL-01-CN-010)
+// ============================================================
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z
+      .string()
+      .min(1, "Vui lòng nhập mật khẩu hiện tại"),
+    newPassword: z
+      .string()
+      .min(6, "Mật khẩu mới phải có ít nhất 6 ký tự")
+      .max(100, "Mật khẩu không được vượt quá 100 ký tự"),
+    confirmNewPassword: z
+      .string()
+      .min(1, "Vui lòng xác nhận mật khẩu mới"),
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: "Mật khẩu xác nhận không khớp",
+    path: ["confirmNewPassword"],
+  });
+
+export type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
+
 
 
 // ============================================================

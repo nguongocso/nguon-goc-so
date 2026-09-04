@@ -161,11 +161,12 @@ public class SecurityConfig {
 
                         /*
                          * =================================================
-                         * QR FILE
+                         * STATIC / UPLOADED FILES
                          * =================================================
                          */
                         .requestMatchers(
-                                "/files/qr/**"
+                                "/files/qr/**",
+                                "/uploads/**"
                         ).permitAll()
 
                         /*

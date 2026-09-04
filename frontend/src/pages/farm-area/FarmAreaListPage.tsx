@@ -105,7 +105,7 @@ const FarmAreaListPage: React.FC = () => {
   };
 
   useSetBreadcrumb([
-    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Tổng quan', href: '/dashboard' },
     { label: 'Vùng trồng' },
   ]);
 
