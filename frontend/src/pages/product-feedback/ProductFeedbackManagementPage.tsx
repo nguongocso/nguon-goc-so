@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/sheet";
 import { DetailSection } from "@/components/common/detail/DetailSection";
 import { DetailField } from "@/components/common/detail/DetailField";
-import { ChevronLeft, ChevronRight, RefreshCw, MessageSquare } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 import { toast } from "sonner";
 import { maskId } from "@/lib/utils";
@@ -177,7 +177,6 @@ export default function ProductFeedbackManagementPage() {
               ) : feedbacks.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                    <MessageSquare className="mx-auto mb-2 h-8 w-8 text-gray-300" />
                     Chưa có phản ánh nào.
                   </td>
                 </tr>

@@ -174,12 +174,12 @@ export default function TestingUnitFormPage() {
   useSetBreadcrumb(
     isEdit
       ? [
-          { label: "Dashboard", href: "/dashboard" },
+          { label: "Tổng quan", href: "/dashboard" },
           { label: "Đơn vị kiểm nghiệm", href: "/admin/testing-units" },
           { label: "Chỉnh sửa" },
         ]
       : [
-          { label: "Dashboard", href: "/dashboard" },
+          { label: "Tổng quan", href: "/dashboard" },
           { label: "Đơn vị kiểm nghiệm", href: "/admin/testing-units" },
           { label: "Tạo mới" },
         ]

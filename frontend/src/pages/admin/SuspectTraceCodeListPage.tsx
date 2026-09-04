@@ -16,6 +16,7 @@ import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import type { SuspectTraceCodeResponse, PageResponse } from '@/types/suspectTraceCode';
 import {
   AlertTriangle,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Lock,
@@ -25,7 +26,6 @@ import {
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { LockTraceCodeDialog } from './components/LockTraceCodeDialog';
 import { HelpButton } from '@/components/help/HelpButton';
 import { ListPageHeader } from '@/components/common/ListPageHeader';
 import { ListCard } from '@/components/common/ListCard';
@@ -57,15 +57,14 @@ const formatDateTime = (value: string | null) => {
 
 export default function SuspectTraceCodeListPage() {
   const navigate = useNavigate();
-  const [draftMinScore, setDraftMinScore] = useState<string>('30');
+  const [draftMinScore, setDraftMinScore] = useState<string>('');
   const [draftStatus, setDraftStatus] = useState<string>('ALL');
-  const [minScore, setMinScore] = useState<number | undefined>(30);
+  const [minScore, setMinScore] = useState<number | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [result, setResult] = useState<PageResponse<SuspectTraceCodeResponse>>(EMPTY_PAGE);
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(20);
   const [loading, setLoading] = useState(true);
-  const [lockTarget, setLockTarget] = useState<SuspectTraceCodeResponse | null>(null);
 
   const suspectCount = useMemo(
     () => result.items.filter((item) => item.status === 'SUSPECT').length,
@@ -73,6 +72,10 @@ export default function SuspectTraceCodeListPage() {
   );
   const lockedCount = useMemo(
     () => result.items.filter((item) => item.status === 'LOCKED').length,
+    [result.items],
+  );
+  const activeCount = useMemo(
+    () => result.items.filter((item) => item.status === 'ACTIVE').length,
     [result.items],
   );
 
@@ -101,10 +104,13 @@ export default function SuspectTraceCodeListPage() {
   }, [minScore, statusFilter, page, size]);
 
   const applyFilters = () => {
-    const parsedScore = parseInt(draftMinScore, 10);
-    if (isNaN(parsedScore) || parsedScore < 0 || parsedScore > 100) {
-      toast.error('Điểm nghi vấn phải từ 0 đến 100');
-      return;
+    let parsedScore: number | undefined = undefined;
+    if (draftMinScore.trim() !== '') {
+      parsedScore = parseInt(draftMinScore, 10);
+      if (isNaN(parsedScore) || parsedScore < 0 || parsedScore > 100) {
+        toast.error('Điểm nghi vấn phải từ 0 đến 100');
+        return;
+      }
     }
     setPage(0);
     setMinScore(parsedScore);
@@ -112,10 +118,10 @@ export default function SuspectTraceCodeListPage() {
   };
 
   const resetFilters = () => {
-    setDraftMinScore('30');
+    setDraftMinScore('');
     setDraftStatus('ALL');
     setPage(0);
-    setMinScore(30);
+    setMinScore(undefined);
     setStatusFilter(undefined);
   };
 
@@ -125,6 +131,9 @@ export default function SuspectTraceCodeListPage() {
     }
     if (status === 'LOCKED') {
       return <StatusBadge label="Đã khóa" tone="danger" icon={Lock} />;
+    }
+    if (status === 'ACTIVE') {
+      return <StatusBadge label="Đã xác minh" tone="success" icon={CheckCircle2} />;
     }
     return <StatusBadge label={status} tone="neutral" />;
   };
@@ -144,7 +153,6 @@ export default function SuspectTraceCodeListPage() {
       <TableHead>Lượt quét</TableHead>
       <TableHead>Địa điểm</TableHead>
       <TableHead>Trạng thái</TableHead>
-      <TableHead className="text-center">Thao tác</TableHead>
       <TableHead className="text-center">Chi tiết</TableHead>
     </>
   );
@@ -188,22 +196,6 @@ export default function SuspectTraceCodeListPage() {
       </TableCell>
       <TableCell>{getStatusBadge(item.status)}</TableCell>
       <TableCell>
-        <div className="flex justify-center gap-1">
-          {item.status === 'SUSPECT' ? (
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              title="Khóa tem"
-              onClick={() => setLockTarget(item)}
-            >
-              <Lock className="size-4" />
-            </Button>
-          ) : (
-            <span className="text-sm text-muted-foreground">—</span>
-          )}
-        </div>
-      </TableCell>
-      <TableCell>
         <div className="flex justify-center">
           <Button
             size="sm"
@@ -232,7 +224,7 @@ export default function SuspectTraceCodeListPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         <Card>
           <CardContent className="flex items-center justify-between p-4">
             <div>
@@ -263,6 +255,16 @@ export default function SuspectTraceCodeListPage() {
             <Lock className="h-8 w-8 text-red-500" />
           </CardContent>
         </Card>
+        <Card>
+          <CardContent className="flex items-center justify-between p-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Trang hiện tại</p>
+              <p className="text-2xl font-bold">{activeCount}</p>
+              <p className="text-xs text-muted-foreground">Đã xác minh</p>
+            </div>
+            <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+          </CardContent>
+        </Card>
       </div>
 
       <ListCard>
@@ -291,6 +293,7 @@ export default function SuspectTraceCodeListPage() {
                     { value: 'ALL', label: 'Tất cả' },
                     { value: 'SUSPECT', label: 'Nghi vấn' },
                     { value: 'LOCKED', label: 'Đã khóa' },
+                    { value: 'ACTIVE', label: 'Đã xác minh' },
                   ]}
                 >
                   <SelectTrigger id="statusFilter" className="w-40">
@@ -300,6 +303,7 @@ export default function SuspectTraceCodeListPage() {
                     <SelectItem value="ALL">Tất cả</SelectItem>
                     <SelectItem value="SUSPECT">Nghi vấn</SelectItem>
                     <SelectItem value="LOCKED">Đã khóa</SelectItem>
+                    <SelectItem value="ACTIVE">Đã xác minh</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -324,7 +328,7 @@ export default function SuspectTraceCodeListPage() {
           body={body}
           loading={loading}
           empty={!loading && result.items.length === 0}
-          colSpan={9}
+          colSpan={8}
           loadingMessage="Đang tải danh sách mã tem nghi vấn..."
           emptyMessage="Không có mã tem nghi vấn"
         />
@@ -378,15 +382,6 @@ export default function SuspectTraceCodeListPage() {
           </div>
         )}
       </ListCard>
-
-      <LockTraceCodeDialog
-        traceCode={lockTarget}
-        onClose={() => setLockTarget(null)}
-        onSuccess={() => {
-          setLockTarget(null);
-          fetchData();
-        }}
-      />
     </div>
   );
 }

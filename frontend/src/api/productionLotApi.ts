@@ -3,6 +3,7 @@ import apiClient from './axiosConfig';
 import type {
     ApproveProductionLotRequest,
     ApproveProductionLotResult,
+    CancelProductionLotRequest,
     CreateProductionLotRequest,
     CreateProductionLotResponse,
     FarmAreaOption,
@@ -146,6 +147,22 @@ export const approveProductionLot = async (
     const response = await apiClient.post<
         ApiDataResponse<ApproveProductionLotResult>
     >(`/production-lots/${id}/approve`, payload);
+
+    return response.data.data;
+};
+
+// =========================================================
+// CANCEL PRODUCTION LOT (NCL-02-CN-006)
+// =========================================================
+
+export const cancelProductionLot = async (
+    id: string,
+    payload: CancelProductionLotRequest,
+): Promise<ProductionLot> => {
+    const response = await apiClient.post<ApiDataResponse<ProductionLot>>(
+        `/production-lots/${id}/cancel`,
+        payload,
+    );
 
     return response.data.data;
 };

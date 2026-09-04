@@ -34,7 +34,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
   const canManage = usePermission(['VT-01', 'VT-02']);
 
   useSetBreadcrumb([
-    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Tổng quan', href: '/dashboard' },
     { label: 'Khóa API đối tác' },
   ]);
 

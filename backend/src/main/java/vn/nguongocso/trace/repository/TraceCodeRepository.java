@@ -44,6 +44,16 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 	String findMaxCodeValueByOrganization(@Param("orgId") UUID orgId, @Param("prefix") String prefix);
 
 	/**
+	 * Tìm TraceCode theo status cụ thể (phân trang).
+	 */
+	Page<TraceCode> findByStatus(TraceCodeStatus status, Pageable pageable);
+
+	/**
+	 * Tìm TraceCode theo status nằm trong danh sách (phân trang).
+	 */
+	Page<TraceCode> findByStatusIn(List<TraceCodeStatus> statuses, Pageable pageable);
+
+	/**
 	 * Tìm TraceCode theo suspicionScore >= minScore và status cụ thể (phân trang).
 	 */
 	Page<TraceCode> findBySuspicionScoreGreaterThanEqualAndStatus(

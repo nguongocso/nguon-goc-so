@@ -11,12 +11,14 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer{
-	@Value("${qr.image.storage.path:./files/qr}")
-	private String qrStoragePath;
-	
+    @Value("${qr.image.storage.path:./files/qr}")
+    private String qrStoragePath;
+
+    @Value("${app.upload.base-dir:./uploads}")
+    private String uploadBaseDir;
+
     /**
-     * Thêm các bộ xử lý tài nguyên để phục vụ các tệp QR từ thư mục lưu trữ.
-     * Đường dẫn URL /files/qr/** sẽ được ánh xạ tới thư mục lưu trữ QR.
+     * Thêm các bộ xử lý tài nguyên để phục vụ các tệp QR và tệp tải lên (ảnh đại diện, v.v.).
      *
      * @param registry Đối tượng ResourceHandlerRegistry để đăng ký các bộ xử lý tài nguyên.
      */
@@ -24,5 +26,8 @@ public class WebConfig implements WebMvcConfigurer{
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/files/qr/**")
                 .addResourceLocations("file:" + qrStoragePath + "/");
+
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations("file:" + uploadBaseDir + "/");
     }
 }

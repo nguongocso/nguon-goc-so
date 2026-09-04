@@ -29,7 +29,8 @@ export function ManagementDashboard() {
   }, []);
 
   const statistics = useMemo(() => {
-    const total = productionLots.length;
+    // NCL-02-CN-006: lô đã hủy không tính vào tổng số lô đang canh tác
+    const total = productionLots.filter((lot) => lot.status !== 'CANCELLED').length;
     const approved = productionLots.filter((lot) => lot.status === 'APPROVED').length;
     const harvested = productionLots.filter((lot) => lot.status === 'HARVESTED').length;
     const packaged = productionLots.filter((lot) => lot.status === 'PACKAGED').length;

@@ -21,6 +21,8 @@ export interface PublicTraceResponse {
   locked: boolean;
   lockReason: string | null;
   lockedAt: string | null;
+  verificationNote?: string | null;
+  unlockedAt?: string | null;
   events: PublicChainEventItem[];
   inspections?: PublicInspectionResult[];
 }

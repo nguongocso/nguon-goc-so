@@ -5,7 +5,6 @@ import {
   BarChart3,
   CalendarRange,
   Info,
-  MapPinOff,
   PackageCheck,
   RefreshCw,
   Scale,
@@ -19,7 +18,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { HelpButton } from "@/components/help/HelpButton";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  NO_ASSIGNED_AREA_HINT,
   NO_ASSIGNED_AREA_MESSAGE,
 } from "@/constants/reportMessages";
 import type {
@@ -150,23 +148,11 @@ export default function SeasonYieldComparisonPage() {
 
       {!loading && !errorMessage && !hasComparisonData && (
         <Card>
-          <CardContent className="flex flex-col items-center py-14 text-center">
+          <CardContent className="flex items-center justify-center py-14 text-center text-muted-foreground">
             {data?.message === NO_ASSIGNED_AREA_MESSAGE ? (
-              <>
-                <MapPinOff className="mb-3 h-11 w-11 text-muted-foreground" />
-                <h2 className="text-lg font-semibold">{NO_ASSIGNED_AREA_MESSAGE}</h2>
-                <p className="mt-1 max-w-xl text-muted-foreground">
-                  {NO_ASSIGNED_AREA_HINT}
-                </p>
-              </>
+              <p>{NO_ASSIGNED_AREA_MESSAGE}</p>
             ) : (
-              <>
-                <CalendarRange className="mb-3 h-11 w-11 text-muted-foreground" />
-                <h2 className="text-lg font-semibold">Chưa có dữ liệu để so sánh</h2>
-                <p className="mt-1 max-w-xl text-muted-foreground">
-                  {data?.message || "Hãy thử chọn thêm năm hoặc thay đổi bộ lọc."}
-                </p>
-              </>
+              <p>{data?.message || "Chưa có dữ liệu để so sánh."}</p>
             )}
           </CardContent>
         </Card>

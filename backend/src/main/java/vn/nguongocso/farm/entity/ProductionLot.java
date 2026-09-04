@@ -81,6 +81,19 @@ public class ProductionLot {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "cancellation_reason", length = 100)
+    private String cancellationReason;
+
+    @Column(name = "cancellation_note", length = 1000)
+    private String cancellationNote;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cancelled_by")
+    private User cancelledBy;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
     @OneToMany(mappedBy = "productionLot", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ProductionLotCertification> certifications = new ArrayList<>();
 

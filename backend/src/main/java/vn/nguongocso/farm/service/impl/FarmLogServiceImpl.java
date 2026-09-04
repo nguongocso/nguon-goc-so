@@ -75,6 +75,7 @@ public class FarmLogServiceImpl implements FarmLogService {
 
 	private static final String PRODUCTION_LOT_NOT_FOUND_MESSAGE = "Không tìm thấy lô sản xuất";
 	private static final String INVALID_LOT_STATUS_MESSAGE = "Chỉ được ghi nhật ký cho lô đã duyệt hoặc đang thu hoạch.";
+	private static final String CANCELLED_LOT_MESSAGE = "Lô sản xuất đã bị hủy, không thể thao tác nhật ký canh tác.";
 
 	private static final Sort FARM_LOG_SORT = Sort.by(
 			Sort.Order.desc("executedDate"),
@@ -217,6 +218,12 @@ public class FarmLogServiceImpl implements FarmLogService {
 			ProductionLot productionLot,
 			FarmLogCorrectionData data,
 			FarmLog effective) {
+
+		// NCL-02-CN-006: lô đã hủy không cho phép đính chính nhật ký (TC-04);
+		// nhật ký cũ vẫn xem được ở chế độ chỉ đọc.
+		if (productionLot.getStatus() == ProductionLotStatus.CANCELLED) {
+			throw new BusinessException(CANCELLED_LOT_MESSAGE);
+		}
 
 		// Ràng buộc mã truy xuất đã kích hoạt: chỉ VT-02 được tiếp tục.
 		if (!isManager && traceCodeRepository.existsActivatedByProductionLotId(productionLot.getId())) {
@@ -373,6 +380,12 @@ public class FarmLogServiceImpl implements FarmLogService {
 	}
 
 	private void validateProductionLotStatus(ProductionLot productionLot) {
+
+		// NCL-02-CN-006: lô đã hủy không ghi được nhật ký mới (TC-01);
+		// nhật ký cũ vẫn xem được ở chế độ chỉ đọc (TC-04).
+		if (productionLot.getStatus() == ProductionLotStatus.CANCELLED) {
+			throw new BusinessException(CANCELLED_LOT_MESSAGE);
+		}
 
 		if (productionLot.getStatus() != ProductionLotStatus.APPROVED
 				&& productionLot.getStatus() != ProductionLotStatus.HARVESTED) {

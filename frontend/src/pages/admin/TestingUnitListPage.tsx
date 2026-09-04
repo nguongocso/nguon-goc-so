@@ -165,7 +165,7 @@ export default function TestingUnitListPage() {
     !!unit.accreditationExpiryDate && unit.accreditationExpiryDate < today;
 
   useSetBreadcrumb([
-    { label: "Dashboard", href: "/dashboard" },
+    { label: "Tổng quan", href: "/dashboard" },
     { label: "Đơn vị kiểm nghiệm" },
   ]);
 
@@ -255,25 +255,8 @@ export default function TestingUnitListPage() {
               Đang tải danh sách đơn vị kiểm nghiệm...
             </div>
           ) : paginated.length === 0 ? (
-            <div className="grid place-items-center px-4 py-16 text-center">
-              <ShieldCheck className="mb-3 size-10 text-slate-300" />
-              <p className="font-semibold text-slate-900">
-                Chưa có đơn vị kiểm nghiệm nào phù hợp.
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Hãy thử thay đổi từ khóa hoặc bộ lọc trạng thái.
-              </p>
-              {canManage && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-4"
-                  onClick={() => navigate("/admin/testing-units/create")}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Tạo đơn vị
-                </Button>
-              )}
+            <div className="flex items-center justify-center px-4 py-16 text-center text-muted-foreground">
+              <p>Chưa có đơn vị kiểm nghiệm nào phù hợp.</p>
             </div>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-slate-200">

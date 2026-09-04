@@ -229,6 +229,8 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .locked(isLocked)
                 .lockReason(traceCode.getLockReason())
                 .lockedAt(traceCode.getLockedAt())
+                .verificationNote(traceCode.getVerificationNote())
+                .unlockedAt(traceCode.getUnlockedAt())
                 .events(publicEvents)
                 .inspections(inspectionResults)
                 .build();

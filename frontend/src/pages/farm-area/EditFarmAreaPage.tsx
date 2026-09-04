@@ -17,12 +17,12 @@ export const EditFarmAreaPage: React.FC = () => {
   useSetBreadcrumb(
     farmArea
       ? [
-        { label: "Dashboard", href: "/dashboard" },
+        { label: "Tổng quan", href: "/dashboard" },
         { label: "Vùng trồng", href: "/farm-areas" },
         { label: `Chỉnh sửa ${farmArea.name}` },
       ]
       : [
-        { label: "Dashboard", href: "/dashboard" },
+        { label: "Tổng quan", href: "/dashboard" },
         { label: "Vùng trồng", href: "/farm-areas" },
         { label: "Chỉnh sửa vùng trồng" },
       ]

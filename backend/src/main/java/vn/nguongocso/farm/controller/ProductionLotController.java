@@ -22,6 +22,7 @@ import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.dto.request.ApproveProductionLotRequest;
+import vn.nguongocso.farm.dto.request.CancelProductionLotRequest;
 import vn.nguongocso.farm.dto.request.CreateProductionLotRequest;
 import vn.nguongocso.farm.dto.request.ProductionLotImportRequest;
 import vn.nguongocso.farm.dto.request.UpdateProductionLotRequest;
@@ -349,6 +350,36 @@ public class ProductionLotController {
                 CustomUserDetails userDetails = SecurityUtils.getCurrentUserDetails();
 
                 CreateProductionLotResponse response = productionLotService.approveProductionLot(
+                                id,
+                                request,
+                                userDetails);
+
+                return ResponseEntity.ok(
+                                ApiResult.success(response));
+        }
+
+        /**
+         * API hủy lô sản xuất (NCL-02-CN-006).
+         *
+         * <p>
+         * Chỉ Quản lý hợp tác xã (VT-02) được hủy lô. Lô phải chưa sinh mã truy
+         * xuất (chưa có lô hàng/tem) và chưa ở trạng thái cuối (CANCELLED /
+         * CLOSED / RECALLED). Lý do và diễn giải là bắt buộc.
+         */
+        @PostMapping("/{id}/cancel")
+        @PreAuthorize("hasRole('VT-02')")
+        public ResponseEntity<ApiResult<CreateProductionLotResponse>> cancel(
+                        @PathVariable UUID id,
+
+                        @Valid @RequestBody CancelProductionLotRequest request,
+
+                        @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+                permissionChecker.check(
+                                "PRODUCTION_LOT",
+                                "UPDATE");
+
+                CreateProductionLotResponse response = productionLotService.cancelProductionLot(
                                 id,
                                 request,
                                 userDetails);

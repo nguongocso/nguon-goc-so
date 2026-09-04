@@ -17,5 +17,7 @@ public enum ProductionLotStatus {
 
     CLOSED, // Đã đóng
 
-    RECALLED // Đã thu hồi
+    RECALLED, // Đã thu hồi
+
+    CANCELLED // Đã hủy
 }

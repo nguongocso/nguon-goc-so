@@ -70,6 +70,9 @@ public class InspectionRequestServiceImpl
     private static final String MSG_LOT_NOT_APPROVED =
             "Lô sản xuất chưa được duyệt.";
 
+    private static final String MSG_LOT_CANCELLED =
+            "Lô sản xuất đã bị hủy, không thể tạo yêu cầu kiểm nghiệm.";
+
     private static final String MSG_NO_HARVEST =
             "Lô sản xuất chưa có sự kiện thu hoạch.";
 
@@ -862,6 +865,7 @@ public class InspectionRequestServiceImpl
      * Điều kiện:
      * - Lot phải từ APPROVED trở lên.
      * - Không được REJECTED.
+     * - Không được hủy (CANCELLED) — NCL-02-CN-006.
      * - Phải có HARVEST event.
      */
     private void validateLot(
@@ -875,6 +879,12 @@ public class InspectionRequestServiceImpl
 
             throw new BusinessException(
                     MSG_LOT_NOT_APPROVED);
+        }
+
+        if (lot.getStatus() == ProductionLotStatus.CANCELLED) {
+
+            throw new BusinessException(
+                    MSG_LOT_CANCELLED);
         }
 
         boolean hasHarvest =

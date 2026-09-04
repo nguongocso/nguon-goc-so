@@ -166,11 +166,13 @@ public class AuthController {
                 .orElse(userDetails.getUser());
 
         UserProfileResponse response = UserProfileResponse.builder()
+                .id(userDetails.getUserId())
                 .userId(userDetails.getUserId())
                 .username(userDetails.getUsername())
-                .fullName(userDetails.getFullName())
+                .fullName(user != null ? user.getFullName() : userDetails.getFullName())
                 .phone(user != null ? user.getPhone() : null)
                 .email(user != null ? user.getEmail() : null)
+                .avatarUrl(user != null ? user.getAvatarUrl() : null)
                 .roleCode(userDetails.getRoleCode())
                 .roleName(userDetails.getRoleName())
                 .organizationId(userDetails.getOrganizationId())
@@ -178,6 +180,8 @@ public class AuthController {
                 .organizationName(userDetails.getOrganizationName())
                 .organizationType(userDetails.getOrganizationType())
                 .permissions(permissions)
+                .createdAt(user != null ? user.getCreatedAt() : null)
+                .updatedAt(user != null ? user.getUpdatedAt() : null)
                 .build();
 
         return ResponseEntity.ok(

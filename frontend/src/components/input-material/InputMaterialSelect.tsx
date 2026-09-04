@@ -27,7 +27,7 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
   value,
   onValueChange,
   onSelectMaterial,
-  placeholder = 'T�m ki?m v?t tu, ph�n b�n, thu?c BVTV...',
+  placeholder = 'Tìm kiếm vật tư, phân bón, thuốc BVTV...',
   disabled = false,
   className,
   id,
@@ -146,7 +146,7 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
           {loading ? (
             <div className="flex items-center justify-center py-6 text-sm text-slate-500 gap-2">
               <Loader2 className="size-4 animate-spin text-emerald-600" />
-              <span>�ang t�m ki?m...</span>
+              <span>Đang tìm kiếm...</span>
             </div>
           ) : (
             <div className="space-y-1">
@@ -177,14 +177,14 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
 
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
                         {item.activeIngredient && <span>Hoạt chất: <strong className="text-slate-700">{item.activeIngredient}</strong></span>}
-                        <span>�Đơn vị: <strong className="text-slate-700">{item.unit}</strong></span>
+                        <span>Đơn vị: <strong className="text-slate-700">{item.unit}</strong></span>
                         {item.quarantineDays > 0 ? (
                           <span className="inline-flex items-center gap-1 font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
                             <ShieldAlert className="size-3 text-amber-600" />
-                            C�ch ly {item.quarantineDays} ng�y
+                            Cách ly {item.quarantineDays} ngày
                           </span>
                         ) : (
-                          <span className="text-slate-400">Kh�ng y�u c?u c�ch ly</span>
+                          <span className="text-slate-400">Không yêu cầu cách ly</span>
                         )}
                       </div>
                     </div>
@@ -192,7 +192,7 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
                 })
               ) : (
                 <div className="px-3 py-3 text-center text-sm text-slate-500">
-                  Kh�ng t�m th?y v?t tu trong danh m?c.
+                  Không tìm thấy vật tư trong danh mục.
                 </div>
               )}
 
@@ -203,7 +203,7 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
                 >
                   <Plus className="size-4 text-emerald-600 shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <span>S? d?ng v?t tu ngo�i danh m?c: </span>
+                    <span>Sử dụng vật tư ngoài danh mục: </span>
                     <strong className="font-bold text-emerald-900">"{query.trim()}"</strong>
                   </div>
                 </div>

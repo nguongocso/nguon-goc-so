@@ -205,6 +205,58 @@ class InspectionRequestServiceImplTest {
     }
 
     /**
+     * Test NCL-02-CN-006: lô đã hủy (CANCELLED) không được tạo yêu cầu kiểm nghiệm.
+     */
+    @Test
+    void createInspectionRequest_shouldReject_whenLotIsCancelled() {
+
+        /*
+         * Arrange: lô đang ở trạng thái CANCELLED.
+         */
+        lot.setStatus(
+                ProductionLotStatus.CANCELLED);
+
+        CreateInspectionRequest request =
+                new CreateInspectionRequest();
+
+        request.setTestingUnit(
+                "Lab ABC");
+
+        request.setSampleSentDate(
+                LocalDate.now());
+
+        request.setCriteriaIds(
+                List.of(101L));
+
+        when(
+                productionLotRepository
+                        .findByIdAndOrganization_OrganizationId(
+                                lotId,
+                                orgId))
+                .thenReturn(
+                        Optional.of(lot));
+
+        /*
+         * Act & Assert: bị chặn ngay tại validateLot,
+         * trước khi kiểm tra sự kiện HARVEST.
+         */
+        assertThatThrownBy(() ->
+                inspectionRequestService.createInspectionRequest(
+                        lotId,
+                        request,
+                        currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(
+                        "Lô sản xuất đã bị hủy, không thể tạo yêu cầu kiểm nghiệm.");
+
+        verify(chainEventRepository, never())
+                .existsByProductionLotIdOrUnassignedEventDataAndEventType(
+                        any(),
+                        any(),
+                        any());
+    }
+
+    /**
      * Test tạo yêu cầu kiểm nghiệm thành công.
      *
      * Logic service:

@@ -17,7 +17,7 @@ export const CreateInspectionCriterionPage: React.FC = () => {
 
   // Breadcrumb: bỏ mức "Quản trị" (/admin không phải trang chức năng độc lập)
   useSetBreadcrumb([
-    { label: "Dashboard", href: "/dashboard" },
+    { label: "Tổng quan", href: "/dashboard" },
     { label: "Chỉ tiêu kiểm nghiệm", href: "/admin/inspection-criteria" },
     { label: "Thêm mới" },
   ]);

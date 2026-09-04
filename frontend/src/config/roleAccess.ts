@@ -11,6 +11,7 @@ export const ROLE_ACCESS = {
   productionLotList: ['VT-02', 'VT-03'],
   productionLotEdit: ['VT-02'],
   productionLotApprove: ['VT-02'],
+  productionLotCancel: ['VT-02'],
   farmLogCreate: ['VT-02', 'VT-03'] as const,
   farmLogCorrect: ['VT-02', 'VT-03'] as const,
   farmLogView: ['VT-02', 'VT-03'] as const,
@@ -74,11 +75,17 @@ export const ROLE_ACCESS = {
   // ✅ NCL-09-CN-009 - Quản lý danh mục chỉ tiêu kiểm nghiệm
   inspectionCriteriaManagement: ['VT-01'] as const,
 
+  // ✅ NCL-09-CN-011 - Quản lý mốc canh tác bắt buộc
+  cultivationMilestoneManagement: ['VT-01'] as const,
+
   // ✅ NCL-11-CN-006 Phase 2 - Quản lý phạm vi công nhận của đơn vị kiểm nghiệm
   testingUnitScopeManagement: ['VT-01'] as const,
 
-  // ✅ Hồ sơ người dùng
-  userProfile: ['VT-02', 'VT-03', 'VT-04', 'VT-05'] as const,
+  // ✅ NCL-08-CN-013 - Mở khóa mã tem sau khi xác minh
+  traceCodeUnlock: ['VT-01'] as const,
+
+  // ✅ Hồ sơ người dùng (NCL-01-CN-010: Tất cả vai trò VT-01 -> VT-05)
+  userProfile: AUTHENTICATED_ROLE_CODES,
 } as const satisfies Record<string, readonly AuthenticatedRoleCode[]>;
 
 

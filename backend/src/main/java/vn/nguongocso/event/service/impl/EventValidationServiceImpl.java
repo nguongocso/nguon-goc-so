@@ -72,6 +72,8 @@ public class EventValidationServiceImpl implements EventValidationService {
                 message = "Chỉ được ghi nhận sự kiện sơ chế cho lô đã thu hoạch.";
             } else if (eventType == ChainEventType.PACKAGING && (lot.getStatus() != ProductionLotStatus.HARVESTED && lot.getStatus() != ProductionLotStatus.PREPROCESSED)) {
                 message = "Chỉ được ghi nhận sự kiện đóng gói cho lô đã thu hoạch hoặc đã sơ chế.";
+            } else if (lot.getStatus() == ProductionLotStatus.CANCELLED) {
+                message = "Lô sản xuất đã bị hủy, không thể ghi sự kiện.";
             } else {
                 valid = true;
                 message = "Lô sản xuất hợp lệ.";

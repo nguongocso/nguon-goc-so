@@ -153,7 +153,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
   // (/production-lots/:id/inspection-requests) vì route này không tồn tại
   // (không có trang danh sách). Nhãn crumb lô dùng tên lô khi đã tải xong.
   useSetBreadcrumb([
-    { label: "Dashboard", href: "/dashboard" },
+    { label: "Tổng quan", href: "/dashboard" },
     { label: "Lô sản xuất", href: "/production-lots" },
     ...(effectiveLotId
       ? [

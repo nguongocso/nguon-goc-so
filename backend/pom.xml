@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>vn.nguongocso</groupId>
 	<artifactId>backend</artifactId>
-	<version>01</version>
+	<version>1.0.0</version>
 	<name>backend</name>
 	<description />
 	<url />
@@ -28,6 +28,12 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<!--
+		  TC-04: Git commit được bake vào build-info (META-INF/build-info.properties).
+		  CI/Docker truyền qua -Dgit.commit=<github.sha>; mặc định "local" khi build
+		  trên máy dev. Được expose qua /actuator/info (yêu cầu JWT — xem SecurityConfig).
+		-->
+		<git.commit>local</git.commit>
 	</properties>
 	<dependencies>
 
@@ -195,6 +201,24 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<executions>
+					<!--
+					  TC-04: sinh META-INF/build-info.properties (version, build time,
+					  git commit) → /actuator/info (authenticated) hiển thị
+					  Version / Build Time / Git Commit.
+					-->
+					<execution>
+						<id>build-info</id>
+						<goals>
+							<goal>build-info</goal>
+						</goals>
+						<configuration>
+							<additionalProperties>
+								<git.commit>${git.commit}</git.commit>
+							</additionalProperties>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

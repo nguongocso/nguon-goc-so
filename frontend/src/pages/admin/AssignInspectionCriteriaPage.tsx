@@ -260,7 +260,7 @@ export default function AssignInspectionCriteriaPage() {
     useSetBreadcrumb(
         category
             ? [
-                {label: "Dashboard", href: "/dashboard"},
+                {label: "Tổng quan", href: "/dashboard"},
                 {label: "Danh mục nông sản", href: "/admin/product-categories"},
                 {label: `Gán bộ chỉ tiêu — ${category.name}`},
             ]

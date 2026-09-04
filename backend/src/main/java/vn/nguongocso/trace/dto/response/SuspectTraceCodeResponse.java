@@ -29,4 +29,10 @@ public class SuspectTraceCodeResponse {
     private UUID lockedBy;
     private String lockedByName;
     private String lockReason;
+    private LocalDateTime unlockedAt;
+    private UUID unlockedBy;
+    private String unlockedByName;
+    private String unlockConclusion;
+    private String unlockEvidence;
+    private String verificationNote;
 }

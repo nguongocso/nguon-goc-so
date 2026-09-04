@@ -65,7 +65,7 @@ export default function FailedEventLogsPage() {
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
   useSetBreadcrumb([
-    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Tổng quan', href: '/dashboard' },
     { label: 'Nhật ký sự kiện bị chặn' },
   ]);
 

@@ -634,6 +634,10 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin người dùng"));
 
+        if (request.getFullName() != null && !request.getFullName().isBlank()) {
+            user.setFullName(request.getFullName().trim());
+        }
+
         if (request.getEmail() != null && !request.getEmail().isBlank()) {
             String newEmail = request.getEmail().trim();
             userRepository.findByEmail(newEmail).ifPresent(existingUser -> {
@@ -652,15 +656,21 @@ public class AuthService {
             user.setPhone(null);
         }
 
+        if (request.getAvatarUrl() != null && !request.getAvatarUrl().isBlank()) {
+            user.setAvatarUrl(request.getAvatarUrl().trim());
+        }
+
         User savedUser = userRepository.save(user);
         log.info("Cập nhật thông tin profile thành công cho userId={}", userId);
 
         return UserProfileResponse.builder()
+                .id(savedUser.getUserId())
                 .userId(savedUser.getUserId())
                 .username(savedUser.getUserName())
                 .fullName(savedUser.getFullName())
                 .phone(savedUser.getPhone())
                 .email(savedUser.getEmail())
+                .avatarUrl(savedUser.getAvatarUrl())
                 .roleCode(userDetails.getRoleCode())
                 .roleName(userDetails.getRoleName())
                 .organizationId(userDetails.getOrganizationId())
@@ -668,6 +678,8 @@ public class AuthService {
                 .organizationName(userDetails.getOrganizationName())
                 .organizationType(userDetails.getOrganizationType())
                 .permissions(permissions)
+                .createdAt(savedUser.getCreatedAt())
+                .updatedAt(savedUser.getUpdatedAt())
                 .build();
     }
 }

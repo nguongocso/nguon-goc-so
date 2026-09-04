@@ -3,8 +3,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
-import { useNavigate, useLocation } from "react-router-dom";
-import { getAllFarmLogsByProductionLot } from "@/api/farmLogApi";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { getPackagingEligibility } from "@/api/cultivationMilestoneApi";
+import { getProductionLotById } from "@/api/productionLotApi";
 import { getLocalDateString } from "@/utils/dateTime";
 import {
   Card,
@@ -19,19 +20,11 @@ import {
   type RecordPackagingFormValues,
 } from "@/utils/validators/packagingEventSchema";
 import type { ProductionLot } from "@/types/productionLot";
-import type { FarmActivityType } from "@/types/farmLog";
-import {
-  getHarvestedProductionLots,
-  recordPackagingEvent,
-} from "@/api/packagingApi";
+import { recordPackagingEvent } from "@/api/packagingApi";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle, ArrowLeft, LoaderCircle, PackageSearch } from "lucide-react";
 import { LocationPicker } from "@/pages/packaging-event/components/LocationPicker";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,51 +36,19 @@ import { useLotValidation } from "@/hooks/useLotValidation";
 import { useAutoGeolocation } from "@/hooks/useAutoGeolocation";
 import { LotValidationStatus } from "@/components/event-validation/LotValidationStatus";
 
-const farmActivityTypes: FarmActivityType[] = [
-  "PLANTING",
-  "WATERING",
-  "FERTILIZING",
-  "PESTICIDE",
-  "WEEDING",
-  "HARVESTING",
-  "OTHER",
-];
-
-const requiredFarmActivities: FarmActivityType[] = [
-  "PLANTING",
-  "FERTILIZING",
-  "PESTICIDE",
-  "HARVESTING",
-];
-
-interface PackagingErrorPayload {
-  message?: string;
-  data?: {
-    missingActivities?: string[];
-  };
-}
-
 const getPackagingError = (error: unknown) => {
-  if (!isAxiosError<PackagingErrorPayload>(error)) {
+  if (!isAxiosError<{ message?: string }>(error)) {
     return {
       message: "Có lỗi xảy ra khi ghi sự kiện đóng gói",
-      missingActivities: [] as FarmActivityType[],
       isNetworkError: true,
     };
   }
 
-  const payload = error.response?.data;
-  const message = payload?.message ?? "Có lỗi xảy ra khi ghi sự kiện đóng gói";
-  const fromResponse = payload?.data?.missingActivities ?? [];
-  const normalizedMessage = message.toUpperCase();
-  const missingActivities = farmActivityTypes.filter(
-    (activity) =>
-      fromResponse.includes(activity) || normalizedMessage.includes(activity),
-  );
+  const message =
+    error.response?.data?.message ?? "Có lỗi xảy ra khi ghi sự kiện đóng gói";
 
   return {
     message,
-    missingActivities,
     isNetworkError: !error.response,
   };
 };
@@ -95,19 +56,24 @@ const getPackagingError = (error: unknown) => {
 export function CreatePackagingForm() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const [productionLots, setProductionLots] = useState<ProductionLot[]>([]);
-  const [loadingLots, setLoadingLots] = useState(true);
-  const [selectedLotId, setSelectedLotId] = useState("");
+
+  const sourceLotId =
+    (location.state as { productionLotId?: string } | null)?.productionLotId ??
+    searchParams.get("productionLotId") ??
+    "";
+
+  const [lot, setLot] = useState<ProductionLot | null>(null);
+  const [loadingLot, setLoadingLot] = useState(sourceLotId ? true : false);
+  const [lotLoadError, setLotLoadError] = useState<string | null>(null);
   const [eligibilityStatus, setEligibilityStatus] =
     useState<FarmLogEligibilityStatus>("unselected");
   const [eligibilityMessage, setEligibilityMessage] = useState("");
-  const [missingActivities, setMissingActivities] = useState<
-    FarmActivityType[]
-  >([]);
+  const [missingMilestones, setMissingMilestones] = useState<string[]>([]);
   const eligibilityRequestRef = useRef(0);
 
-  const { validation, loading } = useLotValidation(selectedLotId, "PACKAGING");
+  const { validation, loading } = useLotValidation(sourceLotId, "PACKAGING");
 
   const {
     register,
@@ -118,7 +84,7 @@ export function CreatePackagingForm() {
   } = useForm<RecordPackagingFormValues>({
     resolver: zodResolver(recordPackagingSchema),
     defaultValues: {
-      productionLotId: "",
+      productionLotId: sourceLotId,
       packagingSpecification: "",
       packagingDate: getLocalDateString(),
       latitude: 0,
@@ -136,53 +102,36 @@ export function CreatePackagingForm() {
       Number.isFinite(lng) &&
       !(lat === 0 && lng === 0)
       ? {
-        lat,
-        lng,
-      }
+          lat,
+          lng,
+        }
       : undefined;
 
-  const selectedLot = productionLots.find((lot) => lot.id === selectedLotId);
-
   useEffect(() => {
-    const fetchLots = async () => {
+    if (!sourceLotId) return;
+
+    const fetchLot = async () => {
+      setLoadingLot(true);
+      setLotLoadError(null);
+      setEligibilityStatus("checking");
       try {
-        const data = await getHarvestedProductionLots();
-        setProductionLots(data);
+        const data = await getProductionLotById(sourceLotId);
+        setLot(data);
+        eligibilityRequestRef.current += 1;
+        void checkFarmLogEligibility(sourceLotId);
       } catch {
-        toast.error("Không thể tải danh sách lô sản xuất");
+        setLot(null);
+        setLotLoadError(
+          "Không thể tải thông tin lô sản xuất đã chọn. Vui lòng quay lại và thử lại.",
+        );
       } finally {
-        setLoadingLots(false);
+        setLoadingLot(false);
       }
     };
-    fetchLots();
-  }, []);
 
-  // Điền sẵn lô sản xuất khi được điều hướng từ trang "Quét mã ghi sự kiện
-  // nhanh" (state.productionLotId lấy từ ScanLookupResponse). Chỉ áp dụng
-  // khi lô đó thực sự có trong danh sách lô đã thu hoạch tải được ở trên;
-  // nếu không, báo rõ lý do thay vì set một giá trị không khớp dropdown.
-  useEffect(() => {
-    if (loadingLots || selectedLotId) return;
-
-    const prefilledLotId = (
-      location.state as { productionLotId?: string } | null
-    )?.productionLotId;
-    if (!prefilledLotId) return;
-
-    const matchedLot = productionLots.find((lot) => lot.id === prefilledLotId);
-    if (!matchedLot) {
-      toast.error(
-        "Lô sản xuất từ mã vừa quét chưa ở trạng thái đã thu hoạch hoặc đã sơ chế, không thể chọn sẵn.",
-      );
-      return;
-    }
-
-    eligibilityRequestRef.current += 1;
-    setSelectedLotId(prefilledLotId);
-    setValue("productionLotId", prefilledLotId, { shouldValidate: true });
-    void checkFarmLogEligibility(prefilledLotId);
+    void fetchLot();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadingLots, productionLots]);
+  }, [sourceLotId]);
 
   const handleLocationSelect = (
     selectedLatitude: number,
@@ -208,34 +157,33 @@ export function CreatePackagingForm() {
     },
   });
 
+  // NCL-09-CN-011: điều kiện đóng gói do backend quyết định theo mốc canh tác
+  // bắt buộc (loại nông sản + tiêu chuẩn của lô) — frontend chỉ hiển thị kết quả.
   const checkFarmLogEligibility = async (productionLotId: string) => {
     const requestId = ++eligibilityRequestRef.current;
 
     setEligibilityStatus("checking");
     setEligibilityMessage("");
-    setMissingActivities([]);
+    setMissingMilestones([]);
 
     try {
-      const logs = await getAllFarmLogsByProductionLot(productionLotId);
+      const eligibility = await getPackagingEligibility(productionLotId);
       if (requestId !== eligibilityRequestRef.current) return;
 
-      const recordedActivities = new Set(logs.map((log) => log.activityType));
-      const missing = requiredFarmActivities.filter(
-        (activity) => !recordedActivities.has(activity),
-      );
-
-      if (missing.length > 0) {
+      if (!eligibility.eligible) {
         setEligibilityStatus("ineligible");
         setEligibilityMessage(
-          "Lô sản xuất còn thiếu nhật ký bắt buộc. Vui lòng bổ sung trước khi đóng gói.",
+          "Lô sản xuất chưa đủ mốc canh tác bắt buộc. Vui lòng bổ sung nhật ký trước khi đóng gói.",
         );
-        setMissingActivities(missing);
+        setMissingMilestones(
+          eligibility.missingMilestones.map((milestone) => milestone.name),
+        );
         return;
       }
 
       setEligibilityStatus("eligible");
       setEligibilityMessage(
-        "Lô đã có đủ nhật ký gieo trồng, bón phân, phun thuốc và thu hoạch.",
+        "Lô đã đáp ứng đầy đủ mốc canh tác bắt buộc theo tiêu chuẩn và loại nông sản.",
       );
     } catch (error: unknown) {
       if (requestId !== eligibilityRequestRef.current) return;
@@ -244,7 +192,7 @@ export function CreatePackagingForm() {
       setEligibilityStatus("error");
       setEligibilityMessage(
         details.isNetworkError
-          ? "Không thể kết nối để kiểm tra nhật ký. Vui lòng thử lại."
+          ? "Không thể kết nối để kiểm tra mốc canh tác. Vui lòng thử lại."
           : details.message,
       );
     }
@@ -252,7 +200,7 @@ export function CreatePackagingForm() {
 
   const onSubmit = async (values: RecordPackagingFormValues) => {
     if (eligibilityStatus !== "eligible") {
-      toast.error("Cần kiểm tra đủ nhật ký trước khi đóng gói");
+      toast.error("Cần kiểm tra đủ mốc canh tác trước khi đóng gói");
       await checkFarmLogEligibility(values.productionLotId);
       return;
     }
@@ -270,20 +218,27 @@ export function CreatePackagingForm() {
       navigate("/production-lots");
     } catch (error: unknown) {
       const details = getPackagingError(error);
-      const missingLogError =
-        details.missingActivities.length > 0 ||
-        /thiếu.*nhật ký|nhật ký.*(?:chưa|không).*đầy đủ|không đủ điều kiện đóng gói/i.test(
-          details.message,
-        );
+      // Backend chặn vì thiếu mốc canh tác bắt buộc (race: cấu hình mốc hoặc
+      // nhật ký đổi sau lần kiểm tra gần nhất) -> làm mới danh sách từ backend.
+      const milestoneError = /chưa đủ mốc canh tác/i.test(details.message);
 
-      if (missingLogError) {
+      if (milestoneError) {
         setEligibilityStatus("ineligible");
         setEligibilityMessage(details.message);
-        setMissingActivities(details.missingActivities);
+        try {
+          const eligibility = await getPackagingEligibility(
+            values.productionLotId,
+          );
+          setMissingMilestones(
+            eligibility.missingMilestones.map((milestone) => milestone.name),
+          );
+        } catch {
+          setMissingMilestones([]);
+        }
       } else if (details.isNetworkError) {
         setEligibilityStatus("error");
         setEligibilityMessage(
-          "Không thể kết nối để kiểm tra nhật ký. Vui lòng thử lại.",
+          "Không thể kết nối để ghi sự kiện đóng gói. Vui lòng thử lại.",
         );
       } else {
         setEligibilityStatus("error");
@@ -294,102 +249,142 @@ export function CreatePackagingForm() {
     }
   };
 
-  if (loadingLots) return <div className="p-8 text-center">Đang tải...</div>;
+  if (!sourceLotId) {
+    return (
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+        <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+          <span className="grid size-14 place-items-center rounded-full bg-slate-100 text-slate-500">
+            <PackageSearch className="size-7" />
+          </span>
+          <h3 className="mt-4 text-lg font-bold text-slate-900">
+            Chưa có lô sản xuất được chọn
+          </h3>
+          <p className="mt-1 max-w-md text-sm text-slate-500">
+            Ghi sự kiện đóng gói là chức năng gắn với một lô sản xuất cụ thể.
+            Vui lòng mở từ trang chi tiết lô hoặc quét mã truy xuất để chọn lô
+            cần đóng gói.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-6"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="mr-2 size-4" />
+            Quay lại
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (loadingLot) {
+    return (
+      <div className="flex items-center justify-center py-16 gap-2 text-slate-500">
+        <LoaderCircle className="size-4 animate-spin" />
+        Đang tải lô sản xuất...
+      </div>
+    );
+  }
+
+  if (lotLoadError || !lot) {
+    return (
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+        <CardContent className="py-10">
+          <Alert variant="destructive">
+            <AlertTriangle className="size-4" />
+            <AlertDescription className="flex flex-col gap-3 items-start">
+              <span>{lotLoadError ?? "Không tìm thấy lô sản xuất đã chọn."}</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(-1)}
+              >
+                <ArrowLeft className="mr-2 size-4" />
+                Quay lại
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const selectedLot = lot;
 
   return (
     <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
       <CardHeader>
         <CardTitle>Ghi sự kiện đóng gói</CardTitle>
         <CardDescription>
-          Nhập thông tin đóng gói cho lô sản xuất đã thu hoạch hoặc đã sơ chế.
+          Nhập thông tin đóng gói cho lô sản xuất “{selectedLot.name}
+          {selectedLot.productCategoryName
+            ? ` - ${selectedLot.productCategoryName}`
+            : ""}”.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="productionLotId">Lô sản xuất *</Label>
-            <Select
-              value={selectedLotId || ""}
-              onValueChange={(val: string | null) => {
-                const nextLotId = val || "";
-                eligibilityRequestRef.current += 1;
-                setSelectedLotId(nextLotId);
-                setValue("productionLotId", nextLotId, {
-                  shouldValidate: true,
-                });
-                setEligibilityMessage("");
-                setMissingActivities([]);
-
-                if (nextLotId) {
-                  void checkFarmLogEligibility(nextLotId);
-                } else {
-                  setEligibilityStatus("unselected");
-                }
-              }}
-              disabled={loadingLots}
-            >
-              <SelectTrigger>
-                <span>
-                  {selectedLot
-                    ? selectedLot.name
-                    : "Chọn lô đã thu hoạch hoặc đã sơ chế"}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                {productionLots.map((lot) => (
-                  <SelectItem key={lot.id} value={lot.id}>
-                    {lot.name} {lot.productCategoryName ? `- ${lot.productCategoryName}` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-2 rounded-lg border border-emerald-100 bg-emerald-50/20 p-4">
+            <Label className="text-sm text-muted-foreground">
+              Lô sản xuất đang đóng gói
+            </Label>
+            <div className="text-lg font-bold text-emerald-900">
+              {selectedLot.name}
+              {selectedLot.productCategoryName
+                ? ` - ${selectedLot.productCategoryName}`
+                : ""}
+            </div>
+          </div>
+          {loading ? (
             <LotValidationStatus
-              isValid={validation?.valid ?? null}
-              message={validation?.message || ""}
-              loading={loading}
+              isValid={null}
+              message=""
+              loading
               className="mt-2"
             />
-            {errors.productionLotId && (
-              <p className="text-sm text-red-500">
-                {errors.productionLotId.message}
-              </p>
-            )}
-          </div>
-          <FarmLogEligibilityAlert
-            status={eligibilityStatus}
-            productionLotName={selectedLot?.name}
-            missingActivities={missingActivities}
-            message={eligibilityMessage || undefined}
-            actionLabel={
-              user?.roleCode === "VT-02"
-                ? "Xem lịch sử nhật ký"
-                : "Ghi bổ sung nhật ký"
-            }
-            onAction={
-              eligibilityStatus === "ineligible" && selectedLotId
-                ? () =>
-                  navigate(
-                    user?.roleCode === "VT-02"
-                      ? `/production-lots/${selectedLotId}/farm-logs`
-                      : `/farm-logs/create?productionLotId=${encodeURIComponent(selectedLotId)}`,
-                  )
-                : undefined
-            }
-            onRetry={
-              eligibilityStatus === "error" ||
-                eligibilityStatus === "ineligible"
-                ? () =>
-                  selectedLotId
-                    ? void checkFarmLogEligibility(selectedLotId)
-                    : setEligibilityStatus("unselected")
-                : undefined
-            }
-          />
+          ) : validation && !validation.valid ? (
+            <LotValidationStatus
+              isValid={validation.valid}
+              message={validation.message}
+              className="mt-2"
+            />
+          ) : (
+            <FarmLogEligibilityAlert
+              status={eligibilityStatus}
+              productionLotName={selectedLot.name}
+              missingMilestones={missingMilestones}
+              message={eligibilityMessage || undefined}
+              actionLabel={
+                user?.roleCode === "VT-02"
+                  ? "Xem lịch sử nhật ký"
+                  : "Ghi bổ sung nhật ký"
+              }
+              onAction={
+                eligibilityStatus === "ineligible" && sourceLotId
+                  ? () =>
+                    navigate(
+                      user?.roleCode === "VT-02"
+                        ? `/production-lots/${sourceLotId}/farm-logs`
+                        : `/farm-logs/create?productionLotId=${encodeURIComponent(sourceLotId)}`,
+                    )
+                  : undefined
+              }
+              onRetry={
+                eligibilityStatus === "error" ||
+                  eligibilityStatus === "ineligible"
+                  ? () => void checkFarmLogEligibility(sourceLotId)
+                  : undefined
+              }
+            />
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="packagingSpecification">Quy cách đóng gói *</Label>
             <Input
               id="packagingSpecification"
+              placeholder="VD: Bao 60kg, Túi 500g x 20 túi/thùng..."
               {...register("packagingSpecification")}
             />
             {errors.packagingSpecification && (
@@ -428,11 +423,10 @@ export function CreatePackagingForm() {
           <Button type="button" variant="outline" onClick={() => navigate(-1)}>
             Hủy
           </Button>
-          {/* CHANGED: thêm variant="create" */}
           <Button
             type="submit"
             disabled={
-              isSubmitting || !selectedLotId || eligibilityStatus !== "eligible" || !validation?.valid
+              isSubmitting || !sourceLotId || eligibilityStatus !== "eligible" || !validation?.valid
             }
             variant="create"
           >
@@ -443,4 +437,3 @@ export function CreatePackagingForm() {
     </Card>
   );
 }
-

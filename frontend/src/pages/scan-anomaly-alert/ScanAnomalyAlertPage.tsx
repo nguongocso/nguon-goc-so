@@ -290,10 +290,8 @@ export default function ScanAnomalyAlertPage() {
               <RefreshCw className="h-7 w-7 animate-spin text-primary" />
             </div>
           ) : result.content.length === 0 ? (
-            <div className="flex flex-col items-center py-16 text-center text-muted-foreground">
-              <CheckCircle2 className="mb-3 h-10 w-10 text-emerald-500" />
-              <p className="font-medium text-foreground">Không có cảnh báo phù hợp</p>
-              <p className="text-sm">Hãy thử thay đổi trạng thái hoặc khoảng thời gian lọc.</p>
+            <div className="flex items-center justify-center py-16 text-center text-muted-foreground">
+              <p>Chưa có dữ liệu cảnh báo.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">

@@ -144,7 +144,7 @@ export default function InspectionCriteriaManagementPage() {
     };
 
     useSetBreadcrumb([
-        {label: "Dashboard", href: "/dashboard"},
+        {label: "Tổng quan", href: "/dashboard"},
         {label: "Chỉ tiêu kiểm nghiệm"},
     ]);
 

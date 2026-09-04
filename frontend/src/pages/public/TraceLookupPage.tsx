@@ -14,6 +14,7 @@ import type { PublicInspectionResponse } from '@/types/publicInspection';
 import { ProductInfo } from '@/components/public/ProductInfo';
 import { RecallAlert } from '@/components/public/RecallAlert';
 import { LockAlert } from '@/components/public/LockAlert';
+import { VerifiedAlert } from '@/components/public/VerifiedAlert';
 import { Timeline } from '@/components/public/Timeline';
 import { RouteMap } from '@/components/public/RouteMap';
 import { ProductFeedbackForm } from '@/components/public/ProductFeedbackForm';
@@ -336,12 +337,19 @@ export default function TraceLookupPage() {
           status={data.shipmentStatus}
         />
 
-        {/* Cảnh báo mã bị khóa */}
-        {data.locked && (
+        {/* Cảnh báo mã bị khóa hoặc Ghi chú đã xác minh */}
+        {data.locked ? (
           <LockAlert
             lockReason={data.lockReason}
             lockedAt={data.lockedAt}
           />
+        ) : (
+          data.verificationNote && (
+            <VerifiedAlert
+              verificationNote={data.verificationNote}
+              unlockedAt={data.unlockedAt}
+            />
+          )
         )}
 
         {/* Cảnh báo thu hồi */}

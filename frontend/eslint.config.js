@@ -10,6 +10,7 @@ export default [
     ignores: [
       "**/node_modules/**",
       "**/dist/**",
+      "**/dist_old_locked/**", // thư mục build cũ đã khóa (dev-only)
       "**/build/**",
       "**/coverage/**",
       "**/*.min.js",

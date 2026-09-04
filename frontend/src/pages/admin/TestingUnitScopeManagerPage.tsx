@@ -253,7 +253,7 @@ export default function TestingUnitScopeManagerPage() {
   useSetBreadcrumb(
     unit
       ? [
-          { label: "Dashboard", href: "/dashboard" },
+          { label: "Tổng quan", href: "/dashboard" },
           { label: "Đơn vị kiểm nghiệm", href: "/admin/testing-units" },
           { label: `Phạm vi công nhận — ${unit.name}` },
         ]

@@ -1,6 +1,6 @@
 # API Docs - Tao yeu cau kiem nghiem cho lo
 
-Cap nhat theo code hien tai: 2026-08-26
+Cap nhat theo code hien tai: 2026-08-26 (bo sung 2026-09-03: chan lo da huy CANCELLED theo NCL-02-CN-006)
 Nguon doi chieu: DOCX `NCL-11-CN-002-Tao yeu cau kiem nghiem cho lo.docx` va module `backend/certification`.
 
 Tai lieu nay phan biet ro yeu cau cua DOCX voi hanh vi da duoc implement. Ten lop trong DOCX (`QualityTestRequest`, `TestCriteria`) khong phai ten dang dung trong project hien tai.
@@ -8,7 +8,7 @@ Tai lieu nay phan biet ro yeu cau cua DOCX voi hanh vi da duoc implement. Ten lo
 ## 1. Luong nghiep vu hien tai
 
 1. VT-02 lay danh sach tieu chi ap dung cho lo qua `GET /api/v1/production-lots/{lotId}/test-criteria`.
-2. Backend chi cho phep tao yeu cau neu lo thuoc organization cua nguoi dung, co trang thai tu `APPROVED` tro len, khong bi `REJECTED`, va da co su kien `HARVEST`.
+2. Backend chi cho phep tao yeu cau neu lo thuoc organization cua nguoi dung, co trang thai tu `APPROVED` tro len, khong bi `REJECTED`, khong o trang thai `CANCELLED` (NCL-02-CN-006: lo da huy), va da co su kien `HARVEST`.
 3. Client gui don vi kiem nghiem, ngay gui mau va danh sach ID chi tieu (tu danh muc dung chung) qua `POST /api/v1/production-lots/{lotId}/test-requests`.
 4. Moi chi tieu phai ton tai trong danh muc dung chung `inspection_criterion_catalog`, dang `ACTIVE` va duoc gan cho loai nong san cua lo qua bang `category_criteria` (NCL-09-CN-009). Backend tao snapshot `InspectionCriterion`, luu code/name va tham chieu `criterion_id` tai thoi diem tao (khong gan Standard).
 5. Yeu cau moi duoc tao voi trang thai domain `PENDING_RESULT`; response API tra ve chuoi `PENDING`.
@@ -101,6 +101,7 @@ Response data thuc te:
 | HTTP | Dieu kien / thong diep thuc te |
 |---:|---|
 | `400` | Request rong; thieu `testingUnit`, `sampleSentDate` hoac `criteriaIds`; ngay gui mau o tuong lai; ID tieu chi null/trung; tieu chi khong ton tai; tieu chi da ngung su dung; tieu chi khong duoc gan cho loai nong san cua lo |
+| `400` | Lo da bi huy (`CANCELLED`): "Lo san xuat da bi huy, khong the tao yeu cau kiem nghiem." (NCL-02-CN-006) |
 | `404` | Lo khong ton tai trong organization hien tai |
 | `409` | Da co request `PENDING_RESULT` cung bo khoa `scope:criterionCode` (legacy `<standardId>:<code>`, moi `CAT:<criterionId>:<code>`) va `confirmDuplicate` khong phai `true` |
 | `403` | Nguoi dung khong co role `VT-02` |
