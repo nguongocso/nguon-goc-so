@@ -25,7 +25,6 @@ import {
   Eye,
   FileJson,
   LoaderCircle,
-  Package,
   Search,
   ShoppingCart,
 } from "lucide-react";
@@ -280,16 +279,10 @@ export function ProcurementShipmentList({
                             colSpan={7}
                             className="py-12 text-center text-muted-foreground"
                         >
-                          <Package className="mx-auto mb-3 size-10 text-muted-foreground/40" />
-                          <p className="font-semibold">
+                          <p>
                             {search.trim()
-                                ? "Không tìm thấy lô hàng phù hợp"
-                                : "Chưa có lô hàng nào sẵn sàng thu mua"}
-                          </p>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {search.trim()
-                                ? "Hãy thử thay đổi từ khóa tìm kiếm."
-                                : "Các lô hàng đã kích hoạt tem sẽ xuất hiện tại đây."}
+                                ? "Không tìm thấy lô hàng phù hợp."
+                                : "Chưa có lô hàng nào sẵn sàng thu mua."}
                           </p>
                         </TableCell>
                       </TableRow>

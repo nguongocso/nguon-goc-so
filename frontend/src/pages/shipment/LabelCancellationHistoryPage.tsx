@@ -52,7 +52,7 @@ export default function LabelCancellationHistoryPage() {
   useSetBreadcrumb(
     shipment
       ? [
-        { label: 'Dashboard', href: '/dashboard' },
+        { label: 'Tổng quan', href: '/dashboard' },
         { label: 'Lô sản xuất', href: '/production-lots' },
         ...(shipment.productionLotId
           ? [
