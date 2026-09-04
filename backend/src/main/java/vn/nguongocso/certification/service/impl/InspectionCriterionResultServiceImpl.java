@@ -841,6 +841,8 @@ public class InspectionCriterionResultServiceImpl
                 .resultId(result.getId().toString())
                 .criterionId(
                         result.getInspectionCriterion().getId().toString())
+                .criterionDefinitionId(
+                        result.getInspectionCriterion().getCriterionId())
                 .criterionCode(
                         result.getInspectionCriterion().getCriterionCode())
                 .criterionName(
