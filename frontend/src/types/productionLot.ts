@@ -30,8 +30,8 @@ export interface ProductionLot {
 export interface CancelProductionLotRequest {
   /** Lý do hủy — chọn 1 trong danh sách cố định (TC-03: bắt buộc) */
   reason: string;
-  /** Diễn giải chi tiết lý do hủy (bắt buộc, tối đa 1000 ký tự) */
-  note: string;
+  /** "Tại sao?" — diễn giải lý do hủy (không bắt buộc, tối đa 1000 ký tự) */
+  note?: string;
 }
 
 export interface UpdateProductionLotRequest {

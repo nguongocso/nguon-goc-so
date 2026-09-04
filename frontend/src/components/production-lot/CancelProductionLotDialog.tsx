@@ -67,7 +67,6 @@ export const CancelProductionLotDialog = ({
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
   const [reasonError, setReasonError] = useState<string | null>(null);
-  const [noteError, setNoteError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -75,7 +74,6 @@ export const CancelProductionLotDialog = ({
       setReason('');
       setNote('');
       setReasonError(null);
-      setNoteError(null);
       setSubmitting(false);
     }
   }, [open, lot?.id]);
@@ -86,21 +84,13 @@ export const CancelProductionLotDialog = ({
     const trimmedReason = reason.trim();
     const trimmedNote = note.trim();
 
-    // TC-03: bắt buộc chọn lý do và nhập diễn giải
-    let invalid = false;
+    // TC-03: chỉ LÝ DO HỦY là bắt buộc; "Tại sao?" (diễn giải) không bắt buộc
+    // (quyết định người dùng 2026-09-04).
     if (!trimmedReason) {
       setReasonError('Vui lòng chọn lý do hủy');
-      invalid = true;
-    } else {
-      setReasonError(null);
+      return;
     }
-    if (!trimmedNote) {
-      setNoteError('Vui lòng nhập diễn giải lý do hủy');
-      invalid = true;
-    } else {
-      setNoteError(null);
-    }
-    if (invalid) return;
+    setReasonError(null);
 
     setSubmitting(true);
     try {
@@ -164,20 +154,16 @@ export const CancelProductionLotDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="cancel-note">Diễn giải lý do hủy *</Label>
+            <Label htmlFor="cancel-note">Tại sao?</Label>
             <Textarea
               id="cancel-note"
               value={note}
-              onChange={(event) => {
-                setNote(event.target.value);
-                if (event.target.value.trim()) setNoteError(null);
-              }}
-              placeholder="Mô tả chi tiết lý do hủy lô..."
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="Mô tả chi tiết lý do hủy lô (không bắt buộc)..."
               rows={4}
               maxLength={1000}
               disabled={submitting}
             />
-            {noteError && <p className="text-sm text-red-500">{noteError}</p>}
           </div>
         </div>
 

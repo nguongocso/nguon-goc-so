@@ -313,6 +313,33 @@ public class ProductionLotServiceTest {
         verify(productionLotRepository).save(lot);
     }
 
+    @Test
+    void cancelProductionLot_shouldCancelLot_whenNoteIsBlank() {
+        // "Tại sao?" (diễn giải) KHÔNG bắt buộc — chỉ reason bắt buộc
+        // (quyết định người dùng 2026-09-04).
+        ProductionLot lot = createPendingLot();
+        User canceller = new User();
+        canceller.setUserId(userId);
+        canceller.setFullName("Quản lý HTX");
+
+        CancelProductionLotRequest request = new CancelProductionLotRequest();
+        request.setReason("Lý do khác");
+        request.setNote(null);
+
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+        when(shipmentRepository.findByProductionLotId(lotId)).thenReturn(List.of());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(canceller));
+        when(productionLotRepository.save(any(ProductionLot.class))).thenReturn(lot);
+
+        CreateProductionLotResponse response =
+                productionLotService.cancelProductionLot(lotId, request, userDetails);
+
+        assertThat(response.getStatus()).isEqualTo(ProductionLotStatus.CANCELLED.name());
+        assertThat(lot.getCancellationReason()).isEqualTo("Lý do khác");
+        assertThat(lot.getCancellationNote()).isNull();
+        verify(productionLotRepository).save(lot);
+    }
+
     private CreateProductionLotRequest createLotRequest(UUID farmAreaId) {
         CreateProductionLotRequest request = new CreateProductionLotRequest();
         request.setName("Lô xoài Cát Chu");

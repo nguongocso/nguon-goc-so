@@ -37,9 +37,9 @@
 > - `Khai báo nhầm`
 > - `Lý do khác`
 >
-> **`note` (bắt buộc):** diễn giải chi tiết lý do hủy — tối đa 1000 ký tự.
+> **`note` (không bắt buộc — nhãn "Tại sao?" trên UI):** diễn giải chi tiết lý do hủy — tối đa 1000 ký tự.
 >
-> Nếu `reason` hoặc `note` bỏ trống, hệ thống từ chối (`NCL-02-CN-006-TC-03`).
+> Nếu `reason` bỏ trống, hệ thống từ chối (`NCL-02-CN-006-TC-03`). `note` không bắt buộc (quyết định người dùng 2026-09-04).
 
 ### Response `200 OK`
 
@@ -69,7 +69,7 @@
 
 | HTTP | Trường hợp | Ghi chú |
 | ---- | ---------- | ------- |
-| `400` | Bỏ trống `reason` / `note` | `NCL-02-CN-006-TC-03` — "Lý do hủy không được để trống" / "Diễn giải lý do hủy không được để trống" |
+| `400` | Bỏ trống `reason` | `NCL-02-CN-006-TC-03` — "Lý do hủy không được để trống" (`note` không bắt buộc) |
 | `400` | Lô đã sinh mã truy xuất (đã có lô hàng/tem) | `NCL-02-CN-006-TC-02` — "Lô đã sinh mã truy xuất, không thể hủy. Vui lòng sử dụng luồng thu hồi lô" |
 | `400` | Lô ở trạng thái cuối `CANCELLED` / `CLOSED` / `RECALLED` | "Lô đã ở trạng thái …, không thể hủy" |
 | `400` | Lô không thuộc tổ chức của bạn (QTN-01) | "Lô sản xuất không thuộc tổ chức của bạn" |
