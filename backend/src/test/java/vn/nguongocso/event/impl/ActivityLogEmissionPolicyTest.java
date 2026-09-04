@@ -24,6 +24,7 @@ class ActivityLogEmissionPolicyTest {
         assertNotAudited(ProductionLotServiceImpl.class,
                 "createProductionLot",
                 "approveProductionLot",
+                "cancelProductionLot",
                 "submitForApproval",
                 "updateProductionLot");
 

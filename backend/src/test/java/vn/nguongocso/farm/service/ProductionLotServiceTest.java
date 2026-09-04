@@ -224,6 +224,7 @@ public class ProductionLotServiceTest {
         assertThat(lot.getCancelledBy()).isEqualTo(canceller);
         assertThat(lot.getCancelledAt()).isNotNull();
         verify(productionLotRepository).save(lot);
+        verify(eventPublisher).publishEvent(any(ActivityLogEvent.class));
     }
 
     @Test
