@@ -98,7 +98,7 @@ export const RecordInspectionResultPage: React.FC = () => {
 
     // ── Breadcrumb điều hướng thống nhất (thay nút "Quay lại") ────────────────
     useSetBreadcrumb([
-        {label: "Dashboard", href: "/dashboard"},
+        {label: "Tổng quan", href: "/dashboard"},
         {label: "Lô sản xuất", href: "/production-lots"},
         ...(routeLotId || lot?.id
             ? [

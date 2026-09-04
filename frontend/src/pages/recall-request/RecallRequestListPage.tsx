@@ -52,7 +52,7 @@ export const RecallRequestListPage = () => {
   const [page, setPage] = useState(0);
 
   useSetBreadcrumb([
-    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Tổng quan', href: '/dashboard' },
     { label: 'Yêu cầu thu hồi' },
   ]);
 

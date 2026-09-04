@@ -140,7 +140,7 @@ export default function CorrectFarmLogPage() {
 
   const breadcrumbItems = useMemo(() => {
     return [
-      { label: 'Dashboard', href: '/dashboard' },
+      { label: 'Tổng quan', href: '/dashboard' },
       { label: 'Lô sản xuất', href: '/production-lots' },
       ...(log?.productionLotId
         ? [
