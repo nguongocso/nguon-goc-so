@@ -10,18 +10,23 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.CultivationMilestoneRequest;
 import vn.nguongocso.certification.dto.response.CultivationMilestoneResponse;
+import vn.nguongocso.certification.dto.response.MilestoneEligibilityResponse;
 import vn.nguongocso.certification.entity.CultivationMilestone;
 import vn.nguongocso.certification.entity.Standard;
 import vn.nguongocso.certification.repository.CultivationMilestoneRepository;
 import vn.nguongocso.certification.repository.StandardRepository;
 import vn.nguongocso.certification.service.CultivationMilestoneService;
+import vn.nguongocso.certification.service.MilestoneValidationService;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.exception.ResourceNotFoundException;
 import vn.nguongocso.farm.entity.ProductCategory;
+import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.FarmActivityType;
 import vn.nguongocso.farm.repository.ProductCategoryRepository;
+import vn.nguongocso.farm.repository.ProductionLotRepository;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -43,10 +48,15 @@ public class CultivationMilestoneServiceImpl implements CultivationMilestoneServ
     private static final String MSG_INVALID_ACTIVITY = "Loại hoạt động không hợp lệ.";
     private static final String MSG_DUPLICATE_MILESTONE =
             "Mốc canh tác với tên này đã tồn tại trong cùng loại nông sản và tiêu chuẩn.";
+    private static final String MSG_LOT_NOT_FOUND = "Không tìm thấy lô sản xuất.";
+    private static final String MSG_LOT_FORBIDDEN =
+            "Bạn không thuộc tổ chức quản lý của lô sản xuất này.";
 
     private final CultivationMilestoneRepository milestoneRepository;
     private final ProductCategoryRepository productCategoryRepository;
     private final StandardRepository standardRepository;
+    private final MilestoneValidationService milestoneValidationService;
+    private final ProductionLotRepository productionLotRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -125,6 +135,50 @@ public class CultivationMilestoneServiceImpl implements CultivationMilestoneServ
         entity.setIsMandatory(Boolean.TRUE.equals(request.getIsMandatory()));
 
         return toResponse(milestoneRepository.save(entity));
+    }
+
+    /**
+     * NCL-09-CN-011: Kiểm tra lô sản xuất đã đủ mốc canh tác bắt buộc (theo
+     * loại nông sản + tiêu chuẩn của lô) để ghi sự kiện đóng gói chưa.
+     * Thuật toán dùng chung với {@link MilestoneValidationService} được gọi
+     * trong {@code ChainEventServiceImpl.recordPackagingEvent}.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public MilestoneEligibilityResponse getPackagingEligibility(
+            UUID productionLotId, CustomUserDetails currentUser) {
+
+        ProductionLot lot = productionLotRepository.findById(productionLotId)
+                .orElseThrow(() -> new ResourceNotFoundException(MSG_LOT_NOT_FOUND));
+
+        validateLotOrganization(lot, currentUser);
+
+        List<MilestoneEligibilityResponse.MissingMilestone> missing =
+                milestoneValidationService.findMissingMilestones(lot).stream()
+                        .map(m -> MilestoneEligibilityResponse.MissingMilestone.builder()
+                                .name(m.getName())
+                                .activityType(m.getActivityType())
+                                .build())
+                        .toList();
+
+        return MilestoneEligibilityResponse.builder()
+                .productionLotId(lot.getId())
+                .eligible(missing.isEmpty())
+                .missingMilestones(missing)
+                .build();
+    }
+
+    /**
+     * QTN-01: chỉ VT-01 (quản trị nền tảng) hoặc đúng tổ chức sở hữu lô
+     * mới được xem điều kiện đóng gói của lô.
+     */
+    private void validateLotOrganization(ProductionLot lot, CustomUserDetails currentUser) {
+        if (ADMIN_ROLE.equals(currentUser.getRoleCode())) {
+            return;
+        }
+        if (!lot.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, MSG_LOT_FORBIDDEN);
+        }
     }
 
     private void validateRequest(CultivationMilestoneRequest request) {

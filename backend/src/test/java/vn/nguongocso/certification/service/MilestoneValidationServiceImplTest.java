@@ -200,4 +200,43 @@ class MilestoneValidationServiceImplTest {
 
         assertThat(missing).isEmpty();
     }
+
+    // ===== NCL-09-CN-011 mở rộng: findMissingMilestones trả entity =====
+
+    // 1:1 — 2 mốc cùng FERTILIZING nhưng chỉ 1 log -> trả entity "Bón phân đợt 2"
+    @Test
+    void findMissing_shouldReturnEntitiesForMissingMilestones() {
+        Standard standard = Standard.builder().id(UUID.randomUUID()).name("GlobalGAP").build();
+        lot.setCertifications(List.of(certWithStandard(standard)));
+
+        CultivationMilestone a = milestone(1L, "Bón phân đợt 1", "FERTILIZING");
+        CultivationMilestone b = milestone(2L, "Bón phân đợt 2", "FERTILIZING");
+        when(milestoneRepository.findMandatoryMilestonesForValidation(
+                        categoryId, List.of(standard.getId())))
+                .thenReturn(List.of(a, b));
+        when(farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lotId))
+                .thenReturn(List.of(log(FarmActivityType.FERTILIZING, false)));
+
+        List<CultivationMilestone> missing = service.findMissingMilestones(lot);
+
+        assertThat(missing).hasSize(1);
+        assertThat(missing.get(0).getName()).isEqualTo("Bón phân đợt 2");
+        assertThat(missing.get(0).getActivityType()).isEqualTo("FERTILIZING");
+    }
+
+    // Đủ log cho mọi mốc -> rỗng
+    @Test
+    void findMissing_shouldReturnEmptyWhenAllSatisfied() {
+        Standard standard = Standard.builder().id(UUID.randomUUID()).name("VietGAP").build();
+        lot.setCertifications(List.of(certWithStandard(standard)));
+
+        CultivationMilestone planting = milestone(1L, "Gieo trồng", "PLANTING");
+        when(milestoneRepository.findMandatoryMilestonesForValidation(
+                        categoryId, List.of(standard.getId())))
+                .thenReturn(List.of(planting));
+        when(farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lotId))
+                .thenReturn(List.of(log(FarmActivityType.PLANTING, false)));
+
+        assertThat(service.findMissingMilestones(lot)).isEmpty();
+    }
 }
