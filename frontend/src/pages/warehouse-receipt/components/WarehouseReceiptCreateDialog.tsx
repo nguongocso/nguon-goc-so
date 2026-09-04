@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { useWarehouseReceipt } from '@/hooks/useWarehouseReceipt';
 import { scanLookupTraceCode } from '@/api/chainEventApi';
+import { ScanCodeField } from '@/components/common/ScanCodeField';
 import { getLocalDateString } from '@/utils/dateTime';
 import { selectAllOnFocus, preventMouseUpCollapse } from '@/utils/inputUtils';
 
@@ -107,13 +108,6 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleScan();
-    }
-  };
-
   const validate = (): boolean => {
     const result = formSchema.safeParse({
       codeValue,
@@ -185,23 +179,20 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Code scan */}
-          <div className="flex items-end gap-2">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="codeValue">Mã truy xuất (tem QR) *</Label>
-              <Input
-                id="codeValue"
-                value={codeValue}
-                onChange={(e) => { setCodeValue(e.target.value); setLotInfo(null); setScanError(null); }}
-                onKeyDown={handleKeyDown}
-                placeholder="VD: 89300900000006"
-                disabled={isSubmitting}
-              />
-            </div>
+          <div className="space-y-2">
+            <ScanCodeField
+              value={codeValue}
+              onChange={(v) => { setCodeValue(v); setLotInfo(null); setScanError(null); }}
+              label="Mã truy xuất (tem QR) *"
+              placeholder="VD: 89300900000006"
+              disabled={isSubmitting}
+            />
             <Button
               type="button"
               variant="secondary"
               onClick={handleScan}
               disabled={isSubmitting || isScanning || !codeValue.trim()}
+              className="w-full"
             >
               {isScanning ? <LoaderCircle className="size-4 animate-spin" /> : <ScanLine className="size-4" />}
               Tra cứu
