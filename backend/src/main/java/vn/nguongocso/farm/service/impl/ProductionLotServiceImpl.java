@@ -7,7 +7,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.nguongocso.alert.event.ActivityLogEvent;
-import vn.nguongocso.common.annotation.Auditable;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.farm.dto.request.ApproveProductionLotRequest;
 import vn.nguongocso.farm.dto.request.CancelProductionLotRequest;
@@ -198,7 +197,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
     /** Hủy lô sản xuất và ghi lý do (NCL-02-CN-006). */
     @Override
     @Transactional
-    @Auditable(action = "CANCEL_PRODUCTION_LOT", entityType = "PRODUCTION_LOT", description = "'Hủy lô sản xuất ID: ' + #lotId + ', lý do: ' + #request.reason")
     public CreateProductionLotResponse cancelProductionLot(UUID lotId, CancelProductionLotRequest request,
             CustomUserDetails userDetails) {
         log.info("Bắt đầu hủy lô sản xuất với id={}", lotId);
