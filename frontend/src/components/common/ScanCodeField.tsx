@@ -25,6 +25,8 @@ interface ScanCodeFieldProps {
   iconOnlyScan?: boolean;
   hideHelperText?: boolean;
   trailingAction?: ReactNode;
+  layout?: "default" | "embedded";
+  scanButtonText?: string;
 }
 
 export function ScanCodeField({
@@ -38,6 +40,8 @@ export function ScanCodeField({
   iconOnlyScan = false,
   hideHelperText = false,
   trailingAction,
+  layout = "default",
+  scanButtonText,
 }: ScanCodeFieldProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -147,39 +151,72 @@ export function ScanCodeField({
     };
   }, [scannerOpen, onChange]);
 
+  const openScanner = () => {
+    setScannerError("");
+    setScannerOpen(true);
+  };
+
+  const embeddedWithText = layout === "embedded" && !!scanButtonText;
+
+  const scanButton = (
+    <Button
+      type="button"
+      variant="outline"
+      size={embeddedWithText ? "default" : layout === "embedded" ? "icon-sm" : iconOnlyScan ? "icon-lg" : "default"}
+      disabled={disabled}
+      onClick={openScanner}
+      className="shrink-0"
+      title="Quét bằng camera"
+      aria-label={scanButtonText ?? "Quét bằng camera"}
+    >
+      <ScanLine className="h-4 w-4" />
+      {embeddedWithText ? scanButtonText : layout !== "embedded" && !iconOnlyScan && "Quét bằng camera"}
+    </Button>
+  );
+
   return (
     <div className="space-y-2">
-      <Label htmlFor="codeValue">{label}</Label>
+      {layout === "embedded" ? (
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor="codeValue">{label}</Label>
+          {scanButton}
+        </div>
+      ) : (
+        <Label htmlFor="codeValue">{label}</Label>
+      )}
 
-      <div className={trailingAction || iconOnlyScan ? "flex gap-2" : "flex flex-col gap-2 sm:flex-row"}>
-        <Input
-          id="codeValue"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={placeholder}
-          autoComplete="off"
-          disabled={disabled}
-          className="min-w-0 flex-1"
-        />
-
-        <Button
-          type="button"
-          variant="outline"
-          size={iconOnlyScan ? "icon-lg" : "default"}
-          disabled={disabled}
-          onClick={() => {
-            setScannerError("");
-            setScannerOpen(true);
-          }}
-          className="shrink-0"
-          title="Quét bằng camera"
-          aria-label="Quét bằng camera"
-        >
-          <ScanLine className="h-4 w-4" />
-          {!iconOnlyScan && "Quét bằng camera"}
-        </Button>
-        {trailingAction}
-      </div>
+      {layout === "embedded" ? (
+        <div className="relative">
+          <Input
+            id="codeValue"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder={placeholder}
+            autoComplete="off"
+            disabled={disabled}
+            className="min-w-0 pr-28"
+          />
+          {trailingAction && (
+            <div className="absolute top-1/2 right-1 -translate-y-1/2">
+              {trailingAction}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className={trailingAction || iconOnlyScan ? "flex gap-2" : "flex flex-col gap-2 sm:flex-row"}>
+          <Input
+            id="codeValue"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder={placeholder}
+            autoComplete="off"
+            disabled={disabled}
+            className="min-w-0 flex-1"
+          />
+          {scanButton}
+          {trailingAction}
+        </div>
+      )}
 
       {!hideHelperText && helperText && (
         <p className="text-xs text-muted-foreground">{helperText}</p>

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { ScanCodeField } from '@/components/common/ScanCodeField';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -65,7 +66,12 @@ export default function StorageConditionPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<StorageConditionResponse | null>(null);
-  const [lotInfo, setLotInfo] = useState<{ shipmentName: string } | null>(null);
+  const [lotInfo, setLotInfo] = useState<{
+    shipmentName: string;
+    productCategoryName: string;
+    farmAreaName: string;
+    shipmentStatus: string;
+  } | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
@@ -82,7 +88,12 @@ export default function StorageConditionPage() {
         setScanError('Không tìm thấy lô hàng cho mã này.');
         return;
       }
-      setLotInfo({ shipmentName: lookupResult.shipmentName });
+      setLotInfo({
+        shipmentName: lookupResult.shipmentName,
+        productCategoryName: lookupResult.productCategoryName,
+        farmAreaName: lookupResult.farmAreaName,
+        shipmentStatus: lookupResult.shipmentStatus,
+      });
     } catch (err: any) {
       setScanError(err.response?.data?.message || 'Không thể tra cứu mã.');
     } finally {
@@ -148,28 +159,27 @@ export default function StorageConditionPage() {
             Ghi mốc bảo quản
           </CardTitle>
           <CardDescription>
-            Nhập mã truy xuất và thông số nhiệt độ, độ ẩm tại mốc kiểm tra.
+            Nhập mã truy xuất và thông số nhiệt độ, độ ẩm tại thời điểm kiểm tra.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Mã truy xuất: input + quét + tra cứu trên một hàng */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Mã truy xuất: nút quét cùng hàng label, nút tra cứu trong input */}
             <ScanCodeField
               value={codeValue}
               onChange={(v) => { setCodeValue(v); setLotInfo(null); setScanError(null); }}
               label="Mã truy xuất *"
               placeholder="VD: 89300900000006"
+              helperText="Có thể quét QR bằng camera hoặc nhập mã thủ công."
               disabled={isSubmitting}
-              iconOnlyScan
-              hideHelperText
+              layout="embedded"
+              scanButtonText="Quét mã QR"
               trailingAction={
                 <Button
                   type="button"
                   variant="secondary"
-                  size="lg"
                   onClick={handleScan}
                   disabled={isSubmitting || isScanning}
-                  className="shrink-0 px-4"
                 >
                   {isScanning ? <LoaderCircle className="size-4 animate-spin" /> : <ScanLine className="size-4" />}
                   Tra cứu
@@ -178,21 +188,31 @@ export default function StorageConditionPage() {
             />
             {scanError && <Alert variant="destructive"><AlertDescription>{scanError}</AlertDescription></Alert>}
             {lotInfo && (
-              <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2">
-                <p className="text-sm text-green-800">
-                  <span className="font-medium">Lô hàng:</span> {lotInfo.shipmentName}
+              <div className="space-y-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5">
+                <p className="flex items-center gap-1.5 text-sm font-semibold text-green-800">
+                  <CheckCircle2 className="size-4" />
+                  Đã tìm thấy lô sản xuất
                 </p>
+                <div className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm text-green-800 sm:grid-cols-2">
+                  <p><span className="font-medium">Lô:</span> {lotInfo.shipmentName}</p>
+                  <p><span className="font-medium">Sản phẩm:</span> {lotInfo.productCategoryName}</p>
+                  <p><span className="font-medium">Vùng trồng:</span> {lotInfo.farmAreaName}</p>
+                  <p><span className="font-medium">Trạng thái:</span> {lotInfo.shipmentStatus}</p>
+                </div>
               </div>
             )}
 
-            {/* Nhiệt độ + Độ ẩm: hai card con riêng */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Card className="border-red-200 bg-red-50/60 shadow-none">
-                <CardContent className="space-y-2 p-4">
-                  <p className="flex items-center gap-2 text-sm font-semibold text-red-700">
-                    <Thermometer className="size-4 text-red-500" />
+            {/* Thông số bảo quản: input thường, không màu cho đến khi đánh giá */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                Thông số bảo quản
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="temperature" className="flex items-center gap-1.5">
+                    <Thermometer className="size-4 text-slate-500" />
                     Nhiệt độ (°C) *
-                  </p>
+                  </Label>
                   <Input
                     id="temperature"
                     type="number"
@@ -201,17 +221,14 @@ export default function StorageConditionPage() {
                     onChange={(e) => setTemperature(e.target.value)}
                     placeholder="VD: 15.5"
                     disabled={isSubmitting}
-                    className="bg-white"
                   />
-                </CardContent>
-              </Card>
+                </div>
 
-              <Card className="border-blue-200 bg-blue-50/60 shadow-none">
-                <CardContent className="space-y-2 p-4">
-                  <p className="flex items-center gap-2 text-sm font-semibold text-blue-700">
-                    <Droplets className="size-4 text-blue-500" />
+                <div className="space-y-2">
+                  <Label htmlFor="humidity" className="flex items-center gap-1.5">
+                    <Droplets className="size-4 text-slate-500" />
                     Độ ẩm (%) *
-                  </p>
+                  </Label>
                   <Input
                     id="humidity"
                     type="number"
@@ -220,10 +237,9 @@ export default function StorageConditionPage() {
                     onChange={(e) => setHumidity(e.target.value)}
                     placeholder="VD: 65.2"
                     disabled={isSubmitting}
-                    className="bg-white"
                   />
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
 
             {formError && (
@@ -233,12 +249,12 @@ export default function StorageConditionPage() {
             )}
 
             <div className="flex justify-end gap-2">
-              <Button type="submit" variant="view" size="lg" disabled={isSubmitting} className="px-4">
+              <Button type="button" variant="outline" onClick={handleReset} disabled={isSubmitting}>
+                Làm mới
+              </Button>
+              <Button type="submit" variant="view" disabled={isSubmitting}>
                 {isSubmitting ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
                 {isSubmitting ? 'Đang ghi nhận...' : 'Ghi nhận'}
-              </Button>
-              <Button type="button" variant="outline" size="lg" onClick={handleReset} disabled={isSubmitting} className="px-4">
-                Làm mới
               </Button>
             </div>
           </form>
