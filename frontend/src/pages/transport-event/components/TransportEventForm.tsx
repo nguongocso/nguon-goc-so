@@ -22,7 +22,7 @@ import {
   type TransportEventFormValues,
 } from "@/utils/validators/transportEventSchema";
 
-import { ScanCodeField } from "./ScanCodeField";
+import { ScanCodeField } from "@/components/common/ScanCodeField";
 import { Camera } from "lucide-react";
 
 const MAX_IMAGES = 5;

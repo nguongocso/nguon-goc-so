@@ -6,11 +6,13 @@ import {
   AlertTriangle,
   CheckCircle2,
   Thermometer,
+  Droplets,
   ScanLine,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ScanCodeField } from '@/components/common/ScanCodeField';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -64,7 +66,12 @@ export default function StorageConditionPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<StorageConditionResponse | null>(null);
-  const [lotInfo, setLotInfo] = useState<{ shipmentName: string } | null>(null);
+  const [lotInfo, setLotInfo] = useState<{
+    shipmentName: string;
+    productCategoryName: string;
+    farmAreaName: string;
+    shipmentStatus: string;
+  } | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
@@ -81,7 +88,12 @@ export default function StorageConditionPage() {
         setScanError('Không tìm thấy lô hàng cho mã này.');
         return;
       }
-      setLotInfo({ shipmentName: lookupResult.shipmentName });
+      setLotInfo({
+        shipmentName: lookupResult.shipmentName,
+        productCategoryName: lookupResult.productCategoryName,
+        farmAreaName: lookupResult.farmAreaName,
+        shipmentStatus: lookupResult.shipmentStatus,
+      });
     } catch (err: any) {
       setScanError(err.response?.data?.message || 'Không thể tra cứu mã.');
     } finally {
@@ -147,65 +159,87 @@ export default function StorageConditionPage() {
             Ghi mốc bảo quản
           </CardTitle>
           <CardDescription>
-            Nhập mã truy xuất và thông số nhiệt độ, độ ẩm tại mốc kiểm tra.
+            Nhập mã truy xuất và thông số nhiệt độ, độ ẩm tại thời điểm kiểm tra.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Code scan */}
-            <div className="flex items-end gap-2">
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="codeValue">Mã truy xuất *</Label>
-                <Input
-                  id="codeValue"
-                  value={codeValue}
-                  onChange={(e) => { setCodeValue(e.target.value); setLotInfo(null); setScanError(null); }}
-                  placeholder="VD: 89300900000006"
-                  disabled={isSubmitting}
-                />
-              </div>
-              <Button type="button" variant="secondary" onClick={handleScan} disabled={isSubmitting || isScanning}>
-                {isScanning ? <LoaderCircle className="size-4 animate-spin" /> : <ScanLine className="size-4" />}
-                Tra cứu
-              </Button>
-            </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Mã truy xuất: nút quét cùng hàng label, nút tra cứu trong input */}
+            <ScanCodeField
+              value={codeValue}
+              onChange={(v) => { setCodeValue(v); setLotInfo(null); setScanError(null); }}
+              label="Mã truy xuất *"
+              placeholder="VD: 89300900000006"
+              helperText="Có thể quét QR bằng camera hoặc nhập mã thủ công."
+              disabled={isSubmitting}
+              layout="embedded"
+              scanButtonText="Quét mã QR"
+              trailingAction={
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleScan}
+                  disabled={isSubmitting || isScanning}
+                >
+                  {isScanning ? <LoaderCircle className="size-4 animate-spin" /> : <ScanLine className="size-4" />}
+                  Tra cứu
+                </Button>
+              }
+            />
             {scanError && <Alert variant="destructive"><AlertDescription>{scanError}</AlertDescription></Alert>}
             {lotInfo && (
-              <Card className="border-green-200 bg-green-50">
-                <CardContent className="pt-4">
-                  <p className="text-sm text-green-800">
-                    <span className="font-medium">Lô hàng:</span> {lotInfo.shipmentName}
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="space-y-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5">
+                <p className="flex items-center gap-1.5 text-sm font-semibold text-green-800">
+                  <CheckCircle2 className="size-4" />
+                  Đã tìm thấy lô sản xuất
+                </p>
+                <div className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm text-green-800 sm:grid-cols-2">
+                  <p><span className="font-medium">Lô:</span> {lotInfo.shipmentName}</p>
+                  <p><span className="font-medium">Sản phẩm:</span> {lotInfo.productCategoryName}</p>
+                  <p><span className="font-medium">Vùng trồng:</span> {lotInfo.farmAreaName}</p>
+                  <p><span className="font-medium">Trạng thái:</span> {lotInfo.shipmentStatus}</p>
+                </div>
+              </div>
             )}
 
-            {/* Temperature */}
-            <div className="space-y-2">
-              <Label htmlFor="temperature">Nhiệt độ (°C) *</Label>
-              <Input
-                id="temperature"
-                type="number"
-                step="0.1"
-                value={temperature}
-                onChange={(e) => setTemperature(e.target.value)}
-                placeholder="VD: 15.5"
-                disabled={isSubmitting}
-              />
-            </div>
+            {/* Thông số bảo quản: input thường, không màu cho đến khi đánh giá */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                Thông số bảo quản
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="temperature" className="flex items-center gap-1.5">
+                    <Thermometer className="size-4 text-slate-500" />
+                    Nhiệt độ (°C) *
+                  </Label>
+                  <Input
+                    id="temperature"
+                    type="number"
+                    step="0.1"
+                    value={temperature}
+                    onChange={(e) => setTemperature(e.target.value)}
+                    placeholder="VD: 15.5"
+                    disabled={isSubmitting}
+                  />
+                </div>
 
-            {/* Humidity */}
-            <div className="space-y-2">
-              <Label htmlFor="humidity">Độ ẩm (%) *</Label>
-              <Input
-                id="humidity"
-                type="number"
-                step="0.1"
-                value={humidity}
-                onChange={(e) => setHumidity(e.target.value)}
-                placeholder="VD: 65.2"
-                disabled={isSubmitting}
-              />
+                <div className="space-y-2">
+                  <Label htmlFor="humidity" className="flex items-center gap-1.5">
+                    <Droplets className="size-4 text-slate-500" />
+                    Độ ẩm (%) *
+                  </Label>
+                  <Input
+                    id="humidity"
+                    type="number"
+                    step="0.1"
+                    value={humidity}
+                    onChange={(e) => setHumidity(e.target.value)}
+                    placeholder="VD: 65.2"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
             </div>
 
             {formError && (
@@ -214,13 +248,13 @@ export default function StorageConditionPage() {
               </Alert>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={handleReset} disabled={isSubmitting}>
+                Làm mới
+              </Button>
               <Button type="submit" variant="view" disabled={isSubmitting}>
                 {isSubmitting ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
                 {isSubmitting ? 'Đang ghi nhận...' : 'Ghi nhận'}
-              </Button>
-              <Button type="button" variant="outline" onClick={handleReset} disabled={isSubmitting}>
-                Làm mới
               </Button>
             </div>
           </form>

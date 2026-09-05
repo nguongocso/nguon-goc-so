@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { useWarehouseReceipt } from '@/hooks/useWarehouseReceipt';
 import { scanLookupTraceCode } from '@/api/chainEventApi';
+import { ScanCodeField } from '@/components/common/ScanCodeField';
 import { getLocalDateString } from '@/utils/dateTime';
 import { selectAllOnFocus, preventMouseUpCollapse } from '@/utils/inputUtils';
 
@@ -107,13 +108,6 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleScan();
-    }
-  };
-
   const validate = (): boolean => {
     const result = formSchema.safeParse({
       codeValue,
@@ -183,30 +177,29 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Code scan */}
-          <div className="flex items-end gap-2">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="codeValue">Mã truy xuất (tem QR) *</Label>
-              <Input
-                id="codeValue"
-                value={codeValue}
-                onChange={(e) => { setCodeValue(e.target.value); setLotInfo(null); setScanError(null); }}
-                onKeyDown={handleKeyDown}
-                placeholder="VD: 89300900000006"
-                disabled={isSubmitting}
-              />
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleScan}
-              disabled={isSubmitting || isScanning || !codeValue.trim()}
-            >
-              {isScanning ? <LoaderCircle className="size-4 animate-spin" /> : <ScanLine className="size-4" />}
-              Tra cứu
-            </Button>
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Mã truy xuất: nút quét cùng hàng label, nút tra cứu trong input */}
+          <ScanCodeField
+            value={codeValue}
+            onChange={(v) => { setCodeValue(v); setLotInfo(null); setScanError(null); }}
+            label="Mã truy xuất (tem QR) *"
+            placeholder="VD: 89300900000006"
+            helperText="Có thể quét QR bằng camera hoặc nhập mã thủ công."
+            disabled={isSubmitting}
+            layout="embedded"
+            scanButtonText="Quét mã QR"
+            trailingAction={
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleScan}
+                disabled={isSubmitting || isScanning || !codeValue.trim()}
+              >
+                {isScanning ? <LoaderCircle className="size-4 animate-spin" /> : <ScanLine className="size-4" />}
+                Tra cứu
+              </Button>
+            }
+          />
 
           {scanError && (
             <Alert variant="destructive">
@@ -217,7 +210,7 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
           {/* Lot info */}
           {lotInfo && (
             <Card className="border-blue-200 bg-blue-50">
-              <CardContent className="pt-4">
+              <CardContent className="p-3">
                 <div className="space-y-1 text-sm text-blue-800">
                   <p className="font-semibold">{lotInfo.shipmentName}</p>
                   <p>Đơn vị: {lotInfo.organizationName}</p>
@@ -249,7 +242,7 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
           {/* Discrepancy display */}
           {lotInfo && receivedQuantity && !isNaN(actualQty) && actualQty > 0 && discrepancyInfo && (
             <Card className={discrepancyInfo.isExceeded ? 'border-red-200 bg-red-50' : 'border-emerald-200 bg-emerald-50'}>
-              <CardContent className="pt-4">
+              <CardContent className="p-3">
                 <div className="flex items-start gap-2">
                   {discrepancyInfo.isExceeded ? (
                     <AlertTriangle className="mt-0.5 size-4 text-red-600" />
@@ -297,7 +290,6 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
               onChange={(e) => setReceiptDate(e.target.value)}
               disabled={isSubmitting || !lotInfo}
             />
-            <p className="text-xs text-muted-foreground">Mặc định là ngày hôm nay</p>
           </div>
 
           {/* Discrepancy reason */}
