@@ -11,6 +11,12 @@ data:
   DB_PORT: "3306"
   DB_NAME: "nguongocso_db"
 
+  # Spring profile & Flyway migration locations
+  # Default is production (base-only migrations: schema and data).
+  # Staging CI/CD patches this to 'staging' and adds db/migration-test/data.
+  SPRING_PROFILES_ACTIVE: "prod"
+  SPRING_FLYWAY_LOCATIONS: "classpath:db/migration/schema,classpath:db/migration/data"
+
   # Server
   PORT: "8080"
 

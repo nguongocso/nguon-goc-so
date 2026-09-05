@@ -84,6 +84,10 @@ public class NotificationServiceImpl implements NotificationService {
 
         private static final String SUSPECT_NOTIFICATION_CONTENT_FORMAT = "Mã tem %s bị đánh dấu nghi vấn (điểm: %d). Lý do: %s";
 
+        private static final String UNLOCK_NOTIFICATION_TITLE = "Mã tem đã được mở khóa";
+
+        private static final String UNLOCK_NOTIFICATION_CONTENT_FORMAT = "Mã tem %s đã được Quản trị viên mở khóa sau khi xác minh vào lúc %s. Kết luận: %s";
+
         private final NotificationRepository notificationRepository;
 
         private final TraceCodeRepository traceCodeRepository;
@@ -861,5 +865,60 @@ public class NotificationServiceImpl implements NotificationService {
                                 notifications.size(),
                                 unlockedUser.getUserId(),
                                 accountLock.getId());
+        }
+
+        /**
+         * Gửi thông báo khi mã tem được mở khóa sau khi xác minh (NCL-08-CN-013).
+         *
+         * @param traceCode mã tem đã được mở khóa
+         */
+        @Override
+        public void sendTraceCodeUnlockedNotification(TraceCode traceCode) {
+                Shipment shipment = traceCode.getShipment();
+                if (shipment == null || shipment.getOrganization() == null) {
+                        log.warn("Không tìm thấy thông tin tổ chức sở hữu mã tem {}", traceCode.getCodeValue());
+                        return;
+                }
+                UUID organizationId = shipment.getOrganization().getOrganizationId();
+
+                List<User> recipients = getNotificationRecipients(organizationId);
+
+                if (recipients.isEmpty()) {
+                        log.warn(
+                                        "Không có người dùng có permission {}:{} để nhận "
+                                                        + "thông báo mở khóa mã tem. organizationId={}",
+                                        NOTIFICATION_RESOURCE,
+                                        NOTIFICATION_READ_ACTION,
+                                        organizationId);
+                        return;
+                }
+
+                String content = String.format(
+                                UNLOCK_NOTIFICATION_CONTENT_FORMAT,
+                                traceCode.getCodeValue(),
+                                traceCode.getUnlockedAt() != null ? traceCode.getUnlockedAt().toString() : LocalDateTime.now().toString(),
+                                traceCode.getUnlockConclusion() != null ? traceCode.getUnlockConclusion() : "Đã xác minh an toàn");
+
+                List<Notification> notifications = recipients.stream()
+                                .map(user -> {
+                                        Notification notification = new Notification();
+                                        notification.setUser(user);
+                                        notification.setType(NotificationType.ALERT);
+                                        notification.setTitle(UNLOCK_NOTIFICATION_TITLE);
+                                        notification.setContent(content);
+                                        notification.setIsRead(false);
+                                        notification.setReadAt(null);
+                                        return notification;
+                                })
+                                .toList();
+
+                notificationRepository.saveAll(notifications);
+
+                log.info(
+                                "Đã tạo {} notification mở khóa mã tem. "
+                                                + "organizationId={}, traceCodeId={}",
+                                notifications.size(),
+                                organizationId,
+                                traceCode.getId());
         }
 }

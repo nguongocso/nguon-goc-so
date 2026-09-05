@@ -2,7 +2,7 @@ export interface SuspectTraceCodeResponse {
   id: string;
   codeValue: string;
   shipmentName: string;
-  status: 'SUSPECT' | 'LOCKED';
+  status: 'SUSPECT' | 'LOCKED' | 'ACTIVE';
   suspicionScore: number;
   suspicionReason: string | null;
   scanCount: number;
@@ -13,6 +13,12 @@ export interface SuspectTraceCodeResponse {
   lockedBy: string | null;
   lockedByName: string | null;
   lockReason: string | null;
+  unlockedAt?: string | null;
+  unlockedBy?: string | null;
+  unlockedByName?: string | null;
+  unlockConclusion?: string | null;
+  unlockEvidence?: string | null;
+  verificationNote?: string | null;
 }
 
 export interface ScanLogDetail {
@@ -46,6 +52,11 @@ export interface LockTraceCodeRequest {
   reason: string;
 }
 
+export interface UnlockTraceCodeRequest {
+  conclusion: string;
+  evidence?: string;
+}
+
 export interface LockTraceCodeResponse {
   id: string;
   codeValue: string;
@@ -54,6 +65,19 @@ export interface LockTraceCodeResponse {
   lockedBy: string;
   lockedByName: string;
   lockReason: string;
+  notificationSent: boolean;
+}
+
+export interface UnlockTraceCodeResponse {
+  id: string;
+  codeValue: string;
+  status: string;
+  unlockedAt: string;
+  unlockedBy: string;
+  unlockedByName: string;
+  unlockConclusion: string;
+  unlockEvidence?: string | null;
+  verificationNote: string;
   notificationSent: boolean;
 }
 

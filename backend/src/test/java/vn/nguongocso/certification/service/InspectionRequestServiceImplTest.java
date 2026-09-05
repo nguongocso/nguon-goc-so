@@ -1207,4 +1207,282 @@ class InspectionRequestServiceImplTest {
                 .hasMessageContaining(
                         "không tồn tại");
     }
+
+    // ============================================================
+    // Regression tests: Duplicate detection by ID (not by name)
+    // ============================================================
+
+    /**
+     * Regression test: Hai chỉ tiêu khác ID nhưng cùng tên
+     * KHÔNG được coi là duplicate.
+     *
+     * Input:
+     *   - Criterion 101: "Dư lượng thuốc BVTV"
+     *   - Criterion 205: "Dư lượng thuốc BVTV"
+     *
+     * Expected: PASS - Request được tạo thành công.
+     */
+    @Test
+    void createInspectionRequest_shouldAllowDifferentIdSameNameCriteria() {
+
+        // Arrange
+        CreateInspectionRequest request = new CreateInspectionRequest();
+        request.setTestingUnit("Lab ABC");
+        request.setSampleSentDate(LocalDate.now());
+        request.setCriteriaIds(List.of(101L, 205L));
+
+        when(productionLotRepository.findByIdAndOrganization_OrganizationId(lotId, orgId))
+                .thenReturn(Optional.of(lot));
+        when(chainEventRepository
+                .existsByProductionLotIdOrUnassignedEventDataAndEventType(
+                        lotId, lotId.toString(), ChainEventType.HARVEST))
+                .thenReturn(true);
+
+        // Criterion 101: "Dư lượng thuốc BVTV"
+        InspectionCriterionCatalog c1 = InspectionCriterionCatalog.builder()
+                .id(101L)
+                .name("Dư lượng thuốc BVTV")
+                .unit("mg/kg")
+                .maxThreshold(new java.math.BigDecimal("0.5"))
+                .status("ACTIVE")
+                .build();
+
+        // Criterion 205: same name "Dư lượng thuốc BVTV" but different ID
+        InspectionCriterionCatalog c2 = InspectionCriterionCatalog.builder()
+                .id(205L)
+                .name("Dư lượng thuốc BVTV")
+                .unit("mg/kg")
+                .maxThreshold(new java.math.BigDecimal("1.0"))
+                .status("ACTIVE")
+                .build();
+
+        when(inspectionCriterionCatalogRepository.findById(101L))
+                .thenReturn(Optional.of(c1));
+        when(inspectionCriterionCatalogRepository.findById(205L))
+                .thenReturn(Optional.of(c2));
+        when(categoryCriterionRepository.existsByCategory_IdAndCriterion_Id(categoryId, 101L))
+                .thenReturn(true);
+        when(categoryCriterionRepository.existsByCategory_IdAndCriterion_Id(categoryId, 205L))
+                .thenReturn(true);
+
+        when(inspectionRequestRepository.findByProductionLot_IdAndStatus(
+                lotId, InspectionRequestStatus.PENDING_RESULT))
+                .thenReturn(List.of());
+        when(inspectionRequestRepository.save(any(InspectionRequest.class)))
+                .thenAnswer(invocation -> {
+                    InspectionRequest saved = invocation.getArgument(0);
+                    saved.setId(UUID.randomUUID());
+                    return saved;
+                });
+
+        // Act
+        InspectionRequestResponse response = inspectionRequestService
+                .createInspectionRequest(lotId, request, currentUser);
+
+        // Assert
+        assertThat(response).isNotNull();
+        assertThat(response.getCriteria()).hasSize(2);
+        verify(inspectionRequestRepository).save(any(InspectionRequest.class));
+    }
+
+    /**
+     * Regression test: Hai chỉ tiêu cùng ID
+     * PHẢI bị coi là duplicate.
+     *
+     * Input:
+     *   - Criterion 101: "Dư lượng thuốc BVTV"
+     *   - Criterion 101: "Dư lượng thuốc BVTV"
+     *
+     * Expected: FAIL - Bị reject vì duplicate criterion.
+     */
+    @Test
+    void createInspectionRequest_shouldRejectSameIdDuplicateCriteria() {
+
+        // Arrange
+        CreateInspectionRequest request = new CreateInspectionRequest();
+        request.setTestingUnit("Lab ABC");
+        request.setSampleSentDate(LocalDate.now());
+        // Same ID twice
+        request.setCriteriaIds(List.of(101L, 101L));
+
+        when(productionLotRepository.findByIdAndOrganization_OrganizationId(lotId, orgId))
+                .thenReturn(Optional.of(lot));
+        when(chainEventRepository
+                .existsByProductionLotIdOrUnassignedEventDataAndEventType(
+                        lotId, lotId.toString(), ChainEventType.HARVEST))
+                .thenReturn(true);
+
+        // NOTE: No need to mock inspectionCriterionCatalogRepository or
+        // categoryCriterionRepository because the service detects the
+        // duplicate ID in the validation loop (before calling these).
+
+        // Act & Assert
+        assertThatThrownBy(() ->
+                inspectionRequestService.createInspectionRequest(lotId, request, currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("trùng");
+
+        verify(inspectionRequestRepository, never()).save(any(InspectionRequest.class));
+    }
+
+    /**
+     * Regression test: Hai chỉ tiêu khác ID và khác tên
+     * KHÔNG được coi là duplicate.
+     *
+     * Input:
+     *   - Criterion 101: "Dư lượng thuốc BVTV"
+     *   - Criterion 205: "Hàm lượng kim loại nặng"
+     *
+     * Expected: PASS - Request được tạo thành công.
+     */
+    @Test
+    void createInspectionRequest_shouldAllowDifferentIdDifferentNameCriteria() {
+
+        // Arrange
+        CreateInspectionRequest request = new CreateInspectionRequest();
+        request.setTestingUnit("Lab ABC");
+        request.setSampleSentDate(LocalDate.now());
+        request.setCriteriaIds(List.of(101L, 205L));
+
+        when(productionLotRepository.findByIdAndOrganization_OrganizationId(lotId, orgId))
+                .thenReturn(Optional.of(lot));
+        when(chainEventRepository
+                .existsByProductionLotIdOrUnassignedEventDataAndEventType(
+                        lotId, lotId.toString(), ChainEventType.HARVEST))
+                .thenReturn(true);
+
+        // Criterion 101: "Dư lượng thuốc BVTV"
+        InspectionCriterionCatalog c1 = InspectionCriterionCatalog.builder()
+                .id(101L)
+                .name("Dư lượng thuốc BVTV")
+                .unit("mg/kg")
+                .maxThreshold(new java.math.BigDecimal("0.5"))
+                .status("ACTIVE")
+                .build();
+
+        // Criterion 205: different name
+        InspectionCriterionCatalog c2 = InspectionCriterionCatalog.builder()
+                .id(205L)
+                .name("Hàm lượng kim loại nặng")
+                .unit("mg/kg")
+                .maxThreshold(new java.math.BigDecimal("1.0"))
+                .status("ACTIVE")
+                .build();
+
+        when(inspectionCriterionCatalogRepository.findById(101L))
+                .thenReturn(Optional.of(c1));
+        when(inspectionCriterionCatalogRepository.findById(205L))
+                .thenReturn(Optional.of(c2));
+        when(categoryCriterionRepository.existsByCategory_IdAndCriterion_Id(categoryId, 101L))
+                .thenReturn(true);
+        when(categoryCriterionRepository.existsByCategory_IdAndCriterion_Id(categoryId, 205L))
+                .thenReturn(true);
+
+        when(inspectionRequestRepository.findByProductionLot_IdAndStatus(
+                lotId, InspectionRequestStatus.PENDING_RESULT))
+                .thenReturn(List.of());
+        when(inspectionRequestRepository.save(any(InspectionRequest.class)))
+                .thenAnswer(invocation -> {
+                    InspectionRequest saved = invocation.getArgument(0);
+                    saved.setId(UUID.randomUUID());
+                    return saved;
+                });
+
+        // Act
+        InspectionRequestResponse response = inspectionRequestService
+                .createInspectionRequest(lotId, request, currentUser);
+
+        // Assert
+        assertThat(response).isNotNull();
+        assertThat(response.getCriteria()).hasSize(2);
+        verify(inspectionRequestRepository).save(any(InspectionRequest.class));
+    }
+
+    /**
+     * Regression test: Một chỉ tiêu duy nhất.
+     *
+     * Input:
+     *   - Criterion 101: "Dư lượng thuốc BVTV"
+     *
+     * Expected: PASS
+     */
+    @Test
+    void createInspectionRequest_shouldAllowSingleCriterion() {
+
+        // Arrange
+        CreateInspectionRequest request = new CreateInspectionRequest();
+        request.setTestingUnit("Lab ABC");
+        request.setSampleSentDate(LocalDate.now());
+        request.setCriteriaIds(List.of(101L));
+
+        when(productionLotRepository.findByIdAndOrganization_OrganizationId(lotId, orgId))
+                .thenReturn(Optional.of(lot));
+        when(chainEventRepository
+                .existsByProductionLotIdOrUnassignedEventDataAndEventType(
+                        lotId, lotId.toString(), ChainEventType.HARVEST))
+                .thenReturn(true);
+
+        when(inspectionCriterionCatalogRepository.findById(101L))
+                .thenReturn(Optional.of(catalogCriterion));
+        when(categoryCriterionRepository.existsByCategory_IdAndCriterion_Id(categoryId, 101L))
+                .thenReturn(true);
+
+        when(inspectionRequestRepository.findByProductionLot_IdAndStatus(
+                lotId, InspectionRequestStatus.PENDING_RESULT))
+                .thenReturn(List.of());
+        when(inspectionRequestRepository.save(any(InspectionRequest.class)))
+                .thenAnswer(invocation -> {
+                    InspectionRequest saved = invocation.getArgument(0);
+                    saved.setId(UUID.randomUUID());
+                    return saved;
+                });
+
+        // Act
+        InspectionRequestResponse response = inspectionRequestService
+                .createInspectionRequest(lotId, request, currentUser);
+
+        // Assert
+        assertThat(response).isNotNull();
+        assertThat(response.getCriteria()).hasSize(1);
+        verify(inspectionRequestRepository).save(any(InspectionRequest.class));
+    }
+
+    /**
+     * Regression test: Không được bypass backend validation.
+     *
+     * Nếu frontend gửi trực tiếp request với cùng ID 2 lần,
+     * backend phải reject. Frontend validation không được là
+     * lớp bảo vệ duy nhất.
+     */
+    @Test
+    void createInspectionRequest_shouldRejectDuplicateIdEvenIfFrontendBypassed() {
+
+        // Arrange - simulate frontend bypass sending same ID twice
+        CreateInspectionRequest request = new CreateInspectionRequest();
+        request.setTestingUnit("Lab ABC");
+        request.setSampleSentDate(LocalDate.now());
+        request.setCriteriaIds(List.of(101L, 101L));
+        // Even with confirmDuplicate = true, same-ID should still be rejected
+        // because it's a data integrity issue, not a duplicate request issue
+        request.setConfirmDuplicate(true);
+
+        when(productionLotRepository.findByIdAndOrganization_OrganizationId(lotId, orgId))
+                .thenReturn(Optional.of(lot));
+        when(chainEventRepository
+                .existsByProductionLotIdOrUnassignedEventDataAndEventType(
+                        lotId, lotId.toString(), ChainEventType.HARVEST))
+                .thenReturn(true);
+
+        // NOTE: No need to mock inspectionCriterionCatalogRepository or
+        // categoryCriterionRepository because the service detects the
+        // duplicate ID in the validation loop (before calling these).
+
+        // Act & Assert
+        assertThatThrownBy(() ->
+                inspectionRequestService.createInspectionRequest(lotId, request, currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("trùng");
+
+        verify(inspectionRequestRepository, never()).save(any(InspectionRequest.class));
+    }
 }

@@ -87,6 +87,22 @@ public class TraceCode {
     @Column(name = "cancel_reason", columnDefinition = "TEXT")
     private String cancelReason;
 
+    @Column(name = "unlocked_at")
+    private LocalDateTime unlockedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "unlocked_by")
+    private User unlockedBy;
+
+    @Column(name = "unlock_conclusion", columnDefinition = "TEXT")
+    private String unlockConclusion;
+
+    @Column(name = "unlock_evidence", columnDefinition = "TEXT")
+    private String unlockEvidence;
+
+    @Column(name = "verification_note", columnDefinition = "TEXT")
+    private String verificationNote;
+
     @PrePersist
     protected void onCreate() {
         if (id == null) {

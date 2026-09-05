@@ -76,4 +76,11 @@ public interface NotificationService {
      * Gửi thông báo khi tài khoản được mở khóa.
      */
     void sendAccountUnlockedNotification(AccountLock accountLock);
+
+    /**
+     * Gửi thông báo khi mã tem được mở khóa sau khi xác minh (NCL-08-CN-013).
+     *
+     * @param traceCode mã tem đã được mở khóa
+     */
+    void sendTraceCodeUnlockedNotification(TraceCode traceCode);
 }

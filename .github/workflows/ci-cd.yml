@@ -316,12 +316,12 @@ jobs:
           FRONTEND_URL="https://staging.agri-trace.online"
           kubectl -n "$NS" patch configmap backend-config -p "{\"data\":{\"ALLOWED_ORIGINS\":\"$ORIGINS\",\"FRONTEND_URL\":\"$FRONTEND_URL\"}}"
 
-      - name: Set database name for staging
+      - name: Set database name and environment configuration for staging
         env:
           KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
         run: |
           NS="${KUBE_NAMESPACE:-nguongocso}"
-          kubectl -n "$NS" patch configmap backend-config -p '{"data":{"DB_NAME":"nguongocso_staging_db"}}'
+          kubectl -n "$NS" patch configmap backend-config -p '{"data":{"DB_NAME":"nguongocso_staging_db","SPRING_PROFILES_ACTIVE":"staging","SPRING_FLYWAY_LOCATIONS":"classpath:db/migration/schema,classpath:db/migration/data,classpath:db/migration-test/data"}}'
 
       - name: Restart deployments
         env:
@@ -471,12 +471,12 @@ jobs:
           FRONTEND_URL="https://agri-trace.online"
           kubectl -n "$NS" patch configmap backend-config -p "{\"data\":{\"ALLOWED_ORIGINS\":\"$ORIGINS\",\"FRONTEND_URL\":\"$FRONTEND_URL\"}}"
 
-      - name: Set database name for production
+      - name: Set database name and environment configuration for production
         env:
           KUBE_NAMESPACE: ${{ secrets.KUBE_NAMESPACE }}
         run: |
           NS="${KUBE_NAMESPACE:-nguongocso}"
-          kubectl -n "$NS" patch configmap backend-config -p '{"data":{"DB_NAME":"nguongocso_db"}}'
+          kubectl -n "$NS" patch configmap backend-config -p '{"data":{"DB_NAME":"nguongocso_db","SPRING_PROFILES_ACTIVE":"prod","SPRING_FLYWAY_LOCATIONS":"classpath:db/migration/schema,classpath:db/migration/data"}}'
 
       - name: Restart deployments
         env:

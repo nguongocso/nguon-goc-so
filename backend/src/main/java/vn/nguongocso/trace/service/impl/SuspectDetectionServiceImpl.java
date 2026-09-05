@@ -8,14 +8,17 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.common.PageResponse;
@@ -26,12 +29,14 @@ import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.report.entity.TraceCodeScanLog;
 import vn.nguongocso.report.repository.TraceCodeScanLogRepository;
 import vn.nguongocso.trace.dto.request.LockTraceCodeRequest;
+import vn.nguongocso.trace.dto.request.UnlockTraceCodeRequest;
 import vn.nguongocso.trace.dto.response.AnomalyDetails;
 import vn.nguongocso.trace.dto.response.LockTraceCodeResponse;
 import vn.nguongocso.trace.dto.response.ScanLogDetail;
 import vn.nguongocso.trace.dto.response.ScoreBreakdown;
 import vn.nguongocso.trace.dto.response.SuspectTraceCodeDetailResponse;
 import vn.nguongocso.trace.dto.response.SuspectTraceCodeResponse;
+import vn.nguongocso.trace.dto.response.UnlockTraceCodeResponse;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
@@ -68,6 +73,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
     private final TraceCodeScanLogRepository scanLogRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -158,13 +164,23 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
             } catch (IllegalArgumentException e) {
                 throw new BusinessException("Trạng thái không hợp lệ: " + statusStr);
             }
-            traceCodePage = traceCodeRepository.findBySuspicionScoreGreaterThanEqualAndStatus(
-                    effectiveMinScore, filterStatus, pageRequest);
+            if (minScore != null) {
+                traceCodePage = traceCodeRepository.findBySuspicionScoreGreaterThanEqualAndStatus(
+                        minScore, filterStatus, pageRequest);
+            } else {
+                traceCodePage = traceCodeRepository.findByStatus(filterStatus, pageRequest);
+            }
         } else {
-            traceCodePage = traceCodeRepository.findBySuspicionScoreGreaterThanEqualAndStatusIn(
-                    effectiveMinScore,
-                    List.of(TraceCodeStatus.SUSPECT, TraceCodeStatus.LOCKED),
-                    pageRequest);
+            if (minScore != null) {
+                traceCodePage = traceCodeRepository.findBySuspicionScoreGreaterThanEqualAndStatusIn(
+                        minScore,
+                        List.of(TraceCodeStatus.SUSPECT, TraceCodeStatus.LOCKED, TraceCodeStatus.ACTIVE),
+                        pageRequest);
+            } else {
+                traceCodePage = traceCodeRepository.findByStatusIn(
+                        List.of(TraceCodeStatus.SUSPECT, TraceCodeStatus.LOCKED, TraceCodeStatus.ACTIVE),
+                        pageRequest);
+            }
         }
 
         List<SuspectTraceCodeResponse> items = traceCodePage.getContent().stream()
@@ -229,6 +245,12 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                 .lockedBy(traceCode.getLockedBy() != null ? traceCode.getLockedBy().getUserId() : null)
                 .lockedByName(traceCode.getLockedBy() != null ? traceCode.getLockedBy().getFullName() : null)
                 .lockReason(traceCode.getLockReason())
+                .unlockedAt(traceCode.getUnlockedAt())
+                .unlockedBy(traceCode.getUnlockedBy() != null ? traceCode.getUnlockedBy().getUserId() : null)
+                .unlockedByName(traceCode.getUnlockedBy() != null ? traceCode.getUnlockedBy().getFullName() : null)
+                .unlockConclusion(traceCode.getUnlockConclusion())
+                .unlockEvidence(traceCode.getUnlockEvidence())
+                .verificationNote(traceCode.getVerificationNote())
                 .scanLogs(scanLogDetails)
                 .anomalyDetails(anomalyDetails)
                 .build();
@@ -259,6 +281,26 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
 
         traceCodeRepository.save(traceCode);
 
+        // Ghi nhận nhật ký hoạt động
+        try {
+            UUID orgId = traceCode.getShipment() != null && traceCode.getShipment().getOrganization() != null
+                    ? traceCode.getShipment().getOrganization().getOrganizationId()
+                    : null;
+            eventPublisher.publishEvent(ActivityLogEvent.builder()
+                    .userId(userId)
+                    .username(lockingUser.getUserName())
+                    .fullName(userName)
+                    .organizationId(orgId)
+                    .action("LOCK_TRACE_CODE")
+                    .description("Khóa mã tem " + traceCode.getCodeValue() + ". Lý do: " + request.getReason())
+                    .entityType("TRACE_CODE")
+                    .entityId(traceCode.getId().toString())
+                    .timestamp(LocalDateTime.now())
+                    .build());
+        } catch (Exception e) {
+            log.warn("Không thể phát sự kiện ActivityLogEvent khi khóa mã tem: {}", e.getMessage());
+        }
+
         log.info("Trace code {} locked by {} ({}). Reason: {}",
                 traceCode.getCodeValue(), userName, userId, request.getReason());
 
@@ -287,13 +329,41 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
         User unlockingUser = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng."));
 
-        // After unlock, go back to SUSPECT state (not ACTIVE) because the suspicion still exists
-        traceCode.setStatus(TraceCodeStatus.SUSPECT);
-        traceCode.setLockedAt(null);
-        traceCode.setLockedBy(null);
-        traceCode.setLockReason(null);
+        // Sau khi mở khóa, chuyển về ACTIVE kèm kết luận xác minh
+        traceCode.setStatus(TraceCodeStatus.ACTIVE);
+        traceCode.setUnlockedAt(LocalDateTime.now());
+        traceCode.setUnlockedBy(unlockingUser);
+        traceCode.setUnlockConclusion(reason);
+        traceCode.setVerificationNote(reason);
 
         traceCodeRepository.save(traceCode);
+
+        // Ghi nhận nhật ký hoạt động
+        try {
+            UUID orgId = traceCode.getShipment() != null && traceCode.getShipment().getOrganization() != null
+                    ? traceCode.getShipment().getOrganization().getOrganizationId()
+                    : null;
+            eventPublisher.publishEvent(ActivityLogEvent.builder()
+                    .userId(userId)
+                    .username(unlockingUser.getUserName())
+                    .fullName(userName)
+                    .organizationId(orgId)
+                    .action("UNLOCK_TRACE_CODE")
+                    .description("Mở khóa mã tem " + traceCode.getCodeValue() + ". Kết luận: " + reason)
+                    .entityType("TRACE_CODE")
+                    .entityId(traceCode.getId().toString())
+                    .timestamp(LocalDateTime.now())
+                    .build());
+        } catch (Exception e) {
+            log.warn("Không thể phát sự kiện ActivityLogEvent khi mở khóa mã tem: {}", e.getMessage());
+        }
+
+        // Gửi thông báo đến HTX sở hữu
+        try {
+            notificationService.sendTraceCodeUnlockedNotification(traceCode);
+        } catch (Exception e) {
+            log.warn("Không thể gửi thông báo mở khóa mã tem {}: {}", traceCode.getCodeValue(), e.getMessage());
+        }
 
         log.info("Trace code {} unlocked by {} ({}). Reason: {}",
                 traceCode.getCodeValue(), userName, userId, reason);
@@ -308,6 +378,98 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                 .lockReason(reason)
                 .notificationSent(true)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public UnlockTraceCodeResponse unlockTraceCodeWithVerification(String codeOrId, UnlockTraceCodeRequest request, UUID userId, String userName) {
+        TraceCode traceCode = findTraceCodeByIdOrCodeValue(codeOrId);
+
+        if (traceCode.getStatus() != TraceCodeStatus.LOCKED) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Mã tem không ở trạng thái bị khóa.");
+        }
+
+        String conclusion = request.getConclusion() != null ? request.getConclusion().trim() : "";
+        if (conclusion.isBlank()) {
+            throw new BusinessException("Kết luận xác minh không được để trống.");
+        }
+
+        // Kiểm tra cùng Quản trị viên khóa: nếu trùng người khóa, yêu cầu kết luận chi tiết hơn (≥ 20 ký tự)
+        if (traceCode.getLockedBy() != null && traceCode.getLockedBy().getUserId().equals(userId)) {
+            if (conclusion.length() < 20) {
+                throw new BusinessException("Quản trị viên đã khóa mã tem cần nhập kết luận xác minh chi tiết hơn (tối thiểu 20 ký tự).");
+            }
+        }
+
+        User unlockingUser = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng."));
+
+        LocalDateTime now = LocalDateTime.now();
+        traceCode.setStatus(TraceCodeStatus.ACTIVE);
+        traceCode.setUnlockedAt(now);
+        traceCode.setUnlockedBy(unlockingUser);
+        traceCode.setUnlockConclusion(conclusion);
+        traceCode.setUnlockEvidence(request.getEvidence() != null ? request.getEvidence().trim() : null);
+        traceCode.setVerificationNote(conclusion);
+
+        traceCodeRepository.save(traceCode);
+
+        // Ghi nhận nhật ký hoạt động
+        try {
+            UUID orgId = traceCode.getShipment() != null && traceCode.getShipment().getOrganization() != null
+                    ? traceCode.getShipment().getOrganization().getOrganizationId()
+                    : null;
+            eventPublisher.publishEvent(ActivityLogEvent.builder()
+                    .userId(userId)
+                    .username(unlockingUser.getUserName())
+                    .fullName(userName)
+                    .organizationId(orgId)
+                    .action("UNLOCK_TRACE_CODE")
+                    .description("Mở khóa mã tem " + traceCode.getCodeValue() + ". Kết luận xác minh: " + conclusion)
+                    .entityType("TRACE_CODE")
+                    .entityId(traceCode.getId().toString())
+                    .timestamp(now)
+                    .build());
+        } catch (Exception e) {
+            log.warn("Không thể phát sự kiện ActivityLogEvent khi mở khóa mã tem: {}", e.getMessage());
+        }
+
+        // Gửi thông báo đến HTX sở hữu
+        boolean notificationSent = false;
+        try {
+            notificationService.sendTraceCodeUnlockedNotification(traceCode);
+            notificationSent = true;
+        } catch (Exception e) {
+            log.warn("Không thể gửi thông báo mở khóa mã tem {}: {}", traceCode.getCodeValue(), e.getMessage());
+        }
+
+        log.info("Trace code {} unlocked after verification by {} ({}). Conclusion: {}",
+                traceCode.getCodeValue(), userName, userId, conclusion);
+
+        return UnlockTraceCodeResponse.builder()
+                .id(traceCode.getId())
+                .codeValue(traceCode.getCodeValue())
+                .status(traceCode.getStatus().name())
+                .unlockedAt(now)
+                .unlockedBy(userId)
+                .unlockedByName(userName)
+                .unlockConclusion(conclusion)
+                .unlockEvidence(traceCode.getUnlockEvidence())
+                .verificationNote(conclusion)
+                .notificationSent(notificationSent)
+                .build();
+    }
+
+    private TraceCode findTraceCodeByIdOrCodeValue(String codeOrId) {
+        try {
+            UUID uuid = UUID.fromString(codeOrId);
+            return traceCodeRepository.findById(uuid)
+                    .orElseGet(() -> traceCodeRepository.findByCodeValue(codeOrId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy mã tem.")));
+        } catch (IllegalArgumentException e) {
+            return traceCodeRepository.findByCodeValue(codeOrId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy mã tem."));
+        }
     }
 
     /**
@@ -445,6 +607,12 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                 .lockedBy(tc.getLockedBy() != null ? tc.getLockedBy().getUserId() : null)
                 .lockedByName(tc.getLockedBy() != null ? tc.getLockedBy().getFullName() : null)
                 .lockReason(tc.getLockReason())
+                .unlockedAt(tc.getUnlockedAt())
+                .unlockedBy(tc.getUnlockedBy() != null ? tc.getUnlockedBy().getUserId() : null)
+                .unlockedByName(tc.getUnlockedBy() != null ? tc.getUnlockedBy().getFullName() : null)
+                .unlockConclusion(tc.getUnlockConclusion())
+                .unlockEvidence(tc.getUnlockEvidence())
+                .verificationNote(tc.getVerificationNote())
                 .build();
     }
 
