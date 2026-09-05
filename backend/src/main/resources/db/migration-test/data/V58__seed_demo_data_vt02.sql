@@ -234,7 +234,39 @@ FROM (
 ) r
 CROSS JOIN (SELECT 1 m UNION ALL SELECT 2 UNION ALL SELECT 3) c;
 
--- 9. Partner API Keys (15 khóa cho bên thứ ba)
+-- 9. Chain events (sự kiện thu hoạch) cho lô 1-10
+--    Cần thiết để tạo yêu cầu kiểm nghiệm (validate HARVEST event tồn tại):
+--    InspectionRequestServiceImpl kiểm tra chain_events có
+--    event_type = 'HARVEST' + event_data->>'$.productionLotId' = lot.id
+--    (event chưa gắn shipment - shipment_id IS NULL).
+--    Lô 1-5: PACKAGED -> có HARVEST event trước khi đóng gói
+--    Lô 6-10: HARVESTED -> có HARVEST event
+--    LƯU Ý: prefix ID '000a' phải KHÔNG TRÙNG với prefix của bảng khác
+--    trong file seed này (0001=farm_areas, 0002=production_lot, 0003=certifications,
+--    0004=lot_certifications, 0005=inspection_requests, 0006=inspection_criteria,
+--    0007=results, 0009=partner_api_keys) vì INSERT IGNORE sẽ nuốt lỗi
+--    duplicate-key một cách im lặng.
+INSERT IGNORE INTO chain_events
+    (id, shipment_id, event_type, event_data, location, recorded_at, recorded_by, created_at)
+SELECT
+    CONCAT('00000000-0000-0000-0000-000a', LPAD(t.i, 8, '0')),
+    NULL,
+    'HARVEST',
+    JSON_OBJECT(
+        'productionLotId', CONCAT('00000000-0000-0000-0000-0002', LPAD(t.i, 8, '0')),
+        'harvestDate', DATE_ADD(DATE '2026-06-01', INTERVAL 5 * t.i DAY),
+        'quantity', 1500 + t.i * 300 - 30
+    ),
+    ST_GeomFromText(CONCAT('POINT(', 105.8501 + t.i * 0.01, ' ', 21.0301 + t.i * 0.01, ')')),
+    DATE_ADD(DATE '2026-06-01', INTERVAL 5 * t.i DAY),
+    (SELECT user_id FROM users WHERE user_name = 'orgmanager'),
+    NOW()
+FROM (
+    SELECT 1 i UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5
+    UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10
+) t;
+
+-- 10. Partner API Keys (15 khóa cho bên thứ ba)
 --    key_hash = SHA2(raw_key, 256) khớp với hashSha256() trong PartnerApiKeyService.
 --    RAW KEY (dùng header 'X-API-KEY') được ghi đầy đủ ở comment cuối file.
 INSERT IGNORE INTO partner_api_keys

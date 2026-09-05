@@ -17,7 +17,7 @@ import java.util.UUID;
     uniqueConstraints = {
         @UniqueConstraint(
             name = "uk_inspection_request_criterion",
-            columnNames = {"inspection_request_id", "criterion_code"}
+            columnNames = {"inspection_request_id", "criterion_id"}
         )
     }
 )

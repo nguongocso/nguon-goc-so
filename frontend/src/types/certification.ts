@@ -244,6 +244,8 @@ export interface InspectionRequestDetailResponse {
  */
 export interface InspectionRequestDetailCriterion {
   criterionId: string;
+  /** ID chỉ tiêu trong danh mục dùng chung (catalog criterion ID). */
+  criterionDefinitionId: number | null;
   code: string;
   name: string;
   standardName: string | null;
@@ -264,6 +266,8 @@ export interface InspectionCriterionResult {
   resultId: string;
   /** UUID snapshot của chỉ tiêu thuộc yêu cầu (inspection_criteria.id). */
   criterionId: string;
+  /** ID chỉ tiêu trong danh mục dùng chung (catalog criterion ID). */
+  criterionDefinitionId: number | null;
   criterionCode: string;
   criterionName: string;
   /** Ngày cấp kết quả; null khi chỉ tiêu Không đạt (kết quả không có hiệu lực). */

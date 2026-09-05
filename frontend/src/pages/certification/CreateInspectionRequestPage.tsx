@@ -104,11 +104,12 @@ const HISTORY_PAGE_SIZE = 50;
 
 /**
  * Khóa đối chiếu giữa chỉ tiêu của lô (GET /test-criteria) và
- * chỉ tiêu snapshot trong các yêu cầu kiểm nghiệm cũ. Cả hai phía
- * đều sinh từ `name` của chỉ tiêu trong danh mục dùng chung nên
- * khớp chính xác sau khi chuẩn hóa.
+ * chỉ tiêu snapshot trong các yêu cầu kiểm nghiệm cũ.
+ *
+ * Identity của chỉ tiêu dựa trên criteriaId (không phải name).
+ * Hai chỉ tiêu khác ID nhưng cùng tên KHÔNG bị coi là trùng.
  */
-const normalizeCriterionKey = (value: string) => value.trim().toLowerCase();
+const normalizeCriterionKey = (criteriaId: number): string => String(criteriaId);
 
 /** Một dòng chỉ tiêu trên bảng lựa chọn (đã gộp dữ liệu danh mục). */
 interface CriterionRow {
@@ -261,7 +262,9 @@ export const CreateInspectionRequestPage: React.FC = () => {
         try {
           const detail = await getInspectionRequestDetail(requestId);
           detail.criteria?.forEach((criterion) => {
-            const key = normalizeCriterionKey(criterion.code || criterion.name);
+            const key = criterion.criterionDefinitionId != null
+              ? normalizeCriterionKey(criterion.criterionDefinitionId)
+              : null;
             if (!key) return;
             if (criterion.result == null) {
               keysWithoutResult.add(key);
@@ -325,7 +328,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
   ) =>
     new Set(
       rows
-        .filter((c) => !createdKeys.has(normalizeCriterionKey(c.code || c.name)))
+        .filter((c) => !createdKeys.has(normalizeCriterionKey(c.criteriaId)))
         .map((c) => c.criteriaId)
     );
 
@@ -436,7 +439,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
         unit: catalogEntry?.unit ?? null,
         maxThreshold: catalogEntry?.maxThreshold ?? null,
         isCreated: createdCriterionKeys.has(
-          normalizeCriterionKey(item.code || item.name)
+          normalizeCriterionKey(item.criteriaId)
         ),
       };
     });
@@ -700,7 +703,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
       const submittedKeys = new Set(
         criterionRows
           .filter((row) => effectiveCriteriaIds.includes(row.criteriaId))
-          .map((row) => normalizeCriterionKey(row.code || row.name))
+          .map((row) => normalizeCriterionKey(row.criteriaId))
       );
       setCreatedCriterionKeys((prev) => new Set([...prev, ...submittedKeys]));
 

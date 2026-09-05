@@ -26,6 +26,12 @@ public class InspectionCriterionResultResponse {
     private String criterionId;
 
     /**
+     * ID chỉ tiêu trong danh mục dùng chung (catalog criterion ID).
+     * Dùng để xác định identity của chỉ tiêu (không phải name).
+     */
+    private Long criterionDefinitionId;
+
+    /**
      * Mã chỉ tiêu.
      */
     private String criterionCode;
