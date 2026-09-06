@@ -1270,7 +1270,7 @@ export const ProductionLotDetailPage = () => {
       </Card>
 
       {/* NCL-11-CN-005: Cảnh báo lô không đạt kiểm nghiệm */}
-      {isInspectionFailed && (
+      {isInspectionFailed && !isLotDisposed && (
         <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
@@ -1301,14 +1301,14 @@ export const ProductionLotDetailPage = () => {
 
       {/* NCL-11-CN-005: Thông báo lô đã loại bỏ */}
       {isLotDisposed && (
-        <div className="mt-6 rounded-xl border border-gray-300 bg-gray-50 p-4">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-gray-600 shrink-0 mt-0.5" />
+            <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
             <div>
-              <p className="font-medium text-gray-800">Đã loại bỏ</p>
-              <p className="mt-1 text-sm text-gray-700">
-                Lô sản xuất đã bị loại bỏ. Lý do: {lot.disposalReason}.
-                Biện pháp xử lý: {lot.handlingMeasure}.
+              <p className="font-medium text-red-800">Đã loại bỏ</p>
+              <p className="mt-1 text-sm text-red-700">
+                Lô sản xuất đã bị loại bỏ. Lý do: {lot.disposalReason || "Không có thông tin"}.
+                Biện pháp xử lý: {lot.handlingMeasure || "Không có thông tin"}.
               </p>
             </div>
           </div>
@@ -1341,28 +1341,32 @@ export const ProductionLotDetailPage = () => {
             value="farmlogs"
             className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
           >
-            Nhật ký canh tác
-          </TabsTrigger>
-          <TabsTrigger
-            value="shipments"
-            className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
-          >
-            Lô hàng & Mã QR
-          </TabsTrigger>
-          <TabsTrigger
-            value="certifications"
-            className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
-          >
-            Chứng nhận
+            <span className="font-semibold mr-1.5 text-emerald-600 data-[state=active]:!text-emerald-700">1</span>
+            <span>Nhật ký canh tác</span>
           </TabsTrigger>
           {canInspect && (
             <TabsTrigger
               value="inspection"
               className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
             >
-              Kiểm nghiệm
+              <span className="font-semibold mr-1.5 text-emerald-600 data-[state=active]:!text-emerald-700">2</span>
+              <span>Kiểm nghiệm</span>
             </TabsTrigger>
           )}
+          <TabsTrigger
+            value="certifications"
+            className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+          >
+            <span className="font-semibold mr-1.5 text-emerald-600 data-[state=active]:!text-emerald-700">{canInspect ? '3' : '2'}</span>
+            <span>Chứng nhận</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="shipments"
+            className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+          >
+            <span className="font-semibold mr-1.5 text-emerald-600 data-[state=active]:!text-emerald-700">{canInspect ? '4' : '3'}</span>
+            <span>Lô hàng & Mã QR</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="info" className="mt-4">
