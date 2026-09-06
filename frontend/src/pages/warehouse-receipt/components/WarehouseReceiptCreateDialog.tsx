@@ -173,7 +173,7 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="size-5 text-blue-700" />
-            Nhập kho & Đối chiếu
+            Nhập kho
           </DialogTitle>
           <DialogDescription>
             Quét hoặc nhập mã truy xuất, sau đó nhập số lượng thực nhận.

@@ -33,12 +33,22 @@ export function LotLookupResult({
       className={
         blocked
           ? "space-y-3 rounded-lg border border-amber-200 bg-amber-50/70 px-3.5 py-3"
-          : "space-y-3 rounded-lg border border-slate-200 bg-slate-50/70 px-3.5 py-3"
+          : "space-y-3 rounded-lg border border-blue-200 bg-blue-50 px-3.5 py-3"
       }
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="flex items-center gap-1.5 text-sm font-semibold text-slate-800">
-          <CheckCircle2 className="size-4 text-emerald-600" />
+        <p
+          className={
+            blocked
+              ? "flex items-center gap-1.5 text-sm font-semibold text-amber-800"
+              : "flex items-center gap-1.5 text-sm font-semibold text-blue-800"
+          }
+        >
+          {blocked ? (
+            <AlertTriangle className="size-4 text-amber-600" />
+          ) : (
+            <CheckCircle2 className="size-4 text-blue-600" />
+          )}
           {title}
         </p>
         <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
@@ -46,11 +56,16 @@ export function LotLookupResult({
         </span>
       </div>
 
-      <div className="grid grid-cols-1 gap-x-5 gap-y-1.5 text-sm text-slate-700 sm:grid-cols-2">
+      <div
+        className={
+          blocked
+            ? "grid grid-cols-1 gap-x-5 gap-y-1.5 text-sm text-amber-800 sm:grid-cols-2"
+            : "grid grid-cols-1 gap-x-5 gap-y-1.5 text-sm text-blue-800 sm:grid-cols-2"
+        }
+      >
         {items.map((item) => (
           <p key={item.label}>
-            <span className="font-medium text-slate-600">{item.label}:</span>{" "}
-            {item.value}
+            <span className="font-medium">{item.label}:</span> {item.value}
           </p>
         ))}
       </div>
