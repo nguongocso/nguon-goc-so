@@ -32,31 +32,21 @@ const formSchema = z.object({
     .max(100, 'Độ ẩm phải từ 0 đến 100%'),
 });
 
-// Hàm chuyển đổi mức cảnh báo sang tiếng Việt
 const getAlertLevelLabel = (level: string) => {
   switch (level) {
-    case 'CRITICAL':
-      return 'Nghiêm trọng';
-    case 'WARNING':
-      return 'Cảnh báo';
-    case 'OK':
-      return 'Bình thường';
-    default:
-      return level;
+    case 'CRITICAL': return 'Nghiêm trọng';
+    case 'WARNING': return 'Cảnh báo';
+    case 'OK': return 'Bình thường';
+    default: return level;
   }
 };
 
-// Hàm trả về className cho badge dựa trên mức cảnh báo
 const getAlertBadgeClasses = (level: string) => {
   switch (level) {
-    case 'CRITICAL':
-      return 'border-red-300 bg-red-50 text-red-700 gap-1';
-    case 'WARNING':
-      return 'border-yellow-300 bg-yellow-50 text-yellow-700 gap-1';
-    case 'OK':
-      return 'border-green-300 bg-green-50 text-green-700 gap-1';
-    default:
-      return 'gap-1';
+    case 'CRITICAL': return 'border-red-300 bg-red-50 text-red-700 gap-1';
+    case 'WARNING': return 'border-yellow-300 bg-yellow-50 text-yellow-700 gap-1';
+    case 'OK': return 'border-green-300 bg-green-50 text-green-700 gap-1';
+    default: return 'gap-1';
   }
 };
 
@@ -72,6 +62,7 @@ export default function StorageConditionPage() {
     productCategoryName: string;
     farmAreaName: string;
     shipmentStatus: string;
+    canRecord: boolean;
   } | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -84,6 +75,8 @@ export default function StorageConditionPage() {
     }
     setIsScanning(true);
     setScanError(null);
+    setFormError(null);
+    setResult(null);
     try {
       const lookupResult = await scanLookupTraceCode(code);
       if (!lookupResult.shipmentId) {
@@ -95,6 +88,7 @@ export default function StorageConditionPage() {
         productCategoryName: lookupResult.productCategoryName,
         farmAreaName: lookupResult.farmAreaName,
         shipmentStatus: lookupResult.shipmentStatus,
+        canRecord: lookupResult.allowedEventTypes.includes('STORAGE_CONDITION'),
       });
     } catch (err: any) {
       setScanError(err.response?.data?.message || 'Không thể tra cứu mã.');
@@ -106,6 +100,12 @@ export default function StorageConditionPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+
+    if (lotInfo && !lotInfo.canRecord) {
+      setFormError('Lô hàng chưa đủ điều kiện để ghi mốc bảo quản.');
+      return;
+    }
+
     const parsed = formSchema.safeParse({ codeValue, temperature, humidity });
     if (!parsed.success) {
       setFormError(parsed.error.issues[0]?.message ?? 'Dữ liệu không hợp lệ');
@@ -140,13 +140,13 @@ export default function StorageConditionPage() {
     setScanError(null);
   };
 
+  const recordDisabled = isSubmitting || isScanning || (!!lotInfo && !lotInfo.canRecord);
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Điều kiện bảo quản
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Điều kiện bảo quản</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Ghi nhận nhiệt độ và độ ẩm trong quá trình vận chuyển. Dữ liệu mô phỏng, nhập tay.
           </p>
@@ -166,10 +166,15 @@ export default function StorageConditionPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Mã truy xuất: nút quét cùng hàng label, nút tra cứu trong input */}
             <ScanCodeField
               value={codeValue}
-              onChange={(v) => { setCodeValue(v); setLotInfo(null); setScanError(null); }}
+              onChange={(v) => {
+                setCodeValue(v);
+                setLotInfo(null);
+                setScanError(null);
+                setFormError(null);
+                setResult(null);
+              }}
               label="Mã truy xuất *"
               placeholder="VD: 89300900000006"
               helperText="Quét QR sẽ tự tra cứu. Nhập tay rồi bấm Tra cứu."
@@ -189,7 +194,13 @@ export default function StorageConditionPage() {
                 </Button>
               }
             />
-            {scanError && <Alert variant="destructive"><AlertDescription>{scanError}</AlertDescription></Alert>}
+
+            {scanError && (
+              <Alert variant="destructive">
+                <AlertDescription>{scanError}</AlertDescription>
+              </Alert>
+            )}
+
             {lotInfo && (
               <LotLookupResult
                 items={[
@@ -198,12 +209,21 @@ export default function StorageConditionPage() {
                   { label: 'Vùng trồng', value: lotInfo.farmAreaName },
                   { label: 'Trạng thái', value: lotInfo.shipmentStatus },
                 ]}
+                blocked={!lotInfo.canRecord}
+                notice={
+                  !lotInfo.canRecord
+                    ? {
+                        title: 'Chưa thể ghi mốc bảo quản',
+                        description:
+                          'Lô hàng này chưa được doanh nghiệp thu mua. Chỉ lô hàng đã thu mua mới được phép ghi nhận mốc bảo quản.',
+                      }
+                    : undefined
+                }
               />
             )}
 
-            {/* Thông số bảo quản: input thường, không màu cho đến khi đánh giá */}
             <div className="space-y-3">
-              <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Thông số bảo quản
               </p>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -219,7 +239,7 @@ export default function StorageConditionPage() {
                     value={temperature}
                     onChange={(e) => setTemperature(e.target.value)}
                     placeholder="VD: 15.5"
-                    disabled={isSubmitting}
+                    disabled={recordDisabled}
                   />
                 </div>
 
@@ -235,7 +255,7 @@ export default function StorageConditionPage() {
                     value={humidity}
                     onChange={(e) => setHumidity(e.target.value)}
                     placeholder="VD: 65.2"
-                    disabled={isSubmitting}
+                    disabled={recordDisabled}
                   />
                 </div>
               </div>
@@ -251,7 +271,7 @@ export default function StorageConditionPage() {
               <Button type="button" variant="outline" onClick={handleReset} disabled={isSubmitting}>
                 Làm mới
               </Button>
-              <Button type="submit" variant="view" disabled={isSubmitting}>
+              <Button type="submit" variant="view" disabled={recordDisabled}>
                 {isSubmitting ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
                 {isSubmitting ? 'Đang ghi nhận...' : 'Ghi nhận'}
               </Button>
@@ -260,7 +280,6 @@ export default function StorageConditionPage() {
         </CardContent>
       </Card>
 
-      {/* Result */}
       {result && (
         <Card className={result.alertLevel !== 'OK' ? 'border-red-200' : 'border-emerald-200'}>
           <CardHeader className="pb-3">
@@ -284,38 +303,29 @@ export default function StorageConditionPage() {
                 <p className="mt-1 text-lg font-bold text-blue-900">{result.humidity}%</p>
               </div>
               <div className={`rounded-lg p-3 ${result.isTemperatureExceeded ? 'bg-red-50' : 'bg-emerald-50'}`}>
-                <p className={`text-xs ${result.isTemperatureExceeded ? 'text-red-700' : 'text-emerald-700'}`}>
-                  Nhiệt độ
-                </p>
+                <p className={`text-xs ${result.isTemperatureExceeded ? 'text-red-700' : 'text-emerald-700'}`}>Nhiệt độ</p>
                 <p className={`mt-1 text-sm font-bold ${result.isTemperatureExceeded ? 'text-red-900' : 'text-emerald-900'}`}>
                   {result.isTemperatureExceeded ? 'Vượt ngưỡng' : 'Đạt'}
                 </p>
               </div>
               <div className={`rounded-lg p-3 ${result.isHumidityExceeded ? 'bg-red-50' : 'bg-emerald-50'}`}>
-                <p className={`text-xs ${result.isHumidityExceeded ? 'text-red-700' : 'text-emerald-700'}`}>
-                  Độ ẩm
-                </p>
+                <p className={`text-xs ${result.isHumidityExceeded ? 'text-red-700' : 'text-emerald-700'}`}>Độ ẩm</p>
                 <p className={`mt-1 text-sm font-bold ${result.isHumidityExceeded ? 'text-red-900' : 'text-emerald-900'}`}>
                   {result.isHumidityExceeded ? 'Vượt ngưỡng' : 'Đạt'}
                 </p>
               </div>
             </div>
 
-            {/* Mức cảnh báo dạng badge trực quan (đã lược bỏ tiêu đề) */}
             <div className="flex items-center gap-2">
               <Badge variant="outline" className={getAlertBadgeClasses(result.alertLevel)}>
-                {result.alertLevel === 'OK' ? (
-                  <CheckCircle2 className="size-4" />
-                ) : (
-                  <AlertTriangle className="size-4" />
-                )}
+                {result.alertLevel === 'OK' ? <CheckCircle2 className="size-4" /> : <AlertTriangle className="size-4" />}
                 {getAlertLevelLabel(result.alertLevel)}
               </Badge>
             </div>
 
             {result.thresholds && (
               <div className="rounded-lg bg-gray-50 p-3">
-                <p className="text-xs text-gray-600 font-medium mb-2">Ngưỡng bảo quản</p>
+                <p className="mb-2 text-xs font-medium text-gray-600">Ngưỡng bảo quản</p>
                 <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                   <span>Nhiệt độ: {result.thresholds.tempMin}°C – {result.thresholds.tempMax}°C</span>
                   <span>Độ ẩm: {result.thresholds.humidityMin}% – {result.thresholds.humidityMax}%</span>
