@@ -18,6 +18,7 @@ import {
 import { useWarehouseReceipt } from '@/hooks/useWarehouseReceipt';
 import { scanLookupTraceCode } from '@/api/chainEventApi';
 import { ScanCodeField } from '@/components/common/ScanCodeField';
+import { LotLookupResult } from '@/components/common/LotLookupResult';
 import { getLocalDateString } from '@/utils/dateTime';
 import { selectAllOnFocus, preventMouseUpCollapse } from '@/utils/inputUtils';
 
@@ -75,8 +76,9 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
     return { difference, percent, isExceeded };
   }, [lotInfo, receivedQuantity, actualQty, declaredQuantity]);
 
-  const handleScan = async () => {
-    if (!codeValue.trim()) {
+  const handleScan = async (scannedCode?: string) => {
+    const code = (scannedCode ?? codeValue).trim();
+    if (!code) {
       setScanError('Vui lòng nhập mã truy xuất.');
       return;
     }
@@ -84,7 +86,7 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
     setScanError(null);
     setLotInfo(null);
     try {
-      const result = await scanLookupTraceCode(codeValue.trim());
+      const result = await scanLookupTraceCode(code);
       if (!result.shipmentId) {
         setScanError('Không tìm thấy lô hàng cho mã truy xuất này.');
         return;
@@ -184,15 +186,16 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
             onChange={(v) => { setCodeValue(v); setLotInfo(null); setScanError(null); }}
             label="Mã truy xuất (tem QR) *"
             placeholder="VD: 89300900000006"
-            helperText="Có thể quét QR bằng camera hoặc nhập mã thủ công."
+            helperText="Quét QR sẽ tự tra cứu. Nhập tay rồi bấm Tra cứu."
             disabled={isSubmitting}
             layout="embedded"
             scanButtonText="Quét mã QR"
+            onScanComplete={(code) => void handleScan(code)}
             trailingAction={
               <Button
                 type="button"
                 variant="secondary"
-                onClick={handleScan}
+                onClick={() => void handleScan()}
                 disabled={isSubmitting || isScanning || !codeValue.trim()}
               >
                 {isScanning ? <LoaderCircle className="size-4 animate-spin" /> : <ScanLine className="size-4" />}
@@ -209,17 +212,13 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
 
           {/* Lot info */}
           {lotInfo && (
-            <Card className="border-blue-200 bg-blue-50">
-              <CardContent className="p-3">
-                <div className="space-y-1 text-sm text-blue-800">
-                  <p className="font-semibold">{lotInfo.shipmentName}</p>
-                  <p>Đơn vị: {lotInfo.organizationName}</p>
-                  <p className="font-medium">
-                    Số lượng khai báo: <strong>{lotInfo.declaredQuantity.toLocaleString('vi-VN')} kg</strong>
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <LotLookupResult
+              items={[
+                { label: 'Lô', value: lotInfo.shipmentName },
+                { label: 'Đơn vị', value: lotInfo.organizationName },
+                { label: 'Số lượng khai báo', value: `${lotInfo.declaredQuantity.toLocaleString('vi-VN')} kg` },
+              ]}
+            />
           )}
 
           {/* Received quantity */}

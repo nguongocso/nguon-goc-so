@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScanCodeField } from '@/components/common/ScanCodeField';
+import { LotLookupResult } from '@/components/common/LotLookupResult';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -75,15 +76,16 @@ export default function StorageConditionPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
-  const handleScan = async () => {
-    if (!codeValue.trim()) {
+  const handleScan = async (scannedCode?: string) => {
+    const code = (scannedCode ?? codeValue).trim();
+    if (!code) {
       setScanError('Vui lòng nhập mã truy xuất.');
       return;
     }
     setIsScanning(true);
     setScanError(null);
     try {
-      const lookupResult = await scanLookupTraceCode(codeValue.trim());
+      const lookupResult = await scanLookupTraceCode(code);
       if (!lookupResult.shipmentId) {
         setScanError('Không tìm thấy lô hàng cho mã này.');
         return;
@@ -170,15 +172,16 @@ export default function StorageConditionPage() {
               onChange={(v) => { setCodeValue(v); setLotInfo(null); setScanError(null); }}
               label="Mã truy xuất *"
               placeholder="VD: 89300900000006"
-              helperText="Có thể quét QR bằng camera hoặc nhập mã thủ công."
+              helperText="Quét QR sẽ tự tra cứu. Nhập tay rồi bấm Tra cứu."
               disabled={isSubmitting}
               layout="embedded"
               scanButtonText="Quét mã QR"
+              onScanComplete={(code) => void handleScan(code)}
               trailingAction={
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={handleScan}
+                  onClick={() => void handleScan()}
                   disabled={isSubmitting || isScanning}
                 >
                   {isScanning ? <LoaderCircle className="size-4 animate-spin" /> : <ScanLine className="size-4" />}
@@ -188,18 +191,14 @@ export default function StorageConditionPage() {
             />
             {scanError && <Alert variant="destructive"><AlertDescription>{scanError}</AlertDescription></Alert>}
             {lotInfo && (
-              <div className="space-y-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5">
-                <p className="flex items-center gap-1.5 text-sm font-semibold text-green-800">
-                  <CheckCircle2 className="size-4" />
-                  Đã tìm thấy lô sản xuất
-                </p>
-                <div className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm text-green-800 sm:grid-cols-2">
-                  <p><span className="font-medium">Lô:</span> {lotInfo.shipmentName}</p>
-                  <p><span className="font-medium">Sản phẩm:</span> {lotInfo.productCategoryName}</p>
-                  <p><span className="font-medium">Vùng trồng:</span> {lotInfo.farmAreaName}</p>
-                  <p><span className="font-medium">Trạng thái:</span> {lotInfo.shipmentStatus}</p>
-                </div>
-              </div>
+              <LotLookupResult
+                items={[
+                  { label: 'Lô', value: lotInfo.shipmentName },
+                  { label: 'Sản phẩm', value: lotInfo.productCategoryName },
+                  { label: 'Vùng trồng', value: lotInfo.farmAreaName },
+                  { label: 'Trạng thái', value: lotInfo.shipmentStatus },
+                ]}
+              />
             )}
 
             {/* Thông số bảo quản: input thường, không màu cho đến khi đánh giá */}

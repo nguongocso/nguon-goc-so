@@ -27,6 +27,11 @@ interface ScanCodeFieldProps {
   trailingAction?: ReactNode;
   layout?: "default" | "embedded";
   scanButtonText?: string;
+  /**
+   * Chỉ bắn khi quét camera thành công (phân biệt với gõ tay qua `onChange`).
+   * Trang dùng để tự động tra cứu mã vừa quét, không cần bấm Tra cứu.
+   */
+  onScanComplete?: (code: string) => void;
 }
 
 export function ScanCodeField({
@@ -42,6 +47,7 @@ export function ScanCodeField({
   trailingAction,
   layout = "default",
   scanButtonText,
+  onScanComplete,
 }: ScanCodeFieldProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -98,7 +104,9 @@ export function ScanCodeField({
           (result) => {
             if (!result || !isActive) return;
 
-            onChange(result.getText());
+            const scanned = result.getText();
+            onChange(scanned);
+            onScanComplete?.(scanned);
             toast.success("Đã quét mã lô hàng.");
             stopScanning();
           },
