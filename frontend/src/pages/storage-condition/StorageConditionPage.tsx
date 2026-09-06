@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScanCodeField } from '@/components/common/ScanCodeField';
 import { LotLookupResult } from '@/components/common/LotLookupResult';
+import { getShipmentStatusLabel } from '@/components/shipment/ShipmentStatusBadge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -225,7 +226,7 @@ export default function StorageConditionPage() {
                   { label: 'Lô', value: lotInfo.shipmentName },
                   { label: 'Sản phẩm', value: lotInfo.productCategoryName },
                   { label: 'Vùng trồng', value: lotInfo.farmAreaName },
-                  { label: 'Trạng thái', value: lotInfo.shipmentStatus },
+                  { label: 'Trạng thái', value: getShipmentStatusLabel(lotInfo.shipmentStatus) },
                 ]}
               />
             )}
