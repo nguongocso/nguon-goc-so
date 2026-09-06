@@ -79,7 +79,7 @@ export default function WarehouseReceiptDetailPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              Nhập kho & đối chiếu
+              Nhập kho
             </h1>
             <Badge
               variant={isExceeded ? 'destructive' : 'outline'}

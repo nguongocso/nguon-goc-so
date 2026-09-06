@@ -92,4 +92,11 @@ public class ScanLookupResponse {
      * Tổng số lượng khai báo của lô hàng.
      */
     private Long totalQuantity;
+
+    /**
+     * Lô hàng đủ điều kiện ghi mốc bảo quản hay không
+     * (VT-03 cùng tổ chức: đã có TRANSPORT; VT-04: đã thu mua lô).
+     * Null với vai trò không ghi mốc bảo quản.
+     */
+    private Boolean storageEligible;
 }

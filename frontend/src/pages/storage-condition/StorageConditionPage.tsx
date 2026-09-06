@@ -6,17 +6,22 @@ import {
   AlertTriangle,
   CheckCircle2,
   Thermometer,
+  Droplets,
   ScanLine,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ScanCodeField } from '@/components/common/ScanCodeField';
+import { LotLookupResult } from '@/components/common/LotLookupResult';
+import { getShipmentStatusLabel } from '@/components/shipment/ShipmentStatusBadge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { recordStorageCondition } from '@/api/storageConditionApi';
 import { scanLookupTraceCode } from '@/api/chainEventApi';
 import type { StorageConditionResponse } from '@/types/storageCondition';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { HelpButton } from '@/components/help/HelpButton';
 
@@ -29,59 +34,72 @@ const formSchema = z.object({
     .max(100, 'Độ ẩm phải từ 0 đến 100%'),
 });
 
-// Hàm chuyển đổi mức cảnh báo sang tiếng Việt
 const getAlertLevelLabel = (level: string) => {
   switch (level) {
-    case 'CRITICAL':
-      return 'Nghiêm trọng';
-    case 'WARNING':
-      return 'Cảnh báo';
-    case 'OK':
-      return 'Bình thường';
-    default:
-      return level;
+    case 'CRITICAL': return 'Nghiêm trọng';
+    case 'WARNING': return 'Cảnh báo';
+    case 'OK': return 'Bình thường';
+    default: return level;
   }
 };
 
-// Hàm trả về className cho badge dựa trên mức cảnh báo
 const getAlertBadgeClasses = (level: string) => {
   switch (level) {
-    case 'CRITICAL':
-      return 'border-red-300 bg-red-50 text-red-700 gap-1';
-    case 'WARNING':
-      return 'border-yellow-300 bg-yellow-50 text-yellow-700 gap-1';
-    case 'OK':
-      return 'border-green-300 bg-green-50 text-green-700 gap-1';
-    default:
-      return 'gap-1';
+    case 'CRITICAL': return 'border-red-300 bg-red-50 text-red-700 gap-1';
+    case 'WARNING': return 'border-yellow-300 bg-yellow-50 text-yellow-700 gap-1';
+    case 'OK': return 'border-green-300 bg-green-50 text-green-700 gap-1';
+    default: return 'gap-1';
   }
 };
 
 export default function StorageConditionPage() {
+  const { user } = useAuth();
   const [codeValue, setCodeValue] = useState('');
   const [temperature, setTemperature] = useState('');
   const [humidity, setHumidity] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<StorageConditionResponse | null>(null);
-  const [lotInfo, setLotInfo] = useState<{ shipmentName: string } | null>(null);
+  const [lotInfo, setLotInfo] = useState<{
+    shipmentName: string;
+    productCategoryName: string;
+    farmAreaName: string;
+    shipmentStatus: string;
+    storageEligible?: boolean | null;
+  } | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
 
-  const handleScan = async () => {
-    if (!codeValue.trim()) {
+  // Lô bị chặn thao tác: ẩn khối thông tin, chỉ hiện alert theo vai trò.
+  const isBlocked = lotInfo?.storageEligible === false;
+  const blockedMessage =
+    user?.roleCode === 'VT-03'
+      ? 'Lô hàng phải có sự kiện vận chuyển trước khi ghi nhận điều kiện bảo quản.'
+      : 'Bạn chưa thu mua lô hàng này. Chỉ doanh nghiệp đã thu mua lô hàng mới được ghi mốc bảo quản.';
+
+  const handleScan = async (scannedCode?: string) => {
+    const code = (scannedCode ?? codeValue).trim();
+    if (!code) {
       setScanError('Vui lòng nhập mã truy xuất.');
       return;
     }
     setIsScanning(true);
     setScanError(null);
+    setFormError(null);
+    setResult(null);
     try {
-      const lookupResult = await scanLookupTraceCode(codeValue.trim());
+      const lookupResult = await scanLookupTraceCode(code);
       if (!lookupResult.shipmentId) {
         setScanError('Không tìm thấy lô hàng cho mã này.');
         return;
       }
-      setLotInfo({ shipmentName: lookupResult.shipmentName });
+      setLotInfo({
+        shipmentName: lookupResult.shipmentName,
+        productCategoryName: lookupResult.productCategoryName,
+        farmAreaName: lookupResult.farmAreaName,
+        shipmentStatus: lookupResult.shipmentStatus,
+        storageEligible: lookupResult.storageEligible,
+      });
     } catch (err: any) {
       setScanError(err.response?.data?.message || 'Không thể tra cứu mã.');
     } finally {
@@ -92,6 +110,12 @@ export default function StorageConditionPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+
+    if (isBlocked) {
+      setFormError(blockedMessage);
+      return;
+    }
+
     const parsed = formSchema.safeParse({ codeValue, temperature, humidity });
     if (!parsed.success) {
       setFormError(parsed.error.issues[0]?.message ?? 'Dữ liệu không hợp lệ');
@@ -101,7 +125,7 @@ export default function StorageConditionPage() {
     setIsSubmitting(true);
     try {
       const res = await recordStorageCondition({
-        codeValue: parsed.data.codeValue,
+        codeValue: parsed.data.codeValue.trim(),
         temperature: parsed.data.temperature,
         humidity: parsed.data.humidity,
       });
@@ -126,13 +150,13 @@ export default function StorageConditionPage() {
     setScanError(null);
   };
 
+  const recordDisabled = isSubmitting || isScanning || isBlocked;
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Điều kiện bảo quản
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Bảo quản</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Ghi nhận nhiệt độ và độ ẩm trong quá trình vận chuyển. Dữ liệu mô phỏng, nhập tay.
           </p>
@@ -147,65 +171,103 @@ export default function StorageConditionPage() {
             Ghi mốc bảo quản
           </CardTitle>
           <CardDescription>
-            Nhập mã truy xuất và thông số nhiệt độ, độ ẩm tại mốc kiểm tra.
+            Nhập mã truy xuất và thông số nhiệt độ, độ ẩm tại thời điểm kiểm tra.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Code scan */}
-            <div className="flex items-end gap-2">
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="codeValue">Mã truy xuất *</Label>
-                <Input
-                  id="codeValue"
-                  value={codeValue}
-                  onChange={(e) => { setCodeValue(e.target.value); setLotInfo(null); setScanError(null); }}
-                  placeholder="VD: 89300900000006"
-                  disabled={isSubmitting}
-                />
-              </div>
-              <Button type="button" variant="secondary" onClick={handleScan} disabled={isSubmitting || isScanning}>
-                {isScanning ? <LoaderCircle className="size-4 animate-spin" /> : <ScanLine className="size-4" />}
-                Tra cứu
-              </Button>
-            </div>
-            {scanError && <Alert variant="destructive"><AlertDescription>{scanError}</AlertDescription></Alert>}
-            {lotInfo && (
-              <Card className="border-green-200 bg-green-50">
-                <CardContent className="pt-4">
-                  <p className="text-sm text-green-800">
-                    <span className="font-medium">Lô hàng:</span> {lotInfo.shipmentName}
-                  </p>
-                </CardContent>
-              </Card>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <ScanCodeField
+              value={codeValue}
+              onChange={(v) => {
+                setCodeValue(v);
+                setLotInfo(null);
+                setScanError(null);
+                setFormError(null);
+                setResult(null);
+              }}
+              label="Mã truy xuất *"
+              placeholder="VD: 89300900000006"
+              helperText="Quét QR sẽ tự tra cứu. Nhập tay rồi bấm Tra cứu."
+              disabled={isSubmitting}
+              layout="embedded"
+              scanButtonText="Quét mã QR"
+              onScanComplete={(code) => void handleScan(code)}
+              trailingAction={
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => void handleScan()}
+                  disabled={isSubmitting || isScanning}
+                >
+                  {isScanning ? <LoaderCircle className="size-4 animate-spin" /> : <ScanLine className="size-4" />}
+                  Tra cứu
+                </Button>
+              }
+            />
+
+            {scanError && (
+              <Alert variant="destructive">
+                <AlertDescription>{scanError}</AlertDescription>
+              </Alert>
             )}
 
-            {/* Temperature */}
-            <div className="space-y-2">
-              <Label htmlFor="temperature">Nhiệt độ (°C) *</Label>
-              <Input
-                id="temperature"
-                type="number"
-                step="0.1"
-                value={temperature}
-                onChange={(e) => setTemperature(e.target.value)}
-                placeholder="VD: 15.5"
-                disabled={isSubmitting}
-              />
-            </div>
+            {lotInfo && isBlocked && (
+              <Alert className="border-amber-200 bg-amber-50">
+                <AlertTriangle className="size-4 text-amber-600" />
+                <AlertDescription className="text-amber-800">
+                  {blockedMessage}
+                </AlertDescription>
+              </Alert>
+            )}
 
-            {/* Humidity */}
-            <div className="space-y-2">
-              <Label htmlFor="humidity">Độ ẩm (%) *</Label>
-              <Input
-                id="humidity"
-                type="number"
-                step="0.1"
-                value={humidity}
-                onChange={(e) => setHumidity(e.target.value)}
-                placeholder="VD: 65.2"
-                disabled={isSubmitting}
+            {lotInfo && !isBlocked && (
+              <LotLookupResult
+                items={[
+                  { label: 'Lô', value: lotInfo.shipmentName },
+                  { label: 'Sản phẩm', value: lotInfo.productCategoryName },
+                  { label: 'Vùng trồng', value: lotInfo.farmAreaName },
+                  { label: 'Trạng thái', value: getShipmentStatusLabel(lotInfo.shipmentStatus) },
+                ]}
               />
+            )}
+
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Thông số bảo quản
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="temperature" className="flex items-center gap-1.5">
+                    <Thermometer className="size-4 text-slate-500" />
+                    Nhiệt độ (°C) *
+                  </Label>
+                  <Input
+                    id="temperature"
+                    type="number"
+                    step="0.1"
+                    value={temperature}
+                    onChange={(e) => setTemperature(e.target.value)}
+                    placeholder="VD: 15.5"
+                    disabled={recordDisabled}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="humidity" className="flex items-center gap-1.5">
+                    <Droplets className="size-4 text-slate-500" />
+                    Độ ẩm (%) *
+                  </Label>
+                  <Input
+                    id="humidity"
+                    type="number"
+                    step="0.1"
+                    value={humidity}
+                    onChange={(e) => setHumidity(e.target.value)}
+                    placeholder="VD: 65.2"
+                    disabled={recordDisabled}
+                  />
+                </div>
+              </div>
             </div>
 
             {formError && (
@@ -214,20 +276,19 @@ export default function StorageConditionPage() {
               </Alert>
             )}
 
-            <div className="flex gap-2">
-              <Button type="submit" variant="view" disabled={isSubmitting}>
-                {isSubmitting ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
-                {isSubmitting ? 'Đang ghi nhận...' : 'Ghi nhận'}
-              </Button>
+            <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={handleReset} disabled={isSubmitting}>
                 Làm mới
+              </Button>
+              <Button type="submit" variant="view" disabled={recordDisabled}>
+                {isSubmitting ? <LoaderCircle className="size-4 animate-spin" /> : <Send className="size-4" />}
+                {isSubmitting ? 'Đang ghi nhận...' : 'Ghi nhận'}
               </Button>
             </div>
           </form>
         </CardContent>
       </Card>
 
-      {/* Result */}
       {result && (
         <Card className={result.alertLevel !== 'OK' ? 'border-red-200' : 'border-emerald-200'}>
           <CardHeader className="pb-3">
@@ -251,38 +312,29 @@ export default function StorageConditionPage() {
                 <p className="mt-1 text-lg font-bold text-blue-900">{result.humidity}%</p>
               </div>
               <div className={`rounded-lg p-3 ${result.isTemperatureExceeded ? 'bg-red-50' : 'bg-emerald-50'}`}>
-                <p className={`text-xs ${result.isTemperatureExceeded ? 'text-red-700' : 'text-emerald-700'}`}>
-                  Nhiệt độ
-                </p>
+                <p className={`text-xs ${result.isTemperatureExceeded ? 'text-red-700' : 'text-emerald-700'}`}>Nhiệt độ</p>
                 <p className={`mt-1 text-sm font-bold ${result.isTemperatureExceeded ? 'text-red-900' : 'text-emerald-900'}`}>
                   {result.isTemperatureExceeded ? 'Vượt ngưỡng' : 'Đạt'}
                 </p>
               </div>
               <div className={`rounded-lg p-3 ${result.isHumidityExceeded ? 'bg-red-50' : 'bg-emerald-50'}`}>
-                <p className={`text-xs ${result.isHumidityExceeded ? 'text-red-700' : 'text-emerald-700'}`}>
-                  Độ ẩm
-                </p>
+                <p className={`text-xs ${result.isHumidityExceeded ? 'text-red-700' : 'text-emerald-700'}`}>Độ ẩm</p>
                 <p className={`mt-1 text-sm font-bold ${result.isHumidityExceeded ? 'text-red-900' : 'text-emerald-900'}`}>
                   {result.isHumidityExceeded ? 'Vượt ngưỡng' : 'Đạt'}
                 </p>
               </div>
             </div>
 
-            {/* Mức cảnh báo dạng badge trực quan (đã lược bỏ tiêu đề) */}
             <div className="flex items-center gap-2">
               <Badge variant="outline" className={getAlertBadgeClasses(result.alertLevel)}>
-                {result.alertLevel === 'OK' ? (
-                  <CheckCircle2 className="size-4" />
-                ) : (
-                  <AlertTriangle className="size-4" />
-                )}
+                {result.alertLevel === 'OK' ? <CheckCircle2 className="size-4" /> : <AlertTriangle className="size-4" />}
                 {getAlertLevelLabel(result.alertLevel)}
               </Badge>
             </div>
 
             {result.thresholds && (
               <div className="rounded-lg bg-gray-50 p-3">
-                <p className="text-xs text-gray-600 font-medium mb-2">Ngưỡng bảo quản</p>
+                <p className="mb-2 text-xs font-medium text-gray-600">Ngưỡng bảo quản</p>
                 <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                   <span>Nhiệt độ: {result.thresholds.tempMin}°C – {result.thresholds.tempMax}°C</span>
                   <span>Độ ẩm: {result.thresholds.humidityMin}% – {result.thresholds.humidityMax}%</span>
