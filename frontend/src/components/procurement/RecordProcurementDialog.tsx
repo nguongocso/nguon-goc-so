@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   LoaderCircle,
   MapPin,
-  Package,
   QrCode,
   RotateCcw,
   Send,
@@ -21,6 +20,8 @@ import { LocationPicker } from "@/pages/packaging-event/components/LocationPicke
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { LotLookupResult } from "@/components/common/LotLookupResult";
+import { getShipmentStatusLabel } from "@/components/shipment/ShipmentStatusBadge";
 import {
   Dialog,
   DialogContent,
@@ -531,30 +532,25 @@ export function RecordProcurementDialog({
 
             {/* ── Thông tin lô hàng đã tra cứu (full width) ── */}
             {resolvedShipment && (
-              <Card className="border-emerald-200 bg-emerald-50/50 shadow-sm">
-                <CardContent className="p-3">
-                  <div className="flex items-start gap-3">
-                    <Package className="mt-0.5 size-5 text-emerald-600" />
-                    <div className="flex-1">
-                      <p className="font-semibold text-emerald-800">
-                        {resolvedShipment.name}
-                      </p>
-                      <div className="mt-1 grid grid-cols-2 gap-1 text-xs text-emerald-700">
-                        <span>
-                          Lô sản xuất:{" "}
-                          {resolvedShipment.productionLotName || "—"}
-                        </span>
-                        <span>
-                          Sản lượng:{" "}
-                          {resolvedShipment.totalQuantity?.toLocaleString(
-                            "vi-VN",
-                          ) || "—"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <LotLookupResult
+                items={[
+                  { label: "Lô", value: resolvedShipment.name },
+                  {
+                    label: "Trạng thái",
+                    value: getShipmentStatusLabel(resolvedShipment.status),
+                  },
+                  {
+                    label: "Lô sản xuất",
+                    value: resolvedShipment.productionLotName || "—",
+                  },
+                  {
+                    label: "Sản lượng",
+                    value:
+                      resolvedShipment.totalQuantity?.toLocaleString("vi-VN") ||
+                      "—",
+                  },
+                ]}
+              />
             )}
 
             {/* ── Nút hành động ── */}

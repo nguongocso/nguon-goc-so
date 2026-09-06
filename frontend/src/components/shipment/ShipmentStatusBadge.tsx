@@ -12,6 +12,11 @@ export const SHIPMENT_STATUS_LABELS: Record<ShipmentStatus, string> = {
   RECALLED: "Đã thu hồi",
 };
 
+/** Nhãn tiếng Việt cho mã trạng thái lô; giữ mã gốc nếu gặp giá trị lạ. */
+export function getShipmentStatusLabel(status: string): string {
+  return SHIPMENT_STATUS_LABELS[status as ShipmentStatus] ?? status;
+}
+
 /**
  * Presentation-only mapping using the project's --status-* design tokens.
  * Colors mirror the existing pills (bg-status-x/10 + text-status-x), with the
