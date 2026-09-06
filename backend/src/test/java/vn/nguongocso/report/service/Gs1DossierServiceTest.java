@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +25,13 @@ import org.springframework.security.access.AccessDeniedException;
 
 import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.certification.entity.InspectionCriterion;
+import vn.nguongocso.certification.entity.InspectionCriterionResult;
+import vn.nguongocso.certification.entity.InspectionRequest;
+import vn.nguongocso.certification.entity.Standard;
+import vn.nguongocso.certification.enums.InspectionRequestStatus;
+import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
+import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
@@ -40,6 +48,8 @@ import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.report.dto.response.Gs1DossierExportResponse;
 import vn.nguongocso.report.dto.response.Gs1Event;
+import vn.nguongocso.report.dto.response.Gs1Inspection;
+import vn.nguongocso.report.dto.response.Gs1InspectionCriterion;
 import vn.nguongocso.report.repository.DossierExportHistoryRepository;
 import vn.nguongocso.report.service.impl.DossierServiceImpl;
 import vn.nguongocso.trace.entity.Shipment;
@@ -62,6 +72,8 @@ public class Gs1DossierServiceTest {
     @Mock private vn.nguongocso.auth.repository.UserRepository userRepository;
     @Mock private OrganizationUserRepository organizationUserRepository;
     @Mock private TraceCodeRepository traceCodeRepository;
+    @Mock private InspectionRequestRepository inspectionRequestRepository;
+    @Mock private InspectionCriterionResultRepository inspectionCriterionResultRepository;
     @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks private DossierServiceImpl dossierService;
@@ -210,6 +222,74 @@ public class Gs1DossierServiceTest {
 
         assertThatThrownBy(() -> dossierService.exportGs1Dossier(shipmentId, "json", true, userDetails, "127.0.0.1"))
                 .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
+    void export_success_includesInspectionHistory() {
+        mockEligibleQtN11();
+        mockHasProcurement();
+        when(userDetails.getFullName()).thenReturn("Nguyễn Văn A");
+        ChainEvent ev = ChainEvent.builder()
+                .id(UUID.randomUUID()).eventType(ChainEventType.PROCUREMENT)
+                .recordedAt(LocalDateTime.of(2026, 8, 11, 10, 0)).build();
+        when(chainEventRepository.findByShipment_IdOrderByRecordedAtAsc(shipmentId)).thenReturn(List.of(ev));
+
+        Standard standard = Standard.builder().name("QCVN 8-2:2011/BYT").build();
+        InspectionRequest request = InspectionRequest.builder()
+                .id(UUID.randomUUID()).productionLot(productionLot)
+                .inspectionUnit("Trung tâm Kiểm nghiệm TH3")
+                .sampleSentDate(LocalDate.of(2026, 7, 1))
+                .status(InspectionRequestStatus.PASSED)
+                .build();
+        InspectionCriterion criterion = InspectionCriterion.builder()
+                .id(UUID.randomUUID()).inspectionRequest(request)
+                .criterionCode("PESTICIDE_RESIDUE").criterionName("Dư lượng thuốc BVTV")
+                .standard(standard)
+                .build();
+        request.setCriteria(new ArrayList<>(List.of(criterion)));
+        InspectionCriterionResult result = InspectionCriterionResult.builder()
+                .id(UUID.randomUUID()).inspectionCriterion(criterion)
+                .passed(Boolean.TRUE)
+                .resultDate(LocalDate.of(2026, 7, 10))
+                .expiryDate(LocalDate.of(2027, 1, 10))
+                .build();
+        when(inspectionRequestRepository.findByProductionLot_IdOrderByCreatedAtDesc(productionLot.getId()))
+                .thenReturn(List.of(request));
+        when(inspectionCriterionResultRepository.findByInspectionCriterion_InspectionRequest_Id(request.getId()))
+                .thenReturn(List.of(result));
+
+        Gs1DossierExportResponse response = dossierService.exportGs1Dossier(shipmentId, "json", true, userDetails, "127.0.0.1");
+
+        assertThat(response.getInspections()).hasSize(1);
+        Gs1Inspection inspection = response.getInspections().get(0);
+        assertThat(inspection.getRequestId()).isEqualTo(request.getId());
+        assertThat(inspection.getInspectionUnit()).isEqualTo("Trung tâm Kiểm nghiệm TH3");
+        assertThat(inspection.getSampleSentDate()).isEqualTo(LocalDate.of(2026, 7, 1));
+        assertThat(inspection.getStatus()).isEqualTo("PASSED");
+        assertThat(inspection.getCriteria()).hasSize(1);
+        Gs1InspectionCriterion mappedCriterion = inspection.getCriteria().get(0);
+        assertThat(mappedCriterion.getCriterionCode()).isEqualTo("PESTICIDE_RESIDUE");
+        assertThat(mappedCriterion.getStandardName()).isEqualTo("QCVN 8-2:2011/BYT");
+        assertThat(mappedCriterion.getPassed()).isTrue();
+        assertThat(mappedCriterion.getResultDate()).isEqualTo(LocalDate.of(2026, 7, 10));
+        assertThat(mappedCriterion.getExpiryDate()).isEqualTo(LocalDate.of(2027, 1, 10));
+        assertThat(response.getMapping())
+                .containsEntry("InspectionCriterionResult.passed", "inspections[].criteria[].passed");
+    }
+
+    @Test
+    void export_lotWithoutInspectionRequests_returnsEmptyInspections() {
+        mockEligibleQtN11();
+        mockHasProcurement();
+        ChainEvent ev = ChainEvent.builder()
+                .id(UUID.randomUUID()).eventType(ChainEventType.PROCUREMENT)
+                .recordedAt(LocalDateTime.of(2026, 8, 11, 10, 0)).build();
+        when(chainEventRepository.findByShipment_IdOrderByRecordedAtAsc(shipmentId)).thenReturn(List.of(ev));
+        // inspectionRequestRepository không được stub → Mockito trả về danh sách rỗng mặc định
+
+        Gs1DossierExportResponse response = dossierService.exportGs1Dossier(shipmentId, "json", false, userDetails, "127.0.0.1");
+
+        assertThat(response.getInspections()).isEmpty();
     }
 
     private FarmLog farmLog(FarmActivityType type) {

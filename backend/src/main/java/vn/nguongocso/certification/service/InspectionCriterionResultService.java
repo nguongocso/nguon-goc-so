@@ -6,6 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.InspectionCriterionResultRequest;
 import vn.nguongocso.certification.dto.response.CanActivateSealCheckResponse;
+import vn.nguongocso.certification.dto.response.CriterionHistoryResponse;
 import vn.nguongocso.certification.dto.response.InspectionCriterionResultResponse;
 
 import java.util.List;
@@ -111,6 +112,23 @@ public interface InspectionCriterionResultService {
      * @return Phản hồi chứa trạng thái kích hoạt và lý do nếu có.
      */
     CanActivateSealCheckResponse checkCanActivateSeal(
+            UUID productionLotId,
+            CustomUserDetails currentUser);
+
+    /**
+     * Lấy lịch sử kiểm nghiệm của tất cả chỉ tiêu trên một lô sản xuất.
+     *
+     * <p>
+     * Trả về danh sách theo chỉ tiêu, mỗi phần tử chứa dòng thời gian kết
+     * quả từ cũ đến mới. Entry cuối cùng trong {@code history} là kết quả
+     * hiện tại có hiệu lực của chỉ tiêu đó.
+     * </p>
+     *
+     * @param productionLotId ID lô sản xuất.
+     * @param currentUser     Người dùng đã xác thực (kiểm tra phạm vi tổ chức).
+     * @return Danh sách lịch sử kiểm nghiệm theo chỉ tiêu.
+     */
+    List<CriterionHistoryResponse> getInspectionHistory(
             UUID productionLotId,
             CustomUserDetails currentUser);
 

@@ -161,6 +161,17 @@ public class InspectionRequestServiceImpl
         validateLot(lot);
 
         /*
+         * QTN-30 (NCL-11-CN-005 §5.5): lô đã bị loại bỏ là trạng thái
+         * cuối — không thể tạo yêu cầu kiểm nghiệm. Lô có yêu cầu FAILED
+         * VẪN được tạo vòng kiểm nghiệm mới (luồng kiểm nghiệm lại
+         * TC-02), chỉ DISPOSED bị loại trừ.
+         */
+        if (lot.getStatus() == ProductionLotStatus.DISPOSED) {
+            throw new BusinessException(
+                    "Lô sản xuất đã bị loại bỏ, không thể tạo yêu cầu kiểm nghiệm.");
+        }
+
+        /*
          * 4. Validate request.
          */
         if (request == null) {

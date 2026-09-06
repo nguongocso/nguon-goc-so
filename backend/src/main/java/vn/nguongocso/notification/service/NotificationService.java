@@ -83,4 +83,18 @@ public interface NotificationService {
      * @param traceCode mã tem đã được mở khóa
      */
     void sendTraceCodeUnlockedNotification(TraceCode traceCode);
+
+    /**
+     * Gửi cảnh báo cho Quản lý hợp tác xã khi lô sản xuất có kết quả
+     * kiểm nghiệm KHÔNG ĐẠT (NCL-11-CN-005, QTN-30).
+     *
+     * <p>
+     * Người nhận là các user thuộc tổ chức của lô có permission
+     * {@code notification:READ} (cùng cơ chế phân phối hiện có).
+     * </p>
+     *
+     * @param lotName        tên lô sản xuất
+     * @param organizationId tổ chức sở hữu lô sản xuất
+     */
+    void sendInspectionFailedNotification(String lotName, UUID organizationId);
 }

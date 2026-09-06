@@ -24,6 +24,7 @@ import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.dto.request.ApproveProductionLotRequest;
 import vn.nguongocso.farm.dto.request.CancelProductionLotRequest;
 import vn.nguongocso.farm.dto.request.CreateProductionLotRequest;
+import vn.nguongocso.farm.dto.request.DisposeProductionLotRequest;
 import vn.nguongocso.farm.dto.request.ProductionLotImportRequest;
 import vn.nguongocso.farm.dto.request.UpdateProductionLotRequest;
 import vn.nguongocso.farm.dto.response.CreateProductionLotResponse;
@@ -380,6 +381,40 @@ public class ProductionLotController {
                                 "UPDATE");
 
                 CreateProductionLotResponse response = productionLotService.cancelProductionLot(
+                                id,
+                                request,
+                                userDetails);
+
+                return ResponseEntity.ok(
+                                ApiResult.success(response));
+        }
+
+        /**
+         * API loại bỏ lô sản xuất (NCL-11-CN-005, QTN-30).
+         *
+         * <p>
+         * Hướng xử lý 1 trong 2 hướng bắt buộc khi lô có kết luận kiểm
+         * nghiệm Không đạt (hướng còn lại là kiểm nghiệm lại qua
+         * {@code POST /{lotId}/test-requests}). Chỉ Quản lý hợp tác xã
+         * (VT-02) được loại bỏ. Lý do và biện pháp xử lý là bắt buộc
+         * (TC-03). Lô chuyển sang trạng thái cuối {@code DISPOSED}; không
+         * tạo lô hàng và không tính vào sản lượng dự kiến.
+         * </p>
+         */
+        @PostMapping("/{id}/dispose")
+        @PreAuthorize("hasRole('VT-02')")
+        public ResponseEntity<ApiResult<CreateProductionLotResponse>> dispose(
+                        @PathVariable UUID id,
+
+                        @Valid @RequestBody DisposeProductionLotRequest request,
+
+                        @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+                permissionChecker.check(
+                                "PRODUCTION_LOT",
+                                "UPDATE");
+
+                CreateProductionLotResponse response = productionLotService.disposeProductionLot(
                                 id,
                                 request,
                                 userDetails);

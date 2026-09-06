@@ -16,6 +16,12 @@ import org.springframework.security.access.AccessDeniedException;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.certification.entity.InspectionCriterion;
+import vn.nguongocso.certification.entity.InspectionCriterionResult;
+import vn.nguongocso.certification.entity.InspectionRequest;
+import vn.nguongocso.certification.enums.InspectionRequestStatus;
+import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
+import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
@@ -74,6 +80,12 @@ public class DossierServiceTest {
 
     @Mock
     private OrganizationUserRepository organizationUserRepository;
+
+    @Mock
+    private InspectionRequestRepository inspectionRequestRepository;
+
+    @Mock
+    private InspectionCriterionResultRepository inspectionCriterionResultRepository;
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
@@ -226,6 +238,48 @@ public class DossierServiceTest {
         FarmLogAttachment mockAttachment = FarmLogAttachment.builder().fileName("doc.pdf").build();
         when(farmLogAttachmentRepository.findByFarmLogId(any(UUID.class)))
                 .thenReturn(Collections.singletonList(mockAttachment));
+
+        when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
+        when(chainEventRepository.findByShipment_IdOrderByRecordedAtAsc(shipmentId)).thenReturn(Collections.emptyList());
+
+        byte[] pdfBytes = dossierService.exportDossierPdf(shipmentId, userDetails, "127.0.0.1");
+
+        assertThat(pdfBytes).isNotEmpty();
+        verify(exportHistoryRepository, times(1)).save(any(DossierExportHistory.class));
+    }
+
+    @Test
+    void exportDossierPdf_shouldReturnBytes_whenLotHasInspectionHistory() {
+        when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
+
+        when(userDetails.getRoleCode()).thenReturn("VT-02");
+        when(userDetails.getOrganizationId()).thenReturn(org.getOrganizationId());
+        when(userDetails.getUserId()).thenReturn(testUser.getUserId());
+
+        when(farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(productionLot.getId())).thenReturn(List.of(
+                createFarmLog(FarmActivityType.PLANTING),
+                createFarmLog(FarmActivityType.FERTILIZING),
+                createFarmLog(FarmActivityType.PESTICIDE),
+                createFarmLog(FarmActivityType.HARVESTING)));
+        when(farmLogAttachmentRepository.findByFarmLogId(any(UUID.class)))
+                .thenReturn(Collections.singletonList(FarmLogAttachment.builder().fileName("doc.pdf").build()));
+
+        InspectionRequest request = InspectionRequest.builder()
+                .id(UUID.randomUUID()).productionLot(productionLot)
+                .inspectionUnit("Trung tâm Kiểm nghiệm TH3")
+                .sampleSentDate(LocalDate.of(2026, 7, 1))
+                .status(InspectionRequestStatus.PASSED)
+                .build();
+        InspectionCriterion criterion = InspectionCriterion.builder()
+                .id(UUID.randomUUID()).inspectionRequest(request)
+                .criterionCode("HEAVY_METAL").criterionName("Kim loại nặng")
+                .build();
+        request.setCriteria(new ArrayList<>(List.of(criterion)));
+        when(inspectionRequestRepository.findByProductionLot_IdOrderByCreatedAtDesc(productionLot.getId()))
+                .thenReturn(List.of(request));
+        // Chỉ tiêu chưa được ghi kết quả kiểm nghiệm → hiển thị "Chưa có kết quả"
+        when(inspectionCriterionResultRepository.findByInspectionCriterion_InspectionRequest_Id(request.getId()))
+                .thenReturn(Collections.emptyList());
 
         when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
         when(chainEventRepository.findByShipment_IdOrderByRecordedAtAsc(shipmentId)).thenReturn(Collections.emptyList());

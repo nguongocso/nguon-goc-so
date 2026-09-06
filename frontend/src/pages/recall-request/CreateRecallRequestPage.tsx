@@ -10,6 +10,7 @@ import { HelpButton } from '@/components/help/HelpButton';
 import { getProductionLots } from '@/api/productionLotApi';
 import { createRecallRequest } from '@/api/recallApi';
 import type { ProductionLot } from '@/types/productionLot';
+import { PRODUCTION_LOT_STATUS_LABELS } from '@/components/production-lot/ProductionLotStatusBadge';
 
 const RECALLABLE_STATUSES = ['APPROVED', 'HARVESTED', 'PACKAGED'];
 
@@ -117,7 +118,7 @@ export const CreateRecallRequestPage = () => {
               >
                 {lots.map((lot) => (
                   <option key={lot.id} value={lot.id}>
-                    {lot.name} ({lot.status})
+                    {lot.name} ({PRODUCTION_LOT_STATUS_LABELS[lot.status] || lot.status})
                   </option>
                 ))}
               </select>

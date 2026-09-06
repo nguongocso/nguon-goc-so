@@ -2,7 +2,9 @@ package vn.nguongocso.trace.service.impl;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -10,6 +12,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -20,6 +23,9 @@ import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.certification.dto.response.InspectionEligibilityResult;
+import vn.nguongocso.certification.enums.InspectionBlockReasonCode;
+import vn.nguongocso.certification.service.InspectionEligibilityService;
 import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
@@ -60,6 +66,7 @@ public class ShipmentServiceImpl implements ShipmentService {
     private final ApplicationEventPublisher eventPublisher;
     private final NotificationService notificationService;
     private final PermissionChecker permissionChecker;
+    private final InspectionEligibilityService inspectionEligibilityService;
 
     private static final String ORG_MANAGER_ROLE = "VT-02";
 
@@ -92,6 +99,13 @@ public class ShipmentServiceImpl implements ShipmentService {
         validateOrganization(currentUser, productionLot);
 
         validateProductionLotStatus(productionLot);
+
+        /*
+         * QTN-30 (NCL-11-CN-005): lô chưa đạt kiểm nghiệm không được tạo
+         * lô hàng. Gate bắt buộc phía backend — chặn TRƯỚC khi persist
+         * Shipment / sinh TraceCode / trừ hạn mức dải mã (TC-01).
+         */
+        validateInspectionEligibility(productionLot);
 
         CodeRange codeRange = findAvailableCodeRange(currentUser);
 
@@ -165,6 +179,13 @@ public class ShipmentServiceImpl implements ShipmentService {
         if (shipment.getStatus() != ShipmentStatus.CODE_PRINTED) {
             throw new BusinessException("Lô hàng chưa được cấp hoặc in mã tem.");
         }
+
+        /*
+         * QTN-21 / QTN-30 (NCL-11-CN-005): rào chắn thứ hai trước khi
+         * kích hoạt tem — lô chưa đạt kiểm nghiệm không thể kích hoạt.
+         * Không thay thế gate tại POST /shipments.
+         */
+        validateInspectionEligibility(productionLot);
 
         User actor = userRepository.findById(currentUser.getUserId())
                 .orElseThrow(() -> new BusinessException("Người dùng không tồn tại."));
@@ -360,6 +381,57 @@ public class ShipmentServiceImpl implements ShipmentService {
 
             throw new BusinessException(INVALID_LOT_STATUS_MESSAGE);
         }
+    }
+
+    /**
+     * Gate QTN-30 (NCL-11-CN-005): lô chưa đạt kiểm nghiệm không được
+     * tạo lô hàng / kích hoạt tem.
+     *
+     * <p>
+     * Đánh giá qua {@link InspectionEligibilityService} — nguồn sự thật
+     * dùng chung với pre-check {@code can-activate-seal}. Khi không đủ
+     * điều kiện, trả {@code 409 CONFLICT} kèm {@code errors} chứa
+     * {@code reasonCode} và thống kê chỉ tiêu; không persist bất kỳ dữ
+     * liệu nào (Shipment / TraceCode / hạn mức dải mã giữ nguyên).
+     * </p>
+     *
+     * @param productionLot lô sản xuất cần đánh giá
+     * @throws BusinessException 409 CONFLICT nếu lô chưa đạt điều kiện
+     */
+    private void validateInspectionEligibility(ProductionLot productionLot) {
+
+        InspectionEligibilityResult eligibility =
+                inspectionEligibilityService.evaluateForShipment(productionLot);
+
+        if (eligibility.isEligible()) {
+            return;
+        }
+
+        InspectionBlockReasonCode reasonCode = eligibility.getReasonCode();
+
+        throw new BusinessException(
+                HttpStatus.CONFLICT,
+                eligibility.getMessage(),
+                buildInspectionBlockDetails(eligibility, reasonCode));
+    }
+
+    /**
+     * Dựng {@code errors} cho response lỗi 409 — shape thống kê của
+     * {@code CanActivateSealCheckResponse} + {@code reasonCode}
+     * (tài liệu QTN-30 §5.1).
+     */
+    private Map<String, Object> buildInspectionBlockDetails(
+            InspectionEligibilityResult eligibility,
+            InspectionBlockReasonCode reasonCode) {
+
+        Map<String, Object> details = new HashMap<>();
+        details.put("reasonCode", reasonCode != null ? reasonCode.name() : null);
+        details.put("totalCriteria", eligibility.getTotalCriteria());
+        details.put("passedCriteria", eligibility.getPassedCriteria());
+        details.put("failedOrExpiredCriteria",
+                eligibility.getFailedOrExpiredCriteria());
+        details.put("earliestExpiryDate", eligibility.getEarliestExpiryDate());
+        return details;
     }
 
     /**
