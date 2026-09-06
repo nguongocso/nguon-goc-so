@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { recordStorageCondition } from '@/api/storageConditionApi';
 import { scanLookupTraceCode } from '@/api/chainEventApi';
 import type { StorageConditionResponse } from '@/types/storageCondition';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { HelpButton } from '@/components/help/HelpButton';
 
@@ -51,6 +52,7 @@ const getAlertBadgeClasses = (level: string) => {
 };
 
 export default function StorageConditionPage() {
+  const { user } = useAuth();
   const [codeValue, setCodeValue] = useState('');
   const [temperature, setTemperature] = useState('');
   const [humidity, setHumidity] = useState('');
@@ -62,10 +64,17 @@ export default function StorageConditionPage() {
     productCategoryName: string;
     farmAreaName: string;
     shipmentStatus: string;
-    canRecord: boolean;
+    storageEligible?: boolean | null;
   } | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+
+  // Lô bị chặn thao tác: ẩn khối thông tin, chỉ hiện alert theo vai trò.
+  const isBlocked = lotInfo?.storageEligible === false;
+  const blockedMessage =
+    user?.roleCode === 'VT-03'
+      ? 'Lô hàng phải có sự kiện vận chuyển trước khi ghi nhận điều kiện bảo quản.'
+      : 'Bạn chưa thu mua lô hàng này. Chỉ doanh nghiệp đã thu mua lô hàng mới được ghi mốc bảo quản.';
 
   const handleScan = async (scannedCode?: string) => {
     const code = (scannedCode ?? codeValue).trim();
@@ -88,7 +97,7 @@ export default function StorageConditionPage() {
         productCategoryName: lookupResult.productCategoryName,
         farmAreaName: lookupResult.farmAreaName,
         shipmentStatus: lookupResult.shipmentStatus,
-        canRecord: lookupResult.allowedEventTypes.includes('STORAGE_CONDITION'),
+        storageEligible: lookupResult.storageEligible,
       });
     } catch (err: any) {
       setScanError(err.response?.data?.message || 'Không thể tra cứu mã.');
@@ -101,8 +110,8 @@ export default function StorageConditionPage() {
     e.preventDefault();
     setFormError(null);
 
-    if (lotInfo && !lotInfo.canRecord) {
-      setFormError('Lô hàng chưa đủ điều kiện để ghi mốc bảo quản.');
+    if (isBlocked) {
+      setFormError(blockedMessage);
       return;
     }
 
@@ -115,7 +124,7 @@ export default function StorageConditionPage() {
     setIsSubmitting(true);
     try {
       const res = await recordStorageCondition({
-        codeValue: parsed.data.codeValue,
+        codeValue: parsed.data.codeValue.trim(),
         temperature: parsed.data.temperature,
         humidity: parsed.data.humidity,
       });
@@ -140,7 +149,7 @@ export default function StorageConditionPage() {
     setScanError(null);
   };
 
-  const recordDisabled = isSubmitting || isScanning || (!!lotInfo && !lotInfo.canRecord);
+  const recordDisabled = isSubmitting || isScanning || isBlocked;
 
   return (
     <div className="space-y-6">
@@ -201,7 +210,16 @@ export default function StorageConditionPage() {
               </Alert>
             )}
 
-            {lotInfo && (
+            {lotInfo && isBlocked && (
+              <Alert className="border-amber-200 bg-amber-50">
+                <AlertTriangle className="size-4 text-amber-600" />
+                <AlertDescription className="text-amber-800">
+                  {blockedMessage}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {lotInfo && !isBlocked && (
               <LotLookupResult
                 items={[
                   { label: 'Lô', value: lotInfo.shipmentName },
@@ -209,16 +227,6 @@ export default function StorageConditionPage() {
                   { label: 'Vùng trồng', value: lotInfo.farmAreaName },
                   { label: 'Trạng thái', value: lotInfo.shipmentStatus },
                 ]}
-                blocked={!lotInfo.canRecord}
-                notice={
-                  !lotInfo.canRecord
-                    ? {
-                        title: 'Chưa thể ghi mốc bảo quản',
-                        description:
-                          'Lô hàng này chưa được doanh nghiệp thu mua. Chỉ lô hàng đã thu mua mới được phép ghi nhận mốc bảo quản.',
-                      }
-                    : undefined
-                }
               />
             )}
 

@@ -19,6 +19,7 @@ import { useWarehouseReceipt } from '@/hooks/useWarehouseReceipt';
 import { scanLookupTraceCode } from '@/api/chainEventApi';
 import { ScanCodeField } from '@/components/common/ScanCodeField';
 import { LotLookupResult } from '@/components/common/LotLookupResult';
+import { getShipmentStatusLabel } from '@/components/shipment/ShipmentStatusBadge';
 import { getLocalDateString } from '@/utils/dateTime';
 import { selectAllOnFocus, preventMouseUpCollapse } from '@/utils/inputUtils';
 
@@ -138,7 +139,7 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
     }
     if (!validate()) return;
     const success = await submitReceipt({
-      codeValue,
+      codeValue: codeValue.trim(),
       receivedQuantity: parseFloat(receivedQuantity),
       conditionNote: conditionNote || undefined,
       receiptDate: receiptDate || undefined,
@@ -215,6 +216,7 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
             <LotLookupResult
               items={[
                 { label: 'Lô', value: lotInfo.shipmentName },
+                { label: 'Trạng thái', value: getShipmentStatusLabel(lotInfo.shipmentStatus) },
                 { label: 'Đơn vị', value: lotInfo.organizationName },
                 { label: 'Số lượng khai báo', value: `${lotInfo.declaredQuantity.toLocaleString('vi-VN')} kg` },
               ]}
