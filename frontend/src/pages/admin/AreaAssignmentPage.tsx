@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { HelpButton } from '@/components/help/HelpButton';
-import { AdministrativeUnitCascadeSelect } from '@/components/common/AdministrativeUnitCascadeSelect';
+import { AdministrativeAreaPicker } from '@/components/common/AdministrativeAreaPicker';
 import { ListPageHeader } from '@/components/common/ListPageHeader';
 import { RefreshButton } from '@/components/common/RefreshButton';
 import { StatCard } from '@/components/common/StatCard';
@@ -381,7 +381,7 @@ export function AreaAssignmentPage() {
             <CardTitle className="text-base font-semibold">Gán địa bàn mới</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col space-y-4 pt-4">
-            <AdministrativeUnitCascadeSelect
+            <AdministrativeAreaPicker
               units={units}
               value={pendingUnitIds}
               onChange={setPendingUnitIds}
@@ -402,7 +402,7 @@ export function AreaAssignmentPage() {
               onClick={handleAssign}
             >
               <RefreshCw className={`h-4 w-4 ${assigning ? 'animate-spin' : ''}`} />
-              Gán địa bàn
+              Gán địa bàn {pendingUnitIds.length > 0 ? `(${pendingUnitIds.length})` : ''}
             </Button>
           </CardContent>
         </Card>
