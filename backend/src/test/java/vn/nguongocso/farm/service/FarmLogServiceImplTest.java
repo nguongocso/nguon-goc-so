@@ -165,4 +165,30 @@ class FarmLogServiceImplTest {
         assertThat(saved.getExecutedDate())
                 .isEqualTo(LocalDate.of(2026, 8, 23));
     }
+
+    @Test
+    void create_shouldTriggerCompleteReminders_whenMilestoneReminderServicePresent() {
+        MilestoneReminderService mockReminderService = Mockito.mock(MilestoneReminderService.class);
+        FarmLogServiceImpl serviceWithReminder = new FarmLogServiceImpl(
+                farmLogRepository,
+                productionLotRepository,
+                attachmentRepository,
+                Mockito.mock(vn.nguongocso.trace.repository.TraceCodeRepository.class),
+                eventPublisher,
+                clock,
+                mockReminderService);
+
+        CreateFarmLogRequest request = new CreateFarmLogRequest();
+        request.setProductionLotId(productionLot.getId());
+        request.setActivityType(FarmActivityType.FERTILIZING);
+        request.setMaterial("NPK");
+        request.setQuantity(50.0);
+        request.setUnit("kg");
+        request.setExecutedDate(LocalDate.of(2026, 8, 23));
+
+        serviceWithReminder.create(request);
+
+        Mockito.verify(mockReminderService).completeRemindersForLotAndActivity(
+                productionLot.getId(), FarmActivityType.FERTILIZING);
+    }
 }
