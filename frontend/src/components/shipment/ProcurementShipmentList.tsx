@@ -123,7 +123,9 @@ export function ProcurementShipmentList({
   };
 
   const handleGoToBatchExport = () => {
-    if (selectedShipmentIds.length === 0) return;
+    if (selectedShipmentIds.length === 0) {
+      toast.info("Vui lòng tích chọn các lô hàng trong bảng để xuất bộ hồ sơ hàng loạt.");
+    }
     navigate("/shipments/batch-dossier-export", {
       state: { shipmentIds: selectedShipmentIds },
     });
@@ -185,14 +187,16 @@ export function ProcurementShipmentList({
         }
         right={
           <div className="flex items-center gap-2">
-            {canExportBatch && selectedShipmentIds.length > 0 && (
+            {canExportBatch && (
               <Button
                 type="button"
-                variant="default"
+                variant={selectedShipmentIds.length > 0 ? "default" : "outline"}
                 size="sm"
                 onClick={handleGoToBatchExport}
               >
-                Xuất bộ hồ sơ cho {selectedShipmentIds.length} lô đã chọn
+                {selectedShipmentIds.length > 0
+                  ? `Xuất bộ hồ sơ cho ${selectedShipmentIds.length} lô đã chọn`
+                  : "Xuất hồ sơ nhiều lô"}
               </Button>
             )}
             <RefreshButton onClick={loadShipments} loading={isLoading} />

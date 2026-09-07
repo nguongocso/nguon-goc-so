@@ -269,17 +269,22 @@ export const ShipmentList = ({
             <CardTitle className="text-xl font-bold text-slate-900">Danh sách lô hàng</CardTitle>
 
             <div className="flex items-center gap-2">
-              {canExportBatch && selectedShipmentIds.length > 0 && (
+              {canExportBatch && (
                 <Button
-                  variant="default"
+                  variant={selectedShipmentIds.length > 0 ? "default" : "outline"}
                   size="sm"
-                  onClick={() =>
+                  onClick={() => {
+                    if (selectedShipmentIds.length === 0) {
+                      toast.info("Vui lòng tích chọn các lô hàng trong bảng để xuất bộ hồ sơ hàng loạt.");
+                    }
                     navigate("/shipments/batch-dossier-export", {
                       state: { shipmentIds: selectedShipmentIds },
-                    })
-                  }
+                    });
+                  }}
                 >
-                  Xuất bộ hồ sơ ({selectedShipmentIds.length} lô)
+                  {selectedShipmentIds.length > 0
+                    ? `Xuất bộ hồ sơ (${selectedShipmentIds.length} lô)`
+                    : "Xuất hồ sơ nhiều lô"}
                 </Button>
               )}
 

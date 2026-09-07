@@ -326,6 +326,13 @@ const MENU_GROUPS: MenuGroup[] = [
       },
       {
         icon: <FileText className="h-5 w-5" />,
+        label: "Xuất hồ sơ nhiều lô",
+        href: "/shipments/batch-dossier-export",
+        allowedRoles: ROLE_ACCESS.batchDossierExport,
+        activePaths: ["/shipments/batch-dossier-export"],
+      },
+      {
+        icon: <FileText className="h-5 w-5" />,
         label: "Xuất dữ liệu mở",
         href: "/export/open-data",
         allowedRoles: ["VT-05"] as const,
