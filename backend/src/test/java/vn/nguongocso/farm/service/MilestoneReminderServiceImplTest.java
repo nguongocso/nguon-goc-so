@@ -124,8 +124,8 @@ class MilestoneReminderServiceImplTest {
                 .thenReturn(List.of(activeLot));
         when(milestoneValidationService.findMissingMilestones(activeLot))
                 .thenReturn(List.of(milestoneBonPhan));
-        when(milestoneReminderRepository.existsByProductionLot_IdAndMilestone_IdAndReminderDate(
-                activeLot.getId(), milestoneBonPhan.getId(), today))
+        when(milestoneReminderRepository.existsByProductionLot_IdAndMilestone_IdAndUser_UserIdAndReminderDate(
+                any(), any(), any(), any()))
                 .thenReturn(false);
 
         LotAssignment assignment = LotAssignment.builder()
@@ -236,9 +236,9 @@ class MilestoneReminderServiceImplTest {
                 .thenReturn(List.of(activeLot));
         when(milestoneValidationService.findMissingMilestones(activeLot))
                 .thenReturn(List.of(milestoneBonPhan));
-        // Đã tạo nhắc việc cho mốc đó trong ngày hôm nay
-        when(milestoneReminderRepository.existsByProductionLot_IdAndMilestone_IdAndReminderDate(
-                activeLot.getId(), milestoneBonPhan.getId(), today))
+        // Đã tạo nhắc việc cho mốc đó trong ngày hôm nay cho người dùng
+        when(milestoneReminderRepository.existsByProductionLot_IdAndMilestone_IdAndUser_UserIdAndReminderDate(
+                any(), any(), any(), any()))
                 .thenReturn(true);
 
         MilestoneScanResult result = reminderService.scanOverdueMilestones();
@@ -289,6 +289,7 @@ class MilestoneReminderServiceImplTest {
         CustomUserDetails userDetails = mock(CustomUserDetails.class);
         when(userDetails.getRoleCode()).thenReturn(RoleCode.EVENT_RECORDER);
         when(userDetails.getUserId()).thenReturn(assignedUser.getUserId());
+        when(userDetails.getOrganizationId()).thenReturn(activeLot.getOrganization().getOrganizationId());
 
         MilestoneReminder reminder = MilestoneReminder.builder()
                 .id(UUID.randomUUID())
@@ -300,8 +301,8 @@ class MilestoneReminderServiceImplTest {
                 .reminderDate(LocalDate.now())
                 .build();
 
-        when(milestoneReminderRepository.findByUser_UserIdAndStatusOrderByOverdueDaysDesc(
-                assignedUser.getUserId(), MilestoneReminderStatus.OPEN))
+        when(milestoneReminderRepository.findActiveRemindersForUserOrOrganization(
+                eq(assignedUser.getUserId()), eq(activeLot.getOrganization().getOrganizationId()), eq(MilestoneReminderStatus.OPEN)))
                 .thenReturn(List.of(reminder));
 
         List<MilestoneReminderResponse> responses = reminderService.getMyActiveReminders(userDetails);

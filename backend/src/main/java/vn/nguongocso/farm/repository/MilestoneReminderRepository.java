@@ -28,6 +28,49 @@ public interface MilestoneReminderRepository extends JpaRepository<MilestoneRemi
             LocalDate reminderDate);
 
     /**
+     * Kiểm tra xem nhắc việc cho mốc, lô và người nhận cụ thể đã được tạo trong ngày hay chưa (TC-04).
+     */
+    boolean existsByProductionLot_IdAndMilestone_IdAndUser_UserIdAndReminderDate(
+            UUID lotId,
+            Long milestoneId,
+            UUID userId,
+            LocalDate reminderDate);
+
+    /**
+     * Tìm nhắc việc mở cho người dùng hoặc các lô thuộc tổ chức của người dùng.
+     */
+    @Query("SELECT DISTINCT r FROM MilestoneReminder r " +
+           "WHERE r.status = :status " +
+           "AND (r.user.userId = :userId OR (r.productionLot.organization.organizationId = :orgId AND :orgId IS NOT NULL)) " +
+           "ORDER BY r.overdueDays DESC")
+    List<MilestoneReminder> findActiveRemindersForUserOrOrganization(
+            @Param("userId") UUID userId,
+            @Param("orgId") UUID orgId,
+            @Param("status") MilestoneReminderStatus status);
+
+    /**
+     * Tìm các nhắc việc theo trạng thái cho người dùng hoặc tổ chức có phân trang.
+     */
+    @Query("SELECT DISTINCT r FROM MilestoneReminder r " +
+           "WHERE r.status = :status " +
+           "AND (r.user.userId = :userId OR (r.productionLot.organization.organizationId = :orgId AND :orgId IS NOT NULL))")
+    Page<MilestoneReminder> findRemindersForUserOrOrganizationAndStatus(
+            @Param("userId") UUID userId,
+            @Param("orgId") UUID orgId,
+            @Param("status") MilestoneReminderStatus status,
+            Pageable pageable);
+
+    /**
+     * Tìm tất cả các nhắc việc cho người dùng hoặc tổ chức có phân trang.
+     */
+    @Query("SELECT DISTINCT r FROM MilestoneReminder r " +
+           "WHERE (r.user.userId = :userId OR (r.productionLot.organization.organizationId = :orgId AND :orgId IS NOT NULL))")
+    Page<MilestoneReminder> findRemindersForUserOrOrganization(
+            @Param("userId") UUID userId,
+            @Param("orgId") UUID orgId,
+            Pageable pageable);
+
+    /**
      * Tìm tất cả các nhắc việc theo lô và trạng thái.
      */
     List<MilestoneReminder> findByProductionLot_IdAndStatus(
