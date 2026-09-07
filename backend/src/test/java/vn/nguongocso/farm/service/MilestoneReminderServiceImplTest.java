@@ -36,6 +36,7 @@ import vn.nguongocso.notification.entity.Notification;
 import vn.nguongocso.notification.repository.NotificationRepository;
 import vn.nguongocso.organization.constant.RoleCode;
 import vn.nguongocso.organization.entity.Organization;
+import vn.nguongocso.organization.repository.OrganizationUserRepository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -68,6 +69,9 @@ class MilestoneReminderServiceImplTest {
 
     @Mock
     private NotificationRepository notificationRepository;
+
+    @Mock
+    private OrganizationUserRepository organizationUserRepository;
 
     @InjectMocks
     private MilestoneReminderServiceImpl reminderService;
@@ -116,7 +120,7 @@ class MilestoneReminderServiceImplTest {
         LocalDate today = LocalDate.now();
         activeLot.setPlantingDate(today.minusDays(13));
 
-        when(productionLotRepository.findByStatus(ProductionLotStatus.APPROVED))
+        when(productionLotRepository.findByStatusIn(any()))
                 .thenReturn(List.of(activeLot));
         when(milestoneValidationService.findMissingMilestones(activeLot))
                 .thenReturn(List.of(milestoneBonPhan));
@@ -210,8 +214,8 @@ class MilestoneReminderServiceImplTest {
         cancelledLot.setPlantingDate(LocalDate.now().minusDays(20));
         cancelledLot.setProductCategory(activeLot.getProductCategory());
 
-        // findByStatus(APPROVED) trả về rỗng vì lô đã hủy
-        when(productionLotRepository.findByStatus(ProductionLotStatus.APPROVED))
+        // findByStatusIn trả về rỗng vì lô đã hủy
+        when(productionLotRepository.findByStatusIn(any()))
                 .thenReturn(Collections.emptyList());
 
         MilestoneScanResult result = reminderService.scanOverdueMilestones();
@@ -228,7 +232,7 @@ class MilestoneReminderServiceImplTest {
         LocalDate today = LocalDate.now();
         activeLot.setPlantingDate(today.minusDays(13));
 
-        when(productionLotRepository.findByStatus(ProductionLotStatus.APPROVED))
+        when(productionLotRepository.findByStatusIn(any()))
                 .thenReturn(List.of(activeLot));
         when(milestoneValidationService.findMissingMilestones(activeLot))
                 .thenReturn(List.of(milestoneBonPhan));
@@ -252,7 +256,7 @@ class MilestoneReminderServiceImplTest {
         // Mới gieo trồng 5 ngày trước, mốc dự kiến sau 10 ngày -> chưa quá hạn (còn 5 ngày)
         activeLot.setPlantingDate(today.minusDays(5));
 
-        when(productionLotRepository.findByStatus(ProductionLotStatus.APPROVED))
+        when(productionLotRepository.findByStatusIn(any()))
                 .thenReturn(List.of(activeLot));
         when(milestoneValidationService.findMissingMilestones(activeLot))
                 .thenReturn(List.of(milestoneBonPhan));
@@ -269,7 +273,7 @@ class MilestoneReminderServiceImplTest {
     void testScanOverdueMilestones_NoPlantingDate() {
         activeLot.setPlantingDate(null);
 
-        when(productionLotRepository.findByStatus(ProductionLotStatus.APPROVED))
+        when(productionLotRepository.findByStatusIn(any()))
                 .thenReturn(List.of(activeLot));
 
         MilestoneScanResult result = reminderService.scanOverdueMilestones();

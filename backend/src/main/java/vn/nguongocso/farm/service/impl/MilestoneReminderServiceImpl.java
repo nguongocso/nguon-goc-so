@@ -27,6 +27,9 @@ import vn.nguongocso.farm.service.MilestoneReminderService;
 import vn.nguongocso.notification.entity.Notification;
 import vn.nguongocso.notification.repository.NotificationRepository;
 import vn.nguongocso.organization.constant.RoleCode;
+import vn.nguongocso.organization.entity.OrganizationUser;
+import vn.nguongocso.organization.enums.OrganizationUserStatus;
+import vn.nguongocso.organization.repository.OrganizationUserRepository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -47,19 +50,25 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
     private final MilestoneValidationService milestoneValidationService;
     private final LotAssignmentRepository lotAssignmentRepository;
     private final NotificationRepository notificationRepository;
+    private final OrganizationUserRepository organizationUserRepository;
+
+    private static final List<ProductionLotStatus> SCAN_STATUSES = List.of(
+            ProductionLotStatus.APPROVED,
+            ProductionLotStatus.HARVESTED
+    );
 
     @Override
     public MilestoneScanResult scanOverdueMilestones() {
         log.info("⏰ Bắt đầu quét mốc canh tác quá hạn trên toàn hệ thống.");
-        List<ProductionLot> cultivatingLots = productionLotRepository.findByStatus(ProductionLotStatus.APPROVED);
+        List<ProductionLot> cultivatingLots = productionLotRepository.findByStatusIn(SCAN_STATUSES);
         return doScanLots(cultivatingLots);
     }
 
     @Override
     public MilestoneScanResult scanOverdueMilestonesForOrganization(UUID organizationId) {
         log.info("⏰ Bắt đầu quét mốc canh tác quá hạn cho tổ chức: {}", organizationId);
-        List<ProductionLot> cultivatingLots = productionLotRepository.findByOrganization_OrganizationIdAndStatus(
-                organizationId, ProductionLotStatus.APPROVED);
+        List<ProductionLot> cultivatingLots = productionLotRepository.findByOrganization_OrganizationIdAndStatusIn(
+                organizationId, SCAN_STATUSES);
         return doScanLots(cultivatingLots);
     }
 
@@ -173,6 +182,16 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
         }
         if (recipients.isEmpty() && lot.getCreatedBy() != null) {
             recipients.add(lot.getCreatedBy());
+        }
+        if (recipients.isEmpty() && lot.getOrganization() != null) {
+            List<OrganizationUser> orgUsers = organizationUserRepository.findByOrganization_OrganizationIdAndStatus(
+                    lot.getOrganization().getOrganizationId(), OrganizationUserStatus.ACTIVE);
+            for (OrganizationUser ou : orgUsers) {
+                if (ou.getUser() != null) {
+                    recipients.add(ou.getUser());
+                    break;
+                }
+            }
         }
         return recipients;
     }
