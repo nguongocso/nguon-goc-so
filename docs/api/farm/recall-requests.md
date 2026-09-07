@@ -78,6 +78,10 @@ Quyền: `VT-03` theo controller hiện hành.
 Lô sản xuất cha phải ở một trong các trạng thái `APPROVED`, `HARVESTED`, `PACKAGED`. Không được
 tạo thêm yêu cầu `PENDING` cho cùng shipment.
 
+Backend khóa pessimistic bản ghi shipment trước khi kiểm tra/tạo. Database đồng thời duy trì unique
+key có điều kiện trên shipment khi `status=PENDING`, nên hai request đồng thời không thể tạo hai yêu
+cầu đang chờ cho cùng một shipment.
+
 Response: `201 Created`, `ApiResult<RecallRequestResponse>`.
 
 ## 4. Danh sách và chi tiết
@@ -123,6 +127,12 @@ Response: `200 OK`, `ApiResult<RecallRequestResponse>`.
 
 Yêu cầu dữ liệu cũ không thể tự ánh xạ sang shipment sẽ trả `409` với hướng dẫn từ chối và tạo lại.
 
+### Thông báo cho doanh nghiệp thu mua
+
+Tổ chức thu mua được lấy từ `chain_events.recorded_organization_id` của sự kiện `PROCUREMENT` trên
+đúng shipment. Giá trị này được chụp từ tổ chức hiện tại khi sự kiện được tạo, không suy ngược từ
+membership hiện tại của người ghi; vì vậy tài khoản thuộc nhiều tổ chức không làm gửi nhầm thông báo.
+
 ## 6. Từ chối
 
 ```http
@@ -156,3 +166,10 @@ Migration `V20260907120000__scope_recall_requests_to_shipments.sql` thêm `shipm
 
 Trường hợp cũ có nhiều shipment nhưng không có mã tem được giữ `shipment_id = NULL` để tránh tự chọn
 sai phạm vi. Yêu cầu đó không được duyệt và phải được tạo lại.
+
+Migration `V20260907195000__preserve_procurement_org_and_unique_pending_recall.sql`:
+
+1. thêm `chain_events.recorded_organization_id` và backfill từ activity log; chỉ fallback qua membership
+   khi người dùng có đúng một membership `ACTIVE`;
+2. giữ `NULL` đối với dữ liệu cũ còn mơ hồ thay vì đoán tổ chức;
+3. thêm unique key có điều kiện để chặn nhiều recall `PENDING` trên cùng shipment.

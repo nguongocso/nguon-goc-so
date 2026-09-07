@@ -101,6 +101,8 @@ Phản ánh không có API xóa và phải giữ được người thực hiện
 - Người tạo đề nghị không được tự phê duyệt theo `QTN-22`.
 - API hiện tại chỉ cho `VT-03` tạo đề nghị. Story này bổ sung trường hợp `VT-02` tạo từ phản ánh nhưng
   không được làm yếu quy tắc người tạo khác người duyệt.
+- Giao diện chỉ hiển thị và cho tạo đề nghị theo `severity` đã lưu. Nếu mức độ, mã tem hoặc nội dung
+  xử lý còn là bản nháp, nút tạo đề nghị bị khóa cho tới khi người dùng bấm **Lưu xử lý**.
 
 ### D-05. Phản ánh nghi ngờ tem giả
 
@@ -373,6 +375,8 @@ Quy ước giao diện:
   mã thuộc lô và đã ánh xạ được sang `traceCodeId`.
 - Mã đã liên kết được khóa chỉ đọc trong modal. Thay đổi liên kết đã lưu không thuộc thao tác cập nhật
   thông thường của story này.
+- Nếu mức độ hoặc mã tem đang khác dữ liệu đã lưu, nút **Đóng phản ánh** bị khóa. Nội dung xử lý và
+  phản hồi công khai vẫn có thể được lưu nguyên tử qua API đóng theo mục 9.5.
 
 Response `200 OK`: `ApiResult<ProductFeedbackResponse>`.
 
@@ -572,6 +576,8 @@ Ví dụ lỗi:
 - Phân loại tem giả: cập nhật feedback, liên kết trace code và nguồn danh sách nghi vấn trong một
   transaction.
 - Tạo đề nghị thu hồi: tạo recall, liên kết feedback, cập nhật trạng thái và audit trong một transaction.
+- Khi tạo đề nghị, backend khóa pessimistic bản ghi shipment và database dùng unique key có điều kiện
+  để bảo đảm mỗi shipment chỉ có tối đa một yêu cầu `PENDING`, kể cả khi có request đồng thời.
 - Đóng: kiểm tra lại điều kiện tại thời điểm ghi; không chỉ dựa trên trạng thái frontend đã tải trước đó.
 - Query cập nhật phải áp dụng tenant scope để tránh lỗ hổng kiểm tra rồi cập nhật chéo tổ chức.
 

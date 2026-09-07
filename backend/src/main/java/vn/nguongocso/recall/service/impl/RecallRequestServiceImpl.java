@@ -77,7 +77,7 @@ public class RecallRequestServiceImpl implements RecallRequestService {
     @Auditable(action = "CREATE_RECALL_REQUEST", entityType = "RECALL_REQUEST",
             description = "'Tạo yêu cầu thu hồi lô hàng ID: ' + #request.shipmentId")
     public RecallRequestResponse create(CreateRecallRequest request, CustomUserDetails currentUser) {
-        Shipment shipment = shipmentRepository.findByIdAndOrganization_OrganizationId(
+        Shipment shipment = shipmentRepository.findOwnedByIdForRecallUpdate(
                 request.getShipmentId(), currentUser.getOrganizationId())
                 .orElseThrow(() -> new BusinessException(MSG_SHIPMENT_NOT_FOUND));
 
@@ -122,23 +122,26 @@ public class RecallRequestServiceImpl implements RecallRequestService {
             String reason,
             String evidence,
             CustomUserDetails currentUser) {
-        Shipment shipment;
+        UUID expectedShipmentId;
         if (feedback.getTraceCode() != null) {
-            shipment = feedback.getTraceCode().getShipment();
-            if (shipment == null) {
+            Shipment linkedShipment = feedback.getTraceCode().getShipment();
+            if (linkedShipment == null) {
                 throw new BusinessException(MSG_SHIPMENT_REQUIRED);
             }
-            if (requestedShipmentId != null && !shipment.getId().equals(requestedShipmentId)) {
+            expectedShipmentId = linkedShipment.getId();
+            if (requestedShipmentId != null && !expectedShipmentId.equals(requestedShipmentId)) {
                 throw new BusinessException(MSG_TRACE_SHIPMENT_MISMATCH);
             }
         } else {
             if (requestedShipmentId == null) {
                 throw new BusinessException(MSG_SHIPMENT_REQUIRED);
             }
-            shipment = shipmentRepository.findByIdAndOrganization_OrganizationId(
-                    requestedShipmentId, currentUser.getOrganizationId())
-                    .orElseThrow(() -> new BusinessException(MSG_SHIPMENT_NOT_FOUND));
+            expectedShipmentId = requestedShipmentId;
         }
+
+        Shipment shipment = shipmentRepository.findOwnedByIdForRecallUpdate(
+                expectedShipmentId, currentUser.getOrganizationId())
+                .orElseThrow(() -> new BusinessException(MSG_SHIPMENT_NOT_FOUND));
 
         if (!shipment.getProductionLot().getId().equals(feedback.getProductionLot().getId())) {
             throw new BusinessException(MSG_SHIPMENT_MISMATCH);
@@ -322,30 +325,15 @@ public class RecallRequestServiceImpl implements RecallRequestService {
      * @return số lượng người dùng đã nhận thông báo
      */
     private int sendBuyerNotifications(Shipment shipment, String reason) {
-        // 1. Lấy các user đã ghi sự kiện PROCUREMENT cho lô hàng này
-        List<UUID> procurementRecorderIds = chainEventRepository
-                .findDistinctProcurementRecorderIdsByShipmentIds(List.of(shipment.getId()));
+        // Lấy đúng tổ chức mà người mua đại diện tại thời điểm ghi sự kiện PROCUREMENT.
+        List<UUID> buyerOrgIds = chainEventRepository
+                .findDistinctProcurementOrganizationIdsByShipmentIds(List.of(shipment.getId()));
 
-        if (procurementRecorderIds.isEmpty()) {
+        if (buyerOrgIds.isEmpty()) {
             return 0;
         }
 
-        // 2. Tìm các tổ chức mà các user đó trực thuộc
-        List<UUID> buyerOrgIds = new ArrayList<>();
-        for (UUID recorderId : procurementRecorderIds) {
-            List<OrganizationUser> memberships = organizationUserRepository.findAllByUser_UserId(recorderId);
-            for (OrganizationUser ou : memberships) {
-                if (ou.getStatus() == OrganizationUserStatus.ACTIVE) {
-                    UUID orgId = ou.getOrganization().getOrganizationId();
-                    if (!buyerOrgIds.contains(orgId)) {
-                        buyerOrgIds.add(orgId);
-                    }
-                    break;
-                }
-            }
-        }
-
-        // 3. Lấy tất cả user đang hoạt động thuộc các tổ chức đó
+        // Lấy tất cả user đang hoạt động thuộc đúng các tổ chức thu mua đó.
         List<UUID> recipientIds = new ArrayList<>();
         for (UUID orgId : buyerOrgIds) {
             List<OrganizationUser> members = organizationUserRepository

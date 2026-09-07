@@ -110,6 +110,7 @@ public class ProcurementEventServiceImpl implements ProcurementEventService {
                 .location(locationPoint)
                 .recordedAt(LocalDateTime.now())
                 .recordedBy(actor)
+                .recordedOrganizationId(currentUser.getOrganizationId())
                 .isCorrection(false)
                 .build();
 

@@ -47,6 +47,10 @@ import type {
   ProductFeedbackStatus,
 } from "@/types/productFeedback";
 import type { Shipment, TraceCode } from "@/types/shipment";
+import {
+  hasUnsavedClassification as checkUnsavedClassification,
+  hasUnsavedProcessing as checkUnsavedProcessing,
+} from "./productFeedbackDraft";
 
 const STATUS_LABELS: Record<ProductFeedbackStatus, string> = {
   NEW: "Mới",
@@ -332,6 +336,12 @@ function FeedbackDetailSheet({
   const [recallEvidence, setRecallEvidence] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const processingDraft = { severity, traceCodeId, processingContent, publicResponse };
+  const hasUnsavedClassification = feedback != null
+    && checkUnsavedClassification(feedback, processingDraft);
+  const hasUnsavedProcessing = feedback != null
+    && checkUnsavedProcessing(feedback, processingDraft);
+
   useEffect(() => {
     if (!feedback) return;
     setAssigneeId(feedback.assignedToUserId ?? "");
@@ -530,9 +540,18 @@ function FeedbackDetailSheet({
                 <div className="space-y-2"><Label htmlFor="processing-content">Nội dung xử lý nội bộ</Label><Textarea id="processing-content" maxLength={4000} value={processingContent} onChange={(event) => setProcessingContent(event.target.value)} /></div>
                 <div className="space-y-2"><Label htmlFor="public-response">Phản hồi công khai</Label><Textarea id="public-response" maxLength={2000} value={publicResponse} onChange={(event) => setPublicResponse(event.target.value)} /></div>
                 <Button disabled={!feedback.assignedToUserId || saving || (severity === "COUNTERFEIT_SUSPECTED" && !traceCodeId.trim())} onClick={() => void runAction(() => updateProductFeedbackProcessing(feedback.id, { severity, traceCodeId: traceCodeId.trim() || null, processingContent, publicResponse }), "Đã lưu nội dung xử lý")}>Lưu xử lý</Button>
+                {hasUnsavedClassification ? (
+                  <p className="text-sm text-amber-700">
+                    Mức độ hoặc mã tem chưa được lưu. Hãy lưu xử lý trước khi tạo đề nghị thu hồi hoặc đóng phản ánh.
+                  </p>
+                ) : hasUnsavedProcessing ? (
+                  <p className="text-sm text-amber-700">
+                    Nội dung đang có thay đổi chưa lưu. Hãy lưu xử lý trước khi tạo đề nghị thu hồi.
+                  </p>
+                ) : null}
               </section>
 
-              {severity !== "INFORMATION" && feedback.status === "IN_PROGRESS" && (
+              {feedback.severity !== "INFORMATION" && feedback.status === "IN_PROGRESS" && (
                 <section className="space-y-3 rounded-lg border border-amber-200 p-4">
                   <h3 className="font-semibold">Đề nghị thu hồi lô hàng</h3>
                   <div className="space-y-2">
@@ -557,7 +576,7 @@ function FeedbackDetailSheet({
                   </div>
                   <div className="space-y-2"><Label htmlFor="recall-reason">Lý do *</Label><Textarea id="recall-reason" maxLength={1000} value={recallReason} onChange={(event) => setRecallReason(event.target.value)} /></div>
                   <div className="space-y-2"><Label htmlFor="recall-evidence">Bằng chứng</Label><Textarea id="recall-evidence" maxLength={2000} value={recallEvidence} onChange={(event) => setRecallEvidence(event.target.value)} /></div>
-                  <Button variant="destructive" disabled={!recallShipmentId || !recallReason.trim() || saving || feedback.hasPendingRecallRequest} onClick={async () => {
+                  <Button variant="destructive" disabled={!recallShipmentId || !recallReason.trim() || saving || feedback.hasPendingRecallRequest || hasUnsavedProcessing} onClick={async () => {
                     try {
                       setSaving(true);
                       await createProductFeedbackRecall(feedback.id, { shipmentId: recallShipmentId, reason: recallReason.trim(), evidence: recallEvidence.trim() || undefined });
@@ -575,8 +594,9 @@ function FeedbackDetailSheet({
               <section className="space-y-3 rounded-lg border border-emerald-200 p-4">
                 <h3 className="font-semibold">Đóng phản ánh</h3>
                 {feedback.hasPendingRecallRequest && <p className="text-sm text-amber-700">Cần xử lý xong đề nghị thu hồi đang chờ trước khi đóng.</p>}
+                {hasUnsavedClassification && <p className="text-sm text-amber-700">Hãy lưu mức độ và mã tem trước khi đóng phản ánh.</p>}
                 <div className="space-y-2"><Label htmlFor="close-reason">Lý do đóng *</Label><Textarea id="close-reason" maxLength={1000} value={closeReason} onChange={(event) => setCloseReason(event.target.value)} /></div>
-                <Button disabled={!feedback.assignedToUserId || !processingContent.trim() || !closeReason.trim() || feedback.hasPendingRecallRequest || saving} onClick={() => void runAction(() => closeProductFeedback(feedback.id, { processingContent, publicResponse, closeReason: closeReason.trim() }), "Đã đóng phản ánh")}>Đóng phản ánh</Button>
+                <Button disabled={!feedback.assignedToUserId || !processingContent.trim() || !closeReason.trim() || feedback.hasPendingRecallRequest || hasUnsavedClassification || saving} onClick={() => void runAction(() => closeProductFeedback(feedback.id, { processingContent, publicResponse, closeReason: closeReason.trim() }), "Đã đóng phản ánh")}>Đóng phản ánh</Button>
               </section>
             </>}
 

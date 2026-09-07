@@ -28,6 +28,8 @@ import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.farm.repository.ProductFeedbackRepository;
 import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.organization.entity.Organization;
+import vn.nguongocso.organization.entity.OrganizationUser;
+import vn.nguongocso.organization.enums.OrganizationUserStatus;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.recall.dto.request.ApproveRecallRequest;
 import vn.nguongocso.recall.dto.request.CreateRecallRequest;
@@ -52,6 +54,7 @@ class RecallRequestServiceImplTest {
     private UserRepository userRepository;
     private ChainEventRepository chainEventRepository;
     private NotificationService notificationService;
+    private OrganizationUserRepository organizationUserRepository;
     private RecallRequestServiceImpl service;
     private CustomUserDetails currentUser;
     private UUID organizationId;
@@ -66,6 +69,7 @@ class RecallRequestServiceImplTest {
         userRepository = mock(UserRepository.class);
         chainEventRepository = mock(ChainEventRepository.class);
         notificationService = mock(NotificationService.class);
+        organizationUserRepository = mock(OrganizationUserRepository.class);
 
         service = new RecallRequestServiceImpl(
                 recallRequestRepository,
@@ -73,7 +77,7 @@ class RecallRequestServiceImplTest {
                 shipmentRepository,
                 shipmentRecallService,
                 userRepository,
-                mock(OrganizationUserRepository.class),
+                organizationUserRepository,
                 chainEventRepository,
                 notificationService);
 
@@ -96,7 +100,7 @@ class RecallRequestServiceImplTest {
         request.setEvidence("Ảnh chụp tem rách");
 
         User requester = User.builder().userId(currentUserId).fullName("Người tạo").build();
-        when(shipmentRepository.findByIdAndOrganization_OrganizationId(shipment.getId(), organizationId))
+        when(shipmentRepository.findOwnedByIdForRecallUpdate(shipment.getId(), organizationId))
                 .thenReturn(Optional.of(shipment));
         when(recallRequestRepository.existsByShipment_IdAndStatus(shipment.getId(), RecallRequestStatus.PENDING))
                 .thenReturn(false);
@@ -121,7 +125,7 @@ class RecallRequestServiceImplTest {
         request.setShipmentId(shipment.getId());
         request.setReason("Thu hồi lại");
 
-        when(shipmentRepository.findByIdAndOrganization_OrganizationId(shipment.getId(), organizationId))
+        when(shipmentRepository.findOwnedByIdForRecallUpdate(shipment.getId(), organizationId))
                 .thenReturn(Optional.of(shipment));
 
         assertThatThrownBy(() -> service.create(request, currentUser))
@@ -137,7 +141,7 @@ class RecallRequestServiceImplTest {
         request.setShipmentId(shipment.getId());
         request.setReason("Lý do trùng");
 
-        when(shipmentRepository.findByIdAndOrganization_OrganizationId(shipment.getId(), organizationId))
+        when(shipmentRepository.findOwnedByIdForRecallUpdate(shipment.getId(), organizationId))
                 .thenReturn(Optional.of(shipment));
         when(recallRequestRepository.existsByShipment_IdAndStatus(shipment.getId(), RecallRequestStatus.PENDING))
                 .thenReturn(true);
@@ -160,6 +164,8 @@ class RecallRequestServiceImplTest {
                 .traceCode(traceCode)
                 .build();
         User requester = User.builder().userId(currentUserId).fullName("Người tạo").build();
+        when(shipmentRepository.findOwnedByIdForRecallUpdate(shipment.getId(), organizationId))
+                .thenReturn(Optional.of(shipment));
         when(userRepository.findById(currentUserId)).thenReturn(Optional.of(requester));
 
         service.createFromFeedback(feedback, null, "Nghi ngờ tem giả", null, currentUser);
@@ -218,7 +224,7 @@ class RecallRequestServiceImplTest {
                 .traceCode(null)
                 .build();
 
-        when(shipmentRepository.findByIdAndOrganization_OrganizationId(shipmentB.getId(), organizationId))
+        when(shipmentRepository.findOwnedByIdForRecallUpdate(shipmentB.getId(), organizationId))
                 .thenReturn(Optional.of(shipmentB));
 
         assertThatThrownBy(() -> service.createFromFeedback(feedback, shipmentB.getId(), "Lý do", null, currentUser))
@@ -244,7 +250,7 @@ class RecallRequestServiceImplTest {
         when(recallRequestRepository.findByIdAndProductionLot_Organization_OrganizationId(
                 request.getId(), organizationId)).thenReturn(Optional.of(request));
         when(userRepository.findById(currentUserId)).thenReturn(Optional.of(approver));
-        when(chainEventRepository.findDistinctProcurementRecorderIdsByShipmentIds(List.of(selected.getId())))
+        when(chainEventRepository.findDistinctProcurementOrganizationIdsByShipmentIds(List.of(selected.getId())))
                 .thenReturn(List.of());
 
         service.approve(request.getId(), new ApproveRecallRequest(), currentUser);
@@ -303,13 +309,52 @@ class RecallRequestServiceImplTest {
         when(recallRequestRepository.findByIdAndProductionLot_Organization_OrganizationId(
                 request.getId(), organizationId)).thenReturn(Optional.of(request));
         when(userRepository.findById(currentUserId)).thenReturn(Optional.of(approver));
-        when(chainEventRepository.findDistinctProcurementRecorderIdsByShipmentIds(List.of(shipment.getId())))
+        when(chainEventRepository.findDistinctProcurementOrganizationIdsByShipmentIds(List.of(shipment.getId())))
                 .thenReturn(List.of());
 
         service.approve(request.getId(), new ApproveRecallRequest(), currentUser);
 
         verify(productFeedbackRepository).save(feedback);
         assertThat(feedback.getStatus()).isEqualTo(ProductFeedbackStatus.ESCALATED_TO_RECALL);
+    }
+
+    @Test
+    void approve_shouldNotifyOrganizationRecordedOnProcurementEvent() {
+        ProductionLot lot = productionLot();
+        Shipment shipment = shipment(lot, "Lô hàng");
+        UUID buyerOrganizationId = UUID.randomUUID();
+        UUID buyerUserId = UUID.randomUUID();
+        User requester = User.builder().userId(UUID.randomUUID()).fullName("Người tạo").build();
+        User approver = User.builder().userId(currentUserId).fullName("Người duyệt").build();
+        User buyer = User.builder().userId(buyerUserId).fullName("Người mua").build();
+        OrganizationUser buyerMembership = mock(OrganizationUser.class);
+        when(buyerMembership.getUser()).thenReturn(buyer);
+
+        RecallRequest request = new RecallRequest();
+        request.setId(UUID.randomUUID());
+        request.setProductionLot(lot);
+        request.setShipment(shipment);
+        request.setRequestedBy(requester);
+        request.setReason("Lý do thu hồi");
+        request.setStatus(RecallRequestStatus.PENDING);
+
+        when(recallRequestRepository.findByIdAndProductionLot_Organization_OrganizationId(
+                request.getId(), organizationId)).thenReturn(Optional.of(request));
+        when(userRepository.findById(currentUserId)).thenReturn(Optional.of(approver));
+        when(chainEventRepository.findDistinctProcurementOrganizationIdsByShipmentIds(List.of(shipment.getId())))
+                .thenReturn(List.of(buyerOrganizationId));
+        when(organizationUserRepository.findByOrganization_OrganizationIdAndStatus(
+                buyerOrganizationId, OrganizationUserStatus.ACTIVE))
+                .thenReturn(List.of(buyerMembership));
+        when(notificationService.sendRecallNotification(
+                shipment.getName(), request.getReason(), List.of(buyerUserId))).thenReturn(1);
+
+        RecallRequestResponse response = service.approve(
+                request.getId(), new ApproveRecallRequest(), currentUser);
+
+        assertThat(response.getNotifiedBuyerCount()).isEqualTo(1);
+        verify(notificationService).sendRecallNotification(
+                shipment.getName(), request.getReason(), List.of(buyerUserId));
     }
 
     @Test

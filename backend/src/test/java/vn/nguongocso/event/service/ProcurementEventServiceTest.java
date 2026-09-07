@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
@@ -76,6 +77,7 @@ public class ProcurementEventServiceTest {
     void recordProcurement_shouldSuccess() throws Exception {
         when(userDetails.getUserId()).thenReturn(userId);
         when(userDetails.getRoleCode()).thenReturn("VT-04");
+        when(userDetails.getOrganizationId()).thenReturn(orgId);
 
         RecordProcurementEventRequest request = new RecordProcurementEventRequest();
         request.setShipmentId(shipmentId);
@@ -96,7 +98,9 @@ public class ProcurementEventServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.getShipmentId()).isEqualTo(shipmentId);
         assertThat(response.getEventData().get("receivedQuantity")).isEqualTo(100L);
-        verify(chainEventService).saveWithChainHash(any(ChainEvent.class));
+        ArgumentCaptor<ChainEvent> eventCaptor = ArgumentCaptor.forClass(ChainEvent.class);
+        verify(chainEventService).saveWithChainHash(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().getRecordedOrganizationId()).isEqualTo(orgId);
         verify(eventPublisher).publishEvent(any(ActivityLogEvent.class));
     }
 
