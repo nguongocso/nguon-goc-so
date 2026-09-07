@@ -114,10 +114,31 @@ class MilestoneReminderControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/milestone-reminders/scan - VT-03 không có quyền bị từ chối 403")
-    void testTriggerScan_VT03_Forbidden() throws Exception {
+    @DisplayName("POST /api/v1/milestone-reminders/scan - VT-03 kích hoạt quét thành công cho tổ chức")
+    void testTriggerScan_VT03_Success() throws Exception {
+        MilestoneScanResult result = MilestoneScanResult.builder()
+                .scannedLotsCount(2)
+                .remindersCreatedCount(1)
+                .message("Đã quét 2 lô sản xuất, tạo mới 1 nhắc việc quá hạn.")
+                .build();
+
+        when(milestoneReminderService.scanOverdueMilestonesForOrganization(any())).thenReturn(result);
+
         mockMvc.perform(post("/api/v1/milestone-reminders/scan")
                         .with(user(vt03Recorder))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.scannedLotsCount").value(2))
+                .andExpect(jsonPath("$.data.remindersCreatedCount").value(1));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/milestone-reminders/scan - VT-04 không có quyền bị từ chối 403")
+    void testTriggerScan_VT04_Forbidden() throws Exception {
+        CustomUserDetails vt04Buyer = createUserDetails("buyer", "VT-04");
+        mockMvc.perform(post("/api/v1/milestone-reminders/scan")
+                        .with(user(vt04Buyer))
                         .with(csrf()))
                 .andExpect(status().isForbidden());
     }

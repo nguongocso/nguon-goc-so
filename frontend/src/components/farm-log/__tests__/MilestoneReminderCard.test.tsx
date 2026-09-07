@@ -65,8 +65,8 @@ describe('MilestoneReminderCard', () => {
       expect(screen.getByText('Bón phân')).toBeInTheDocument();
     });
 
-    // VT-03 không có nút "Quét quá hạn"
-    expect(screen.queryByText('Quét quá hạn')).not.toBeInTheDocument();
+    // VT-03 nhìn thấy nút "Quét quá hạn" và có thể kích hoạt
+    expect(screen.getByText('Quét quá hạn ngay')).toBeInTheDocument();
 
     // Nhấn nút "Ghi nhật ký ngay"
     const recordBtn = screen.getByRole('button', { name: /Ghi nhật ký ngay/i });
@@ -74,6 +74,34 @@ describe('MilestoneReminderCard', () => {
     expect(mockNavigate).toHaveBeenCalledWith(
       '/farm-logs/create?productionLotId=lot-123&activityType=FERTILIZING'
     );
+  });
+
+  it('không hiển thị nút Quét quá hạn cho các vai trò khác (như VT-04, VT-05)', async () => {
+    mockUseAuth.mockReturnValue({
+      user: { roleCode: 'VT-04', username: 'buyer' } as any,
+    } as any);
+
+    vi.spyOn(milestoneReminderApi, 'getMilestoneReminders').mockResolvedValue({
+      items: [sampleReminder],
+      page: 0,
+      size: 10,
+      totalElements: 1,
+      totalPages: 1,
+      first: true,
+      last: true,
+    });
+
+    render(
+      <MemoryRouter>
+        <MilestoneReminderCard />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Bón phân đợt một')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Quét quá hạn ngay')).not.toBeInTheDocument();
   });
 
   it('hiển thị thông báo khi không có mốc nào quá hạn', async () => {
@@ -126,10 +154,10 @@ describe('MilestoneReminderCard', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Quét quá hạn')).toBeInTheDocument();
+      expect(screen.getByText('Quét quá hạn ngay')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Quét quá hạn'));
+    fireEvent.click(screen.getByText('Quét quá hạn ngay'));
     expect(triggerScanSpy).toHaveBeenCalledTimes(1);
   });
 });

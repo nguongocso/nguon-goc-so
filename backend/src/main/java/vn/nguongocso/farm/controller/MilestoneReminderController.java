@@ -33,15 +33,15 @@ public class MilestoneReminderController {
 
     /**
      * Kích hoạt quét mốc quá hạn và tạo nhắc việc.
-     * Cho phép Quản trị viên (VT-01) hoặc Quản lý hợp tác xã (VT-02).
+     * Cho phép Quản trị viên (VT-01), Quản lý hợp tác xã (VT-02) hoặc Người ghi sự kiện (VT-03).
      */
     @PostMapping("/scan")
-    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<MilestoneScanResult>> triggerScan(
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
         MilestoneScanResult result;
-        if (currentUser != null && RoleCode.ORG_MANAGER.equals(currentUser.getRoleCode())) {
+        if (currentUser != null && !RoleCode.ADMIN.equals(currentUser.getRoleCode()) && currentUser.getOrganizationId() != null) {
             result = milestoneReminderService.scanOverdueMilestonesForOrganization(currentUser.getOrganizationId());
         } else {
             result = milestoneReminderService.scanOverdueMilestones();

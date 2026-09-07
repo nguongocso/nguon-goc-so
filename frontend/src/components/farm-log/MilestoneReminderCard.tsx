@@ -12,6 +12,7 @@ import {
 import { toast } from 'sonner';
 
 import { useAuth } from '@/hooks/useAuth';
+import { hasAnyRole, ROLE_ACCESS } from '@/config/roleAccess';
 import {
   getMilestoneReminders,
   getMyActiveMilestoneReminders,
@@ -58,7 +59,7 @@ export const MilestoneReminderCard: React.FC<MilestoneReminderCardProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isScanning, setIsScanning] = useState(false);
 
-  const canScan = user?.roleCode === 'VT-01' || user?.roleCode === 'VT-02';
+  const canScan = hasAnyRole(user?.roleCode, ROLE_ACCESS.milestoneReminderScan);
 
   const loadReminders = useCallback(async () => {
     try {
@@ -149,7 +150,7 @@ export const MilestoneReminderCard: React.FC<MilestoneReminderCardProps> = ({
                 ) : (
                   <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
                 )}
-                Quét quá hạn
+                Quét quá hạn ngay
               </Button>
             )}
           </div>
