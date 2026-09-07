@@ -112,3 +112,4 @@ backend/src/main/resources/db/migration/data/V64__seed_cultivation_milestones.sq
 backend/src/main/resources/db/migration/data/V66__seed_cultivation_milestones.sql
 
 docs/postman/
+.agent-work/
