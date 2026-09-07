@@ -15,10 +15,12 @@ import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.certification.service.InspectionEligibilityService;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.dto.request.ApproveProductionLotRequest;
 import vn.nguongocso.farm.dto.request.CancelProductionLotRequest;
 import vn.nguongocso.farm.dto.request.CreateProductionLotRequest;
+import vn.nguongocso.farm.dto.request.DisposeProductionLotRequest;
 import vn.nguongocso.farm.dto.response.CreateProductionLotResponse;
 import vn.nguongocso.farm.entity.FarmArea;
 import vn.nguongocso.farm.entity.ProductCategory;
@@ -61,6 +63,9 @@ public class ProductionLotServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private InspectionEligibilityService inspectionEligibilityService;
+
     @InjectMocks
     private ProductionLotServiceImpl productionLotService;
 
@@ -77,6 +82,10 @@ public class ProductionLotServiceTest {
         userDetails = mock(CustomUserDetails.class);
         when(userDetails.getOrganizationId()).thenReturn(orgId);
         when(userDetails.getUserId()).thenReturn(userId);
+
+        // NCL-11-CN-005 (QTN-30): mặc định lô không có kết luận FAILED.
+        lenient().when(inspectionEligibilityService.hasLatestFailedConclusion(any(ProductionLot.class)))
+                .thenReturn(false);
     }
 
     @Test
@@ -126,6 +135,12 @@ public class ProductionLotServiceTest {
                 .build();
 
         return lot;
+    }
+
+    private Organization defaultOrg() {
+        Organization org = new Organization();
+        org.setOrganizationId(orgId);
+        return org;
     }
 
     @Test
@@ -391,6 +406,69 @@ public class ProductionLotServiceTest {
         assertThatThrownBy(() -> productionLotService.createProductionLot(request, userDetails))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Khu vực canh tác này không thuộc tổ chức của bạn");
+        verify(productionLotRepository, never()).save(any(ProductionLot.class));
+    }
+
+    // =========================================================
+    // NCL-11-CN-005 (QTN-30): Loại bỏ lô sản xuất
+    // =========================================================
+
+    @Test
+    void disposeProductionLot_shouldDispose_whenValid() {
+        // Given — lô PACKAGED thuộc tổ chức, chưa có shipment
+        ProductionLot lot = createPendingLot();
+        lot.setStatus(ProductionLotStatus.PACKAGED);
+        lot.setOrganization(defaultOrg());
+        User disposer = new User();
+        disposer.setUserId(userId);
+        disposer.setFullName("Quản lý HTX");
+
+        DisposeProductionLotRequest request = new DisposeProductionLotRequest();
+        request.setReason("Kết quả kiểm nghiệm không đạt dư lượng thuốc bảo vệ thực vật");
+        request.setHandlingMeasure("Phá hủy toàn bộ 200 kg tại khu cách ly");
+        request.setNote("Giám sát bởi Trạm BVTV huyện");
+
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+        when(shipmentRepository.findByProductionLotId(lotId)).thenReturn(List.of());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(disposer));
+        when(productionLotRepository.save(any(ProductionLot.class))).thenReturn(lot);
+
+        // When
+        CreateProductionLotResponse response =
+                productionLotService.disposeProductionLot(lotId, request, userDetails);
+
+        // Then
+        assertThat(response.getStatus()).isEqualTo(ProductionLotStatus.DISPOSED.name());
+        assertThat(lot.getStatus()).isEqualTo(ProductionLotStatus.DISPOSED);
+        assertThat(lot.getDisposalReason()).isEqualTo(request.getReason());
+        assertThat(lot.getHandlingMeasure()).isEqualTo(request.getHandlingMeasure());
+        assertThat(lot.getDisposalNote()).isEqualTo(request.getNote());
+        assertThat(lot.getDisposedBy()).isEqualTo(disposer);
+        assertThat(lot.getDisposedAt()).isNotNull();
+        verify(productionLotRepository).save(lot);
+        verify(eventPublisher).publishEvent(any(ActivityLogEvent.class));
+    }
+
+    @Test
+    void disposeProductionLot_shouldThrow_whenNotBelongToOrg() {
+        // Given — QTN-01: cách ly dữ liệu giữa các tổ chức
+        ProductionLot lot = createPendingLot();
+        lot.setStatus(ProductionLotStatus.PACKAGED);
+        Organization otherOrg = new Organization();
+        otherOrg.setOrganizationId(UUID.randomUUID());
+        lot.setOrganization(otherOrg);
+
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+
+        DisposeProductionLotRequest request = new DisposeProductionLotRequest();
+        request.setReason("lý do");
+        request.setHandlingMeasure("biện pháp");
+
+        // When & Then
+        assertThatThrownBy(() ->
+                productionLotService.disposeProductionLot(lotId, request, userDetails))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Lô sản xuất không thuộc tổ chức của bạn");
         verify(productionLotRepository, never()).save(any(ProductionLot.class));
     }
 }

@@ -50,6 +50,7 @@ import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.ProductCategory;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
+import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.organization.entity.Organization;
 
 /**
@@ -89,6 +90,9 @@ class InspectionCriterionResultServiceImplTest {
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private InspectionCriterionResultServiceImpl service;

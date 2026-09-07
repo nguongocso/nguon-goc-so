@@ -11,6 +11,7 @@ import {
 } from "@/utils/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type React from "react";
+import { PRODUCTION_LOT_STATUS_LABELS } from "@/components/production-lot/ProductionLotStatusBadge";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
@@ -148,7 +149,9 @@ export const ProductionLotEditForm: React.FC = () => {
         </CardTitle>
         <CardDescription>
           {lot.name} – Trạng thái:{" "}
-          <span className="font-semibold">{lot.status}</span>
+          <span className="font-semibold">
+            {PRODUCTION_LOT_STATUS_LABELS[lot.status] || lot.status}
+          </span>
           {!editable && (
             <span className="text-red-500 ml-2">
               (Chỉ sửa được khi lô ở trạng thái DRAFT)

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +13,8 @@ import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.InspectionCriterionResultRequest;
 import vn.nguongocso.certification.dto.response.CanActivateSealCheckResponse;
+import vn.nguongocso.certification.dto.response.CriterionHistoryEntry;
+import vn.nguongocso.certification.dto.response.CriterionHistoryResponse;
 import vn.nguongocso.certification.dto.response.InspectionCriterionResultResponse;
 import vn.nguongocso.certification.entity.CategoryCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterion;
@@ -37,6 +40,24 @@ import java.nio.file.StandardCopyOption;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -126,6 +147,7 @@ public class InspectionCriterionResultServiceImpl
     private final ProductionLotRepository lotRepository;
     private final Clock clock;
     private final ApplicationEventPublisher eventPublisher;
+    private final vn.nguongocso.notification.service.NotificationService notificationService;
 
     @Value("${app.upload.base-dir}")
     private String baseDir;
@@ -360,6 +382,19 @@ public class InspectionCriterionResultServiceImpl
 
         InspectionRequest inspectionRequest =
                 result.getInspectionCriterion().getInspectionRequest();
+
+        /*
+         * QTN-30 (NCL-11-CN-005 §5.6, TC-04): không cho xóa kết quả của
+         * yêu cầu kiểm nghiệm đã có kết luận — chặn việc xóa bằng chứng
+         * Không đạt của yêu cầu đã chốt rồi ghi lại kết quả Đạt. Chỉ
+         * yêu cầu còn PENDING_RESULT được xóa (sửa dữ liệu khi đã kết
+         * luận đi qua PUT results có lưu vết, không xóa bản ghi).
+         */
+        if (inspectionRequest.getStatus() != InspectionRequestStatus.PENDING_RESULT) {
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    "Không thể xóa kết quả của yêu cầu kiểm nghiệm đã có kết luận.");
+        }
 
         // Lưu thông tin mô tả trước khi xóa để ghi nhật ký hoạt động
         String criterionName = result.getInspectionCriterion().getCriterionName();
@@ -653,6 +688,110 @@ public class InspectionCriterionResultServiceImpl
     }
 
     /**
+     * Lịch sử kiểm nghiệm của lô sản xuất theo từng chỉ tiêu.
+     *
+     * <p>
+     * Dữ liệu nguồn là toàn bộ kết quả kiểm nghiệm của lô (mọi yêu cầu,
+     * mọi lần kiểm thử lại) — lịch sử KHÔNG BAO GIỜ bị xóa hay ghi đè:
+     * kết quả FAIL cũ vẫn hiển thị trong dòng thời gian, chỉ có entry
+     * cuối cùng (mới nhất) là kết quả hiện thời có hiệu lực của chỉ tiêu.
+     * </p>
+     *
+     * <p>
+     * Kết quả được nhóm theo mã chỉ tiêu và sắp xếp từ cũ đến mới dựa
+     * trên thời điểm ghi nhận ({@code createdAt}) của từng kết quả.
+     * </p>
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<CriterionHistoryResponse> getInspectionHistory(
+            UUID productionLotId,
+            CustomUserDetails currentUser) {
+
+        // Org boundary: lô phải thuộc tổ chức hiện tại
+        lotRepository
+                .findByIdAndOrganization_OrganizationId(
+                        productionLotId,
+                        currentUser.getOrganizationId())
+                .orElseThrow(() -> new BusinessException(MSG_LOT_NOT_FOUND));
+
+        List<InspectionCriterionResult> results = resultRepository
+                .findAllByProductionLotId(productionLotId);
+
+        // Sắp xếp từ cũ đến mới theo thời điểm ghi nhận kết quả
+        List<InspectionCriterionResult> sorted = results.stream()
+                .sorted(Comparator.comparing(
+                        InspectionCriterionResult::getCreatedAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+
+        // Nhóm kết quả theo mã chỉ tiêu, giữ thứ tự chỉ tiêu xuất hiện
+        Map<String, List<CriterionHistoryEntry>> historyByCode =
+                new LinkedHashMap<>();
+        Map<String, InspectionCriterion> criterionByCode =
+                new HashMap<>();
+
+        for (InspectionCriterionResult result : sorted) {
+            InspectionCriterion criterion =
+                    result.getInspectionCriterion();
+            if (criterion == null) {
+                continue;
+            }
+            String code = criterion.getCriterionCode();
+            InspectionRequest request =
+                    criterion.getInspectionRequest();
+
+            CriterionHistoryEntry entry = CriterionHistoryEntry.builder()
+                    .requestId(request != null
+                            ? request.getId().toString()
+                            : null)
+                    .sampleSentDate(request != null
+                            ? request.getSampleSentDate()
+                            : null)
+                    .resultDate(result.getResultDate())
+                    .expiryDate(result.getExpiryDate())
+                    .passed(Boolean.TRUE.equals(result.getPassed()))
+                    .testingUnit(request != null
+                            ? request.getInspectionUnit()
+                            : null)
+                    .createdByName(result.getCreatedBy() != null
+                            ? result.getCreatedBy().getFullName()
+                            : null)
+                    .createdAt(result.getCreatedAt())
+                    .build();
+
+            historyByCode
+                    .computeIfAbsent(code, k -> new ArrayList<>())
+                    .add(entry);
+            criterionByCode.putIfAbsent(code, criterion);
+        }
+
+        List<CriterionHistoryResponse> historyResponses =
+                new ArrayList<>();
+        for (Map.Entry<String, List<CriterionHistoryEntry>> group
+                : historyByCode.entrySet()) {
+
+            InspectionCriterion criterion =
+                    criterionByCode.get(group.getKey());
+
+            historyResponses.add(
+                    CriterionHistoryResponse.builder()
+                            .criterionDefinitionId(
+                                    criterion != null
+                                            ? criterion.getCriterionId()
+                                            : null)
+                            .criterionCode(group.getKey())
+                            .criterionName(criterion != null
+                                    ? criterion.getCriterionName()
+                                    : null)
+                            .history(group.getValue())
+                            .build());
+        }
+
+        return historyResponses;
+    }
+
+    /**
      * Kiểm tra và cập nhật trạng thái yêu cầu kiểm nghiệm.
      * <p>
      * - Chưa đủ kết quả cho tất cả chỉ tiêu: PENDING_RESULT.
@@ -688,6 +827,22 @@ public class InspectionCriterionResultServiceImpl
         if (newStatus != inspectionRequest.getStatus()) {
             inspectionRequest.setStatus(newStatus);
             requestRepository.save(inspectionRequest);
+
+            /*
+             * NCL-11-CN-005 (QTN-30): cảnh báo cho Quản lý hợp tác xã khi
+             * lô có kết quả kiểm nghiệm KHÔNG ĐẠT — sử dụng cơ chế
+             * notification hiện có, chỉ gửi khi chuyển sang FAILED.
+             */
+            if (newStatus == InspectionRequestStatus.FAILED
+                    && inspectionRequest.getProductionLot() != null) {
+
+                ProductionLot lot = inspectionRequest.getProductionLot();
+                if (lot.getOrganization() != null) {
+                    notificationService.sendInspectionFailedNotification(
+                            lot.getName(),
+                            lot.getOrganization().getOrganizationId());
+                }
+            }
         }
     }
 

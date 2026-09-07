@@ -33,6 +33,7 @@ import OrganizationProfilePage from "@/pages/organization/OrganizationProfilePag
 
 import CreateProductionLotPage from "@/pages/production-lot/CreateProductionLotPage";
 import ProductionLotListPage from "@/pages/production-lot/ProductionLotListPage";
+import ProductionLotInspectionPage from "@/pages/production-lot/ProductionLotInspectionPage";
 
 import RecordTransportEventPage from "@/pages/transport-event/RecordTransportEventPage";
 
@@ -534,6 +535,17 @@ const AppRoutes = () => (
                         allowedRoles={["VT-01", "VT-02", "VT-03", "VT-04"]}
                     >
                         <ShipmentDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:lotId/inspection"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-02"]}
+                    >
+                        <ProductionLotInspectionPage />
                     </RoleRoute>
                 }
             />

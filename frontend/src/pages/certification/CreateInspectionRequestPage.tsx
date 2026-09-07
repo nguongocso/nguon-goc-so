@@ -39,6 +39,7 @@ import type { LotTestCriteriaResult, TestingUnit } from "@/types/certification";
 import type { InspectionCriterion } from "@/types/inspectionCriterion";
 import type { ProductionLot } from "@/types/productionLot";
 import { TestingUnitSelect } from "@/components/testing-unit/TestingUnitSelect";
+import { PRODUCTION_LOT_STATUS_LABELS } from "@/components/production-lot/ProductionLotStatusBadge";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1392,7 +1393,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
                   variant="outline"
                   className="border-emerald-300 bg-emerald-50 text-xs font-semibold text-emerald-800"
                 >
-                  {lot.status || "APPROVED"}
+                  {PRODUCTION_LOT_STATUS_LABELS[lot.status] || lot.status || "APPROVED"}
                 </Badge>
               </div>
             </CardContent>
@@ -1456,7 +1457,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
                     <span className="text-xs font-medium">4</span>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold text-foreground">4. Hoàn tất & Cấp mã QR</p>
+                    <p className="text-xs font-semibold text-foreground">4. Hoàn tất, tạo lô hàng & Cấp mã QR</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Đồng bộ kết quả vào chuỗi truy xuất nguồn gốc
                     </p>

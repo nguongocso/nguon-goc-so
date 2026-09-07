@@ -55,6 +55,16 @@ public class CreateProductionLotResponse {
 
         private LocalDateTime cancelledAt;
 
+        private String disposalReason;
+
+        private String handlingMeasure;
+
+        private String disposalNote;
+
+        private String disposedByName;
+
+        private LocalDateTime disposedAt;
+
         private LocalDateTime createdAt;
 
         private LocalDateTime updatedAt;

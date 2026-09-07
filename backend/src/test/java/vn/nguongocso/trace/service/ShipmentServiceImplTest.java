@@ -23,6 +23,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import org.springframework.context.ApplicationEventPublisher;
 import vn.nguongocso.alert.event.ActivityLogEvent;
+import vn.nguongocso.certification.dto.response.InspectionEligibilityResult;
+import vn.nguongocso.certification.enums.InspectionBlockReasonCode;
+import vn.nguongocso.certification.service.InspectionEligibilityService;
 import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.auth.entity.User;
@@ -75,6 +78,9 @@ class ShipmentServiceImplTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private InspectionEligibilityService inspectionEligibilityService;
 
     @InjectMocks
     private ShipmentServiceImpl shipmentService;
@@ -137,6 +143,18 @@ class ShipmentServiceImplTest {
         request.setPackagingInfo("Đóng thùng 10kg");
 
         lenient().when(traceCodeRepository.findMaxCodeValueByOrganization(any(), anyString())).thenReturn(null);
+
+        // QTN-30 (NCL-11-CN-005): mặc định lô đủ điều kiện kiểm nghiệm.
+        lenient().when(inspectionEligibilityService.evaluateForShipment(any(ProductionLot.class)))
+                .thenReturn(InspectionEligibilityResult.builder()
+                        .eligible(true)
+                        .reasonCode(null)
+                        .message(null)
+                        .totalCriteria(0)
+                        .passedCriteria(0)
+                        .failedOrExpiredCriteria(0)
+                        .earliestExpiryDate(null)
+                        .build());
     }
 
     @AfterEach
@@ -354,8 +372,85 @@ class ShipmentServiceImplTest {
         assertThat(codeRange.getUsedCount()).isEqualTo(8L);
     }
 
-    // ==================== TEST activateShipmentStamps ====================
+    @Test
+    void createShipment_ShouldThrowConflict_WhenInspectionNotEligible() {
+        // Arrange — QTN-30 (NCL-11-CN-005 TC-01): lô Không đạt bị chặn
+        when(productionLotRepository.findById(productionLotId))
+                .thenReturn(Optional.of(productionLot));
 
+        when(inspectionEligibilityService.evaluateForShipment(productionLot))
+                .thenReturn(InspectionEligibilityResult.builder()
+                        .eligible(false)
+                        .reasonCode(InspectionBlockReasonCode.INSPECTION_FAILED)
+                        .message("Lô sản xuất chưa đạt kiểm nghiệm, không thể tạo lô hàng.")
+                        .totalCriteria(2)
+                        .passedCriteria(1)
+                        .failedOrExpiredCriteria(1)
+                        .earliestExpiryDate(null)
+                        .build());
+
+        // Act & Assert
+        assertThatThrownBy(() -> shipmentService.createShipment(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Lô sản xuất chưa đạt kiểm nghiệm, không thể tạo lô hàng.");
+
+        // Không tạo Shipment / TraceCode / không trừ hạn mức
+        verify(shipmentRepository, never()).save(any());
+        verify(traceCodeRepository, never()).saveAll(any());
+        verify(codeRangeRepository, never())
+                .findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(any());
+    }
+
+    @Test
+    void createShipment_ShouldNotCallInspectionGate_WhenStatusNotPackaged() {
+        // Lô chưa đóng gói bị chặn trước, không cần đánh giá kiểm nghiệm
+        productionLot.setStatus(ProductionLotStatus.APPROVED);
+        when(productionLotRepository.findById(productionLotId))
+                .thenReturn(Optional.of(productionLot));
+
+        assertThatThrownBy(() -> shipmentService.createShipment(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Chỉ có thể tạo lô hàng từ lô sản xuất đã đóng gói.");
+
+        verify(inspectionEligibilityService, never()).evaluateForShipment(any());
+    }
+
+    @Test
+    void activateShipmentStamps_ShouldThrowConflict_WhenInspectionFailed() {
+        // Arrange — QTN-21/QTN-30: rào chắn thứ hai khi kích hoạt tem
+        Shipment shipment = new Shipment();
+        shipment.setId(shipmentId);
+        shipment.setOrganization(organization);
+        shipment.setProductionLot(productionLot);
+        shipment.setStatus(ShipmentStatus.CODE_PRINTED);
+
+        when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
+
+        when(inspectionEligibilityService.evaluateForShipment(productionLot))
+                .thenReturn(InspectionEligibilityResult.builder()
+                        .eligible(false)
+                        .reasonCode(InspectionBlockReasonCode.INSPECTION_FAILED)
+                        .message("Lô sản xuất chưa đạt kiểm nghiệm, không thể tạo lô hàng.")
+                        .totalCriteria(2)
+                        .passedCriteria(0)
+                        .failedOrExpiredCriteria(2)
+                        .earliestExpiryDate(null)
+                        .build());
+
+        // Act & Assert
+        assertThatThrownBy(() -> shipmentService.activateShipmentStamps(shipmentId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Lô sản xuất chưa đạt kiểm nghiệm, không thể tạo lô hàng.");
+
+        verify(shipmentRepository, never()).save(any(Shipment.class));
+        verify(traceCodeRepository, never()).saveAll(anyList());
+    }
+
+    // ==================== TEST getShipmentsByProductionLot ====================
+
+    /**
+     * Kích hoạt tem thành công khi lô hàng hợp lệ (giữ nguyên luồng QTN-21).
+     */
     @Test
     void activateShipmentStamps_ShouldSuccess_WhenAllValid() {
         // Arrange
