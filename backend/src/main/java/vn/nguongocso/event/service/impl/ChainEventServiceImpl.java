@@ -417,7 +417,7 @@ public class ChainEventServiceImpl implements ChainEventService {
                     && lot.getStatus() != ProductionLotStatus.PREPROCESSED) {
                 throw new BusinessException("Chỉ được ghi nhận sự kiện đóng gói cho lô đã thu hoạch hoặc đã sơ chế.");
             }
-            if (request.getPackagingDate().isAfter(LocalDate.now())) {
+            if (request.getPackagingDate().isAfter(LocalDate.now(clock))) {
                 throw new BusinessException("Ngày đóng gói không được là ngày ở tương lai.");
             }
             if (lot.getHarvestDate() != null && request.getPackagingDate().isBefore(lot.getHarvestDate())) {
@@ -502,7 +502,7 @@ public class ChainEventServiceImpl implements ChainEventService {
 
         validateOrganization(lot, currentUser);
 
-        if (request.getPackagingDate().isAfter(LocalDate.now())) {
+        if (request.getPackagingDate().isAfter(LocalDate.now(clock))) {
             throw new BusinessException("Ngày đóng gói không được là ngày ở tương lai.");
         }
         if (lot.getHarvestDate() != null && request.getPackagingDate().isBefore(lot.getHarvestDate())) {
@@ -875,7 +875,7 @@ public class ChainEventServiceImpl implements ChainEventService {
         }
 
         LocalDate packagingDate = LocalDate.parse(packagingDateStrObj.toString());
-        if (packagingDate.isAfter(LocalDate.now())) {
+        if (packagingDate.isAfter(LocalDate.now(clock))) {
             throw new BusinessException("Ngày đóng gói không được là ngày ở tương lai.");
         }
         if (lot.getHarvestDate() != null && packagingDate.isBefore(lot.getHarvestDate())) {
