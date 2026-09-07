@@ -67,12 +67,15 @@ export interface CloseProductFeedbackPayload {
 }
 
 export interface CreateProductFeedbackRecallPayload {
+  shipmentId: string;
   reason: string;
   evidence?: string;
 }
 
 export interface ProductFeedbackRecall {
   id: string;
+  shipmentId: string;
+  shipmentName: string;
   lotId: string;
   sourceFeedbackId: string;
   status: "PENDING" | "APPROVED" | "REJECTED";

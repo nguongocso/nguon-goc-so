@@ -8,7 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Response cho một yêu cầu thu hồi lô sản xuất (NCL-08-CN-008).
+ * Response cho một yêu cầu thu hồi lô hàng (NCL-08-CN-008).
  */
 @Getter
 @Setter
@@ -16,6 +16,8 @@ import lombok.Setter;
 public class RecallRequestResponse {
 
     private UUID id;
+    private UUID shipmentId;
+    private String shipmentName;
     private UUID lotId;
     private UUID sourceFeedbackId;
     private String lotName;

@@ -424,6 +424,7 @@ Request:
 
 ```json
 {
+  "shipmentId": "9f488b4b-d15d-4701-af9d-c2d240ed316c",
   "reason": "Nghi ngờ chất lượng sản phẩm từ phản ánh người tiêu dùng.",
   "evidence": "Kết quả đối chiếu hồ sơ và nội dung phản ánh."
 }
@@ -431,22 +432,29 @@ Request:
 
 Ràng buộc:
 
+- `shipmentId`: bắt buộc nếu phản ánh chưa liên kết mã tem; phải thuộc lô sản xuất của phản ánh.
+- Nếu phản ánh đã có mã tem, backend tự xác định shipment chứa mã đó. `shipmentId` gửi lên (nếu có)
+  phải trùng shipment đã xác định và giao diện không cho thay đổi.
 - `reason`: bắt buộc, tối đa 1.000 ký tự.
 - `evidence`: không bắt buộc, tối đa 2.000 ký tự.
 - Mức độ phải là `QUALITY_SUSPECTED` hoặc `COUNTERFEIT_SUSPECTED`.
 - Phản ánh phải có người xử lý và đang ở trạng thái `IN_PROGRESS`.
 - Không tồn tại đề nghị `PENDING` khác liên kết cùng phản ánh.
-- `productionLotId` lấy từ phản ánh, không nhận từ request.
+- `productionLotId` lấy từ phản ánh và chỉ dùng làm ngữ cảnh; phạm vi thu hồi thực tế là `shipmentId`.
 
 Transaction phải thực hiện nguyên tử:
 
 1. Tạo `RecallRequest` ở trạng thái `PENDING` với `sourceFeedbackId`.
-2. Ghi người tạo là người dùng hiện tại.
-3. Chuyển phản ánh sang `ESCALATED_TO_RECALL`.
-4. Ghi audit log.
+2. Gắn yêu cầu với đúng shipment chứa mã tem hoặc shipment được chọn hợp lệ.
+3. Ghi người tạo là người dùng hiện tại.
+4. Chuyển phản ánh sang `ESCALATED_TO_RECALL`.
+5. Ghi audit log.
 
 Response `201 Created`: `ApiResult<RecallRequestResponse>`; response thu hồi bổ sung
 `sourceFeedbackId`.
+
+Khi yêu cầu được `APPROVED`, chỉ shipment liên kết và toàn bộ mã tem của shipment đó chuyển
+`RECALLED`. Lô sản xuất và các shipment khác trong cùng lô sản xuất giữ nguyên trạng thái.
 
 Khi đề nghị liên kết được xử lý:
 

@@ -271,6 +271,7 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
 
         RecallRequestResponse response = recallRequestService.createFromFeedback(
                 feedback,
+                request.getShipmentId(),
                 request.getReason(),
                 request.getEvidence(),
                 SecurityUtils.getCurrentUserDetails());

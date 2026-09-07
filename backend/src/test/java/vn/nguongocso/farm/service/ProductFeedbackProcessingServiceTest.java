@@ -253,6 +253,7 @@ class ProductFeedbackProcessingServiceTest {
         when(recallRequestRepository.existsBySourceFeedback_IdAndStatus(
                 feedbackId, RecallRequestStatus.PENDING)).thenReturn(true);
         CreateProductFeedbackRecallRequest request = new CreateProductFeedbackRecallRequest();
+        request.setShipmentId(UUID.randomUUID());
         request.setReason("Nghi ngờ chất lượng");
 
         try (MockedStatic<SecurityUtils> security = mockStatic(SecurityUtils.class)) {
@@ -266,10 +267,12 @@ class ProductFeedbackProcessingServiceTest {
     @Test
     void createRecall_shouldLinkFeedbackAndEscalateStatus() {
         UUID recallId = UUID.randomUUID();
+        UUID shipmentId = UUID.randomUUID();
         feedback.setStatus(ProductFeedbackStatus.IN_PROGRESS);
         feedback.setSeverity(ProductFeedbackSeverity.QUALITY_SUSPECTED);
         feedback.setAssignedTo(User.builder().userId(UUID.randomUUID()).build());
         CreateProductFeedbackRecallRequest request = new CreateProductFeedbackRecallRequest();
+        request.setShipmentId(shipmentId);
         request.setReason("Nghi ngờ chất lượng");
         RecallRequestResponse recallResponse = RecallRequestResponse.builder()
                 .id(recallId)
@@ -277,7 +280,7 @@ class ProductFeedbackProcessingServiceTest {
                 .status("PENDING")
                 .build();
         when(recallRequestService.createFromFeedback(
-                feedback, request.getReason(), null, currentUser)).thenReturn(recallResponse);
+                feedback, request.getShipmentId(), request.getReason(), null, currentUser)).thenReturn(recallResponse);
 
         try (MockedStatic<SecurityUtils> security = mockStatic(SecurityUtils.class)) {
             security.when(SecurityUtils::getCurrentUserDetails).thenReturn(currentUser);

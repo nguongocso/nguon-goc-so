@@ -46,7 +46,7 @@ import type {
   ProductFeedbackSeverity,
   ProductFeedbackStatus,
 } from "@/types/productFeedback";
-import type { TraceCode } from "@/types/shipment";
+import type { Shipment, TraceCode } from "@/types/shipment";
 
 const STATUS_LABELS: Record<ProductFeedbackStatus, string> = {
   NEW: "Mới",
@@ -321,6 +321,8 @@ function FeedbackDetailSheet({
   const [traceCodeId, setTraceCodeId] = useState("");
   const [traceCodeValue, setTraceCodeValue] = useState("");
   const [traceCodeOptions, setTraceCodeOptions] = useState<TraceCode[]>([]);
+  const [shipments, setShipments] = useState<Shipment[]>([]);
+  const [recallShipmentId, setRecallShipmentId] = useState("");
   const [loadingTraceCodes, setLoadingTraceCodes] = useState(false);
   const [traceCodeLoadError, setTraceCodeLoadError] = useState<string | null>(null);
   const [processingContent, setProcessingContent] = useState("");
@@ -337,6 +339,8 @@ function FeedbackDetailSheet({
     setTraceCodeId(feedback.traceCodeId ?? "");
     setTraceCodeValue(feedback.traceCodeValue ?? "");
     setTraceCodeOptions([]);
+    setShipments([]);
+    setRecallShipmentId("");
     setTraceCodeLoadError(null);
     setProcessingContent(feedback.processingContent ?? "");
     setPublicResponse(feedback.publicResponse ?? "");
@@ -357,8 +361,7 @@ function FeedbackDetailSheet({
       !open
       || !canProcess
       || !feedback
-      || feedback.traceCodeId
-      || severity !== "COUNTERFEIT_SUSPECTED"
+      || feedback.status === "CLOSED"
     ) return;
 
     let cancelled = false;
@@ -367,6 +370,7 @@ function FeedbackDetailSheet({
     getShipmentsByProductionLot(feedback.productionLotId)
       .then((shipments) => {
         if (cancelled) return;
+        setShipments(shipments);
         const uniqueCodes = new Map<string, TraceCode>();
         shipments.forEach((shipment) => {
           shipment.traceCodes.forEach((traceCode) => {
@@ -378,10 +382,17 @@ function FeedbackDetailSheet({
             a.codeValue.localeCompare(b.codeValue, "vi"),
           ),
         );
+        const linkedShipment = feedback.traceCodeId
+          ? shipments.find((shipment) => shipment.traceCodes.some((code) => code.id === feedback.traceCodeId))
+          : undefined;
+        const recallableShipments = shipments.filter((shipment) => shipment.status !== "RECALLED");
+        setRecallShipmentId(linkedShipment?.id ?? (recallableShipments.length === 1 ? recallableShipments[0].id : ""));
       })
       .catch(() => {
         if (!cancelled) {
           setTraceCodeOptions([]);
+          setShipments([]);
+          setRecallShipmentId("");
           setTraceCodeLoadError("Không thể tải danh sách mã tem của lô sản xuất.");
         }
       })
@@ -401,6 +412,10 @@ function FeedbackDetailSheet({
       (traceCode) => traceCode.codeValue.toLocaleLowerCase("vi") === normalizedValue,
     );
     setTraceCodeId(selectedCode?.id ?? "");
+    const selectedShipment = selectedCode
+      ? shipments.find((shipment) => shipment.traceCodes.some((code) => code.id === selectedCode.id))
+      : undefined;
+    setRecallShipmentId(selectedShipment?.id ?? "");
   };
 
   const runAction = async (action: () => Promise<ProductFeedback>, success: string) => {
@@ -517,7 +532,45 @@ function FeedbackDetailSheet({
                 <Button disabled={!feedback.assignedToUserId || saving || (severity === "COUNTERFEIT_SUSPECTED" && !traceCodeId.trim())} onClick={() => void runAction(() => updateProductFeedbackProcessing(feedback.id, { severity, traceCodeId: traceCodeId.trim() || null, processingContent, publicResponse }), "Đã lưu nội dung xử lý")}>Lưu xử lý</Button>
               </section>
 
-              {severity !== "INFORMATION" && feedback.status === "IN_PROGRESS" && <section className="space-y-3 rounded-lg border border-amber-200 p-4"><h3 className="font-semibold">Đề nghị thu hồi</h3><div className="space-y-2"><Label htmlFor="recall-reason">Lý do *</Label><Textarea id="recall-reason" maxLength={1000} value={recallReason} onChange={(event) => setRecallReason(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="recall-evidence">Bằng chứng</Label><Textarea id="recall-evidence" maxLength={2000} value={recallEvidence} onChange={(event) => setRecallEvidence(event.target.value)} /></div><Button variant="destructive" disabled={!recallReason.trim() || saving || feedback.hasPendingRecallRequest} onClick={async () => { try { setSaving(true); await createProductFeedbackRecall(feedback.id, { reason: recallReason.trim(), evidence: recallEvidence.trim() || undefined }); await refreshDetail(); toast.success("Đã tạo đề nghị thu hồi"); } catch (error) { toast.error(errorMessage(error, "Không thể tạo đề nghị thu hồi")); } finally { setSaving(false); } }}>Tạo đề nghị thu hồi</Button></section>}
+              {severity !== "INFORMATION" && feedback.status === "IN_PROGRESS" && (
+                <section className="space-y-3 rounded-lg border border-amber-200 p-4">
+                  <h3 className="font-semibold">Đề nghị thu hồi lô hàng</h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="recall-shipment">Lô hàng cần thu hồi *</Label>
+                    <Select
+                      value={recallShipmentId || undefined}
+                      onValueChange={(value) => setRecallShipmentId(value ?? "")}
+                      disabled={Boolean(feedback.traceCodeId) || loadingTraceCodes}
+                    >
+                      <SelectTrigger id="recall-shipment"><SelectValue placeholder="Chọn lô hàng" /></SelectTrigger>
+                      <SelectContent>
+                        {shipments.filter((shipment) => shipment.status !== "RECALLED").map((shipment) => (
+                          <SelectItem key={shipment.id} value={shipment.id}>{shipment.name} ({shipment.traceCodes.length} mã tem)</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {feedback.traceCodeId && recallShipmentId ? (
+                      <p className="text-xs text-muted-foreground">Lô hàng được xác định tự động từ mã tem của phản ánh và không thể thay đổi.</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Chỉ lô hàng được chọn và toàn bộ mã tem thuộc lô hàng đó bị thu hồi; các lô hàng khác không bị ảnh hưởng.</p>
+                    )}
+                  </div>
+                  <div className="space-y-2"><Label htmlFor="recall-reason">Lý do *</Label><Textarea id="recall-reason" maxLength={1000} value={recallReason} onChange={(event) => setRecallReason(event.target.value)} /></div>
+                  <div className="space-y-2"><Label htmlFor="recall-evidence">Bằng chứng</Label><Textarea id="recall-evidence" maxLength={2000} value={recallEvidence} onChange={(event) => setRecallEvidence(event.target.value)} /></div>
+                  <Button variant="destructive" disabled={!recallShipmentId || !recallReason.trim() || saving || feedback.hasPendingRecallRequest} onClick={async () => {
+                    try {
+                      setSaving(true);
+                      await createProductFeedbackRecall(feedback.id, { shipmentId: recallShipmentId, reason: recallReason.trim(), evidence: recallEvidence.trim() || undefined });
+                      await refreshDetail();
+                      toast.success("Đã tạo đề nghị thu hồi lô hàng");
+                    } catch (error) {
+                      toast.error(errorMessage(error, "Không thể tạo đề nghị thu hồi"));
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}>Tạo đề nghị thu hồi lô hàng</Button>
+                </section>
+              )}
 
               <section className="space-y-3 rounded-lg border border-emerald-200 p-4">
                 <h3 className="font-semibold">Đóng phản ánh</h3>

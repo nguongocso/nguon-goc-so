@@ -17,6 +17,7 @@ public interface RecallRequestService {
 
     RecallRequestResponse createFromFeedback(
             ProductFeedback feedback,
+            UUID shipmentId,
             String reason,
             String evidence,
             CustomUserDetails currentUser);

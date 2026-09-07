@@ -26,6 +26,7 @@ import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.entity.ProductFeedback;
 import vn.nguongocso.recall.enums.RecallRequestStatus;
+import vn.nguongocso.trace.entity.Shipment;
 
 /**
  * Thực thể đại diện cho một yêu cầu thu hồi lô sản xuất (NCL-08-CN-008).
@@ -57,6 +58,14 @@ public class RecallRequest {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "production_lot_id", nullable = false)
     private ProductionLot productionLot;
+
+    /**
+     * Lô hàng là phạm vi thu hồi thực tế. Nullable chỉ để đọc các yêu cầu cũ chưa
+     * thể tự ánh xạ sau migration; mọi yêu cầu mới đều bắt buộc có giá trị.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shipment_id")
+    private Shipment shipment;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "source_feedback_id")
