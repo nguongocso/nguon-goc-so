@@ -54,7 +54,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
 
         // 1. Tìm theo TraceCode
         Optional<TraceCode> traceCodeOpt = traceCodeRepository.findByCodeValue(searchCode);
-        if (traceCodeOpt.isEmpty() && uuidCode != null) {
+        if (!traceCodeOpt.isPresent() && uuidCode != null) {
             traceCodeOpt = traceCodeRepository.findById(uuidCode);
         }
 
@@ -72,7 +72,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
             if (uuidCode != null) {
                 shipmentOpt = shipmentRepository.findById(uuidCode);
             }
-            if (shipmentOpt.isEmpty()) {
+            if (!shipmentOpt.isPresent()) {
                 List<Shipment> eligibleShipments = shipmentRepository.findEligibleShipments(null, null, null, null, null);
                 shipmentOpt = eligibleShipments.stream()
                         .filter(s -> searchCode.equalsIgnoreCase(s.getName()))
@@ -91,7 +91,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
             if (uuidCode != null) {
                 lotOpt = productionLotRepository.findById(uuidCode);
             }
-            if (lotOpt.isEmpty()) {
+            if (!lotOpt.isPresent()) {
                 List<ProductionLot> allLots = productionLotRepository.findAll();
                 lotOpt = allLots.stream()
                         .filter(l -> searchCode.equalsIgnoreCase(l.getName()))
