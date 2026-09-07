@@ -16,6 +16,7 @@ import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.InspectionCriterionResultRequest;
 import vn.nguongocso.certification.dto.request.RecordInspectionResultsRequest;
 import vn.nguongocso.certification.dto.response.CanActivateSealCheckResponse;
+import vn.nguongocso.certification.dto.response.CriterionHistoryResponse;
 import vn.nguongocso.certification.dto.response.InspectionCriterionResultResponse;
 import vn.nguongocso.certification.dto.response.InspectionResultFileUploadResponse;
 import vn.nguongocso.certification.service.InspectionCriterionResultService;
@@ -255,6 +256,38 @@ public class InspectionCriterionResultController {
 
         CanActivateSealCheckResponse response =
                 resultService.checkCanActivateSeal(lotId, currentUser);
+
+        return ResponseEntity.ok(
+                ApiResult.success(
+                        HttpStatus.OK.value(),
+                        response));
+    }
+
+    /**
+     * Lịch sử kiểm nghiệm của lô sản xuất theo từng chỉ tiêu.
+     *
+     * GET /api/v1/production-lots/{lotId}/inspection-history
+     *
+     * <p>
+     * Trả về dòng thời gian kết quả của từng chỉ tiêu qua MỌI lần
+     * kiểm nghiệm / kiểm nghiệm lại (cũ đến mới). Lịch sử KHÔNG BAO
+     * GIỜ bị xóa hay ghi đè — kết quả FAIL cũ vẫn hiển thị, chỉ có
+     * entry cuối cùng của mỗi chỉ tiêu là kết quả hiện thời.
+     * </p>
+     *
+     * @param lotId       ID của lô sản xuất.
+     * @param currentUser Thông tin người dùng hiện tại.
+     * @return Danh sách lịch sử kiểm nghiệm theo chỉ tiêu.
+     */
+    @GetMapping("/production-lots/{lotId}/inspection-history")
+    @PreAuthorize("hasRole('VT-02')")
+    public ResponseEntity<ApiResult<List<CriterionHistoryResponse>>>
+            getInspectionHistory(
+                    @PathVariable UUID lotId,
+                    @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        List<CriterionHistoryResponse> response =
+                resultService.getInspectionHistory(lotId, currentUser);
 
         return ResponseEntity.ok(
                 ApiResult.success(

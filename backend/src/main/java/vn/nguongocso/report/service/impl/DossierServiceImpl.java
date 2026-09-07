@@ -24,6 +24,11 @@ import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.certification.entity.InspectionCriterion;
+import vn.nguongocso.certification.entity.InspectionCriterionResult;
+import vn.nguongocso.certification.entity.InspectionRequest;
+import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
+import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
@@ -43,6 +48,8 @@ import vn.nguongocso.report.dto.response.DossierCheckResponse;
 import vn.nguongocso.report.dto.response.Gs1DossierExportResponse;
 import vn.nguongocso.report.dto.response.Gs1Event;
 import vn.nguongocso.report.dto.response.Gs1EventLocation;
+import vn.nguongocso.report.dto.response.Gs1Inspection;
+import vn.nguongocso.report.dto.response.Gs1InspectionCriterion;
 import vn.nguongocso.report.dto.response.Gs1ShipmentInfo;
 import vn.nguongocso.report.dto.response.Gs1Warning;
 import vn.nguongocso.report.entity.DossierExportHistory;
@@ -84,6 +91,8 @@ public class DossierServiceImpl implements DossierService {
     private final UserRepository userRepository;
     private final OrganizationUserRepository organizationUserRepository;
     private final TraceCodeRepository traceCodeRepository;
+    private final InspectionRequestRepository inspectionRequestRepository;
+    private final InspectionCriterionResultRepository inspectionCriterionResultRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     private final ObjectMapper objectMapper = new ObjectMapper()
@@ -357,8 +366,39 @@ public class DossierServiceImpl implements DossierService {
             }
             document.add(logTable);
 
-            // 5. Chuỗi sự kiện luân chuyển
-            document.add(new Paragraph("IV. DÒNG SỰ KIỆN CHUỖI CUNG ỨNG (TIMELINE)", headerFont));
+            // 5. Lịch sử kiểm nghiệm của lô sản xuất
+            document.add(new Paragraph("IV. LỊCH SỬ KIỂM NGHIỆM", headerFont));
+            document.add(new Paragraph(" "));
+            PdfPTable inspectionTable = new PdfPTable(6);
+            inspectionTable.setWidthPercentage(100);
+            inspectionTable.setWidths(new float[] { 13f, 19f, 26f, 12f, 15f, 15f });
+            inspectionTable.setSpacingAfter(15);
+
+            addTableHeaderCell(inspectionTable, "Ngày gửi mẫu", boldFont);
+            addTableHeaderCell(inspectionTable, "Đơn vị kiểm nghiệm", boldFont);
+            addTableHeaderCell(inspectionTable, "Chỉ tiêu / Tiêu chuẩn", boldFont);
+            addTableHeaderCell(inspectionTable, "Kết quả", boldFont);
+            addTableHeaderCell(inspectionTable, "Ngày cấp kết quả", boldFont);
+            addTableHeaderCell(inspectionTable, "Hạn hiệu lực", boldFont);
+
+            List<String[]> inspectionRows = toInspectionPdfRows(buildGs1Inspections(shipment));
+            if (inspectionRows.isEmpty()) {
+                PdfPCell emptyCell = new PdfPCell(new Phrase(
+                        "Chưa có dữ liệu kiểm nghiệm cho lô sản xuất này.", normalFont));
+                emptyCell.setColspan(6);
+                emptyCell.setPadding(6);
+                inspectionTable.addCell(emptyCell);
+            } else {
+                for (String[] row : inspectionRows) {
+                    for (String cellText : row) {
+                        addTableCell(inspectionTable, cellText != null ? cellText : "N/A", normalFont);
+                    }
+                }
+            }
+            document.add(inspectionTable);
+
+            // 6. Chuỗi sự kiện luân chuyển
+            document.add(new Paragraph("V. DÒNG SỰ KIỆN CHUỖI CUNG ỨNG (TIMELINE)", headerFont));
             document.add(new Paragraph(" "));
             PdfPTable eventTable = new PdfPTable(4);
             eventTable.setWidthPercentage(100);
@@ -420,9 +460,10 @@ public class DossierServiceImpl implements DossierService {
      *
      * <p>
      * Chỉ dành cho VT-02 (Quản lý HTX) và VT-04 (Doanh nghiệp thu mua). Hồ sơ
-     * được ánh xạ theo bốn chiều {@code who / when / where / why}. Quy trình:
-     * xác thực → kiểm tra QTN-11 → kiểm tra sự kiện không rỗng → ánh xạ sự
-     * kiện → ghi ActivityLog. Không thay đổi bất kỳ dữ liệu nghiệp vụ nào.
+     * được ánh xạ theo bốn chiều {@code who / when / where / why} kèm lịch sử
+     * kiểm nghiệm của lô sản xuất tương ứng. Quy trình: xác thực → kiểm tra
+     * QTN-11 → kiểm tra sự kiện không rỗng → ánh xạ sự kiện → ghi ActivityLog.
+     * Không thay đổi bất kỳ dữ liệu nghiệp vụ nào.
      * </p>
      */
     @Override
@@ -475,6 +516,7 @@ public class DossierServiceImpl implements DossierService {
                 .events(events.stream()
                         .map(e -> mapToGs1Event(e, warnings))
                         .collect(Collectors.toList()))
+                .inspections(buildGs1Inspections(shipment))
                 .mapping(includeMapping ? buildMappingTable() : null)
                 .warnings(warnings)
                 .exportedAt(LocalDateTime.now())
@@ -607,7 +649,160 @@ public class DossierServiceImpl implements DossierService {
         mapping.put("Shipment.totalQuantity", "declaredQuantity");
         mapping.put("Shipment.status", "shipmentStatus");
         mapping.put("TraceCode.codeValue", "codeValues");
+        mapping.put("InspectionRequest.inspectionUnit", "inspections[].inspectionUnit");
+        mapping.put("InspectionRequest.sampleSentDate", "inspections[].sampleSentDate");
+        mapping.put("InspectionRequest.status", "inspections[].status");
+        mapping.put("InspectionCriterion.criterionCode", "inspections[].criteria[].criterionCode");
+        mapping.put("InspectionCriterion.criterionName", "inspections[].criteria[].criterionName");
+        mapping.put("InspectionCriterionResult.passed", "inspections[].criteria[].passed");
+        mapping.put("InspectionCriterionResult.resultDate", "inspections[].criteria[].resultDate");
+        mapping.put("InspectionCriterionResult.expiryDate", "inspections[].criteria[].expiryDate");
         return mapping;
+    }
+
+    /**
+     * Nạp danh sách yêu cầu kiểm nghiệm của lô sản xuất tương ứng với lô hàng.
+     *
+     * <p>
+     * Dữ liệu kiểm nghiệm là dữ liệu bổ sung cho hồ sơ truy xuất nên được xử lý
+     * best-effort: khi lô hàng chưa gắn lô sản xuất hoặc có lỗi truy vấn thì trả
+     * về danh sách rỗng thay vì làm gián đoạn luồng xuất hồ sơ.
+     * </p>
+     */
+    private List<InspectionRequest> loadInspectionRequests(Shipment shipment) {
+        ProductionLot lot = shipment.getProductionLot();
+        if (lot == null || lot.getId() == null) {
+            return Collections.emptyList();
+        }
+        try {
+            List<InspectionRequest> requests = inspectionRequestRepository
+                    .findByProductionLot_IdOrderByCreatedAtDesc(lot.getId());
+            return requests != null ? requests : Collections.emptyList();
+        } catch (Exception e) {
+            log.warn("Không thể lấy lịch sử kiểm nghiệm cho shipment {}: {}",
+                    shipment.getId(), e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Nạp kết quả kiểm nghiệm của mọi chỉ tiêu thuộc một yêu cầu kiểm nghiệm và
+     * đánh chỉ mục theo ID chỉ tiêu để tra cứu nhanh khi ánh xạ dữ liệu.
+     */
+    private Map<UUID, InspectionCriterionResult> loadResultsByCriterionId(InspectionRequest request) {
+        try {
+            List<InspectionCriterionResult> results = inspectionCriterionResultRepository
+                    .findByInspectionCriterion_InspectionRequest_Id(request.getId());
+            if (results == null || results.isEmpty()) {
+                return Collections.emptyMap();
+            }
+            Map<UUID, InspectionCriterionResult> resultByCriterionId = new LinkedHashMap<>();
+            for (InspectionCriterionResult result : results) {
+                if (result != null && result.getInspectionCriterion() != null
+                        && result.getInspectionCriterion().getId() != null) {
+                    resultByCriterionId.put(result.getInspectionCriterion().getId(), result);
+                }
+            }
+            return resultByCriterionId;
+        } catch (Exception e) {
+            log.warn("Không thể lấy kết quả kiểm nghiệm cho yêu cầu {}: {}",
+                    request.getId(), e.getMessage());
+            return Collections.emptyMap();
+        }
+    }
+
+    /**
+     * Xây dựng phần lịch sử kiểm nghiệm cho hồ sơ GS1 mô phỏng, dùng chung cho
+     * cả luồng xuất PDF (qua {@link #toInspectionPdfRows(List)}).
+     */
+    private List<Gs1Inspection> buildGs1Inspections(Shipment shipment) {
+        List<InspectionRequest> requests = loadInspectionRequests(shipment);
+        if (requests.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Gs1Inspection> inspections = new ArrayList<>();
+        for (InspectionRequest request : requests) {
+            if (request == null) {
+                continue;
+            }
+            Map<UUID, InspectionCriterionResult> resultByCriterionId = loadResultsByCriterionId(request);
+            List<Gs1InspectionCriterion> criteria = new ArrayList<>();
+            if (request.getCriteria() != null) {
+                for (InspectionCriterion criterion : request.getCriteria()) {
+                    if (criterion == null) {
+                        continue;
+                    }
+                    InspectionCriterionResult result = criterion.getId() != null
+                            ? resultByCriterionId.get(criterion.getId())
+                            : null;
+                    criteria.add(Gs1InspectionCriterion.builder()
+                            .criterionCode(criterion.getCriterionCode())
+                            .criterionName(criterion.getCriterionName())
+                            .standardName(criterion.getStandard() != null
+                                    ? criterion.getStandard().getName()
+                                    : null)
+                            .passed(result != null ? result.getPassed() : null)
+                            .resultDate(result != null ? result.getResultDate() : null)
+                            .expiryDate(result != null ? result.getExpiryDate() : null)
+                            .build());
+                }
+            }
+            inspections.add(Gs1Inspection.builder()
+                    .requestId(request.getId())
+                    .inspectionUnit(request.getInspectionUnit())
+                    .sampleSentDate(request.getSampleSentDate())
+                    .status(request.getStatus() != null ? request.getStatus().name() : null)
+                    .criteria(criteria.isEmpty() ? null : criteria)
+                    .build());
+        }
+        return inspections;
+    }
+
+    /**
+     * Chuyển lịch sử kiểm nghiệm thành các dòng dữ liệu cho bảng PDF. Mỗi dòng
+     * tương ứng một chỉ tiêu kiểm nghiệm của một yêu cầu kiểm nghiệm.
+     */
+    private List<String[]> toInspectionPdfRows(List<Gs1Inspection> inspections) {
+        List<String[]> rows = new ArrayList<>();
+        if (inspections == null || inspections.isEmpty()) {
+            return rows;
+        }
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        for (Gs1Inspection inspection : inspections) {
+            String sampleSentDate = inspection.getSampleSentDate() != null
+                    ? inspection.getSampleSentDate().format(dateFormatter) : "N/A";
+            String inspectionUnit = inspection.getInspectionUnit() != null
+                    ? inspection.getInspectionUnit() : "N/A";
+            if (inspection.getCriteria() == null || inspection.getCriteria().isEmpty()) {
+                rows.add(new String[] { sampleSentDate, inspectionUnit,
+                        "Yêu cầu kiểm nghiệm chưa có chỉ tiêu.", "N/A", "N/A", "N/A" });
+                continue;
+            }
+            for (Gs1InspectionCriterion criterion : inspection.getCriteria()) {
+                if (criterion == null) {
+                    continue;
+                }
+                String criterionLabel = criterion.getCriterionName() != null
+                        ? criterion.getCriterionName()
+                        : (criterion.getCriterionCode() != null ? criterion.getCriterionCode() : "N/A");
+                if (criterion.getStandardName() != null) {
+                    criterionLabel = criterionLabel + " (" + criterion.getStandardName() + ")";
+                }
+                String outcome = criterion.getPassed() == null ? "Chưa có kết quả"
+                        : (Boolean.TRUE.equals(criterion.getPassed()) ? "Đạt" : "Không đạt");
+                rows.add(new String[] {
+                        sampleSentDate,
+                        inspectionUnit,
+                        criterionLabel,
+                        outcome,
+                        criterion.getResultDate() != null
+                                ? criterion.getResultDate().format(dateFormatter) : "N/A",
+                        criterion.getExpiryDate() != null
+                                ? criterion.getExpiryDate().format(dateFormatter) : "N/A"
+                });
+            }
+        }
+        return rows;
     }
 
     private void addTableCell(PdfPTable table, String text, Font font) {

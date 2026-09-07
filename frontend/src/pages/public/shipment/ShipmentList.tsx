@@ -130,11 +130,11 @@ export const ShipmentList = ({
     try {
       check = await checkCanActivateSeal(productionLotId);
     } catch {
-      toast.error("Không thể kiểm tra điều kiện kích hoạt tem");
+      toast.error("Không thể kiểm tra điều kiện tạo lô hàng kích hoạt tem");
       throw new Error("cannot-check-activation");
     }
     if (!check.canActivate) {
-      toast.error(check.reason || "Lô chưa đủ điều kiện kích hoạt tem");
+      toast.error(check.reason || "Lô chưa đủ điều kiện tạo lô hàng và kích hoạt tem");
       throw new Error("cannot-activate");
     }
     await activateShipment(shipmentId);

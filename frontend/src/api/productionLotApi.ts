@@ -1,17 +1,42 @@
 import apiClient from './axiosConfig';
 
+// =========================================================
+// NCL-11-CN-005: Xử lý lô không đạt kiểm nghiệm
+// =========================================================
+
 import type {
     ApproveProductionLotRequest,
     ApproveProductionLotResult,
     CancelProductionLotRequest,
     CreateProductionLotRequest,
     CreateProductionLotResponse,
+    DisposeProductionLotRequest,
+    DisposeProductionLotResponse,
     FarmAreaOption,
     ProductCategoryOption,
     ProductionLot,
     UpdateProductionLotRequest,
     UpdateProductionLotResponse,
 } from '@/types/productionLot';
+
+/**
+ * Loại bỏ lô sản xuất không đạt kiểm nghiệm.
+ *
+ * POST /api/v1/production-lots/{id}/dispose
+ *
+ * Chỉ VT-02 được loại bỏ. Lý do và biện pháp xử lý là bắt buộc (TC-03).
+ * Lô chuyển sang trạng thái cuối DISPOSED; không tạo lô hàng và không tính vào sản lượng dự kiến.
+ */
+export const disposeProductionLot = async (
+    id: string,
+    payload: DisposeProductionLotRequest,
+): Promise<DisposeProductionLotResponse> => {
+    const response = await apiClient.post<
+        ApiDataResponse<DisposeProductionLotResponse>
+    >(`/production-lots/${id}/dispose`, payload);
+
+    return response.data.data;
+};
 
 import type {
     ProductionLotImportResultResponse,

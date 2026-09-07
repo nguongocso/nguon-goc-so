@@ -35,6 +35,7 @@ import { Pagination } from "@/components/common/Pagination";
 import { RefreshButton } from "@/components/common/RefreshButton";
 import { SearchInput } from "@/components/common/SearchInput";
 import { StatusBadge, type StatusTone } from "@/components/common/StatusBadge";
+import { PRODUCTION_LOT_STATUS_LABELS } from "./ProductionLotStatusBadge";
 import { useAuth } from "@/hooks/useAuth";
 import { ApproveProductionLotDialog } from "./Approveproductionlotdialog";
 import {
@@ -74,19 +75,6 @@ interface ProductionLotListProps {
 
 const PAGE_SIZE = 10;
 
-const STATUS_LABELS: Record<ProductionLot["status"], string> = {
-  DRAFT: "Bản nháp",
-  PENDING: "Chờ duyệt",
-  APPROVED: "Đã duyệt",
-  REJECTED: "Bị từ chối",
-  HARVESTED: "Đã thu hoạch",
-  PREPROCESSED: "Đã sơ chế",
-  PACKAGED: "Đã đóng gói",
-  CLOSED: "Đã kết thúc",
-  RECALLED: "Đã thu hồi",
-  CANCELLED: "Đã hủy",
-};
-
 const STATUS_TONES: Record<ProductionLot["status"], StatusTone> = {
   DRAFT: "neutral",
   PENDING: "warning",
@@ -98,6 +86,7 @@ const STATUS_TONES: Record<ProductionLot["status"], StatusTone> = {
   CLOSED: "neutral",
   RECALLED: "danger",
   CANCELLED: "danger",
+  DISPOSED: "danger",
 };
 
 // NCL-02-CN-006: mặc định "Đang canh tác" = mọi trạng thái trừ "Đã hủy",
@@ -105,7 +94,7 @@ const STATUS_TONES: Record<ProductionLot["status"], StatusTone> = {
 const STATUS_FILTER_OPTIONS = [
   { value: "ACTIVE", label: "Đang canh tác" },
   { value: "ALL", label: "Tất cả trạng thái" },
-  ...Object.entries(STATUS_LABELS).map(([value, label]) => ({
+  ...Object.entries(PRODUCTION_LOT_STATUS_LABELS).map(([value, label]) => ({
     value,
     label,
   })),
@@ -190,7 +179,7 @@ export const ProductionLotList = ({
     (statusFilter !== "ALL" && statusFilter !== "ACTIVE");
 
   const renderStatus = (status: ProductionLot["status"]) => {
-    const label = STATUS_LABELS[status];
+    const label = PRODUCTION_LOT_STATUS_LABELS[status];
     if (!label) {
       return <StatusBadge label={status || "Không xác định"} tone="neutral" />;
     }

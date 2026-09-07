@@ -91,7 +91,12 @@
 
 * **Content-Type:** `application/pdf`
 * **Content-Disposition:** `attachment; filename="Ho_so_truy_xuat_<shipment_name>_<yyyyMMdd>.pdf"`
-* **Body:** Luồng dữ liệu nhị phân (Binary Stream) của file PDF chứa thông tin hồ sơ tổng hợp.
+* **Body:** Luồng dữ liệu nhị phân (Binary Stream) của file PDF chứa thông tin hồ sơ tổng hợp, gồm các phần:
+  * `I. THÔNG TIN LÔ SẢN XUẤT` – tên lô, danh mục sản phẩm, HTX, ngày xuống giống/thu hoạch, sản lượng.
+  * `II. THÔNG TIN LÔ HÀNG` – tên lô hàng, số lượng, thông tin đóng gói, trạng thái vận hành.
+  * `III. LỊCH TRÌNH CANH TÁC & CHỨNG TỪ` – nhật ký canh tác kèm chứng từ đính kèm.
+  * `IV. LỊCH SỬ KIỂM NGHIỆM` – các yêu cầu kiểm nghiệm của lô sản xuất: đơn vị kiểm nghiệm, ngày gửi mẫu, chỉ tiêu/tiêu chuẩn, kết quả (Đạt/Không đạt/Chưa có kết quả), ngày cấp kết quả và hạn hiệu lực.
+  * `V. DÒNG SỰ KIỆN CHUỖI CUNG ỨNG (TIMELINE)` – chuỗi `ChainEvent` sắp xếp theo `recordedAt ASC`.
 
 ---
 
@@ -221,5 +226,6 @@ CREATE INDEX idx_dossier_export_exporter ON dossier_export_history(exporter_id);
   * Thông tin chi tiết lô sản xuất (Tên, ngày xuống giống, ngày thu hoạch, sản lượng thực tế, giống cây trồng).
   * Lịch trình nhật ký canh tác (Các hoạt động sản xuất đã ghi nhận kèm vật tư, số lượng, thời gian).
   * Danh sách tài liệu/chứng từ minh chứng (Farm Log Attachments) đã tải lên.
+  * Lịch sử kiểm nghiệm của lô sản xuất (Yêu cầu kiểm nghiệm, đơn vị kiểm nghiệm, chỉ tiêu/tiêu chuẩn, kết quả Đạt/Không đạt, ngày cấp kết quả, hạn hiệu lực; hiển thị "Chưa có dữ liệu kiểm nghiệm cho lô sản xuất này" nếu lô chưa có yêu cầu kiểm nghiệm).
   * Lịch sử sự kiện chuỗi cung ứng (Chain Events) từ khi thu hoạch, đóng gói, vận chuyển đến khi thu mua.
 * **AC-05 (Lưu nhật ký xuất):** Mọi lượt xuất hồ sơ thành công đều tự động tạo một bản ghi lưu trữ thông tin chi tiết vào bảng `dossier_export_history`.

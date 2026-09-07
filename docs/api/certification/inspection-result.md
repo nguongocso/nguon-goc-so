@@ -1,7 +1,7 @@
 # API Docs — Ghi nhận kết quả kiểm nghiệm và hiệu lực
 
 Cập nhật theo code hiện tại
-Ngày cập nhật: 2026-08-26
+Ngày cập nhật: 2026-09-05 (bổ sung ghi chú NCL-11-CN-005 — QTN-30)
 Nguồn đối chiếu: backend certification module hiện hành
 
 Tài liệu này phản ánh đúng luồng đang được triển khai trong code hiện tại, không dựa trên thiết kế mô tả cũ hoặc quy trình chưa tồn tại trong backend.
@@ -128,6 +128,12 @@ Quy tắc nghiệp vụ thống nhất:
 3) Cổng tra cứu công khai (`PublicInspectionResponse` của module `publicapi`) — có `totalCriteria`, `passedCriteria`, `failedCriteriaCount`, `failedRatio`. Danh sách công khai chỉ chứa chỉ tiêu đã có kết quả nên `totalCriteria` bằng số kết quả đã ghi nhận.
 
 Ví dụ: yêu cầu có 5 chỉ tiêu, 3 đạt, 2 không đạt → `totalCriteria=5, evaluatedCriteria=5, passedCriteria=3, failedCriteriaCount=2, failedRatio=40.0`.
+
+## 9. Ghi chú liên quan NCL-11-CN-005 — QTN-30 (đang thiết kế)
+
+- Endpoint `DELETE /api/v1/inspection-results/{resultId}` hiện xóa kết quả không ràng buộc trạng thái yêu cầu. Theo TC-04 của NCL-11-CN-005, sẽ giới hạn: chỉ cho phép xóa khi yêu cầu còn `PENDING_RESULT`; yêu cầu đã kết luận `PASSED`/`FAILED`/`CANCELLED` không được phép xóa kết quả (trả `409`). Chỉnh sửa dữ liệu sai đi qua `PUT /inspection-requests/{requestId}/results` (có lưu vết). Chi tiết: [failed-lot-handling.md](failed-lot-handling.md).
+- `POST /api/v1/production-lots/{lotId}/can-activate-seal` hiện chỉ là API pre-check. NCL-11-CN-005 bổ sung gate bắt buộc tại `POST /api/v1/shipments` và `POST /api/v1/shipments/{id}/activate` để chặn lô chưa đạt ngay từ bước tạo lô hàng (QTN-30).
+- Luồng kiểm nghiệm lại (lô Không đạt → tạo vòng kiểm nghiệm mới → Đạt → quay lại luồng bình thường) dùng lại nguyên trạng các API ở mục 4, không cần endpoint mới.
 
 ## Nguồn code đối chiếu
 

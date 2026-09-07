@@ -9,6 +9,8 @@ import org.mockito.Mock;
 import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import vn.nguongocso.certification.dto.response.InspectionEligibilityResult;
+import vn.nguongocso.certification.service.InspectionEligibilityService;
 import vn.nguongocso.trace.service.QRCodeService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -47,6 +49,9 @@ public class ShipmentServiceTest {
 
     @Mock
     private QRCodeService qrCodeService;
+
+    @Mock
+    private InspectionEligibilityService inspectionEligibilityService;
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
@@ -91,6 +96,11 @@ public class ShipmentServiceTest {
                 .totalLimit(100L)
                 .usedCount(0L)
                 .build();
+
+        // QTN-30 (NCL-11-CN-005): mock gate kiểm nghiệm — lô luôn đủ điều kiện
+        // trong các test về hạn mức dải mã (không phải chủ đề của test này).
+        when(inspectionEligibilityService.evaluateForShipment(productionLot))
+                .thenReturn(InspectionEligibilityResult.builder().eligible(true).build());
     }
 
     @Test
