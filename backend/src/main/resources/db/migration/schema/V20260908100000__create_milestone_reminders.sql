@@ -21,7 +21,7 @@ CREATE TABLE milestone_reminders (
     CONSTRAINT fk_milestone_reminder_user FOREIGN KEY (user_id) REFERENCES users (user_id),
     CONSTRAINT fk_milestone_reminder_notification FOREIGN KEY (notification_id) REFERENCES notifications (id),
     CONSTRAINT uk_lot_milestone_date_user UNIQUE (lot_id, milestone_id, reminder_date, user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB;
 
 CREATE INDEX idx_milestone_reminder_lot_status ON milestone_reminders (lot_id, status);
 CREATE INDEX idx_milestone_reminder_user_status ON milestone_reminders (user_id, status);
