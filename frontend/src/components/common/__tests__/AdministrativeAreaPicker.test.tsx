@@ -34,9 +34,11 @@ describe('AdministrativeAreaPicker', () => {
 
     // Danh sách xã của Phú Thọ hiển thị
     expect(await screen.findByText(/Chọn Xã \/ Phường thuộc/)).toBeInTheDocument();
-    expect(screen.getAllByText('Phú Thọ').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Xã Thanh Sơn')).toBeInTheDocument();
-    expect(screen.getByText('Phường Việt Trì')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getAllByText('Phú Thọ').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('Xã Thanh Sơn')).toBeInTheDocument();
+      expect(screen.getByText('Phường Việt Trì')).toBeInTheDocument();
+    });
   });
 
   it('tiện ích Chọn tất cả và Bỏ chọn trong tỉnh', async () => {
