@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -20,14 +20,20 @@ export default function BatchDossierExportPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Lấy danh sách shipmentIds từ location.state hoặc query string
-  const stateShipmentIds: string[] = location.state?.shipmentIds || [];
-  const queryParams = new URLSearchParams(location.search);
-  const queryShipmentIds = queryParams.get("shipmentIds")
-    ? queryParams.get("shipmentIds")!.split(",").filter(Boolean)
-    : [];
+  // Stable shipmentIds memoization to prevent infinite re-render flickering
+  const shipmentIdsKey = useMemo(() => {
+    const stateShipmentIds: string[] = location.state?.shipmentIds || [];
+    const queryParams = new URLSearchParams(location.search);
+    const queryShipmentIds = queryParams.get("shipmentIds")
+      ? queryParams.get("shipmentIds")!.split(",").filter(Boolean)
+      : [];
 
-  const shipmentIds = Array.from(new Set([...stateShipmentIds, ...queryShipmentIds]));
+    return Array.from(new Set([...stateShipmentIds, ...queryShipmentIds])).sort().join(",");
+  }, [location.state, location.search]);
+
+  const shipmentIds = useMemo(() => {
+    return shipmentIdsKey ? shipmentIdsKey.split(",") : [];
+  }, [shipmentIdsKey]);
 
   const [isLoadingCheck, setIsLoadingCheck] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
@@ -51,26 +57,38 @@ export default function BatchDossierExportPage() {
     }
   }, []);
 
-  const runEligibilityCheck = useCallback(async () => {
-    if (shipmentIds.length === 0) {
+  useEffect(() => {
+    if (!shipmentIdsKey) {
       setIsLoadingCheck(false);
       return;
     }
+    let isMounted = true;
     setIsLoadingCheck(true);
-    try {
-      const result = await checkBatchDossierEligibility(shipmentIds);
-      setCheckResult(result);
-    } catch (err: any) {
-      toast.error(err.message || "Không thể kiểm tra điều kiện các lô hàng.");
-    } finally {
-      setIsLoadingCheck(false);
-    }
-  }, [shipmentIds]);
+    checkBatchDossierEligibility(shipmentIdsKey.split(","))
+      .then((result) => {
+        if (isMounted) {
+          setCheckResult(result);
+        }
+      })
+      .catch((err: any) => {
+        if (isMounted) {
+          toast.error(err.message || "Không thể kiểm tra điều kiện các lô hàng.");
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoadingCheck(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [shipmentIdsKey]);
 
   useEffect(() => {
-    void runEligibilityCheck();
     void loadHistory();
-  }, [runEligibilityCheck, loadHistory]);
+  }, [loadHistory]);
 
   const handleExport = async () => {
     if (!checkResult || checkResult.totalEligible === 0) {

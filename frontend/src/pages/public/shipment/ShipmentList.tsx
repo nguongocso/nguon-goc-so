@@ -101,6 +101,7 @@ export const ShipmentList = ({
   const [labelExportShipment, setLabelExportShipment] =
     useState<Shipment | null>(null);
 
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedShipmentIds, setSelectedShipmentIds] = useState<string[]>([]);
   const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
   const canExportBatch = usePermission(ROLE_ACCESS.batchDossierExport);
@@ -121,6 +122,11 @@ export const ShipmentList = ({
     } else {
       setSelectedShipmentIds((prev) => Array.from(new Set([...prev, ...pageIds])));
     }
+  };
+
+  const handleCancelSelectionMode = () => {
+    setIsSelectionMode(false);
+    setSelectedShipmentIds([]);
   };
 
   const {
@@ -270,22 +276,37 @@ export const ShipmentList = ({
 
             <div className="flex items-center gap-2">
               {canExportBatch && (
-                <Button
-                  variant={selectedShipmentIds.length > 0 ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    if (selectedShipmentIds.length === 0) {
-                      toast.info("Vui lòng tích chọn các lô hàng trong bảng để xuất bộ hồ sơ hàng loạt.");
-                    }
-                    navigate("/shipments/batch-dossier-export", {
-                      state: { shipmentIds: selectedShipmentIds },
-                    });
-                  }}
-                >
-                  {selectedShipmentIds.length > 0
-                    ? `Xuất bộ hồ sơ (${selectedShipmentIds.length} lô)`
-                    : "Xuất hồ sơ nhiều lô"}
-                </Button>
+                !isSelectionMode ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsSelectionMode(true)}
+                  >
+                    Xuất hồ sơ nhiều lô
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCancelSelectionMode}
+                    >
+                      Hủy chọn
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      disabled={selectedShipmentIds.length === 0}
+                      onClick={() =>
+                        navigate("/shipments/batch-dossier-export", {
+                          state: { shipmentIds: selectedShipmentIds },
+                        })
+                      }
+                    >
+                      Xác nhận xuất bộ hồ sơ ({selectedShipmentIds.length} lô)
+                    </Button>
+                  </>
+                )
               )}
 
               {canCreate && productionLotStatus === "PACKAGED" && (
@@ -310,18 +331,20 @@ export const ShipmentList = ({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50/80">
-                    <TableHead className="w-10 text-center">
-                      <input
-                        type="checkbox"
-                        className="rounded border-input"
-                        checked={
-                          shipments.length > 0 &&
-                          shipments.every((s) => selectedShipmentIds.includes(s.id))
-                        }
-                        onChange={toggleSelectAllPage}
-                        title="Chọn tất cả trên trang này"
-                      />
-                    </TableHead>
+                    {isSelectionMode && (
+                      <TableHead className="w-10 text-center">
+                        <input
+                          type="checkbox"
+                          className="rounded border-input"
+                          checked={
+                            shipments.length > 0 &&
+                            shipments.every((s) => selectedShipmentIds.includes(s.id))
+                          }
+                          onChange={toggleSelectAllPage}
+                          title="Chọn tất cả trên trang này"
+                        />
+                      </TableHead>
+                    )}
                     <TableHead className="font-semibold text-slate-700">Tên lô hàng</TableHead>
                     <TableHead className="text-center font-semibold text-slate-700">Số lượng</TableHead>
                     <TableHead className="font-semibold text-slate-700">Quy cách</TableHead>
@@ -335,14 +358,16 @@ export const ShipmentList = ({
                 <TableBody>
                   {shipments.map((shipment) => (
                     <TableRow key={shipment.id} className="hover:bg-slate-50/60">
-                      <TableCell className="text-center">
-                        <input
-                          type="checkbox"
-                          className="rounded border-input"
-                          checked={selectedShipmentIds.includes(shipment.id)}
-                          onChange={() => toggleSelectShipment(shipment.id)}
-                        />
-                      </TableCell>
+                      {isSelectionMode && (
+                        <TableCell className="text-center">
+                          <input
+                            type="checkbox"
+                            className="rounded border-input"
+                            checked={selectedShipmentIds.includes(shipment.id)}
+                            onChange={() => toggleSelectShipment(shipment.id)}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="font-medium">
                         {shipment.name}
                       </TableCell>

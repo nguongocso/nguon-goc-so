@@ -124,11 +124,17 @@ export function ProcurementShipmentList({
 
   const handleGoToBatchExport = () => {
     if (selectedShipmentIds.length === 0) {
-      toast.info("Vui lòng tích chọn các lô hàng trong bảng để xuất bộ hồ sơ hàng loạt.");
+      toast.error("Vui lòng chọn ít nhất 1 lô hàng để xuất bộ hồ sơ.");
+      return;
     }
     navigate("/shipments/batch-dossier-export", {
       state: { shipmentIds: selectedShipmentIds },
     });
+  };
+
+  const handleCancelSelectionMode = () => {
+    setIsSelectionMode(false);
+    setSelectedShipmentIds([]);
   };
 
   const handleExportGs1 = async (shipmentId: string) => {
@@ -188,16 +194,36 @@ export function ProcurementShipmentList({
         right={
           <div className="flex items-center gap-2">
             {canExportBatch && (
-              <Button
-                type="button"
-                variant={selectedShipmentIds.length > 0 ? "default" : "outline"}
-                size="sm"
-                onClick={handleGoToBatchExport}
-              >
-                {selectedShipmentIds.length > 0
-                  ? `Xuất bộ hồ sơ cho ${selectedShipmentIds.length} lô đã chọn`
-                  : "Xuất hồ sơ nhiều lô"}
-              </Button>
+              !isSelectionMode ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsSelectionMode(true)}
+                >
+                  Xuất hồ sơ nhiều lô
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancelSelectionMode}
+                  >
+                    Hủy chọn
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    disabled={selectedShipmentIds.length === 0}
+                    onClick={handleGoToBatchExport}
+                  >
+                    Xác nhận xuất bộ hồ sơ ({selectedShipmentIds.length} lô)
+                  </Button>
+                </>
+              )
             )}
             <RefreshButton onClick={loadShipments} loading={isLoading} />
           </div>
@@ -205,21 +231,23 @@ export function ProcurementShipmentList({
       />
 
       <DataTableShell
-        colSpan={8}
+        colSpan={isSelectionMode ? 8 : 7}
         header={
           <>
-            <TableHead className="w-10 text-center">
-              <input
-                type="checkbox"
-                className="rounded border-input"
-                checked={
-                  paginatedShipments.length > 0 &&
-                  paginatedShipments.every((s) => selectedShipmentIds.includes(s.id))
-                }
-                onChange={toggleSelectAllPage}
-                title="Chọn tất cả trên trang này"
-              />
-            </TableHead>
+            {isSelectionMode && (
+              <TableHead className="w-10 text-center">
+                <input
+                  type="checkbox"
+                  className="rounded border-input"
+                  checked={
+                    paginatedShipments.length > 0 &&
+                    paginatedShipments.every((s) => selectedShipmentIds.includes(s.id))
+                  }
+                  onChange={toggleSelectAllPage}
+                  title="Chọn tất cả trên trang này"
+                />
+              </TableHead>
+            )}
             <TableHead className="w-12 text-center">STT</TableHead>
             <TableHead>Tên lô hàng</TableHead>
             <TableHead>Lô sản xuất</TableHead>
@@ -234,14 +262,16 @@ export function ProcurementShipmentList({
             key={shipment.id}
             className="hover:bg-muted/40 transition-colors"
           >
-            <TableCell className="text-center">
-              <input
-                type="checkbox"
-                className="rounded border-input"
-                checked={selectedShipmentIds.includes(shipment.id)}
-                onChange={() => toggleSelectShipment(shipment.id)}
-              />
-            </TableCell>
+            {isSelectionMode && (
+              <TableCell className="text-center">
+                <input
+                  type="checkbox"
+                  className="rounded border-input"
+                  checked={selectedShipmentIds.includes(shipment.id)}
+                  onChange={() => toggleSelectShipment(shipment.id)}
+                />
+              </TableCell>
+            )}
             <TableCell className="text-center font-medium text-muted-foreground">
               {safePage * PAGE_SIZE + index + 1}
             </TableCell>
