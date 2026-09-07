@@ -17,4 +17,12 @@ public interface DossierExportHistoryRepository extends JpaRepository<DossierExp
      * @param shipmentId ID của lô hàng
      */
     void deleteByShipmentId(UUID shipmentId);
+
+    /**
+     * Lấy danh sách lịch sử xuất hồ sơ của một tổ chức theo thời gian mới nhất.
+     *
+     * @param organizationId ID tổ chức
+     * @return Danh sách lịch sử xuất hồ sơ
+     */
+    java.util.List<DossierExportHistory> findByOrganization_OrganizationIdOrderByExportedAtDesc(UUID organizationId);
 }

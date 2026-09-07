@@ -915,4 +915,317 @@ public class DossierServiceImpl implements DossierService {
                 .timestamp(LocalDateTime.now())
                 .build());
     }
+
+    // =========================================================================
+    // NCL-07-CN-005: Xuất hồ sơ truy xuất cho nhiều lô trong một lần
+    // =========================================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public vn.nguongocso.report.dto.response.BatchDossierCheckResponse checkBatchEligibility(
+            vn.nguongocso.report.dto.request.BatchDossierCheckRequest request,
+            CustomUserDetails currentUser) {
+
+        if (request == null || request.getShipmentIds() == null || request.getShipmentIds().isEmpty()) {
+            throw new BusinessException("Danh sách lô hàng không được để trống.");
+        }
+
+        List<vn.nguongocso.report.dto.response.BatchDossierCheckResponse.ShipmentEligibilityItem> eligibleList = new ArrayList<>();
+        List<vn.nguongocso.report.dto.response.BatchDossierCheckResponse.ShipmentEligibilityItem> ineligibleList = new ArrayList<>();
+
+        for (UUID shipmentId : request.getShipmentIds()) {
+            if (shipmentId == null) continue;
+
+            Shipment shipment = shipmentRepository.findById(shipmentId).orElse(null);
+            if (shipment == null) {
+                ineligibleList.add(vn.nguongocso.report.dto.response.BatchDossierCheckResponse.ShipmentEligibilityItem.builder()
+                        .shipmentId(shipmentId)
+                        .shipmentName("Lô không tồn tại (" + shipmentId + ")")
+                        .eligible(false)
+                        .missingDocuments(List.of("Không tìm thấy lô hàng trên hệ thống"))
+                        .build());
+                continue;
+            }
+
+            // 1. Kiểm tra QTN-01 (Cách ly dữ liệu)
+            try {
+                validateDossierAccess(shipment, currentUser);
+            } catch (AccessDeniedException ex) {
+                ineligibleList.add(vn.nguongocso.report.dto.response.BatchDossierCheckResponse.ShipmentEligibilityItem.builder()
+                        .shipmentId(shipmentId)
+                        .shipmentName(shipment.getName())
+                        .eligible(false)
+                        .missingDocuments(List.of("Lô ngoài phạm vi quản lý của tổ chức (QTN-01)"))
+                        .build());
+                continue;
+            }
+
+            // 2. Kiểm tra QTN-11 (Đủ chứng từ & dòng sự kiện)
+            List<String> missingDocs = new ArrayList<>();
+            ProductionLot lot = shipment.getProductionLot();
+            if (lot == null) {
+                missingDocs.add("Lô hàng chưa gắn với Lô sản xuất nào");
+            } else {
+                if (lot.getStatus() == null || (lot.getStatus() != ProductionLotStatus.CLOSED && lot.getStatus() != ProductionLotStatus.PACKAGED)) {
+                    missingDocs.add("Lô sản xuất tương ứng chưa hoàn tất (Trạng thái yêu cầu: CLOSED hoặc PACKAGED)");
+                }
+
+                List<FarmLog> logs = lot.getId() != null
+                        ? farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lot.getId())
+                        : Collections.emptyList();
+
+                boolean hasPlanting = false;
+                boolean hasFertilizing = false;
+                boolean hasPesticide = false;
+                boolean hasHarvesting = false;
+
+                if (logs != null) {
+                    for (FarmLog logItem : logs) {
+                        if (logItem == null) continue;
+                        List<FarmLogAttachment> attachments = logItem.getId() != null
+                                ? farmLogAttachmentRepository.findByFarmLogId(logItem.getId())
+                                : Collections.emptyList();
+                        if (attachments != null && !attachments.isEmpty() && logItem.getActivityType() != null) {
+                            switch (logItem.getActivityType()) {
+                                case PLANTING: hasPlanting = true; break;
+                                case FERTILIZING: hasFertilizing = true; break;
+                                case PESTICIDE: hasPesticide = true; break;
+                                case HARVESTING: hasHarvesting = true; break;
+                                default: break;
+                            }
+                        }
+                    }
+                }
+
+                if (!hasPlanting) missingDocs.add("Thiếu chứng từ gieo giống/xuống giống (PLANTING)");
+                if (!hasFertilizing) missingDocs.add("Thiếu chứng từ bón phân (FERTILIZING)");
+                if (!hasPesticide) missingDocs.add("Thiếu chứng từ phun thuốc/phòng trừ sâu bệnh (PESTICIDE)");
+                if (!hasHarvesting) missingDocs.add("Thiếu chứng từ thu hoạch (HARVESTING)");
+            }
+
+            if (!missingDocs.isEmpty()) {
+                ineligibleList.add(vn.nguongocso.report.dto.response.BatchDossierCheckResponse.ShipmentEligibilityItem.builder()
+                        .shipmentId(shipmentId)
+                        .shipmentName(shipment.getName())
+                        .eligible(false)
+                        .missingDocuments(missingDocs)
+                        .build());
+            } else {
+                eligibleList.add(vn.nguongocso.report.dto.response.BatchDossierCheckResponse.ShipmentEligibilityItem.builder()
+                        .shipmentId(shipmentId)
+                        .shipmentName(shipment.getName())
+                        .eligible(true)
+                        .missingDocuments(Collections.emptyList())
+                        .build());
+            }
+        }
+
+        return vn.nguongocso.report.dto.response.BatchDossierCheckResponse.builder()
+                .totalSelected(request.getShipmentIds().size())
+                .totalEligible(eligibleList.size())
+                .totalIneligible(ineligibleList.size())
+                .eligibleShipments(eligibleList)
+                .ineligibleShipments(ineligibleList)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public byte[] exportBatchDossierPdf(
+            vn.nguongocso.report.dto.request.BatchDossierExportRequest request,
+            CustomUserDetails currentUser,
+            String ipAddress) {
+
+        if (request == null || request.getShipmentIds() == null || request.getShipmentIds().isEmpty()) {
+            throw new BusinessException("Vui lòng chọn ít nhất một lô hàng đủ điều kiện để xuất bộ hồ sơ.");
+        }
+
+        List<Shipment> eligibleShipments = new ArrayList<>();
+        for (UUID shipmentId : request.getShipmentIds()) {
+            Shipment shipment = shipmentRepository.findById(shipmentId).orElse(null);
+            if (shipment != null) {
+                try {
+                    validateDossierAccess(shipment, currentUser);
+                    eligibleShipments.add(shipment);
+                } catch (AccessDeniedException ex) {
+                    log.warn("Bỏ qua lô {} do vi phạm quyền truy cập QTN-01 khi xuất hàng loạt", shipmentId);
+                }
+            }
+        }
+
+        if (eligibleShipments.isEmpty()) {
+            throw new BusinessException("Không có lô hàng nào đủ điều kiện hoặc thuộc quyền truy cập để xuất bộ hồ sơ.");
+        }
+
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document document = new Document(PageSize.A4, 36, 36, 36, 36);
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            Font titleFont = loadFont("fonts/Roboto-Bold.ttf", 16, Font.BOLD);
+            Font headerFont = loadFont("fonts/Roboto-Bold.ttf", 11, Font.BOLD);
+            Font normalFont = loadFont("fonts/Roboto-Regular.ttf", 10, Font.NORMAL);
+
+            // =========================================================================
+            // PAGE 1: TRANG BÌA TỔNG HỢP BỘ HỒ SƠ CHUYẾN HÀNG
+            // =========================================================================
+            String batchTitle = (request.getTitle() != null && !request.getTitle().trim().isEmpty())
+                    ? request.getTitle().trim()
+                    : "BỘ HỒ SƠ TRUY XUẤT NGUỒN GỐC NÔNG SẢN";
+
+            Paragraph pTitle = new Paragraph(batchTitle.toUpperCase(), titleFont);
+            pTitle.setAlignment(Element.ALIGN_CENTER);
+            document.add(pTitle);
+
+            document.add(new Paragraph(" "));
+
+            Paragraph pSub = new Paragraph("Đơn vị xuất bộ hồ sơ: " + (currentUser != null ? currentUser.getFullName() : "N/A"), headerFont);
+            document.add(pSub);
+
+            Paragraph pDate = new Paragraph("Ngày tạo bộ hồ sơ: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")), normalFont);
+            document.add(pDate);
+
+            Paragraph pCount = new Paragraph("Tổng số lô hàng xuất hồ sơ: " + eligibleShipments.size() + " lô", normalFont);
+            document.add(pCount);
+
+            if (request.getNote() != null && !request.getNote().trim().isEmpty()) {
+                Paragraph pNote = new Paragraph("Ghi chú: " + request.getNote().trim(), normalFont);
+                document.add(pNote);
+            }
+
+            document.add(new Paragraph(" "));
+            document.add(new Paragraph("DANH SÁCH CÁC LÔ HÀNG ĐỦ ĐIỀU KIỆN TRONG BỘ HỒ SƠ", headerFont));
+
+            PdfPTable summaryTable = new PdfPTable(5);
+            summaryTable.setWidthPercentage(100);
+            summaryTable.setWidths(new float[]{1f, 3f, 3f, 2f, 2f});
+            summaryTable.setSpacingBefore(8f);
+            summaryTable.setSpacingAfter(12f);
+
+            addTableHeaderCell(summaryTable, "STT", headerFont);
+            addTableHeaderCell(summaryTable, "Tên lô hàng", headerFont);
+            addTableHeaderCell(summaryTable, "Mã dải tem / Lô sản xuất", headerFont);
+            addTableHeaderCell(summaryTable, "Số lượng", headerFont);
+            addTableHeaderCell(summaryTable, "Quy cách", headerFont);
+
+            int stt = 1;
+            for (Shipment ship : eligibleShipments) {
+                summaryTable.addCell(new Phrase(String.valueOf(stt++), normalFont));
+                summaryTable.addCell(new Phrase(ship.getName() != null ? ship.getName() : "", normalFont));
+                summaryTable.addCell(new Phrase(ship.getProductionLot() != null ? ship.getProductionLot().getName() : "N/A", normalFont));
+                String unitStr = (ship.getProductionLot() != null && ship.getProductionLot().getExpectedQuantityUnit() != null)
+                        ? ship.getProductionLot().getExpectedQuantityUnit()
+                        : "";
+                summaryTable.addCell(new Phrase(ship.getTotalQuantity() + " " + unitStr, normalFont));
+                summaryTable.addCell(new Phrase(ship.getPackagingInfo() != null ? ship.getPackagingInfo() : "—", normalFont));
+            }
+            document.add(summaryTable);
+
+            // =========================================================================
+            // CÁC TRANG TIẾP THEO: HỒ SƠ CHI TIẾT TỪNG LÔ
+            // =========================================================================
+            for (Shipment ship : eligibleShipments) {
+                document.newPage();
+                Paragraph pLotHeader = new Paragraph("HỒ SƠ TRUY XUẤT CHI TIẾT: " + ship.getName().toUpperCase(), titleFont);
+                pLotHeader.setAlignment(Element.ALIGN_CENTER);
+                document.add(pLotHeader);
+                document.add(new Paragraph(" "));
+
+                ProductionLot lot = ship.getProductionLot();
+                if (lot != null) {
+                    document.add(new Paragraph("I. THÔNG TIN LÔ SẢN XUẤT", headerFont));
+                    document.add(new Paragraph("Tên lô sản xuất: " + lot.getName(), normalFont));
+                    document.add(new Paragraph("Sản lượng: " + lot.getExpectedQuantity() + " " + (lot.getExpectedQuantityUnit() != null ? lot.getExpectedQuantityUnit() : ""), normalFont));
+                    if (lot.getPlantingDate() != null) {
+                        document.add(new Paragraph("Ngày xuống giống: " + lot.getPlantingDate(), normalFont));
+                    }
+                    if (lot.getHarvestDate() != null) {
+                        document.add(new Paragraph("Ngày thu hoạch: " + lot.getHarvestDate(), normalFont));
+                    }
+                    document.add(new Paragraph(" "));
+                }
+
+                document.add(new Paragraph("II. THÔNG TIN LÔ HÀNG THƯƠNG MẠI", headerFont));
+                document.add(new Paragraph("Tên lô hàng: " + ship.getName(), normalFont));
+                String unitStr = (ship.getProductionLot() != null && ship.getProductionLot().getExpectedQuantityUnit() != null)
+                        ? ship.getProductionLot().getExpectedQuantityUnit()
+                        : "";
+                document.add(new Paragraph("Số lượng lô hàng: " + ship.getTotalQuantity() + " " + unitStr, normalFont));
+                document.add(new Paragraph("Quy cách đóng gói: " + (ship.getPackagingInfo() != null ? ship.getPackagingInfo() : "—"), normalFont));
+                document.add(new Paragraph(" "));
+            }
+
+            document.close();
+
+            byte[] pdfBytes = out.toByteArray();
+
+            // Ghi log xuất bộ hồ sơ cho từng lô hàng trong batch
+            for (Shipment ship : eligibleShipments) {
+                logDossierExport(ship, currentUser, "SUCCESS", ipAddress, (long) pdfBytes.length);
+            }
+
+            publishActivityLog(currentUser, "EXPORT_BATCH_DOSSIER",
+                    "Xuất bộ hồ sơ hợp nhất cho " + eligibleShipments.size() + " lô hàng",
+                    "BATCH_DOSSIER", request.getTitle() != null ? request.getTitle() : "ALL");
+
+            return pdfBytes;
+
+        } catch (Exception e) {
+            log.error("Tạo bộ hồ sơ PDF thất bại: {}", e.getMessage(), e);
+            throw new BusinessException("Lỗi khi sinh tệp bộ hồ sơ PDF hợp nhất: " + e.getMessage());
+        }
+    }
+
+    private Font loadFont(String resource, float size, int style) {
+        String resourcePath = resource.startsWith("/") ? resource : "/" + resource;
+        try (InputStream inputStream = getClass().getResourceAsStream(resourcePath)) {
+            byte[] fontBytes;
+            if (inputStream != null) {
+                fontBytes = inputStream.readAllBytes();
+            } else {
+                try (InputStream cpStream = new org.springframework.core.io.ClassPathResource(resource).getInputStream()) {
+                    fontBytes = cpStream.readAllBytes();
+                }
+            }
+            BaseFont baseFont = BaseFont.createFont(resource, BaseFont.IDENTITY_H, BaseFont.EMBEDDED, false, fontBytes, null);
+            return new Font(baseFont, size, style);
+        } catch (Exception ex) {
+            log.warn("Load custom font failed: {}, falling back to standard font: {}", resource, ex.getMessage());
+            return new Font(Font.HELVETICA, size, style);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<vn.nguongocso.report.dto.response.BatchDossierHistoryDto> getBatchExportHistory(CustomUserDetails currentUser) {
+        if (currentUser == null || currentUser.getOrganizationId() == null) {
+            return Collections.emptyList();
+        }
+
+        List<DossierExportHistory> histories = exportHistoryRepository
+                .findByOrganization_OrganizationIdOrderByExportedAtDesc(currentUser.getOrganizationId());
+
+        if (histories == null || histories.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<vn.nguongocso.report.dto.response.BatchDossierHistoryDto> result = new ArrayList<>();
+        for (DossierExportHistory h : histories) {
+            result.add(vn.nguongocso.report.dto.response.BatchDossierHistoryDto.builder()
+                    .id(h.getId())
+                    .title(h.getFileName() != null ? h.getFileName() : "Bộ hồ sơ truy xuất")
+                    .exportedAt(h.getExportedAt())
+                    .exporterName(h.getExporter() != null ? h.getExporter().getFullName() : "N/A")
+                    .organizationName(h.getOrganization() != null ? h.getOrganization().getName() : "N/A")
+                    .totalSelectedLots(1)
+                    .eligibleLotsCount(1)
+                    .ineligibleLotsCount(0)
+                    .fileName(h.getFileName())
+                    .fileSize(h.getFileSize())
+                    .status(h.getStatus())
+                    .ipAddress(h.getIpAddress())
+                    .build());
+        }
+        return result;
+    }
 }

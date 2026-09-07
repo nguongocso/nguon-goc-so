@@ -40,4 +40,19 @@ public interface DossierService {
                                               boolean includeMapping,
                                               CustomUserDetails currentUser,
                                               String ipAddress);
+
+    // NCL-07-CN-005: Kiểm tra điều kiện xuất hồ sơ cho nhiều lô
+    vn.nguongocso.report.dto.response.BatchDossierCheckResponse checkBatchEligibility(
+            vn.nguongocso.report.dto.request.BatchDossierCheckRequest request,
+            CustomUserDetails currentUser);
+
+    // NCL-07-CN-005: Xuất bộ hồ sơ truy xuất nhiều lô (PDF)
+    byte[] exportBatchDossierPdf(
+            vn.nguongocso.report.dto.request.BatchDossierExportRequest request,
+            CustomUserDetails currentUser,
+            String ipAddress);
+
+    // NCL-07-CN-005: Lịch sử xuất bộ hồ sơ hàng loạt
+    java.util.List<vn.nguongocso.report.dto.response.BatchDossierHistoryDto> getBatchExportHistory(
+            CustomUserDetails currentUser);
 }
