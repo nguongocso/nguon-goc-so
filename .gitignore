@@ -98,7 +98,6 @@ docker-volumes/
 # Project-specific / Local Files
 # ============================================================
 AI_GUIDE.md
-AGENTS.md
 context.md
 .agents/
 npm_member_check.txt
