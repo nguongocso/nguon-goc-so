@@ -84,6 +84,7 @@ import { ShipmentDetailPage } from "@/pages/public/shipment/ShipmentDetailPage";
 import CreateShipmentPage from "@/pages/shipment/CreateShipmentPage";
 import LabelCancellationHistoryPage from "@/pages/shipment/LabelCancellationHistoryPage";
 import CancelLabelsPage from "@/pages/shipment/CancelLabelsPage";
+import BatchDossierExportPage from "@/pages/shipment/BatchDossierExportPage";
 
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
@@ -607,6 +608,15 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
                         <CancelLabelsPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="shipments/batch-dossier-export"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.batchDossierExport}>
+                        <BatchDossierExportPage />
                     </RoleRoute>
                 }
             />

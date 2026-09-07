@@ -35,9 +35,10 @@ export function ProcurementShipmentList({
   const [page, setPage] = useState(0);
   const navigate = useNavigate();
 
-  // Điều hướng tới trang chi tiết lô hàng. ProcurementShipment không chứa
-  // productionLotId nên cần lấy chi tiết trước để xây dựng route đầy đủ
-  // /production-lots/:lotId/shipments/:shipmentId (back button hoạt động).
+  const [selectedShipmentIds, setSelectedShipmentIds] = useState<string[]>([]);
+  const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
+  const canExportBatch = usePermission(ROLE_ACCESS.batchDossierExport);
+
   const handleViewDetail = async (shipmentId: string) => {
     try {
       const data = await getShipmentById(shipmentId);
@@ -71,8 +72,6 @@ export function ProcurementShipmentList({
     void loadShipments();
   }, [loadShipments]);
 
-  // Danh mục nông sản suy ra từ dữ liệu đã tải (không hardcode) — giống pattern
-  // roleFilterOptions của OrganizationDetail: dữ liệu là nguồn sự thật
   const categoryOptions = useMemo(() => {
     const names = Array.from(
       new Set(
@@ -107,7 +106,28 @@ export function ProcurementShipmentList({
     safePage * PAGE_SIZE + PAGE_SIZE,
   );
 
-  const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
+  const toggleSelectShipment = (id: string) => {
+    setSelectedShipmentIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllPage = () => {
+    const pageIds = paginatedShipments.map((s) => s.id);
+    const allSelected = pageIds.every((id) => selectedShipmentIds.includes(id));
+    if (allSelected) {
+      setSelectedShipmentIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+    } else {
+      setSelectedShipmentIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const handleGoToBatchExport = () => {
+    if (selectedShipmentIds.length === 0) return;
+    navigate("/shipments/batch-dossier-export", {
+      state: { shipmentIds: selectedShipmentIds },
+    });
+  };
 
   const handleExportGs1 = async (shipmentId: string) => {
     const toastId = toast.loading("Đang tạo hồ sơ GS1...");
@@ -163,13 +183,39 @@ export function ProcurementShipmentList({
             />
           </>
         }
-        right={<RefreshButton onClick={loadShipments} loading={isLoading} />}
+        right={
+          <div className="flex items-center gap-2">
+            {canExportBatch && selectedShipmentIds.length > 0 && (
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={handleGoToBatchExport}
+              >
+                Xuất bộ hồ sơ cho {selectedShipmentIds.length} lô đã chọn
+              </Button>
+            )}
+            <RefreshButton onClick={loadShipments} loading={isLoading} />
+          </div>
+        }
       />
 
       <DataTableShell
-        colSpan={7}
+        colSpan={8}
         header={
           <>
+            <TableHead className="w-10 text-center">
+              <input
+                type="checkbox"
+                className="rounded border-input"
+                checked={
+                  paginatedShipments.length > 0 &&
+                  paginatedShipments.every((s) => selectedShipmentIds.includes(s.id))
+                }
+                onChange={toggleSelectAllPage}
+                title="Chọn tất cả trên trang này"
+              />
+            </TableHead>
             <TableHead className="w-12 text-center">STT</TableHead>
             <TableHead>Tên lô hàng</TableHead>
             <TableHead>Lô sản xuất</TableHead>
@@ -184,6 +230,14 @@ export function ProcurementShipmentList({
             key={shipment.id}
             className="hover:bg-muted/40 transition-colors"
           >
+            <TableCell className="text-center">
+              <input
+                type="checkbox"
+                className="rounded border-input"
+                checked={selectedShipmentIds.includes(shipment.id)}
+                onChange={() => toggleSelectShipment(shipment.id)}
+              />
+            </TableCell>
             <TableCell className="text-center font-medium text-muted-foreground">
               {safePage * PAGE_SIZE + index + 1}
             </TableCell>
