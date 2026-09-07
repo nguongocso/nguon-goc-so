@@ -35,6 +35,7 @@ export function ProcurementShipmentList({
   const [page, setPage] = useState(0);
   const navigate = useNavigate();
 
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedShipmentIds, setSelectedShipmentIds] = useState<string[]>([]);
   const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
   const canExportBatch = usePermission(ROLE_ACCESS.batchDossierExport);
