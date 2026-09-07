@@ -284,6 +284,13 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ROLE_ACCESS.recallRequestManage,
         activePaths: ["/recall-requests"],
       },
+      {
+        icon: <GitCompare className="h-5 w-5" />,
+        label: "Truy vết phạm vi ảnh hưởng",
+        href: "/trace/impact-scope",
+        allowedRoles: ROLE_ACCESS.impactScopeTrace,
+        activePaths: ["/trace/impact-scope"],
+      },
     ],
   },
 

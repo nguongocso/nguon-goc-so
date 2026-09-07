@@ -179,6 +179,16 @@ const LOCAL_HELP_CONTENT: Record<
       'Đánh dấu đã xác nhận hoặc xử lý cảnh báo bảo mật tương ứng',
     ],
   },
+  'impact-scope-trace': {
+    title: 'Hướng dẫn truy vết phạm vi ảnh hưởng',
+    steps: [
+      'Nhập Mã lô sản xuất, Mã lô hàng hoặc Mã tem QR vào ô tìm kiếm và nhấn "Mở truy vết"',
+      'Xem thông tin chiều ngược (Upstream) gồm Vùng trồng gốc và Lô sản xuất hạt nhân',
+      'Theo dõi chiều xuôi (Downstream) gồm các Lô hàng sinh ra, số lượng tem kích hoạt và lượt quét công khai',
+      'Kiểm tra dòng thời gian các sự kiện Vận chuyển & Thu mua và thông tin các Tổ chức nhận (Bên thứ ba)',
+      'Nhấn nút "Xuất tệp" ở góc trên để tải báo cáo truy vết dạng Excel (.xlsx) hoặc PDF (.pdf)',
+    ],
+  },
 };
 
 function formatHelpStep(step: string): string {
