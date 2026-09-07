@@ -2,9 +2,13 @@ package vn.nguongocso.trace.service.impl;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -41,6 +45,7 @@ import vn.nguongocso.trace.dto.request.ApproveSupplementRequest;
 import vn.nguongocso.trace.dto.request.CreateSupplementRequest;
 import vn.nguongocso.trace.dto.request.RejectSupplementRequest;
 import vn.nguongocso.trace.dto.response.CodeRangeSupplementResponse;
+import vn.nguongocso.trace.dto.response.EvidenceEventResponse;
 import vn.nguongocso.trace.entity.CodeRange;
 import vn.nguongocso.trace.entity.CodeRangeSupplementRequest;
 import vn.nguongocso.trace.enums.CodeRangeSupplementStatus;
@@ -78,6 +83,13 @@ public class CodeRangeSupplementServiceImpl implements CodeRangeSupplementServic
 
     private static final String ROLE_COOPERATIVE_MANAGER = "VT-02";
     private static final String ROLE_PLATFORM_ADMIN = "VT-01";
+
+    /** Loại sự kiện được chấp nhận làm bằng chứng sản lượng thực. */
+    static final List<ChainEventType> EVIDENCE_EVENT_TYPES =
+            List.of(ChainEventType.HARVEST, ChainEventType.PREPROCESSING);
+
+    /** Giới hạn số sự kiện bằng chứng trả về cho dialog (mới nhất trước). */
+    private static final int MAX_EVIDENCE_EVENTS = 200;
 
     private final CodeRangeSupplementRepository supplementRepository;
     private final CodeRangeRepository codeRangeRepository;
@@ -347,6 +359,94 @@ public class CodeRangeSupplementServiceImpl implements CodeRangeSupplementServic
         } catch (IllegalArgumentException | JsonProcessingException e) {
             return false;
         }
+    }
+
+    /**
+     * Liệt kê sự kiện bằng chứng sản lượng thực (HARVEST / PREPROCESSING) của
+     * tổ chức để VT-02 chọn khi tạo yêu cầu cấp bổ sung dải mã.
+     *
+     * <p>Bằng chứng có thể là sự kiện đã gắn lô hàng (tra tổ chức qua lô hàng)
+     * hoặc sự kiện tự do lưu {@code productionLotId} trong eventData. Kết quả
+     * sắp xếp mới nhất trước và giới hạn số lượng để dialog hiển thị gọn.</p>
+     */
+    @Override
+    public List<EvidenceEventResponse> listEvidenceEvents(CustomUserDetails currentUser) {
+        validateRole(currentUser, ROLE_COOPERATIVE_MANAGER, MSG_NO_PERMISSION_CREATE);
+        UUID organizationId = currentUser.getOrganizationId();
+
+        // 1) Sự kiện đã gắn lô hàng thuộc tổ chức
+        List<ChainEvent> events = new ArrayList<>(chainEventRepository
+                .findByEventTypeInAndShipment_Organization_OrganizationId(
+                        EVIDENCE_EVENT_TYPES, organizationId));
+
+        // 2) Sự kiện tự do (chưa gắn lô hàng) — tra tổ chức qua productionLotId trong eventData
+        chainEventRepository.findByShipmentIsNullAndEventTypeIn(EVIDENCE_EVENT_TYPES).stream()
+                .filter(event -> belongsToOrganization(event, organizationId))
+                .forEach(events::add);
+
+        List<ChainEvent> sorted = events.stream()
+                .sorted(Comparator.comparing(ChainEvent::getRecordedAt,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .limit(MAX_EVIDENCE_EVENTS)
+                .toList();
+
+        Map<UUID, String> lotNames = loadLotNames(sorted);
+
+        return sorted.stream()
+                .map(event -> toEvidenceResponse(event, lotNames))
+                .toList();
+    }
+
+    /** Tải tên các lô sản xuất liên quan theo lô (một query duy nhất). */
+    private Map<UUID, String> loadLotNames(List<ChainEvent> events) {
+        Set<UUID> lotIds = new HashSet<>();
+        for (ChainEvent event : events) {
+            UUID lotId = resolveProductionLotId(event);
+            if (lotId != null) {
+                lotIds.add(lotId);
+            }
+        }
+        if (lotIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, String> names = new HashMap<>();
+        productionLotRepository.findAllById(lotIds)
+                .forEach(lot -> names.put(lot.getId(), lot.getName()));
+        return names;
+    }
+
+    /** Xác định lô sản xuất của sự kiện: qua lô hàng gắn kèm hoặc eventData. */
+    private UUID resolveProductionLotId(ChainEvent event) {
+        if (event.getShipment() != null && event.getShipment().getProductionLot() != null) {
+            return event.getShipment().getProductionLot().getId();
+        }
+        String eventData = event.getEventData();
+        if (eventData == null || eventData.isBlank()) {
+            return null;
+        }
+        try {
+            JsonNode node = objectMapper.readTree(eventData);
+            JsonNode lotIdNode = node.get("productionLotId");
+            if (lotIdNode == null || lotIdNode.isNull()) {
+                return null;
+            }
+            return UUID.fromString(lotIdNode.asText());
+        } catch (IllegalArgumentException | JsonProcessingException e) {
+            return null;
+        }
+    }
+
+    private EvidenceEventResponse toEvidenceResponse(ChainEvent event, Map<UUID, String> lotNames) {
+        UUID lotId = resolveProductionLotId(event);
+        return EvidenceEventResponse.builder()
+                .eventId(event.getId())
+                .eventType(event.getEventType() != null ? event.getEventType().name() : null)
+                .recordedAt(event.getRecordedAt())
+                .recordedByName(event.getRecordedBy() != null ? event.getRecordedBy().getFullName() : null)
+                .shipmentId(event.getShipment() != null ? event.getShipment().getId() : null)
+                .productionLotId(lotId)
+                .productionLotName(lotId != null ? lotNames.get(lotId) : null)
+                .build();
     }
 
     /**

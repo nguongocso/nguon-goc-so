@@ -6,10 +6,23 @@ import type {
   ApproveSupplementRequestPayload,
   CodeRangeSupplementRequest,
   CreateSupplementRequestPayload,
+  EvidenceEvent,
   PageResponse,
   RejectSupplementRequestPayload,
   SupplementRequestListParams,
 } from '@/types/codeRangeSupplement';
+
+/**
+ * Lấy danh sách sự kiện bằng chứng sản lượng thực (thu hoạch/sơ chế) của tổ
+ * chức để chọn khi tạo yêu cầu cấp bổ sung (VT-02).
+ * GET /api/v1/code-range-supplement-requests/evidence-events
+ */
+export const getEvidenceEvents = async (): Promise<EvidenceEvent[]> => {
+  const response = await apiClient.get<ApiResult<EvidenceEvent[]>>(
+    '/code-range-supplement-requests/evidence-events',
+  );
+  return response.data.data;
+};
 
 /**
  * Tạo yêu cầu cấp bổ sung dải mã (VT-02).

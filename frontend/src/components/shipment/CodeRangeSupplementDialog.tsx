@@ -17,15 +17,16 @@ import { DataTableShell } from '@/components/common/DataTableShell';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { useAuth } from '@/hooks/useAuth';
 import { getRemainingCodes } from '@/api/codeRangeApi';
-import { createSupplementRequest, getMySupplementRequests } from '@/api/codeRangeSupplementApi';
-import { getProductionLots } from '@/api/productionLotApi';
-import { getShipmentsByProductionLot } from '@/api/shipmentApi';
-import { getShipmentTimeline } from '@/api/chainEventApi';
+import {
+  createSupplementRequest,
+  getEvidenceEvents,
+  getMySupplementRequests,
+} from '@/api/codeRangeSupplementApi';
 import type { RemainingCodesResponse } from '@/types/codeRange';
-import type { CodeRangeSupplementRequest } from '@/types/codeRangeSupplement';
-import type { ProductionLot } from '@/types/productionLot';
-import type { Shipment } from '@/types/shipment';
-import type { ChainEventResponse } from '@/types/packaging';
+import type {
+  CodeRangeSupplementRequest,
+  EvidenceEvent,
+} from '@/types/codeRangeSupplement';
 import { createSupplementSchema } from '@/utils/validators/codeRangeSupplementSchema';
 
 /**
@@ -35,13 +36,12 @@ import { createSupplementSchema } from '@/utils/validators/codeRangeSupplementSc
  *  - Tab "Lô hàng & Mã QR" của trang chi tiết lô sản xuất (ShipmentList).
  *  - Cảnh báo hạn mức trên màn hình tạo lô hàng (CreateShipmentPage).
  *
- * Thay thế trang riêng `/code-range-supplements/create` (đã bỏ theo yêu cầu
- * nghiệp vụ — chức năng phải nằm trong tab lô hàng & mã QR, không phải trang độc lập).
+ * Bằng chứng sản lượng thực: danh sách phẳng sự kiện thu hoạch/sơ chế của tổ
+ * chức (GET /code-range-supplement-requests/evidence-events) — người dùng chỉ
+ * cần tick chọn, không phải đi qua lô sản xuất → lô hàng.
  */
 
-const EVIDENCE_EVENT_TYPES = ['HARVEST', 'PREPROCESSING'];
-
-const EVENT_TYPE_LABEL: Record<string, string> = {
+const EVIDENCE_TYPE_LABEL: Record<string, string> = {
   HARVEST: 'Thu hoạch',
   PREPROCESSING: 'Sơ chế',
 };
@@ -64,11 +64,7 @@ export const CodeRangeSupplementDialog = ({
   const [requestedQuantity, setRequestedQuantity] = useState('');
   const [reason, setReason] = useState('');
 
-  const [lots, setLots] = useState<ProductionLot[]>([]);
-  const [selectedLotId, setSelectedLotId] = useState('');
-  const [shipments, setShipments] = useState<Shipment[]>([]);
-  const [selectedShipmentId, setSelectedShipmentId] = useState('');
-  const [events, setEvents] = useState<ChainEventResponse[]>([]);
+  const [events, setEvents] = useState<EvidenceEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
 
@@ -102,10 +98,6 @@ export const CodeRangeSupplementDialog = ({
     if (!open) return;
 
     resetForm();
-    setLots([]);
-    setSelectedLotId('');
-    setShipments([]);
-    setSelectedShipmentId('');
     setEvents([]);
 
     if (user?.organizationId) {
@@ -116,46 +108,17 @@ export const CodeRangeSupplementDialog = ({
         .finally(() => setQuotaLoading(false));
     }
 
-    getProductionLots()
-      .then((all) => {
-        setLots(all);
-        if (all.length > 0) setSelectedLotId(all[0].id);
+    setEventsLoading(true);
+    getEvidenceEvents()
+      .then(setEvents)
+      .catch(() => {
+        setEvents([]);
+        toast.error('Không thể tải danh sách sự kiện bằng chứng.');
       })
-      .catch(() => toast.error('Không thể tải danh sách lô sản xuất'));
+      .finally(() => setEventsLoading(false));
 
     void loadMyRequests();
   }, [open, user?.organizationId, resetForm, loadMyRequests]);
-
-  useEffect(() => {
-    if (!open || !selectedLotId) {
-      setShipments([]);
-      setSelectedShipmentId('');
-      return;
-    }
-    getShipmentsByProductionLot(selectedLotId)
-      .then((list) => {
-        setShipments(list);
-        setSelectedShipmentId(list.length > 0 ? list[0].id : '');
-      })
-      .catch(() => {
-        setShipments([]);
-        setSelectedShipmentId('');
-      });
-  }, [open, selectedLotId]);
-
-  useEffect(() => {
-    if (!open || !selectedShipmentId) {
-      setEvents([]);
-      return;
-    }
-    setEventsLoading(true);
-    getShipmentTimeline(selectedShipmentId)
-      .then((timeline) => {
-        setEvents(timeline.filter((e) => EVIDENCE_EVENT_TYPES.includes(e.eventType)));
-      })
-      .catch(() => setEvents([]))
-      .finally(() => setEventsLoading(false));
-  }, [open, selectedShipmentId]);
 
   const toggleEvent = (eventId: string) => {
     setSelectedEventIds((prev) =>
@@ -284,69 +247,39 @@ export const CodeRangeSupplementDialog = ({
               Bằng chứng sản lượng thực (sự kiện thu hoạch / sơ chế){' '}
               <span className="text-red-600">*</span>
             </Label>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <select
-                aria-label="Lô sản xuất"
-                value={selectedLotId}
-                onChange={(e) => {
-                  setSelectedLotId(e.target.value);
-                  setSelectedEventIds([]);
-                }}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                {lots.map((lot) => (
-                  <option key={lot.id} value={lot.id}>
-                    {lot.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                aria-label="Lô hàng"
-                value={selectedShipmentId}
-                onChange={(e) => {
-                  setSelectedShipmentId(e.target.value);
-                  setSelectedEventIds([]);
-                }}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                {shipments.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
             {eventsLoading ? (
               <p className="text-sm text-muted-foreground">Đang tải sự kiện...</p>
             ) : events.length === 0 ? (
               <p className="text-sm text-amber-600">
-                Lô hàng này chưa có sự kiện thu hoạch hoặc sơ chế để làm bằng chứng.
+                Tổ chức chưa có sự kiện thu hoạch hoặc sơ chế nào để làm bằng chứng.
               </p>
             ) : (
-              <div className="space-y-2 rounded-lg border p-3">
+              <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border p-3">
                 {events.map((event) => (
                   <label
-                    key={event.id}
+                    key={event.eventId}
                     className="flex cursor-pointer items-start gap-2 text-sm"
                   >
                     <input
                       type="checkbox"
                       className="mt-1"
-                      checked={selectedEventIds.includes(event.id)}
-                      onChange={() => toggleEvent(event.id)}
+                      checked={selectedEventIds.includes(event.eventId)}
+                      onChange={() => toggleEvent(event.eventId)}
                     />
                     <span>
                       <span className="font-medium">
-                        {EVENT_TYPE_LABEL[event.eventType] || event.eventType}
+                        {EVIDENCE_TYPE_LABEL[event.eventType] || event.eventType}
                       </span>
                       <span className="text-muted-foreground">
                         {' '}
                         — {new Date(event.recordedAt).toLocaleString('vi-VN')} —{' '}
                         {event.recordedByName}
                       </span>
-                      <span className="block font-mono text-xs text-muted-foreground">
-                        {event.id}
-                      </span>
+                      {event.productionLotName && (
+                        <span className="block text-xs text-muted-foreground">
+                          Lô: {event.productionLotName}
+                        </span>
+                      )}
                     </span>
                   </label>
                 ))}

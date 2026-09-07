@@ -266,7 +266,7 @@ export const ShipmentList = ({
                   onClick={() => setSupplementDialogOpen(true)}
                 >
                   <Hash className="mr-1 h-4 w-4" />
-                  Yêu cầu cấp bổ sung mã
+                  Cấp bổ sung mã
                 </Button>
               )}
 

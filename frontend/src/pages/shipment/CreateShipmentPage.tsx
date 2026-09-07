@@ -187,7 +187,8 @@ export const CreateShipmentPage: React.FC = () => {
     user?.roleCode === 'VT-02' &&
     !remainingLoading &&
     remainingCodes !== null &&
-    (isExhausted || isNearlyExhausted);
+    (isExhausted || isNearlyExhausted) &&
+    !isBlocked;
 
   // NCL-04-CN-007: cảnh báo động khi số lượng nhập vượt hạn mức còn lại
   const watchedQuantity = watch("totalQuantity");
@@ -249,21 +250,36 @@ export const CreateShipmentPage: React.FC = () => {
                 <span className="font-medium text-slate-700">
                   Dải mã truy xuất còn lại của tổ chức:
                 </span>
-                {remainingLoading && !remainingCodes ? (
-                  <span className="text-xs text-muted-foreground">
-                    Đang tải...
-                  </span>
-                ) : !hasCodeRange ? (
-                  <span className="flex items-center gap-1 font-semibold text-amber-600">
-                    <AlertTriangle className="h-4 w-4" />
-                    Chưa có dải mã
-                  </span>
-                ) : (
-                  <span className="font-bold text-emerald-600 text-base">
-                    {remainingCount.toLocaleString()} /{" "}
-                    {totalLimit.toLocaleString()} mã
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {remainingLoading && !remainingCodes ? (
+                    <span className="text-xs text-muted-foreground">
+                      Đang tải...
+                    </span>
+                  ) : !hasCodeRange ? (
+                    <span className="flex items-center gap-1 font-semibold text-amber-600">
+                      <AlertTriangle className="h-4 w-4" />
+                      Chưa có dải mã
+                    </span>
+                  ) : (
+                    <span className="font-bold text-emerald-600 text-base">
+                      {remainingCount.toLocaleString()} /{" "}
+                      {totalLimit.toLocaleString()} mã
+                    </span>
+                  )}
+
+                  {/* NCL-04-CN-007: CTA cấp bổ sung gọn — ẩn khi lô bị chặn tạo lô hàng */}
+                  {showSupplementLink && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSupplementDialogOpen(true)}
+                    >
+                      <Hash className="h-3.5 w-3.5 mr-1" />
+                      Cấp bổ sung
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {!remainingLoading && !remainingCodes && user?.organizationId && (
@@ -297,26 +313,7 @@ export const CreateShipmentPage: React.FC = () => {
                   </p>
                 )}
 
-              {/* NCL-04-CN-007: cảnh báo + lối tắt yêu cầu cấp bổ sung mã */}
-              {showSupplementLink && (
-                <div className="flex flex-col gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="flex items-center gap-1 text-xs text-amber-700">
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    {isExhausted
-                      ? 'Hạn mức đã hết, vui lòng yêu cầu cấp bổ sung mã truy xuất.'
-                      : `Hạn mức còn lại dưới 20% (${remainingCount.toLocaleString()}/${totalLimit.toLocaleString()} mã). Nên gửi yêu cầu cấp bổ sung trước khi hết mã.`}
-                  </p>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setSupplementDialogOpen(true)}
-                  >
-                    <Hash className="h-3.5 w-3.5 mr-1" />
-                    Yêu cầu cấp bổ sung mã
-                  </Button>
-                </div>
-              )}
+              {/* NCL-04-CN-007: CTA cấp bổ sung gọn — đặt trong box hạn mức, ẩn khi lô bị chặn */}
             </div>
 
             {/* NCL-11-CN-005: Cảnh báo lô không đạt kiểm nghiệm */}
@@ -380,26 +377,25 @@ export const CreateShipmentPage: React.FC = () => {
 
               {/* NCL-04-CN-007: cảnh báo động khi số lượng vượt hạn mức còn lại */}
               {exceedsQuota && (
-                <div className="flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
                   <p className="flex items-center gap-1.5 text-xs font-medium text-red-700">
-                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                     Hạn mức đã hết / không đủ mã. Chỉ còn{' '}
                     <span className="font-bold">
                       {remainingCount.toLocaleString()}
                     </span>{' '}
-                    mã truy xuất, vui lòng giảm số lượng hoặc yêu cầu cấp bổ sung
-                    mã.
+                    mã truy xuất, vui lòng giảm số lượng hoặc cấp bổ sung mã.
                   </p>
                   {user?.roleCode === 'VT-02' && (
                     <Button
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="border-red-300 text-red-700 hover:bg-red-100"
+                      className="h-7 border-red-300 px-2 text-xs text-red-700 hover:bg-red-100"
                       onClick={() => setSupplementDialogOpen(true)}
                     >
-                      <Hash className="h-3.5 w-3.5 mr-1" />
-                      Yêu cầu cấp bổ sung mã
+                      <Hash className="h-3 w-3 mr-1" />
+                      Cấp bổ sung
                     </Button>
                   )}
                 </div>

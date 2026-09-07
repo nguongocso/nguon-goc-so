@@ -64,6 +64,20 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
         List<ChainEvent> findByShipmentIsNullAndEventTypeIn(List<ChainEventType> eventTypes);
 
         /**
+         * Lấy danh sách sự kiện theo loại, gắn với lô hàng thuộc một tổ chức.
+         *
+         * <p>Dùng cho NCL-04-CN-007: liệt kê sự kiện thu hoạch/sơ chế (bằng chứng
+         * sản lượng thực) của tổ chức để VT-02 chọn khi tạo yêu cầu cấp bổ sung
+         * dải mã.</p>
+         *
+         * @param eventTypes     Danh sách loại sự kiện (HARVEST, PREPROCESSING)
+         * @param organizationId ID tổ chức của lô hàng gắn kèm
+         * @return danh sách sự kiện
+         */
+        List<ChainEvent> findByEventTypeInAndShipment_Organization_OrganizationId(
+                        List<ChainEventType> eventTypes, UUID organizationId);
+
+        /**
          * Lấy sự kiện gần nhất của một lô hàng.
          *
          * Phục vụ chức năng quét mã để xác định loại sự kiện

@@ -3,6 +3,7 @@ package vn.nguongocso.trace.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
@@ -46,6 +47,7 @@ import vn.nguongocso.trace.dto.request.ApproveSupplementRequest;
 import vn.nguongocso.trace.dto.request.CreateSupplementRequest;
 import vn.nguongocso.trace.dto.request.RejectSupplementRequest;
 import vn.nguongocso.trace.dto.response.CodeRangeSupplementResponse;
+import vn.nguongocso.trace.dto.response.EvidenceEventResponse;
 import vn.nguongocso.trace.entity.CodeRange;
 import vn.nguongocso.trace.entity.CodeRangeSupplementRequest;
 import vn.nguongocso.trace.enums.CodeRangeSupplementStatus;
@@ -466,5 +468,65 @@ class CodeRangeSupplementServiceImplTest {
                 .eventType(ChainEventType.HARVEST)
                 .recordedBy(requester)
                 .build();
+    }
+
+    // TC-08: VT-02 lấy danh sách bằng chứng — sự kiện đã gắn lô hàng của tổ chức
+    @Test
+    void listEvidenceEvents_tc08_returnsShipmentEventsOfOrg() {
+        List<ChainEventType> evidenceTypes = List.of(ChainEventType.HARVEST, ChainEventType.PREPROCESSING);
+        when(chainEventRepository.findByEventTypeInAndShipment_Organization_OrganizationId(
+                evidenceTypes, organizationId))
+                .thenReturn(List.of(harvestEvent));
+        when(chainEventRepository.findByShipmentIsNullAndEventTypeIn(evidenceTypes))
+                .thenReturn(List.of());
+
+        List<EvidenceEventResponse> result = supplementService.listEvidenceEvents(managerUser);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getEventId()).isEqualTo(harvestEvent.getId());
+        assertThat(result.get(0).getEventType()).isEqualTo("HARVEST");
+        assertThat(result.get(0).getRecordedByName()).isEqualTo("Nguyen Van A");
+        assertThat(result.get(0).getShipmentId()).isEqualTo(harvestEvent.getShipment().getId());
+    }
+
+    // TC-08: bao gồm cả sự kiện tự do (chưa gắn lô hàng) có productionLotId trong eventData
+    @Test
+    void listEvidenceEvents_tc08_includesUnassignedEventsWithLotName() {
+        UUID lotId = UUID.randomUUID();
+        ChainEvent unassigned = ChainEvent.builder()
+                .id(UUID.randomUUID())
+                .eventType(ChainEventType.PREPROCESSING)
+                .eventData("{\"productionLotId\":\"" + lotId + "\"}")
+                .recordedBy(requester)
+                .build();
+
+        List<ChainEventType> evidenceTypes = List.of(ChainEventType.HARVEST, ChainEventType.PREPROCESSING);
+        when(chainEventRepository.findByEventTypeInAndShipment_Organization_OrganizationId(
+                evidenceTypes, organizationId))
+                .thenReturn(List.of());
+        when(chainEventRepository.findByShipmentIsNullAndEventTypeIn(evidenceTypes))
+                .thenReturn(List.of(unassigned));
+
+        ProductionLot lot = new ProductionLot();
+        lot.setId(lotId);
+        lot.setOrganization(organization);
+        lot.setName("Lo Nho 01");
+        when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(lot));
+        when(productionLotRepository.findAllById(anyCollection())).thenReturn(List.of(lot));
+
+        List<EvidenceEventResponse> result = supplementService.listEvidenceEvents(managerUser);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getEventType()).isEqualTo("PREPROCESSING");
+        assertThat(result.get(0).getProductionLotId()).isEqualTo(lotId);
+        assertThat(result.get(0).getProductionLotName()).isEqualTo("Lo Nho 01");
+    }
+
+    // TC-08: sai vai trò (VT-03) bị chặn
+    @Test
+    void listEvidenceEvents_tc08_blockedForNonManager() {
+        assertThatThrownBy(() -> supplementService.listEvidenceEvents(recorderUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Bạn không có quyền tạo yêu cầu cấp bổ sung dải mã.");
     }
 }

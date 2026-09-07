@@ -25,6 +25,17 @@ export interface CodeRangeSupplementRequest {
   notifiedCount?: number;
 }
 
+export interface EvidenceEvent {
+  eventId: string;
+  /** 'HARVEST' | 'PREPROCESSING' */
+  eventType: string;
+  recordedAt: string;
+  recordedByName: string | null;
+  shipmentId: string | null;
+  productionLotId: string | null;
+  productionLotName: string | null;
+}
+
 export interface CreateSupplementRequestPayload {
   requestedQuantity: number;
   reason: string;

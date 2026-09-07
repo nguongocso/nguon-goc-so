@@ -107,6 +107,52 @@ báo được gửi cho người tạo + quản lý HTX của tổ chức.
 
 ---
 
+## 2.1 Lấy danh sách sự kiện bằng chứng sản lượng thực
+
+### Thông tin API
+
+| Thuộc tính   | Giá trị                                                      |
+| ------------ | ------------------------------------------------------------ |
+| **Method**   | `GET`                                                        |
+| **Endpoint** | `/api/v1/code-range-supplement-requests/evidence-events`     |
+| **Quyền**    | `VT-02`                                                      |
+
+### Mô tả
+
+Trả về danh sách **phẳng** các sự kiện thu hoạch (`HARVEST`) / sơ chế
+(`PREPROCESSING`) của tổ chức, sắp xếp mới nhất trước, tối đa 200 sự kiện.
+FE hiển thị dạng checkbox để VT-02 tick chọn khi tạo yêu cầu — không cần đi
+qua lô sản xuất → lô hàng.
+
+Bao gồm cả sự kiện đã gắn lô hàng (tra tổ chức qua lô hàng) và sự kiện tự do
+lưu `productionLotId` trong `eventData`.
+
+### Response `200 OK`
+
+```json
+{
+  "success": true,
+  "status": 200,
+  "data": [
+    {
+      "eventId": "uuid",
+      "eventType": "HARVEST",
+      "recordedAt": "2026-09-07T10:00:00",
+      "recordedByName": "Nguyễn Văn A",
+      "shipmentId": null,
+      "productionLotId": "uuid",
+      "productionLotName": "Lô chè Long Cốc T7/2026"
+    }
+  ]
+}
+```
+
+### Lỗi thường gặp
+
+- `403` – Không có quyền (không phải `VT-02`).
+
+---
+
 ## 3. Lấy danh sách tất cả yêu cầu
 
 ### Thông tin API
@@ -220,10 +266,13 @@ Từ chối cũng gửi thông báo cho người tạo + quản lý HTX và ghi 
 - **Không có trang riêng** cho VT-02 tạo yêu cầu. Form tạo là dialog dùng chung
   `components/shipment/CodeRangeSupplementDialog.tsx`, được mở từ:
   - Tab **"Lô hàng & Mã QR"** của trang chi tiết lô sản xuất
-    (`ShipmentList` — nút "Yêu cầu cấp bổ sung mã", chỉ `VT-02`).
+    (`ShipmentList` — nút "Cấp bổ sung mã", chỉ `VT-02`).
   - Màn hình sinh mã (`CreateShipmentPage`): khi `remainingCount/totalLimit < 20%`
     (`NEARLY_EXHAUSTED`) hiện cảnh báo vàng, khi hết (`EXHAUSTED`) chặn sinh mã,
     và khi số lượng nhập vượt hạn mức còn lại hiện cảnh báo đỏ ngay dưới ô
-    số lượng — cả ba đều có nút "Yêu cầu cấp bổ sung mã" (chỉ `VT-02`) mở dialog.
+    số lượng — cả ba đều có nút "Cấp bổ sung" (chỉ `VT-02`) mở dialog. CTA ẩn
+    khi lô bị chặn tạo lô hàng (kiểm nghiệm/hủy/loại bỏ).
+- Bằng chứng sản lượng thực: dialog gọi `GET .../evidence-events` lấy danh sách
+  phẳng sự kiện thu hoạch/sơ chế của tổ chức, VT-02 chỉ cần tick chọn.
 - Kết quả duyệt/từ chối hiển thị qua `NotificationBell` sẵn có (không cần UI riêng).
 - Kịch bản kiểm thử: `docs/testing/NCL-04-CN-007_manual_test.md`.

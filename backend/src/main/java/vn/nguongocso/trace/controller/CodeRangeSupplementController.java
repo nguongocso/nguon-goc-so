@@ -1,5 +1,6 @@
 package vn.nguongocso.trace.controller;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,7 @@ import vn.nguongocso.trace.dto.request.ApproveSupplementRequest;
 import vn.nguongocso.trace.dto.request.CreateSupplementRequest;
 import vn.nguongocso.trace.dto.request.RejectSupplementRequest;
 import vn.nguongocso.trace.dto.response.CodeRangeSupplementResponse;
+import vn.nguongocso.trace.dto.response.EvidenceEventResponse;
 import vn.nguongocso.trace.service.CodeRangeSupplementService;
 
 /**
@@ -64,6 +66,25 @@ public class CodeRangeSupplementController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
+    }
+
+    /**
+     * Lấy danh sách sự kiện bằng chứng sản lượng thực (thu hoạch / sơ chế)
+     * của tổ chức để chọn khi tạo yêu cầu cấp bổ sung.
+     *
+     * <p>Chỉ Quản lý hợp tác xã (VT-02) được phép. Danh sách phẳng, sắp xếp
+     * mới nhất trước, tối đa 200 sự kiện.</p>
+     *
+     * GET /api/v1/code-range-supplement-requests/evidence-events
+     */
+    @GetMapping("/evidence-events")
+    @PreAuthorize("hasRole('VT-02')")
+    public ResponseEntity<ApiResult<List<EvidenceEventResponse>>> listEvidenceEvents(
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        List<EvidenceEventResponse> response = supplementService.listEvidenceEvents(currentUser);
+
+        return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
     /**
