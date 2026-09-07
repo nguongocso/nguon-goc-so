@@ -375,5 +375,49 @@ describe('AreaAssignmentPage', () => {
     const statCards = screen.getAllByText('1');
     expect(statCards.length).toBeGreaterThanOrEqual(1);
   });
+
+  it('hiển thị badge số địa bàn của cán bộ trong danh sách khi được chọn', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await selectUser(user, 'Nguyễn Văn A');
+
+    // Cán bộ Nguyễn Văn A đã gán 1 địa bàn -> xuất hiện badge "1 địa bàn" trong danh sách cán bộ
+    const userList = await screen.findByTestId('user-list');
+    expect(within(userList).getByText('1 địa bàn')).toBeInTheDocument();
+  });
+
+  it('hỗ trợ phân trang khi danh sách cán bộ vượt quá 5 người', async () => {
+    const manyUsers: UserOption[] = Array.from({ length: 8 }, (_, i) => ({
+      userId: `user-id-${i + 1}`,
+      username: `user_${i + 1}`,
+      fullName: `Cán bộ ${i + 1}`,
+      email: `user${i + 1}@example.com`,
+      phone: `090000000${i + 1}`,
+      organizationName: 'Đơn vị kiểm tra',
+    }));
+
+    areaApi.getAssignableUsers.mockResolvedValueOnce(manyUsers);
+    const user = userEvent.setup();
+    renderPage();
+
+    // Trang đầu tiên hiển thị Cán bộ 1 đến Cán bộ 5
+    expect(await screen.findByText('Cán bộ 1')).toBeInTheDocument();
+    expect(screen.getByText('Cán bộ 5')).toBeInTheDocument();
+    expect(screen.queryByText('Cán bộ 6')).not.toBeInTheDocument();
+
+    // Có thông tin phân trang
+    expect(screen.getByText('Hiển thị 1 - 5 trên tổng số 8 cán bộ')).toBeInTheDocument();
+
+    // Chuyển sang trang sau
+    const nextBtn = screen.getByRole('button', { name: /Trang sau/ });
+    await user.click(nextBtn);
+
+    // Trang 2 hiển thị Cán bộ 6 đến Cán bộ 8
+    expect(await screen.findByText('Cán bộ 6')).toBeInTheDocument();
+    expect(screen.getByText('Cán bộ 8')).toBeInTheDocument();
+    expect(screen.queryByText('Cán bộ 1')).not.toBeInTheDocument();
+  });
 });
+
 

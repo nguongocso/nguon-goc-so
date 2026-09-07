@@ -5,6 +5,7 @@ import { AdministrativeUnitCascadeSelect } from '@/components/common/Administrat
 import { ListPageHeader } from '@/components/common/ListPageHeader';
 import { RefreshButton } from '@/components/common/RefreshButton';
 import { StatCard } from '@/components/common/StatCard';
+import { Pagination } from '@/components/common/Pagination';
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ import type { AssignedArea, UserOption } from '@/types/areaAssignment';
 import { Mail, MapPin, MapPinOff, Phone, RefreshCw, Search, UserCheck, UserRound, X } from 'lucide-react';
 
 const ROLE_VT05 = 'VT-05';
+const USER_PAGE_SIZE = 5;
 
 export function AreaAssignmentPage() {
   useSetBreadcrumb([
@@ -26,9 +28,11 @@ export function AreaAssignmentPage() {
   const [users, setUsers] = useState<UserOption[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
+  const [userPage, setUserPage] = useState(0);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const [assignedAreas, setAssignedAreas] = useState<AssignedArea[]>([]);
+  const [areaCountMap, setAreaCountMap] = useState<Record<string, number>>({});
   const [areasLoading, setAreasLoading] = useState(false);
   const [pendingUnitIds, setPendingUnitIds] = useState<string[]>([]);
   const [assigning, setAssigning] = useState(false);
@@ -42,6 +46,17 @@ export function AreaAssignmentPage() {
   );
 
   const filteredUsers = useMemo(() => filterUsers(users, keyword), [users, keyword]);
+
+  // Reset trang khi thay đổi từ khóa tìm kiếm
+  useEffect(() => {
+    setUserPage(0);
+  }, [keyword]);
+
+  const totalUserPages = Math.ceil(filteredUsers.length / USER_PAGE_SIZE);
+  const pagedUsers = useMemo(() => {
+    const start = userPage * USER_PAGE_SIZE;
+    return filteredUsers.slice(start, start + USER_PAGE_SIZE);
+  }, [filteredUsers, userPage]);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -63,6 +78,7 @@ export function AreaAssignmentPage() {
       setAreasLoading(true);
       const result = await getUserAreas(userId);
       setAssignedAreas(result);
+      setAreaCountMap((prev) => ({ ...prev, [userId]: result.length }));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Không thể tải địa bàn đã gán.');
       setAssignedAreas([]);
@@ -210,38 +226,63 @@ export function AreaAssignmentPage() {
                 Không tìm thấy cán bộ quản lý ngành phù hợp.
               </p>
             ) : (
-              <ul className="max-h-56 space-y-1.5 overflow-y-auto rounded-lg border p-1.5" data-testid="user-list">
-                {filteredUsers.map((user) => {
-                  const isSelected = user.userId === selectedUserId;
-                  return (
-                    <li key={user.userId}>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedUserId(user.userId)}
-                        className={`w-full rounded-md px-3 py-2 text-left transition-colors flex items-center justify-between gap-2 ${
-                          isSelected
-                            ? 'bg-emerald-50 border border-emerald-200 text-emerald-900 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-100 shadow-2xs'
-                            : 'hover:bg-muted/60 border border-transparent'
-                        }`}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="truncate text-sm font-medium">{user.fullName}</span>
-                            {isSelected && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-emerald-300 bg-emerald-100/60 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">
-                                Đang chọn
-                              </Badge>
-                            )}
+              <div className="space-y-2">
+                <ul className="max-h-56 space-y-1.5 overflow-y-auto rounded-lg border p-1.5" data-testid="user-list">
+                  {pagedUsers.map((user) => {
+                    const isSelected = user.userId === selectedUserId;
+                    const count = isSelected ? assignedAreas.length : areaCountMap[user.userId];
+                    return (
+                      <li key={user.userId}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedUserId(user.userId)}
+                          className={`w-full rounded-md px-3 py-2 text-left transition-colors flex items-center justify-between gap-2 ${
+                            isSelected
+                              ? 'bg-emerald-50 border border-emerald-200 text-emerald-900 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-100 shadow-2xs'
+                              : 'hover:bg-muted/60 border border-transparent'
+                          }`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="truncate text-sm font-medium">{user.fullName}</span>
+                              {isSelected && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-emerald-300 bg-emerald-100/60 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">
+                                  Đang chọn
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="block text-xs text-muted-foreground truncate">
+                              @{user.username} {user.organizationName ? `· ${user.organizationName}` : ''}
+                            </span>
                           </div>
-                          <span className="block text-xs text-muted-foreground truncate">
-                            @{user.username} {user.organizationName ? `· ${user.organizationName}` : ''}
-                          </span>
-                        </div>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+                          {count !== undefined && (
+                            <Badge
+                              variant="secondary"
+                              className={`text-[11px] px-1.5 py-0.5 shrink-0 font-normal ${
+                                count > 0
+                                  ? 'border border-emerald-300 bg-emerald-100/70 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200'
+                                  : 'bg-muted text-muted-foreground'
+                              }`}
+                            >
+                              {count} địa bàn
+                            </Badge>
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                <Pagination
+                  currentPage={userPage}
+                  totalPages={totalUserPages}
+                  totalElements={filteredUsers.length}
+                  pageSize={USER_PAGE_SIZE}
+                  loading={usersLoading}
+                  itemLabel="cán bộ"
+                  onPageChange={setUserPage}
+                />
+              </div>
             )}
 
             {selectedUser && (
