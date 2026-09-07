@@ -138,6 +138,9 @@ import RolePermissionConfigPage from "@/pages/permission/RolePermissionConfigPag
 // ===== Scan Quick Event =====
 import ScanQuickEventPage from "@/pages/scan-anomaly-alert/components/ScanQuickEventPage";
 
+// ===== Impact Scope Tracing (NCL-08-CN-010) =====
+import ImpactScopeTracePage from "@/pages/trace/ImpactScopeTracePage";
+
 // ===== Organization Detail =====
 import OrganizationDetailPage from "@/pages/organization/OrganizationDetailPage";
 
@@ -1408,6 +1411,22 @@ const AppRoutes = () => (
                         }
                     >
                         <ProductFeedbackManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+
+            {/* =================================================
+          IMPACT SCOPE TRACING (NCL-08-CN-010)
+      ================================================= */}
+
+            <Route
+                path="trace/impact-scope"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-01", "VT-02", "VT-03", "VT-04", "VT-05"] as const}
+                    >
+                        <ImpactScopeTracePage />
                     </RoleRoute>
                 }
             />
