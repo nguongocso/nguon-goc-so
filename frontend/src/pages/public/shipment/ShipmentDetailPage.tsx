@@ -96,6 +96,8 @@ export const ShipmentDetailPage = () => {
   const canRecall = user?.roleCode === "VT-02";
   // NCL-04-CN-005: Chỉ VT-02 được xuất tem QR
   const canExportLabels = usePermission(ROLE_ACCESS.labelExport);
+  // NCL-04-CN-008: Xem và tra cứu trạng thái từng mã tem trong lô hàng
+  const canViewTraceCodes = usePermission(ROLE_ACCESS.traceCodeView);
 
   // ── Loaders ────────────────────────────────────────────────────────────────
 
@@ -273,6 +275,22 @@ export const ShipmentDetailPage = () => {
             {/* Action buttons */}
             <div className="flex flex-wrap items-center gap-2">
               <HelpButton screenKey="shipment-detail" />
+              {canViewTraceCodes && (
+                <Button
+                  variant="outline"
+                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  onClick={() =>
+                    navigate(
+                      lotId
+                        ? `/production-lots/${lotId}/shipments/${shipment.id}/trace-codes`
+                        : `/shipments/${shipment.id}/trace-codes`,
+                    )
+                  }
+                >
+                  <QrCode className="mr-1.5 h-4 w-4" />
+                  Xem mã tem
+                </Button>
+              )}
               {canActivateThis && (
                 <Button
                   variant="create"
@@ -291,6 +309,21 @@ export const ShipmentDetailPage = () => {
                   <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52">
+                  {canViewTraceCodes && (
+                    <DropdownMenuItem
+                      onClick={() =>
+                        navigate(
+                          lotId
+                            ? `/production-lots/${lotId}/shipments/${shipment.id}/trace-codes`
+                            : `/shipments/${shipment.id}/trace-codes`,
+                        )
+                      }
+                      className="cursor-pointer"
+                    >
+                      <QrCode className="mr-2 h-4 w-4 text-emerald-600" />
+                      Trạng thái mã tem
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={handleExportDossier} className="cursor-pointer">
                     <FileText className="mr-2 h-4 w-4 text-slate-600" />
                     Xuất hồ sơ

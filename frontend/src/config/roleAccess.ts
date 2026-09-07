@@ -83,6 +83,9 @@ export const ROLE_ACCESS = {
   // ✅ NCL-08-CN-013 - Mở khóa mã tem sau khi xác minh
   traceCodeUnlock: ['VT-01'] as const,
 
+  // ✅ NCL-04-CN-008 - Xem và tra cứu trạng thái từng mã tem trong lô hàng
+  traceCodeView: ['VT-02'] as const,
+
   // ✅ Hồ sơ người dùng (NCL-01-CN-010: Tất cả vai trò VT-01 -> VT-05)
   userProfile: AUTHENTICATED_ROLE_CODES,
 } as const satisfies Record<string, readonly AuthenticatedRoleCode[]>;
