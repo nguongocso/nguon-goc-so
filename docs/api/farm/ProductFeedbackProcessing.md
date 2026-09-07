@@ -21,6 +21,13 @@ API gửi phản ánh công khai hiện hữu được mô tả tại
 gửi xem trạng thái thuộc `NCL-06-CN-005`, không nằm trong phạm vi triển khai giao diện nội bộ của story
 này.
 
+Giao diện nội bộ sử dụng hai route tách biệt và cùng áp dụng quyền `VT-01`, `VT-02`:
+
+- `/product-feedbacks`: danh sách, bộ lọc và phân trang phản ánh.
+- `/product-feedbacks/{feedbackId}`: trang chi tiết toàn màn hình để xem, phân công, phân loại, lưu
+  nội dung xử lý, tạo đề nghị thu hồi và đóng phản ánh. Nút **Xem chi tiết** trên danh sách điều hướng
+  sang route này; không xử lý nghiệp vụ trong modal.
+
 ## 2. Mục tiêu nghiệp vụ
 
 Sau khi người tiêu dùng gửi phản ánh từ trang tra cứu công khai, hệ thống phải cho phép hợp tác xã:
@@ -373,7 +380,7 @@ Quy ước giao diện:
 - `traceCodeId` là khóa kỹ thuật chỉ dùng trong payload; không hiển thị cho người xử lý.
 - Người xử lý nhìn và tìm theo `traceCodeValue`. Frontend chỉ bật nút lưu khi giá trị nhập khớp một
   mã thuộc lô và đã ánh xạ được sang `traceCodeId`.
-- Mã đã liên kết được khóa chỉ đọc trong modal. Thay đổi liên kết đã lưu không thuộc thao tác cập nhật
+- Mã đã liên kết được khóa chỉ đọc trên trang chi tiết. Thay đổi liên kết đã lưu không thuộc thao tác cập nhật
   thông thường của story này.
 - Nếu mức độ hoặc mã tem đang khác dữ liệu đã lưu, nút **Đóng phản ánh** bị khóa. Nội dung xử lý và
   phản hồi công khai vẫn có thể được lưu nguyên tử qua API đóng theo mục 9.5.
@@ -618,7 +625,8 @@ Ví dụ lỗi:
 5. Tích hợp recall request.
 6. Tích hợp trace code và nguồn danh sách nghi vấn.
 7. Controller và API tests.
-8. Frontend API client, danh sách, bộ lọc và màn hình chi tiết xử lý.
+8. Frontend API client, danh sách, bộ lọc và trang chi tiết xử lý riêng tại
+   `/product-feedbacks/{feedbackId}`.
 9. Integration test theo mục 14 và 15.
 
 ## 17. Các quyết định đã áp dụng khi triển khai

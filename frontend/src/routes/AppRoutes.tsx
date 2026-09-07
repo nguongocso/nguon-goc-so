@@ -147,6 +147,7 @@ import CreatePartnerApiKeyPage from "@/pages/apiKey/CreatePartnerApiKeyPage";
 
 // ===== Product Feedback =====
 import ProductFeedbackManagementPage from "@/pages/product-feedback/ProductFeedbackManagementPage";
+import ProductFeedbackDetailPage from "@/pages/product-feedback/ProductFeedbackDetailPage";
 
 // ===== Mobile =====
 import RecordMobileEventPage from "@/pages/mobile/RecordMobileEventPage";
@@ -1408,6 +1409,19 @@ const AppRoutes = () => (
                         }
                     >
                         <ProductFeedbackManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="product-feedbacks/:feedbackId"
+                element={
+                    <RoleRoute
+                        allowedRoles={
+                            ROLE_ACCESS.productFeedbackManagement
+                        }
+                    >
+                        <ProductFeedbackDetailPage />
                     </RoleRoute>
                 }
             />

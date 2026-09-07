@@ -75,6 +75,10 @@ describe("AppBreadcrumb - isRouteAccessible", () => {
         "VT-04",
       ),
     ).toBe(true);
+
+    expect(isRouteAccessible("/product-feedbacks/feedback-123", "VT-01")).toBe(true);
+    expect(isRouteAccessible("/product-feedbacks/feedback-123", "VT-02")).toBe(true);
+    expect(isRouteAccessible("/product-feedbacks/feedback-123", "VT-03")).toBe(false);
   });
 });
 
@@ -111,6 +115,15 @@ describe("AppBreadcrumb - buildAutoBreadcrumb", () => {
       { label: "Tổng quan", href: "/dashboard" },
       { label: "Yêu cầu thu hồi", href: "/recall-requests" },
       { label: "Tạo yêu cầu thu hồi" },
+    ]);
+  });
+
+  it("tạo breadcrumb danh sách và chi tiết cho trang phản ánh", () => {
+    const items = buildAutoBreadcrumb("/product-feedbacks/feedback-123", "VT-02");
+    expect(items).toEqual([
+      { label: "Tổng quan", href: "/dashboard" },
+      { label: "Phản hồi người dùng", href: "/product-feedbacks" },
+      { label: "Chi tiết phản ánh" },
     ]);
   });
 });
