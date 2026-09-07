@@ -67,38 +67,14 @@ export const ImpactScopeTracePage: React.FC = () => {
     <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* Header Title (Không sử dụng icon cho đề mục) */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="text-emerald-600 font-semibold text-sm">
-              NCL-08-CN-010 • Năng lực Truy vết 2 chiều
-            </div>
-            <h1 className="text-2xl font-bold text-slate-900 mt-1">
-              Truy vết Phạm vi Ảnh hưởng của Lô
-            </h1>
-            <p className="text-slate-500 text-sm mt-1">
-              Nhập mã lô sản xuất, lô hàng hoặc tem để xác định chính xác các mắt xích và đối tác cần thu hồi khi có sự cố.
-            </p>
-          </div>
-
-          {/* Quick Search Example Buttons */}
-          <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-            <span className="self-center font-medium text-slate-700">Mã mẫu:</span>
-            <button
-              type="button"
-              onClick={() => { setSearchCode('LOT-2026-001'); }}
-              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
-            >
-              LOT-2026-001 (Nhiều lô)
-            </button>
-            <button
-              type="button"
-              onClick={() => { setSearchCode('LOT-2026-999'); }}
-              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
-            >
-              LOT-2026-999 (Chưa có lô)
-            </button>
-          </div>
+        {/* Header Title (Căn giữa, sạch sẽ) */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 text-center">
+          <h1 className="text-2xl font-bold text-slate-900">
+            Truy vết Phạm vi Ảnh hưởng của Lô
+          </h1>
+          <p className="text-slate-500 text-sm mt-1 max-w-2xl mx-auto">
+            Nhập mã lô sản xuất, lô hàng hoặc tem để xác định chính xác các mắt xích và đối tác cần thu hồi khi có sự cố.
+          </p>
         </div>
 
         {/* Search Bar Input */}
