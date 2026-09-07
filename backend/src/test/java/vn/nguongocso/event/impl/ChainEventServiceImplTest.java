@@ -553,6 +553,67 @@ class ChainEventServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Chỉ được ghi nhận sự kiện đóng gói cho lô đã thu hoạch hoặc đã sơ chế.");
     }
+
+    @Test
+    void recordPackagingEvent_Success_WhenPackagingDateIsToday() throws JsonProcessingException {
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+        when(validUser.getUserId()).thenReturn(userId);
+
+        LocalDate today = LocalDate.now(clock);
+        productionLot.setStatus(ProductionLotStatus.HARVESTED);
+        productionLot.setHarvestDate(today);
+
+        RecordPackagingEventRequest packagingRequest = new RecordPackagingEventRequest();
+        packagingRequest.setProductionLotId(productionLot.getId());
+        packagingRequest.setPackagingSpecification("Túi 500g");
+        packagingRequest.setPackagingDate(today);
+
+        when(productionLotRepository.findById(productionLot.getId())).thenReturn(Optional.of(productionLot));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(actor));
+        when(milestoneValidationService.validateMilestoneCompletion(any(ProductionLot.class)))
+                .thenReturn(List.of());
+
+        ChainEvent mockSavedEvent = ChainEvent.builder()
+                .id(UUID.randomUUID())
+                .eventType(ChainEventType.PACKAGING)
+                .eventData("{\"productionLotId\":\"" + productionLot.getId() + "\",\"packagingSpecification\":\"Túi 500g\",\"packagingDate\":\"" + today + "\"}")
+                .recordedAt(LocalDateTime.now())
+                .recordedBy(actor)
+                .createdAt(LocalDateTime.now())
+                .isCorrection(false)
+                .build();
+
+        when(chainEventRepository.save(any(ChainEvent.class))).thenReturn(mockSavedEvent);
+
+        ChainEventResponse response = chainEventService.recordPackagingEvent(packagingRequest, validUser);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getEventType()).isEqualTo(ChainEventType.PACKAGING);
+        assertThat(productionLot.getStatus()).isEqualTo(ProductionLotStatus.PACKAGED);
+        verify(productionLotRepository, times(1)).save(productionLot);
+    }
+
+    @Test
+    void recordPackagingEvent_ThrowException_WhenPackagingDateIsInFuture() {
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+
+        LocalDate futureDate = LocalDate.now(clock).plusDays(1);
+        productionLot.setStatus(ProductionLotStatus.HARVESTED);
+        productionLot.setHarvestDate(LocalDate.now(clock));
+
+        RecordPackagingEventRequest packagingRequest = new RecordPackagingEventRequest();
+        packagingRequest.setProductionLotId(productionLot.getId());
+        packagingRequest.setPackagingSpecification("Túi 500g");
+        packagingRequest.setPackagingDate(futureDate);
+
+        when(productionLotRepository.findById(productionLot.getId())).thenReturn(Optional.of(productionLot));
+
+        assertThatThrownBy(() -> chainEventService.recordPackagingEvent(packagingRequest, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Ngày đóng gói không được là ngày ở tương lai.");
+    }
     
     @Test
     void recordTransportEvent_Success() throws JsonProcessingException {
