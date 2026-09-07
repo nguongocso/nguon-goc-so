@@ -28,4 +28,12 @@ public interface LotAssignmentRepository extends JpaRepository<LotAssignment, UU
     List<LotAssignment> findByUser_UserIdAndOrganization_OrganizationIdAndActiveTrue(
             UUID userId,
             UUID orgId);
+
+    /**
+     * Lấy toàn bộ phân công còn hiệu lực của một lô sản xuất.
+     *
+     * @param lotId ID của lô sản xuất
+     * @return danh sách phân công còn hiệu lực
+     */
+    List<LotAssignment> findByProductionLot_IdAndActiveTrue(UUID lotId);
 }

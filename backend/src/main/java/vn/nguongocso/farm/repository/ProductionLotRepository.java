@@ -35,6 +35,14 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
     List<ProductionLot> findByOrganization_OrganizationIdAndStatus(UUID organizationId, ProductionLotStatus status);
 
     /**
+     * Tìm tất cả các lô sản xuất theo trạng thái.
+     *
+     * @param status Trạng thái của lô sản xuất.
+     * @return Danh sách các lô sản xuất có trạng thái tương ứng.
+     */
+    List<ProductionLot> findByStatus(ProductionLotStatus status);
+
+    /**
      * Tìm tất cả các lô sản xuất theo ID vùng trồng.
      *
      * @param farmAreaId ID của vùng trồng.
