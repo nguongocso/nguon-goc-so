@@ -100,6 +100,10 @@ public class ChainEventServiceImpl implements ChainEventService {
             if (lot.getStatus() != ProductionLotStatus.APPROVED) {
                 throw new BusinessException("Lô sản xuất chưa được duyệt, không thể ghi sự kiện thu hoạch.");
             }
+            // Validate that harvest date is not in the future
+            if (request.getHarvestDate().isAfter(LocalDate.now(clock))) {
+                throw new BusinessException("Ngày thu hoạch không được là ngày ở tương lai.");
+            }
             // Kiểm tra thời gian cách ly thu hoạch (NCL-681 / QTN-25 / NCL-847 / B-02)
             eligibility = harvestEligibilityService.calculateHarvestEligibility(lot.getId());
         } catch (BusinessException e) {

@@ -496,6 +496,33 @@ class ChainEventServiceImplTest {
     }
 
     @Test
+    void recordHarvestEvent_ThrowException_WhenHarvestDateIsInFuture() {
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+
+        LocalDate futureDate = LocalDate.now(clock).plusDays(1);
+        productionLot.setStatus(ProductionLotStatus.APPROVED);
+
+        RecordHarvestEventRequest harvestReq = new RecordHarvestEventRequest();
+        harvestReq.setProductionLotId(productionLot.getId());
+        harvestReq.setHarvestDate(futureDate);
+        harvestReq.setQuantity(100.0);
+
+        when(productionLotRepository.findById(harvestReq.getProductionLotId())).thenReturn(Optional.of(productionLot));
+
+        assertThatThrownBy(() -> chainEventService.recordHarvestEvent(harvestReq, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Ngày thu hoạch không được là ngày ở tương lai.");
+
+        verify(eventValidationService).logFailedAttempt(
+                harvestReq.getProductionLotId(),
+                productionLot.getName(),
+                ChainEventType.HARVEST,
+                "Ngày thu hoạch không được là ngày ở tương lai.",
+                validUser);
+    }
+
+    @Test
     void recordPackagingEvent_Success() throws JsonProcessingException {
         when(validUser.getRoleCode()).thenReturn("VT-03");
         when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
