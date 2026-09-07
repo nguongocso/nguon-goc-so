@@ -59,10 +59,12 @@ const formatDateTime = (value: string) => {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const ShipmentDetailPage = () => {
-  const { lotId, shipmentId } = useParams<{
-    lotId: string;
-    shipmentId: string;
+  const { lotId, shipmentId, id } = useParams<{
+    lotId?: string;
+    shipmentId?: string;
+    id?: string;
   }>();
+  const effectiveShipmentId = shipmentId || id;
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -102,11 +104,11 @@ export const ShipmentDetailPage = () => {
   // ── Loaders ────────────────────────────────────────────────────────────────
 
   async function loadShipment() {
-    if (!shipmentId) return;
+    if (!effectiveShipmentId) return;
     setLoadingShipment(true);
     setShipmentError(null);
     try {
-      const data = await getShipmentById(shipmentId);
+      const data = await getShipmentById(effectiveShipmentId);
       setShipment(data);
     } catch (err: any) {
       setShipmentError(
@@ -119,11 +121,11 @@ export const ShipmentDetailPage = () => {
   };
 
   const loadTimeline = async () => {
-    if (!shipmentId || timelineLoaded) return;
+    if (!effectiveShipmentId || timelineLoaded) return;
     setLoadingTimeline(true);
     setTimelineError(null);
     try {
-      const data = await getShipmentTimeline(shipmentId);
+      const data = await getShipmentTimeline(effectiveShipmentId);
       setTimeline(data);
       setTimelineLoaded(true);
     } catch (err: any) {
@@ -138,7 +140,7 @@ export const ShipmentDetailPage = () => {
   useEffect(() => {
     void loadShipment();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shipmentId]);
+  }, [effectiveShipmentId]);
 
   // ── Action handlers ────────────────────────────────────────────────────────
 
