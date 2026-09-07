@@ -48,6 +48,12 @@ public class TraceCode {
     @Column(nullable = false, length = 20)
     private TraceCodeStatus status;
 
+    @Column(name = "printed_at")
+    private LocalDateTime printedAt;
+
+    @Column(name = "print_batch_id", length = 100)
+    private String printBatchId;
+
     @Column(name = "activated_at")
     private LocalDateTime activatedAt;
 

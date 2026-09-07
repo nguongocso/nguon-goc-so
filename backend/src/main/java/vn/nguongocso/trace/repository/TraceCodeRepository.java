@@ -92,4 +92,33 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 	 * Lấy danh sách mã theo lô hàng và danh sách codeValue.
 	 */
 	List<TraceCode> findByShipmentIdAndCodeValueIn(UUID shipmentId, List<String> codeValues);
+
+	/**
+	 * Lấy danh sách mã tem theo lô hàng và tổ chức, hỗ trợ lọc theo trạng thái và tìm kiếm (phân trang) (NCL-04-CN-008).
+	 */
+	@Query("SELECT tc FROM TraceCode tc WHERE tc.shipment.id = :shipmentId "
+			+ "AND tc.shipment.organization.organizationId = :orgId "
+			+ "AND (:status IS NULL OR tc.status = :status) "
+			+ "AND (:search IS NULL OR LOWER(tc.codeValue) LIKE LOWER(CONCAT('%', :search, '%'))) "
+			+ "ORDER BY tc.codeValue ASC")
+	Page<TraceCode> findByShipmentAndFilters(
+			@Param("shipmentId") UUID shipmentId,
+			@Param("orgId") UUID orgId,
+			@Param("status") TraceCodeStatus status,
+			@Param("search") String search,
+			Pageable pageable);
+
+	/**
+	 * Lấy tất cả mã tem theo lô hàng và tổ chức, hỗ trợ lọc theo trạng thái và tìm kiếm để xuất file (NCL-04-CN-008).
+	 */
+	@Query("SELECT tc FROM TraceCode tc WHERE tc.shipment.id = :shipmentId "
+			+ "AND tc.shipment.organization.organizationId = :orgId "
+			+ "AND (:status IS NULL OR tc.status = :status) "
+			+ "AND (:search IS NULL OR LOWER(tc.codeValue) LIKE LOWER(CONCAT('%', :search, '%'))) "
+			+ "ORDER BY tc.codeValue ASC")
+	List<TraceCode> findAllByShipmentAndFilters(
+			@Param("shipmentId") UUID shipmentId,
+			@Param("orgId") UUID orgId,
+			@Param("status") TraceCodeStatus status,
+			@Param("search") String search);
 }
