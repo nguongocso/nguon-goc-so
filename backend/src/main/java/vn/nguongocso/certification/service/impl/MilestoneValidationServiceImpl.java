@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.nguongocso.certification.dto.response.MilestoneValidationResult;
 import vn.nguongocso.certification.entity.CultivationMilestone;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.certification.repository.CultivationMilestoneRepository;
@@ -34,10 +35,39 @@ public class MilestoneValidationServiceImpl implements MilestoneValidationServic
     private final FarmLogRepository farmLogRepository;
 
     @Override
-    public List<String> validateMilestoneCompletion(ProductionLot lot) {
-        return findMissingMilestones(lot).stream()
+    public MilestoneValidationResult validateMilestoneCompletion(ProductionLot lot) {
+        List<String> missingMilestones = findMissingMilestones(lot).stream()
                 .map(CultivationMilestone::getName)
                 .toList();
+
+        if (!missingMilestones.isEmpty()) {
+            return MilestoneValidationResult.builder()
+                    .eligible(false)
+                    .missingMilestones(missingMilestones)
+                    .build();
+        }
+
+        // Check if the lot has ANY farm logs at all
+        long farmLogCount = farmLogRepository.countByProductionLotId(lot.getId());
+        if (farmLogCount == 0) {
+            List<FarmLog> logs = farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lot.getId());
+            if (logs != null && !logs.isEmpty()) {
+                farmLogCount = logs.size();
+            }
+        }
+        if (farmLogCount == 0) {
+            log.warn("Lot {} has no farm logs. Packaging may proceed but this should be reviewed.", lot.getId());
+            // Return false with a warning message (do not block, just warn)
+            return MilestoneValidationResult.builder()
+                    .eligible(false)
+                    .message("Lô chưa có nhật ký canh tác. Vui lòng ghi nhật ký trước khi đóng gói.")
+                    .build();
+        }
+
+        return MilestoneValidationResult.builder()
+                .eligible(true)
+                .missingMilestones(List.of())
+                .build();
     }
 
     @Override

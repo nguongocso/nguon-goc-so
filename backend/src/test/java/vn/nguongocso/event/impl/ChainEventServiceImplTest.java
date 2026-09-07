@@ -523,6 +523,33 @@ class ChainEventServiceImplTest {
     }
 
     @Test
+    void recordHarvestEvent_ThrowException_WhenHarvestDateIsBeforePlantingDate() {
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+
+        productionLot.setStatus(ProductionLotStatus.APPROVED);
+        productionLot.setPlantingDate(LocalDate.of(2026, 6, 1));
+
+        RecordHarvestEventRequest harvestReq = new RecordHarvestEventRequest();
+        harvestReq.setProductionLotId(productionLot.getId());
+        harvestReq.setHarvestDate(LocalDate.of(2026, 5, 20));
+        harvestReq.setQuantity(100.0);
+
+        when(productionLotRepository.findById(harvestReq.getProductionLotId())).thenReturn(Optional.of(productionLot));
+
+        assertThatThrownBy(() -> chainEventService.recordHarvestEvent(harvestReq, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Ngày thu hoạch phải sau hoặc bằng ngày gieo trồng của lô.");
+
+        verify(eventValidationService).logFailedAttempt(
+                harvestReq.getProductionLotId(),
+                productionLot.getName(),
+                ChainEventType.HARVEST,
+                "Ngày thu hoạch phải sau hoặc bằng ngày gieo trồng của lô.",
+                validUser);
+    }
+
+    @Test
     void recordPackagingEvent_Success() throws JsonProcessingException {
         when(validUser.getRoleCode()).thenReturn("VT-03");
         when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());

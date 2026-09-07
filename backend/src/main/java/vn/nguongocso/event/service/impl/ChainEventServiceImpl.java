@@ -101,8 +101,13 @@ public class ChainEventServiceImpl implements ChainEventService {
                 throw new BusinessException("Lô sản xuất chưa được duyệt, không thể ghi sự kiện thu hoạch.");
             }
             // Validate that harvest date is not in the future
-            if (request.getHarvestDate().isAfter(LocalDate.now(clock))) {
+            LocalDate today = clock != null ? LocalDate.now(clock) : LocalDate.now();
+            if (request.getHarvestDate().isAfter(today)) {
                 throw new BusinessException("Ngày thu hoạch không được là ngày ở tương lai.");
+            }
+            // Validate that harvest date is not before planting date
+            if (lot.getPlantingDate() != null && request.getHarvestDate().isBefore(lot.getPlantingDate())) {
+                throw new BusinessException("Ngày thu hoạch phải sau hoặc bằng ngày gieo trồng của lô.");
             }
             // Kiểm tra thời gian cách ly thu hoạch (NCL-681 / QTN-25 / NCL-847 / B-02)
             eligibility = harvestEligibilityService.calculateHarvestEligibility(lot.getId());
@@ -421,7 +426,8 @@ public class ChainEventServiceImpl implements ChainEventService {
                     && lot.getStatus() != ProductionLotStatus.PREPROCESSED) {
                 throw new BusinessException("Chỉ được ghi nhận sự kiện đóng gói cho lô đã thu hoạch hoặc đã sơ chế.");
             }
-            if (request.getPackagingDate().isAfter(LocalDate.now(clock))) {
+            LocalDate today = clock != null ? LocalDate.now(clock) : LocalDate.now();
+            if (request.getPackagingDate().isAfter(today)) {
                 throw new BusinessException("Ngày đóng gói không được là ngày ở tương lai.");
             }
             if (lot.getHarvestDate() != null && request.getPackagingDate().isBefore(lot.getHarvestDate())) {

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import vn.nguongocso.certification.dto.response.MilestoneValidationResult;
 import vn.nguongocso.certification.entity.Certification;
 import vn.nguongocso.certification.entity.CultivationMilestone;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
@@ -238,5 +239,20 @@ class MilestoneValidationServiceImplTest {
                 .thenReturn(List.of(log(FarmActivityType.PLANTING, false)));
 
         assertThat(service.findMissingMilestones(lot)).isEmpty();
+    }
+
+    // Lô không có nhật ký canh tác -> eligible = false và thông báo cảnh báo
+    @Test
+    void validate_shouldReturnEligibleFalseAndWarningWhenLotHasNoFarmLogs() {
+        lot.setCertifications(List.of());
+        when(milestoneRepository.findMandatoryMilestonesForValidation(categoryId, List.of()))
+                .thenReturn(List.of());
+        when(farmLogRepository.countByProductionLotId(lotId)).thenReturn(0L);
+        when(farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lotId)).thenReturn(List.of());
+
+        MilestoneValidationResult result = service.validateMilestoneCompletion(lot);
+
+        assertThat(result.isEligible()).isFalse();
+        assertThat(result.getMessage()).isEqualTo("Lô chưa có nhật ký canh tác. Vui lòng ghi nhật ký trước khi đóng gói.");
     }
 }
