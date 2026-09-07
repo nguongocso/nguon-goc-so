@@ -1424,7 +1424,9 @@ const AppRoutes = () => (
                 path="trace/impact-scope"
                 element={
                     <RoleRoute
-                        allowedRoles={["VT-01", "VT-02", "VT-03", "VT-04", "VT-05"] as const}
+                        allowedRoles={
+                            ROLE_ACCESS.impactScopeTrace
+                        }
                     >
                         <ImpactScopeTracePage />
                     </RoleRoute>

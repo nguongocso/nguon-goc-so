@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
   Download,
   FileSpreadsheet,
   RefreshCw,
   ChevronDown,
+  Eye,
 } from 'lucide-react';
 import { exportImpactScopeReport, getImpactScopeTrace } from '@/api/impactScopeTraceApi';
 import type { ImpactScopeTraceResponse } from '@/types/impactScopeTrace';
@@ -12,6 +14,8 @@ import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import { HelpButton } from '@/components/help/HelpButton';
 
 export const ImpactScopeTracePage: React.FC = () => {
+  const navigate = useNavigate();
+
   useSetBreadcrumb([
     { label: 'Tổng quan', href: '/dashboard' },
     { label: 'Truy vết phạm vi ảnh hưởng' },
@@ -112,7 +116,44 @@ export const ImpactScopeTracePage: React.FC = () => {
               Nhập mã lô sản xuất, lô hàng hoặc tem để xác định chính xác các mắt xích và đối tác cần thu hồi khi có sự cố.
             </p>
           </div>
-          <HelpButton screenKey="impact-scope-trace" />
+          <div className="flex items-center gap-3">
+            <HelpButton screenKey="impact-scope-trace" />
+            {traceData && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  disabled={exporting}
+                  className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg flex items-center gap-2 text-sm font-medium shadow-xs transition-colors disabled:opacity-50"
+                >
+                  <Download className="w-4 h-4 text-slate-500" />
+                  <span>Xuất tệp</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                </button>
+
+                {showExportMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-20">
+                    <button
+                      type="button"
+                      onClick={() => handleExport('EXCEL')}
+                      className="w-full px-4 py-2.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                    >
+                      <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                      <span>Xuất Excel (.xlsx)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleExport('PDF')}
+                      className="w-full px-4 py-2.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                    >
+                      <FileSpreadsheet className="w-4 h-4 text-red-600" />
+                      <span>Xuất PDF (.pdf)</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Search Bar Input */}
@@ -179,85 +220,23 @@ export const ImpactScopeTracePage: React.FC = () => {
                 <p className="text-2xl font-bold text-slate-900 mt-1">{traceData.summary.totalReceivingOrganizations}</p>
               </div>
 
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-slate-500 font-medium">Lô hàng Đã Thu hồi</p>
-                  <p className="text-2xl font-bold text-slate-900 mt-1">{traceData.summary.totalRecalledShipments}</p>
-                </div>
-
-                {/* Export Dropdown Button - Giữ Icon thao tác */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setShowExportMenu(!showExportMenu)}
-                    disabled={exporting}
-                    className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg flex items-center gap-1.5 text-xs font-semibold transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Xuất tệp</span>
-                    <ChevronDown className="w-3 h-3" />
-                  </button>
-
-                  {showExportMenu && (
-                    <div className="absolute right-0 mt-2 w-44 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10">
-                      <button
-                        type="button"
-                        onClick={() => handleExport('EXCEL')}
-                        className="w-full px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                      >
-                        <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                        <span>Xuất Excel (.xlsx)</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleExport('PDF')}
-                        className="w-full px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                      >
-                        <FileSpreadsheet className="w-4 h-4 text-red-600" />
-                        <span>Xuất PDF (.pdf)</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                <p className="text-xs text-slate-500 font-medium">Lô hàng Đã Thu hồi</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">{traceData.summary.totalRecalledShipments}</p>
               </div>
             </div>
 
             {/* Tree View Graphic Section */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               
-              {/* UPSTREAM BRANCH (Vùng trồng -> Lô sản xuất) - Left Column */}
+              {/* UPSTREAM BRANCH (Lô sản xuất -> Nguồn gốc Vùng trồng) - Left Column */}
               <div className="lg:col-span-4 space-y-4">
                 <div className="flex items-center justify-between px-1">
                   <h2 className="font-bold text-sm text-slate-900">Chiều ngược (upstream)</h2>
                   <span className="text-xs text-slate-500 font-medium">Nguồn gốc canh tác</span>
                 </div>
 
-                {/* Vùng trồng Card */}
-                {traceData.farmArea ? (
-                  <div className="bg-white p-5 rounded-xl border border-emerald-200 shadow-sm border-l-4 border-l-emerald-500">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
-                        VÙNG TRỒNG GỐC
-                      </span>
-                    </div>
-                    <h3 className="font-bold text-slate-900 text-base mt-2">{traceData.farmArea.name}</h3>
-                    <div className="text-xs text-slate-500 mt-2 space-y-1">
-                      <p><span className="font-medium text-slate-700">Mã vùng:</span> {traceData.farmArea.code}</p>
-                      <p><span className="font-medium text-slate-700">Vị trí:</span> {traceData.farmArea.location}</p>
-                      {traceData.farmArea.areaSize && (
-                        <p><span className="font-medium text-slate-700">Diện tích:</span> {traceData.farmArea.areaSize} m²</p>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-white p-4 rounded-xl border border-slate-200 text-slate-500 text-xs italic">
-                    Chưa liên kết vùng trồng cố định.
-                  </div>
-                )}
-
-                <div className="text-center font-bold text-slate-400 text-lg">↓</div>
-
-                {/* Production Lot Card */}
+                {/* Production Lot Card (Mốc tra cứu trung tâm) */}
                 <div className="bg-white p-5 rounded-xl border border-blue-200 shadow-sm border-l-4 border-l-blue-500">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
@@ -280,6 +259,33 @@ export const ImpactScopeTracePage: React.FC = () => {
                     )}
                   </div>
                 </div>
+
+                <div className="flex items-center justify-center gap-2 text-xs font-semibold text-slate-400">
+                  <span>↑ Tra ngược nguồn gốc</span>
+                </div>
+
+                {/* Vùng trồng Card (Nguồn gốc) */}
+                {traceData.farmArea ? (
+                  <div className="bg-white p-5 rounded-xl border border-emerald-200 shadow-sm border-l-4 border-l-emerald-500">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                        VÙNG TRỒNG GỐC
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-slate-900 text-base mt-2">{traceData.farmArea.name}</h3>
+                    <div className="text-xs text-slate-500 mt-2 space-y-1">
+                      <p><span className="font-medium text-slate-700">Mã vùng:</span> {traceData.farmArea.code}</p>
+                      <p><span className="font-medium text-slate-700">Vị trí:</span> {traceData.farmArea.location}</p>
+                      {traceData.farmArea.areaSize && (
+                        <p><span className="font-medium text-slate-700">Diện tích:</span> {traceData.farmArea.areaSize} m²</p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 text-slate-500 text-xs italic">
+                    Chưa liên kết vùng trồng cố định.
+                  </div>
+                )}
               </div>
 
               {/* DOWNSTREAM BRANCH (Lô sản xuất -> Lô hàng -> Tem -> Sự kiện -> Đối tác) - Right Column */}
@@ -334,6 +340,18 @@ export const ImpactScopeTracePage: React.FC = () => {
                             }`}>
                               {formatStatus(ship.status)}
                             </span>
+
+                            {ship.id && (
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/shipments/${ship.id}`)}
+                                className="px-3 py-1 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-medium rounded-lg text-xs flex items-center gap-1.5 transition-colors"
+                                title="Xem chi tiết lô hàng, tem QR và thông tin nhật ký"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-slate-600" />
+                                <span>Chi tiết lô hàng</span>
+                              </button>
+                            )}
                           </div>
                         </div>
 
