@@ -246,7 +246,7 @@ export const ImpactScopeTracePage: React.FC = () => {
                 </div>
               </div>
 
-              {/* DOWNSTREAM BRANCH (Lô sản xuất -> Lô hàng -> Tem -> Đối tác) - Right Column */}
+              {/* DOWNSTREAM BRANCH (Lô sản xuất -> Lô hàng -> Tem -> Sự kiện -> Đối tác) - Right Column */}
               <div className="lg:col-span-8 space-y-4">
                 <div className="bg-slate-900 text-white p-4 rounded-xl flex items-center justify-between">
                   <h2 className="font-bold text-sm">CHIỀU XUÔI (DOWNSTREAM) • PHẠM VI ẢNH HƯỞNG</h2>
@@ -315,6 +315,47 @@ export const ImpactScopeTracePage: React.FC = () => {
                             <span className="text-blue-700 block">Lượt quét công khai:</span>
                             <span className="font-bold text-blue-900">{ship.scanStats?.totalScans || 0} lượt</span>
                           </div>
+                        </div>
+
+                        {/* Sự kiện Vận chuyển & Thu mua / Nhập kho */}
+                        <div className="mb-4">
+                          <p className="text-xs font-bold text-slate-700 mb-2">
+                            Sự kiện Vận chuyển & Thu mua:
+                          </p>
+
+                          {!ship.events || ship.events.length === 0 ? (
+                            <div className="text-xs text-slate-400 italic bg-slate-50 p-2.5 rounded-lg">
+                              Chưa ghi nhận sự kiện vận chuyển hoặc thu mua cho lô hàng này.
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {ship.events.map((ev, eIdx) => (
+                                <div
+                                  key={ev.id || eIdx}
+                                  className="p-2.5 bg-blue-50/40 border border-blue-100 rounded-lg text-xs flex flex-col justify-between"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-semibold text-blue-950">
+                                      {ev.eventTypeName || ev.eventType}
+                                    </span>
+                                    {ev.isCorrection && (
+                                      <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
+                                        Đính chính
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-slate-500 text-[11px] mt-1">
+                                    Thời điểm: {new Date(ev.recordedAt).toLocaleString('vi-VN')}
+                                  </div>
+                                  {ev.location && (
+                                    <div className="text-slate-500 text-[11px] mt-0.5">
+                                      Vị trí: {ev.location}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
 
                         {/* Receiving Organizations Timeline (TC-04 & QTN-01) */}

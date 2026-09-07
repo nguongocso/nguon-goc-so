@@ -23,7 +23,6 @@ public class ImpactScopeExportServiceImpl implements ImpactScopeExportService {
     public byte[] exportImpactScopeReport(String code, String format, CustomUserDetails currentUser) {
         ImpactScopeTraceResponse traceData = impactScopeTraceService.getImpactScopeTrace(code, currentUser);
 
-        // Xuất Excel mặc định hoặc khi format là EXCEL
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Truy vết phạm vi ảnh hưởng");
 
@@ -67,15 +66,15 @@ public class ImpactScopeExportServiceImpl implements ImpactScopeExportService {
 
             rowIdx++; // blank line
 
-            // Section 2: Danh sách Lô hàng bị ảnh hưởng
+            // Section 2: Danh sách Lô hàng, Sự kiện vận chuyển/thu mua và Tổ chức nhận
             Row sec2Header = sheet.createRow(rowIdx++);
             Cell sec2Cell = sec2Header.createCell(0);
-            sec2Cell.setCellValue("2. DANH SÁCH LÔ HÀNG VÀ TỔ CHỨC NHẬN BỊ ẢNH HƯỞNG");
+            sec2Cell.setCellValue("2. DANH SÁCH LÔ HÀNG, SỰ KIỆN VẬN CHUYỂN / THU MUA VÀ TỔ CHỨC NHẬN");
             sec2Cell.setCellStyle(headerStyle);
 
             // Table headers
             Row tblHeader = sheet.createRow(rowIdx++);
-            String[] cols = {"STT", "Tên Lô hàng", "Trạng thái Lô", "Số lượng", "Tem kích hoạt", "Số lượt quét", "Tổ chức đã nhận"};
+            String[] cols = {"STT", "Tên Lô hàng", "Trạng thái Lô", "Số lượng", "Tem kích hoạt", "Lượt quét", "Sự kiện diễn ra", "Tổ chức đã nhận"};
             for (int i = 0; i < cols.length; i++) {
                 Cell cell = tblHeader.createCell(i);
                 cell.setCellValue(cols[i]);
@@ -97,6 +96,22 @@ public class ImpactScopeExportServiceImpl implements ImpactScopeExportService {
                     dataRow.createCell(4).setCellValue(ship.getActivatedStampsCount());
                     dataRow.createCell(5).setCellValue(ship.getScanStats() != null ? ship.getScanStats().getTotalScans() : 0);
 
+                    // Sự kiện diễn ra (Vận chuyển, Thu mua, Nhập kho...)
+                    StringBuilder eventsStr = new StringBuilder();
+                    if (ship.getEvents() != null && !ship.getEvents().isEmpty()) {
+                        for (ChainEventTraceDto ev : ship.getEvents()) {
+                            if (eventsStr.length() > 0) eventsStr.append("; ");
+                            eventsStr.append(ev.getEventTypeName() != null ? ev.getEventTypeName() : ev.getEventType().name())
+                                     .append(" (")
+                                     .append(ev.getRecordedAt() != null ? ev.getRecordedAt().toString() : "")
+                                     .append(")");
+                        }
+                    } else {
+                        eventsStr.append("Chưa phát sinh sự kiện");
+                    }
+                    dataRow.createCell(6).setCellValue(eventsStr.toString());
+
+                    // Tổ chức đã nhận (Đáp ứng QTN-01 & TC-04)
                     StringBuilder orgsStr = new StringBuilder();
                     if (ship.getReceivingOrganizations() != null && !ship.getReceivingOrganizations().isEmpty()) {
                         for (ReceivingOrganizationTraceDto r : ship.getReceivingOrganizations()) {
@@ -109,7 +124,7 @@ public class ImpactScopeExportServiceImpl implements ImpactScopeExportService {
                     } else {
                         orgsStr.append("Chưa giao cho đối tác");
                     }
-                    dataRow.createCell(6).setCellValue(orgsStr.toString());
+                    dataRow.createCell(7).setCellValue(orgsStr.toString());
                 }
             }
 
@@ -127,7 +142,7 @@ public class ImpactScopeExportServiceImpl implements ImpactScopeExportService {
             createLabelValueRow(sheet, rowIdx++, "Số tổ chức nhận bị ảnh hưởng:", summary != null ? String.valueOf(summary.getTotalReceivingOrganizations()) : "0");
             createLabelValueRow(sheet, rowIdx++, "Số lô hàng đã thu hồi:", summary != null ? String.valueOf(summary.getTotalRecalledShipments()) : "0");
 
-            for (int i = 0; i < 7; i++) {
+            for (int i = 0; i < 8; i++) {
                 sheet.autoSizeColumn(i);
             }
 

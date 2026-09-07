@@ -183,26 +183,37 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
                     .suspectCount(suspectCount)
                     .build();
 
-            // Lấy thông tin tổ chức đã nhận qua các sự kiện PROCUREMENT / TRANSPORT / WAREHOUSE_RECEIPT (TC-04 & QTN-01)
+            // Lấy danh sách tất cả các sự kiện của lô hàng (Vận chuyển, Thu mua, Nhập kho, Đóng gói...)
             List<ChainEvent> events = chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(s.getId());
+            List<ChainEventTraceDto> eventDtos = new ArrayList<>();
             List<ReceivingOrganizationTraceDto> receivingOrgs = new ArrayList<>();
 
             for (ChainEvent ev : events) {
+                // Map sự kiện sang DTO
+                String locationStr = ev.getLocation() != null ? ev.getLocation().toString() : null;
+                eventDtos.add(ChainEventTraceDto.builder()
+                        .id(ev.getId())
+                        .eventType(ev.getEventType())
+                        .eventTypeName(getEventTypeName(ev.getEventType()))
+                        .recordedAt(ev.getRecordedAt())
+                        .location(locationStr)
+                        .isCorrection(ev.isCorrection())
+                        .build());
+
+                // Xác định tổ chức nhận (PROCUREMENT, TRANSPORT, WAREHOUSE_RECEIPT)
                 ChainEventType type = ev.getEventType();
                 if (type == ChainEventType.PROCUREMENT || type == ChainEventType.TRANSPORT || type == ChainEventType.WAREHOUSE_RECEIPT) {
                     if (ev.getRecordedBy() != null) {
                         Optional<OrganizationUser> ouOpt = organizationUserRepository.findFirstByUser(ev.getRecordedBy());
                         if (ouOpt.isPresent() && ouOpt.get().getOrganization() != null) {
                             Organization recOrg = ouOpt.get().getOrganization();
-                            if (!recOrg.getOrganizationId().equals(lotOrgId)) {
-                                receivingOrgIds.add(recOrg.getOrganizationId());
-                                receivingOrgs.add(ReceivingOrganizationTraceDto.builder()
-                                        .organizationId(recOrg.getOrganizationId())
-                                        .organizationName(recOrg.getName()) // Chỉ lộ tên & thời điểm nhận
-                                        .receivedAt(ev.getRecordedAt())
-                                        .eventType(type)
-                                        .build());
-                            }
+                            receivingOrgIds.add(recOrg.getOrganizationId());
+                            receivingOrgs.add(ReceivingOrganizationTraceDto.builder()
+                                    .organizationId(recOrg.getOrganizationId())
+                                    .organizationName(recOrg.getName()) // Đáp ứng TC-04: Chỉ hiển thị tên & thời điểm
+                                    .receivedAt(ev.getRecordedAt())
+                                    .eventType(type)
+                                    .build());
                         }
                     }
                 }
@@ -218,6 +229,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
                     .createdAt(s.getCreatedAt())
                     .activatedStampsCount(activatedCount)
                     .scanStats(scanStats)
+                    .events(eventDtos)
                     .receivingOrganizations(receivingOrgs)
                     .build());
         }
@@ -237,6 +249,20 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
                 .shipments(shipmentDtos)
                 .summary(summary)
                 .build();
+    }
+
+    private String getEventTypeName(ChainEventType type) {
+        if (type == null) return "";
+        return switch (type) {
+            case TRANSPORT -> "Vận chuyển";
+            case PROCUREMENT -> "Thu mua";
+            case WAREHOUSE_RECEIPT -> "Nhập kho";
+            case PACKAGING -> "Đóng gói";
+            case PREPROCESSING -> "Sơ chế";
+            case HARVEST -> "Thu hoạch";
+            case STORAGE_CONDITION -> "Bảo quản";
+            case CORRECTION -> "Đính chính";
+        };
     }
 
     private UUID tryParseUUID(String val) {

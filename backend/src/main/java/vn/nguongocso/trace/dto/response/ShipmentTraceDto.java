@@ -24,5 +24,6 @@ public class ShipmentTraceDto {
     private LocalDateTime createdAt;
     private long activatedStampsCount;
     private ScanStatsTraceDto scanStats;
+    private List<ChainEventTraceDto> events;
     private List<ReceivingOrganizationTraceDto> receivingOrganizations;
 }

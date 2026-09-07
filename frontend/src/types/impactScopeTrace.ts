@@ -24,6 +24,15 @@ export interface ScanStatsTraceDto {
   suspectCount: number;
 }
 
+export interface ChainEventTraceDto {
+  id: string;
+  eventType: string;
+  eventTypeName: string;
+  recordedAt: string;
+  location?: string;
+  isCorrection: boolean;
+}
+
 export interface ReceivingOrganizationTraceDto {
   organizationId: string;
   organizationName: string;
@@ -41,6 +50,7 @@ export interface ShipmentTraceDto {
   createdAt: string;
   activatedStampsCount: number;
   scanStats?: ScanStatsTraceDto;
+  events?: ChainEventTraceDto[];
   receivingOrganizations: ReceivingOrganizationTraceDto[];
 }
 

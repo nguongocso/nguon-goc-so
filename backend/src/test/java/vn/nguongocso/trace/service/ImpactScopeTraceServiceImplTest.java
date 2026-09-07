@@ -170,6 +170,8 @@ class ImpactScopeTraceServiceImplTest {
         assertThat(response.getProductionLot().getName()).isEqualTo("LOT-2026-001");
         assertThat(response.getFarmArea().getName()).isEqualTo("Vùng trồng Dâu tây Khu A");
         assertThat(response.getShipments()).hasSize(3);
+        assertThat(response.getShipments().get(0).getEvents()).hasSize(1);
+        assertThat(response.getShipments().get(0).getEvents().get(0).getEventTypeName()).isEqualTo("Thu mua");
         assertThat(response.getSummary().getTotalShipments()).isEqualTo(3);
         assertThat(response.getSummary().getTotalReceivingOrganizations()).isEqualTo(2);
     }
