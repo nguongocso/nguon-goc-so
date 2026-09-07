@@ -165,7 +165,7 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   // Warehouse / Storage
   ["/warehouse-receipt/:eventId", "Chi tiết phiếu nhập kho"],
   ["/warehouse-receipt", "Phiếu nhập kho"],
-  ["/storage-condition", "Điều kiện bảo quản"],
+  ["/storage-condition", "Bảo quản"],
   ["/event-chain-verification", "Xác minh chuỗi sự kiện"],
 
   // Mobile / Invitations / Recall / Feedback

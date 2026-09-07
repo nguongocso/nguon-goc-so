@@ -20,6 +20,13 @@ public class InspectionRequestDetailCriterionResponse {
     @JsonProperty("criterionId")
     private UUID criterionId;
 
+    /**
+     * ID chỉ tiêu trong danh mục dùng chung (catalog criterion ID).
+     * Dùng để xác định identity của chỉ tiêu (không phải name).
+     */
+    @JsonProperty("criterionDefinitionId")
+    private Long criterionDefinitionId;
+
     @JsonProperty("code")
     private String code;
 

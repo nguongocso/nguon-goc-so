@@ -255,7 +255,7 @@ const MENU_GROUPS: MenuGroup[] = [
       },
       {
         icon: <Thermometer className="h-5 w-5" />,
-        label: "Điều kiện bảo quản",
+        label: "Bảo quản",
         href: "/storage-condition",
         allowedRoles: ROLE_ACCESS.storageCondition,
       },
@@ -342,7 +342,7 @@ const MENU_GROUPS: MenuGroup[] = [
 
       {
         icon: <Warehouse className="h-5 w-5" />,
-        label: "Nhập kho & đối chiếu",
+        label: "Nhập kho",
         href: "/warehouse-receipt",
         allowedRoles: ROLE_ACCESS.warehouseReceipt,
       },

@@ -183,7 +183,8 @@ public class ChainEventController {
 
     /**
      * API ghi nhận mốc điều kiện bảo quản khi vận chuyển.
-     * Chỉ chấp nhận vai trò VT-03 (Người ghi sự kiện) và VT-04 (Doanh nghiệp thu mua).
+     * VT-03 (Người ghi sự kiện, đúng tổ chức) và VT-04
+     * (Doanh nghiệp thu mua, đã thu mua lô hàng) — cùng luật với tra cứu tay.
      */
     @PostMapping("/storage-condition")
     @PreAuthorize("hasAnyRole('VT-03', 'VT-04')")

@@ -278,14 +278,12 @@ public class InspectionRequestServiceImpl
         /*
          * 6. Xây dựng bộ khóa criterion của request hiện tại.
          *
-         * Format:
+         * Identity của chỉ tiêu dựa trên criterionId (không phải name).
+         * Hai chỉ tiêu khác ID nhưng cùng tên KHÔNG bị coi là trùng.
          *
-         *     scope:criterionCode
+         * Format khóa cho request mới:
          *
-         * Trong đó scope:
-         * - "<standardId>" với dữ liệu legacy (snapshot gắn Standard).
-         * - "CAT:<criterionId>" với chỉ tiêu mới tham chiếu
-         *   danh mục dùng chung của NCL-09-CN-009.
+         *     "CAT:<criterionId>"
          *
          * Khóa phải đồng nhất với resolveCriterionKey() bên dưới.
          */
@@ -348,11 +346,12 @@ public class InspectionRequestServiceImpl
              * QUAN TRỌNG:
              * Phải đồng nhất với resolveCriterionKey() bên dưới
              * để so khớp duplicate request chính xác.
+             *
+             * Identity của chỉ tiêu dựa trên criterionId (không phải name).
+             * Hai chỉ tiêu khác ID nhưng cùng tên KHÔNG bị coi là trùng.
              */
             String criterionKey =
-                    "CAT:" + criteriaId
-                            + ":"
-                            + catalogCriterion.getName();
+                    "CAT:" + criteriaId;
 
             /*
              * Nếu cùng criterion xuất hiện nhiều lần
@@ -724,6 +723,8 @@ public class InspectionRequestServiceImpl
                                         .builder()
                                         .criterionId(
                                                 c.getId())
+                                        .criterionDefinitionId(
+                                                c.getCriterionId())
                                         .code(
                                                 c.getCriterionCode())
                                         .name(
@@ -817,6 +818,9 @@ public class InspectionRequestServiceImpl
                 .criterionId(
                         result.getInspectionCriterion()
                                 .getId().toString())
+                .criterionDefinitionId(
+                        result.getInspectionCriterion()
+                                .getCriterionId())
                 .criterionCode(
                         result.getInspectionCriterion()
                                 .getCriterionCode())
@@ -944,21 +948,30 @@ public class InspectionRequestServiceImpl
     /**
      * Lấy khóa criterion từ InspectionCriterion hiện tại.
      *
+     * Identity của chỉ tiêu dựa trên criterionId (không phải name).
+     * Hai chỉ tiêu khác ID nhưng cùng tên KHÔNG bị coi là trùng.
+     *
      * Scope theo nguồn gốc dữ liệu để không trùng khóa giữa:
-     * - Dữ liệu legacy: snapshot gắn Standard → "{standardId}:{code}".
      * - Dữ liệu mới (NCL-09-CN-009): tham chiếu danh mục dùng chung
-     *   qua criterion_id → "CAT:{criterionId}:{code}".
+     *   qua criterion_id → "CAT:{criterionId}".
+     * - Dữ liệu legacy (criterion_id null, có Standard):
+     *   "{standardId}:{criterionCode}" — fallback cho dữ liệu cũ.
      *
      * Khóa phải đồng nhất với khóa tạo trong createInspectionRequest().
      */
     private String resolveCriterionKey(
             InspectionCriterion criterion) {
 
-        String scope = criterion.getStandard() != null
-                ? criterion.getStandard().getId().toString()
-                : "CAT:" + criterion.getCriterionId();
+        if (criterion.getCriterionId() != null) {
+            return "CAT:" + criterion.getCriterionId();
+        }
 
-        return scope + ":" + criterion.getCriterionCode();
+        if (criterion.getStandard() != null) {
+            return criterion.getStandard().getId().toString()
+                    + ":" + criterion.getCriterionCode();
+        }
+
+        return "LEGACY:" + criterion.getCriterionCode();
     }
 
     /**

@@ -385,17 +385,17 @@ export const ProductionLotDetailPage = () => {
   const [criteriaMetaById, setCriteriaMetaById] = useState<
     Record<number, InspectionCriterion>
   >({});
-  // Kết quả mới nhất theo mã chỉ tiêu (tổng hợp từ các yêu cầu đã có kết quả)
+  // Kết quả mới nhất theo criterionDefinitionId (ID, không phải name)
   const [latestResultByCode, setLatestResultByCode] = useState<
-    Record<string, InspectionCriterionResult>
+    Record<number, InspectionCriterionResult>
   >({});
   // Yêu cầu kiểm nghiệm chứa kết quả mới nhất của từng chỉ tiêu
   const [resultSourceByCode, setResultSourceByCode] = useState<
-    Record<string, string>
+    Record<number, string>
   >({});
-  // Yêu cầu đang chờ kết quả theo mã chỉ tiêu (chưa có kết quả nào)
+  // Yêu cầu đang chờ kết quả theo criterionDefinitionId (chưa có kết quả nào)
   const [pendingRequestByCode, setPendingRequestByCode] = useState<
-    Record<string, string>
+    Record<number, string>
   >({});
   const [insightLoading, setInsightLoading] = useState(false);
   const [insightError, setInsightError] = useState<string | null>(null);
@@ -539,7 +539,7 @@ export const ProductionLotDetailPage = () => {
                 results: await getInspectionRequestResults(
                   request.testRequestId,
                 ),
-                pendingCodes: [] as string[],
+                pendingCriterionIds: [] as number[],
               };
             }
             if (request.status === "PENDING") {
@@ -551,7 +551,11 @@ export const ProductionLotDetailPage = () => {
                 results: detail.criteria.flatMap((item) =>
                   item.result ? [item.result] : [],
                 ),
-                pendingCodes: detail.criteria.map((item) => item.code),
+                // Use criterionDefinitionId (ID) instead of code (name) for identity
+                pendingCriterionIds: detail.criteria
+                  .filter((item) => item.result == null)
+                  .map((item) => item.criterionDefinitionId)
+                  .filter((id): id is number => id != null),
               };
             }
           } catch {
@@ -560,40 +564,43 @@ export const ProductionLotDetailPage = () => {
           return {
             requestId: request.testRequestId,
             results: [] as InspectionCriterionResult[],
-            pendingCodes: [] as string[],
+            pendingCriterionIds: [] as number[],
           };
         }),
       );
 
-      // Kết quả mới nhất theo mã chỉ tiêu (ưu tiên resultDate/updatedAt lớn nhất)
-      const latest: Record<string, InspectionCriterionResult> = {};
-      const source: Record<string, string> = {};
+      // Kết quả mới nhất theo criterionDefinitionId (ID, không phải name)
+      const latest: Record<number, InspectionCriterionResult> = {};
+      const source: Record<number, string> = {};
       for (const summary of summaries) {
         for (const result of summary.results) {
-          const current = latest[result.criterionCode];
+          // Use criterionDefinitionId for identity (fallback to hash of code for legacy data without ID)
+          const key = result.criterionDefinitionId ?? 0;
+          const current = latest[key];
           const isNewer =
             !current ||
             (result.resultDate ?? "") > (current.resultDate ?? "") ||
             ((result.resultDate ?? "") === (current.resultDate ?? "") &&
               result.updatedAt > current.updatedAt);
           if (isNewer) {
-            latest[result.criterionCode] = result;
-            source[result.criterionCode] = summary.requestId;
+            latest[key] = result;
+            source[key] = summary.requestId;
           }
         }
       }
 
-      // Chỉ tiêu đang chờ kết quả mà chưa có bất kỳ kết quả nào
-      const waitingByCode: Record<string, string> = {};
+      // Chỉ tiêu đang chờ kết quả: có pending request thì luôn là WAITING
+      // (bất kể có kết quả trước đó là PASSED/FAILED/EXPIRED)
+      const waitingById: Record<number, string> = {};
       for (const summary of summaries) {
-        for (const code of summary.pendingCodes) {
-          if (!latest[code]) waitingByCode[code] = summary.requestId;
+        for (const id of summary.pendingCriterionIds) {
+          waitingById[id] = summary.requestId;
         }
       }
 
       setLatestResultByCode(latest);
       setResultSourceByCode(source);
-      setPendingRequestByCode(waitingByCode);
+      setPendingRequestByCode(waitingById);
     } catch (error) {
       setLatestResultByCode({});
       setResultSourceByCode({});
@@ -659,23 +666,25 @@ export const ProductionLotDetailPage = () => {
   const criterionRows = useMemo<CriterionRowViewModel[]>(() => {
     if (!lot) return [];
     return lotCriteria.map((criterion) => {
-      const result = latestResultByCode[criterion.code] ?? null;
-      const pendingRequestId = pendingRequestByCode[criterion.code] ?? null;
-      const status: CriterionRowStatus = result
-        ? !result.passed
-          ? "FAILED"
-          : result.expiryDate && result.expiryDate >= today
-            ? "VALID"
-            : "EXPIRED"
-        : pendingRequestId
-          ? "WAITING"
+      // Use criteriaId (ID) for identity, not code (name)
+      const result = latestResultByCode[criterion.criteriaId] ?? null;
+      const pendingRequestId = pendingRequestByCode[criterion.criteriaId] ?? null;
+      // Ưu tiên WAITING khi có pending request (bất kể kết quả trước đó)
+      const status: CriterionRowStatus = pendingRequestId
+        ? "WAITING"
+        : result
+          ? !result.passed
+            ? "FAILED"
+            : result.expiryDate && result.expiryDate >= today
+              ? "VALID"
+              : "EXPIRED"
           : "NOT_TESTED";
       return {
         criterion,
         meta: criteriaMetaById[criterion.criteriaId] ?? null,
         result,
         relatedRequestId:
-          resultSourceByCode[criterion.code] ?? pendingRequestId,
+          resultSourceByCode[criterion.criteriaId] ?? pendingRequestId,
         status,
       };
     });
