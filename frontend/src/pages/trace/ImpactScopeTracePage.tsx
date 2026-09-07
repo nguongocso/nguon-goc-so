@@ -337,17 +337,17 @@ export const ImpactScopeTracePage: React.FC = () => {
 
                         {/* Stats Badges Row */}
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 my-4">
-                          <div className="bg-slate-50 p-2.5 rounded-lg text-xs">
+                          <div className="bg-slate-50 p-2.5 rounded-lg text-xs border border-slate-100">
                             <span className="text-slate-500 block">Số lượng lô:</span>
                             <span className="font-bold text-slate-800">{ship.totalQuantity.toLocaleString()}</span>
                           </div>
-                          <div className="bg-emerald-50/60 p-2.5 rounded-lg text-xs">
-                            <span className="text-emerald-700 block">Tem kích hoạt:</span>
-                            <span className="font-bold text-emerald-900">{ship.activatedStampsCount.toLocaleString()} tem</span>
+                          <div className="bg-slate-50 p-2.5 rounded-lg text-xs border border-slate-100">
+                            <span className="text-slate-500 block">Tem kích hoạt:</span>
+                            <span className="font-bold text-slate-800">{ship.activatedStampsCount.toLocaleString()} tem</span>
                           </div>
-                          <div className="bg-blue-50/60 p-2.5 rounded-lg text-xs col-span-2 sm:col-span-1">
-                            <span className="text-blue-700 block">Lượt quét công khai:</span>
-                            <span className="font-bold text-blue-900">{ship.scanStats?.totalScans || 0} lượt</span>
+                          <div className="bg-slate-50 p-2.5 rounded-lg text-xs col-span-2 sm:col-span-1 border border-slate-100">
+                            <span className="text-slate-500 block">Lượt quét công khai:</span>
+                            <span className="font-bold text-slate-800">{ship.scanStats?.totalScans || 0} lượt</span>
                           </div>
                         </div>
 
@@ -358,7 +358,7 @@ export const ImpactScopeTracePage: React.FC = () => {
                           </p>
 
                           {!ship.events || ship.events.length === 0 ? (
-                            <div className="text-xs text-slate-400 italic bg-slate-50 p-2.5 rounded-lg">
+                            <div className="text-xs text-slate-400 italic bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                               Chưa ghi nhận sự kiện vận chuyển hoặc thu mua cho lô hàng này.
                             </div>
                           ) : (
@@ -366,14 +366,14 @@ export const ImpactScopeTracePage: React.FC = () => {
                               {ship.events.map((ev, eIdx) => (
                                 <div
                                   key={ev.id || eIdx}
-                                  className="p-2.5 bg-blue-50/40 border border-blue-100 rounded-lg text-xs flex flex-col justify-between"
+                                  className="p-2.5 bg-slate-50/80 border border-slate-200 rounded-lg text-xs flex flex-col justify-between"
                                 >
                                   <div className="flex items-center justify-between">
-                                    <span className="font-semibold text-blue-950">
+                                    <span className="font-semibold text-slate-900">
                                       {formatEventType(ev.eventTypeName) || formatEventType(ev.eventType)}
                                     </span>
                                     {ev.isCorrection && (
-                                      <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
+                                      <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium">
                                         Đính chính
                                       </span>
                                     )}
@@ -399,7 +399,7 @@ export const ImpactScopeTracePage: React.FC = () => {
                           </p>
 
                           {ship.receivingOrganizations.length === 0 ? (
-                            <div className="text-xs text-slate-400 italic bg-slate-50 p-2.5 rounded-lg">
+                            <div className="text-xs text-slate-400 italic bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                               Chưa ghi nhận sự kiện giao nhận tới đối tác bên ngoài HTX.
                             </div>
                           ) : (
@@ -407,15 +407,15 @@ export const ImpactScopeTracePage: React.FC = () => {
                               {ship.receivingOrganizations.map((org, oIdx) => (
                                 <div
                                   key={oIdx}
-                                  className="flex items-center justify-between p-2.5 bg-purple-50/50 border border-purple-100 rounded-lg text-xs"
+                                  className="flex items-center justify-between p-2.5 bg-slate-50/80 border border-slate-200 rounded-lg text-xs"
                                 >
                                   <div className="flex items-center gap-2">
-                                    <span className="font-semibold text-purple-950">{org.organizationName}</span>
-                                    <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-mono">
+                                    <span className="font-semibold text-slate-900">{org.organizationName}</span>
+                                    <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-mono font-medium">
                                       {formatEventType(org.eventTypeName) || formatEventType(org.eventType)}
                                     </span>
                                   </div>
-                                  <div className="text-purple-700 text-[11px] font-medium">
+                                  <div className="text-slate-500 text-[11px]">
                                     Thời điểm nhận: {new Date(org.receivedAt).toLocaleString('vi-VN')}
                                   </div>
                                 </div>
