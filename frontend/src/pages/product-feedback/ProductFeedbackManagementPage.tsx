@@ -14,6 +14,7 @@ import {
   updateProductFeedbackProcessing,
 } from "@/api/productFeedbackApi";
 import { getOrganizationMembers } from "@/api/memberApi";
+import { getShipmentsByProductionLot } from "@/api/shipmentApi";
 import { DetailField } from "@/components/common/detail/DetailField";
 import { DetailSection } from "@/components/common/detail/DetailSection";
 import { HelpButton } from "@/components/help/HelpButton";
@@ -45,6 +46,7 @@ import type {
   ProductFeedbackSeverity,
   ProductFeedbackStatus,
 } from "@/types/productFeedback";
+import type { TraceCode } from "@/types/shipment";
 
 const STATUS_LABELS: Record<ProductFeedbackStatus, string> = {
   NEW: "Mới",
@@ -317,6 +319,10 @@ function FeedbackDetailSheet({
   const [assigneeId, setAssigneeId] = useState("");
   const [severity, setSeverity] = useState<ProductFeedbackSeverity>("INFORMATION");
   const [traceCodeId, setTraceCodeId] = useState("");
+  const [traceCodeValue, setTraceCodeValue] = useState("");
+  const [traceCodeOptions, setTraceCodeOptions] = useState<TraceCode[]>([]);
+  const [loadingTraceCodes, setLoadingTraceCodes] = useState(false);
+  const [traceCodeLoadError, setTraceCodeLoadError] = useState<string | null>(null);
   const [processingContent, setProcessingContent] = useState("");
   const [publicResponse, setPublicResponse] = useState("");
   const [closeReason, setCloseReason] = useState("");
@@ -329,6 +335,9 @@ function FeedbackDetailSheet({
     setAssigneeId(feedback.assignedToUserId ?? "");
     setSeverity(feedback.severity);
     setTraceCodeId(feedback.traceCodeId ?? "");
+    setTraceCodeValue(feedback.traceCodeValue ?? "");
+    setTraceCodeOptions([]);
+    setTraceCodeLoadError(null);
     setProcessingContent(feedback.processingContent ?? "");
     setPublicResponse(feedback.publicResponse ?? "");
     setCloseReason(feedback.closeReason ?? "");
@@ -342,6 +351,57 @@ function FeedbackDetailSheet({
       .then((items) => setMembers(items.filter((item) => item.roleCode === "VT-03")))
       .catch(() => setMembers([]));
   }, [canProcess, open]);
+
+  useEffect(() => {
+    if (
+      !open
+      || !canProcess
+      || !feedback
+      || feedback.traceCodeId
+      || severity !== "COUNTERFEIT_SUSPECTED"
+    ) return;
+
+    let cancelled = false;
+    setLoadingTraceCodes(true);
+    setTraceCodeLoadError(null);
+    getShipmentsByProductionLot(feedback.productionLotId)
+      .then((shipments) => {
+        if (cancelled) return;
+        const uniqueCodes = new Map<string, TraceCode>();
+        shipments.forEach((shipment) => {
+          shipment.traceCodes.forEach((traceCode) => {
+            uniqueCodes.set(traceCode.id, traceCode);
+          });
+        });
+        setTraceCodeOptions(
+          Array.from(uniqueCodes.values()).sort((a, b) =>
+            a.codeValue.localeCompare(b.codeValue, "vi"),
+          ),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setTraceCodeOptions([]);
+          setTraceCodeLoadError("Không thể tải danh sách mã tem của lô sản xuất.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingTraceCodes(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canProcess, feedback, open, severity]);
+
+  const handleTraceCodeValueChange = (value: string) => {
+    setTraceCodeValue(value);
+    const normalizedValue = value.trim().toLocaleLowerCase("vi");
+    const selectedCode = traceCodeOptions.find(
+      (traceCode) => traceCode.codeValue.toLocaleLowerCase("vi") === normalizedValue,
+    );
+    setTraceCodeId(selectedCode?.id ?? "");
+  };
 
   const runAction = async (action: () => Promise<ProductFeedback>, success: string) => {
     try {
@@ -401,7 +461,57 @@ function FeedbackDetailSheet({
               <section className="space-y-3 rounded-lg border p-4">
                 <h3 className="font-semibold">Phân loại và nội dung xử lý</h3>
                 <div className="space-y-2"><Label>Mức độ</Label><Select value={severity} onValueChange={(value) => setSeverity(value as ProductFeedbackSeverity)}><SelectTrigger><SelectValue>{SEVERITY_LABELS[severity]}</SelectValue></SelectTrigger><SelectContent>{Object.entries(SEVERITY_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
-                {severity === "COUNTERFEIT_SUSPECTED" && <div className="space-y-2"><Label htmlFor="trace-code-id">ID mã tem *</Label><Input id="trace-code-id" value={traceCodeId} onChange={(event) => setTraceCodeId(event.target.value)} placeholder="UUID mã tem thuộc lô sản xuất" /></div>}
+                {severity === "COUNTERFEIT_SUSPECTED" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="trace-code-value">Mã tem *</Label>
+                    {feedback.traceCodeId ? (
+                      <>
+                        <Input
+                          id="trace-code-value"
+                          value={feedback.traceCodeValue ?? ""}
+                          placeholder="Mã tem đã liên kết"
+                          readOnly
+                          className="bg-muted"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Mã tem được ghi nhận từ phản ánh và không thể thay đổi tại đây.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <Input
+                          id="trace-code-value"
+                          list={`trace-code-options-${feedback.id}`}
+                          value={traceCodeValue}
+                          onChange={(event) => handleTraceCodeValueChange(event.target.value)}
+                          placeholder={loadingTraceCodes ? "Đang tải mã tem..." : "Nhập hoặc chọn mã tem thuộc lô sản xuất"}
+                          disabled={loadingTraceCodes || Boolean(traceCodeLoadError)}
+                          autoComplete="off"
+                        />
+                        <datalist id={`trace-code-options-${feedback.id}`}>
+                          {traceCodeOptions.map((traceCode) => (
+                            <option key={traceCode.id} value={traceCode.codeValue} />
+                          ))}
+                        </datalist>
+                        {traceCodeLoadError ? (
+                          <p className="text-xs text-destructive">{traceCodeLoadError}</p>
+                        ) : traceCodeOptions.length === 0 && !loadingTraceCodes ? (
+                          <p className="text-xs text-muted-foreground">
+                            Lô sản xuất này chưa có mã tem để liên kết.
+                          </p>
+                        ) : traceCodeValue.trim() && !traceCodeId ? (
+                          <p className="text-xs text-destructive">
+                            Vui lòng chọn một mã tem hợp lệ trong danh sách.
+                          </p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            Chỉ hiển thị các mã tem thuộc lô sản xuất của phản ánh.
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
                 <div className="space-y-2"><Label htmlFor="processing-content">Nội dung xử lý nội bộ</Label><Textarea id="processing-content" maxLength={4000} value={processingContent} onChange={(event) => setProcessingContent(event.target.value)} /></div>
                 <div className="space-y-2"><Label htmlFor="public-response">Phản hồi công khai</Label><Textarea id="public-response" maxLength={2000} value={publicResponse} onChange={(event) => setPublicResponse(event.target.value)} /></div>
                 <Button disabled={!feedback.assignedToUserId || saving || (severity === "COUNTERFEIT_SUSPECTED" && !traceCodeId.trim())} onClick={() => void runAction(() => updateProductFeedbackProcessing(feedback.id, { severity, traceCodeId: traceCodeId.trim() || null, processingContent, publicResponse }), "Đã lưu nội dung xử lý")}>Lưu xử lý</Button>

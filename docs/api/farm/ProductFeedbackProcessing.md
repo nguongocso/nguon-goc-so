@@ -46,6 +46,8 @@ Phản ánh không có API xóa và phải giữ được người thực hiện
 - Giới hạn danh sách của `VT-02` theo tổ chức; `VT-01` có thể xem toàn bộ.
 - API lấy thành viên đang hoạt động của tổ chức:
   `GET /api/v1/organization/members?status=ACTIVE`.
+- API lấy lô hàng và mã tem theo lô sản xuất:
+  `GET /api/v1/shipments/production-lots/{productionLotId}`.
 - Luồng đề nghị thu hồi nhiều bước tại `/api/v1/recall-requests`.
 - Danh sách mã tem nghi vấn tại `/api/v1/admin/trace-codes/suspect`.
 
@@ -104,6 +106,12 @@ Phản ánh không có API xóa và phải giữ được người thực hiện
 
 - Phân loại `COUNTERFEIT_SUSPECTED` bắt buộc phản ánh phải liên kết một `traceCodeId` cụ thể.
 - Mã tem phải thuộc lô sản xuất của phản ánh.
+- Giao diện chỉ hiển thị mã nghiệp vụ `traceCodeValue` (ví dụ `NGS-2026-000001`), không hiển thị hoặc
+  yêu cầu người dùng nhập UUID `traceCodeId`.
+- Nếu phản ánh đã có mã tem từ lần gửi công khai, mã nghiệp vụ được hiển thị ở trạng thái chỉ đọc.
+- Nếu phản ánh chưa có mã tem, giao diện lấy danh sách mã thuộc lô qua
+  `GET /api/v1/shipments/production-lots/{productionLotId}`, cho phép tìm/chọn theo `traceCodeValue`,
+  sau đó ánh xạ sang `traceCodeId` để gửi nội bộ trong request xử lý.
 - Việc phân loại chỉ đánh dấu nguồn nghi vấn; không tự động khóa mã.
 - Quyết định khóa mã vẫn thuộc `NCL-08-CN-007` và chỉ `VT-01` thực hiện.
 - Danh sách mã nghi vấn phải lấy cả nguồn phát hiện tự động và nguồn phản ánh của người tiêu dùng;
@@ -358,6 +366,14 @@ Validation bổ sung:
 - Nếu chuyển sang `COUNTERFEIT_SUSPECTED`, cập nhật nguồn dữ liệu danh sách mã nghi vấn trong cùng
   transaction.
 
+Quy ước giao diện:
+
+- `traceCodeId` là khóa kỹ thuật chỉ dùng trong payload; không hiển thị cho người xử lý.
+- Người xử lý nhìn và tìm theo `traceCodeValue`. Frontend chỉ bật nút lưu khi giá trị nhập khớp một
+  mã thuộc lô và đã ánh xạ được sang `traceCodeId`.
+- Mã đã liên kết được khóa chỉ đọc trong modal. Thay đổi liên kết đã lưu không thuộc thao tác cập nhật
+  thông thường của story này.
+
 Response `200 OK`: `ApiResult<ProductFeedbackResponse>`.
 
 ### 9.5 Đóng phản ánh
@@ -576,6 +592,8 @@ Ví dụ lỗi:
 11. `processingContent` không xuất hiện trong response công khai.
 12. Không tồn tại endpoint xóa phản ánh.
 13. Mọi thao tác thay đổi đều ghi audit log.
+14. Giao diện không hiển thị UUID mã tem; mã đã liên kết hiển thị `traceCodeValue` chỉ đọc, còn phản
+    ánh chưa có mã chỉ cho lưu sau khi chọn đúng mã thuộc lô sản xuất.
 
 ## 16. Thứ tự triển khai đã thực hiện
 
