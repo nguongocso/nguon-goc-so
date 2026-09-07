@@ -95,6 +95,103 @@ export function ProcurementShipmentList({
           shipment.productCategoryName === categoryFilter) &&
         (!keyword ||
           shipment.name.toLowerCase().includes(keyword) ||
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { Eye, FileJson, ShoppingCart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TableCell, TableHead, TableRow } from "@/components/ui/table";
+import { ListCard } from "@/components/common/ListCard";
+import { ListToolbar } from "@/components/common/ListToolbar";
+import { SearchInput } from "@/components/common/SearchInput";
+import { FilterSelect } from "@/components/common/FilterSelect";
+import { RefreshButton } from "@/components/common/RefreshButton";
+import { DataTableShell } from "@/components/common/DataTableShell";
+import { Pagination } from "@/components/common/Pagination";
+import { ShipmentStatusBadge } from "@/components/shipment/ShipmentStatusBadge";
+import { ROLE_ACCESS } from "@/config/roleAccess";
+import { usePermission } from "@/hooks/usePermission";
+import type { ProcurementShipment } from "@/types/shipment";
+import { getEligibleShipments, getShipmentById } from "@/api/shipmentApi";
+import { exportGs1Dossier } from "@/api/dossierApi";
+
+const PAGE_SIZE = 10;
+
+interface ProcurementShipmentListProps {
+  /** Callback khi người dùng bấm "Ghi nhận thu mua" trên một lô hàng */
+  onRecordProcurement: (shipmentId: string) => void;
+}
+
+export function ProcurementShipmentList({
+  onRecordProcurement,
+}: ProcurementShipmentListProps) {
+  const [shipments, setShipments] = useState<ProcurementShipment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [page, setPage] = useState(0);
+  const navigate = useNavigate();
+
+  // Điều hướng tới trang chi tiết lô hàng. ProcurementShipment không chứa
+  // productionLotId nên cần lấy chi tiết trước để xây dựng route đầy đủ
+  // /production-lots/:lotId/shipments/:shipmentId (back button hoạt động).
+  const handleViewDetail = async (shipmentId: string) => {
+    try {
+      const data = await getShipmentById(shipmentId);
+
+      if (!data.productionLotId) {
+        toast.error("Không thể xác định lô sản xuất của lô hàng này.");
+        return;
+      }
+
+      navigate(
+        `/production-lots/${data.productionLotId}/shipments/${shipmentId}`,
+      );
+    } catch {
+      toast.error("Không thể tải chi tiết lô hàng.");
+    }
+  };
+
+  const loadShipments = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await getEligibleShipments();
+      setShipments(data);
+    } catch {
+      toast.error("Không thể tải danh sách lô hàng thu mua.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadShipments();
+  }, [loadShipments]);
+
+  // Danh mục nông sản suy ra từ dữ liệu đã tải (không hardcode) — giống pattern
+  // roleFilterOptions của OrganizationDetail: dữ liệu là nguồn sự thật
+  const categoryOptions = useMemo(() => {
+    const names = Array.from(
+      new Set(
+        shipments
+          .map((shipment) => shipment.productCategoryName)
+          .filter((name): name is string => Boolean(name)),
+      ),
+    );
+    return [
+      { value: "ALL", label: "Tất cả nông sản" },
+      ...names.map((name) => ({ value: name, label: name })),
+    ];
+  }, [shipments]);
+
+  const filtered = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    return shipments.filter(
+      (shipment) =>
+        (categoryFilter === "ALL" ||
+          shipment.productCategoryName === categoryFilter) &&
+        (!keyword ||
+          shipment.name.toLowerCase().includes(keyword) ||
           (shipment.productionLotName ?? "").toLowerCase().includes(keyword) ||
           (shipment.productCategoryName ?? "").toLowerCase().includes(keyword)),
     );
@@ -107,7 +204,32 @@ export function ProcurementShipmentList({
     safePage * PAGE_SIZE + PAGE_SIZE,
   );
 
+  const [selectedShipmentIds, setSelectedShipmentIds] = useState<string[]>([]);
   const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
+  const canExportBatch = usePermission(ROLE_ACCESS.batchDossierExport);
+
+  const toggleSelectShipment = (id: string) => {
+    setSelectedShipmentIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllPage = () => {
+    const pageIds = paginatedShipments.map((s) => s.id);
+    const allSelected = pageIds.every((id) => selectedShipmentIds.includes(id));
+    if (allSelected) {
+      setSelectedShipmentIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+    } else {
+      setSelectedShipmentIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const handleGoToBatchExport = () => {
+    if (selectedShipmentIds.length === 0) return;
+    navigate("/shipments/batch-dossier-export", {
+      state: { shipmentIds: selectedShipmentIds },
+    });
+  };
 
   const handleExportGs1 = async (shipmentId: string) => {
     const toastId = toast.loading("Đang tạo hồ sơ GS1...");
@@ -163,13 +285,39 @@ export function ProcurementShipmentList({
             />
           </>
         }
-        right={<RefreshButton onClick={loadShipments} loading={isLoading} />}
+        right={
+          <div className="flex items-center gap-2">
+            {canExportBatch && selectedShipmentIds.length > 0 && (
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={handleGoToBatchExport}
+              >
+                Xuất bộ hồ sơ cho {selectedShipmentIds.length} lô đã chọn
+              </Button>
+            )}
+            <RefreshButton onClick={loadShipments} loading={isLoading} />
+          </div>
+        }
       />
 
       <DataTableShell
-        colSpan={7}
+        colSpan={8}
         header={
           <>
+            <TableHead className="w-10 text-center">
+              <input
+                type="checkbox"
+                className="rounded border-input"
+                checked={
+                  paginatedShipments.length > 0 &&
+                  paginatedShipments.every((s) => selectedShipmentIds.includes(s.id))
+                }
+                onChange={toggleSelectAllPage}
+                title="Chọn tất cả trên trang này"
+              />
+            </TableHead>
             <TableHead className="w-12 text-center">STT</TableHead>
             <TableHead>Tên lô hàng</TableHead>
             <TableHead>Lô sản xuất</TableHead>
@@ -184,6 +332,14 @@ export function ProcurementShipmentList({
             key={shipment.id}
             className="hover:bg-muted/40 transition-colors"
           >
+            <TableCell className="text-center">
+              <input
+                type="checkbox"
+                className="rounded border-input"
+                checked={selectedShipmentIds.includes(shipment.id)}
+                onChange={() => toggleSelectShipment(shipment.id)}
+              />
+            </TableCell>
             <TableCell className="text-center font-medium text-muted-foreground">
               {safePage * PAGE_SIZE + index + 1}
             </TableCell>

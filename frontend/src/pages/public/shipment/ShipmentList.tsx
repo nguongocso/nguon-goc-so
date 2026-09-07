@@ -101,9 +101,27 @@ export const ShipmentList = ({
   const [labelExportShipment, setLabelExportShipment] =
     useState<Shipment | null>(null);
 
+  const [selectedShipmentIds, setSelectedShipmentIds] = useState<string[]>([]);
   const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
+  const canExportBatch = usePermission(ROLE_ACCESS.batchDossierExport);
   // NCL-04-CN-005: Chỉ VT-02 được xuất tem QR
   const canExportLabels = usePermission(ROLE_ACCESS.labelExport);
+
+  const toggleSelectShipment = (id: string) => {
+    setSelectedShipmentIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllPage = () => {
+    const pageIds = shipments.map((s) => s.id);
+    const allSelected = pageIds.every((id) => selectedShipmentIds.includes(id));
+    if (allSelected) {
+      setSelectedShipmentIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+    } else {
+      setSelectedShipmentIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
 
   const {
     shipments,
@@ -250,12 +268,28 @@ export const ShipmentList = ({
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl font-bold text-slate-900">Danh sách lô hàng</CardTitle>
 
-            {canCreate && productionLotStatus === "PACKAGED" && (
-              <Button variant="create" size="sm" onClick={() => navigate(`/production-lots/${productionLotId}/shipments/create`)}>
-                <Plus className="mr-1 h-4 w-4" />
-                Tạo lô hàng
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {canExportBatch && selectedShipmentIds.length > 0 && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() =>
+                    navigate("/shipments/batch-dossier-export", {
+                      state: { shipmentIds: selectedShipmentIds },
+                    })
+                  }
+                >
+                  Xuất bộ hồ sơ ({selectedShipmentIds.length} lô)
+                </Button>
+              )}
+
+              {canCreate && productionLotStatus === "PACKAGED" && (
+                <Button variant="create" size="sm" onClick={() => navigate(`/production-lots/${productionLotId}/shipments/create`)}>
+                  <Plus className="mr-1 h-4 w-4" />
+                  Tạo lô hàng
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
 
@@ -271,6 +305,18 @@ export const ShipmentList = ({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50/80">
+                    <TableHead className="w-10 text-center">
+                      <input
+                        type="checkbox"
+                        className="rounded border-input"
+                        checked={
+                          shipments.length > 0 &&
+                          shipments.every((s) => selectedShipmentIds.includes(s.id))
+                        }
+                        onChange={toggleSelectAllPage}
+                        title="Chọn tất cả trên trang này"
+                      />
+                    </TableHead>
                     <TableHead className="font-semibold text-slate-700">Tên lô hàng</TableHead>
                     <TableHead className="text-center font-semibold text-slate-700">Số lượng</TableHead>
                     <TableHead className="font-semibold text-slate-700">Quy cách</TableHead>
@@ -284,6 +330,14 @@ export const ShipmentList = ({
                 <TableBody>
                   {shipments.map((shipment) => (
                     <TableRow key={shipment.id} className="hover:bg-slate-50/60">
+                      <TableCell className="text-center">
+                        <input
+                          type="checkbox"
+                          className="rounded border-input"
+                          checked={selectedShipmentIds.includes(shipment.id)}
+                          onChange={() => toggleSelectShipment(shipment.id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         {shipment.name}
                       </TableCell>
