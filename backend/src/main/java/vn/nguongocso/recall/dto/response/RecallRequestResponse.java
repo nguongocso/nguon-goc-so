@@ -17,6 +17,7 @@ public class RecallRequestResponse {
 
     private UUID id;
     private UUID lotId;
+    private UUID sourceFeedbackId;
     private String lotName;
     private UserInfo requestedBy;
     private LocalDateTime requestedAt;

@@ -21,6 +21,9 @@ import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.ProductionLot;
+import vn.nguongocso.farm.entity.ProductFeedback;
+import vn.nguongocso.farm.enums.ProductFeedbackStatus;
+import vn.nguongocso.farm.repository.ProductFeedbackRepository;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.notification.service.NotificationService;
@@ -62,6 +65,7 @@ public class RecallRequestServiceImpl implements RecallRequestService {
 
     private final RecallRequestRepository recallRequestRepository;
     private final ProductionLotRepository productionLotRepository;
+    private final ProductFeedbackRepository productFeedbackRepository;
     private final ShipmentRepository shipmentRepository;
     private final TraceCodeRepository traceCodeRepository;
     private final UserRepository userRepository;
@@ -106,6 +110,42 @@ public class RecallRequestServiceImpl implements RecallRequestService {
 
         RecallRequest saved = recallRequestRepository.save(recallRequest);
         return toResponse(saved);
+    }
+
+    @Override
+    @Auditable(action = "CREATE_RECALL_REQUEST", entityType = "RECALL_REQUEST",
+            description = "'Tạo yêu cầu thu hồi từ phản ánh ID: ' + #feedback.id")
+    public RecallRequestResponse createFromFeedback(
+            ProductFeedback feedback,
+            String reason,
+            String evidence,
+            CustomUserDetails currentUser) {
+        ProductionLot lot = feedback.getProductionLot();
+
+        if (lot.getStatus() == ProductionLotStatus.RECALLED) {
+            throw new BusinessException(MSG_LOT_ALREADY_RECALLED);
+        }
+        if (lot.getStatus() != ProductionLotStatus.APPROVED
+                && lot.getStatus() != ProductionLotStatus.HARVESTED
+                && lot.getStatus() != ProductionLotStatus.PACKAGED) {
+            throw new BusinessException(MSG_LOT_NOT_ACTIVE);
+        }
+        if (recallRequestRepository.existsByProductionLot_IdAndStatus(lot.getId(), RecallRequestStatus.PENDING)) {
+            throw new BusinessException(MSG_PENDING_EXISTS);
+        }
+
+        User requester = userRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new BusinessException(MSG_USER_NOT_FOUND));
+
+        RecallRequest recallRequest = new RecallRequest();
+        recallRequest.setProductionLot(lot);
+        recallRequest.setSourceFeedback(feedback);
+        recallRequest.setRequestedBy(requester);
+        recallRequest.setRequestedAt(LocalDateTime.now());
+        recallRequest.setReason(reason.trim());
+        recallRequest.setEvidence(evidence == null || evidence.isBlank() ? null : evidence.trim());
+        recallRequest.setStatus(RecallRequestStatus.PENDING);
+        return toResponse(recallRequestRepository.save(recallRequest));
     }
 
     @Override
@@ -203,6 +243,12 @@ public class RecallRequestServiceImpl implements RecallRequestService {
 
         RecallRequest saved = recallRequestRepository.save(recallRequest);
 
+        if (saved.getSourceFeedback() != null) {
+            ProductFeedback feedback = saved.getSourceFeedback();
+            feedback.setStatus(ProductFeedbackStatus.ESCALATED_TO_RECALL);
+            productFeedbackRepository.save(feedback);
+        }
+
         RecallRequestResponse response = toResponse(saved);
         response.setNotifiedBuyerCount(notifiedBuyerCount);
         return response;
@@ -232,6 +278,12 @@ public class RecallRequestServiceImpl implements RecallRequestService {
         recallRequest.setRejectionReason(request.getRejectionReason());
 
         RecallRequest saved = recallRequestRepository.save(recallRequest);
+        if (saved.getSourceFeedback() != null
+                && saved.getSourceFeedback().getStatus() == ProductFeedbackStatus.ESCALATED_TO_RECALL) {
+            ProductFeedback feedback = saved.getSourceFeedback();
+            feedback.setStatus(ProductFeedbackStatus.IN_PROGRESS);
+            productFeedbackRepository.save(feedback);
+        }
         return toResponse(saved);
     }
 
@@ -329,6 +381,7 @@ public class RecallRequestServiceImpl implements RecallRequestService {
         return RecallRequestResponse.builder()
                 .id(entity.getId())
                 .lotId(entity.getProductionLot().getId())
+                .sourceFeedbackId(entity.getSourceFeedback() != null ? entity.getSourceFeedback().getId() : null)
                 .lotName(entity.getProductionLot().getName())
                 .requestedBy(requestedBy)
                 .requestedAt(entity.getRequestedAt())

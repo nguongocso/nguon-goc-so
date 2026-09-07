@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
+import vn.nguongocso.farm.enums.ProductFeedbackSeverity;
 
 /**
  * Repository quản lý mã truy xuất.
@@ -36,6 +37,10 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 	 * Lấy mã code.
 	 */
 	Optional<TraceCode> findByCodeValue(String codeValue);
+
+	Optional<TraceCode> findByIdAndShipment_ProductionLot_Id(UUID id, UUID productionLotId);
+
+	Optional<TraceCode> findByCodeValueAndShipment_ProductionLot_Id(String codeValue, UUID productionLotId);
 
 	/**
 	 * Lấy giá trị code lớn nhất theo tổ chức và prefix.
@@ -64,6 +69,20 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 	 */
 	Page<TraceCode> findBySuspicionScoreGreaterThanEqualAndStatusIn(
 			Integer suspicionScore, List<TraceCodeStatus> statuses, Pageable pageable);
+
+	@Query("""
+			SELECT DISTINCT tc
+			FROM TraceCode tc
+			LEFT JOIN ProductFeedback pf
+			  ON pf.traceCode = tc AND pf.severity = :feedbackSeverity
+			WHERE tc.status IN :statuses
+			  AND (COALESCE(tc.suspicionScore, 0) >= :minScore OR pf.id IS NOT NULL)
+			""")
+	Page<TraceCode> findSuspectsIncludingConsumerFeedback(
+			@Param("minScore") Integer minScore,
+			@Param("statuses") List<TraceCodeStatus> statuses,
+			@Param("feedbackSeverity") ProductFeedbackSeverity feedbackSeverity,
+			Pageable pageable);
 
 	/**
 	 * NCL-03-CN-006: kiểm tra lô sản xuất đã có mã truy xuất được kích hoạt

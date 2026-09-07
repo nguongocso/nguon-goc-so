@@ -23,6 +23,10 @@ public interface RecallRequestRepository extends JpaRepository<RecallRequest, UU
     /** Kiểm tra một lô sản xuất đã có yêu cầu đang chờ duyệt hay chưa. */
     boolean existsByProductionLot_IdAndStatus(UUID productionLotId, RecallRequestStatus status);
 
+    boolean existsBySourceFeedback_IdAndStatus(UUID sourceFeedbackId, RecallRequestStatus status);
+
+    Optional<RecallRequest> findTopBySourceFeedback_IdOrderByRequestedAtDesc(UUID sourceFeedbackId);
+
     /** Lấy yêu cầu thu hồi đã được duyệt gần nhất của một lô sản xuất. */
     Optional<RecallRequest> findTopByProductionLot_IdAndStatusOrderByApprovedAtDesc(
             UUID productionLotId,

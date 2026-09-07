@@ -24,6 +24,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.farm.entity.ProductionLot;
+import vn.nguongocso.farm.entity.ProductFeedback;
 import vn.nguongocso.recall.enums.RecallRequestStatus;
 
 /**
@@ -56,6 +57,10 @@ public class RecallRequest {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "production_lot_id", nullable = false)
     private ProductionLot productionLot;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_feedback_id")
+    private ProductFeedback sourceFeedback;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "requested_by", nullable = false)
