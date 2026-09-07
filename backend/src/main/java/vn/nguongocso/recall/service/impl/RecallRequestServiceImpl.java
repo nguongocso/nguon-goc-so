@@ -43,7 +43,9 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.service.ShipmentRecallService;
 
-/** Quản lý quy trình đề nghị và duyệt thu hồi một lô hàng. */
+/**
+ * Triển khai dịch vụ quản lý yêu cầu thu hồi lô sản xuất (NCL-08-CN-008).
+ */
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -75,19 +77,40 @@ public class RecallRequestServiceImpl implements RecallRequestService {
     @Auditable(action = "CREATE_RECALL_REQUEST", entityType = "RECALL_REQUEST",
             description = "'Tạo yêu cầu thu hồi lô hàng ID: ' + #request.shipmentId")
     public RecallRequestResponse create(CreateRecallRequest request, CustomUserDetails currentUser) {
-        Shipment shipment = loadOwnedShipment(request.getShipmentId(), currentUser);
-        validateRecallable(shipment);
+        Shipment shipment = shipmentRepository.findByIdAndOrganization_OrganizationId(
+                request.getShipmentId(), currentUser.getOrganizationId())
+                .orElseThrow(() -> new BusinessException(MSG_SHIPMENT_NOT_FOUND));
 
-        User requester = loadUser(currentUser.getUserId());
-        RecallRequest entity = new RecallRequest();
-        entity.setProductionLot(shipment.getProductionLot());
-        entity.setShipment(shipment);
-        entity.setRequestedBy(requester);
-        entity.setRequestedAt(LocalDateTime.now());
-        entity.setReason(request.getReason().trim());
-        entity.setEvidence(normalizeOptional(request.getEvidence()));
-        entity.setStatus(RecallRequestStatus.PENDING);
-        return toResponse(recallRequestRepository.save(entity));
+        if (shipment.getStatus() == ShipmentStatus.RECALLED) {
+            throw new BusinessException(MSG_SHIPMENT_ALREADY_RECALLED);
+        }
+
+        ProductionLot lot = shipment.getProductionLot();
+        if (lot.getStatus() != ProductionLotStatus.APPROVED
+                && lot.getStatus() != ProductionLotStatus.HARVESTED
+                && lot.getStatus() != ProductionLotStatus.PACKAGED) {
+            throw new BusinessException(MSG_LOT_NOT_ACTIVE);
+        }
+
+        if (recallRequestRepository.existsByShipment_IdAndStatus(shipment.getId(), RecallRequestStatus.PENDING)) {
+            throw new BusinessException(MSG_PENDING_EXISTS);
+        }
+
+        User requester = userRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new BusinessException(MSG_USER_NOT_FOUND));
+
+        RecallRequest recallRequest = new RecallRequest();
+        recallRequest.setProductionLot(lot);
+        recallRequest.setShipment(shipment);
+        recallRequest.setRequestedBy(requester);
+        recallRequest.setRequestedAt(LocalDateTime.now());
+        recallRequest.setReason(request.getReason().trim());
+        recallRequest.setEvidence(request.getEvidence() != null && !request.getEvidence().isBlank()
+                ? request.getEvidence().trim() : null);
+        recallRequest.setStatus(RecallRequestStatus.PENDING);
+
+        RecallRequest saved = recallRequestRepository.save(recallRequest);
+        return toResponse(saved);
     }
 
     @Override
@@ -112,31 +135,57 @@ public class RecallRequestServiceImpl implements RecallRequestService {
             if (requestedShipmentId == null) {
                 throw new BusinessException(MSG_SHIPMENT_REQUIRED);
             }
-            shipment = loadOwnedShipment(requestedShipmentId, currentUser);
+            shipment = shipmentRepository.findByIdAndOrganization_OrganizationId(
+                    requestedShipmentId, currentUser.getOrganizationId())
+                    .orElseThrow(() -> new BusinessException(MSG_SHIPMENT_NOT_FOUND));
         }
 
         if (!shipment.getProductionLot().getId().equals(feedback.getProductionLot().getId())) {
             throw new BusinessException(MSG_SHIPMENT_MISMATCH);
         }
-        validateRecallable(shipment);
 
-        RecallRequest entity = new RecallRequest();
-        entity.setProductionLot(shipment.getProductionLot());
-        entity.setShipment(shipment);
-        entity.setSourceFeedback(feedback);
-        entity.setRequestedBy(loadUser(currentUser.getUserId()));
-        entity.setRequestedAt(LocalDateTime.now());
-        entity.setReason(reason.trim());
-        entity.setEvidence(normalizeOptional(evidence));
-        entity.setStatus(RecallRequestStatus.PENDING);
-        return toResponse(recallRequestRepository.save(entity));
+        if (shipment.getStatus() == ShipmentStatus.RECALLED) {
+            throw new BusinessException(MSG_SHIPMENT_ALREADY_RECALLED);
+        }
+
+        ProductionLot lot = shipment.getProductionLot();
+        if (lot.getStatus() != ProductionLotStatus.APPROVED
+                && lot.getStatus() != ProductionLotStatus.HARVESTED
+                && lot.getStatus() != ProductionLotStatus.PACKAGED) {
+            throw new BusinessException(MSG_LOT_NOT_ACTIVE);
+        }
+
+        if (recallRequestRepository.existsByShipment_IdAndStatus(shipment.getId(), RecallRequestStatus.PENDING)) {
+            throw new BusinessException(MSG_PENDING_EXISTS);
+        }
+
+        User requester = userRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new BusinessException(MSG_USER_NOT_FOUND));
+
+        RecallRequest recallRequest = new RecallRequest();
+        recallRequest.setProductionLot(lot);
+        recallRequest.setShipment(shipment);
+        recallRequest.setSourceFeedback(feedback);
+        recallRequest.setRequestedBy(requester);
+        recallRequest.setRequestedAt(LocalDateTime.now());
+        recallRequest.setReason(reason.trim());
+        recallRequest.setEvidence(evidence != null && !evidence.isBlank() ? evidence.trim() : null);
+        recallRequest.setStatus(RecallRequestStatus.PENDING);
+
+        RecallRequest saved = recallRequestRepository.save(recallRequest);
+        return toResponse(saved);
     }
 
     @Override
     @Transactional(readOnly = true)
     public PageResponse<RecallRequestResponse> list(String status, int page, int size, CustomUserDetails currentUser) {
-        page = Math.max(page, 0);
-        size = size <= 0 ? 20 : size;
+        if (page < 0) {
+            page = 0;
+        }
+        if (size <= 0) {
+            size = 20;
+        }
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "requestedAt"));
 
         Page<RecallRequest> result;
@@ -144,7 +193,7 @@ public class RecallRequestServiceImpl implements RecallRequestService {
             RecallRequestStatus requestStatus;
             try {
                 requestStatus = RecallRequestStatus.valueOf(status.toUpperCase());
-            } catch (IllegalArgumentException ex) {
+            } catch (IllegalArgumentException e) {
                 throw new BusinessException("Trạng thái không hợp lệ: " + status);
             }
             result = recallRequestRepository.findByProductionLot_Organization_OrganizationIdAndStatus(
@@ -154,39 +203,60 @@ public class RecallRequestServiceImpl implements RecallRequestService {
                     currentUser.getOrganizationId(), pageable);
         }
 
-        return PageResponse.from(result, result.getContent().stream().map(this::toResponse).toList());
+        List<RecallRequestResponse> items = result.getContent().stream()
+                .map(this::toResponse)
+                .toList();
+
+        return PageResponse.from(result, items);
     }
 
     @Override
     @Transactional(readOnly = true)
     public RecallRequestResponse getById(UUID id, CustomUserDetails currentUser) {
-        return toResponse(loadOwnedRequest(id, currentUser));
+        RecallRequest recallRequest = recallRequestRepository.findByIdAndProductionLot_Organization_OrganizationId(
+                id, currentUser.getOrganizationId())
+                .orElseThrow(() -> new BusinessException(MSG_REQUEST_NOT_FOUND));
+        return toResponse(recallRequest);
     }
 
     @Override
     @Auditable(action = "APPROVE_RECALL_REQUEST", entityType = "RECALL_REQUEST",
             description = "'Duyệt yêu cầu thu hồi ID: ' + #id")
     public RecallRequestResponse approve(UUID id, ApproveRecallRequest request, CustomUserDetails currentUser) {
-        RecallRequest entity = loadOwnedRequest(id, currentUser);
-        ensurePending(entity);
-        if (entity.getRequestedBy().getUserId().equals(currentUser.getUserId())) {
+        RecallRequest recallRequest = recallRequestRepository.findByIdAndProductionLot_Organization_OrganizationId(
+                id, currentUser.getOrganizationId())
+                .orElseThrow(() -> new BusinessException(MSG_REQUEST_NOT_FOUND));
+
+        if (recallRequest.getStatus() != RecallRequestStatus.PENDING) {
+            throw new BusinessException(MSG_NOT_PENDING);
+        }
+
+        // QTN-22: không cho tự duyệt yêu cầu của chính mình
+        if (recallRequest.getRequestedBy().getUserId().equals(currentUser.getUserId())) {
             throw new BusinessException(MSG_CANNOT_APPROVE_OWN);
         }
-        if (entity.getShipment() == null) {
+
+        if (recallRequest.getShipment() == null) {
             throw new BusinessException(HttpStatus.CONFLICT,
                     "Yêu cầu cũ chưa xác định được lô hàng; vui lòng từ chối và tạo lại yêu cầu.");
         }
 
+        User approver = userRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new BusinessException(MSG_USER_NOT_FOUND));
+
+        // Thu hồi lô hàng và toàn bộ mã tem thuộc lô hàng đó
         vn.nguongocso.trace.dto.request.RecallRequest shipmentRecall =
                 new vn.nguongocso.trace.dto.request.RecallRequest();
-        shipmentRecall.setReason(entity.getReason());
-        shipmentRecallService.recallShipment(entity.getShipment().getId(), shipmentRecall, null);
+        shipmentRecall.setReason(recallRequest.getReason());
+        shipmentRecallService.recallShipment(recallRequest.getShipment().getId(), shipmentRecall, null);
 
-        entity.setStatus(RecallRequestStatus.APPROVED);
-        entity.setApprovedBy(loadUser(currentUser.getUserId()));
-        entity.setApprovedAt(LocalDateTime.now());
-        entity.setApprovalRemarks(request != null ? request.getRemarks() : null);
-        RecallRequest saved = recallRequestRepository.save(entity);
+        // Cập nhật trạng thái yêu cầu
+        recallRequest.setStatus(RecallRequestStatus.APPROVED);
+        recallRequest.setApprovedBy(approver);
+        recallRequest.setApprovedAt(LocalDateTime.now());
+        recallRequest.setApprovalRemarks(request != null ? request.getRemarks() : null);
+
+        RecallRequest saved = recallRequestRepository.save(recallRequest);
 
         if (saved.getSourceFeedback() != null) {
             ProductFeedback feedback = saved.getSourceFeedback();
@@ -194,8 +264,11 @@ public class RecallRequestServiceImpl implements RecallRequestService {
             productFeedbackRepository.save(feedback);
         }
 
+        // Gửi thông báo cho các doanh nghiệp thu mua (người mua) của lô hàng
+        int notifiedBuyerCount = sendBuyerNotifications(saved.getShipment(), saved.getReason());
+
         RecallRequestResponse response = toResponse(saved);
-        response.setNotifiedBuyerCount(sendBuyerNotifications(saved.getShipment(), saved.getReason()));
+        response.setNotifiedBuyerCount(notifiedBuyerCount);
         return response;
     }
 
@@ -203,17 +276,27 @@ public class RecallRequestServiceImpl implements RecallRequestService {
     @Auditable(action = "REJECT_RECALL_REQUEST", entityType = "RECALL_REQUEST",
             description = "'Từ chối yêu cầu thu hồi ID: ' + #id")
     public RecallRequestResponse reject(UUID id, RejectRecallRequest request, CustomUserDetails currentUser) {
-        RecallRequest entity = loadOwnedRequest(id, currentUser);
-        ensurePending(entity);
+        RecallRequest recallRequest = recallRequestRepository.findByIdAndProductionLot_Organization_OrganizationId(
+                id, currentUser.getOrganizationId())
+                .orElseThrow(() -> new BusinessException(MSG_REQUEST_NOT_FOUND));
+
+        if (recallRequest.getStatus() != RecallRequestStatus.PENDING) {
+            throw new BusinessException(MSG_NOT_PENDING);
+        }
+
         if (request == null || request.getRejectionReason() == null || request.getRejectionReason().isBlank()) {
             throw new BusinessException(MSG_REJECT_REASON_REQUIRED);
         }
 
-        entity.setStatus(RecallRequestStatus.REJECTED);
-        entity.setRejectedBy(loadUser(currentUser.getUserId()));
-        entity.setRejectedAt(LocalDateTime.now());
-        entity.setRejectionReason(request.getRejectionReason().trim());
-        RecallRequest saved = recallRequestRepository.save(entity);
+        User rejecter = userRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new BusinessException(MSG_USER_NOT_FOUND));
+
+        recallRequest.setStatus(RecallRequestStatus.REJECTED);
+        recallRequest.setRejectedBy(rejecter);
+        recallRequest.setRejectedAt(LocalDateTime.now());
+        recallRequest.setRejectionReason(request.getRejectionReason().trim());
+
+        RecallRequest saved = recallRequestRepository.save(recallRequest);
 
         if (saved.getSourceFeedback() != null
                 && saved.getSourceFeedback().getStatus() == ProductFeedbackStatus.ESCALATED_TO_RECALL) {
@@ -221,85 +304,93 @@ public class RecallRequestServiceImpl implements RecallRequestService {
             feedback.setStatus(ProductFeedbackStatus.IN_PROGRESS);
             productFeedbackRepository.save(feedback);
         }
+
         return toResponse(saved);
     }
 
-    private Shipment loadOwnedShipment(UUID shipmentId, CustomUserDetails currentUser) {
-        return shipmentRepository.findByIdAndOrganization_OrganizationId(shipmentId, currentUser.getOrganizationId())
-                .orElseThrow(() -> new BusinessException(MSG_SHIPMENT_NOT_FOUND));
-    }
-
-    private RecallRequest loadOwnedRequest(UUID id, CustomUserDetails currentUser) {
-        return recallRequestRepository.findByIdAndProductionLot_Organization_OrganizationId(
-                        id, currentUser.getOrganizationId())
-                .orElseThrow(() -> new BusinessException(MSG_REQUEST_NOT_FOUND));
-    }
-
-    private User loadUser(UUID userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(MSG_USER_NOT_FOUND));
-    }
-
-    private void validateRecallable(Shipment shipment) {
-        if (shipment.getStatus() == ShipmentStatus.RECALLED) {
-            throw new BusinessException(MSG_SHIPMENT_ALREADY_RECALLED);
-        }
-        ProductionLot lot = shipment.getProductionLot();
-        if (lot.getStatus() != ProductionLotStatus.APPROVED
-                && lot.getStatus() != ProductionLotStatus.HARVESTED
-                && lot.getStatus() != ProductionLotStatus.PACKAGED) {
-            throw new BusinessException(MSG_LOT_NOT_ACTIVE);
-        }
-        if (recallRequestRepository.existsByShipment_IdAndStatus(shipment.getId(), RecallRequestStatus.PENDING)) {
-            throw new BusinessException(MSG_PENDING_EXISTS);
-        }
-    }
-
-    private void ensurePending(RecallRequest entity) {
-        if (entity.getStatus() != RecallRequestStatus.PENDING) {
-            throw new BusinessException(MSG_NOT_PENDING);
-        }
-    }
-
-    private String normalizeOptional(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
-    }
-
+    /**
+     * Xác định các doanh nghiệp thu mua (người mua) có liên quan đến lô hàng
+     * và gửi thông báo thu hồi cho họ.
+     *
+     * <p>
+     * Các doanh nghiệp thu mua được xác định qua sự kiện PROCUREMENT
+     * (do người dùng VT-04 ghi) trên lô hàng.
+     * </p>
+     *
+     * @param shipment lô hàng bị thu hồi
+     * @param reason   lý do thu hồi
+     * @return số lượng người dùng đã nhận thông báo
+     */
     private int sendBuyerNotifications(Shipment shipment, String reason) {
-        List<UUID> recorderIds = chainEventRepository
+        // 1. Lấy các user đã ghi sự kiện PROCUREMENT cho lô hàng này
+        List<UUID> procurementRecorderIds = chainEventRepository
                 .findDistinctProcurementRecorderIdsByShipmentIds(List.of(shipment.getId()));
-        if (recorderIds.isEmpty()) {
+
+        if (procurementRecorderIds.isEmpty()) {
             return 0;
         }
 
+        // 2. Tìm các tổ chức mà các user đó trực thuộc
         List<UUID> buyerOrgIds = new ArrayList<>();
-        for (UUID recorderId : recorderIds) {
-            for (OrganizationUser membership : organizationUserRepository.findAllByUser_UserId(recorderId)) {
-                if (membership.getStatus() == OrganizationUserStatus.ACTIVE) {
-                    UUID organizationId = membership.getOrganization().getOrganizationId();
-                    if (!buyerOrgIds.contains(organizationId)) {
-                        buyerOrgIds.add(organizationId);
+        for (UUID recorderId : procurementRecorderIds) {
+            List<OrganizationUser> memberships = organizationUserRepository.findAllByUser_UserId(recorderId);
+            for (OrganizationUser ou : memberships) {
+                if (ou.getStatus() == OrganizationUserStatus.ACTIVE) {
+                    UUID orgId = ou.getOrganization().getOrganizationId();
+                    if (!buyerOrgIds.contains(orgId)) {
+                        buyerOrgIds.add(orgId);
                     }
                     break;
                 }
             }
         }
 
+        // 3. Lấy tất cả user đang hoạt động thuộc các tổ chức đó
         List<UUID> recipientIds = new ArrayList<>();
-        for (UUID organizationId : buyerOrgIds) {
-            for (OrganizationUser membership : organizationUserRepository
-                    .findByOrganization_OrganizationIdAndStatus(organizationId, OrganizationUserStatus.ACTIVE)) {
-                UUID userId = membership.getUser().getUserId();
+        for (UUID orgId : buyerOrgIds) {
+            List<OrganizationUser> members = organizationUserRepository
+                    .findByOrganization_OrganizationIdAndStatus(orgId, OrganizationUserStatus.ACTIVE);
+            for (OrganizationUser ou : members) {
+                UUID userId = ou.getUser().getUserId();
                 if (!recipientIds.contains(userId)) {
                     recipientIds.add(userId);
                 }
             }
         }
-        return notificationService.sendRecallNotification(
-                shipment.getName(), reason, recipientIds);
+
+        if (recipientIds.isEmpty()) {
+            return 0;
+        }
+
+        // 4. Gửi thông báo
+        return notificationService.sendRecallNotification(shipment.getName(), reason, recipientIds);
     }
 
+    /**
+     * Chuyển đổi entity sang response DTO.
+     */
     private RecallRequestResponse toResponse(RecallRequest entity) {
+        RecallRequestResponse.UserInfo requestedBy = entity.getRequestedBy() != null
+                ? RecallRequestResponse.UserInfo.builder()
+                        .userId(entity.getRequestedBy().getUserId())
+                        .fullName(entity.getRequestedBy().getFullName())
+                        .build()
+                : null;
+
+        RecallRequestResponse.UserInfo approvedBy = entity.getApprovedBy() != null
+                ? RecallRequestResponse.UserInfo.builder()
+                        .userId(entity.getApprovedBy().getUserId())
+                        .fullName(entity.getApprovedBy().getFullName())
+                        .build()
+                : null;
+
+        RecallRequestResponse.UserInfo rejectedBy = entity.getRejectedBy() != null
+                ? RecallRequestResponse.UserInfo.builder()
+                        .userId(entity.getRejectedBy().getUserId())
+                        .fullName(entity.getRejectedBy().getFullName())
+                        .build()
+                : null;
+
         return RecallRequestResponse.builder()
                 .id(entity.getId())
                 .shipmentId(entity.getShipment() != null ? entity.getShipment().getId() : null)
@@ -307,24 +398,18 @@ public class RecallRequestServiceImpl implements RecallRequestService {
                 .lotId(entity.getProductionLot().getId())
                 .lotName(entity.getProductionLot().getName())
                 .sourceFeedbackId(entity.getSourceFeedback() != null ? entity.getSourceFeedback().getId() : null)
-                .requestedBy(toUserInfo(entity.getRequestedBy()))
+                .requestedBy(requestedBy)
                 .requestedAt(entity.getRequestedAt())
                 .status(entity.getStatus().name())
                 .reason(entity.getReason())
                 .evidence(entity.getEvidence())
-                .approvedBy(toUserInfo(entity.getApprovedBy()))
+                .approvedBy(approvedBy)
                 .approvedAt(entity.getApprovedAt())
                 .approvalRemarks(entity.getApprovalRemarks())
-                .rejectedBy(toUserInfo(entity.getRejectedBy()))
+                .rejectedBy(rejectedBy)
                 .rejectedAt(entity.getRejectedAt())
                 .rejectionReason(entity.getRejectionReason())
-                .build();
-    }
-
-    private RecallRequestResponse.UserInfo toUserInfo(User user) {
-        return user == null ? null : RecallRequestResponse.UserInfo.builder()
-                .userId(user.getUserId())
-                .fullName(user.getFullName())
+                .notifiedBuyerCount(0)
                 .build();
     }
 }

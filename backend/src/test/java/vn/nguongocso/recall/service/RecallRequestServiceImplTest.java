@@ -1,6 +1,7 @@
 package vn.nguongocso.recall.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -19,14 +20,19 @@ import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.event.repository.ChainEventRepository;
+import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.ProductFeedback;
 import vn.nguongocso.farm.entity.ProductionLot;
+import vn.nguongocso.farm.enums.ProductFeedbackStatus;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.farm.repository.ProductFeedbackRepository;
 import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.recall.dto.request.ApproveRecallRequest;
+import vn.nguongocso.recall.dto.request.CreateRecallRequest;
+import vn.nguongocso.recall.dto.request.RejectRecallRequest;
+import vn.nguongocso.recall.dto.response.RecallRequestResponse;
 import vn.nguongocso.recall.entity.RecallRequest;
 import vn.nguongocso.recall.enums.RecallRequestStatus;
 import vn.nguongocso.recall.repository.RecallRequestRepository;
@@ -40,10 +46,12 @@ import vn.nguongocso.trace.service.ShipmentRecallService;
 class RecallRequestServiceImplTest {
 
     private RecallRequestRepository recallRequestRepository;
+    private ProductFeedbackRepository productFeedbackRepository;
     private ShipmentRepository shipmentRepository;
     private ShipmentRecallService shipmentRecallService;
     private UserRepository userRepository;
     private ChainEventRepository chainEventRepository;
+    private NotificationService notificationService;
     private RecallRequestServiceImpl service;
     private CustomUserDetails currentUser;
     private UUID organizationId;
@@ -52,19 +60,22 @@ class RecallRequestServiceImplTest {
     @BeforeEach
     void setUp() {
         recallRequestRepository = mock(RecallRequestRepository.class);
+        productFeedbackRepository = mock(ProductFeedbackRepository.class);
         shipmentRepository = mock(ShipmentRepository.class);
         shipmentRecallService = mock(ShipmentRecallService.class);
         userRepository = mock(UserRepository.class);
         chainEventRepository = mock(ChainEventRepository.class);
+        notificationService = mock(NotificationService.class);
+
         service = new RecallRequestServiceImpl(
                 recallRequestRepository,
-                mock(ProductFeedbackRepository.class),
+                productFeedbackRepository,
                 shipmentRepository,
                 shipmentRecallService,
                 userRepository,
                 mock(OrganizationUserRepository.class),
                 chainEventRepository,
-                mock(NotificationService.class));
+                notificationService);
 
         organizationId = UUID.randomUUID();
         currentUserId = UUID.randomUUID();
@@ -73,6 +84,67 @@ class RecallRequestServiceImplTest {
         when(currentUser.getUserId()).thenReturn(currentUserId);
         when(recallRequestRepository.save(any(RecallRequest.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    @Test
+    void create_shouldSucceed_whenShipmentIsValid() {
+        ProductionLot lot = productionLot();
+        Shipment shipment = shipment(lot, "Lô hàng đạt chuẩn");
+        CreateRecallRequest request = new CreateRecallRequest();
+        request.setShipmentId(shipment.getId());
+        request.setReason("Phát hiện lỗi bao bì");
+        request.setEvidence("Ảnh chụp tem rách");
+
+        User requester = User.builder().userId(currentUserId).fullName("Người tạo").build();
+        when(shipmentRepository.findByIdAndOrganization_OrganizationId(shipment.getId(), organizationId))
+                .thenReturn(Optional.of(shipment));
+        when(recallRequestRepository.existsByShipment_IdAndStatus(shipment.getId(), RecallRequestStatus.PENDING))
+                .thenReturn(false);
+        when(userRepository.findById(currentUserId)).thenReturn(Optional.of(requester));
+
+        RecallRequestResponse response = service.create(request, currentUser);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getShipmentId()).isEqualTo(shipment.getId());
+        assertThat(response.getShipmentName()).isEqualTo("Lô hàng đạt chuẩn");
+        assertThat(response.getLotId()).isEqualTo(lot.getId());
+        assertThat(response.getStatus()).isEqualTo("PENDING");
+        assertThat(response.getReason()).isEqualTo("Phát hiện lỗi bao bì");
+    }
+
+    @Test
+    void create_shouldThrow_whenShipmentAlreadyRecalled() {
+        ProductionLot lot = productionLot();
+        Shipment shipment = shipment(lot, "Lô hàng đã thu hồi");
+        shipment.setStatus(ShipmentStatus.RECALLED);
+        CreateRecallRequest request = new CreateRecallRequest();
+        request.setShipmentId(shipment.getId());
+        request.setReason("Thu hồi lại");
+
+        when(shipmentRepository.findByIdAndOrganization_OrganizationId(shipment.getId(), organizationId))
+                .thenReturn(Optional.of(shipment));
+
+        assertThatThrownBy(() -> service.create(request, currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Lô hàng đã bị thu hồi trước đó.");
+    }
+
+    @Test
+    void create_shouldThrow_whenPendingRecallExistsForShipment() {
+        ProductionLot lot = productionLot();
+        Shipment shipment = shipment(lot, "Lô hàng đang chờ duyệt");
+        CreateRecallRequest request = new CreateRecallRequest();
+        request.setShipmentId(shipment.getId());
+        request.setReason("Lý do trùng");
+
+        when(shipmentRepository.findByIdAndOrganization_OrganizationId(shipment.getId(), organizationId))
+                .thenReturn(Optional.of(shipment));
+        when(recallRequestRepository.existsByShipment_IdAndStatus(shipment.getId(), RecallRequestStatus.PENDING))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> service.create(request, currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Lô hàng này đã có yêu cầu thu hồi đang chờ duyệt.");
     }
 
     @Test
@@ -96,6 +168,62 @@ class RecallRequestServiceImplTest {
         verify(recallRequestRepository).save(captor.capture());
         assertThat(captor.getValue().getShipment()).isSameAs(shipment);
         assertThat(captor.getValue().getProductionLot()).isSameAs(lot);
+        assertThat(captor.getValue().getSourceFeedback()).isSameAs(feedback);
+    }
+
+    @Test
+    void createFromFeedback_shouldThrow_whenTraceCodeShipmentDiffersFromRequested() {
+        ProductionLot lot = productionLot();
+        Shipment shipmentA = shipment(lot, "Lô hàng A");
+        Shipment shipmentB = shipment(lot, "Lô hàng B");
+        TraceCode traceCode = new TraceCode();
+        traceCode.setId(UUID.randomUUID());
+        traceCode.setShipment(shipmentA);
+
+        ProductFeedback feedback = ProductFeedback.builder()
+                .id(UUID.randomUUID())
+                .productionLot(lot)
+                .traceCode(traceCode)
+                .build();
+
+        assertThatThrownBy(() -> service.createFromFeedback(feedback, shipmentB.getId(), "Lý do", null, currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Lô hàng phải là lô chứa mã tem của phản ánh.");
+    }
+
+    @Test
+    void createFromFeedback_shouldThrow_whenNoTraceCodeAndNoShipmentSpecified() {
+        ProductionLot lot = productionLot();
+        ProductFeedback feedback = ProductFeedback.builder()
+                .id(UUID.randomUUID())
+                .productionLot(lot)
+                .traceCode(null)
+                .build();
+
+        assertThatThrownBy(() -> service.createFromFeedback(feedback, null, "Lý do", null, currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Phải xác định lô hàng cần thu hồi.");
+    }
+
+    @Test
+    void createFromFeedback_shouldThrow_whenShipmentDoesNotBelongToFeedbackLot() {
+        ProductionLot lotA = productionLot();
+        ProductionLot lotB = productionLot();
+        lotB.setId(UUID.randomUUID());
+        Shipment shipmentB = shipment(lotB, "Lô hàng thuộc lot B");
+
+        ProductFeedback feedback = ProductFeedback.builder()
+                .id(UUID.randomUUID())
+                .productionLot(lotA)
+                .traceCode(null)
+                .build();
+
+        when(shipmentRepository.findByIdAndOrganization_OrganizationId(shipmentB.getId(), organizationId))
+                .thenReturn(Optional.of(shipmentB));
+
+        assertThatThrownBy(() -> service.createFromFeedback(feedback, shipmentB.getId(), "Lý do", null, currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Lô hàng không thuộc lô sản xuất của phản ánh.");
     }
 
     @Test
@@ -129,6 +257,111 @@ class RecallRequestServiceImplTest {
         assertThat(lot.getStatus()).isEqualTo(ProductionLotStatus.APPROVED);
         assertThat(other.getStatus()).isEqualTo(ShipmentStatus.ACTIVATED);
         assertThat(request.getStatus()).isEqualTo(RecallRequestStatus.APPROVED);
+    }
+
+    @Test
+    void approve_shouldThrow_whenApproverIsRequester() {
+        ProductionLot lot = productionLot();
+        Shipment shipment = shipment(lot, "Lô hàng");
+        User sameUser = User.builder().userId(currentUserId).fullName("Người tạo kiêm duyệt").build();
+        RecallRequest request = new RecallRequest();
+        request.setId(UUID.randomUUID());
+        request.setProductionLot(lot);
+        request.setShipment(shipment);
+        request.setRequestedBy(sameUser);
+        request.setStatus(RecallRequestStatus.PENDING);
+
+        when(recallRequestRepository.findByIdAndProductionLot_Organization_OrganizationId(
+                request.getId(), organizationId)).thenReturn(Optional.of(request));
+
+        assertThatThrownBy(() -> service.approve(request.getId(), new ApproveRecallRequest(), currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Bạn không thể duyệt yêu cầu do chính mình tạo (QTN-22).");
+    }
+
+    @Test
+    void approve_shouldUpdateLinkedFeedbackStatusToEscalated() {
+        ProductionLot lot = productionLot();
+        Shipment shipment = shipment(lot, "Lô hàng");
+        User requester = User.builder().userId(UUID.randomUUID()).fullName("Người tạo").build();
+        User approver = User.builder().userId(currentUserId).fullName("Người duyệt").build();
+
+        ProductFeedback feedback = ProductFeedback.builder()
+                .id(UUID.randomUUID())
+                .status(ProductFeedbackStatus.IN_PROGRESS)
+                .build();
+
+        RecallRequest request = new RecallRequest();
+        request.setId(UUID.randomUUID());
+        request.setProductionLot(lot);
+        request.setShipment(shipment);
+        request.setSourceFeedback(feedback);
+        request.setRequestedBy(requester);
+        request.setReason("Lý do thu hồi");
+        request.setStatus(RecallRequestStatus.PENDING);
+
+        when(recallRequestRepository.findByIdAndProductionLot_Organization_OrganizationId(
+                request.getId(), organizationId)).thenReturn(Optional.of(request));
+        when(userRepository.findById(currentUserId)).thenReturn(Optional.of(approver));
+        when(chainEventRepository.findDistinctProcurementRecorderIdsByShipmentIds(List.of(shipment.getId())))
+                .thenReturn(List.of());
+
+        service.approve(request.getId(), new ApproveRecallRequest(), currentUser);
+
+        verify(productFeedbackRepository).save(feedback);
+        assertThat(feedback.getStatus()).isEqualTo(ProductFeedbackStatus.ESCALATED_TO_RECALL);
+    }
+
+    @Test
+    void reject_shouldRevertFeedbackStatusToInProgress_whenEscalated() {
+        ProductionLot lot = productionLot();
+        Shipment shipment = shipment(lot, "Lô hàng");
+        User requester = User.builder().userId(UUID.randomUUID()).fullName("Người tạo").build();
+        User rejecter = User.builder().userId(currentUserId).fullName("Người từ chối").build();
+
+        ProductFeedback feedback = ProductFeedback.builder()
+                .id(UUID.randomUUID())
+                .status(ProductFeedbackStatus.ESCALATED_TO_RECALL)
+                .build();
+
+        RecallRequest request = new RecallRequest();
+        request.setId(UUID.randomUUID());
+        request.setProductionLot(lot);
+        request.setShipment(shipment);
+        request.setSourceFeedback(feedback);
+        request.setRequestedBy(requester);
+        request.setStatus(RecallRequestStatus.PENDING);
+
+        RejectRecallRequest rejectRequest = new RejectRecallRequest();
+        rejectRequest.setRejectionReason("Chưa đủ bằng chứng xác thực");
+
+        when(recallRequestRepository.findByIdAndProductionLot_Organization_OrganizationId(
+                request.getId(), organizationId)).thenReturn(Optional.of(request));
+        when(userRepository.findById(currentUserId)).thenReturn(Optional.of(rejecter));
+
+        RecallRequestResponse response = service.reject(request.getId(), rejectRequest, currentUser);
+
+        assertThat(response.getStatus()).isEqualTo("REJECTED");
+        assertThat(response.getRejectionReason()).isEqualTo("Chưa đủ bằng chứng xác thực");
+        verify(productFeedbackRepository).save(feedback);
+        assertThat(feedback.getStatus()).isEqualTo(ProductFeedbackStatus.IN_PROGRESS);
+    }
+
+    @Test
+    void reject_shouldThrow_whenRejectionReasonIsBlank() {
+        RecallRequest request = new RecallRequest();
+        request.setId(UUID.randomUUID());
+        request.setStatus(RecallRequestStatus.PENDING);
+
+        when(recallRequestRepository.findByIdAndProductionLot_Organization_OrganizationId(
+                request.getId(), organizationId)).thenReturn(Optional.of(request));
+
+        RejectRecallRequest rejectRequest = new RejectRecallRequest();
+        rejectRequest.setRejectionReason("   ");
+
+        assertThatThrownBy(() -> service.reject(request.getId(), rejectRequest, currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Lý do từ chối không được để trống.");
     }
 
     private ProductionLot productionLot() {
