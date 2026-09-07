@@ -210,10 +210,28 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
                             // Chỉ thêm vào tổ chức đã nhận đối tác (bên thứ ba) nếu khác tổ chức sở hữu lô sản xuất gốc
                             if (lotOrgId != null && !lotOrgId.equals(recOrg.getOrganizationId())) {
                                 receivingOrgIds.add(recOrg.getOrganizationId());
+
+                                Long recQty = null;
+                                if (ev.getEventData() != null) {
+                                    try {
+                                        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                                        com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(ev.getEventData());
+                                        if (node.has("receivedQuantity")) {
+                                            recQty = node.get("receivedQuantity").asLong();
+                                        } else if (node.has("quantity")) {
+                                            recQty = node.get("quantity").asLong();
+                                        }
+                                    } catch (Exception ignored) {}
+                                }
+                                if (recQty == null) {
+                                    recQty = s.getTotalQuantity();
+                                }
+
                                 receivingOrgs.add(ReceivingOrganizationTraceDto.builder()
                                         .organizationId(recOrg.getOrganizationId())
                                         .organizationName(recOrg.getName()) // Đáp ứng TC-04: Chỉ hiển thị tên & thời điểm
                                         .receivedAt(ev.getRecordedAt())
+                                        .receivedQuantity(recQty)
                                         .eventType(type)
                                         .eventTypeName(getEventTypeName(type))
                                         .build());

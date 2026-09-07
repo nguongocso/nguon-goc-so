@@ -37,6 +37,7 @@ export interface ReceivingOrganizationTraceDto {
   organizationId: string;
   organizationName: string;
   receivedAt: string;
+  receivedQuantity?: number;
   eventType: string;
   eventTypeName?: string;
 }

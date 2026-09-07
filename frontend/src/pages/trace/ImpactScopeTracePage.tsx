@@ -9,6 +9,7 @@ import {
 import { exportImpactScopeReport, getImpactScopeTrace } from '@/api/impactScopeTraceApi';
 import type { ImpactScopeTraceResponse } from '@/types/impactScopeTrace';
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
+import { HelpButton } from '@/components/help/HelpButton';
 
 export const ImpactScopeTracePage: React.FC = () => {
   useSetBreadcrumb([
@@ -101,14 +102,17 @@ export const ImpactScopeTracePage: React.FC = () => {
   return (
     <div className="space-y-6">
         
-        {/* Header Title (Căn giữa, sạch sẽ) */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 text-center">
-          <h1 className="text-2xl font-bold text-slate-900">
-            Truy vết Phạm vi Ảnh hưởng của Lô
-          </h1>
-          <p className="text-slate-500 text-sm mt-1 max-w-2xl mx-auto">
-            Nhập mã lô sản xuất, lô hàng hoặc tem để xác định chính xác các mắt xích và đối tác cần thu hồi khi có sự cố.
-          </p>
+        {/* Page Header (Căn lề trái chuẩn như các trang hệ thống) */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              Truy vết phạm vi ảnh hưởng của lô
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Nhập mã lô sản xuất, lô hàng hoặc tem để xác định chính xác các mắt xích và đối tác cần thu hồi khi có sự cố.
+            </p>
+          </div>
+          <HelpButton screenKey="impact-scope-trace" />
         </div>
 
         {/* Search Bar Input */}
@@ -223,11 +227,9 @@ export const ImpactScopeTracePage: React.FC = () => {
               
               {/* UPSTREAM BRANCH (Vùng trồng -> Lô sản xuất) - Left Column */}
               <div className="lg:col-span-4 space-y-4">
-                <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between shadow-sm">
-                  <h2 className="font-bold text-sm text-slate-900">CHIỀU NGƯỢC (UPSTREAM)</h2>
-                  <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-mono font-medium">
-                    Nguồn gốc canh tác
-                  </span>
+                <div className="flex items-center justify-between px-1">
+                  <h2 className="font-bold text-sm text-slate-900">Chiều ngược (upstream)</h2>
+                  <span className="text-xs text-slate-500 font-medium">Nguồn gốc canh tác</span>
                 </div>
 
                 {/* Vùng trồng Card */}
@@ -282,10 +284,10 @@ export const ImpactScopeTracePage: React.FC = () => {
 
               {/* DOWNSTREAM BRANCH (Lô sản xuất -> Lô hàng -> Tem -> Sự kiện -> Đối tác) - Right Column */}
               <div className="lg:col-span-8 space-y-4">
-                <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between shadow-sm">
-                  <h2 className="font-bold text-sm text-slate-900">CHIỀU XUÔI (DOWNSTREAM) • PHẠM VI ẢNH HƯỞNG</h2>
-                  <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-mono font-medium">
-                    {traceData.shipments.length} Lô hàng
+                <div className="flex items-center justify-between px-1">
+                  <h2 className="font-bold text-sm text-slate-900">Chiều xuôi (downstream) · phạm vi ảnh hưởng</h2>
+                  <span className="text-xs text-slate-500 font-medium">
+                    {traceData.shipments.length} lô hàng
                   </span>
                 </div>
 
@@ -351,51 +353,60 @@ export const ImpactScopeTracePage: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Sự kiện Vận chuyển & Thu mua / Nhập kho */}
-                        <div className="mb-4">
-                          <p className="text-xs font-bold text-slate-700 mb-2">
-                            Sự kiện Vận chuyển & Thu mua:
+                        {/* Sự kiện Vận chuyển & Thu mua / Nhập kho (Refactored Timeline) */}
+                        <div className="mb-5">
+                          <p className="text-xs font-semibold text-slate-700 mb-3">
+                            Sự kiện vận chuyển và thu mua
                           </p>
 
                           {!ship.events || ship.events.length === 0 ? (
                             <div className="text-xs text-slate-400 italic bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                              Chưa ghi nhận sự kiện vận chuyển hoặc thu mua cho lô hàng này.
+                              Chưa có sự kiện vận chuyển, thu mua hoặc giao nhận.
                             </div>
                           ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {ship.events.map((ev, eIdx) => (
-                                <div
-                                  key={ev.id || eIdx}
-                                  className="p-2.5 bg-slate-50/80 border border-slate-200 rounded-lg text-xs flex flex-col justify-between"
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-semibold text-slate-900">
-                                      {formatEventType(ev.eventTypeName) || formatEventType(ev.eventType)}
-                                    </span>
-                                    {ev.isCorrection && (
-                                      <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium">
-                                        Đính chính
+                            <div className="relative pl-3 space-y-3.5 my-2 before:absolute before:left-[5px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                              {ship.events.map((ev, eIdx) => {
+                                const typeUpper = (ev.eventType || ev.eventTypeName || '').toUpperCase();
+                                const isProc = typeUpper.includes('PROCUREMENT') || typeUpper.includes('THU MUA');
+                                const isWh = typeUpper.includes('WAREHOUSE') || typeUpper.includes('NHẬP KHO');
+
+                                return (
+                                  <div key={ev.id || eIdx} className="relative pl-4">
+                                    {/* Timeline Dot */}
+                                    <div
+                                      className={`absolute -left-[9px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white shadow-xs ${
+                                        isProc ? 'bg-emerald-600' : isWh ? 'bg-purple-600' : 'bg-blue-600'
+                                      }`}
+                                    />
+
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="font-bold text-xs text-slate-900">
+                                        {formatEventType(ev.eventTypeName) || formatEventType(ev.eventType)}
                                       </span>
-                                    )}
-                                  </div>
-                                  <div className="text-slate-500 text-[11px] mt-1">
-                                    Thời điểm: {new Date(ev.recordedAt).toLocaleString('vi-VN')}
-                                  </div>
-                                  {ev.location && (
-                                    <div className="text-slate-500 text-[11px] mt-0.5">
-                                      Vị trí: {ev.location}
+                                      {ev.isCorrection && (
+                                        <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-medium">
+                                          Đính chính
+                                        </span>
+                                      )}
                                     </div>
-                                  )}
-                                </div>
-                              ))}
+
+                                    <div className="text-[11px] text-slate-500 mt-0.5 space-x-1.5">
+                                      <span>
+                                        {new Date(ev.recordedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} • {new Date(ev.recordedAt).toLocaleDateString('vi-VN')}
+                                      </span>
+                                      {ev.location && <span>• {ev.location}</span>}
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                         </div>
 
                         {/* Receiving Organizations Timeline (TC-04 & QTN-01) */}
                         <div>
-                          <p className="text-xs font-bold text-slate-700 mb-2">
-                            Tổ chức đã nhận hàng (Bên thứ ba):
+                          <p className="text-xs font-semibold text-slate-700 mb-2">
+                            Tổ chức đã nhận hàng
                           </p>
 
                           {ship.receivingOrganizations.length === 0 ? (
@@ -407,16 +418,21 @@ export const ImpactScopeTracePage: React.FC = () => {
                               {ship.receivingOrganizations.map((org, oIdx) => (
                                 <div
                                   key={oIdx}
-                                  className="flex items-center justify-between p-2.5 bg-slate-50/80 border border-slate-200 rounded-lg text-xs"
+                                  className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 bg-slate-50/80 border border-slate-200 rounded-lg text-xs gap-1 sm:gap-2"
                                 >
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-semibold text-slate-900">{org.organizationName}</span>
-                                    <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-mono font-medium">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-bold text-slate-900">{org.organizationName}</span>
+                                    <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
                                       {formatEventType(org.eventTypeName) || formatEventType(org.eventType)}
                                     </span>
+                                    {org.receivedQuantity != null && (
+                                      <span className="text-xs text-slate-700 font-medium">
+                                        • Thực nhận: <strong className="text-slate-900">{org.receivedQuantity.toLocaleString('vi-VN')}</strong>
+                                      </span>
+                                    )}
                                   </div>
-                                  <div className="text-slate-500 text-[11px]">
-                                    Thời điểm nhận: {new Date(org.receivedAt).toLocaleString('vi-VN')}
+                                  <div className="text-slate-500 text-[11px] whitespace-nowrap">
+                                    {new Date(org.receivedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} • {new Date(org.receivedAt).toLocaleDateString('vi-VN')}
                                   </div>
                                 </div>
                               ))}

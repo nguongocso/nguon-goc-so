@@ -20,6 +20,7 @@ public class ReceivingOrganizationTraceDto {
     private UUID organizationId;
     private String organizationName;
     private LocalDateTime receivedAt;
+    private Long receivedQuantity;
     private ChainEventType eventType;
     private String eventTypeName;
 }
