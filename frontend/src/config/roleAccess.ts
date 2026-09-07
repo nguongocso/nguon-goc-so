@@ -83,6 +83,9 @@ export const ROLE_ACCESS = {
   // ✅ NCL-08-CN-013 - Mở khóa mã tem sau khi xác minh
   traceCodeUnlock: ['VT-01'] as const,
 
+  // ✅ NCL-08-CN-010 - Truy vết phạm vi ảnh hưởng của lô (Chỉ Quản lý HTX VT-02 thực hiện)
+  impactScopeTrace: ['VT-02'] as const,
+
   // ✅ Hồ sơ người dùng (NCL-01-CN-010: Tất cả vai trò VT-01 -> VT-05)
   userProfile: AUTHENTICATED_ROLE_CODES,
 } as const satisfies Record<string, readonly AuthenticatedRoleCode[]>;

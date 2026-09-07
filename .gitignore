@@ -103,6 +103,7 @@ context.md
 .agents/
 npm_member_check.txt
 dev-server.log
+.agent-work/
 
 # Build output locked by another process; do not track
 frontend/dist_old_locked/
