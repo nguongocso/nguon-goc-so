@@ -15,7 +15,7 @@ import { getProductionLots } from "@/api/productionLotApi";
 import { CreateFarmLogForm } from "@/components/farm-log/CreateFarmLogForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { CreateFarmLogRequest } from "@/types/farmLog";
+import type { CreateFarmLogRequest, FarmActivityType } from "@/types/farmLog";
 import type { ProductionLot } from "@/types/productionLot";
 
 const ALLOWED_STATUSES: ProductionLot["status"][] = ["APPROVED", "HARVESTED"];
@@ -24,6 +24,7 @@ const CreateFarmLogPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedProductionLotId = searchParams.get("productionLotId") ?? "";
+  const requestedActivityType = (searchParams.get("activityType") as FarmActivityType) || undefined;
 
   const [productionLots, setProductionLots] = useState<ProductionLot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -161,6 +162,7 @@ const CreateFarmLogPage = () => {
         <CreateFarmLogForm
           productionLots={eligibleProductionLots}
           initialProductionLotId={initialProductionLotId}
+          initialActivityType={requestedActivityType}
           onCancel={() => navigate(-1)}
           onSubmit={handleSubmit}
           onSuccess={(log) => {

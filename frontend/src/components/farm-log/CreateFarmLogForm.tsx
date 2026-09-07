@@ -42,6 +42,7 @@ import type { ProductionLot } from '@/types/productionLot';
 interface CreateFarmLogFormProps {
   productionLots: ProductionLot[];
   initialProductionLotId?: string;
+  initialActivityType?: FarmActivityType;
   onCancel: () => void;
   onSubmit: (
     payload: CreateFarmLogRequest,
@@ -98,9 +99,10 @@ const getToday = () => {
 
 const createInitialForm = (
   initialProductionLotId?: string,
+  initialActivityType?: FarmActivityType,
 ): FormState => ({
   productionLotId: initialProductionLotId ?? '',
-  activityType: '',
+  activityType: initialActivityType ?? '',
   material: '',
   quantity: '',
   unit: '',
@@ -127,12 +129,13 @@ const formatQuantity = (value: number) =>
 export function CreateFarmLogForm({
   productionLots,
   initialProductionLotId,
+  initialActivityType,
   onCancel,
   onSubmit,
   onSuccess,
 }: CreateFarmLogFormProps) {
   const [form, setForm] = useState<FormState>(() =>
-    createInitialForm(initialProductionLotId),
+    createInitialForm(initialProductionLotId, initialActivityType),
   );
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState('');

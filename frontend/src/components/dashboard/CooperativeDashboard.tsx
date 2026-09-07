@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { getProductionLots, getProductionLotDashboard, type DashboardResponse } from '@/api/productionLotApi';
 import { ProductionLotBoard } from '@/components/production-lot/ProductionLotBoard';
 import { ProductionStatistics } from '@/components/dashboard/PoductionStatistics';
+import { MilestoneReminderCard } from '@/components/farm-log/MilestoneReminderCard';
 import type { ProductionLot } from '@/types/productionLot';
 import LookupStatisticsPage from '@/pages/report/LookupStatisticsPage';
 import { HelpButton } from '@/components/help/HelpButton';
@@ -99,6 +100,9 @@ export function CooperativeDashboard({ initialTab }: CooperativeDashboardProps) 
 
           {/* Biểu đồ sản lượng */}
           <ProductionStatistics data={dashboardData} isLoading={isLoading} />
+
+          {/* NCL-03-CN-007: Thẻ nhắc lịch ghi nhật ký mốc canh tác */}
+          <MilestoneReminderCard />
 
           {/* Bảng danh sách lô */}
           <ProductionLotBoard />
