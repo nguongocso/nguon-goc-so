@@ -223,9 +223,9 @@ export const ImpactScopeTracePage: React.FC = () => {
               
               {/* UPSTREAM BRANCH (Vùng trồng -> Lô sản xuất) - Left Column */}
               <div className="lg:col-span-4 space-y-4">
-                <div className="bg-slate-900 text-white p-4 rounded-xl flex items-center justify-between">
-                  <h2 className="font-bold text-sm">CHIỀU NGƯỢC (UPSTREAM)</h2>
-                  <span className="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full font-mono">
+                <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between shadow-sm">
+                  <h2 className="font-bold text-sm text-slate-900">CHIỀU NGƯỢC (UPSTREAM)</h2>
+                  <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-mono font-medium">
                     Nguồn gốc canh tác
                   </span>
                 </div>
@@ -282,9 +282,9 @@ export const ImpactScopeTracePage: React.FC = () => {
 
               {/* DOWNSTREAM BRANCH (Lô sản xuất -> Lô hàng -> Tem -> Sự kiện -> Đối tác) - Right Column */}
               <div className="lg:col-span-8 space-y-4">
-                <div className="bg-slate-900 text-white p-4 rounded-xl flex items-center justify-between">
-                  <h2 className="font-bold text-sm">CHIỀU XUÔI (DOWNSTREAM) • PHẠM VI ẢNH HƯỞNG</h2>
-                  <span className="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full font-mono">
+                <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between shadow-sm">
+                  <h2 className="font-bold text-sm text-slate-900">CHIỀU XUÔI (DOWNSTREAM) • PHẠM VI ẢNH HƯỞNG</h2>
+                  <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-mono font-medium">
                     {traceData.shipments.length} Lô hàng
                   </span>
                 </div>
