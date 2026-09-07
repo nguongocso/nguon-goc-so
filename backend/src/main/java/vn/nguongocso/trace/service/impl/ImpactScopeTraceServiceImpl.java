@@ -183,7 +183,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
                     .suspectCount(suspectCount)
                     .build();
 
-            // Lấy danh sách tất cả các sự kiện của lô hàng (Vận chuyển, Thu mua, Nhập kho, Đóng gói...)
+            // Lấy danh sách tất cả các sự kiện của lô hàng
             List<ChainEvent> events = chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(s.getId());
             List<ChainEventTraceDto> eventDtos = new ArrayList<>();
             List<ReceivingOrganizationTraceDto> receivingOrgs = new ArrayList<>();
@@ -200,20 +200,24 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
                         .isCorrection(ev.isCorrection())
                         .build());
 
-                // Xác định tổ chức nhận (PROCUREMENT, TRANSPORT, WAREHOUSE_RECEIPT)
+                // Xác định tổ chức nhận (PROCUREMENT, WAREHOUSE_RECEIPT)
                 ChainEventType type = ev.getEventType();
-                if (type == ChainEventType.PROCUREMENT || type == ChainEventType.TRANSPORT || type == ChainEventType.WAREHOUSE_RECEIPT) {
+                if (type == ChainEventType.PROCUREMENT || type == ChainEventType.WAREHOUSE_RECEIPT) {
                     if (ev.getRecordedBy() != null) {
                         Optional<OrganizationUser> ouOpt = organizationUserRepository.findFirstByUser(ev.getRecordedBy());
                         if (ouOpt.isPresent() && ouOpt.get().getOrganization() != null) {
                             Organization recOrg = ouOpt.get().getOrganization();
-                            receivingOrgIds.add(recOrg.getOrganizationId());
-                            receivingOrgs.add(ReceivingOrganizationTraceDto.builder()
-                                    .organizationId(recOrg.getOrganizationId())
-                                    .organizationName(recOrg.getName()) // Đáp ứng TC-04: Chỉ hiển thị tên & thời điểm
-                                    .receivedAt(ev.getRecordedAt())
-                                    .eventType(type)
-                                    .build());
+                            // Chỉ thêm vào tổ chức đã nhận đối tác (bên thứ ba) nếu khác tổ chức sở hữu lô sản xuất gốc
+                            if (lotOrgId != null && !lotOrgId.equals(recOrg.getOrganizationId())) {
+                                receivingOrgIds.add(recOrg.getOrganizationId());
+                                receivingOrgs.add(ReceivingOrganizationTraceDto.builder()
+                                        .organizationId(recOrg.getOrganizationId())
+                                        .organizationName(recOrg.getName()) // Đáp ứng TC-04: Chỉ hiển thị tên & thời điểm
+                                        .receivedAt(ev.getRecordedAt())
+                                        .eventType(type)
+                                        .eventTypeName(getEventTypeName(type))
+                                        .build());
+                            }
                         }
                     }
                 }

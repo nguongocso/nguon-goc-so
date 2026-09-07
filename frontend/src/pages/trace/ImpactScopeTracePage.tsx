@@ -17,6 +17,35 @@ export const ImpactScopeTracePage: React.FC = () => {
   const [traceData, setTraceData] = useState<ImpactScopeTraceResponse | null>(null);
   const [showExportMenu, setShowExportMenu] = useState<boolean>(false);
 
+  const formatStatus = (status: string): string => {
+    if (!status) return '';
+    switch (status.toUpperCase()) {
+      case 'ACTIVATED': return 'Đã kích hoạt';
+      case 'DRAFT': return 'Dự thảo';
+      case 'RECALLED': return 'Đã thu hồi';
+      case 'CODE_PRINTED': return 'Đã in mã';
+      case 'APPROVED': return 'Đã phê duyệt';
+      case 'PACKAGED': return 'Đã đóng gói';
+      case 'CANCELLED': return 'Đã hủy';
+      default: return status;
+    }
+  };
+
+  const formatEventType = (type?: string): string => {
+    if (!type) return '';
+    switch (type.toUpperCase()) {
+      case 'TRANSPORT': return 'Vận chuyển';
+      case 'PROCUREMENT': return 'Thu mua';
+      case 'WAREHOUSE_RECEIPT': return 'Nhập kho';
+      case 'PACKAGING': return 'Đóng gói';
+      case 'PREPROCESSING': return 'Sơ chế';
+      case 'HARVEST': return 'Thu hoạch';
+      case 'STORAGE_CONDITION': return 'Bảo quản';
+      case 'CORRECTION': return 'Đính chính';
+      default: return type;
+    }
+  };
+
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!searchCode.trim()) {
@@ -230,7 +259,7 @@ export const ImpactScopeTracePage: React.FC = () => {
                     <span className={`text-xs px-2 py-0.5 rounded font-semibold ${
                       traceData.productionLot.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-800'
                     }`}>
-                      {traceData.productionLot.status}
+                      {formatStatus(traceData.productionLot.status)}
                     </span>
                   </div>
                   <h3 className="font-bold text-slate-900 text-base mt-2">{traceData.productionLot.name}</h3>
@@ -296,7 +325,7 @@ export const ImpactScopeTracePage: React.FC = () => {
                                 ? 'bg-emerald-100 text-emerald-700'
                                 : 'bg-slate-100 text-slate-700'
                             }`}>
-                              {ship.status === 'RECALLED' ? 'ĐÃ THU HỒI' : ship.status}
+                              {formatStatus(ship.status)}
                             </span>
                           </div>
                         </div>
@@ -336,7 +365,7 @@ export const ImpactScopeTracePage: React.FC = () => {
                                 >
                                   <div className="flex items-center justify-between">
                                     <span className="font-semibold text-blue-950">
-                                      {ev.eventTypeName || ev.eventType}
+                                      {formatEventType(ev.eventTypeName) || formatEventType(ev.eventType)}
                                     </span>
                                     {ev.isCorrection && (
                                       <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
@@ -378,7 +407,7 @@ export const ImpactScopeTracePage: React.FC = () => {
                                   <div className="flex items-center gap-2">
                                     <span className="font-semibold text-purple-950">{org.organizationName}</span>
                                     <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-mono">
-                                      {org.eventType}
+                                      {formatEventType(org.eventTypeName) || formatEventType(org.eventType)}
                                     </span>
                                   </div>
                                   <div className="text-purple-700 text-[11px] font-medium">

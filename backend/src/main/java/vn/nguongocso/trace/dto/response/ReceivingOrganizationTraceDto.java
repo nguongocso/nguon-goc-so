@@ -21,4 +21,5 @@ public class ReceivingOrganizationTraceDto {
     private String organizationName;
     private LocalDateTime receivedAt;
     private ChainEventType eventType;
+    private String eventTypeName;
 }

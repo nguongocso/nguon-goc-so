@@ -38,6 +38,7 @@ export interface ReceivingOrganizationTraceDto {
   organizationName: string;
   receivedAt: string;
   eventType: string;
+  eventTypeName?: string;
 }
 
 export interface ShipmentTraceDto {
