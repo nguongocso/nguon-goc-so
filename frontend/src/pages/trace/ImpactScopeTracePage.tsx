@@ -1,22 +1,9 @@
 import React, { useState } from 'react';
 import {
   Search,
-  GitFork,
   Download,
-  Building2,
-  ShieldAlert,
-  CheckCircle2,
-  QrCode,
-  Calendar,
-  MapPin,
-  Package,
-  Layers,
-  AlertCircle,
-  ArrowRight,
-  ArrowUpRight,
   FileSpreadsheet,
   RefreshCw,
-  Info,
   ChevronDown,
 } from 'lucide-react';
 import { exportImpactScopeReport, getImpactScopeTrace } from '@/api/impactScopeTraceApi';
@@ -28,7 +15,6 @@ export const ImpactScopeTracePage: React.FC = () => {
   const [exporting, setExporting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [traceData, setTraceData] = useState<ImpactScopeTraceResponse | null>(null);
-  const [exportFormat, setExportFormat] = useState<'EXCEL' | 'PDF'>('EXCEL');
   const [showExportMenu, setShowExportMenu] = useState<boolean>(false);
 
   const handleSearch = async (e?: React.FormEvent) => {
@@ -81,12 +67,11 @@ export const ImpactScopeTracePage: React.FC = () => {
     <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* Header Title */}
+        {/* Header Title (Không sử dụng icon cho đề mục) */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-emerald-600 font-semibold text-sm">
-              <GitFork className="w-5 h-5" />
-              <span>NCL-08-CN-010 • Năng lực Truy vết 2 chiều</span>
+            <div className="text-emerald-600 font-semibold text-sm">
+              NCL-08-CN-010 • Năng lực Truy vết 2 chiều
             </div>
             <h1 className="text-2xl font-bold text-slate-900 mt-1">
               Truy vết Phạm vi Ảnh hưởng của Lô
@@ -100,12 +85,14 @@ export const ImpactScopeTracePage: React.FC = () => {
           <div className="flex flex-wrap gap-2 text-xs text-slate-500">
             <span className="self-center font-medium text-slate-700">Mã mẫu:</span>
             <button
+              type="button"
               onClick={() => { setSearchCode('LOT-2026-001'); }}
               className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
             >
               LOT-2026-001 (Nhiều lô)
             </button>
             <button
+              type="button"
               onClick={() => { setSearchCode('LOT-2026-999'); }}
               className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
             >
@@ -118,21 +105,19 @@ export const ImpactScopeTracePage: React.FC = () => {
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                <Search className="w-5 h-5" />
-              </div>
               <input
                 type="text"
                 value={searchCode}
                 onChange={(e) => setSearchCode(e.target.value)}
                 placeholder="Nhập Mã lô sản xuất, Mã lô hàng hoặc Mã tem (ví dụ: LOT-2026-001, SHIP-8821, NCL0001)..."
-                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-medium transition-all"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm font-medium transition-all"
               />
             </div>
+            {/* Nút thao tác được giữ Icon */}
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold rounded-lg shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 min-w-[140px]"
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold rounded-lg shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 min-w-[150px]"
             >
               {loading ? (
                 <>
@@ -141,7 +126,7 @@ export const ImpactScopeTracePage: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <GitFork className="w-4 h-4" />
+                  <Search className="w-4 h-4" />
                   <span>Mở truy vết</span>
                 </>
               )}
@@ -150,68 +135,46 @@ export const ImpactScopeTracePage: React.FC = () => {
 
           {/* Error Banner (TC-05) */}
           {errorMsg && (
-            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3 text-amber-800">
-              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-sm">{errorMsg}</p>
-                <p className="text-xs text-amber-700 mt-0.5">
-                  Gợi ý: Hãy kiểm tra lại tính chính xác của mã lô hoặc mã tem QR. Nếu vừa khởi tạo, hãy thử tải lại trang.
-                </p>
-              </div>
+            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800">
+              <p className="font-semibold text-sm">{errorMsg}</p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Gợi ý: Hãy kiểm tra lại tính chính xác của mã lô hoặc mã tem QR. Nếu vừa khởi tạo, hãy thử tải lại trang.
+              </p>
             </div>
           )}
         </div>
 
         {/* Results Container */}
         {traceData && (
-          <div className="space-y-6 animate-fadeIn">
+          <div className="space-y-6">
             
-            {/* Top Summary Metrics Header */}
+            {/* Top Summary Metrics Header (Không dùng Icon trang trí) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-                <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
-                  <Package className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 font-medium">Tổng Lô hàng sinh ra</p>
-                  <p className="text-2xl font-bold text-slate-900">{traceData.summary.totalShipments}</p>
-                </div>
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                <p className="text-xs text-slate-500 font-medium">Tổng Lô hàng sinh ra</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">{traceData.summary.totalShipments}</p>
               </div>
 
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
-                  <QrCode className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 font-medium">Tem đã Kích hoạt</p>
-                  <p className="text-2xl font-bold text-slate-900">{traceData.summary.totalActivatedStamps.toLocaleString()}</p>
-                </div>
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                <p className="text-xs text-slate-500 font-medium">Tem đã Kích hoạt</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">{traceData.summary.totalActivatedStamps.toLocaleString()}</p>
               </div>
 
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-                <div className="p-3 bg-purple-50 text-purple-600 rounded-lg">
-                  <Building2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 font-medium">Tổ chức đã nhận hàng</p>
-                  <p className="text-2xl font-bold text-slate-900">{traceData.summary.totalReceivingOrganizations}</p>
-                </div>
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                <p className="text-xs text-slate-500 font-medium">Tổ chức đã nhận hàng</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">{traceData.summary.totalReceivingOrganizations}</p>
               </div>
 
               <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-red-50 text-red-600 rounded-lg">
-                    <ShieldAlert className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 font-medium">Lô hàng Đã Thu hồi</p>
-                    <p className="text-2xl font-bold text-slate-900">{traceData.summary.totalRecalledShipments}</p>
-                  </div>
+                <div>
+                  <p className="text-xs text-slate-500 font-medium">Lô hàng Đã Thu hồi</p>
+                  <p className="text-2xl font-bold text-slate-900 mt-1">{traceData.summary.totalRecalledShipments}</p>
                 </div>
 
-                {/* Export Dropdown */}
+                {/* Export Dropdown Button - Giữ Icon thao tác */}
                 <div className="relative">
                   <button
+                    type="button"
                     onClick={() => setShowExportMenu(!showExportMenu)}
                     disabled={exporting}
                     className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg flex items-center gap-1.5 text-xs font-semibold transition-colors"
@@ -224,6 +187,7 @@ export const ImpactScopeTracePage: React.FC = () => {
                   {showExportMenu && (
                     <div className="absolute right-0 mt-2 w-44 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-10">
                       <button
+                        type="button"
                         onClick={() => handleExport('EXCEL')}
                         className="w-full px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                       >
@@ -231,6 +195,7 @@ export const ImpactScopeTracePage: React.FC = () => {
                         <span>Xuất Excel (.xlsx)</span>
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleExport('PDF')}
                         className="w-full px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                       >
@@ -249,10 +214,7 @@ export const ImpactScopeTracePage: React.FC = () => {
               {/* UPSTREAM BRANCH (Vùng trồng -> Lô sản xuất) - Left Column */}
               <div className="lg:col-span-4 space-y-4">
                 <div className="bg-slate-900 text-white p-4 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Layers className="w-5 h-5 text-emerald-400" />
-                    <h2 className="font-bold text-sm">CHIỀU NGƯỢC (UPSTREAM)</h2>
-                  </div>
+                  <h2 className="font-bold text-sm">CHIỀU NGƯỢC (UPSTREAM)</h2>
                   <span className="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full font-mono">
                     Nguồn gốc canh tác
                   </span>
@@ -260,12 +222,11 @@ export const ImpactScopeTracePage: React.FC = () => {
 
                 {/* Vùng trồng Card */}
                 {traceData.farmArea ? (
-                  <div className="bg-white p-5 rounded-xl border border-emerald-200 shadow-sm relative border-l-4 border-l-emerald-500">
+                  <div className="bg-white p-5 rounded-xl border border-emerald-200 shadow-sm border-l-4 border-l-emerald-500">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
                         VÙNG TRỒNG GỐC
                       </span>
-                      <MapPin className="w-4 h-4 text-emerald-500" />
                     </div>
                     <h3 className="font-bold text-slate-900 text-base mt-2">{traceData.farmArea.name}</h3>
                     <div className="text-xs text-slate-500 mt-2 space-y-1">
@@ -282,12 +243,10 @@ export const ImpactScopeTracePage: React.FC = () => {
                   </div>
                 )}
 
-                <div className="flex justify-center">
-                  <ArrowRight className="w-5 h-5 text-slate-400 rotate-90" />
-                </div>
+                <div className="text-center font-bold text-slate-400 text-lg">↓</div>
 
                 {/* Production Lot Card */}
-                <div className="bg-white p-5 rounded-xl border border-blue-200 shadow-sm relative border-l-4 border-l-blue-500">
+                <div className="bg-white p-5 rounded-xl border border-blue-200 shadow-sm border-l-4 border-l-blue-500">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
                       LÔ SẢN XUẤT HẠT NHÂN
@@ -300,21 +259,12 @@ export const ImpactScopeTracePage: React.FC = () => {
                   </div>
                   <h3 className="font-bold text-slate-900 text-base mt-2">{traceData.productionLot.name}</h3>
                   <div className="text-xs text-slate-600 mt-2 space-y-1.5">
-                    <p className="flex items-center gap-1.5">
-                      <Package className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Sản lượng: <strong>{traceData.productionLot.expectedQuantity} {traceData.productionLot.expectedQuantityUnit}</strong></span>
-                    </p>
+                    <p>Sản lượng: <strong>{traceData.productionLot.expectedQuantity} {traceData.productionLot.expectedQuantityUnit}</strong></p>
                     {traceData.productionLot.plantingDate && (
-                      <p className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Xuống giống: {traceData.productionLot.plantingDate}</span>
-                      </p>
+                      <p>Xuống giống: {traceData.productionLot.plantingDate}</p>
                     )}
                     {traceData.productionLot.harvestDate && (
-                      <p className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Thu hoạch: {traceData.productionLot.harvestDate}</span>
-                      </p>
+                      <p>Thu hoạch: {traceData.productionLot.harvestDate}</p>
                     )}
                   </div>
                 </div>
@@ -323,10 +273,7 @@ export const ImpactScopeTracePage: React.FC = () => {
               {/* DOWNSTREAM BRANCH (Lô sản xuất -> Lô hàng -> Tem -> Đối tác) - Right Column */}
               <div className="lg:col-span-8 space-y-4">
                 <div className="bg-slate-900 text-white p-4 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <GitFork className="w-5 h-5 text-blue-400" />
-                    <h2 className="font-bold text-sm">CHIỀU XUÔI (DOWNSTREAM) • PHẠM VI ẢNH HƯỞNG</h2>
-                  </div>
+                  <h2 className="font-bold text-sm">CHIỀU XUÔI (DOWNSTREAM) • PHẠM VI ẢNH HƯỞNG</h2>
                   <span className="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full font-mono">
                     {traceData.shipments.length} Lô hàng
                   </span>
@@ -335,9 +282,6 @@ export const ImpactScopeTracePage: React.FC = () => {
                 {/* Empty State Banner (TC-03) */}
                 {traceData.shipments.length === 0 ? (
                   <div className="bg-white rounded-xl border border-slate-200 p-8 text-center space-y-3">
-                    <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400">
-                      <Box className="w-6 h-6" />
-                    </div>
                     <h3 className="font-bold text-slate-800 text-base">Lô chưa phát sinh lô hàng</h3>
                     <p className="text-xs text-slate-500 max-w-md mx-auto">
                       Lô sản xuất này hiện chưa tạo lô hàng thương mại nào để phân phối ra thị trường. Nhánh truy vết xuôi hiện đang rỗng.
@@ -399,9 +343,8 @@ export const ImpactScopeTracePage: React.FC = () => {
 
                         {/* Receiving Organizations Timeline (TC-04 & QTN-01) */}
                         <div>
-                          <p className="text-xs font-bold text-slate-700 mb-2 flex items-center gap-1.5">
-                            <Building2 className="w-3.5 h-3.5 text-purple-600" />
-                            <span>Tổ chức đã nhận hàng (Bên thứ ba):</span>
+                          <p className="text-xs font-bold text-slate-700 mb-2">
+                            Tổ chức đã nhận hàng (Bên thứ ba):
                           </p>
 
                           {ship.receivingOrganizations.length === 0 ? (
@@ -416,7 +359,6 @@ export const ImpactScopeTracePage: React.FC = () => {
                                   className="flex items-center justify-between p-2.5 bg-purple-50/50 border border-purple-100 rounded-lg text-xs"
                                 >
                                   <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-purple-500" />
                                     <span className="font-semibold text-purple-950">{org.organizationName}</span>
                                     <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-mono">
                                       {org.eventType}
