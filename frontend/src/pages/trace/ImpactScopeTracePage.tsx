@@ -8,8 +8,14 @@ import {
 } from 'lucide-react';
 import { exportImpactScopeReport, getImpactScopeTrace } from '@/api/impactScopeTraceApi';
 import type { ImpactScopeTraceResponse } from '@/types/impactScopeTrace';
+import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 
 export const ImpactScopeTracePage: React.FC = () => {
+  useSetBreadcrumb([
+    { label: 'Tổng quan', href: '/dashboard' },
+    { label: 'Truy vết phạm vi ảnh hưởng' },
+  ]);
+
   const [searchCode, setSearchCode] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [exporting, setExporting] = useState<boolean>(false);
@@ -93,8 +99,7 @@ export const ImpactScopeTracePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="space-y-6">
         
         {/* Header Title (Căn giữa, sạch sẽ) */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 text-center">
@@ -429,7 +434,6 @@ export const ImpactScopeTracePage: React.FC = () => {
         )}
 
       </div>
-    </div>
   );
 };
 
