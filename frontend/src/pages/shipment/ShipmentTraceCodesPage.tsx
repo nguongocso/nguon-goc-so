@@ -24,12 +24,32 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TableCell, TableHead, TableRow } from '@/components/ui/table';
+import { Card, CardContent } from '@/components/ui/card';
 import { DataTableShell } from '@/components/common/DataTableShell';
+import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import type { Shipment } from '@/types/shipment';
 import type { TraceCodeSummary } from '@/types/traceCode';
-import { TraceCodeStatusBadge } from '@/components/shipment/TraceCodeStatusBadge';
+import {
+  TRACE_CODE_STATUS_LABELS,
+  TraceCodeStatusBadge,
+} from '@/components/shipment/TraceCodeStatusBadge';
 import { TraceCodeHistoryDialog } from '@/components/shipment/TraceCodeHistoryDialog';
 import { TraceCodeQrScanModal } from '@/components/shipment/TraceCodeQrScanModal';
+
+const STATUS_FILTER_OPTIONS = [
+  { value: 'ALL', label: 'Tất cả trạng thái' },
+  { value: 'INACTIVE', label: TRACE_CODE_STATUS_LABELS.INACTIVE },
+  { value: 'ACTIVE', label: TRACE_CODE_STATUS_LABELS.ACTIVE },
+  { value: 'LOCKED', label: TRACE_CODE_STATUS_LABELS.LOCKED },
+  { value: 'CANCELLED', label: TRACE_CODE_STATUS_LABELS.CANCELLED },
+  { value: 'RECALLED', label: TRACE_CODE_STATUS_LABELS.RECALLED },
+  { value: 'SUSPECT', label: TRACE_CODE_STATUS_LABELS.SUSPECT },
+] as const;
+
+const STATUS_FILTER_LABEL_MAP: Record<string, string> = {
+  ALL: 'Tất cả trạng thái',
+  ...TRACE_CODE_STATUS_LABELS,
+};
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return '—';
@@ -64,6 +84,31 @@ export default function ShipmentTraceCodesPage() {
   const [exporting, setExporting] = useState(false);
   const [historyCode, setHistoryCode] = useState<string | null>(null);
   const [showQrScanModal, setShowQrScanModal] = useState(false);
+
+  // ── Đồng bộ Breadcrumb ─────────────────────────────────────────────────────
+  useSetBreadcrumb(
+    shipment
+      ? [
+          { label: 'Tổng quan', href: '/dashboard' },
+          { label: 'Lô sản xuất', href: '/production-lots' },
+          ...(lotId
+            ? [
+                {
+                  label: shipment.productionLotName || 'Chi tiết lô sản xuất',
+                  href: `/production-lots/${lotId}`,
+                },
+              ]
+            : []),
+          {
+            label: shipment.name || 'Chi tiết lô hàng',
+            href: lotId
+              ? `/production-lots/${lotId}/shipments/${shipmentId}`
+              : `/shipments/${shipmentId}`,
+          },
+          { label: 'Mã tem truy xuất' },
+        ]
+      : null,
+  );
 
   // ── Load Shipment info ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -248,19 +293,19 @@ export default function ShipmentTraceCodesPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 bg-muted/30 p-4 rounded-xl border">
         <div className="flex flex-wrap items-center gap-3 flex-1">
           {/* Status Filter */}
-          <div className="w-48">
+          <div className="w-56 min-w-[200px]">
             <Select value={statusFilter} onValueChange={handleStatusChange}>
-              <SelectTrigger className="bg-white">
-                <SelectValue placeholder="Trạng thái mã tem" />
+              <SelectTrigger className="w-full min-w-[200px] bg-white">
+                <SelectValue placeholder="Trạng thái mã tem">
+                  {STATUS_FILTER_LABEL_MAP[statusFilter] || 'Tất cả trạng thái'}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-                <SelectItem value="INACTIVE">Chưa kích hoạt</SelectItem>
-                <SelectItem value="ACTIVE">Đã kích hoạt</SelectItem>
-                <SelectItem value="LOCKED">Đang bị khóa</SelectItem>
-                <SelectItem value="CANCELLED">Đã hủy</SelectItem>
-                <SelectItem value="RECALLED">Đã thu hồi</SelectItem>
-                <SelectItem value="SUSPECT">Nghi vấn</SelectItem>
+                {STATUS_FILTER_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -297,88 +342,92 @@ export default function ShipmentTraceCodesPage() {
         </div>
       </div>
 
-      {/* ── Table ── */}
-      <DataTableShell
-        loading={loading}
-        empty={!loading && codes.length === 0}
-        colSpan={7}
-        emptyMessage="Chưa có mã tem nào cho lô hàng này."
-        header={
-          <>
-            <TableHead className="w-14 text-center">STT</TableHead>
-            <TableHead className="min-w-[200px]">Mã tem truy xuất</TableHead>
-            <TableHead className="w-36">Trạng thái</TableHead>
-            <TableHead className="w-44">Ngày in tem</TableHead>
-            <TableHead className="w-44">Ngày kích hoạt</TableHead>
-            <TableHead className="w-28 text-center">Lượt quét</TableHead>
-            <TableHead className="w-28 text-right pr-4">Hành động</TableHead>
-          </>
-        }
-        body={
-          codes.map((code, index) => (
-            <TableRow key={code.id} className="hover:bg-muted/40 transition-colors">
-              <TableCell className="text-center text-xs text-muted-foreground font-mono">
-                {page * pageSize + index + 1}
-              </TableCell>
-              <TableCell>
-                <span className="font-mono font-semibold text-emerald-900 bg-emerald-50/80 px-2 py-0.5 rounded border border-emerald-200">
-                  {code.codeValue}
-                </span>
-              </TableCell>
-              <TableCell>
-                <TraceCodeStatusBadge status={code.status} />
-              </TableCell>
-              <TableCell className="text-xs text-muted-foreground">
-                {formatDateTime(code.printedAt)}
-              </TableCell>
-              <TableCell className="text-xs text-muted-foreground">
-                {formatDateTime(code.activatedAt)}
-              </TableCell>
-              <TableCell className="text-center font-semibold text-sm text-foreground">
-                {code.scanCount}
-              </TableCell>
-              <TableCell className="text-right pr-4">
+      {/* ── Table & Pagination Card ── */}
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+        <CardContent className="p-4 space-y-4">
+          <DataTableShell
+            loading={loading}
+            empty={!loading && codes.length === 0}
+            colSpan={7}
+            emptyMessage="Chưa có mã tem nào cho lô hàng này."
+            header={
+              <>
+                <TableHead className="w-14 text-center">STT</TableHead>
+                <TableHead className="min-w-[200px]">Mã tem truy xuất</TableHead>
+                <TableHead className="w-36">Trạng thái</TableHead>
+                <TableHead className="w-44">Ngày in tem</TableHead>
+                <TableHead className="w-44">Ngày kích hoạt</TableHead>
+                <TableHead className="w-28 text-center">Lượt quét</TableHead>
+                <TableHead className="w-28 text-right pr-4">Hành động</TableHead>
+              </>
+            }
+            body={
+              codes.map((code, index) => (
+                <TableRow key={code.id} className="hover:bg-muted/40 transition-colors">
+                  <TableCell className="text-center text-xs text-muted-foreground font-mono">
+                    {page * pageSize + index + 1}
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-mono font-semibold text-emerald-900 bg-emerald-50/80 px-2 py-0.5 rounded border border-emerald-200">
+                      {code.codeValue}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <TraceCodeStatusBadge status={code.status} />
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {formatDateTime(code.printedAt)}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {formatDateTime(code.activatedAt)}
+                  </TableCell>
+                  <TableCell className="text-center font-semibold text-sm text-foreground">
+                    {code.scanCount}
+                  </TableCell>
+                  <TableCell className="text-right pr-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setHistoryCode(code.codeValue)}
+                      className="h-8 gap-1.5 text-xs border-slate-300 hover:bg-slate-100"
+                    >
+                      <History className="h-3.5 w-3.5 text-blue-600" />
+                      Lịch sử
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            }
+          />
+
+          {/* ── Pagination ── */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <p className="text-xs text-muted-foreground">
+                Trang <span className="font-medium text-foreground">{page + 1}</span> / {totalPages}
+              </p>
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setHistoryCode(code.codeValue)}
-                  className="h-8 gap-1.5 text-xs border-slate-300 hover:bg-slate-100"
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0 || loading}
                 >
-                  <History className="h-3.5 w-3.5 text-blue-600" />
-                  Lịch sử
+                  Trang trước
                 </Button>
-              </TableCell>
-            </TableRow>
-          ))
-        }
-      />
-
-      {/* ── Pagination ── */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-2">
-          <p className="text-xs text-muted-foreground">
-            Trang <span className="font-medium">{page + 1}</span> / {totalPages}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={page === 0 || loading}
-            >
-              Trang trước
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={page >= totalPages - 1 || loading}
-            >
-              Trang sau
-            </Button>
-          </div>
-        </div>
-      )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1 || loading}
+                >
+                  Trang sau
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* ── Modals ── */}
       <TraceCodeHistoryDialog

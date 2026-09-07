@@ -49,6 +49,10 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/production-lots/create", "Tạo lô sản xuất"],
   ["/production-lots/import", "Nhập lô sản xuất"],
   [
+    "/production-lots/:lotId/shipments/:shipmentId/trace-codes",
+    "Mã tem truy xuất",
+  ],
+  [
     "/production-lots/:lotId/shipments/:shipmentId",
     "Chi tiết lô hàng",
   ],
@@ -90,6 +94,14 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   [
     "/production-lots/:lotId/shipments/:id/cancel-labels",
     "Hủy tem",
+  ],
+  [
+    "/shipments/:shipmentId/trace-codes",
+    "Mã tem truy xuất",
+  ],
+  [
+    "/shipments/:id/trace-codes",
+    "Mã tem truy xuất",
   ],
   ["/shipments/:id", "Chi tiết lô hàng"],
 
@@ -205,6 +217,10 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
   ["/production-lots/create", ["VT-02"]],
   ["/production-lots/import", ["VT-02"]],
   [
+    "/production-lots/:lotId/shipments/:shipmentId/trace-codes",
+    ROLE_ACCESS.traceCodeView,
+  ],
+  [
     "/production-lots/:lotId/shipments/:shipmentId",
     ["VT-01", "VT-02", "VT-03", "VT-04"],
   ],
@@ -234,6 +250,14 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
   [
     "/production-lots/:lotId/shipments/:id/cancel-labels",
     ["VT-02", "VT-03", "VT-04"],
+  ],
+  [
+    "/shipments/:shipmentId/trace-codes",
+    ROLE_ACCESS.traceCodeView,
+  ],
+  [
+    "/shipments/:id/trace-codes",
+    ROLE_ACCESS.traceCodeView,
   ],
   ["/shipments/:id", ["VT-02", "VT-03", "VT-04"]],
 
