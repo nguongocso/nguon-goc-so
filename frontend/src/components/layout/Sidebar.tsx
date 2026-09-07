@@ -290,13 +290,8 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ROLE_ACCESS.recallRequestManage,
         activePaths: ["/recall-requests"],
       },
-      {
-        icon: <Hash className="h-5 w-5" />,
-        label: "Yêu cầu bổ sung mã",
-        href: "/code-range-supplements/create",
-        allowedRoles: ROLE_ACCESS.supplementCreate,
-        activePaths: ["/code-range-supplements/create"],
-      },
+      // NCL-04-CN-007: mục "Yêu cầu bổ sung mã" đã bỏ — chức năng chuyển thành
+      // tùy chọn trong tab "Lô hàng & Mã QR" của chi tiết lô sản xuất.
     ],
   },
 

@@ -217,7 +217,13 @@ Từ chối cũng gửi thông báo cho người tạo + quản lý HTX và ghi 
 
 ## Ghi chú tích hợp (frontend)
 
-- Màn hình sinh mã (`CreateShipmentPage`): khi `remainingCount/totalLimit < 20%`
-  (`NEARLY_EXHAUSTED`) hiện cảnh báo vàng, khi hết (`EXHAUSTED`) chặn sinh mã —
-  cả hai đều hiển thị lối tắt "Yêu cầu cấp bổ sung mã" (chỉ `VT-02`).
+- **Không có trang riêng** cho VT-02 tạo yêu cầu. Form tạo là dialog dùng chung
+  `components/shipment/CodeRangeSupplementDialog.tsx`, được mở từ:
+  - Tab **"Lô hàng & Mã QR"** của trang chi tiết lô sản xuất
+    (`ShipmentList` — nút "Yêu cầu cấp bổ sung mã", chỉ `VT-02`).
+  - Màn hình sinh mã (`CreateShipmentPage`): khi `remainingCount/totalLimit < 20%`
+    (`NEARLY_EXHAUSTED`) hiện cảnh báo vàng, khi hết (`EXHAUSTED`) chặn sinh mã,
+    và khi số lượng nhập vượt hạn mức còn lại hiện cảnh báo đỏ ngay dưới ô
+    số lượng — cả ba đều có nút "Yêu cầu cấp bổ sung mã" (chỉ `VT-02`) mở dialog.
 - Kết quả duyệt/từ chối hiển thị qua `NotificationBell` sẵn có (không cần UI riêng).
+- Kịch bản kiểm thử: `docs/testing/NCL-04-CN-007_manual_test.md`.

@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Boxes, Plus, AlertTriangle, Info, Loader2 } from "lucide-react";
+import { Boxes, Plus, AlertTriangle, Hash, Info, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { HelpButton } from "@/components/help/HelpButton";
+import { CodeRangeSupplementDialog } from "@/components/shipment/CodeRangeSupplementDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { getRemainingCodes } from "@/api/codeRangeApi";
 import { createShipment } from "@/api/shipmentApi";
@@ -45,6 +46,8 @@ export const CreateShipmentPage: React.FC = () => {
   const [remainingCodes, setRemainingCodes] =
     useState<RemainingCodesResponse | null>(null);
   const [remainingLoading, setRemainingLoading] = useState(false);
+  // NCL-04-CN-007: dialog yêu cầu cấp bổ sung dải mã
+  const [supplementDialogOpen, setSupplementDialogOpen] = useState(false);
   const [loadingLot, setLoadingLot] = useState(true);
   // NCL-11-CN-005: trạng thái kiểm nghiệm hiệu lực — dùng chung với pre-check
   // GET /production-lots/{lotId}/can-activate-seal (cùng logic backend gate).
@@ -54,6 +57,7 @@ export const CreateShipmentPage: React.FC = () => {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -185,6 +189,15 @@ export const CreateShipmentPage: React.FC = () => {
     remainingCodes !== null &&
     (isExhausted || isNearlyExhausted);
 
+  // NCL-04-CN-007: cảnh báo động khi số lượng nhập vượt hạn mức còn lại
+  const watchedQuantity = watch("totalQuantity");
+  const exceedsQuota =
+    remainingCodes !== null &&
+    hasCodeRange &&
+    typeof watchedQuantity === "number" &&
+    !Number.isNaN(watchedQuantity) &&
+    watchedQuantity > remainingCount;
+
   if (loadingLot) {
     return (
       <div className="flex items-center justify-center py-20 text-muted-foreground">
@@ -290,16 +303,16 @@ export const CreateShipmentPage: React.FC = () => {
                   <p className="flex items-center gap-1 text-xs text-amber-700">
                     <AlertTriangle className="h-3.5 w-3.5" />
                     {isExhausted
-                      ? 'Đã hết mã truy xuất. Gửi yêu cầu để được cấp bổ sung.'
+                      ? 'Hạn mức đã hết, vui lòng yêu cầu cấp bổ sung mã truy xuất.'
                       : `Hạn mức còn lại dưới 20% (${remainingCount.toLocaleString()}/${totalLimit.toLocaleString()} mã). Nên gửi yêu cầu cấp bổ sung trước khi hết mã.`}
                   </p>
                   <Button
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={() => navigate('/code-range-supplements/create')}
+                    onClick={() => setSupplementDialogOpen(true)}
                   >
-                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    <Hash className="h-3.5 w-3.5 mr-1" />
                     Yêu cầu cấp bổ sung mã
                   </Button>
                 </div>
@@ -364,6 +377,33 @@ export const CreateShipmentPage: React.FC = () => {
                   {errors.totalQuantity.message}
                 </p>
               )}
+
+              {/* NCL-04-CN-007: cảnh báo động khi số lượng vượt hạn mức còn lại */}
+              {exceedsQuota && (
+                <div className="flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-red-700">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    Hạn mức đã hết / không đủ mã. Chỉ còn{' '}
+                    <span className="font-bold">
+                      {remainingCount.toLocaleString()}
+                    </span>{' '}
+                    mã truy xuất, vui lòng giảm số lượng hoặc yêu cầu cấp bổ sung
+                    mã.
+                  </p>
+                  {user?.roleCode === 'VT-02' && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="border-red-300 text-red-700 hover:bg-red-100"
+                      onClick={() => setSupplementDialogOpen(true)}
+                    >
+                      <Hash className="h-3.5 w-3.5 mr-1" />
+                      Yêu cầu cấp bổ sung mã
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Thông tin đóng gói */}
@@ -401,7 +441,9 @@ export const CreateShipmentPage: React.FC = () => {
               <Button
                 type="submit"
                 variant="create"
-                disabled={isSubmitting || isExhausted || isBlocked}
+                disabled={
+                  isSubmitting || isExhausted || isBlocked || exceedsQuota
+                }
               >
                 <Plus className="h-4 w-4 mr-1.5" />
                 {isSubmitting ? "Đang tạo..." : "Tạo lô hàng"}
@@ -410,6 +452,12 @@ export const CreateShipmentPage: React.FC = () => {
           </CardContent>
         </form>
       </Card>
+
+      {/* NCL-04-CN-007: Dialog yêu cầu cấp bổ sung dải mã */}
+      <CodeRangeSupplementDialog
+        open={supplementDialogOpen}
+        onClose={() => setSupplementDialogOpen(false)}
+      />
     </div>
   );
 };

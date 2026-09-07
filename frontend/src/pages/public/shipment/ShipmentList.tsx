@@ -19,6 +19,7 @@ import {
   Plus,
   Ban,
   MoreHorizontal,
+  Hash,
   History,
   Eye,
   QrCode,
@@ -51,6 +52,7 @@ import { useDeleteDraftShipment } from "@/hooks/useDeleteDraftShipment";
 import { checkCanActivateSeal } from "@/api/certificationApi";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ExportLabelsDialog } from "@/components/shipment/ExportLabelsDialog";
+import { CodeRangeSupplementDialog } from "@/components/shipment/CodeRangeSupplementDialog";
 
 interface ShipmentListProps {
   productionLotId: string;
@@ -101,9 +103,14 @@ export const ShipmentList = ({
   const [labelExportShipment, setLabelExportShipment] =
     useState<Shipment | null>(null);
 
+  // NCL-04-CN-007: dialog yêu cầu cấp bổ sung dải mã
+  const [supplementDialogOpen, setSupplementDialogOpen] = useState(false);
+
   const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
   // NCL-04-CN-005: Chỉ VT-02 được xuất tem QR
   const canExportLabels = usePermission(ROLE_ACCESS.labelExport);
+  // NCL-04-CN-007: Chỉ VT-02 được gửi yêu cầu cấp bổ sung mã
+  const canRequestSupplement = usePermission(ROLE_ACCESS.supplementCreate);
 
   const {
     shipments,
@@ -250,12 +257,26 @@ export const ShipmentList = ({
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl font-bold text-slate-900">Danh sách lô hàng</CardTitle>
 
-            {canCreate && productionLotStatus === "PACKAGED" && (
-              <Button variant="create" size="sm" onClick={() => navigate(`/production-lots/${productionLotId}/shipments/create`)}>
-                <Plus className="mr-1 h-4 w-4" />
-                Tạo lô hàng
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {/* NCL-04-CN-007: tùy chọn yêu cầu cấp bổ sung dải mã (chỉ VT-02) */}
+              {canRequestSupplement && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSupplementDialogOpen(true)}
+                >
+                  <Hash className="mr-1 h-4 w-4" />
+                  Yêu cầu cấp bổ sung mã
+                </Button>
+              )}
+
+              {canCreate && productionLotStatus === "PACKAGED" && (
+                <Button variant="create" size="sm" onClick={() => navigate(`/production-lots/${productionLotId}/shipments/create`)}>
+                  <Plus className="mr-1 h-4 w-4" />
+                  Tạo lô hàng
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
 
@@ -537,6 +558,12 @@ export const ShipmentList = ({
         open={labelExportShipment !== null}
         shipment={labelExportShipment}
         onClose={() => setLabelExportShipment(null)}
+      />
+
+      {/* NCL-04-CN-007: Dialog yêu cầu cấp bổ sung dải mã */}
+      <CodeRangeSupplementDialog
+        open={supplementDialogOpen}
+        onClose={() => setSupplementDialogOpen(false)}
       />
 
     </>
