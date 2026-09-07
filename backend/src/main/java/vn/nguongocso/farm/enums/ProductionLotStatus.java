@@ -19,5 +19,7 @@ public enum ProductionLotStatus {
 
     RECALLED, // Đã thu hồi
 
-    CANCELLED // Đã hủy
+    CANCELLED, // Đã hủy
+
+    DISPOSED // Đã loại bỏ (NCL-11-CN-005: lô không đạt kiểm nghiệm bị xử lý loại bỏ — trạng thái cuối)
 }

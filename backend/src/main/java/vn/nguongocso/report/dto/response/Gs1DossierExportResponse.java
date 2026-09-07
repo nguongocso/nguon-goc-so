@@ -46,6 +46,11 @@ public class Gs1DossierExportResponse {
     @JacksonXmlProperty(localName = "event")
     private List<Gs1Event> events;
 
+    /** Lịch sử kiểm nghiệm của lô sản xuất tương ứng (danh sách có thể rỗng). */
+    @JacksonXmlElementWrapper(localName = "inspections")
+    @JacksonXmlProperty(localName = "inspection")
+    private List<Gs1Inspection> inspections;
+
     /** Bảng ánh xạ hệ thống → lược đồ GS1 (nếu {@code includeMapping=true}). */
     @JacksonXmlProperty(localName = "mapping")
     private Map<String, String> mapping;

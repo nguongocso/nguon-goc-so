@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   CircleAlert,
   FlaskConical,
+  History,
   LoaderCircle,
   ShieldCheck,
   ShieldQuestion,
@@ -13,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type {
   PublicInspectionResponse,
   PublicInspectionResult,
+  PublicInspectionRound,
 } from "@/types/publicInspection";
 import { getLocalDateString } from "@/utils/dateTime";
 
@@ -38,6 +40,117 @@ const isExpired = (expiryDate?: string): boolean => {
   return expiryDate < today;
 };
 
+/** Nhãn + màu badge cho trạng thái từng lần kiểm nghiệm trong lịch sử. */
+const roundStatusMeta: Record<
+  string,
+  { label: string; className: string }
+> = {
+  PENDING_RESULT: {
+    label: "Chờ kết quả",
+    className: "bg-amber-100 text-amber-800 border border-amber-200",
+  },
+  PASSED: {
+    label: "Đạt",
+    className: "bg-emerald-100 text-emerald-800 border border-emerald-200",
+  },
+  FAILED: {
+    label: "Không đạt",
+    className: "bg-red-100 text-red-800 border border-red-200",
+  },
+  CANCELLED: {
+    label: "Đã hủy",
+    className: "bg-gray-100 text-gray-600 border border-gray-200",
+  },
+};
+
+const getRoundStatusMeta = (status?: string | null) =>
+  (status && roundStatusMeta[status]) || {
+    label: status || "Không xác định",
+    className: "bg-gray-100 text-gray-600 border border-gray-200",
+  };
+
+/** Dòng thời gian lịch sử kiểm nghiệm — chỉ hiển thị khi có từ 2 lần kiểm trở lên. */
+const InspectionHistoryTimeline: React.FC<{ history: PublicInspectionRound[] }> = ({
+  history,
+}) => (
+  <div className="rounded-lg border border-gray-200 overflow-hidden">
+    <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50">
+      <History className="h-4 w-4 text-gray-500" />
+      <p className="text-sm font-semibold text-gray-800">
+        Lịch sử kiểm nghiệm ({history.length} lần gửi mẫu)
+      </p>
+    </div>
+    <ol className="divide-y divide-gray-100">
+      {history.map((roundItem) => {
+        const meta = getRoundStatusMeta(roundItem.status);
+        return (
+          <li key={roundItem.round} className="px-4 py-3">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <span className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                Lần {roundItem.round}
+              </span>
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold ${meta.className}`}
+              >
+                {meta.label}
+              </span>
+              <span className="text-xs text-gray-600">
+                {roundItem.laboratoryName || "Phòng kiểm nghiệm"}
+              </span>
+              <span className="flex items-center gap-1 text-xs text-gray-500">
+                <CalendarDays className="h-3 w-3 text-gray-400" />
+                {formatDate(roundItem.sampleSentDate)}
+              </span>
+              <span className="text-xs text-gray-600 ml-auto">
+                <strong
+                  className={
+                    roundItem.failedCriteriaCount > 0
+                      ? "text-red-700"
+                      : "text-emerald-700"
+                  }
+                >
+                  {roundItem.passedCriteria}/{roundItem.totalCriteria}
+                </strong>{" "}
+                chỉ tiêu đạt
+              </span>
+            </div>
+            {roundItem.results.length > 0 && (
+              <ul className="mt-2 space-y-1 border-l-2 border-gray-100 pl-3">
+                {roundItem.results.map((result) => (
+                  <li
+                    key={result.id}
+                    className="flex items-center justify-between gap-2 text-xs"
+                  >
+                    <span className="text-gray-700">
+                      {result.criterionName}
+                    </span>
+                    <span
+                      className={`inline-flex items-center gap-1 font-medium ${
+                        result.passed ? "text-emerald-700" : "text-red-700"
+                      }`}
+                    >
+                      {result.passed ? (
+                        <CheckCircle2 className="h-3 w-3" />
+                      ) : (
+                        <CircleAlert className="h-3 w-3" />
+                      )}
+                      {result.passed ? "Đạt" : "Không đạt"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+    <p className="px-4 py-2.5 text-2xs text-gray-500 italic bg-gray-50 border-t border-gray-100">
+      Kết quả của các lần kiểm nghiệm trước được lưu giữ nguyên — lần kiểm
+      nghiệm mới nhất là căn cứ đánh giá hiện tại của lô.
+    </p>
+  </div>
+);
+
 export const PublicInspectionSection: React.FC<PublicInspectionSectionProps> = ({
   inspections,
   data,
@@ -45,6 +158,7 @@ export const PublicInspectionSection: React.FC<PublicInspectionSectionProps> = (
   error,
 }) => {
   const items = inspections ?? data?.inspections ?? [];
+  const history = data?.history ?? [];
   const hasInspection = items.length > 0;
 
   /*
@@ -103,6 +217,9 @@ export const PublicInspectionSection: React.FC<PublicInspectionSectionProps> = (
                   Không đạt {failed}/{total} ({failedRatio}%)
                 </span>
               </div>
+
+              {/* Dòng thời gian lịch sử kiểm nghiệm — hiện khi có ≥ 2 lần gửi mẫu */}
+              {history.length >= 2 && <InspectionHistoryTimeline history={history} />}
 
               <div className="overflow-x-auto rounded-lg border border-gray-200">
                 <table className="min-w-full divide-y divide-gray-200 text-sm">

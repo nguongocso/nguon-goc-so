@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { getLocalDateString } from '@/utils/dateTime';
 
 export const recordPackagingSchema = z.object({
   productionLotId: z.string().uuid('Vui lòng chọn lô sản xuất'),
@@ -9,7 +10,10 @@ export const recordPackagingSchema = z.object({
   packagingDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày không đúng định dạng YYYY-MM-DD')
-    .refine((val) => new Date(val) <= new Date(), 'Ngày đóng gói không được là ngày ở tương lai'),
+    .refine(
+      (val) => val <= getLocalDateString(),
+      'Ngày đóng gói không được là ngày ở tương lai'
+    ),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
 });

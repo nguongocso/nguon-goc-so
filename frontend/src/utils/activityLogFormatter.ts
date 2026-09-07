@@ -14,6 +14,9 @@ export const formatActionType = (action: string): string => {
     CREATE: 'Tạo mới',
     UPDATE: 'Cập nhật',
     DELETE: 'Xóa',
+    // Loại bỏ lô sản xuất (VT-02). Backend vẫn lưu/trả về raw enum "DISPOSE";
+    // Việt hóa chỉ ở presentation layer để nhất quán bảng + chi tiết.
+    DISPOSE: 'Loại bỏ',
     READ: 'Xem',
     APPROVE: 'Phê duyệt',
     REJECT: 'Từ chối / Trả lại',
@@ -242,7 +245,8 @@ export const getActionColor = (action: string): string => {
     act.includes('DELETE') ||
     act.includes('REJECT') ||
     act.includes('DENIED') ||
-    act.includes('REVOKE')
+    act.includes('REVOKE') ||
+    act.includes('DISPOSE')
   ) {
     return 'bg-rose-100 text-rose-800 border-rose-200';
   }

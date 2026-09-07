@@ -164,6 +164,25 @@ beforeEach(() => {
   });
 });
 
+async function selectAndAddCommune(
+  user: ReturnType<typeof userEvent.setup>,
+  provinceName: string,
+  communeName: string,
+) {
+  const trigger = await screen.findByTestId('province-select-trigger');
+  await waitFor(() => expect(trigger).toBeEnabled());
+  await user.click(trigger);
+
+  const provinceOption = await screen.findByTestId(`province-option-${provinceName}`);
+  await user.click(provinceOption);
+
+  const checkbox = await screen.findByRole('checkbox', { name: communeName });
+  await user.click(checkbox);
+
+  const addBtn = await screen.findByRole('button', { name: /Thêm vào danh sách/ });
+  await user.click(addBtn);
+}
+
 describe('AreaAssignmentPage', () => {
   it('TC-A: hiển thị empty-state đúng chuỗi khi cán bộ đầu tiên chưa được gán địa bàn', async () => {
     const user = userEvent.setup();
@@ -194,13 +213,12 @@ describe('AreaAssignmentPage', () => {
     expect(within(list).getByText(/Hà Nội/)).toBeInTheDocument();
   });
 
-  it('TC-C: tick 1 xã rồi bấm Gán địa bàn → chip mới xuất hiện', async () => {
+  it('TC-C: chọn tỉnh và xã, bấm Thêm vào danh sách rồi bấm Gán địa bàn → chip mới xuất hiện', async () => {
     const user = userEvent.setup();
     renderPage();
 
     await selectUser(user, 'Trần Thị B');
-    await user.click(await screen.findByRole('button', { name: 'Mở Phú Thọ' }));
-    await user.click(await screen.findByRole('checkbox', { name: 'Xã Thanh Sơn' }));
+    await selectAndAddCommune(user, 'Phú Thọ', 'Xã Thanh Sơn');
 
     await user.click(screen.getByRole('button', { name: /Gán địa bàn/ }));
 
@@ -242,10 +260,7 @@ describe('AreaAssignmentPage', () => {
     await selectUser(user, 'Nguyễn Văn A');
     await screen.findByTestId('assigned-area-list');
 
-    await user.click(await screen.findByRole('button', { name: 'Mở Hà Nội' }));
-    await user.click(
-      await screen.findByRole('checkbox', { name: 'Phường Hoàn Kiếm' }),
-    );
+    await selectAndAddCommune(user, 'Hà Nội', 'Phường Hoàn Kiếm');
     await user.click(screen.getByRole('button', { name: /Gán địa bàn/ }));
 
     expect(
@@ -258,8 +273,7 @@ describe('AreaAssignmentPage', () => {
     renderPage();
 
     await selectUser(user, 'Lê Văn C');
-    await user.click(await screen.findByRole('button', { name: 'Mở Phú Thọ' }));
-    await user.click(await screen.findByRole('checkbox', { name: 'Xã Thanh Sơn' }));
+    await selectAndAddCommune(user, 'Phú Thọ', 'Xã Thanh Sơn');
     await user.click(screen.getByRole('button', { name: /Gán địa bàn/ }));
 
     const list = await screen.findByTestId('assigned-area-list');
@@ -274,7 +288,7 @@ describe('AreaAssignmentPage', () => {
     await screen.findByTestId('empty-assigned-areas');
 
     // Gán lại cùng unitId vẫn thành công vì store đã cập nhật.
-    await user.click(screen.getByRole('checkbox', { name: `Xã Thanh Sơn` }));
+    await selectAndAddCommune(user, 'Phú Thọ', 'Xã Thanh Sơn');
     await user.click(screen.getByRole('button', { name: /Gán địa bàn/ }));
     const listAgain = await screen.findByTestId('assigned-area-list');
     expect(within(listAgain).getByText(/Xã Thanh Sơn/)).toBeInTheDocument();
@@ -293,10 +307,7 @@ describe('AreaAssignmentPage', () => {
       await selectUser(user, 'Nguyễn Văn A');
       await screen.findByTestId('assigned-area-list');
 
-      await user.click(await screen.findByRole('button', { name: 'Mở Hà Nội' }));
-      await user.click(
-        await screen.findByRole('checkbox', { name: 'Phường Hoàn Kiếm' }),
-      );
+      await selectAndAddCommune(user, 'Hà Nội', 'Phường Hoàn Kiếm');
       await user.click(screen.getByRole('button', { name: /Gán địa bàn/ }));
 
       await waitFor(() => {
@@ -350,4 +361,74 @@ describe('AreaAssignmentPage', () => {
       errorSpy.mockRestore();
     }
   });
+
+  it('hiển thị header chuẩn ListPageHeader và các StatCard thống kê', async () => {
+    renderPage();
+
+    expect(await screen.findByRole('heading', { name: 'Phân công địa bàn quản lý' })).toBeInTheDocument();
+    expect(screen.getByText('Tổng số cán bộ quản lý ngành')).toBeInTheDocument();
+    expect(screen.getByText('Cán bộ đang chọn')).toBeInTheDocument();
+    expect(screen.getByText('Địa bàn đã gán')).toBeInTheDocument();
+    expect(screen.getByText('Chưa chọn')).toBeInTheDocument();
+    // Tổng số cán bộ là 3
+    expect(await screen.findByText('3')).toBeInTheDocument();
+  });
+
+  it('cập nhật StatCard khi chọn cán bộ', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await selectUser(user, 'Nguyễn Văn A');
+
+    // Cán bộ đang chọn cập nhật tên
+    expect(await screen.findByText('Nguyễn Văn A', { selector: 'span[title="Nguyễn Văn A"]' })).toBeInTheDocument();
+    // Địa bàn đã gán cập nhật thành 1
+    const statCards = screen.getAllByText('1');
+    expect(statCards.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('hiển thị badge số địa bàn của cán bộ trong danh sách khi được chọn', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await selectUser(user, 'Nguyễn Văn A');
+
+    // Cán bộ Nguyễn Văn A đã gán 1 địa bàn -> xuất hiện badge "1 địa bàn" trong danh sách cán bộ
+    const userList = await screen.findByTestId('user-list');
+    expect(within(userList).getByText('1 địa bàn')).toBeInTheDocument();
+  });
+
+  it('hỗ trợ phân trang khi danh sách cán bộ vượt quá 5 người', async () => {
+    const manyUsers: UserOption[] = Array.from({ length: 8 }, (_, i) => ({
+      userId: `user-id-${i + 1}`,
+      username: `user_${i + 1}`,
+      fullName: `Cán bộ ${i + 1}`,
+      email: `user${i + 1}@example.com`,
+      phone: `090000000${i + 1}`,
+      organizationName: 'Đơn vị kiểm tra',
+    }));
+
+    areaApi.getAssignableUsers.mockResolvedValueOnce(manyUsers);
+    const user = userEvent.setup();
+    renderPage();
+
+    // Trang đầu tiên hiển thị Cán bộ 1 đến Cán bộ 5
+    expect(await screen.findByText('Cán bộ 1')).toBeInTheDocument();
+    expect(screen.getByText('Cán bộ 5')).toBeInTheDocument();
+    expect(screen.queryByText('Cán bộ 6')).not.toBeInTheDocument();
+
+    // Có thông tin phân trang
+    expect(screen.getByText('Hiển thị 1 - 5 trên tổng số 8 cán bộ')).toBeInTheDocument();
+
+    // Chuyển sang trang sau
+    const nextBtn = screen.getByRole('button', { name: /Trang sau/ });
+    await user.click(nextBtn);
+
+    // Trang 2 hiển thị Cán bộ 6 đến Cán bộ 8
+    expect(await screen.findByText('Cán bộ 6')).toBeInTheDocument();
+    expect(screen.getByText('Cán bộ 8')).toBeInTheDocument();
+    expect(screen.queryByText('Cán bộ 1')).not.toBeInTheDocument();
+  });
 });
+
+

@@ -57,7 +57,21 @@ public class PublicInspectionResponse {
     private double failedRatio;
 
     /**
-     * Danh sách kết quả kiểm nghiệm các chỉ tiêu.
+     * Danh sách kết quả kiểm nghiệm các chỉ tiêu
+     * (kết quả MỚI NHẤT của từng chỉ tiêu — trạng thái hiện tại).
      */
     private List<PublicInspectionCriterionResultDto> inspections;
+
+    /**
+     * Tổng số lần kiểm nghiệm đã thực hiện trên lô
+     * (bao gồm cả kiểm nghiệm lần đầu và kiểm nghiệm lại).
+     */
+    private int roundCount;
+
+    /**
+     * Lịch sử kiểm nghiệm theo từng lần gửi mẫu, sắp xếp từ cũ đến mới.
+     * Mỗi phần tử là một lần kiểm nghiệm kèm toàn bộ kết quả của lần đó —
+     * các kết quả không đạt của lần trước vẫn được giữ nguyên.
+     */
+    private List<PublicInspectionRoundDto> history;
 }

@@ -2,6 +2,8 @@
 
 *NCL-04-CN-002 — Epic NCL-04: Cấp mã truy xuất và kiểm soát tem*
 
+**⚠️ Cập nhật contract theo NCL-11-CN-005 (QTN-30) — đang thiết kế, chưa implement:** `POST /api/v1/shipments` sẽ bổ sung gate chặn lô sản xuất chưa đạt kiểm nghiệm (loại nông sản bắt buộc kiểm nghiệm) ngay khi tạo lô hàng, và `POST /api/v1/shipments/{id}/activate` sẽ enforce gate kiểm nghiệm (hiện chỉ là API pre-check `can-activate-seal`). Phần dưới đây mô tả hành vi đang chạy trong code hiện tại. Chi tiết: [certification/failed-lot-handling.md](../certification/failed-lot-handling.md).
+
 ## 1. Thông tin chung
 
 **Mục tiêu**
