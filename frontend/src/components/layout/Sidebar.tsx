@@ -189,6 +189,12 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ROLE_ACCESS.codeRangeList,
       },
       {
+        icon: <Hash className="h-5 w-5" />,
+        label: "Duyệt bổ sung mã",
+        href: "/admin/code-range-supplements",
+        allowedRoles: ROLE_ACCESS.supplementManage,
+      },
+      {
         icon: <Lock className="h-5 w-5" />,
         label: "Tem nghi vấn",
         href: "/admin/suspect-trace-codes",
@@ -283,6 +289,13 @@ const MENU_GROUPS: MenuGroup[] = [
         href: "/recall-requests",
         allowedRoles: ROLE_ACCESS.recallRequestManage,
         activePaths: ["/recall-requests"],
+      },
+      {
+        icon: <Hash className="h-5 w-5" />,
+        label: "Yêu cầu bổ sung mã",
+        href: "/code-range-supplements/create",
+        allowedRoles: ROLE_ACCESS.supplementCreate,
+        activePaths: ["/code-range-supplements/create"],
       },
     ],
   },

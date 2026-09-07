@@ -165,6 +165,11 @@ import { CreateRecallRequestPage } from "@/pages/recall-request/CreateRecallRequ
 import { RecallRequestListPage } from "@/pages/recall-request/RecallRequestListPage";
 import { RecallRequestDetailPage } from "@/pages/recall-request/RecallRequestDetailPage";
 
+// ===== Code range supplement (NCL-04-CN-007) =====
+import { CodeRangeSupplementCreatePage } from "@/pages/code-range-supplement/CodeRangeSupplementCreatePage";
+import { CodeRangeSupplementListPage } from "@/pages/admin/CodeRangeSupplementListPage";
+import { CodeRangeSupplementDetailPage } from "@/pages/admin/CodeRangeSupplementDetailPage";
+
 // ===== Area assignment (NCL-670 / NCL-742) =====
 import { AreaAssignmentPage } from "@/pages/admin/AreaAssignmentPage";
 
@@ -1391,6 +1396,43 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.recallRequestManage}
                     >
                         <RecallRequestDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* =================================================
+          CODE RANGE SUPPLEMENT (NCL-04-CN-007)
+      ================================================= */}
+
+            <Route
+                path="code-range-supplements/create"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.supplementCreate}
+                    >
+                        <CodeRangeSupplementCreatePage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/code-range-supplements"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.supplementManage}
+                    >
+                        <CodeRangeSupplementListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/code-range-supplements/:id"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.supplementManage}
+                    >
+                        <CodeRangeSupplementDetailPage />
                     </RoleRoute>
                 }
             />

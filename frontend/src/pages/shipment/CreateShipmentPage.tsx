@@ -176,6 +176,14 @@ export const CreateShipmentPage: React.FC = () => {
   const hasCodeRange = remainingCodes?.hasCodeRange ?? false;
   const isExhausted =
     remainingCodes !== null && (!hasCodeRange || remainingCount <= 0);
+  // NCL-04-CN-007: lối tắt yêu cầu cấp bổ sung khi hạn mức dưới 20% hoặc đã hết
+  const isNearlyExhausted =
+    hasCodeRange && totalLimit > 0 && remainingCount / totalLimit < 0.2;
+  const showSupplementLink =
+    user?.roleCode === 'VT-02' &&
+    !remainingLoading &&
+    remainingCodes !== null &&
+    (isExhausted || isNearlyExhausted);
 
   if (loadingLot) {
     return (
@@ -275,6 +283,27 @@ export const CreateShipmentPage: React.FC = () => {
                     dải mã trước.
                   </p>
                 )}
+
+              {/* NCL-04-CN-007: cảnh báo + lối tắt yêu cầu cấp bổ sung mã */}
+              {showSupplementLink && (
+                <div className="flex flex-col gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="flex items-center gap-1 text-xs text-amber-700">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    {isExhausted
+                      ? 'Đã hết mã truy xuất. Gửi yêu cầu để được cấp bổ sung.'
+                      : `Hạn mức còn lại dưới 20% (${remainingCount.toLocaleString()}/${totalLimit.toLocaleString()} mã). Nên gửi yêu cầu cấp bổ sung trước khi hết mã.`}
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate('/code-range-supplements/create')}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    Yêu cầu cấp bổ sung mã
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* NCL-11-CN-005: Cảnh báo lô không đạt kiểm nghiệm */}
