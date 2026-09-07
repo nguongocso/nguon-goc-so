@@ -1,0 +1,210 @@
+-- ============================================================
+-- V20260907160004: Seed shipments and trace codes
+-- Phase 5: Shipment (4 lô hàng) + TraceCode (115 mã tem)
+--
+-- Đặc điểm: Idempotent (INSERT IGNORE + Deterministic UUIDs + Session variables)
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- 0. Nạp lại các biến session SQL
+-- ------------------------------------------------------------
+SET @htx_org_id = (SELECT organization_id FROM organizations WHERE code = 'HTX_TEST' LIMIT 1);
+SET @user_manager_id = (SELECT user_id FROM users WHERE user_name = 'quanly_htx' LIMIT 1);
+SET @user_admin_id   = (SELECT user_id FROM users WHERE user_name = 'admin' LIMIT 1);
+
+SET @lot_buoi_thu_id = (SELECT id FROM production_lot WHERE name = 'Lô Bưởi Thu 2026' LIMIT 1);
+SET @lot_xoai_he_id  = (SELECT id FROM production_lot WHERE name = 'Lô Xoài Hè 2026' LIMIT 1);
+SET @lot_cam_dong_id = (SELECT id FROM production_lot WHERE name = 'Lô Cam Đông 2026' LIMIT 1);
+
+SET @range_893001_id = (SELECT id FROM code_ranges WHERE prefix = '893001' LIMIT 1);
+SET @range_893002_id = (SELECT id FROM code_ranges WHERE prefix = '893002' LIMIT 1);
+
+-- ------------------------------------------------------------
+-- 1. Shipments: 4 lô hàng
+-- ------------------------------------------------------------
+INSERT IGNORE INTO shipments (
+    id, production_lot_id, organization_id, code_range_id, name, total_quantity, packaging_info, status, created_by, created_at, updated_at
+) VALUES
+(
+    '00000000-0000-0000-0000-000b00000001',
+    @lot_buoi_thu_id,
+    @htx_org_id,
+    @range_893001_id,
+    'Lô hàng Bưởi da xanh - Đợt 1',
+    30,
+    'Sọt nhựa 10 quả (khoảng 15kg)',
+    'DRAFT',
+    @user_manager_id,
+    '2026-07-22 08:30:00',
+    '2026-07-22 08:30:00'
+),
+(
+    '00000000-0000-0000-0000-000b00000002',
+    @lot_xoai_he_id,
+    @htx_org_id,
+    @range_893001_id,
+    'Lô hàng Xoài cát Chu - Đợt 1',
+    40,
+    'Thùng carton xuất khẩu 10kg',
+    'ACTIVATED',
+    @user_manager_id,
+    '2026-08-05 09:00:00',
+    '2026-08-25 10:00:00'
+),
+(
+    '00000000-0000-0000-0000-000b00000003',
+    @lot_cam_dong_id,
+    @htx_org_id,
+    @range_893002_id,
+    'Lô hàng Cam sành - Đợt 1',
+    20,
+    'Thùng carton lưới 20kg',
+    'RECALLED',
+    @user_manager_id,
+    '2026-06-20 08:00:00',
+    '2026-07-02 11:30:00'
+),
+(
+    '00000000-0000-0000-0000-000b00000004',
+    @lot_xoai_he_id,
+    @htx_org_id,
+    @range_893001_id,
+    'Lô hàng Xoài cát Chu - Đợt 2',
+    25,
+    'Thùng carton 5kg',
+    'DRAFT',
+    @user_manager_id,
+    '2026-08-10 14:00:00',
+    '2026-08-10 14:00:00'
+);
+
+-- Lưu biến session cho 4 shipments
+SET @shipment_buoi_id    = '00000000-0000-0000-0000-000b00000001';
+SET @shipment_xoai_d1_id = '00000000-0000-0000-0000-000b00000002';
+SET @shipment_cam_id     = '00000000-0000-0000-0000-000b00000003';
+SET @shipment_xoai_d2_id = '00000000-0000-0000-0000-000b00000004';
+
+-- ------------------------------------------------------------
+-- 2. TraceCodes: 115 mã tem
+-- ------------------------------------------------------------
+INSERT IGNORE INTO trace_codes (
+    id, shipment_id, code_value, status, printed_at, print_batch_id,
+    activated_at, activated_by, locked_at, locked_by, lock_reason,
+    cancelled_at, cancelled_by, cancel_reason_type, cancel_reason,
+    suspicion_score, suspicion_reason, created_at
+) VALUES
+('00000000-0000-0000-0000-000c00000001', @shipment_buoi_id, '893001000001', 'INACTIVE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000002', @shipment_buoi_id, '893001000002', 'INACTIVE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000003', @shipment_buoi_id, '893001000003', 'INACTIVE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000004', @shipment_buoi_id, '893001000004', 'INACTIVE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000005', @shipment_buoi_id, '893001000005', 'INACTIVE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000006', @shipment_buoi_id, '893001000006', 'INACTIVE', '2026-07-23 09:00:00', 'BATCH-BUOI-01', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000007', @shipment_buoi_id, '893001000007', 'INACTIVE', '2026-07-23 09:00:00', 'BATCH-BUOI-01', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000008', @shipment_buoi_id, '893001000008', 'INACTIVE', '2026-07-23 09:00:00', 'BATCH-BUOI-01', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000009', @shipment_buoi_id, '893001000009', 'INACTIVE', '2026-07-23 09:00:00', 'BATCH-BUOI-01', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000010', @shipment_buoi_id, '893001000010', 'INACTIVE', '2026-07-23 09:00:00', 'BATCH-BUOI-01', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000011', @shipment_buoi_id, '893001000011', 'ACTIVE', '2026-07-23 09:00:00', 'BATCH-BUOI-01', '2026-07-24 08:41:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000012', @shipment_buoi_id, '893001000012', 'ACTIVE', '2026-07-23 09:00:00', 'BATCH-BUOI-01', '2026-07-24 08:42:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000013', @shipment_buoi_id, '893001000013', 'ACTIVE', '2026-07-23 09:00:00', 'BATCH-BUOI-01', '2026-07-24 08:43:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000014', @shipment_buoi_id, '893001000014', 'ACTIVE', '2026-07-23 09:00:00', 'BATCH-BUOI-01', '2026-07-24 08:44:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000015', @shipment_buoi_id, '893001000015', 'ACTIVE', '2026-07-23 09:00:00', 'BATCH-BUOI-01', '2026-07-24 08:45:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000016', @shipment_buoi_id, '893001000016', 'ACTIVE', '2026-07-23 09:00:00', 'BATCH-BUOI-01', '2026-07-24 08:46:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000017', @shipment_buoi_id, '893001000017', 'ACTIVE', '2026-07-23 09:00:00', 'BATCH-BUOI-01', '2026-07-24 08:47:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000018', @shipment_buoi_id, '893001000018', 'ACTIVE', '2026-07-23 09:00:00', 'BATCH-BUOI-01', '2026-07-24 08:48:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000019', @shipment_buoi_id, '893001000019', 'ACTIVE', '2026-07-23 09:00:00', 'BATCH-BUOI-01', '2026-07-24 08:49:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000020', @shipment_buoi_id, '893001000020', 'ACTIVE', '2026-07-23 09:00:00', 'BATCH-BUOI-01', '2026-07-24 08:50:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000021', @shipment_buoi_id, '893001000021', 'LOCKED', '2026-07-23 09:00:00', 'BATCH-BUOI-01', '2026-07-24 09:00:00', @user_manager_id, '2026-08-01 14:00:00', @user_admin_id, 'Quét bất thường từ 3 vị trí địa lý trong thời gian ngắn', NULL, NULL, NULL, NULL, 80, 'Khoảng cách quét bất khả thi giữa các điểm quét', '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000022', @shipment_buoi_id, '893001000022', 'LOCKED', '2026-07-23 09:00:00', 'BATCH-BUOI-01', '2026-07-24 09:00:00', @user_manager_id, '2026-08-01 14:00:00', @user_admin_id, 'Quét bất thường từ 3 vị trí địa lý trong thời gian ngắn', NULL, NULL, NULL, NULL, 80, 'Khoảng cách quét bất khả thi giữa các điểm quét', '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000023', @shipment_buoi_id, '893001000023', 'LOCKED', '2026-07-23 09:00:00', 'BATCH-BUOI-01', '2026-07-24 09:00:00', @user_manager_id, '2026-08-01 14:00:00', @user_admin_id, 'Quét bất thường từ 3 vị trí địa lý trong thời gian ngắn', NULL, NULL, NULL, NULL, 80, 'Khoảng cách quét bất khả thi giữa các điểm quét', '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000024', @shipment_buoi_id, '893001000024', 'LOCKED', '2026-07-23 09:00:00', 'BATCH-BUOI-01', '2026-07-24 09:00:00', @user_manager_id, '2026-08-01 14:00:00', @user_admin_id, 'Quét bất thường từ 3 vị trí địa lý trong thời gian ngắn', NULL, NULL, NULL, NULL, 80, 'Khoảng cách quét bất khả thi giữa các điểm quét', '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000025', @shipment_buoi_id, '893001000025', 'LOCKED', '2026-07-23 09:00:00', 'BATCH-BUOI-01', '2026-07-24 09:00:00', @user_manager_id, '2026-08-01 14:00:00', @user_admin_id, 'Quét bất thường từ 3 vị trí địa lý trong thời gian ngắn', NULL, NULL, NULL, NULL, 80, 'Khoảng cách quét bất khả thi giữa các điểm quét', '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000026', @shipment_buoi_id, '893001000026', 'CANCELLED', '2026-07-23 09:00:00', 'BATCH-BUOI-01', NULL, NULL, NULL, NULL, NULL, '2026-07-23 11:30:00', @user_manager_id, 'PRINT_ERROR', 'Mực in bị nhòe mã ma trận QR', 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000027', @shipment_buoi_id, '893001000027', 'CANCELLED', '2026-07-23 09:00:00', 'BATCH-BUOI-01', NULL, NULL, NULL, NULL, NULL, '2026-07-23 11:30:00', @user_manager_id, 'PRINT_MISALIGNED', 'In lệch ra ngoài mép tem decal', 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000028', @shipment_buoi_id, '893001000028', 'CANCELLED', '2026-07-23 09:00:00', 'BATCH-BUOI-01', NULL, NULL, NULL, NULL, NULL, '2026-07-23 11:30:00', @user_manager_id, 'PEELED_OFF_DAMAGED', 'Tem rách khi công nhân dán vào thùng', 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000029', @shipment_buoi_id, '893001000029', 'RECALLED', '2026-07-23 09:00:00', 'BATCH-BUOI-01', '2026-07-24 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000030', @shipment_buoi_id, '893001000030', 'RECALLED', '2026-07-23 09:00:00', 'BATCH-BUOI-01', '2026-07-24 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000031', @shipment_xoai_d1_id, '893001000031', 'INACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000032', @shipment_xoai_d1_id, '893001000032', 'INACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000033', @shipment_xoai_d1_id, '893001000033', 'INACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000034', @shipment_xoai_d1_id, '893001000034', 'INACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000035', @shipment_xoai_d1_id, '893001000035', 'INACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000036', @shipment_xoai_d1_id, '893001000036', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:16:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000037', @shipment_xoai_d1_id, '893001000037', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:17:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000038', @shipment_xoai_d1_id, '893001000038', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:18:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000039', @shipment_xoai_d1_id, '893001000039', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:19:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000040', @shipment_xoai_d1_id, '893001000040', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:20:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000041', @shipment_xoai_d1_id, '893001000041', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:21:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000042', @shipment_xoai_d1_id, '893001000042', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:22:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000043', @shipment_xoai_d1_id, '893001000043', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:23:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000044', @shipment_xoai_d1_id, '893001000044', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:24:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000045', @shipment_xoai_d1_id, '893001000045', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:25:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000046', @shipment_xoai_d1_id, '893001000046', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:26:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000047', @shipment_xoai_d1_id, '893001000047', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:27:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000048', @shipment_xoai_d1_id, '893001000048', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:28:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000049', @shipment_xoai_d1_id, '893001000049', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:29:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000050', @shipment_xoai_d1_id, '893001000050', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:30:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000051', @shipment_xoai_d1_id, '893001000051', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:31:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000052', @shipment_xoai_d1_id, '893001000052', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:32:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000053', @shipment_xoai_d1_id, '893001000053', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:33:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000054', @shipment_xoai_d1_id, '893001000054', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:34:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000055', @shipment_xoai_d1_id, '893001000055', 'ACTIVE', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:35:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000056', @shipment_xoai_d1_id, '893001000056', 'LOCKED', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:30:00', @user_manager_id, '2026-08-20 16:00:00', @user_admin_id, 'Tần suất quét vượt ngưỡng cho phép trong 5 phút', NULL, NULL, NULL, NULL, 85, 'Người dùng báo cáo tem trùng lặp trên thị trường', '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000057', @shipment_xoai_d1_id, '893001000057', 'LOCKED', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:30:00', @user_manager_id, '2026-08-20 16:00:00', @user_admin_id, 'Tần suất quét vượt ngưỡng cho phép trong 5 phút', NULL, NULL, NULL, NULL, 85, 'Người dùng báo cáo tem trùng lặp trên thị trường', '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000058', @shipment_xoai_d1_id, '893001000058', 'LOCKED', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:30:00', @user_manager_id, '2026-08-20 16:00:00', @user_admin_id, 'Tần suất quét vượt ngưỡng cho phép trong 5 phút', NULL, NULL, NULL, NULL, 85, 'Người dùng báo cáo tem trùng lặp trên thị trường', '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000059', @shipment_xoai_d1_id, '893001000059', 'LOCKED', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:30:00', @user_manager_id, '2026-08-20 16:00:00', @user_admin_id, 'Tần suất quét vượt ngưỡng cho phép trong 5 phút', NULL, NULL, NULL, NULL, 85, 'Người dùng báo cáo tem trùng lặp trên thị trường', '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000060', @shipment_xoai_d1_id, '893001000060', 'LOCKED', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 09:30:00', @user_manager_id, '2026-08-20 16:00:00', @user_admin_id, 'Tần suất quét vượt ngưỡng cho phép trong 5 phút', NULL, NULL, NULL, NULL, 85, 'Người dùng báo cáo tem trùng lặp trên thị trường', '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000061', @shipment_xoai_d1_id, '893001000061', 'CANCELLED', '2026-08-06 08:30:00', 'BATCH-XOAI-01', NULL, NULL, NULL, NULL, NULL, '2026-08-06 14:00:00', @user_manager_id, 'PRINT_ERROR', 'Lỗi nhiệt độ đầu in làm mờ QR', 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000062', @shipment_xoai_d1_id, '893001000062', 'CANCELLED', '2026-08-06 08:30:00', 'BATCH-XOAI-01', NULL, NULL, NULL, NULL, NULL, '2026-08-06 14:00:00', @user_manager_id, 'PRINT_MISALIGNED', 'Cắt xén mất góc định vị QR', 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000063', @shipment_xoai_d1_id, '893001000063', 'CANCELLED', '2026-08-06 08:30:00', 'BATCH-XOAI-01', NULL, NULL, NULL, NULL, NULL, '2026-08-06 14:00:00', @user_manager_id, 'PEELED_OFF_DAMAGED', 'Bong tróc bề mặt keo', 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000064', @shipment_xoai_d1_id, '893001000064', 'CANCELLED', '2026-08-06 08:30:00', 'BATCH-XOAI-01', NULL, NULL, NULL, NULL, NULL, '2026-08-06 14:00:00', @user_manager_id, 'PRINT_ERROR', 'Vết mực lem', 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000065', @shipment_xoai_d1_id, '893001000065', 'CANCELLED', '2026-08-06 08:30:00', 'BATCH-XOAI-01', NULL, NULL, NULL, NULL, NULL, '2026-08-06 14:00:00', @user_manager_id, 'OTHER', 'Thay đổi quy cách đóng thùng sang 5kg', 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000066', @shipment_xoai_d1_id, '893001000066', 'RECALLED', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000067', @shipment_xoai_d1_id, '893001000067', 'RECALLED', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000068', @shipment_xoai_d1_id, '893001000068', 'RECALLED', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000069', @shipment_xoai_d1_id, '893001000069', 'SUSPECT', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 10:30:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 75, 'Tần suất quét tăng đột biến trong 10 phút tại 2 địa phương', '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000070', @shipment_xoai_d1_id, '893001000070', 'SUSPECT', '2026-08-06 08:30:00', 'BATCH-XOAI-01', '2026-08-10 10:30:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 90, 'Phát hiện quét đồng thời từ Hà Nội và TP.HCM cách nhau 2 phút', '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000071', @shipment_cam_id, '893002000001', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000072', @shipment_cam_id, '893002000002', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000073', @shipment_cam_id, '893002000003', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000074', @shipment_cam_id, '893002000004', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000075', @shipment_cam_id, '893002000005', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000076', @shipment_cam_id, '893002000006', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000077', @shipment_cam_id, '893002000007', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000078', @shipment_cam_id, '893002000008', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000079', @shipment_cam_id, '893002000009', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000080', @shipment_cam_id, '893002000010', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000081', @shipment_cam_id, '893002000011', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000082', @shipment_cam_id, '893002000012', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000083', @shipment_cam_id, '893002000013', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000084', @shipment_cam_id, '893002000014', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000085', @shipment_cam_id, '893002000015', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000086', @shipment_cam_id, '893002000016', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000087', @shipment_cam_id, '893002000017', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000088', @shipment_cam_id, '893002000018', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000089', @shipment_cam_id, '893002000019', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000090', @shipment_cam_id, '893002000020', 'RECALLED', '2026-06-20 09:00:00', 'BATCH-CAM-01', '2026-06-21 10:00:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000091', @shipment_xoai_d2_id, '893001000071', 'INACTIVE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000092', @shipment_xoai_d2_id, '893001000072', 'INACTIVE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000093', @shipment_xoai_d2_id, '893001000073', 'INACTIVE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000094', @shipment_xoai_d2_id, '893001000074', 'INACTIVE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000095', @shipment_xoai_d2_id, '893001000075', 'INACTIVE', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000096', @shipment_xoai_d2_id, '893001000076', 'INACTIVE', '2026-08-11 09:00:00', 'BATCH-XOAI-02', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000097', @shipment_xoai_d2_id, '893001000077', 'INACTIVE', '2026-08-11 09:00:00', 'BATCH-XOAI-02', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000098', @shipment_xoai_d2_id, '893001000078', 'INACTIVE', '2026-08-11 09:00:00', 'BATCH-XOAI-02', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000099', @shipment_xoai_d2_id, '893001000079', 'INACTIVE', '2026-08-11 09:00:00', 'BATCH-XOAI-02', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000100', @shipment_xoai_d2_id, '893001000080', 'INACTIVE', '2026-08-11 09:00:00', 'BATCH-XOAI-02', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000101', @shipment_xoai_d2_id, '893001000081', 'ACTIVE', '2026-08-11 09:00:00', 'BATCH-XOAI-02', '2026-08-15 08:31:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000102', @shipment_xoai_d2_id, '893001000082', 'ACTIVE', '2026-08-11 09:00:00', 'BATCH-XOAI-02', '2026-08-15 08:32:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000103', @shipment_xoai_d2_id, '893001000083', 'ACTIVE', '2026-08-11 09:00:00', 'BATCH-XOAI-02', '2026-08-15 08:33:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000104', @shipment_xoai_d2_id, '893001000084', 'ACTIVE', '2026-08-11 09:00:00', 'BATCH-XOAI-02', '2026-08-15 08:34:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000105', @shipment_xoai_d2_id, '893001000085', 'ACTIVE', '2026-08-11 09:00:00', 'BATCH-XOAI-02', '2026-08-15 08:35:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000106', @shipment_xoai_d2_id, '893001000086', 'ACTIVE', '2026-08-11 09:00:00', 'BATCH-XOAI-02', '2026-08-15 08:36:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000107', @shipment_xoai_d2_id, '893001000087', 'ACTIVE', '2026-08-11 09:00:00', 'BATCH-XOAI-02', '2026-08-15 08:37:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000108', @shipment_xoai_d2_id, '893001000088', 'ACTIVE', '2026-08-11 09:00:00', 'BATCH-XOAI-02', '2026-08-15 08:38:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000109', @shipment_xoai_d2_id, '893001000089', 'ACTIVE', '2026-08-11 09:00:00', 'BATCH-XOAI-02', '2026-08-15 08:39:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000110', @shipment_xoai_d2_id, '893001000090', 'ACTIVE', '2026-08-11 09:00:00', 'BATCH-XOAI-02', '2026-08-15 08:40:00', @user_manager_id, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000111', @shipment_xoai_d2_id, '893001000091', 'LOCKED', '2026-08-11 09:00:00', 'BATCH-XOAI-02', '2026-08-15 09:00:00', @user_manager_id, '2026-08-25 15:00:00', @user_admin_id, 'Nghi vấn làm giả tem QR ngoài thị trường', NULL, NULL, NULL, NULL, 70, 'Lượt quét từ IP nước ngoài không xác định', '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000112', @shipment_xoai_d2_id, '893001000092', 'LOCKED', '2026-08-11 09:00:00', 'BATCH-XOAI-02', '2026-08-15 09:00:00', @user_manager_id, '2026-08-25 15:00:00', @user_admin_id, 'Nghi vấn làm giả tem QR ngoài thị trường', NULL, NULL, NULL, NULL, 70, 'Lượt quét từ IP nước ngoài không xác định', '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000113', @shipment_xoai_d2_id, '893001000093', 'LOCKED', '2026-08-11 09:00:00', 'BATCH-XOAI-02', '2026-08-15 09:00:00', @user_manager_id, '2026-08-25 15:00:00', @user_admin_id, 'Nghi vấn làm giả tem QR ngoài thị trường', NULL, NULL, NULL, NULL, 70, 'Lượt quét từ IP nước ngoài không xác định', '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000114', @shipment_xoai_d2_id, '893001000094', 'CANCELLED', '2026-08-11 09:00:00', 'BATCH-XOAI-02', NULL, NULL, NULL, NULL, NULL, '2026-08-11 11:00:00', @user_manager_id, 'PRINT_ERROR', 'Lỗi máy in tem làm nhòe QR code', 0, NULL, '2026-06-01 08:00:00'),
+('00000000-0000-0000-0000-000c00000115', @shipment_xoai_d2_id, '893001000095', 'CANCELLED', '2026-08-11 09:00:00', 'BATCH-XOAI-02', NULL, NULL, NULL, NULL, NULL, '2026-08-11 11:00:00', @user_manager_id, 'PRINT_ERROR', 'Lỗi máy in tem làm nhòe QR code', 0, NULL, '2026-06-01 08:00:00');
