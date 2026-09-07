@@ -40,33 +40,12 @@ public class MilestoneValidationServiceImpl implements MilestoneValidationServic
                 .map(CultivationMilestone::getName)
                 .toList();
 
-        if (!missingMilestones.isEmpty()) {
-            return MilestoneValidationResult.builder()
-                    .eligible(false)
-                    .missingMilestones(missingMilestones)
-                    .build();
-        }
-
-        // Check if the lot has ANY farm logs at all
-        long farmLogCount = farmLogRepository.countByProductionLotId(lot.getId());
-        if (farmLogCount == 0) {
-            List<FarmLog> logs = farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lot.getId());
-            if (logs != null && !logs.isEmpty()) {
-                farmLogCount = logs.size();
-            }
-        }
-        if (farmLogCount == 0) {
-            log.warn("Lot {} has no farm logs. Packaging may proceed but this should be reviewed.", lot.getId());
-            // Return false with a warning message (do not block, just warn)
-            return MilestoneValidationResult.builder()
-                    .eligible(false)
-                    .message("Lô chưa có nhật ký canh tác. Vui lòng ghi nhật ký trước khi đóng gói.")
-                    .build();
-        }
+        boolean isEligible = missingMilestones.isEmpty();
 
         return MilestoneValidationResult.builder()
-                .eligible(true)
-                .missingMilestones(List.of())
+                .eligible(isEligible)
+                .missingMilestones(missingMilestones)
+                .message(isEligible ? null : "Lô chưa đủ mốc canh tác bắt buộc trước khi đóng gói.")
                 .build();
     }
 

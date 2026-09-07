@@ -241,18 +241,39 @@ class MilestoneValidationServiceImplTest {
         assertThat(service.findMissingMilestones(lot)).isEmpty();
     }
 
-    // Lô không có nhật ký canh tác -> eligible = false và thông báo cảnh báo
+    // NCL-09-CN-011: Lô không có nhật ký nhưng không có mốc bắt buộc -> eligible = true (cho phép đóng gói)
     @Test
-    void validate_shouldReturnEligibleFalseAndWarningWhenLotHasNoFarmLogs() {
+    void validate_shouldReturnEligibleTrueWhenLotHasNoFarmLogsAndNoMandatoryMilestones() {
         lot.setCertifications(List.of());
         when(milestoneRepository.findMandatoryMilestonesForValidation(categoryId, List.of()))
                 .thenReturn(List.of());
-        when(farmLogRepository.countByProductionLotId(lotId)).thenReturn(0L);
-        when(farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lotId)).thenReturn(List.of());
+
+        MilestoneValidationResult result = service.validateMilestoneCompletion(lot);
+
+        assertThat(result.isEligible()).isTrue();
+        assertThat(result).isEmpty();
+        assertThat(result.getMessage()).isNull();
+    }
+
+    // NCL-09-CN-011: Lô không có nhật ký và có mốc bắt buộc -> eligible = false kèm danh sách mốc thiếu
+    @Test
+    void validate_shouldReturnEligibleFalseWhenLotHasNoFarmLogsAndHasMandatoryMilestones() {
+        Standard standard = Standard.builder().id(UUID.randomUUID()).name("VietGAP").build();
+        lot.setCertifications(List.of(certWithStandard(standard)));
+
+        CultivationMilestone planting = milestone(1L, "Gieo trồng", "PLANTING");
+        CultivationMilestone harvesting = milestone(2L, "Thu hoạch", "HARVESTING");
+
+        when(milestoneRepository.findMandatoryMilestonesForValidation(
+                categoryId, List.of(standard.getId())))
+                .thenReturn(List.of(planting, harvesting));
+        when(farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lotId))
+                .thenReturn(List.of());
 
         MilestoneValidationResult result = service.validateMilestoneCompletion(lot);
 
         assertThat(result.isEligible()).isFalse();
-        assertThat(result.getMessage()).isEqualTo("Lô chưa có nhật ký canh tác. Vui lòng ghi nhật ký trước khi đóng gói.");
+        assertThat(result).containsExactly("Gieo trồng", "Thu hoạch");
+        assertThat(result.getMessage()).isEqualTo("Lô chưa đủ mốc canh tác bắt buộc trước khi đóng gói.");
     }
 }
