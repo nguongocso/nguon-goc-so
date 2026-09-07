@@ -188,8 +188,12 @@ export const RecordInspectionResultPage: React.FC = () => {
                 err.passed = "Vui lòng chọn kết luận Đạt hoặc Không đạt.";
             }
 
-            // Chỉ tiêu Không đạt không có hiệu lực thời gian nên không bắt buộc ngày.
-            if (r.passed !== false) {
+            // Chỉ tiêu Không đạt: vẫn bắt buộc ngày cấp, nhưng không bắt buộc ngày hết hiệu lực.
+            if (r.passed === false) {
+                if (!r.resultDate) {
+                    err.resultDate = "Vui lòng chọn ngày cấp.";
+                }
+            } else if (r.passed === true) {
                 if (!r.resultDate) {
                     err.resultDate = "Vui lòng chọn ngày cấp.";
                 }
@@ -239,8 +243,8 @@ export const RecordInspectionResultPage: React.FC = () => {
             prev.map((r) =>
                 r.criterionId === criterionId
                     ? passed === false
-                        ? // Chỉ tiêu Không đạt không có hiệu lực thời gian: xóa ngày và phiếu.
-                        {...r, passed, resultDate: "", expiryDate: "", filePath: "", selectedFileName: ""}
+                        ? // Chỉ tiêu Không đạt: giữ ngày cấp, xóa ngày hết hiệu lực và phiếu.
+                        {...r, passed, expiryDate: "", filePath: "", selectedFileName: ""}
                         : {...r, passed}
                     : r
             )
@@ -297,12 +301,11 @@ export const RecordInspectionResultPage: React.FC = () => {
 
     const handleSetAllFailed = () => {
         setTouched(true);
-        // Tất cả chỉ tiêu đều Không đạt nên không cần ngày hiệu lực / phiếu kết quả.
+        // Tất cả chỉ tiêu đều Không đạt: giữ ngày cấp, xóa ngày hiệu lực / phiếu kết quả.
         setRows((prev) =>
             prev.map((r) => ({
                 ...r,
                 passed: false,
-                resultDate: "",
                 expiryDate: "",
                 filePath: "",
                 selectedFileName: "",
@@ -361,9 +364,9 @@ export const RecordInspectionResultPage: React.FC = () => {
 
             toast.success("Ghi nhận kết quả kiểm nghiệm thành công!");
 
-            const effectiveLotId = routeLotId || detail.lotId;
+                        const effectiveLotId = routeLotId || detail.lotId;
             if (effectiveLotId) {
-                navigate(`/production-lots/${effectiveLotId}`);
+                navigate(`/production-lots/${effectiveLotId}?tab=inspection`);
             } else {
                 navigate("/production-lots");
             }
@@ -908,7 +911,7 @@ export const RecordInspectionResultPage: React.FC = () => {
                                                             type="date"
                                                             value={r.resultDate}
                                                             max={r.expiryDate || undefined}
-                                                            disabled={isReadOnly || r.passed === false}
+                                                            disabled={isReadOnly}
                                                             onChange={(e) =>
                                                                 handleFieldChange(r.criterionId, "resultDate", e.target.value)
                                                             }
@@ -1070,7 +1073,7 @@ export const RecordInspectionResultPage: React.FC = () => {
                                 {!isReadOnly &&
                                     ` Sau khi lưu, yêu cầu kiểm nghiệm này sẽ chuyển sang trạng thái `}
                                 {!isReadOnly && (
-                                    <strong className="text-[#2E7D32]">PASSED.</strong>
+                                    <strong className="text-[#2E7D32]">Đạt.</strong>
                                 )}
                             </p>
                         </div>
@@ -1090,7 +1093,7 @@ export const RecordInspectionResultPage: React.FC = () => {
                                 Có {failedCount} chỉ tiêu bị đánh dấu Không đạt. Theo quy định
                                 quản lý chất lượng, khi có bất kỳ chỉ tiêu nào không đạt, lô
                                 sản xuất này sẽ{" "}
-                                <strong>KHÔNG đủ điều kiện</strong> kích hoạt tem truy xuất
+                                <strong>KHÔNG đủ điều kiện</strong> tạo lô hàng và kích hoạt tem truy xuất
                                 nguồn gốc đến khi có kết quả kiểm nghiệm mới đạt chuẩn.
                             </p>
                         </div>
@@ -1103,11 +1106,10 @@ export const RecordInspectionResultPage: React.FC = () => {
                         <Info className="h-6 w-6 text-[#F9A825] shrink-0 mt-0.5"/>
                         <div className="space-y-1">
                             <h4 className="font-bold text-sm text-amber-900">
-                                Còn {unsetCount} chỉ tiêu chưa được nhập kết luận
+                                Còn {unsetCount} chỉ tiêu chưa được nhập kết quả
                             </h4>
                             <p className="text-xs text-amber-800 leading-relaxed">
-                                Backend yêu cầu ghi nhận kết quả cho toàn bộ chỉ tiêu của yêu cầu trong một lần giao
-                                dịch (All-or-nothing). Vui lòng hoàn tất trước khi bấm Lưu.
+                                Yêu cầu nhập kết quả cho tất cả chỉ tiêu của yêu cầu trong một lần ghi nhận. Vui lòng hoàn tất trước khi bấm Lưu.
                             </p>
                         </div>
                     </div>
@@ -1126,7 +1128,7 @@ export const RecordInspectionResultPage: React.FC = () => {
                         <p className="text-xs font-semibold text-foreground">
                             Tiến độ nhập: {filledCount}/{totalCriteria} chỉ tiêu đã hoàn tất ({progressPercent}%)
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">Yêu cầu nhập kết quả cho tất cả chỉ tiêu của yêu cầu trong một lần ghi nhận
                             {isAllAnswered ? "Đã nhập đủ tất cả chỉ tiêu" : `Còn ${unsetCount} chỉ tiêu chưa nhập kết luận`}
                         </p>
                     </div>
@@ -1137,7 +1139,7 @@ export const RecordInspectionResultPage: React.FC = () => {
                         type="button"
                         variant="ghost"
                         onClick={() => {
-                            if (effectiveLotId) navigate(`/production-lots/${effectiveLotId}`);
+                                                        if (effectiveLotId) navigate(`/production-lots/${effectiveLotId}?tab=inspection`);
                             else navigate("/production-lots");
                         }}
                         disabled={submitting}

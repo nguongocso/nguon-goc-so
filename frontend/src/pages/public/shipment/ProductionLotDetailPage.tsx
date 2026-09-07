@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import {
   AlertTriangle,
   Ban,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   CheckCircle2,
-  Eye,
   LoaderCircle,
   Package,
   Plus,
@@ -50,6 +51,7 @@ import { maskId } from "@/lib/utils";
 import type {
   CanActivateSealCheck,
   InspectionCriterionResult,
+  InspectionRequestDetailResponse,
   InspectionRequestListItem,
   InspectionRequestStatusDisplay,
   InspectionRequestStatusQuery,
@@ -72,6 +74,12 @@ import { getProductCategoryCriteria } from "@/api/inspectionCriterionApi";
 import { CertificationList } from "@/components/certification/CertificationList";
 import { AttachCertificationDialog } from "@/components/certification/AttachCertificationDialog";
 import { InspectionRequestHistoryModal } from "@/components/certification/InspectionRequestHistoryModal";
+import { InspectionRequestActionButtons } from "@/components/certification/InspectionRequestActionButtons";
+import { ProcessFailedLotDialog } from "@/components/production-lot/ProcessFailedLotDialog";
+import { DisposeLotDialog } from "@/components/production-lot/DisposeLotDialog";
+import { ReInspectionDialog } from "@/components/production-lot/ReInspectionDialog";
+import { disposeProductionLot } from "@/api/productionLotApi";
+import type { DisposeProductionLotRequest } from "@/types/productionLot";
 import {
   Table,
   TableBody,
@@ -107,6 +115,18 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
   PACKAGED: {
     label: "Đã đóng gói",
     className: "bg-sky-100 text-sky-800 border-sky-300",
+  },
+  REJECTED: {
+    label: "Bị từ chối",
+    className: "bg-red-100 text-red-800 border-red-300",
+  },
+  CLOSED: {
+    label: "Đã kết thúc",
+    className: "bg-gray-100 text-gray-700 border-gray-300",
+  },
+  DISPOSED: {
+    label: "Đã loại bỏ",
+    className: "bg-red-100 text-red-800 border-red-300",
   },
   SHIPPED: {
     label: "Đang vận chuyển",
@@ -314,6 +334,122 @@ const getApiErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * ExpandedCriteriaDetail — inline per-criterion results for one inspection
+ * request on the public traceability page.
+ *
+ * Fetches GET /api/v1/inspection-requests/{requestId} and renders the
+ * criterion list with PASS / FAIL / PENDING badges plus result / expiry
+ * dates. Results are cached per request so repeated expand/collapse does
+ * not re-fetch.
+ * ─────────────────────────────────────────────────────────────────────── */
+const ExpandedCriteriaDetail = ({ requestId }: { requestId: string }) => {
+  const [detail, setDetail] =
+    useState<InspectionRequestDetailResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    getInspectionRequestDetail(requestId)
+      .then((data) => {
+        if (!cancelled) setDetail(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err?.response?.data?.message || "Không thể tải chi tiết chỉ tiêu.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [requestId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
+        <LoaderCircle className="h-3.5 w-3.5 animate-spin text-emerald-500" />
+        Đang tải chi tiết chỉ tiêu…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+        {error}
+      </div>
+    );
+  }
+
+  if (!detail) return null;
+
+  return (
+    <div className="space-y-2 border-t border-emerald-100 pt-3">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-semibold text-slate-700">
+          Kết quả từng chỉ tiêu
+        </span>
+        <span className="text-muted-foreground">
+          {detail.passedCriteria}/{detail.totalCriteria} đạt
+          {detail.failedCriteriaCount > 0 && (
+            <span className="text-red-600">
+              {" "}
+              · {detail.failedCriteriaCount} không đạt
+            </span>
+          )}
+        </span>
+      </div>
+      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+        {detail.criteria.map((c) => (
+          <div
+            key={c.criterionId}
+            className="flex items-center justify-between gap-2 rounded-md border bg-white px-2.5 py-1.5 text-xs"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-medium text-slate-700">
+                {c.name}
+              </div>
+              {c.result?.resultDate && (
+                <div className="text-[10px] text-muted-foreground">
+                  Cấp: {formatDateOnly(c.result.resultDate)}
+                  {c.result.expiryDate &&
+                    ` · Hết hạn: ${formatDateOnly(c.result.expiryDate)}`}
+                </div>
+              )}
+            </div>
+            {c.result ? (
+              <Badge
+                variant="outline"
+                className={`shrink-0 border px-2 py-0.5 text-xs font-medium ${
+                  c.result.passed
+                    ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                    : "bg-red-100 text-red-800 border-red-300"
+                }`}
+              >
+                {c.result.passed ? "Đạt" : "Không đạt"}
+              </Badge>
+            ) : (
+              <Badge
+                variant="outline"
+                className="shrink-0 border bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 border-yellow-300"
+              >
+                Chờ kết quả
+              </Badge>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export const ProductionLotDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -328,6 +464,10 @@ export const ProductionLotDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [showHarvestForm, setShowHarvestForm] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  // NCL-11-CN-005: Dialog xử lý lô không đạt kiểm nghiệm
+  const [processDialogOpen, setProcessDialogOpen] = useState(false);
+  const [disposeDialogOpen, setDisposeDialogOpen] = useState(false);
+  const [reInspectionDialogOpen, setReInspectionDialogOpen] = useState(false);
   const [certifications, setCertifications] = useState<
     ProductionLotCertification[]
   >([]);
@@ -336,6 +476,15 @@ export const ProductionLotDetailPage = () => {
   // Modal mở rộng "Lịch sử yêu cầu kiểm nghiệm" (bảng hoàn chỉnh + phân trang)
   const [showInspectionHistoryModal, setShowInspectionHistoryModal] =
     useState(false);
+
+  // Lịch sử kiểm nghiệm chi tiết theo yêu cầu (lazy-load khi mở rộng)
+  const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
+  const [requestDetails, setRequestDetails] = useState<
+    Record<string, InspectionRequestDetailResponse>
+  >({});
+  const [loadingDetailIds, setLoadingDetailIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") || "info";
@@ -445,6 +594,24 @@ export const ProductionLotDetailPage = () => {
     }
   };
 
+  // NCL-11-CN-005: Xử lý loại bỏ lô không đạt kiểm nghiệm
+  const handleDisposeLot = async (
+    lotId: string,
+    payload: DisposeProductionLotRequest,
+  ) => {
+    try {
+      await disposeProductionLot(lotId, payload);
+      toast.success("Đã loại bỏ lô sản xuất.");
+      setDisposeDialogOpen(false);
+      await loadLot();
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message || "Không thể loại bỏ lô sản xuất.";
+      toast.error(message);
+      throw error;
+    }
+  };
+
   const loadCertifications = async () => {
     if (!id) return;
     try {
@@ -481,6 +648,41 @@ export const ProductionLotDetailPage = () => {
       }
     },
     [id],
+  );
+
+  /**
+   * Mở rộng / thu gọn chi tiết một yêu cầu kiểm nghiệm để xem kết quả
+   * từng chỉ tiêu. Dữ liệu được lazy-load qua GET /inspection-requests/{id}
+   * và cache lại để không gọi lại khi thu gọn rồi mở lại.
+   */
+  const toggleRequestDetail = useCallback(
+    async (requestId: string) => {
+      // Đang mở → thu gọn
+      if (expandedRequestId === requestId) {
+        setExpandedRequestId(null);
+        return;
+      }
+      setExpandedRequestId(requestId);
+      // Đã cache → không gọi lại
+      if (requestDetails[requestId]) return;
+      // Đang tải → bỏ qua
+      if (loadingDetailIds.has(requestId)) return;
+
+      setLoadingDetailIds((prev) => new Set(prev).add(requestId));
+      try {
+        const detail = await getInspectionRequestDetail(requestId);
+        setRequestDetails((prev) => ({ ...prev, [requestId]: detail }));
+      } catch {
+        // Không thể tải chi tiết → vẫn giữ row mở, hiển thị thông báo ngầm
+      } finally {
+        setLoadingDetailIds((prev) => {
+          const next = new Set(prev);
+          next.delete(requestId);
+          return next;
+        });
+      }
+    },
+    [expandedRequestId, requestDetails, loadingDetailIds],
   );
 
   /**
@@ -638,8 +840,8 @@ export const ProductionLotDetailPage = () => {
     }
   }, [id]);
 
-  useEffect(() => {
-    if (activeTab === "inspection" && canInspect && id) {
+    useEffect(() => {
+    if (canInspect && id) {
       void loadInspectionRequests(inspectionStatus, inspectionPage);
       void loadCanActivateCheck();
       void loadInspectionInsights();
@@ -718,8 +920,31 @@ export const ProductionLotDetailPage = () => {
     );
   }
 
+
+  const mandatoryInspection = productCategoryInfo?.requiresInspection ?? false;
+
+  const deriveInspectionStatus = (): "NOT_INSPECTED" | "PASSED" | "FAILED" | "RE_INSPECTION_PENDING" => {
+    if (!mandatoryInspection) return "PASSED";
+    if (criterionRows.length === 0) return "NOT_INSPECTED";
+    if (criterionRows.some((row) => row.status === "WAITING")) return "RE_INSPECTION_PENDING";
+    if (criterionRows.some((row) => row.status === "FAILED" || row.status === "EXPIRED")) return "FAILED";
+    if (criterionRows.some((row) => row.status === "NOT_TESTED")) return "NOT_INSPECTED";
+    return "PASSED";
+  };
+
+  const derivedInspectionStatus = deriveInspectionStatus();
+
+  const isInspectionFailed = derivedInspectionStatus === "FAILED";
+  const isReInspectionPending = derivedInspectionStatus === "RE_INSPECTION_PENDING";
+  const isLotDisposed = lot.status === "DISPOSED";
+
+  // NCL-11-CN-005: Chặn tạo lô hàng khi lô không đạt kiểm nghiệm
   const canCreateShipment =
-    user?.roleCode === "VT-02" && lot.status === "PACKAGED";
+    user?.roleCode === "VT-02" &&
+    lot.status === "PACKAGED" &&
+    !isInspectionFailed &&
+    !isReInspectionPending &&
+    !isLotDisposed;
   const canActivateShipment = user?.roleCode === "VT-02";
   const canRecallShipment = user?.roleCode === "VT-02";
   const canRecordPackaging =
@@ -749,8 +974,17 @@ export const ProductionLotDetailPage = () => {
     navigate(`/production-lots/${id}/inspection-requests/create`);
   };
 
-  // Chính sách kiểm nghiệm của loại nông sản (NCL-09-CN-009)
-  const mandatoryInspection = productCategoryInfo?.requiresInspection ?? false;
+  // NCL-11-CN-005: Suy diễn trạng thái kiểm nghiệm HIỆU LỰC từ kết quả mới nhất
+  // của từng chỉ tiêu (cùng nguồn sự thật với backend gate can-activate-seal).
+  //
+  // QUY TẮC:
+  // - Có chỉ tiêu đang chờ kết quả (re-inspection PENDING) → RE_INSPECTION_PENDING.
+  // - Có chỉ tiêu FAIL hiện tại (kết quả mới nhất passed = false) → FAILED.
+  // - Có chỉ tiêu hết hiệu lực → FAILED (không còn giá trị đạt tại thời điểm nghiệp vụ).
+  // - Có chỉ tiêu chưa có kết quả → NOT_INSPECTED (chưa hoàn thành).
+  // - TẤT CẢ chỉ tiêu đạt và còn hiệu lực → PASSED → được phép tạo lô hàng.
+  //
+  // Lịch sử FAIL cũ được giữ nguyên; chỉ kết quả MỚI NHẤT quyết định trạng thái.
 
   // Nhóm chỉ tiêu chưa thỏa để cảnh báo cụ thể trên banner
   const failedRows = criterionRows.filter((row) => row.status === "FAILED");
@@ -1035,6 +1269,52 @@ export const ProductionLotDetailPage = () => {
         </CardContent>
       </Card>
 
+      {/* NCL-11-CN-005: Cảnh báo lô không đạt kiểm nghiệm */}
+      {isInspectionFailed && !isLotDisposed && (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-red-800">Không đạt kiểm nghiệm</p>
+                <p className="mt-1 text-sm text-red-700">
+                  Lô sản xuất này có kết quả kiểm nghiệm Không đạt.
+                  Không thể tạo Lô hàng. Vui lòng xử lý theo một trong hai hướng:
+                  Loại bỏ lô hoặc Kiểm nghiệm lại.
+                </p>
+              </div>
+            </div>
+            {canInspect && !isLotDisposed && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setProcessDialogOpen(true)}
+                className="shrink-0"
+              >
+                <AlertTriangle className="h-4 w-4 mr-1.5" />
+                Xử lý lô
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* NCL-11-CN-005: Thông báo lô đã loại bỏ */}
+      {isLotDisposed && (
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-red-800">Đã loại bỏ</p>
+              <p className="mt-1 text-sm text-red-700">
+                Lô sản xuất đã bị loại bỏ. Lý do: {lot.disposalReason || "Không có thông tin"}.
+                Biện pháp xử lý: {lot.handlingMeasure || "Không có thông tin"}.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Harvest Form (nếu bật) */}
       {showHarvestForm && (
         <HarvestForm
@@ -1061,28 +1341,32 @@ export const ProductionLotDetailPage = () => {
             value="farmlogs"
             className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
           >
-            Nhật ký canh tác
-          </TabsTrigger>
-          <TabsTrigger
-            value="shipments"
-            className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
-          >
-            Lô hàng & Mã QR
-          </TabsTrigger>
-          <TabsTrigger
-            value="certifications"
-            className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
-          >
-            Chứng nhận
+            <span className="font-semibold mr-1.5 text-emerald-600 data-[state=active]:!text-emerald-700">1</span>
+            <span>Nhật ký canh tác</span>
           </TabsTrigger>
           {canInspect && (
             <TabsTrigger
               value="inspection"
               className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
             >
-              Kiểm nghiệm
+              <span className="font-semibold mr-1.5 text-emerald-600 data-[state=active]:!text-emerald-700">2</span>
+              <span>Kiểm nghiệm</span>
             </TabsTrigger>
           )}
+          <TabsTrigger
+            value="certifications"
+            className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+          >
+            <span className="font-semibold mr-1.5 text-emerald-600 data-[state=active]:!text-emerald-700">{canInspect ? '3' : '2'}</span>
+            <span>Chứng nhận</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="shipments"
+            className="rounded-lg px-4 py-2 lg:px-5 min-h-9 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+          >
+            <span className="font-semibold mr-1.5 text-emerald-600 data-[state=active]:!text-emerald-700">{canInspect ? '4' : '3'}</span>
+            <span>Lô hàng & Mã QR</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="info" className="mt-4">
@@ -1156,7 +1440,7 @@ export const ProductionLotDetailPage = () => {
               <Card className="border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm lg:col-span-2">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-semibold">
-                    Điều kiện kích hoạt tem
+                    Điều kiện tạo lô hàng và kích hoạt tem
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -1173,7 +1457,7 @@ export const ProductionLotDetailPage = () => {
                           <span className="font-semibold text-foreground">
                             đạt tất cả chỉ tiêu
                           </span>{" "}
-                          mới đủ điều kiện kích hoạt tem.
+                          mới đủ điều kiện tạo lô hàng và kích hoạt tem.
                         </>
                       ) : (
                         <>
@@ -1583,7 +1867,7 @@ export const ProductionLotDetailPage = () => {
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
                           <p className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
                             <CheckCircle2 className="h-4 w-4 shrink-0" />
-                            Lô đã đủ điều kiện kích hoạt tem
+                            Lô đã đủ điều kiện tạo lô hàng và kích hoạt tem
                           </p>
                           <p className="mt-1 text-sm text-emerald-700">
                             Lô đã có bộ kết quả kiểm nghiệm đạt và còn hiệu lực
@@ -1595,7 +1879,7 @@ export const ProductionLotDetailPage = () => {
                         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                           <p className="flex items-center gap-2 text-sm font-semibold text-red-700">
                             <AlertTriangle className="h-4 w-4 shrink-0" />
-                            Lô chưa đủ điều kiện kích hoạt tem
+                            Lô chưa đủ điều kiện tạo lô hàng và kích hoạt tem
                           </p>
                           <p className="mt-1 text-sm text-red-600">
                             Vui lòng kiểm nghiệm và đạt tất cả chỉ tiêu bắt
@@ -1751,80 +2035,97 @@ export const ProductionLotDetailPage = () => {
                             : "space-y-3"
                         }
                       >
-                        {visibleHistory.map((request) => (
-                          <div
-                            key={request.testRequestId}
-                            className="space-y-1.5 rounded-lg border border-gray-200 bg-white p-3"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span
-                                className="font-mono text-sm font-semibold"
-                                title={request.testRequestId}
+                        {visibleHistory.map((request) => {
+                          const isExpanded =
+                            expandedRequestId === request.testRequestId;
+                          return (
+                            <div
+                              key={request.testRequestId}
+                              className={`space-y-1.5 rounded-lg border bg-white p-3 transition-colors ${
+                                isExpanded
+                                  ? "border-emerald-300 bg-emerald-50/30"
+                                  : "border-gray-200"
+                              }`}
+                            >
+                              <div
+                                className="flex cursor-pointer items-start justify-between gap-2"
+                                onClick={() =>
+                                  toggleRequestDetail(request.testRequestId)
+                                }
                               >
-                                #{request.testRequestId.slice(0, 8)}
-                              </span>
-                              {getInspectionStatusBadge(request.status)}
+                                <div className="min-w-0 space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className="font-mono text-sm font-semibold"
+                                      title={request.testRequestId}
+                                    >
+                                      #{request.testRequestId.slice(0, 8)}
+                                    </span>
+                                    {getInspectionStatusBadge(request.status)}
+                                  </div>
+                                  <p className="break-words text-sm">
+                                    <span className="text-muted-foreground">
+                                      Đơn vị kiểm nghiệm:{" "}
+                                    </span>
+                                    {request.testingUnit}
+                                  </p>
+                                  <p className="text-sm">
+                                    <span className="text-muted-foreground">
+                                      Ngày gửi mẫu:{" "}
+                                    </span>
+                                    {formatDateOnly(request.sampleSentDate)}
+                                  </p>
+                                  <p className="text-sm">
+                                    <span className="text-muted-foreground">
+                                      Số chỉ tiêu:{" "}
+                                    </span>
+                                    {request.criteriaCount}
+                                    {request.failedCriteriaCount > 0 && (
+                                      <span className="text-red-600">
+                                        {" "}
+                                        · {request.failedCriteriaCount} không đạt
+                                      </span>
+                                    )}
+                                  </p>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 shrink-0 p-0 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700"
+                                  title={
+                                    isExpanded
+                                      ? "Thu gọn chi tiết"
+                                      : "Xem chi tiết chỉ tiêu"
+                                  }
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleRequestDetail(request.testRequestId);
+                                  }}
+                                >
+                                  {isExpanded ? (
+                                    <ChevronUp className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </div>
+
+                              {/* Chi tiết từng chỉ tiêu — chỉ hiển thị khi mở rộng */}
+                              {isExpanded && <ExpandedCriteriaDetail requestId={request.testRequestId} />}
+
+                              {/* Hành động — góc dưới bên phải */}
+                              {canInspect && (
+                                <div className="flex justify-end pt-1">
+                                  <InspectionRequestActionButtons
+                                    status={request.status}
+                                    testRequestId={request.testRequestId}
+                                    lotId={id!}
+                                  />
+                                </div>
+                              )}
                             </div>
-                            <p className="break-words text-sm">
-                              <span className="text-muted-foreground">
-                                Đơn vị kiểm nghiệm:{" "}
-                              </span>
-                              {request.testingUnit}
-                            </p>
-                            <p className="text-sm">
-                              <span className="text-muted-foreground">
-                                Ngày gửi mẫu:{" "}
-                              </span>
-                              {formatDateOnly(request.sampleSentDate)}
-                            </p>
-                            <div className="flex items-center justify-between gap-2 pt-0.5">
-                              <p className="text-sm">
-                                <span className="text-muted-foreground">
-                                  Số chỉ tiêu:{" "}
-                                </span>
-                                {request.criteriaCount}
-                                {request.failedCriteriaCount > 0 && (
-                                  <span className="text-red-600">
-                                    {" "}
-                                    · {request.failedCriteriaCount} không đạt
-                                  </span>
-                                )}
-                              </p>
-                              {canInspect &&
-                                (request.status === "PASSED" ||
-                                request.status === "FAILED" ? (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-7 w-7 p-0 text-slate-600 hover:text-emerald-800 hover:bg-emerald-50"
-                                    title="Xem chi tiết kết quả kiểm nghiệm"
-                                    onClick={() =>
-                                      navigate(
-                                        `/production-lots/${id}/inspection-requests/${request.testRequestId}/results`,
-                                      )
-                                    }
-                                  >
-                                    <Eye className="h-3.5 w-3.5" />
-                                  </Button>
-                                ) : (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-xs font-semibold"
-                                    onClick={() =>
-                                      navigate(
-                                        `/production-lots/${id}/inspection-requests/${request.testRequestId}/results`,
-                                      )
-                                    }
-                                  >
-                                    {request.status === "PENDING"
-                                      ? "Nhận kết quả"
-                                      : "Xem chi tiết"}
-                                  </Button>
-                                ))}
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
                       {/* Chân lịch sử: số lượng hiển thị + mở rộng toàn bộ */}
@@ -1904,6 +2205,37 @@ export const ProductionLotDetailPage = () => {
         lot={lot}
         onClose={() => setCancelDialogOpen(false)}
         onCancel={handleCancelProductionLot}
+      />
+
+      {/* NCL-11-CN-005: Dialog xử lý lô không đạt kiểm nghiệm */}
+      <ProcessFailedLotDialog
+        open={processDialogOpen}
+        lot={lot}
+        onClose={() => setProcessDialogOpen(false)}
+        onSelectDispose={() => {
+          setProcessDialogOpen(false);
+          setDisposeDialogOpen(true);
+        }}
+        onSelectReInspection={() => {
+          setProcessDialogOpen(false);
+          setReInspectionDialogOpen(true);
+        }}
+      />
+
+      <DisposeLotDialog
+        open={disposeDialogOpen}
+        lot={lot}
+        onClose={() => setDisposeDialogOpen(false)}
+        onDispose={handleDisposeLot}
+      />
+
+      <ReInspectionDialog
+        open={reInspectionDialogOpen}
+        lot={lot}
+        onClose={() => setReInspectionDialogOpen(false)}
+        onNavigateToCreateInspection={(lotId) => {
+          navigate(`/production-lots/${lotId}/inspection-requests/create`);
+        }}
       />
     </div>
   );

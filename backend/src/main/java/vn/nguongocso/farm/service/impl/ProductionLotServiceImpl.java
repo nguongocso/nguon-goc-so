@@ -4,13 +4,16 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.nguongocso.alert.event.ActivityLogEvent;
+import vn.nguongocso.certification.service.InspectionEligibilityService;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.farm.dto.request.ApproveProductionLotRequest;
 import vn.nguongocso.farm.dto.request.CancelProductionLotRequest;
 import vn.nguongocso.farm.dto.request.CreateProductionLotRequest;
+import vn.nguongocso.farm.dto.request.DisposeProductionLotRequest;
 import vn.nguongocso.farm.dto.request.UpdateProductionLotRequest;
 import vn.nguongocso.farm.dto.response.CreateProductionLotResponse;
 import vn.nguongocso.auth.entity.User;
@@ -54,6 +57,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
     private final OrganizationRepository organizationRepository;
     private final ReportAccessLogService reportAccessLogService;
     private final ShipmentRepository shipmentRepository;
+    private final InspectionEligibilityService inspectionEligibilityService;
 
     private final ApplicationEventPublisher eventPublisher;
 
@@ -222,6 +226,19 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             throw new BusinessException("Lô đã sinh mã truy xuất, không thể hủy. Vui lòng sử dụng luồng thu hồi lô");
         }
 
+        /*
+         * QTN-30 (NCL-11-CN-005, D-5): lô có kết luận kiểm nghiệm hoàn
+         * thành mới nhất là KHÔNG ĐẠT phải được xử lý theo 1 trong 2
+         * hướng (loại bỏ hoặc kiểm nghiệm lại) — không cho hủy lô để
+         * tránh lối thoát không ghi biện pháp xử lý.
+         */
+        if (inspectionEligibilityService.hasLatestFailedConclusion(lot)) {
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    "Lô sản xuất chưa đạt kiểm nghiệm, không thể hủy. "
+                            + "Vui lòng loại bỏ lô hoặc tạo yêu cầu kiểm nghiệm lại.");
+        }
+
         User cancelledBy = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin tài khoản"));
 
@@ -237,6 +254,80 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 userDetails,
                 "CANCEL",
                 "Hủy lô sản xuất " + saved.getName() + " với lý do: " + request.getReason(),
+                "ProductionLot",
+                saved.getId().toString());
+
+        return mapToResponse(saved);
+    }
+
+    /**
+     * Loại bỏ lô sản xuất sau kết luận kiểm nghiệm Không đạt
+     * (NCL-11-CN-005, QTN-30).
+     *
+     * <p>
+     * Dispose là hướng xử lý 1 trong 2 hướng bắt buộc khi lô Không đạt
+     * (hướng còn lại là kiểm nghiệm lại). Yêu cầu ghi lý do và biện
+     * pháp xử lý (TC-03); trạng thái {@code DISPOSED} là trạng thái cuối,
+     * tách khỏi {@code CANCELLED} (quyết định thiết kế D-4).
+     * </p>
+     */
+    @Override
+    @Transactional
+    public CreateProductionLotResponse disposeProductionLot(UUID lotId, DisposeProductionLotRequest request,
+            CustomUserDetails userDetails) {
+        log.info("Bắt đầu loại bỏ lô sản xuất với id={}", lotId);
+
+        UUID orgId = userDetails.getOrganizationId();
+        UUID userId = userDetails.getUserId();
+
+        ProductionLot lot = productionLotRepository.findById(lotId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất"));
+
+        if (!lot.getOrganization().getOrganizationId().equals(orgId)) {
+            throw new BusinessException("Lô sản xuất không thuộc tổ chức của bạn");
+        }
+
+        if (lot.getStatus() == ProductionLotStatus.CANCELLED
+                || lot.getStatus() == ProductionLotStatus.CLOSED
+                || lot.getStatus() == ProductionLotStatus.RECALLED
+                || lot.getStatus() == ProductionLotStatus.DISPOSED) {
+            throw new BusinessException(
+                    "Lô đã ở trạng thái " + lot.getStatus().name() + ", không thể loại bỏ");
+        }
+
+        if (lot.getStatus() != ProductionLotStatus.HARVESTED
+                && lot.getStatus() != ProductionLotStatus.PREPROCESSED
+                && lot.getStatus() != ProductionLotStatus.PACKAGED) {
+            throw new BusinessException(
+                    "Chỉ có thể loại bỏ lô ở trạng thái HARVESTED, PREPROCESSED hoặc PACKAGED");
+        }
+
+        boolean hasShipments = !shipmentRepository.findByProductionLotId(lotId).isEmpty();
+        if (hasShipments) {
+            throw new BusinessException(
+                    "Lô đã sinh mã truy xuất, không thể loại bỏ. Vui lòng sử dụng luồng thu hồi lô");
+        }
+
+        User disposedBy = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin tài khoản"));
+
+        lot.setStatus(ProductionLotStatus.DISPOSED);
+        lot.setDisposalReason(request.getReason());
+        lot.setHandlingMeasure(request.getHandlingMeasure());
+        lot.setDisposalNote(request.getNote());
+        lot.setDisposedBy(disposedBy);
+        lot.setDisposedAt(LocalDateTime.now());
+
+        ProductionLot saved = productionLotRepository.save(lot);
+
+        log.info("Lô {} đã bị loại bỏ bởi {}, lý do: {}", lotId, userId, request.getReason());
+
+        publishActivityLog(
+                userDetails,
+                "DISPOSE",
+                "Loại bỏ lô sản xuất " + saved.getName()
+                        + " với lý do: " + request.getReason()
+                        + "; biện pháp xử lý: " + request.getHandlingMeasure(),
                 "ProductionLot",
                 saved.getId().toString());
 
@@ -303,6 +394,11 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .cancellationNote(lot.getCancellationNote())
                 .cancelledByName(lot.getCancelledBy() != null ? lot.getCancelledBy().getFullName() : null)
                 .cancelledAt(lot.getCancelledAt())
+                .disposalReason(lot.getDisposalReason())
+                .handlingMeasure(lot.getHandlingMeasure())
+                .disposalNote(lot.getDisposalNote())
+                .disposedByName(lot.getDisposedBy() != null ? lot.getDisposedBy().getFullName() : null)
+                .disposedAt(lot.getDisposedAt())
                 .createdAt(lot.getCreatedAt())
                 .updatedAt(lot.getUpdatedAt())
                 .build();
@@ -451,7 +547,10 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
             // NCL-02-CN-006: lô đã hủy không tính vào tổng sản lượng đang canh tác,
             // chỉ thống kê riêng ở bucket byStatus["CANCELLED"].
-            if (status == ProductionLotStatus.CANCELLED) {
+            // NCL-11-CN-005: lô đã loại bỏ (DISPOSED) cũng không tính sản lượng
+            // dự kiến / thực tế — chỉ thống kê riêng ở bucket byStatus["DISPOSED"].
+            if (status == ProductionLotStatus.CANCELLED
+                    || status == ProductionLotStatus.DISPOSED) {
                 continue;
             }
 

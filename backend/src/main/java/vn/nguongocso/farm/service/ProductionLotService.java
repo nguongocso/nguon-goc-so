@@ -4,6 +4,7 @@ import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.farm.dto.request.ApproveProductionLotRequest;
 import vn.nguongocso.farm.dto.request.CancelProductionLotRequest;
 import vn.nguongocso.farm.dto.request.CreateProductionLotRequest;
+import vn.nguongocso.farm.dto.request.DisposeProductionLotRequest;
 import vn.nguongocso.farm.dto.request.UpdateProductionLotRequest;
 import vn.nguongocso.farm.dto.response.CreateProductionLotResponse;
 import vn.nguongocso.farm.dto.response.UpdateProductionLotResponse;
@@ -31,6 +32,13 @@ public interface ProductionLotService {
 
     /** Hủy lô sản xuất và ghi lý do (NCL-02-CN-006). */
     CreateProductionLotResponse cancelProductionLot(UUID lotId, CancelProductionLotRequest request,
+            CustomUserDetails userDetails);
+
+    /**
+     * Loại bỏ lô sản xuất sau kết luận kiểm nghiệm Không đạt
+     * (NCL-11-CN-005, QTN-30).
+     */
+    CreateProductionLotResponse disposeProductionLot(UUID lotId, DisposeProductionLotRequest request,
             CustomUserDetails userDetails);
 
     /** Gửi lô sản xuất sang trạng thái chờ duyệt. */

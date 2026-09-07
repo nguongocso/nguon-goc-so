@@ -25,6 +25,7 @@ import vn.nguongocso.publicapi.dto.response.PublicCertificationResponse;
 import vn.nguongocso.publicapi.dto.response.PublicChainEventItem;
 import vn.nguongocso.publicapi.dto.response.PublicInspectionCriterionResultDto;
 import vn.nguongocso.publicapi.dto.response.PublicInspectionResponse;
+import vn.nguongocso.publicapi.dto.response.PublicInspectionRoundDto;
 import vn.nguongocso.publicapi.dto.response.PublicLotCertificationsResponse;
 import vn.nguongocso.publicapi.dto.response.PublicTraceResponse;
 import vn.nguongocso.publicapi.service.PublicTraceService;
@@ -211,7 +212,8 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 ? shipment.getName()
                 : shipment.getId().toString();
 
-        List<PublicInspectionCriterionResultDto> inspectionResults = fetchPublicInspectionResults(productionLot);
+        List<PublicInspectionCriterionResultDto> inspectionResults =
+                resolveLatestResults(fetchPublicInspectionRounds(productionLot));
 
         return PublicTraceResponse.builder()
                 .codeValue(traceCode.getCodeValue())
@@ -448,19 +450,33 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                     .passedCriteria(0)
                     .failedCriteriaCount(0)
                     .failedRatio(0.0)
+                    .roundCount(0)
                     .inspections(Collections.emptyList())
+                    .history(Collections.emptyList())
                     .build();
         }
 
-        List<PublicInspectionCriterionResultDto> inspectionResults = fetchPublicInspectionResults(lot);
+        /*
+         * Lịch sử kiểm nghiệm theo từng lần gửi mẫu (cũ → mới).
+         * Mỗi lần kiểm nghiệm (kể cả kiểm nghiệm lại) giữ nguyên trong
+         * lịch sử — kết quả không đạt của lần trước KHÔNG bị xóa.
+         */
+        List<PublicInspectionRoundDto> history = fetchPublicInspectionRounds(lot);
 
         /*
-         * Thống kê tổng hợp kết quả kiểm nghiệm công khai:
-         * danh sách công khai chỉ chứa các chỉ tiêu đã có kết quả,
-         * nên totalCriteria bằng số kết quả đã ghi nhận.
+         * Trạng thái HIỆN TẠI của từng chỉ tiêu = kết quả MỚI NHẤT.
+         * FAIL lịch sử đã được khắc phục bằng kết quả kiểm nghiệm lại
+         * sẽ không còn xuất hiện trong danh sách hiện tại.
          */
-        int totalCriteria = inspectionResults.size();
-        int failedCriteriaCount = (int) inspectionResults.stream()
+        List<PublicInspectionCriterionResultDto> currentResults =
+                resolveLatestResults(history);
+
+        /*
+         * Thống kê tổng hợp tính trên TRẠNG THÁI HIỆN TẠI của lô:
+         * totalCriteria bằng số chỉ tiêu đã có kết quả mới nhất.
+         */
+        int totalCriteria = currentResults.size();
+        int failedCriteriaCount = (int) currentResults.stream()
                 .filter(dto -> !Boolean.TRUE.equals(dto.getPassed()))
                 .count();
         int passedCriteria = totalCriteria - failedCriteriaCount;
@@ -468,12 +484,14 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         return PublicInspectionResponse.builder()
                 .productionLotId(lot.getId())
                 .lotName(lot.getName())
-                .hasInspection(!inspectionResults.isEmpty())
+                .hasInspection(!currentResults.isEmpty())
                 .totalCriteria(totalCriteria)
                 .passedCriteria(passedCriteria)
                 .failedCriteriaCount(failedCriteriaCount)
                 .failedRatio(computeFailedRatio(failedCriteriaCount, totalCriteria))
-                .inspections(inspectionResults)
+                .roundCount(history.size())
+                .inspections(currentResults)
+                .history(history)
                 .build();
     }
 
@@ -501,9 +519,11 @@ public class PublicTraceServiceImpl implements PublicTraceService {
     }
 
     /**
-     * Helper truy vấn và chuyển đổi danh sách kết quả kiểm nghiệm của lô sản xuất.
+     * Helper truy vấn và chuyển đổi lịch sử kiểm nghiệm của lô sản xuất
+     * thành danh sách các LẦN kiểm nghiệm (round), sắp xếp từ cũ đến mới.
      */
-    private List<PublicInspectionCriterionResultDto> fetchPublicInspectionResults(ProductionLot lot) {
+    private List<PublicInspectionRoundDto> fetchPublicInspectionRounds(
+            ProductionLot lot) {
         if (lot == null || lot.getId() == null) {
             return Collections.emptyList();
         }
@@ -511,51 +531,124 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         List<InspectionRequest> requests = inspectionRequestRepository
                 .findByProductionLot_IdOrderByCreatedAtDesc(lot.getId());
 
-        List<PublicInspectionCriterionResultDto> inspectionResults = new ArrayList<>();
+        // Repo trả mới → cũ; dòng thời gian hiển thị cũ → mới
+        Collections.reverse(requests);
 
+        List<PublicInspectionRoundDto> rounds = new ArrayList<>();
+
+        int roundNumber = 0;
         for (InspectionRequest request : requests) {
-            List<InspectionCriterionResult> results = inspectionCriterionResultRepository
-                    .findByInspectionCriterion_InspectionRequest_Id(request.getId());
+            roundNumber++;
 
-            for (InspectionCriterionResult result : results) {
-                InspectionCriterion criterion = result.getInspectionCriterion();
-                String criterionName = (criterion != null && criterion.getCriterionName() != null)
-                        ? criterion.getCriterionName()
-                        : "Chỉ tiêu kiểm nghiệm";
+            List<PublicInspectionCriterionResultDto> roundResults =
+                    fetchRoundResults(request);
 
-                String standardValue = "QCVN / TCCS";
-                if (criterion != null && criterion.getStandard() != null && criterion.getStandard().getName() != null) {
-                    standardValue = criterion.getStandard().getName();
-                }
+            int passed = (int) roundResults.stream()
+                    .filter(dto -> Boolean.TRUE.equals(dto.getPassed()))
+                    .count();
+            int failed = roundResults.size() - passed;
 
-                String measuredValue = Boolean.TRUE.equals(result.getPassed())
-                        ? "Đạt chuẩn (Trong ngưỡng an toàn)"
-                        : "Không đạt (Vượt ngưỡng quy định)";
+            rounds.add(PublicInspectionRoundDto.builder()
+                    .round(roundNumber)
+                    .laboratoryName(resolveLaboratoryName(request))
+                    .sampleSentDate(request.getSampleSentDate())
+                    .status(request.getStatus() != null
+                            ? request.getStatus().name()
+                            : null)
+                    .totalCriteria(roundResults.size())
+                    .passedCriteria(passed)
+                    .failedCriteriaCount(failed)
+                    .results(roundResults)
+                    .build());
+        }
 
-                String laboratoryName = (request.getInspectionUnit() != null && !request.getInspectionUnit().isBlank())
-                        ? request.getInspectionUnit()
-                        : "Phòng kiểm nghiệm đạt chuẩn";
+        return rounds;
+    }
 
-                String inspectorName = (result.getCreatedBy() != null && result.getCreatedBy().getFullName() != null)
-                        ? result.getCreatedBy().getFullName()
-                        : null;
+    /**
+     * Kết quả chi tiết các chỉ tiêu của MỘT lần kiểm nghiệm.
+     */
+    private List<PublicInspectionCriterionResultDto> fetchRoundResults(
+            InspectionRequest request) {
 
-                PublicInspectionCriterionResultDto dto = PublicInspectionCriterionResultDto.builder()
-                        .id(result.getId() != null ? result.getId().toString() : UUID.randomUUID().toString())
-                        .criterionName(criterionName)
-                        .standardValue(standardValue)
-                        .measuredValue(measuredValue)
-                        .passed(result.getPassed())
-                        .inspectorName(inspectorName)
-                        .inspectionDate(result.getResultDate())
-                        .expiryDate(result.getExpiryDate())
-                        .laboratoryName(laboratoryName)
-                        .build();
+        List<InspectionCriterionResult> results =
+                inspectionCriterionResultRepository
+                        .findByInspectionCriterion_InspectionRequest_Id(
+                                request.getId());
 
-                inspectionResults.add(dto);
+        List<PublicInspectionCriterionResultDto> dtos = new ArrayList<>();
+        for (InspectionCriterionResult result : results) {
+            dtos.add(toPublicResultDto(result, request));
+        }
+        return dtos;
+    }
+
+    /**
+     * Trạng thái HIỆN TẠI của lô: lấy kết quả MỚI NHẤT của từng chỉ tiêu
+     * từ lịch sử (lần kiểm nghiệm sau đè lên lần trước theo tên chỉ tiêu).
+     */
+    private List<PublicInspectionCriterionResultDto> resolveLatestResults(
+            List<PublicInspectionRoundDto> history) {
+
+        Map<String, PublicInspectionCriterionResultDto> latestByName =
+                new LinkedHashMap<>();
+
+        // Duyệt từ lần MỚI NHẤT về cũ; giữ kết quả gặp đầu tiên
+        for (int i = history.size() - 1; i >= 0; i--) {
+            for (PublicInspectionCriterionResultDto dto
+                    : history.get(i).getResults()) {
+                latestByName.putIfAbsent(dto.getCriterionName(), dto);
             }
         }
 
-        return inspectionResults;
+        return new ArrayList<>(latestByName.values());
+    }
+
+    /**
+     * Chuyển một kết quả kiểm nghiệm thành DTO công khai.
+     */
+    private PublicInspectionCriterionResultDto toPublicResultDto(
+            InspectionCriterionResult result,
+            InspectionRequest request) {
+
+        InspectionCriterion criterion = result.getInspectionCriterion();
+        String criterionName = (criterion != null && criterion.getCriterionName() != null)
+                ? criterion.getCriterionName()
+                : "Chỉ tiêu kiểm nghiệm";
+
+        String standardValue = "QCVN / TCCS";
+        if (criterion != null && criterion.getStandard() != null && criterion.getStandard().getName() != null) {
+            standardValue = criterion.getStandard().getName();
+        }
+
+        String measuredValue = Boolean.TRUE.equals(result.getPassed())
+                ? "Đạt chuẩn (Trong ngưỡng an toàn)"
+                : "Không đạt (Vượt ngưỡng quy định)";
+
+        String inspectorName = (result.getCreatedBy() != null && result.getCreatedBy().getFullName() != null)
+                ? result.getCreatedBy().getFullName()
+                : null;
+
+        return PublicInspectionCriterionResultDto.builder()
+                .id(result.getId() != null ? result.getId().toString() : UUID.randomUUID().toString())
+                .criterionName(criterionName)
+                .standardValue(standardValue)
+                .measuredValue(measuredValue)
+                .passed(result.getPassed())
+                .inspectorName(inspectorName)
+                .inspectionDate(result.getResultDate())
+                .expiryDate(result.getExpiryDate())
+                .laboratoryName(resolveLaboratoryName(request))
+                .build();
+    }
+
+    /**
+     * Tên phòng kiểm nghiệm hiển thị công khai cho một lần kiểm nghiệm.
+     */
+    private String resolveLaboratoryName(InspectionRequest request) {
+        return (request.getInspectionUnit() != null
+                && !request.getInspectionUnit().isBlank())
+                ? request.getInspectionUnit()
+                : "Phòng kiểm nghiệm đạt chuẩn";
     }
 }

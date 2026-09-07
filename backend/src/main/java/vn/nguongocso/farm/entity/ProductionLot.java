@@ -94,6 +94,33 @@ public class ProductionLot {
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
 
+    /**
+     * Lý do loại bỏ lô (NCL-11-CN-005, QTN-30).
+     * Bắt buộc khi lô bị loại bỏ sau kết luận kiểm nghiệm Không đạt.
+     */
+    @Column(name = "disposal_reason", length = 100)
+    private String disposalReason;
+
+    /**
+     * Biện pháp xử lý lô bị loại bỏ (NCL-11-CN-005 TC-03).
+     * Bắt buộc khi dispose — không được để trống.
+     */
+    @Column(name = "handling_measure", length = 1000)
+    private String handlingMeasure;
+
+    /**
+     * Diễn giải chi tiết thêm khi loại bỏ lô (tùy chọn).
+     */
+    @Column(name = "disposal_note", length = 1000)
+    private String disposalNote;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "disposed_by")
+    private User disposedBy;
+
+    @Column(name = "disposed_at")
+    private LocalDateTime disposedAt;
+
     @OneToMany(mappedBy = "productionLot", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ProductionLotCertification> certifications = new ArrayList<>();
 

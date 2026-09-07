@@ -23,8 +23,9 @@ public interface DossierService {
      *
      * <p>
      * Chỉ dành cho VT-02 (Quản lý HTX) và VT-04 (Doanh nghiệp thu mua). Hồ sơ
-     * được ánh xạ theo bốn chiều {@code who / when / where / why} và không làm
-     * thay đổi bất kỳ dữ liệu nghiệp vụ nào.
+     * được ánh xạ theo bốn chiều {@code who / when / where / why} kèm lịch sử
+     * kiểm nghiệm của lô sản xuất tương ứng và không làm thay đổi bất kỳ dữ
+     * liệu nghiệp vụ nào.
      * </p>
      *
      * @param shipmentId       ID lô hàng cần xuất hồ sơ

@@ -58,7 +58,7 @@ VALUES
 -- 5. Chi tiết lô sản xuất
 -- ============================================================
 ('00000000-0000-0000-0000-000000000005', 'production-lot-detail', 'GENERAL',
- 'Hướng dẫn xem chi tiết lô sản xuất',
+ 'Hướng dẫn thao tác trang chi tiết lô sản xuất',
  '["Xem tổng quan lô: thông tin cơ bản, trạng thái, diện tích", "Cuộn xem các lô hàng (shipments) trực thuộc", "Xem nhật ký canh tác và các sự kiện của lô", "Theo dõi mã truy xuất đã cấp cho lô"]',
  NULL, 0, '2026-08-17 00:00:00', '2026-08-17 00:00:00'),
 ('00000000-0000-0000-0000-000000000103', 'production-lot-detail', 'VT-03',
