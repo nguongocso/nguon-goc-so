@@ -350,4 +350,30 @@ describe('AreaAssignmentPage', () => {
       errorSpy.mockRestore();
     }
   });
+
+  it('hiển thị header chuẩn ListPageHeader và các StatCard thống kê', async () => {
+    renderPage();
+
+    expect(await screen.findByRole('heading', { name: 'Phân công địa bàn quản lý' })).toBeInTheDocument();
+    expect(screen.getByText('Tổng số cán bộ quản lý ngành')).toBeInTheDocument();
+    expect(screen.getByText('Cán bộ đang chọn')).toBeInTheDocument();
+    expect(screen.getByText('Địa bàn đã gán')).toBeInTheDocument();
+    expect(screen.getByText('Chưa chọn')).toBeInTheDocument();
+    // Tổng số cán bộ là 3
+    expect(await screen.findByText('3')).toBeInTheDocument();
+  });
+
+  it('cập nhật StatCard khi chọn cán bộ', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await selectUser(user, 'Nguyễn Văn A');
+
+    // Cán bộ đang chọn cập nhật tên
+    expect(await screen.findByText('Nguyễn Văn A', { selector: 'span[title="Nguyễn Văn A"]' })).toBeInTheDocument();
+    // Địa bàn đã gán cập nhật thành 1
+    const statCards = screen.getAllByText('1');
+    expect(statCards.length).toBeGreaterThanOrEqual(1);
+  });
 });
+
