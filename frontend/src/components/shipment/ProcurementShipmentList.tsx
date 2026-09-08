@@ -133,9 +133,14 @@ export function ProcurementShipmentList({
     });
   };
 
+  const [filterFromDate, setFilterFromDate] = useState("");
+  const [filterToDate, setFilterToDate] = useState("");
+
   const handleCancelSelectionMode = () => {
     setIsSelectionMode(false);
     setSelectedShipmentIds([]);
+    setFilterFromDate("");
+    setFilterToDate("");
   };
 
   const handleExportGs1 = async (shipmentId: string) => {
@@ -230,6 +235,53 @@ export function ProcurementShipmentList({
           </div>
         }
       />
+
+      {isSelectionMode && (
+        <div className="border-b border-slate-100 bg-slate-50/70 p-3.5">
+          <div className="flex flex-wrap items-center gap-4 text-xs text-slate-700">
+            <span className="font-semibold text-slate-900">Bộ lọc chọn lô:</span>
+
+            <div className="flex items-center gap-1.5">
+              <label className="text-slate-600">Từ ngày:</label>
+              <input
+                type="date"
+                className="h-8 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
+                value={filterFromDate}
+                onChange={(e) => setFilterFromDate(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <label className="text-slate-600">Đến ngày:</label>
+              <input
+                type="date"
+                className="h-8 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
+                value={filterToDate}
+                onChange={(e) => setFilterToDate(e.target.value)}
+              />
+            </div>
+
+            {(filterFromDate || filterToDate) && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                onClick={() => {
+                  setFilterFromDate("");
+                  setFilterToDate("");
+                }}
+              >
+                Đặt lại bộ lọc
+              </Button>
+            )}
+
+            <div className="ml-auto text-xs text-slate-500">
+              Hiển thị <span className="font-medium text-slate-900">{filtered.length}</span> / {shipments.length} lô
+            </div>
+          </div>
+        </div>
+      )}
 
       <DataTableShell
         colSpan={isSelectionMode ? 8 : 7}
