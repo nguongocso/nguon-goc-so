@@ -284,12 +284,11 @@ class MilestoneReminderServiceImplTest {
     }
 
     @Test
-    @DisplayName("Lấy danh sách nhắc việc đang mở của người dùng hiện tại (VT-03)")
+    @DisplayName("Lấy danh sách nhắc việc đang mở của người dùng hiện tại (VT-03) - chỉ lấy nhắc việc của chính mình")
     void testGetMyActiveReminders_VT03() {
         CustomUserDetails userDetails = mock(CustomUserDetails.class);
         when(userDetails.getRoleCode()).thenReturn(RoleCode.EVENT_RECORDER);
         when(userDetails.getUserId()).thenReturn(assignedUser.getUserId());
-        when(userDetails.getOrganizationId()).thenReturn(activeLot.getOrganization().getOrganizationId());
 
         MilestoneReminder reminder = MilestoneReminder.builder()
                 .id(UUID.randomUUID())
@@ -301,8 +300,8 @@ class MilestoneReminderServiceImplTest {
                 .reminderDate(LocalDate.now())
                 .build();
 
-        when(milestoneReminderRepository.findActiveRemindersForUserOrOrganization(
-                eq(assignedUser.getUserId()), eq(activeLot.getOrganization().getOrganizationId()), eq(MilestoneReminderStatus.OPEN)))
+        when(milestoneReminderRepository.findByUser_UserIdAndStatusOrderByOverdueDaysDesc(
+                eq(assignedUser.getUserId()), eq(MilestoneReminderStatus.OPEN)))
                 .thenReturn(List.of(reminder));
 
         List<MilestoneReminderResponse> responses = reminderService.getMyActiveReminders(userDetails);
@@ -311,5 +310,84 @@ class MilestoneReminderServiceImplTest {
         assertThat(responses.get(0).getMilestoneName()).isEqualTo("Bón phân đợt một");
         assertThat(responses.get(0).getOverdueDays()).isEqualTo(5);
         assertThat(responses.get(0).getStatus()).isEqualTo(MilestoneReminderStatus.OPEN);
+        verify(milestoneReminderRepository).findByUser_UserIdAndStatusOrderByOverdueDaysDesc(
+                assignedUser.getUserId(), MilestoneReminderStatus.OPEN);
+    }
+
+    @Test
+    @DisplayName("Auto-complete theo milestoneId: Chỉ đóng đúng mốc canh tác được ghi, mốc khác cùng loại hoạt động giữ nguyên OPEN")
+    void testCompleteRemindersForLotAndMilestone_OnlyClosesExactMilestone() {
+        CultivationMilestone milestoneBonPhan2 = CultivationMilestone.builder()
+                .id(102L)
+                .name("Bón phân đón đòng (đợt 2)")
+                .activityType("FERTILIZING")
+                .expectedDaysFromPlanting(30)
+                .isMandatory(true)
+                .build();
+
+        MilestoneReminder reminder1 = MilestoneReminder.builder()
+                .id(UUID.randomUUID())
+                .productionLot(activeLot)
+                .milestone(milestoneBonPhan)
+                .status(MilestoneReminderStatus.OPEN)
+                .build();
+
+        when(milestoneReminderRepository.findByProductionLot_IdAndMilestone_IdAndStatus(
+                activeLot.getId(), 101L, MilestoneReminderStatus.OPEN))
+                .thenReturn(List.of(reminder1));
+
+        // Người dùng ghi nhật ký cho mốc 101
+        reminderService.completeRemindersForLotAndMilestone(activeLot.getId(), 101L);
+
+        // Nhắc việc của mốc 101 được đóng
+        assertThat(reminder1.getStatus()).isEqualTo(MilestoneReminderStatus.COMPLETED);
+        assertThat(reminder1.getCompletedAt()).isNotNull();
+        verify(milestoneReminderRepository).save(reminder1);
+
+        // Đảm bảo không tương tác hoặc đóng mốc 102
+        verify(milestoneReminderRepository, never()).findByProductionLot_IdAndMilestone_IdAndStatus(
+                activeLot.getId(), 102L, MilestoneReminderStatus.OPEN);
+    }
+
+    @Test
+    @DisplayName("Auto-complete theo activityType: Khi có nhiều mốc cùng activityType, chỉ đóng mốc đến hạn sớm nhất, mốc sau vẫn giữ OPEN")
+    void testCompleteRemindersForLotAndActivity_OnlyClosesEarliestMilestone() {
+        CultivationMilestone milestoneBonPhan2 = CultivationMilestone.builder()
+                .id(102L)
+                .name("Bón phân đợt hai")
+                .activityType("FERTILIZING")
+                .expectedDaysFromPlanting(30)
+                .isMandatory(true)
+                .build();
+
+        MilestoneReminder reminderEarliest = MilestoneReminder.builder()
+                .id(UUID.randomUUID())
+                .productionLot(activeLot)
+                .milestone(milestoneBonPhan) // expectedDaysFromPlanting = 10
+                .status(MilestoneReminderStatus.OPEN)
+                .build();
+
+        MilestoneReminder reminderLater = MilestoneReminder.builder()
+                .id(UUID.randomUUID())
+                .productionLot(activeLot)
+                .milestone(milestoneBonPhan2) // expectedDaysFromPlanting = 30
+                .status(MilestoneReminderStatus.OPEN)
+                .build();
+
+        when(milestoneReminderRepository.findByProductionLot_IdAndStatus(activeLot.getId(), MilestoneReminderStatus.OPEN))
+                .thenReturn(List.of(reminderLater, reminderEarliest)); // danh sách chưa sắp xếp
+
+        // Ghi 1 nhật ký bón phân
+        reminderService.completeRemindersForLotAndActivity(activeLot.getId(), FarmActivityType.FERTILIZING);
+
+        // Chỉ mốc sớm nhất (101) bị đóng
+        assertThat(reminderEarliest.getStatus()).isEqualTo(MilestoneReminderStatus.COMPLETED);
+        assertThat(reminderEarliest.getCompletedAt()).isNotNull();
+        verify(milestoneReminderRepository).save(reminderEarliest);
+
+        // Mốc sau (102) VẪN GIỮ NGUYÊN OPEN
+        assertThat(reminderLater.getStatus()).isEqualTo(MilestoneReminderStatus.OPEN);
+        assertThat(reminderLater.getCompletedAt()).isNull();
+        verify(milestoneReminderRepository, never()).save(reminderLater);
     }
 }

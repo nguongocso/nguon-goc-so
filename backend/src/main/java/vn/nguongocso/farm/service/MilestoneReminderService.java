@@ -33,11 +33,20 @@ public interface MilestoneReminderService {
 
     /**
      * Tự động đóng các nhắc việc đang mở cho mốc khi người ghi nhập nhật ký canh tác (TC-02).
+     * <p>Nếu nhiều mốc có cùng loại hoạt động, chỉ đóng mốc đến hạn sớm nhất, giữ nguyên các mốc còn lại.</p>
      *
      * @param lotId        ID của lô sản xuất
      * @param activityType loại hoạt động canh tác vừa ghi
      */
     void completeRemindersForLotAndActivity(UUID lotId, FarmActivityType activityType);
+
+    /**
+     * Tự động đóng chính xác nhắc việc đang mở cho một mốc canh tác cụ thể theo ID.
+     *
+     * @param lotId       ID của lô sản xuất
+     * @param milestoneId ID của mốc canh tác cần đóng
+     */
+    void completeRemindersForLotAndMilestone(UUID lotId, Long milestoneId);
 
     /**
      * Lấy danh sách nhắc việc có phân trang và lọc theo quyền của người dùng.

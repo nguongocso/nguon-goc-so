@@ -100,8 +100,9 @@ export const MilestoneReminderCard: React.FC<MilestoneReminderCardProps> = ({
   };
 
   const handleRecordNow = (reminder: MilestoneReminder) => {
+    const milestoneParam = reminder.milestoneId ? `&milestoneId=${reminder.milestoneId}` : '';
     navigate(
-      `/farm-logs/create?productionLotId=${reminder.lotId}&activityType=${reminder.activityType}`
+      `/farm-logs/create?productionLotId=${reminder.lotId}&activityType=${reminder.activityType}${milestoneParam}`
     );
   };
 

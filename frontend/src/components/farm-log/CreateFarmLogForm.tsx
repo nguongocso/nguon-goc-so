@@ -43,6 +43,7 @@ interface CreateFarmLogFormProps {
   productionLots: ProductionLot[];
   initialProductionLotId?: string;
   initialActivityType?: FarmActivityType;
+  initialMilestoneId?: number;
   onCancel: () => void;
   onSubmit: (
     payload: CreateFarmLogRequest,
@@ -130,6 +131,7 @@ export function CreateFarmLogForm({
   productionLots,
   initialProductionLotId,
   initialActivityType,
+  initialMilestoneId,
   onCancel,
   onSubmit,
   onSuccess,
@@ -256,6 +258,7 @@ export function CreateFarmLogForm({
       unit: form.unit.trim() || null,
       executedDate: form.executedDate,
       notes: form.notes.trim() || null,
+      milestoneId: initialMilestoneId || undefined,
     };
 
     try {

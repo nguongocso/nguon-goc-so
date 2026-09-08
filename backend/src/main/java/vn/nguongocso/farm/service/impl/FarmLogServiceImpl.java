@@ -141,9 +141,15 @@ public class FarmLogServiceImpl implements FarmLogService {
 		// NCL-03-CN-007 (TC-02): Tự động đóng nhắc việc cho mốc tương ứng khi đã ghi nhật ký
 		if (milestoneReminderService != null) {
 			try {
-				milestoneReminderService.completeRemindersForLotAndActivity(
-						saved.getProductionLotId().getId(),
-						saved.getActivityType());
+				if (request.getMilestoneId() != null) {
+					milestoneReminderService.completeRemindersForLotAndMilestone(
+							saved.getProductionLotId().getId(),
+							request.getMilestoneId());
+				} else {
+					milestoneReminderService.completeRemindersForLotAndActivity(
+							saved.getProductionLotId().getId(),
+							saved.getActivityType());
+				}
 			} catch (Exception e) {
 				log.warn("Không thể tự động đóng nhắc việc canh tác sau khi ghi nhật ký: {}", e.getMessage());
 			}

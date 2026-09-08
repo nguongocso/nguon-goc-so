@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -190,5 +191,35 @@ class FarmLogServiceImplTest {
 
         Mockito.verify(mockReminderService).completeRemindersForLotAndActivity(
                 productionLot.getId(), FarmActivityType.FERTILIZING);
+    }
+
+    @Test
+    @DisplayName("Ghi nhật ký có truyền milestoneId sẽ gọi completeRemindersForLotAndMilestone đóng chính xác mốc đó")
+    void create_shouldTriggerCompleteRemindersForMilestone_whenMilestoneIdProvided() {
+        MilestoneReminderService mockReminderService = Mockito.mock(MilestoneReminderService.class);
+        FarmLogServiceImpl serviceWithReminder = new FarmLogServiceImpl(
+                farmLogRepository,
+                productionLotRepository,
+                attachmentRepository,
+                Mockito.mock(vn.nguongocso.trace.repository.TraceCodeRepository.class),
+                eventPublisher,
+                clock,
+                mockReminderService);
+
+        CreateFarmLogRequest request = new CreateFarmLogRequest();
+        request.setProductionLotId(productionLot.getId());
+        request.setActivityType(FarmActivityType.FERTILIZING);
+        request.setMilestoneId(105L);
+        request.setMaterial("NPK 16-16-8");
+        request.setQuantity(20.0);
+        request.setUnit("kg");
+        request.setExecutedDate(LocalDate.of(2026, 8, 23));
+
+        serviceWithReminder.create(request);
+
+        Mockito.verify(mockReminderService).completeRemindersForLotAndMilestone(
+                productionLot.getId(), 105L);
+        Mockito.verify(mockReminderService, Mockito.never()).completeRemindersForLotAndActivity(
+                any(), any());
     }
 }

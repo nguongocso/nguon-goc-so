@@ -25,6 +25,9 @@ const CreateFarmLogPage = () => {
   const [searchParams] = useSearchParams();
   const requestedProductionLotId = searchParams.get("productionLotId") ?? "";
   const requestedActivityType = (searchParams.get("activityType") as FarmActivityType) || undefined;
+  const requestedMilestoneId = searchParams.get("milestoneId")
+    ? Number(searchParams.get("milestoneId"))
+    : undefined;
 
   const [productionLots, setProductionLots] = useState<ProductionLot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -163,6 +166,7 @@ const CreateFarmLogPage = () => {
           productionLots={eligibleProductionLots}
           initialProductionLotId={initialProductionLotId}
           initialActivityType={requestedActivityType}
+          initialMilestoneId={requestedMilestoneId}
           onCancel={() => navigate(-1)}
           onSubmit={handleSubmit}
           onSuccess={(log) => {

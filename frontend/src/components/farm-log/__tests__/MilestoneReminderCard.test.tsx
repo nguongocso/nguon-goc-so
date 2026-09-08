@@ -72,7 +72,7 @@ describe('MilestoneReminderCard', () => {
     const recordBtn = screen.getByRole('button', { name: /Ghi nhật ký ngay/i });
     fireEvent.click(recordBtn);
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/farm-logs/create?productionLotId=lot-123&activityType=FERTILIZING'
+      '/farm-logs/create?productionLotId=lot-123&activityType=FERTILIZING&milestoneId=101'
     );
   });
 
