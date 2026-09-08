@@ -32,6 +32,7 @@ export function ProcurementShipmentList({
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [orgFilter, setOrgFilter] = useState("ALL");
   const [page, setPage] = useState(0);
   const navigate = useNavigate();
 
@@ -87,18 +88,35 @@ export function ProcurementShipmentList({
     ];
   }, [shipments]);
 
+  const organizationOptions = useMemo(() => {
+    const names = Array.from(
+      new Set(
+        shipments
+          .map((shipment) => shipment.organizationName)
+          .filter((name): name is string => Boolean(name)),
+      ),
+    );
+    return [
+      { value: "ALL", label: "Tất cả tổ chức" },
+      ...names.map((name) => ({ value: name, label: name })),
+    ];
+  }, [shipments]);
+
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase();
     return shipments.filter(
       (shipment) =>
         (categoryFilter === "ALL" ||
           shipment.productCategoryName === categoryFilter) &&
+        (orgFilter === "ALL" ||
+          shipment.organizationName === orgFilter) &&
         (!keyword ||
           shipment.name.toLowerCase().includes(keyword) ||
           (shipment.productionLotName ?? "").toLowerCase().includes(keyword) ||
-          (shipment.productCategoryName ?? "").toLowerCase().includes(keyword)),
+          (shipment.productCategoryName ?? "").toLowerCase().includes(keyword) ||
+          (shipment.organizationName ?? "").toLowerCase().includes(keyword)),
     );
-  }, [shipments, search, categoryFilter]);
+  }, [shipments, search, categoryFilter, orgFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
@@ -179,7 +197,7 @@ export function ProcurementShipmentList({
         left={
           <>
             <SearchInput
-              placeholder="Tìm tên lô hàng, lô sản xuất hoặc loại nông sản..."
+              placeholder="Tìm tên lô hàng, lô sản xuất, nông sản hoặc tổ chức..."
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
@@ -194,6 +212,14 @@ export function ProcurementShipmentList({
                 setPage(0);
               }}
               options={categoryOptions}
+            />
+            <FilterSelect
+              value={orgFilter}
+              onValueChange={(value) => {
+                setOrgFilter(value ?? "ALL");
+                setPage(0);
+              }}
+              options={organizationOptions}
             />
           </>
         }
@@ -284,7 +310,7 @@ export function ProcurementShipmentList({
       )}
 
       <DataTableShell
-        colSpan={isSelectionMode ? 8 : 7}
+        colSpan={isSelectionMode ? 9 : 8}
         header={
           <>
             {isSelectionMode && (
@@ -305,6 +331,7 @@ export function ProcurementShipmentList({
             <TableHead>Tên lô hàng</TableHead>
             <TableHead>Lô sản xuất</TableHead>
             <TableHead>Nông sản</TableHead>
+            <TableHead>Tổ chức</TableHead>
             <TableHead>Sản lượng</TableHead>
             <TableHead>Trạng thái</TableHead>
             <TableHead className="text-center">Thao tác</TableHead>
@@ -336,6 +363,9 @@ export function ProcurementShipmentList({
             </TableCell>
             <TableCell className="text-muted-foreground">
               {shipment.productCategoryName ?? "—"}
+            </TableCell>
+            <TableCell className="text-muted-foreground font-medium">
+              {shipment.organizationName ?? "—"}
             </TableCell>
             <TableCell className="text-muted-foreground">
               {shipment.totalQuantity != null
