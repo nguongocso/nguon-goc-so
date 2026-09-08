@@ -65,7 +65,7 @@ public class ProductFeedback {
     @Column(name = "public_response", columnDefinition = "TEXT")
     private String publicResponse;
 
-    @Column(name = "lookup_code_hash", length = 64, unique = true)
+    @Column(name = "lookup_code_hash", length = 64, unique = true, columnDefinition = "CHAR(64)")
     private String lookupCodeHash;
 
     @Column(name = "close_reason", columnDefinition = "TEXT")
