@@ -8,8 +8,11 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
 
 import vn.nguongocso.report.dto.response.ProductBreakdownItem;
 import vn.nguongocso.trace.entity.Shipment;
@@ -83,6 +86,15 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
         Optional<Shipment> findByIdAndOrganization_OrganizationId(
                         UUID shipmentId,
                         UUID organizationId);
+
+        /** Khóa lô hàng trong transaction để tuần tự hóa việc tạo đề nghị thu hồi. */
+        @Lock(LockModeType.PESSIMISTIC_WRITE)
+        @Query("SELECT s FROM Shipment s " +
+                        "WHERE s.id = :shipmentId " +
+                        "AND s.organization.organizationId = :organizationId")
+        Optional<Shipment> findOwnedByIdForRecallUpdate(
+                        @Param("shipmentId") UUID shipmentId,
+                        @Param("organizationId") UUID organizationId);
 
         /**
          * Lấy danh sách lô hàng đủ điều kiện thu mua (status = ACTIVATED).

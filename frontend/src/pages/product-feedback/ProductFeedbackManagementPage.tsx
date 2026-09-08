@@ -1,8 +1,12 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, RefreshCw, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+
 import { getProductFeedbacks } from "@/api/productFeedbackApi";
-import type { ProductFeedback } from "@/types/productFeedback";
-import type { PageResponse } from "@/types/common";
+import { HelpButton } from "@/components/help/HelpButton";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -10,42 +14,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { PageResponse } from "@/types/common";
+import type {
+  ProductFeedback,
+  ProductFeedbackSeverity,
+  ProductFeedbackStatus,
+} from "@/types/productFeedback";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { DetailSection } from "@/components/common/detail/DetailSection";
-import { DetailField } from "@/components/common/detail/DetailField";
-import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
-import { HelpButton } from "@/components/help/HelpButton";
-import { toast } from "sonner";
-import { maskId } from "@/lib/utils";
-import { format } from "date-fns";
-import { vi } from "date-fns/locale";
-
-// ─── Helpers ─────────────────────────────────────────────
-
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return "—";
-  try {
-    return format(new Date(dateStr), "dd/MM/yyyy HH:mm", { locale: vi });
-  } catch {
-    return dateStr;
-  }
-}
-
-function truncateContent(content: string, maxLen = 120): string {
-  if (content.length <= maxLen) return content;
-  return content.slice(0, maxLen) + "…";
-}
-
-// ─── Component ───────────────────────────────────────────
+  formatProductFeedbackDate,
+  getProductFeedbackErrorMessage,
+  PRODUCT_FEEDBACK_SEVERITY_LABELS,
+  PRODUCT_FEEDBACK_STATUS_LABELS,
+  ProductFeedbackStatusPill,
+} from "./productFeedbackPresentation";
 
 export default function ProductFeedbackManagementPage() {
+  const navigate = useNavigate();
   const [feedbacks, setFeedbacks] = useState<ProductFeedback[]>([]);
   const [pageInfo, setPageInfo] = useState<Omit<PageResponse<ProductFeedback>, "items">>({
     page: 0,
@@ -56,18 +40,25 @@ export default function ProductFeedbackManagementPage() {
     last: true,
   });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(10);
-  const [selectedFeedback, setSelectedFeedback] = useState<ProductFeedback | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
+  const [keyword, setKeyword] = useState("");
+  const [appliedKeyword, setAppliedKeyword] = useState("");
+  const [status, setStatus] = useState<"ALL" | ProductFeedbackStatus>("ALL");
+  const [severity, setSeverity] = useState<"ALL" | ProductFeedbackSeverity>("ALL");
 
   const fetchFeedbacks = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const data = await getProductFeedbacks({
         page,
         size,
         sort: "createdAt,desc",
+        keyword: appliedKeyword || undefined,
+        status: status === "ALL" ? undefined : status,
+        severity: severity === "ALL" ? undefined : severity,
       });
       setFeedbacks(data.items);
       setPageInfo({
@@ -78,270 +69,152 @@ export default function ProductFeedbackManagementPage() {
         first: data.first,
         last: data.last,
       });
-    } catch (error: any) {
-      const msg = error.response?.data?.message || "Không thể tải danh sách phản ánh";
-      toast.error(msg);
+    } catch (error: unknown) {
+      const message = getProductFeedbackErrorMessage(error, "Không thể tải danh sách phản ánh");
+      setLoadError(message);
+      setFeedbacks([]);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
-  }, [page, size]);
+  }, [appliedKeyword, page, severity, size, status]);
 
   useEffect(() => {
-    fetchFeedbacks();
+    void fetchFeedbacks();
   }, [fetchFeedbacks]);
 
-  const handleRefresh = () => {
-    fetchFeedbacks();
+  const applyFilters = () => {
+    setPage(0);
+    setAppliedKeyword(keyword.trim());
   };
 
-  const handleViewDetail = (feedback: ProductFeedback) => {
-    setSelectedFeedback(feedback);
-    setDetailOpen(true);
+  const clearFilters = () => {
+    setKeyword("");
+    setAppliedKeyword("");
+    setStatus("ALL");
+    setSeverity("ALL");
+    setPage(0);
   };
-
-  const handleCloseDetail = () => {
-    setDetailOpen(false);
-    setSelectedFeedback(null);
-  };
-
-  // ─── Render ─────────────────────────────────────────────
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Nhận phản ánh
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Xem và xử lý các phản ánh từ người dùng về sản phẩm.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Nhận phản ánh</h1>
+          <p className="text-sm text-muted-foreground">Xem và xử lý các phản ánh từ người tiêu dùng về sản phẩm.</p>
         </div>
         <div className="flex items-center gap-2">
           <HelpButton screenKey="product-feedback" />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={loading}
-            className="shrink-0"
-          >
+          <Button variant="outline" size="sm" onClick={() => void fetchFeedbacks()} disabled={loading}>
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Làm mới
           </Button>
         </div>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
-          <p className="text-sm font-medium text-muted-foreground">Tổng phản ánh</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-700">
-            {loading ? "..." : pageInfo.totalElements}
-          </p>
-        </div>
-        <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
-          <p className="text-sm font-medium text-muted-foreground">Trang hiện tại</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-700">
-            {pageInfo.totalPages > 0 ? pageInfo.page + 1 : 0} / {pageInfo.totalPages}
-          </p>
-        </div>
-        <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
-          <p className="text-sm font-medium text-muted-foreground">Kích thước trang</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-700">{pageInfo.size}</p>
+        <Summary title="Tổng phản ánh" value={loading ? "..." : pageInfo.totalElements} />
+        <Summary title="Trang hiện tại" value={`${pageInfo.totalPages ? pageInfo.page + 1 : 0} / ${pageInfo.totalPages}`} />
+        <Summary title="Kích thước trang" value={pageInfo.size} />
+      </div>
+
+      <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <div className="grid gap-3 lg:grid-cols-[1fr_220px_220px_auto_auto]">
+          <Input
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+            onKeyDown={(event) => event.key === "Enter" && applyFilters()}
+            placeholder="Tìm theo nội dung, lô sản xuất hoặc mã tem..."
+          />
+          <Select value={status} onValueChange={(value) => { setStatus(value as typeof status); setPage(0); }}>
+            <SelectTrigger>
+              <SelectValue>
+                {status === "ALL" ? "Tất cả trạng thái" : PRODUCT_FEEDBACK_STATUS_LABELS[status]}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
+              {Object.entries(PRODUCT_FEEDBACK_STATUS_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={severity} onValueChange={(value) => { setSeverity(value as typeof severity); setPage(0); }}>
+            <SelectTrigger>
+              <SelectValue>
+                {severity === "ALL" ? "Tất cả mức độ" : PRODUCT_FEEDBACK_SEVERITY_LABELS[severity]}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Tất cả mức độ</SelectItem>
+              {Object.entries(PRODUCT_FEEDBACK_SEVERITY_LABELS).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button onClick={applyFilters}><Search className="mr-2 h-4 w-4" />Tìm kiếm</Button>
+          <Button variant="outline" onClick={clearFilters}>Xóa lọc</Button>
         </div>
       </div>
 
-      {/* Table */}
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-left text-xs font-semibold uppercase text-muted-foreground">
               <tr>
                 <th className="px-4 py-3">Lô sản xuất</th>
-                <th className="px-4 py-3">Loại nông sản</th>
-                <th className="px-4 py-3">Tổ chức</th>
                 <th className="px-4 py-3">Nội dung phản ánh</th>
+                <th className="px-4 py-3">Trạng thái</th>
+                <th className="px-4 py-3">Mức độ</th>
+                <th className="px-4 py-3">Người xử lý</th>
                 <th className="px-4 py-3">Thời gian gửi</th>
                 <th className="px-4 py-3 text-center">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                    Đang tải dữ liệu...
-                  </td>
-                </tr>
+                <MessageRow colSpan={7} message="Đang tải dữ liệu..." />
+              ) : loadError ? (
+                <MessageRow colSpan={7} message={loadError} error />
               ) : feedbacks.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                    Chưa có phản ánh nào.
-                  </td>
+                <MessageRow colSpan={7} message="Không tìm thấy phản ánh phù hợp." />
+              ) : feedbacks.map((feedback) => (
+                <tr key={feedback.id} className="transition-colors hover:bg-gray-50">
+                  <td className="px-4 py-3 font-medium">{feedback.productionLotName}</td>
+                  <td className="max-w-xs px-4 py-3"><p className="truncate" title={feedback.content}>{feedback.content}</p></td>
+                  <td className="px-4 py-3"><ProductFeedbackStatusPill status={feedback.status} /></td>
+                  <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{PRODUCT_FEEDBACK_SEVERITY_LABELS[feedback.severity]}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{feedback.assignedToName || "Chưa gán"}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{formatProductFeedbackDate(feedback.createdAt)}</td>
+                  <td className="px-4 py-3 text-center"><Button variant="outline" size="sm" onClick={() => navigate(`/product-feedbacks/${feedback.id}`)}>Xem chi tiết</Button></td>
                 </tr>
-              ) : (
-                feedbacks.map((fb) => (
-                  <tr key={fb.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-foreground">
-                      {fb.productionLotName}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {fb.productCategoryName || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {fb.organizationName || "—"}
-                    </td>
-                    <td className="px-4 py-3 max-w-xs">
-                      <p className="truncate" title={fb.content}>
-                        {truncateContent(fb.content)}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                      {formatDate(fb.createdAt)}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewDetail(fb)}
-                      >
-                        Xem chi tiết
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
 
-        {/* Pagination */}
-        {!loading && pageInfo.totalPages > 0 && (
-          <div className="flex flex-col-reverse items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 sm:flex-row">
-            <p className="text-xs text-muted-foreground">
-              Hiển thị {pageInfo.page * pageInfo.size + 1}–
-              {Math.min((pageInfo.page + 1) * pageInfo.size, pageInfo.totalElements)} trên{" "}
-              {pageInfo.totalElements} phản ánh
-            </p>
+        {!loading && !loadError && pageInfo.totalPages > 0 && (
+          <div className="flex flex-col-reverse items-center justify-between gap-3 border-t px-4 py-3 sm:flex-row">
+            <p className="text-xs text-muted-foreground">Hiển thị {pageInfo.page * pageInfo.size + 1}–{Math.min((pageInfo.page + 1) * pageInfo.size, pageInfo.totalElements)} trên {pageInfo.totalElements} phản ánh</p>
             <div className="flex items-center gap-2">
-              <Select
-                value={String(size)}
-                onValueChange={(val) => {
-                  setSize(Number(val));
-                  setPage(0);
-                }}
-              >
-                <SelectTrigger className="h-8 w-[70px] text-xs">
-                  <SelectValue />
+              <Select value={String(size)} onValueChange={(value) => { setSize(Number(value)); setPage(0); }}>
+                <SelectTrigger className="h-8 w-[90px] text-xs">
+                  <SelectValue>{size} dòng</SelectValue>
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
+                <SelectContent>{[5, 10, 20, 50].map((value) => <SelectItem key={value} value={String(value)}>{value} dòng</SelectItem>)}</SelectContent>
               </Select>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                disabled={pageInfo.first}
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-xs text-muted-foreground min-w-[60px] text-center">
-                {pageInfo.page + 1} / {pageInfo.totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                disabled={pageInfo.last}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+              <Button variant="outline" size="icon" className="h-8 w-8" disabled={pageInfo.first} onClick={() => setPage((value) => Math.max(0, value - 1))}><ChevronLeft className="h-4 w-4" /></Button>
+              <span className="min-w-[60px] text-center text-xs text-muted-foreground">{pageInfo.page + 1} / {pageInfo.totalPages}</span>
+              <Button variant="outline" size="icon" className="h-8 w-8" disabled={pageInfo.last} onClick={() => setPage((value) => value + 1)}><ChevronRight className="h-4 w-4" /></Button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Detail Sheet */}
-      <FeedbackDetailSheet
-        open={detailOpen}
-        feedback={selectedFeedback}
-        onClose={handleCloseDetail}
-      />
     </div>
   );
 }
 
-// ─── Detail Sheet (Sheet primitive) ───────────────────────
+function Summary({ title, value }: { title: string; value: string | number }) {
+  return <div className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm"><p className="text-sm font-medium text-muted-foreground">{title}</p><p className="mt-1 text-2xl font-bold text-emerald-700">{value}</p></div>;
+}
 
-function FeedbackDetailSheet({
-  feedback,
-  open,
-  onClose,
-}: {
-  feedback: ProductFeedback | null;
-  open: boolean;
-  onClose: () => void;
-}) {
-  return (
-    <Sheet open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-lg">
-        {feedback && (
-          <>
-            <SheetHeader className="border-b px-6 py-4">
-              <SheetTitle className="text-lg font-semibold text-foreground">
-                Chi tiết phản ánh
-              </SheetTitle>
-              <SheetDescription className="text-sm text-muted-foreground">
-                Nội dung phản ánh từ người dùng về sản phẩm.
-              </SheetDescription>
-            </SheetHeader>
-
-            {/* Content */}
-            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-4">
-              {/* Section: Thông tin phản ánh */}
-              <DetailSection title="Thông tin phản ánh" contentClassName="space-y-3">
-                <DetailField label="Mã phản ánh" mono value={maskId(feedback.id)} />
-                <DetailField
-                  label="Nội dung"
-                  value={
-                    <span className="block whitespace-pre-wrap font-normal leading-relaxed">
-                      {feedback.content}
-                    </span>
-                  }
-                />
-                <DetailField label="Thời gian gửi" value={formatDate(feedback.createdAt)} />
-              </DetailSection>
-
-              {/* Section: Thông tin sản phẩm */}
-              <DetailSection title="Thông tin sản phẩm" contentClassName="space-y-3">
-                <DetailField label="Lô sản xuất" value={feedback.productionLotName} />
-                <DetailField label="Mã lô sản xuất" mono value={maskId(feedback.productionLotId)} />
-                <DetailField label="Loại nông sản" value={feedback.productCategoryName || undefined} />
-              </DetailSection>
-
-              {/* Section: Thông tin tổ chức */}
-              <DetailSection title="Thông tin tổ chức" contentClassName="space-y-3">
-                <DetailField label="Tổ chức" value={feedback.organizationName || undefined} />
-                <DetailField label="Mã tổ chức" mono value={maskId(feedback.organizationId) || undefined} />
-              </DetailSection>
-            </div>
-
-            {/* Footer */}
-            <SheetFooter className="mx-0 mb-0 border-t px-6 py-4 sm:flex-row">
-              <Button variant="outline" className="w-full" onClick={onClose}>
-                Đóng
-              </Button>
-            </SheetFooter>
-          </>
-        )}
-      </SheetContent>
-    </Sheet>
-  );
+function MessageRow({ colSpan, message, error = false }: { colSpan: number; message: string; error?: boolean }) {
+  return <tr><td colSpan={colSpan} className={`px-4 py-12 text-center ${error ? "text-destructive" : "text-muted-foreground"}`}>{message}</td></tr>;
 }

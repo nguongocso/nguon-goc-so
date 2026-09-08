@@ -251,16 +251,11 @@ public class PublicTraceServiceImpl implements PublicTraceService {
      * @return thông điệp thu hồi
      */
     private String resolveRecallMessage(Shipment shipment) {
-        if (shipment.getProductionLot() != null) {
-            UUID lotId = shipment.getProductionLot().getId();
-            Optional<RecallRequest> approvedRequest = recallRequestRepository
-                    .findTopByProductionLot_IdAndStatusOrderByApprovedAtDesc(
-                            lotId,
-                            RecallRequestStatus.APPROVED);
-
-            if (approvedRequest.isPresent()) {
-                return approvedRequest.get().getReason();
-            }
+        Optional<RecallRequest> approvedRequest = recallRequestRepository
+                .findTopByShipment_IdAndStatusOrderByApprovedAtDesc(
+                        shipment.getId(), RecallRequestStatus.APPROVED);
+        if (approvedRequest.isPresent()) {
+            return approvedRequest.get().getReason();
         }
 
         return recallRepository

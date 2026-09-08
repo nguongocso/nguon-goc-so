@@ -17,14 +17,30 @@ import vn.nguongocso.recall.enums.RecallRequestStatus;
 @Repository
 public interface RecallRequestRepository extends JpaRepository<RecallRequest, UUID> {
 
-    /** Lấy danh sách yêu cầu theo trạng thái, phân trang. */
-    Page<RecallRequest> findByStatus(RecallRequestStatus status, Pageable pageable);
+    Page<RecallRequest> findByProductionLot_Organization_OrganizationId(
+            UUID organizationId, Pageable pageable);
+
+    Page<RecallRequest> findByProductionLot_Organization_OrganizationIdAndStatus(
+            UUID organizationId, RecallRequestStatus status, Pageable pageable);
+
+    Optional<RecallRequest> findByIdAndProductionLot_Organization_OrganizationId(
+            UUID id, UUID organizationId);
 
     /** Kiểm tra một lô sản xuất đã có yêu cầu đang chờ duyệt hay chưa. */
     boolean existsByProductionLot_IdAndStatus(UUID productionLotId, RecallRequestStatus status);
 
+    boolean existsByShipment_IdAndStatus(UUID shipmentId, RecallRequestStatus status);
+
+    boolean existsBySourceFeedback_IdAndStatus(UUID sourceFeedbackId, RecallRequestStatus status);
+
+    Optional<RecallRequest> findTopBySourceFeedback_IdOrderByRequestedAtDesc(UUID sourceFeedbackId);
+
     /** Lấy yêu cầu thu hồi đã được duyệt gần nhất của một lô sản xuất. */
     Optional<RecallRequest> findTopByProductionLot_IdAndStatusOrderByApprovedAtDesc(
             UUID productionLotId,
+            RecallRequestStatus status);
+
+    Optional<RecallRequest> findTopByShipment_IdAndStatusOrderByApprovedAtDesc(
+            UUID shipmentId,
             RecallRequestStatus status);
 }
