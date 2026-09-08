@@ -36,6 +36,19 @@ import vn.nguongocso.report.dto.response.ProductionLotDashboardResponse;
 import vn.nguongocso.report.service.ReportAccessLogService;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 
+import vn.nguongocso.certification.enums.InspectionRequestStatus;
+import vn.nguongocso.certification.repository.InspectionRequestRepository;
+import vn.nguongocso.event.enums.ChainEventType;
+import vn.nguongocso.event.repository.ChainEventRepository;
+import vn.nguongocso.farm.dto.response.*;
+import vn.nguongocso.farm.dto.response.HarvestEligibilityResponse;
+import vn.nguongocso.farm.service.HarvestEligibilityService;
+import vn.nguongocso.trace.entity.CodeRange;
+import vn.nguongocso.trace.repository.CodeRangeRepository;
+import vn.nguongocso.farm.enums.ChainProgressStage;
+import vn.nguongocso.trace.entity.Shipment;
+import vn.nguongocso.trace.enums.ShipmentStatus;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -58,6 +71,10 @@ public class ProductionLotServiceImpl implements ProductionLotService {
     private final ReportAccessLogService reportAccessLogService;
     private final ShipmentRepository shipmentRepository;
     private final InspectionEligibilityService inspectionEligibilityService;
+    private final InspectionRequestRepository inspectionRequestRepository;
+    private final ChainEventRepository chainEventRepository;
+    private final HarvestEligibilityService harvestEligibilityService;
+    private final CodeRangeRepository codeRangeRepository;
 
     private final ApplicationEventPublisher eventPublisher;
 
@@ -620,4 +637,250 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         }
     }
 
+    /** Lấy bảng theo dõi tiến độ chuỗi của từng lô (NCL-10-CN-013). */
+    @Override
+    @Transactional(readOnly = true)
+    public ChainProgressBoardResponse getChainProgressBoard(
+            UUID targetOrganizationId,
+            Integer stagnantThresholdDays,
+            String search,
+            CustomUserDetails userDetails) {
+
+        UUID userOrgId = userDetails.getOrganizationId();
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_VT-01"));
+
+        UUID effectiveOrgId;
+        if (targetOrganizationId != null) {
+            if (!isAdmin && !targetOrganizationId.equals(userOrgId)) {
+                log.warn("Truy cập trái phép: User {} thuộc tổ chức {} cố truy cập tổ chức {}",
+                        userDetails.getUsername(), userOrgId, targetOrganizationId);
+                throw new BusinessException("Từ chối truy cập: Bạn không có quyền xem dữ liệu của tổ chức này.");
+            }
+            effectiveOrgId = targetOrganizationId;
+        } else {
+            effectiveOrgId = userOrgId;
+        }
+
+        Organization org = organizationRepository.findById(effectiveOrgId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin tổ chức"));
+
+        int threshold = (stagnantThresholdDays != null && stagnantThresholdDays > 0) ? stagnantThresholdDays : 10;
+
+        List<ProductionLot> allLots = productionLotRepository.findByOrganization_OrganizationId(effectiveOrgId);
+
+        List<ProductionLot> openLots = allLots.stream()
+                .filter(lot -> lot.getStatus() != ProductionLotStatus.CANCELLED
+                        && lot.getStatus() != ProductionLotStatus.CLOSED
+                        && lot.getStatus() != ProductionLotStatus.RECALLED
+                        && lot.getStatus() != ProductionLotStatus.DISPOSED)
+                .filter(lot -> {
+                    if (search == null || search.isBlank()) {
+                        return true;
+                    }
+                    String term = search.toLowerCase().trim();
+                    boolean nameMatches = lot.getName() != null && lot.getName().toLowerCase().contains(term);
+                    boolean farmAreaMatches = lot.getFarmArea() != null && lot.getFarmArea().getName() != null
+                            && lot.getFarmArea().getName().toLowerCase().contains(term);
+                    return nameMatches || farmAreaMatches;
+                })
+                .collect(Collectors.toList());
+
+        List<UUID> lotIds = openLots.stream().map(ProductionLot::getId).collect(Collectors.toList());
+        List<Shipment> shipments = lotIds.isEmpty() ? Collections.emptyList()
+                : shipmentRepository.findByProductionLotIdIn(lotIds);
+        Map<UUID, List<Shipment>> shipmentMap = shipments.stream()
+                .collect(Collectors.groupingBy(s -> s.getProductionLot().getId()));
+
+        Optional<CodeRange> codeRangeOpt = codeRangeRepository
+                .findFirstReadOnlyByOrganizationOrganizationIdOrderByCreatedAtDesc(effectiveOrgId);
+        long remainingCodeQuota = 0;
+        if (codeRangeOpt.isPresent()) {
+            CodeRange cr = codeRangeOpt.get();
+            long total = cr.getTotalLimit() != null ? cr.getTotalLimit() : 0;
+            long used = cr.getUsedCount() != null ? cr.getUsedCount() : 0;
+            remainingCodeQuota = total - used;
+        }
+        boolean isCodeQuotaExhausted = codeRangeOpt.isEmpty() || remainingCodeQuota <= 0;
+
+        Map<ChainProgressStage, List<ChainProgressItemResponse>> stageItemsMap = new EnumMap<>(ChainProgressStage.class);
+        for (ChainProgressStage stage : ChainProgressStage.values()) {
+            stageItemsMap.put(stage, new ArrayList<>());
+        }
+
+        long stagnantCount = 0;
+
+        for (ProductionLot lot : openLots) {
+            List<Shipment> lotShipments = shipmentMap.getOrDefault(lot.getId(), Collections.emptyList());
+            boolean hasActivatedShipment = lotShipments.stream()
+                    .anyMatch(s -> s.getStatus() == ShipmentStatus.ACTIVATED);
+
+            boolean hasPendingInspection = inspectionRequestRepository.existsByProductionLot_IdAndStatus(
+                    lot.getId(), InspectionRequestStatus.PENDING_RESULT);
+
+            boolean hasPassedInspection = inspectionRequestRepository.existsByProductionLot_IdAndStatus(
+                    lot.getId(), InspectionRequestStatus.PASSED);
+
+            boolean hasInCirculationEvents = lotShipments.stream()
+                    .anyMatch(s -> chainEventRepository.existsByShipmentIdAndEventType(s.getId(), ChainEventType.TRANSPORT)
+                            || chainEventRepository.existsByShipmentIdAndEventType(s.getId(), ChainEventType.PROCUREMENT)
+                            || chainEventRepository.existsByShipmentIdAndEventType(s.getId(), ChainEventType.WAREHOUSE_RECEIPT)
+                            || chainEventRepository.existsByShipmentIdAndEventType(s.getId(), ChainEventType.STORAGE_CONDITION));
+
+            // Kiểm tra điều kiện cách ly thu hoạch (Quarantine / PHI period)
+            boolean isQuarantined = false;
+            String formattedQuarantineDate = null;
+            try {
+                HarvestEligibilityResponse eligibility = harvestEligibilityService.calculateHarvestEligibility(lot.getId());
+                if (eligibility != null && eligibility.isDetermined() && eligibility.getEligibleHarvestDate() != null) {
+                    LocalDate eligibleDate = eligibility.getEligibleHarvestDate();
+                    if (eligibleDate.isAfter(LocalDate.now())) {
+                        isQuarantined = true;
+                        formattedQuarantineDate = eligibleDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                    }
+                }
+            } catch (Exception e) {
+                // Bỏ qua nếu chưa có thông tin nhật ký BVTV
+            }
+
+            ChainProgressStage stage;
+            if (hasInCirculationEvents) {
+                stage = ChainProgressStage.IN_CIRCULATION;
+            } else if (hasActivatedShipment) {
+                stage = ChainProgressStage.TAG_ACTIVATED;
+            } else if (!lotShipments.isEmpty() || lot.getStatus() == ProductionLotStatus.PACKAGED) {
+                stage = ChainProgressStage.PACKAGED;
+            } else if (hasPendingInspection) {
+                stage = ChainProgressStage.WAITING_TEST_RESULT;
+            } else if (lot.getStatus() == ProductionLotStatus.PREPROCESSED) {
+                stage = ChainProgressStage.PREPROCESSED;
+            } else if (lot.getStatus() == ProductionLotStatus.HARVESTED) {
+                stage = ChainProgressStage.HARVESTED;
+            } else if (lot.getStatus() == ProductionLotStatus.APPROVED) {
+                stage = ChainProgressStage.APPROVED;
+            } else if (lot.getStatus() == ProductionLotStatus.PENDING) {
+                stage = ChainProgressStage.PENDING;
+            } else {
+                stage = ChainProgressStage.DRAFT;
+            }
+
+            LocalDateTime lastUpdated = lot.getUpdatedAt() != null ? lot.getUpdatedAt() : lot.getCreatedAt();
+            long daysInStage = java.time.temporal.ChronoUnit.DAYS.between(
+                    lastUpdated.toLocalDate(), LocalDate.now());
+            if (daysInStage < 0) daysInStage = 0;
+
+            boolean isStagnant = daysInStage >= threshold;
+            if (isStagnant) {
+                stagnantCount++;
+            }
+
+            String nextAction;
+            String targetScreen;
+
+            switch (stage) {
+                case DRAFT:
+                    nextAction = "Gửi yêu cầu duyệt lô";
+                    targetScreen = "/production-lots?highlightId=" + lot.getId();
+                    break;
+                case PENDING:
+                    nextAction = "Duyệt lô sản xuất";
+                    targetScreen = "/production-lots?highlightId=" + lot.getId();
+                    break;
+                case APPROVED:
+                    if (isQuarantined) {
+                        nextAction = "Cách ly đến " + formattedQuarantineDate;
+                        targetScreen = "/production-lots/" + lot.getId() + "/farm-logs";
+                    } else {
+                        nextAction = "Ghi nhật ký / Thu hoạch";
+                        targetScreen = "/production-lots/" + lot.getId() + "/farm-logs";
+                    }
+                    break;
+                case HARVESTED:
+                    if (isQuarantined) {
+                        nextAction = "Cách ly BVTV đến " + formattedQuarantineDate;
+                        targetScreen = "/production-lots/" + lot.getId() + "/inspection";
+                    } else if (!hasPassedInspection) {
+                        nextAction = "Nhập KQ kiểm nghiệm đạt";
+                        targetScreen = "/production-lots/" + lot.getId() + "/inspection";
+                    } else {
+                        nextAction = "Sơ chế hoặc đóng gói lô";
+                        targetScreen = "/production-lots/" + lot.getId();
+                    }
+                    break;
+                case PREPROCESSED:
+                    if (!hasPassedInspection) {
+                        nextAction = "Nhập KQ kiểm nghiệm đạt";
+                        targetScreen = "/production-lots/" + lot.getId() + "/inspection";
+                    } else if (isCodeQuotaExhausted) {
+                        nextAction = "Hết hạn mức mã QR";
+                        targetScreen = "/production-lots/" + lot.getId() + "/shipments/create";
+                    } else {
+                        nextAction = "Đóng gói & Tạo lô hàng";
+                        targetScreen = "/production-lots/" + lot.getId() + "/shipments/create";
+                    }
+                    break;
+                case WAITING_TEST_RESULT:
+                    nextAction = "Nhập KQ kiểm nghiệm đạt";
+                    targetScreen = "/production-lots/" + lot.getId() + "/inspection";
+                    break;
+                case PACKAGED:
+                    if (isCodeQuotaExhausted) {
+                        nextAction = "Hết hạn mức mã QR";
+                        targetScreen = "/production-lots/" + lot.getId() + "/shipments/create";
+                    } else {
+                        nextAction = "Cấp & kích hoạt tem QR";
+                        targetScreen = "/production-lots/" + lot.getId() + "/shipments/create";
+                    }
+                    break;
+                case TAG_ACTIVATED:
+                    nextAction = "Theo dõi lưu thông";
+                    targetScreen = "/production-lots/" + lot.getId();
+                    break;
+                case IN_CIRCULATION:
+                default:
+                    nextAction = "Theo dõi lưu thông";
+                    targetScreen = "/production-lots/" + lot.getId();
+                    break;
+            }
+
+            ChainProgressItemResponse item = ChainProgressItemResponse.builder()
+                    .id(lot.getId())
+                    .name(lot.getName())
+                    .farmAreaId(lot.getFarmArea() != null ? lot.getFarmArea().getId() : null)
+                    .farmAreaName(lot.getFarmArea() != null ? lot.getFarmArea().getName() : "Chưa chọn")
+                    .productCategoryId(lot.getProductCategory() != null ? lot.getProductCategory().getId() : null)
+                    .productCategoryName(lot.getProductCategory() != null ? lot.getProductCategory().getName() : "Chưa chọn")
+                    .status(lot.getStatus())
+                    .currentStage(stage)
+                    .daysInStage(daysInStage)
+                    .isStagnant(isStagnant)
+                    .nextActionRequired(nextAction)
+                    .targetScreen(targetScreen)
+                    .createdAt(lot.getCreatedAt())
+                    .updatedAt(lastUpdated)
+                    .build();
+
+            stageItemsMap.get(stage).add(item);
+        }
+
+        List<ChainProgressStageGroupResponse> stageGroups = new ArrayList<>();
+        for (ChainProgressStage s : ChainProgressStage.values()) {
+            List<ChainProgressItemResponse> items = stageItemsMap.get(s);
+            stageGroups.add(ChainProgressStageGroupResponse.builder()
+                    .stage(s)
+                    .stageName(s.getStageName())
+                    .count(items.size())
+                    .items(items)
+                    .build());
+        }
+
+        return ChainProgressBoardResponse.builder()
+                .organizationId(org.getOrganizationId())
+                .organizationName(org.getName())
+                .totalOpenLots(openLots.size())
+                .stagnantLotsCount(stagnantCount)
+                .stagnantThresholdDays(threshold)
+                .stages(stageGroups)
+                .build();
+    }
 }
