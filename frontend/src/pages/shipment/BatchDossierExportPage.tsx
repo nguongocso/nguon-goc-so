@@ -14,11 +14,17 @@ import {
   getBatchDossierExportHistory,
   type BatchDossierCheckResponse,
   type BatchDossierHistoryDto,
-} from "@/api/dossierApi";
+import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 
 export default function BatchDossierExportPage() {
   const location = useLocation();
   const navigate = useNavigate();
+
+  useSetBreadcrumb([
+    { label: "Tổng quan", href: "/dashboard" },
+    { label: "Lô sản xuất", href: "/production-lots" },
+    { label: "Xuất hồ sơ truy xuất cho nhiều lô" },
+  ]);
 
   // Stable shipmentIds memoization to prevent infinite re-render flickering
   const shipmentIdsKey = useMemo(() => {
@@ -136,7 +142,7 @@ export default function BatchDossierExportPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto p-4 md:p-6">
+    <div className="space-y-6">
       {/* Tiêu đề trang - Left aligned, clean design */}
       <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
