@@ -14,19 +14,29 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import vn.nguongocso.auth.security.SecurityUtils;
+import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.exception.ResourceNotFoundException;
 import vn.nguongocso.farm.dto.request.CreateProductFeedbackRequest;
 import vn.nguongocso.farm.dto.response.ProductFeedbackResponse;
+import vn.nguongocso.farm.dto.response.PublicProductFeedbackCreatedResponse;
 import vn.nguongocso.farm.entity.ProductFeedback;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.event.ProductFeedbackSubmittedEvent;
 import vn.nguongocso.farm.repository.ProductFeedbackRepository;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.farm.service.impl.ProductFeedbackServiceImpl;
+import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.organization.entity.Organization;
+import vn.nguongocso.auth.repository.UserRepository;
+import vn.nguongocso.organization.repository.OrganizationUserRepository;
+import vn.nguongocso.recall.repository.RecallRequestRepository;
+import vn.nguongocso.recall.service.RecallRequestService;
+import vn.nguongocso.trace.repository.TraceCodeRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ProductFeedbackServiceTest {
@@ -38,7 +48,25 @@ class ProductFeedbackServiceTest {
     private ProductionLotRepository productionLotRepository;
 
     @Mock
+    private TraceCodeRepository traceCodeRepository;
+
+    @Mock
+    private RecallRequestRepository recallRequestRepository;
+
+    @Mock
+    private RecallRequestService recallRequestService;
+
+    @Mock
+    private OrganizationUserRepository organizationUserRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
     private ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private ProductFeedbackServiceImpl productFeedbackService;
@@ -78,12 +106,11 @@ class ProductFeedbackServiceTest {
         when(productFeedbackRepository.save(any(ProductFeedback.class))).thenReturn(mockSaved);
 
         // When
-        ProductFeedbackResponse response = productFeedbackService.createFeedback(lotId, request);
+        PublicProductFeedbackCreatedResponse response = productFeedbackService.createFeedback(lotId, request);
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.getContent()).isEqualTo(request.getContent());
-        assertThat(response.getProductionLotName()).isEqualTo(productionLot.getName());
+        assertThat(response.getProductionLotId()).isEqualTo(lotId);
 
         // Verify Event
         ArgumentCaptor<ProductFeedbackSubmittedEvent> eventCaptor = ArgumentCaptor.forClass(ProductFeedbackSubmittedEvent.class);
@@ -106,5 +133,78 @@ class ProductFeedbackServiceTest {
 
         verify(productFeedbackRepository, never()).save(any(ProductFeedback.class));
         verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void getFeedbackById_shouldUseGlobalLookup_forPlatformAdmin() {
+        UUID feedbackId = UUID.randomUUID();
+        ProductFeedback feedback = ProductFeedback.builder()
+                .id(feedbackId)
+                .productionLot(productionLot)
+                .content("Nghi ngờ tem giả")
+                .build();
+        CustomUserDetails currentUser = mock(CustomUserDetails.class);
+
+        when(currentUser.getRoleCode()).thenReturn("VT-01");
+        when(productFeedbackRepository.findById(feedbackId)).thenReturn(Optional.of(feedback));
+
+        try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
+            securityUtils.when(SecurityUtils::getCurrentUserDetails).thenReturn(currentUser);
+
+            ProductFeedbackResponse response = productFeedbackService.getFeedbackById(feedbackId);
+
+            assertThat(response.getId()).isEqualTo(feedbackId);
+            verify(productFeedbackRepository).findById(feedbackId);
+            verify(productFeedbackRepository, never())
+                    .findByIdAndProductionLot_Organization_OrganizationId(any(), any());
+        }
+    }
+
+    @Test
+    void getFeedbackById_shouldUseOrganizationScopedLookup_forCooperativeManager() {
+        UUID feedbackId = UUID.randomUUID();
+        UUID organizationId = productionLot.getOrganization().getOrganizationId();
+        ProductFeedback feedback = ProductFeedback.builder()
+                .id(feedbackId)
+                .productionLot(productionLot)
+                .content("Nghi ngờ chất lượng")
+                .build();
+        CustomUserDetails currentUser = mock(CustomUserDetails.class);
+
+        when(currentUser.getRoleCode()).thenReturn("VT-02");
+        when(currentUser.getOrganizationId()).thenReturn(organizationId);
+        when(productFeedbackRepository.findByIdAndProductionLot_Organization_OrganizationId(
+                feedbackId, organizationId)).thenReturn(Optional.of(feedback));
+
+        try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
+            securityUtils.when(SecurityUtils::getCurrentUserDetails).thenReturn(currentUser);
+
+            ProductFeedbackResponse response = productFeedbackService.getFeedbackById(feedbackId);
+
+            assertThat(response.getId()).isEqualTo(feedbackId);
+            verify(productFeedbackRepository, never()).findById(feedbackId);
+        }
+    }
+
+    @Test
+    void getFeedbackById_shouldHideFeedbackFromAnotherOrganization() {
+        UUID feedbackId = UUID.randomUUID();
+        UUID organizationId = UUID.randomUUID();
+        CustomUserDetails currentUser = mock(CustomUserDetails.class);
+
+        when(currentUser.getRoleCode()).thenReturn("VT-02");
+        when(currentUser.getOrganizationId()).thenReturn(organizationId);
+        when(productFeedbackRepository.findByIdAndProductionLot_Organization_OrganizationId(
+                feedbackId, organizationId)).thenReturn(Optional.empty());
+
+        try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
+            securityUtils.when(SecurityUtils::getCurrentUserDetails).thenReturn(currentUser);
+
+            assertThatThrownBy(() -> productFeedbackService.getFeedbackById(feedbackId))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("Không tìm thấy phản ánh");
+
+            verify(productFeedbackRepository, never()).findById(feedbackId);
+        }
     }
 }

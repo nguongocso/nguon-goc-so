@@ -84,6 +84,7 @@ import { ShipmentDetailPage } from "@/pages/public/shipment/ShipmentDetailPage";
 import CreateShipmentPage from "@/pages/shipment/CreateShipmentPage";
 import LabelCancellationHistoryPage from "@/pages/shipment/LabelCancellationHistoryPage";
 import CancelLabelsPage from "@/pages/shipment/CancelLabelsPage";
+import ShipmentTraceCodesPage from "@/pages/shipment/ShipmentTraceCodesPage";
 
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
@@ -150,6 +151,7 @@ import CreatePartnerApiKeyPage from "@/pages/apiKey/CreatePartnerApiKeyPage";
 
 // ===== Product Feedback =====
 import ProductFeedbackManagementPage from "@/pages/product-feedback/ProductFeedbackManagementPage";
+import ProductFeedbackDetailPage from "@/pages/product-feedback/ProductFeedbackDetailPage";
 
 // ===== Mobile =====
 import RecordMobileEventPage from "@/pages/mobile/RecordMobileEventPage";
@@ -607,6 +609,25 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
                         <CancelLabelsPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* NCL-04-CN-008: Xem và tra cứu trạng thái từng mã tem trong lô hàng */}
+            <Route
+                path="shipments/:shipmentId/trace-codes"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.traceCodeView}>
+                        <ShipmentTraceCodesPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:lotId/shipments/:shipmentId/trace-codes"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.traceCodeView}>
+                        <ShipmentTraceCodesPage />
                     </RoleRoute>
                 }
             />
@@ -1411,6 +1432,19 @@ const AppRoutes = () => (
                         }
                     >
                         <ProductFeedbackManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="product-feedbacks/:feedbackId"
+                element={
+                    <RoleRoute
+                        allowedRoles={
+                            ROLE_ACCESS.productFeedbackManagement
+                        }
+                    >
+                        <ProductFeedbackDetailPage />
                     </RoleRoute>
                 }
             />

@@ -81,6 +81,7 @@ export const RecallRequestListPage = () => {
       const matchKeyword =
         !q ||
         item.lotName.toLowerCase().includes(q) ||
+        (item.shipmentName ?? '').toLowerCase().includes(q) ||
         (item.requestedBy?.fullName ?? '').toLowerCase().includes(q) ||
         item.reason.toLowerCase().includes(q);
       const matchStatus =
@@ -112,8 +113,8 @@ export const RecallRequestListPage = () => {
     <div className="space-y-6">
       <ListPageHeader
         icon={PackageX}
-        title="Yêu cầu thu hồi lô sản xuất"
-        description="Quản lý và xét duyệt các yêu cầu thu hồi lô sản xuất trong hệ thống."
+        title="Yêu cầu thu hồi lô hàng"
+        description="Quản lý và xét duyệt các yêu cầu thu hồi theo đúng từng lô hàng."
         actions={<HelpButton screenKey="recall-request-list" />}
       />
 
@@ -122,7 +123,7 @@ export const RecallRequestListPage = () => {
           left={
             <>
               <SearchInput
-                placeholder="Tìm theo tên lô, người yêu cầu hoặc lý do..."
+                placeholder="Tìm theo lô hàng, lô sản xuất, người yêu cầu hoặc lý do..."
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -143,10 +144,11 @@ export const RecallRequestListPage = () => {
         />
 
         <DataTableShell
-          colSpan={7}
+          colSpan={8}
           header={
             <>
               <TableHead className="w-12 text-center">STT</TableHead>
+              <TableHead>Lô hàng</TableHead>
               <TableHead>Lô sản xuất</TableHead>
               <TableHead>Người yêu cầu</TableHead>
               <TableHead>Thời điểm</TableHead>
@@ -160,7 +162,8 @@ export const RecallRequestListPage = () => {
               <TableCell className="text-center font-medium text-muted-foreground">
                 {safePage * PAGE_SIZE + index + 1}
               </TableCell>
-              <TableCell className="font-medium">{item.lotName}</TableCell>
+              <TableCell className="font-medium">{item.shipmentName || 'Chưa xác định'}</TableCell>
+              <TableCell>{item.lotName}</TableCell>
               <TableCell>{item.requestedBy?.fullName || '—'}</TableCell>
               <TableCell>{formatDate(item.requestedAt)}</TableCell>
               <TableCell className="max-w-[240px] truncate" title={item.reason}>

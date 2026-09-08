@@ -24,7 +24,7 @@ import { recordPackagingEvent } from "@/api/packagingApi";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, ArrowLeft, LoaderCircle, PackageSearch } from "lucide-react";
+import { AlertTriangle, LoaderCircle, PackageSearch } from "lucide-react";
 import { LocationPicker } from "@/pages/packaging-event/components/LocationPicker";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -264,15 +264,6 @@ export function CreatePackagingForm() {
             Vui lòng mở từ trang chi tiết lô hoặc quét mã truy xuất để chọn lô
             cần đóng gói.
           </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="mt-6"
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft className="mr-2 size-4" />
-            Quay lại
-          </Button>
         </CardContent>
       </Card>
     );
@@ -295,15 +286,6 @@ export function CreatePackagingForm() {
             <AlertTriangle className="size-4" />
             <AlertDescription className="flex flex-col gap-3 items-start">
               <span>{lotLoadError ?? "Không tìm thấy lô sản xuất đã chọn."}</span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => navigate(-1)}
-              >
-                <ArrowLeft className="mr-2 size-4" />
-                Quay lại
-              </Button>
             </AlertDescription>
           </Alert>
         </CardContent>
