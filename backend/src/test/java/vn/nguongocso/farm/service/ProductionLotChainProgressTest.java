@@ -149,7 +149,8 @@ public class ProductionLotChainProgressTest {
 
         ChainProgressItemResponse item = harvestedGroup.getItems().get(0);
         assertThat(item.getNextActionRequired()).contains("Chờ hoặc nhập kết quả kiểm nghiệm");
-        assertThat(item.getTargetScreen()).contains("/certification/inspection-requests?lotId=");
+        assertThat(item.getTargetScreen()).contains("/production-lots/");
+        assertThat(item.getTargetScreen()).contains("/inspection");
     }
 
     @Test

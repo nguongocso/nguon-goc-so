@@ -736,50 +736,50 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             switch (stage) {
                 case DRAFT:
                     nextAction = "Gửi yêu cầu duyệt lô sản xuất";
-                    targetScreen = "/farm/production-lots/" + lot.getId();
+                    targetScreen = "/production-lots/" + lot.getId();
                     break;
                 case PENDING:
                     nextAction = "Duyệt lô sản xuất";
-                    targetScreen = "/farm/production-lots/" + lot.getId();
+                    targetScreen = "/production-lots/" + lot.getId();
                     break;
                 case APPROVED:
                     nextAction = "Ghi nhật ký canh tác / Ghi nhận thu hoạch";
-                    targetScreen = "/farm/farm-logs?lotId=" + lot.getId();
+                    targetScreen = "/production-lots/" + lot.getId() + "/farm-logs";
                     break;
                 case HARVESTED:
                     if (!hasPassedInspection) {
                         nextAction = "Chờ hoặc nhập kết quả kiểm nghiệm";
-                        targetScreen = "/certification/inspection-requests?lotId=" + lot.getId();
+                        targetScreen = "/production-lots/" + lot.getId() + "/inspection";
                     } else {
                         nextAction = "Sơ chế hoặc đóng gói lô";
-                        targetScreen = "/farm/production-lots/" + lot.getId();
+                        targetScreen = "/production-lots/" + lot.getId();
                     }
                     break;
                 case PREPROCESSED:
                     if (!hasPassedInspection) {
                         nextAction = "Chờ hoặc nhập kết quả kiểm nghiệm";
-                        targetScreen = "/certification/inspection-requests?lotId=" + lot.getId();
+                        targetScreen = "/production-lots/" + lot.getId() + "/inspection";
                     } else {
                         nextAction = "Đóng gói & Tạo lô hàng";
-                        targetScreen = "/trace/shipments?lotId=" + lot.getId();
+                        targetScreen = "/production-lots/" + lot.getId() + "/shipments/create";
                     }
                     break;
                 case WAITING_TEST_RESULT:
                     nextAction = "Chờ hoặc nhập kết quả kiểm nghiệm";
-                    targetScreen = "/certification/inspection-requests?lotId=" + lot.getId();
+                    targetScreen = "/production-lots/" + lot.getId() + "/inspection";
                     break;
                 case PACKAGED:
                     nextAction = "Cấp mã tem & Kích hoạt tem QR";
-                    targetScreen = "/trace/shipments?lotId=" + lot.getId();
+                    targetScreen = "/production-lots/" + lot.getId() + "/shipments/create";
                     break;
                 case TAG_ACTIVATED:
                     nextAction = "Theo dõi lưu thông & Quét tem";
-                    targetScreen = "/trace/shipments?lotId=" + lot.getId();
+                    targetScreen = "/production-lots/" + lot.getId();
                     break;
                 case IN_CIRCULATION:
                 default:
                     nextAction = "Theo dõi lưu thông";
-                    targetScreen = "/trace/shipments?lotId=" + lot.getId();
+                    targetScreen = "/production-lots/" + lot.getId();
                     break;
             }
 
