@@ -58,6 +58,10 @@ export const ROLE_ACCESS = {
   recallRequestCreate: ['VT-03'] as const,
   recallRequestManage: ['VT-02'] as const,
 
+  // ✅ NCL-04-CN-007 - Yêu cầu cấp bổ sung dải mã truy xuất
+  supplementCreate: ['VT-02'] as const,
+  supplementManage: ['VT-01'] as const,
+
   // ✅ NCL-12-CN-003 - Xuất hồ sơ truy xuất theo lược đồ GS1 mô phỏng
   gs1DossierExport: ['VT-02', 'VT-04'] as const,
 

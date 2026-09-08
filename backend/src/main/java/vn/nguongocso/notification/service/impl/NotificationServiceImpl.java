@@ -987,4 +987,53 @@ public class NotificationServiceImpl implements NotificationService {
                                 organizationId,
                                 lotName);
         }
+
+        /**
+         * Gửi thông báo kết quả duyệt yêu cầu cấp bổ sung dải mã truy xuất
+         * (NCL-04-CN-007) cho danh sách người dùng được chỉ định.
+         *
+         * @param title        tiêu đề thông báo
+         * @param content      nội dung thông báo
+         * @param recipientIds danh sách ID người dùng nhận thông báo
+         * @return số lượng thông báo đã tạo
+         */
+        @Override
+        public int sendCodeRangeSupplementNotification(
+                        String title,
+                        String content,
+                        List<UUID> recipientIds) {
+                if (recipientIds == null || recipientIds.isEmpty()) {
+                        log.warn("Không có người dùng để nhận thông báo cấp bổ sung dải mã. title={}", title);
+                        return 0;
+                }
+
+                List<User> recipients = userRepository.findAllById(recipientIds);
+
+                if (recipients.isEmpty()) {
+                        return 0;
+                }
+
+                List<Notification> notifications = recipients.stream()
+                                .map(user -> {
+                                        Notification notification = new Notification();
+                                        notification.setUser(user);
+                                        notification.setType(
+                                                        NotificationType.ALERT);
+                                        notification.setTitle(title);
+                                        notification.setContent(content);
+                                        notification.setIsRead(false);
+                                        notification.setReadAt(null);
+                                        return notification;
+                                })
+                                .toList();
+
+                notificationRepository.saveAll(notifications);
+
+                log.info(
+                                "Đã tạo {} notification cấp bổ sung dải mã. title={}",
+                                notifications.size(),
+                                title);
+
+                return notifications.size();
+        }
 }

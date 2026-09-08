@@ -171,6 +171,11 @@ import { CreateRecallRequestPage } from "@/pages/recall-request/CreateRecallRequ
 import { RecallRequestListPage } from "@/pages/recall-request/RecallRequestListPage";
 import { RecallRequestDetailPage } from "@/pages/recall-request/RecallRequestDetailPage";
 
+// ===== Code range supplement (NCL-04-CN-007) =====
+import { CodeRangeSupplementListPage } from "@/pages/admin/CodeRangeSupplementListPage";
+import { CodeRangeSupplementDetailPage } from "@/pages/admin/CodeRangeSupplementDetailPage";
+import { CodeRangeSupplementPage } from "@/pages/shipment/CodeRangeSupplementPage";
+
 // ===== Area assignment (NCL-670 / NCL-742) =====
 import { AreaAssignmentPage } from "@/pages/admin/AreaAssignmentPage";
 
@@ -1425,6 +1430,45 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.recallRequestManage}
                     >
                         <RecallRequestDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* =================================================
+          CODE RANGE SUPPLEMENT (NCL-04-CN-007)
+          Trang tạo yêu cầu (VT-02): mở từ tab "Lô hàng & Mã QR"
+          của chi tiết lô sản xuất và màn hình tạo lô hàng.
+      ================================================= */}
+
+            <Route
+                path="code-range-supplements/create"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.supplementCreate}
+                    >
+                        <CodeRangeSupplementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/code-range-supplements"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.supplementManage}
+                    >
+                        <CodeRangeSupplementListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/code-range-supplements/:id"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.supplementManage}
+                    >
+                        <CodeRangeSupplementDetailPage />
                     </RoleRoute>
                 }
             />
