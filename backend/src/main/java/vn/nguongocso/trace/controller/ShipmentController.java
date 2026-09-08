@@ -13,6 +13,7 @@ import vn.nguongocso.trace.dto.request.CreateShipmentRequest;
 import vn.nguongocso.trace.dto.response.ShipmentResponse;
 import vn.nguongocso.trace.dto.response.ProcurementShipmentResponse;
 import vn.nguongocso.trace.dto.response.ShipmentSummaryResponse;
+import vn.nguongocso.trace.service.ShipmentHandoverService;
 import vn.nguongocso.trace.service.ShipmentService;
 
 import java.util.List;
@@ -27,6 +28,7 @@ import java.util.UUID;
 public class ShipmentController {
 	private final ShipmentService shipmentService;
 	private final PermissionChecker permissionChecker;
+	private final ShipmentHandoverService handoverService;
 
 	/**
 	 * Tạo lô hàng và sinh mã truy xuất.
@@ -116,5 +118,10 @@ public class ShipmentController {
 	public ApiResult<ShipmentResponse> getShipmentById(@PathVariable UUID id) {
 
 		return ApiResult.success(shipmentService.getShipmentById(id));
+	}
+
+	@GetMapping("/{id}/remaining-handover-quantity")
+	public ApiResult<Long> getRemainingHandoverQuantity(@PathVariable UUID id) {
+		return ApiResult.success(handoverService.getRemainingQuantity(id));
 	}
 }

@@ -29,5 +29,6 @@ public enum ChainEventType {
     WAREHOUSE_RECEIPT, // Nhập kho
 
     // Sự kiện theo dõi điều kiện bảo quản khi vận chuyển.
-    STORAGE_CONDITION // Theo dõi bảo quản
+    STORAGE_CONDITION, // Theo dõi bảo quản
+    HANDOVER // Bàn giao
 }

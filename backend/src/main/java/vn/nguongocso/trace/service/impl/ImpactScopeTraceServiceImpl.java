@@ -284,6 +284,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
             case HARVEST -> "Thu hoạch";
             case STORAGE_CONDITION -> "Bảo quản";
             case CORRECTION -> "Đính chính";
+            case HANDOVER -> "Bàn giao";
         };
     }
 
