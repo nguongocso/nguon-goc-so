@@ -17,6 +17,7 @@ import type {
     ProductionLot,
     UpdateProductionLotRequest,
     UpdateProductionLotResponse,
+    ChainProgressBoardData,
 } from '@/types/productionLot';
 
 /**
@@ -341,3 +342,25 @@ export const downloadImportTemplate = async (
 
     window.URL.revokeObjectURL(url);
 };
+
+// =========================================================
+// CHAIN PROGRESS BOARD (NCL-10-CN-013)
+// =========================================================
+
+/**
+ * Lấy bảng theo dõi tiến độ chuỗi của từng lô (NCL-10-CN-013).
+ *
+ * GET /api/v1/production-lots/chain-progress
+ */
+export const getChainProgressBoard = async (params?: {
+    organizationId?: string;
+    stagnantThresholdDays?: number;
+    search?: string;
+}): Promise<ChainProgressBoardData> => {
+    const response = await apiClient.get<ApiDataResponse<ChainProgressBoardData>>(
+        '/production-lots/chain-progress',
+        { params },
+    );
+
+    return response.data.data;
+};
