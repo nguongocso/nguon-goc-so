@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,7 +131,7 @@ export const ShipmentList = ({
   } = useShipments(productionLotId);
 
   const filteredShipments = useMemo(() => {
-    return shipments.filter((shipment) => {
+    return shipments.filter((shipment: Shipment) => {
       if (filterFromDate) {
         const from = new Date(filterFromDate).getTime();
         const created = new Date(shipment.createdAt).getTime();
@@ -150,12 +150,12 @@ export const ShipmentList = ({
   }, [shipments, filterFromDate, filterToDate, filterStatus]);
 
   const toggleSelectAllPage = () => {
-    const pageIds = filteredShipments.map((s) => s.id);
-    const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedShipmentIds.includes(id));
+    const pageIds = filteredShipments.map((s: Shipment) => s.id);
+    const allSelected = pageIds.length > 0 && pageIds.every((id: string) => selectedShipmentIds.includes(id));
     if (allSelected) {
-      setSelectedShipmentIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+      setSelectedShipmentIds((prev: string[]) => prev.filter((id: string) => !pageIds.includes(id)));
     } else {
-      setSelectedShipmentIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+      setSelectedShipmentIds((prev: string[]) => Array.from(new Set([...prev, ...pageIds])));
     }
   };
 
@@ -430,7 +430,7 @@ export const ShipmentList = ({
                           className="rounded border-input"
                           checked={
                             filteredShipments.length > 0 &&
-                            filteredShipments.every((s) => selectedShipmentIds.includes(s.id))
+                            filteredShipments.every((s: Shipment) => selectedShipmentIds.includes(s.id))
                           }
                           onChange={toggleSelectAllPage}
                           title="Chọn tất cả các lô hiển thị"
@@ -448,7 +448,7 @@ export const ShipmentList = ({
                 </TableHeader>
 
                 <TableBody>
-                  {filteredShipments.map((shipment) => (
+                  {filteredShipments.map((shipment: Shipment) => (
                     <TableRow key={shipment.id} className="hover:bg-slate-50/60">
                       {isSelectionMode && (
                         <TableCell className="text-center">
