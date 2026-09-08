@@ -78,6 +78,18 @@ public interface NotificationService {
     void sendAccountUnlockedNotification(AccountLock accountLock);
 
     /**
+     * Gửi thông báo kết quả duyệt yêu cầu cấp bổ sung dải mã truy xuất
+     * (NCL-04-CN-007) cho danh sách người dùng được chỉ định
+     * (người tạo yêu cầu + quản lý HTX của tổ chức).
+     *
+     * @param title        tiêu đề thông báo
+     * @param content      nội dung thông báo
+     * @param recipientIds danh sách ID người dùng nhận thông báo
+     * @return số lượng thông báo đã tạo
+     */
+    int sendCodeRangeSupplementNotification(String title, String content, List<UUID> recipientIds);
+
+    /**
      * Gửi thông báo khi mã tem được mở khóa sau khi xác minh (NCL-08-CN-013).
      *
      * @param traceCode mã tem đã được mở khóa

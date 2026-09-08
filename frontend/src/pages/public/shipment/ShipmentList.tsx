@@ -19,6 +19,7 @@ import {
   Plus,
   Ban,
   MoreHorizontal,
+  Hash,
   History,
   Eye,
   QrCode,
@@ -51,6 +52,7 @@ import { useDeleteDraftShipment } from "@/hooks/useDeleteDraftShipment";
 import { checkCanActivateSeal } from "@/api/certificationApi";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ExportLabelsDialog } from "@/components/shipment/ExportLabelsDialog";
+
 
 interface ShipmentListProps {
   productionLotId: string;
@@ -107,6 +109,8 @@ export const ShipmentList = ({
   const canExportBatch = usePermission(ROLE_ACCESS.batchDossierExport);
   // NCL-04-CN-005: Chỉ VT-02 được xuất tem QR
   const canExportLabels = usePermission(ROLE_ACCESS.labelExport);
+  // NCL-04-CN-007: Chỉ VT-02 được gửi yêu cầu cấp bổ sung mã
+  const canRequestSupplement = usePermission(ROLE_ACCESS.supplementCreate);
 
   const [filterFromDate, setFilterFromDate] = useState("");
   const [filterToDate, setFilterToDate] = useState("");
@@ -301,6 +305,18 @@ export const ShipmentList = ({
             <CardTitle className="text-xl font-bold text-slate-900">Danh sách lô hàng</CardTitle>
 
             <div className="flex items-center gap-2">
+              {/* NCL-04-CN-007: tùy chọn yêu cầu cấp bổ sung dải mã (chỉ VT-02) */}
+              {canRequestSupplement && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/code-range-supplements/create")}
+                >
+                  <Hash className="mr-1 h-4 w-4" />
+                  Cấp bổ sung mã
+                </Button>
+              )}
+
               {canExportBatch && shipments.length > 0 && (
                 !isSelectionMode ? (
                   <Button

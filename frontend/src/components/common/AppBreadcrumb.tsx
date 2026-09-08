@@ -121,7 +121,7 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
 
   // Admin
   ["/admin/code-ranges/create", "Cấp dải mã"],
-  ["/admin/code-ranges", "Dải mã truy xuất"],
+  ["/admin/code-ranges", "Quản lý dải mã truy xuất"],
   ["/admin/product-categories/create", "Thêm loại nông sản"],
   ["/admin/product-categories/:id/edit", "Cập nhật loại nông sản"],
   ["/admin/product-categories/:id/criteria", "Gán bộ chỉ tiêu kiểm nghiệm"],
