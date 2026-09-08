@@ -16,6 +16,7 @@ import {
   ChevronRight,
   FileText,
   FileJson,
+  FileStack,
   Plus,
   Ban,
   MoreHorizontal,
@@ -308,6 +309,7 @@ export const ShipmentList = ({
                     size="sm"
                     onClick={() => setIsSelectionMode(true)}
                   >
+                    <FileStack className="mr-1.5 h-4 w-4" />
                     Xuất hồ sơ nhiều lô
                   </Button>
                 ) : (

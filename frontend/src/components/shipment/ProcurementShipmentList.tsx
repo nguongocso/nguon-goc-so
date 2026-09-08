@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Eye, FileJson, FileText, ShoppingCart } from "lucide-react";
+import { Eye, FileJson, FileStack, FileText, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { ListCard } from "@/components/common/ListCard";
@@ -302,6 +302,7 @@ export function ProcurementShipmentList({
                     size="sm"
                     onClick={() => setIsSelectionMode(true)}
                   >
+                    <FileStack className="mr-1.5 h-4 w-4" />
                     Xuất hồ sơ nhiều lô
                   </Button>
                 ) : (
