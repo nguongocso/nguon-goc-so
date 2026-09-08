@@ -16,7 +16,6 @@ import {
   ChevronRight,
   FileText,
   FileJson,
-  FileStack,
   Plus,
   Ban,
   MoreHorizontal,

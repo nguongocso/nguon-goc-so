@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Eye, FileJson, FileStack, FileText, ShoppingCart } from "lucide-react";
+import { Eye, FileJson, FileText, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { ListCard } from "@/components/common/ListCard";
