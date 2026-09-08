@@ -171,6 +171,10 @@ import { CreateRecallRequestPage } from "@/pages/recall-request/CreateRecallRequ
 import { RecallRequestListPage } from "@/pages/recall-request/RecallRequestListPage";
 import { RecallRequestDetailPage } from "@/pages/recall-request/RecallRequestDetailPage";
 
+// ===== Bulk Recall requests (NCL-08-CN-011) =====
+import { BulkRecallRequestDetailPage } from "@/pages/recall-request/BulkRecallRequestDetailPage";
+import { BulkRecallRequestListPage } from "@/pages/recall-request/BulkRecallRequestListPage";
+
 // ===== Code range supplement (NCL-04-CN-007) =====
 import { CodeRangeSupplementListPage } from "@/pages/admin/CodeRangeSupplementListPage";
 import { CodeRangeSupplementDetailPage } from "@/pages/admin/CodeRangeSupplementDetailPage";
@@ -1430,6 +1434,32 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.recallRequestManage}
                     >
                         <RecallRequestDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* ===========================================================
+          BULK RECALL REQUEST (NCL-08-CN-011)
+          Danh sách đề nghị thu hồi theo phạm vi ảnh hưởng
+      =========================================================== */}
+            <Route
+                path="recall-requests/bulk"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.recallRequestManage}
+                    >
+                        <BulkRecallRequestListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="recall-requests/bulk/:id"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.recallRequestManage}
+                    >
+                        <BulkRecallRequestDetailPage />
                     </RoleRoute>
                 }
             />

@@ -39,6 +39,7 @@ import {
   Key,
   WifiOff,
   MapPin,
+  PackageSearch,
 } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import {
@@ -287,6 +288,13 @@ const MENU_GROUPS: MenuGroup[] = [
         href: "/recall-requests",
         allowedRoles: ROLE_ACCESS.recallRequestManage,
         activePaths: ["/recall-requests"],
+      },
+      {
+        icon: <PackageSearch className="h-5 w-5" />,
+        label: "Đề nghị thu hồi theo phạm vi",
+        href: "/recall-requests/bulk",
+        allowedRoles: ROLE_ACCESS.recallRequestManage,
+        activePaths: ["/recall-requests/bulk"],
       },
       // NCL-04-CN-007: mục "Yêu cầu bổ sung mã" đã bỏ — chức năng chuyển thành
       // tùy chọn trong tab "Lô hàng & Mã QR" của chi tiết lô sản xuất.
