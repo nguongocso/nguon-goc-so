@@ -57,6 +57,7 @@ import vn.nguongocso.report.repository.DossierExportHistoryRepository;
 import vn.nguongocso.report.service.DossierService;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
+import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
