@@ -17,6 +17,7 @@ import {
   updateProductFeedbackProcessing,
   closeProductFeedback,
   createProductFeedbackRecall,
+  lookupPublicProductFeedback,
 } from "@/api/productFeedbackApi";
 
 describe("productFeedbackApi", () => {
@@ -34,6 +35,23 @@ describe("productFeedbackApi", () => {
 
     expect(apiClient.post).toHaveBeenCalledWith(
       `/public/production-lots/${lotId}/feedbacks`,
+      payload,
+    );
+    expect(result).toEqual(mockData);
+  });
+
+  it("lookupPublicProductFeedback should post the public lookup code", async () => {
+    const payload = { lookupCode: "PA-7K2M-9Q4X-H8NP-3R5T" };
+    const mockData = {
+      status: "IN_PROGRESS" as const,
+      publicResponse: "Đơn vị phụ trách đang xác minh.",
+    };
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ data: { data: mockData } });
+
+    const result = await lookupPublicProductFeedback(payload);
+
+    expect(apiClient.post).toHaveBeenCalledWith(
+      "/public/product-feedbacks/lookup",
       payload,
     );
     expect(result).toEqual(mockData);

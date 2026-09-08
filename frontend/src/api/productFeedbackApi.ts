@@ -2,6 +2,8 @@ import apiClient from "@/api/axiosConfig";
 import type {
   CreateProductFeedbackPayload,
   PublicProductFeedbackCreated,
+  PublicProductFeedbackLookupPayload,
+  PublicProductFeedbackLookupResult,
   AssignProductFeedbackPayload,
   UpdateProductFeedbackProcessingPayload,
   CloseProductFeedbackPayload,
@@ -50,6 +52,16 @@ export const assignProductFeedback = async (
     `/product-feedbacks/${feedbackId}/assignment`,
     payload,
   );
+  return response.data.data;
+};
+
+export const lookupPublicProductFeedback = async (
+  payload: PublicProductFeedbackLookupPayload,
+): Promise<PublicProductFeedbackLookupResult> => {
+  const response = await apiClient.post<{
+    data: PublicProductFeedbackLookupResult;
+  }>("/public/product-feedbacks/lookup", payload);
+
   return response.data.data;
 };
 
