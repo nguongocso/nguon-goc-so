@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +19,7 @@ import {
   Plus,
   Ban,
   MoreHorizontal,
+  Hash,
   History,
   Eye,
   QrCode,
@@ -51,6 +52,7 @@ import { useDeleteDraftShipment } from "@/hooks/useDeleteDraftShipment";
 import { checkCanActivateSeal } from "@/api/certificationApi";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ExportLabelsDialog } from "@/components/shipment/ExportLabelsDialog";
+
 
 interface ShipmentListProps {
   productionLotId: string;
@@ -101,9 +103,24 @@ export const ShipmentList = ({
   const [labelExportShipment, setLabelExportShipment] =
     useState<Shipment | null>(null);
 
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedShipmentIds, setSelectedShipmentIds] = useState<string[]>([]);
   const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
+  const canExportBatch = usePermission(ROLE_ACCESS.batchDossierExport);
   // NCL-04-CN-005: Chỉ VT-02 được xuất tem QR
   const canExportLabels = usePermission(ROLE_ACCESS.labelExport);
+  // NCL-04-CN-007: Chỉ VT-02 được gửi yêu cầu cấp bổ sung mã
+  const canRequestSupplement = usePermission(ROLE_ACCESS.supplementCreate);
+
+  const [filterFromDate, setFilterFromDate] = useState("");
+  const [filterToDate, setFilterToDate] = useState("");
+  const [filterStatus, setFilterStatus] = useState("ALL");
+
+  const toggleSelectShipment = (id: string) => {
+    setSelectedShipmentIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
 
   const {
     shipments,
@@ -116,6 +133,43 @@ export const ShipmentList = ({
     totalElements,
     setPage,
   } = useShipments(productionLotId);
+
+  const filteredShipments = useMemo(() => {
+    return shipments.filter((shipment: Shipment) => {
+      if (filterFromDate) {
+        const from = new Date(filterFromDate).getTime();
+        const created = new Date(shipment.createdAt).getTime();
+        if (created < from) return false;
+      }
+      if (filterToDate) {
+        const to = new Date(filterToDate).getTime() + 86400000;
+        const created = new Date(shipment.createdAt).getTime();
+        if (created > to) return false;
+      }
+      if (filterStatus !== "ALL" && shipment.status !== filterStatus) {
+        return false;
+      }
+      return true;
+    });
+  }, [shipments, filterFromDate, filterToDate, filterStatus]);
+
+  const toggleSelectAllPage = () => {
+    const pageIds = filteredShipments.map((s: Shipment) => s.id);
+    const allSelected = pageIds.length > 0 && pageIds.every((id: string) => selectedShipmentIds.includes(id));
+    if (allSelected) {
+      setSelectedShipmentIds((prev: string[]) => prev.filter((id: string) => !pageIds.includes(id)));
+    } else {
+      setSelectedShipmentIds((prev: string[]) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const handleCancelSelectionMode = () => {
+    setIsSelectionMode(false);
+    setSelectedShipmentIds([]);
+    setFilterFromDate("");
+    setFilterToDate("");
+    setFilterStatus("ALL");
+  };
 
   const { recallingShipmentId, recallShipment } = useRecallShipment(reload);
 
@@ -250,27 +304,156 @@ export const ShipmentList = ({
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl font-bold text-slate-900">Danh sách lô hàng</CardTitle>
 
-            {canCreate && productionLotStatus === "PACKAGED" && (
-              <Button variant="create" size="sm" onClick={() => navigate(`/production-lots/${productionLotId}/shipments/create`)}>
-                <Plus className="mr-1 h-4 w-4" />
-                Tạo lô hàng
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {/* NCL-04-CN-007: tùy chọn yêu cầu cấp bổ sung dải mã (chỉ VT-02) */}
+              {canRequestSupplement && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/code-range-supplements/create")}
+                >
+                  <Hash className="mr-1 h-4 w-4" />
+                  Cấp bổ sung mã
+                </Button>
+              )}
+
+              {canExportBatch && shipments.length > 0 && (
+                !isSelectionMode ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsSelectionMode(true)}
+                  >
+                    <FileText className="mr-1.5 h-4 w-4" />
+                    Xuất hồ sơ nhiều lô
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCancelSelectionMode}
+                    >
+                      Hủy chọn
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      disabled={selectedShipmentIds.length === 0}
+                      onClick={() =>
+                        navigate("/shipments/batch-dossier-export", {
+                          state: { shipmentIds: selectedShipmentIds },
+                        })
+                      }
+                    >
+                      Xác nhận xuất bộ hồ sơ ({selectedShipmentIds.length} lô)
+                    </Button>
+                  </>
+                )
+              )}
+
+              {!isSelectionMode && canCreate && productionLotStatus === "PACKAGED" && (
+                <Button variant="create" size="sm" onClick={() => navigate(`/production-lots/${productionLotId}/shipments/create`)}>
+                  <Plus className="mr-1 h-4 w-4" />
+                  Tạo lô hàng
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
 
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="py-12 text-center text-muted-foreground">Đang tải...</div>
-          ) : shipments.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground">
-              Chưa có lô hàng nào cho lô sản xuất này.
+        <CardContent className="p-4 space-y-4">
+          {isSelectionMode && (
+            <div className="rounded-md border border-slate-200 bg-slate-50/70 p-3.5">
+              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-700">
+                <span className="font-semibold text-slate-900">Bộ lọc chọn lô:</span>
+
+                <div className="flex items-center gap-1.5">
+                  <label className="text-slate-600">Từ ngày:</label>
+                  <input
+                    type="date"
+                    className="h-8 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
+                    value={filterFromDate}
+                    onChange={(e) => setFilterFromDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <label className="text-slate-600">Đến ngày:</label>
+                  <input
+                    type="date"
+                    className="h-8 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
+                    value={filterToDate}
+                    onChange={(e) => setFilterToDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <label className="text-slate-600">Trạng thái:</label>
+                  <select
+                    className="h-8 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                  >
+                    <option value="ALL">Tất cả trạng thái</option>
+                    <option value="ACTIVATED">Đã kích hoạt</option>
+                    <option value="CODE_PRINTED">Đã in mã</option>
+                    <option value="RECALLED">Đã thu hồi</option>
+                    <option value="DRAFT">Bản nháp</option>
+                  </select>
+                </div>
+
+                {(filterFromDate || filterToDate || filterStatus !== "ALL") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                    onClick={() => {
+                      setFilterFromDate("");
+                      setFilterToDate("");
+                      setFilterStatus("ALL");
+                    }}
+                  >
+                    Đặt lại bộ lọc
+                  </Button>
+                )}
+
+                <div className="ml-auto text-xs text-slate-500">
+                  Hiển thị <span className="font-medium text-slate-900">{filteredShipments.length}</span> / {shipments.length} lô
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
+          )}
+
+          <div className="rounded-md border overflow-x-auto bg-white">
+            {isLoading ? (
+              <div className="py-12 text-center text-muted-foreground">Đang tải...</div>
+            ) : shipments.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground">
+                Chưa có lô hàng nào cho lô sản xuất này.
+              </div>
+            ) : filteredShipments.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground">
+                Không tìm thấy lô hàng phù hợp với bộ lọc hiện tại.
+              </div>
+            ) : (
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50/80">
+                    {isSelectionMode && (
+                      <TableHead className="w-10 text-center">
+                        <input
+                          type="checkbox"
+                          className="rounded border-input"
+                          checked={
+                            filteredShipments.length > 0 &&
+                            filteredShipments.every((s: Shipment) => selectedShipmentIds.includes(s.id))
+                          }
+                          onChange={toggleSelectAllPage}
+                          title="Chọn tất cả các lô hiển thị"
+                        />
+                      </TableHead>
+                    )}
                     <TableHead className="font-semibold text-slate-700">Tên lô hàng</TableHead>
                     <TableHead className="text-center font-semibold text-slate-700">Số lượng</TableHead>
                     <TableHead className="font-semibold text-slate-700">Quy cách</TableHead>
@@ -282,8 +465,18 @@ export const ShipmentList = ({
                 </TableHeader>
 
                 <TableBody>
-                  {shipments.map((shipment) => (
+                  {filteredShipments.map((shipment: Shipment) => (
                     <TableRow key={shipment.id} className="hover:bg-slate-50/60">
+                      {isSelectionMode && (
+                        <TableCell className="text-center">
+                          <input
+                            type="checkbox"
+                            className="rounded border-input"
+                            checked={selectedShipmentIds.includes(shipment.id)}
+                            onChange={() => toggleSelectShipment(shipment.id)}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="font-medium">
                         {shipment.name}
                       </TableCell>
@@ -430,12 +623,12 @@ export const ShipmentList = ({
                   ))}
                 </TableBody>
               </Table>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Pagination bar */}
           {!isLoading && totalElements > 0 && totalPages > 1 && (
-            <div className="flex items-center justify-between border-t pt-4 mt-2">
+            <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-2">
               <p className="text-sm text-muted-foreground">
                 Trang{" "}
                 <span className="font-medium text-foreground">{page + 1}</span>

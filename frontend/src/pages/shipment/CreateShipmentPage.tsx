@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Boxes, Plus, AlertTriangle, Info, Loader2 } from "lucide-react";
+import { Boxes, Plus, AlertTriangle, Hash, Info, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,7 +44,7 @@ export const CreateShipmentPage: React.FC = () => {
   const [lot, setLot] = useState<ProductionLot | null>(null);
   const [remainingCodes, setRemainingCodes] =
     useState<RemainingCodesResponse | null>(null);
-  const [remainingLoading, setRemainingLoading] = useState(false);
+
   const [loadingLot, setLoadingLot] = useState(true);
   // NCL-11-CN-005: trạng thái kiểm nghiệm hiệu lực — dùng chung với pre-check
   // GET /production-lots/{lotId}/can-activate-seal (cùng logic backend gate).
@@ -54,6 +54,7 @@ export const CreateShipmentPage: React.FC = () => {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -106,11 +107,9 @@ export const CreateShipmentPage: React.FC = () => {
     void fetchInspectionCheck();
 
     if (user?.organizationId) {
-      setRemainingLoading(true);
       getRemainingCodes(user.organizationId)
         .then(setRemainingCodes)
-        .catch(() => setRemainingCodes(null))
-        .finally(() => setRemainingLoading(false));
+        .catch(() => setRemainingCodes(null));
     }
   }, [productionLotId, user?.organizationId]);
 
@@ -172,10 +171,19 @@ export const CreateShipmentPage: React.FC = () => {
   const isBlocked = isInspectionBlocked || isLotDisposed || isLotCancelled;
 
   const remainingCount = remainingCodes?.remainingCount ?? 0;
-  const totalLimit = remainingCodes?.totalLimit ?? 0;
+
   const hasCodeRange = remainingCodes?.hasCodeRange ?? false;
   const isExhausted =
     remainingCodes !== null && (!hasCodeRange || remainingCount <= 0);
+
+  // NCL-04-CN-007: cảnh báo động khi số lượng nhập vượt hạn mức còn lại
+  const watchedQuantity = watch("totalQuantity");
+  const exceedsQuota =
+    remainingCodes !== null &&
+    hasCodeRange &&
+    typeof watchedQuantity === "number" &&
+    !Number.isNaN(watchedQuantity) &&
+    watchedQuantity > remainingCount;
 
   if (loadingLot) {
     return (
@@ -222,61 +230,6 @@ export const CreateShipmentPage: React.FC = () => {
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-5 pt-6">
-            {/* Box trạng thái dải mã truy xuất */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 text-sm space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-slate-700">
-                  Dải mã truy xuất còn lại của tổ chức:
-                </span>
-                {remainingLoading && !remainingCodes ? (
-                  <span className="text-xs text-muted-foreground">
-                    Đang tải...
-                  </span>
-                ) : !hasCodeRange ? (
-                  <span className="flex items-center gap-1 font-semibold text-amber-600">
-                    <AlertTriangle className="h-4 w-4" />
-                    Chưa có dải mã
-                  </span>
-                ) : (
-                  <span className="font-bold text-emerald-600 text-base">
-                    {remainingCount.toLocaleString()} /{" "}
-                    {totalLimit.toLocaleString()} mã
-                  </span>
-                )}
-              </div>
-
-              {!remainingLoading && !remainingCodes && user?.organizationId && (
-                <p className="text-xs text-red-500">
-                  Không thể tải số lượng mã còn lại.
-                </p>
-              )}
-
-              {!user?.organizationId && (
-                <p className="flex items-center gap-1 text-xs text-red-500">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  Không xác định được tổ chức.
-                </p>
-              )}
-
-              {!remainingLoading && hasCodeRange && remainingCount <= 0 && (
-                <p className="flex items-center gap-1 text-xs text-red-500">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  Đã hết mã truy xuất. Không thể tạo thêm lô hàng. Vui lòng liên
-                  hệ quản trị viên để cấp thêm dải mã.
-                </p>
-              )}
-
-              {!remainingLoading &&
-                remainingCodes !== null &&
-                !hasCodeRange && (
-                  <p className="flex items-center gap-1 text-xs text-red-500">
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    Tổ chức chưa được cấp dải mã truy xuất. Vui lòng yêu cầu cấp
-                    dải mã trước.
-                  </p>
-                )}
-            </div>
-
             {/* NCL-11-CN-005: Cảnh báo lô không đạt kiểm nghiệm */}
             {isBlocked && (
               <div className="rounded-xl border border-red-200 bg-red-50 p-4">
@@ -335,6 +288,32 @@ export const CreateShipmentPage: React.FC = () => {
                   {errors.totalQuantity.message}
                 </p>
               )}
+
+              {/* NCL-04-CN-007: cảnh báo động khi số lượng vượt hạn mức còn lại */}
+              {exceedsQuota && (
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-red-700">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    Hạn mức đã hết / không đủ mã. Chỉ còn{' '}
+                    <span className="font-bold">
+                      {remainingCount.toLocaleString()}
+                    </span>{' '}
+                    mã truy xuất, vui lòng giảm số lượng hoặc cấp bổ sung mã.
+                  </p>
+                  {user?.roleCode === 'VT-02' && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 border-red-300 px-2 text-xs text-red-700 hover:bg-red-100"
+                      onClick={() => navigate("/code-range-supplements/create")}
+                    >
+                      <Hash className="h-3 w-3 mr-1" />
+                      Cấp bổ sung
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Thông tin đóng gói */}
@@ -372,7 +351,9 @@ export const CreateShipmentPage: React.FC = () => {
               <Button
                 type="submit"
                 variant="create"
-                disabled={isSubmitting || isExhausted || isBlocked}
+                disabled={
+                  isSubmitting || isExhausted || isBlocked || exceedsQuota
+                }
               >
                 <Plus className="h-4 w-4 mr-1.5" />
                 {isSubmitting ? "Đang tạo..." : "Tạo lô hàng"}
@@ -381,6 +362,7 @@ export const CreateShipmentPage: React.FC = () => {
           </CardContent>
         </form>
       </Card>
+
     </div>
   );
 };

@@ -86,6 +86,8 @@ import { ShipmentDetailPage } from "@/pages/public/shipment/ShipmentDetailPage";
 import CreateShipmentPage from "@/pages/shipment/CreateShipmentPage";
 import LabelCancellationHistoryPage from "@/pages/shipment/LabelCancellationHistoryPage";
 import CancelLabelsPage from "@/pages/shipment/CancelLabelsPage";
+import BatchDossierExportPage from "@/pages/shipment/BatchDossierExportPage";
+import ShipmentTraceCodesPage from "@/pages/shipment/ShipmentTraceCodesPage";
 
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
@@ -140,6 +142,9 @@ import RolePermissionConfigPage from "@/pages/permission/RolePermissionConfigPag
 // ===== Scan Quick Event =====
 import ScanQuickEventPage from "@/pages/scan-anomaly-alert/components/ScanQuickEventPage";
 
+// ===== Impact Scope Tracing (NCL-08-CN-010) =====
+import ImpactScopeTracePage from "@/pages/trace/ImpactScopeTracePage";
+
 // ===== Organization Detail =====
 import OrganizationDetailPage from "@/pages/organization/OrganizationDetailPage";
 
@@ -149,6 +154,7 @@ import CreatePartnerApiKeyPage from "@/pages/apiKey/CreatePartnerApiKeyPage";
 
 // ===== Product Feedback =====
 import ProductFeedbackManagementPage from "@/pages/product-feedback/ProductFeedbackManagementPage";
+import ProductFeedbackDetailPage from "@/pages/product-feedback/ProductFeedbackDetailPage";
 
 // ===== Mobile =====
 import RecordMobileEventPage from "@/pages/mobile/RecordMobileEventPage";
@@ -166,6 +172,11 @@ import { SystemMonitoringPage } from "@/pages/admin/SystemMonitoringPage";
 import { CreateRecallRequestPage } from "@/pages/recall-request/CreateRecallRequestPage";
 import { RecallRequestListPage } from "@/pages/recall-request/RecallRequestListPage";
 import { RecallRequestDetailPage } from "@/pages/recall-request/RecallRequestDetailPage";
+
+// ===== Code range supplement (NCL-04-CN-007) =====
+import { CodeRangeSupplementListPage } from "@/pages/admin/CodeRangeSupplementListPage";
+import { CodeRangeSupplementDetailPage } from "@/pages/admin/CodeRangeSupplementDetailPage";
+import { CodeRangeSupplementPage } from "@/pages/shipment/CodeRangeSupplementPage";
 
 // ===== Area assignment (NCL-670 / NCL-742) =====
 import { AreaAssignmentPage } from "@/pages/admin/AreaAssignmentPage";
@@ -606,6 +617,34 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
                         <CancelLabelsPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="shipments/batch-dossier-export"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.batchDossierExport}>
+                        <BatchDossierExportPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* NCL-04-CN-008: Xem và tra cứu trạng thái từng mã tem trong lô hàng */}
+            <Route
+                path="shipments/:shipmentId/trace-codes"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.traceCodeView}>
+                        <ShipmentTraceCodesPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:lotId/shipments/:shipmentId/trace-codes"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.traceCodeView}>
+                        <ShipmentTraceCodesPage />
                     </RoleRoute>
                 }
             />
@@ -1426,6 +1465,45 @@ const AppRoutes = () => (
             />
 
             {/* =================================================
+          CODE RANGE SUPPLEMENT (NCL-04-CN-007)
+          Trang tạo yêu cầu (VT-02): mở từ tab "Lô hàng & Mã QR"
+          của chi tiết lô sản xuất và màn hình tạo lô hàng.
+      ================================================= */}
+
+            <Route
+                path="code-range-supplements/create"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.supplementCreate}
+                    >
+                        <CodeRangeSupplementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/code-range-supplements"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.supplementManage}
+                    >
+                        <CodeRangeSupplementListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/code-range-supplements/:id"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.supplementManage}
+                    >
+                        <CodeRangeSupplementDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* =================================================
           PRODUCT FEEDBACK
       ================================================= */}
 
@@ -1438,6 +1516,37 @@ const AppRoutes = () => (
                         }
                     >
                         <ProductFeedbackManagementPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="product-feedbacks/:feedbackId"
+                element={
+                    <RoleRoute
+                        allowedRoles={
+                            ROLE_ACCESS.productFeedbackManagement
+                        }
+                    >
+                        <ProductFeedbackDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+
+            {/* =================================================
+          IMPACT SCOPE TRACING (NCL-08-CN-010)
+      ================================================= */}
+
+            <Route
+                path="trace/impact-scope"
+                element={
+                    <RoleRoute
+                        allowedRoles={
+                            ROLE_ACCESS.impactScopeTrace
+                        }
+                    >
+                        <ImpactScopeTracePage />
                     </RoleRoute>
                 }
             />

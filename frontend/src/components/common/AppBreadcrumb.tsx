@@ -49,6 +49,10 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/production-lots/create", "Tạo lô sản xuất"],
   ["/production-lots/import", "Nhập lô sản xuất"],
   [
+    "/production-lots/:lotId/shipments/:shipmentId/trace-codes",
+    "Mã tem truy xuất",
+  ],
+  [
     "/production-lots/:lotId/shipments/:shipmentId",
     "Chi tiết lô hàng",
   ],
@@ -91,6 +95,14 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
     "/production-lots/:lotId/shipments/:id/cancel-labels",
     "Hủy tem",
   ],
+  [
+    "/shipments/:shipmentId/trace-codes",
+    "Mã tem truy xuất",
+  ],
+  [
+    "/shipments/:id/trace-codes",
+    "Mã tem truy xuất",
+  ],
   ["/shipments/:id", "Chi tiết lô hàng"],
 
   // Farm logs
@@ -109,7 +121,7 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
 
   // Admin
   ["/admin/code-ranges/create", "Cấp dải mã"],
-  ["/admin/code-ranges", "Dải mã truy xuất"],
+  ["/admin/code-ranges", "Quản lý dải mã truy xuất"],
   ["/admin/product-categories/create", "Thêm loại nông sản"],
   ["/admin/product-categories/:id/edit", "Cập nhật loại nông sản"],
   ["/admin/product-categories/:id/criteria", "Gán bộ chỉ tiêu kiểm nghiệm"],
@@ -174,6 +186,7 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/recall-requests/create", "Tạo yêu cầu thu hồi"],
   ["/recall-requests/:id", "Chi tiết yêu cầu thu hồi"],
   ["/recall-requests", "Yêu cầu thu hồi"],
+  ["/product-feedbacks/:feedbackId", "Chi tiết phản ánh"],
   ["/product-feedbacks", "Phản hồi người dùng"],
   ["/forgot-password", "Quên mật khẩu"],
   ["/reset-password", "Đặt lại mật khẩu"],
@@ -210,6 +223,10 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
   ["/production-lots/create", ["VT-02"]],
   ["/production-lots/import", ["VT-02"]],
   [
+    "/production-lots/:lotId/shipments/:shipmentId/trace-codes",
+    ROLE_ACCESS.traceCodeView,
+  ],
+  [
     "/production-lots/:lotId/shipments/:shipmentId",
     ["VT-01", "VT-02", "VT-03", "VT-04"],
   ],
@@ -239,6 +256,14 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
   [
     "/production-lots/:lotId/shipments/:id/cancel-labels",
     ["VT-02", "VT-03", "VT-04"],
+  ],
+  [
+    "/shipments/:shipmentId/trace-codes",
+    ROLE_ACCESS.traceCodeView,
+  ],
+  [
+    "/shipments/:id/trace-codes",
+    ROLE_ACCESS.traceCodeView,
   ],
   ["/shipments/:id", ["VT-02", "VT-03", "VT-04"]],
 
@@ -318,6 +343,7 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
   ["/recall-requests/create", ROLE_ACCESS.recallRequestCreate],
   ["/recall-requests/:id", ROLE_ACCESS.recallRequestManage],
   ["/recall-requests", ROLE_ACCESS.recallRequestManage],
+  ["/product-feedbacks/:feedbackId", ROLE_ACCESS.productFeedbackManagement],
   ["/product-feedbacks", ROLE_ACCESS.productFeedbackManagement],
   ["/forgot-password", AUTHENTICATED_ROLE_CODES],
   ["/reset-password", AUTHENTICATED_ROLE_CODES],

@@ -10,15 +10,15 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Payload tạo yêu cầu thu hồi lô sản xuất (NCL-08-CN-008).
+ * Payload tạo yêu cầu thu hồi lô hàng (NCL-08-CN-008).
  */
 @Getter
 @Setter
 @NoArgsConstructor
 public class CreateRecallRequest {
 
-    @NotNull(message = "lotId không được để trống.")
-    private UUID lotId;
+    @NotNull(message = "shipmentId không được để trống.")
+    private UUID shipmentId;
 
     @NotBlank(message = "Lý do thu hồi không được để trống.")
     @Size(max = 1000, message = "Lý do thu hồi không được vượt quá 1000 ký tự.")

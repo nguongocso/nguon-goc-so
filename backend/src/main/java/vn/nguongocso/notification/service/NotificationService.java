@@ -23,14 +23,14 @@ public interface NotificationService {
     void sendShipmentRecallNotification(Recall recall);
 
     /**
-     * Gửi thông báo thu hồi lô sản xuất (NCL-08-CN-008) cho danh sách người dùng.
+     * Gửi thông báo thu hồi lô hàng (NCL-08-CN-008) cho danh sách người dùng.
      *
-     * @param lotName tên lô sản xuất
+     * @param shipmentName tên lô hàng
      * @param reason  lý do thu hồi
      * @param recipientIds danh sách ID người dùng nhận thông báo
      * @return số lượng thông báo đã tạo
      */
-    int sendLotRecallNotification(String lotName, String reason, List<UUID> recipientIds);
+    int sendRecallNotification(String shipmentName, String reason, List<UUID> recipientIds);
 
     /**
      * Gửi thông báo chứng nhận sắp hết hạn hoặc đã hết hạn.
@@ -76,6 +76,18 @@ public interface NotificationService {
      * Gửi thông báo khi tài khoản được mở khóa.
      */
     void sendAccountUnlockedNotification(AccountLock accountLock);
+
+    /**
+     * Gửi thông báo kết quả duyệt yêu cầu cấp bổ sung dải mã truy xuất
+     * (NCL-04-CN-007) cho danh sách người dùng được chỉ định
+     * (người tạo yêu cầu + quản lý HTX của tổ chức).
+     *
+     * @param title        tiêu đề thông báo
+     * @param content      nội dung thông báo
+     * @param recipientIds danh sách ID người dùng nhận thông báo
+     * @return số lượng thông báo đã tạo
+     */
+    int sendCodeRangeSupplementNotification(String title, String content, List<UUID> recipientIds);
 
     /**
      * Gửi thông báo khi mã tem được mở khóa sau khi xác minh (NCL-08-CN-013).

@@ -142,3 +142,93 @@ export const exportGs1Dossier = async (
     throw error;
   }
 };
+
+// =========================================================================
+// NCL-07-CN-005: Xuất hồ sơ truy xuất cho nhiều lô trong một lần (Batch Dossier Export)
+// =========================================================================
+
+export interface BatchShipmentEligibilityItem {
+  shipmentId: string;
+  shipmentName: string;
+  eligible: boolean;
+  missingDocuments: string[];
+}
+
+export interface BatchDossierCheckResponse {
+  totalSelected: number;
+  totalEligible: number;
+  totalIneligible: number;
+  eligibleShipments: BatchShipmentEligibilityItem[];
+  ineligibleShipments: BatchShipmentEligibilityItem[];
+}
+
+export interface BatchDossierExportRequest {
+  shipmentIds: string[];
+  title?: string;
+  note?: string;
+}
+
+export interface BatchDossierHistoryDto {
+  id: string;
+  title: string;
+  exportedAt: string;
+  exporterName: string;
+  organizationName: string;
+  totalSelectedLots: number;
+  eligibleLotsCount: number;
+  ineligibleLotsCount: number;
+  fileName: string;
+  fileSize: number;
+  status: string;
+  ipAddress: string;
+}
+
+/**
+  * Kiểm tra điều kiện xuất hồ sơ hàng loạt cho danh sách lô (QTN-11 & QTN-01)
+  */
+export const checkBatchDossierEligibility = async (shipmentIds: string[]): Promise<BatchDossierCheckResponse> => {
+  const response = await apiClient.post<{ data: BatchDossierCheckResponse }>(
+    '/shipments/dossiers/batch-check',
+    { shipmentIds }
+  );
+  return response.data.data;
+};
+
+/**
+  * Xuất bộ hồ sơ PDF hợp nhất cho các lô đủ điều kiện
+  */
+export const exportBatchDossier = async (request: BatchDossierExportRequest): Promise<Blob> => {
+  try {
+    const response = await apiClient.post('/shipments/dossiers/batch-export', request, {
+      responseType: 'blob',
+      timeout: 60000,
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data instanceof Blob && error.response.data.type?.includes('application/json')) {
+      const text = await error.response.data.text();
+      let message = text || 'Lỗi khi xuất bộ hồ sơ truy xuất hàng loạt';
+      try {
+        const errJson = JSON.parse(text);
+        if (errJson?.message) {
+          message = errJson.message;
+        }
+      } catch {
+        // Không phải JSON hợp lệ → giữ nguyên text
+      }
+      throw new Error(message);
+    }
+    throw error;
+  }
+};
+
+/**
+  * Lấy lịch sử xuất bộ hồ sơ truy xuất của tổ chức
+  */
+export const getBatchDossierExportHistory = async (): Promise<BatchDossierHistoryDto[]> => {
+  const response = await apiClient.get<{ data: BatchDossierHistoryDto[] }>(
+    '/shipments/dossiers/batch-history'
+  );
+  return response.data.data;
+};
+

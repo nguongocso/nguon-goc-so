@@ -44,6 +44,8 @@ import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.SuspectDetectionService;
+import vn.nguongocso.farm.enums.ProductFeedbackSeverity;
+import vn.nguongocso.farm.repository.ProductFeedbackRepository;
 
 /**
  * Triển khai phát hiện nghi vấn và quản lý khóa mã tem (NCL-08-CN-007).
@@ -72,6 +74,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
     private static final double LOCATION_EPSILON_KM = 0.5; // Coi là cùng vị trí nếu khoảng cách < 0.5km
 
     private final TraceCodeRepository traceCodeRepository;
+    private final ProductFeedbackRepository productFeedbackRepository;
     private final TraceCodeScanLogRepository scanLogRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
@@ -83,7 +86,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
             TraceCodeScanLogRepository scanLogRepository,
             UserRepository userRepository,
             NotificationService notificationService) {
-        this(traceCodeRepository, scanLogRepository, userRepository, notificationService, null, null);
+        this(traceCodeRepository, null, scanLogRepository, userRepository, notificationService, null, null);
     }
 
     public SuspectDetectionServiceImpl(
@@ -92,7 +95,17 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
             UserRepository userRepository,
             NotificationService notificationService,
             ApplicationEventPublisher eventPublisher) {
-        this(traceCodeRepository, scanLogRepository, userRepository, notificationService, eventPublisher, null);
+        this(traceCodeRepository, null, scanLogRepository, userRepository, notificationService, eventPublisher, null);
+    }
+
+    public SuspectDetectionServiceImpl(
+            TraceCodeRepository traceCodeRepository,
+            ProductFeedbackRepository productFeedbackRepository,
+            TraceCodeScanLogRepository scanLogRepository,
+            UserRepository userRepository,
+            NotificationService notificationService,
+            ApplicationEventPublisher eventPublisher) {
+        this(traceCodeRepository, productFeedbackRepository, scanLogRepository, userRepository, notificationService, eventPublisher, null);
     }
 
     public SuspectDetectionServiceImpl(
@@ -101,18 +114,20 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
             UserRepository userRepository,
             NotificationService notificationService,
             AnomalyThresholdService anomalyThresholdService) {
-        this(traceCodeRepository, scanLogRepository, userRepository, notificationService, null, anomalyThresholdService);
+        this(traceCodeRepository, null, scanLogRepository, userRepository, notificationService, null, anomalyThresholdService);
     }
 
     @Autowired
     public SuspectDetectionServiceImpl(
             TraceCodeRepository traceCodeRepository,
+            ProductFeedbackRepository productFeedbackRepository,
             TraceCodeScanLogRepository scanLogRepository,
             UserRepository userRepository,
             NotificationService notificationService,
             ApplicationEventPublisher eventPublisher,
             @Autowired(required = false) AnomalyThresholdService anomalyThresholdService) {
         this.traceCodeRepository = traceCodeRepository;
+        this.productFeedbackRepository = productFeedbackRepository;
         this.scanLogRepository = scanLogRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
@@ -201,8 +216,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
         int effectiveMinScore = minScore != null ? minScore : 30;
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "suspicionScore"));
 
-        Page<TraceCode> traceCodePage;
-
+        List<TraceCodeStatus> statuses;
         if (statusStr != null && !statusStr.isBlank()) {
             TraceCodeStatus filterStatus;
             try {
@@ -210,24 +224,16 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
             } catch (IllegalArgumentException e) {
                 throw new BusinessException("Trạng thái không hợp lệ: " + statusStr);
             }
-            if (minScore != null) {
-                traceCodePage = traceCodeRepository.findBySuspicionScoreGreaterThanEqualAndStatus(
-                        minScore, filterStatus, pageRequest);
-            } else {
-                traceCodePage = traceCodeRepository.findByStatus(filterStatus, pageRequest);
-            }
+            statuses = List.of(filterStatus);
         } else {
-            if (minScore != null) {
-                traceCodePage = traceCodeRepository.findBySuspicionScoreGreaterThanEqualAndStatusIn(
-                        minScore,
-                        List.of(TraceCodeStatus.SUSPECT, TraceCodeStatus.LOCKED, TraceCodeStatus.ACTIVE),
-                        pageRequest);
-            } else {
-                traceCodePage = traceCodeRepository.findByStatusIn(
-                        List.of(TraceCodeStatus.SUSPECT, TraceCodeStatus.LOCKED, TraceCodeStatus.ACTIVE),
-                        pageRequest);
-            }
+            statuses = List.of(TraceCodeStatus.SUSPECT, TraceCodeStatus.LOCKED, TraceCodeStatus.ACTIVE);
         }
+
+        Page<TraceCode> traceCodePage = traceCodeRepository.findSuspectsIncludingConsumerFeedback(
+                effectiveMinScore,
+                statuses,
+                ProductFeedbackSeverity.COUNTERFEIT_SUSPECTED,
+                pageRequest);
 
         List<SuspectTraceCodeResponse> items = traceCodePage.getContent().stream()
                 .map(this::toSuspectResponse)
@@ -667,13 +673,18 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
 
         int uniqueLocations = countUniqueLocations(recentScans);
 
+        boolean reportedByConsumer = productFeedbackRepository.existsByTraceCode_IdAndSeverity(
+                tc.getId(), ProductFeedbackSeverity.COUNTERFEIT_SUSPECTED);
+
         return SuspectTraceCodeResponse.builder()
                 .id(tc.getId())
                 .codeValue(tc.getCodeValue())
                 .shipmentName(tc.getShipment() != null ? tc.getShipment().getName() : null)
                 .status(tc.getStatus().name())
                 .suspicionScore(tc.getSuspicionScore())
-                .suspicionReason(tc.getSuspicionReason())
+                .suspicionReason(tc.getSuspicionReason() != null
+                        ? tc.getSuspicionReason()
+                        : reportedByConsumer ? "Người tiêu dùng phản ánh nghi ngờ tem giả" : null)
                 .scanCount(recentScans.size())
                 .uniqueLocations(uniqueLocations)
                 .firstScannedAt(recentScans.isEmpty() ? null

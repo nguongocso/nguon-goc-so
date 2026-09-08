@@ -98,11 +98,11 @@ docker-volumes/
 # Project-specific / Local Files
 # ============================================================
 AI_GUIDE.md
-AGENTS.md
 context.md
 .agents/
 npm_member_check.txt
 dev-server.log
+.agent-work/
 
 # Build output locked by another process; do not track
 frontend/dist_old_locked/
@@ -112,3 +112,4 @@ backend/src/main/resources/db/migration/data/V64__seed_cultivation_milestones.sq
 backend/src/main/resources/db/migration/data/V66__seed_cultivation_milestones.sql
 
 docs/postman/
+.agent-work/

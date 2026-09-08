@@ -13,6 +13,16 @@ import java.util.UUID;
 
 /** Repository thao tác TraceCodeScanLog. */
 public interface TraceCodeScanLogRepository extends JpaRepository<TraceCodeScanLog, UUID> {
+        /** Đếm tổng số lượt quét của một mã truy xuất (NCL-04-CN-008). */
+        long countByTraceCode_Id(UUID traceCodeId);
+
+        /** Lấy tối đa 5 lượt quét gần nhất của một mã truy xuất (NCL-04-CN-008). */
+        List<TraceCodeScanLog> findTop5ByTraceCode_IdOrderByScannedAtDesc(UUID traceCodeId);
+
+        /** Đếm số lượt quét gom nhóm theo danh sách ID mã tem (NCL-04-CN-008). */
+        @Query("SELECT l.traceCode.id, COUNT(l) FROM TraceCodeScanLog l WHERE l.traceCode.id IN :traceCodeIds GROUP BY l.traceCode.id")
+        List<Object[]> countScansByTraceCodeIds(@Param("traceCodeIds") List<UUID> traceCodeIds);
+
         /** Đếm số lượt quét của một mã truy xuất sau một thời điểm nhất định. */
         long countByTraceCodeIdAndScannedAtAfter(UUID traceCodeId, LocalDateTime time);
 

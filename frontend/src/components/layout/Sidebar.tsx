@@ -185,9 +185,13 @@ const MENU_GROUPS: MenuGroup[] = [
       },
       {
         icon: <Hash className="h-5 w-5" />,
-        label: "Quản lý dải mã",
+        label: "Quản lý dải mã truy xuất",
         href: "/admin/code-ranges",
         allowedRoles: ROLE_ACCESS.codeRangeList,
+        activePaths: [
+          "/admin/code-ranges",
+          "/admin/code-range-supplements",
+        ],
       },
       {
         icon: <Lock className="h-5 w-5" />,
@@ -290,6 +294,15 @@ const MENU_GROUPS: MenuGroup[] = [
         href: "/recall-requests",
         allowedRoles: ROLE_ACCESS.recallRequestManage,
         activePaths: ["/recall-requests"],
+      },
+      // NCL-04-CN-007: mục "Yêu cầu bổ sung mã" đã bỏ — chức năng chuyển thành
+      // tùy chọn trong tab "Lô hàng & Mã QR" của chi tiết lô sản xuất.
+      {
+        icon: <GitCompare className="h-5 w-5" />,
+        label: "Truy vết phạm vi ảnh hưởng",
+        href: "/trace/impact-scope",
+        allowedRoles: ROLE_ACCESS.impactScopeTrace,
+        activePaths: ["/trace/impact-scope"],
       },
     ],
   },

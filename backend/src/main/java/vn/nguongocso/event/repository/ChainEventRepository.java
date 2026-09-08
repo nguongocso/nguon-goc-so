@@ -64,6 +64,20 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
         List<ChainEvent> findByShipmentIsNullAndEventTypeIn(List<ChainEventType> eventTypes);
 
         /**
+         * Lấy danh sách sự kiện theo loại, gắn với lô hàng thuộc một tổ chức.
+         *
+         * <p>Dùng cho NCL-04-CN-007: liệt kê sự kiện thu hoạch/sơ chế (bằng chứng
+         * sản lượng thực) của tổ chức để VT-02 chọn khi tạo yêu cầu cấp bổ sung
+         * dải mã.</p>
+         *
+         * @param eventTypes     Danh sách loại sự kiện (HARVEST, PREPROCESSING)
+         * @param organizationId ID tổ chức của lô hàng gắn kèm
+         * @return danh sách sự kiện
+         */
+        List<ChainEvent> findByEventTypeInAndShipment_Organization_OrganizationId(
+                        List<ChainEventType> eventTypes, UUID organizationId);
+
+        /**
          * Lấy sự kiện gần nhất của một lô hàng.
          *
          * Phục vụ chức năng quét mã để xác định loại sự kiện
@@ -140,11 +154,13 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
          * @param shipmentIds danh sách ID lô hàng
          * @return danh sách ID người dùng đã ghi nhận thu mua (không trùng lặp)
          */
-        @Query("SELECT DISTINCT ce.recordedBy.id FROM ChainEvent ce " +
+        @Query("SELECT DISTINCT ce.recordedOrganizationId FROM ChainEvent ce " +
                 "WHERE ce.shipment.id IN :shipmentIds " +
                 "AND ce.eventType = vn.nguongocso.event.enums.ChainEventType.PROCUREMENT " +
+                "AND ce.recordedOrganizationId IS NOT NULL " +
                 "AND ce.isCorrection = false")
-        List<UUID> findDistinctProcurementRecorderIdsByShipmentIds(@Param("shipmentIds") List<UUID> shipmentIds);
+        List<UUID> findDistinctProcurementOrganizationIdsByShipmentIds(
+                @Param("shipmentIds") List<UUID> shipmentIds);
 
         /**
          * Kiểm tra sự tồn tại của sự kiện theo lotId với 2 trường hợp:
