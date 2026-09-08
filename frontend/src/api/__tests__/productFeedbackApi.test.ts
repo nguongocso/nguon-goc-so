@@ -28,7 +28,13 @@ describe("productFeedbackApi", () => {
   it("createProductFeedback should post to public endpoint", async () => {
     const lotId = "lot-123";
     const payload = { content: "Tem có dấu hiệu mờ", traceCodeValue: "NGS-001" };
-    const mockData = { id: "fb-1", productionLotId: lotId, status: "NEW" as const };
+    const mockData = {
+      id: "fb-1",
+      productionLotId: lotId,
+      status: "NEW" as const,
+      createdAt: "2026-09-08T08:30:00",
+      lookupCode: "PA-7K2M-9Q4X-H8NP-3R5T",
+    };
     vi.mocked(apiClient.post).mockResolvedValueOnce({ data: { data: mockData } });
 
     const result = await createProductFeedback(lotId, payload);

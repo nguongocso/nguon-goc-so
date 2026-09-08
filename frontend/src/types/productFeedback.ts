@@ -8,6 +8,7 @@ export interface PublicProductFeedbackCreated {
   productionLotId: string;
   status: ProductFeedbackStatus;
   createdAt: string;
+  lookupCode: string;
 }
 
 export interface PublicProductFeedbackLookupPayload {
