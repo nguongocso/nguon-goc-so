@@ -17,7 +17,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(
-    name = "cultivation_milestone",
+    name = "cultivation_milestones",
     uniqueConstraints = {
         @UniqueConstraint(
             name = "uk_milestone_name_cat_std",

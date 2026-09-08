@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,7 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -35,29 +36,52 @@ import vn.nguongocso.farm.repository.FarmLogAttachmentRepository;
 import vn.nguongocso.farm.repository.FarmLogRepository;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.farm.service.FarmLogService;
+import vn.nguongocso.farm.service.MilestoneReminderService;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
 /**
  * Triển khai dịch vụ quản lý nhật ký canh tác.
  */
+@Slf4j
 @Service
 @Transactional
-@RequiredArgsConstructor
 public class FarmLogServiceImpl implements FarmLogService {
 
 	private final FarmLogRepository farmLogRepository;
 	private final ProductionLotRepository productionLotRepository;
 	private final FarmLogAttachmentRepository attachmentRepository;
 	private final TraceCodeRepository traceCodeRepository;
-
 	private final ApplicationEventPublisher eventPublisher;
-
-	/**
-	 * Clock nghiệp vụ theo múi giờ cấu hình (app.timezone, mặc định
-	 * Asia/Ho_Chi_Minh). Dùng để ghi createdAt đúng giờ Việt Nam, không phụ
-	 * thuộc timezone của JVM/container.
-	 */
 	private final Clock clock;
+	private final MilestoneReminderService milestoneReminderService;
+
+	public FarmLogServiceImpl(
+			FarmLogRepository farmLogRepository,
+			ProductionLotRepository productionLotRepository,
+			FarmLogAttachmentRepository attachmentRepository,
+			TraceCodeRepository traceCodeRepository,
+			ApplicationEventPublisher eventPublisher,
+			Clock clock) {
+		this(farmLogRepository, productionLotRepository, attachmentRepository, traceCodeRepository, eventPublisher, clock, null);
+	}
+
+	@Autowired
+	public FarmLogServiceImpl(
+			FarmLogRepository farmLogRepository,
+			ProductionLotRepository productionLotRepository,
+			FarmLogAttachmentRepository attachmentRepository,
+			TraceCodeRepository traceCodeRepository,
+			ApplicationEventPublisher eventPublisher,
+			Clock clock,
+			@Autowired(required = false) MilestoneReminderService milestoneReminderService) {
+		this.farmLogRepository = farmLogRepository;
+		this.productionLotRepository = productionLotRepository;
+		this.attachmentRepository = attachmentRepository;
+		this.traceCodeRepository = traceCodeRepository;
+		this.eventPublisher = eventPublisher;
+		this.clock = clock;
+		this.milestoneReminderService = milestoneReminderService;
+	}
 
 	private static final String EVENT_RECORDER_ROLE = "VT-03";
 	private static final String ORG_MANAGER_ROLE = "VT-02";
@@ -113,6 +137,23 @@ public class FarmLogServiceImpl implements FarmLogService {
 				"Ghi nhật ký canh tác cho lô " + saved.getProductionLotId().getName(),
 				"FarmLog",
 				saved.getId().toString());
+
+		// NCL-03-CN-007 (TC-02): Tự động đóng nhắc việc cho mốc tương ứng khi đã ghi nhật ký
+		if (milestoneReminderService != null) {
+			try {
+				if (request.getMilestoneId() != null) {
+					milestoneReminderService.completeRemindersForLotAndMilestone(
+							saved.getProductionLotId().getId(),
+							request.getMilestoneId());
+				} else {
+					milestoneReminderService.completeRemindersForLotAndActivity(
+							saved.getProductionLotId().getId(),
+							saved.getActivityType());
+				}
+			} catch (Exception e) {
+				log.warn("Không thể tự động đóng nhắc việc canh tác sau khi ghi nhật ký: {}", e.getMessage());
+			}
+		}
 
 		return toResponse(saved);
 	}
