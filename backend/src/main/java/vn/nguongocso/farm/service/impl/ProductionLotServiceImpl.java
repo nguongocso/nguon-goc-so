@@ -38,6 +38,8 @@ import vn.nguongocso.trace.repository.ShipmentRepository;
 
 import vn.nguongocso.certification.enums.InspectionRequestStatus;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
+import vn.nguongocso.event.enums.ChainEventType;
+import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.farm.dto.response.*;
 import vn.nguongocso.farm.enums.ChainProgressStage;
 import vn.nguongocso.trace.entity.Shipment;
@@ -66,6 +68,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
     private final ShipmentRepository shipmentRepository;
     private final InspectionEligibilityService inspectionEligibilityService;
     private final InspectionRequestRepository inspectionRequestRepository;
+    private final ChainEventRepository chainEventRepository;
 
     private final ApplicationEventPublisher eventPublisher;
 
@@ -701,8 +704,16 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             boolean hasPassedInspection = inspectionRequestRepository.existsByProductionLot_IdAndStatus(
                     lot.getId(), InspectionRequestStatus.PASSED);
 
+            boolean hasInCirculationEvents = lotShipments.stream()
+                    .anyMatch(s -> chainEventRepository.existsByShipmentIdAndEventType(s.getId(), ChainEventType.TRANSPORT)
+                            || chainEventRepository.existsByShipmentIdAndEventType(s.getId(), ChainEventType.PROCUREMENT)
+                            || chainEventRepository.existsByShipmentIdAndEventType(s.getId(), ChainEventType.WAREHOUSE_RECEIPT)
+                            || chainEventRepository.existsByShipmentIdAndEventType(s.getId(), ChainEventType.STORAGE_CONDITION));
+
             ChainProgressStage stage;
-            if (hasActivatedShipment) {
+            if (hasInCirculationEvents) {
+                stage = ChainProgressStage.IN_CIRCULATION;
+            } else if (hasActivatedShipment) {
                 stage = ChainProgressStage.TAG_ACTIVATED;
             } else if (!lotShipments.isEmpty() || lot.getStatus() == ProductionLotStatus.PACKAGED) {
                 stage = ChainProgressStage.PACKAGED;
