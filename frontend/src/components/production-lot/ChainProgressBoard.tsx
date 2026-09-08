@@ -1,22 +1,37 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ChainProgressBoardData, ChainProgressItem, ChainProgressStageGroup } from '@/types/productionLot';
+import { StatusBadge, type StatusTone } from '@/components/common/StatusBadge';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ChainProgressBoardProps {
   data: ChainProgressBoardData;
   loading?: boolean;
 }
 
-/**
- * Bảng theo dõi tiến độ chuỗi của từng lô (NCL-10-CN-013).
- * Thiết kế tối giản: Không modal, không icon, không màu sắc lòe loẹt.
- */
+const STAGE_TONES: Record<string, StatusTone> = {
+  DRAFT: 'neutral',
+  PENDING: 'warning',
+  APPROVED: 'info',
+  HARVESTED: 'success',
+  PREPROCESSED: 'info',
+  WAITING_TEST_RESULT: 'warning',
+  PACKAGED: 'info',
+  TAG_ACTIVATED: 'success',
+  IN_CIRCULATION: 'success',
+};
+
+const CARDS_PER_PAGE = 4;
+
 export const ChainProgressBoard: React.FC<ChainProgressBoardProps> = ({ data, loading }) => {
   const navigate = useNavigate();
+  // Quản lý trang hiện tại cho từng giai đoạn { stageKey: pageIndex }
+  const [pageMap, setPageMap] = useState<Record<string, number>>({});
 
   if (loading) {
     return (
-      <div style={{ padding: '24px', textAlign: 'center', color: '#666666' }}>
+      <div className="p-8 text-center text-slate-500 text-sm">
         Đang tải dữ liệu tiến độ chuỗi...
       </div>
     );
@@ -24,11 +39,15 @@ export const ChainProgressBoard: React.FC<ChainProgressBoardProps> = ({ data, lo
 
   if (!data || !data.stages || data.stages.length === 0) {
     return (
-      <div style={{ padding: '24px', textAlign: 'center', color: '#666666', border: '1px solid #e0e0e0', borderRadius: '4px' }}>
-        Không có dữ liệu tiến độ chuỗi.
+      <div className="p-8 text-center text-slate-500 text-sm border rounded-lg bg-white shadow-sm">
+        Không tìm thấy dữ liệu tiến độ chuỗi sản xuất.
       </div>
     );
   }
+
+  const handlePageChange = (stageKey: string, newPage: number) => {
+    setPageMap((prev) => ({ ...prev, [stageKey]: newPage }));
+  };
 
   const handleCardClick = (item: ChainProgressItem) => {
     if (item.targetScreen) {
@@ -37,146 +56,128 @@ export const ChainProgressBoard: React.FC<ChainProgressBoardProps> = ({ data, lo
   };
 
   return (
-    <div style={{ overflowX: 'auto', paddingBottom: '16px' }}>
-      <div
-        style={{
-          display: 'flex',
-          gap: '12px',
-          minWidth: '1600px', // Đảm bảo dàn đủ 9 cột
-          alignItems: 'flex-start',
-        }}
-      >
-        {data.stages.map((group: ChainProgressStageGroup) => (
+    <div className="space-y-6">
+      {data.stages.map((group: ChainProgressStageGroup, index: number) => {
+        const totalItems = group.items.length;
+        const totalPages = Math.ceil(totalItems / CARDS_PER_PAGE) || 1;
+        const currentPage = pageMap[group.stage] || 1;
+
+        const startIndex = (currentPage - 1) * CARDS_PER_PAGE;
+        const visibleItems = group.items.slice(startIndex, startIndex + CARDS_PER_PAGE);
+
+        const tone = STAGE_TONES[group.stage] || 'neutral';
+
+        return (
           <div
             key={group.stage}
-            style={{
-              flex: '1 1 0',
-              minWidth: '220px',
-              backgroundColor: '#f8f9fa',
-              border: '1px solid #e0e0e0',
-              borderRadius: '4px',
-              padding: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              maxHeight: '75vh',
-            }}
+            className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm space-y-4"
           >
-            {/* Cột tiêu đề giai đoạn */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                borderBottom: '2px solid #cccccc',
-                paddingBottom: '8px',
-                marginBottom: '12px',
-              }}
-            >
-              <span style={{ fontWeight: 600, fontSize: '14px', color: '#333333' }}>
-                {group.stageName}
-              </span>
-              <span
-                style={{
-                  backgroundColor: '#e9ecef',
-                  color: '#495057',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                }}
-              >
-                {group.count}
-              </span>
+            {/* Header giai đoạn (nằm ngang trên từng đề mục) */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-slate-400">0{index + 1}</span>
+                <h3 className="font-semibold text-base text-slate-900">
+                  {group.stageName}
+                </h3>
+                <StatusBadge label={`${group.count} lô`} tone={tone} />
+              </div>
+
+              {/* Phân trang ngắn gọn cho từng đề mục nếu danh sách dài */}
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2 text-xs text-slate-600">
+                  <span>
+                    Trang {currentPage} / {totalPages}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      disabled={currentPage <= 1}
+                      onClick={() => handlePageChange(group.stage, currentPage - 1)}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      disabled={currentPage >= totalPages}
+                      onClick={() => handlePageChange(group.stage, currentPage + 1)}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Danh sách các thẻ lô */}
-            <div
-              style={{
-                overflowY: 'auto',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px',
-                paddingRight: '2px',
-              }}
-            >
-              {group.items.length === 0 ? (
-                <div
-                  style={{
-                    fontSize: '12px',
-                    color: '#888888',
-                    fontStyle: 'italic',
-                    textAlign: 'center',
-                    padding: '16px 0',
-                  }}
-                >
-                  Không có lô nào
-                </div>
-              ) : (
-                group.items.map((item: ChainProgressItem) => (
+            {/* Danh sách các lô xếp nằm ngang (Horizontal row / Grid) */}
+            {group.items.length === 0 ? (
+              <div className="py-4 text-center text-xs text-slate-400 italic bg-slate-50/50 rounded border border-dashed border-slate-200">
+                Chưa có lô nào ở giai đoạn này
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {visibleItems.map((item: ChainProgressItem) => (
                   <div
                     key={item.id}
                     onClick={() => handleCardClick(item)}
-                    style={{
-                      backgroundColor: '#ffffff',
-                      border: item.isStagnant ? '1px solid #d9534f' : '1px solid #cccccc',
-                      borderRadius: '4px',
-                      padding: '10px 12px',
-                      cursor: 'pointer',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                    }}
+                    className={`flex flex-col justify-between border rounded-lg p-3.5 bg-white transition-all cursor-pointer hover:border-emerald-500 hover:shadow-md ${
+                      item.isStagnant
+                        ? 'border-rose-300 bg-rose-50/20'
+                        : 'border-slate-200'
+                    }`}
                   >
-                    {/* Tên lô */}
-                    <div style={{ fontWeight: 600, fontSize: '13px', color: '#111111', marginBottom: '4px' }}>
-                      {item.name}
-                    </div>
+                    <div className="space-y-2">
+                      {/* Tên lô */}
+                      <div className="font-medium text-sm text-slate-900 line-clamp-1">
+                        {item.name}
+                      </div>
 
-                    {/* Vùng trồng & Loại nông sản */}
-                    <div style={{ fontSize: '12px', color: '#555555', marginBottom: '6px' }}>
-                      {item.farmAreaName} • {item.productCategoryName}
-                    </div>
+                      {/* Vùng trồng & Loại nông sản */}
+                      <div className="text-xs text-slate-600 space-y-0.5">
+                        <div className="truncate">Vùng trồng: <span className="font-medium text-slate-800">{item.farmAreaName}</span></div>
+                        <div className="truncate">Nông sản: <span className="font-medium text-slate-800">{item.productCategoryName}</span></div>
+                      </div>
 
-                    {/* Badge tồn đọng hoặc số ngày lưu */}
-                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '11px', color: '#666666' }}>
-                        Thời gian: {item.daysInStage} ngày
-                      </span>
-                      {item.isStagnant && (
-                        <span
-                          style={{
-                            fontSize: '11px',
-                            color: '#d9534f',
-                            border: '1px solid #d9534f',
-                            backgroundColor: '#fff5f5',
-                            padding: '1px 6px',
-                            borderRadius: '3px',
-                            fontWeight: 600,
-                          }}
-                        >
-                          Tồn đọng ({item.daysInStage} ngày)
+                      {/* Thời gian ở giai đoạn & Cảnh báo tồn đọng */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <span className="text-[11px] text-slate-500">
+                          Thời gian: {item.daysInStage} ngày
                         </span>
-                      )}
+                        {item.isStagnant && (
+                          <StatusBadge
+                            label={`Tồn đọng (${item.daysInStage} ngày)`}
+                            tone="danger"
+                          />
+                        )}
+                      </div>
                     </div>
 
                     {/* Việc cần làm tiếp theo */}
-                    <div
-                      style={{
-                        fontSize: '11px',
-                        color: '#2b5797',
-                        borderTop: '1px dashed #e0e0e0',
-                        paddingTop: '6px',
-                        marginTop: '4px',
-                      }}
-                    >
-                      <span style={{ fontWeight: 600 }}>Việc cần làm tiếp theo: </span>
-                      <span>{item.nextActionRequired}</span>
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-col gap-1.5">
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        Việc cần làm tiếp theo:
+                      </span>
+                      <Button
+                        type="button"
+                        variant={item.isStagnant ? 'danger' : 'outline'}
+                        size="sm"
+                        className="w-full text-xs justify-start truncate h-8"
+                      >
+                        {item.nextActionRequired}
+                      </Button>
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 };

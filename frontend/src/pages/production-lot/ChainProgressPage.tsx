@@ -1,26 +1,47 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Activity, RefreshCw } from 'lucide-react';
 import { getChainProgressBoard } from '@/api/productionLotApi';
 import { ChainProgressBoard } from '@/components/production-lot/ChainProgressBoard';
+import { ListPageHeader } from '@/components/common/ListPageHeader';
+import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
+import { ListCard } from '@/components/common/ListCard';
+import { ListToolbar } from '@/components/common/ListToolbar';
+import { SearchInput } from '@/components/common/SearchInput';
+import { FilterSelect } from '@/components/common/FilterSelect';
+import { RefreshButton } from '@/components/common/RefreshButton';
+import { StatusBadge } from '@/components/common/StatusBadge';
 import type { ChainProgressBoardData } from '@/types/productionLot';
 
-/**
- * Trang Bảng theo dõi tiến độ chuỗi của từng lô (NCL-10-CN-013).
- * Thiết kế giao diện: Không modal, không icon, không màu sắc lòe loẹt.
- */
+const STAGNANT_THRESHOLD_OPTIONS = [
+  { value: '5', label: 'Ngưỡng 5 ngày' },
+  { value: '7', label: 'Ngưỡng 7 ngày' },
+  { value: '10', label: 'Ngưỡng 10 ngày (Mặc định)' },
+  { value: '14', label: 'Ngưỡng 14 ngày' },
+  { value: '30', label: 'Ngưỡng 30 ngày' },
+];
+
 export const ChainProgressPage: React.FC = () => {
+  useSetBreadcrumb([
+    { label: 'Tổng quan', href: '/dashboard' },
+    { label: 'Chain progress' },
+  ]);
+
   const [data, setData] = useState<ChainProgressBoardData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const [search, setSearch] = useState<string>('');
-  const [stagnantThresholdDays, setStagnantThresholdDays] = useState<number>(10);
+  const [stagnantThresholdDays, setStagnantThresholdDays] = useState<string>('10');
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
+      setIsRefreshing(true);
       setError(null);
+
       const result = await getChainProgressBoard({
-        stagnantThresholdDays,
+        stagnantThresholdDays: Number(stagnantThresholdDays),
         search: search.trim() || undefined,
       });
       setData(result);
@@ -29,156 +50,78 @@ export const ChainProgressPage: React.FC = () => {
       setError(err?.response?.data?.message || 'Không thể tải dữ liệu tiến độ chuỗi.');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
-  };
+  }, [search, stagnantThresholdDays]);
 
   useEffect(() => {
-    fetchData();
-  }, [stagnantThresholdDays]);
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchData();
-  };
+    fetchData(true);
+  }, [stagnantThresholdDays, fetchData]);
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#ffffff', minHeight: '85vh' }}>
-      {/* Tiêu đề trang */}
-      <div style={{ marginBottom: '16px', borderBottom: '1px solid #e0e0e0', paddingBottom: '12px' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#222222', margin: 0 }}>
-          Bảng theo dõi tiến độ chuỗi của từng lô
-        </h2>
-        <div style={{ fontSize: '13px', color: '#666666', marginTop: '4px' }}>
-          Tổng hợp tất cả lô đang mở theo 9 giai đoạn của chuỗi sản xuất &amp; lưu thông kèm việc cần làm tiếp theo.
-        </div>
-      </div>
+    <div className="space-y-6">
+      {/* Header trang chuẩn theo thiết kế ứng dụng */}
+      <ListPageHeader
+        icon={Activity}
+        title="Bảng theo dõi tiến độ chuỗi của từng lô"
+        description="Tổng hợp tất cả lô đang mở theo 9 giai đoạn của chuỗi sản xuất & lưu thông kèm việc cần làm tiếp theo."
+      />
 
-      {/* Thanh công cụ lọc & tìm kiếm */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '16px',
-          marginBottom: '16px',
-          flexWrap: 'wrap',
-          backgroundColor: '#f5f5f5',
-          padding: '12px 16px',
-          borderRadius: '4px',
-          border: '1px solid #e5e5e5',
-        }}
-      >
-        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <label style={{ fontSize: '13px', color: '#333333' }}>Tìm kiếm:</label>
-          <input
-            type="text"
-            placeholder="Tên lô hoặc vùng trồng..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              padding: '6px 10px',
-              fontSize: '13px',
-              border: '1px solid #ccc',
-              borderRadius: '3px',
-              width: '240px',
-            }}
-          />
-          <button
-            type="submit"
-            style={{
-              padding: '6px 12px',
-              fontSize: '13px',
-              backgroundColor: '#2b5797',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '3px',
-              cursor: 'pointer',
-            }}
-          >
-            Tìm kiếm
-          </button>
-        </form>
+      {/* Card chứa toolbar và bảng dữ liệu */}
+      <ListCard>
+        <ListToolbar>
+          <div className="flex-1 max-w-md">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              onSubmit={() => fetchData(true)}
+              placeholder="Tìm tên lô, vùng trồng..."
+            />
+          </div>
 
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <label style={{ fontSize: '13px', color: '#333333' }}>Ngưỡng tồn đọng (ngày):</label>
-            <select
+          <div className="flex items-center gap-3">
+            <FilterSelect
               value={stagnantThresholdDays}
-              onChange={(e) => setStagnantThresholdDays(Number(e.target.value))}
-              style={{
-                padding: '6px 10px',
-                fontSize: '13px',
-                border: '1px solid #ccc',
-                borderRadius: '3px',
-              }}
-            >
-              <option value={5}>5 ngày</option>
-              <option value={7}>7 ngày</option>
-              <option value={10}>10 ngày</option>
-              <option value={14}>14 ngày</option>
-              <option value={30}>30 ngày</option>
-            </select>
-          </div>
+              onChange={setStagnantThresholdDays}
+              options={STAGNANT_THRESHOLD_OPTIONS}
+            />
 
-          <button
-            onClick={fetchData}
-            style={{
-              padding: '6px 12px',
-              fontSize: '13px',
-              backgroundColor: '#ffffff',
-              color: '#333333',
-              border: '1px solid #ccc',
-              borderRadius: '3px',
-              cursor: 'pointer',
-            }}
-          >
-            Tải lại
-          </button>
-        </div>
-      </div>
-
-      {/* Thông tin thống kê nhanh */}
-      {data && (
-        <div
-          style={{
-            display: 'flex',
-            gap: '24px',
-            marginBottom: '16px',
-            fontSize: '13px',
-            color: '#333333',
-          }}
-        >
-          <div>
-            Tổ chức: <strong>{data.organizationName}</strong>
+            <RefreshButton
+              onClick={() => fetchData(false)}
+              isRefreshing={isRefreshing}
+            />
           </div>
-          <div>
-            Tổng số lô đang mở: <strong>{data.totalOpenLots}</strong>
-          </div>
-          <div>
-            Số lô tồn đọng: <strong style={{ color: data.stagnantLotsCount > 0 ? '#d9534f' : '#2b5797' }}>{data.stagnantLotsCount}</strong>
-          </div>
-        </div>
-      )}
+        </ListToolbar>
 
-      {/* Lỗi nếu có */}
-      {error && (
-        <div
-          style={{
-            padding: '12px',
-            marginBottom: '16px',
-            backgroundColor: '#f8d7da',
-            color: '#721c24',
-            border: '1px solid #f5c6cb',
-            borderRadius: '4px',
-            fontSize: '13px',
-          }}
-        >
-          {error}
-        </div>
-      )}
+        {/* Thông báo số liệu tổng quan */}
+        {data && (
+          <div className="flex items-center gap-4 text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100">
+            <div>
+              Tổ chức: <span className="font-semibold text-slate-800">{data.organizationName}</span>
+            </div>
+            <div>
+              Tổng số lô đang mở: <span className="font-semibold text-slate-800">{data.totalOpenLots}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span>Số lô tồn đọng:</span>
+              <StatusBadge
+                label={`${data.stagnantLotsCount} lô`}
+                tone={data.stagnantLotsCount > 0 ? 'danger' : 'neutral'}
+              />
+            </div>
+          </div>
+        )}
 
-      {/* Bảng tiến độ 9 cột */}
-      {data && <ChainProgressBoard data={data} loading={loading} />}
+        {/* Hiển thị lỗi nếu có */}
+        {error && (
+          <div className="p-3 text-xs bg-rose-50 text-rose-700 border border-rose-200 rounded-lg">
+            {error}
+          </div>
+        )}
+
+        {/* Bảng tiến độ dạng đề mục dọc, các lô nằm ngang */}
+        {data && <ChainProgressBoard data={data} loading={loading} />}
+      </ListCard>
     </div>
   );
 };
