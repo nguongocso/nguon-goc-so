@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
+import vn.nguongocso.farm.enums.ProductFeedbackSeverity;
 
 /**
  * Repository quản lý mã truy xuất.
@@ -36,6 +37,10 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 	 * Lấy mã code.
 	 */
 	Optional<TraceCode> findByCodeValue(String codeValue);
+
+	Optional<TraceCode> findByIdAndShipment_ProductionLot_Id(UUID id, UUID productionLotId);
+
+	Optional<TraceCode> findByCodeValueAndShipment_ProductionLot_Id(String codeValue, UUID productionLotId);
 
 	/**
 	 * Lấy giá trị code lớn nhất theo tổ chức và prefix.
@@ -65,6 +70,20 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 	Page<TraceCode> findBySuspicionScoreGreaterThanEqualAndStatusIn(
 			Integer suspicionScore, List<TraceCodeStatus> statuses, Pageable pageable);
 
+	@Query("""
+			SELECT DISTINCT tc
+			FROM TraceCode tc
+			LEFT JOIN ProductFeedback pf
+			  ON pf.traceCode = tc AND pf.severity = :feedbackSeverity
+			WHERE tc.status IN :statuses
+			  AND (COALESCE(tc.suspicionScore, 0) >= :minScore OR pf.id IS NOT NULL)
+			""")
+	Page<TraceCode> findSuspectsIncludingConsumerFeedback(
+			@Param("minScore") Integer minScore,
+			@Param("statuses") List<TraceCodeStatus> statuses,
+			@Param("feedbackSeverity") ProductFeedbackSeverity feedbackSeverity,
+			Pageable pageable);
+
 	/**
 	 * NCL-03-CN-006: kiểm tra lô sản xuất đã có mã truy xuất được kích hoạt
 	 * (trạng thái khác INACTIVE — đã rời trạng thái dự thảo) trên bất kỳ lô
@@ -92,4 +111,33 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 	 * Lấy danh sách mã theo lô hàng và danh sách codeValue.
 	 */
 	List<TraceCode> findByShipmentIdAndCodeValueIn(UUID shipmentId, List<String> codeValues);
+
+	/**
+	 * Lấy danh sách mã tem theo lô hàng và tổ chức, hỗ trợ lọc theo trạng thái và tìm kiếm (phân trang) (NCL-04-CN-008).
+	 */
+	@Query("SELECT tc FROM TraceCode tc WHERE tc.shipment.id = :shipmentId "
+			+ "AND tc.shipment.organization.organizationId = :orgId "
+			+ "AND (:status IS NULL OR tc.status = :status) "
+			+ "AND (:search IS NULL OR LOWER(tc.codeValue) LIKE LOWER(CONCAT('%', :search, '%'))) "
+			+ "ORDER BY tc.codeValue ASC")
+	Page<TraceCode> findByShipmentAndFilters(
+			@Param("shipmentId") UUID shipmentId,
+			@Param("orgId") UUID orgId,
+			@Param("status") TraceCodeStatus status,
+			@Param("search") String search,
+			Pageable pageable);
+
+	/**
+	 * Lấy tất cả mã tem theo lô hàng và tổ chức, hỗ trợ lọc theo trạng thái và tìm kiếm để xuất file (NCL-04-CN-008).
+	 */
+	@Query("SELECT tc FROM TraceCode tc WHERE tc.shipment.id = :shipmentId "
+			+ "AND tc.shipment.organization.organizationId = :orgId "
+			+ "AND (:status IS NULL OR tc.status = :status) "
+			+ "AND (:search IS NULL OR LOWER(tc.codeValue) LIKE LOWER(CONCAT('%', :search, '%'))) "
+			+ "ORDER BY tc.codeValue ASC")
+	List<TraceCode> findAllByShipmentAndFilters(
+			@Param("shipmentId") UUID shipmentId,
+			@Param("orgId") UUID orgId,
+			@Param("status") TraceCodeStatus status,
+			@Param("search") String search);
 }

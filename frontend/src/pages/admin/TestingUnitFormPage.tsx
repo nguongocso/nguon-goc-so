@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, BadgeCheck, Loader2, Save, ShieldCheck } from "lucide-react";
+import { BadgeCheck, Loader2, Save, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -325,16 +325,7 @@ export default function TestingUnitFormPage() {
             </div>
 
             {/* Footer actions */}
-            <div className="flex items-center justify-between border-t pt-4">
-              <Button
-                variant="outline"
-                onClick={() => navigate("/admin/testing-units")}
-                disabled={saving}
-                type="button"
-              >
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Quay lại
-              </Button>
+            <div className="flex items-center justify-end border-t pt-4">
               <Button type="submit" disabled={saving}>
                 {saving ? (
                   <Loader2 className="h-4 w-4 mr-1 animate-spin" />

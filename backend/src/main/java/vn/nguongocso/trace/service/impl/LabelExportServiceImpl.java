@@ -149,12 +149,20 @@ public class LabelExportServiceImpl implements LabelExportService {
         // 8. Sinh PDF
         byte[] pdfBytes = generatePdf(shipment, selectedCodes, labelSize);
 
-        // 9. Ghi lịch sử xuất (QTN-23)
+        // 9. Ghi lịch sử xuất (QTN-23) và cập nhật thời điểm in cho từng mã tem (NCL-04-CN-008)
+        LocalDateTime now = LocalDateTime.now();
+        selectedCodes.forEach(code -> {
+            if (code.getPrintedAt() == null) {
+                code.setPrintedAt(now);
+            }
+        });
+        traceCodeRepository.saveAll(selectedCodes);
+
         LabelExportHistory history = LabelExportHistory.builder()
                 .shipment(shipment)
                 .exportedBy(currentUser.getUser())
                 .organization(shipment.getOrganization())
-                .exportedAt(LocalDateTime.now())
+                .exportedAt(now)
                 .startIndex(startIndex)
                 .endIndex(startIndex + count - 1)
                 .quantity(count)

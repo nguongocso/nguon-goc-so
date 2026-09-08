@@ -1,279 +1,143 @@
-# API Docs – Yêu cầu thu hồi lô sản xuất (2 bước)
+# API Docs – Yêu cầu thu hồi lô hàng (2 bước)
 
-**Tên nhánh:** `feature/NCL-08-CN-008-two-step-recall`
+**Tên nhánh gốc:** `feature/NCL-08-CN-008-two-step-recall`
+**Nhánh tích hợp với phản ánh:** `feature/NCL-08-CN-009-feedback-processing`
 
-**Tóm tắt:** Quy trình thu hồi lô sản xuất 2 bước:
-1. Người ghi sự kiện (`VT-03`) tạo yêu cầu thu hồi.
-2. Quản lý hợp tác xã (`VT-02`) duyệt hoặc từ chối. Duyệt sẽ chuyển
-   `ProductionLot → RECALLED`, kéo theo toàn bộ `Shipment` và `TraceCode`
-   chuyển sang `RECALLED`, bật cảnh báo công khai trên trang truy xuất và
-   gửi thông báo tới các doanh nghiệp thu mua (người mua).
+## 1. Phạm vi nghiệp vụ
 
-**Quy tắc QTN-22:** Người tạo yêu cầu **không được** tự duyệt yêu cầu của chính mình.
+Quy trình thu hồi gồm hai bước:
 
----
+1. Người có quyền tạo đề nghị chọn **một lô hàng** (`Shipment`).
+2. Quản lý hợp tác xã (`VT-02`) duyệt hoặc từ chối.
 
-## Bảo mật (JWT + Roles)
+Khi duyệt, hệ thống chỉ:
 
-- Toàn bộ endpoint yêu cầu `Authorization: Bearer <access_token>`.
-- `VT-03` (Người ghi sự kiện) – tạo yêu cầu.
-- `VT-02` (Quản lý hợp tác xã) – xem danh sách, chi tiết, duyệt, từ chối.
-- Không thuộc vai trò yêu cầu → trả về `403`.
+- chuyển `Shipment` được chọn sang `RECALLED`;
+- chuyển toàn bộ `TraceCode` thuộc shipment đó sang `RECALLED`;
+- tạo lịch sử thu hồi lô hàng và hiển thị cảnh báo khi tra cứu các tem thuộc shipment;
+- thông báo cho người dùng nội bộ và bên thu mua có sự kiện `PROCUREMENT` trên shipment đó.
 
----
+`ProductionLot` chỉ là thông tin nguồn/ngữ cảnh. Hệ thống **không** chuyển cả lô sản xuất sang
+`RECALLED` và **không** thu hồi các shipment khác trong cùng lô sản xuất.
 
-## 1. Tạo yêu cầu thu hồi
+Quy tắc `QTN-22`: người tạo yêu cầu không được tự duyệt yêu cầu của mình.
 
-### Thông tin API
+Tất cả API danh sách, chi tiết và xử lý đều giới hạn theo tổ chức hiện tại; quản lý của tổ chức
+khác nhận kết quả không tìm thấy.
 
-| Thuộc tính   | Giá trị                        |
-| ------------ | ------------------------------ |
-| **Method**   | `POST`                         |
-| **Endpoint** | `/api/v1/recall-requests`      |
-| **Quyền**    | `VT-03`                        |
-
-### Request body
+## 2. Mô hình response
 
 ```json
 {
+  "id": "uuid",
+  "shipmentId": "uuid",
+  "shipmentName": "Lô hàng ngô số 01",
   "lotId": "uuid",
-  "reason": "Phát hiện dư lượng thuốc bảo vệ thực vật vượt ngưỡng cho phép",
-  "evidence": "Kết quả xét nghiệm mẫu NGS-2024-012"
+  "lotName": "Lô ngô Công Nghệ",
+  "sourceFeedbackId": "uuid-or-null",
+  "requestedBy": { "userId": "uuid", "fullName": "Nguyễn Văn A" },
+  "requestedAt": "2026-09-07T10:00:00",
+  "status": "PENDING",
+  "reason": "Nghi ngờ sản phẩm không bảo đảm chất lượng",
+  "evidence": "Kết quả đối chiếu và nội dung phản ánh",
+  "approvedBy": null,
+  "approvedAt": null,
+  "approvalRemarks": null,
+  "rejectedBy": null,
+  "rejectedAt": null,
+  "rejectionReason": null,
+  "notifiedBuyerCount": 0
 }
 ```
 
-| Trường    | Bắt buộc | Mô tả                        |
-| --------- | -------- | ---------------------------- |
-| `lotId`   | Có       | ID lô sản xuất (UUID).       |
-| `reason`  | Có       | Lý do thu hồi (≤ 1000 ký tự).|
-| `evidence`| Không    | Bằng chứng (≤ 2000 ký tự).   |
+`lotId` và `lotName` được giữ để hiển thị nguồn sản xuất, không phải phạm vi thu hồi.
 
-### Response `201 Created`
+## 3. Tạo yêu cầu
+
+```http
+POST /api/v1/recall-requests
+Authorization: Bearer <token>
+```
+
+Quyền: `VT-03` theo controller hiện hành.
 
 ```json
 {
-  "success": true,
-  "status": 201,
-  "data": {
-    "id": "uuid",
-    "lotId": "uuid",
-    "lotName": "Lô lúa vụ hè 2024",
-    "requestedBy": { "userId": "uuid", "fullName": "Nguyễn Văn A" },
-    "requestedAt": "2024-06-01T10:00:00",
-    "status": "PENDING",
-    "reason": "Phát hiện dư lượng thuốc bảo vệ thực vật vượt ngưỡng cho phép",
-    "evidence": "Kết quả xét nghiệm mẫu NGS-2024-012",
-    "approvedBy": null,
-    "approvedAt": null,
-    "approvalRemarks": null,
-    "rejectedBy": null,
-    "rejectedAt": null,
-    "rejectionReason": null,
-    "notifiedBuyerCount": 0
-  }
+  "shipmentId": "uuid",
+  "reason": "Phát hiện dấu hiệu không bảo đảm chất lượng",
+  "evidence": "Biên bản kiểm tra"
 }
 ```
 
-### Lỗi thường gặp
+| Trường | Bắt buộc | Quy tắc |
+|---|---:|---|
+| `shipmentId` | Có | Shipment phải thuộc tổ chức hiện tại và chưa `RECALLED` |
+| `reason` | Có | Không rỗng, tối đa 1.000 ký tự |
+| `evidence` | Không | Tối đa 2.000 ký tự |
 
-- `400` – Lô không tồn tại / lô đã thu hồi / lô không ở trạng thái `APPROVED`, `HARVESTED`, `PACKAGED` / đã có yêu cầu `PENDING` trùng.
-- `403` – Không có quyền (không phải `VT-03`).
-- `404` – Không tìm thấy lô sản xuất.
+Lô sản xuất cha phải ở một trong các trạng thái `APPROVED`, `HARVESTED`, `PACKAGED`. Không được
+tạo thêm yêu cầu `PENDING` cho cùng shipment.
 
----
+Backend khóa pessimistic bản ghi shipment trước khi kiểm tra/tạo. Database đồng thời duy trì unique
+key có điều kiện trên shipment khi `status=PENDING`, nên hai request đồng thời không thể tạo hai yêu
+cầu đang chờ cho cùng một shipment.
 
-## 2. Lấy danh sách yêu cầu thu hồi
+Response: `201 Created`, `ApiResult<RecallRequestResponse>`.
 
-### Thông tin API
+## 4. Danh sách và chi tiết
 
-| Thuộc tính   | Giá trị                                  |
-| ------------ | ---------------------------------------- |
-| **Method**   | `GET`                                    |
-| **Endpoint** | `/api/v1/recall-requests`                |
-| **Quyền**    | `VT-02`                                  |
+```http
+GET /api/v1/recall-requests?status=PENDING&page=0&size=20
+GET /api/v1/recall-requests/{id}
+```
 
-### Query Parameter
+Quyền: `VT-02`. `status` nhận `PENDING`, `APPROVED`, `REJECTED`. Dữ liệu luôn được giới hạn theo
+tổ chức của người đăng nhập.
 
-| Parameter | Bắt buộc | Giá trị                                          |
-| --------- | -------- | ------------------------------------------------ |
-| `status`  | Không    | `PENDING`, `APPROVED`, `REJECTED`                |
-| `page`    | Không    | Trang (bắt đầu `0`, mặc định `0`)                |
-| `size`    | Không    | Kích thước trang (mặc định `20`)                 |
+## 5. Duyệt
 
-### Response `200 OK`
+```http
+PUT /api/v1/recall-requests/{id}/approve
+```
 
 ```json
 {
-  "success": true,
-  "status": 200,
-  "data": {
-    "items": [
-      {
-        "id": "uuid",
-        "lotId": "uuid",
-        "lotName": "Lô lúa vụ hè 2024",
-        "requestedBy": { "userId": "uuid", "fullName": "Nguyễn Văn A" },
-        "requestedAt": "2024-06-01T10:00:00",
-        "status": "PENDING",
-        "reason": "Phát hiện dư lượng thuốc bảo vệ thực vật vượt ngưỡng cho phép",
-        "evidence": null,
-        "approvedBy": null,
-        "approvedAt": null,
-        "approvalRemarks": null,
-        "rejectedBy": null,
-        "rejectedAt": null,
-        "rejectionReason": null,
-        "notifiedBuyerCount": 0
-      }
-    ],
-    "page": 0,
-    "size": 20,
-    "totalElements": 1,
-    "totalPages": 1,
-    "first": true,
-    "last": true
-  }
+  "remarks": "Đã xác minh phạm vi lô hàng"
 }
 ```
 
-> Phân trang dùng cấu trúc `PageResponse` chuẩn của hệ thống.
+Điều kiện:
 
-### Lỗi thường gặp
+- yêu cầu thuộc tổ chức hiện tại và đang `PENDING`;
+- người duyệt không trùng người tạo;
+- yêu cầu phải xác định được `shipmentId`;
+- shipment chưa được thu hồi.
 
-- `400` – Trạng thái lọc không hợp lệ.
-- `403` – Không có quyền (không phải `VT-02`).
+Tác động duyệt:
 
----
+```text
+Shipment được chọn -> RECALLED
+└── toàn bộ TraceCode của shipment -> RECALLED
 
-## 3. Lấy chi tiết một yêu cầu
-
-### Thông tin API
-
-| Thuộc tính   | Giá trị                        |
-| ------------ | ------------------------------ |
-| **Method**   | `GET`                          |
-| **Endpoint** | `/api/v1/recall-requests/{id}` |
-| **Quyền**    | `VT-02`                        |
-
-### Path Parameter
-
-* `id`: UUID của yêu cầu thu hồi.
-
-### Response `200 OK`
-
-```json
-{
-  "success": true,
-  "status": 200,
-  "data": {
-    "id": "uuid",
-    "lotId": "uuid",
-    "lotName": "Lô lúa vụ hè 2024",
-    "requestedBy": { "userId": "uuid", "fullName": "Nguyễn Văn A" },
-    "requestedAt": "2024-06-01T10:00:00",
-    "status": "PENDING",
-    "reason": "Phát hiện dư lượng thuốc bảo vệ thực vật vượt ngưỡng cho phép",
-    "evidence": "Kết quả xét nghiệm mẫu NGS-2024-012",
-    "approvedBy": null,
-    "approvedAt": null,
-    "approvalRemarks": null,
-    "rejectedBy": null,
-    "rejectedAt": null,
-    "rejectionReason": null,
-    "notifiedBuyerCount": 0
-  }
-}
+ProductionLot -> giữ nguyên
+Các Shipment khác cùng ProductionLot -> giữ nguyên
 ```
 
-### Lỗi thường gặp
+Response: `200 OK`, `ApiResult<RecallRequestResponse>`.
 
-- `403` – Không có quyền.
-- `404` – Không tìm thấy yêu cầu.
+Yêu cầu dữ liệu cũ không thể tự ánh xạ sang shipment sẽ trả `409` với hướng dẫn từ chối và tạo lại.
 
----
+### Thông báo cho doanh nghiệp thu mua
 
-## 4. Duyệt yêu cầu thu hồi
+Tổ chức thu mua được lấy từ `chain_events.recorded_organization_id` của sự kiện `PROCUREMENT` trên
+đúng shipment. Giá trị này được chụp từ tổ chức hiện tại khi sự kiện được tạo, không suy ngược từ
+membership hiện tại của người ghi; vì vậy tài khoản thuộc nhiều tổ chức không làm gửi nhầm thông báo.
 
-### Thông tin API
+## 6. Từ chối
 
-| Thuộc tính   | Giá trị                                |
-| ------------ | -------------------------------------- |
-| **Method**   | `PUT`                                  |
-| **Endpoint** | `/api/v1/recall-requests/{id}/approve` |
-| **Quyền**    | `VT-02`                                |
-
-### Request body (tùy chọn)
-
-```json
-{
-  "remarks": "Đã kiểm tra và xác nhận lô cần thu hồi"
-}
+```http
+PUT /api/v1/recall-requests/{id}/reject
 ```
-
-| Trường     | Bắt buộc | Mô tả                        |
-| ---------- | -------- | ---------------------------- |
-| `remarks`  | Không    | Ghi chú khi duyệt (tùy chọn).|
-
-> Body có thể bỏ trống (`{}` hoặc không gửi body) để duyệt không kèm ghi chú.
-
-### Hành động khi duyệt
-
-- Yêu cầu phải ở trạng thái `PENDING`.
-- Người duyệt phải **khác** người tạo (QTN-22). Vi phạm → `409`.
-- Chuyển `ProductionLot → RECALLED`.
-- Chuyển toàn bộ `Shipment` thuộc lô → `RECALLED`.
-- Chuyển toàn bộ `TraceCode` của các shipment đó → `RECALLED`.
-- Bật cảnh báo công khai trên trang truy xuất (nội dung = `reason` của yêu cầu).
-- Gửi thông báo tới các doanh nghiệp thu mua (`VT-04` đã ghi sự kiện `PROCUREMENT`)
-  + người dùng nội bộ có quyền `notification:READ`.
-- Ghi audit log `APPROVE_RECALL_REQUEST`.
-
-### Response `200 OK`
-
-```json
-{
-  "success": true,
-  "status": 200,
-  "data": {
-    "id": "uuid",
-    "lotId": "uuid",
-    "lotName": "Lô lúa vụ hè 2024",
-    "requestedBy": { "userId": "uuid", "fullName": "Nguyễn Văn A" },
-    "requestedAt": "2024-06-01T10:00:00",
-    "status": "APPROVED",
-    "reason": "Phát hiện dư lượng thuốc bảo vệ thực vật vượt ngưỡng cho phép",
-    "evidence": "Kết quả xét nghiệm mẫu NGS-2024-012",
-    "approvedBy": { "userId": "uuid", "fullName": "Trần Thị B" },
-    "approvedAt": "2024-06-02T09:30:00",
-    "approvalRemarks": "Đã kiểm tra và xác nhận lô cần thu hồi",
-    "rejectedBy": null,
-    "rejectedAt": null,
-    "rejectionReason": null,
-    "notifiedBuyerCount": 3
-  }
-}
-```
-
-### Lỗi thường gặp
-
-- `400` – Yêu cầu không ở trạng thái `PENDING`.
-- `403` – Không có quyền.
-- `404` – Không tìm thấy yêu cầu.
-- `409` – Người duyệt trùng người tạo (QTN-22).
-
----
-
-## 5. Từ chối yêu cầu thu hồi
-
-### Thông tin API
-
-| Thuộc tính   | Giá trị                               |
-| ------------ | ------------------------------------- |
-| **Method**   | `PUT`                                 |
-| **Endpoint** | `/api/v1/recall-requests/{id}/reject` |
-| **Quyền**    | `VT-02`                               |
-
-### Request body
 
 ```json
 {
@@ -281,60 +145,31 @@
 }
 ```
 
-| Trường            | Bắt buộc | Mô tả                          |
-| ----------------- | -------- | ------------------------------ |
-| `rejectionReason` | Có       | Lý do từ chối (≤ 1000 ký tự).  |
+`rejectionReason` bắt buộc. Nếu yêu cầu sinh từ phản ánh, phản ánh chuyển từ
+`ESCALATED_TO_RECALL` về `IN_PROGRESS` để tiếp tục xử lý.
 
-### Response `200 OK`
+## 7. Đề nghị từ phản ánh người tiêu dùng
 
-```json
-{
-  "success": true,
-  "status": 200,
-  "data": {
-    "id": "uuid",
-    "lotId": "uuid",
-    "lotName": "Lô lúa vụ hè 2024",
-    "requestedBy": { "userId": "uuid", "fullName": "Nguyễn Văn A" },
-    "requestedAt": "2024-06-01T10:00:00",
-    "status": "REJECTED",
-    "reason": "Phát hiện dư lượng thuốc bảo vệ thực vật vượt ngưỡng cho phép",
-    "evidence": "Kết quả xét nghiệm mẫu NGS-2024-012",
-    "approvedBy": null,
-    "approvedAt": null,
-    "approvalRemarks": null,
-    "rejectedBy": { "userId": "uuid", "fullName": "Trần Thị B" },
-    "rejectedAt": "2024-06-02T09:45:00",
-    "rejectionReason": "Chưa đủ bằng chứng xác thực",
-    "notifiedBuyerCount": 0
-  }
-}
-```
+Endpoint và payload được mô tả chi tiết tại
+[`ProductFeedbackProcessing.md`](./ProductFeedbackProcessing.md). Quy tắc xác định shipment:
 
-### Lỗi thường gặp
+- phản ánh có mã tem: backend tự lấy shipment chứa mã tem; client không thể chọn shipment khác;
+- phản ánh không có mã tem: `shipmentId` bắt buộc và phải thuộc lô sản xuất của phản ánh;
+- khi duyệt chỉ shipment đã xác định bị thu hồi.
 
-- `400` – Yêu cầu không ở trạng thái `PENDING` / thiếu `rejectionReason`.
-- `403` – Không có quyền.
-- `404` – Không tìm thấy yêu cầu.
+## 8. Migration dữ liệu cũ
 
----
+Migration `V20260907120000__scope_recall_requests_to_shipments.sql` thêm `shipment_id` và tự ánh xạ:
 
-## Ghi chú tích hợp
+1. qua `source_feedback_id -> trace_code_id -> shipment_id` nếu phản ánh có mã tem;
+2. qua lô sản xuất nếu lô sản xuất chỉ có đúng một shipment.
 
-### Thông báo người mua
+Trường hợp cũ có nhiều shipment nhưng không có mã tem được giữ `shipment_id = NULL` để tránh tự chọn
+sai phạm vi. Yêu cầu đó không được duyệt và phải được tạo lại.
 
-Khi duyệt, hệ thống:
-1. Lấy tất cả `Shipment` của lô sản xuất bị thu hồi.
-2. Truy vấn các user đã ghi sự kiện `PROCUREMENT` trên các shipment đó
-   (qua `ChainEventRepository.findDistinctProcurementRecorderIdsByShipmentIds`).
-3. Xác định tổ chức của các user đó và gửi thông báo tới **mọi user đang hoạt động**
-   thuộc các tổ chức này (cộng thêm người dùng nội bộ có quyền `notification:READ`).
+Migration `V20260907195000__preserve_procurement_org_and_unique_pending_recall.sql`:
 
-Tiêu đề thông báo: `Thông báo thu hồi lô sản xuất`.
-Nội dung: `Lô sản xuất "<tên lô>" đã bị thu hồi. Lý do: <reason>`.
-
-### Trang truy xuất công khai
-
-Khi `Shipment.status == RECALLED`, `PublicTraceResponse.recallMessage` ưu tiên lấy
-`reason` từ yêu cầu thu hồi lô sản xuất **đã duyệt** (`APPROVED`); fallback về lý do
-từ bản ghi thu hồi cũ hoặc thông điệp mặc định.
+1. thêm `chain_events.recorded_organization_id` và backfill từ activity log; chỉ fallback qua membership
+   khi người dùng có đúng một membership `ACTIVE`;
+2. giữ `NULL` đối với dữ liệu cũ còn mơ hồ thay vì đoán tổ chức;
+3. thêm unique key có điều kiện để chặn nhiều recall `PENDING` trên cùng shipment.
