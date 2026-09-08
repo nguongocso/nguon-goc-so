@@ -65,6 +65,9 @@ export const ROLE_ACCESS = {
   // ✅ NCL-12-CN-003 - Xuất hồ sơ truy xuất theo lược đồ GS1 mô phỏng
   gs1DossierExport: ['VT-02', 'VT-04'] as const,
 
+  // ✅ NCL-07-CN-005 - Xuất hồ sơ truy xuất cho nhiều lô trong một lần
+  batchDossierExport: ['VT-02', 'VT-04'] as const,
+
   // ✅ NCL-04-CN-005 - Xuất tem QR cho lô hàng để in
   labelExport: ['VT-02'] as const,
 

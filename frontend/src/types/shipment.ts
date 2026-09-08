@@ -65,6 +65,7 @@ export interface ProcurementShipment {
   status: 'DRAFT' | 'CODE_PRINTED' | 'ACTIVATED' | 'RECALLED';
   productionLotName: string | null;
   productCategoryName: string | null;
+  organizationName?: string | null;
   totalQuantity: number | null;
 }
 

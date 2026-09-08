@@ -24,5 +24,7 @@ public class ProcurementShipmentResponse {
 
     private String productCategoryName;
 
+    private String organizationName;
+
     private Long totalQuantity;
 }

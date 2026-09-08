@@ -290,6 +290,70 @@ public class DossierServiceTest {
         verify(exportHistoryRepository, times(1)).save(any(DossierExportHistory.class));
     }
 
+    @Test
+    void checkBatchEligibility_shouldEvaluateEligibleAndIneligibleShipments() {
+        when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
+
+        when(userDetails.getRoleCode()).thenReturn("VT-02");
+        when(userDetails.getOrganizationId()).thenReturn(org.getOrganizationId());
+
+        vn.nguongocso.report.dto.request.BatchDossierCheckRequest request =
+                vn.nguongocso.report.dto.request.BatchDossierCheckRequest.builder()
+                        .shipmentIds(List.of(shipmentId))
+                        .build();
+
+        vn.nguongocso.report.dto.response.BatchDossierCheckResponse response =
+                dossierService.checkBatchEligibility(request, userDetails);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getTotalSelected()).isEqualTo(1);
+    }
+
+    @Test
+    void exportBatchDossierPdf_shouldGenerateCompositePdf_whenEligible() {
+        when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
+        when(userDetails.getRoleCode()).thenReturn("VT-02");
+        when(userDetails.getOrganizationId()).thenReturn(org.getOrganizationId());
+        when(userDetails.getUserId()).thenReturn(testUser.getUserId());
+        when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
+
+        vn.nguongocso.report.dto.request.BatchDossierExportRequest request =
+                vn.nguongocso.report.dto.request.BatchDossierExportRequest.builder()
+                        .shipmentIds(List.of(shipmentId))
+                        .title("BỘ HỒ SƠ KIỂM THỬ HÀNG LOẠT")
+                        .note("Ghi chú xuất hàng loạt")
+                        .build();
+
+        byte[] pdfBytes = dossierService.exportBatchDossierPdf(request, userDetails, "127.0.0.1");
+
+        assertThat(pdfBytes).isNotEmpty();
+        verify(exportHistoryRepository, times(1)).save(any(DossierExportHistory.class));
+    }
+
+    @Test
+    void getBatchExportHistory_shouldReturnHistoryList() {
+        when(userDetails.getOrganizationId()).thenReturn(org.getOrganizationId());
+
+        DossierExportHistory history = DossierExportHistory.builder()
+                .id(UUID.randomUUID())
+                .fileName("Ho_so_batch_test.pdf")
+                .exporter(testUser)
+                .organization(org)
+                .exportedAt(java.time.LocalDateTime.now())
+                .status("SUCCESS")
+                .fileSize(102400L)
+                .build();
+
+        when(exportHistoryRepository.findByOrganization_OrganizationIdOrderByExportedAtDesc(org.getOrganizationId()))
+                .thenReturn(List.of(history));
+
+        List<vn.nguongocso.report.dto.response.BatchDossierHistoryDto> result =
+                dossierService.getBatchExportHistory(userDetails);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getFileName()).isEqualTo("Ho_so_batch_test.pdf");
+    }
+
     private FarmLog createFarmLog(FarmActivityType type) {
         return FarmLog.builder()
                 .id(UUID.randomUUID())
