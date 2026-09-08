@@ -337,6 +337,14 @@ export const ShipmentList = ({
 
               {!isSelectionMode && canCreate && productionLotStatus === "PACKAGED" && (
                 <Button variant="create" size="sm" onClick={() => navigate(`/production-lots/${productionLotId}/shipments/create`)}>
+                  <Plus className="mr-1 h-4 w-4" />
+                  Tạo lô hàng
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+
         <CardContent className="p-4 space-y-4">
           {isSelectionMode && (
             <div className="rounded-md border border-slate-200 bg-slate-50/70 p-3.5">
