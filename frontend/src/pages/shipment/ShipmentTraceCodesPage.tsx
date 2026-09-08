@@ -223,15 +223,6 @@ export default function ShipmentTraceCodesPage() {
       {/* ── Header ── */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-5">
         <div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(backUrl)}
-            className="mb-2 -ml-2 text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="mr-1.5 h-4 w-4" />
-            Quay lại chi tiết lô hàng
-          </Button>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3">
             Trạng thái & Lịch sử mã tem
             {shipment && (
