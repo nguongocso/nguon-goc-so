@@ -643,11 +643,17 @@ public class ShipmentServiceImpl implements ShipmentService {
                 .map(shipment -> {
                     String productionLotName = null;
                     String productCategoryName = null;
+                    String organizationName = null;
                     if (shipment.getProductionLot() != null) {
                         productionLotName = shipment.getProductionLot().getName();
                         if (shipment.getProductionLot().getProductCategory() != null) {
                             productCategoryName = shipment.getProductionLot().getProductCategory().getName();
                         }
+                    }
+                    if (shipment.getOrganization() != null) {
+                        organizationName = shipment.getOrganization().getName();
+                    } else if (shipment.getProductionLot() != null && shipment.getProductionLot().getOrganization() != null) {
+                        organizationName = shipment.getProductionLot().getOrganization().getName();
                     }
 
                     return ProcurementShipmentResponse.builder()
@@ -656,6 +662,7 @@ public class ShipmentServiceImpl implements ShipmentService {
                             .status(shipment.getStatus())
                             .productionLotName(productionLotName)
                             .productCategoryName(productCategoryName)
+                            .organizationName(organizationName)
                             .totalQuantity(shipment.getTotalQuantity())
                             .build();
                 })

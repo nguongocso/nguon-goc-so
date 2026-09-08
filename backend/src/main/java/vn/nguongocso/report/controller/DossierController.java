@@ -142,6 +142,64 @@ public class DossierController {
         return request.getRemoteAddr();
     }
 
+    // =========================================================================
+    // NCL-07-CN-005: Xuất hồ sơ truy xuất cho nhiều lô trong một lần
+    // =========================================================================
+
+    /**
+     * API Kiểm tra điều kiện xuất hồ sơ hàng loạt (QTN-11 & QTN-01).
+     */
+    @PostMapping("/dossiers/batch-check")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
+    public ResponseEntity<ApiResult<vn.nguongocso.report.dto.response.BatchDossierCheckResponse>> checkBatchEligibility(
+            @jakarta.validation.Valid @RequestBody vn.nguongocso.report.dto.request.BatchDossierCheckRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        permissionChecker.check("SHIPMENT", "READ");
+        vn.nguongocso.report.dto.response.BatchDossierCheckResponse response = dossierService.checkBatchEligibility(request, currentUser);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * API Xuất và tải về duy nhất một tệp PDF bộ hồ sơ truy xuất hợp nhất.
+     */
+    @PostMapping("/dossiers/batch-export")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
+    public ResponseEntity<byte[]> exportBatchDossierPdf(
+            @jakarta.validation.Valid @RequestBody vn.nguongocso.report.dto.request.BatchDossierExportRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            HttpServletRequest servletRequest) {
+
+        permissionChecker.check("SHIPMENT", "READ");
+        String ipAddress = extractClientIp(servletRequest);
+        byte[] pdfBytes = dossierService.exportBatchDossierPdf(request, currentUser, ipAddress);
+
+        String rawFileName = "Bo_ho_so_truy_xuat_" +
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".pdf";
+
+        ContentDisposition contentDisposition = ContentDisposition.attachment()
+                .filename(rawFileName, StandardCharsets.UTF_8)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
+    }
+
+    /**
+     * API Lấy lịch sử xuất bộ hồ sơ hàng loạt.
+     */
+    @GetMapping("/dossiers/batch-history")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
+    public ResponseEntity<ApiResult<java.util.List<vn.nguongocso.report.dto.response.BatchDossierHistoryDto>>> getBatchExportHistory(
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        permissionChecker.check("SHIPMENT", "READ");
+        java.util.List<vn.nguongocso.report.dto.response.BatchDossierHistoryDto> response = dossierService.getBatchExportHistory(currentUser);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
     /**
      * Xử lý ngoại lệ DossierValidationException và trả về phản hồi lỗi.
      */
