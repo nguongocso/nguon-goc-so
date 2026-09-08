@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Eye, FileJson, ShoppingCart } from "lucide-react";
+import { Eye, FileJson, FileText, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { ListCard } from "@/components/common/ListCard";
@@ -16,7 +16,9 @@ import { ROLE_ACCESS } from "@/config/roleAccess";
 import { usePermission } from "@/hooks/usePermission";
 import type { ProcurementShipment } from "@/types/shipment";
 import { getEligibleShipments, getShipmentById } from "@/api/shipmentApi";
-import { exportGs1Dossier } from "@/api/dossierApi";
+import { checkDossierEligibility, exportDossier, exportGs1Dossier } from "@/api/dossierApi";
+import { getLocalDateString } from "@/utils/dateTime";
+import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligibleDialog";
 
 const PAGE_SIZE = 10;
 
@@ -191,249 +193,341 @@ export function ProcurementShipmentList({
     }
   };
 
+  const [ineligibleDialog, setIneligibleDialog] = useState<{
+    open: boolean;
+    missingDocs: string[];
+    shipmentName: string;
+  }>({
+    open: false,
+    missingDocs: [],
+    shipmentName: "",
+  });
+
+  const handleExportDossier = async (shipment: ProcurementShipment) => {
+    let toastId: string | number | undefined;
+    try {
+      const checkResult = await checkDossierEligibility(shipment.id);
+
+      if (!checkResult.eligible) {
+        setIneligibleDialog({
+          open: true,
+          missingDocs: checkResult.missingDocuments,
+          shipmentName: shipment.name,
+        });
+        return;
+      }
+
+      toastId = toast.loading("Đang tạo hồ sơ...");
+      const blob = await exportDossier(shipment.id);
+      toast.dismiss(toastId);
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+
+      const contentDisposition = (blob as any).headers?.get?.(
+        "content-disposition",
+      );
+
+      let fileName = `Ho_so_truy_xuat_${shipment.name}_${getLocalDateString()}.pdf`;
+
+      if (contentDisposition) {
+        const match = contentDisposition.match(
+          /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/,
+        );
+        if (match && match[1]) {
+          fileName = match[1].replace(/['"]/g, "");
+        }
+      }
+
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Tải hồ sơ thành công");
+    } catch (error: any) {
+      if (toastId != null) {
+        toast.dismiss(toastId);
+      }
+      const msg =
+        error.message ||
+        error.response?.data?.message ||
+        "Có lỗi xảy ra khi xuất hồ sơ.";
+      toast.error(msg);
+    }
+  };
+
   return (
-    <ListCard>
-      <ListToolbar
-        left={
-          <>
-            <SearchInput
-              placeholder="Tìm tên lô hàng, lô sản xuất, nông sản hoặc tổ chức..."
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(0);
-              }}
-              aria-label="Tìm kiếm lô hàng thu mua"
-            />
-            <FilterSelect
-              value={categoryFilter}
-              onValueChange={(value) => {
-                setCategoryFilter(value ?? "ALL");
-                setPage(0);
-              }}
-              options={categoryOptions}
-            />
-            <FilterSelect
-              value={orgFilter}
-              onValueChange={(value) => {
-                setOrgFilter(value ?? "ALL");
-                setPage(0);
-              }}
-              options={organizationOptions}
-            />
-          </>
-        }
-        right={
-          <div className="flex items-center gap-2">
-            {canExportBatch && filtered.length > 0 && (
-              !isSelectionMode ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsSelectionMode(true)}
-                >
-                  Xuất hồ sơ nhiều lô
-                </Button>
-              ) : (
-                <>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCancelSelectionMode}
-                  >
-                    Hủy chọn
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="default"
-                    size="sm"
-                    disabled={selectedShipmentIds.length === 0}
-                    onClick={handleGoToBatchExport}
-                  >
-                    Xác nhận xuất bộ hồ sơ ({selectedShipmentIds.length} lô)
-                  </Button>
-                </>
-              )
-            )}
-            <RefreshButton onClick={loadShipments} loading={isLoading} />
-          </div>
-        }
-      />
-
-      {isSelectionMode && (
-        <div className="rounded-md border border-slate-200 bg-slate-50/70 p-3.5">
-          <div className="flex flex-wrap items-center gap-4 text-xs text-slate-700">
-            <span className="font-semibold text-slate-900">Bộ lọc chọn lô:</span>
-
-            <div className="flex items-center gap-1.5">
-              <label className="text-slate-600">Từ ngày:</label>
-              <input
-                type="date"
-                className="h-8 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
-                value={filterFromDate}
-                onChange={(e) => setFilterFromDate(e.target.value)}
-              />
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              <label className="text-slate-600">Đến ngày:</label>
-              <input
-                type="date"
-                className="h-8 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
-                value={filterToDate}
-                onChange={(e) => setFilterToDate(e.target.value)}
-              />
-            </div>
-
-            {(filterFromDate || filterToDate) && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
-                onClick={() => {
-                  setFilterFromDate("");
-                  setFilterToDate("");
+    <>
+      <ListCard>
+        <ListToolbar
+          left={
+            <>
+              <SearchInput
+                placeholder="Tìm tên lô hàng, lô sản xuất, nông sản hoặc tổ chức..."
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(0);
                 }}
-              >
-                Đặt lại bộ lọc
-              </Button>
-            )}
-
-            <div className="ml-auto text-xs text-slate-500">
-              Hiển thị <span className="font-medium text-slate-900">{filtered.length}</span> / {shipments.length} lô
+                aria-label="Tìm kiếm lô hàng thu mua"
+              />
+              <FilterSelect
+                value={categoryFilter}
+                onValueChange={(value) => {
+                  setCategoryFilter(value ?? "ALL");
+                  setPage(0);
+                }}
+                options={categoryOptions}
+              />
+              <FilterSelect
+                value={orgFilter}
+                onValueChange={(value) => {
+                  setOrgFilter(value ?? "ALL");
+                  setPage(0);
+                }}
+                options={organizationOptions}
+              />
+            </>
+          }
+          right={
+            <div className="flex items-center gap-2">
+              {canExportBatch && filtered.length > 0 && (
+                !isSelectionMode ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsSelectionMode(true)}
+                  >
+                    Xuất hồ sơ nhiều lô
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCancelSelectionMode}
+                    >
+                      Hủy chọn
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      disabled={selectedShipmentIds.length === 0}
+                      onClick={handleGoToBatchExport}
+                    >
+                      Xác nhận xuất bộ hồ sơ ({selectedShipmentIds.length} lô)
+                    </Button>
+                  </>
+                )
+              )}
+              <RefreshButton onClick={loadShipments} loading={isLoading} />
             </div>
-          </div>
-        </div>
-      )}
+          }
+        />
 
-      <DataTableShell
-        colSpan={isSelectionMode ? 9 : 8}
-        header={
-          <>
-            {isSelectionMode && (
-              <TableHead className="w-10 text-center">
+        {isSelectionMode && (
+          <div className="rounded-md border border-slate-200 bg-slate-50/70 p-3.5">
+            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-700">
+              <span className="font-semibold text-slate-900">Bộ lọc chọn lô:</span>
+
+              <div className="flex items-center gap-1.5">
+                <label className="text-slate-600">Từ ngày:</label>
                 <input
-                  type="checkbox"
-                  className="rounded border-input"
-                  checked={
-                    paginatedShipments.length > 0 &&
-                    paginatedShipments.every((s) => selectedShipmentIds.includes(s.id))
-                  }
-                  onChange={toggleSelectAllPage}
-                  title="Chọn tất cả trên trang này"
+                  type="date"
+                  className="h-8 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
+                  value={filterFromDate}
+                  onChange={(e) => setFilterFromDate(e.target.value)}
                 />
-              </TableHead>
-            )}
-            <TableHead className="w-12 text-center">STT</TableHead>
-            <TableHead>Tên lô hàng</TableHead>
-            <TableHead>Lô sản xuất</TableHead>
-            <TableHead>Nông sản</TableHead>
-            <TableHead>Tổ chức</TableHead>
-            <TableHead>Sản lượng</TableHead>
-            <TableHead>Trạng thái</TableHead>
-            <TableHead className="text-center">Thao tác</TableHead>
-          </>
-        }
-        body={paginatedShipments.map((shipment, index) => (
-          <TableRow
-            key={shipment.id}
-            className="hover:bg-muted/40 transition-colors"
-          >
-            {isSelectionMode && (
-              <TableCell className="text-center">
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <label className="text-slate-600">Đến ngày:</label>
                 <input
-                  type="checkbox"
-                  className="rounded border-input"
-                  checked={selectedShipmentIds.includes(shipment.id)}
-                  onChange={() => toggleSelectShipment(shipment.id)}
+                  type="date"
+                  className="h-8 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
+                  value={filterToDate}
+                  onChange={(e) => setFilterToDate(e.target.value)}
                 />
-              </TableCell>
-            )}
-            <TableCell className="text-center font-medium text-muted-foreground">
-              {safePage * PAGE_SIZE + index + 1}
-            </TableCell>
-            <TableCell className="font-semibold text-foreground">
-              {shipment.name}
-            </TableCell>
-            <TableCell className="text-muted-foreground">
-              {shipment.productionLotName ?? "—"}
-            </TableCell>
-            <TableCell className="text-muted-foreground">
-              {shipment.productCategoryName ?? "—"}
-            </TableCell>
-            <TableCell className="text-muted-foreground font-medium">
-              {shipment.organizationName ?? "—"}
-            </TableCell>
-            <TableCell className="text-muted-foreground">
-              {shipment.totalQuantity != null
-                ? shipment.totalQuantity.toLocaleString("vi-VN")
-                : "—"}
-            </TableCell>
-            <TableCell>
-              <ShipmentStatusBadge status={shipment.status} />
-            </TableCell>
-            <TableCell className="text-center">
-              <div className="flex items-center justify-center gap-1">
+              </div>
+
+              {(filterFromDate || filterToDate) && (
                 <Button
                   type="button"
                   variant="ghost"
-                  size="icon-sm"
-                  title="Ghi nhận thu mua"
-                  className="hover:bg-muted"
-                  onClick={() => onRecordProcurement(shipment.id)}
+                  size="sm"
+                  className="h-8 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                  onClick={() => {
+                    setFilterFromDate("");
+                    setFilterToDate("");
+                  }}
                 >
-                  <ShoppingCart className="size-4" />
+                  Đặt lại bộ lọc
                 </Button>
+              )}
 
-                {canExportGs1 && (
+              <div className="ml-auto text-xs text-slate-500">
+                Hiển thị <span className="font-medium text-slate-900">{filtered.length}</span> / {shipments.length} lô
+              </div>
+            </div>
+          </div>
+        )}
+
+        <DataTableShell
+          colSpan={isSelectionMode ? 9 : 8}
+          header={
+            <>
+              {isSelectionMode && (
+                <TableHead className="w-10 text-center">
+                  <input
+                    type="checkbox"
+                    className="rounded border-input"
+                    checked={
+                      paginatedShipments.length > 0 &&
+                      paginatedShipments.every((s) => selectedShipmentIds.includes(s.id))
+                    }
+                    onChange={toggleSelectAllPage}
+                    title="Chọn tất cả trên trang này"
+                  />
+                </TableHead>
+              )}
+              <TableHead className="w-12 text-center">STT</TableHead>
+              <TableHead>Tên lô hàng</TableHead>
+              <TableHead>Lô sản xuất</TableHead>
+              <TableHead>Nông sản</TableHead>
+              <TableHead>Tổ chức</TableHead>
+              <TableHead>Sản lượng</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              <TableHead className="text-center">Thao tác</TableHead>
+            </>
+          }
+          body={paginatedShipments.map((shipment, index) => (
+            <TableRow
+              key={shipment.id}
+              className="hover:bg-muted/40 transition-colors"
+            >
+              {isSelectionMode && (
+                <TableCell className="text-center">
+                  <input
+                    type="checkbox"
+                    className="rounded border-input"
+                    checked={selectedShipmentIds.includes(shipment.id)}
+                    onChange={() => toggleSelectShipment(shipment.id)}
+                  />
+                </TableCell>
+              )}
+              <TableCell className="text-center font-medium text-muted-foreground">
+                {safePage * PAGE_SIZE + index + 1}
+              </TableCell>
+              <TableCell className="font-semibold text-foreground">
+                {shipment.name}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {shipment.productionLotName ?? "—"}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {shipment.productCategoryName ?? "—"}
+              </TableCell>
+              <TableCell className="text-muted-foreground font-medium">
+                {shipment.organizationName ?? "—"}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {shipment.totalQuantity != null
+                  ? shipment.totalQuantity.toLocaleString("vi-VN")
+                  : "—"}
+              </TableCell>
+              <TableCell>
+                <ShipmentStatusBadge status={shipment.status} />
+              </TableCell>
+              <TableCell className="text-center">
+                <div className="flex items-center justify-center gap-1">
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    title="Xuất hồ sơ GS1"
+                    title="Ghi nhận thu mua"
                     className="hover:bg-muted"
-                    onClick={() => handleExportGs1(shipment.id)}
+                    onClick={() => onRecordProcurement(shipment.id)}
                   >
-                    <FileJson className="size-4" />
+                    <ShoppingCart className="size-4" />
                   </Button>
-                )}
 
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  title="Xem chi tiết"
-                  className="hover:bg-muted"
-                  onClick={() => handleViewDetail(shipment.id)}
-                >
-                  <Eye className="size-4" />
-                </Button>
-              </div>
-            </TableCell>
-          </TableRow>
-        ))}
-        loading={isLoading}
-        empty={!isLoading && filtered.length === 0}
-        loadingMessage="Đang tải danh sách lô hàng..."
-        emptyMessage={
-          search.trim() || categoryFilter !== "ALL"
-            ? "Không tìm thấy lô hàng phù hợp. Hãy thử thay đổi từ khóa tìm kiếm."
-            : "Chưa có lô hàng nào sẵn sàng thu mua. Các lô hàng đã kích hoạt tem sẽ xuất hiện tại đây."
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    title="Xuất hồ sơ"
+                    className="hover:bg-muted"
+                    onClick={() => handleExportDossier(shipment)}
+                  >
+                    <FileText className="size-4" />
+                  </Button>
+
+                  {canExportGs1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      title="Xuất hồ sơ GS1"
+                      className="hover:bg-muted"
+                      onClick={() => handleExportGs1(shipment.id)}
+                    >
+                      <FileJson className="size-4" />
+                    </Button>
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    title="Xem chi tiết"
+                    className="hover:bg-muted"
+                    onClick={() => handleViewDetail(shipment.id)}
+                  >
+                    <Eye className="size-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+          loading={isLoading}
+          empty={!isLoading && filtered.length === 0}
+          loadingMessage="Đang tải danh sách lô hàng..."
+          emptyMessage={
+            search.trim() || categoryFilter !== "ALL"
+              ? "Không tìm thấy lô hàng phù hợp. Hãy thử thay đổi từ khóa tìm kiếm."
+              : "Chưa có lô hàng nào sẵn sàng thu mua. Các lô hàng đã kích hoạt tem sẽ xuất hiện tại đây."
+          }
+        />
+
+        <Pagination
+          currentPage={safePage}
+          totalPages={totalPages}
+          totalElements={filtered.length}
+          pageSize={PAGE_SIZE}
+          loading={isLoading}
+          itemLabel="lô hàng"
+          onPageChange={setPage}
+        />
+      </ListCard>
+
+      <DossierIneligibleDialog
+        open={ineligibleDialog.open}
+        onClose={() =>
+          setIneligibleDialog({
+            open: false,
+            missingDocs: [],
+            shipmentName: "",
+          })
         }
+        missingDocs={ineligibleDialog.missingDocs}
+        shipmentName={ineligibleDialog.shipmentName}
       />
-
-      <Pagination
-        currentPage={safePage}
-        totalPages={totalPages}
-        totalElements={filtered.length}
-        pageSize={PAGE_SIZE}
-        loading={isLoading}
-        itemLabel="lô hàng"
-        onPageChange={setPage}
-      />
-    </ListCard>
+    </>
   );
 }
