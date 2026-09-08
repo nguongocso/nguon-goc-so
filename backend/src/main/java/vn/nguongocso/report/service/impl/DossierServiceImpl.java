@@ -904,9 +904,13 @@ public class DossierServiceImpl implements DossierService {
             return;
         }
 
-        // 3. Quyền Doanh nghiệp thu mua (VT-04): Lô hàng phải được thu mua bởi doanh
-        // nghiệp của mình
+        // 3. Quyền Doanh nghiệp thu mua (VT-04): Lô hàng sẵn sàng thu mua (ACTIVATED)
+        // hoặc đã được thu mua bởi doanh nghiệp của mình
         if ("VT-04".equals(role)) {
+            if (shipment.getStatus() == ShipmentStatus.ACTIVATED) {
+                return;
+            }
+
             boolean isAssociated = false;
             List<ChainEvent> events = chainEventRepository.findByShipment_IdOrderByRecordedAtAsc(shipment.getId());
             for (ChainEvent event : events) {
