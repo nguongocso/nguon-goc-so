@@ -580,6 +580,17 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="production-lots/:id/inspection"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-02"]}
+                    >
+                        <ProductionLotInspectionPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="production-lots/import"
                 element={
                     <RoleRoute allowedRoles={["VT-02"]}>
