@@ -203,6 +203,26 @@ API layer        → hooks (optional)  → Pages         → Routes
 | **FE Types** | `types/shipment.ts`, `types/scan.ts` |
 | **Migrations** | `V6` (shipments, trace_codes, recalls), `V21` (suspect fields), `V32` (code_range), `V45` (label_cancellation), `V20260830130000` (unlock fields) |
 
+### 2.10.1 Shipment Handover — Phiếu bàn giao lô hàng (NCL-05-CN-008, package `trace`)
+
+| Lớp | File |
+|---|---|
+| **BE Controller** | `trace/controller/ShipmentHandoverController.java` (POST create / cancel, GET by-id / sent / received), `trace/controller/ShipmentController.java` (+ `GET /{id}/remaining-handover-quantity`) |
+| **BE Service** | `trace/service/ShipmentHandoverService.java` + `impl/ShipmentHandoverServiceImpl.java` (create/cancel/accept/reject/getById/sent/received/remaining/hasPending) |
+| **BE Entity** | `trace/entity/ShipmentHandover.java`, `trace/enums/ShipmentHandoverStatus.java` (PENDING_CONFIRMATION/ACCEPTED/REJECTED/EXPIRED/CANCELLED) |
+| **BE Repository** | `trace/repository/ShipmentHandoverRepository.java` (SUM committed, findExpiredPending, existsByShipmentIdAndStatus) |
+| **BE Scheduler** | `trace/scheduler/HandoverExpiryScheduler.java` — cron `app.handover.expiry-check-cron` (mặc định mỗi giờ) quét phiếu PENDING quá `expires_at` → EXPIRED |
+| **BE DTO** | `trace/dto/request/CreateHandoverRequest.java`, `CancelHandoverRequest.java`, `trace/dto/response/HandoverResponse.java` |
+| **BE liên quan** | `event/enums/ChainEventType.java` (+`HANDOVER`), `trace/repository/TraceCodeRepository.java` (+`existsByShipmentIdAndStatus`), `trace/service/impl/ImpactScopeTraceServiceImpl.java` (+case HANDOVER) |
+| **FE Component** | `components/shipment/CreateHandoverDialog.tsx` (form tạo phiếu: org nhận, số lượng + hiển thị "còn lại", plannedAt, phương tiện, áp tải, ghi chú) |
+| **FE API** | `api/handoverApi.ts` (createHandover, cancelHandover, getRemainingQuantity, sent/received/byId, accept/reject) |
+| **FE Types** | `types/shipmentHandover.ts` |
+| **Migration** | `V20260908000000__create_shipment_handovers.sql` (bảng + 6 index, FKs, collation `utf8mb4_0900_ai_ci`) |
+| **Docs** | `docs/api/trace/ShipmentHandover.md` (API contract), `docs/testing/NCL-05-CN-008_manual_test.md` (kịch bản kiểm thử thủ công) |
+| **Tests** | `backend/src/test/java/vn/nguongocso/trace/service/ShipmentHandoverServiceTest.java` (7 unit tests) |
+| **Config** | `app.handover.expiry-hours` (48h), `app.handover.expiry-check-cron` |
+
+
 ### 2.11 Code Ranges — Quản lý khoảng mã (package `trace`)
 
 | Lớp | File |
