@@ -611,6 +611,53 @@ public class DossierServiceImpl implements DossierService {
         table.addCell(cell);
     }
 
+    private String formatShipmentStatus(vn.nguongocso.trace.enums.ShipmentStatus status) {
+        if (status == null) {
+            return "N/A";
+        }
+        return switch (status) {
+            case DRAFT -> "Bản nháp";
+            case CODE_PRINTED -> "Đã in mã";
+            case ACTIVATED -> "Đã kích hoạt";
+            case RECALLED -> "Đã thu hồi";
+            default -> status.name();
+        };
+    }
+
+    private String formatFarmActivityType(vn.nguongocso.farm.enums.FarmActivityType type) {
+        if (type == null) {
+            return "N/A";
+        }
+        return switch (type) {
+            case PLANTING -> "Gieo giống / Xuống giống";
+            case WATERING -> "Tưới nước";
+            case FERTILIZING -> "Bón phân";
+            case PESTICIDE -> "Phun thuốc BVTV";
+            case WEEDING -> "Làm cỏ";
+            case HARVESTING -> "Thu hoạch";
+            case OTHER -> "Hoạt động khác";
+            default -> type.name();
+        };
+    }
+
+    private String formatEventKey(String key) {
+        if (key == null) return "";
+        return switch (key.trim().toLowerCase()) {
+            case "notes", "note" -> "Ghi chú";
+            case "shipmentid" -> "Mã lô hàng";
+            case "shipmentname" -> "Tên lô hàng";
+            case "receivedquantity", "quantity" -> "Số lượng";
+            case "tolocation", "destination" -> "Nơi đến";
+            case "fromlocation", "origin" -> "Nơi đi";
+            case "devicesource" -> "Nguồn thiết bị";
+            case "licenseplate", "vehiclenumber" -> "Biển số xe";
+            case "drivername", "driver" -> "Tài xế";
+            case "storagetemp", "temperature" -> "Nhiệt độ";
+            case "humidity" -> "Độ ẩm";
+            default -> key;
+        };
+    }
+
     private String formatEventDataForPdf(String rawJson) {
         if (rawJson == null || rawJson.isBlank()) {
             return "";
@@ -621,6 +668,7 @@ public class DossierServiceImpl implements DossierService {
             for (Map.Entry<String, Object> entry : map.entrySet()) {
                 String key = entry.getKey();
                 Object value = entry.getValue();
+                String displayKey = formatEventKey(key);
 
                 if ("images".equalsIgnoreCase(key) || "photos".equalsIgnoreCase(key) || "attachments".equalsIgnoreCase(key)) {
                     if (value instanceof List) {
@@ -631,18 +679,18 @@ public class DossierServiceImpl implements DossierService {
                         if (strVal.startsWith("data:image/")) {
                             formattedEntries.add("Hình ảnh: 1 tệp đính kèm");
                         } else {
-                            formattedEntries.add(key + ": " + strVal);
+                            formattedEntries.add(displayKey + ": " + strVal);
                         }
                     }
                 } else if (value instanceof String) {
                     String strVal = (String) value;
                     if (strVal.startsWith("data:image/")) {
-                        formattedEntries.add(key + ": [Tệp hình ảnh]");
+                        formattedEntries.add(displayKey + ": [Tệp hình ảnh]");
                     } else {
-                        formattedEntries.add(key + ": " + strVal);
+                        formattedEntries.add(displayKey + ": " + strVal);
                     }
                 } else {
-                    formattedEntries.add(key + ": " + (value != null ? value.toString() : ""));
+                    formattedEntries.add(displayKey + ": " + (value != null ? value.toString() : ""));
                 }
             }
             return String.join("\n", formattedEntries);
@@ -722,7 +770,7 @@ public class DossierServiceImpl implements DossierService {
         addTableCell(shipmentTable, shipment.getPackagingInfo() != null ? shipment.getPackagingInfo() : "N/A",
                 normalFont);
         addTableCell(shipmentTable, "Trạng thái vận hành:", boldFont);
-        addTableCell(shipmentTable, shipment.getStatus() != null ? shipment.getStatus().name() : "N/A", normalFont);
+        addTableCell(shipmentTable, shipment.getStatus() != null ? formatShipmentStatus(shipment.getStatus()) : "N/A", normalFont);
 
         document.add(shipmentTable);
 
@@ -747,7 +795,7 @@ public class DossierServiceImpl implements DossierService {
             for (FarmLog logItem : logs) {
                 if (logItem == null) continue;
                 addTableCell(logTable, logItem.getExecutedDate() != null ? logItem.getExecutedDate().toString() : "N/A", normalFont);
-                addTableCell(logTable, logItem.getActivityType() != null ? logItem.getActivityType().name() : "N/A", normalFont);
+                addTableCell(logTable, logItem.getActivityType() != null ? formatFarmActivityType(logItem.getActivityType()) : "N/A", normalFont);
                 String materialInfo = (logItem.getMaterial() != null ? logItem.getMaterial() : "") +
                         (logItem.getQuantity() != null ? " (" + logItem.getQuantity() + " " + (logItem.getUnit() != null ? logItem.getUnit() : "") + ")"
                                 : "");
@@ -822,7 +870,7 @@ public class DossierServiceImpl implements DossierService {
             for (ChainEvent ev : events) {
                 if (ev == null) continue;
                 addTableCell(eventTable, ev.getRecordedAt() != null ? ev.getRecordedAt().format(formatter) : "N/A", normalFont);
-                String eventTypeStr = ev.getEventType() != null ? ev.getEventType().name() : "N/A";
+                String eventTypeStr = ev.getEventType() != null ? getEventTypeLabel(ev.getEventType()) : "N/A";
                 addTableCell(eventTable, eventTypeStr + (ev.isCorrection() ? " (Đã điều chỉnh)" : ""),
                         normalFont);
                 addTableCell(eventTable, formatEventDataForPdf(ev.getEventData()), normalFont);

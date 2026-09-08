@@ -275,7 +275,7 @@ export const ShipmentList = ({
             <CardTitle className="text-xl font-bold text-slate-900">Danh sách lô hàng</CardTitle>
 
             <div className="flex items-center gap-2">
-              {canExportBatch && (
+              {canExportBatch && shipments.length > 0 && (
                 !isSelectionMode ? (
                   <Button
                     variant="outline"

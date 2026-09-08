@@ -194,7 +194,7 @@ export function ProcurementShipmentList({
         }
         right={
           <div className="flex items-center gap-2">
-            {canExportBatch && (
+            {canExportBatch && filtered.length > 0 && (
               !isSelectionMode ? (
                 <Button
                   type="button"

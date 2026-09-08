@@ -161,7 +161,7 @@ export default function BatchDossierExportPage() {
           {/* Card kết quả kiểm tra điều kiện QTN-11 */}
           <ListCard className="p-6 space-y-4">
             <h2 className="text-lg font-semibold text-foreground">
-              1. Kết quả kiểm tra điều kiện chứng từ (QTN-11)
+              1. Kết quả kiểm tra điều kiện chứng từ
             </h2>
 
             {isLoadingCheck ? (
