@@ -164,7 +164,7 @@ export const ChainProgressBoard: React.FC<ChainProgressBoardProps> = ({ data, lo
                       </span>
                       <Button
                         type="button"
-                        variant={item.isStagnant ? 'danger' : 'outline'}
+                        variant={item.isStagnant ? 'destructive' : 'outline'}
                         size="sm"
                         className="w-full text-xs justify-start truncate h-8"
                       >

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Activity, RefreshCw } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import { getChainProgressBoard } from '@/api/productionLotApi';
 import { ChainProgressBoard } from '@/components/production-lot/ChainProgressBoard';
 import { ListPageHeader } from '@/components/common/ListPageHeader';
@@ -58,6 +58,16 @@ export const ChainProgressPage: React.FC = () => {
     fetchData(true);
   }, [stagnantThresholdDays, fetchData]);
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+  };
+
+  const handleThresholdChange = (val: string | null) => {
+    if (val) {
+      setStagnantThresholdDays(val);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header trang chuẩn theo thiết kế ứng dụng */}
@@ -69,29 +79,28 @@ export const ChainProgressPage: React.FC = () => {
 
       {/* Card chứa toolbar và bảng dữ liệu */}
       <ListCard>
-        <ListToolbar>
-          <div className="flex-1 max-w-md">
+        <ListToolbar
+          left={
             <SearchInput
               value={search}
-              onChange={setSearch}
-              onSubmit={() => fetchData(true)}
+              onChange={handleSearchChange}
               placeholder="Tìm tên lô, vùng trồng..."
             />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <FilterSelect
-              value={stagnantThresholdDays}
-              onChange={setStagnantThresholdDays}
-              options={STAGNANT_THRESHOLD_OPTIONS}
-            />
-
-            <RefreshButton
-              onClick={() => fetchData(false)}
-              isRefreshing={isRefreshing}
-            />
-          </div>
-        </ListToolbar>
+          }
+          right={
+            <>
+              <FilterSelect
+                value={stagnantThresholdDays}
+                onValueChange={handleThresholdChange}
+                options={STAGNANT_THRESHOLD_OPTIONS}
+              />
+              <RefreshButton
+                onClick={() => fetchData(false)}
+                loading={isRefreshing}
+              />
+            </>
+          }
+        />
 
         {/* Thông báo số liệu tổng quan */}
         {data && (
