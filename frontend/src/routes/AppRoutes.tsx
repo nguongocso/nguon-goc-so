@@ -619,6 +619,10 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={ROLE_ACCESS.batchDossierExport}>
                         <BatchDossierExportPage />
+                    </RoleRoute>
+                }
+            />
+
             {/* NCL-04-CN-008: Xem và tra cứu trạng thái từng mã tem trong lô hàng */}
             <Route
                 path="shipments/:shipmentId/trace-codes"
