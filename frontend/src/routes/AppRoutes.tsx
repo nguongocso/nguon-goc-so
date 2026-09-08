@@ -503,6 +503,17 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="farm/chain-progress"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                    >
+                        <ChainProgressPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="production-lots/create"
                 element={
                     <RoleRoute
