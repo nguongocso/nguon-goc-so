@@ -147,3 +147,52 @@ export type InspectionStatus =
   | 'FAILED' // Không đạt kiểm nghiệm
   | 'RE_INSPECTION_PENDING'; // Đang kiểm nghiệm lại
 
+// ============================================================
+// NCL-10-CN-013: Bảng theo dõi tiến độ chuỗi của từng lô
+// ============================================================
+
+export type ChainProgressStage =
+  | 'DRAFT'
+  | 'PENDING'
+  | 'APPROVED'
+  | 'HARVESTED'
+  | 'PREPROCESSED'
+  | 'WAITING_TEST_RESULT'
+  | 'PACKAGED'
+  | 'TAG_ACTIVATED'
+  | 'IN_CIRCULATION';
+
+export interface ChainProgressItem {
+  id: string;
+  name: string;
+  farmAreaId: string | null;
+  farmAreaName: string;
+  productCategoryId: string | null;
+  productCategoryName: string;
+  status: ProductionLot['status'];
+  currentStage: ChainProgressStage;
+  daysInStage: number;
+  isStagnant: boolean;
+  nextActionRequired: string;
+  targetScreen: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChainProgressStageGroup {
+  stage: ChainProgressStage;
+  stageName: string;
+  count: number;
+  items: ChainProgressItem[];
+}
+
+export interface ChainProgressBoardData {
+  organizationId: string;
+  organizationName: string;
+  totalOpenLots: number;
+  stagnantLotsCount: number;
+  stagnantThresholdDays: number;
+  stages: ChainProgressStageGroup[];
+}
+
+

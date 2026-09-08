@@ -1,6 +1,7 @@
 import React, { type ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
+  Activity,
   AlertTriangle,
   Award,
   Bell,
@@ -29,7 +30,6 @@ import {
   Warehouse,
   X,
   TrendingUp,
-  Activity,
   GitCompare,
   PieChart,
   Database,
@@ -244,6 +244,12 @@ const MENU_GROUPS: MenuGroup[] = [
           "/shipments/",
           "/farm-logs/", 
         ],
+      },
+      {
+        icon: <Activity className="h-5 w-5" />,
+        label: "Bảng tiến độ chuỗi",
+        href: "/chain-progress",
+        allowedRoles: ["VT-01", "VT-02", "VT-03"] as const,
       },
       {
         icon: <Truck className="h-5 w-5" />,

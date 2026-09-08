@@ -55,4 +55,11 @@ public interface ProductionLotService {
 
     /** Lấy chi tiết lô sản xuất theo ID. */
     CreateProductionLotResponse getProductionLotById(UUID id);
+
+    /** Lấy bảng theo dõi tiến độ chuỗi của từng lô (NCL-10-CN-013). */
+    vn.nguongocso.farm.dto.response.ChainProgressBoardResponse getChainProgressBoard(
+            UUID targetOrganizationId,
+            Integer stagnantThresholdDays,
+            String search,
+            CustomUserDetails userDetails);
 }

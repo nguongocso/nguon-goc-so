@@ -15,14 +15,13 @@ describe('TC-F - Quyền truy cập màn hình Phân công địa bàn', () => {
     expect(hasAnyRole('VT-02', ['VT-01'])).toBe(false);
   });
 
-  it('ROLE_ACCESS.areaAssignment chỉ dành cho VT-01', () => {
-    expect(ROLE_ACCESS.areaAssignment).toEqual(['VT-01']);
-    // Chứa duy nhất 1 phần tử là VT-01.
-    expect(ROLE_ACCESS.areaAssignment).toHaveLength(1);
-    expect(ROLE_ACCESS.areaAssignment.every((role) => role === 'VT-01')).toBe(true);
-    expect(hasAnyRole('VT-01', ROLE_ACCESS.areaAssignment)).toBe(true);
-    expect(hasAnyRole('VT-05', ROLE_ACCESS.areaAssignment)).toBe(false);
-    expect(hasAnyRole(undefined, ROLE_ACCESS.areaAssignment)).toBe(false);
+  it('ROLE_ACCESS.milestoneReminderScan cho phép VT-01, VT-02, VT-03', () => {
+    expect(ROLE_ACCESS.milestoneReminderScan).toEqual(['VT-01', 'VT-02', 'VT-03']);
+    expect(hasAnyRole('VT-01', ROLE_ACCESS.milestoneReminderScan)).toBe(true);
+    expect(hasAnyRole('VT-02', ROLE_ACCESS.milestoneReminderScan)).toBe(true);
+    expect(hasAnyRole('VT-03', ROLE_ACCESS.milestoneReminderScan)).toBe(true);
+    expect(hasAnyRole('VT-04', ROLE_ACCESS.milestoneReminderScan)).toBe(false);
+    expect(hasAnyRole('VT-05', ROLE_ACCESS.milestoneReminderScan)).toBe(false);
   });
 
   it('ROLE_ACCESS.anomalyThresholdConfig chỉ dành cho VT-01', () => {

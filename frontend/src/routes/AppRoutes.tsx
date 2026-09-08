@@ -34,6 +34,7 @@ import OrganizationProfilePage from "@/pages/organization/OrganizationProfilePag
 import CreateProductionLotPage from "@/pages/production-lot/CreateProductionLotPage";
 import ProductionLotListPage from "@/pages/production-lot/ProductionLotListPage";
 import ProductionLotInspectionPage from "@/pages/production-lot/ProductionLotInspectionPage";
+import { ChainProgressPage } from "@/pages/production-lot/ChainProgressPage";
 
 import RecordTransportEventPage from "@/pages/transport-event/RecordTransportEventPage";
 
@@ -498,6 +499,28 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="chain-progress"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                    >
+                        <ChainProgressPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="farm/chain-progress"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                    >
+                        <ChainProgressPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="production-lots/create"
                 element={
                     <RoleRoute
@@ -554,6 +577,17 @@ const AppRoutes = () => (
 
             <Route
                 path="production-lots/:lotId/inspection"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-02"]}
+                    >
+                        <ProductionLotInspectionPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:id/inspection"
                 element={
                     <RoleRoute
                         allowedRoles={["VT-02"]}
