@@ -257,7 +257,7 @@ public class NotificationServiceImpl implements NotificationService {
         // 3. TẠO THÔNG BÁO THU HỒI LÔ SẢN XUẤT (NCL-08-CN-008)
         // =========================================================
 
-        private static final String LOT_RECALL_TITLE = "Thông báo thu hồi lô sản xuất";
+        private static final String LOT_RECALL_TITLE = "Thông báo thu hồi lô hàng";
 
         /**
          * Gửi thông báo thu hồi lô sản xuất cho danh sách người dùng được chỉ định.
@@ -268,9 +268,9 @@ public class NotificationServiceImpl implements NotificationService {
          * @return số lượng thông báo đã tạo
          */
         @Override
-        public int sendLotRecallNotification(String lotName, String reason, List<UUID> recipientIds) {
+        public int sendRecallNotification(String shipmentName, String reason, List<UUID> recipientIds) {
                 if (recipientIds == null || recipientIds.isEmpty()) {
-                        log.warn("Không có người dùng để nhận thông báo thu hồi lô sản xuất. lotName={}", lotName);
+                        log.warn("Không có người dùng để nhận thông báo thu hồi lô hàng. shipmentName={}", shipmentName);
                         return 0;
                 }
 
@@ -280,8 +280,8 @@ public class NotificationServiceImpl implements NotificationService {
                         return 0;
                 }
 
-                String content = "Lô sản xuất \""
-                                + lotName
+                String content = "Lô hàng \""
+                                + shipmentName
                                 + "\" đã bị thu hồi. Lý do: "
                                 + (reason == null ? "Không rõ" : reason);
 
@@ -301,9 +301,9 @@ public class NotificationServiceImpl implements NotificationService {
                 notificationRepository.saveAll(notifications);
 
                 log.info(
-                                "Đã tạo {} notification thu hồi lô sản xuất. lotName={}",
+                                "Đã tạo {} notification thu hồi lô hàng. shipmentName={}",
                                 notifications.size(),
-                                lotName);
+                                shipmentName);
 
                 return notifications.size();
         }

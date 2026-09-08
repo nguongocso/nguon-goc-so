@@ -97,6 +97,9 @@ public class InspectionRequestServiceImpl
     private static final String MSG_INVALID_SAMPLE_DATE =
             "Ngày gửi mẫu không được để trống.";
 
+    private static final String MSG_SAMPLE_DATE_BEFORE_HARVEST =
+            "Ngày gửi mẫu không được trước ngày thu hoạch của lô sản xuất.";
+
     private static final String MSG_TESTING_UNIT_NOT_FOUND =
             "Đơn vị kiểm nghiệm không tồn tại trong danh mục.";
 
@@ -159,6 +162,13 @@ public class InspectionRequestServiceImpl
          * 3. Kiểm tra điều kiện của lot.
          */
         validateLot(lot);
+
+        // Validate that sample sent date is not before harvest date
+        if (lot.getHarvestDate() != null && request != null && request.getSampleSentDate() != null
+                && request.getSampleSentDate().isBefore(lot.getHarvestDate())) {
+            throw new BusinessException(
+                    MSG_SAMPLE_DATE_BEFORE_HARVEST);
+        }
 
         /*
          * QTN-30 (NCL-11-CN-005 §5.5): lô đã bị loại bỏ là trạng thái

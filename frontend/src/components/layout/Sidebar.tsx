@@ -292,6 +292,13 @@ const MENU_GROUPS: MenuGroup[] = [
       },
       // NCL-04-CN-007: mục "Yêu cầu bổ sung mã" đã bỏ — chức năng chuyển thành
       // tùy chọn trong tab "Lô hàng & Mã QR" của chi tiết lô sản xuất.
+      {
+        icon: <GitCompare className="h-5 w-5" />,
+        label: "Truy vết phạm vi ảnh hưởng",
+        href: "/trace/impact-scope",
+        allowedRoles: ROLE_ACCESS.impactScopeTrace,
+        activePaths: ["/trace/impact-scope"],
+      },
     ],
   },
 

@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 interface ProductFeedbackFormProps {
   productionLotId: string;
   productName: string;
+  traceCodeValue?: string;
 }
 
 interface ProductFeedbackFormValues {
@@ -20,6 +21,7 @@ interface ProductFeedbackFormValues {
 export function ProductFeedbackForm({
   productionLotId,
   productName,
+  traceCodeValue,
 }: ProductFeedbackFormProps) {
   const {
     register,
@@ -37,6 +39,7 @@ export function ProductFeedbackForm({
     try {
       await createProductFeedback(productionLotId, {
         content: content.trim(),
+        traceCodeValue,
       });
 
       reset();

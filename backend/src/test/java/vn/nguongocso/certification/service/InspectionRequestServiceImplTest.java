@@ -257,6 +257,34 @@ class InspectionRequestServiceImplTest {
     }
 
     /**
+     * Test kiểm tra ngày gửi mẫu không được trước ngày thu hoạch của lô sản xuất.
+     */
+    @Test
+    void createInspectionRequest_shouldReject_whenSampleSentDateIsBeforeHarvestDate() {
+        lot.setStatus(ProductionLotStatus.HARVESTED);
+        lot.setHarvestDate(LocalDate.of(2026, 9, 5));
+
+        CreateInspectionRequest request = new CreateInspectionRequest();
+        request.setTestingUnit("Lab ABC");
+        request.setSampleSentDate(LocalDate.of(2026, 9, 1));
+        request.setCriteriaIds(List.of(101L));
+
+        when(productionLotRepository.findByIdAndOrganization_OrganizationId(lotId, orgId))
+                .thenReturn(Optional.of(lot));
+        when(chainEventRepository.existsByProductionLotIdOrUnassignedEventDataAndEventType(
+                lotId, lotId.toString(), ChainEventType.HARVEST))
+                .thenReturn(true);
+
+        assertThatThrownBy(() ->
+                inspectionRequestService.createInspectionRequest(
+                        lotId,
+                        request,
+                        currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Ngày gửi mẫu không được trước ngày thu hoạch của lô sản xuất.");
+    }
+
+    /**
      * Test tạo yêu cầu kiểm nghiệm thành công.
      *
      * Logic service:

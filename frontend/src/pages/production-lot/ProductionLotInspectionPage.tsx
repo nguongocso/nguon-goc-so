@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  ArrowLeft,
   CheckCircle2,
   ClipboardList,
   Clock,
@@ -181,9 +180,6 @@ export const ProductionLotInspectionPage: React.FC = () => {
       <div className="flex min-h-[400px] flex-col items-center justify-center gap-4">
         <AlertTriangle className="h-12 w-12 text-muted-foreground" />
         <p className="text-muted-foreground">Không tìm thấy lô sản xuất.</p>
-        <Button variant="outline" onClick={() => navigate("/production-lots")}>
-          Quay lại danh sách
-        </Button>
       </div>
     );
   }
@@ -193,13 +189,6 @@ export const ProductionLotInspectionPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/production-lots")}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
           <div>
             <h1 className="text-2xl font-bold">{lot.name}</h1>
             <p className="text-sm text-muted-foreground">

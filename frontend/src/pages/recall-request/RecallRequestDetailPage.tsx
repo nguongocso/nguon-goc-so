@@ -58,7 +58,7 @@ export const RecallRequestDetailPage = () => {
         remarks: remarks.trim() || undefined,
       });
       toast.success(
-        `Đã duyệt yêu cầu thu hồi. Lô "${result.lotName}" đã chuyển sang trạng thái thu hồi.${
+        `Đã duyệt yêu cầu thu hồi. Lô hàng "${result.shipmentName}" đã chuyển sang trạng thái thu hồi.${
           result.notifiedBuyerCount ? ` Đã thông báo ${result.notifiedBuyerCount} người mua.` : ''
         }`,
       );
@@ -117,7 +117,7 @@ export const RecallRequestDetailPage = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              Yêu cầu thu hồi: {request.lotName}
+              Yêu cầu thu hồi: {request.shipmentName || 'Chưa xác định lô hàng'}
             </h1>
             <span
               className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -128,7 +128,7 @@ export const RecallRequestDetailPage = () => {
             </span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Chi tiết yêu cầu thu hồi lô sản xuất và nhật ký xét duyệt.
+            Chi tiết yêu cầu thu hồi lô hàng và nhật ký xét duyệt.
           </p>
         </div>
         <HelpButton screenKey="recall-request-detail" />
@@ -137,6 +137,10 @@ export const RecallRequestDetailPage = () => {
       <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
         <CardContent className="space-y-4 pt-6">
           <dl className="divide-y rounded-lg border bg-slate-50 px-4">
+            <div className="flex items-start justify-between gap-4 py-3">
+              <dt className="text-sm text-muted-foreground">Lô hàng thu hồi</dt>
+              <dd className="text-right text-sm font-semibold">{request.shipmentName || 'Chưa xác định'}</dd>
+            </div>
             <div className="flex items-start justify-between gap-4 py-3">
               <dt className="text-sm text-muted-foreground">Lô sản xuất</dt>
               <dd className="text-right text-sm font-semibold">{request.lotName}</dd>

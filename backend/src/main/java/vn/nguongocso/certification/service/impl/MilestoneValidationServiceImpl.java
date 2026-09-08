@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.nguongocso.certification.dto.response.MilestoneValidationResult;
 import vn.nguongocso.certification.entity.CultivationMilestone;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.certification.repository.CultivationMilestoneRepository;
@@ -34,10 +35,18 @@ public class MilestoneValidationServiceImpl implements MilestoneValidationServic
     private final FarmLogRepository farmLogRepository;
 
     @Override
-    public List<String> validateMilestoneCompletion(ProductionLot lot) {
-        return findMissingMilestones(lot).stream()
+    public MilestoneValidationResult validateMilestoneCompletion(ProductionLot lot) {
+        List<String> missingMilestones = findMissingMilestones(lot).stream()
                 .map(CultivationMilestone::getName)
                 .toList();
+
+        boolean isEligible = missingMilestones.isEmpty();
+
+        return MilestoneValidationResult.builder()
+                .eligible(isEligible)
+                .missingMilestones(missingMilestones)
+                .message(isEligible ? null : "Lô chưa đủ mốc canh tác bắt buộc trước khi đóng gói.")
+                .build();
     }
 
     @Override

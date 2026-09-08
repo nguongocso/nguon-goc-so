@@ -161,3 +161,6 @@ print(response.json())
 - **Doanh nghiệp thu mua không cần thuộc cùng tổ chức với lô hàng** – có thể ghi sự kiện cho bất kỳ lô hàng hợp lệ nào.
 - Chỉ ghi được khi lô hàng **chưa bị thu hồi** (`status != RECALLED`).
 - Sự kiện được lưu với loại `PROCUREMENT` trong bảng `chain_events`, có thể xem trong dòng thời gian của lô hàng.
+- Hệ thống lưu `recorded_organization_id` từ tổ chức hiện tại trong JWT tại thời điểm ghi. Trường nội bộ
+  này dùng để gửi đúng thông báo thu hồi về sau, kể cả khi người ghi thuộc nhiều tổ chức; nó không được
+  suy ngược từ membership hiện tại và không cần đưa vào request/response công khai.

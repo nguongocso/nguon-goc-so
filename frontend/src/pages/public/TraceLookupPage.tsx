@@ -380,6 +380,7 @@ export default function TraceLookupPage() {
           <ProductFeedbackForm
             productionLotId={data.productionLotId}
             productName={data.productName}
+            traceCodeValue={codeValue}
           />
         ) : (
           <section className="rounded-xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm">
