@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
-  ArrowLeft,
   AlertCircle,
   Camera,
   Download,
@@ -62,7 +61,10 @@ export default function ShipmentTraceCodesPage() {
     shipmentId: string;
     lotId?: string;
   }>();
-  const navigate = useNavigate();
+
+  const backUrl = lotId
+    ? `/production-lots/${lotId}/shipments/${shipmentId}`
+    : `/shipments/${shipmentId}`;
 
   // ── Data state ─────────────────────────────────────────────────────────────
   const [shipment, setShipment] = useState<Shipment | null>(null);
@@ -101,9 +103,7 @@ export default function ShipmentTraceCodesPage() {
             : []),
           {
             label: shipment.name || 'Chi tiết lô hàng',
-            href: lotId
-              ? `/production-lots/${lotId}/shipments/${shipmentId}`
-              : `/shipments/${shipmentId}`,
+            href: backUrl,
           },
           { label: 'Mã tem truy xuất' },
         ]
@@ -213,10 +213,6 @@ export default function ShipmentTraceCodesPage() {
       setExporting(false);
     }
   };
-
-  const backUrl = lotId
-    ? `/production-lots/${lotId}/shipments/${shipmentId}`
-    : `/shipments/${shipmentId}`;
 
   return (
     <div className="space-y-6 pb-12">
