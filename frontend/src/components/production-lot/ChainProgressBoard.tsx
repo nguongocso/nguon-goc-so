@@ -166,9 +166,10 @@ export const ChainProgressBoard: React.FC<ChainProgressBoardProps> = ({ data, lo
                         type="button"
                         variant={item.isStagnant ? 'destructive' : 'outline'}
                         size="sm"
-                        className="w-full text-xs justify-start truncate h-8"
+                        className="w-full text-xs justify-start min-h-8 h-auto py-1 px-2.5 leading-snug whitespace-normal text-left"
+                        title={item.nextActionRequired}
                       >
-                        {item.nextActionRequired}
+                        <span className="w-full text-left line-clamp-2">{item.nextActionRequired}</span>
                       </Button>
                     </div>
                   </div>

@@ -779,7 +779,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
             switch (stage) {
                 case DRAFT:
-                    nextAction = "Gửi yêu cầu duyệt lô sản xuất";
+                    nextAction = "Gửi yêu cầu duyệt lô";
                     targetScreen = "/production-lots?highlightId=" + lot.getId();
                     break;
                 case PENDING:
@@ -788,19 +788,19 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                     break;
                 case APPROVED:
                     if (isQuarantined) {
-                        nextAction = "Chưa hết thời gian cách ly (An toàn từ " + formattedQuarantineDate + ")";
+                        nextAction = "Cách ly đến " + formattedQuarantineDate;
                         targetScreen = "/production-lots/" + lot.getId() + "/farm-logs";
                     } else {
-                        nextAction = "Ghi nhật ký canh tác / Ghi nhận thu hoạch";
+                        nextAction = "Ghi nhật ký / Thu hoạch";
                         targetScreen = "/production-lots/" + lot.getId() + "/farm-logs";
                     }
                     break;
                 case HARVESTED:
                     if (isQuarantined) {
-                        nextAction = "Chưa hết thời gian cách ly BVTV (An toàn từ " + formattedQuarantineDate + ")";
+                        nextAction = "Cách ly BVTV đến " + formattedQuarantineDate;
                         targetScreen = "/production-lots/" + lot.getId() + "/inspection";
                     } else if (!hasPassedInspection) {
-                        nextAction = "Chờ hoặc nhập kết quả kiểm nghiệm đạt";
+                        nextAction = "Nhập KQ kiểm nghiệm đạt";
                         targetScreen = "/production-lots/" + lot.getId() + "/inspection";
                     } else {
                         nextAction = "Sơ chế hoặc đóng gói lô";
@@ -809,10 +809,10 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                     break;
                 case PREPROCESSED:
                     if (!hasPassedInspection) {
-                        nextAction = "Chờ hoặc nhập kết quả kiểm nghiệm đạt";
+                        nextAction = "Nhập KQ kiểm nghiệm đạt";
                         targetScreen = "/production-lots/" + lot.getId() + "/inspection";
                     } else if (isCodeQuotaExhausted) {
-                        nextAction = "Hết hạn mức mã QR (Cần cấp thêm dải mã)";
+                        nextAction = "Hết hạn mức mã QR";
                         targetScreen = "/production-lots/" + lot.getId() + "/shipments/create";
                     } else {
                         nextAction = "Đóng gói & Tạo lô hàng";
@@ -820,25 +820,25 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                     }
                     break;
                 case WAITING_TEST_RESULT:
-                    nextAction = "Chờ hoặc nhập kết quả kiểm nghiệm đạt";
+                    nextAction = "Nhập KQ kiểm nghiệm đạt";
                     targetScreen = "/production-lots/" + lot.getId() + "/inspection";
                     break;
                 case PACKAGED:
                     if (isCodeQuotaExhausted) {
-                        nextAction = "Hết hạn mức mã QR (Cần cấp thêm dải mã)";
+                        nextAction = "Hết hạn mức mã QR";
                         targetScreen = "/production-lots/" + lot.getId() + "/shipments/create";
                     } else {
-                        nextAction = "Cấp mã tem & Kích hoạt tem QR";
+                        nextAction = "Cấp & kích hoạt tem QR";
                         targetScreen = "/production-lots/" + lot.getId() + "/shipments/create";
                     }
                     break;
                 case TAG_ACTIVATED:
-                    nextAction = "Theo dõi lưu thông & Quét tem";
+                    nextAction = "Theo dõi lưu thông";
                     targetScreen = "/production-lots/" + lot.getId();
                     break;
                 case IN_CIRCULATION:
                 default:
-                    nextAction = "Theo dõi lưu thông trên thị trường";
+                    nextAction = "Theo dõi lưu thông";
                     targetScreen = "/production-lots/" + lot.getId();
                     break;
             }
