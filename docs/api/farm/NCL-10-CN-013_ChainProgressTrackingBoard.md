@@ -202,8 +202,8 @@ API cung cấp dữ liệu bảng tiến độ chuỗi sản xuất & lưu thôn
 
 | Trạng thái / Điều kiện lô | Giai đoạn tiến độ | Việc cần làm tiếp theo (`nextActionRequired`) | Màn hình đích (`targetScreen`) |
 |---------------------------|-------------------|------------------------------------------------|--------------------------------|
-| Trạng thái `DRAFT` | `DRAFT` | Gửi yêu cầu duyệt lô sản xuất | `/production-lots/{id}` |
-| Trạng thái `PENDING` | `PENDING` | Duyệt lô sản xuất | `/production-lots/{id}` |
+| Trạng thái `DRAFT` | `DRAFT` | Gửi yêu cầu duyệt lô sản xuất | `/production-lots?highlightId={id}` |
+| Trạng thái `PENDING` | `PENDING` | Duyệt lô sản xuất | `/production-lots?highlightId={id}` |
 | Trạng thái `APPROVED` (chưa thu hoạch) | `APPROVED` | Ghi nhật ký canh tác / Ghi nhận thu hoạch | `/production-lots/{id}/farm-logs` |
 | Trạng thái `HARVESTED` (chưa gửi kiểm nghiệm hoặc chờ kết quả) | `HARVESTED` / `WAITING_TEST_RESULT` | Chờ hoặc nhập kết quả kiểm nghiệm | `/production-lots/{id}/inspection` |
 | Trạng thái `PREPROCESSED` (thiếu mốc canh tác / chưa có KQ kiểm nghiệm) | `PREPROCESSED` | Chờ hoặc nhập kết quả kiểm nghiệm | `/production-lots/{id}/inspection` |

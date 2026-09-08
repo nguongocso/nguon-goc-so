@@ -736,11 +736,11 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             switch (stage) {
                 case DRAFT:
                     nextAction = "Gửi yêu cầu duyệt lô sản xuất";
-                    targetScreen = "/production-lots/" + lot.getId();
+                    targetScreen = "/production-lots?highlightId=" + lot.getId();
                     break;
                 case PENDING:
                     nextAction = "Duyệt lô sản xuất";
-                    targetScreen = "/production-lots/" + lot.getId();
+                    targetScreen = "/production-lots?highlightId=" + lot.getId();
                     break;
                 case APPROVED:
                     nextAction = "Ghi nhật ký canh tác / Ghi nhận thu hoạch";
