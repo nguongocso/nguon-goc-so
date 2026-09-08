@@ -34,6 +34,7 @@ import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.impl.SuspectDetectionServiceImpl;
+import vn.nguongocso.farm.repository.ProductFeedbackRepository;
 
 /**
  * Kiểm thử chấm điểm nghi vấn NCL-08-CN-007.
@@ -49,6 +50,9 @@ class SuspectDetectionServiceImplTest {
 
     @Mock
     private TraceCodeRepository traceCodeRepository;
+
+    @Mock
+    private ProductFeedbackRepository productFeedbackRepository;
 
     @Mock
     private TraceCodeScanLogRepository scanLogRepository;
@@ -70,7 +74,8 @@ class SuspectDetectionServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new SuspectDetectionServiceImpl(
-                traceCodeRepository, scanLogRepository, userRepository, notificationService, eventPublisher);
+                traceCodeRepository, productFeedbackRepository, scanLogRepository,
+                userRepository, notificationService, eventPublisher);
 
         traceCodeId = UUID.randomUUID();
 
