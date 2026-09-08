@@ -16,7 +16,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { HelpButton } from "@/components/help/HelpButton";
-import { CodeRangeSupplementDialog } from "@/components/shipment/CodeRangeSupplementDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { getRemainingCodes } from "@/api/codeRangeApi";
 import { createShipment } from "@/api/shipmentApi";
@@ -45,9 +44,7 @@ export const CreateShipmentPage: React.FC = () => {
   const [lot, setLot] = useState<ProductionLot | null>(null);
   const [remainingCodes, setRemainingCodes] =
     useState<RemainingCodesResponse | null>(null);
-  const [remainingLoading, setRemainingLoading] = useState(false);
-  // NCL-04-CN-007: dialog yêu cầu cấp bổ sung dải mã
-  const [supplementDialogOpen, setSupplementDialogOpen] = useState(false);
+
   const [loadingLot, setLoadingLot] = useState(true);
   // NCL-11-CN-005: trạng thái kiểm nghiệm hiệu lực — dùng chung với pre-check
   // GET /production-lots/{lotId}/can-activate-seal (cùng logic backend gate).
@@ -110,11 +107,9 @@ export const CreateShipmentPage: React.FC = () => {
     void fetchInspectionCheck();
 
     if (user?.organizationId) {
-      setRemainingLoading(true);
       getRemainingCodes(user.organizationId)
         .then(setRemainingCodes)
-        .catch(() => setRemainingCodes(null))
-        .finally(() => setRemainingLoading(false));
+        .catch(() => setRemainingCodes(null));
     }
   }, [productionLotId, user?.organizationId]);
 
@@ -176,19 +171,10 @@ export const CreateShipmentPage: React.FC = () => {
   const isBlocked = isInspectionBlocked || isLotDisposed || isLotCancelled;
 
   const remainingCount = remainingCodes?.remainingCount ?? 0;
-  const totalLimit = remainingCodes?.totalLimit ?? 0;
+
   const hasCodeRange = remainingCodes?.hasCodeRange ?? false;
   const isExhausted =
     remainingCodes !== null && (!hasCodeRange || remainingCount <= 0);
-  // NCL-04-CN-007: lối tắt yêu cầu cấp bổ sung khi hạn mức dưới 20% hoặc đã hết
-  const isNearlyExhausted =
-    hasCodeRange && totalLimit > 0 && remainingCount / totalLimit < 0.2;
-  const showSupplementLink =
-    user?.roleCode === 'VT-02' &&
-    !remainingLoading &&
-    remainingCodes !== null &&
-    (isExhausted || isNearlyExhausted) &&
-    !isBlocked;
 
   // NCL-04-CN-007: cảnh báo động khi số lượng nhập vượt hạn mức còn lại
   const watchedQuantity = watch("totalQuantity");
@@ -244,78 +230,6 @@ export const CreateShipmentPage: React.FC = () => {
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-5 pt-6">
-            {/* Box trạng thái dải mã truy xuất */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 text-sm space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-slate-700">
-                  Dải mã truy xuất còn lại của tổ chức:
-                </span>
-                <div className="flex items-center gap-2">
-                  {remainingLoading && !remainingCodes ? (
-                    <span className="text-xs text-muted-foreground">
-                      Đang tải...
-                    </span>
-                  ) : !hasCodeRange ? (
-                    <span className="flex items-center gap-1 font-semibold text-amber-600">
-                      <AlertTriangle className="h-4 w-4" />
-                      Chưa có dải mã
-                    </span>
-                  ) : (
-                    <span className="font-bold text-emerald-600 text-base">
-                      {remainingCount.toLocaleString()} /{" "}
-                      {totalLimit.toLocaleString()} mã
-                    </span>
-                  )}
-
-                  {/* NCL-04-CN-007: CTA cấp bổ sung gọn — ẩn khi lô bị chặn tạo lô hàng */}
-                  {showSupplementLink && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setSupplementDialogOpen(true)}
-                    >
-                      <Hash className="h-3.5 w-3.5 mr-1" />
-                      Cấp bổ sung
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {!remainingLoading && !remainingCodes && user?.organizationId && (
-                <p className="text-xs text-red-500">
-                  Không thể tải số lượng mã còn lại.
-                </p>
-              )}
-
-              {!user?.organizationId && (
-                <p className="flex items-center gap-1 text-xs text-red-500">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  Không xác định được tổ chức.
-                </p>
-              )}
-
-              {!remainingLoading && hasCodeRange && remainingCount <= 0 && (
-                <p className="flex items-center gap-1 text-xs text-red-500">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  Đã hết mã truy xuất. Không thể tạo thêm lô hàng. Vui lòng liên
-                  hệ quản trị viên để cấp thêm dải mã.
-                </p>
-              )}
-
-              {!remainingLoading &&
-                remainingCodes !== null &&
-                !hasCodeRange && (
-                  <p className="flex items-center gap-1 text-xs text-red-500">
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    Tổ chức chưa được cấp dải mã truy xuất. Vui lòng yêu cầu cấp
-                    dải mã trước.
-                  </p>
-                )}
-
-              {/* NCL-04-CN-007: CTA cấp bổ sung gọn — đặt trong box hạn mức, ẩn khi lô bị chặn */}
-            </div>
-
             {/* NCL-11-CN-005: Cảnh báo lô không đạt kiểm nghiệm */}
             {isBlocked && (
               <div className="rounded-xl border border-red-200 bg-red-50 p-4">
@@ -392,7 +306,7 @@ export const CreateShipmentPage: React.FC = () => {
                       size="sm"
                       variant="outline"
                       className="h-7 border-red-300 px-2 text-xs text-red-700 hover:bg-red-100"
-                      onClick={() => setSupplementDialogOpen(true)}
+                      onClick={() => navigate("/code-range-supplements/create")}
                     >
                       <Hash className="h-3 w-3 mr-1" />
                       Cấp bổ sung
@@ -449,11 +363,6 @@ export const CreateShipmentPage: React.FC = () => {
         </form>
       </Card>
 
-      {/* NCL-04-CN-007: Dialog yêu cầu cấp bổ sung dải mã */}
-      <CodeRangeSupplementDialog
-        open={supplementDialogOpen}
-        onClose={() => setSupplementDialogOpen(false)}
-      />
     </div>
   );
 };

@@ -26,6 +26,13 @@ public class CodeRangeSupplementResponse {
     private String status;
     private String reason;
     private List<UUID> evidenceEventIds;
+    /**
+     * Chi tiết bằng chứng đã resolve từ {@code evidenceEventIds} (loại sự kiện,
+     * tên lô, thời điểm, người ghi) để VT-01 xem khi duyệt mà không cần gọi
+     * endpoint evidence-events (vốn chỉ dành cho VT-02). Giữ đúng thứ tự ID gốc;
+     * sự kiện đã bị xóa thì vắng mặt (FE fallback hiển thị ID).
+     */
+    private List<EvidenceEventResponse> evidenceEvents;
     private UserInfo approvedBy;
     private LocalDateTime approvedAt;
     private String approvalRemarks;

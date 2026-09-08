@@ -16,6 +16,12 @@ export interface CodeRangeSupplementRequest {
   status: CodeRangeSupplementStatus;
   reason: string;
   evidenceEventIds: string[];
+  /**
+   * Chi tiết bằng chứng đã resolve từ BE (loại sự kiện, tên lô, thời điểm,
+   * người ghi). Có thể vắng mặt với dữ liệu cũ hoặc sự kiện đã bị xóa —
+   * khi đó FE fallback hiển thị ID.
+   */
+  evidenceEvents?: EvidenceEvent[];
   approvedBy: SupplementUserInfo | null;
   approvedAt: string | null;
   approvalRemarks: string | null;
@@ -34,6 +40,8 @@ export interface EvidenceEvent {
   shipmentId: string | null;
   productionLotId: string | null;
   productionLotName: string | null;
+  /** Số lượng thực tế ghi nhận trong sự kiện (kg, tấn,... tùy đơn vị) */
+  quantity?: number;
 }
 
 export interface CreateSupplementRequestPayload {

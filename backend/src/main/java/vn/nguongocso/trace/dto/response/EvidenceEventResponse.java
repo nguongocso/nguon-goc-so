@@ -1,5 +1,6 @@
 package vn.nguongocso.trace.dto.response;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -34,4 +35,11 @@ public class EvidenceEventResponse {
     private UUID productionLotId;
 
     private String productionLotName;
+
+    /**
+     * Số lượng sản lượng thực ghi nhận trong sự kiện.
+     * Thu hoạch (HARVEST): trường "quantity"; sơ chế (PREPROCESSING): ưu tiên
+     * "outputQuantity" rồi tới "inputQuantity" trong eventData của ChainEvent.
+     */
+    private BigDecimal quantity;
 }

@@ -52,7 +52,7 @@ import { useDeleteDraftShipment } from "@/hooks/useDeleteDraftShipment";
 import { checkCanActivateSeal } from "@/api/certificationApi";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ExportLabelsDialog } from "@/components/shipment/ExportLabelsDialog";
-import { CodeRangeSupplementDialog } from "@/components/shipment/CodeRangeSupplementDialog";
+
 
 interface ShipmentListProps {
   productionLotId: string;
@@ -102,9 +102,6 @@ export const ShipmentList = ({
   // NCL-04-CN-005: Lô hàng đang được xuất tem QR
   const [labelExportShipment, setLabelExportShipment] =
     useState<Shipment | null>(null);
-
-  // NCL-04-CN-007: dialog yêu cầu cấp bổ sung dải mã
-  const [supplementDialogOpen, setSupplementDialogOpen] = useState(false);
 
   const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
   // NCL-04-CN-005: Chỉ VT-02 được xuất tem QR
@@ -263,7 +260,7 @@ export const ShipmentList = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setSupplementDialogOpen(true)}
+                  onClick={() => navigate("/code-range-supplements/create")}
                 >
                   <Hash className="mr-1 h-4 w-4" />
                   Cấp bổ sung mã
@@ -558,12 +555,6 @@ export const ShipmentList = ({
         open={labelExportShipment !== null}
         shipment={labelExportShipment}
         onClose={() => setLabelExportShipment(null)}
-      />
-
-      {/* NCL-04-CN-007: Dialog yêu cầu cấp bổ sung dải mã */}
-      <CodeRangeSupplementDialog
-        open={supplementDialogOpen}
-        onClose={() => setSupplementDialogOpen(false)}
       />
 
     </>

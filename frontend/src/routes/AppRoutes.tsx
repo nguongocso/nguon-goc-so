@@ -173,6 +173,7 @@ import { RecallRequestDetailPage } from "@/pages/recall-request/RecallRequestDet
 // ===== Code range supplement (NCL-04-CN-007) =====
 import { CodeRangeSupplementListPage } from "@/pages/admin/CodeRangeSupplementListPage";
 import { CodeRangeSupplementDetailPage } from "@/pages/admin/CodeRangeSupplementDetailPage";
+import { CodeRangeSupplementPage } from "@/pages/shipment/CodeRangeSupplementPage";
 
 // ===== Area assignment (NCL-670 / NCL-742) =====
 import { AreaAssignmentPage } from "@/pages/admin/AreaAssignmentPage";
@@ -1425,10 +1426,20 @@ const AppRoutes = () => (
 
             {/* =================================================
           CODE RANGE SUPPLEMENT (NCL-04-CN-007)
-          Form tạo yêu cầu là dialog nhúng trong tab
-          "Lô hàng & Mã QR" của chi tiết lô sản xuất và màn
-          hình tạo lô hàng — không còn route riêng.
+          Trang tạo yêu cầu (VT-02): mở từ tab "Lô hàng & Mã QR"
+          của chi tiết lô sản xuất và màn hình tạo lô hàng.
       ================================================= */}
+
+            <Route
+                path="code-range-supplements/create"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.supplementCreate}
+                    >
+                        <CodeRangeSupplementPage />
+                    </RoleRoute>
+                }
+            />
 
             <Route
                 path="admin/code-range-supplements"

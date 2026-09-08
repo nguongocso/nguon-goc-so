@@ -522,11 +522,107 @@ class CodeRangeSupplementServiceImplTest {
         assertThat(result.get(0).getProductionLotName()).isEqualTo("Lo Nho 01");
     }
 
+    // Sản lượng thực: sự kiện thu hoạch resolve "quantity" từ eventData
+    @Test
+    void listEvidenceEvents_resolvesHarvestQuantity() {
+        harvestEvent.setEventData("{\"quantity\":500.5}");
+        List<ChainEventType> evidenceTypes = List.of(ChainEventType.HARVEST, ChainEventType.PREPROCESSING);
+        when(chainEventRepository.findByEventTypeInAndShipment_Organization_OrganizationId(
+                evidenceTypes, organizationId))
+                .thenReturn(List.of(harvestEvent));
+        when(chainEventRepository.findByShipmentIsNullAndEventTypeIn(evidenceTypes))
+                .thenReturn(List.of());
+
+        List<EvidenceEventResponse> result = supplementService.listEvidenceEvents(managerUser);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getQuantity()).isEqualByComparingTo("500.5");
+    }
+
+    // Sản lượng thực: sự kiện sơ chế ưu tiên "outputQuantity" (không có "quantity")
+    @Test
+    void listEvidenceEvents_resolvesPreprocessingOutputQuantity() {
+        ChainEvent preprocessing = ChainEvent.builder()
+                .id(UUID.randomUUID())
+                .shipment(shipmentOf(organization))
+                .eventType(ChainEventType.PREPROCESSING)
+                .eventData("{\"inputQuantity\":480,\"outputQuantity\":450.25}")
+                .recordedBy(requester)
+                .build();
+        List<ChainEventType> evidenceTypes = List.of(ChainEventType.HARVEST, ChainEventType.PREPROCESSING);
+        when(chainEventRepository.findByEventTypeInAndShipment_Organization_OrganizationId(
+                evidenceTypes, organizationId))
+                .thenReturn(List.of(preprocessing));
+        when(chainEventRepository.findByShipmentIsNullAndEventTypeIn(evidenceTypes))
+                .thenReturn(List.of());
+
+        List<EvidenceEventResponse> result = supplementService.listEvidenceEvents(managerUser);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getEventType()).isEqualTo("PREPROCESSING");
+        assertThat(result.get(0).getQuantity()).isEqualByComparingTo("450.25");
+    }
+
     // TC-08: sai vai trò (VT-03) bị chặn
     @Test
     void listEvidenceEvents_tc08_blockedForNonManager() {
         assertThatThrownBy(() -> supplementService.listEvidenceEvents(recorderUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Bạn không có quyền tạo yêu cầu cấp bổ sung dải mã.");
+    }
+
+    // Response chi tiết resolve bằng chứng: đúng thứ tự ID gốc + đủ thông tin sự kiện
+    @Test
+    void getById_resolvesEvidenceDetails_inOriginalOrder() {
+        UUID lotId = UUID.randomUUID();
+        ProductionLot lot = new ProductionLot();
+        lot.setId(lotId);
+        lot.setOrganization(organization);
+        lot.setName("Lo Xoai 01");
+
+        ChainEvent unassigned = ChainEvent.builder()
+                .id(UUID.randomUUID())
+                .eventType(ChainEventType.PREPROCESSING)
+                .eventData("{\"productionLotId\":\"" + lotId + "\"}")
+                .recordedBy(requester)
+                .build();
+
+        CodeRangeSupplementRequest supplement = pendingSupplement(500L);
+        supplement.setEvidenceEventIds(
+                "[\"" + harvestEvent.getId() + "\",\"" + unassigned.getId() + "\"]");
+        when(supplementRepository.findById(supplement.getId())).thenReturn(Optional.of(supplement));
+        when(chainEventRepository.findAllById(anyList()))
+                .thenReturn(List.of(harvestEvent, unassigned));
+        when(productionLotRepository.findAllById(anyCollection())).thenReturn(List.of(lot));
+
+        CodeRangeSupplementResponse response = supplementService.getById(supplement.getId(), adminUser);
+
+        assertThat(response.getEvidenceEventIds())
+                .containsExactly(harvestEvent.getId(), unassigned.getId());
+        assertThat(response.getEvidenceEvents()).hasSize(2);
+        assertThat(response.getEvidenceEvents().get(0).getEventId()).isEqualTo(harvestEvent.getId());
+        assertThat(response.getEvidenceEvents().get(0).getEventType()).isEqualTo("HARVEST");
+        assertThat(response.getEvidenceEvents().get(0).getShipmentId())
+                .isEqualTo(harvestEvent.getShipment().getId());
+        assertThat(response.getEvidenceEvents().get(1).getEventId()).isEqualTo(unassigned.getId());
+        assertThat(response.getEvidenceEvents().get(1).getEventType()).isEqualTo("PREPROCESSING");
+        assertThat(response.getEvidenceEvents().get(1).getProductionLotName()).isEqualTo("Lo Xoai 01");
+    }
+
+    // Response chi tiết bỏ qua sự kiện bằng chứng đã bị xóa (FE fallback hiển thị ID)
+    @Test
+    void getById_skipsMissingEvidenceEvents() {
+        UUID deletedId = UUID.randomUUID();
+        CodeRangeSupplementRequest supplement = pendingSupplement(500L);
+        supplement.setEvidenceEventIds(
+                "[\"" + harvestEvent.getId() + "\",\"" + deletedId + "\"]");
+        when(supplementRepository.findById(supplement.getId())).thenReturn(Optional.of(supplement));
+        when(chainEventRepository.findAllById(anyList())).thenReturn(List.of(harvestEvent));
+
+        CodeRangeSupplementResponse response = supplementService.getById(supplement.getId(), adminUser);
+
+        assertThat(response.getEvidenceEventIds()).containsExactly(harvestEvent.getId(), deletedId);
+        assertThat(response.getEvidenceEvents()).hasSize(1);
+        assertThat(response.getEvidenceEvents().get(0).getEventId()).isEqualTo(harvestEvent.getId());
     }
 }

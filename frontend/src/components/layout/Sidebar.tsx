@@ -184,15 +184,13 @@ const MENU_GROUPS: MenuGroup[] = [
       },
       {
         icon: <Hash className="h-5 w-5" />,
-        label: "Quản lý dải mã",
+        label: "Quản lý dải mã truy xuất",
         href: "/admin/code-ranges",
         allowedRoles: ROLE_ACCESS.codeRangeList,
-      },
-      {
-        icon: <Hash className="h-5 w-5" />,
-        label: "Duyệt bổ sung mã",
-        href: "/admin/code-range-supplements",
-        allowedRoles: ROLE_ACCESS.supplementManage,
+        activePaths: [
+          "/admin/code-ranges",
+          "/admin/code-range-supplements",
+        ],
       },
       {
         icon: <Lock className="h-5 w-5" />,

@@ -8,10 +8,12 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.math.BigDecimal;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -436,6 +438,32 @@ public class CodeRangeSupplementServiceImpl implements CodeRangeSupplementServic
         }
     }
 
+    /**
+     * Resolve chi tiết các sự kiện bằng chứng từ list ID đã lưu để VT-01 xem
+     * khi duyệt (loại sự kiện, tên lô, thời điểm, người ghi).
+     *
+     * <p>Giữ đúng thứ tự ID gốc; sự kiện đã bị xóa thì bỏ qua (FE fallback
+     * hiển thị ID). Tải tên lô gộp một query duy nhất qua {@link #loadLotNames}.</p>
+     */
+    private List<EvidenceEventResponse> resolveEvidenceDetails(List<UUID> evidenceIds) {
+        if (evidenceIds == null || evidenceIds.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, ChainEvent> byId = new HashMap<>();
+        chainEventRepository.findAllById(evidenceIds).forEach(event -> byId.put(event.getId(), event));
+        List<ChainEvent> ordered = evidenceIds.stream()
+                .map(byId::get)
+                .filter(Objects::nonNull)
+                .toList();
+        if (ordered.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, String> lotNames = loadLotNames(ordered);
+        return ordered.stream()
+                .map(event -> toEvidenceResponse(event, lotNames))
+                .toList();
+    }
+
     private EvidenceEventResponse toEvidenceResponse(ChainEvent event, Map<UUID, String> lotNames) {
         UUID lotId = resolveProductionLotId(event);
         return EvidenceEventResponse.builder()
@@ -446,7 +474,64 @@ public class CodeRangeSupplementServiceImpl implements CodeRangeSupplementServic
                 .shipmentId(event.getShipment() != null ? event.getShipment().getId() : null)
                 .productionLotId(lotId)
                 .productionLotName(lotId != null ? lotNames.get(lotId) : null)
+                .quantity(extractQuantity(event))
                 .build();
+    }
+
+    /**
+     * Trích xuất số lượng sản lượng từ {@code eventData} JSON của sự kiện.
+     *
+     * <p>Sự kiện thu hoạch (HARVEST) lưu ở trường "quantity"; sự kiện sơ chế
+     * (PREPROCESSING) lưu ở "outputQuantity"/"inputQuantity" nên phải ưu tiên
+     * key theo loại sự kiện, nếu không dialog bằng chứng sẽ không hiện sản
+     * lượng thực. Chấp nhận cả số và chuỗi số.</p>
+     */
+    private BigDecimal extractQuantity(ChainEvent event) {
+        String eventData = event.getEventData();
+        if (eventData == null || eventData.isBlank()) {
+            return null;
+        }
+        List<String> keys;
+        if (event.getEventType() == ChainEventType.PREPROCESSING) {
+            keys = List.of("outputQuantity", "inputQuantity", "quantity", "weight",
+                    "actualQuantity", "harvestQuantity");
+        } else {
+            keys = List.of("quantity", "harvestQuantity", "actualQuantity", "weight",
+                    "outputQuantity", "inputQuantity");
+        }
+        try {
+            JsonNode node = objectMapper.readTree(eventData);
+            for (String key : keys) {
+                BigDecimal value = parseQuantityNode(node.get(key));
+                if (value != null) {
+                    return value;
+                }
+            }
+        } catch (JsonProcessingException e) {
+            // bỏ qua, trả về null
+        }
+        return null;
+    }
+
+    /** Parse một node số lượng: nhận cả number và chuỗi số, còn lại trả null. */
+    private BigDecimal parseQuantityNode(JsonNode qtyNode) {
+        if (qtyNode == null || qtyNode.isNull()) {
+            return null;
+        }
+        try {
+            if (qtyNode.isNumber()) {
+                return qtyNode.decimalValue();
+            }
+            if (qtyNode.isTextual()) {
+                String text = qtyNode.asText().trim().replace(",", ".");
+                if (!text.isEmpty()) {
+                    return new BigDecimal(text);
+                }
+            }
+        } catch (NumberFormatException e) {
+            // bỏ qua key này, thử key tiếp theo
+        }
+        return null;
     }
 
     /**
@@ -518,9 +603,11 @@ public class CodeRangeSupplementServiceImpl implements CodeRangeSupplementServic
     }
 
     /**
-     * Chuyển đổi entity sang response DTO.
+     * Chuyển đổi entity sang response DTO (kèm chi tiết bằng chứng đã resolve
+     * để VT-01 xem khi duyệt).
      */
     private CodeRangeSupplementResponse toResponse(CodeRangeSupplementRequest entity) {
+        List<UUID> evidenceIds = fromEvidenceJson(entity.getEvidenceEventIds());
         CodeRangeSupplementResponse.UserInfo requestedBy = entity.getRequestedBy() != null
                 ? CodeRangeSupplementResponse.UserInfo.builder()
                         .userId(entity.getRequestedBy().getUserId())
@@ -552,7 +639,8 @@ public class CodeRangeSupplementServiceImpl implements CodeRangeSupplementServic
                 .approvedQuantity(entity.getApprovedQuantity())
                 .status(entity.getStatus().name())
                 .reason(entity.getReason())
-                .evidenceEventIds(fromEvidenceJson(entity.getEvidenceEventIds()))
+                .evidenceEventIds(evidenceIds)
+                .evidenceEvents(resolveEvidenceDetails(evidenceIds))
                 .approvedBy(approvedBy)
                 .approvedAt(entity.getApprovedAt())
                 .approvalRemarks(entity.getApprovalRemarks())
