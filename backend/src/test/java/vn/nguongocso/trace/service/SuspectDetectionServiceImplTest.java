@@ -3,6 +3,8 @@ package vn.nguongocso.trace.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
@@ -18,6 +20,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -93,6 +96,7 @@ class SuspectDetectionServiceImplTest {
         traceCode.setId(traceCodeId);
         traceCode.setCodeValue("NCL0001");
         traceCode.setStatus(TraceCodeStatus.ACTIVE);
+        traceCode.setActivatedAt(LocalDateTime.now().minusDays(400));
 
         lenient().when(traceCodeRepository.findById(traceCodeId)).thenReturn(Optional.of(traceCode));
     }
@@ -287,6 +291,54 @@ class SuspectDetectionServiceImplTest {
 
         assertEquals(30, traceCode.getSuspicionScore(),
                 "Ngưỡng ghi đè theo danh mục (maxScansPerDay = 4) phải được áp dụng");
+    }
+
+    @Test
+    @DisplayName("Thời gian ân hạn (grace period) - mã tem trong ân hạn không bị gắn cờ, sau ân hạn bị gắn cờ SUSPECT")
+    void shouldSkipEvaluation_whenWithinGracePeriod_andFlagSuspect_whenGracePeriodElapsed() {
+        LocalDateTime now = LocalDateTime.now();
+
+        // Cấu hình ngưỡng có grace period (activationAgeDays) = 7 ngày
+        AnomalyThresholdResponse threshold = AnomalyThresholdResponse.builder()
+                .maxScansPerHour(5)
+                .maxScansPerDay(10)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(50.0))
+                .minTimeBetweenScansMinutes(30)
+                .activationAgeDays(7)
+                .build();
+        when(anomalyThresholdService.getEffectiveThreshold(any())).thenReturn(threshold);
+
+        // Chuẩn bị hành vi quét bất thường rõ rệt: 12 lượt quét trong 30 phút + di chuyển bất hợp lý HN -> ĐN (vượt cả maxPerHour, maxPerDay lẫn travel)
+        List<TraceCodeScanLog> anomalousScans = new ArrayList<>();
+        anomalousScans.add(scan(30, 21.0285, 105.8542)); // Hà Nội
+        anomalousScans.add(scan(28, 16.0544, 108.2022)); // Đà Nẵng (di chuyển phi lý)
+        for (int i = 2; i < 12; i++) {
+            anomalousScans.add(scan(28 - i * 2, 16.0544, 108.2022));
+        }
+        stubRecentScans(anomalousScans);
+
+        // KỊCH BẢN 1: Mã tem mới kích hoạt được 2 ngày (< 7 ngày ân hạn)
+        traceCode.setActivatedAt(now.minusDays(2));
+        traceCode.setStatus(TraceCodeStatus.ACTIVE);
+        traceCode.setSuspicionScore(null);
+
+        service.evaluateSuspicion(traceCodeId);
+
+        // Xác nhận: Không bị đánh giá, không bị gắn cờ, trạng thái giữ nguyên ACTIVE
+        assertEquals(TraceCodeStatus.ACTIVE, traceCode.getStatus());
+        assertNull(traceCode.getSuspicionScore());
+        verify(notificationService, never()).sendSuspectTraceCodeNotification(any());
+
+        // KỊCH BẢN 2: Cùng hành vi quét bất thường đó, nhưng mã tem đã kích hoạt 10 ngày (>= 7 ngày ân hạn)
+        traceCode.setActivatedAt(now.minusDays(10));
+
+        service.evaluateSuspicion(traceCodeId);
+
+        // Xác nhận: Đã hết thời gian ân hạn -> được đánh giá và bị chuyển thành SUSPECT
+        assertEquals(TraceCodeStatus.SUSPECT, traceCode.getStatus());
+        assertNotNull(traceCode.getSuspicionScore());
+        assertTrue(traceCode.getSuspicionScore() >= 30);
+        verify(notificationService).sendSuspectTraceCodeNotification(traceCode);
     }
 
     @Test

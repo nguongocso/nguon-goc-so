@@ -337,22 +337,30 @@ class AnomalyThresholdServiceImplTest {
     }
 
     @Test
-    @DisplayName("Ước lượng tác động (estimateImpact) - tính toán chính xác số vi phạm và không ghi đè DB")
+    @DisplayName("Ước lượng tác động (estimateImpact) - tính toán chính xác số vi phạm theo thời gian ân hạn và không ghi đè DB")
     void shouldEstimateImpactAccurately_withoutModifyingDatabase() {
         LocalDateTime now = LocalDateTime.now();
 
+        // Code 1: Đã kích hoạt 10 ngày (>= 7 ngày ân hạn), có hành vi quét tần suất cao
         TraceCode code1 = new TraceCode();
         code1.setId(UUID.randomUUID());
         code1.setCodeValue("CODE-01");
         code1.setActivatedAt(now.minusDays(10));
 
+        // Code 2: Đã kích hoạt 20 ngày (>= 7 ngày ân hạn), có hành vi di chuyển phi lý (HN -> TP.HCM trong 10 phút)
         TraceCode code2 = new TraceCode();
         code2.setId(UUID.randomUUID());
         code2.setCodeValue("CODE-02");
-        code2.setActivatedAt(now.minusDays(500)); // Quá 365 ngày
+        code2.setActivatedAt(now.minusDays(20));
+
+        // Code 3: Mới kích hoạt 2 ngày (< 7 ngày ân hạn), có tần suất cao nhưng nằm trong ân hạn -> BỎ QUA
+        TraceCode code3 = new TraceCode();
+        code3.setId(UUID.randomUUID());
+        code3.setCodeValue("CODE-03");
+        code3.setActivatedAt(now.minusDays(2));
 
         List<TraceCodeScanLog> scans = new ArrayList<>();
-        // Code 1 có 6 lượt quét trong 30 phút (vi phạm maxScansPerHour = 5)
+        // Code 1 có 6 lượt quét trong 25 phút (vi phạm maxScansPerHour = 5)
         for (int i = 0; i < 6; i++) {
             scans.add(TraceCodeScanLog.builder()
                     .id(UUID.randomUUID())
@@ -364,15 +372,35 @@ class AnomalyThresholdServiceImplTest {
                     .build());
         }
 
-        // Code 2 có 1 lượt quét nhưng vi phạm activationAgeDays = 365
+        // Code 2 có 2 lượt quét di chuyển phi lý: HN -> TP.HCM trong 10 phút (> 50km trong 30 phút)
         scans.add(TraceCodeScanLog.builder()
                 .id(UUID.randomUUID())
                 .traceCode(code2)
                 .scannedAt(now.minusDays(1))
+                .latitude(BigDecimal.valueOf(21.0285))
+                .longitude(BigDecimal.valueOf(105.8542))
+                .isAbnormal(false)
+                .build());
+        scans.add(TraceCodeScanLog.builder()
+                .id(UUID.randomUUID())
+                .traceCode(code2)
+                .scannedAt(now.minusDays(1).plusMinutes(10))
                 .latitude(BigDecimal.valueOf(10.7769))
                 .longitude(BigDecimal.valueOf(106.7009))
                 .isAbnormal(false)
                 .build());
+
+        // Code 3 có 6 lượt quét trong 25 phút (anomalous nhưng trong thời gian ân hạn 7 ngày)
+        for (int i = 0; i < 6; i++) {
+            scans.add(TraceCodeScanLog.builder()
+                    .id(UUID.randomUUID())
+                    .traceCode(code3)
+                    .scannedAt(now.minusDays(1).plusMinutes(i * 5))
+                    .latitude(BigDecimal.valueOf(21.0285))
+                    .longitude(BigDecimal.valueOf(105.8542))
+                    .isAbnormal(false)
+                    .build());
+        }
 
         when(scanLogRepository.findByScannedAtGreaterThanEqualOrderByScannedAtAsc(any(LocalDateTime.class)))
                 .thenReturn(scans);
@@ -382,17 +410,19 @@ class AnomalyThresholdServiceImplTest {
                 .maxScansPerDay(10)
                 .maxDistanceKmPer30Min(BigDecimal.valueOf(50.0))
                 .minTimeBetweenScansMinutes(30)
-                .activationAgeDays(365)
+                .activationAgeDays(7)
                 .build();
 
         ImpactEstimationResponse result = service.estimateImpact(request);
 
         assertNotNull(result);
-        assertEquals(7, result.getTotalScansAnalyzed());
-        assertEquals(2, result.getTotalTraceCodesAnalyzed());
+        assertEquals(14, result.getTotalScansAnalyzed());
+        assertEquals(3, result.getTotalTraceCodesAnalyzed());
+        // Chỉ code1 và code2 bị gắn cờ; code3 trong ân hạn được bỏ qua
         assertEquals(2, result.getEstimatedAnomaliesCount());
         assertEquals(1, result.getHighFrequencyCount());
-        assertEquals(1, result.getActivationAgeCount());
+        assertEquals(1, result.getImpossibleTravelCount());
+        assertEquals(2, result.getActivationAgeCount());
 
         // Đảm bảo không lưu thay đổi vào cơ sở dữ liệu (Dry-run)
         verify(scanLogRepository, never()).save(any(TraceCodeScanLog.class));

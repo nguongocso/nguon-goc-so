@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Calculator, Save, AlertCircle, ArrowLeft, Layers } from 'lucide-react';
+import { Loader2, Calculator, Save, AlertCircle, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import { getProductCategories } from '@/api/productCategoryApi';
@@ -129,11 +129,21 @@ export const CategoryOverridePage: React.FC = () => {
     if (maxScansPerHour && maxScansPerDay && maxScansPerHour > maxScansPerDay) {
       errs.maxScansPerHour = 'Số lượt quét/giờ không được vượt quá số lượt quét/ngày';
     }
-    if (!maxDistanceKmPer30Min || maxDistanceKmPer30Min < 0.1) {
-      errs.maxDistanceKmPer30Min = 'Khoảng cách tối đa phải ≥ 0.1 km';
+    if (
+      maxDistanceKmPer30Min === undefined ||
+      maxDistanceKmPer30Min === null ||
+      isNaN(maxDistanceKmPer30Min) ||
+      maxDistanceKmPer30Min < 0
+    ) {
+      errs.maxDistanceKmPer30Min = 'Khoảng cách tối đa phải không âm';
     }
-    if (!minTimeBetweenScansMinutes || minTimeBetweenScansMinutes < 1) {
-      errs.minTimeBetweenScansMinutes = 'Thời gian di chuyển tối thiểu phải ≥ 1 phút';
+    if (
+      minTimeBetweenScansMinutes === undefined ||
+      minTimeBetweenScansMinutes === null ||
+      isNaN(minTimeBetweenScansMinutes) ||
+      minTimeBetweenScansMinutes < 0
+    ) {
+      errs.minTimeBetweenScansMinutes = 'Khung thời gian xét di chuyển phải không âm';
     }
     if (activationAgeDays === undefined || activationAgeDays === null || activationAgeDays < 0) {
       errs.activationAgeDays = 'Thời hạn kích hoạt phải ≥ 0 ngày';
@@ -206,25 +216,15 @@ export const CategoryOverridePage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6 max-w-5xl mx-auto">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/admin/anomaly-thresholds')}
-              className="h-8 w-8 text-muted-foreground hover:text-slate-900"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-              <Layers className="size-6 text-emerald-600" />
-              {isEditing ? 'Chỉnh sửa cấu hình theo loại nông sản' : 'Thêm mới cấu hình theo loại nông sản'}
-            </h1>
-          </div>
-          <p className="text-sm text-muted-foreground mt-1 ml-10">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+            <Layers className="size-6 text-emerald-600" />
+            {isEditing ? 'Chỉnh sửa cấu hình theo loại nông sản' : 'Thêm mới cấu hình theo loại nông sản'}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
             {isEditing
               ? 'Điều chỉnh các ngưỡng quét bất thường riêng biệt cho loại nông sản đã chọn.'
               : 'Thiết lập các ngưỡng quét bất thường đặc thù cho từng loại nông sản có tính chất riêng.'}
@@ -232,9 +232,9 @@ export const CategoryOverridePage: React.FC = () => {
         </div>
       </div>
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold text-slate-900">
+        <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+          <CardHeader className="border-b border-slate-100 pb-4">
+            <CardTitle className="text-lg font-semibold text-slate-900">
               Thông tin loại nông sản & Ngưỡng quét
             </CardTitle>
             <CardDescription>
@@ -242,10 +242,10 @@ export const CategoryOverridePage: React.FC = () => {
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 pt-6">
             {/* Category Select */}
-            <div className="space-y-2">
-              <Label htmlFor="category-select" className="text-sm font-medium text-slate-700">
+            <div className="space-y-1.5">
+              <Label htmlFor="category-select" className="text-sm font-medium">
                 Loại nông sản <span className="text-destructive">*</span>
               </Label>
               <Select
@@ -280,9 +280,9 @@ export const CategoryOverridePage: React.FC = () => {
             </div>
 
             {/* Threshold Fields Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="cat-scans-per-hour" className="text-sm font-medium text-slate-700">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="cat-scans-per-hour" className="text-sm font-medium">
                   Số lượt quét tối đa / giờ (1 mã) <span className="text-destructive">*</span>
                 </Label>
                 <Input
@@ -301,8 +301,8 @@ export const CategoryOverridePage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="cat-scans-per-day" className="text-sm font-medium text-slate-700">
+              <div className="space-y-1.5">
+                <Label htmlFor="cat-scans-per-day" className="text-sm font-medium">
                   Số lượt quét tối đa / ngày (24h) <span className="text-destructive">*</span>
                 </Label>
                 <Input
@@ -321,15 +321,15 @@ export const CategoryOverridePage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="cat-max-dist" className="text-sm font-medium text-slate-700">
-                  Khoảng cách di chuyển tối đa (km) <span className="text-destructive">*</span>
+              <div className="space-y-1.5">
+                <Label htmlFor="cat-max-dist" className="text-sm font-medium">
+                  Khoảng cách tối đa (km) <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="cat-max-dist"
                   type="number"
-                  step="0.1"
-                  min={0.1}
+                  step="0.5"
+                  min={0}
                   value={maxDistanceKmPer30Min}
                   onChange={(e) => setMaxDistanceKmPer30Min(parseFloat(e.target.value) || 0)}
                   placeholder="Ví dụ: 50.0"
@@ -342,14 +342,14 @@ export const CategoryOverridePage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="cat-min-time" className="text-sm font-medium text-slate-700">
-                  Thời gian di chuyển tối thiểu (phút) <span className="text-destructive">*</span>
+              <div className="space-y-1.5">
+                <Label htmlFor="cat-min-time" className="text-sm font-medium">
+                  Khung thời gian xét di chuyển (phút) <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="cat-min-time"
                   type="number"
-                  min={1}
+                  min={0}
                   value={minTimeBetweenScansMinutes}
                   onChange={(e) => setMinTimeBetweenScansMinutes(parseInt(e.target.value, 10) || 0)}
                   placeholder="Ví dụ: 30"
@@ -362,8 +362,8 @@ export const CategoryOverridePage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="cat-act-age" className="text-sm font-medium text-slate-700">
+              <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
+                <Label htmlFor="cat-act-age" className="text-sm font-medium">
                   Thời hạn kích hoạt bình thường (ngày) <span className="text-destructive">*</span>
                 </Label>
                 <Input

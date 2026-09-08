@@ -27,6 +27,7 @@ import vn.nguongocso.alert.entity.AnomalyThreshold;
 import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.alert.repository.AnomalyThresholdRepository;
 import vn.nguongocso.alert.service.AnomalyThresholdService;
+import vn.nguongocso.alert.util.ScanAnomalyUtils;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -231,15 +232,30 @@ public class AnomalyThresholdServiceImpl implements AnomalyThresholdService {
             if (scans.isEmpty()) continue;
 
             TraceCode tc = scans.get(0).getTraceCode();
-            boolean highFreq = checkHighFrequency(scans, request.getMaxScansPerHour(), request.getMaxScansPerDay());
-            boolean impossibleTravel = checkImpossibleTravel(scans, request.getMaxDistanceKmPer30Min().doubleValue(), request.getMinTimeBetweenScansMinutes());
-            boolean activationAge = checkActivationAge(tc, scans, request.getActivationAgeDays());
+
+            // Áp dụng gate thời gian ân hạn: chỉ đánh giá các lượt quét sau thời gian ân hạn
+            List<TraceCodeScanLog> evaluatedScans = scans.stream()
+                    .filter(s -> !ScanAnomalyUtils.isWithinGracePeriod(tc.getActivatedAt(), s.getScannedAt(), request.getActivationAgeDays()))
+                    .collect(Collectors.toList());
+
+            if (evaluatedScans.isEmpty()) {
+                // Toàn bộ lượt quét của mã tem nằm trong thời gian ân hạn -> bỏ qua đánh giá
+                continue;
+            }
+
+            boolean highFreq = checkHighFrequency(evaluatedScans, request.getMaxScansPerHour(), request.getMaxScansPerDay());
+            boolean impossibleTravel = checkImpossibleTravel(evaluatedScans, request.getMaxDistanceKmPer30Min().doubleValue(), request.getMinTimeBetweenScansMinutes());
+            boolean hasScansAfterGrace = checkActivationAge(tc, scans, request.getActivationAgeDays());
 
             if (highFreq) highFrequencyCount++;
             if (impossibleTravel) impossibleTravelCount++;
-            if (activationAge) activationAgeCount++;
-            if (highFreq || impossibleTravel || activationAge) {
+
+            // Chỉ gắn cờ bất thường khi vi phạm tần suất hoặc di chuyển phi lý trên các lượt quét sau ân hạn
+            if (highFreq || impossibleTravel) {
                 estimatedAnomaliesCount++;
+                if (hasScansAfterGrace) {
+                    activationAgeCount++;
+                }
             }
         }
 
@@ -276,47 +292,19 @@ public class AnomalyThresholdServiceImpl implements AnomalyThresholdService {
     }
 
     private boolean checkHighFrequency(List<TraceCodeScanLog> scans, int maxPerHour, int maxPerDay) {
-        if (scans.size() >= maxPerDay) {
-            return true;
-        }
-        for (int i = 0; i < scans.size(); i++) {
-            LocalDateTime windowStart = scans.get(i).getScannedAt();
-            LocalDateTime windowEnd = windowStart.plusHours(1);
-            long countInHour = scans.stream()
-                    .filter(s -> !s.getScannedAt().isBefore(windowStart) && !s.getScannedAt().isAfter(windowEnd))
-                    .count();
-            if (countInHour >= maxPerHour) {
-                return true;
-            }
-        }
-        return false;
+        return ScanAnomalyUtils.isHighFrequency(scans, maxPerHour, maxPerDay);
     }
 
     private boolean checkImpossibleTravel(List<TraceCodeScanLog> scans, double maxDistanceKm, int minTimeMinutes) {
-        for (int i = 0; i < scans.size() - 1; i++) {
-            TraceCodeScanLog prev = scans.get(i);
-            TraceCodeScanLog curr = scans.get(i + 1);
-            if (prev.getLatitude() != null && prev.getLongitude() != null
-                    && curr.getLatitude() != null && curr.getLongitude() != null) {
-                double distance = GeoDistanceUtils.haversineKm(
-                        prev.getLatitude().doubleValue(), prev.getLongitude().doubleValue(),
-                        curr.getLatitude().doubleValue(), curr.getLongitude().doubleValue());
-                long minutes = Math.abs(Duration.between(prev.getScannedAt(), curr.getScannedAt()).toMinutes());
-                if (distance > maxDistanceKm && minutes <= minTimeMinutes) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return ScanAnomalyUtils.isImpossibleTravel(scans, maxDistanceKm, minTimeMinutes);
     }
 
-    private boolean checkActivationAge(TraceCode tc, List<TraceCodeScanLog> scans, Integer maxAgeDays) {
-        if (tc == null || tc.getActivatedAt() == null || maxAgeDays == null) {
+    private boolean checkActivationAge(TraceCode tc, List<TraceCodeScanLog> scans, Integer gracePeriodDays) {
+        if (tc == null || tc.getActivatedAt() == null || gracePeriodDays == null) {
             return false;
         }
         for (TraceCodeScanLog s : scans) {
-            long daysSinceActivation = Duration.between(tc.getActivatedAt(), s.getScannedAt()).toDays();
-            if (daysSinceActivation > maxAgeDays) {
+            if (!ScanAnomalyUtils.isWithinGracePeriod(tc.getActivatedAt(), s.getScannedAt(), gracePeriodDays)) {
                 return true;
             }
         }

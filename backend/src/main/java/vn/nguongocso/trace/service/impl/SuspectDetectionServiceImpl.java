@@ -22,6 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.alert.dto.response.AnomalyThresholdResponse;
 import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.alert.service.AnomalyThresholdService;
+import vn.nguongocso.alert.service.impl.AnomalyThresholdServiceImpl;
+import vn.nguongocso.alert.util.ScanAnomalyUtils;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.common.PageResponse;
@@ -148,6 +150,20 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
         }
 
         LocalDateTime now = LocalDateTime.now();
+        AnomalyThresholdResponse threshold = getEffectiveThreshold(traceCode);
+
+        // Gate: Kiểm tra thời gian ân hạn (grace period) NCL-08-CN-014
+        if (traceCode.getActivatedAt() != null) {
+            int gracePeriodDays = (threshold != null && threshold.getActivationAgeDays() != null)
+                    ? threshold.getActivationAgeDays()
+                    : AnomalyThresholdServiceImpl.DEFAULT_ACTIVATION_AGE_DAYS;
+            if (ScanAnomalyUtils.isWithinGracePeriod(traceCode.getActivatedAt(), now, gracePeriodDays)) {
+                log.debug("Mã tem {} đang trong thời gian ân hạn ({} ngày), bỏ qua đánh giá quét bất thường.",
+                        traceCode.getCodeValue(), gracePeriodDays);
+                return;
+            }
+        }
+
         LocalDateTime twentyFourHoursAgo = now.minusHours(24);
 
         // Get all scans in the last 24 hours
@@ -164,7 +180,6 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                 .sorted(Comparator.comparing(TraceCodeScanLog::getScannedAt))
                 .collect(Collectors.toList());
 
-        AnomalyThresholdResponse threshold = getEffectiveThreshold(traceCode);
         SuspicionEvaluation evaluation = evaluate(sortedScans, threshold, traceCode);
 
         // Build suspicion reason
@@ -543,6 +558,16 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
      * @return kết quả đánh giá (từng hạng mục + tổng điểm)
      */
     private SuspicionEvaluation evaluate(List<TraceCodeScanLog> sortedScans, AnomalyThresholdResponse threshold, TraceCode traceCode) {
+        // Gate: Nếu mã tem còn trong thời gian ân hạn, trả về điểm 0
+        if (traceCode != null && traceCode.getActivatedAt() != null) {
+            int gracePeriodDays = (threshold != null && threshold.getActivationAgeDays() != null)
+                    ? threshold.getActivationAgeDays()
+                    : AnomalyThresholdServiceImpl.DEFAULT_ACTIVATION_AGE_DAYS;
+            if (ScanAnomalyUtils.isWithinGracePeriod(traceCode.getActivatedAt(), LocalDateTime.now(), gracePeriodDays)) {
+                return new SuspicionEvaluation(0, 0, 0, 0, 0, 0, null, null);
+            }
+        }
+
         int maxPerDay = (threshold != null && threshold.getMaxScansPerDay() != null) ? threshold.getMaxScansPerDay() : HIGH_FREQUENCY_THRESHOLD;
         int maxPerHour = (threshold != null && threshold.getMaxScansPerHour() != null) ? threshold.getMaxScansPerHour() : 5;
         double maxDistanceKm = (threshold != null && threshold.getMaxDistanceKmPer30Min() != null) ? threshold.getMaxDistanceKmPer30Min().doubleValue() : IMPOSSIBLE_TRAVEL_DISTANCE_KM;
@@ -555,21 +580,9 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
         Double firstImpossibleDistanceKm = null;
         Long firstImpossibleMinutes = null;
 
-        // 1. High frequency: >= maxPerDay scans in 24h OR >= maxPerHour in any 1h window
-        if (sortedScans.size() >= maxPerDay) {
+        // 1. High frequency: cửa sổ trượt chuẩn qua ScanAnomalyUtils
+        if (ScanAnomalyUtils.isHighFrequency(sortedScans, maxPerHour, maxPerDay)) {
             highFreqScore = HIGH_FREQUENCY_SCORE;
-        } else {
-            for (int i = 0; i < sortedScans.size(); i++) {
-                LocalDateTime windowStart = sortedScans.get(i).getScannedAt();
-                LocalDateTime windowEnd = windowStart.plusHours(1);
-                long countInHour = sortedScans.stream()
-                        .filter(s -> !s.getScannedAt().isBefore(windowStart) && !s.getScannedAt().isAfter(windowEnd))
-                        .count();
-                if (countInHour >= maxPerHour) {
-                    highFreqScore = HIGH_FREQUENCY_SCORE;
-                    break;
-                }
-            }
         }
 
         // 2. Impossible travel: > maxDistanceKm within < minTimeMinutes between consecutive scans with coordinates

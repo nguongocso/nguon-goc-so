@@ -41,7 +41,7 @@ Xác định danh mục nông sản (ProductCategory từ Shipment/ProductionLot
 | `maxScansPerDay` | Integer | >= 1 | Lượt | Số lượt quét tối đa cho phép trên 1 mã tem trong vòng 24 giờ. |
 | `maxDistanceKmPer30Min` | Decimal | >= 0.0 | Kilomet (km) | Khoảng cách di chuyển tối đa cho phép trong khung thời gian quy định (`minTimeBetweenScansMinutes`). |
 | `minTimeBetweenScansMinutes` | Integer | >= 0 | Phút | Khung thời gian tối thiểu / cửa sổ xét di chuyển giữa các lần quét. |
-| `activationAgeDays` | Integer | >= 0 | Ngày | Số ngày kể từ thời điểm kích hoạt tem mà việc quét được coi là bình thường trong vòng đời sản phẩm. |
+| `activationAgeDays` | Integer | >= 0 | Ngày | Thời gian ân hạn (grace period) tính bằng ngày kể từ thời điểm kích hoạt tem. Trong thời gian này, hệ thống bỏ qua đánh giá quét bất thường; chỉ khi đủ hoặc vượt quá thời gian ân hạn thì việc đánh giá mới bắt đầu. |
 
 ### 2.3. Ước lượng tác động (Impact Estimation - Dry-run)
 - Cho phép Quản trị viên (`VT-01`) mô phỏng và xem trước số lượng quét bất thường / mã nghi vấn sẽ phát sinh trong **30 ngày gần nhất** nếu áp dụng bộ tham số dự thảo.
