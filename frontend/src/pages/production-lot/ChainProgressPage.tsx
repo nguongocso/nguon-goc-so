@@ -93,6 +93,7 @@ export const ChainProgressPage: React.FC = () => {
                 value={stagnantThresholdDays}
                 onValueChange={handleThresholdChange}
                 options={STAGNANT_THRESHOLD_OPTIONS}
+                className="w-auto min-w-[230px]"
               />
               <RefreshButton
                 onClick={() => fetchData(false)}
