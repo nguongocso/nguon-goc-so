@@ -638,17 +638,6 @@ export const ShipmentList = ({
               </div>
             </div>
           )}
-        </CardContent>"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage(page + 1)}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 

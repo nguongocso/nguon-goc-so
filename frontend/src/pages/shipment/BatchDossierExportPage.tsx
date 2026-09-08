@@ -14,6 +14,7 @@ import {
   getBatchDossierExportHistory,
   type BatchDossierCheckResponse,
   type BatchDossierHistoryDto,
+} from "@/api/dossierApi";
 import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 
 export default function BatchDossierExportPage() {
