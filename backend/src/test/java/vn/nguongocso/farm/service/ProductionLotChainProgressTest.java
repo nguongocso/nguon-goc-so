@@ -59,6 +59,12 @@ public class ProductionLotChainProgressTest {
     @Mock
     private vn.nguongocso.event.repository.ChainEventRepository chainEventRepository;
 
+    @Mock
+    private HarvestEligibilityService harvestEligibilityService;
+
+    @Mock
+    private vn.nguongocso.trace.repository.CodeRangeRepository codeRangeRepository;
+
     @InjectMocks
     private ProductionLotServiceImpl productionLotService;
 

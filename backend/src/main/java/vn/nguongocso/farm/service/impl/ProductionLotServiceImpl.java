@@ -41,6 +41,10 @@ import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.farm.dto.response.*;
+import vn.nguongocso.farm.dto.response.HarvestEligibilityResponse;
+import vn.nguongocso.farm.service.HarvestEligibilityService;
+import vn.nguongocso.trace.entity.CodeRange;
+import vn.nguongocso.trace.repository.CodeRangeRepository;
 import vn.nguongocso.farm.enums.ChainProgressStage;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.enums.ShipmentStatus;
@@ -69,6 +73,8 @@ public class ProductionLotServiceImpl implements ProductionLotService {
     private final InspectionEligibilityService inspectionEligibilityService;
     private final InspectionRequestRepository inspectionRequestRepository;
     private final ChainEventRepository chainEventRepository;
+    private final HarvestEligibilityService harvestEligibilityService;
+    private final CodeRangeRepository codeRangeRepository;
 
     private final ApplicationEventPublisher eventPublisher;
 
@@ -686,6 +692,17 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         Map<UUID, List<Shipment>> shipmentMap = shipments.stream()
                 .collect(Collectors.groupingBy(s -> s.getProductionLot().getId()));
 
+        Optional<CodeRange> codeRangeOpt = codeRangeRepository
+                .findFirstReadOnlyByOrganizationOrganizationIdOrderByCreatedAtDesc(effectiveOrgId);
+        long remainingCodeQuota = 0;
+        if (codeRangeOpt.isPresent()) {
+            CodeRange cr = codeRangeOpt.get();
+            long total = cr.getTotalLimit() != null ? cr.getTotalLimit() : 0;
+            long used = cr.getUsedCount() != null ? cr.getUsedCount() : 0;
+            remainingCodeQuota = total - used;
+        }
+        boolean isCodeQuotaExhausted = codeRangeOpt.isEmpty() || remainingCodeQuota <= 0;
+
         Map<ChainProgressStage, List<ChainProgressItemResponse>> stageItemsMap = new EnumMap<>(ChainProgressStage.class);
         for (ChainProgressStage stage : ChainProgressStage.values()) {
             stageItemsMap.put(stage, new ArrayList<>());
@@ -709,6 +726,22 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                             || chainEventRepository.existsByShipmentIdAndEventType(s.getId(), ChainEventType.PROCUREMENT)
                             || chainEventRepository.existsByShipmentIdAndEventType(s.getId(), ChainEventType.WAREHOUSE_RECEIPT)
                             || chainEventRepository.existsByShipmentIdAndEventType(s.getId(), ChainEventType.STORAGE_CONDITION));
+
+            // Kiểm tra điều kiện cách ly thu hoạch (Quarantine / PHI period)
+            boolean isQuarantined = false;
+            String formattedQuarantineDate = null;
+            try {
+                HarvestEligibilityResponse eligibility = harvestEligibilityService.calculateHarvestEligibility(lot.getId());
+                if (eligibility != null && eligibility.isDetermined() && eligibility.getEligibleHarvestDate() != null) {
+                    LocalDate eligibleDate = eligibility.getEligibleHarvestDate();
+                    if (eligibleDate.isAfter(LocalDate.now())) {
+                        isQuarantined = true;
+                        formattedQuarantineDate = eligibleDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                    }
+                }
+            } catch (Exception e) {
+                // Bỏ qua nếu chưa có thông tin nhật ký BVTV
+            }
 
             ChainProgressStage stage;
             if (hasInCirculationEvents) {
@@ -754,12 +787,20 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                     targetScreen = "/production-lots?highlightId=" + lot.getId();
                     break;
                 case APPROVED:
-                    nextAction = "Ghi nhật ký canh tác / Ghi nhận thu hoạch";
-                    targetScreen = "/production-lots/" + lot.getId() + "/farm-logs";
+                    if (isQuarantined) {
+                        nextAction = "Chưa hết thời gian cách ly (An toàn từ " + formattedQuarantineDate + ")";
+                        targetScreen = "/production-lots/" + lot.getId() + "/farm-logs";
+                    } else {
+                        nextAction = "Ghi nhật ký canh tác / Ghi nhận thu hoạch";
+                        targetScreen = "/production-lots/" + lot.getId() + "/farm-logs";
+                    }
                     break;
                 case HARVESTED:
-                    if (!hasPassedInspection) {
-                        nextAction = "Chờ hoặc nhập kết quả kiểm nghiệm";
+                    if (isQuarantined) {
+                        nextAction = "Chưa hết thời gian cách ly BVTV (An toàn từ " + formattedQuarantineDate + ")";
+                        targetScreen = "/production-lots/" + lot.getId() + "/inspection";
+                    } else if (!hasPassedInspection) {
+                        nextAction = "Chờ hoặc nhập kết quả kiểm nghiệm đạt";
                         targetScreen = "/production-lots/" + lot.getId() + "/inspection";
                     } else {
                         nextAction = "Sơ chế hoặc đóng gói lô";
@@ -768,20 +809,28 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                     break;
                 case PREPROCESSED:
                     if (!hasPassedInspection) {
-                        nextAction = "Chờ hoặc nhập kết quả kiểm nghiệm";
+                        nextAction = "Chờ hoặc nhập kết quả kiểm nghiệm đạt";
                         targetScreen = "/production-lots/" + lot.getId() + "/inspection";
+                    } else if (isCodeQuotaExhausted) {
+                        nextAction = "Hết hạn mức mã QR (Cần cấp thêm dải mã)";
+                        targetScreen = "/production-lots/" + lot.getId() + "/shipments/create";
                     } else {
                         nextAction = "Đóng gói & Tạo lô hàng";
                         targetScreen = "/production-lots/" + lot.getId() + "/shipments/create";
                     }
                     break;
                 case WAITING_TEST_RESULT:
-                    nextAction = "Chờ hoặc nhập kết quả kiểm nghiệm";
+                    nextAction = "Chờ hoặc nhập kết quả kiểm nghiệm đạt";
                     targetScreen = "/production-lots/" + lot.getId() + "/inspection";
                     break;
                 case PACKAGED:
-                    nextAction = "Cấp mã tem & Kích hoạt tem QR";
-                    targetScreen = "/production-lots/" + lot.getId() + "/shipments/create";
+                    if (isCodeQuotaExhausted) {
+                        nextAction = "Hết hạn mức mã QR (Cần cấp thêm dải mã)";
+                        targetScreen = "/production-lots/" + lot.getId() + "/shipments/create";
+                    } else {
+                        nextAction = "Cấp mã tem & Kích hoạt tem QR";
+                        targetScreen = "/production-lots/" + lot.getId() + "/shipments/create";
+                    }
                     break;
                 case TAG_ACTIVATED:
                     nextAction = "Theo dõi lưu thông & Quét tem";
@@ -789,7 +838,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                     break;
                 case IN_CIRCULATION:
                 default:
-                    nextAction = "Theo dõi lưu thông";
+                    nextAction = "Theo dõi lưu thông trên thị trường";
                     targetScreen = "/production-lots/" + lot.getId();
                     break;
             }
