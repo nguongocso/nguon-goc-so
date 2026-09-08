@@ -337,89 +337,81 @@ export const ShipmentList = ({
 
               {!isSelectionMode && canCreate && productionLotStatus === "PACKAGED" && (
                 <Button variant="create" size="sm" onClick={() => navigate(`/production-lots/${productionLotId}/shipments/create`)}>
-                  <Plus className="mr-1 h-4 w-4" />
-                  Tạo lô hàng
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardHeader>
+        <CardContent className="p-4 space-y-4">
+          {isSelectionMode && (
+            <div className="rounded-md border border-slate-200 bg-slate-50/70 p-3.5">
+              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-700">
+                <span className="font-semibold text-slate-900">Bộ lọc chọn lô:</span>
 
-        {isSelectionMode && (
-          <div className="border-b border-slate-100 bg-slate-50/70 p-3.5">
-            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-700">
-              <span className="font-semibold text-slate-900">Bộ lọc chọn lô:</span>
+                <div className="flex items-center gap-1.5">
+                  <label className="text-slate-600">Từ ngày:</label>
+                  <input
+                    type="date"
+                    className="h-8 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
+                    value={filterFromDate}
+                    onChange={(e) => setFilterFromDate(e.target.value)}
+                  />
+                </div>
 
-              <div className="flex items-center gap-1.5">
-                <label className="text-slate-600">Từ ngày:</label>
-                <input
-                  type="date"
-                  className="h-8 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
-                  value={filterFromDate}
-                  onChange={(e) => setFilterFromDate(e.target.value)}
-                />
-              </div>
+                <div className="flex items-center gap-1.5">
+                  <label className="text-slate-600">Đến ngày:</label>
+                  <input
+                    type="date"
+                    className="h-8 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
+                    value={filterToDate}
+                    onChange={(e) => setFilterToDate(e.target.value)}
+                  />
+                </div>
 
-              <div className="flex items-center gap-1.5">
-                <label className="text-slate-600">Đến ngày:</label>
-                <input
-                  type="date"
-                  className="h-8 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
-                  value={filterToDate}
-                  onChange={(e) => setFilterToDate(e.target.value)}
-                />
-              </div>
+                <div className="flex items-center gap-1.5">
+                  <label className="text-slate-600">Trạng thái:</label>
+                  <select
+                    className="h-8 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                  >
+                    <option value="ALL">Tất cả trạng thái</option>
+                    <option value="ACTIVATED">Đã kích hoạt</option>
+                    <option value="CODE_PRINTED">Đã in mã</option>
+                    <option value="RECALLED">Đã thu hồi</option>
+                    <option value="DRAFT">Bản nháp</option>
+                  </select>
+                </div>
 
-              <div className="flex items-center gap-1.5">
-                <label className="text-slate-600">Trạng thái:</label>
-                <select
-                  className="h-8 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                >
-                  <option value="ALL">Tất cả trạng thái</option>
-                  <option value="ACTIVATED">Đã kích hoạt</option>
-                  <option value="CODE_PRINTED">Đã in mã</option>
-                  <option value="RECALLED">Đã thu hồi</option>
-                  <option value="DRAFT">Bản nháp</option>
-                </select>
-              </div>
+                {(filterFromDate || filterToDate || filterStatus !== "ALL") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                    onClick={() => {
+                      setFilterFromDate("");
+                      setFilterToDate("");
+                      setFilterStatus("ALL");
+                    }}
+                  >
+                    Đặt lại bộ lọc
+                  </Button>
+                )}
 
-              {(filterFromDate || filterToDate || filterStatus !== "ALL") && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
-                  onClick={() => {
-                    setFilterFromDate("");
-                    setFilterToDate("");
-                    setFilterStatus("ALL");
-                  }}
-                >
-                  Đặt lại bộ lọc
-                </Button>
-              )}
-
-              <div className="ml-auto text-xs text-slate-500">
-                Hiển thị <span className="font-medium text-slate-900">{filteredShipments.length}</span> / {shipments.length} lô
+                <div className="ml-auto text-xs text-slate-500">
+                  Hiển thị <span className="font-medium text-slate-900">{filteredShipments.length}</span> / {shipments.length} lô
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="py-12 text-center text-muted-foreground">Đang tải...</div>
-          ) : shipments.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground">
-              Chưa có lô hàng nào cho lô sản xuất này.
-            </div>
-          ) : filteredShipments.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground">
-              Không tìm thấy lô hàng phù hợp với bộ lọc hiện tại.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
+          <div className="rounded-md border overflow-x-auto bg-white">
+            {isLoading ? (
+              <div className="py-12 text-center text-muted-foreground">Đang tải...</div>
+            ) : shipments.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground">
+                Chưa có lô hàng nào cho lô sản xuất này.
+              </div>
+            ) : filteredShipments.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground">
+                Không tìm thấy lô hàng phù hợp với bộ lọc hiện tại.
+              </div>
+            ) : (
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50/80">
@@ -606,12 +598,12 @@ export const ShipmentList = ({
                   ))}
                 </TableBody>
               </Table>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Pagination bar */}
           {!isLoading && totalElements > 0 && totalPages > 1 && (
-            <div className="flex items-center justify-between border-t pt-4 mt-2">
+            <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-2">
               <p className="text-sm text-muted-foreground">
                 Trang{" "}
                 <span className="font-medium text-foreground">{page + 1}</span>
@@ -636,6 +628,17 @@ export const ShipmentList = ({
                 </Button>
                 <Button
                   variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage(page + 1)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>"
                   size="sm"
                   className="h-8 w-8 p-0"
                   disabled={page >= totalPages - 1}

@@ -237,7 +237,7 @@ export function ProcurementShipmentList({
       />
 
       {isSelectionMode && (
-        <div className="border-b border-slate-100 bg-slate-50/70 p-3.5">
+        <div className="rounded-md border border-slate-200 bg-slate-50/70 p-3.5">
           <div className="flex flex-wrap items-center gap-4 text-xs text-slate-700">
             <span className="font-semibold text-slate-900">Bộ lọc chọn lô:</span>
 
