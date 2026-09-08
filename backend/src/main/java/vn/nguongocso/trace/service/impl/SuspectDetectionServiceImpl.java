@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,7 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import vn.nguongocso.alert.dto.response.AnomalyThresholdResponse;
 import vn.nguongocso.alert.event.ActivityLogEvent;
+import vn.nguongocso.alert.service.AnomalyThresholdService;
+import vn.nguongocso.alert.service.impl.AnomalyThresholdServiceImpl;
+import vn.nguongocso.alert.util.ScanAnomalyUtils;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.common.PageResponse;
@@ -56,7 +61,6 @@ import vn.nguongocso.farm.repository.ProductFeedbackRepository;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class SuspectDetectionServiceImpl implements SuspectDetectionService {
 
     // --- Thresholds per API doc ---
@@ -76,7 +80,62 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
     private final TraceCodeScanLogRepository scanLogRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final AnomalyThresholdService anomalyThresholdService;
     private final ApplicationEventPublisher eventPublisher;
+
+    public SuspectDetectionServiceImpl(
+            TraceCodeRepository traceCodeRepository,
+            TraceCodeScanLogRepository scanLogRepository,
+            UserRepository userRepository,
+            NotificationService notificationService) {
+        this(traceCodeRepository, null, scanLogRepository, userRepository, notificationService, null, null);
+    }
+
+    public SuspectDetectionServiceImpl(
+            TraceCodeRepository traceCodeRepository,
+            TraceCodeScanLogRepository scanLogRepository,
+            UserRepository userRepository,
+            NotificationService notificationService,
+            ApplicationEventPublisher eventPublisher) {
+        this(traceCodeRepository, null, scanLogRepository, userRepository, notificationService, eventPublisher, null);
+    }
+
+    public SuspectDetectionServiceImpl(
+            TraceCodeRepository traceCodeRepository,
+            ProductFeedbackRepository productFeedbackRepository,
+            TraceCodeScanLogRepository scanLogRepository,
+            UserRepository userRepository,
+            NotificationService notificationService,
+            ApplicationEventPublisher eventPublisher) {
+        this(traceCodeRepository, productFeedbackRepository, scanLogRepository, userRepository, notificationService, eventPublisher, null);
+    }
+
+    public SuspectDetectionServiceImpl(
+            TraceCodeRepository traceCodeRepository,
+            TraceCodeScanLogRepository scanLogRepository,
+            UserRepository userRepository,
+            NotificationService notificationService,
+            AnomalyThresholdService anomalyThresholdService) {
+        this(traceCodeRepository, null, scanLogRepository, userRepository, notificationService, null, anomalyThresholdService);
+    }
+
+    @Autowired
+    public SuspectDetectionServiceImpl(
+            TraceCodeRepository traceCodeRepository,
+            ProductFeedbackRepository productFeedbackRepository,
+            TraceCodeScanLogRepository scanLogRepository,
+            UserRepository userRepository,
+            NotificationService notificationService,
+            ApplicationEventPublisher eventPublisher,
+            @Autowired(required = false) AnomalyThresholdService anomalyThresholdService) {
+        this.traceCodeRepository = traceCodeRepository;
+        this.productFeedbackRepository = productFeedbackRepository;
+        this.scanLogRepository = scanLogRepository;
+        this.userRepository = userRepository;
+        this.notificationService = notificationService;
+        this.eventPublisher = eventPublisher;
+        this.anomalyThresholdService = anomalyThresholdService;
+    }
 
     @Override
     @Transactional
@@ -91,6 +150,20 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
         }
 
         LocalDateTime now = LocalDateTime.now();
+        AnomalyThresholdResponse threshold = getEffectiveThreshold(traceCode);
+
+        // Gate: Kiểm tra thời gian ân hạn (grace period) NCL-08-CN-014
+        if (traceCode.getActivatedAt() != null) {
+            int gracePeriodDays = (threshold != null && threshold.getActivationAgeDays() != null)
+                    ? threshold.getActivationAgeDays()
+                    : AnomalyThresholdServiceImpl.DEFAULT_ACTIVATION_AGE_DAYS;
+            if (ScanAnomalyUtils.isWithinGracePeriod(traceCode.getActivatedAt(), now, gracePeriodDays)) {
+                log.debug("Mã tem {} đang trong thời gian ân hạn ({} ngày), bỏ qua đánh giá quét bất thường.",
+                        traceCode.getCodeValue(), gracePeriodDays);
+                return;
+            }
+        }
+
         LocalDateTime twentyFourHoursAgo = now.minusHours(24);
 
         // Get all scans in the last 24 hours
@@ -107,7 +180,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                 .sorted(Comparator.comparing(TraceCodeScanLog::getScannedAt))
                 .collect(Collectors.toList());
 
-        SuspicionEvaluation evaluation = evaluate(sortedScans);
+        SuspicionEvaluation evaluation = evaluate(sortedScans, threshold, traceCode);
 
         // Build suspicion reason
         StringBuilder reasonBuilder = new StringBuilder();
@@ -211,7 +284,8 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
 
         // Reuse the exact same scoring engine as evaluateSuspicion so the
         // breakdown always matches the persisted suspicionScore.
-        SuspicionEvaluation evaluation = evaluate(sortedScans);
+        AnomalyThresholdResponse threshold = getEffectiveThreshold(traceCode);
+        SuspicionEvaluation evaluation = evaluate(sortedScans, threshold, traceCode);
 
         AnomalyDetails anomalyDetails = AnomalyDetails.builder()
                 .totalScans(recentScans.size())
@@ -483,7 +557,22 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
      * @param sortedScans các lượt quét đã sắp xếp tăng dần theo thời gian
      * @return kết quả đánh giá (từng hạng mục + tổng điểm)
      */
-    private SuspicionEvaluation evaluate(List<TraceCodeScanLog> sortedScans) {
+    private SuspicionEvaluation evaluate(List<TraceCodeScanLog> sortedScans, AnomalyThresholdResponse threshold, TraceCode traceCode) {
+        // Gate: Nếu mã tem còn trong thời gian ân hạn, trả về điểm 0
+        if (traceCode != null && traceCode.getActivatedAt() != null) {
+            int gracePeriodDays = (threshold != null && threshold.getActivationAgeDays() != null)
+                    ? threshold.getActivationAgeDays()
+                    : AnomalyThresholdServiceImpl.DEFAULT_ACTIVATION_AGE_DAYS;
+            if (ScanAnomalyUtils.isWithinGracePeriod(traceCode.getActivatedAt(), LocalDateTime.now(), gracePeriodDays)) {
+                return new SuspicionEvaluation(0, 0, 0, 0, 0, 0, null, null);
+            }
+        }
+
+        int maxPerDay = (threshold != null && threshold.getMaxScansPerDay() != null) ? threshold.getMaxScansPerDay() : HIGH_FREQUENCY_THRESHOLD;
+        int maxPerHour = (threshold != null && threshold.getMaxScansPerHour() != null) ? threshold.getMaxScansPerHour() : 5;
+        double maxDistanceKm = (threshold != null && threshold.getMaxDistanceKmPer30Min() != null) ? threshold.getMaxDistanceKmPer30Min().doubleValue() : IMPOSSIBLE_TRAVEL_DISTANCE_KM;
+        int minTimeMinutes = (threshold != null && threshold.getMinTimeBetweenScansMinutes() != null) ? threshold.getMinTimeBetweenScansMinutes() : IMPOSSIBLE_TRAVEL_MINUTES;
+
         int highFreqScore = 0;
         int impossibleTravelScore = 0;
         int multipleLocationsScore = 0;
@@ -491,12 +580,12 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
         Double firstImpossibleDistanceKm = null;
         Long firstImpossibleMinutes = null;
 
-        // 1. High frequency: ≥ 10 scans in 24h
-        if (sortedScans.size() >= HIGH_FREQUENCY_THRESHOLD) {
+        // 1. High frequency: cửa sổ trượt chuẩn qua ScanAnomalyUtils
+        if (ScanAnomalyUtils.isHighFrequency(sortedScans, maxPerHour, maxPerDay)) {
             highFreqScore = HIGH_FREQUENCY_SCORE;
         }
 
-        // 2. Impossible travel: > 50km within < 30 min between consecutive scans with coordinates
+        // 2. Impossible travel: > maxDistanceKm within < minTimeMinutes between consecutive scans with coordinates
         for (int i = 0; i < sortedScans.size() - 1; i++) {
             TraceCodeScanLog scan1 = sortedScans.get(i);
             TraceCodeScanLog scan2 = sortedScans.get(i + 1);
@@ -514,7 +603,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
 
             long minutesBetween = Duration.between(scan1.getScannedAt(), scan2.getScannedAt()).toMinutes();
 
-            if (distance > IMPOSSIBLE_TRAVEL_DISTANCE_KM && minutesBetween < IMPOSSIBLE_TRAVEL_MINUTES) {
+            if (distance > maxDistanceKm && minutesBetween <= minTimeMinutes) {
                 impossibleTravelCount++;
                 if (firstImpossibleDistanceKm == null) {
                     firstImpossibleDistanceKm = distance;
@@ -543,6 +632,18 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                 totalScore,
                 firstImpossibleDistanceKm,
                 firstImpossibleMinutes);
+    }
+
+    private AnomalyThresholdResponse getEffectiveThreshold(TraceCode traceCode) {
+        if (anomalyThresholdService == null || traceCode == null) {
+            return null;
+        }
+        UUID categoryId = null;
+        if (traceCode.getShipment() != null && traceCode.getShipment().getProductionLot() != null
+                && traceCode.getShipment().getProductionLot().getProductCategory() != null) {
+            categoryId = traceCode.getShipment().getProductionLot().getProductCategory().getId();
+        }
+        return anomalyThresholdService.getEffectiveThreshold(categoryId);
     }
 
     /**
