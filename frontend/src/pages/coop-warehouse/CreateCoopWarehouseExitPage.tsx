@@ -72,11 +72,11 @@ export default function CreateCoopWarehouseExitPage() {
     { label: "Lô sản xuất", href: "/production-lots" },
     ...(productionLotId
       ? [
-          {
-            label: lotName || "Chi tiết lô sản xuất",
-            href: `/production-lots/${productionLotId}`,
-          },
-        ]
+        {
+          label: lotName || "Chi tiết lô sản xuất",
+          href: `/production-lots/${productionLotId}`,
+        },
+      ]
       : []),
     { label: "Ghi sự kiện xuất kho HTX" },
   ]);
@@ -110,9 +110,9 @@ export default function CreateCoopWarehouseExitPage() {
 
   const currentPosition =
     typeof latitude === "number" &&
-    Number.isFinite(latitude) &&
-    typeof longitude === "number" &&
-    Number.isFinite(longitude)
+      Number.isFinite(latitude) &&
+      typeof longitude === "number" &&
+      Number.isFinite(longitude)
       ? { lat: latitude, lng: longitude }
       : undefined;
 
@@ -202,7 +202,7 @@ export default function CreateCoopWarehouseExitPage() {
     }
 
     if (hasValidationError) {
-      toast.error("Vui lòng nhập kho cho các lô hàng chưa ở trong kho trước khi ghi xuất kho (TC-02).");
+      toast.error("Vui lòng nhập kho cho các lô hàng chưa ở trong kho trước khi ghi xuất kho.");
       return;
     }
 
@@ -296,11 +296,10 @@ export default function CreateCoopWarehouseExitPage() {
                     return (
                       <div
                         key={shipment.id}
-                        className={`p-3.5 border rounded-lg flex items-center justify-between text-sm ${
-                          isNotInWarehouse
+                        className={`p-3.5 border rounded-lg flex items-center justify-between text-sm ${isNotInWarehouse
                             ? "bg-red-50/70 border-red-200 text-red-950"
                             : "bg-amber-50/50 border-amber-200 text-amber-950"
-                        }`}
+                          }`}
                       >
                         <div className="space-y-0.5">
                           <p className="font-semibold text-slate-900">
@@ -316,7 +315,7 @@ export default function CreateCoopWarehouseExitPage() {
                           {isNotInWarehouse ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-300">
                               <AlertCircle className="h-3.5 w-3.5" />
-                              Chưa có sự kiện nhập kho (TC-02)
+                              Chưa có sự kiện nhập kho
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
@@ -336,7 +335,7 @@ export default function CreateCoopWarehouseExitPage() {
                 <div className="p-4 bg-red-100/90 border-2 border-red-400 rounded-lg text-red-950 text-sm space-y-1.5 shadow-sm">
                   <p className="font-bold flex items-center gap-2 text-base text-red-900">
                     <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
-                    Cảnh báo vi phạm ràng buộc nghiệp vụ (TC-02):
+                    Cảnh báo vi phạm ràng buộc nghiệp vụ:
                   </p>
                   {invalidItems.map(({ shipment }) => (
                     <p key={shipment.id} className="pl-7 text-red-900 font-medium">
