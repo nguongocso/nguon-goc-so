@@ -7,5 +7,4 @@ ALTER TABLE product_categories
     ADD COLUMN temp_min DECIMAL(4,1) NULL,
     ADD COLUMN temp_max DECIMAL(4,1) NULL,
     ADD COLUMN humidity_min DECIMAL(5,1) NULL,
-    ADD COLUMN humidity_max DECIMAL(5,1) NULL,
-    ADD COLUMN max_storage_days INT NULL;
+    ADD COLUMN humidity_max DECIMAL(5,1) NULL;
