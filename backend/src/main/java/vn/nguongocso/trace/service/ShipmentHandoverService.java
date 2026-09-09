@@ -3,6 +3,8 @@ package vn.nguongocso.trace.service;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import vn.nguongocso.trace.dto.request.CancelHandoverRequest;
 import vn.nguongocso.trace.dto.request.CreateHandoverRequest;
 import vn.nguongocso.trace.dto.response.HandoverResponse;
@@ -57,4 +59,12 @@ public interface ShipmentHandoverService {
      * Kiểm tra lô hàng có phiếu bàn giao đang chờ không.
      */
     boolean hasPendingHandover(UUID shipmentId);
+
+    /**
+     * Lưu file chứng từ giao hàng trước khi tạo phiếu bàn giao.
+     *
+     * @param file File đính kèm (JPG/PNG/PDF, tối đa 5MB)
+     * @return Đường dẫn file đã lưu, gửi kèm trong attachmentPath khi tạo phiếu
+     */
+    String uploadAttachment(MultipartFile file);
 }

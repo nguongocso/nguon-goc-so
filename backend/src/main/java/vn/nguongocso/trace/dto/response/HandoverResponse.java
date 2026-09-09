@@ -27,6 +27,7 @@ public class HandoverResponse {
     private String vehicleInfo;
     private String carrierName;
     private String note;
+    private String attachmentPath;
     private LocalDateTime expiresAt;
     private LocalDateTime createdAt;
     private UUID confirmedBy;

@@ -58,6 +58,10 @@ export const NotificationBell = () => {
     if (!notification.isRead) {
       void markAsRead(notification.id).then(() => refreshUnreadCount());
     }
+    setOpen(false);
+    if (notification.entityId) {
+      navigate(`/shipment-handovers/${notification.entityId}`);
+    }
   };
 
   const handleEmailNoticeClick = () => {

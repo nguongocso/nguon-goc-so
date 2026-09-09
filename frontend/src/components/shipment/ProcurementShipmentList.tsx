@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Eye, FileJson, FileText, ShoppingCart } from "lucide-react";
+import { Eye, FileJson, FileText, Handshake, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { ListCard } from "@/components/common/ListCard";
@@ -15,7 +15,9 @@ import { ShipmentStatusBadge } from "@/components/shipment/ShipmentStatusBadge";
 import { ROLE_ACCESS } from "@/config/roleAccess";
 import { usePermission } from "@/hooks/usePermission";
 import type { ProcurementShipment } from "@/types/shipment";
+import type { HandoverDetailResponse } from "@/types/shipmentHandover";
 import { getEligibleShipments, getShipmentById } from "@/api/shipmentApi";
+import { getReceivedHandovers } from "@/api/handoverApi";
 import { checkDossierEligibility, exportDossier, exportGs1Dossier } from "@/api/dossierApi";
 import { getLocalDateString } from "@/utils/dateTime";
 import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligibleDialog";
@@ -31,6 +33,9 @@ export function ProcurementShipmentList({
   onRecordProcurement,
 }: ProcurementShipmentListProps) {
   const [shipments, setShipments] = useState<ProcurementShipment[]>([]);
+  const [handoverByShipment, setHandoverByShipment] = useState<
+    Map<string, HandoverDetailResponse>
+  >(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
@@ -63,8 +68,25 @@ export function ProcurementShipmentList({
   const loadShipments = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await getEligibleShipments();
+      const [data, received] = await Promise.all([
+        getEligibleShipments(),
+        getReceivedHandovers().catch(() => [] as HandoverDetailResponse[]),
+      ]);
       setShipments(data);
+
+      // Ánh xạ "lô hàng → phiếu bàn giao mới nhất" để hiển thị nút xem phiếu
+      // (NCL-05-CN-008: tổ chức nhận xem được phiếu bàn giao ngay từ Dashboard).
+      const map = new Map<string, HandoverDetailResponse>();
+      for (const handover of received) {
+        const latest = map.get(handover.shipmentId);
+        if (
+          !latest ||
+          new Date(handover.createdAt) > new Date(latest.createdAt)
+        ) {
+          map.set(handover.shipmentId, handover);
+        }
+      }
+      setHandoverByShipment(map);
     } catch {
       toast.error("Không thể tải danh sách lô hàng thu mua.");
     } finally {
@@ -447,16 +469,20 @@ export function ProcurementShipmentList({
               </TableCell>
               <TableCell className="text-center">
                 <div className="flex items-center justify-center gap-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    title="Ghi nhận thu mua"
-                    className="hover:bg-muted"
-                    onClick={() => onRecordProcurement(shipment.id)}
-                  >
-                    <ShoppingCart className="size-4" />
-                  </Button>
+                  {/* Chỉ ghi nhận thu mua cho lô đã được bàn giao và bên nhận đã
+                  xác nhận (handover ACCEPTED) — consistent với luồng nhận hàng. */}
+                  {handoverByShipment.get(shipment.id)?.status === "ACCEPTED" && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      title="Ghi nhận thu mua"
+                      className="hover:bg-muted"
+                      onClick={() => onRecordProcurement(shipment.id)}
+                    >
+                      <ShoppingCart className="size-4" />
+                    </Button>
+                  )}
 
                   <Button
                     type="button"
@@ -482,6 +508,23 @@ export function ProcurementShipmentList({
                     </Button>
                   )}
 
+                  {handoverByShipment.get(shipment.id) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      title="Xem phiếu bàn giao"
+                      className="hover:bg-muted"
+                      onClick={() =>
+                        navigate(
+                          `/shipment-handovers/${handoverByShipment.get(shipment.id)!.id}`,
+                        )
+                      }
+                    >
+                      <Handshake className="size-4" />
+                    </Button>
+                  )}
+
                   <Button
                     type="button"
                     variant="ghost"
@@ -502,7 +545,7 @@ export function ProcurementShipmentList({
           emptyMessage={
             search.trim() || categoryFilter !== "ALL"
               ? "Không tìm thấy lô hàng phù hợp. Hãy thử thay đổi từ khóa tìm kiếm."
-              : "Chưa có lô hàng nào sẵn sàng thu mua. Các lô hàng đã kích hoạt tem sẽ xuất hiện tại đây."
+              : "Chưa có lô hàng nào được thu mua, bàn giao hoặc nhập kho. Các lô hàng đã được bàn giao và xác nhận nhận sẽ xuất hiện tại đây."
           }
         />
 

@@ -11,6 +11,7 @@ import {
   FileText,
   Hash,
   History,
+  Handshake,
   FlaskConical,
   Layers,
   LayoutDashboard,
@@ -359,12 +360,18 @@ const MENU_GROUPS: MenuGroup[] = [
     icon: <ShoppingCart className="h-5 w-5" />,
     items: [
 
-      {
-        icon: <Warehouse className="h-5 w-5" />,
-        label: "Nhập kho",
-        href: "/warehouse-receipt",
-        allowedRoles: ROLE_ACCESS.warehouseReceipt,
-      },
+{
+          icon: <Warehouse className="h-5 w-5" />,
+          label: "Nhập kho",
+          href: "/warehouse-receipt",
+          allowedRoles: ROLE_ACCESS.warehouseReceipt,
+        },
+        {
+          icon: <Handshake className="h-5 w-5" />,
+          label: "Phiếu bàn giao nhận",
+          href: "/shipment-handovers/received",
+          allowedRoles: ROLE_ACCESS.handoverReceivedView,
+        },
     ],
   },
 

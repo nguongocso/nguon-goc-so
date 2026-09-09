@@ -32,4 +32,11 @@ public class CreateHandoverRequest {
     private String carrierName;
 
     private String note;
+
+    /**
+     * Đường dẫn chứng từ giao hàng đính kèm (tùy chọn).
+     * Lưu vào cột {@code attachment_path} đã có sẵn của bảng
+     * {@code shipment_handovers}.
+     */
+    private String attachmentPath;
 }

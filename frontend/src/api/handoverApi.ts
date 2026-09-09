@@ -29,6 +29,16 @@ export const getRemainingQuantity = async (shipmentId: string): Promise<number> 
 };
 
 /**
+ * Kiểm tra lô hàng có phiếu bàn giao đang chờ xác nhận hay không.
+ * Dùng để hiển thị nhãn "Đang bàn giao" (NCL-05-CN-008).
+ * GET /api/v1/shipments/{id}/has-pending-handover
+ */
+export const hasPendingHandover = async (shipmentId: string): Promise<boolean> => {
+  const response = await apiClient.get<{ data: boolean }>(`/shipments/${shipmentId}/has-pending-handover`);
+  return response.data.data;
+};
+
+/**
  * Lấy danh sách phiếu bàn giao đã nhận.
  * GET /api/v1/shipment-handovers/received
  */
@@ -71,4 +81,31 @@ export const acceptHandover = async (id: string): Promise<ShipmentHandover> => {
 export const rejectHandover = async (id: string, reason: string): Promise<ShipmentHandover> => {
   const response = await apiClient.post<{ data: ShipmentHandover }>(`/shipment-handovers/${id}/reject`, { reason });
   return response.data.data;
+};
+
+/**
+ * Tải lên chứng từ giao hàng trước khi tạo phiếu bàn giao.
+ * POST /api/v1/shipment-handovers/attachment (multipart)
+ *
+ * Trả về đường dẫn file (filePath) để gửi kèm trong attachmentPath
+ * khi tạo phiếu bàn giao (NCL-05-CN-008: thay ô nhập tay URL).
+ */
+export const uploadHandoverAttachment = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await apiClient.post<{
+    data: { filePath: string };
+  }>('/shipment-handovers/attachment', formData, {
+    headers: {
+      /**
+       * Override Content-Type mặc định 'application/json' của apiClient.
+       * Axios tự thay bằng multipart/form-data kèm boundary khi gửi đi
+       * (giống uploadAttachment / uploadInspectionResultFile).
+       */
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  return response.data.data.filePath;
 };

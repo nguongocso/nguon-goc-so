@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { NotificationBell } from '@/components/notification/NotificationBell';
 import { SyncBadge } from '@/components/layout/SyncBadge';
-import { ROLE_ACCESS, getRoleLabel, hasAnyRole } from '@/config/roleAccess';
+import { ROLE_ACCESS, hasAnyRole } from '@/config/roleAccess';
 import { useAuth } from '@/hooks/useAuth';
 import { Check, LogOut, Menu, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -44,7 +44,6 @@ interface HeaderProps {
 export function Header({ onMenuClick, isMobile = false, isTablet = false }: HeaderProps) {
   const { user, logout, completeLogin } = useAuth();
   const navigate = useNavigate();
-  const roleLabel = getRoleLabel(user?.roleCode);
   const canOpenOrganizationProfile = hasAnyRole(
     user?.roleCode,
     ROLE_ACCESS.organizationProfile,
@@ -136,26 +135,19 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
           />
         )}
       </span>
-      {/* Desktop: Show name and role */}
+      {/* Desktop: Show name */}
       {!isMobile && !isTablet && (
-        <span className="hidden lg:flex lg:flex-col lg:min-w-0 lg:text-left">
+        <span className="hidden lg:flex lg:min-w-0 lg:items-center lg:text-left">
           <span className="block max-w-48 truncate text-sm font-medium text-foreground">
             {userName}
-          </span>
-          <span className="block max-w-48 truncate text-xs text-muted-foreground">
-            {roleLabel}
-            {user?.organizationName ? ` · ${user.organizationName}` : ''}
           </span>
         </span>
       )}
       {/* Tablet: Show shortened name */}
       {isTablet && (
-        <span className="hidden sm:flex sm:flex-col sm:min-w-0 sm:text-left">
+        <span className="hidden sm:flex sm:min-w-0 sm:items-center sm:text-left">
           <span className="block max-w-32 truncate text-sm font-medium text-foreground">
             {shortName}
-          </span>
-          <span className="block max-w-32 truncate text-xs text-muted-foreground">
-            {roleLabel}
           </span>
         </span>
       )}

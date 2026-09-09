@@ -98,6 +98,9 @@ const NotificationsPage = () => {
     if (!notification.isRead) {
       void markAsRead(notification.id).then(() => refreshUnreadCount());
     }
+    if (notification.entityId) {
+      navigate(`/shipment-handovers/${notification.entityId}`);
+    }
   };
 
   const handleEmailNoticeClick = () => {

@@ -6,6 +6,7 @@ export interface CreateHandoverPayload {
   vehicleInfo?: string;
   carrierName?: string;
   note?: string;
+  attachmentPath?: string;
 }
 
 export interface ShipmentHandover {
@@ -19,6 +20,7 @@ export interface ShipmentHandover {
   vehicleInfo?: string;
   carrierName?: string;
   note?: string;
+  attachmentPath?: string;
   expiresAt: string;
   createdAt: string;
   confirmedAt?: string;

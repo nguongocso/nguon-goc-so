@@ -97,6 +97,24 @@ public interface NotificationService {
     void sendTraceCodeUnlockedNotification(TraceCode traceCode);
 
     /**
+     * Gửi thông báo vòng đời phiếu bàn giao lô hàng (NCL-05-CN-008/CN-009)
+     * tới mọi người dùng thuộc một tổ chức có permission
+     * {@code notification:READ} (cùng cơ chế phân phối hiện có).
+     *
+     * <p>
+     * Dùng cho: tạo phiếu (tới tổ chức nhận), hủy phiếu (tới tổ chức nhận),
+     * xác nhận/từ chối (tới tổ chức giao).
+     * </p>
+     *
+     * @param title          tiêu đề thông báo
+     * @param content        nội dung thông báo
+     * @param entityId       ID phiếu bàn giao để bấm vào thông báo mở được
+     *                       trang chi tiết phiếu
+     * @param organizationId tổ chức nhận thông báo
+     */
+    void sendHandoverNotification(String title, String content, UUID entityId, UUID organizationId);
+
+    /**
      * Gửi cảnh báo cho Quản lý hợp tác xã khi lô sản xuất có kết quả
      * kiểm nghiệm KHÔNG ĐẠT (NCL-11-CN-005, QTN-30).
      *

@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Email;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import vn.nguongocso.organization.entity.Organization;
+import vn.nguongocso.organization.enums.OrganizationStatus;
 import vn.nguongocso.organization.enums.OrganizationType;
 
 /**
@@ -88,4 +89,14 @@ public interface OrganizationRepository extends JpaRepository<Organization, UUID
      * @return danh sách các tổ chức phù hợp
      */
     List<Organization> findByTypeAndOrganizationIdNot(OrganizationType type, UUID organizationId);
+
+    /**
+     * Tìm các tổ chức theo trạng thái, loại trừ một tổ chức cụ thể.
+     * Phục vụ dropdown tổ chức nhận trong phiếu bàn giao.
+     *
+     * @param status trạng thái cần lọc (thường là ACTIVE)
+     * @param organizationId ID tổ chức hiện tại cần loại trừ
+     * @return danh sách tổ chức phù hợp
+     */
+    List<Organization> findByStatusAndOrganizationIdNot(OrganizationStatus status, UUID organizationId);
 }

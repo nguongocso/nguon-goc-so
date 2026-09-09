@@ -1,5 +1,6 @@
 package vn.nguongocso.event.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -205,4 +206,22 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
         boolean existsByShipmentIdAndEventType(
                 @Param("shipmentId") UUID shipmentId,
                 @Param("eventType") ChainEventType eventType);
+
+        /**
+         * Lấy danh sách ID lô hàng đã được tổ chức chỉ định ghi nhận các loại
+         * sự kiện (không tính sự kiện đính chính). Dùng cho NCL-05-CN-008/CN-009
+         * để doanh nghiệp thu mua chỉ thấy các lô đã thu mua hoặc đã nhập kho.
+         *
+         * @param orgId ID tổ chức ghi sự kiện
+         * @param types danh sách loại sự kiện (PROCUREMENT, WAREHOUSE_RECEIPT...)
+         * @return danh sách ID lô hàng liên quan
+         */
+        @Query("SELECT DISTINCT ce.shipment.id FROM ChainEvent ce " +
+                "WHERE ce.recordedOrganizationId = :orgId " +
+                "AND ce.eventType IN :types " +
+                "AND ce.shipment IS NOT NULL " +
+                "AND ce.isCorrection = false")
+        List<UUID> findShipmentIdsByRecordedOrganizationIdAndEventTypeIn(
+                @Param("orgId") UUID orgId,
+                @Param("types") Collection<ChainEventType> types);
 }

@@ -90,6 +90,10 @@ import CancelLabelsPage from "@/pages/shipment/CancelLabelsPage";
 import BatchDossierExportPage from "@/pages/shipment/BatchDossierExportPage";
 import ShipmentTraceCodesPage from "@/pages/shipment/ShipmentTraceCodesPage";
 
+// ===== Shipment handover (NCL-05-CN-008 / NCL-05-CN-009) =====
+import { HandoverDetailPage } from "@/pages/shipment-handover/HandoverDetailPage";
+import { ShipmentHandoverReceivedListPage } from "@/pages/shipment-handover/ShipmentHandoverReceivedListPage";
+
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
 import TraceLookupPage from "@/pages/public/TraceLookupPage";
@@ -660,6 +664,28 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={ROLE_ACCESS.batchDossierExport}>
                         <BatchDossierExportPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* NCL-05-CN-008/CN-009: Danh sách phiếu bàn giao nhận của tổ chức hiện tại.
+            Route tĩnh được đặt trước route động :id để khớp đúng path này. */}
+            <Route
+                path="shipment-handovers/received"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.handoverReceivedView}>
+                        <ShipmentHandoverReceivedListPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* NCL-05-CN-008/CN-009: Chi tiết phiếu bàn giao lô hàng.
+            Backend chặn nếu tổ chức hiện tại không phải bên giao/bên nhận. */}
+            <Route
+                path="shipment-handovers/:id"
+                element={
+                    <RoleRoute allowedRoles={AUTHENTICATED_ROLE_CODES}>
+                        <HandoverDetailPage />
                     </RoleRoute>
                 }
             />
