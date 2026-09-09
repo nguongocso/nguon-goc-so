@@ -258,11 +258,8 @@ export default function CreateCoopWarehouseEntryPage() {
                         }`}
                       >
                         <div className="space-y-0.5">
-                          <p className="font-semibold text-slate-900 flex items-center gap-2">
+                          <p className="font-semibold text-slate-900">
                             {shipment.name}
-                            <span className="text-xs font-normal text-slate-500">
-                              (Mã: {shipment.id.substring(0, 8)}...)
-                            </span>
                           </p>
                           <p className="text-xs text-slate-600">
                             Số lượng: <span className="font-medium">{shipment.totalQuantity}</span> | Quy cách:{" "}
