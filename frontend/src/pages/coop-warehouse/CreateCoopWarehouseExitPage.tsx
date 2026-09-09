@@ -14,6 +14,7 @@ import {
   Truck,
   CheckSquare,
   Square,
+  Building2,
 } from "lucide-react";
 
 import {
@@ -28,6 +29,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,6 +40,9 @@ import {
   recordWarehouseExitSchema,
   type RecordWarehouseExitFormValues,
 } from "@/utils/validators/coopWarehouseEventSchema";
+import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
+import { ListPageHeader } from "@/components/common/ListPageHeader";
+import { HelpButton } from "@/components/help/HelpButton";
 
 interface ShipmentStatusItem {
   shipment: Shipment;
@@ -56,6 +61,12 @@ export default function CreateCoopWarehouseExitPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>(initialShipmentIds);
   const [loadingShipments, setLoadingShipments] = useState(true);
   const [serverError, setServerError] = useState<string | null>(null);
+
+  useSetBreadcrumb([
+    { label: "Tổng quan", href: "/dashboard" },
+    { label: "Bảng tiến độ chuỗi", href: "/chain-progress" },
+    { label: "Ghi sự kiện xuất kho HTX" },
+  ]);
 
   const getCurrentDatetimeString = () => {
     const now = new Date();
@@ -216,39 +227,42 @@ export default function CreateCoopWarehouseExitPage() {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      <Card className="border-amber-200 shadow-sm">
-        <CardHeader className="bg-amber-50/50 rounded-t-lg border-b border-amber-100">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-amber-100 text-amber-800 rounded-lg">
-              <LogOut className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle className="text-xl text-amber-950 font-semibold">
-                Ghi sự kiện xuất kho HTX
-              </CardTitle>
-              <p className="text-sm text-amber-800 mt-0.5">
-                Ghi nhận thời điểm các lô hàng rời kho hợp tác xã để chuyển đi thu mua hoặc vận chuyển.
-              </p>
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* Header chuẩn dự án */}
+      <ListPageHeader
+        icon={LogOut}
+        title="Ghi sự kiện xuất kho HTX"
+        description="Ghi nhận thời điểm các lô hàng rời kho hợp tác xã để chuyển đi thu mua hoặc vận chuyển."
+        iconBoxClassName="text-amber-600 bg-amber-50"
+        actions={<HelpButton screenKey="coop-warehouse-exit" />}
+      />
+
+      <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 pb-4">
+          <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <LogOut className="h-5 w-5 text-amber-600" />
+            Biểu mẫu ghi nhận xuất kho HTX
+          </CardTitle>
+          <CardDescription>
+            Điền đầy đủ thời điểm xuất kho, nơi chuyển đến và vị trí bản đồ để ghi nhận sự kiện xuất kho cho các lô hàng.
+          </CardDescription>
         </CardHeader>
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-6 pt-6">
             {serverError && (
-              <div className="p-4 bg-red-50 border border-red-200 text-red-800 rounded-md text-sm flex items-start gap-2">
+              <div className="p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg text-sm flex items-start gap-2">
                 <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
                 <div>{serverError}</div>
               </div>
             )}
 
-            {/* BỘ CHỌN LÔ HÀNG (Shipment Selector & Status Checker) */}
+            {/* MỤC 1: BỘ CHỌN LÔ HÀNG */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="font-semibold text-gray-800 text-sm flex items-center gap-2">
+              <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+                <Label className="font-semibold text-slate-900 text-sm flex items-center gap-2">
                   <Package className="h-4 w-4 text-amber-600" />
-                  Chọn lô hàng thực hiện xuất kho <span className="text-red-500">*</span>
+                  1. Chọn lô hàng thực hiện xuất kho <span className="text-red-500">*</span>
                 </Label>
 
                 {allAvailableShipments.length > 1 && (
@@ -272,11 +286,11 @@ export default function CreateCoopWarehouseExitPage() {
               </div>
 
               {loadingShipments ? (
-                <div className="p-4 bg-slate-50 border rounded-md text-sm text-slate-600 animate-pulse">
+                <div className="p-4 bg-slate-50 border rounded-lg text-sm text-slate-600 animate-pulse">
                   Đang tải danh sách lô hàng và kiểm tra trạng thái kho...
                 </div>
               ) : allAvailableShipments.length === 0 ? (
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-md text-amber-900 text-sm">
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
                   Chưa có lô hàng nào sẵn sàng cho lô sản xuất này.
                 </div>
               ) : (
@@ -365,40 +379,51 @@ export default function CreateCoopWarehouseExitPage() {
               )}
             </div>
 
-            {/* Thời điểm xuất kho & Nơi chuyển đến */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="exitTime" className="font-medium text-gray-700 flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4 text-slate-500" />
-                  Thời điểm xuất kho <span className="text-red-500">*</span>
+            {/* MỤC 2: THỜI ĐIỂM & ĐƠN VỊ TIẾP NHẬN */}
+            <div className="space-y-4 pt-2">
+              <div className="pb-1 border-b border-slate-100">
+                <Label className="font-semibold text-slate-900 text-sm flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-amber-600" />
+                  2. Thời điểm xuất kho & Nơi chuyển đến
                 </Label>
-                <Input id="exitTime" type="datetime-local" {...register("exitTime")} />
-                {errors.exitTime && <p className="text-sm text-red-600">{errors.exitTime.message}</p>}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="destination" className="font-medium text-gray-700 flex items-center gap-1.5">
-                  <Truck className="h-4 w-4 text-slate-500" />
-                  Nơi chuyển đến / Đơn vị tiếp nhận
-                </Label>
-                <Input
-                  id="destination"
-                  placeholder="VD: Xe vận chuyển Công ty Thu Mua Chè Việt"
-                  {...register("destination")}
-                />
-                {errors.destination && (
-                  <p className="text-sm text-red-600">{errors.destination.message}</p>
-                )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="exitTime" className="font-medium text-slate-700 flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4 text-slate-400" />
+                    Thời điểm xuất kho <span className="text-red-500">*</span>
+                  </Label>
+                  <Input id="exitTime" type="datetime-local" {...register("exitTime")} />
+                  {errors.exitTime && <p className="text-sm text-red-600">{errors.exitTime.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="destination" className="font-medium text-slate-700 flex items-center gap-1.5">
+                    <Truck className="h-4 w-4 text-slate-400" />
+                    Nơi chuyển đến / Đơn vị tiếp nhận
+                  </Label>
+                  <Input
+                    id="destination"
+                    placeholder="VD: Xe vận chuyển Công ty Thu Mua Chè Việt"
+                    {...register("destination")}
+                  />
+                  {errors.destination && (
+                    <p className="text-sm text-red-600">{errors.destination.message}</p>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Vị trí bản đồ */}
-            <div className="space-y-2">
-              <Label className="font-medium text-gray-700 flex items-center gap-1.5">
-                <MapPin className="h-4 w-4 text-slate-500" />
-                Vị trí xuất kho (Click trên bản đồ)
-              </Label>
-              <div className="rounded-md border border-gray-200 overflow-hidden">
+            {/* MỤC 3: VỊ TRÍ BẢN ĐỒ */}
+            <div className="space-y-2 pt-2">
+              <div className="pb-1 border-b border-slate-100">
+                <Label className="font-semibold text-slate-900 text-sm flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-amber-600" />
+                  3. Vị trí xuất kho (Click chọn trên bản đồ)
+                </Label>
+              </div>
+              <div className="rounded-lg border border-slate-200 overflow-hidden">
                 <LocationPicker
                   onLocationSelect={(lat, lng) => {
                     setValue("latitude", lat);
@@ -409,12 +434,14 @@ export default function CreateCoopWarehouseExitPage() {
               </div>
             </div>
 
-            {/* Ghi chú */}
-            <div className="space-y-2">
-              <Label htmlFor="notes" className="font-medium text-gray-700 flex items-center gap-1.5">
-                <FileText className="h-4 w-4 text-slate-500" />
-                Ghi chú thêm
-              </Label>
+            {/* MỤC 4: GHI CHÚ BỔ SUNG */}
+            <div className="space-y-2 pt-2">
+              <div className="pb-1 border-b border-slate-100">
+                <Label htmlFor="notes" className="font-semibold text-slate-900 text-sm flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-amber-600" />
+                  4. Ghi chú bổ sung
+                </Label>
+              </div>
               <Textarea
                 id="notes"
                 rows={3}
@@ -425,14 +452,14 @@ export default function CreateCoopWarehouseExitPage() {
             </div>
 
             {/* Hộp lưu ý */}
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-md text-amber-900 text-sm space-y-1">
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm space-y-1">
               <p className="font-semibold">Lưu ý nghiệp vụ:</p>
               <p>• Hệ thống sẽ tính tổng thời gian lưu kho từ thời điểm nhập kho gần nhất đến thời điểm xuất kho này.</p>
               <p>• Nếu thời gian lưu kho vượt quá thời gian bảo quản tối đa của loại nông sản, cảnh báo màu cam sẽ tự động phát ra (TC-03).</p>
             </div>
           </CardContent>
 
-          <CardFooter className="flex justify-end gap-3 border-t bg-gray-50/50 p-4 rounded-b-lg">
+          <CardFooter className="flex justify-end gap-3 border-t border-slate-100 bg-slate-50/50 p-4 rounded-b-xl">
             <Button
               type="button"
               variant="outline"
@@ -455,3 +482,4 @@ export default function CreateCoopWarehouseExitPage() {
     </div>
   );
 }
+
