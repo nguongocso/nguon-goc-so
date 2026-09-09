@@ -20,6 +20,7 @@ import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.event.dto.request.*;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
+import vn.nguongocso.event.dto.response.CoopWarehouseEventResponse;
 import vn.nguongocso.event.dto.response.ChainVerificationResponse;
 import vn.nguongocso.event.dto.response.EventVerificationItem;
 import vn.nguongocso.event.dto.response.ScanLookupResponse;
@@ -1337,6 +1338,260 @@ public class ChainEventServiceImpl implements ChainEventService {
                 .build());
 
         return response;
+    }
+
+    @Override
+    @Transactional
+    public CoopWarehouseEventResponse recordWarehouseEntryEvent(RecordWarehouseEntryRequest request, CustomUserDetails currentUser) {
+        validateEventPermission(currentUser);
+
+        ProductionLot lot = productionLotRepository.findById(request.getProductionLotId())
+                .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất."));
+
+        try {
+            validateOrganization(lot, currentUser);
+
+            if (lot.getStatus() == ProductionLotStatus.CANCELLED) {
+                throw new BusinessException("Lô sản xuất đã bị hủy, không thể ghi sự kiện.");
+            }
+            if (lot.getStatus() != ProductionLotStatus.PACKAGED) {
+                throw new BusinessException("Lô hàng chưa ở trạng thái đã đóng gói.");
+            }
+
+            LocalDateTime entryTime = request.getEntryTime();
+            LocalDateTime now = clock != null ? LocalDateTime.now(clock) : LocalDateTime.now();
+            if (entryTime.isAfter(now)) {
+                throw new BusinessException("Thời điểm nhập kho không được ở tương lai.");
+            }
+
+            // TC-04: Kiểm tra không cho ghi 2 lần nhập kho liên tiếp cho cùng lô khi chưa xuất kho
+            List<ChainEvent> entryEvents = chainEventRepository.findEventsByProductionLotIdAndEventType(
+                    lot.getId(), lot.getId().toString(), ChainEventType.WAREHOUSE_ENTRY);
+            List<ChainEvent> exitEvents = chainEventRepository.findEventsByProductionLotIdAndEventType(
+                    lot.getId(), lot.getId().toString(), ChainEventType.WAREHOUSE_EXIT);
+
+            if (!entryEvents.isEmpty()) {
+                LocalDateTime latestEntryRecorded = entryEvents.get(0).getRecordedAt();
+                boolean isExited = !exitEvents.isEmpty() && !exitEvents.get(0).getRecordedAt().isBefore(latestEntryRecorded);
+                if (!isExited) {
+                    throw new BusinessException("Lô hàng đang nằm trong kho HTX, vui lòng ghi xuất kho trước khi nhập kho mới.");
+                }
+            }
+        } catch (BusinessException e) {
+            eventValidationService.logFailedAttempt(request.getProductionLotId(), lot.getName(),
+                    ChainEventType.WAREHOUSE_ENTRY, e.getMessage(), currentUser);
+            throw e;
+        }
+
+        Point locationPoint = buildPoint(request.getLatitude(), request.getLongitude());
+
+        Map<String, Object> eventDataMap = new HashMap<>();
+        eventDataMap.put("productionLotId", lot.getId().toString());
+        eventDataMap.put("productionLotName", lot.getName());
+        eventDataMap.put("warehouseName", request.getWarehouseName());
+        eventDataMap.put("entryTime", request.getEntryTime().toString());
+        if (request.getStorageCondition() != null) {
+            eventDataMap.put("storageCondition", request.getStorageCondition());
+        }
+        if (request.getNotes() != null) {
+            eventDataMap.put("notes", request.getNotes());
+        }
+        if (request.getImages() != null && !request.getImages().isEmpty()) {
+            eventDataMap.put("images", request.getImages());
+        }
+        eventDataMap.put("deviceSource", request.getDeviceSource() != null ? request.getDeviceSource() : "WEB");
+
+        String eventDataJson = toJson(eventDataMap);
+        User actor = getActor(currentUser);
+
+        ChainEvent chainEvent = ChainEvent.builder()
+                .eventType(ChainEventType.WAREHOUSE_ENTRY)
+                .eventData(eventDataJson)
+                .location(locationPoint)
+                .recordedAt(request.getEntryTime())
+                .recordedBy(actor)
+                .recordedOrganizationId(currentUser.getOrganizationId())
+                .isCorrection(false)
+                .build();
+
+        chainEvent = saveWithChainHash(chainEvent);
+
+        publishActivityLog(currentUser, "Ghi sự kiện nhập kho HTX cho lô hàng " + lot.getName(),
+                "ChainEvent", chainEvent.getId().toString());
+
+        return CoopWarehouseEventResponse.builder()
+                .id(chainEvent.getId())
+                .productionLotId(lot.getId())
+                .productionLotName(lot.getName())
+                .eventType(ChainEventType.WAREHOUSE_ENTRY)
+                .warehouseName(request.getWarehouseName())
+                .entryTime(request.getEntryTime())
+                .storageCondition(request.getStorageCondition())
+                .notes(request.getNotes())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .images(request.getImages())
+                .recordedAt(chainEvent.getRecordedAt())
+                .recordedByName(actor.getFullName())
+                .createdAt(chainEvent.getCreatedAt())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public CoopWarehouseEventResponse recordWarehouseExitEvent(RecordWarehouseExitRequest request, CustomUserDetails currentUser) {
+        validateEventPermission(currentUser);
+
+        ProductionLot lot = productionLotRepository.findById(request.getProductionLotId())
+                .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất."));
+
+        ChainEvent latestEntry = null;
+        LocalDateTime entryTime = null;
+        String warehouseName = null;
+        String storageCondition = null;
+
+        try {
+            validateOrganization(lot, currentUser);
+
+            if (lot.getStatus() == ProductionLotStatus.CANCELLED) {
+                throw new BusinessException("Lô sản xuất đã bị hủy, không thể ghi sự kiện.");
+            }
+
+            // TC-02: Chặn xuất kho khi chưa có sự kiện nhập kho HTX trước đó
+            List<ChainEvent> entryEvents = chainEventRepository.findEventsByProductionLotIdAndEventType(
+                    lot.getId(), lot.getId().toString(), ChainEventType.WAREHOUSE_ENTRY);
+            List<ChainEvent> exitEvents = chainEventRepository.findEventsByProductionLotIdAndEventType(
+                    lot.getId(), lot.getId().toString(), ChainEventType.WAREHOUSE_EXIT);
+
+            if (entryEvents.isEmpty()) {
+                throw new BusinessException("Chưa có sự kiện nhập kho HTX cho lô hàng này, không thể ghi xuất kho.");
+            }
+
+            latestEntry = entryEvents.get(0);
+            if (!exitEvents.isEmpty() && !exitEvents.get(0).getRecordedAt().isBefore(latestEntry.getRecordedAt())) {
+                throw new BusinessException("Chưa có sự kiện nhập kho HTX cho lô hàng này, không thể ghi xuất kho.");
+            }
+
+            if (latestEntry.getEventData() != null) {
+                try {
+                    Map<String, Object> data = objectMapper.readValue(latestEntry.getEventData(), Map.class);
+                    if (data.get("entryTime") != null) {
+                        entryTime = LocalDateTime.parse(data.get("entryTime").toString());
+                    }
+                    if (data.get("warehouseName") != null) {
+                        warehouseName = data.get("warehouseName").toString();
+                    }
+                    if (data.get("storageCondition") != null) {
+                        storageCondition = data.get("storageCondition").toString();
+                    }
+                } catch (Exception e) {
+                    entryTime = latestEntry.getRecordedAt();
+                }
+            }
+            if (entryTime == null) {
+                entryTime = latestEntry.getRecordedAt();
+            }
+
+            LocalDateTime exitTime = request.getExitTime();
+            LocalDateTime now = clock != null ? LocalDateTime.now(clock) : LocalDateTime.now();
+            if (exitTime.isAfter(now)) {
+                throw new BusinessException("Thời điểm xuất kho không được ở tương lai.");
+            }
+            if (exitTime.isBefore(entryTime)) {
+                throw new BusinessException("Thời điểm xuất kho không được trước thời điểm nhập kho.");
+            }
+        } catch (BusinessException e) {
+            eventValidationService.logFailedAttempt(request.getProductionLotId(), lot.getName(),
+                    ChainEventType.WAREHOUSE_EXIT, e.getMessage(), currentUser);
+            throw e;
+        }
+
+        // Tính thời gian lưu kho (TC-01 & TC-03)
+        long storageDurationHours = java.time.Duration.between(entryTime, request.getExitTime()).toHours();
+        long storageDurationDays = java.time.Duration.between(entryTime, request.getExitTime()).toDays();
+
+        Integer maxAllowedStorageDays = null;
+        if (lot.getProductCategory() != null) {
+            maxAllowedStorageDays = lot.getProductCategory().getMaxStorageDays();
+        }
+
+        boolean isStorageExceeded = false;
+        String warningMessage = null;
+        if (maxAllowedStorageDays != null && storageDurationDays > maxAllowedStorageDays) {
+            isStorageExceeded = true;
+            String categoryName = lot.getProductCategory() != null ? lot.getProductCategory().getName() : "";
+            warningMessage = "CẢNH BÁO: Thời gian lưu kho (" + storageDurationDays + " ngày) vượt quá ngưỡng bảo quản cho phép (" + maxAllowedStorageDays + " ngày) cho loại nông sản [" + categoryName + "]";
+        }
+
+        Point locationPoint = buildPoint(request.getLatitude(), request.getLongitude());
+
+        Map<String, Object> eventDataMap = new HashMap<>();
+        eventDataMap.put("productionLotId", lot.getId().toString());
+        eventDataMap.put("productionLotName", lot.getName());
+        eventDataMap.put("warehouseName", warehouseName);
+        eventDataMap.put("entryTime", entryTime.toString());
+        eventDataMap.put("exitTime", request.getExitTime().toString());
+        eventDataMap.put("storageDurationDays", storageDurationDays);
+        eventDataMap.put("storageDurationHours", storageDurationHours);
+        if (maxAllowedStorageDays != null) {
+            eventDataMap.put("maxAllowedStorageDays", maxAllowedStorageDays);
+        }
+        eventDataMap.put("isStorageExceeded", isStorageExceeded);
+        if (warningMessage != null) {
+            eventDataMap.put("warningMessage", warningMessage);
+        }
+        if (request.getDestination() != null) {
+            eventDataMap.put("destination", request.getDestination());
+        }
+        if (request.getNotes() != null) {
+            eventDataMap.put("notes", request.getNotes());
+        }
+        if (request.getImages() != null && !request.getImages().isEmpty()) {
+            eventDataMap.put("images", request.getImages());
+        }
+        eventDataMap.put("deviceSource", request.getDeviceSource() != null ? request.getDeviceSource() : "WEB");
+
+        String eventDataJson = toJson(eventDataMap);
+        User actor = getActor(currentUser);
+
+        ChainEvent chainEvent = ChainEvent.builder()
+                .eventType(ChainEventType.WAREHOUSE_EXIT)
+                .eventData(eventDataJson)
+                .location(locationPoint)
+                .recordedAt(request.getExitTime())
+                .recordedBy(actor)
+                .recordedOrganizationId(currentUser.getOrganizationId())
+                .isCorrection(false)
+                .build();
+
+        chainEvent = saveWithChainHash(chainEvent);
+
+        publishActivityLog(currentUser, "Ghi sự kiện xuất kho HTX cho lô hàng " + lot.getName(),
+                "ChainEvent", chainEvent.getId().toString());
+
+        return CoopWarehouseEventResponse.builder()
+                .id(chainEvent.getId())
+                .productionLotId(lot.getId())
+                .productionLotName(lot.getName())
+                .eventType(ChainEventType.WAREHOUSE_EXIT)
+                .warehouseName(warehouseName)
+                .entryTime(entryTime)
+                .exitTime(request.getExitTime())
+                .storageCondition(storageCondition)
+                .destination(request.getDestination())
+                .notes(request.getNotes())
+                .storageDurationDays(storageDurationDays)
+                .storageDurationHours(storageDurationHours)
+                .maxAllowedStorageDays(maxAllowedStorageDays)
+                .isStorageExceeded(isStorageExceeded)
+                .warningMessage(warningMessage)
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .images(request.getImages())
+                .recordedAt(chainEvent.getRecordedAt())
+                .recordedByName(actor.getFullName())
+                .createdAt(chainEvent.getCreatedAt())
+                .build();
     }
 
     /**
