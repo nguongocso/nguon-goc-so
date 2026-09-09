@@ -30,8 +30,11 @@ public class JourneyService {
         // Map event type to display name
         private static final Map<String, String> EVENT_DISPLAY_NAMES = Map.of(
                         "HARVEST", "Thu hoạch",
-                        "TRANSPORT", "Vận chuyển",
+                        "PREPROCESSING", "Sơ chế và phân loại",
                         "PACKAGING", "Đóng gói",
+                        "WAREHOUSE_ENTRY", "Nhập kho HTX",
+                        "WAREHOUSE_EXIT", "Xuất kho HTX",
+                        "TRANSPORT", "Vận chuyển",
                         "PROCUREMENT", "Thu mua");
 
         /** Lấy hành trình chi tiết của một lô hàng. */

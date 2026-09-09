@@ -8,4 +8,21 @@
 -- V20260908160000 khi bảng được đổi tên sang số nhiều.
 -- ============================================================
 
-CREATE OR REPLACE VIEW cultivation_milestones AS SELECT * FROM cultivation_milestone;
+-- Chỉ tạo view khi đối tượng cultivation_milestones chưa phải là BASE TABLE
+-- (Tránh lỗi ERROR 1347 khi V20260908160000 đã chạy đổi tên bảng trước đó)
+SET @is_table = (
+    SELECT COUNT(*) 
+    FROM information_schema.tables 
+    WHERE table_schema = DATABASE() 
+      AND table_name = 'cultivation_milestones' 
+      AND table_type = 'BASE TABLE'
+);
+
+SET @sql = IF(@is_table > 0, 
+    'SELECT 1', 
+    'CREATE OR REPLACE VIEW cultivation_milestones AS SELECT * FROM cultivation_milestone'
+);
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;

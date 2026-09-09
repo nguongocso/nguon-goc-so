@@ -62,6 +62,8 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.farm.dto.response.HarvestEligibilityResponse;
 import vn.nguongocso.farm.service.HarvestEligibilityService;
 
+import vn.nguongocso.trace.repository.ShipmentRepository;
+
 @ExtendWith(MockitoExtension.class)
 class ChainEventServiceImplTest {
 
@@ -70,6 +72,9 @@ class ChainEventServiceImplTest {
 
     @Mock
     private ProductionLotRepository productionLotRepository;
+
+    @Mock
+    private ShipmentRepository shipmentRepository;
 
     @Mock
     private UserRepository userRepository;
@@ -797,7 +802,7 @@ class ChainEventServiceImplTest {
 
         assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("Bạn không thuộc tổ chức quản lý của lô hàng.");
+                .hasMessageContaining("Bạn không có quyền ghi sự kiện cho lô hàng của tổ chức này.");
 
         verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
         verifyNoInteractions(chainEventRepository);
@@ -951,5 +956,202 @@ class ChainEventServiceImplTest {
         assertThat(response).isNotNull();
         assertThat(productionLot.getActualQuantity()).isEqualTo(920.0);
         verify(chainEventRepository, times(1)).save(any(ChainEvent.class));
+    }
+
+    // ==========================================
+    // NCL-05-CN-011: SỰ KIỆN KHO HỢP TÁC XÃ (ENTRY & EXIT)
+    // ==========================================
+
+    @Test
+    void recordWarehouseEntryAndExit_Success_TC01() {
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+        when(validUser.getUserId()).thenReturn(userId);
+
+        Shipment shipment = new Shipment();
+        shipment.setId(UUID.randomUUID());
+        shipment.setName("Lô hàng Vải Thiều 1");
+        shipment.setOrganization(organization);
+        shipment.setProductionLot(productionLot);
+        shipment.setStatus(ShipmentStatus.ACTIVATED);
+
+        vn.nguongocso.farm.entity.ProductCategory category = vn.nguongocso.farm.entity.ProductCategory.builder()
+                .id(UUID.randomUUID())
+                .name("Chè Ô Long")
+                .maxStorageDays(5)
+                .build();
+        productionLot.setProductCategory(category);
+
+        when(shipmentRepository.findById(shipment.getId())).thenReturn(Optional.of(shipment));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(actor));
+
+        // 1. Ghi nhập kho
+        vn.nguongocso.event.dto.request.RecordWarehouseEntryRequest entryReq = new vn.nguongocso.event.dto.request.RecordWarehouseEntryRequest();
+        entryReq.setShipmentId(shipment.getId());
+        entryReq.setEntryTime(LocalDateTime.of(2026, 9, 1, 8, 0));
+        entryReq.setWarehouseName("Kho lạnh HTX số 1");
+        entryReq.setStorageCondition("Nhiệt độ 5°C");
+
+        ChainEvent entrySaved = ChainEvent.builder()
+                .id(UUID.randomUUID())
+                .shipment(shipment)
+                .eventType(ChainEventType.WAREHOUSE_ENTRY)
+                .eventData("{\"shipmentId\":\"" + shipment.getId() + "\",\"warehouseName\":\"Kho lạnh HTX số 1\",\"entryTime\":\"2026-09-01T08:00:00\"}")
+                .recordedAt(LocalDateTime.of(2026, 9, 1, 8, 0))
+                .recordedBy(actor)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId()))
+                .thenReturn(List.of())
+                .thenReturn(List.of(entrySaved));
+        when(chainEventRepository.save(any(ChainEvent.class))).thenReturn(entrySaved);
+
+        vn.nguongocso.event.dto.response.CoopWarehouseEventResponse entryResp = chainEventService.recordWarehouseEntryEvent(entryReq, validUser);
+
+        assertThat(entryResp).isNotNull();
+        assertThat(entryResp.getEventType()).isEqualTo(ChainEventType.WAREHOUSE_ENTRY);
+        assertThat(entryResp.getWarehouseName()).isEqualTo("Kho lạnh HTX số 1");
+
+        // 2. Ghi xuất kho (3 ngày sau)
+        vn.nguongocso.event.dto.request.RecordWarehouseExitRequest exitReq = new vn.nguongocso.event.dto.request.RecordWarehouseExitRequest();
+        exitReq.setShipmentId(shipment.getId());
+        exitReq.setExitTime(LocalDateTime.of(2026, 9, 4, 8, 0));
+        exitReq.setDestination("Xe vận chuyển công ty A");
+
+        ChainEvent exitSaved = ChainEvent.builder()
+                .id(UUID.randomUUID())
+                .shipment(shipment)
+                .eventType(ChainEventType.WAREHOUSE_EXIT)
+                .eventData("{\"shipmentId\":\"" + shipment.getId() + "\",\"storageDurationDays\":3}")
+                .recordedAt(LocalDateTime.of(2026, 9, 4, 8, 0))
+                .recordedBy(actor)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(chainEventRepository.save(any(ChainEvent.class))).thenReturn(exitSaved);
+
+        vn.nguongocso.event.dto.response.CoopWarehouseEventResponse exitResp = chainEventService.recordWarehouseExitEvent(exitReq, validUser);
+
+        assertThat(exitResp).isNotNull();
+        assertThat(exitResp.getEventType()).isEqualTo(ChainEventType.WAREHOUSE_EXIT);
+        assertThat(exitResp.getStorageDurationDays()).isEqualTo(3L);
+        assertThat(exitResp.getIsStorageExceeded()).isFalse();
+    }
+
+    @Test
+    void recordWarehouseExit_ThrowException_WhenNoEntryEvent_TC02() {
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+
+        Shipment shipment = new Shipment();
+        shipment.setId(UUID.randomUUID());
+        shipment.setName("Lô hàng Vải Thiều 1");
+        shipment.setOrganization(organization);
+        shipment.setProductionLot(productionLot);
+        shipment.setStatus(ShipmentStatus.ACTIVATED);
+
+        when(shipmentRepository.findById(shipment.getId())).thenReturn(Optional.of(shipment));
+        when(chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId())).thenReturn(List.of());
+
+        vn.nguongocso.event.dto.request.RecordWarehouseExitRequest exitReq = new vn.nguongocso.event.dto.request.RecordWarehouseExitRequest();
+        exitReq.setShipmentId(shipment.getId());
+        exitReq.setExitTime(LocalDateTime.of(2026, 9, 4, 8, 0));
+
+        assertThatThrownBy(() -> chainEventService.recordWarehouseExitEvent(exitReq, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("chưa được ghi nhận nhập kho HTX. Vui lòng ghi sự kiện nhập kho trước khi xuất kho.");
+    }
+
+    @Test
+    void recordWarehouseExit_Warning_WhenStorageExceeded_TC03() {
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+        when(validUser.getUserId()).thenReturn(userId);
+
+        Shipment shipment = new Shipment();
+        shipment.setId(UUID.randomUUID());
+        shipment.setName("Lô hàng Vải Thiều 1");
+        shipment.setOrganization(organization);
+        shipment.setProductionLot(productionLot);
+        shipment.setStatus(ShipmentStatus.ACTIVATED);
+
+        vn.nguongocso.farm.entity.ProductCategory category = vn.nguongocso.farm.entity.ProductCategory.builder()
+                .id(UUID.randomUUID())
+                .name("Rau Cải Thìa")
+                .maxStorageDays(2) // Ngưỡng tối đa 2 ngày
+                .build();
+        productionLot.setProductCategory(category);
+
+        when(shipmentRepository.findById(shipment.getId())).thenReturn(Optional.of(shipment));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(actor));
+
+        ChainEvent entrySaved = ChainEvent.builder()
+                .id(UUID.randomUUID())
+                .shipment(shipment)
+                .eventType(ChainEventType.WAREHOUSE_ENTRY)
+                .eventData("{\"shipmentId\":\"" + shipment.getId() + "\",\"warehouseName\":\"Kho HTX\",\"entryTime\":\"2026-09-01T08:00:00\"}")
+                .recordedAt(LocalDateTime.of(2026, 9, 1, 8, 0))
+                .recordedBy(actor)
+                .build();
+
+        when(chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId()))
+                .thenReturn(List.of(entrySaved));
+
+        ChainEvent exitSaved = ChainEvent.builder()
+                .id(UUID.randomUUID())
+                .shipment(shipment)
+                .eventType(ChainEventType.WAREHOUSE_EXIT)
+                .eventData("{\"isStorageExceeded\":true}")
+                .recordedAt(LocalDateTime.of(2026, 9, 4, 8, 0)) // 3 ngày sau > 2 ngày
+                .recordedBy(actor)
+                .build();
+        when(chainEventRepository.save(any(ChainEvent.class))).thenReturn(exitSaved);
+
+        vn.nguongocso.event.dto.request.RecordWarehouseExitRequest exitReq = new vn.nguongocso.event.dto.request.RecordWarehouseExitRequest();
+        exitReq.setShipmentId(shipment.getId());
+        exitReq.setExitTime(LocalDateTime.of(2026, 9, 4, 8, 0));
+
+        vn.nguongocso.event.dto.response.CoopWarehouseEventResponse exitResp = chainEventService.recordWarehouseExitEvent(exitReq, validUser);
+
+        assertThat(exitResp).isNotNull();
+        assertThat(exitResp.getStorageDurationDays()).isEqualTo(3L);
+        assertThat(exitResp.getIsStorageExceeded()).isTrue();
+        assertThat(exitResp.getWarningMessage()).contains("vượt quá ngưỡng bảo quản cho phép (2 ngày)");
+    }
+
+    @Test
+    void recordWarehouseEntry_ThrowException_WhenAlreadyInWarehouse_TC04() {
+        when(validUser.getRoleCode()).thenReturn("VT-03");
+        when(validUser.getOrganizationId()).thenReturn(organization.getOrganizationId());
+
+        Shipment shipment = new Shipment();
+        shipment.setId(UUID.randomUUID());
+        shipment.setName("Lô hàng Vải Thiều 1");
+        shipment.setOrganization(organization);
+        shipment.setProductionLot(productionLot);
+        shipment.setStatus(ShipmentStatus.ACTIVATED);
+
+        when(shipmentRepository.findById(shipment.getId())).thenReturn(Optional.of(shipment));
+
+        ChainEvent existingEntry = ChainEvent.builder()
+                .id(UUID.randomUUID())
+                .shipment(shipment)
+                .eventType(ChainEventType.WAREHOUSE_ENTRY)
+                .recordedAt(LocalDateTime.of(2026, 9, 1, 8, 0))
+                .build();
+
+        // Đã có 1 nhập kho và chưa xuất kho
+        when(chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId()))
+                .thenReturn(List.of(existingEntry));
+
+        vn.nguongocso.event.dto.request.RecordWarehouseEntryRequest entryReq = new vn.nguongocso.event.dto.request.RecordWarehouseEntryRequest();
+        entryReq.setShipmentId(shipment.getId());
+        entryReq.setEntryTime(LocalDateTime.of(2026, 9, 2, 8, 0));
+        entryReq.setWarehouseName("Kho HTX số 2");
+
+        assertThatThrownBy(() -> chainEventService.recordWarehouseEntryEvent(entryReq, validUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("đang trong kho HTX, vui lòng ghi xuất kho trước khi nhập kho mới.");
     }
 }
