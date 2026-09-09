@@ -19,6 +19,7 @@ import {
   getShipmentWarehouseStatus,
   recordWarehouseExit,
 } from "@/api/coopWarehouseApi";
+import { getProductionLotById } from "@/api/productionLotApi";
 import { getShipmentById, getShipmentsByProductionLot } from "@/api/shipmentApi";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,10 +57,26 @@ export default function CreateCoopWarehouseExitPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>(initialShipmentIds);
   const [loadingShipments, setLoadingShipments] = useState(true);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [lotName, setLotName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!productionLotId) return;
+    getProductionLotById(productionLotId)
+      .then((lot) => setLotName(lot.name || lot.code || null))
+      .catch(() => setLotName(null));
+  }, [productionLotId]);
 
   useSetBreadcrumb([
     { label: "Tổng quan", href: "/dashboard" },
-    { label: "Bảng tiến độ chuỗi", href: "/chain-progress" },
+    { label: "Lô sản xuất", href: "/production-lots" },
+    ...(productionLotId
+      ? [
+          {
+            label: lotName || "Chi tiết lô sản xuất",
+            href: `/production-lots/${productionLotId}`,
+          },
+        ]
+      : []),
     { label: "Ghi sự kiện xuất kho HTX" },
   ]);
 
