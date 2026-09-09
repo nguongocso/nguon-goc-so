@@ -37,6 +37,9 @@ const STATUS_FILTER_OPTIONS: Array<{ value: ScopeStatusFilter; label: string }> 
     { value: 'EXCLUDED', label: 'Đã loại' },
 ];
 
+// Các lựa chọn số dòng mỗi trang của bảng "Phạm vi thu hồi" (chỉ ảnh hưởng hiển thị).
+const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
+
 interface LotSelectionItem {
     shipmentId: string;
     shipmentName: string;
@@ -62,7 +65,7 @@ export const BulkRecallRequestForm: React.FC<BulkRecallRequestFormProps> = ({
     const [searchKeyword, setSearchKeyword] = useState('');
     const [statusFilter, setStatusFilter] = useState<ScopeStatusFilter>('ALL');
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize] = useState(10);
+    const [pageSize, setPageSize] = useState(10);
 
     const initialItems: LotSelectionItem[] = useMemo(() =>
         shipments.map((ship) => {
@@ -426,6 +429,19 @@ export const BulkRecallRequestForm: React.FC<BulkRecallRequestFormProps> = ({
                         Hiển thị {rangeStart}–{rangeEnd} trong tổng số {totalFiltered} lô
                     </span>
                     <div className="flex flex-wrap items-center gap-2">
+                        <select
+                            value={pageSize}
+                            onChange={(e) => setPageSize(Number(e.target.value))}
+                            disabled={creating}
+                            aria-label="Số dòng mỗi trang"
+                            className="h-9 rounded-lg border border-input bg-white px-2 text-sm text-slate-700 outline-none focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            {PAGE_SIZE_OPTIONS.map((option) => (
+                                <option key={option} value={option}>
+                                    {option}
+                                </option>
+                            ))}
+                        </select>
                         <Button
                             variant="outline"
                             size="icon-sm"
