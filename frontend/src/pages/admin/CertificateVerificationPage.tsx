@@ -295,6 +295,7 @@ export const CertificateVerificationPage = () => {
             />
             <FilterSelect
               value={status}
+              ariaLabel="Lọc theo trạng thái xác thực"
               onValueChange={(value) => {
                 setStatus((value || 'PENDING') as CertificateVerificationStatus);
                 setPage(0);
@@ -356,6 +357,7 @@ export const CertificateVerificationPage = () => {
                       <StatusBadge
                         label={STATUS_LABEL[item.verificationStatus]}
                         tone={STATUS_TONE[item.verificationStatus]}
+                        className={item.verificationStatus === 'PENDING' ? 'text-amber-800' : undefined}
                       />
                     </div>
                     <div className="mt-3 space-y-1 text-sm text-muted-foreground">
@@ -414,6 +416,7 @@ export const CertificateVerificationPage = () => {
                   <StatusBadge
                     label={STATUS_LABEL[selected.verificationStatus]}
                     tone={STATUS_TONE[selected.verificationStatus]}
+                    className={selected.verificationStatus === 'PENDING' ? 'text-amber-800' : undefined}
                   />
                 </div>
               </CardHeader>
@@ -514,7 +517,11 @@ export const CertificateVerificationPage = () => {
                   <Button variant="destructive" onClick={() => setRejectOpen(true)}>
                     <XCircle /> Từ chối
                   </Button>
-                  <Button onClick={() => setVerifyOpen(true)} disabled={!selected.document}>
+                  <Button
+                    className="bg-emerald-700 hover:bg-emerald-800"
+                    onClick={() => setVerifyOpen(true)}
+                    disabled={!selected.document}
+                  >
                     <CheckCircle2 /> Xác thực
                   </Button>
                 </CardFooter>
@@ -547,7 +554,11 @@ export const CertificateVerificationPage = () => {
             <Button variant="outline" onClick={() => setVerifyOpen(false)} disabled={actionLoading}>
               Hủy
             </Button>
-            <Button onClick={() => void handleVerify()} disabled={actionLoading}>
+            <Button
+              className="bg-emerald-700 hover:bg-emerald-800"
+              onClick={() => void handleVerify()}
+              disabled={actionLoading}
+            >
               {actionLoading ? <LoaderCircle className="animate-spin" /> : <ShieldCheck />}
               Xác nhận xác thực
             </Button>

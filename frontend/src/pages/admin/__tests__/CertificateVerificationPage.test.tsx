@@ -100,6 +100,7 @@ describe('CertificateVerificationPage', () => {
     expect(screen.getAllByText('VietGAP')).toHaveLength(3);
     expect(screen.getAllByText('HTX Nông sản Xanh')).toHaveLength(2);
     expect(screen.getByText(/vietgap-2026\.pdf/)).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Lọc theo trạng thái xác thực' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Xác thực/ })).toBeEnabled();
     expect(certificateApi.getCertificateVerifications).toHaveBeenCalledWith(
       expect.objectContaining({ verificationStatus: 'PENDING', page: 0, size: 10 }),
