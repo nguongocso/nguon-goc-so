@@ -38,7 +38,12 @@ export const UserProfileForm: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [profile?.avatarUrl]);
 
   const {
     register,
@@ -115,6 +120,7 @@ export const UserProfileForm: React.FC = () => {
       if (response.success && response.data) {
         const newAvatarUrl = response.data.avatarUrl;
         toast.success("Tải lên ảnh đại diện thành công");
+        setAvatarError(false);
         setProfile((prev) => (prev ? { ...prev, avatarUrl: newAvatarUrl } : null));
         if (authUser) {
           updateUser({ ...authUser, avatarUrl: newAvatarUrl });
@@ -216,11 +222,12 @@ export const UserProfileForm: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center gap-5 p-4 rounded-lg bg-slate-50/70 border border-slate-200/80">
             <div className="relative group">
               <div className="size-20 rounded-full border-2 border-emerald-500/40 bg-emerald-100 flex items-center justify-center overflow-hidden text-emerald-800 font-bold text-2xl shadow-inner">
-                {avatarSrc ? (
+                {avatarSrc && !avatarError ? (
                   <img
                     src={getAssetUrl(avatarSrc)}
                     alt={profile?.fullName || "Avatar"}
                     className="size-full object-cover"
+                    onError={() => setAvatarError(true)}
                   />
                 ) : (
                   profile?.fullName?.charAt(0).toUpperCase() || "U"

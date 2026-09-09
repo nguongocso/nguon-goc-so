@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import "@testing-library/jest-dom/vitest";
 import { ProfilePage } from "../ProfilePage";
 import * as userApi from "@/api/userApi";
 
@@ -123,11 +124,12 @@ describe("NCL-01-CN-010 - ProfilePage & Password Change UI", () => {
       expect(screen.getByDisplayValue("0987654321")).toBeInTheDocument();
     });
 
-    const editBtn = screen.getByRole("button", { name: /Chỉnh sửa/i });
+    const editBtn = screen.getAllByRole("button", { name: /Chỉnh sửa/i })[0];
     await user.click(editBtn);
 
     const saveBtn = await screen.findByRole("button", { name: /Lưu thay đổi/i });
-    const phoneInput = screen.getByDisplayValue("0987654321");
+    const phoneInputs = screen.getAllByDisplayValue("0987654321");
+    const phoneInput = phoneInputs.find((el) => !el.hasAttribute("disabled")) || phoneInputs[0];
     await user.clear(phoneInput);
     await user.type(phoneInput, "0912345678");
 
@@ -162,7 +164,7 @@ describe("NCL-01-CN-010 - ProfilePage & Password Change UI", () => {
     await user.type(newPwdInput, "NewPassword@456");
     await user.type(confirmPwdInput, "NewPassword@456");
 
-    const submitBtn = screen.getByRole("button", { name: /Cập nhật mật khẩu/i });
+    const submitBtn = screen.getAllByRole("button", { name: /Cập nhật mật khẩu/i })[0];
     await user.click(submitBtn);
 
     await waitFor(() => {

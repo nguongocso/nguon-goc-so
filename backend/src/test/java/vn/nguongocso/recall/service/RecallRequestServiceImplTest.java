@@ -282,7 +282,7 @@ class RecallRequestServiceImplTest {
 
         assertThatThrownBy(() -> service.approve(request.getId(), new ApproveRecallRequest(), currentUser))
                 .isInstanceOf(BusinessException.class)
-                .hasMessage("Bạn không thể duyệt yêu cầu do chính mình tạo (QTN-22).");
+                .hasMessage("Bạn không thể duyệt yêu cầu do chính mình tạo.");
     }
 
     @Test

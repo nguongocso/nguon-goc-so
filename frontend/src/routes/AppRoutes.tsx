@@ -97,6 +97,7 @@ import { ShipmentHandoverReceivedListPage } from "@/pages/shipment-handover/Ship
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
 import TraceLookupPage from "@/pages/public/TraceLookupPage";
+import ProductFeedbackLookupPage from "@/pages/public/ProductFeedbackLookupPage";
 import JoinOrganizationPage from "@/pages/public/JoinOrganizationPage";
 
 // ===== Reports =====
@@ -177,6 +178,11 @@ import { SystemMonitoringPage } from "@/pages/admin/SystemMonitoringPage";
 import { CreateRecallRequestPage } from "@/pages/recall-request/CreateRecallRequestPage";
 import { RecallRequestListPage } from "@/pages/recall-request/RecallRequestListPage";
 import { RecallRequestDetailPage } from "@/pages/recall-request/RecallRequestDetailPage";
+
+// ===== Bulk Recall requests (NCL-08-CN-011) =====
+import { BulkRecallRequestDetailPage } from "@/pages/recall-request/BulkRecallRequestDetailPage";
+import { BulkRecallRequestListPage } from "@/pages/recall-request/BulkRecallRequestListPage";
+import { CreateBulkRecallRequestPage } from "@/pages/recall-request/CreateBulkRecallRequestPage";
 
 // ===== Code range supplement (NCL-04-CN-007) =====
 import { CodeRangeSupplementListPage } from "@/pages/admin/CodeRangeSupplementListPage";
@@ -340,6 +346,11 @@ const AppRoutes = () => (
         <Route
             path="/public/trace/:codeValue"
             element={<TraceLookupPage />}
+        />
+
+        <Route
+            path="/public/product-feedbacks/lookup"
+            element={<ProductFeedbackLookupPage />}
         />
 
         <Route
@@ -553,6 +564,17 @@ const AppRoutes = () => (
                         allowedRoles={["VT-01", "VT-02", "VT-03"]}
                     >
                         <ProductionLotDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:id/create-bulk-recall-request"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                    >
+                        <CreateBulkRecallRequestPage />
                     </RoleRoute>
                 }
             />
@@ -1520,6 +1542,32 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.recallRequestManage}
                     >
                         <RecallRequestDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* ===========================================================
+          BULK RECALL REQUEST (NCL-08-CN-011)
+          Danh sách yêu cầu thu hồi theo phạm vi ảnh hưởng
+      =========================================================== */}
+            <Route
+                path="recall-requests/bulk"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.recallRequestManage}
+                    >
+                        <BulkRecallRequestListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="recall-requests/bulk/:id"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.recallRequestManage}
+                    >
+                        <BulkRecallRequestDetailPage />
                     </RoleRoute>
                 }
             />

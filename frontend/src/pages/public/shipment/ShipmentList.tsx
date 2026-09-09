@@ -11,9 +11,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  AlertTriangle,
   BadgeCheck,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   FileText,
   FileJson,
   Plus,
@@ -62,6 +64,7 @@ interface ShipmentListProps {
   canCreate: boolean;
   canActivate: boolean;
   canRecall: boolean;
+  canCreateBulkRecall?: boolean;
 }
 
 export const ShipmentList = ({
@@ -70,6 +73,7 @@ export const ShipmentList = ({
   canCreate,
   canActivate,
   canRecall,
+  canCreateBulkRecall,
 }: ShipmentListProps) => {
   const navigate = useNavigate();
 
@@ -314,58 +318,68 @@ export const ShipmentList = ({
             <CardTitle className="text-xl font-bold text-slate-900">Danh sách lô hàng</CardTitle>
 
             <div className="flex items-center gap-2">
-              {/* NCL-04-CN-007: tùy chọn yêu cầu cấp bổ sung dải mã (chỉ VT-02) */}
-              {canRequestSupplement && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate("/code-range-supplements/create")}
-                >
-                  <Hash className="mr-1 h-4 w-4" />
-                  Cấp bổ sung mã
-                </Button>
-              )}
-
-              {canExportBatch && shipments.length > 0 && (
-                !isSelectionMode ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsSelectionMode(true)}
-                  >
-                    <FileText className="mr-1.5 h-4 w-4" />
-                    Xuất hồ sơ nhiều lô
-                  </Button>
-                ) : (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCancelSelectionMode}
-                    >
-                      Hủy chọn
-                    </Button>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      disabled={selectedShipmentIds.length === 0}
-                      onClick={() =>
-                        navigate("/shipments/batch-dossier-export", {
-                          state: { shipmentIds: selectedShipmentIds },
-                        })
-                      }
-                    >
-                      Xác nhận xuất bộ hồ sơ ({selectedShipmentIds.length} lô)
-                    </Button>
-                  </>
-                )
-              )}
-
+              {/* Tạo lô hàng - nút trực tiếp, hành động chính */}
               {!isSelectionMode && canCreate && productionLotStatus === "PACKAGED" && (
                 <Button variant="create" size="sm" onClick={() => navigate(`/production-lots/${productionLotId}/shipments/create`)}>
                   <Plus className="mr-1 h-4 w-4" />
                   Tạo lô hàng
                 </Button>
+              )}
+
+              {/* Chế độ chọn lô để xuất hồ sơ */}
+              {isSelectionMode && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancelSelectionMode}
+                  >
+                    Hủy chọn
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    disabled={selectedShipmentIds.length === 0}
+                    onClick={() =>
+                      navigate("/shipments/batch-dossier-export", {
+                        state: { shipmentIds: selectedShipmentIds },
+                      })
+                    }
+                  >
+                    Xác nhận xuất bộ hồ sơ ({selectedShipmentIds.length} lô)
+                  </Button>
+                </>
+              )}
+
+              {/* Thao tác - Dropdown chứa các thao tác phụ */}
+              {!isSelectionMode && (canRequestSupplement || (canExportBatch && shipments.length > 0) || canCreateBulkRecall) && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="px-3 py-2 gap-1.5 border-slate-200 hover:bg-slate-50">
+                    <MoreHorizontal className="h-4 w-4 text-slate-600" />
+                    <span className="text-sm font-medium text-slate-700">Thao tác</span>
+                    <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    {canRequestSupplement && (
+                      <DropdownMenuItem onClick={() => navigate("/code-range-supplements/create")} className="cursor-pointer">
+                        <Hash className="mr-2 h-4 w-4" />
+                        Cấp bổ sung mã
+                      </DropdownMenuItem>
+                    )}
+                    {canExportBatch && shipments.length > 0 && (
+                      <DropdownMenuItem onClick={() => setIsSelectionMode(true)} className="cursor-pointer">
+                        <FileText className="mr-2 h-4 w-4" />
+                        Xuất hồ sơ nhiều lô
+                      </DropdownMenuItem>
+                    )}
+                    {canCreateBulkRecall && (
+                      <DropdownMenuItem onClick={() => navigate(`/production-lots/${productionLotId}/create-bulk-recall-request`)} className="cursor-pointer">
+                        <AlertTriangle className="mr-2 h-4 w-4" />
+                        Tạo yêu cầu thu hồi
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
           </div>
