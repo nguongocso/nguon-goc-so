@@ -57,6 +57,11 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [organizations, setOrganizations] = useState<OrganizationSelection[]>([]);
   const [isSwitchingOrganization, setIsSwitchingOrganization] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [user?.avatarUrl]);
 
   useEffect(() => {
     if (!user) return;
@@ -119,19 +124,22 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
 
   const accountContent = (
     <>
-      <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 min-w-0 overflow-hidden">
-        {user?.avatarUrl ? (
-          <img
-            src={getAssetUrl(user.avatarUrl)}
-            alt={userName}
-            className="size-full rounded-full object-cover"
-          />
-        ) : (
-          <User className="h-4 w-4" />
-        )}
+      <span className="relative inline-flex shrink-0">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 min-w-0 overflow-hidden">
+          {user?.avatarUrl && !avatarError ? (
+            <img
+              src={getAssetUrl(user.avatarUrl)}
+              alt={userName}
+              className="size-full rounded-full object-cover"
+              onError={() => setAvatarError(true)}
+            />
+          ) : (
+            <User className="h-4 w-4" />
+          )}
+        </span>
         {isMissingEmail && (
           <span
-            className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-red-500 ring-2 ring-white"
+            className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-red-500 ring-2 ring-white pointer-events-none"
             title="Chưa cập nhật email"
           />
         )}
