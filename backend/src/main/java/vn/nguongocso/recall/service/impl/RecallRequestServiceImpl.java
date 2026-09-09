@@ -60,7 +60,7 @@ public class RecallRequestServiceImpl implements RecallRequestService {
     private static final String MSG_SHIPMENT_MISMATCH = "Lô hàng không thuộc lô sản xuất của phản ánh.";
     private static final String MSG_TRACE_SHIPMENT_MISMATCH = "Lô hàng phải là lô chứa mã tem của phản ánh.";
     private static final String MSG_NOT_PENDING = "Chỉ có thể xử lý yêu cầu ở trạng thái PENDING.";
-    private static final String MSG_CANNOT_APPROVE_OWN = "Bạn không thể duyệt yêu cầu do chính mình tạo (QTN-22).";
+    private static final String MSG_CANNOT_APPROVE_OWN = "Bạn không thể duyệt yêu cầu do chính mình tạo.";
     private static final String MSG_REJECT_REASON_REQUIRED = "Lý do từ chối không được để trống.";
     private static final String MSG_USER_NOT_FOUND = "Người dùng không tồn tại.";
 

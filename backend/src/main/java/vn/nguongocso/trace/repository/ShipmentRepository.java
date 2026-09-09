@@ -87,7 +87,7 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
                         UUID shipmentId,
                         UUID organizationId);
 
-        /** Khóa lô hàng trong transaction để tuần tự hóa việc tạo đề nghị thu hồi. */
+        /** Khóa lô hàng trong transaction để tuần tự hóa việc tạo yêu cầu thu hồi. */
         @Lock(LockModeType.PESSIMISTIC_WRITE)
         @Query("SELECT s FROM Shipment s " +
                         "WHERE s.id = :shipmentId " +

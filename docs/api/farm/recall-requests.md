@@ -7,7 +7,7 @@
 
 Quy trình thu hồi gồm hai bước:
 
-1. Người có quyền tạo đề nghị chọn **một lô hàng** (`Shipment`).
+1. Người có quyền tạo yêu cầu chọn **một lô hàng** (`Shipment`).
 2. Quản lý hợp tác xã (`VT-02`) duyệt hoặc từ chối.
 
 Khi duyệt, hệ thống chỉ:
@@ -148,7 +148,7 @@ PUT /api/v1/recall-requests/{id}/reject
 `rejectionReason` bắt buộc. Nếu yêu cầu sinh từ phản ánh, phản ánh chuyển từ
 `ESCALATED_TO_RECALL` về `IN_PROGRESS` để tiếp tục xử lý.
 
-## 7. Đề nghị từ phản ánh người tiêu dùng
+## 7. Yêu cầu từ phản ánh người tiêu dùng
 
 Endpoint và payload được mô tả chi tiết tại
 [`ProductFeedbackProcessing.md`](./ProductFeedbackProcessing.md). Quy tắc xác định shipment:
