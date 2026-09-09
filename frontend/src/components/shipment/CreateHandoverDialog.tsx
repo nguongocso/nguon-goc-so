@@ -156,6 +156,8 @@ export const CreateHandoverDialog = ({
         const filtered = (orgsResult.value ?? [])
           .filter((o) => o.status === "ACTIVE")
           .filter((o) => (currentOrgId ? o.id !== currentOrgId : true))
+          // Phiếu bàn giao chỉ nhắm tới Doanh nghiệp thu mua (VT-04 / ENTERPRISE)
+          .filter((o) => o.type === "ENTERPRISE")
           // Tương thích cả payload cũ dùng organizationID/organizationName
           .map((o: any) => ({
             id: o.id ?? o.organizationID,

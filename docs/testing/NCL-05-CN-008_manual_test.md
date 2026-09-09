@@ -233,6 +233,9 @@ nhận raw value, lookup `buildRecipientLabelMap`.
 
 **Kết quả mong đợi**
 - Trigger hiển thị **"Công ty Nông Sản Việt Demo (DEMO_NSV)"**, KHÔNG còn placeholder.
+- Dropdown chỉ liệt kê tổ chức **Doanh nghiệp thu mua (VT-04 / ENTERPRISE)** đang ACTIVE và
+  khác tổ chức hiện tại (backend lọc `OrganizationType.ENTERPRISE` + FE filter song song);
+  HTX/nhà nước/khác KHÔNG xuất hiện.
 - Đơn vị test tự động: `__tests__/CreateHandoverDialog.test.tsx` — `renderRecipientSelectValue`
   nhận raw value trả về tên org; value falsy trả placeholder; không destructure `{ value }`.
 
@@ -256,7 +259,7 @@ nhận raw value, lookup `buildRecipientLabelMap`.
 
 **Bước:**
 1. Đăng nhập `procurement` (VT-04) → Dashboard thu mua → danh sách lô hàng.
-2. Với lô đang có phiếu PENDING của tổ chức nhận → bấm icon bắt tay "Xem phiếu bàn giao".
+2. Với lô đang có phiếu bàn giao của tổ chức nhận → bấm icon hợp đồng (FileSignature) "Xem phiếu bàn giao".
 
 **Kết quả mong đợi**
 - Mở `HandoverDetailPage` của phiếu tương ứng (map `shipmentId → phiếu mới nhất`).
@@ -424,16 +427,17 @@ npm run build                                        # exit 0
 
 **Bước:**
 1. Đăng nhập `procurement/admin123` (VT-04, DEMO_NSV) → Dashboard thu mua → danh sách lô.
-2. Verify danh sách chỉ gồm: lô có **phiếu bàn giao MỚI NHẤT** cho DEMO_NSV ở trạng thái
-   hoạt động (`PENDING_CONFIRMATION`/`ACCEPTED`), hoặc lô đã ghi sự kiện
-   `PROCUREMENT`/`WAREHOUSE_RECEIPT` bởi DEMO_NSV.
+2. Verify danh sách chỉ gồm: lô ĐÃ THU MUA / ĐÃ NHẬP KHO (sự kiện `PROCUREMENT`/
+   `WAREHOUSE_RECEIPT` bởi DEMO_NSV), hoặc lô ĐÃ XÁC NHẬN BÀN GIAO (phiếu bàn giao
+   **MỚI NHẤT** cho DEMO_NSV ở trạng thái **ACCEPTED**).
 
 **Kết quả mong đợi**
 - Trước đây API trả **tất cả** lô ACTIVATED → giờ lọc theo org: `handover.toOrganization`
-  với **phiếu mới nhất đang hoạt động** ∪ `chain_events.recorded_organization_id`
-  với PROCUREMENT/WAREHOUSE_RECEIPT, `is_correction=false`.
-- Lô có phiếu mới nhất bị **TỪ CHỐI (REJECTED)** → **không xuất hiện**, kể cả khi trước
-  đó đã có phiếu ACCEPTED cũ (quan hệ hiện tại đã kết thúc — đúng tình huống "Nho đợt 1").
+  với **phiếu mới nhất ACCEPTED** ∪ `chain_events.recorded_organization_id`
+  với PROCUREMENT/WAREHOUSE_RECEIPT (chưa bị điều chỉnh `is_correction=false`).
+- Lô chỉ có phiếu **CHỜ XÁC NHẬN (PENDING_CONFIRMATION)** → **không xuất hiện** (nghiệp vụ
+  chưa hoàn tất); lô có phiếu mới nhất bị **TỪ CHỐI (REJECTED)** → **không xuất hiện**, kể
+  cả khi trước đó đã có phiếu ACCEPTED cũ (quan hệ hiện tại đã kết thúc — "Nho đợt 1").
 - Empty state: "Chưa có lô hàng nào được thu mua, bàn giao hoặc nhập kho cho tổ chức của bạn."
 - `GET /api/v1/shipments/eligible` (VT-04) → 200; user khác + admin → 403 (`@PreAuthorize VT-04`).
 
@@ -442,13 +446,13 @@ npm run build                                        # exit 0
 **Bước:**
 1. VT-04 mở danh sách Thu mua (TC-17): lô có **phiếu mới nhất ACCEPTED** → **có** nút
    "Ghi nhận thu mua";
-2. Lô có phiếu mới nhất PENDING / lô chỉ có phiếu REJECTED (đã bị loại khỏi danh sách
-   theo TC-17) → **không có** nút.
+2. Lô chỉ có phiếu PENDING / phiếu mới nhất REJECTED → **không xuất hiện** trên bảng
+   (đã bị loại theo TC-17) nên không có nút.
 
 **Kết quả mong đợi**
 - Điều kiện hiển thị: phiếu mới nhất `status === "ACCEPTED"` (map `handoverByShipment`).
-  Backend đã loại lô có phiếu mới nhất REJECTED/EXPIRED/CANCELLED khỏi `/eligible`, nên
-  FE chỉ cần dựa trên phiếu mới nhất — nhất quán backend ↔ frontend.
+  Backend đã loại lô có phiếu mới nhất PENDING/REJECTED/EXPIRED/CANCELLED khỏi `/eligible`,
+  nên FE chỉ cần dựa trên phiếu mới nhất — nhất quán backend ↔ frontend.
 - Nút "Xem phiếu bàn giao" trỏ tới **phiếu mới nhất** (giữ nguyên nghiệp vụ).
 - Đây là bước thủ công để ghi sự kiện `PROCUREMENT` — **bắt buộc** trước khi tổ chức nhập kho
   (`WarehouseReceiptServiceImpl` validate quan hệ thu mua). Không tự động ghi khi accept.

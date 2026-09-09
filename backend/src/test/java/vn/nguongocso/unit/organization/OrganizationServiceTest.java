@@ -202,4 +202,37 @@ public class OrganizationServiceTest {
     void tearDown() {
         SecurityContextHolder.clearContext();
     }
+
+    /**
+     * Dropdown tổ chức nhận của phiếu bàn giao chỉ cho chọn Doanh nghiệp thu mua
+     * (VT-04 / ENTERPRISE): tổ chức COOPERATIVE/GOVERNMENT/SYSTEM bị lọc bỏ dù
+     * ACTIVE và khác tổ chức hiện tại.
+     */
+    @Test
+    void getRecipientOrganizations_shouldOnlyReturnEnterpriseOrgs() {
+        mockLogin();
+
+        Organization enterpriseOrg = new Organization();
+        enterpriseOrg.setOrganizationId(UUID.randomUUID());
+        enterpriseOrg.setName("DN Thu mua Xanh");
+        enterpriseOrg.setCode("DN001");
+        enterpriseOrg.setType(OrganizationType.ENTERPRISE);
+        enterpriseOrg.setStatus(OrganizationStatus.ACTIVE);
+
+        Organization cooperativeOrg = new Organization();
+        cooperativeOrg.setOrganizationId(UUID.randomUUID());
+        cooperativeOrg.setName("HTX Khác");
+        cooperativeOrg.setCode("HTX002");
+        cooperativeOrg.setType(OrganizationType.COOPERATIVE);
+        cooperativeOrg.setStatus(OrganizationStatus.ACTIVE);
+
+        when(organizationRepository.findByStatusAndOrganizationIdNot(OrganizationStatus.ACTIVE, orgId))
+                .thenReturn(java.util.List.of(enterpriseOrg, cooperativeOrg));
+
+        var response = organizationServiceImpl.getRecipientOrganizations();
+
+        assertThat(response).hasSize(1);
+        assertThat(response.get(0).getCode()).isEqualTo("DN001");
+        assertThat(response.get(0).getType()).isEqualTo(OrganizationType.ENTERPRISE);
+    }
 }

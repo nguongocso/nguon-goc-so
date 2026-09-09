@@ -22,8 +22,8 @@ import {
   Hash,
   History,
   Eye,
+  FileSignature,
   QrCode,
-  ArrowRightLeft,
 } from "lucide-react";
 import { useShipments } from "@/hooks/useShipments";
 import { useRecallShipment } from "@/hooks/useRecallShipment";
@@ -602,7 +602,7 @@ export const ShipmentList = ({
                                       setHandoverShipment(shipment)
                                     }
                                   >
-                                    <ArrowRightLeft className="size-4" />
+                                    <FileSignature className="size-4" />
                                     Tạo phiếu bàn giao
                                   </DropdownMenuItem>
                                 )}

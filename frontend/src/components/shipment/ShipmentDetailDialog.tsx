@@ -10,9 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import type { Shipment } from "@/types/shipment";
 import {
-  ArrowRightLeft,
   BadgeCheck,
   Ban,
+  FileSignature,
   FileText,
   History,
   Package,
@@ -269,7 +269,7 @@ export const ShipmentDetailDialog = ({
                   onClick={() => setShowHandoverDialog(true)}
                   className="border-amber-300 text-amber-700 hover:bg-amber-50"
                 >
-                  <ArrowRightLeft className="mr-1.5 size-3.5" />
+                  <FileSignature className="mr-1.5 size-3.5" />
                   Tạo phiếu bàn giao
                 </Button>
               )}

@@ -43,8 +43,9 @@ public class OrganizationProfileController {
 
     /**
      * Danh sách tổ chức nhận cho dropdown phiếu bàn giao.
-     * Chỉ trả các tổ chức ACTIVE và khác tổ chức hiện tại nên VT-02 dùng được,
-     * khắc phục lỗi 403 do gọi nhầm GET /admin/organizations (chỉ VT-01).
+     * Chỉ trả các tổ chức Doanh nghiệp thu mua (VT-04, loại ENTERPRISE), ACTIVE
+     * và khác tổ chức hiện tại nên VT-02 dùng được, khắc phục lỗi 403 do gọi
+     * nhầm GET /admin/organizations (chỉ VT-01).
      */
     @GetMapping("/recipient-organizations")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")

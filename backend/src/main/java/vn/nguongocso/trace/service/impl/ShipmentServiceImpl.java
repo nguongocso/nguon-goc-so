@@ -640,8 +640,10 @@ public class ShipmentServiceImpl implements ShipmentService {
 
     /**
      * Lấy danh sách lô hàng liên quan đến Doanh nghiệp thu mua (VT‑04) hiện tại:
-     * lô đã thu mua / đã nhập kho (sự kiện PROCUREMENT, WAREHOUSE_RECEIPT do tổ
-     * chức ghi) hoặc lô được bàn giao cho tổ chức (phiếu bàn giao có bên nhận).
+     * chỉ lô ĐÃ THU MUA / đã nhập kho (sự kiện PROCUREMENT, WAREHOUSE_RECEIPT do
+     * tổ chức ghi) hoặc lô ĐÃ XÁC NHẬN BÀN GIAO (phiếu bàn giao mới nhất cho tổ
+     * chức ở trạng thái ACCEPTED). Lô chỉ mới có phiếu chờ xác nhận (PENDING) hoặc
+     * phiếu mới nhất bị TỪ CHỐI / hết hạn / hủy sẽ KHÔNG xuất hiện trên bảng.
      *
      * @return danh sách ProcurementShipmentResponse
      */
@@ -656,10 +658,9 @@ public class ShipmentServiceImpl implements ShipmentService {
         Set<UUID> relatedShipmentIds = new HashSet<>();
 
         // Lô chỉ được đưa vào dashboard khi phiếu bàn giao MỚI NHẤT cho tổ chức
-        // hiện tại còn ở trạng thái HOẠT ĐỘNG (chờ xác nhận hoặc đã xác nhận).
-        // Nếu phiếu mới nhất là REJECTED/EXPIRED/CANCELLED thì lô KHÔNG xuất hiện —
-        // quan hệ hiện tại đã kết thúc (lô bị từ chối). Phiếu ACCEPTED CŨ không
-        // cứu được lô khi phiếu mới nhất đã bị từ chối.
+        // hiện tại đã ĐƯỢC XÁC NHẬN (ACCEPTED). Phiếu ACCEPTED CŨ không cứu được
+        // lô khi phiếu mới nhất đã REJECTED/EXPIRED/CANCELLED; lô chỉ có phiếu
+        // PENDING (chưa xác nhận) cũng không hiển thị vì nghiệp vụ chưa hoàn tất.
         Map<UUID, ShipmentHandover> latestHandoverByShipment = shipmentHandoverRepository
                 .findByToOrganizationOrganizationId(currentOrgId)
                 .stream()
@@ -670,8 +671,7 @@ public class ShipmentServiceImpl implements ShipmentService {
                                 ? first
                                 : second));
         latestHandoverByShipment.values().stream()
-                .filter(handover -> handover.getStatus() == ShipmentHandoverStatus.PENDING_CONFIRMATION
-                        || handover.getStatus() == ShipmentHandoverStatus.ACCEPTED)
+                .filter(handover -> handover.getStatus() == ShipmentHandoverStatus.ACCEPTED)
                 .map(handover -> handover.getShipment().getId())
                 .forEach(relatedShipmentIds::add);
 

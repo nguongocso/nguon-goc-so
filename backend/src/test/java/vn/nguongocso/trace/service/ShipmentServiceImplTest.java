@@ -713,8 +713,8 @@ class ShipmentServiceImplTest {
     }
 
     /**
-     * Chỉ trả về lô liên quan đến tổ chức hiện tại: lô được bàn giao cho tổ
-     * chức (phiếu bàn giao) hoặc lô đã ghi sự kiện PROCUREMENT/WAREHOUSE_RECEIPT
+     * Chỉ trả về lô liên quan đến tổ chức hiện tại: lô ĐÃ XÁC NHẬN BÀN GIAO cho
+     * tổ chức (phiếu ACCEPTED) hoặc lô đã ghi sự kiện PROCUREMENT/WAREHOUSE_RECEIPT
      * bởi chính tổ chức. Lô chỉ được bàn giao cho tổ chức khác thì bị loại.
      */
     @Test
@@ -724,14 +724,14 @@ class ShipmentServiceImplTest {
         UUID shipmentFromProcurement = UUID.randomUUID();
         UUID unrelatedShipment = UUID.randomUUID();
 
-        Shipment shipmentA = activatedShipment(shipmentFromHandover, "Lô được bàn giao");
+        Shipment shipmentA = activatedShipment(shipmentFromHandover, "Lô đã xác nhận bàn giao");
         Shipment shipmentB = activatedShipment(shipmentFromProcurement, "Lô đã thu mua");
         Shipment shipmentC = activatedShipment(unrelatedShipment, "Lô bàn giao cho tổ chức khác");
 
         ShipmentHandover handoverToCurrentOrg = ShipmentHandover.builder()
                 .shipment(shipmentA)
                 .toOrganization(organization)
-                .status(ShipmentHandoverStatus.PENDING_CONFIRMATION)
+                .status(ShipmentHandoverStatus.ACCEPTED)
                 .build();
 
         when(shipmentHandoverRepository.findByToOrganizationOrganizationId(organizationId))
@@ -753,12 +753,13 @@ class ShipmentServiceImplTest {
     }
 
     /**
-     * Lô có phiếu bàn giao bị TỪ CHỐI (REJECTED) nhắm tới tổ chức hiện tại thì
-     * coi như không còn giao dịch sống → KHÔNG đưa lô vào dashboard thu mua (VT-04).
+     * Lô có phiếu bàn giao bị TỪ CHỐI (REJECTED) hoặc chỉ MỚI CHỜ XÁC NHẬN
+     * (PENDING) nhắm tới tổ chức hiện tại đều KHÔNG đưa vào dashboard thu mua
+     * (VT-04) — bảng chỉ hiển thị lô ĐÃ THU MUA hoặc ĐÃ XÁC NHẬN BÀN GIAO.
      * Trạng thái EXPIRED/CANCELLED cũng bị loại tương tự.
      */
     @Test
-    void getEligibleShipments_ShouldExcludeShipmentWithRejectedHandover() {
+    void getEligibleShipments_ShouldExcludeRejectedAndPendingHandovers() {
         // Arrange
         UUID rejectedShipmentId = UUID.randomUUID();
 
@@ -789,9 +790,7 @@ class ShipmentServiceImplTest {
         List<ProcurementShipmentResponse> result = shipmentService.getEligibleShipments();
 
         // Assert
-        assertThat(result)
-                .extracting(ProcurementShipmentResponse::getId)
-                .containsExactly(pendingShipment.getId());
+        assertThat(result).isEmpty();
     }
 
     /**
