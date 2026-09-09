@@ -5,10 +5,15 @@ import lombok.extern.slf4j.Slf4j;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.nguongocso.alert.event.ActivityLogEvent;
@@ -17,11 +22,18 @@ import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.AttachCertificationRequest;
 import vn.nguongocso.certification.dto.request.CreateCertificationRequest;
+import vn.nguongocso.certification.dto.request.RejectCertificateRequest;
+import vn.nguongocso.certification.dto.request.VerifyCertificateRequest;
+import vn.nguongocso.certification.dto.response.CertificateDocumentResponse;
+import vn.nguongocso.certification.dto.response.CertificateReviewerResponse;
 import vn.nguongocso.certification.dto.response.CertificationResponse;
+import vn.nguongocso.certification.dto.response.CertificationVerificationResponse;
 import vn.nguongocso.certification.dto.response.ProductionLotCertificationResponse;
 import vn.nguongocso.certification.entity.Certification;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.certification.entity.Standard;
+import vn.nguongocso.certification.enums.CertificationValidityStatus;
+import vn.nguongocso.certification.enums.CertificationVerificationStatus;
 import vn.nguongocso.certification.repository.CertificationRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
 import vn.nguongocso.certification.repository.StandardRepository;
@@ -41,29 +53,38 @@ import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
 
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Lớp CertificationServiceImpl triển khai các phương thức của
- * CertificationService.
- * Nó chịu trách nhiệm quản lý chứng nhận, bao gồm việc gắn chứng nhận cho lô
- * sản xuất,
- * tạo mới chứng nhận, kiểm tra hạn hiệu lực và tạo cảnh báo liên quan đến chứng
- * nhận.
+ * Lớp CertificationServiceImpl triển khai các phương thức của CertificationService.
+ * Nó chịu trách nhiệm quản lý chứng nhận, gắn chứng nhận cho lô sản xuất,
+ * tạo mới chứng nhận, kiểm tra hạn hiệu lực và xác thực/từ chối chứng nhận dành cho VT-01.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CertificationServiceImpl implements CertificationService {
 
-    /** Các trường cho phép sắp xếp danh sách chứng nhận. */
-    private static final java.util.Set<String> ALLOWED_SORT_FIELDS = java.util.Set.of("name", "issueDate", "expiryDate");
+    /** Các trường cho phép sắp xếp danh sách chứng nhận tổ chức. */
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("name", "issueDate", "expiryDate");
 
-    /** Trường sắp xếp mặc định (khớp hành vi UI: mới cấp lên đầu). */
+    /** Các trường cho phép sắp xếp danh sách quản trị viên VT-01. */
+    private static final Set<String> ALLOWED_ADMIN_SORT_FIELDS = Set.of("createdAt", "reviewedAt", "expiryDate");
+
+    /** Trường sắp xếp mặc định cho danh sách tổ chức. */
     private static final String DEFAULT_SORT_FIELD = "issueDate";
+
+    /** Trường sắp xếp mặc định cho quản trị viên (mới nhất lên đầu). */
+    private static final String DEFAULT_ADMIN_SORT_FIELD = "createdAt";
 
     /** Số bản ghi tối đa mỗi trang. */
     private static final int MAX_PAGE_SIZE = 100;
@@ -84,8 +105,6 @@ public class CertificationServiceImpl implements CertificationService {
 
     /**
      * Lấy danh sách chứng nhận của một lô sản xuất.
-     * Chỉ những người dùng thuộc cùng tổ chức với lô sản xuất mới có quyền truy
-     * cập.
      */
     @Override
     @Transactional(readOnly = true)
@@ -100,8 +119,11 @@ public class CertificationServiceImpl implements CertificationService {
 
     /**
      * Gắn chứng nhận cho lô sản xuất.
-     * Chỉ những người dùng thuộc cùng tổ chức với lô sản xuất mới có quyền thao
-     * tác.
+     * Quy tắc QTN-13 (hạn dùng) và QTN-34 (xác thực):
+     * - PENDING + còn hạn -> ALLOW
+     * - VERIFIED + còn hạn -> ALLOW
+     * - REJECTED -> BLOCK (409 Conflict)
+     * - EXPIRED -> BLOCK (409 Conflict / BusinessException)
      */
     @Override
     @Transactional
@@ -117,17 +139,22 @@ public class CertificationServiceImpl implements CertificationService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Không tìm thấy chứng nhận hoặc chứng nhận không thuộc tổ chức của bạn."));
 
-        // 3. Kiểm tra hiệu lực (QTN-13)
-        if (cert.getExpiryDate().isBefore(LocalDate.now())) {
-            throw new BusinessException("Chứng nhận đã hết hạn, không thể gắn cho lô sản xuất.");
+        // 3. Kiểm tra trạng thái xác thực (QTN-34)
+        if (cert.getVerificationStatus() == CertificationVerificationStatus.REJECTED) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Chứng nhận đã bị từ chối xác thực, không thể gắn cho lô sản xuất.");
         }
 
-        // 4. Kiểm tra trùng lặp
+        // 4. Kiểm tra hiệu lực (QTN-13)
+        if (cert.getExpiryDate().isBefore(LocalDate.now())) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Chứng nhận đã hết hạn, không thể gắn cho lô sản xuất.");
+        }
+
+        // 5. Kiểm tra trùng lặp
         if (plCertificationRepository.existsByProductionLotIdAndCertificationId(lotId, cert.getId())) {
             throw new BusinessException("Chứng nhận này đã được gắn cho lô sản xuất.");
         }
 
-        // 5. Lưu liên kết
+        // 6. Lưu liên kết
         User actor = userRepository.findById(currentUser.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng."));
 
@@ -139,7 +166,7 @@ public class CertificationServiceImpl implements CertificationService {
                 .build();
         plc = plCertificationRepository.save(plc);
 
-        // 6. Ghi log (TC-04)
+        // 7. Ghi log
         publishActivityLog(currentUser, "ATTACH_CERTIFICATION",
                 "Gắn chứng nhận '" + cert.getName() + "' vào lô sản xuất " + lot.getName(),
                 "ProductionLot", lot.getId().toString());
@@ -149,8 +176,6 @@ public class CertificationServiceImpl implements CertificationService {
 
     /**
      * Gỡ chứng nhận khỏi lô sản xuất.
-     * Chỉ những người dùng thuộc cùng tổ chức với lô sản xuất mới có quyền thao
-     * tác.
      */
     @Override
     @Transactional
@@ -174,7 +199,7 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     /**
-     * Lấy danh sách chứng nhận hợp lệ của người dùng hiện tại.
+     * Lấy danh sách chứng nhận hợp lệ của tổ chức hiện tại để gắn cho lô (loại bỏ EXPIRED và REJECTED).
      */
     @Override
     public List<CertificationResponse> getValidCertifications(CustomUserDetails currentUser) {
@@ -186,13 +211,13 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     /**
-     * Tạo mới chứng nhận cho tổ chức hiện tại.
+     * Tạo mới chứng nhận cho tổ chức hiện tại (khởi tạo verificationStatus = PENDING).
      */
     @Override
     @Transactional
     public CertificationResponse createCertification(CreateCertificationRequest request,
             CustomUserDetails currentUser) {
-        // 1. Kiểm tra quyền (đã có @PreAuthorize, nhưng vẫn kiểm tra lại)
+        // 1. Kiểm tra quyền
         if (!"VT-02".equals(currentUser.getRoleCode())) {
             throw new BusinessException("Bạn không có quyền tạo chứng nhận.");
         }
@@ -217,7 +242,7 @@ public class CertificationServiceImpl implements CertificationService {
         Organization organization = organizationRepository.findById(currentUser.getOrganizationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tổ chức của người dùng."));
 
-        // 6. Tạo Certification mới
+        // 6. Tạo Certification mới với trạng thái mặc định PENDING
         Certification certification = Certification.builder()
                 .id(UUID.randomUUID())
                 .organization(organization)
@@ -227,6 +252,7 @@ public class CertificationServiceImpl implements CertificationService {
                 .issuedBy(request.getIssuedBy())
                 .issueDate(request.getIssueDate())
                 .expiryDate(request.getExpiryDate())
+                .verificationStatus(CertificationVerificationStatus.PENDING)
                 .build();
 
         certification = certificationRepository.save(certification);
@@ -241,14 +267,7 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     /**
-     * Tìm kiếm chứng nhận của tổ chức hiện tại theo từ khoá và trạng thái
-     * hiệu lực, có phân trang và sắp xếp.
-     *
-     * <p>Từ khoá khớp tên, số hiệu hoặc cơ quan cấp (không phân biệt hoa/thường).
-     * Ba trạng thái rời rạc khớp với badge hiển thị: "valid" là chứng nhận còn
-     * hiệu lực quá {@code warningThresholdDays} ngày, "expiring" là còn hiệu
-     * lực trong vòng ngưỡng đó, "expired" là đã quá hạn.
-     * Kết quả luôn scope trong tổ chức của người dùng hiện tại.</p>
+     * Tìm kiếm chứng nhận của tổ chức hiện tại theo từ khoá và trạng thái hiệu lực.
      */
     @Override
     @Transactional(readOnly = true)
@@ -287,6 +306,300 @@ public class CertificationServiceImpl implements CertificationService {
         return PageResponse.from(result, items);
     }
 
+    // =========================================================================
+    // QUẢN TRỊ XÁC THỰC CHỨNG NHẬN (VT-01)
+    // =========================================================================
+
+    /**
+     * Lấy danh sách chứng nhận trên toàn nền tảng để Quản trị viên (VT-01) kiểm tra, đối chiếu.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<CertificationVerificationResponse> getAdminCertifications(
+            CertificationVerificationStatus status,
+            String keyword,
+            UUID organizationId,
+            String sortBy,
+            String sortDir,
+            int page,
+            int size,
+            CustomUserDetails currentUser) {
+        validatePlatformAdmin(currentUser);
+
+        if (page < 0) {
+            page = 0;
+        }
+        if (size <= 0) {
+            size = 20;
+        }
+        if (size > MAX_PAGE_SIZE) {
+            size = MAX_PAGE_SIZE;
+        }
+
+        // Mặc định lọc PENDING nếu client không truyền trạng thái
+        CertificationVerificationStatus targetStatus = (status != null) ? status : CertificationVerificationStatus.PENDING;
+
+        String sortField = (sortBy != null && ALLOWED_ADMIN_SORT_FIELDS.contains(sortBy)) ? sortBy : DEFAULT_ADMIN_SORT_FIELD;
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
+
+        String normalizedKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+
+        Page<Certification> pageResult = certificationRepository.searchForAdmin(
+                targetStatus,
+                organizationId,
+                normalizedKeyword,
+                pageable);
+
+        List<CertificationVerificationResponse> items = pageResult.getContent().stream()
+                .map(this::toVerificationResponse)
+                .collect(Collectors.toList());
+
+        return PageResponse.from(pageResult, items);
+    }
+
+    /**
+     * Lấy chi tiết thông tin đối chiếu của một chứng nhận (VT-01).
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public CertificationVerificationResponse getAdminCertificationDetail(
+            UUID certificationId,
+            CustomUserDetails currentUser) {
+        validatePlatformAdmin(currentUser);
+
+        Certification cert = certificationRepository.findById(certificationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chứng nhận."));
+
+        return toVerificationResponse(cert);
+    }
+
+    /**
+     * Lấy tài nguyên tệp đính kèm an toàn phục vụ xem đối chiếu (VT-01).
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentResource getCertificateDocumentResource(
+            UUID certificationId,
+            CustomUserDetails currentUser) {
+        validatePlatformAdmin(currentUser);
+
+        Certification cert = certificationRepository.findById(certificationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chứng nhận."));
+
+        if (cert.getDocumentStoragePath() == null || cert.getDocumentStoragePath().isBlank()) {
+            throw new ResourceNotFoundException("Chứng nhận chưa có tệp đính kèm.");
+        }
+
+        Path filePath = Paths.get(cert.getDocumentStoragePath()).toAbsolutePath().normalize();
+        if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
+            log.warn("🚨 Tệp chứng nhận vật lý bị mất trên máy chủ: certId={}, path={}", certificationId, cert.getDocumentStoragePath());
+            throw new BusinessException(HttpStatus.GONE, "Tệp chứng nhận vật lý không còn trên máy chủ.");
+        }
+
+        try {
+            Resource resource = new UrlResource(filePath.toUri());
+            if (!resource.exists() || !resource.isReadable()) {
+                throw new BusinessException(HttpStatus.GONE, "Tệp chứng nhận không thể đọc được.");
+            }
+
+            MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
+            if (cert.getDocumentContentType() != null && !cert.getDocumentContentType().isBlank()) {
+                try {
+                    mediaType = MediaType.parseMediaType(cert.getDocumentContentType());
+                } catch (Exception ignored) {
+                }
+            }
+
+            String fileName = (cert.getDocumentFileName() != null && !cert.getDocumentFileName().isBlank())
+                    ? cert.getDocumentFileName()
+                    : "certificate-document";
+
+            return new DocumentResource(resource, mediaType, fileName);
+        } catch (MalformedURLException e) {
+            log.error("Lỗi đường dẫn URI tệp chứng nhận: {}", filePath, e);
+            throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi đọc tệp tài liệu chứng nhận.");
+        }
+    }
+
+    /**
+     * Xác thực chứng nhận của tổ chức (VT-01).
+     */
+    @Override
+    @Transactional
+    public CertificationVerificationResponse verifyCertificate(
+            UUID certificationId,
+            VerifyCertificateRequest request,
+            CustomUserDetails currentUser) {
+        validatePlatformAdmin(currentUser);
+
+        Certification cert = certificationRepository.findById(certificationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chứng nhận."));
+
+        // 1. Kiểm tra trạng thái hiện tại phải là PENDING
+        if (cert.getVerificationStatus() != CertificationVerificationStatus.PENDING) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Chứng nhận không ở trạng thái chờ xác thực.");
+        }
+
+        // 2. Kiểm tra dữ liệu bắt buộc để đối chiếu
+        if (cert.getCode() == null || cert.getCode().isBlank()
+                || cert.getIssuedBy() == null || cert.getIssuedBy().isBlank()
+                || cert.getStandard() == null
+                || cert.getIssueDate() == null
+                || cert.getExpiryDate() == null) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Chứng nhận thiếu dữ liệu bắt buộc để đối chiếu.");
+        }
+
+        if (cert.getExpiryDate().isBefore(cert.getIssueDate())) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Ngày hết hạn không được trước ngày cấp.");
+        }
+
+        // 3. Kiểm tra tệp chứng nhận đọc được
+        if (cert.getDocumentStoragePath() == null || cert.getDocumentStoragePath().isBlank()) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Chứng nhận thiếu tệp đính kèm để đối chiếu.");
+        }
+        Path filePath = Paths.get(cert.getDocumentStoragePath()).toAbsolutePath().normalize();
+        if (!Files.exists(filePath) || !Files.isReadable(filePath)) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Tệp chứng nhận vật lý không tồn tại hoặc không thể đọc được.");
+        }
+
+        // 4. Xử lý ghi chú xác thực
+        String trimmedNote = (request != null && request.getReviewNote() != null)
+                ? request.getReviewNote().trim()
+                : null;
+        if (trimmedNote != null && trimmedNote.length() > 1000) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Ghi chú xác thực không được vượt quá 1000 ký tự.");
+        }
+
+        User reviewer = userRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin quản trị viên."));
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // 5. Cập nhật atomic có điều kiện (chống race condition)
+        int updatedCount = certificationRepository.updateVerificationStatus(
+                certificationId,
+                CertificationVerificationStatus.PENDING,
+                CertificationVerificationStatus.VERIFIED,
+                reviewer,
+                now,
+                trimmedNote,
+                null);
+
+        if (updatedCount == 0) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Chứng nhận đã được xử lý trước đó hoặc không còn ở trạng thái chờ.");
+        }
+
+        // Đồng bộ entity trong phiên làm việc
+        cert.setVerificationStatus(CertificationVerificationStatus.VERIFIED);
+        cert.setReviewedBy(reviewer);
+        cert.setReviewedAt(now);
+        cert.setReviewNote(trimmedNote);
+        cert.setRejectionReason(null);
+        cert.setUpdatedAt(now);
+
+        // 6. Ghi lịch sử hoạt động gắn với tổ chức sở hữu chứng nhận
+        publishActivityLog(
+                currentUser,
+                cert.getOrganization().getOrganizationId(),
+                "VERIFY_CERTIFICATION",
+                "Xác thực chứng nhận '" + cert.getCode() + "' của tổ chức " + cert.getOrganization().getName(),
+                "CERTIFICATION",
+                cert.getId().toString());
+
+        return toVerificationResponse(cert);
+    }
+
+    /**
+     * Từ chối xác thực chứng nhận của tổ chức (VT-01).
+     */
+    @Override
+    @Transactional
+    public CertificationVerificationResponse rejectCertificate(
+            UUID certificationId,
+            RejectCertificateRequest request,
+            CustomUserDetails currentUser) {
+        validatePlatformAdmin(currentUser);
+
+        Certification cert = certificationRepository.findById(certificationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chứng nhận."));
+
+        // 1. Kiểm tra trạng thái hiện tại phải là PENDING
+        if (cert.getVerificationStatus() != CertificationVerificationStatus.PENDING) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Chứng nhận không ở trạng thái chờ xác thực.");
+        }
+
+        // 2. Kiểm tra lý do từ chối
+        String trimmedReason = (request != null && request.getRejectionReason() != null)
+                ? request.getRejectionReason().trim()
+                : "";
+        if (trimmedReason.isEmpty()) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Lý do từ chối không được để trống.");
+        }
+        if (trimmedReason.length() > 1000) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Lý do từ chối không được vượt quá 1000 ký tự.");
+        }
+
+        User reviewer = userRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin quản trị viên."));
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // 3. Cập nhật atomic có điều kiện (chống race condition)
+        int updatedCount = certificationRepository.updateVerificationStatus(
+                certificationId,
+                CertificationVerificationStatus.PENDING,
+                CertificationVerificationStatus.REJECTED,
+                reviewer,
+                now,
+                null,
+                trimmedReason);
+
+        if (updatedCount == 0) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Chứng nhận đã được xử lý trước đó hoặc không còn ở trạng thái chờ.");
+        }
+
+        // Đồng bộ entity trong phiên làm việc
+        cert.setVerificationStatus(CertificationVerificationStatus.REJECTED);
+        cert.setReviewedBy(reviewer);
+        cert.setReviewedAt(now);
+        cert.setReviewNote(null);
+        cert.setRejectionReason(trimmedReason);
+        cert.setUpdatedAt(now);
+
+        // 4. Gửi thông báo cho người dùng tổ chức sở hữu chứng nhận có quyền notification:READ
+        int notifiedCount = 0;
+        try {
+            notifiedCount = notificationService.sendCertificationRejectionNotification(cert, trimmedReason);
+        } catch (Exception ex) {
+            log.error("Lỗi gửi thông báo từ chối chứng nhận {}: {}", cert.getId(), ex.getMessage(), ex);
+        }
+
+        // 5. Ghi lịch sử hoạt động gắn với tổ chức sở hữu chứng nhận
+        publishActivityLog(
+                currentUser,
+                cert.getOrganization().getOrganizationId(),
+                "REJECT_CERTIFICATION",
+                "Từ chối xác thực chứng nhận '" + cert.getCode() + "' của tổ chức " + cert.getOrganization().getName() + ". Lý do: " + trimmedReason,
+                "CERTIFICATION",
+                cert.getId().toString());
+
+        CertificationVerificationResponse response = toVerificationResponse(cert);
+        response.setNotifiedCount(notifiedCount);
+        return response;
+    }
+
+    // --- Helper methods ---
+
+    /**
+     * Kiểm tra phòng vệ vai trò VT-01 (Quản trị viên nền tảng).
+     */
+    private void validatePlatformAdmin(CustomUserDetails currentUser) {
+        if (currentUser == null || !"VT-01".equals(currentUser.getRoleCode())) {
+            throw new AccessDeniedException("Chỉ Quản trị viên nền tảng (VT-01) mới có quyền thực hiện thao tác này.");
+        }
+    }
+
     private boolean isValidStatusFilter(String status) {
         return status != null
                 && (status.equalsIgnoreCase("valid")
@@ -312,7 +625,54 @@ public class CertificationServiceImpl implements CertificationService {
                 .build();
     }
 
-    // --- Helper methods ---
+    /**
+     * Chuyển đổi Certification entity sang response đối chiếu dành cho VT-01.
+     */
+    private CertificationVerificationResponse toVerificationResponse(Certification cert) {
+        LocalDate today = LocalDate.now();
+        CertificationValidityStatus validityStatus = cert.getExpiryDate().isBefore(today)
+                ? CertificationValidityStatus.EXPIRED
+                : CertificationValidityStatus.VALID;
+
+        CertificateDocumentResponse documentResponse = null;
+        if (cert.getDocumentFileName() != null || cert.getDocumentStoragePath() != null) {
+            documentResponse = CertificateDocumentResponse.builder()
+                    .fileName(cert.getDocumentFileName())
+                    .contentType(cert.getDocumentContentType())
+                    .fileSize(cert.getDocumentFileSize())
+                    .viewUrl("/api/v1/admin/certifications/" + cert.getId() + "/document")
+                    .build();
+        }
+
+        CertificateReviewerResponse reviewerResponse = null;
+        if (cert.getReviewedBy() != null) {
+            reviewerResponse = CertificateReviewerResponse.builder()
+                    .userId(cert.getReviewedBy().getUserId())
+                    .fullName(cert.getReviewedBy().getFullName())
+                    .build();
+        }
+
+        return CertificationVerificationResponse.builder()
+                .id(cert.getId())
+                .organizationId(cert.getOrganization() != null ? cert.getOrganization().getOrganizationId() : null)
+                .organizationName(cert.getOrganization() != null ? cert.getOrganization().getName() : null)
+                .standardId(cert.getStandard() != null ? cert.getStandard().getId() : null)
+                .standardName(cert.getStandard() != null ? cert.getStandard().getName() : null)
+                .code(cert.getCode())
+                .issuedBy(cert.getIssuedBy())
+                .issueDate(cert.getIssueDate())
+                .expiryDate(cert.getExpiryDate())
+                .verificationStatus(cert.getVerificationStatus())
+                .validityStatus(validityStatus)
+                .document(documentResponse)
+                .reviewedBy(reviewerResponse)
+                .reviewedAt(cert.getReviewedAt())
+                .reviewNote(cert.getReviewNote())
+                .rejectionReason(cert.getRejectionReason())
+                .createdAt(cert.getCreatedAt())
+                .updatedAt(cert.getUpdatedAt())
+                .build();
+    }
 
     private ProductionLot findLotAndValidateOrganization(UUID lotId, CustomUserDetails currentUser) {
         ProductionLot lot = productionLotRepository.findById(lotId)
@@ -342,26 +702,27 @@ public class CertificationServiceImpl implements CertificationService {
 
     private void publishActivityLog(CustomUserDetails currentUser, String action, String description,
             String entityType, String entityId) {
+        publishActivityLog(currentUser, currentUser.getOrganizationId(), action, description, entityType, entityId);
+    }
+
+    private void publishActivityLog(CustomUserDetails currentUser, UUID organizationId, String action, String description,
+            String entityType, String entityId) {
         eventPublisher.publishEvent(ActivityLogEvent.builder()
                 .userId(currentUser.getUserId())
                 .username(currentUser.getUsername())
                 .fullName(currentUser.getFullName())
-                .organizationId(currentUser.getOrganizationId())
+                .organizationId(organizationId)
                 .action(action)
                 .description(description)
                 .entityType(entityType)
                 .entityId(entityId)
                 .ipAddress(IpUtils.getClientIp())
-                .timestamp(java.time.LocalDateTime.now())
+                .timestamp(LocalDateTime.now())
                 .build());
     }
 
     /**
      * Quét và kiểm tra hạn hiệu lực của các chứng nhận.
-     * Nếu chứng nhận đã hết hạn, tạo cảnh báo CERT_EXPIRED.
-     * Nếu chứng nhận sắp hết hạn (dưới ngưỡng warningThresholdDays), tạo cảnh báo
-     * CERT_EXPIRING.
-     * Cảnh báo CERT_EXPIRING sẽ được tự động RESOLVED nếu chứng nhận hết hạn.
      */
     @Override
     @Transactional
@@ -389,10 +750,8 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     private void processExpiredCertification(Certification cert, LocalDate today) {
-        // Tự động giải quyết/đóng cảnh báo sắp hết hạn (nếu có)
         autoResolveExpiringAlert(cert.getId());
 
-        // Tạo cảnh báo đã hết hạn nếu chưa tồn tại alert PENDING cùng loại
         boolean exists = alertRepository.existsByRelatedEntityIdAndTypeAndStatus(
                 cert.getId(),
                 AlertType.CERT_EXPIRED,
@@ -417,7 +776,7 @@ public class CertificationServiceImpl implements CertificationService {
             alert.setRelatedEntityId(cert.getId());
             alert.setSeverity(AlertSeverity.HIGH);
             alert.setStatus(AlertStatus.PENDING);
-            alert.setCreatedAt(java.time.LocalDateTime.now());
+            alert.setCreatedAt(LocalDateTime.now());
             try {
                 alert.setDetails(objectMapper.writeValueAsString(details));
             } catch (Exception e) {
@@ -432,7 +791,6 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     private void processExpiringCertification(Certification cert, long daysRemaining) {
-        // Tạo cảnh báo sắp hết hạn nếu chưa tồn tại alert PENDING cùng loại
         boolean exists = alertRepository.existsByRelatedEntityIdAndTypeAndStatus(
                 cert.getId(),
                 AlertType.CERT_EXPIRING,
@@ -455,7 +813,7 @@ public class CertificationServiceImpl implements CertificationService {
             alert.setRelatedEntityId(cert.getId());
             alert.setSeverity(AlertSeverity.MEDIUM);
             alert.setStatus(AlertStatus.PENDING);
-            alert.setCreatedAt(java.time.LocalDateTime.now());
+            alert.setCreatedAt(LocalDateTime.now());
             try {
                 alert.setDetails(objectMapper.writeValueAsString(details));
             } catch (Exception e) {
@@ -471,14 +829,14 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     private void autoResolveExpiringAlert(UUID certificationId) {
-        java.util.List<Alert> pendingExpiringAlerts = alertRepository.findByRelatedEntityIdAndTypeAndStatus(
+        List<Alert> pendingExpiringAlerts = alertRepository.findByRelatedEntityIdAndTypeAndStatus(
                 certificationId,
                 AlertType.CERT_EXPIRING,
                 AlertStatus.PENDING);
 
         for (Alert alert : pendingExpiringAlerts) {
             alert.setStatus(AlertStatus.RESOLVED);
-            alert.setResolvedAt(java.time.LocalDateTime.now());
+            alert.setResolvedAt(LocalDateTime.now());
             alertRepository.save(alert);
             log.info("⚙️ Tự động RESOLVED cảnh báo sắp hết hiệu lực của chứng nhận ID: {}", certificationId);
         }

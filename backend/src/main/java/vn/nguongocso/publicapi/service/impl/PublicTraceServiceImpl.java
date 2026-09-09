@@ -14,6 +14,8 @@ import vn.nguongocso.certification.entity.InspectionCriterionResult;
 import vn.nguongocso.certification.entity.InspectionRequest;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.certification.enums.CertificationStatus;
+import vn.nguongocso.certification.enums.CertificationValidityStatus;
+import vn.nguongocso.certification.enums.CertificationVerificationStatus;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
@@ -390,25 +392,46 @@ public class PublicTraceServiceImpl implements PublicTraceService {
 
         LocalDate today = LocalDate.now();
         List<PublicCertificationResponse> certResponses = plCertifications.stream()
+                .filter(plc -> plc.getCertification() != null
+                        && plc.getCertification().getVerificationStatus() != CertificationVerificationStatus.REJECTED)
                 .map(plc -> {
                     Certification cert = plc.getCertification();
-                    CertificationStatus status;
+                    boolean isExpired = cert.getExpiryDate().isBefore(today);
+                    CertificationValidityStatus validityStatus = isExpired
+                            ? CertificationValidityStatus.EXPIRED
+                            : CertificationValidityStatus.VALID;
+
+                    String publicStatus;
                     String statusLabel;
-                    if (cert.getExpiryDate().isBefore(today)) {
-                        status = CertificationStatus.EXPIRED;
-                        statusLabel = "Hết hạn";
+                    CertificationStatus legacyStatus = isExpired
+                            ? CertificationStatus.EXPIRED
+                            : CertificationStatus.VALID;
+
+                    if (cert.getVerificationStatus() == CertificationVerificationStatus.PENDING) {
+                        publicStatus = "PENDING_VERIFICATION";
+                        statusLabel = "Đang chờ xác thực";
                     } else {
-                        status = CertificationStatus.VALID;
-                        statusLabel = "Còn hiệu lực";
+                        // VERIFIED
+                        if (isExpired) {
+                            publicStatus = "EXPIRED";
+                            statusLabel = "Đã hết hạn";
+                        } else {
+                            publicStatus = "VERIFIED";
+                            statusLabel = "Đã đạt chuẩn";
+                        }
                     }
+
                     return PublicCertificationResponse.builder()
                             .certificationId(cert.getId())
-                            .certificationName(lot.getName())
+                            .certificationName(cert.getName())
                             .certificationCode(cert.getCode())
                             .issuedBy(cert.getIssuedBy())
                             .issueDate(cert.getIssueDate())
                             .expiryDate(cert.getExpiryDate())
-                            .status(status)
+                            .verificationStatus(cert.getVerificationStatus())
+                            .validityStatus(validityStatus)
+                            .publicStatus(publicStatus)
+                            .status(legacyStatus)
                             .statusLabel(statusLabel)
                             .build();
                 })
