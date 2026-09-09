@@ -44,19 +44,40 @@ ON DUPLICATE KEY UPDATE
     updated_by = (SELECT user_id FROM users WHERE user_name = 'admin' LIMIT 1),
     updated_at = NOW();
 
--- 3. Tạo lô hàng cho Lô Lúa (liên kết với production_lot Lúa có sẵn '00000000-0000-0000-0000-000200000004')
+-- 3. Đảm bảo Lô sản xuất Lúa ST25 tồn tại
+INSERT IGNORE INTO production_lot
+    (id, organization_id, farm_area_id, product_category_id, name, expected_quantity,
+     expected_quantity_unit, status, created_by, created_at, updated_at)
+SELECT
+    '00000000-0000-0000-0000-000200000004',
+    COALESCE((SELECT organization_id FROM organizations WHERE code = 'DEMO_HTX' LIMIT 1), (SELECT organization_id FROM organizations WHERE code = 'SYSTEM' LIMIT 1)),
+    NULL,
+    '00000000-0000-0000-0000-000800000004',
+    'Lô Lúa ST25 Kiểm thử',
+    1000.0,
+    'KG',
+    'PACKAGED',
+    COALESCE((SELECT user_id FROM users WHERE user_name = 'orgmanager' LIMIT 1), (SELECT user_id FROM users WHERE user_name = 'admin' LIMIT 1)),
+    NOW(),
+    NOW()
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM production_lot WHERE id = '00000000-0000-0000-0000-000200000004'
+);
+
+-- 4. Tạo lô hàng cho Lô Lúa (liên kết với production_lot Lúa có sẵn '00000000-0000-0000-0000-000200000004')
 INSERT IGNORE INTO shipments
     (id, production_lot_id, organization_id, name, total_quantity, packaging_info,
      status, created_by, created_at, updated_at)
 SELECT
     '00000000-0000-0000-0000-000900000010',
     '00000000-0000-0000-0000-000200000004',
-    (SELECT organization_id FROM organizations WHERE code = 'DEMO_HTX' LIMIT 1),
+    COALESCE((SELECT organization_id FROM organizations WHERE code = 'DEMO_HTX' LIMIT 1), (SELECT organization_id FROM organizations WHERE code = 'SYSTEM' LIMIT 1)),
     'Lô hàng Lúa ST25 Kiểm thử ngưỡng 3 lần quét / giờ (NCL-08-CN-014)',
     1,
     'Bao 25kg có dán tem QR',
     'ACTIVATED',
-    (SELECT user_id FROM users WHERE user_name = 'orgmanager' LIMIT 1),
+    COALESCE((SELECT user_id FROM users WHERE user_name = 'orgmanager' LIMIT 1), (SELECT user_id FROM users WHERE user_name = 'admin' LIMIT 1)),
     NOW(),
     NOW()
 FROM DUAL
@@ -64,7 +85,7 @@ WHERE NOT EXISTS (
     SELECT 1 FROM shipments WHERE id = '00000000-0000-0000-0000-000900000010'
 );
 
--- 4. Tạo mã tem cho Lô hàng Lúa ST25
+-- 5. Tạo mã tem cho Lô hàng Lúa ST25
 INSERT INTO trace_codes
     (id, shipment_id, code_value, qr_image, status, activated_at, activated_by, created_at,
      suspicion_score, suspicion_reason)
@@ -75,7 +96,7 @@ SELECT
     NULL,
     'SUSPECT',
     DATE_SUB(NOW(), INTERVAL 5 DAY),
-    (SELECT user_id FROM users WHERE user_name = 'orgmanager' LIMIT 1),
+    COALESCE((SELECT user_id FROM users WHERE user_name = 'orgmanager' LIMIT 1), (SELECT user_id FROM users WHERE user_name = 'admin' LIMIT 1)),
     DATE_SUB(NOW(), INTERVAL 5 DAY),
     70,
     'Số lượt quét cao (3 lượt trong 24 giờ); Khoảng cách không hợp lý: 625km trong 20 phút'
