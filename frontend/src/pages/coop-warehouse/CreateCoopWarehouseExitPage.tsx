@@ -178,8 +178,10 @@ export default function CreateCoopWarehouseExitPage() {
       let hasWarning = false;
 
       for (const item of selectedItems) {
+        const formattedExitTime = values.exitTime && values.exitTime.length === 16 ? `${values.exitTime}:00` : values.exitTime;
         const payload = {
           ...values,
+          exitTime: formattedExitTime,
           shipmentId: item.shipment.id,
         };
         const res = await recordWarehouseExit(payload);

@@ -178,8 +178,10 @@ export default function CreateCoopWarehouseEntryPage() {
       let failMessage = "";
 
       for (const item of selectedItems) {
+        const formattedEntryTime = values.entryTime && values.entryTime.length === 16 ? `${values.entryTime}:00` : values.entryTime;
         const payload = {
           ...values,
+          entryTime: formattedEntryTime,
           shipmentId: item.shipment.id,
         };
         const res = await recordWarehouseEntry(payload);

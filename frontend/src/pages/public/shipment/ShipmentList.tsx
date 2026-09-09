@@ -320,9 +320,8 @@ export const ShipmentList = ({
                     setSelectionTarget("WAREHOUSE_ENTRY");
                   }
                 }}
-                className="border-emerald-300 text-emerald-800 hover:bg-emerald-50"
               >
-                <LogIn className="mr-1.5 h-4 w-4 text-emerald-600" />
+                <LogIn className="mr-1.5 h-4 w-4" />
                 Nhập kho HTX {selectedShipmentIds.length > 0 && selectionTarget === "WAREHOUSE_ENTRY" ? `(${selectedShipmentIds.length})` : ""}
               </Button>
 
@@ -336,9 +335,8 @@ export const ShipmentList = ({
                     setSelectionTarget("WAREHOUSE_EXIT");
                   }
                 }}
-                className="border-emerald-300 text-emerald-800 hover:bg-emerald-50"
               >
-                <LogOut className="mr-1.5 h-4 w-4 text-emerald-600" />
+                <LogOut className="mr-1.5 h-4 w-4" />
                 Xuất kho HTX {selectedShipmentIds.length > 0 && selectionTarget === "WAREHOUSE_EXIT" ? `(${selectedShipmentIds.length})` : ""}
               </Button>
 
@@ -609,22 +607,22 @@ export const ShipmentList = ({
                               <DropdownMenuItem
                                 onClick={() =>
                                   navigate(
-                                    `/coop-warehouse-events/entry?shipmentIds=${shipment.id}`
+                                    `/coop-warehouse-events/entry?productionLotId=${productionLotId}&shipmentIds=${shipment.id}`
                                   )
                                 }
                               >
-                                <LogIn className="mr-2 h-4 w-4 text-emerald-600" />
+                                <LogIn className="size-4" />
                                 Nhập kho HTX
                               </DropdownMenuItem>
 
                               <DropdownMenuItem
                                 onClick={() =>
                                   navigate(
-                                    `/coop-warehouse-events/exit?shipmentIds=${shipment.id}`
+                                    `/coop-warehouse-events/exit?productionLotId=${productionLotId}&shipmentIds=${shipment.id}`
                                   )
                                 }
                               >
-                                <LogOut className="mr-2 h-4 w-4 text-amber-600" />
+                                <LogOut className="size-4" />
                                 Xuất kho HTX
                               </DropdownMenuItem>
 

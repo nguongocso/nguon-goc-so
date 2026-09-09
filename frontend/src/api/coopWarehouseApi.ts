@@ -46,7 +46,7 @@ export async function recordWarehouseEntry(
   data: RecordWarehouseEntryFormValues
 ): Promise<ApiResult<CoopWarehouseEventResponse>> {
   const response = await apiClient.post<ApiResult<CoopWarehouseEventResponse>>(
-    "/api/v1/chain-events/coop-warehouse/entry",
+    "/chain-events/coop-warehouse/entry",
     data
   );
   return response.data;
@@ -56,7 +56,7 @@ export async function recordWarehouseExit(
   data: RecordWarehouseExitFormValues
 ): Promise<ApiResult<CoopWarehouseEventResponse>> {
   const response = await apiClient.post<ApiResult<CoopWarehouseEventResponse>>(
-    "/api/v1/chain-events/coop-warehouse/exit",
+    "/chain-events/coop-warehouse/exit",
     data
   );
   return response.data;
@@ -67,7 +67,7 @@ export async function getShipmentChainEvents(
 ): Promise<ChainEventItem[]> {
   try {
     const response = await apiClient.get<ApiResult<ChainEventItem[]>>(
-      `/api/v1/shipments/${shipmentId}/chain-events`
+      `/shipments/${shipmentId}/chain-events`
     );
     return response.data?.data || [];
   } catch {
