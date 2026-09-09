@@ -189,6 +189,25 @@ const LOCAL_HELP_CONTENT: Record<
       'Nhấn nút "Xuất tệp" ở góc trên để tải báo cáo truy vết dạng Excel (.xlsx) hoặc PDF (.pdf)',
     ],
   },
+  'bulk-recall-request-list': {
+    title: 'Yêu cầu thu hồi theo phạm vi ảnh hưởng',
+    steps: [
+      'Xem danh sách các yêu cầu thu hồi theo phạm vi ảnh hưởng',
+      'Sử dụng tìm kiếm hoặc lọc trạng thái để tìm yêu cầu cần xử lý',
+      'Chọn "Chi tiết" để xem thông tin yêu cầu và phạm vi các lô bị ảnh hưởng',
+      'Với yêu cầu "Chờ duyệt", tài khoản có quyền phê duyệt có thể "Phê duyệt" hoặc "Từ chối" yêu cầu',
+    ],
+  },
+  'bulk-recall-request-create': {
+    title: 'Hướng dẫn tạo yêu cầu thu hồi theo phạm vi ảnh hưởng',
+    steps: [
+      'Kiểm tra thông tin lô sản xuất nguồn',
+      'Nhập "Lý do thu hồi" và "Bằng chứng" nếu có',
+      'Chọn các lô hàng cần thu hồi trong "Phạm vi thu hồi"',
+      'Chỉ các lô đủ điều kiện mới có thể được chọn',
+      'Kiểm tra lại danh sách lô đã chọn và nhấn "Tạo yêu cầu thu hồi" để gửi yêu cầu phê duyệt',
+    ],
+  },
 };
 
 function formatHelpStep(step: string): string {

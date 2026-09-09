@@ -25,7 +25,7 @@ Giao diện nội bộ sử dụng hai route tách biệt và cùng áp dụng q
 
 - `/product-feedbacks`: danh sách, bộ lọc và phân trang phản ánh.
 - `/product-feedbacks/{feedbackId}`: trang chi tiết toàn màn hình để xem, phân công, phân loại, lưu
-  nội dung xử lý, tạo đề nghị thu hồi và đóng phản ánh. Nút **Xem chi tiết** trên danh sách điều hướng
+  nội dung xử lý, tạo yêu cầu thu hồi và đóng phản ánh. Nút **Xem chi tiết** trên danh sách điều hướng
   sang route này; không xử lý nghiệp vụ trong modal.
 
 ## 2. Mục tiêu nghiệp vụ
@@ -37,7 +37,7 @@ Sau khi người tiêu dùng gửi phản ánh từ trang tra cứu công khai, 
 3. Gán người chịu trách nhiệm xử lý.
 4. Lưu nội dung xử lý nội bộ và câu trả lời được phép công khai.
 5. Đóng phản ánh khi đủ điều kiện.
-6. Tạo đề nghị thu hồi có liên kết ngược về phản ánh gốc.
+6. Tạo yêu cầu thu hồi có liên kết ngược về phản ánh gốc.
 7. Đưa phản ánh nghi ngờ tem giả vào nguồn dữ liệu của danh sách mã tem nghi vấn.
 
 Phản ánh không có API xóa và phải giữ được người thực hiện cùng các mốc thời gian quan trọng.
@@ -55,16 +55,16 @@ Phản ánh không có API xóa và phải giữ được người thực hiện
   `GET /api/v1/organization/members?status=ACTIVE`.
 - API lấy lô hàng và mã tem theo lô sản xuất:
   `GET /api/v1/shipments/production-lots/{productionLotId}`.
-- Luồng đề nghị thu hồi nhiều bước tại `/api/v1/recall-requests`.
+- Luồng yêu cầu thu hồi nhiều bước tại `/api/v1/recall-requests`.
 - Danh sách mã tem nghi vấn tại `/api/v1/admin/trace-codes/suspect`.
 
 ### 3.2 Cần triển khai
 
 - Trạng thái, mức độ, người xử lý và các mốc xử lý của phản ánh.
 - Bộ lọc danh sách theo trạng thái, mức độ, lô và người xử lý.
-- API gán người xử lý, cập nhật nội dung, đóng phản ánh và tạo đề nghị thu hồi.
+- API gán người xử lý, cập nhật nội dung, đóng phản ánh và tạo yêu cầu thu hồi.
 - Liên kết phản ánh với mã tem nguồn.
-- Liên kết hai chiều giữa phản ánh và đề nghị thu hồi.
+- Liên kết hai chiều giữa phản ánh và yêu cầu thu hồi.
 - Quyền `product_feedback:UPDATE` và kiểm tra vai trò tại controller/service.
 - Audit log cho các thao tác thay đổi.
 
@@ -86,11 +86,11 @@ Phản ánh không có API xóa và phải giữ được người thực hiện
 - Danh sách chọn trên giao diện lấy từ `GET /api/v1/organization/members?status=ACTIVE` và chỉ giữ
   các membership có `roleCode=VT-03`.
 - Việc được gán là thông tin phân công trách nhiệm, không tự cấp quyền API. Trong phạm vi story này,
-  `VT-02` vẫn là vai trò gọi các API gán, cập nhật xử lý, đề nghị thu hồi và đóng phản ánh.
+  `VT-02` vẫn là vai trò gọi các API gán, cập nhật xử lý, yêu cầu thu hồi và đóng phản ánh.
 - Có thể gán lại khi phản ánh chưa đóng.
 - Không được gán hoặc gán lại phản ánh `CLOSED`.
 - Gán lần đầu cho phản ánh `NEW` tự động chuyển trạng thái sang `IN_PROGRESS`.
-- Mọi thao tác ghi nội dung xử lý, đóng hoặc tạo đề nghị thu hồi đều yêu cầu phản ánh đã có người
+- Mọi thao tác ghi nội dung xử lý, đóng hoặc tạo yêu cầu thu hồi đều yêu cầu phản ánh đã có người
   xử lý; backend không tự gán ngầm người gọi.
 
 ### D-03. Trạng thái đóng
@@ -98,18 +98,18 @@ Phản ánh không có API xóa và phải giữ được người thực hiện
 - `CLOSED` là trạng thái cuối; story không có chức năng mở lại.
 - Đóng bắt buộc có người xử lý, nội dung xử lý và lý do đóng.
 - `publicResponse` không bắt buộc để đóng, nhưng nếu có phải được lưu tách khỏi nội dung nội bộ.
-- Không được đóng khi tồn tại đề nghị thu hồi liên kết ở trạng thái `PENDING`.
+- Không được đóng khi tồn tại yêu cầu thu hồi liên kết ở trạng thái `PENDING`.
 
-### D-04. Liên kết đề nghị thu hồi
+### D-04. Liên kết yêu cầu thu hồi
 
-- Một phản ánh có thể có nhiều đề nghị thu hồi trong lịch sử.
-- Tại một thời điểm chỉ được có tối đa một đề nghị `PENDING`.
-- Khi tạo đề nghị, hệ thống lấy `productionLotId` từ phản ánh; client không được truyền một lô khác.
-- Người tạo đề nghị không được tự phê duyệt theo `QTN-22`.
-- API hiện tại chỉ cho `VT-03` tạo đề nghị. Story này bổ sung trường hợp `VT-02` tạo từ phản ánh nhưng
+- Một phản ánh có thể có nhiều yêu cầu thu hồi trong lịch sử.
+- Tại một thời điểm chỉ được có tối đa một yêu cầu `PENDING`.
+- Khi tạo yêu cầu, hệ thống lấy `productionLotId` từ phản ánh; client không được truyền một lô khác.
+- Người tạo yêu cầu không được tự phê duyệt theo `QTN-22`.
+- API hiện tại chỉ cho `VT-03` tạo yêu cầu. Story này bổ sung trường hợp `VT-02` tạo từ phản ánh nhưng
   không được làm yếu quy tắc người tạo khác người duyệt.
-- Giao diện chỉ hiển thị và cho tạo đề nghị theo `severity` đã lưu. Nếu mức độ, mã tem hoặc nội dung
-  xử lý còn là bản nháp, nút tạo đề nghị bị khóa cho tới khi người dùng bấm **Lưu xử lý**.
+- Giao diện chỉ hiển thị và cho tạo yêu cầu theo `severity` đã lưu. Nếu mức độ, mã tem hoặc nội dung
+  xử lý còn là bản nháp, nút tạo yêu cầu bị khóa cho tới khi người dùng bấm **Lưu xử lý**.
 
 ### D-05. Phản ánh nghi ngờ tem giả
 
@@ -139,7 +139,7 @@ Phản ánh không có API xóa và phải giữ được người thực hiện
 |---|---|---|
 | `NEW` | Mới | Vừa được tiếp nhận, chưa bắt đầu xử lý |
 | `IN_PROGRESS` | Đang xử lý | Đã có người xử lý hoặc đã lưu hoạt động xử lý |
-| `ESCALATED_TO_RECALL` | Đã chuyển thu hồi | Đã tạo ít nhất một đề nghị thu hồi từ phản ánh |
+| `ESCALATED_TO_RECALL` | Đã chuyển thu hồi | Đã tạo ít nhất một yêu cầu thu hồi từ phản ánh |
 | `CLOSED` | Đã đóng | Đã có kết luận, nội dung xử lý, lý do và mốc đóng |
 
 Chuyển trạng thái hợp lệ:
@@ -148,8 +148,8 @@ Chuyển trạng thái hợp lệ:
 NEW -> IN_PROGRESS
 IN_PROGRESS -> ESCALATED_TO_RECALL
 IN_PROGRESS -> CLOSED
-ESCALATED_TO_RECALL -> IN_PROGRESS   (đề nghị gần nhất bị từ chối và tiếp tục xử lý)
-ESCALATED_TO_RECALL -> CLOSED        (không còn đề nghị PENDING và đủ dữ liệu đóng)
+ESCALATED_TO_RECALL -> IN_PROGRESS   (yêu cầu gần nhất bị từ chối và tiếp tục xử lý)
+ESCALATED_TO_RECALL -> CLOSED        (không còn yêu cầu PENDING và đủ dữ liệu đóng)
 ```
 
 Không cho phép:
@@ -163,7 +163,7 @@ Không cho phép:
 | Giá trị API | Nhãn giao diện | Quy tắc |
 |---|---|---|
 | `INFORMATION` | Thông tin | Giá trị mặc định khi tiếp nhận |
-| `QUALITY_SUSPECTED` | Nghi ngờ chất lượng | Có thể tạo đề nghị thu hồi |
+| `QUALITY_SUSPECTED` | Nghi ngờ chất lượng | Có thể tạo yêu cầu thu hồi |
 | `COUNTERFEIT_SUSPECTED` | Nghi ngờ tem giả | Bắt buộc có mã tem; đưa vào nguồn danh sách nghi vấn |
 
 ## 6. Mô hình dữ liệu đề xuất
@@ -191,12 +191,12 @@ Chỉ mục đề xuất:
 - `(assigned_to, status)`
 - `(trace_code_id)`
 
-### 6.2 Liên kết đề nghị thu hồi
+### 6.2 Liên kết yêu cầu thu hồi
 
 Bổ sung `source_feedback_id CHAR(36) NULL` vào `recall_requests`:
 
 - FK tới `product_feedbacks.id`.
-- Không đặt `UNIQUE`, vì cần giữ lịch sử nhiều lần đề nghị sau khi một đề nghị bị từ chối.
+- Không đặt `UNIQUE`, vì cần giữ lịch sử nhiều lần yêu cầu sau khi một yêu cầu bị từ chối.
 - Service phải chặn nhiều hơn một bản ghi `PENDING` cho cùng phản ánh.
 - Thêm index `(source_feedback_id, status)`.
 
@@ -412,7 +412,7 @@ Ràng buộc đề xuất:
 - `publicResponse`: không bắt buộc, tối đa 2.000 ký tự.
 - `closeReason`: bắt buộc, tối đa 1.000 ký tự.
 - Phải có `assignedTo`.
-- Không có đề nghị thu hồi liên kết `PENDING`.
+- Không có yêu cầu thu hồi liên kết `PENDING`.
 - Không được đóng lại phản ánh đã `CLOSED`.
 
 Side effects:
@@ -423,7 +423,7 @@ Side effects:
 
 Response `200 OK`: `ApiResult<ProductFeedbackResponse>`.
 
-### 9.6 Tạo đề nghị thu hồi từ phản ánh
+### 9.6 Tạo yêu cầu thu hồi từ phản ánh
 
 ```http
 POST /api/v1/product-feedbacks/{feedbackId}/recall-requests
@@ -450,7 +450,7 @@ Ràng buộc:
 - `evidence`: không bắt buộc, tối đa 2.000 ký tự.
 - Mức độ phải là `QUALITY_SUSPECTED` hoặc `COUNTERFEIT_SUSPECTED`.
 - Phản ánh phải có người xử lý và đang ở trạng thái `IN_PROGRESS`.
-- Không tồn tại đề nghị `PENDING` khác liên kết cùng phản ánh.
+- Không tồn tại yêu cầu `PENDING` khác liên kết cùng phản ánh.
 - `productionLotId` lấy từ phản ánh và chỉ dùng làm ngữ cảnh; phạm vi thu hồi thực tế là `shipmentId`.
 
 Transaction phải thực hiện nguyên tử:
@@ -467,10 +467,10 @@ Response `201 Created`: `ApiResult<RecallRequestResponse>`; response thu hồi b
 Khi yêu cầu được `APPROVED`, chỉ shipment liên kết và toàn bộ mã tem của shipment đó chuyển
 `RECALLED`. Lô sản xuất và các shipment khác trong cùng lô sản xuất giữ nguyên trạng thái.
 
-Khi đề nghị liên kết được xử lý:
+Khi yêu cầu liên kết được xử lý:
 
 - `REJECTED`: chuyển phản ánh từ `ESCALATED_TO_RECALL` về `IN_PROGRESS` để tiếp tục xử lý.
-- `APPROVED`: giữ `ESCALATED_TO_RECALL`; có thể đóng phản ánh vì không còn đề nghị `PENDING`, nếu
+- `APPROVED`: giữ `ESCALATED_TO_RECALL`; có thể đóng phản ánh vì không còn yêu cầu `PENDING`, nếu
   đồng thời thỏa các điều kiện đóng khác.
 
 ### 9.7 API không tồn tại
@@ -561,8 +561,8 @@ Không dựa riêng vào việc frontend ẩn nút.
 | `403` | Sai vai trò hoặc thiếu permission | `Bạn không có quyền thực hiện thao tác này` |
 | `404` | Không tồn tại hoặc ngoài tenant scope | `Không tìm thấy phản ánh` |
 | `409` | Phản ánh đã đóng | `Phản ánh đã được đóng` |
-| `409` | Đóng khi recall còn PENDING | `Phải xử lý xong đề nghị thu hồi trước khi đóng phản ánh` |
-| `409` | Tạo recall khi đã có recall PENDING | `Phản ánh đã có đề nghị thu hồi đang chờ duyệt` |
+| `409` | Đóng khi recall còn PENDING | `Phải xử lý xong yêu cầu thu hồi trước khi đóng phản ánh` |
+| `409` | Tạo recall khi đã có recall PENDING | `Phản ánh đã có yêu cầu thu hồi đang chờ duyệt` |
 | `409` | Nghi ngờ tem giả nhưng chưa có mã tem | `Phản ánh phải được liên kết với mã tem cụ thể` |
 
 Ví dụ lỗi:
@@ -571,7 +571,7 @@ Ví dụ lỗi:
 {
   "success": false,
   "status": 409,
-  "message": "Phải xử lý xong đề nghị thu hồi trước khi đóng phản ánh",
+  "message": "Phải xử lý xong yêu cầu thu hồi trước khi đóng phản ánh",
   "path": "/api/v1/product-feedbacks/90fe86ba-596e-4709-b4d5-11f8b9445304/close",
   "timestamp": "2026-09-07T02:00:00Z"
 }
@@ -582,8 +582,8 @@ Ví dụ lỗi:
 - Gán người: cập nhật assignee, trạng thái và audit trong một transaction.
 - Phân loại tem giả: cập nhật feedback, liên kết trace code và nguồn danh sách nghi vấn trong một
   transaction.
-- Tạo đề nghị thu hồi: tạo recall, liên kết feedback, cập nhật trạng thái và audit trong một transaction.
-- Khi tạo đề nghị, backend khóa pessimistic bản ghi shipment và database dùng unique key có điều kiện
+- Tạo yêu cầu thu hồi: tạo recall, liên kết feedback, cập nhật trạng thái và audit trong một transaction.
+- Khi tạo yêu cầu, backend khóa pessimistic bản ghi shipment và database dùng unique key có điều kiện
   để bảo đảm mỗi shipment chỉ có tối đa một yêu cầu `PENDING`, kể cả khi có request đồng thời.
 - Đóng: kiểm tra lại điều kiện tại thời điểm ghi; không chỉ dựa trên trạng thái frontend đã tải trước đó.
 - Query cập nhật phải áp dụng tenant scope để tránh lỗ hổng kiểm tra rồi cập nhật chéo tổ chức.
@@ -635,5 +635,5 @@ Ví dụ lỗi:
 2. Chỉ membership `ACTIVE` có vai trò `VT-03` của tổ chức sở hữu phản ánh được gán xử lý; `VT-02`
    vẫn là vai trò thao tác các API quản lý phản ánh.
 3. `publicResponse` không bắt buộc khi đóng.
-4. Giữ nguyên `QTN-22`: người tạo đề nghị thu hồi không được tự phê duyệt. Trường hợp tổ chức chỉ có
+4. Giữ nguyên `QTN-22`: người tạo yêu cầu thu hồi không được tự phê duyệt. Trường hợp tổ chức chỉ có
    một quản lý cần điều phối một quản lý hợp lệ khác; không nới quyền trong story này.

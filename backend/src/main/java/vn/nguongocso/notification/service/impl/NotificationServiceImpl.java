@@ -1099,4 +1099,40 @@ public class NotificationServiceImpl implements NotificationService {
 
                 return notifications.size();
         }
+
+        @Override
+        public int sendBulkRecallWorkflowNotification(
+                String title,
+                String content,
+                UUID requestId,
+                String action,
+                List<User> recipients) {
+
+                if (recipients == null || recipients.isEmpty()) {
+                        return 0;
+                }
+
+                List<Notification> notifications = recipients.stream()
+                                .map(user -> {
+                                        Notification notification = new Notification();
+                                        notification.setUser(user);
+                                        notification.setType(NotificationType.INFO);
+                                        notification.setTitle(title);
+                                        notification.setContent(content);
+                                        notification.setIsRead(false);
+                                        notification.setReadAt(null);
+                                        return notification;
+                                })
+                                .toList();
+
+                notificationRepository.saveAll(notifications);
+
+                log.info(
+                                "Đã tạo {} notification workflow bulk recall. action={}, requestId={}",
+                                notifications.size(),
+                                action,
+                                requestId);
+
+                return notifications.size();
+        }
 }

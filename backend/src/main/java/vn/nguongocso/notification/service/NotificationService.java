@@ -119,4 +119,22 @@ public interface NotificationService {
      * @return số lượng thông báo đã tạo
      */
     int sendCertificationRejectionNotification(Certification certification, String rejectionReason);
+
+    /**
+     * Gửi thông báo workflow nội bộ cho yêu cầu thu hồi hàng loạt
+     * (NCL-08-CN-011).
+     *
+     * @param title       tiêu đề thông báo
+     * @param content     nội dung thông báo
+     * @param requestId   ID yêu cầu thu hồi
+     * @param action      hành động (CREATE/APPROVE/REJECT)
+     * @param recipients  danh sách người nhận
+     * @return số lượng thông báo đã tạo
+     */
+    int sendBulkRecallWorkflowNotification(
+            String title,
+            String content,
+            UUID requestId,
+            String action,
+            List<vn.nguongocso.auth.entity.User> recipients);
 }
