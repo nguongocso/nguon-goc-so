@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Handshake, Eye } from "lucide-react";
+import { FileSignature, Eye } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableHead, TableRow } from "@/components/ui/table";
@@ -108,7 +108,7 @@ export function ShipmentHandoverReceivedListPage() {
   return (
     <div className="space-y-6">
       <ListPageHeader
-        icon={Handshake}
+        icon={FileSignature}
         iconBoxClassName="bg-indigo-500/10"
         title="Phiếu bàn giao nhận"
         description="Xem các phiếu bàn giao lô hàng của tổ chức bạn là bên nhận; xác nhận hoặc từ chối tại trang chi tiết."

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Eye, FileJson, FileText, Handshake, ShoppingCart } from "lucide-react";
+import { Eye, FileJson, FileSignature, FileText, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { ListCard } from "@/components/common/ListCard";
@@ -524,7 +524,7 @@ export function ProcurementShipmentList({
                         )
                       }
                     >
-                      <Handshake className="size-4" />
+                      <FileSignature className="size-4" />
                     </Button>
                   )}
 

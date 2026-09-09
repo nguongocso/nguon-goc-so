@@ -5,8 +5,8 @@ import { toast } from "sonner";
 import {
   CalendarClock,
   CheckCheck,
+  FileSignature,
   FileText,
-  Handshake,
   Loader2,
   PackageOpen,
   StickyNote,
@@ -156,7 +156,7 @@ const assetUrl = toHandoverAssetUrl(handover.attachmentPath);
         <div>
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
-              <Handshake className="h-5 w-5" />
+              <FileSignature className="h-5 w-5" />
             </span>
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">
@@ -219,7 +219,7 @@ const assetUrl = toHandoverAssetUrl(handover.attachmentPath);
         </CardHeader>
         <CardContent className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
           <DetailItem
-            icon={<Handshake className="h-4 w-4" />}
+            icon={<FileSignature className="h-4 w-4" />}
             label="Bên giao"
             value={handover.fromOrganizationName}
           />
@@ -271,7 +271,7 @@ const assetUrl = toHandoverAssetUrl(handover.attachmentPath);
           )}
           {handover.confirmedAt && (
             <DetailItem
-              icon={<Handshake className="h-4 w-4" />}
+              icon={<FileSignature className="h-4 w-4" />}
               label="Thời điểm xác nhận"
               value={formatDateTime(handover.confirmedAt)}
             />
