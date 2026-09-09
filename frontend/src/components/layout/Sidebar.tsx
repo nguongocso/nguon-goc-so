@@ -113,7 +113,7 @@ interface SidebarProps {
 
 const DASHBOARD_ITEM: MenuItem = {
   icon: <LayoutDashboard className="h-5 w-5" />,
-  label: "Tổng quan",
+  label: "Dashboard",
   href: "/dashboard",
   allowedRoles: ROLE_ACCESS.dashboard,
 };
