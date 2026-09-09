@@ -346,6 +346,8 @@ public class ImpactScopeExportServiceImpl implements ImpactScopeExportService {
             case "HARVEST": return "Thu hoạch";
             case "STORAGE_CONDITION": return "Bảo quản";
             case "CORRECTION": return "Đính chính";
+            case "WAREHOUSE_ENTRY": return "Nhập kho HTX";
+            case "WAREHOUSE_EXIT": return "Xuất kho HTX";
             default: return type;
         }
     }

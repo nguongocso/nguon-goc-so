@@ -80,6 +80,20 @@ public interface ChainEventService {
 	ChainVerificationResponse verifyChainIntegrity(UUID shipmentId, CustomUserDetails currentUser);
 
 	/**
+	 * Ghi nhận sự kiện nhập kho tại hợp tác xã (HTX).
+	 */
+	vn.nguongocso.event.dto.response.CoopWarehouseEventResponse recordWarehouseEntryEvent(
+			vn.nguongocso.event.dto.request.RecordWarehouseEntryRequest request,
+			CustomUserDetails currentUser);
+
+	/**
+	 * Ghi nhận sự kiện xuất kho tại hợp tác xã (HTX).
+	 */
+	vn.nguongocso.event.dto.response.CoopWarehouseEventResponse recordWarehouseExitEvent(
+			vn.nguongocso.event.dto.request.RecordWarehouseExitRequest request,
+			CustomUserDetails currentUser);
+
+	/**
 	 * Lưu ChainEvent và tự động tính chuỗi băm liên kết với sự kiện trước đó
 	 * trong cùng Shipment. Đây là điểm tập trung để mọi loại sự kiện được gắn
 	 * hash đúng theo QTN-19.

@@ -205,4 +205,29 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
         boolean existsByShipmentIdAndEventType(
                 @Param("shipmentId") UUID shipmentId,
                 @Param("eventType") ChainEventType eventType);
+
+        /**
+         * Lấy danh sách sự kiện theo productionLotId và eventType (sắp xếp giảm dần theo thời gian ghi nhận).
+         */
+        @Query("""
+                SELECT ce FROM ChainEvent ce
+                LEFT JOIN ce.shipment s
+                WHERE ce.eventType = :eventType
+                  AND ce.isCorrection = false
+                  AND (
+                      (s.productionLot.id = :productionLotId)
+                      OR (
+                          ce.shipment IS NULL
+                          AND ce.eventData IS NOT NULL
+                          AND FUNCTION('JSON_UNQUOTE',
+                                FUNCTION('JSON_EXTRACT', ce.eventData, '$.productionLotId'))
+                              = :productionLotIdText
+                      )
+                  )
+                ORDER BY ce.recordedAt DESC, ce.createdAt DESC
+                """)
+        List<ChainEvent> findEventsByProductionLotIdAndEventType(
+                @Param("productionLotId") UUID productionLotId,
+                @Param("productionLotIdText") String productionLotIdText,
+                @Param("eventType") ChainEventType eventType);
 }

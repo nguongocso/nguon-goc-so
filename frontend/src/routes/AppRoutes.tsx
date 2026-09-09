@@ -68,6 +68,10 @@ import CategoryOverridePage from "@/pages/admin/CategoryOverridePage";
 import CreatePackagingEventPage from "@/pages/packaging-event/CreatePackagingEventPage";
 import CorrectPackagingEventPage from "@/pages/packaging-event/CorrectPackagingEventPage";
 
+// ===== Coop Warehouse =====
+import CreateCoopWarehouseEntryPage from "@/pages/coop-warehouse/CreateCoopWarehouseEntryPage";
+import CreateCoopWarehouseExitPage from "@/pages/coop-warehouse/CreateCoopWarehouseExitPage";
+
 // ===== Preprocessing =====
 import CreatePreprocessingEventPage from "@/pages/preprocessing-event/CreatePreprocessingEventPage";
 import CorrectPreprocessingEventPage from "@/pages/preprocessing-event/CorrectPreprocessingEventPage";
@@ -807,6 +811,32 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.packagingEventCorrect}
                     >
                         <CorrectPackagingEventPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* =================================================
+          COOP WAREHOUSE (NCL-05-CN-011)
+      ================================================= */}
+
+            <Route
+                path="coop-warehouse-events/entry"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.packagingEventCreate}
+                    >
+                        <CreateCoopWarehouseEntryPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="coop-warehouse-events/exit"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.packagingEventCreate}
+                    >
+                        <CreateCoopWarehouseExitPage />
                     </RoleRoute>
                 }
             />

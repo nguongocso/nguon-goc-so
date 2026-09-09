@@ -51,6 +51,12 @@ public class ProductCategory {
 	@Column(name = "humidity_max", columnDefinition = "DECIMAL(5,1)")
 	private Double humidityMax;
 
+	/**
+	 * Thời gian lưu kho tối đa cho phép (tính theo ngày).
+	 */
+	@Column(name = "max_storage_days")
+	private Integer maxStorageDays;
+
 	@Column(name = "requires_inspection", nullable = false)
 	@Builder.Default
 	private Boolean requiresInspection = false;
