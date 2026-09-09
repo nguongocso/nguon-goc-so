@@ -5,7 +5,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { recordWarehouseExit } from "@/api/coopWarehouseApi";
-import { getProductionLots } from "@/api/productionLotApi";
+import { getShipmentById } from "@/api/shipmentApi";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,16 +16,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { LocationPicker } from "@/pages/packaging-event/components/LocationPicker";
-import type { ProductionLot } from "@/types/productionLot";
+import type { Shipment } from "@/types/shipment";
 import {
   recordWarehouseExitSchema,
   type RecordWarehouseExitFormValues,
@@ -34,10 +27,10 @@ import {
 export default function CreateCoopWarehouseExitPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const preselectedLotId = searchParams.get("productionLotId") ?? "";
+  const preselectedShipmentId = searchParams.get("shipmentId") ?? "";
 
-  const [productionLots, setProductionLots] = useState<ProductionLot[]>([]);
-  const [loadingLots, setLoadingLots] = useState(true);
+  const [shipment, setShipment] = useState<Shipment | null>(null);
+  const [loadingShipment, setLoadingShipment] = useState(true);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const getCurrentDatetimeString = () => {
@@ -50,12 +43,11 @@ export default function CreateCoopWarehouseExitPage() {
     register,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<RecordWarehouseExitFormValues>({
     resolver: zodResolver(recordWarehouseExitSchema),
     defaultValues: {
-      productionLotId: preselectedLotId,
+      shipmentId: preselectedShipmentId,
       exitTime: getCurrentDatetimeString(),
       destination: "",
       notes: "",
@@ -64,28 +56,28 @@ export default function CreateCoopWarehouseExitPage() {
     },
   });
 
-  const selectedLotId = watch("productionLotId");
-  const selectedLot = productionLots.find((l) => l.id === selectedLotId);
-
   useEffect(() => {
-    async function loadLots() {
+    async function loadShipment() {
+      if (!preselectedShipmentId) {
+        setLoadingShipment(false);
+        return;
+      }
       try {
-        setLoadingLots(true);
-        const res = await getProductionLots();
+        setLoadingShipment(true);
+        const res = await getShipmentById(preselectedShipmentId);
         if (res) {
-          setProductionLots(res);
-          if (preselectedLotId) {
-            setValue("productionLotId", preselectedLotId);
-          }
+          setShipment(res);
+          setValue("shipmentId", res.id);
         }
       } catch (err) {
-        console.error("Lỗi khi tải danh sách lô sản xuất:", err);
+        console.error("Lỗi khi tải thông tin lô hàng:", err);
+        setServerError("Không tìm thấy thông tin lô hàng");
       } finally {
-        setLoadingLots(false);
+        setLoadingShipment(false);
       }
     }
-    loadLots();
-  }, [preselectedLotId, setValue]);
+    loadShipment();
+  }, [preselectedShipmentId, setValue]);
 
   const onSubmit = async (values: RecordWarehouseExitFormValues) => {
     try {
@@ -97,7 +89,7 @@ export default function CreateCoopWarehouseExitPage() {
         } else {
           toast.success("Ghi sự kiện xuất kho HTX thành công");
         }
-        navigate("/production-lots");
+        navigate(-1);
       } else {
         const msg = res?.message || "Không thể ghi sự kiện xuất kho HTX";
         setServerError(msg);
@@ -131,49 +123,26 @@ export default function CreateCoopWarehouseExitPage() {
               </div>
             )}
 
-            {/* Chọn lô sản xuất */}
-            <div className="space-y-2">
-              <Label className="font-medium text-gray-700">
-                Chọn lô sản xuất <span className="text-red-500">*</span>
+            {/* Thông tin lô hàng */}
+            <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-md space-y-1.5">
+              <Label className="font-semibold text-emerald-900 text-base">
+                Lô hàng được chọn
               </Label>
-              <Select
-                value={selectedLotId || undefined}
-                onValueChange={(val) => setValue("productionLotId", val ?? "")}
-                disabled={loadingLots}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue
-                    placeholder={
-                      loadingLots
-                        ? "Đang tải danh sách lô sản xuất..."
-                        : "Chọn lô sản xuất"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {productionLots.map((lot) => (
-                    <SelectItem key={lot.id} value={lot.id}>
-                      {lot.name} ({lot.code || (lot.id ? lot.id.substring(0, 8) : "")})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.productionLotId && (
-                <p className="text-sm text-red-600">
-                  {errors.productionLotId.message}
-                </p>
+              {loadingShipment ? (
+                <p className="text-sm text-emerald-700">Đang tải thông tin lô hàng...</p>
+              ) : shipment ? (
+                <div className="text-sm text-emerald-900 space-y-1">
+                  <p>
+                    Tên lô hàng: <span className="font-semibold">{shipment.name}</span>
+                  </p>
+                  <p className="text-emerald-800 text-xs">
+                    Mã ID: {shipment.id} | Số lượng: {shipment.totalQuantity} | Quy cách: {shipment.packagingInfo || "N/A"}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-red-600">Chưa chọn lô hàng hợp lệ.</p>
               )}
             </div>
-
-            {/* Banner trạng thái hợp lệ */}
-            {selectedLot && (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-md text-emerald-800 text-sm">
-                <p className="font-semibold">Lô sản xuất sẵn sàng xuất kho</p>
-                <p className="mt-0.5">
-                  Lô sản xuất <span className="font-medium">{selectedLot.name}</span> sẽ được ghi nhận thời điểm rời kho và tính thời gian lưu kho.
-                </p>
-              </div>
-            )}
 
             {/* Thời điểm xuất kho & Nơi chuyển đến */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -262,7 +231,7 @@ export default function CreateCoopWarehouseExitPage() {
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !shipment}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               {isSubmitting ? "Đang xử lý..." : "Ghi sự kiện xuất kho"}

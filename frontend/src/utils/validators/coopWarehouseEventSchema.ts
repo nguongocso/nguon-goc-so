@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const recordWarehouseEntrySchema = z.object({
-  productionLotId: z.string().min(1, "Vui lòng chọn lô sản xuất"),
+  shipmentId: z.string().min(1, "Vui lòng chọn lô hàng"),
   entryTime: z.string().min(1, "Vui lòng nhập thời điểm nhập kho"),
   warehouseName: z
     .string()
@@ -24,7 +24,7 @@ export const recordWarehouseEntrySchema = z.object({
 export type RecordWarehouseEntryFormValues = z.infer<typeof recordWarehouseEntrySchema>;
 
 export const recordWarehouseExitSchema = z.object({
-  productionLotId: z.string().min(1, "Vui lòng chọn lô sản xuất"),
+  shipmentId: z.string().min(1, "Vui lòng chọn lô hàng"),
   exitTime: z.string().min(1, "Vui lòng nhập thời điểm xuất kho"),
   destination: z
     .string()
@@ -41,3 +41,4 @@ export const recordWarehouseExitSchema = z.object({
 });
 
 export type RecordWarehouseExitFormValues = z.infer<typeof recordWarehouseExitSchema>;
+

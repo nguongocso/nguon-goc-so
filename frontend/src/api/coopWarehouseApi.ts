@@ -12,8 +12,10 @@ import type {
 
 export interface CoopWarehouseEventResponse {
   id: string;
-  productionLotId: string;
-  productionLotName: string;
+  shipmentId: string;
+  shipmentName?: string;
+  productionLotId?: string;
+  productionLotName?: string;
   eventType: "WAREHOUSE_ENTRY" | "WAREHOUSE_EXIT";
   warehouseName?: string;
   entryTime?: string;
