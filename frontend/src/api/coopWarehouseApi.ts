@@ -35,6 +35,13 @@ export interface CoopWarehouseEventResponse {
   createdAt?: string;
 }
 
+export interface ChainEventItem {
+  id: string;
+  eventType: string;
+  recordedAt: string;
+  eventData?: string;
+}
+
 export async function recordWarehouseEntry(
   data: RecordWarehouseEntryFormValues
 ): Promise<ApiResult<CoopWarehouseEventResponse>> {
@@ -53,4 +60,31 @@ export async function recordWarehouseExit(
     data
   );
   return response.data;
+}
+
+export async function getShipmentChainEvents(
+  shipmentId: string
+): Promise<ChainEventItem[]> {
+  try {
+    const response = await apiClient.get<ApiResult<ChainEventItem[]>>(
+      `/api/v1/shipments/${shipmentId}/chain-events`
+    );
+    return response.data?.data || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getShipmentWarehouseStatus(
+  shipmentId: string
+): Promise<"IN_WAREHOUSE" | "NOT_IN_WAREHOUSE"> {
+  const events = await getShipmentChainEvents(shipmentId);
+  const warehouseEvents = events.filter(
+    (e) => e.eventType === "WAREHOUSE_ENTRY" || e.eventType === "WAREHOUSE_EXIT"
+  );
+  if (warehouseEvents.length === 0) {
+    return "NOT_IN_WAREHOUSE";
+  }
+  const lastEvent = warehouseEvents[warehouseEvents.length - 1];
+  return lastEvent.eventType === "WAREHOUSE_ENTRY" ? "IN_WAREHOUSE" : "NOT_IN_WAREHOUSE";
 }

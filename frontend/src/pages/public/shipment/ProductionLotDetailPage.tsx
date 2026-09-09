@@ -1144,31 +1144,7 @@ export const ProductionLotDetailPage = () => {
                 Ghi đóng gói
               </Button>
             )}
-            {(user?.roleCode === "VT-02" || user?.roleCode === "VT-03") &&
-              lot.status === "PACKAGED" && (
-                <>
-                  <Button
-                    onClick={() =>
-                      navigate(
-                        `/coop-warehouse-events/entry?productionLotId=${lot.id}`
-                      )
-                    }
-                    variant="create"
-                  >
-                    Nhập kho HTX
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      navigate(
-                        `/coop-warehouse-events/exit?productionLotId=${lot.id}`
-                      )
-                    }
-                    variant="create"
-                  >
-                    Xuất kho HTX
-                  </Button>
-                </>
-              )}
+
             {canCancelLot &&
               CANCELLABLE_PRODUCTION_LOT_STATUSES.includes(lot.status) && (
                 <Button

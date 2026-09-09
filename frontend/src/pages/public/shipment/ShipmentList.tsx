@@ -23,6 +23,8 @@ import {
   History,
   Eye,
   QrCode,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 import { useShipments } from "@/hooks/useShipments";
 import { useRecallShipment } from "@/hooks/useRecallShipment";
@@ -308,17 +310,33 @@ export const ShipmentList = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate("/coop-warehouse-events/entry")}
+                onClick={() => {
+                  if (selectedShipmentIds.length > 0) {
+                    navigate(`/coop-warehouse-events/entry?shipmentIds=${selectedShipmentIds.join(",")}`);
+                  } else {
+                    navigate("/coop-warehouse-events/entry");
+                  }
+                }}
+                className="border-emerald-300 text-emerald-800 hover:bg-emerald-50"
               >
-                Nhập kho HTX
+                <LogIn className="mr-1.5 h-4 w-4 text-emerald-600" />
+                Nhập kho HTX {selectedShipmentIds.length > 0 ? `(${selectedShipmentIds.length})` : ""}
               </Button>
 
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate("/coop-warehouse-events/exit")}
+                onClick={() => {
+                  if (selectedShipmentIds.length > 0) {
+                    navigate(`/coop-warehouse-events/exit?shipmentIds=${selectedShipmentIds.join(",")}`);
+                  } else {
+                    navigate("/coop-warehouse-events/exit");
+                  }
+                }}
+                className="border-amber-300 text-amber-800 hover:bg-amber-50"
               >
-                Xuất kho HTX
+                <LogOut className="mr-1.5 h-4 w-4 text-amber-600" />
+                Xuất kho HTX {selectedShipmentIds.length > 0 ? `(${selectedShipmentIds.length})` : ""}
               </Button>
 
               {/* NCL-04-CN-007: tùy chọn yêu cầu cấp bổ sung dải mã (chỉ VT-02) */}
@@ -557,20 +575,22 @@ export const ShipmentList = ({
                               <DropdownMenuItem
                                 onClick={() =>
                                   navigate(
-                                    `/coop-warehouse-events/entry?shipmentId=${shipment.id}`
+                                    `/coop-warehouse-events/entry?shipmentIds=${shipment.id}`
                                   )
                                 }
                               >
+                                <LogIn className="mr-2 h-4 w-4 text-emerald-600" />
                                 Nhập kho HTX
                               </DropdownMenuItem>
 
                               <DropdownMenuItem
                                 onClick={() =>
                                   navigate(
-                                    `/coop-warehouse-events/exit?shipmentId=${shipment.id}`
+                                    `/coop-warehouse-events/exit?shipmentIds=${shipment.id}`
                                   )
                                 }
                               >
+                                <LogOut className="mr-2 h-4 w-4 text-amber-600" />
                                 Xuất kho HTX
                               </DropdownMenuItem>
 
