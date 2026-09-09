@@ -1,5 +1,6 @@
 import { ProductionLotBoard } from '@/components/production-lot/ProductionLotBoard';
 import { HelpButton } from '@/components/help/HelpButton';
+import { MilestoneReminderCard } from '@/components/farm-log/MilestoneReminderCard';
 
 export function EventRecorderDashboard() {
   return (
@@ -15,6 +16,9 @@ export function EventRecorderDashboard() {
         </div>
         <HelpButton screenKey="dashboard" />
       </div>
+
+      {/* NCL-03-CN-007: Thẻ nhắc lịch ghi nhật ký theo mốc canh tác bắt buộc quá hạn */}
+      <MilestoneReminderCard userOnly={true} />
 
       <ProductionLotBoard
         canCreate={false}

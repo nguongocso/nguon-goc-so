@@ -73,7 +73,8 @@ class ProductFeedbackProcessingServiceTest {
                 organizationUserRepository,
                 userRepository,
                 mock(org.springframework.context.ApplicationEventPublisher.class),
-                mock(NotificationService.class));
+                mock(NotificationService.class),
+                mock(ProductFeedbackLookupCodeGenerator.class));
 
         organizationId = UUID.randomUUID();
         feedbackId = UUID.randomUUID();

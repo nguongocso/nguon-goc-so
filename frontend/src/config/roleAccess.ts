@@ -22,6 +22,10 @@ export const ROLE_ACCESS = {
   transportEventRecord: ["VT-03"] as const,
   scanQuickEvent: ["VT-03"] as const,
 
+  // ✅ NCL-03-CN-007 - Quét mốc canh tác quá hạn và tạo nhắc việc
+  milestoneReminderScan: ['VT-01', 'VT-02', 'VT-03'] as const,
+  milestoneScan: ['VT-01', 'VT-02', 'VT-03'] as const,
+
   codeRangeList: ['VT-01'] as const,
   
   memberManagement: ['VT-02'] as const,
@@ -29,6 +33,7 @@ export const ROLE_ACCESS = {
   inspectionRequest: ['VT-02'] as const,
 
   scanAnomalyAlerts: ['VT-01', 'VT-02'] as const,
+  anomalyThresholdConfig: ['VT-01'] as const,
 
   procurementEvent: ['VT-04'] as const,
 

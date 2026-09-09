@@ -91,7 +91,8 @@ const deriveInspectionStatus = (
 };
 
 export const ProductionLotInspectionPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id: rawId, lotId } = useParams<{ id?: string; lotId?: string }>();
+  const id = rawId || lotId;
   const navigate = useNavigate();
   const canInspect = usePermission(ROLE_ACCESS.inspectionRequest);
 

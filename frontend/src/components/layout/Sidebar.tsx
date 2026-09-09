@@ -1,6 +1,7 @@
 import React, { type ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
+  Activity,
   AlertTriangle,
   Award,
   Bell,
@@ -30,7 +31,6 @@ import {
   Warehouse,
   X,
   TrendingUp,
-  Activity,
   GitCompare,
   PieChart,
   Database,
@@ -40,6 +40,7 @@ import {
   Key,
   WifiOff,
   MapPin,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import {
@@ -209,6 +210,12 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ["VT-01"] as const,
       },
       {
+        icon: <SlidersHorizontal className="h-5 w-5" />,
+        label: "Ngưỡng quét bất thường",
+        href: "/admin/anomaly-thresholds",
+        allowedRoles: ROLE_ACCESS.anomalyThresholdConfig,
+      },
+      {
         icon: <MapPin className="h-5 w-5" />,
         label: "Phân công địa bàn",
         href: "/admin/account-areas",
@@ -247,6 +254,12 @@ const MENU_GROUPS: MenuGroup[] = [
           "/shipments/",
           "/farm-logs/", 
         ],
+      },
+      {
+        icon: <Activity className="h-5 w-5" />,
+        label: "Bảng tiến độ chuỗi",
+        href: "/chain-progress",
+        allowedRoles: ["VT-01", "VT-02", "VT-03"] as const,
       },
       {
         icon: <Truck className="h-5 w-5" />,
