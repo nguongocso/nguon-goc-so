@@ -21,6 +21,7 @@ import {
 } from '@/api/recallApi';
 import { useAuth } from '@/hooks/useAuth';
 import { StatusBadge } from '@/components/common/StatusBadge';
+import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import type { BulkRecallRequest, BulkRecallShipmentItem } from '@/types/bulkRecall';
 
 const STATUS_MAP: Record<string, { label: string; tone: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }> = {
@@ -48,6 +49,14 @@ export const BulkRecallRequestDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  // Breadcrumb quay đến danh sách thu hồi theo phạm vi (NCL-08-CN-011).
+  // Nhãn "Yêu cầu thu hồi theo phạm vi" trỏ về danh sách yêu cầu thu hồi theo phạm vi.
+  useSetBreadcrumb([
+    { label: 'Tổng quan', href: '/dashboard' },
+    { label: 'Yêu cầu thu hồi theo phạm vi', href: '/recall-requests/bulk' },
+    { label: 'Chi tiết yêu cầu thu hồi' },
+  ]);
 
   const [request, setRequest] = useState<BulkRecallRequest | null>(null);
   const [loading, setLoading] = useState(true);
@@ -160,9 +169,6 @@ export const BulkRecallRequestDetailPage = () => {
           <h1 className="text-2xl font-bold text-slate-900">
             Yêu cầu thu hồi hàng loạt
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Mã yêu cầu: {request.id}
-          </p>
         </div>
         <StatusBadge
           label={STATUS_MAP[request.status]?.label || request.status}
