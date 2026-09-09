@@ -311,9 +311,30 @@ Content-Type: application/json
 
 ### 10.1. Tạo chứng nhận
 
-`POST /api/v1/certifications` phải khởi tạo `verificationStatus = PENDING`. Việc tải tệp thuộc luồng
-`NCL-09-CN-003`; trước khi triển khai Story này, luồng đó phải cung cấp metadata tệp riêng tư để
-Quản trị viên có thể xem. Không tự động xem chứng nhận mới là đã xác thực.
+`POST /api/v1/certifications` dùng `multipart/form-data` để hoàn tất dependency `NCL-09-CN-003`:
+
+| Part | Kiểu | Bắt buộc | Ràng buộc |
+| --- | --- | --- | --- |
+| `data` | `application/json` | Có | Gồm `standardId`, `code`, `issuedBy`, `issueDate`, `expiryDate`; `issueDate <= expiryDate`. |
+| `file` | Binary | Có | PDF, JPEG hoặc PNG; dung lượng tối đa 5 MiB; không được rỗng. |
+
+Ví dụ:
+
+```http
+POST /api/v1/certifications
+Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+
+data={"standardId":"21c4445c-36a4-4103-bf0b-c283339d22b5","code":"VGP-2026-00125","issuedBy":"Trung tâm Chứng nhận Chất lượng","issueDate":"2026-01-15","expiryDate":"2027-01-14"}
+file=@vietgap-2026.pdf
+```
+
+Tệp được lưu dưới thư mục riêng của chứng nhận trong vùng `app.upload.base-dir`; cơ sở dữ liệu chỉ lưu
+tên gốc, MIME, kích thước và đường dẫn nội bộ. Endpoint khởi tạo `verificationStatus = PENDING`, ghi
+lịch sử `CREATE_CERTIFICATION` trong cùng transaction và không tự động coi chứng nhận là đã xác thực.
+
+Để tương thích với client cũ trong thời gian chuyển đổi, payload `application/json` vẫn được tiếp nhận
+nhưng trả `400 Bad Request` với thông báo yêu cầu tải tệp; không tạo bản ghi thiếu tài liệu.
 
 ### 10.2. Danh sách chứng nhận có thể gắn vào lô
 
@@ -374,8 +395,9 @@ Các lỗi dùng cấu trúc `ApiResult` hiện có:
 - Cập nhật trạng thái phải dùng điều kiện trạng thái hiện tại hoặc optimistic locking. Chỉ một request được phép
   chuyển bản ghi từ `PENDING`; request đến sau nhận `409 Conflict`.
 - Cập nhật trạng thái, dữ liệu người duyệt và lịch sử phải thành công hoặc rollback cùng nhau.
-- Việc gửi thông báo có thể thực hiện sau commit, nhưng lỗi gửi không được hoàn tác quyết định từ chối;
-  phải ghi log và trả `notifiedCount` theo số thông báo đã tạo thành công.
+- Việc gửi thông báo được thực hiện sau commit; lỗi gửi không được hoàn tác quyết định từ chối và phải
+  được ghi log. Vì response được tạo trước callback `afterCommit`, `notifiedCount` mang giá trị `0`; số
+  thông báo thực tế được theo dõi trong log xử lý notification.
 - Không dùng `isValid` hiện tại để suy ra đã xác thực. `isValid` chỉ phản ánh ngày hết hạn và nên được thay bằng
   tên rõ nghĩa `validityStatus` ở hợp đồng mới.
 
