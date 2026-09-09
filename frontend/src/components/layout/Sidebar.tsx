@@ -172,6 +172,12 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ROLE_ACCESS.standardManagement,
       },
       {
+        icon: <ShieldCheck className="h-5 w-5" />,
+        label: "Xác thực chứng nhận",
+        href: "/admin/certifications",
+        allowedRoles: ROLE_ACCESS.certificateVerification,
+      },
+      {
         icon: <Award className="h-5 w-5" />,
         label: "Chứng nhận",
         href: "/certifications",

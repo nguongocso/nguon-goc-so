@@ -15,6 +15,14 @@
 
 Tài liệu này là hợp đồng cho task backend/frontend tiếp theo.
 
+### 1.1. Vị trí và bố cục màn hình quản trị
+
+- Màn hình là một mục riêng **Xác thực chứng nhận** trong nhóm **Quản trị hệ thống** trên sidebar.
+- Route frontend: `/admin/certifications`, chỉ hiển thị và cho phép truy cập với vai trò `VT-01`.
+- Bố cục desktop gồm danh sách chứng nhận ở bên trái và vùng xem tệp, thông tin đối chiếu ở bên phải; trên màn hình nhỏ hai vùng xếp dọc.
+- Danh sách mặc định lọc `PENDING`; cho phép tìm kiếm và chuyển giữa `PENDING`, `VERIFIED`, `REJECTED`.
+- Nút **Xác thực** và **Từ chối** chỉ xuất hiện với chứng nhận `PENDING`. Từ chối bắt buộc nhập lý do từ 10 đến 1000 ký tự.
+
 ## 2. Quy ước trạng thái
 
 ### 2.1. Trạng thái xác thực lưu trong cơ sở dữ liệu
