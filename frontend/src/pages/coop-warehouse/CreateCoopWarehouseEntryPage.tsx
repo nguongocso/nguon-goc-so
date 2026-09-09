@@ -12,8 +12,6 @@ import {
   Calendar,
   MapPin,
   FileText,
-  CheckSquare,
-  Square,
   Thermometer,
 } from "lucide-react";
 
@@ -27,9 +25,6 @@ import {
   Card,
   CardContent,
   CardFooter,
-  CardHeader,
-  CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -137,31 +132,6 @@ export default function CreateCoopWarehouseEntryPage() {
     loadShipmentsAndStatuses();
   }, [productionLotId, queryParam, setValue]);
 
-  const toggleSelectShipment = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id];
-      if (next.length > 0) {
-        setValue("shipmentId", next[0]);
-      } else {
-        setValue("shipmentId", "");
-      }
-      return next;
-    });
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedIds.length === allAvailableShipments.length) {
-      setSelectedIds([]);
-      setValue("shipmentId", "");
-    } else {
-      const allIds = allAvailableShipments.map((item) => item.shipment.id);
-      setSelectedIds(allIds);
-      if (allIds.length > 0) {
-        setValue("shipmentId", allIds[0]);
-      }
-    }
-  };
-
   const selectedItems = allAvailableShipments.filter((item) =>
     selectedIds.includes(item.shipment.id)
   );
@@ -230,16 +200,6 @@ export default function CreateCoopWarehouseEntryPage() {
       />
 
       <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
-        <CardHeader className="border-b border-slate-100 pb-4">
-          <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-            <LogIn className="h-5 w-5 text-emerald-600" />
-            Biểu mẫu ghi nhận nhập kho HTX
-          </CardTitle>
-          <CardDescription>
-            Điền đầy đủ thông tin kho lưu trữ, thời điểm và vị trí bản đồ để ghi nhận sự kiện nhập kho cho các lô hàng.
-          </CardDescription>
-        </CardHeader>
-
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-6 pt-6">
             {serverError && (
@@ -249,79 +209,48 @@ export default function CreateCoopWarehouseEntryPage() {
               </div>
             )}
 
-            {/* MỤC 1: BỘ CHỌN LÔ HÀNG */}
+            {/* MỤC 1: DANH SÁCH LÔ HÀNG ĐÃ CHỌN (ĐÃ CHỌN BÊN NGOÀI) */}
             <div className="space-y-3">
               <div className="flex items-center justify-between pb-1 border-b border-slate-100">
                 <Label className="font-semibold text-slate-900 text-sm flex items-center gap-2">
                   <Package className="h-4 w-4 text-emerald-600" />
-                  1. Chọn lô hàng thực hiện nhập kho <span className="text-red-500">*</span>
+                  1. Danh sách lô hàng thực hiện nhập kho ({selectedItems.length} lô)
                 </Label>
-
-                {allAvailableShipments.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-xs text-emerald-700 hover:bg-emerald-50"
-                    onClick={toggleSelectAll}
-                  >
-                    {selectedIds.length === allAvailableShipments.length ? (
-                      <CheckSquare className="mr-1 h-3.5 w-3.5" />
-                    ) : (
-                      <Square className="mr-1 h-3.5 w-3.5" />
-                    )}
-                    {selectedIds.length === allAvailableShipments.length
-                      ? "Bỏ chọn tất cả"
-                      : "Chọn tất cả lô hàng"}
-                  </Button>
-                )}
               </div>
 
               {loadingShipments ? (
                 <div className="p-4 bg-slate-50 border rounded-lg text-sm text-slate-600 animate-pulse">
-                  Đang tải danh sách lô hàng và kiểm tra trạng thái kho...
+                  Đang tải thông tin các lô hàng...
                 </div>
-              ) : allAvailableShipments.length === 0 ? (
+              ) : selectedItems.length === 0 ? (
                 <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm">
-                  Chưa có lô hàng nào sẵn sàng cho lô sản xuất này.
+                  Chưa có lô hàng nào được chọn. Vui lòng quay lại danh sách để chọn lô hàng.
                 </div>
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                  {allAvailableShipments.map(({ shipment, warehouseStatus }) => {
-                    const isSelected = selectedIds.includes(shipment.id);
+                  {selectedItems.map(({ shipment, warehouseStatus }) => {
                     const isInWarehouse = warehouseStatus === "IN_WAREHOUSE";
 
                     return (
                       <div
                         key={shipment.id}
-                        onClick={() => toggleSelectShipment(shipment.id)}
-                        className={`p-3.5 border rounded-lg flex items-center justify-between cursor-pointer transition-colors text-sm ${
-                          isSelected
-                            ? isInWarehouse
-                              ? "bg-red-50 border-red-300 text-red-950"
-                              : "bg-emerald-50 border-emerald-300 text-emerald-950"
-                            : "bg-white border-slate-200 hover:bg-slate-50"
+                        className={`p-3.5 border rounded-lg flex items-center justify-between text-sm ${
+                          isInWarehouse
+                            ? "bg-red-50/70 border-red-200 text-red-950"
+                            : "bg-emerald-50/50 border-emerald-200 text-emerald-950"
                         }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => {}}
-                            className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                          />
-                          <div className="space-y-0.5">
-                            <p className="font-semibold text-slate-900 flex items-center gap-2">
-                              {shipment.name}
-                              <span className="text-xs font-normal text-slate-500">
-                                (Mã: {shipment.id.substring(0, 8)}...)
-                              </span>
-                            </p>
-                            <p className="text-xs text-slate-600">
-                              Số lượng: <span className="font-medium">{shipment.totalQuantity}</span> | Quy cách:{" "}
-                              <span className="font-medium">{shipment.packagingInfo || "—"}</span>
-                            </p>
-                          </div>
+                        <div className="space-y-0.5">
+                          <p className="font-semibold text-slate-900 flex items-center gap-2">
+                            {shipment.name}
+                            <span className="text-xs font-normal text-slate-500">
+                              (Mã: {shipment.id.substring(0, 8)}...)
+                            </span>
+                          </p>
+                          <p className="text-xs text-slate-600">
+                            Số lượng: <span className="font-medium">{shipment.totalQuantity}</span> | Quy cách:{" "}
+                            <span className="font-medium">{shipment.packagingInfo || "—"}</span>
+                          </p>
                         </div>
 
                         <div>
@@ -333,7 +262,7 @@ export default function CreateCoopWarehouseEntryPage() {
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
                               <CheckCircle2 className="h-3.5 w-3.5" />
-                              Chưa ở trong kho
+                              Sẵn sàng nhập kho
                             </span>
                           )}
                         </div>
@@ -352,21 +281,9 @@ export default function CreateCoopWarehouseEntryPage() {
                   </p>
                   {invalidItems.map(({ shipment }) => (
                     <p key={shipment.id} className="pl-7 text-red-900 font-medium">
-                      • Lô hàng <span className="font-bold text-red-950">"{shipment.name}"</span> hiện đang ở trong kho HTX, vui lòng ghi xuất kho trước khi nhập kho mới.
+                      • Lô hàng <span className="font-bold text-red-950">"{shipment.name}"</span> hiện đang ở trong kho HTX, vui lòng quay lại ghi xuất kho trước khi nhập mới.
                     </p>
                   ))}
-                  <p className="pl-7 text-xs text-red-700 italic pt-1">
-                    👉 Nút ghi sự kiện bị khóa cho tới khi bạn bỏ chọn lô hàng vi phạm trên.
-                  </p>
-                </div>
-              )}
-
-              {!hasValidationError && selectedItems.length > 0 && (
-                <div className="p-3 bg-emerald-100/80 border border-emerald-300 rounded-lg text-emerald-900 text-sm flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-700 shrink-0" />
-                  <span>
-                    Đã chọn <span className="font-bold">{selectedItems.length}</span> lô hàng hợp lệ sẵn sàng ghi nhận nhập kho HTX.
-                  </span>
                 </div>
               )}
             </div>
