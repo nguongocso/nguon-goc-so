@@ -30,6 +30,8 @@ import vn.nguongocso.farm.event.ProductFeedbackSubmittedEvent;
 import vn.nguongocso.farm.repository.ProductFeedbackRepository;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.farm.service.impl.ProductFeedbackServiceImpl;
+import vn.nguongocso.farm.service.ProductFeedbackLookupCodeGenerator;
+import vn.nguongocso.farm.service.ProductFeedbackLookupCodeGenerator.GeneratedLookupCode;
 import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.auth.repository.UserRepository;
@@ -68,6 +70,9 @@ class ProductFeedbackServiceTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private ProductFeedbackLookupCodeGenerator lookupCodeGenerator;
+
     @InjectMocks
     private ProductFeedbackServiceImpl productFeedbackService;
 
@@ -97,6 +102,10 @@ class ProductFeedbackServiceTest {
     void createFeedback_shouldSuccess_whenLotExists() {
         // Given
         when(productionLotRepository.findById(lotId)).thenReturn(Optional.of(productionLot));
+        when(lookupCodeGenerator.generate()).thenReturn(new GeneratedLookupCode(
+                "PA-7K2M-9Q4X-H8NP-3R5T",
+                "lookup-hash"));
+        when(productFeedbackRepository.existsByLookupCodeHash("lookup-hash")).thenReturn(false);
 
         ProductFeedback mockSaved = ProductFeedback.builder()
                 .id(UUID.randomUUID())
@@ -111,6 +120,11 @@ class ProductFeedbackServiceTest {
         // Then
         assertThat(response).isNotNull();
         assertThat(response.getProductionLotId()).isEqualTo(lotId);
+        assertThat(response.getLookupCode()).isEqualTo("PA-7K2M-9Q4X-H8NP-3R5T");
+
+        ArgumentCaptor<ProductFeedback> feedbackCaptor = ArgumentCaptor.forClass(ProductFeedback.class);
+        verify(productFeedbackRepository).save(feedbackCaptor.capture());
+        assertThat(feedbackCaptor.getValue().getLookupCodeHash()).isEqualTo("lookup-hash");
 
         // Verify Event
         ArgumentCaptor<ProductFeedbackSubmittedEvent> eventCaptor = ArgumentCaptor.forClass(ProductFeedbackSubmittedEvent.class);
@@ -133,6 +147,50 @@ class ProductFeedbackServiceTest {
 
         verify(productFeedbackRepository, never()).save(any(ProductFeedback.class));
         verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void lookupPublicFeedback_shouldReturnOnlyPublicFields() {
+        String lookupCode = "PA-7K2M-9Q4X-H8NP-3R5T";
+        ProductFeedback feedback = ProductFeedback.builder()
+                .productionLot(productionLot)
+                .content("Nghi ngờ tem giả")
+                .status(vn.nguongocso.farm.enums.ProductFeedbackStatus.IN_PROGRESS)
+                .publicResponse("Đơn vị phụ trách đang xác minh.")
+                .processingContent("Nội dung nội bộ")
+                .build();
+        when(lookupCodeGenerator.hash(lookupCode)).thenReturn("lookup-hash");
+        when(productFeedbackRepository.findByLookupCodeHash("lookup-hash"))
+                .thenReturn(Optional.of(feedback));
+
+        var response = productFeedbackService.lookupPublicFeedback(lookupCode);
+
+        assertThat(response.getStatus())
+                .isEqualTo(vn.nguongocso.farm.enums.ProductFeedbackStatus.IN_PROGRESS);
+        assertThat(response.getPublicResponse()).isEqualTo("Đơn vị phụ trách đang xác minh.");
+    }
+
+    @Test
+    void lookupPublicFeedback_shouldReturnGenericNotFound_whenCodeIsInvalid() {
+        when(lookupCodeGenerator.hash("invalid"))
+                .thenThrow(new IllegalArgumentException("Mã tra cứu không hợp lệ"));
+
+        assertThatThrownBy(() -> productFeedbackService.lookupPublicFeedback("invalid"))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Không tìm thấy phản ánh");
+
+        verify(productFeedbackRepository, never()).findByLookupCodeHash(any());
+    }
+
+    @Test
+    void lookupPublicFeedback_shouldReturnGenericNotFound_whenHashDoesNotExist() {
+        when(lookupCodeGenerator.hash("PA-7K2M-9Q4X-H8NP-3R5T")).thenReturn("missing-hash");
+        when(productFeedbackRepository.findByLookupCodeHash("missing-hash")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productFeedbackService
+                .lookupPublicFeedback("PA-7K2M-9Q4X-H8NP-3R5T"))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Không tìm thấy phản ánh");
     }
 
     @Test

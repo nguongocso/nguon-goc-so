@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Truck,
   BadgeCheck,
+  MessageCircleMore,
 } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import { toast } from "sonner";
@@ -309,6 +310,16 @@ export default function PublicHomePage() {
                     <span className="sr-only">Tìm kiếm</span>
                   </Button>
                 </form>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate("/public/product-feedbacks/lookup")}
+                  className="w-full gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                >
+                  <MessageCircleMore className="h-4 w-4" />
+                  Tra cứu trạng thái phản ánh
+                </Button>
               </div>
             )}
           </div>
