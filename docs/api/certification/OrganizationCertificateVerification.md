@@ -12,8 +12,7 @@
 | Xác thực | JWT Bearer token |
 | Base path quản trị | `/api/v1/admin/certifications` |
 
-Tài liệu này là hợp đồng cho task backend/frontend tiếp theo. Phân tích và quyết định nghiệp vụ nằm tại
-`docs/analysis/NCL-09-CN-012_CertificateVerificationAnalysis.md`.
+Tài liệu này là hợp đồng cho task backend/frontend tiếp theo.
 
 ## 2. Quy ước trạng thái
 
