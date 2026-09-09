@@ -1,5 +1,10 @@
-import apiClient from "@/api/apiClient";
-import type { ApiResult } from "@/types/api";
+import apiClient from "./axiosConfig";
+
+export interface ApiResult<T> {
+  success?: boolean;
+  message?: string;
+  data?: T;
+}
 import type {
   RecordWarehouseEntryFormValues,
   RecordWarehouseExitFormValues,

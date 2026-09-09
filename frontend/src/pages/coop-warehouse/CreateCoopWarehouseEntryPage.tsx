@@ -72,9 +72,9 @@ export default function CreateCoopWarehouseEntryPage() {
     async function loadLots() {
       try {
         setLoadingLots(true);
-        const res = await getProductionLots({ status: "PACKAGED" });
-        if (res && res.data) {
-          setProductionLots(res.data.content || []);
+        const res = await getProductionLots("PACKAGED");
+        if (res) {
+          setProductionLots(res);
           if (preselectedLotId) {
             setValue("productionLotId", preselectedLotId);
           }
@@ -134,8 +134,8 @@ export default function CreateCoopWarehouseEntryPage() {
                 Chọn lô sản xuất (Đã đóng gói) <span className="text-red-500">*</span>
               </Label>
               <Select
-                value={selectedLotId}
-                onValueChange={(val) => setValue("productionLotId", val)}
+                value={selectedLotId || undefined}
+                onValueChange={(val) => setValue("productionLotId", val ?? "")}
                 disabled={loadingLots}
               >
                 <SelectTrigger className="w-full">
@@ -150,7 +150,7 @@ export default function CreateCoopWarehouseEntryPage() {
                 <SelectContent>
                   {productionLots.map((lot) => (
                     <SelectItem key={lot.id} value={lot.id}>
-                      {lot.name} ({lot.code || lot.id.substring(0, 8)})
+                      {lot.name} ({lot.code || (lot.id ? lot.id.substring(0, 8) : "")})
                     </SelectItem>
                   ))}
                 </SelectContent>
