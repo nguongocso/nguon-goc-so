@@ -16,6 +16,11 @@ metadata:
     git-commit: "placeholder"
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   selector:
     matchLabels:
       app: backend
@@ -72,14 +77,14 @@ spec:
                   name: backend-secrets
                   key: LOCATIONIQ_API_KEY
             - name: JAVA_OPTS
-              value: "-Xms256m -Xmx768m"
+              value: "-Xms128m -Xmx384m"
           resources:
             requests:
               cpu: 100m
-              memory: 512Mi
+              memory: 384Mi
             limits:
               cpu: 500m
-              memory: 1536Mi
+              memory: 768Mi
           volumeMounts:
             - name: uploads
               mountPath: /app/uploads
