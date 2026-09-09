@@ -164,6 +164,30 @@ public class ProductionLotController {
         }
 
         /**
+         * API lấy bảng theo dõi tiến độ chuỗi của từng lô (NCL-10-CN-013).
+         */
+        @GetMapping("/chain-progress")
+        @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
+        public ResponseEntity<ApiResult<vn.nguongocso.farm.dto.response.ChainProgressBoardResponse>> getChainProgressBoard(
+                        @RequestParam(required = false) UUID organizationId,
+
+                        @RequestParam(required = false, defaultValue = "10") Integer stagnantThresholdDays,
+
+                        @RequestParam(required = false) String search,
+
+                        @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+                vn.nguongocso.farm.dto.response.ChainProgressBoardResponse response = productionLotService.getChainProgressBoard(
+                                organizationId,
+                                stagnantThresholdDays,
+                                search,
+                                userDetails);
+
+                return ResponseEntity.ok(
+                                ApiResult.success(response));
+        }
+
+        /**
          * API lấy lịch sử nhập dữ liệu lô sản xuất.
          */
         @GetMapping("/import-history")

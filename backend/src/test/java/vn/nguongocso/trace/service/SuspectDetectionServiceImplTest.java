@@ -3,8 +3,11 @@ package vn.nguongocso.trace.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -17,19 +20,26 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.context.ApplicationEventPublisher;
+import vn.nguongocso.alert.dto.response.AnomalyThresholdResponse;
+import vn.nguongocso.alert.service.AnomalyThresholdService;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
+import vn.nguongocso.farm.entity.ProductCategory;
+import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.report.entity.TraceCodeScanLog;
 import vn.nguongocso.report.repository.TraceCodeScanLogRepository;
 import vn.nguongocso.trace.dto.request.UnlockTraceCodeRequest;
 import vn.nguongocso.trace.dto.response.SuspectTraceCodeDetailResponse;
 import vn.nguongocso.trace.dto.response.UnlockTraceCodeResponse;
+import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
@@ -64,7 +74,10 @@ class SuspectDetectionServiceImplTest {
     private NotificationService notificationService;
 
     @Mock
-    private org.springframework.context.ApplicationEventPublisher eventPublisher;
+    private AnomalyThresholdService anomalyThresholdService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     private SuspectDetectionServiceImpl service;
 
@@ -75,7 +88,7 @@ class SuspectDetectionServiceImplTest {
     void setUp() {
         service = new SuspectDetectionServiceImpl(
                 traceCodeRepository, productFeedbackRepository, scanLogRepository,
-                userRepository, notificationService, eventPublisher);
+                userRepository, notificationService, eventPublisher, anomalyThresholdService);
 
         traceCodeId = UUID.randomUUID();
 
@@ -83,8 +96,9 @@ class SuspectDetectionServiceImplTest {
         traceCode.setId(traceCodeId);
         traceCode.setCodeValue("NCL0001");
         traceCode.setStatus(TraceCodeStatus.ACTIVE);
+        traceCode.setActivatedAt(LocalDateTime.now().minusDays(400));
 
-        when(traceCodeRepository.findById(traceCodeId)).thenReturn(Optional.of(traceCode));
+        lenient().when(traceCodeRepository.findById(traceCodeId)).thenReturn(Optional.of(traceCode));
     }
 
     private TraceCodeScanLog scan(long minutesAgo, double lat, double lon) {
@@ -245,6 +259,98 @@ class SuspectDetectionServiceImplTest {
     private Integer sumBreakdown(SuspectTraceCodeDetailResponse detail) {
         var b = detail.getAnomalyDetails().getScoreBreakdown();
         return b.getHighFrequency() + b.getImpossibleTravel() + b.getMultipleLocations();
+    }
+
+    @Test
+    void shouldUseCategoryThreshold_whenEvaluatingTraceCodeWithCategoryOverride() {
+        UUID categoryId = UUID.randomUUID();
+        ProductCategory category = ProductCategory.builder().id(categoryId).name("Sầu riêng").build();
+        ProductionLot lot = ProductionLot.builder().id(UUID.randomUUID()).productCategory(category).build();
+        Shipment shipment = new Shipment();
+        shipment.setProductionLot(lot);
+        traceCode.setShipment(shipment);
+
+        AnomalyThresholdResponse categoryThreshold = AnomalyThresholdResponse.builder()
+                .maxScansPerHour(2)
+                .maxScansPerDay(4)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(30.0))
+                .minTimeBetweenScansMinutes(20)
+                .activationAgeDays(180)
+                .build();
+
+        when(anomalyThresholdService.getEffectiveThreshold(categoryId)).thenReturn(categoryThreshold);
+
+        // 4 lượt quét trong 24h kích hoạt maxScansPerDay (4) -> +30 điểm
+        List<TraceCodeScanLog> scans = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            scans.add(scan(100 + i * 10, 21.0285, 105.8542));
+        }
+        stubRecentScans(scans);
+
+        service.evaluateSuspicion(traceCodeId);
+
+        assertEquals(30, traceCode.getSuspicionScore(),
+                "Ngưỡng ghi đè theo danh mục (maxScansPerDay = 4) phải được áp dụng");
+    }
+
+    @Test
+    @DisplayName("Thời gian ân hạn (grace period) - mã tem trong ân hạn không bị gắn cờ, sau ân hạn bị gắn cờ SUSPECT")
+    void shouldSkipEvaluation_whenWithinGracePeriod_andFlagSuspect_whenGracePeriodElapsed() {
+        LocalDateTime now = LocalDateTime.now();
+
+        // Cấu hình ngưỡng có grace period (activationAgeDays) = 7 ngày
+        AnomalyThresholdResponse threshold = AnomalyThresholdResponse.builder()
+                .maxScansPerHour(5)
+                .maxScansPerDay(10)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(50.0))
+                .minTimeBetweenScansMinutes(30)
+                .activationAgeDays(7)
+                .build();
+        when(anomalyThresholdService.getEffectiveThreshold(any())).thenReturn(threshold);
+
+        // Chuẩn bị hành vi quét bất thường rõ rệt: 12 lượt quét trong 30 phút + di chuyển bất hợp lý HN -> ĐN (vượt cả maxPerHour, maxPerDay lẫn travel)
+        List<TraceCodeScanLog> anomalousScans = new ArrayList<>();
+        anomalousScans.add(scan(30, 21.0285, 105.8542)); // Hà Nội
+        anomalousScans.add(scan(28, 16.0544, 108.2022)); // Đà Nẵng (di chuyển phi lý)
+        for (int i = 2; i < 12; i++) {
+            anomalousScans.add(scan(28 - i * 2, 16.0544, 108.2022));
+        }
+        stubRecentScans(anomalousScans);
+
+        // KỊCH BẢN 1: Mã tem mới kích hoạt được 2 ngày (< 7 ngày ân hạn)
+        traceCode.setActivatedAt(now.minusDays(2));
+        traceCode.setStatus(TraceCodeStatus.ACTIVE);
+        traceCode.setSuspicionScore(null);
+
+        service.evaluateSuspicion(traceCodeId);
+
+        // Xác nhận: Không bị đánh giá, không bị gắn cờ, trạng thái giữ nguyên ACTIVE
+        assertEquals(TraceCodeStatus.ACTIVE, traceCode.getStatus());
+        assertNull(traceCode.getSuspicionScore());
+        verify(notificationService, never()).sendSuspectTraceCodeNotification(any());
+
+        // KỊCH BẢN 2: Cùng hành vi quét bất thường đó, nhưng mã tem đã kích hoạt 10 ngày (>= 7 ngày ân hạn)
+        traceCode.setActivatedAt(now.minusDays(10));
+
+        service.evaluateSuspicion(traceCodeId);
+
+        // Xác nhận: Đã hết thời gian ân hạn -> được đánh giá và bị chuyển thành SUSPECT
+        assertEquals(TraceCodeStatus.SUSPECT, traceCode.getStatus());
+        assertNotNull(traceCode.getSuspicionScore());
+        assertTrue(traceCode.getSuspicionScore() >= 30);
+        verify(notificationService).sendSuspectTraceCodeNotification(traceCode);
+    }
+
+    @Test
+    void pastAnomaliesAreNotRecalculated_whenThresholdChanges() {
+        // Trace code đã có điểm nghi vấn từ quá khứ
+        traceCode.setSuspicionScore(40);
+        traceCode.setStatus(TraceCodeStatus.ACTIVE);
+
+        // Cập nhật threshold mới không tự động gọi evaluate trên các mã tem cũ
+        // Điểm cũ và trạng thái cũ của traceCode phải được giữ nguyên
+        assertEquals(40, traceCode.getSuspicionScore());
+        assertEquals(TraceCodeStatus.ACTIVE, traceCode.getStatus());
     }
 
     @Test

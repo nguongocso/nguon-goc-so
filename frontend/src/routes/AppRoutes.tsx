@@ -34,6 +34,7 @@ import OrganizationProfilePage from "@/pages/organization/OrganizationProfilePag
 import CreateProductionLotPage from "@/pages/production-lot/CreateProductionLotPage";
 import ProductionLotListPage from "@/pages/production-lot/ProductionLotListPage";
 import ProductionLotInspectionPage from "@/pages/production-lot/ProductionLotInspectionPage";
+import { ChainProgressPage } from "@/pages/production-lot/ChainProgressPage";
 
 import RecordTransportEventPage from "@/pages/transport-event/RecordTransportEventPage";
 
@@ -60,6 +61,8 @@ import TestingUnitFormPage from "@/pages/admin/TestingUnitFormPage";
 import TestingUnitScopeManagerPage from "@/pages/admin/TestingUnitScopeManagerPage";
 import SuspectTraceCodeListPage from "@/pages/admin/SuspectTraceCodeListPage";
 import SuspectTraceCodeDetailPage from "@/pages/admin/SuspectTraceCodeDetailPage";
+import AnomalyThresholdPage from "@/pages/admin/AnomalyThresholdPage";
+import CategoryOverridePage from "@/pages/admin/CategoryOverridePage";
 
 // ===== Packaging =====
 import CreatePackagingEventPage from "@/pages/packaging-event/CreatePackagingEventPage";
@@ -496,6 +499,28 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="chain-progress"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                    >
+                        <ChainProgressPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="farm/chain-progress"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                    >
+                        <ChainProgressPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="production-lots/create"
                 element={
                     <RoleRoute
@@ -552,6 +577,17 @@ const AppRoutes = () => (
 
             <Route
                 path="production-lots/:lotId/inspection"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-02"]}
+                    >
+                        <ProductionLotInspectionPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:id/inspection"
                 element={
                     <RoleRoute
                         allowedRoles={["VT-02"]}
@@ -1051,6 +1087,34 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-01"]}>
                         <SuspectTraceCodeDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* NCL-08-CN-014 - Cấu hình ngưỡng quét bất thường */}
+            <Route
+                path="admin/anomaly-thresholds"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.anomalyThresholdConfig}>
+                        <AnomalyThresholdPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/anomaly-thresholds/categories/create"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.anomalyThresholdConfig}>
+                        <CategoryOverridePage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/anomaly-thresholds/categories/:id/edit"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.anomalyThresholdConfig}>
+                        <CategoryOverridePage />
                     </RoleRoute>
                 }
             />

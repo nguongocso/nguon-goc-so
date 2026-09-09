@@ -33,8 +33,10 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
 
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger size={size} className={cn('w-full sm:w-48', className)}>
-        {selectedLabel || placeholder || 'Chọn...'}
+      <SelectTrigger size={size} className={cn('w-full sm:w-auto min-w-[200px]', className)}>
+        <span className="flex-1 text-left truncate pr-1">
+          {selectedLabel || placeholder || 'Chọn...'}
+        </span>
       </SelectTrigger>
       <SelectContent>
         {options.map((opt) => (

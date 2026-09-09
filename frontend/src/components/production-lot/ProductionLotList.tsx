@@ -25,8 +25,8 @@ import {
   ShoppingCart,
   Sprout,
 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { DataTableShell } from "@/components/common/DataTableShell";
 import { FilterSelect } from "@/components/common/FilterSelect";
 import { ListCard } from "@/components/common/ListCard";
@@ -134,6 +134,10 @@ export const ProductionLotList = ({
     useState<ProductionLot | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get("highlightId") || searchParams.get("lotId");
+  const [highlightedRowId, setHighlightedRowId] = useState<string | null>(highlightId);
+
   const canImport = user?.roleCode === "VT-02"; // quyền nhập lô hàng loạt
 
   const handleConfirmSubmit = async () => {
@@ -166,6 +170,22 @@ export const ProductionLotList = ({
       return matchesSearch && matchesStatus;
     });
   }, [lots, search, statusFilter]);
+
+  // Tự động chuyển trang đến lô được chọn và kích hoạt hiệu ứng chớp sáng
+  useEffect(() => {
+    if (!highlightId || filteredLots.length === 0) return;
+    const index = filteredLots.findIndex((l) => l.id === highlightId);
+    if (index !== -1) {
+      const targetPage = Math.floor(index / PAGE_SIZE);
+      setPage(targetPage);
+      setHighlightedRowId(highlightId);
+
+      const timer = setTimeout(() => {
+        setHighlightedRowId(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightId, filteredLots]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLots.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
@@ -289,10 +309,21 @@ export const ProductionLotList = ({
               showRecordProcurement ||
               showCancel;
 
+            const isHighlighted = lot.id === highlightedRowId;
+
             return (
               <TableRow
                 key={lot.id}
-                className="hover:bg-muted/40 transition-colors"
+                ref={(el) => {
+                  if (isHighlighted && el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }
+                }}
+                className={`transition-all duration-500 ${
+                  isHighlighted
+                    ? "bg-amber-100/90 dark:bg-amber-950/60 ring-2 ring-amber-500 font-semibold animate-pulse"
+                    : "hover:bg-muted/40"
+                }`}
               >
                 <TableCell className="text-center font-medium text-muted-foreground">
                   {safePage * PAGE_SIZE + index + 1}
