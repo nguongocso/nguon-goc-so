@@ -725,9 +725,11 @@ public class ChainEventServiceImpl implements ChainEventService {
     }
 
     private void validateOrganization(Shipment shipment, CustomUserDetails currentUser) {
+        // VT-01 (Quản trị viên hệ thống) có quyền truy cập mọi tổ chức, bỏ qua kiểm tra.
+        if ("VT-01".equals(currentUser.getRoleCode())) return;
         if (!shipment.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
             throw new BusinessException(HttpStatus.FORBIDDEN,
-                    "Bạn không thuộc tổ chức quản lý của lô hàng.");
+                    "Bạn không có quyền ghi sự kiện cho lô hàng của tổ chức này.");
         }
     }
 
@@ -1364,13 +1366,14 @@ public class ChainEventServiceImpl implements ChainEventService {
             }
 
             // TC-04: Kiểm tra không cho ghi 2 lần nhập kho liên tiếp cho cùng lô hàng khi chưa xuất kho
+            // Loại bỏ sự kiện đính chính (isCorrection = true) ra khỏi phân tích trạng thái kho
             List<ChainEvent> shipmentEvents = chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId());
             List<ChainEvent> entryEvents = shipmentEvents.stream()
-                    .filter(e -> e.getEventType() == ChainEventType.WAREHOUSE_ENTRY)
+                    .filter(e -> e.getEventType() == ChainEventType.WAREHOUSE_ENTRY && !e.isCorrection())
                     .sorted((a, b) -> b.getRecordedAt().compareTo(a.getRecordedAt()))
                     .toList();
             List<ChainEvent> exitEvents = shipmentEvents.stream()
-                    .filter(e -> e.getEventType() == ChainEventType.WAREHOUSE_EXIT)
+                    .filter(e -> e.getEventType() == ChainEventType.WAREHOUSE_EXIT && !e.isCorrection())
                     .sorted((a, b) -> b.getRecordedAt().compareTo(a.getRecordedAt()))
                     .toList();
 
@@ -1471,13 +1474,14 @@ public class ChainEventServiceImpl implements ChainEventService {
             }
 
             // TC-02: Chặn xuất kho khi chưa có sự kiện nhập kho HTX trước đó
+            // Loại bỏ sự kiện đính chính (isCorrection = true) ra khỏi phân tích trạng thái kho
             List<ChainEvent> shipmentEvents = chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId());
             List<ChainEvent> entryEvents = shipmentEvents.stream()
-                    .filter(e -> e.getEventType() == ChainEventType.WAREHOUSE_ENTRY)
+                    .filter(e -> e.getEventType() == ChainEventType.WAREHOUSE_ENTRY && !e.isCorrection())
                     .sorted((a, b) -> b.getRecordedAt().compareTo(a.getRecordedAt()))
                     .toList();
             List<ChainEvent> exitEvents = shipmentEvents.stream()
-                    .filter(e -> e.getEventType() == ChainEventType.WAREHOUSE_EXIT)
+                    .filter(e -> e.getEventType() == ChainEventType.WAREHOUSE_EXIT && !e.isCorrection())
                     .sorted((a, b) -> b.getRecordedAt().compareTo(a.getRecordedAt()))
                     .toList();
 
@@ -1487,7 +1491,7 @@ public class ChainEventServiceImpl implements ChainEventService {
 
             latestEntry = entryEvents.get(0);
             if (!exitEvents.isEmpty() && !exitEvents.get(0).getRecordedAt().isBefore(latestEntry.getRecordedAt())) {
-                throw new BusinessException("Lô hàng [" + shipment.getName() + "] chưa được ghi nhận nhập kho HTX. Vui lòng ghi sự kiện nhập kho trước khi xuất kho.");
+                throw new BusinessException("Lô hàng [" + shipment.getName() + "] đã được ghi xuất kho rồi. Vui lòng ghi nhập kho mới trước khi xuất kho lại.");
             }
 
             if (latestEntry.getEventData() != null) {

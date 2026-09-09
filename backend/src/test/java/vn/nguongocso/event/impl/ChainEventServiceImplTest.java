@@ -802,7 +802,7 @@ class ChainEventServiceImplTest {
 
         assertThatThrownBy(() -> chainEventService.recordTransportEvent(transportRequest, validUser))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("Bạn không thuộc tổ chức quản lý của lô hàng.");
+                .hasMessageContaining("Bạn không có quyền ghi sự kiện cho lô hàng của tổ chức này.");
 
         verify(traceCodeRepository, times(1)).findByCodeValue(transportRequest.getCodeValue());
         verifyNoInteractions(chainEventRepository);

@@ -391,7 +391,7 @@ export const ShipmentList = ({
                         variant="default"
                         size="sm"
                         disabled={selectedShipmentIds.length === 0}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        className="bg-amber-600 hover:bg-amber-700 text-white"
                         onClick={() =>
                           navigate(`/coop-warehouse-events/exit?productionLotId=${productionLotId}&shipmentIds=${selectedShipmentIds.join(",")}`)
                         }
