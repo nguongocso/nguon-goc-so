@@ -9,7 +9,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Request DTO để tạo đề nghị thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011).
+ * Request DTO để tạo yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011).
  */
 @Getter
 @Setter

@@ -3,10 +3,14 @@ package vn.nguongocso.recall.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,10 +43,12 @@ import vn.nguongocso.recall.entity.BulkRecallShipment;
 import vn.nguongocso.recall.enums.BulkRecallRequestStatus;
 import vn.nguongocso.recall.repository.BulkRecallRequestRepository;
 import vn.nguongocso.recall.repository.BulkRecallShipmentRepository;
+import vn.nguongocso.recall.service.BulkRecallNotificationService;
 import vn.nguongocso.recall.service.impl.BulkRecallRequestServiceImpl;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.ShipmentRepository;
+import vn.nguongocso.trace.dto.request.RecallRequest;
 import vn.nguongocso.trace.service.ShipmentRecallService;
 
 /**
@@ -59,6 +65,7 @@ class BulkRecallRequestServiceImplTest {
     private ChainEventRepository chainEventRepository;
     private ShipmentRecallService shipmentRecallService;
     private NotificationService notificationService;
+    private BulkRecallNotificationService bulkRecallNotificationService;
     private ActivityLogService activityLogService;
     private BulkRecallRequestServiceImpl service;
 
@@ -90,6 +97,7 @@ class BulkRecallRequestServiceImplTest {
         chainEventRepository = mock(ChainEventRepository.class);
         shipmentRecallService = mock(ShipmentRecallService.class);
         notificationService = mock(NotificationService.class);
+        bulkRecallNotificationService = mock(BulkRecallNotificationService.class);
         activityLogService = mock(ActivityLogService.class);
 
         service = new BulkRecallRequestServiceImpl(
@@ -102,6 +110,7 @@ class BulkRecallRequestServiceImplTest {
                 chainEventRepository,
                 shipmentRecallService,
                 notificationService,
+                bulkRecallNotificationService,
                 activityLogService);
 
         organizationId = UUID.randomUUID();
@@ -316,7 +325,7 @@ class BulkRecallRequestServiceImplTest {
 
         assertThatThrownBy(() -> service.approveBulkRecallRequest(requestId, request, currentUser))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("QTN-22");
+                .hasMessageContaining("do chính mình tạo");
 
         verify(shipmentRecallService, never()).recallShipment(any(), any(), any());
     }
@@ -336,6 +345,77 @@ class BulkRecallRequestServiceImplTest {
                 .hasMessageContaining("PENDING");
 
         verify(shipmentRecallService, never()).recallShipment(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("TEST 1: Manager B cung to chuc phe duyet thanh cong - cac lo hang chuyen RECALLED")
+    void approveBulkRecallRequest_Success_ByOtherManagerSameOrganization() {
+        UUID requestId = UUID.randomUUID();
+        BulkRecallRequest bulkRequest = createBulkRecallRequestEntity(requestId, BulkRecallRequestStatus.PENDING);
+
+        ApproveBulkRecallRequest request = new ApproveBulkRecallRequest();
+        request.setRemarks("Đã xác minh phạm vi ảnh hưởng");
+
+        BulkRecallShipment record1 = createBulkRecallShipment(bulkRequest, shipment1, true);
+        BulkRecallShipment record2 = createBulkRecallShipment(bulkRequest, shipment2, true);
+
+        when(bulkRecallRequestRepository.findByIdWithLock(requestId)).thenReturn(Optional.of(bulkRequest));
+        when(bulkRecallShipmentRepository.findByBulkRecallRequestIdAndIncluded(requestId, true))
+                .thenReturn(List.of(record1, record2));
+        when(shipmentRepository.findOwnedByIdForRecallUpdate(shipmentId1, organizationId))
+                .thenReturn(Optional.of(shipment1));
+        when(shipmentRepository.findOwnedByIdForRecallUpdate(shipmentId2, organizationId))
+                .thenReturn(Optional.of(shipment2));
+        when(chainEventRepository.findDistinctProcurementOrganizationIdsByShipmentIds(any()))
+                .thenReturn(List.of());
+        when(bulkRecallShipmentRepository.findByBulkRecallRequestId(requestId))
+                .thenReturn(List.of(record1, record2));
+        when(userRepository.findById(otherUserId)).thenReturn(Optional.of(otherUser));
+
+        BulkRecallRequestResponse response =
+                service.approveBulkRecallRequest(requestId, request, otherManager);
+
+        // Yêu cầu chuyển APPROVED, người duyệt là Manager B (khác người tạo)
+        assertThat(response.getStatus()).isEqualTo("APPROVED");
+        assertThat(response.getApprovedBy().getUserId()).isEqualTo(otherUserId);
+
+        ArgumentCaptor<BulkRecallRequest> savedCaptor = ArgumentCaptor.forClass(BulkRecallRequest.class);
+        verify(bulkRecallRequestRepository).save(savedCaptor.capture());
+        assertThat(savedCaptor.getValue().getStatus()).isEqualTo(BulkRecallRequestStatus.APPROVED);
+
+        // Mỗi lô included phải được gọi thu hồi (ShipmentRecallService chịu trách
+        // nhiệm chuyển Shipment → RECALLED, kèm TraceCode và cảnh báo công khai)
+        verify(shipmentRecallService).recallShipment(eq(shipmentId1), any(RecallRequest.class), isNull());
+        verify(shipmentRecallService).recallShipment(eq(shipmentId2), any(RecallRequest.class), isNull());
+    }
+
+    @Test
+    @DisplayName("TEST 4: Manager thuoc to chuc khac phe duyet - that bai, khong thu hồi lô nào")
+    void approveBulkRecallRequest_Fail_OtherOrganization() {
+        UUID requestId = UUID.randomUUID();
+        UUID otherOrgId = UUID.randomUUID();
+
+        Organization otherOrganization = new Organization();
+        otherOrganization.setOrganizationId(otherOrgId);
+        otherOrganization.setName("HTX Khác");
+
+        ProductionLot otherLot = new ProductionLot();
+        otherLot.setId(productionLotId);
+        otherLot.setName("Lo cua to chuc khac");
+        otherLot.setOrganization(otherOrganization);
+
+        BulkRecallRequest bulkRequest = createBulkRecallRequestEntity(requestId, BulkRecallRequestStatus.PENDING);
+        bulkRequest.setProductionLot(otherLot);
+
+        when(bulkRecallRequestRepository.findByIdWithLock(requestId)).thenReturn(Optional.of(bulkRequest));
+
+        assertThatThrownBy(() -> service
+                .approveBulkRecallRequest(requestId, new ApproveBulkRecallRequest(), otherManager))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("tổ chức khác");
+
+        verify(shipmentRecallService, never()).recallShipment(any(), any(), any());
+        verify(bulkRecallRequestRepository, never()).save(any());
     }
 
     // =========================================================

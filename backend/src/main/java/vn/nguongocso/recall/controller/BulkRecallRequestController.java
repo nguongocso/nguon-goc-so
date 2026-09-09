@@ -27,7 +27,7 @@ import vn.nguongocso.recall.dto.response.BulkRecallRequestResponse;
 import vn.nguongocso.recall.service.BulkRecallRequestService;
 
 /**
- * Controller quản lý đề nghị thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011).
+ * Controller quản lý yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011).
  */
 @RestController
 @RequestMapping("/api/v1/recall-requests/bulk")
@@ -38,7 +38,7 @@ public class BulkRecallRequestController {
     private final PermissionChecker permissionChecker;
 
     /**
-     * Tạo đề nghị thu hồi hàng loạt.
+     * Tạo yêu cầu thu hồi hàng loạt.
      *
      * POST /api/v1/recall-requests/bulk
      */
@@ -57,7 +57,7 @@ public class BulkRecallRequestController {
     }
 
     /**
-     * Lấy chi tiết đề nghị thu hồi hàng loạt.
+     * Lấy chi tiết yêu cầu thu hồi hàng loạt.
      *
      * GET /api/v1/recall-requests/bulk/{id}
      */
@@ -75,7 +75,7 @@ public class BulkRecallRequestController {
     }
 
     /**
-     * Lấy danh sách đề nghị thu hồi hàng loạt với phân trang.
+     * Lấy danh sách yêu cầu thu hồi hàng loạt với phân trang.
      *
      * GET /api/v1/recall-requests/bulk?status=PENDING&page=0&size=10
      */
@@ -95,7 +95,7 @@ public class BulkRecallRequestController {
     }
 
     /**
-     * Phê duyệt đề nghị thu hồi hàng loạt.
+     * Phê duyệt yêu cầu thu hồi hàng loạt.
      *
      * PUT /api/v1/recall-requests/bulk/{id}/approve
      */
@@ -114,7 +114,7 @@ public class BulkRecallRequestController {
     }
 
     /**
-     * Từ chối đề nghị thu hồi hàng loạt.
+     * Từ chối yêu cầu thu hồi hàng loạt.
      *
      * PUT /api/v1/recall-requests/bulk/{id}/reject
      */

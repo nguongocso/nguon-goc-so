@@ -40,6 +40,7 @@ import vn.nguongocso.recall.entity.BulkRecallShipment;
 import vn.nguongocso.recall.enums.BulkRecallRequestStatus;
 import vn.nguongocso.recall.repository.BulkRecallRequestRepository;
 import vn.nguongocso.recall.repository.BulkRecallShipmentRepository;
+import vn.nguongocso.recall.service.BulkRecallNotificationService;
 import vn.nguongocso.recall.service.BulkRecallRequestService;
 import vn.nguongocso.trace.dto.request.RecallRequest;
 import vn.nguongocso.trace.entity.Shipment;
@@ -48,7 +49,7 @@ import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.service.ShipmentRecallService;
 
 /**
- * Triển khai dịch vụ quản lý đề nghị thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011).
+ * Triển khai dịch vụ quản lý yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011).
  */
 @Service
 @Transactional
@@ -60,19 +61,19 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
     // =========================================================
     private static final String MSG_PRODUCTION_LOT_NOT_FOUND = "Không tìm thấy lô sản xuất.";
     private static final String MSG_SHIPMENT_NOT_FOUND = "Không tìm thấy lô hàng.";
-    private static final String MSG_REQUEST_NOT_FOUND = "Không tìm thấy đề nghị thu hồi.";
+    private static final String MSG_REQUEST_NOT_FOUND = "Không tìm thấy yêu cầu thu hồi.";
     private static final String MSG_REASON_REQUIRED = "Lý do thu hồi không được để trống.";
     private static final String MSG_SHIPMENT_REQUIRED = "Phải chọn ít nhất một lô hàng để thu hồi.";
     private static final String MSG_EXCLUSION_REASON_REQUIRED = "Lô hàng bị loại phải có lý do loại bỏ.";
     private static final String MSG_SHIPMENT_ALREADY_RECALLED = "Lô hàng đã được thu hồi trước đó.";
     private static final String MSG_SHIPMENT_NOT_BELONG_TO_LOT = "Lô hàng không thuộc lô sản xuất đã chọn.";
-    private static final String MSG_CANNOT_APPROVE_OWN = "Bạn không thể phê duyệt yêu cầu do chính mình tạo (QTN-22).";
+    private static final String MSG_CANNOT_APPROVE_OWN = "Bạn không thể phê duyệt yêu cầu do chính mình tạo.";
     private static final String MSG_NOT_PENDING = "Chỉ có thể xử lý yêu cầu ở trạng thái PENDING.";
     private static final String MSG_REJECT_REASON_REQUIRED = "Lý do từ chối không được để trống.";
     private static final String MSG_USER_NOT_FOUND = "Người dùng không tồn tại.";
     private static final String MSG_NO_PERMISSION_OTHER_ORG = "Bạn không có quyền thao tác trên lô sản xuất của tổ chức khác.";
     private static final String MSG_PENDING_EXISTS = "Đã có yêu cầu thu hồi đang chờ duyệt cho lô sản xuất này.";
-    private static final String MSG_SHIPMENT_RECALLED_BY_OTHER = "Lô hàng đã bị thu hồi bởi một đề nghị khác.";
+    private static final String MSG_SHIPMENT_RECALLED_BY_OTHER = "Lô hàng đã bị thu hồi bởi một yêu cầu khác.";
     private static final String MSG_ORG_MISMATCH = "Lô hàng thuộc tổ chức khác, không thể đưa vào phạm vi thu hồi.";
 
     // =========================================================
@@ -87,6 +88,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
     private final ChainEventRepository chainEventRepository;
     private final ShipmentRecallService shipmentRecallService;
     private final NotificationService notificationService;
+    private final BulkRecallNotificationService bulkRecallNotificationService;
     private final ActivityLogService activityLogService;
 
     // =========================================================
@@ -96,13 +98,13 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
     /**
      * {@inheritDoc}
      *
-     * <p>Quy trình tạo đề nghị:
+     * <p>Quy trình tạo yêu cầu:
      * <ol>
      *   <li>Validate đầu vào</li>
      *   <li>Kiểm tra quyền truy cập lô sản xuất</li>
      *   <li>Validate các lô hàng thuộc phạm vi</li>
      *   <li>Loại bỏ lô đã RECALLED</li>
-     *   <li>Lưu đề nghị và chi tiết</li>
+     *   <li>Lưu yêu cầu và chi tiết</li>
      *   <li>Ghi ActivityLog</li>
      * </ol>
      */
@@ -118,7 +120,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
                 .orElseThrow(() -> new BusinessException(MSG_PRODUCTION_LOT_NOT_FOUND));
         validateOrganizationAccess(currentUser, productionLot);
 
-        // 3. Kiểm tra không có đề nghị PENDING cho lot này
+        // 3. Kiểm tra không có yêu cầu PENDING cho lot này
         if (bulkRecallRequestRepository.existsByProductionLot_IdAndStatus(
                 productionLot.getId(), BulkRecallRequestStatus.PENDING)) {
             throw new BusinessException(MSG_PENDING_EXISTS);
@@ -128,7 +130,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         User requestedBy = userRepository.findById(currentUser.getUserId())
                 .orElseThrow(() -> new BusinessException(MSG_USER_NOT_FOUND));
 
-        // 5. Validate tất cả shipments TRƯỚC khi tạo đề nghị
+        // 5. Validate tất cả shipments TRƯỚC khi tạo yêu cầu
         List<BulkRecallShipment> shipmentRecords = new ArrayList<>();
 
         for (UUID shipmentId : request.getIncludedShipmentIds()) {
@@ -187,7 +189,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
             throw new BusinessException(MSG_SHIPMENT_REQUIRED);
         }
 
-        // 8. Tạo đề nghị SAU KHI đã validate thành công
+        // 8. Tạo yêu cầu SAU KHI đã validate thành công
         BulkRecallRequest bulkRequest = new BulkRecallRequest();
         bulkRequest.setProductionLot(productionLot);
         bulkRequest.setReason(request.getReason());
@@ -207,9 +209,13 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
 
         // 11. Ghi ActivityLog
         logActivity(requestedBy, "CREATE_BULK_RECALL_REQUEST",
-                "Tạo đề nghị thu hồi hàng loạt cho lô sản xuất: " + productionLot.getName() +
+                "Tạo yêu cầu thu hồi hàng loạt cho lô sản xuất: " + productionLot.getName() +
                         ". Số lô thuộc phạm vi: " + includedCount,
                 "bulk_recall_request", savedRequest.getId());
+
+        // 12. Gửi thông báo workflow nội bộ cho các manager cùng tổ chức
+        bulkRecallNotificationService.sendBulkRecallWorkflowNotification(
+                currentUser, "CREATE", savedRequest, savedRequest.getId());
 
         return toResponse(savedRequest);
     }
@@ -273,7 +279,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
      * <ol>
      *   <li>Validate không tự phê duyệt</li>
      *   <li>Kiểm tra trạng thái PENDING</li>
-     *   <li>Cập nhật trạng thái đề nghị → APPROVED</li>
+     *   <li>Cập nhật trạng thái yêu cầu → APPROVED</li>
      *   <li>Với mỗi lô included: gọi ShipmentRecallService để chuyển RECALLED</li>
      *   <li>Gửi notification cho các bên liên quan</li>
      *   <li>Ghi ActivityLog</li>
@@ -283,7 +289,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
     public BulkRecallRequestResponse approveBulkRecallRequest(
             UUID id, ApproveBulkRecallRequest request, CustomUserDetails currentUser) {
 
-        // 1. Lấy đề nghị với pessimistic lock
+        // 1. Lấy yêu cầu với pessimistic lock
         BulkRecallRequest bulkRequest = bulkRecallRequestRepository.findByIdWithLock(id)
                 .orElseThrow(() -> new BusinessException(MSG_REQUEST_NOT_FOUND));
 
@@ -312,7 +318,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
             throw new BusinessException(MSG_SHIPMENT_REQUIRED);
         }
 
-        // 7. Cập nhật trạng thái đề nghị
+        // 7. Cập nhật trạng thái yêu cầu
         bulkRequest.setStatus(BulkRecallRequestStatus.APPROVED);
         bulkRequest.setApprovedBy(approvedBy);
         bulkRequest.setApprovedAt(LocalDateTime.now());
@@ -345,9 +351,16 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         // 9. Gửi notification cho các bên liên quan
         sendBulkRecallNotifications(bulkRequest, notifiedUserIds);
 
-        // 10. Ghi ActivityLog
+        // 10. Gửi thông báo workflow nội bộ cho các manager cùng tổ chức
+        bulkRecallNotificationService.sendBulkRecallWorkflowNotification(
+                currentUser, "APPROVE", bulkRequest, bulkRequest.getId());
+
+        // 11. Gửi thông báo cho doanh nghiệp thu mua
+        bulkRecallNotificationService.sendBulkRecallNotificationToPurchasingBusiness(bulkRequest);
+
+        // 12. Ghi ActivityLog
         logActivity(approvedBy, "APPROVE_BULK_RECALL_REQUEST",
-                "Phê duyệt đề nghị thu hồi hàng loạt. Lô sản xuất: " +
+                "Phê duyệt yêu cầu thu hồi hàng loạt. Lô sản xuất: " +
                         bulkRequest.getProductionLot().getName() +
                         ". Số lô thu hồi: " + includedShipments.size(),
                 "bulk_recall_request", bulkRequest.getId());
@@ -367,7 +380,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
             throw new BusinessException(MSG_REJECT_REASON_REQUIRED);
         }
 
-        // 2. Lấy đề nghị với pessimistic lock
+        // 2. Lấy yêu cầu với pessimistic lock
         BulkRecallRequest bulkRequest = bulkRecallRequestRepository.findByIdWithLock(id)
                 .orElseThrow(() -> new BusinessException(MSG_REQUEST_NOT_FOUND));
 
@@ -390,9 +403,13 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         bulkRequest.setRejectionReason(request.getReason());
         bulkRecallRequestRepository.save(bulkRequest);
 
-        // 7. Ghi ActivityLog
+        // 7. Gửi thông báo workflow nội bộ cho các manager cùng tổ chức
+        bulkRecallNotificationService.sendBulkRecallWorkflowNotification(
+                currentUser, "REJECT", bulkRequest, bulkRequest.getId());
+
+        // 8. Ghi ActivityLog
         logActivity(rejectedBy, "REJECT_BULK_RECALL_REQUEST",
-                "Từ chối đề nghị thu hồi hàng loạt. Lý do: " + request.getReason(),
+                "Từ chối yêu cầu thu hồi hàng loạt. Lý do: " + request.getReason(),
                 "bulk_recall_request", bulkRequest.getId());
 
         return toResponse(bulkRequest);
@@ -403,7 +420,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
     // =========================================================
 
     /**
-     * Validate request tạo đề nghị.
+     * Validate request tạo yêu cầu.
      */
     private void validateCreateRequest(CreateBulkRecallRequest request) {
         if (request.getReason() == null || request.getReason().trim().isEmpty()) {
@@ -417,15 +434,16 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
 
     /**
      * Kiểm tra người dùng thuộc tổ chức sở hữu lô sản xuất.
+     * Vi phạm là lỗi authorization → trả 403 theo contract API (BULK_RECALL_007).
      */
     private void validateOrganizationAccess(CustomUserDetails currentUser, ProductionLot productionLot) {
         if (currentUser.getOrganizationId() == null) {
-            throw new BusinessException(MSG_NO_PERMISSION_OTHER_ORG);
+            throw new BusinessException(HttpStatus.FORBIDDEN, MSG_NO_PERMISSION_OTHER_ORG);
         }
 
         UUID lotOrgId = productionLot.getOrganization().getOrganizationId();
         if (!currentUser.getOrganizationId().equals(lotOrgId)) {
-            throw new BusinessException(MSG_NO_PERMISSION_OTHER_ORG);
+            throw new BusinessException(HttpStatus.FORBIDDEN, MSG_NO_PERMISSION_OTHER_ORG);
         }
     }
 

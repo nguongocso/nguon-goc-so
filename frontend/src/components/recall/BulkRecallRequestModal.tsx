@@ -48,7 +48,7 @@ interface LotSelectionItem {
 }
 
 /**
- * Modal tạo đề nghị thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011).
+ * Modal tạo yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011).
  *
  * Người dùng chọn/bỏ chọn lô từ kết quả truy vết, nhập lý do chung và lý do loại từng lô.
  */
@@ -138,10 +138,10 @@ export const BulkRecallRequestModal: React.FC<BulkRecallRequestModalProps> = ({
     // Validate trước khi submit
     const getValidationMessage = (): string | null => {
         if (!generalReason.trim()) {
-            return 'Vui lòng nhập lý do chung cho đề nghị thu hồi.';
+            return 'Vui lòng nhập lý do chung cho yêu cầu thu hồi.';
         }
         if (!hasScope) {
-            return 'Vui lòng chọn ít nhất một lô để tạo đề nghị thu hồi.';
+            return 'Vui lòng chọn ít nhất một lô để tạo yêu cầu thu hồi.';
         }
         if (excludedWithoutReason.length > 0) {
             return `Các lô sau chưa có lý do loại: ${excludedWithoutReason.map((i) => i.shipmentName).join(', ')}`;
@@ -177,12 +177,12 @@ export const BulkRecallRequestModal: React.FC<BulkRecallRequestModalProps> = ({
                 includedShipmentIds,
                 excludedShipments,
             });
-            toast.success('Đề nghị thu hồi đã được tạo thành công');
+            toast.success('Yêu cầu thu hồi đã được tạo thành công');
             onSuccess(response.id);
         } catch (err: any) {
             const msg =
                 err.response?.data?.message ||
-                'Không thể tạo đề nghị thu hồi. Vui lòng thử lại.';
+                'Không thể tạo yêu cầu thu hồi. Vui lòng thử lại.';
             toast.error(msg);
         } finally {
             setCreating(false);
@@ -199,7 +199,7 @@ export const BulkRecallRequestModal: React.FC<BulkRecallRequestModalProps> = ({
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Tạo đề nghị thu hồi theo phạm vi ảnh hưởng</DialogTitle>
+                    <DialogTitle>Tạo yêu cầu thu hồi theo phạm vi ảnh hưởng</DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-6">
@@ -220,7 +220,7 @@ export const BulkRecallRequestModal: React.FC<BulkRecallRequestModalProps> = ({
                         </Label>
                         <Textarea
                             id="generalReason"
-                            placeholder="Nhập lý do chung cho đề nghị thu hồi..."
+                            placeholder="Nhập lý do chung cho yêu cầu thu hồi..."
                             value={generalReason}
                             onChange={(e) => setGeneralReason(e.target.value)}
                             rows={3}
@@ -343,7 +343,7 @@ export const BulkRecallRequestModal: React.FC<BulkRecallRequestModalProps> = ({
                             className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
                             <AlertCircle className="w-4 h-4 flex-shrink-0"/>
                             <span>
-                Vui lòng chọn ít nhất một lô để tạo đề nghị thu hồi.
+                Vui lòng chọn ít nhất một lô để tạo yêu cầu thu hồi.
               </span>
                         </div>
                     )}
@@ -375,7 +375,7 @@ export const BulkRecallRequestModal: React.FC<BulkRecallRequestModalProps> = ({
                                 Đang tạo...
                             </>
                         ) : (
-                            'Tạo đề nghị'
+                            'Tạo yêu cầu'
                         )}
                     </Button>
                 </DialogFooter>

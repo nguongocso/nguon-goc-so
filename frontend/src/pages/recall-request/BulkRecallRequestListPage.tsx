@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { PackageSearch } from 'lucide-react';
+import { PackageX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { HelpButton } from '@/components/help/HelpButton';
@@ -43,7 +43,7 @@ const STATUS_LABEL: Record<BulkRecallRequestStatus, string> = {
 };
 
 /**
- * Danh sách đề nghị thu hồi theo phạm vi ảnh hưởng (NCL-08-CN-011).
+ * Danh sách yêu cầu thu hồi theo phạm vi ảnh hưởng (NCL-08-CN-011).
  * Cho phép quản lý (VT-02) tra cứu và mở chi tiết để phê duyệt.
  */
 export const BulkRecallRequestListPage = () => {
@@ -57,7 +57,7 @@ export const BulkRecallRequestListPage = () => {
 
   useSetBreadcrumb([
     { label: 'Tổng quan', href: '/dashboard' },
-    { label: 'Đề nghị thu hồi theo phạm vi' },
+    { label: 'Yêu cầu thu hồi theo phạm vi' },
   ]);
 
   const load = useCallback(async () => {
@@ -70,7 +70,7 @@ export const BulkRecallRequestListPage = () => {
       setData(result.items);
     } catch (err: any) {
       toast.error(
-        err.response?.data?.message || 'Không thể tải danh sách đề nghị thu hồi',
+        err.response?.data?.message || 'Không thể tải danh sách yêu cầu thu hồi',
       );
     } finally {
       setLoading(false);
@@ -114,9 +114,9 @@ export const BulkRecallRequestListPage = () => {
   return (
     <div className="space-y-4">
       <ListPageHeader
-        icon={PackageSearch}
-        title="Đề nghị thu hồi theo phạm vi ảnh hưởng"
-        description="Danh sách đề nghị thu hồi hàng loạt theo kết quả truy vết phạm vi ảnh hưởng (NCL-08-CN-011)."
+        icon={PackageX}
+        title="Yêu cầu thu hồi theo phạm vi ảnh hưởng"
+        description="Danh sách yêu cầu thu hồi hàng loạt theo kết quả truy vết phạm vi ảnh hưởng."
         actions={<HelpButton screenKey="bulk-recall-request-list" />}
       />
 
@@ -188,11 +188,11 @@ export const BulkRecallRequestListPage = () => {
           ))}
           loading={loading}
           empty={!loading && filtered.length === 0}
-          loadingMessage="Đang tải danh sách đề nghị thu hồi..."
+          loadingMessage="Đang tải danh sách yêu cầu thu hồi..."
           emptyMessage={
             search || status !== 'ALL'
-              ? 'Không tìm thấy đề nghị nào phù hợp với bộ lọc.'
-              : 'Chưa có đề nghị thu hồi nào.'
+              ? 'Không tìm thấy yêu cầu nào phù hợp với bộ lọc.'
+              : 'Chưa có yêu cầu thu hồi nào.'
           }
         />
 
@@ -202,7 +202,7 @@ export const BulkRecallRequestListPage = () => {
           totalElements={filtered.length}
           pageSize={PAGE_SIZE}
           loading={loading}
-          itemLabel="đề nghị thu hồi"
+          itemLabel="yêu cầu thu hồi"
           onPageChange={setPage}
         />
       </ListCard>

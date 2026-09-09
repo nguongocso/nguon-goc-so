@@ -1397,6 +1397,7 @@ export const ProductionLotDetailPage = () => {
             canCreate={canCreateShipment}
             canActivate={canActivateShipment}
             canRecall={canRecallShipment}
+            canCreateBulkRecall={canRecallShipment}
           />
         </TabsContent>
 

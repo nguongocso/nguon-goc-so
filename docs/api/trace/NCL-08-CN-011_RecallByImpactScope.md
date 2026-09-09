@@ -14,14 +14,14 @@
 | **Endpoint phụ** | `PUT /api/v1/recall-requests/bulk/{id}/reject` |
 | **Endpoint phụ** | `GET /api/v1/recall-requests/bulk` |
 | **Phương thức** | `POST`, `GET`, `PUT` |
-| **Bảo mật** | Yêu cầu JWT token, `@PreAuthorize("hasAnyRole('VT-02', 'VT-01')")` |
+| **Bảo mật** | Yêu cầu JWT token (ACCESS). Phân quyền qua `PermissionChecker` (RBAC trong DB): `recall:CREATE` (tạo), `recall:READ` (tra cứu), `recall:UPDATE` (phê duyệt/từ chối). Vai trò mặc định được cấp: VT-02 Quản lý HTX, VT-01 Admin (xem `V20260909090000__seed_recall_update_permission.sql`) |
 | **Phụ thuộc** | NCL-08-CN-010 (Truy vết phạm vi ảnh hưởng) |
 
 ---
 
 ## 2. Mô tả nghiệp vụ & Quy tắc (Business Rules)
 
-User Story **NCL-08-CN-011** cho phép Quản lý hợp tác xã (VT-02) tạo đề nghị thu hồi **nhiều lô hàng** cùng lúc dựa trên kết quả truy vết phạm vi ảnh hưởng từ NCL-08-CN-010. Story này mở rộng quy trình thu hồi hiện có (NCL-08-CN-008) để hỗ trợ thu hồi hàng loạt theo phạm vi ảnh hưởng của một lô sản xuất.
+User Story **NCL-08-CN-011** cho phép Quản lý hợp tác xã (VT-02) tạo yêu cầu thu hồi **nhiều lô hàng** cùng lúc dựa trên kết quả truy vết phạm vi ảnh hưởng từ NCL-08-CN-010. Story này mở rộng quy trình thu hồi hiện có (NCL-08-CN-008) để hỗ trợ thu hồi hàng loạt theo phạm vi ảnh hưởng của một lô sản xuất.
 
 ### Quy tắc nghiệp vụ chi tiết:
 
@@ -41,20 +41,20 @@ User Story **NCL-08-CN-011** cho phép Quản lý hợp tác xã (VT-02) tạo �
    - Phải ghi rõ lý do loại bỏ.
 
 4. **Validation phạm vi cuối cùng:**
-   - Nếu phạm vi cuối cùng rỗng (bỏ chọn toàn bộ) → Không được tạo đề nghị.
-   - Nếu có lô bị loại nhưng không có lý do → Không được tạo đề nghị.
+   - Nếu phạm vi cuối cùng rỗng (bỏ chọn toàn bộ) → Không được tạo yêu cầu.
+   - Nếu có lô bị loại nhưng không có lý do → Không được tạo yêu cầu.
 
 5. **Mã vụ việc thu hồi:**
    - Mỗi vụ việc thu hồi có mã riêng (UUID).
    - Một vụ việc có thể chứa nhiều lô hàng.
 
-6. **Trạng thái đề nghị:**
-   - Đề nghị ban đầu ở trạng thái `PENDING` (chờ phê duyệt).
+6. **Trạng thái yêu cầu:**
+   - Yêu cầu ban đầu ở trạng thái `PENDING` (chờ phê duyệt).
    - Sau khi được phê duyệt: `APPROVED`.
    - Sau khi bị từ chối: `REJECTED`.
 
 7. **Người tạo KHÔNG được tự phê duyệt (QTN-22):**
-   - Người tạo đề nghị không được phép phê duyệt chính đề nghị của mình.
+   - Người tạo yêu cầu không được phép phê duyệt chính yêu cầu của mình.
 
 8. **Tác động khi phê duyệt:**
    - Các lô trong phạm vi chuyển sang trạng thái `RECALLED`.
@@ -66,7 +66,7 @@ User Story **NCL-08-CN-011** cho phép Quản lý hợp tác xã (VT-02) tạo �
 
 ## 3. Chi tiết API Endpoints
 
-### 3.1. API Tạo đề nghị thu hồi theo phạm vi (Create Bulk Recall Request)
+### 3.1. API Tạo yêu cầu thu hồi theo phạm vi (Create Bulk Recall Request)
 
 ```http
 POST /api/v1/recall-requests/bulk
@@ -75,7 +75,7 @@ Content-Type: application/json
 ```
 
 #### Mô tả:
-Tạo đề nghị thu hồi nhiều lô hàng cùng lúc dựa trên phạm vi ảnh hưởng đã truy vết. API này mở rộng từ `POST /api/v1/recall-requests` (NCL-08-CN-008) để hỗ trợ thu hồi hàng loạt.
+Tạo yêu cầu thu hồi nhiều lô hàng cùng lúc dựa trên phạm vi ảnh hưởng đã truy vết. API này mở rộng từ `POST /api/v1/recall-requests` (NCL-08-CN-008) để hỗ trợ thu hồi hàng loạt.
 
 #### Request Body:
 
@@ -136,7 +136,7 @@ Tạo đề nghị thu hồi nhiều lô hàng cùng lúc dựa trên phạm vi 
 {
   "success": true,
   "status": 201,
-  "message": "Tạo đề nghị thu hồi theo phạm vi thành công.",
+  "message": "Tạo yêu cầu thu hồi theo phạm vi thành công.",
   "data": {
     "id": "f6j3d789-46gh-9j67-336f-666666666666",
     "productionLotId": "b2f9f345-02cd-5f23-992b-222222222222",
@@ -245,7 +245,7 @@ Tạo đề nghị thu hồi nhiều lô hàng cùng lúc dựa trên phạm vi 
 
 ---
 
-### 3.2. API Xem chi tiết đề nghị thu hồi theo phạm vi (Get Bulk Recall Request Detail)
+### 3.2. API Xem chi tiết yêu cầu thu hồi theo phạm vi (Get Bulk Recall Request Detail)
 
 ```http
 GET /api/v1/recall-requests/bulk/{id}
@@ -253,13 +253,13 @@ Authorization: Bearer <JWT_TOKEN>
 ```
 
 #### Mô tả:
-Lấy chi tiết một đề nghị thu hồi theo phạm vi ảnh hưởng. Trả về thông tin đầy đủ bao gồm danh sách lô hàng đã chọn và lô hàng bị loại.
+Lấy chi tiết một yêu cầu thu hồi theo phạm vi ảnh hưởng. Trả về thông tin đầy đủ bao gồm danh sách lô hàng đã chọn và lô hàng bị loại.
 
 #### Path Parameters:
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `id` | UUID | Có | ID của đề nghị thu hồi |
+| `id` | UUID | Có | ID của yêu cầu thu hồi |
 
 #### Responses:
 
@@ -268,7 +268,7 @@ Lấy chi tiết một đề nghị thu hồi theo phạm vi ảnh hưởng. Tr�
 {
   "success": true,
   "status": 200,
-  "message": "Lấy chi tiết đề nghị thu hồi thành công.",
+  "message": "Lấy chi tiết yêu cầu thu hồi thành công.",
   "data": {
     "id": "f6j3d789-46gh-9j67-336f-666666666666",
     "productionLotId": "b2f9f345-02cd-5f23-992b-222222222222",
@@ -353,7 +353,7 @@ Lấy chi tiết một đề nghị thu hồi theo phạm vi ảnh hưởng. Tr�
 {
   "success": false,
   "status": 404,
-  "message": "Không tìm thấy đề nghị thu hồi.",
+  "message": "Không tìm thấy yêu cầu thu hồi.",
   "timestamp": "2026-09-08T10:30:00.000Z"
 }
 ```
@@ -363,14 +363,14 @@ Lấy chi tiết một đề nghị thu hồi theo phạm vi ảnh hưởng. Tr�
 {
   "success": false,
   "status": 403,
-  "message": "Bạn không có quyền xem đề nghị thu hồi của tổ chức khác.",
+  "message": "Bạn không có quyền xem yêu cầu thu hồi của tổ chức khác.",
   "timestamp": "2026-09-08T10:30:00.000Z"
 }
 ```
 
 ---
 
-### 3.3. API Phê duyệt đề nghị thu hồi theo phạm vi (Approve Bulk Recall Request)
+### 3.3. API Phê duyệt yêu cầu thu hồi theo phạm vi (Approve Bulk Recall Request)
 
 ```http
 PUT /api/v1/recall-requests/bulk/{id}/approve
@@ -379,7 +379,7 @@ Content-Type: application/json
 ```
 
 #### Mô tả:
-Phê duyệt đề nghị thu hồi theo phạm vi ảnh hưởng. Khi phê duyệt:
+Phê duyệt yêu cầu thu hồi theo phạm vi ảnh hưởng. Khi phê duyệt:
 - Tất cả lô hàng trong `includedShipments` chuyển sang trạng thái `RECALLED`.
 - Toàn bộ TraceCode thuộc các lô hàng chuyển sang `RECALLED`.
 - Cảnh báo công khai được bật cho từng mã tem.
@@ -390,7 +390,7 @@ Phê duyệt đề nghị thu hồi theo phạm vi ảnh hưởng. Khi phê duy�
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `id` | UUID | Có | ID của đề nghị thu hồi |
+| `id` | UUID | Có | ID của yêu cầu thu hồi |
 
 #### Request Body:
 
@@ -410,11 +410,12 @@ Phê duyệt đề nghị thu hồi theo phạm vi ảnh hưởng. Khi phê duy�
 
 | Rule | Error Code | Error Message |
 | --- | --- | --- |
-| `id` không tồn tại | 404 | `"Không tìm thấy đề nghị thu hồi."` |
-| `id` không thuộc tổ chức hiện tại | 403 | `"Bạn không có quyền thao tác trên đề nghị của tổ chức khác."` |
+| `id` không tồn tại | 404 | `"Không tìm thấy yêu cầu thu hồi."` |
+| `id` không thuộc tổ chức hiện tại | 403 | `"Bạn không có quyền thao tác trên yêu cầu của tổ chức khác."` |
+| Người dùng chưa được cấp permission `recall:UPDATE` | 403 | `"Bạn không có quyền thực hiện chức năng này."` |
 | Yêu cầu không ở trạng thái PENDING | 409 | `"Chỉ có thể phê duyệt yêu cầu ở trạng thái PENDING."` |
-| Người phê duyệt trùng người tạo | 400 | `"Bạn không thể phê duyệt yêu cầu do chính mình tạo (QTN-22)."` |
-| Một trong các lô hàng đã RECALLED sau khi tạo đề nghị | 409 | `"Lô hàng {shipmentId} đã bị thu hồi bởi một đề nghị khác. Vui lòng cập nhật đề nghị."` |
+| Người phê duyệt trùng người tạo | 400 | `"Bạn không thể phê duyệt yêu cầu do chính mình tạo."` |
+| Một trong các lô hàng đã RECALLED sau khi tạo yêu cầu | 409 | `"Lô hàng {shipmentId} đã bị thu hồi bởi một yêu cầu khác. Vui lòng cập nhật yêu cầu."` |
 
 #### Responses:
 
@@ -423,7 +424,7 @@ Phê duyệt đề nghị thu hồi theo phạm vi ảnh hưởng. Khi phê duy�
 {
   "success": true,
   "status": 200,
-  "message": "Phê duyệt đề nghị thu hồi thành công. 2 lô hàng đã chuyển sang trạng thái RECALLED.",
+  "message": "Phê duyệt yêu cầu thu hồi thành công. 2 lô hàng đã chuyển sang trạng thái RECALLED.",
   "data": {
     "id": "f6j3d789-46gh-9j67-336f-666666666666",
     "productionLotId": "b2f9f345-02cd-5f23-992b-222222222222",
@@ -511,7 +512,7 @@ Phê duyệt đề nghị thu hồi theo phạm vi ảnh hưởng. Khi phê duy�
 
 ---
 
-### 3.4. API Từ chối đề nghị thu hồi theo phạm vi (Reject Bulk Recall Request)
+### 3.4. API Từ chối yêu cầu thu hồi theo phạm vi (Reject Bulk Recall Request)
 
 ```http
 PUT /api/v1/recall-requests/bulk/{id}/reject
@@ -520,13 +521,13 @@ Content-Type: application/json
 ```
 
 #### Mô tả:
-Từ chối đề nghị thu hồi theo phạm vi ảnh hưởng. Yêu cầu phải có lý do từ chối.
+Từ chối yêu cầu thu hồi theo phạm vi ảnh hưởng. Yêu cầu phải có lý do từ chối.
 
 #### Path Parameters:
 
 | Parameter | Type | Required | Description |
 | --- | --- | --- | --- |
-| `id` | UUID | Có | ID của đề nghị thu hồi |
+| `id` | UUID | Có | ID của yêu cầu thu hồi |
 
 #### Request Body:
 
@@ -546,8 +547,8 @@ Từ chối đề nghị thu hồi theo phạm vi ảnh hưởng. Yêu cầu ph�
 
 | Rule | Error Code | Error Message |
 | --- | --- | --- |
-| `id` không tồn tại | 404 | `"Không tìm thấy đề nghị thu hồi."` |
-| `id` không thuộc tổ chức hiện tại | 403 | `"Bạn không có quyền thao tác trên đề nghị của tổ chức khác."` |
+| `id` không tồn tại | 404 | `"Không tìm thấy yêu cầu thu hồi."` |
+| `id` không thuộc tổ chức hiện tại | 403 | `"Bạn không có quyền thao tác trên yêu cầu của tổ chức khác."` |
 | Yêu cầu không ở trạng thái PENDING | 409 | `"Chỉ có thể từ chối yêu cầu ở trạng thái PENDING."` |
 | `rejectionReason` rỗng | 400 | `"Lý do từ chối không được để trống."` |
 
@@ -558,7 +559,7 @@ Từ chối đề nghị thu hồi theo phạm vi ảnh hưởng. Yêu cầu ph�
 {
   "success": true,
   "status": 200,
-  "message": "Từ chối đề nghị thu hồi thành công.",
+  "message": "Từ chối yêu cầu thu hồi thành công.",
   "data": {
     "id": "f6j3d789-46gh-9j67-336f-666666666666",
     "productionLotId": "b2f9f345-02cd-5f23-992b-222222222222",
@@ -634,7 +635,7 @@ Từ chối đề nghị thu hồi theo phạm vi ảnh hưởng. Yêu cầu ph�
 
 ---
 
-### 3.5. API Danh sách đề nghị thu hồi theo phạm vi (List Bulk Recall Requests)
+### 3.5. API Danh sách yêu cầu thu hồi theo phạm vi (List Bulk Recall Requests)
 
 ```http
 GET /api/v1/recall-requests/bulk?status=PENDING&page=0&size=20
@@ -642,7 +643,7 @@ Authorization: Bearer <JWT_TOKEN>
 ```
 
 #### Mô tả:
-Lấy danh sách đề nghị thu hồi theo phạm vi ảnh hưởng với phân trang. Hỗ trợ lọc theo trạng thái.
+Lấy danh sách yêu cầu thu hồi theo phạm vi ảnh hưởng với phân trang. Hỗ trợ lọc theo trạng thái.
 
 #### Query Parameters:
 
@@ -659,7 +660,7 @@ Lấy danh sách đề nghị thu hồi theo phạm vi ảnh hưởng với phâ
 {
   "success": true,
   "status": 200,
-  "message": "Lấy danh sách đề nghị thu hồi thành công.",
+  "message": "Lấy danh sách yêu cầu thu hồi thành công.",
   "data": {
     "content": [
       {
@@ -711,7 +712,7 @@ Lấy danh sách đề nghị thu hồi theo phạm vi ảnh hưởng với phâ
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `id` | UUID | ID đề nghị thu hồi |
+| `id` | UUID | ID yêu cầu thu hồi |
 | `productionLotId` | UUID | ID lô sản xuất nguồn |
 | `productionLotCode` | String | Mã lô sản xuất |
 | `productionLotName` | String | Tên lô sản xuất |
@@ -722,7 +723,7 @@ Lấy danh sách đề nghị thu hồi theo phạm vi ảnh hưởng với phâ
 | `totalShipments` | Integer | Tổng số lô hàng trong phạm vi truy vết |
 | `includedShipments` | Array | Danh sách lô hàng cần thu hồi |
 | `excludedShipments` | Array | Danh sách lô hàng bị loại khỏi phạm vi |
-| `requestedBy` | UserInfo | Người tạo đề nghị |
+| `requestedBy` | UserInfo | Người tạo yêu cầu |
 | `requestedAt` | DateTime | Thời điểm tạo |
 | `approvedBy` | UserInfo | Người phê duyệt |
 | `approvedAt` | DateTime | Thời điểm phê duyệt |
@@ -770,15 +771,15 @@ Lấy danh sách đề nghị thu hồi theo phạm vi ảnh hưởng với phâ
 
 ### Quyền chi tiết:
 
-1. **VT-01 (Admin):** Có thể xem và xử lý tất cả đề nghị thu hồi trên toàn hệ thống.
-2. **VT-02 (Quản lý HTX):** Có thể tạo, xem, phê duyệt, từ chối đề nghị thu hồi **chỉ thuộc tổ chức của mình**. Không được tự phê duyệt đề nghị do mình tạo.
+1. **VT-01 (Admin):** Có thể xem và xử lý tất cả yêu cầu thu hồi trên toàn hệ thống.
+2. **VT-02 (Quản lý HTX):** Có thể tạo, xem, phê duyệt, từ chối yêu cầu thu hồi **chỉ thuộc tổ chức của mình**. Không được tự phê duyệt yêu cầu do mình tạo.
 3. **VT-03, VT-04:** Không có quyền truy cập.
 
 ---
 
 ## 6. Transaction Boundary
 
-### 6.1. Khi tạo đề nghị (POST):
+### 6.1. Khi tạo yêu cầu (POST):
 - **Transaction:** READ_ONLY cho việc validate
 - **Không có ghi dữ liệu** ngoài việc tạo bản ghi `BulkRecallRequest` và `BulkRecallShipment`
 
@@ -803,29 +804,29 @@ Lấy danh sách đề nghị thu hồi theo phạm vi ảnh hưởng với phâ
 ## 7. Idempotency & Concurrency
 
 ### 7.1. Idempotency:
-- **POST:** Không idempotent. Mỗi lần gọi tạo một đề nghị mới. Sử dụng unique constraint trên `(productionLotId, status=PENDING)` để ngăn tạo trùng.
-- **PUT /approve:** Idempotent. Nếu đề nghị đã APPROVED, trả về 409.
-- **PUT /reject:** Idempotent. Nếu đề nghị đã REJECTED, trả về 409.
+- **POST:** Không idempotent. Mỗi lần gọi tạo một yêu cầu mới. Sử dụng unique constraint trên `(productionLotId, status=PENDING)` để ngăn tạo trùng.
+- **PUT /approve:** Idempotent. Nếu yêu cầu đã APPROVED, trả về 409.
+- **PUT /reject:** Idempotent. Nếu yêu cầu đã REJECTED, trả về 409.
 
 ### 7.2. Concurrency:
 - Sử dụng **pessimistic lock** khi đọc `BulkRecallRequest` trước khi approve/reject.
 - Sử dụng **pessimistic lock** khi đọc từng `Shipment` trước khi cập nhật status → RECALLED.
-- Database unique constraint ngăn tạo 2 đề nghị PENDING cho cùng `productionLotId`.
+- Database unique constraint ngăn tạo 2 yêu cầu PENDING cho cùng `productionLotId`.
 
 ---
 
 ## 8. Notification Behavior
 
-### 8.1. Khi phê duyệt đề nghị:
+### 8.1. Khi phê duyệt yêu cầu:
 
 | Đối tượng nhận | Loại thông báo | Nội dung |
 | --- | --- | --- |
 | Doanh nghiệp thu mua (từng shipment) | `RECALL_NOTIFICATION` | "Lô hàng {shipmentName} thuộc {productionLotName} đã bị thu hồi. Lý do: {reason}" |
-| Quản lý HTX (cùng tổ chức) | `RECALL_APPROVED_NOTIFICATION` | "Đề nghị thu hồi {recallCode} đã được phê duyệt. {count} lô hàng đã chuyển sang RECALLED." |
+| Quản lý HTX (cùng tổ chức) | `RECALL_APPROVED_NOTIFICATION` | "Yêu cầu thu hồi {recallCode} đã được phê duyệt. {count} lô hàng đã chuyển sang RECALLED." |
 
 ### 8.2. Quy tắc gửi notification:
 - **Không gửi duplicate:** Nếu một doanh nghiệp thu mua nhận nhiều shipment trong cùng vụ việc, chỉ gửi **một notification** duy nhất liệt kê tất cả shipment.
-- **Người tạo đề nghị:** Luôn nhận notification khi đề nghị được phê duyệt/từ chối.
+- **Người tạo yêu cầu:** Luôn nhận notification khi yêu cầu được phê duyệt/từ chối.
 - **Thời điểm gửi:** Sau khi transaction commit thành công (sử dụng `@TransactionalEventListener`).
 
 ### 8.3. Lấy danh sách doanh nghiệp thu mua:
@@ -840,7 +841,7 @@ Lấy danh sách đề nghị thu hồi theo phạm vi ảnh hưởng với phâ
 
 | Hành động | Action | Resource | Mô tả |
 | --- | --- | --- | --- |
-| Tạo đề nghị | `CREATE_BULK_RECALL_REQUEST` | `bulk_recall_request` | Ghi nhận người tạo, thời điểm, phạm vi |
+| Tạo yêu cầu | `CREATE_BULK_RECALL_REQUEST` | `bulk_recall_request` | Ghi nhận người tạo, thời điểm, phạm vi |
 | Phê duyệt | `APPROVE_BULK_RECALL_REQUEST` | `bulk_recall_request` | Ghi nhận người phê duyệt, thời điểm, danh sách shipment bị thu hồi |
 | Từ chối | `REJECT_BULK_RECALL_REQUEST` | `bulk_recall_request` | Ghi nhận người từ chối, lý do |
 | Thu hồi từng shipment | `RECALL_SHIPMENT` | `shipment` | Ghi nhận chi tiết từng shipment bị thu hồi |
@@ -897,8 +898,8 @@ ACTIVATED/CODE_PRINTED/DRAFT
 | API | Mô tả | Lý do không thay đổi |
 | --- | --- | --- |
 | `GET /api/v1/trace/impact-scope` | Truy vết phạm vi ảnh hưởng (NCL-08-CN-010) | API này đã đáp ứng đủ thông tin cần thiết |
-| `POST /api/v1/recall-requests` | Tạy đề nghị thu hồi đơn lẻ (NCL-08-CN-008) | Vẫn hỗ trợ thu hồi một shipment |
-| `GET /api/v1/recall-requests` | Danh sách đề nghị thu hồi đơn lẻ | Vẫn hoạt động độc lập |
+| `POST /api/v1/recall-requests` | Tạy yêu cầu thu hồi đơn lẻ (NCL-08-CN-008) | Vẫn hỗ trợ thu hồi một shipment |
+| `GET /api/v1/recall-requests` | Danh sách yêu cầu thu hồi đơn lẻ | Vẫn hoạt động độc lập |
 | `PUT /api/v1/recall-requests/{id}/approve` | Phê duyệt đơn lẻ | Vẫn hoạt động độc lập |
 | `PUT /api/v1/recall-requests/{id}/reject` | Từ chối đơn lẻ | Vẫn hoạt động độc lập |
 
@@ -906,9 +907,9 @@ ACTIVATED/CODE_PRINTED/DRAFT
 
 | API | Mô tả |
 | --- | --- |
-| `POST /api/v1/recall-requests/bulk` | Tạo đề nghị thu hồi theo phạm vi |
-| `GET /api/v1/recall-requests/bulk` | Danh sách đề nghị thu hồi theo phạm vi |
-| `GET /api/v1/recall-requests/bulk/{id}` | Chi tiết đề nghị thu hồi theo phạm vi |
+| `POST /api/v1/recall-requests/bulk` | Tạo yêu cầu thu hồi theo phạm vi |
+| `GET /api/v1/recall-requests/bulk` | Danh sách yêu cầu thu hồi theo phạm vi |
+| `GET /api/v1/recall-requests/bulk/{id}` | Chi tiết yêu cầu thu hồi theo phạm vi |
 | `PUT /api/v1/recall-requests/bulk/{id}/approve` | Phê duyệt thu hồi theo phạm vi |
 | `PUT /api/v1/recall-requests/bulk/{id}/reject` | Từ chối thu hồi theo phạm vi |
 
@@ -916,8 +917,8 @@ ACTIVATED/CODE_PRINTED/DRAFT
 
 | Entity | Table | Mô tả |
 | --- | --- | --- |
-| `BulkRecallRequest` | `bulk_recall_requests` | Đề nghị thu hồi theo phạm vi |
-| `BulkRecallShipment` | `bulk_recall_shipments` | Chi tiết lô hàng trong đề nghị (bao gồm cả excluded) |
+| `BulkRecallRequest` | `bulk_recall_requests` | Yêu cầu thu hồi theo phạm vi |
+| `BulkRecallShipment` | `bulk_recall_shipments` | Chi tiết lô hàng trong yêu cầu (bao gồm cả excluded) |
 
 ---
 
@@ -925,11 +926,11 @@ ACTIVATED/CODE_PRINTED/DRAFT
 
 | Mã Test Case | Loại kịch bản | Yêu cầu AC | Đáp ứng trong API Docs | Status Code |
 | :--- | :--- | :--- | :--- | :--- |
-| **NCL-08-CN-011-TC-01** | Luồng thành công | Kết quả truy vết có 3 lô. Quản lý tạo đề nghị cho cả 3. Một quản lý khác phê duyệt. Cả 3 lô chuyển sang RECALLED và cảnh báo công khai được bật. | `POST /bulk` → `PUT /bulk/{id}/approve` → Kiểm tra Shipment.status = RECALLED | `201` → `200` |
-| **NCL-08-CN-011-TC-02** | Tự phê duyệt | Người tạo đề nghị tự bấm phê duyệt. API phải từ chối. | `PUT /bulk/{id}/approve` → Trả về 400 với thông báo QTN-22 | `400 Bad Request` |
+| **NCL-08-CN-011-TC-01** | Luồng thành công | Kết quả truy vết có 3 lô. Quản lý tạo yêu cầu cho cả 3. Một quản lý khác phê duyệt. Cả 3 lô chuyển sang RECALLED và cảnh báo công khai được bật. | `POST /bulk` → `PUT /bulk/{id}/approve` → Kiểm tra Shipment.status = RECALLED | `201` → `200` |
+| **NCL-08-CN-011-TC-02** | Tự phê duyệt | Người tạo yêu cầu tự bấm phê duyệt. API phải từ chối. | `PUT /bulk/{id}/approve` → Trả về 400 với thông báo QTN-22 | `400 Bad Request` |
 | **NCL-08-CN-011-TC-03** | Lô đã RECALLED | Một lô trong phạm vi đã RECALLED trước đó. Lô này bị loại khỏi phạm vi và phải có lý do. | `POST /bulk` với `excludedShipments` chứa lý do | `201 Created` |
-| **NCL-08-CN-011-TC-04** | Notification | Đề nghị nhiều lô được phê duyệt. Mỗi doanh nghiệp thu mua đã nhận lô trong phạm vi phải nhận notification phù hợp. Không gửi duplicate. | `PUT /bulk/{id}/approve` → Gửi notification theo quy tắc 8.2 | `200 OK` |
-| **NCL-08-CN-011-TC-05** | Phạm vi rỗng | Người dùng bỏ chọn toàn bộ lô. Không cho tạo đề nghị. | `POST /bulk` với `includedShipments` rỗng → Trả về 400 | `400 Bad Request` |
+| **NCL-08-CN-011-TC-04** | Notification | Yêu cầu nhiều lô được phê duyệt. Mỗi doanh nghiệp thu mua đã nhận lô trong phạm vi phải nhận notification phù hợp. Không gửi duplicate. | `PUT /bulk/{id}/approve` → Gửi notification theo quy tắc 8.2 | `200 OK` |
+| **NCL-08-CN-011-TC-05** | Phạm vi rỗng | Người dùng bỏ chọn toàn bộ lô. Không cho tạo yêu cầu. | `POST /bulk` với `includedShipments` rỗng → Trả về 400 | `400 Bad Request` |
 
 ---
 
@@ -942,13 +943,13 @@ ACTIVATED/CODE_PRINTED/DRAFT
 | `BULK_RECALL_003` | 400 | `"Lô hàng bị loại {{shipmentId}} phải có lý do loại bỏ."` | `exclusionReason` rỗng |
 | `BULK_RECALL_004` | 400 | `"Lô hàng {{shipmentId}} đã được thu hồi trước đó."` | Shipment đã RECALLED |
 | `BULK_RECALL_005` | 400 | `"Lô hàng {{shipmentId}} không thuộc lô sản xuất đã chọn."` | Shipment không thuộc ProductionLot |
-| `BULK_RECALL_006` | 400 | `"Bạn không thể phê duyệt yêu cầu do chính mình tạo (QTN-22)."` | Tự phê duyệt |
+| `BULK_RECALL_006` | 400 | `"Bạn không thể phê duyệt yêu cầu do chính mình tạo."` | Tự phê duyệt (QTN-22) |
 | `BULK_RECALL_007` | 403 | `"Bạn không có quyền thao tác trên lô sản xuất của tổ chức khác."` | Khác tổ chức |
 | `BULK_RECALL_008` | 404 | `"Không tìm thấy lô sản xuất."` | ProductionLot không tồn tại |
-| `BULK_RECALL_009` | 404 | `"Không tìm thấy đề nghị thu hồi."` | BulkRecallRequest không tồn tại |
+| `BULK_RECALL_009` | 404 | `"Không tìm thấy yêu cầu thu hồi."` | BulkRecallRequest không tồn tại |
 | `BULK_RECALL_010` | 409 | `"Đã có yêu cầu thu hồi đang chờ duyệt cho lô sản xuất này."` | Trùng PENDING |
 | `BULK_RECALL_011` | 409 | `"Chỉ có thể phê duyệt yêu cầu ở trạng thái PENDING."` | Sai trạng thái |
-| `BULK_RECALL_012` | 409 | `"Lô hàng {{shipmentId}} đã bị thu hồi bởi một đề nghị khác."` | Concurrent recall |
+| `BULK_RECALL_012` | 409 | `"Lô hàng {{shipmentId}} đã bị thu hồi bởi một yêu cầu khác."` | Concurrent recall |
 
 ---
 

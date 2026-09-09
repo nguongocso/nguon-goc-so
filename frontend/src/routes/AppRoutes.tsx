@@ -174,6 +174,7 @@ import { RecallRequestDetailPage } from "@/pages/recall-request/RecallRequestDet
 // ===== Bulk Recall requests (NCL-08-CN-011) =====
 import { BulkRecallRequestDetailPage } from "@/pages/recall-request/BulkRecallRequestDetailPage";
 import { BulkRecallRequestListPage } from "@/pages/recall-request/BulkRecallRequestListPage";
+import { CreateBulkRecallRequestPage } from "@/pages/recall-request/CreateBulkRecallRequestPage";
 
 // ===== Code range supplement (NCL-04-CN-007) =====
 import { CodeRangeSupplementListPage } from "@/pages/admin/CodeRangeSupplementListPage";
@@ -528,6 +529,17 @@ const AppRoutes = () => (
                         allowedRoles={["VT-01", "VT-02", "VT-03"]}
                     >
                         <ProductionLotDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="production-lots/:id/create-bulk-recall-request"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                    >
+                        <CreateBulkRecallRequestPage />
                     </RoleRoute>
                 }
             />
@@ -1440,7 +1452,7 @@ const AppRoutes = () => (
 
             {/* ===========================================================
           BULK RECALL REQUEST (NCL-08-CN-011)
-          Danh sách đề nghị thu hồi theo phạm vi ảnh hưởng
+          Danh sách yêu cầu thu hồi theo phạm vi ảnh hưởng
       =========================================================== */}
             <Route
                 path="recall-requests/bulk"

@@ -219,7 +219,7 @@ class ProductFeedbackProcessingServiceTest {
             security.when(SecurityUtils::getCurrentUserDetails).thenReturn(currentUser);
             assertThatThrownBy(() -> service.close(feedbackId, request))
                     .isInstanceOf(BusinessException.class)
-                    .hasMessage("Phải xử lý xong đề nghị thu hồi trước khi đóng phản ánh");
+                    .hasMessage("Phải xử lý xong yêu cầu thu hồi trước khi đóng phản ánh");
         }
     }
 
@@ -260,7 +260,7 @@ class ProductFeedbackProcessingServiceTest {
             security.when(SecurityUtils::getCurrentUserDetails).thenReturn(currentUser);
             assertThatThrownBy(() -> service.createRecallRequest(feedbackId, request))
                     .isInstanceOf(BusinessException.class)
-                    .hasMessage("Phản ánh đã có đề nghị thu hồi đang chờ duyệt");
+                    .hasMessage("Phản ánh đã có yêu cầu thu hồi đang chờ duyệt");
         }
     }
 

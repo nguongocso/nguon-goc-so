@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Request DTO để từ chối đề nghị thu hồi hàng loạt (NCL-08-CN-011).
+ * Request DTO để từ chối yêu cầu thu hồi hàng loạt (NCL-08-CN-011).
  */
 @Getter
 @Setter

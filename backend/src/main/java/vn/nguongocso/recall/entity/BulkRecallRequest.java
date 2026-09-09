@@ -29,18 +29,18 @@ import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.recall.enums.BulkRecallRequestStatus;
 
 /**
- * Thực thể đại diện cho một đề nghị thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011).
+ * Thực thể đại diện cho một yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011).
  *
  * <p>
  * Quy trình 2 bước:
  * <ol>
- *   <li>Quản lý hợp tác xã (VT-02) tạo đề nghị (trạng thái {@code PENDING}).</li>
+ *   <li>Quản lý hợp tác xã (VT-02) tạo yêu cầu (trạng thái {@code PENDING}).</li>
  *   <li>Quản lý hợp tác xã khác duyệt ({@code APPROVED}) hoặc từ chối
  *       ({@code REJECTED}).</li>
  * </ol>
  *
  * <p>
- * Quy tắc QTN-22: người tạo đề nghị không được tự duyệt đề nghị của chính mình.
+ * Quy tắc QTN-22: người tạo yêu cầu không được tự duyệt yêu cầu của chính mình.
  */
 @Entity
 @Table(name = "bulk_recall_requests")

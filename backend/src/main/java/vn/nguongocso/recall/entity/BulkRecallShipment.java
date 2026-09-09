@@ -22,12 +22,12 @@ import lombok.Setter;
 import vn.nguongocso.trace.entity.Shipment;
 
 /**
- * Thực thể đại diện cho chi tiết lô hàng trong đề nghị thu hồi hàng loạt (NCL-08-CN-011).
+ * Thực thể đại diện cho chi tiết lô hàng trong yêu cầu thu hồi hàng loạt (NCL-08-CN-011).
  *
  * <p>
  * Mỗi bản ghi ghi nhận:
  * <ul>
- *   <li>Lô hàng thuộc đề nghị thu hồi</li>
+ *   <li>Lô hàng thuộc yêu cầu thu hồi</li>
  *   <li>Có được bao gồm trong phạm vi thu hồi hay không</li>
  *   <li>Lý do loại bỏ (nếu có)</li>
  * </ul>
@@ -55,7 +55,7 @@ public class BulkRecallShipment {
 
     /**
      * Đánh dấu lô hàng có được bao gồm trong phạm vi thu hồi hay không.
-     * true = included (sẽ bị thu hồi khi đề nghị được duyệt)
+     * true = included (sẽ bị thu hồi khi yêu cầu được duyệt)
      * false = excluded (bị loại khỏi phạm vi, phải có exclusionReason)
      */
     @Column(name = "included", nullable = false)

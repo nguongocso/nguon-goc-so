@@ -10,14 +10,14 @@ import vn.nguongocso.recall.dto.request.RejectBulkRecallRequest;
 import vn.nguongocso.recall.dto.response.BulkRecallRequestResponse;
 
 /**
- * Dịch vụ quản lý đề nghị thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011).
+ * Dịch vụ quản lý yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011).
  */
 public interface BulkRecallRequestService {
 
     /**
-     * Tạo đề nghị thu hồi hàng loạt (VT-02).
+     * Tạo yêu cầu thu hồi hàng loạt (VT-02).
      *
-     * @param request     thông tin đề nghị
+     * @param request     thông tin yêu cầu
      * @param currentUser người dùng hiện tại
      * @return response DTO
      */
@@ -25,16 +25,16 @@ public interface BulkRecallRequestService {
             CreateBulkRecallRequest request, CustomUserDetails currentUser);
 
     /**
-     * Lấy chi tiết đề nghị thu hồi (VT-02).
+     * Lấy chi tiết yêu cầu thu hồi (VT-02).
      *
-     * @param id          ID đề nghị
+     * @param id          ID yêu cầu
      * @param currentUser người dùng hiện tại
      * @return response DTO
      */
     BulkRecallRequestResponse getBulkRecallRequest(UUID id, CustomUserDetails currentUser);
 
     /**
-     * Lấy danh sách đề nghị thu hồi với phân trang (VT-02).
+     * Lấy danh sách yêu cầu thu hồi với phân trang (VT-02).
      *
      * @param status      trạng thái lọc (có thể null)
      * @param page        trang hiện tại
@@ -46,9 +46,9 @@ public interface BulkRecallRequestService {
             String status, int page, int size, CustomUserDetails currentUser);
 
     /**
-     * Phê duyệt đề nghị thu hồi hàng loạt (VT-02, không phải người tạo).
+     * Phê duyệt yêu cầu thu hồi hàng loạt (VT-02, không phải người tạo).
      *
-     * @param id          ID đề nghị
+     * @param id          ID yêu cầu
      * @param request     thông tin phê duyệt
      * @param currentUser người dùng hiện tại
      * @return response DTO
@@ -57,9 +57,9 @@ public interface BulkRecallRequestService {
             UUID id, ApproveBulkRecallRequest request, CustomUserDetails currentUser);
 
     /**
-     * Từ chối đề nghị thu hồi hàng loạt (VT-02).
+     * Từ chối yêu cầu thu hồi hàng loạt (VT-02).
      *
-     * @param id          ID đề nghị
+     * @param id          ID yêu cầu
      * @param request     thông tin từ chối
      * @param currentUser người dùng hiện tại
      * @return response DTO

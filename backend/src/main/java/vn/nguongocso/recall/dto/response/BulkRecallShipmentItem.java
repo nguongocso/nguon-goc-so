@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Response DTO cho chi tiết lô hàng trong đề nghị thu hồi hàng loạt (NCL-08-CN-011).
+ * Response DTO cho chi tiết lô hàng trong yêu cầu thu hồi hàng loạt (NCL-08-CN-011).
  */
 @Getter
 @Setter

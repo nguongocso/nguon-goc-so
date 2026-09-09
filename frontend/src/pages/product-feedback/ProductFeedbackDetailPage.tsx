@@ -246,9 +246,9 @@ export default function ProductFeedbackDetailPage() {
         evidence: recallEvidence.trim() || undefined,
       });
       await refreshDetail();
-      toast.success("Đã tạo đề nghị thu hồi lô hàng");
+      toast.success("Đã tạo yêu cầu thu hồi lô hàng");
     } catch (error) {
-      toast.error(getProductFeedbackErrorMessage(error, "Không thể tạo đề nghị thu hồi"));
+      toast.error(getProductFeedbackErrorMessage(error, "Không thể tạo yêu cầu thu hồi"));
     } finally {
       setSaving(false);
     }
@@ -342,7 +342,7 @@ export default function ProductFeedbackDetailPage() {
             <DetailField label="Người xử lý" value={feedback.assignedToName || "Chưa gán"} />
             <DetailField label="Mức độ" value={PRODUCT_FEEDBACK_SEVERITY_LABELS[feedback.severity]} />
             <DetailField
-              label="Đề nghị thu hồi gần nhất"
+              label="Yêu cầu thu hồi gần nhất"
               value={feedback.latestRecallRequestStatus
                 ? RECALL_STATUS_LABELS[feedback.latestRecallRequestStatus]
                 : "Chưa có"}
@@ -525,14 +525,14 @@ export default function ProductFeedbackDetailPage() {
                 <Alert variant="warning">
                   <TriangleAlert />
                   <AlertDescription>
-                    Mức độ hoặc mã tem chưa được lưu. Hãy lưu xử lý trước khi tạo đề nghị thu hồi hoặc đóng phản ánh.
+                    Mức độ hoặc mã tem chưa được lưu. Hãy lưu xử lý trước khi tạo yêu cầu thu hồi hoặc đóng phản ánh.
                   </AlertDescription>
                 </Alert>
               ) : hasUnsavedProcessing ? (
                 <Alert variant="warning">
                   <TriangleAlert />
                   <AlertDescription>
-                    Nội dung đang có thay đổi chưa lưu. Hãy lưu xử lý trước khi tạo đề nghị thu hồi.
+                    Nội dung đang có thay đổi chưa lưu. Hãy lưu xử lý trước khi tạo yêu cầu thu hồi.
                   </AlertDescription>
                 </Alert>
               ) : null}
@@ -545,10 +545,10 @@ export default function ProductFeedbackDetailPage() {
                 <CardHeader className="border-b border-amber-100">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <TriangleAlert className="h-5 w-5 text-amber-600" />
-                    Đề nghị thu hồi lô hàng
+                    Yêu cầu thu hồi lô hàng
                   </CardTitle>
                   <CardDescription>
-                    Tạo đề nghị để người quản lý khác xem xét và phê duyệt thu hồi.
+                    Tạo yêu cầu để người quản lý khác xem xét và phê duyệt thu hồi.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -616,7 +616,7 @@ export default function ProductFeedbackDetailPage() {
                   </div>
                   {feedback.hasPendingRecallRequest && (
                     <p className="text-sm text-amber-700">
-                      Phản ánh đang có một đề nghị thu hồi chờ duyệt.
+                      Phản ánh đang có một yêu cầu thu hồi chờ duyệt.
                     </p>
                   )}
                   <Button
@@ -630,7 +630,7 @@ export default function ProductFeedbackDetailPage() {
                     }
                     onClick={() => void createRecall()}
                   >
-                    Tạo đề nghị thu hồi lô hàng
+                    Tạo yêu cầu thu hồi lô hàng
                   </Button>
                 </CardContent>
               </Card>
@@ -643,7 +643,7 @@ export default function ProductFeedbackDetailPage() {
                   Đóng phản ánh
                 </CardTitle>
                 <CardDescription>
-                  Chỉ đóng khi đã có người xử lý, nội dung xử lý và không còn đề nghị thu hồi chờ duyệt.
+                  Chỉ đóng khi đã có người xử lý, nội dung xử lý và không còn yêu cầu thu hồi chờ duyệt.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -651,7 +651,7 @@ export default function ProductFeedbackDetailPage() {
                   <Alert variant="warning">
                     <TriangleAlert />
                     <AlertDescription>
-                      Cần xử lý xong đề nghị thu hồi đang chờ trước khi đóng.
+                      Cần xử lý xong yêu cầu thu hồi đang chờ trước khi đóng.
                     </AlertDescription>
                   </Alert>
                 )}

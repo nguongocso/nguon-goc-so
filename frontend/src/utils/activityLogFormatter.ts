@@ -51,6 +51,12 @@ export const formatActionType = (action: string): string => {
     APPROVE_RECALL_REQUEST: 'Phê duyệt yêu cầu thu hồi',
     REJECT_RECALL_REQUEST: 'Từ chối yêu cầu thu hồi',
 
+    // Thu hồi hàng loạt (NCL-08-CN-011) — backend vẫn lưu/trả về raw code,
+    // Việt hóa chỉ ở presentation layer để giữ nguyên dữ liệu audit trong DB.
+    CREATE_BULK_RECALL_REQUEST: 'Tạo yêu cầu thu hồi hàng loạt',
+    APPROVE_BULK_RECALL_REQUEST: 'Phê duyệt yêu cầu thu hồi hàng loạt',
+    REJECT_BULK_RECALL_REQUEST: 'Từ chối yêu cầu thu hồi hàng loạt',
+
     // Certification
     CREATE_CERTIFICATION: 'Tạo chứng nhận',
     UPDATE_CERTIFICATION: 'Cập nhật chứng nhận',
@@ -174,6 +180,11 @@ export const formatTargetType = (target: string): string => {
     RECALL_REQUEST: 'Yêu cầu thu hồi',
     RECALLREQUEST: 'Yêu cầu thu hồi',
     RECALL: 'Yêu cầu thu hồi',
+
+    // Thu hồi hàng loạt (NCL-08-CN-011) — DB lưu "bulk_recall_request" (in thường),
+    // hàm đã chuẩn hóa toUpperCase() trước khi so khớp.
+    BULK_RECALL_REQUEST: 'Yêu cầu thu hồi hàng loạt',
+    BULKRECALLREQUEST: 'Yêu cầu thu hồi hàng loạt',
     WAREHOUSE_RECEIPT: 'Phiếu nhập kho',
     WAREHOUSERECEIPT: 'Phiếu nhập kho',
     INPUT_MATERIAL: 'Vật tư nông nghiệp',

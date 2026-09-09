@@ -230,7 +230,7 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
                 feedbackId, RecallRequestStatus.PENDING)) {
             throw new BusinessException(
                     HttpStatus.CONFLICT,
-                    "Phải xử lý xong đề nghị thu hồi trước khi đóng phản ánh");
+                    "Phải xử lý xong yêu cầu thu hồi trước khi đóng phản ánh");
         }
 
         User currentUser = userRepository.findById(SecurityUtils.getCurrentUserDetails().getUserId())
@@ -247,7 +247,7 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
     @Override
     @Transactional
     @Auditable(action = "ESCALATE_PRODUCT_FEEDBACK_TO_RECALL", entityType = "PRODUCT_FEEDBACK",
-            description = "'Chuyển phản ánh sang đề nghị thu hồi ID: ' + #feedbackId"
+            description = "'Chuyển phản ánh sang yêu cầu thu hồi ID: ' + #feedbackId"
                     + " + ', lý do: ' + #request.reason")
     public RecallRequestResponse createRecallRequest(
             UUID feedbackId,
@@ -257,16 +257,16 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
         ensureAssigned(feedback);
 
         if (feedback.getStatus() != ProductFeedbackStatus.IN_PROGRESS) {
-            throw new BusinessException(HttpStatus.CONFLICT, "Phản ánh phải đang được xử lý trước khi đề nghị thu hồi");
+            throw new BusinessException(HttpStatus.CONFLICT, "Phản ánh phải đang được xử lý trước khi yêu cầu thu hồi");
         }
         if (feedback.getSeverity() == ProductFeedbackSeverity.INFORMATION) {
-            throw new BusinessException("Chỉ phản ánh nghi ngờ chất lượng hoặc tem giả mới được đề nghị thu hồi");
+            throw new BusinessException("Chỉ phản ánh nghi ngờ chất lượng hoặc tem giả mới được yêu cầu thu hồi");
         }
         if (recallRequestRepository.existsBySourceFeedback_IdAndStatus(
                 feedbackId, RecallRequestStatus.PENDING)) {
             throw new BusinessException(
                     HttpStatus.CONFLICT,
-                    "Phản ánh đã có đề nghị thu hồi đang chờ duyệt");
+                    "Phản ánh đã có yêu cầu thu hồi đang chờ duyệt");
         }
 
         RecallRequestResponse response = recallRequestService.createFromFeedback(

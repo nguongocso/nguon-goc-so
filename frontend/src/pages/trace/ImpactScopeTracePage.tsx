@@ -12,7 +12,7 @@ import {exportImpactScopeReport, getImpactScopeTrace} from '@/api/impactScopeTra
 import type {ImpactScopeTraceResponse} from '@/types/impactScopeTrace';
 import {useSetBreadcrumb} from '@/components/common/AppBreadcrumb';
 import {HelpButton} from '@/components/help/HelpButton';
-import {BulkRecallRequestModal} from '@/components/recall/BulkRecallRequestModal';
+
 
 export const ImpactScopeTracePage: React.FC = () => {
     const navigate = useNavigate();
@@ -28,7 +28,6 @@ export const ImpactScopeTracePage: React.FC = () => {
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [traceData, setTraceData] = useState<ImpactScopeTraceResponse | null>(null);
     const [showExportMenu, setShowExportMenu] = useState<boolean>(false);
-    const [bulkRecallModalOpen, setBulkRecallModalOpen] = useState<boolean>(false);
 
     const formatStatus = (status: string): string => {
         if (!status) return '';
@@ -529,34 +528,19 @@ export const ImpactScopeTracePage: React.FC = () => {
                 </div>
             )}
 
-            {/* Nút tạo đề nghị thu hồi theo phạm vi ảnh hưởng (NCL-08-CN-011) */}
+            {/* Nút tạo yêu cầu thu hồi theo phạm vi ảnh hưởng (NCL-08-CN-011) */}
             {traceData && traceData.shipments && traceData.shipments.length > 0 && (
                 <div className="mt-6 flex justify-end">
                     <button
-                        onClick={() => setBulkRecallModalOpen(true)}
+                        onClick={() => navigate(`/production-lots/${traceData.productionLot.id}/create-bulk-recall-request`)}
                         className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14m-7-7h14"/>
                         </svg>
-                        Tạo đề nghị thu hồi
+                        Tạo yêu cầu thu hồi
                     </button>
                 </div>
-            )}
-
-            {/* Modal tạo đề nghị thu hồi hàng loạt (NCL-08-CN-011) */}
-            {traceData && (
-                <BulkRecallRequestModal
-                    open={bulkRecallModalOpen}
-                    onOpenChange={setBulkRecallModalOpen}
-                    productionLotId={traceData.productionLot.id}
-                    productionLotName={traceData.productionLot.code}
-                    shipments={traceData.shipments}
-                    onSuccess={(requestId) => {
-                        setBulkRecallModalOpen(false);
-                        navigate(`/recall-requests/bulk/${requestId}`);
-                    }}
-                />
             )}
         </div>
     );

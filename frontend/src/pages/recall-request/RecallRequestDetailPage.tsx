@@ -217,7 +217,7 @@ export const RecallRequestDetailPage = () => {
             <div>
               {isOwnRequest ? (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  Bạn là người tạo yêu cầu này và không thể tự duyệt (QTN-22).
+                  Bạn là người tạo yêu cầu này và không thể tự duyệt.
                 </div>
               ) : (
                 <div className="flex items-center justify-end gap-2">

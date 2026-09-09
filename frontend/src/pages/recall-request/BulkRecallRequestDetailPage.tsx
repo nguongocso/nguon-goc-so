@@ -37,10 +37,10 @@ const SHIPMENT_STATUS_MAP: Record<string, { label: string; tone: 'success' | 'wa
 };
 
 /**
- * Trang chi tiết đề nghị thu hồi hàng loạt (NCL-08-CN-011).
+ * Trang chi tiết yêu cầu thu hồi hàng loạt (NCL-08-CN-011).
  * 
  * Hiển thị:
- * - Thông tin đề nghị
+ * - Thông tin yêu cầu
  * - Danh sách lô hàng trong phạm vi
  * - Nút phê duyệt/từ chối (nếu có quyền)
  */
@@ -64,7 +64,7 @@ export const BulkRecallRequestDetailPage = () => {
       const data = await getBulkRecallRequest(id);
       setRequest(data);
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Không thể tải đề nghị thu hồi');
+      toast.error(err.response?.data?.message || 'Không thể tải yêu cầu thu hồi');
     } finally {
       setLoading(false);
     }
@@ -97,14 +97,14 @@ export const BulkRecallRequestDetailPage = () => {
         remarks: remarks.trim() || undefined,
       });
       toast.success(
-        `Đã phê duyệt đề nghị thu hồi. Tổng số lô chuyển sang trạng thái "Đã thu hồi": ${
+        `Đã phê duyệt yêu cầu thu hồi. Tổng số lô chuyển sang trạng thái "Đã thu hồi": ${
           result.shipments?.filter(s => s.included).length || 0
         }`,
       );
       setApproveDialogOpen(false);
       load(); // Refresh data
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Không thể phê duyệt đề nghị');
+      toast.error(err.response?.data?.message || 'Không thể phê duyệt yêu cầu');
     } finally {
       setActionLoading(false);
     }
@@ -119,11 +119,11 @@ export const BulkRecallRequestDetailPage = () => {
     try {
       setActionLoading(true);
       await rejectBulkRecallRequest(id, { reason: rejectionReason.trim() });
-      toast.success('Đã từ chối đề nghị thu hồi');
+      toast.success('Đã từ chối yêu cầu thu hồi');
       setRejectDialogOpen(false);
       load(); // Refresh data
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Không thể từ chối đề nghị');
+      toast.error(err.response?.data?.message || 'Không thể từ chối yêu cầu');
     } finally {
       setActionLoading(false);
     }
@@ -141,7 +141,7 @@ export const BulkRecallRequestDetailPage = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-500">
         <XCircle className="w-12 h-12 mb-4" />
-        <p>Không tìm thấy đề nghị thu hồi</p>
+        <p>Không tìm thấy yêu cầu thu hồi</p>
         <Button variant="outline" className="mt-4" onClick={() => navigate('/recall-requests')}>
           Quay lại danh sách
         </Button>
@@ -158,10 +158,10 @@ export const BulkRecallRequestDetailPage = () => {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">
-            Đề nghị thu hồi hàng loạt
+            Yêu cầu thu hồi hàng loạt
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Mã đề nghị: {request.id}
+            Mã yêu cầu: {request.id}
           </p>
         </div>
         <StatusBadge
@@ -170,10 +170,10 @@ export const BulkRecallRequestDetailPage = () => {
         />
       </div>
 
-      {/* Thông tin đề nghị */}
+      {/* Thông tin yêu cầu */}
       <Card>
         <CardContent className="p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Thông tin đề nghị</h2>
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Thông tin yêu cầu</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-slate-500">Lô sản xuất nguồn:</span>
@@ -206,9 +206,9 @@ export const BulkRecallRequestDetailPage = () => {
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-amber-800">Bạn là người tạo đề nghị này</p>
+            <p className="text-sm font-medium text-amber-800">Bạn là người tạo yêu cầu này</p>
             <p className="text-sm text-amber-700 mt-1">
-              Người tạo đề nghị không được tự phê duyệt (QTN-22). Vui lòng chờ quản lý khác xét duyệt.
+              Người tạo yêu cầu không được tự phê duyệt. Vui lòng chờ quản lý khác xét duyệt.
             </p>
           </div>
         </div>
@@ -238,7 +238,7 @@ export const BulkRecallRequestDetailPage = () => {
         <Card>
           <CardContent className="p-6">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">
-              Lô bị loại khỏi phạm vi ({excludedShipments.length} lô)
+              Lô bị loại khỏi phạm vi thu hồi ({excludedShipments.length} lô)
             </h2>
             <div className="space-y-2">
               {excludedShipments.map((shipment) => (
@@ -311,7 +311,7 @@ export const BulkRecallRequestDetailPage = () => {
       <AlertDialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Phê duyệt đề nghị thu hồi hàng loạt</AlertDialogTitle>
+                        <AlertDialogTitle>Phê duyệt yêu cầu thu hồi hàng loạt</AlertDialogTitle>
           </AlertDialogHeader>
           <div className="space-y-4">
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
@@ -349,7 +349,7 @@ export const BulkRecallRequestDetailPage = () => {
       <AlertDialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Từ chối đề nghị thu hồi</AlertDialogTitle>
+            <AlertDialogTitle>Từ chối yêu cầu thu hồi</AlertDialogTitle>
           </AlertDialogHeader>
           <div className="space-y-2">
             <Label htmlFor="rejectionReason">
@@ -357,7 +357,7 @@ export const BulkRecallRequestDetailPage = () => {
             </Label>
             <Textarea
               id="rejectionReason"
-              placeholder="Nhập lý do từ chối đề nghị này..."
+              placeholder="Nhập lý do từ chối yêu cầu này..."
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               className="min-h-[80px]"
@@ -376,7 +376,7 @@ export const BulkRecallRequestDetailPage = () => {
 };
 
 /**
- * Component hiển thị thông tin lô hàng trong đề nghị thu hồi.
+ * Component hiển thị thông tin lô hàng trong yêu cầu thu hồi.
  */
 const ShipmentItem: React.FC<{ shipment: BulkRecallShipmentItem; excluded?: boolean }> = ({
   shipment,

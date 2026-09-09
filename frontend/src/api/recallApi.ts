@@ -127,7 +127,7 @@ export const rejectRecallRequest = async (
 // =========================================================
 
 /**
- * Tạo đề nghị thu hồi hàng loạt theo phạm vi ảnh hưởng (VT-02).
+ * Tạo yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng (VT-02).
  * POST /api/v1/recall-requests/bulk
  */
 export const createBulkRecallRequest = async (
@@ -141,7 +141,7 @@ export const createBulkRecallRequest = async (
 };
 
 /**
- * Lấy danh sách đề nghị thu hồi hàng loạt (VT-02), hỗ trợ lọc theo trạng thái + phân trang.
+ * Lấy danh sách yêu cầu thu hồi hàng loạt (VT-02), hỗ trợ lọc theo trạng thái + phân trang.
  * GET /api/v1/recall-requests/bulk?status=&page=&size=
  */
 export const getBulkRecallRequests = async (
@@ -155,7 +155,7 @@ export const getBulkRecallRequests = async (
 };
 
 /**
- * Lấy chi tiết một đề nghị thu hồi hàng loạt (VT-02).
+ * Lấy chi tiết một yêu cầu thu hồi hàng loạt (VT-02).
  * GET /api/v1/recall-requests/bulk/{id}
  */
 export const getBulkRecallRequest = async (id: string): Promise<BulkRecallRequest> => {
@@ -166,7 +166,7 @@ export const getBulkRecallRequest = async (id: string): Promise<BulkRecallReques
 };
 
 /**
- * Phê duyệt đề nghị thu hồi hàng loạt (VT-02).
+ * Phê duyệt yêu cầu thu hồi hàng loạt (VT-02).
  * PUT /api/v1/recall-requests/bulk/{id}/approve
  */
 export const approveBulkRecallRequest = async (
@@ -181,7 +181,7 @@ export const approveBulkRecallRequest = async (
 };
 
 /**
- * Từ chối đề nghị thu hồi hàng loạt (VT-02).
+ * Từ chối yêu cầu thu hồi hàng loạt (VT-02).
  * PUT /api/v1/recall-requests/bulk/{id}/reject
  */
 export const rejectBulkRecallRequest = async (
