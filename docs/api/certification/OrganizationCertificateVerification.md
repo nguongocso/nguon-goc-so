@@ -7,6 +7,7 @@
 | Jira Story | `NCL-696` – Quản trị viên xác thực chứng nhận của tổ chức |
 | Mã backlog | `NCL-09-CN-012` |
 | Epic | `NCL-09` – Quản trị danh mục, chứng nhận và thành viên nâng cao |
+| Tên nhánh | `feature/organization-certificate-verification` |
 | Vai trò xử lý | `VT-01` – Quản trị viên nền tảng |
 | Quy tắc | `QTN-34`, `QTN-13` |
 | Xác thực | JWT Bearer token |
