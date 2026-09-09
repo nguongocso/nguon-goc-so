@@ -1345,17 +1345,16 @@ public class ChainEventServiceImpl implements ChainEventService {
     public CoopWarehouseEventResponse recordWarehouseEntryEvent(RecordWarehouseEntryRequest request, CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
 
-        ProductionLot lot = productionLotRepository.findById(request.getProductionLotId())
-                .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất."));
+        Shipment shipment = shipmentRepository.findById(request.getShipmentId())
+                .orElseThrow(() -> new BusinessException("Không tìm thấy lô hàng."));
+
+        ProductionLot lot = shipment.getProductionLot();
 
         try {
-            validateOrganization(lot, currentUser);
+            validateOrganization(shipment, currentUser);
 
-            if (lot.getStatus() == ProductionLotStatus.CANCELLED) {
-                throw new BusinessException("Lô sản xuất đã bị hủy, không thể ghi sự kiện.");
-            }
-            if (lot.getStatus() != ProductionLotStatus.PACKAGED) {
-                throw new BusinessException("Lô hàng chưa ở trạng thái đã đóng gói.");
+            if (shipment.getStatus() == ShipmentStatus.RECALLED) {
+                throw new BusinessException("Lô hàng đã bị thu hồi, không thể ghi sự kiện.");
             }
 
             LocalDateTime entryTime = request.getEntryTime();
@@ -1364,21 +1363,26 @@ public class ChainEventServiceImpl implements ChainEventService {
                 throw new BusinessException("Thời điểm nhập kho không được ở tương lai.");
             }
 
-            // TC-04: Kiểm tra không cho ghi 2 lần nhập kho liên tiếp cho cùng lô khi chưa xuất kho
-            List<ChainEvent> entryEvents = chainEventRepository.findEventsByProductionLotIdAndEventType(
-                    lot.getId(), lot.getId().toString(), ChainEventType.WAREHOUSE_ENTRY);
-            List<ChainEvent> exitEvents = chainEventRepository.findEventsByProductionLotIdAndEventType(
-                    lot.getId(), lot.getId().toString(), ChainEventType.WAREHOUSE_EXIT);
+            // TC-04: Kiểm tra không cho ghi 2 lần nhập kho liên tiếp cho cùng lô hàng khi chưa xuất kho
+            List<ChainEvent> shipmentEvents = chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId());
+            List<ChainEvent> entryEvents = shipmentEvents.stream()
+                    .filter(e -> e.getEventType() == ChainEventType.WAREHOUSE_ENTRY)
+                    .sorted((a, b) -> b.getRecordedAt().compareTo(a.getRecordedAt()))
+                    .toList();
+            List<ChainEvent> exitEvents = shipmentEvents.stream()
+                    .filter(e -> e.getEventType() == ChainEventType.WAREHOUSE_EXIT)
+                    .sorted((a, b) -> b.getRecordedAt().compareTo(a.getRecordedAt()))
+                    .toList();
 
             if (!entryEvents.isEmpty()) {
                 LocalDateTime latestEntryRecorded = entryEvents.get(0).getRecordedAt();
                 boolean isExited = !exitEvents.isEmpty() && !exitEvents.get(0).getRecordedAt().isBefore(latestEntryRecorded);
                 if (!isExited) {
-                    throw new BusinessException("Lô hàng đang nằm trong kho HTX, vui lòng ghi xuất kho trước khi nhập kho mới.");
+                    throw new BusinessException("Lô hàng [" + shipment.getName() + "] hiện đang trong kho HTX, vui lòng ghi xuất kho trước khi nhập kho mới.");
                 }
             }
         } catch (BusinessException e) {
-            eventValidationService.logFailedAttempt(request.getProductionLotId(), lot.getName(),
+            eventValidationService.logFailedAttempt(shipment.getId(), shipment.getName(),
                     ChainEventType.WAREHOUSE_ENTRY, e.getMessage(), currentUser);
             throw e;
         }
@@ -1386,8 +1390,12 @@ public class ChainEventServiceImpl implements ChainEventService {
         Point locationPoint = buildPoint(request.getLatitude(), request.getLongitude());
 
         Map<String, Object> eventDataMap = new HashMap<>();
-        eventDataMap.put("productionLotId", lot.getId().toString());
-        eventDataMap.put("productionLotName", lot.getName());
+        eventDataMap.put("shipmentId", shipment.getId().toString());
+        eventDataMap.put("shipmentName", shipment.getName());
+        if (lot != null) {
+            eventDataMap.put("productionLotId", lot.getId().toString());
+            eventDataMap.put("productionLotName", lot.getName());
+        }
         eventDataMap.put("warehouseName", request.getWarehouseName());
         eventDataMap.put("entryTime", request.getEntryTime().toString());
         if (request.getStorageCondition() != null) {
@@ -1405,6 +1413,7 @@ public class ChainEventServiceImpl implements ChainEventService {
         User actor = getActor(currentUser);
 
         ChainEvent chainEvent = ChainEvent.builder()
+                .shipment(shipment)
                 .eventType(ChainEventType.WAREHOUSE_ENTRY)
                 .eventData(eventDataJson)
                 .location(locationPoint)
@@ -1416,13 +1425,15 @@ public class ChainEventServiceImpl implements ChainEventService {
 
         chainEvent = saveWithChainHash(chainEvent);
 
-        publishActivityLog(currentUser, "Ghi sự kiện nhập kho HTX cho lô hàng " + lot.getName(),
+        publishActivityLog(currentUser, "Ghi sự kiện nhập kho HTX cho lô hàng " + shipment.getName(),
                 "ChainEvent", chainEvent.getId().toString());
 
         return CoopWarehouseEventResponse.builder()
                 .id(chainEvent.getId())
-                .productionLotId(lot.getId())
-                .productionLotName(lot.getName())
+                .shipmentId(shipment.getId())
+                .shipmentName(shipment.getName())
+                .productionLotId(lot != null ? lot.getId() : null)
+                .productionLotName(lot != null ? lot.getName() : null)
                 .eventType(ChainEventType.WAREHOUSE_ENTRY)
                 .warehouseName(request.getWarehouseName())
                 .entryTime(request.getEntryTime())
@@ -1442,8 +1453,10 @@ public class ChainEventServiceImpl implements ChainEventService {
     public CoopWarehouseEventResponse recordWarehouseExitEvent(RecordWarehouseExitRequest request, CustomUserDetails currentUser) {
         validateEventPermission(currentUser);
 
-        ProductionLot lot = productionLotRepository.findById(request.getProductionLotId())
-                .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất."));
+        Shipment shipment = shipmentRepository.findById(request.getShipmentId())
+                .orElseThrow(() -> new BusinessException("Không tìm thấy lô hàng."));
+
+        ProductionLot lot = shipment.getProductionLot();
 
         ChainEvent latestEntry = null;
         LocalDateTime entryTime = null;
@@ -1451,25 +1464,30 @@ public class ChainEventServiceImpl implements ChainEventService {
         String storageCondition = null;
 
         try {
-            validateOrganization(lot, currentUser);
+            validateOrganization(shipment, currentUser);
 
-            if (lot.getStatus() == ProductionLotStatus.CANCELLED) {
-                throw new BusinessException("Lô sản xuất đã bị hủy, không thể ghi sự kiện.");
+            if (shipment.getStatus() == ShipmentStatus.RECALLED) {
+                throw new BusinessException("Lô hàng đã bị thu hồi, không thể ghi sự kiện.");
             }
 
             // TC-02: Chặn xuất kho khi chưa có sự kiện nhập kho HTX trước đó
-            List<ChainEvent> entryEvents = chainEventRepository.findEventsByProductionLotIdAndEventType(
-                    lot.getId(), lot.getId().toString(), ChainEventType.WAREHOUSE_ENTRY);
-            List<ChainEvent> exitEvents = chainEventRepository.findEventsByProductionLotIdAndEventType(
-                    lot.getId(), lot.getId().toString(), ChainEventType.WAREHOUSE_EXIT);
+            List<ChainEvent> shipmentEvents = chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId());
+            List<ChainEvent> entryEvents = shipmentEvents.stream()
+                    .filter(e -> e.getEventType() == ChainEventType.WAREHOUSE_ENTRY)
+                    .sorted((a, b) -> b.getRecordedAt().compareTo(a.getRecordedAt()))
+                    .toList();
+            List<ChainEvent> exitEvents = shipmentEvents.stream()
+                    .filter(e -> e.getEventType() == ChainEventType.WAREHOUSE_EXIT)
+                    .sorted((a, b) -> b.getRecordedAt().compareTo(a.getRecordedAt()))
+                    .toList();
 
             if (entryEvents.isEmpty()) {
-                throw new BusinessException("Chưa có sự kiện nhập kho HTX cho lô hàng này, không thể ghi xuất kho.");
+                throw new BusinessException("Lô hàng [" + shipment.getName() + "] chưa được ghi nhận nhập kho HTX. Vui lòng ghi sự kiện nhập kho trước khi xuất kho.");
             }
 
             latestEntry = entryEvents.get(0);
             if (!exitEvents.isEmpty() && !exitEvents.get(0).getRecordedAt().isBefore(latestEntry.getRecordedAt())) {
-                throw new BusinessException("Chưa có sự kiện nhập kho HTX cho lô hàng này, không thể ghi xuất kho.");
+                throw new BusinessException("Lô hàng [" + shipment.getName() + "] chưa được ghi nhận nhập kho HTX. Vui lòng ghi sự kiện nhập kho trước khi xuất kho.");
             }
 
             if (latestEntry.getEventData() != null) {
@@ -1501,7 +1519,7 @@ public class ChainEventServiceImpl implements ChainEventService {
                 throw new BusinessException("Thời điểm xuất kho không được trước thời điểm nhập kho.");
             }
         } catch (BusinessException e) {
-            eventValidationService.logFailedAttempt(request.getProductionLotId(), lot.getName(),
+            eventValidationService.logFailedAttempt(shipment.getId(), shipment.getName(),
                     ChainEventType.WAREHOUSE_EXIT, e.getMessage(), currentUser);
             throw e;
         }
@@ -1511,7 +1529,7 @@ public class ChainEventServiceImpl implements ChainEventService {
         long storageDurationDays = java.time.Duration.between(entryTime, request.getExitTime()).toDays();
 
         Integer maxAllowedStorageDays = null;
-        if (lot.getProductCategory() != null) {
+        if (lot != null && lot.getProductCategory() != null) {
             maxAllowedStorageDays = lot.getProductCategory().getMaxStorageDays();
         }
 
@@ -1519,15 +1537,19 @@ public class ChainEventServiceImpl implements ChainEventService {
         String warningMessage = null;
         if (maxAllowedStorageDays != null && storageDurationDays > maxAllowedStorageDays) {
             isStorageExceeded = true;
-            String categoryName = lot.getProductCategory() != null ? lot.getProductCategory().getName() : "";
+            String categoryName = (lot != null && lot.getProductCategory() != null) ? lot.getProductCategory().getName() : "";
             warningMessage = "CẢNH BÁO: Thời gian lưu kho (" + storageDurationDays + " ngày) vượt quá ngưỡng bảo quản cho phép (" + maxAllowedStorageDays + " ngày) cho loại nông sản [" + categoryName + "]";
         }
 
         Point locationPoint = buildPoint(request.getLatitude(), request.getLongitude());
 
         Map<String, Object> eventDataMap = new HashMap<>();
-        eventDataMap.put("productionLotId", lot.getId().toString());
-        eventDataMap.put("productionLotName", lot.getName());
+        eventDataMap.put("shipmentId", shipment.getId().toString());
+        eventDataMap.put("shipmentName", shipment.getName());
+        if (lot != null) {
+            eventDataMap.put("productionLotId", lot.getId().toString());
+            eventDataMap.put("productionLotName", lot.getName());
+        }
         eventDataMap.put("warehouseName", warehouseName);
         eventDataMap.put("entryTime", entryTime.toString());
         eventDataMap.put("exitTime", request.getExitTime().toString());
@@ -1555,6 +1577,7 @@ public class ChainEventServiceImpl implements ChainEventService {
         User actor = getActor(currentUser);
 
         ChainEvent chainEvent = ChainEvent.builder()
+                .shipment(shipment)
                 .eventType(ChainEventType.WAREHOUSE_EXIT)
                 .eventData(eventDataJson)
                 .location(locationPoint)
@@ -1566,13 +1589,15 @@ public class ChainEventServiceImpl implements ChainEventService {
 
         chainEvent = saveWithChainHash(chainEvent);
 
-        publishActivityLog(currentUser, "Ghi sự kiện xuất kho HTX cho lô hàng " + lot.getName(),
+        publishActivityLog(currentUser, "Ghi sự kiện xuất kho HTX cho lô hàng " + shipment.getName(),
                 "ChainEvent", chainEvent.getId().toString());
 
         return CoopWarehouseEventResponse.builder()
                 .id(chainEvent.getId())
-                .productionLotId(lot.getId())
-                .productionLotName(lot.getName())
+                .shipmentId(shipment.getId())
+                .shipmentName(shipment.getName())
+                .productionLotId(lot != null ? lot.getId() : null)
+                .productionLotName(lot != null ? lot.getName() : null)
                 .eventType(ChainEventType.WAREHOUSE_EXIT)
                 .warehouseName(warehouseName)
                 .entryTime(entryTime)

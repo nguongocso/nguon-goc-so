@@ -23,6 +23,8 @@ import java.util.UUID;
 public class CoopWarehouseEventResponse {
 
     private UUID id;
+    private UUID shipmentId;
+    private String shipmentName;
     private UUID productionLotId;
     private String productionLotName;
     private ChainEventType eventType;

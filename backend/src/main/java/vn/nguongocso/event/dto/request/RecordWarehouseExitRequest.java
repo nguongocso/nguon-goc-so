@@ -19,8 +19,8 @@ import java.util.UUID;
 @Setter
 public class RecordWarehouseExitRequest {
 
-    @NotNull(message = "Vui lòng chọn lô sản xuất")
-    private UUID productionLotId;
+    @NotNull(message = "Vui lòng chọn lô hàng")
+    private UUID shipmentId;
 
     @NotNull(message = "Vui lòng nhập thời điểm xuất kho")
     private LocalDateTime exitTime;
