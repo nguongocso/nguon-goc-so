@@ -43,6 +43,7 @@ import vn.nguongocso.trace.entity.CodeRange;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
+import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.CodeRangeRepository;
 import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
@@ -653,9 +654,13 @@ public class ShipmentServiceImpl implements ShipmentService {
         UUID currentOrgId = currentUser.getOrganizationId();
         Set<UUID> relatedShipmentIds = new HashSet<>();
 
-        // Lô được bàn giao cho tổ chức hiện tại (bất kể trạng thái phiếu).
+        // Lô đang có phiếu bàn giao hoạt động cho tổ chức hiện tại (chờ xác nhận
+        // hoặc đã xác nhận). Loại các phiếu REJECTED/EXPIRED/CANCELLED: lô không
+        // còn giao dịch sống với tổ chức thì không đưa vào dashboard thu mua.
         shipmentHandoverRepository.findByToOrganizationOrganizationId(currentOrgId)
                 .stream()
+                .filter(handover -> handover.getStatus() == ShipmentHandoverStatus.PENDING_CONFIRMATION
+                        || handover.getStatus() == ShipmentHandoverStatus.ACCEPTED)
                 .map(handover -> handover.getShipment().getId())
                 .forEach(relatedShipmentIds::add);
 

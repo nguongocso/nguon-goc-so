@@ -424,13 +424,16 @@ npm run build                                        # exit 0
 
 **Bước:**
 1. Đăng nhập `procurement/admin123` (VT-04, DEMO_NSV) → Dashboard thu mua → danh sách lô.
-2. Verify danh sách chỉ gồm: lô **được bàn giao cho DEMO_NSV** (bất kể trạng thái phiếu),
-   lô đã ghi sự kiện `PROCUREMENT`/`WAREHOUSE_RECEIPT` bởi DEMO_NSV.
+2. Verify danh sách chỉ gồm: lô **đang có phiếu bàn giao hoạt động cho DEMO_NSV**
+   (`PENDING_CONFIRMATION`/`ACCEPTED` — loại bỏ REJECTED/EXPIRED/CANCELLED),
+   hoặc lô đã ghi sự kiện `PROCUREMENT`/`WAREHOUSE_RECEIPT` bởi DEMO_NSV.
 
 **Kết quả mong đợi**
-- Trước đây API trả **tất cả** lô ACTIVATED → giờ lọc theo org (`handover.toOrganization`
-  ∪ `chain_events.recorded_organization_id` với PROUREMENT/WAREHOUSE_RECEIPT, `is_correction=false`).
-- Lô chỉ bàn giao cho tổ chức khác / không có sự kiện của org → **không xuất hiện**.
+- Trước đây API trả **tất cả** lô ACTIVATED → giờ lọc theo org trong quá khứ gồm
+  `handover.toOrganization` với phiếu **đang hoạt động** ∪ `chain_events.recorded_organization_id`
+  với PROCUREMENT/WAREHOUSE_RECEIPT, `is_correction=false`.
+- Lô chỉ bàn giao cho tổ chức khác / phiếu bị **từ chối (REJECTED)** → **không xuất hiện**
+  (lô không còn giao dịch sống với tổ chức).
 - Empty state: "Chưa có lô hàng nào được thu mua, bàn giao hoặc nhập kho cho tổ chức của bạn."
 - `GET /api/v1/shipments/eligible` (VT-04) → 200; user khác + admin → 403 (`@PreAuthorize VT-04`).
 

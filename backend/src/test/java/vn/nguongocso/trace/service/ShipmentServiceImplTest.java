@@ -47,6 +47,7 @@ import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.ShipmentHandover;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
+import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.CodeRangeRepository;
 import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
@@ -730,6 +731,7 @@ class ShipmentServiceImplTest {
         ShipmentHandover handoverToCurrentOrg = ShipmentHandover.builder()
                 .shipment(shipmentA)
                 .toOrganization(organization)
+                .status(ShipmentHandoverStatus.PENDING_CONFIRMATION)
                 .build();
 
         when(shipmentHandoverRepository.findByToOrganizationOrganizationId(organizationId))
@@ -748,6 +750,48 @@ class ShipmentServiceImplTest {
         assertThat(result)
                 .extracting(ProcurementShipmentResponse::getId)
                 .containsExactly(shipmentFromHandover, shipmentFromProcurement);
+    }
+
+    /**
+     * Lô có phiếu bàn giao bị TỪ CHỐI (REJECTED) nhắm tới tổ chức hiện tại thì
+     * coi như không còn giao dịch sống → KHÔNG đưa lô vào dashboard thu mua (VT-04).
+     * Trạng thái EXPIRED/CANCELLED cũng bị loại tương tự.
+     */
+    @Test
+    void getEligibleShipments_ShouldExcludeShipmentWithRejectedHandover() {
+        // Arrange
+        UUID rejectedShipmentId = UUID.randomUUID();
+
+        Shipment rejectedShipment = activatedShipment(rejectedShipmentId, "Lô bị từ chối bàn giao");
+        Shipment pendingShipment = activatedShipment(UUID.randomUUID(), "Lô đang chờ xác nhận");
+
+        ShipmentHandover rejectedHandover = ShipmentHandover.builder()
+                .shipment(rejectedShipment)
+                .toOrganization(organization)
+                .status(ShipmentHandoverStatus.REJECTED)
+                .build();
+        ShipmentHandover pendingHandover = ShipmentHandover.builder()
+                .shipment(pendingShipment)
+                .toOrganization(organization)
+                .status(ShipmentHandoverStatus.PENDING_CONFIRMATION)
+                .build();
+
+        when(shipmentHandoverRepository.findByToOrganizationOrganizationId(organizationId))
+                .thenReturn(List.of(rejectedHandover, pendingHandover));
+        when(chainEventRepository.findShipmentIdsByRecordedOrganizationIdAndEventTypeIn(
+                organizationId,
+                List.of(ChainEventType.PROCUREMENT, ChainEventType.WAREHOUSE_RECEIPT)))
+                .thenReturn(List.of());
+        when(shipmentRepository.findByStatusOrderByCreatedAtDesc(ShipmentStatus.ACTIVATED))
+                .thenReturn(List.of(rejectedShipment, pendingShipment));
+
+        // Act
+        List<ProcurementShipmentResponse> result = shipmentService.getEligibleShipments();
+
+        // Assert
+        assertThat(result)
+                .extracting(ProcurementShipmentResponse::getId)
+                .containsExactly(pendingShipment.getId());
     }
 
     /** Không có tổ chức hiện tại thì trả về danh sách rỗng, không truy vấn. */
