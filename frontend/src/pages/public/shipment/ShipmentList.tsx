@@ -474,20 +474,18 @@ export const ShipmentList = ({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50/80">
-                    {isSelectionMode && (
-                      <TableHead className="w-10 text-center">
-                        <input
-                          type="checkbox"
-                          className="rounded border-input"
-                          checked={
-                            filteredShipments.length > 0 &&
-                            filteredShipments.every((s: Shipment) => selectedShipmentIds.includes(s.id))
-                          }
-                          onChange={toggleSelectAllPage}
-                          title="Chọn tất cả các lô hiển thị"
-                        />
-                      </TableHead>
-                    )}
+                    <TableHead className="w-10 text-center">
+                      <input
+                        type="checkbox"
+                        className="rounded border-input"
+                        checked={
+                          filteredShipments.length > 0 &&
+                          filteredShipments.every((s: Shipment) => selectedShipmentIds.includes(s.id))
+                        }
+                        onChange={toggleSelectAllPage}
+                        title="Chọn tất cả các lô hiển thị"
+                      />
+                    </TableHead>
                     <TableHead className="font-semibold text-slate-700">Tên lô hàng</TableHead>
                     <TableHead className="text-center font-semibold text-slate-700">Số lượng</TableHead>
                     <TableHead className="font-semibold text-slate-700">Quy cách</TableHead>
@@ -501,16 +499,14 @@ export const ShipmentList = ({
                 <TableBody>
                   {filteredShipments.map((shipment: Shipment) => (
                     <TableRow key={shipment.id} className="hover:bg-slate-50/60">
-                      {isSelectionMode && (
-                        <TableCell className="text-center">
-                          <input
-                            type="checkbox"
-                            className="rounded border-input"
-                            checked={selectedShipmentIds.includes(shipment.id)}
-                            onChange={() => toggleSelectShipment(shipment.id)}
-                          />
-                        </TableCell>
-                      )}
+                      <TableCell className="text-center">
+                        <input
+                          type="checkbox"
+                          className="rounded border-input"
+                          checked={selectedShipmentIds.includes(shipment.id)}
+                          onChange={() => toggleSelectShipment(shipment.id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         {shipment.name}
                       </TableCell>

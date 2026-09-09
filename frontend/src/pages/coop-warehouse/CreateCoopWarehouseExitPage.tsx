@@ -12,13 +12,15 @@ import {
   MapPin,
   FileText,
   Truck,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 
 import {
   getShipmentWarehouseStatus,
   recordWarehouseExit,
 } from "@/api/coopWarehouseApi";
-import { getShipmentById } from "@/api/shipmentApi";
+import { getShipmentById, getShipmentsByProductionLot } from "@/api/shipmentApi";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -37,7 +39,7 @@ import {
   type RecordWarehouseExitFormValues,
 } from "@/utils/validators/coopWarehouseEventSchema";
 
-interface SelectedShipmentStatus {
+interface ShipmentStatusItem {
   shipment: Shipment;
   warehouseStatus: "IN_WAREHOUSE" | "NOT_IN_WAREHOUSE";
 }
@@ -46,11 +48,12 @@ export default function CreateCoopWarehouseExitPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Đọc danh sách shipmentIds từ query string (ví dụ: ?shipmentIds=id1,id2 hoặc ?shipmentId=id1)
+  const productionLotId = searchParams.get("productionLotId") || "";
   const queryParam = searchParams.get("shipmentIds") || searchParams.get("shipmentId") || "";
   const initialShipmentIds = queryParam ? queryParam.split(",").filter(Boolean) : [];
 
-  const [selectedShipments, setSelectedShipments] = useState<SelectedShipmentStatus[]>([]);
+  const [allAvailableShipments, setAllAvailableShipments] = useState<ShipmentStatusItem[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>(initialShipmentIds);
   const [loadingShipments, setLoadingShipments] = useState(true);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -77,59 +80,94 @@ export default function CreateCoopWarehouseExitPage() {
     },
   });
 
-  // Tải thông tin lô hàng và kiểm tra trạng thái ngay lập tức khi chọn lô hàng
+  // Tải tất cả lô hàng khả dụng & kiểm tra trạng thái ngay lập tức khi chọn lô hàng
   useEffect(() => {
-    async function loadAndValidateShipments() {
-      if (initialShipmentIds.length === 0) {
-        setLoadingShipments(false);
-        return;
-      }
+    async function loadShipmentsAndStatuses() {
       try {
         setLoadingShipments(true);
         setServerError(null);
 
-        const items: SelectedShipmentStatus[] = [];
-        for (const id of initialShipmentIds) {
-          const [shipmentData, status] = await Promise.all([
-            getShipmentById(id),
-            getShipmentWarehouseStatus(id),
-          ]);
-          if (shipmentData) {
-            items.push({
-              shipment: shipmentData,
-              warehouseStatus: status,
-            });
-          }
+        let list: Shipment[] = [];
+        if (productionLotId) {
+          list = await getShipmentsByProductionLot(productionLotId);
+        } else if (initialShipmentIds.length > 0) {
+          const loaded = await Promise.all(
+            initialShipmentIds.map((id) => getShipmentById(id).catch(() => null))
+          );
+          list = loaded.filter((s): s is Shipment => s !== null);
         }
 
-        setSelectedShipments(items);
-        if (items.length > 0) {
-          setValue("shipmentId", items[0].shipment.id);
+        // Tải trạng thái kho từng lô hàng
+        const itemsWithStatus = await Promise.all(
+          list.map(async (s) => {
+            const status = await getShipmentWarehouseStatus(s.id);
+            return { shipment: s, warehouseStatus: status };
+          })
+        );
+
+        setAllAvailableShipments(itemsWithStatus);
+
+        // Mặc định chọn tất cả nếu từ URL truyền sang, hoặc chọn lô đầu tiên nếu chưa chọn
+        if (initialShipmentIds.length > 0) {
+          setSelectedIds(initialShipmentIds);
+          setValue("shipmentId", initialShipmentIds[0]);
+        } else if (itemsWithStatus.length > 0) {
+          setSelectedIds([itemsWithStatus[0].shipment.id]);
+          setValue("shipmentId", itemsWithStatus[0].shipment.id);
         }
       } catch (err) {
-        console.error("Lỗi khi kiểm tra thông tin lô hàng:", err);
+        console.error("Lỗi khi tải danh sách lô hàng:", err);
         setServerError("Không thể tải thông tin hoặc kiểm tra trạng thái lô hàng.");
       } finally {
         setLoadingShipments(false);
       }
     }
-    loadAndValidateShipments();
-  }, [queryParam, setValue]);
+    loadShipmentsAndStatuses();
+  }, [productionLotId, queryParam, setValue]);
 
-  // Kiểm tra có lô hàng nào vi phạm TC-02 (chưa nhập kho) hay không
-  const invalidShipments = selectedShipments.filter(
+  const toggleSelectShipment = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id];
+      if (next.length > 0) {
+        setValue("shipmentId", next[0]);
+      } else {
+        setValue("shipmentId", "");
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === allAvailableShipments.length) {
+      setSelectedIds([]);
+      setValue("shipmentId", "");
+    } else {
+      const allIds = allAvailableShipments.map((item) => item.shipment.id);
+      setSelectedIds(allIds);
+      if (allIds.length > 0) {
+        setValue("shipmentId", allIds[0]);
+      }
+    }
+  };
+
+  const selectedItems = allAvailableShipments.filter((item) =>
+    selectedIds.includes(item.shipment.id)
+  );
+
+  // KIỂM TRA LỖI VI PHẠM TC-02 (Lô chưa có sự kiện nhập kho)
+  const invalidItems = selectedItems.filter(
     (item) => item.warehouseStatus === "NOT_IN_WAREHOUSE"
   );
-  const hasValidationError = invalidShipments.length > 0;
+  const hasValidationError = invalidItems.length > 0;
 
   const onSubmit = async (values: RecordWarehouseExitFormValues) => {
-    if (selectedShipments.length === 0) {
-      toast.error("Vui lòng chọn ít nhất một lô hàng hợp lệ.");
+    if (selectedItems.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một lô hàng để ghi sự kiện.");
       return;
     }
 
     if (hasValidationError) {
-      toast.error("Vui lòng nhập kho cho các lô hàng chưa ở trong kho trước khi ghi xuất kho.");
+      toast.error("Vui lòng nhập kho cho các lô hàng chưa ở trong kho trước khi ghi xuất kho (TC-02).");
       return;
     }
 
@@ -139,7 +177,7 @@ export default function CreateCoopWarehouseExitPage() {
       let failMessage = "";
       let hasWarning = false;
 
-      for (const item of selectedShipments) {
+      for (const item of selectedItems) {
         const payload = {
           ...values,
           shipmentId: item.shipment.id,
@@ -156,7 +194,7 @@ export default function CreateCoopWarehouseExitPage() {
         }
       }
 
-      if (successCount === selectedShipments.length) {
+      if (successCount === selectedItems.length) {
         if (hasWarning) {
           toast.warning(`Ghi xuất kho HTX thành công cho ${successCount} lô hàng (Cảnh báo: Có lô vượt quá ngưỡng bảo quản).`);
         } else {
@@ -188,7 +226,7 @@ export default function CreateCoopWarehouseExitPage() {
                 Ghi sự kiện xuất kho HTX
               </CardTitle>
               <p className="text-sm text-amber-800 mt-0.5">
-                Ghi nhận thời điểm lô hàng rời kho hợp tác xã để chuyển đi thu mua hoặc vận chuyển.
+                Ghi nhận thời điểm các lô hàng rời kho hợp tác xã để chuyển đi thu mua hoặc vận chuyển.
               </p>
             </div>
           </div>
@@ -203,57 +241,91 @@ export default function CreateCoopWarehouseExitPage() {
               </div>
             )}
 
-            {/* Thẻ danh sách lô hàng đã chọn */}
+            {/* BỘ CHỌN LÔ HÀNG (Shipment Selector & Status Checker) */}
             <div className="space-y-3">
-              <Label className="font-semibold text-gray-800 text-sm flex items-center gap-2">
-                <Package className="h-4 w-4 text-amber-600" />
-                Danh sách lô hàng được chọn ({selectedShipments.length})
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label className="font-semibold text-gray-800 text-sm flex items-center gap-2">
+                  <Package className="h-4 w-4 text-amber-600" />
+                  Chọn lô hàng thực hiện xuất kho <span className="text-red-500">*</span>
+                </Label>
+
+                {allAvailableShipments.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs text-amber-800 hover:bg-amber-50"
+                    onClick={toggleSelectAll}
+                  >
+                    {selectedIds.length === allAvailableShipments.length ? (
+                      <CheckSquare className="mr-1 h-3.5 w-3.5" />
+                    ) : (
+                      <Square className="mr-1 h-3.5 w-3.5" />
+                    )}
+                    {selectedIds.length === allAvailableShipments.length
+                      ? "Bỏ chọn tất cả"
+                      : "Chọn tất cả lô hàng"}
+                  </Button>
+                )}
+              </div>
 
               {loadingShipments ? (
                 <div className="p-4 bg-slate-50 border rounded-md text-sm text-slate-600 animate-pulse">
-                  Đang tải và kiểm tra trạng thái lô hàng...
+                  Đang tải danh sách lô hàng và kiểm tra trạng thái kho...
                 </div>
-              ) : selectedShipments.length === 0 ? (
+              ) : allAvailableShipments.length === 0 ? (
                 <div className="p-4 bg-amber-50 border border-amber-200 rounded-md text-amber-900 text-sm">
-                  Chưa có lô hàng nào được chọn. Vui lòng quay lại danh sách lô hàng và chọn ít nhất 1 lô.
+                  Chưa có lô hàng nào sẵn sàng cho lô sản xuất này.
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {selectedShipments.map(({ shipment, warehouseStatus }) => {
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {allAvailableShipments.map(({ shipment, warehouseStatus }) => {
+                    const isSelected = selectedIds.includes(shipment.id);
                     const isNotInWarehouse = warehouseStatus === "NOT_IN_WAREHOUSE";
+
                     return (
                       <div
                         key={shipment.id}
-                        className={`p-3.5 border rounded-lg flex items-center justify-between text-sm ${
-                          isNotInWarehouse
-                            ? "bg-red-50/80 border-red-200 text-red-900"
-                            : "bg-amber-50/50 border-amber-200 text-amber-950"
+                        onClick={() => toggleSelectShipment(shipment.id)}
+                        className={`p-3.5 border rounded-lg flex items-center justify-between cursor-pointer transition-colors text-sm ${
+                          isSelected
+                            ? isNotInWarehouse
+                              ? "bg-red-50 border-red-300 text-red-950"
+                              : "bg-amber-50 border-amber-300 text-amber-950"
+                            : "bg-white border-slate-200 hover:bg-slate-50"
                         }`}
                       >
-                        <div className="space-y-1">
-                          <p className="font-semibold flex items-center gap-2">
-                            {shipment.name}
-                            <span className="text-xs font-normal text-slate-500">
-                              (Mã: {shipment.id.substring(0, 8)}...)
-                            </span>
-                          </p>
-                          <p className="text-xs text-slate-600">
-                            Số lượng: <span className="font-medium">{shipment.totalQuantity}</span> | Quy cách:{" "}
-                            <span className="font-medium">{shipment.packagingInfo || "—"}</span>
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}}
+                            className="rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                          />
+                          <div className="space-y-0.5">
+                            <p className="font-semibold text-slate-900 flex items-center gap-2">
+                              {shipment.name}
+                              <span className="text-xs font-normal text-slate-500">
+                                (Mã: {shipment.id.substring(0, 8)}...)
+                              </span>
+                            </p>
+                            <p className="text-xs text-slate-600">
+                              Số lượng: <span className="font-medium">{shipment.totalQuantity}</span> | Quy cách:{" "}
+                              <span className="font-medium">{shipment.packagingInfo || "—"}</span>
+                            </p>
+                          </div>
                         </div>
 
                         <div>
                           {isNotInWarehouse ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-300">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-300">
                               <AlertCircle className="h-3.5 w-3.5" />
-                              Chưa nhập kho (Vi phạm TC-02)
+                              Chưa có sự kiện nhập kho (TC-02)
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
                               <CheckCircle2 className="h-3.5 w-3.5" />
-                              Đang lưu kho, sẵn sàng xuất
+                              Đang trong kho (Đã nhập)
                             </span>
                           )}
                         </div>
@@ -263,30 +335,30 @@ export default function CreateCoopWarehouseExitPage() {
                 </div>
               )}
 
-              {/* KHU VỰC THÔNG BÁO LỖI / HỢP LỆ NGAY LÚC CHỌN (Instant Validation Banner) */}
+              {/* BÁO LỖI TỨC THÌ KHI CHỌN VÀO LÔ KHÔNG HỢP LỆ (TC-02 Instant Validation Alert) */}
               {hasValidationError && (
-                <div className="p-4 bg-red-100/90 border-2 border-red-400 rounded-lg text-red-950 text-sm space-y-1">
+                <div className="p-4 bg-red-100/90 border-2 border-red-400 rounded-lg text-red-950 text-sm space-y-1.5 shadow-sm">
                   <p className="font-bold flex items-center gap-2 text-base text-red-900">
                     <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
-                    Phát hiện lỗi logic giao dịch kho (TC-02):
+                    Cảnh báo vi phạm ràng buộc nghiệp vụ (TC-02):
                   </p>
-                  {invalidShipments.map(({ shipment }) => (
-                    <p key={shipment.id} className="pl-7 text-red-800">
-                      • Lô hàng <span className="font-semibold text-red-950">"{shipment.name}"</span> chưa được ghi nhận nhập kho HTX. Hệ thống chặn và yêu cầu ghi nhập kho trước khi xuất kho.
+                  {invalidItems.map(({ shipment }) => (
+                    <p key={shipment.id} className="pl-7 text-red-900 font-medium">
+                      • Lô hàng <span className="font-bold text-red-950">"{shipment.name}"</span> chưa được ghi nhận nhập kho HTX. Hệ thống chặn và yêu cầu ghi nhập kho trước khi xuất kho.
                     </p>
                   ))}
                   <p className="pl-7 text-xs text-red-700 italic pt-1">
-                    👉 Vui lòng ghi sự kiện nhập kho cho lô hàng trên trước khi thực hiện xuất kho.
+                    👉 Nút ghi xuất kho bị khóa cho tới khi bạn bỏ chọn lô hàng vi phạm trên.
                   </p>
                 </div>
               )}
 
-              {!hasValidationError && selectedShipments.length > 0 && (
-                <div className="p-3.5 bg-emerald-100/80 border border-emerald-300 rounded-lg text-emerald-900 text-sm flex items-center gap-2.5">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-700 shrink-0" />
-                  <div>
-                    <span className="font-semibold">Tất cả {selectedShipments.length} lô hàng đều hợp lệ (đã nhập kho).</span> Hệ thống sẽ tự động tính thời gian lưu kho khi ghi nhận xuất kho.
-                  </div>
+              {!hasValidationError && selectedItems.length > 0 && (
+                <div className="p-3 bg-emerald-100/80 border border-emerald-300 rounded-lg text-emerald-900 text-sm flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-700 shrink-0" />
+                  <span>
+                    Đã chọn <span className="font-bold">{selectedItems.length}</span> lô hàng hợp lệ sẵn sàng ghi nhận xuất kho HTX.
+                  </span>
                 </div>
               )}
             </div>
@@ -369,11 +441,11 @@ export default function CreateCoopWarehouseExitPage() {
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || selectedShipments.length === 0 || hasValidationError}
+              disabled={isSubmitting || selectedItems.length === 0 || hasValidationError}
               className="bg-amber-600 hover:bg-amber-700 text-white"
             >
               <LogOut className="mr-1.5 h-4 w-4" />
-              {isSubmitting ? "Đang xử lý..." : `Ghi xuất kho (${selectedShipments.length} lô)`}
+              {isSubmitting ? "Đang xử lý..." : `Ghi xuất kho (${selectedItems.length} lô)`}
             </Button>
           </CardFooter>
         </form>
