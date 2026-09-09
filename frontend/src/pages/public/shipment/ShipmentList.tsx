@@ -305,6 +305,22 @@ export const ShipmentList = ({
             <CardTitle className="text-xl font-bold text-slate-900">Danh sách lô hàng</CardTitle>
 
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/coop-warehouse-events/entry")}
+              >
+                Nhập kho HTX
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/coop-warehouse-events/exit")}
+              >
+                Xuất kho HTX
+              </Button>
+
               {/* NCL-04-CN-007: tùy chọn yêu cầu cấp bổ sung dải mã (chỉ VT-02) */}
               {canRequestSupplement && (
                 <Button
@@ -537,6 +553,26 @@ export const ShipmentList = ({
                                     Kích hoạt
                                   </DropdownMenuItem>
                                 )}
+
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  navigate(
+                                    `/coop-warehouse-events/entry?shipmentId=${shipment.id}`
+                                  )
+                                }
+                              >
+                                Nhập kho HTX
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  navigate(
+                                    `/coop-warehouse-events/exit?shipmentId=${shipment.id}`
+                                  )
+                                }
+                              >
+                                Xuất kho HTX
+                              </DropdownMenuItem>
 
                               <DropdownMenuItem
                                 onClick={() =>
