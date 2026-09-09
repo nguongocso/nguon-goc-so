@@ -22,6 +22,6 @@ public class RejectCertificateRequest {
      * Lý do từ chối chứng nhận (bắt buộc, tối đa 1000 ký tự).
      */
     @NotBlank(message = "Lý do từ chối không được để trống")
-    @Size(max = 1000, message = "Lý do từ chối không được vượt quá 1000 ký tự")
+    @Size(min = 10, max = 1000, message = "Lý do từ chối phải từ 10 đến 1000 ký tự")
     private String rejectionReason;
 }

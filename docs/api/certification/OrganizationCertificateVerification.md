@@ -42,7 +42,7 @@ Hai trạng thái trên độc lập. Chỉ `verificationStatus = VERIFIED` và 
 ## 3. Bảo mật và phân quyền
 
 - Tất cả endpoint `/api/v1/admin/certifications/**` yêu cầu `ROLE_VT-01`.
-- Người dùng chưa đăng nhập nhận `401 Unauthorized`.
+- Người dùng chưa đăng nhập nhận `403 Forbidden` theo convention Spring Security hiện tại của dự án.
 - Người dùng có vai trò khác, bao gồm `VT-02`, nhận `403 Forbidden`.
 - Tệp chứng nhận không được phục vụ qua `/uploads/**`. API xem tệp phải kiểm tra JWT và vai trò trước khi
   trả dữ liệu, chuẩn hóa đường dẫn lưu trữ và không để lộ đường dẫn vật lý.
@@ -150,7 +150,7 @@ Authorization: Bearer <access_token>
 ### Lỗi
 
 - `400 Bad Request`: enum, UUID, phân trang hoặc trường sắp xếp không hợp lệ.
-- `401 Unauthorized`: thiếu hoặc hết hạn token.
+- `403 Forbidden`: thiếu/hết hạn token hoặc không có quyền theo convention hiện tại của dự án.
 - `403 Forbidden`: không phải `VT-01`.
 
 ## 6. Lấy chi tiết chứng nhận
@@ -163,7 +163,7 @@ Authorization: Bearer <access_token>
 ### Response
 
 - `200 OK`: trả `CertificationVerificationResponse` đầy đủ.
-- `401 Unauthorized`: thiếu hoặc hết hạn token.
+- `403 Forbidden`: thiếu/hết hạn token hoặc không có quyền theo convention hiện tại của dự án.
 - `403 Forbidden`: không phải `VT-01`.
 - `404 Not Found`: không tìm thấy chứng nhận.
 
@@ -183,7 +183,7 @@ Authorization: Bearer <access_token>
 
 ### Lỗi
 
-- `401 Unauthorized`: thiếu hoặc hết hạn token.
+- `403 Forbidden`: thiếu/hết hạn token hoặc không có quyền theo convention hiện tại của dự án.
 - `403 Forbidden`: không phải `VT-01`.
 - `404 Not Found`: không có chứng nhận hoặc tệp của chứng nhận.
 - `410 Gone`: metadata còn nhưng tệp vật lý không còn; lỗi phải được ghi log vận hành.
@@ -245,7 +245,7 @@ Content-Type: application/json
 ### Lỗi
 
 - `400 Bad Request`: `reviewNote` quá dài hoặc dữ liệu ngày không hợp lệ.
-- `401 Unauthorized`: thiếu hoặc hết hạn token.
+- `403 Forbidden`: thiếu/hết hạn token hoặc không có quyền theo convention hiện tại của dự án.
 - `403 Forbidden`: không phải `VT-01`.
 - `404 Not Found`: không tìm thấy chứng nhận.
 - `409 Conflict`: chứng nhận không còn ở `PENDING`, thiếu tệp hoặc thiếu dữ liệu bắt buộc để đối chiếu.
@@ -302,7 +302,7 @@ Content-Type: application/json
 ### Lỗi
 
 - `400 Bad Request`: thiếu lý do hoặc lý do ngoài giới hạn.
-- `401 Unauthorized`: thiếu hoặc hết hạn token.
+- `403 Forbidden`: thiếu/hết hạn token hoặc không có quyền theo convention hiện tại của dự án.
 - `403 Forbidden`: không phải `VT-01`.
 - `404 Not Found`: không tìm thấy chứng nhận.
 - `409 Conflict`: chứng nhận không còn ở `PENDING`.

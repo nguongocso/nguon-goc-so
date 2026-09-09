@@ -39,7 +39,7 @@ public interface CertificationRepository extends JpaRepository<Certification, UU
      * @param date           Ngày hiện tại để so sánh hạn sử dụng.
      * @return Danh sách chứng nhận có thể gắn cho lô.
      */
-    @Query("SELECT c FROM Certification c WHERE c.organization.organizationId = :orgId AND c.expiryDate > :date AND c.verificationStatus != vn.nguongocso.certification.enums.CertificationVerificationStatus.REJECTED")
+    @Query("SELECT c FROM Certification c WHERE c.organization.organizationId = :orgId AND c.expiryDate >= :date AND c.verificationStatus != vn.nguongocso.certification.enums.CertificationVerificationStatus.REJECTED")
     List<Certification> findByOrganizationIdAndExpiryDateAfter(@Param("orgId") UUID organizationId,
             @Param("date") LocalDate date);
 
@@ -175,4 +175,4 @@ public interface CertificationRepository extends JpaRepository<Certification, UU
             @Param("reviewedAt") LocalDateTime reviewedAt,
             @Param("reviewNote") String reviewNote,
             @Param("rejectionReason") String rejectionReason);
-}
+}

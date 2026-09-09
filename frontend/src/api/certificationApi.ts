@@ -149,11 +149,15 @@ export const getValidCertifications = async (): Promise<Certification[]> => {
  * POST /api/v1/certifications
  */
 export const createCertification = async (
-  data: CreateCertificationRequest
+  data: CreateCertificationRequest,
+  file: File
 ): Promise<CertificationResponse> => {
+  const formData = new FormData();
+  formData.append('data', new Blob([JSON.stringify(data)], { type: 'application/json' }));
+  formData.append('file', file);
   const response = await apiClient.post<{ data: CertificationResponse }>(
     '/certifications',
-    data
+    formData
   );
   return response.data.data;
 };

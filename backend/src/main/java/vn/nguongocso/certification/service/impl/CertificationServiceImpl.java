@@ -16,7 +16,12 @@ import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.multipart.MultipartFile;
+import vn.nguongocso.alert.entity.ActivityLog;
 import vn.nguongocso.alert.event.ActivityLogEvent;
+import vn.nguongocso.alert.repository.ActivityLogRepository;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -32,6 +37,7 @@ import vn.nguongocso.certification.dto.response.ProductionLotCertificationRespon
 import vn.nguongocso.certification.entity.Certification;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.certification.entity.Standard;
+import vn.nguongocso.certification.event.CertificationRejectedEvent;
 import vn.nguongocso.certification.enums.CertificationValidityStatus;
 import vn.nguongocso.certification.enums.CertificationVerificationStatus;
 import vn.nguongocso.certification.repository.CertificationRepository;
@@ -54,9 +60,12 @@ import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
 
 import java.net.MalformedURLException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -89,6 +98,12 @@ public class CertificationServiceImpl implements CertificationService {
     /** Số bản ghi tối đa mỗi trang. */
     private static final int MAX_PAGE_SIZE = 100;
 
+    /** Các loại tài liệu chứng nhận được phép lưu và hiển thị. */
+    private static final Set<String> ALLOWED_DOCUMENT_TYPES = Set.of(
+            MediaType.APPLICATION_PDF_VALUE,
+            MediaType.IMAGE_JPEG_VALUE,
+            MediaType.IMAGE_PNG_VALUE);
+
     private final ProductionLotRepository productionLotRepository;
     private final CertificationRepository certificationRepository;
     private final ProductionLotCertificationRepository plCertificationRepository;
@@ -99,9 +114,19 @@ public class CertificationServiceImpl implements CertificationService {
     private final ObjectMapper objectMapper;
     private final StandardRepository standardRepository;
     private final OrganizationRepository organizationRepository;
+    private final ActivityLogRepository activityLogRepository;
 
     @Value("${app.certification.expiry-warning-threshold-days:30}")
     private int warningThresholdDays;
+
+    @Value("${app.upload.base-dir:./uploads}")
+    private String uploadBaseDir;
+
+    @Value("${app.upload.certification.relative-path:certifications}")
+    private String certificationRelativePath;
+
+    @Value("${app.upload.certification.max-size:5242880}")
+    private long certificationMaxFileSize;
 
     /**
      * Lấy danh sách chứng nhận của một lô sản xuất.
@@ -216,11 +241,14 @@ public class CertificationServiceImpl implements CertificationService {
     @Override
     @Transactional
     public CertificationResponse createCertification(CreateCertificationRequest request,
+            MultipartFile file,
             CustomUserDetails currentUser) {
         // 1. Kiểm tra quyền
         if (!"VT-02".equals(currentUser.getRoleCode())) {
             throw new BusinessException("Bạn không có quyền tạo chứng nhận.");
         }
+
+        validateCertificationDocument(file);
 
         // 2. Kiểm tra tiêu chuẩn tồn tại
         Standard standard = standardRepository.findById(request.getStandardId())
@@ -243,8 +271,10 @@ public class CertificationServiceImpl implements CertificationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tổ chức của người dùng."));
 
         // 6. Tạo Certification mới với trạng thái mặc định PENDING
+        UUID certificationId = UUID.randomUUID();
+        StoredDocument storedDocument = storeCertificationDocument(certificationId, file);
         Certification certification = Certification.builder()
-                .id(UUID.randomUUID())
+                .id(certificationId)
                 .organization(organization)
                 .standard(standard)
                 .name(standard.getName())
@@ -253,14 +283,18 @@ public class CertificationServiceImpl implements CertificationService {
                 .issueDate(request.getIssueDate())
                 .expiryDate(request.getExpiryDate())
                 .verificationStatus(CertificationVerificationStatus.PENDING)
+                .documentFileName(storedDocument.originalFileName())
+                .documentContentType(storedDocument.contentType())
+                .documentFileSize(storedDocument.fileSize())
+                .documentStoragePath(storedDocument.storagePath().toString())
                 .build();
 
         certification = certificationRepository.save(certification);
 
         // 7. Ghi log
-        publishActivityLog(currentUser, "CREATE_CERTIFICATION",
+        saveActivityLog(currentUser, currentUser.getOrganizationId(), "CREATE_CERTIFICATION",
                 "Tạo chứng nhận '" + certification.getCode() + "' cho tiêu chuẩn " + standard.getName(),
-                "Certification", certification.getId().toString());
+                "CERTIFICATION", certification.getId().toString());
 
         // 8. Trả về response
         return toCertificationResponse(certification);
@@ -326,20 +360,12 @@ public class CertificationServiceImpl implements CertificationService {
             CustomUserDetails currentUser) {
         validatePlatformAdmin(currentUser);
 
-        if (page < 0) {
-            page = 0;
-        }
-        if (size <= 0) {
-            size = 20;
-        }
-        if (size > MAX_PAGE_SIZE) {
-            size = MAX_PAGE_SIZE;
-        }
+        validateAdminPaginationAndSort(sortBy, sortDir, page, size);
 
         // Mặc định lọc PENDING nếu client không truyền trạng thái
         CertificationVerificationStatus targetStatus = (status != null) ? status : CertificationVerificationStatus.PENDING;
 
-        String sortField = (sortBy != null && ALLOWED_ADMIN_SORT_FIELDS.contains(sortBy)) ? sortBy : DEFAULT_ADMIN_SORT_FIELD;
+        String sortField = (sortBy == null || sortBy.isBlank()) ? DEFAULT_ADMIN_SORT_FIELD : sortBy;
         Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
 
@@ -391,7 +417,7 @@ public class CertificationServiceImpl implements CertificationService {
             throw new ResourceNotFoundException("Chứng nhận chưa có tệp đính kèm.");
         }
 
-        Path filePath = Paths.get(cert.getDocumentStoragePath()).toAbsolutePath().normalize();
+        Path filePath = resolveStoredDocumentPath(cert);
         if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
             log.warn("🚨 Tệp chứng nhận vật lý bị mất trên máy chủ: certId={}, path={}", certificationId, cert.getDocumentStoragePath());
             throw new BusinessException(HttpStatus.GONE, "Tệp chứng nhận vật lý không còn trên máy chủ.");
@@ -403,13 +429,7 @@ public class CertificationServiceImpl implements CertificationService {
                 throw new BusinessException(HttpStatus.GONE, "Tệp chứng nhận không thể đọc được.");
             }
 
-            MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
-            if (cert.getDocumentContentType() != null && !cert.getDocumentContentType().isBlank()) {
-                try {
-                    mediaType = MediaType.parseMediaType(cert.getDocumentContentType());
-                } catch (Exception ignored) {
-                }
-            }
+            MediaType mediaType = MediaType.parseMediaType(cert.getDocumentContentType());
 
             String fileName = (cert.getDocumentFileName() != null && !cert.getDocumentFileName().isBlank())
                     ? cert.getDocumentFileName()
@@ -458,7 +478,7 @@ public class CertificationServiceImpl implements CertificationService {
         if (cert.getDocumentStoragePath() == null || cert.getDocumentStoragePath().isBlank()) {
             throw new BusinessException(HttpStatus.CONFLICT, "Chứng nhận thiếu tệp đính kèm để đối chiếu.");
         }
-        Path filePath = Paths.get(cert.getDocumentStoragePath()).toAbsolutePath().normalize();
+        Path filePath = resolveStoredDocumentPath(cert);
         if (!Files.exists(filePath) || !Files.isReadable(filePath)) {
             throw new BusinessException(HttpStatus.CONFLICT, "Tệp chứng nhận vật lý không tồn tại hoặc không thể đọc được.");
         }
@@ -499,7 +519,7 @@ public class CertificationServiceImpl implements CertificationService {
         cert.setUpdatedAt(now);
 
         // 6. Ghi lịch sử hoạt động gắn với tổ chức sở hữu chứng nhận
-        publishActivityLog(
+        saveActivityLog(
                 currentUser,
                 cert.getOrganization().getOrganizationId(),
                 "VERIFY_CERTIFICATION",
@@ -533,11 +553,8 @@ public class CertificationServiceImpl implements CertificationService {
         String trimmedReason = (request != null && request.getRejectionReason() != null)
                 ? request.getRejectionReason().trim()
                 : "";
-        if (trimmedReason.isEmpty()) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "Lý do từ chối không được để trống.");
-        }
-        if (trimmedReason.length() > 1000) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "Lý do từ chối không được vượt quá 1000 ký tự.");
+        if (trimmedReason.length() < 10 || trimmedReason.length() > 1000) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Lý do từ chối phải từ 10 đến 1000 ký tự.");
         }
 
         User reviewer = userRepository.findById(currentUser.getUserId())
@@ -567,16 +584,8 @@ public class CertificationServiceImpl implements CertificationService {
         cert.setRejectionReason(trimmedReason);
         cert.setUpdatedAt(now);
 
-        // 4. Gửi thông báo cho người dùng tổ chức sở hữu chứng nhận có quyền notification:READ
-        int notifiedCount = 0;
-        try {
-            notifiedCount = notificationService.sendCertificationRejectionNotification(cert, trimmedReason);
-        } catch (Exception ex) {
-            log.error("Lỗi gửi thông báo từ chối chứng nhận {}: {}", cert.getId(), ex.getMessage(), ex);
-        }
-
-        // 5. Ghi lịch sử hoạt động gắn với tổ chức sở hữu chứng nhận
-        publishActivityLog(
+        // 4. Ghi lịch sử trong cùng transaction với quyết định từ chối.
+        saveActivityLog(
                 currentUser,
                 cert.getOrganization().getOrganizationId(),
                 "REJECT_CERTIFICATION",
@@ -584,12 +593,147 @@ public class CertificationServiceImpl implements CertificationService {
                 "CERTIFICATION",
                 cert.getId().toString());
 
+        // 5. Listener chỉ gửi thông báo sau khi transaction hiện tại commit thành công.
+        eventPublisher.publishEvent(new CertificationRejectedEvent(cert.getId(), trimmedReason));
+
         CertificationVerificationResponse response = toVerificationResponse(cert);
-        response.setNotifiedCount(notifiedCount);
+        response.setNotifiedCount(0);
         return response;
     }
 
     // --- Helper methods ---
+
+    private record StoredDocument(Path storagePath, String originalFileName, String contentType, long fileSize) {
+    }
+
+    /** Kiểm tra tệp chứng nhận trước khi ghi xuống vùng lưu trữ riêng. */
+    private void validateCertificationDocument(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Tệp chứng nhận không được để trống.");
+        }
+        if (file.getSize() > certificationMaxFileSize) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST,
+                    "Tệp chứng nhận vượt quá dung lượng cho phép (5 MiB).");
+        }
+        if (file.getContentType() == null || !ALLOWED_DOCUMENT_TYPES.contains(file.getContentType())) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST,
+                    "Loại tệp không được hỗ trợ. Chỉ chấp nhận PDF, JPEG hoặc PNG.");
+        }
+        String originalName = file.getOriginalFilename();
+        if (originalName != null && sanitizeOriginalFileName(originalName).length() > 255) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Tên tệp chứng nhận không được vượt quá 255 ký tự.");
+        }
+    }
+
+    /** Lưu tệp bằng tên sinh nội bộ và đăng ký dọn tệp nếu transaction rollback. */
+    private StoredDocument storeCertificationDocument(UUID certificationId, MultipartFile file) {
+        Path root = getCertificationStorageRoot();
+        Path directory = root.resolve(certificationId.toString()).normalize();
+        if (!directory.startsWith(root)) {
+            throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "Cấu hình vùng lưu tài liệu không hợp lệ.");
+        }
+
+        String extension = switch (file.getContentType()) {
+            case MediaType.APPLICATION_PDF_VALUE -> ".pdf";
+            case MediaType.IMAGE_JPEG_VALUE -> ".jpg";
+            case MediaType.IMAGE_PNG_VALUE -> ".png";
+            default -> throw new BusinessException(HttpStatus.BAD_REQUEST, "Loại tệp không được hỗ trợ.");
+        };
+        Path target = directory.resolve("document" + extension).normalize();
+
+        try (InputStream inputStream = file.getInputStream()) {
+            Files.createDirectories(directory);
+            Files.copy(inputStream, target, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ex) {
+            log.error("Không thể lưu tài liệu chứng nhận {}: {}", certificationId, ex.getMessage(), ex);
+            throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "Không thể lưu tệp chứng nhận.");
+        }
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                    if (status == STATUS_ROLLED_BACK) {
+                        try {
+                            Files.deleteIfExists(target);
+                        } catch (IOException ex) {
+                            log.error("Không thể dọn tệp chứng nhận sau rollback: {}", target, ex);
+                        }
+                    }
+                }
+            });
+        }
+
+        String originalName = file.getOriginalFilename();
+        if (originalName == null || originalName.isBlank()) {
+            originalName = "certificate" + extension;
+        } else {
+            originalName = sanitizeOriginalFileName(originalName);
+            if (originalName.isBlank()) {
+                originalName = "certificate" + extension;
+            }
+        }
+        return new StoredDocument(target.toAbsolutePath(), originalName, file.getContentType(), file.getSize());
+    }
+
+    private String sanitizeOriginalFileName(String originalName) {
+        String normalized = originalName.replace('\\', '/');
+        String fileName = normalized.substring(normalized.lastIndexOf('/') + 1);
+        return fileName.replaceAll("[\\p{Cntrl}]", "").trim();
+    }
+
+    private Path getCertificationStorageRoot() {
+        Path base = Paths.get(uploadBaseDir).toAbsolutePath().normalize();
+        Path root = base.resolve(certificationRelativePath).normalize();
+        if (!root.startsWith(base)) {
+            throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR, "Cấu hình vùng lưu tài liệu không hợp lệ.");
+        }
+        return root;
+    }
+
+    /** Chuẩn hóa và giới hạn đường dẫn đọc trong đúng vùng tài liệu chứng nhận. */
+    private Path resolveStoredDocumentPath(Certification certification) {
+        if (certification.getDocumentContentType() == null
+                || !ALLOWED_DOCUMENT_TYPES.contains(certification.getDocumentContentType())) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Metadata loại tệp chứng nhận không hợp lệ.");
+        }
+        Path root = getCertificationStorageRoot();
+        Path filePath = Paths.get(certification.getDocumentStoragePath()).toAbsolutePath().normalize();
+        if (!filePath.startsWith(root)) {
+            log.warn("Từ chối đọc đường dẫn tài liệu ngoài vùng cho phép: certId={}", certification.getId());
+            throw new BusinessException(HttpStatus.CONFLICT, "Đường dẫn tệp chứng nhận không hợp lệ.");
+        }
+        return filePath;
+    }
+
+    private void validateAdminPaginationAndSort(String sortBy, String sortDir, int page, int size) {
+        if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Phân trang không hợp lệ.");
+        }
+        if (sortBy != null && !sortBy.isBlank() && !ALLOWED_ADMIN_SORT_FIELDS.contains(sortBy)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Trường sắp xếp không hợp lệ.");
+        }
+        if (sortDir != null && !sortDir.equalsIgnoreCase("asc") && !sortDir.equalsIgnoreCase("desc")) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Chiều sắp xếp không hợp lệ.");
+        }
+    }
+
+    /** Lưu activity log trực tiếp để cùng commit hoặc rollback với nghiệp vụ chứng nhận. */
+    private void saveActivityLog(CustomUserDetails currentUser, UUID organizationId, String action,
+            String description, String entityType, String entityId) {
+        activityLogRepository.save(ActivityLog.builder()
+                .organizationId(organizationId)
+                .userId(currentUser.getUserId())
+                .username(currentUser.getUsername())
+                .fullName(currentUser.getFullName())
+                .action(action)
+                .description(description)
+                .entityType(entityType)
+                .entityId(entityId)
+                .ipAddress(IpUtils.getClientIp())
+                .createdAt(LocalDateTime.now())
+                .build());
+    }
 
     /**
      * Kiểm tra phòng vệ vai trò VT-01 (Quản trị viên nền tảng).

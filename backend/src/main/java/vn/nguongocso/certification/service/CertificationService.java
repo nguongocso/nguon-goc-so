@@ -2,6 +2,7 @@ package vn.nguongocso.certification.service;
 
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.AttachCertificationRequest;
 import vn.nguongocso.certification.dto.request.CreateCertificationRequest;
@@ -59,6 +60,7 @@ public interface CertificationService {
          */
         CertificationResponse createCertification(
                         CreateCertificationRequest request,
+                        MultipartFile file,
                         CustomUserDetails currentUser);
 
         /**
