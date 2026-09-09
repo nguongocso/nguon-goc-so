@@ -93,6 +93,7 @@ import ShipmentTraceCodesPage from "@/pages/shipment/ShipmentTraceCodesPage";
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
 import TraceLookupPage from "@/pages/public/TraceLookupPage";
+import ProductFeedbackLookupPage from "@/pages/public/ProductFeedbackLookupPage";
 import JoinOrganizationPage from "@/pages/public/JoinOrganizationPage";
 
 // ===== Reports =====
@@ -336,6 +337,11 @@ const AppRoutes = () => (
         <Route
             path="/public/trace/:codeValue"
             element={<TraceLookupPage />}
+        />
+
+        <Route
+            path="/public/product-feedbacks/lookup"
+            element={<ProductFeedbackLookupPage />}
         />
 
         <Route

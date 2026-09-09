@@ -58,6 +58,7 @@ class ProductFeedbackControllerTest {
                 .id(feedbackId)
                 .productionLotId(lotId)
                 .status(ProductFeedbackStatus.NEW)
+                .lookupCode("PA-7K2M-9Q4X-H8NP-3R5T")
                 .build();
 
         when(productFeedbackService.createFeedback(eq(lotId), any(CreateProductFeedbackRequest.class)))
@@ -72,6 +73,7 @@ class ProductFeedbackControllerTest {
                 .andExpect(jsonPath("$.data.id").value(feedbackId.toString()))
                 .andExpect(jsonPath("$.data.productionLotId").value(lotId.toString()))
                 .andExpect(jsonPath("$.data.status").value("NEW"))
+                .andExpect(jsonPath("$.data.lookupCode").value("PA-7K2M-9Q4X-H8NP-3R5T"))
                 .andExpect(jsonPath("$.data.content").doesNotExist())
                 .andExpect(jsonPath("$.data.productionLotName").doesNotExist());
     }
