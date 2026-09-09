@@ -8,7 +8,7 @@ import { ListPageHeader } from "@/components/common/ListPageHeader";
 /**
  * Dashboard dành cho Doanh nghiệp thu mua (VT‑04).
  * Hiển thị danh sách lô hàng liên quan tới tổ chức: đã thu mua, được bàn giao
- * hoặc đã nhập kho. Ghi nhận thu mua chỉ dành cho lô đã nhận (handover ACCEPTED).
+ * hoặc đã nhập kho. Ghi nhận thu mua dành cho lô đã nhận (có phiếu ACCEPTED).
  * Lối vào "Phiếu bàn giao nhận" nằm trong menu Thu mua (sidebar), không đặt
  * nút trên header để tránh trùng lối vào.
  */

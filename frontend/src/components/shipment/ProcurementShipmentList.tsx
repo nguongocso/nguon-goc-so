@@ -36,6 +36,9 @@ export function ProcurementShipmentList({
   const [handoverByShipment, setHandoverByShipment] = useState<
     Map<string, HandoverDetailResponse>
   >(new Map());
+  const [acceptedShipmentIds, setAcceptedShipmentIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
@@ -77,7 +80,11 @@ export function ProcurementShipmentList({
       // Ánh xạ "lô hàng → phiếu bàn giao mới nhất" để hiển thị nút xem phiếu
       // (NCL-05-CN-008: tổ chức nhận xem được phiếu bàn giao ngay từ Dashboard).
       const map = new Map<string, HandoverDetailResponse>();
+      const accepted = new Set<string>();
       for (const handover of received) {
+        if (handover.status === "ACCEPTED") {
+          accepted.add(handover.shipmentId);
+        }
         const latest = map.get(handover.shipmentId);
         if (
           !latest ||
@@ -87,6 +94,7 @@ export function ProcurementShipmentList({
         }
       }
       setHandoverByShipment(map);
+      setAcceptedShipmentIds(accepted);
     } catch {
       toast.error("Không thể tải danh sách lô hàng thu mua.");
     } finally {
@@ -469,9 +477,10 @@ export function ProcurementShipmentList({
               </TableCell>
               <TableCell className="text-center">
                 <div className="flex items-center justify-center gap-1">
-                  {/* Chỉ ghi nhận thu mua cho lô đã được bàn giao và bên nhận đã
-                  xác nhận (handover ACCEPTED) — consistent với luồng nhận hàng. */}
-                  {handoverByShipment.get(shipment.id)?.status === "ACCEPTED" && (
+                  {/* Chỉ ghi nhận thu mua cho lô đã được bàn giao và bên nhận đã xác
+                  nhận (có phiếu ACCEPTED, không phụ thuộc phiếu mới nhất) —
+                  consistent với luồng nhận hàng. */}
+                  {acceptedShipmentIds.has(shipment.id) && (
                     <Button
                       type="button"
                       variant="ghost"

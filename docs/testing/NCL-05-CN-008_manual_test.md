@@ -437,14 +437,18 @@ npm run build                                        # exit 0
 - Empty state: "Chưa có lô hàng nào được thu mua, bàn giao hoặc nhập kho cho tổ chức của bạn."
 - `GET /api/v1/shipments/eligible` (VT-04) → 200; user khác + admin → 403 (`@PreAuthorize VT-04`).
 
-### TC-18 (Trung) — Nút "Ghi nhận thu mua" chỉ hiện khi lô đã nhận (ACCEPTED)
+### TC-18 (Trung) — Nút "Ghi nhận thu mua" hiện khi lô có phiếu ACCEPTED
 
 **Bước:**
-1. VT-04 mở danh sách Thu mua (TC-17): lô có phiếu **ACCEPTED** → có nút "Ghi nhận thu mua";
-2. Lô mới được bàn giao còn PENDING → **không có** nút (dù lô xuất hiện trong danh sách).
+1. VT-04 mở danh sách Thu mua (TC-17): lô có **ít nhất một phiếu bàn giao ACCEPTED**
+   (kể cả phiếu cũ trước một phiếu REJECTED sau đó) → **có** nút "Ghi nhận thu mua";
+2. Lô mới được bàn giao còn PENDING / lô chỉ có phiếu REJECTED → **không có** nút.
 
 **Kết quả mong đợi**
-- Điều kiện hiển thị: phiếu mới nhất `status === "ACCEPTED"` (map `handoverByShipment`).
+- Điều kiện hiển thị: tập `acceptedShipmentIds` (mọi phiếu ACCEPTED của lô cho tổ chức
+  hiện tại), **không phụ thuộc phiếu mới nhất** — ví dụ lô có 2 phiếu ACCEPTED rồi sau
+  đó 1 phiếu REJECTED vẫn hiện nút (org đã thực sự nhận lô).
+- Nút "Xem phiếu bàn giao" vẫn trỏ tới **phiếu mới nhất** (giữ nguyên nghiệp vụ).
 - Đây là bước thủ công để ghi sự kiện `PROCUREMENT` — **bắt buộc** trước khi tổ chức nhập kho
   (`WarehouseReceiptServiceImpl` validate quan hệ thu mua). Không tự động ghi khi accept.
 
