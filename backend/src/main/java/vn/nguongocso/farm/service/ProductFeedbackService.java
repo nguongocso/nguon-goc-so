@@ -7,6 +7,7 @@ import vn.nguongocso.farm.dto.request.CreateProductFeedbackRecallRequest;
 import vn.nguongocso.farm.dto.request.CreateProductFeedbackRequest;
 import vn.nguongocso.farm.dto.request.UpdateProductFeedbackProcessingRequest;
 import vn.nguongocso.farm.dto.response.PublicProductFeedbackCreatedResponse;
+import vn.nguongocso.farm.dto.response.PublicProductFeedbackLookupResponse;
 import vn.nguongocso.farm.dto.response.ProductFeedbackResponse;
 import vn.nguongocso.farm.enums.ProductFeedbackSeverity;
 import vn.nguongocso.farm.enums.ProductFeedbackStatus;
@@ -18,6 +19,9 @@ import java.util.UUID;
 public interface ProductFeedbackService {
     /** Tạo phản ánh mới cho lô sản xuất (public). */
     PublicProductFeedbackCreatedResponse createFeedback(UUID productionLotId, CreateProductFeedbackRequest request);
+
+    /** Tra cứu trạng thái và phản hồi công khai bằng mã được cấp khi gửi phản ánh. */
+    PublicProductFeedbackLookupResponse lookupPublicFeedback(String lookupCode);
 
     /** Lấy danh sách phản ánh (phân trang) cho nội bộ - VT-01, VT-02. */
     PageResponse<ProductFeedbackResponse> getFeedbacks(

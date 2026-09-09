@@ -14,4 +14,5 @@ public class PublicProductFeedbackCreatedResponse {
     private UUID productionLotId;
     private ProductFeedbackStatus status;
     private LocalDateTime createdAt;
+    private String lookupCode;
 }

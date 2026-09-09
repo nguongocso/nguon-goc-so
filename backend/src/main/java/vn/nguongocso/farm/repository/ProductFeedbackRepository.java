@@ -20,5 +20,9 @@ public interface ProductFeedbackRepository extends JpaRepository<ProductFeedback
 
     Optional<ProductFeedback> findByIdAndProductionLot_Organization_OrganizationId(UUID id, UUID organizationId);
 
+    Optional<ProductFeedback> findByLookupCodeHash(String lookupCodeHash);
+
+    boolean existsByLookupCodeHash(String lookupCodeHash);
+
     boolean existsByTraceCode_IdAndSeverity(UUID traceCodeId, ProductFeedbackSeverity severity);
 }

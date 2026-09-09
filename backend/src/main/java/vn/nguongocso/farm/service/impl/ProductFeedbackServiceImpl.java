@@ -33,6 +33,7 @@ import vn.nguongocso.farm.dto.request.CreateProductFeedbackRequest;
 import vn.nguongocso.farm.dto.request.UpdateProductFeedbackProcessingRequest;
 import vn.nguongocso.farm.dto.response.ProductFeedbackResponse;
 import vn.nguongocso.farm.dto.response.PublicProductFeedbackCreatedResponse;
+import vn.nguongocso.farm.dto.response.PublicProductFeedbackLookupResponse;
 import vn.nguongocso.farm.entity.ProductFeedback;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductFeedbackSeverity;
@@ -41,6 +42,8 @@ import vn.nguongocso.farm.event.ProductFeedbackSubmittedEvent;
 import vn.nguongocso.farm.repository.ProductFeedbackRepository;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.farm.service.ProductFeedbackService;
+import vn.nguongocso.farm.service.ProductFeedbackLookupCodeGenerator;
+import vn.nguongocso.farm.service.ProductFeedbackLookupCodeGenerator.GeneratedLookupCode;
 import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.organization.entity.OrganizationUser;
 import vn.nguongocso.organization.enums.OrganizationUserStatus;
@@ -61,6 +64,7 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
     private static final String ADMIN_ROLE = "VT-01";
     private static final String EVENT_RECORDER_ROLE = "VT-03";
     private static final String NOT_FOUND = "Không tìm thấy phản ánh";
+    private static final int LOOKUP_CODE_GENERATION_ATTEMPTS = 5;
 
     private final ProductFeedbackRepository productFeedbackRepository;
     private final ProductionLotRepository productionLotRepository;
@@ -71,6 +75,7 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final NotificationService notificationService;
+    private final ProductFeedbackLookupCodeGenerator lookupCodeGenerator;
 
     @Override
     @Transactional
@@ -87,12 +92,14 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
                     .orElseThrow(() -> new BusinessException("Mã tem không thuộc lô sản xuất của phản ánh"));
         }
 
+        GeneratedLookupCode lookupCode = generateUniqueLookupCode();
         ProductFeedback feedback = ProductFeedback.builder()
                 .productionLot(productionLot)
                 .traceCode(traceCode)
                 .content(request.getContent().trim())
                 .status(ProductFeedbackStatus.NEW)
                 .severity(ProductFeedbackSeverity.INFORMATION)
+                .lookupCodeHash(lookupCode.hash())
                 .build();
 
         ProductFeedback savedFeedback = productFeedbackRepository.save(feedback);
@@ -104,6 +111,25 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
                 .productionLotId(productionLotId)
                 .status(savedFeedback.getStatus())
                 .createdAt(savedFeedback.getCreatedAt())
+                .lookupCode(lookupCode.displayValue())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PublicProductFeedbackLookupResponse lookupPublicFeedback(String lookupCode) {
+        String lookupCodeHash;
+        try {
+            lookupCodeHash = lookupCodeGenerator.hash(lookupCode);
+        } catch (IllegalArgumentException exception) {
+            throw new ResourceNotFoundException(NOT_FOUND);
+        }
+
+        ProductFeedback feedback = productFeedbackRepository.findByLookupCodeHash(lookupCodeHash)
+                .orElseThrow(() -> new ResourceNotFoundException(NOT_FOUND));
+        return PublicProductFeedbackLookupResponse.builder()
+                .status(feedback.getStatus())
+                .publicResponse(feedback.getPublicResponse())
                 .build();
     }
 
@@ -374,6 +400,16 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
                 lot.getName(),
                 orgId,
                 savedFeedback.getContent()));
+    }
+
+    private GeneratedLookupCode generateUniqueLookupCode() {
+        for (int attempt = 0; attempt < LOOKUP_CODE_GENERATION_ATTEMPTS; attempt++) {
+            GeneratedLookupCode candidate = lookupCodeGenerator.generate();
+            if (!productFeedbackRepository.existsByLookupCodeHash(candidate.hash())) {
+                return candidate;
+            }
+        }
+        throw new IllegalStateException("Không thể sinh mã tra cứu phản ánh duy nhất");
     }
 
     private void sendNewFeedbackNotification(ProductFeedback feedback) {
