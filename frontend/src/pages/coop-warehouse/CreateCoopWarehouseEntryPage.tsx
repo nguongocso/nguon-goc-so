@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { LocationPicker } from "@/pages/packaging-event/components/LocationPicker";
+import { useAutoGeolocation } from "@/hooks/useAutoGeolocation";
 import type { Shipment } from "@/types/shipment";
 import {
   recordWarehouseEntrySchema,
@@ -90,6 +91,7 @@ export default function CreateCoopWarehouseEntryPage() {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RecordWarehouseEntryFormValues>({
     resolver: zodResolver(recordWarehouseEntrySchema),
@@ -101,6 +103,41 @@ export default function CreateCoopWarehouseEntryPage() {
       notes: "",
       latitude: undefined,
       longitude: undefined,
+    },
+  });
+
+  const latitude = watch("latitude");
+  const longitude = watch("longitude");
+
+  const currentPosition =
+    typeof latitude === "number" &&
+    Number.isFinite(latitude) &&
+    typeof longitude === "number" &&
+    Number.isFinite(longitude)
+      ? { lat: latitude, lng: longitude }
+      : undefined;
+
+  const handleLocationSelect = useCallback(
+    (nextLat: number, nextLng: number) => {
+      setValue("latitude", nextLat, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      setValue("longitude", nextLng, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    },
+    [setValue]
+  );
+
+  useAutoGeolocation({
+    onLocation: (nextLat, nextLng) => {
+      handleLocationSelect(nextLat, nextLng);
+      toast.success("Đã lấy vị trí hiện tại");
+    },
+    onError: (message) => {
+      toast.error(`Không thể lấy vị trí hiện tại: ${message}`);
     },
   });
 
@@ -365,10 +402,8 @@ export default function CreateCoopWarehouseEntryPage() {
               </div>
               <div className="rounded-lg border border-slate-200 overflow-hidden">
                 <LocationPicker
-                  onLocationSelect={(lat, lng) => {
-                    setValue("latitude", lat);
-                    setValue("longitude", lng);
-                  }}
+                  onLocationSelect={handleLocationSelect}
+                  initialPosition={currentPosition}
                   height="260px"
                 />
               </div>
