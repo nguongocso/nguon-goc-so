@@ -29,11 +29,16 @@ describe('certificationApi', () => {
     const result = await createCertification(payload, file);
 
     expect(apiClient.post).toHaveBeenCalledOnce();
-    const [url, body] = vi.mocked(apiClient.post).mock.calls[0];
+    const [url, body, config] = vi.mocked(apiClient.post).mock.calls[0];
     expect(url).toBe('/certifications');
     expect(body).toBeInstanceOf(FormData);
     expect((body as FormData).get('file')).toBe(file);
     expect((body as FormData).get('data')).toBeInstanceOf(Blob);
+    expect(config).toMatchObject({
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     expect(result).toEqual(response);
   });
 });

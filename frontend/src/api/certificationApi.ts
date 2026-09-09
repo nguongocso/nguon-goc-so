@@ -157,7 +157,12 @@ export const createCertification = async (
   formData.append('file', file);
   const response = await apiClient.post<{ data: CertificationResponse }>(
     '/certifications',
-    formData
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
   );
   return response.data.data;
 };
