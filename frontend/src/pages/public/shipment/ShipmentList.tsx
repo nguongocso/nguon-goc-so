@@ -105,7 +105,10 @@ export const ShipmentList = ({
   const [labelExportShipment, setLabelExportShipment] =
     useState<Shipment | null>(null);
 
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  type SelectionTarget = "BATCH_DOSSIER" | "WAREHOUSE_ENTRY" | "WAREHOUSE_EXIT" | null;
+  const [selectionTarget, setSelectionTarget] = useState<SelectionTarget>(null);
+  const isSelectionMode = selectionTarget !== null;
+
   const [selectedShipmentIds, setSelectedShipmentIds] = useState<string[]>([]);
   const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
   const canExportBatch = usePermission(ROLE_ACCESS.batchDossierExport);
@@ -166,7 +169,7 @@ export const ShipmentList = ({
   };
 
   const handleCancelSelectionMode = () => {
-    setIsSelectionMode(false);
+    setSelectionTarget(null);
     setSelectedShipmentIds([]);
     setFilterFromDate("");
     setFilterToDate("");
@@ -312,15 +315,15 @@ export const ShipmentList = ({
                 size="sm"
                 onClick={() => {
                   if (selectedShipmentIds.length > 0) {
-                    navigate(`/coop-warehouse-events/entry?shipmentIds=${selectedShipmentIds.join(",")}`);
+                    navigate(`/coop-warehouse-events/entry?productionLotId=${productionLotId}&shipmentIds=${selectedShipmentIds.join(",")}`);
                   } else {
-                    navigate("/coop-warehouse-events/entry");
+                    setSelectionTarget("WAREHOUSE_ENTRY");
                   }
                 }}
                 className="border-emerald-300 text-emerald-800 hover:bg-emerald-50"
               >
                 <LogIn className="mr-1.5 h-4 w-4 text-emerald-600" />
-                Nhập kho HTX {selectedShipmentIds.length > 0 ? `(${selectedShipmentIds.length})` : ""}
+                Nhập kho HTX {selectedShipmentIds.length > 0 && selectionTarget === "WAREHOUSE_ENTRY" ? `(${selectedShipmentIds.length})` : ""}
               </Button>
 
               <Button
@@ -328,15 +331,15 @@ export const ShipmentList = ({
                 size="sm"
                 onClick={() => {
                   if (selectedShipmentIds.length > 0) {
-                    navigate(`/coop-warehouse-events/exit?shipmentIds=${selectedShipmentIds.join(",")}`);
+                    navigate(`/coop-warehouse-events/exit?productionLotId=${productionLotId}&shipmentIds=${selectedShipmentIds.join(",")}`);
                   } else {
-                    navigate("/coop-warehouse-events/exit");
+                    setSelectionTarget("WAREHOUSE_EXIT");
                   }
                 }}
-                className="border-amber-300 text-amber-800 hover:bg-amber-50"
+                className="border-emerald-300 text-emerald-800 hover:bg-emerald-50"
               >
-                <LogOut className="mr-1.5 h-4 w-4 text-amber-600" />
-                Xuất kho HTX {selectedShipmentIds.length > 0 ? `(${selectedShipmentIds.length})` : ""}
+                <LogOut className="mr-1.5 h-4 w-4 text-emerald-600" />
+                Xuất kho HTX {selectedShipmentIds.length > 0 && selectionTarget === "WAREHOUSE_EXIT" ? `(${selectedShipmentIds.length})` : ""}
               </Button>
 
               {/* NCL-04-CN-007: tùy chọn yêu cầu cấp bổ sung dải mã (chỉ VT-02) */}
@@ -356,7 +359,7 @@ export const ShipmentList = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setIsSelectionMode(true)}
+                    onClick={() => setSelectionTarget("BATCH_DOSSIER")}
                   >
                     <FileText className="mr-1.5 h-4 w-4" />
                     Xuất hồ sơ nhiều lô
@@ -370,18 +373,49 @@ export const ShipmentList = ({
                     >
                       Hủy chọn
                     </Button>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      disabled={selectedShipmentIds.length === 0}
-                      onClick={() =>
-                        navigate("/shipments/batch-dossier-export", {
-                          state: { shipmentIds: selectedShipmentIds },
-                        })
-                      }
-                    >
-                      Xác nhận xuất bộ hồ sơ ({selectedShipmentIds.length} lô)
-                    </Button>
+
+                    {selectionTarget === "WAREHOUSE_ENTRY" && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        disabled={selectedShipmentIds.length === 0}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() =>
+                          navigate(`/coop-warehouse-events/entry?productionLotId=${productionLotId}&shipmentIds=${selectedShipmentIds.join(",")}`)
+                        }
+                      >
+                        Xác nhận ghi Nhập kho ({selectedShipmentIds.length} lô)
+                      </Button>
+                    )}
+
+                    {selectionTarget === "WAREHOUSE_EXIT" && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        disabled={selectedShipmentIds.length === 0}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() =>
+                          navigate(`/coop-warehouse-events/exit?productionLotId=${productionLotId}&shipmentIds=${selectedShipmentIds.join(",")}`)
+                        }
+                      >
+                        Xác nhận ghi Xuất kho ({selectedShipmentIds.length} lô)
+                      </Button>
+                    )}
+
+                    {selectionTarget === "BATCH_DOSSIER" && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        disabled={selectedShipmentIds.length === 0}
+                        onClick={() =>
+                          navigate("/shipments/batch-dossier-export", {
+                            state: { shipmentIds: selectedShipmentIds },
+                          })
+                        }
+                      >
+                        Xác nhận xuất bộ hồ sơ ({selectedShipmentIds.length} lô)
+                      </Button>
+                    )}
                   </>
                 )
               )}
@@ -474,18 +508,20 @@ export const ShipmentList = ({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50/80">
-                    <TableHead className="w-10 text-center">
-                      <input
-                        type="checkbox"
-                        className="rounded border-input"
-                        checked={
-                          filteredShipments.length > 0 &&
-                          filteredShipments.every((s: Shipment) => selectedShipmentIds.includes(s.id))
-                        }
-                        onChange={toggleSelectAllPage}
-                        title="Chọn tất cả các lô hiển thị"
-                      />
-                    </TableHead>
+                    {isSelectionMode && (
+                      <TableHead className="w-10 text-center">
+                        <input
+                          type="checkbox"
+                          className="rounded border-input"
+                          checked={
+                            filteredShipments.length > 0 &&
+                            filteredShipments.every((s: Shipment) => selectedShipmentIds.includes(s.id))
+                          }
+                          onChange={toggleSelectAllPage}
+                          title="Chọn tất cả các lô hiển thị"
+                        />
+                      </TableHead>
+                    )}
                     <TableHead className="font-semibold text-slate-700">Tên lô hàng</TableHead>
                     <TableHead className="text-center font-semibold text-slate-700">Số lượng</TableHead>
                     <TableHead className="font-semibold text-slate-700">Quy cách</TableHead>
@@ -499,14 +535,16 @@ export const ShipmentList = ({
                 <TableBody>
                   {filteredShipments.map((shipment: Shipment) => (
                     <TableRow key={shipment.id} className="hover:bg-slate-50/60">
-                      <TableCell className="text-center">
-                        <input
-                          type="checkbox"
-                          className="rounded border-input"
-                          checked={selectedShipmentIds.includes(shipment.id)}
-                          onChange={() => toggleSelectShipment(shipment.id)}
-                        />
-                      </TableCell>
+                      {isSelectionMode && (
+                        <TableCell className="text-center">
+                          <input
+                            type="checkbox"
+                            className="rounded border-input"
+                            checked={selectedShipmentIds.includes(shipment.id)}
+                            onChange={() => toggleSelectShipment(shipment.id)}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="font-medium">
                         {shipment.name}
                       </TableCell>
