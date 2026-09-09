@@ -26,6 +26,8 @@ import {
   Eye,
   QrCode,
   ArrowRightLeft,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 import { useShipments } from "@/hooks/useShipments";
 import { useRecallShipment } from "@/hooks/useRecallShipment";
@@ -114,7 +116,9 @@ export const ShipmentList = ({
     null,
   );
 
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  type SelectionTarget = "BATCH_DOSSIER" | "WAREHOUSE_ENTRY" | "WAREHOUSE_EXIT" | null;
+  const [selectionTarget, setSelectionTarget] = useState<SelectionTarget>(null);
+  const isSelectionMode = selectionTarget !== null;
   const [selectedShipmentIds, setSelectedShipmentIds] = useState<string[]>([]);
   const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
   const canExportBatch = usePermission(ROLE_ACCESS.batchDossierExport);
@@ -177,7 +181,7 @@ export const ShipmentList = ({
   };
 
   const handleCancelSelectionMode = () => {
-    setIsSelectionMode(false);
+    setSelectionTarget(null);
     setSelectedShipmentIds([]);
     setFilterFromDate("");
     setFilterToDate("");
@@ -318,6 +322,29 @@ export const ShipmentList = ({
             <CardTitle className="text-xl font-bold text-slate-900">Danh sách lô hàng</CardTitle>
 
             <div className="flex items-center gap-2">
+              {/* Nhập kho / Xuất kho HTX (NCL-05-CN-011) */}
+              {!isSelectionMode && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectionTarget("WAREHOUSE_ENTRY")}
+                  >
+                    <LogIn className="mr-1.5 h-4 w-4" />
+                    Nhập kho HTX
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectionTarget("WAREHOUSE_EXIT")}
+                  >
+                    <LogOut className="mr-1.5 h-4 w-4" />
+                    Xuất kho HTX
+                  </Button>
+                </>
+              )}
+
               {/* Tạo lô hàng - nút trực tiếp, hành động chính */}
               {!isSelectionMode && canCreate && productionLotStatus === "PACKAGED" && (
                 <Button variant="create" size="sm" onClick={() => navigate(`/production-lots/${productionLotId}/shipments/create`)}>
@@ -326,7 +353,7 @@ export const ShipmentList = ({
                 </Button>
               )}
 
-              {/* Chế độ chọn lô để xuất hồ sơ */}
+              {/* Chế độ chọn lô — hiển thị nút Hủy và nút xác nhận tùy selectionTarget */}
               {isSelectionMode && (
                 <>
                   <Button
@@ -336,18 +363,49 @@ export const ShipmentList = ({
                   >
                     Hủy chọn
                   </Button>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    disabled={selectedShipmentIds.length === 0}
-                    onClick={() =>
-                      navigate("/shipments/batch-dossier-export", {
-                        state: { shipmentIds: selectedShipmentIds },
-                      })
-                    }
-                  >
-                    Xác nhận xuất bộ hồ sơ ({selectedShipmentIds.length} lô)
-                  </Button>
+
+                  {selectionTarget === "WAREHOUSE_ENTRY" && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      disabled={selectedShipmentIds.length === 0}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() =>
+                        navigate(`/coop-warehouse-events/entry?productionLotId=${productionLotId}&shipmentIds=${selectedShipmentIds.join(",")}`)
+                      }
+                    >
+                      Xác nhận ghi Nhập kho ({selectedShipmentIds.length} lô)
+                    </Button>
+                  )}
+
+                  {selectionTarget === "WAREHOUSE_EXIT" && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      disabled={selectedShipmentIds.length === 0}
+                      className="bg-amber-600 hover:bg-amber-700 text-white"
+                      onClick={() =>
+                        navigate(`/coop-warehouse-events/exit?productionLotId=${productionLotId}&shipmentIds=${selectedShipmentIds.join(",")}`)
+                      }
+                    >
+                      Xác nhận ghi Xuất kho ({selectedShipmentIds.length} lô)
+                    </Button>
+                  )}
+
+                  {selectionTarget === "BATCH_DOSSIER" && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      disabled={selectedShipmentIds.length === 0}
+                      onClick={() =>
+                        navigate("/shipments/batch-dossier-export", {
+                          state: { shipmentIds: selectedShipmentIds },
+                        })
+                      }
+                    >
+                      Xác nhận xuất bộ hồ sơ ({selectedShipmentIds.length} lô)
+                    </Button>
+                  )}
                 </>
               )}
 
@@ -367,7 +425,7 @@ export const ShipmentList = ({
                       </DropdownMenuItem>
                     )}
                     {canExportBatch && shipments.length > 0 && (
-                      <DropdownMenuItem onClick={() => setIsSelectionMode(true)} className="cursor-pointer">
+                      <DropdownMenuItem onClick={() => setSelectionTarget("BATCH_DOSSIER")} className="cursor-pointer">
                         <FileText className="mr-2 h-4 w-4" />
                         Xuất hồ sơ nhiều lô
                       </DropdownMenuItem>
@@ -560,6 +618,28 @@ export const ShipmentList = ({
                                     Kích hoạt
                                   </DropdownMenuItem>
                                 )}
+
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  navigate(
+                                    `/coop-warehouse-events/entry?productionLotId=${productionLotId}&shipmentIds=${shipment.id}`
+                                  )
+                                }
+                              >
+                                <LogIn className="size-4" />
+                                Nhập kho HTX
+                              </DropdownMenuItem>
+
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  navigate(
+                                    `/coop-warehouse-events/exit?productionLotId=${productionLotId}&shipmentIds=${shipment.id}`
+                                  )
+                                }
+                              >
+                                <LogOut className="size-4" />
+                                Xuất kho HTX
+                              </DropdownMenuItem>
 
                               <DropdownMenuItem
                                 onClick={() =>

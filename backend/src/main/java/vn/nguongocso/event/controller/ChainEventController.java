@@ -182,6 +182,32 @@ public class ChainEventController {
     }
 
     /**
+     * API ghi nhận sự kiện nhập kho tại hợp tác xã (HTX).
+     */
+    @PostMapping("/coop-warehouse/entry")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
+    public ResponseEntity<ApiResult<vn.nguongocso.event.dto.response.CoopWarehouseEventResponse>> recordWarehouseEntry(
+            @Valid @RequestBody RecordWarehouseEntryRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        vn.nguongocso.event.dto.response.CoopWarehouseEventResponse response = chainEventService.recordWarehouseEntryEvent(request, currentUser);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
+    }
+
+    /**
+     * API ghi nhận sự kiện xuất kho tại hợp tác xã (HTX).
+     */
+    @PostMapping("/coop-warehouse/exit")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
+    public ResponseEntity<ApiResult<vn.nguongocso.event.dto.response.CoopWarehouseEventResponse>> recordWarehouseExit(
+            @Valid @RequestBody RecordWarehouseExitRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        vn.nguongocso.event.dto.response.CoopWarehouseEventResponse response = chainEventService.recordWarehouseExitEvent(request, currentUser);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
+    }
+
+    /**
      * API ghi nhận mốc điều kiện bảo quản khi vận chuyển.
      * VT-03 (Người ghi sự kiện, đúng tổ chức) và VT-04
      * (Doanh nghiệp thu mua, đã thu mua lô hàng) — cùng luật với tra cứu tay.

@@ -208,6 +208,7 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
                 @Param("eventType") ChainEventType eventType);
 
         /**
+        /**
          * Lấy danh sách ID lô hàng đã được tổ chức chỉ định ghi nhận các loại
          * sự kiện (không tính sự kiện đính chính). Dùng cho NCL-05-CN-008/CN-009
          * để doanh nghiệp thu mua chỉ thấy các lô đã thu mua hoặc đã nhập kho.
@@ -224,4 +225,29 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
         List<UUID> findShipmentIdsByRecordedOrganizationIdAndEventTypeIn(
                 @Param("orgId") UUID orgId,
                 @Param("types") Collection<ChainEventType> types);
+
+        /**
+         * Lấy danh sách sự kiện theo productionLotId và eventType (sắp xếp giảm dần theo thời gian ghi nhận).
+         */
+        @Query("""
+                SELECT ce FROM ChainEvent ce
+                LEFT JOIN ce.shipment s
+                WHERE ce.eventType = :eventType
+                  AND ce.isCorrection = false
+                  AND (
+                      (s.productionLot.id = :productionLotId)
+                      OR (
+                          ce.shipment IS NULL
+                          AND ce.eventData IS NOT NULL
+                          AND FUNCTION('JSON_UNQUOTE',
+                                FUNCTION('JSON_EXTRACT', ce.eventData, '$.productionLotId'))
+                              = :productionLotIdText
+                      )
+                  )
+                ORDER BY ce.recordedAt DESC, ce.createdAt DESC
+                """)
+        List<ChainEvent> findEventsByProductionLotIdAndEventType(
+                @Param("productionLotId") UUID productionLotId,
+                @Param("productionLotIdText") String productionLotIdText,
+                @Param("eventType") ChainEventType eventType);
 }

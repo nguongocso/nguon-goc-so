@@ -13,6 +13,8 @@ export const EVENT_TYPE_VN_LABELS: Record<ChainEventType, string> = {
   CORRECTION: 'Điều chỉnh',
   WAREHOUSE_RECEIPT: 'Nhập kho',
   STORAGE_CONDITION: 'Điều kiện bảo quản',
+  WAREHOUSE_ENTRY: 'Nhập kho HTX',
+  WAREHOUSE_EXIT: 'Xuất kho HTX',
 };
 
 export function getEventTypeLabel(eventType: string): string {
@@ -64,6 +66,18 @@ const KNOWN_FIELD_LABELS: Record<string, string> = {
   receivedWeight: 'Khối lượng nhận',
   deviceSource: 'Nguồn thiết bị',
   images: 'Ảnh',
+
+  // Coop Warehouse (NCL-05-CN-011)
+  warehouseName: 'Tên kho HTX',
+  entryTime: 'Thời điểm nhập kho',
+  exitTime: 'Thời điểm xuất kho',
+  storageCondition: 'Điều kiện bảo quản',
+  storageDurationDays: 'Thời gian lưu kho (ngày)',
+  storageDurationHours: 'Thời gian lưu kho (giờ)',
+  maxAllowedStorageDays: 'Ngưỡng lưu kho tối đa (ngày)',
+  isStorageExceeded: 'Vượt ngưỡng bảo quản',
+  warningMessage: 'Cảnh báo lưu kho',
+  destination: 'Nơi chuyển đến',
 
   // ========== Warehouse Receipt (NCL-05-CN-006) ==========
   conditionNote: 'Tình trạng hàng',
