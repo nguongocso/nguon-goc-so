@@ -794,6 +794,46 @@ class ShipmentServiceImplTest {
                 .containsExactly(pendingShipment.getId());
     }
 
+    /**
+     * Lô có phiếu ACCEPTED CŨ nhưng phiếu MỚI NHẤT bị TỪ CHỐI (REJECTED) → KHÔNG
+     * đưa vào dashboard (đúng tình huống "Nho đợt 1": 2 lần ACCEPTED rồi lần cuối
+     * REJECTED). Phiếu ACCEPTED cũ không cứu được lô.
+     */
+    @Test
+    void getEligibleShipments_ShouldExcludeShipmentWhoseLatestHandoverIsRejected() {
+        // Arrange
+        UUID lotId = UUID.randomUUID();
+        Shipment lot = activatedShipment(lotId, "Lô có phiếu mới nhất bị từ chối");
+
+        ShipmentHandover acceptedOld = ShipmentHandover.builder()
+                .shipment(lot)
+                .toOrganization(organization)
+                .status(ShipmentHandoverStatus.ACCEPTED)
+                .createdAt(LocalDateTime.now().minusHours(1))
+                .build();
+        ShipmentHandover rejectedNew = ShipmentHandover.builder()
+                .shipment(lot)
+                .toOrganization(organization)
+                .status(ShipmentHandoverStatus.REJECTED)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(shipmentHandoverRepository.findByToOrganizationOrganizationId(organizationId))
+                .thenReturn(List.of(acceptedOld, rejectedNew));
+        when(chainEventRepository.findShipmentIdsByRecordedOrganizationIdAndEventTypeIn(
+                organizationId,
+                List.of(ChainEventType.PROCUREMENT, ChainEventType.WAREHOUSE_RECEIPT)))
+                .thenReturn(List.of());
+        when(shipmentRepository.findByStatusOrderByCreatedAtDesc(ShipmentStatus.ACTIVATED))
+                .thenReturn(List.of(lot));
+
+        // Act
+        List<ProcurementShipmentResponse> result = shipmentService.getEligibleShipments();
+
+        // Assert
+        assertThat(result).isEmpty();
+    }
+
     /** Không có tổ chức hiện tại thì trả về danh sách rỗng, không truy vấn. */
     @Test
     void getEligibleShipments_ShouldReturnEmpty_WhenCurrentUserHasNoOrganization() {

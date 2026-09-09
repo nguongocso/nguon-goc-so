@@ -424,31 +424,32 @@ npm run build                                        # exit 0
 
 **Bước:**
 1. Đăng nhập `procurement/admin123` (VT-04, DEMO_NSV) → Dashboard thu mua → danh sách lô.
-2. Verify danh sách chỉ gồm: lô **đang có phiếu bàn giao hoạt động cho DEMO_NSV**
-   (`PENDING_CONFIRMATION`/`ACCEPTED` — loại bỏ REJECTED/EXPIRED/CANCELLED),
-   hoặc lô đã ghi sự kiện `PROCUREMENT`/`WAREHOUSE_RECEIPT` bởi DEMO_NSV.
+2. Verify danh sách chỉ gồm: lô có **phiếu bàn giao MỚI NHẤT** cho DEMO_NSV ở trạng thái
+   hoạt động (`PENDING_CONFIRMATION`/`ACCEPTED`), hoặc lô đã ghi sự kiện
+   `PROCUREMENT`/`WAREHOUSE_RECEIPT` bởi DEMO_NSV.
 
 **Kết quả mong đợi**
-- Trước đây API trả **tất cả** lô ACTIVATED → giờ lọc theo org trong quá khứ gồm
-  `handover.toOrganization` với phiếu **đang hoạt động** ∪ `chain_events.recorded_organization_id`
+- Trước đây API trả **tất cả** lô ACTIVATED → giờ lọc theo org: `handover.toOrganization`
+  với **phiếu mới nhất đang hoạt động** ∪ `chain_events.recorded_organization_id`
   với PROCUREMENT/WAREHOUSE_RECEIPT, `is_correction=false`.
-- Lô chỉ bàn giao cho tổ chức khác / phiếu bị **từ chối (REJECTED)** → **không xuất hiện**
-  (lô không còn giao dịch sống với tổ chức).
+- Lô có phiếu mới nhất bị **TỪ CHỐI (REJECTED)** → **không xuất hiện**, kể cả khi trước
+  đó đã có phiếu ACCEPTED cũ (quan hệ hiện tại đã kết thúc — đúng tình huống "Nho đợt 1").
 - Empty state: "Chưa có lô hàng nào được thu mua, bàn giao hoặc nhập kho cho tổ chức của bạn."
 - `GET /api/v1/shipments/eligible` (VT-04) → 200; user khác + admin → 403 (`@PreAuthorize VT-04`).
 
-### TC-18 (Trung) — Nút "Ghi nhận thu mua" hiện khi lô có phiếu ACCEPTED
+### TC-18 (Trung) — Nút "Ghi nhận thu mua" hiện khi phiếu MỚI NHẤT ACCEPTED
 
 **Bước:**
-1. VT-04 mở danh sách Thu mua (TC-17): lô có **ít nhất một phiếu bàn giao ACCEPTED**
-   (kể cả phiếu cũ trước một phiếu REJECTED sau đó) → **có** nút "Ghi nhận thu mua";
-2. Lô mới được bàn giao còn PENDING / lô chỉ có phiếu REJECTED → **không có** nút.
+1. VT-04 mở danh sách Thu mua (TC-17): lô có **phiếu mới nhất ACCEPTED** → **có** nút
+   "Ghi nhận thu mua";
+2. Lô có phiếu mới nhất PENDING / lô chỉ có phiếu REJECTED (đã bị loại khỏi danh sách
+   theo TC-17) → **không có** nút.
 
 **Kết quả mong đợi**
-- Điều kiện hiển thị: tập `acceptedShipmentIds` (mọi phiếu ACCEPTED của lô cho tổ chức
-  hiện tại), **không phụ thuộc phiếu mới nhất** — ví dụ lô có 2 phiếu ACCEPTED rồi sau
-  đó 1 phiếu REJECTED vẫn hiện nút (org đã thực sự nhận lô).
-- Nút "Xem phiếu bàn giao" vẫn trỏ tới **phiếu mới nhất** (giữ nguyên nghiệp vụ).
+- Điều kiện hiển thị: phiếu mới nhất `status === "ACCEPTED"` (map `handoverByShipment`).
+  Backend đã loại lô có phiếu mới nhất REJECTED/EXPIRED/CANCELLED khỏi `/eligible`, nên
+  FE chỉ cần dựa trên phiếu mới nhất — nhất quán backend ↔ frontend.
+- Nút "Xem phiếu bàn giao" trỏ tới **phiếu mới nhất** (giữ nguyên nghiệp vụ).
 - Đây là bước thủ công để ghi sự kiện `PROCUREMENT` — **bắt buộc** trước khi tổ chức nhập kho
   (`WarehouseReceiptServiceImpl` validate quan hệ thu mua). Không tự động ghi khi accept.
 

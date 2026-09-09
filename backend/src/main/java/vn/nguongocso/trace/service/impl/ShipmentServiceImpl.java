@@ -41,6 +41,7 @@ import vn.nguongocso.trace.dto.response.ProcurementShipmentResponse;
 import vn.nguongocso.trace.dto.response.ShipmentSummaryResponse;
 import vn.nguongocso.trace.entity.CodeRange;
 import vn.nguongocso.trace.entity.Shipment;
+import vn.nguongocso.trace.entity.ShipmentHandover;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
@@ -654,11 +655,21 @@ public class ShipmentServiceImpl implements ShipmentService {
         UUID currentOrgId = currentUser.getOrganizationId();
         Set<UUID> relatedShipmentIds = new HashSet<>();
 
-        // Lô đang có phiếu bàn giao hoạt động cho tổ chức hiện tại (chờ xác nhận
-        // hoặc đã xác nhận). Loại các phiếu REJECTED/EXPIRED/CANCELLED: lô không
-        // còn giao dịch sống với tổ chức thì không đưa vào dashboard thu mua.
-        shipmentHandoverRepository.findByToOrganizationOrganizationId(currentOrgId)
+        // Lô chỉ được đưa vào dashboard khi phiếu bàn giao MỚI NHẤT cho tổ chức
+        // hiện tại còn ở trạng thái HOẠT ĐỘNG (chờ xác nhận hoặc đã xác nhận).
+        // Nếu phiếu mới nhất là REJECTED/EXPIRED/CANCELLED thì lô KHÔNG xuất hiện —
+        // quan hệ hiện tại đã kết thúc (lô bị từ chối). Phiếu ACCEPTED CŨ không
+        // cứu được lô khi phiếu mới nhất đã bị từ chối.
+        Map<UUID, ShipmentHandover> latestHandoverByShipment = shipmentHandoverRepository
+                .findByToOrganizationOrganizationId(currentOrgId)
                 .stream()
+                .collect(Collectors.toMap(
+                        handover -> handover.getShipment().getId(),
+                        handover -> handover,
+                        (first, second) -> first.getCreatedAt().isAfter(second.getCreatedAt())
+                                ? first
+                                : second));
+        latestHandoverByShipment.values().stream()
                 .filter(handover -> handover.getStatus() == ShipmentHandoverStatus.PENDING_CONFIRMATION
                         || handover.getStatus() == ShipmentHandoverStatus.ACCEPTED)
                 .map(handover -> handover.getShipment().getId())
