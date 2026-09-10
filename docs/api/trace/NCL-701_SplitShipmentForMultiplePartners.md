@@ -8,7 +8,7 @@
 >
 > Task hiện tại: [NCL-781](https://tran-phuong-doan.atlassian.net/browse/NCL-781) – Chốt quy tắc tách lô hàng và phân bổ mã tem
 >
-> Trạng thái: **Đã đối chiếu Excel – chờ review contract trước khi triển khai backend**
+> Trạng thái: **Contract CV-01 đã chốt – sẵn sàng chuyển sang thiết kế dữ liệu**
 >
 > Nhánh tài liệu: `feature/NCL-701-split-shipment-multiple-partners`
 
@@ -144,7 +144,17 @@ Contract không hỗ trợ tách một phần để tránh lô cha vừa là ngu
 
 ### BR-701-04 – Đơn vị số lượng
 
-Trong phạm vi contract hiện tại, `quantity` là **số đơn vị tem/mã truy xuất**, kiểu số nguyên dương. Lựa chọn này bám theo dữ liệu AC “1.000 mã và một tấn hàng” nhưng hệ thống hiện chưa lưu đơn vị khối lượng riêng trên `Shipment`; không dùng `ProductionLot.actualQuantity` để chia vì trường đó thuộc lô sản xuất và có thể mang đơn vị khác.
+Product Owner đã chốt **phương án A**: `Shipment.totalQuantity` luôn tương ứng một-một với số `TraceCode` được sinh cho lô hàng. Vì vậy, `quantity` trong contract tách lô là **số đơn vị tem/mã truy xuất**, kiểu số nguyên dương; không phải khối lượng vật lý của hàng hóa.
+
+Tại thời điểm lô vừa được tạo, quan hệ bắt buộc là:
+
+```text
+Shipment.totalQuantity = tổng số TraceCode của lô = số TraceCode INACTIVE
+```
+
+Sau khi trạng thái tem thay đổi, `Shipment.totalQuantity` vẫn giữ nguyên và không phải bộ đếm động của tem `INACTIVE`. Do đó, trước khi tách, backend phải đếm và kiểm tra riêng `totalCodeCount` và `inactiveCodeCount`; chỉ cho phép tách khi cả hai cùng bằng `Shipment.totalQuantity`.
+
+AC “1.000 mã và một tấn hàng” được hiểu là lô có 1.000 đơn vị tem; thông tin một tấn không được suy ra từ `Shipment.totalQuantity`. Hệ thống hiện chưa lưu khối lượng vật lý riêng trên `Shipment`; nếu cần quản lý khối lượng độc lập với số tem thì phải bổ sung `physicalQuantity`, `unit` và `traceCodeCount` trong một User Story khác. Không dùng `ProductionLot.actualQuantity` để chia vì trường đó thuộc lô sản xuất và có thể mang đơn vị khác.
 
 Số lượng có thể phân bổ được tính bằng số `TraceCode` trạng thái `INACTIVE` của lô cha. Nếu tồn tại mã `ACTIVE`, `CANCELLED`, `LOCKED`, `SUSPECT` hoặc `RECALLED`, hệ thống chặn toàn bộ thao tác tách để tránh vi phạm yêu cầu tổng mã lô con phải bằng lô cha.
 
@@ -645,27 +655,25 @@ Mọi truy vấn tổng số lượng shipment phải loại `status = SPLIT` ho
 - Xuất hồ sơ truy xuất của lô con phải bao gồm lineage nguồn nhưng không lặp chứng từ.
 - Shipment chưa tách tiếp tục dùng response cũ nhờ các trường mới là nullable/additive.
 
-## 18. Các điểm cần Product Owner xác nhận
+## 18. Các quyết định đã chốt và giới hạn phạm vi
 
-Các điểm dưới đây chưa có trong Jira và cần được xác nhận trước khi chuyển sang backend implementation:
-
-Excel đã chốt hai điểm từng để mở trong bản phân tích ban đầu:
+Các quyết định nghiệp vụ của CV-01 đã được chốt:
 
 - bắt buộc tách toàn phần vì tổng số lượng và tổng mã lô con phải bằng lô cha;
 - người dùng chọn khoảng mã cho từng lô con, backend không tự phân bổ.
+- Product Owner chọn phương án A: `Shipment.totalQuantity` luôn bằng số `TraceCode` được sinh; mỗi `quantity` tương ứng một mã và không biểu diễn khối lượng vật lý.
 
-Các điểm còn cần Product Owner xác nhận trước backend implementation:
+Ba nội dung dưới đây chưa được Jira/Excel yêu cầu và không chặn việc chuyển sang thiết kế dữ liệu. Chúng được giữ ngoài phạm vi NCL-701; nếu Product Owner yêu cầu khác thì phải cập nhật contract trước khi mở rộng implementation:
 
 1. Có cho phép một lô con tiếp tục được tách ở mắt xích sau hay chỉ hỗ trợ một cấp?
 2. Đối tác có cần nhận notification ngay khi được phân bổ lô không?
 3. Với shipment cũ chưa có `recipientOrganizationId`, có backfill từ sự kiện thu mua hay yêu cầu gán thủ công?
-4. `Shipment.totalQuantity` có luôn tương ứng một-một với số mã hay cần bổ sung số lượng vật lý và đơn vị đo riêng cho từng lô con?
 
-Cho tới khi có phản hồi khác, phạm vi triển khai an toàn là **tách toàn phần, một cấp, không notification, mỗi `quantity` tương ứng một mã và người dùng chọn khoảng mã**.
+Contract đã chốt **tách toàn phần, mỗi `quantity` tương ứng một mã và người dùng chọn khoảng mã**. Phạm vi implementation hiện tại là **một cấp, không notification và không tự động backfill shipment cũ**.
 
 ## 19. Thứ tự triển khai sau khi contract được duyệt
 
-1. `NCL-781` – xác nhận quy tắc tại mục 5 và các câu hỏi mục 18.
+1. `NCL-781` – hoàn tất: đã chốt quy tắc tại mục 5 và giới hạn phạm vi tại mục 18.
 2. `NCL-782` – migration, entity, repository và dữ liệu tương thích.
 3. Backend của `NCL-785` – preview, partner lookup, split transaction, tenant isolation và timeline.
 4. `NCL-783` – giao diện tách lô và tích hợp API.
