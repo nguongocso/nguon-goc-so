@@ -165,11 +165,9 @@ public class ShipmentHandoverServiceImpl implements ShipmentHandoverService {
         handover.setConfirmedAt(LocalDateTime.now());
         handover = handoverRepository.save(handover);
 
-        // QTN-31: Chuyển quyền sở hữu lô hàng sang tổ chức nhận sau khi xác nhận.
-        // Từ thời điểm này, chỉ thành viên tổ chức nhận mới được ghi sự kiện tiếp theo.
-        Shipment shipment = handover.getShipment();
-        shipment.setOrganization(handover.getToOrganization());
-        shipmentRepository.save(shipment);
+        // QTN-31: Trách nhiệm được chuyển giao theo trạng thái logic của phiếu bàn giao (ACCEPTED)
+        // và sự kiện HANDOVER trên timeline. Shipment.organization được bảo toàn là HTX sản xuất để
+        // đảm bảo quyền xem lịch sử hành trình, cảnh báo chênh lệch kho và tra cứu nguồn gốc.
 
         ChainEvent event = ChainEvent.builder()
                 .shipment(handover.getShipment())

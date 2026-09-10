@@ -10,9 +10,9 @@ Cho phép tổ chức giao (owner lô hàng) tạo phiếu bàn giao gửi sang 
 
 **Phạm vi:**
 - **NCL-05-CN-008:** Tạo phiếu + hủy phiếu.
-- **NCL-05-CN-009:** Xác nhận nhận hàng + từ chối nhận hàng + hết hạn tự động + chuyển quyền sở hữu lô hàng (QTN-31).
+- **NCL-05-CN-009:** Xác nhận nhận hàng + từ chối nhận hàng + hết hạn tự động + chuyển trách nhiệm chuỗi cung ứng (QTN-31).
 
-**Chuyển quyền sở hữu (QTN-31):** Khi tổ chức nhận xác nhận (accept), hệ thống cập nhật `shipment.organization` sang tổ chức nhận. Từ thời điểm này, chỉ thành viên tổ chức nhận mới được ghi sự kiện tiếp theo cho lô hàng (vận chuyển, nhập kho, bảo quản, v.v.). Tổ chức giao không còn quyền ghi sự kiện cho lô này.
+**Chuyển giao trách nhiệm (QTN-31):** Khi tổ chức nhận xác nhận (accept), hệ thống chuyển trạng thái phiếu sang `ACCEPTED`, ghi sự kiện `HANDOVER` vào dòng thời gian của lô hàng. Việc chuyển trách nhiệm là trạng thái logic trên phiếu bàn giao (`ACCEPTED`) và timeline sự kiện, cho phép tổ chức nhận (VT-04) ghi nhận các sự kiện tiếp theo (thu mua, nhập kho, điều kiện bảo quản). `Shipment.organization` được bảo toàn là HTX sản xuất để giữ nguyên quyền tra cứu lịch sử, chuỗi hành trình nguồn gốc, và tiếp nhận các cảnh báo chênh lệch kho.
 
 ## 2. Endpoints
 
