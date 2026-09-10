@@ -64,6 +64,7 @@ import SuspectTraceCodeDetailPage from "@/pages/admin/SuspectTraceCodeDetailPage
 import AnomalyThresholdPage from "@/pages/admin/AnomalyThresholdPage";
 import CategoryOverridePage from "@/pages/admin/CategoryOverridePage";
 import CertificateVerificationPage from "@/pages/admin/CertificateVerificationPage";
+import CertificateVerificationDetailPage from "@/pages/admin/CertificateVerificationDetailPage";
 
 // ===== Packaging =====
 import CreatePackagingEventPage from "@/pages/packaging-event/CreatePackagingEventPage";
@@ -1020,6 +1021,15 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={ROLE_ACCESS.certificateVerification}>
                         <CertificateVerificationPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="admin/certifications/:certificateId"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.certificateVerification}>
+                        <CertificateVerificationDetailPage />
                     </RoleRoute>
                 }
             />

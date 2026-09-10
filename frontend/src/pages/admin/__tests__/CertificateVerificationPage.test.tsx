@@ -2,10 +2,9 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
-import { Toaster } from 'sonner';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { CertificateVerificationPage } from '@/pages/admin/CertificateVerificationPage';
 import type { CertificateVerification } from '@/types/certificateVerification';
 
@@ -46,9 +45,11 @@ const MOCK_CERTIFICATE: CertificateVerification = {
 };
 
 const renderPage = () => render(
-  <MemoryRouter>
-    <Toaster />
-    <CertificateVerificationPage />
+  <MemoryRouter initialEntries={['/admin/certifications']}>
+    <Routes>
+      <Route path="/admin/certifications" element={<CertificateVerificationPage />} />
+      <Route path="/admin/certifications/:certificateId" element={<div>Trang chi tiết</div>} />
+    </Routes>
   </MemoryRouter>,
 );
 
@@ -64,87 +65,31 @@ describe('CertificateVerificationPage', () => {
       first: true,
       last: true,
     });
-    certificateApi.getCertificateVerification.mockResolvedValue(MOCK_CERTIFICATE);
-    certificateApi.getCertificateDocument.mockResolvedValue(
-      new Blob(['certificate'], { type: 'application/pdf' }),
-    );
-    certificateApi.verifyCertificate.mockResolvedValue({
-      ...MOCK_CERTIFICATE,
-      verificationStatus: 'VERIFIED',
-      reviewedAt: '2026-09-09T09:15:00',
-      reviewedBy: { userId: 'admin-1', fullName: 'Quản trị viên hệ thống' },
-    });
-    certificateApi.rejectCertificate.mockResolvedValue({
-      ...MOCK_CERTIFICATE,
-      verificationStatus: 'REJECTED',
-      reviewedAt: '2026-09-09T09:20:00',
-      rejectionReason: 'Số hiệu trên tệp không khớp với thông tin khai báo.',
-    });
-    Object.defineProperties(URL, {
-      createObjectURL: {
-        configurable: true,
-        value: vi.fn(() => 'blob:certificate-document'),
-      },
-      revokeObjectURL: {
-        configurable: true,
-        value: vi.fn(),
-      },
-    });
   });
 
-  it('hiển thị danh sách, tệp và dữ liệu cần đối chiếu', async () => {
+  it('hiển thị danh sách chứng nhận theo dạng bảng', async () => {
     renderPage();
 
     expect(await screen.findByRole('heading', { name: 'Xác thực chứng nhận' })).toBeInTheDocument();
-    expect(await screen.findByTitle('Tệp chứng nhận VGP-2026-00125')).toBeInTheDocument();
-    expect(screen.getAllByText('VietGAP')).toHaveLength(3);
-    expect(screen.getAllByText('HTX Nông sản Xanh')).toHaveLength(2);
-    expect(screen.getByText(/vietgap-2026\.pdf/)).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Lọc theo trạng thái xác thực' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Xác thực/ })).toBeEnabled();
+    expect(screen.getByRole('columnheader', { name: 'Số hiệu' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Tổ chức' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Thao tác' })).toBeInTheDocument();
+    expect(await screen.findByText('VGP-2026-00125')).toBeInTheDocument();
+    expect(screen.getByText('HTX Nông sản Xanh')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Chi tiết/ })).toBeEnabled();
     expect(certificateApi.getCertificateVerifications).toHaveBeenCalledWith(
       expect.objectContaining({ verificationStatus: 'PENDING', page: 0, size: 10 }),
     );
+    expect(certificateApi.getCertificateVerification).not.toHaveBeenCalled();
+    expect(certificateApi.getCertificateDocument).not.toHaveBeenCalled();
   });
 
-  it('gửi ghi chú khi quản trị viên xác thực', async () => {
+  it('mở trang chi tiết khi chọn nút Chi tiết', async () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(await screen.findByRole('button', { name: /^Xác thực$/ }));
-    const dialog = await screen.findByRole('dialog');
-    await user.type(
-      within(dialog).getByLabelText('Ghi chú xác thực (không bắt buộc)'),
-      'Thông tin khớp với tài liệu.',
-    );
-    await user.click(within(dialog).getByRole('button', { name: 'Xác nhận xác thực' }));
+    await user.click(await screen.findByRole('button', { name: /Chi tiết/ }));
 
-    await waitFor(() => {
-      expect(certificateApi.verifyCertificate).toHaveBeenCalledWith('certificate-1', {
-        reviewNote: 'Thông tin khớp với tài liệu.',
-      });
-    });
-  });
-
-  it('yêu cầu lý do hợp lệ và gửi quyết định từ chối', async () => {
-    const user = userEvent.setup();
-    renderPage();
-
-    await user.click(await screen.findByRole('button', { name: /^Từ chối$/ }));
-    const dialog = await screen.findByRole('dialog');
-    const reasonInput = within(dialog).getByLabelText('Lý do từ chối');
-    await user.type(reasonInput, 'ngắn');
-    await user.click(within(dialog).getByRole('button', { name: 'Xác nhận từ chối' }));
-    expect(certificateApi.rejectCertificate).not.toHaveBeenCalled();
-
-    await user.clear(reasonInput);
-    await user.type(reasonInput, 'Số hiệu trên tệp không khớp với thông tin khai báo.');
-    await user.click(within(dialog).getByRole('button', { name: 'Xác nhận từ chối' }));
-
-    await waitFor(() => {
-      expect(certificateApi.rejectCertificate).toHaveBeenCalledWith('certificate-1', {
-        rejectionReason: 'Số hiệu trên tệp không khớp với thông tin khai báo.',
-      });
-    });
+    expect(await screen.findByText('Trang chi tiết')).toBeInTheDocument();
   });
 });
