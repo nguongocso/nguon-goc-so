@@ -338,6 +338,14 @@ const MENU_GROUPS: MenuGroup[] = [
             allowedRoles: ROLE_ACCESS.recallRequestManage,
             activePaths: ["/recall-requests/bulk"],
           },
+          // NCL-08-CN-012: Vụ việc thu hồi — kết thúc thu hồi & biện pháp khắc phục
+          {
+            icon: <PackageCheck className="h-5 w-5" />,
+            label: "Vụ việc thu hồi",
+            href: "/recall-cases",
+            allowedRoles: ROLE_ACCESS.recallCaseManage,
+            activePaths: ["/recall-cases"],
+          },
         ],
       },
     ],
