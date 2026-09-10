@@ -38,5 +38,8 @@ public enum ChainEventType {
     WAREHOUSE_EXIT, // Xuất kho HTX
 
     // Sự kiện bàn giao lô hàng
-    HANDOVER // Bàn giao
+    HANDOVER, // Bàn giao
+
+    // Sự kiện đánh dấu điểm bắt đầu hành trình riêng của lô con
+    SPLIT // Tách lô
 }

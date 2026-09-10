@@ -10,5 +10,7 @@ public enum ShipmentStatus {
 
     ACTIVATED, // Đã kích hoạt tem
 
+    SPLIT, // Đã tách thành các lô con
+
     RECALLED // Đã thu hồi
 }

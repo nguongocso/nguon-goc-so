@@ -97,6 +97,30 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
                         @Param("organizationId") UUID organizationId);
 
         /**
+         * Khóa lô nguồn thuộc tổ chức hiện tại trong transaction tách lô.
+         */
+        @Lock(LockModeType.PESSIMISTIC_WRITE)
+        @Query("SELECT s FROM Shipment s " +
+                        "WHERE s.id = :shipmentId " +
+                        "AND s.organization.organizationId = :organizationId")
+        Optional<Shipment> findOwnedByIdForSplitUpdate(
+                        @Param("shipmentId") UUID shipmentId,
+                        @Param("organizationId") UUID organizationId);
+
+        /** Lấy các lô con trực tiếp của một lô cha theo thứ tự tạo. */
+        List<Shipment> findAllByParentShipment_IdOrderByCreatedAtAsc(UUID parentShipmentId);
+
+        /** Kiểm tra lô đã có lô con hay chưa. */
+        boolean existsByParentShipment_Id(UUID parentShipmentId);
+
+        /**
+         * Tìm lô con theo ID và tổ chức nhận để bảo đảm cách ly dữ liệu đối tác.
+         */
+        Optional<Shipment> findByIdAndRecipientOrganization_OrganizationId(
+                        UUID shipmentId,
+                        UUID recipientOrganizationId);
+
+        /**
          * Lấy danh sách lô hàng đủ điều kiện thu mua (status = ACTIVATED).
          * Dùng cho Doanh nghiệp thu mua (VT‑04) xem các lô hàng sẵn sàng.
          */
