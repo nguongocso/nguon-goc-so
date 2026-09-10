@@ -613,11 +613,25 @@ export const createCertificationSchema = z
 
         issuedBy: z
             .string()
+            .min(
+                1,
+                'Cơ quan cấp không được để trống',
+            )
             .max(
                 255,
                 'Cơ quan cấp tối đa 255 ký tự',
+            ),
+
+        document: z
+            .instanceof(File, { message: 'Vui lòng chọn tệp chứng nhận' })
+            .refine(
+                (file) => file.size <= 5 * 1024 * 1024,
+                'Tệp chứng nhận không được vượt quá 5 MiB',
             )
-            .optional(),
+            .refine(
+                (file) => ['application/pdf', 'image/jpeg', 'image/png'].includes(file.type),
+                'Chỉ chấp nhận tệp PDF, JPEG hoặc PNG',
+            ),
 
         issueDate: z
             .string()

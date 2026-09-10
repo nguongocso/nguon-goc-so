@@ -45,6 +45,8 @@ export const ROLE_ACCESS = {
 
   standardManagement: ['VT-01'] as const,
 
+  certificateVerification: ['VT-01'] as const,
+
   // ✅ Từ file 1
   notificationInbox: AUTHENTICATED_ROLE_CODES,
 

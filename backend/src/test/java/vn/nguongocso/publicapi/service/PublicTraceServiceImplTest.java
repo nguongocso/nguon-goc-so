@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.LocalDate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,12 +26,16 @@ import vn.nguongocso.alert.service.ScanAnomalyDetectionService;
 import vn.nguongocso.certification.entity.InspectionCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterionResult;
 import vn.nguongocso.certification.entity.InspectionRequest;
+import vn.nguongocso.certification.entity.Certification;
+import vn.nguongocso.certification.entity.ProductionLotCertification;
+import vn.nguongocso.certification.enums.CertificationVerificationStatus;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
 import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.publicapi.dto.response.PublicInspectionResponse;
+import vn.nguongocso.publicapi.dto.response.PublicLotCertificationsResponse;
 import vn.nguongocso.publicapi.dto.response.PublicTraceResponse;
 import vn.nguongocso.publicapi.service.impl.PublicTraceServiceImpl;
 import vn.nguongocso.report.repository.TraceCodeScanLogRepository;
@@ -140,6 +145,45 @@ class PublicTraceServiceImplTest {
         // GET lookup KHÔNG tạo ScanLog, KHÔNG kích hoạt phát hiện nghi vấn.
         verify(traceCodeScanLogRepository, never()).save(any());
         verify(scanAnomalyDetectionService, never()).onScanRecorded(any());
+    }
+
+    @Test
+    void publicCertificationsMapsPendingAndVerifiedAndHidesRejected() {
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setName("Lô xoài");
+        shipment.setProductionLot(lot);
+
+        Certification pending = certification("PENDING", CertificationVerificationStatus.PENDING,
+                LocalDate.now().plusDays(30));
+        Certification verified = certification("VERIFIED", CertificationVerificationStatus.VERIFIED,
+                LocalDate.now().plusDays(30));
+        Certification rejected = certification("REJECTED", CertificationVerificationStatus.REJECTED,
+                LocalDate.now().plusDays(30));
+        when(productionLotCertificationRepository.findByProductionLotId(lot.getId())).thenReturn(List.of(
+                ProductionLotCertification.builder().certification(pending).build(),
+                ProductionLotCertification.builder().certification(verified).build(),
+                ProductionLotCertification.builder().certification(rejected).build()));
+
+        PublicLotCertificationsResponse response = publicTraceService.getPublicCertifications(codeValue);
+
+        assertEquals(2, response.getCertifications().size());
+        assertEquals("PENDING_VERIFICATION", response.getCertifications().get(0).getPublicStatus());
+        assertEquals("Đang chờ xác thực", response.getCertifications().get(0).getStatusLabel());
+        assertEquals("VERIFIED", response.getCertifications().get(1).getPublicStatus());
+        assertEquals("Đã đạt chuẩn", response.getCertifications().get(1).getStatusLabel());
+    }
+
+    private Certification certification(String code, CertificationVerificationStatus status, LocalDate expiryDate) {
+        return Certification.builder()
+                .id(UUID.randomUUID())
+                .name("VietGAP " + code)
+                .code(code)
+                .issuedBy("Trung tâm Chứng nhận")
+                .issueDate(expiryDate.minusYears(1))
+                .expiryDate(expiryDate)
+                .verificationStatus(status)
+                .build();
     }
 
     @Test

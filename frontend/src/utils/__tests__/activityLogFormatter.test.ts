@@ -71,6 +71,27 @@ describe('utils/activityLogFormatter — getActionColor', () => {
   });
 });
 
+describe('utils/activityLogFormatter — xác thực chứng nhận NCL-696', () => {
+  it.each([
+    ['CREATE_CERTIFICATION', 'Tạo chứng nhận'],
+    ['VERIFY_CERTIFICATION', 'Xác thực chứng nhận'],
+    ['REJECT_CERTIFICATION', 'Từ chối chứng nhận'],
+  ])('hiển thị %s bằng nhãn tiếng Việt "%s"', (action, expected) => {
+    expect(formatActionType(action)).toBe(expected);
+    expect(formatActionType(action)).not.toBe(action);
+  });
+
+  it('hỗ trợ mã hành động viết thường từ dữ liệu lịch sử cũ', () => {
+    expect(formatActionType('verify_certification')).toBe('Xác thực chứng nhận');
+    expect(formatActionType('reject_certification')).toBe('Từ chối chứng nhận');
+  });
+
+  it('dùng màu xanh cho xác thực và màu đỏ cho từ chối', () => {
+    expect(getActionColor('VERIFY_CERTIFICATION')).toContain('blue');
+    expect(getActionColor('REJECT_CERTIFICATION')).toContain('rose');
+  });
+});
+
 /**
  * Việt hóa giá trị hiển thị của thu hồi hàng loạt (NCL-08-CN-011).
  * Backend vẫn lưu/trả về raw code — mapping chỉ diễn ra ở presentation layer.

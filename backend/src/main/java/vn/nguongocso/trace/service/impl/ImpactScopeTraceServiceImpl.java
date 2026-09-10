@@ -287,6 +287,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
             case HANDOVER -> "Bàn giao";
             case WAREHOUSE_ENTRY -> "Nhập kho HTX";
             case WAREHOUSE_EXIT -> "Xuất kho HTX";
+            default -> type.name();
         };
     }
 
