@@ -411,6 +411,7 @@ public class DossierServiceImpl implements DossierService {
             case STORAGE_CONDITION -> "Theo dõi bảo quản";
             case WAREHOUSE_ENTRY -> "Nhập kho HTX";
             case WAREHOUSE_EXIT -> "Xuất kho HTX";
+            case HANDOVER -> "Bàn giao";
             default -> type.name();
         };
     }

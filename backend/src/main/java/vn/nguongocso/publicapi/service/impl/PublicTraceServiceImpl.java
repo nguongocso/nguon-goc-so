@@ -196,7 +196,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         List<ChainEvent> allEvents = new ArrayList<>();
         allEvents.addAll(shipmentEvents);
         allEvents.addAll(productionLotEvents);
-        allEvents.sort(Comparator.comparing(ChainEvent::getRecordedAt));
+        allEvents.sort(Comparator.comparing(ChainEvent::getRecordedAt, Comparator.nullsLast(Comparator.naturalOrder())));
 
         List<PublicChainEventItem> publicEvents = allEvents.stream()
                 .map(this::convertToPublicEvent)
@@ -227,7 +227,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .lotCode(lotCode)
                 .productName(productName)
                 .shipmentCode(shipmentCode)
-                .shipmentStatus(shipment.getStatus().name())
+                .shipmentStatus(shipment.getStatus() != null ? shipment.getStatus().name() : "UNKNOWN")
                 .recalled(isRecalled)
                 .recallMessage(recallMessage)
                 .locked(isLocked)
@@ -304,7 +304,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         }
 
         return PublicChainEventItem.builder()
-                .eventType(event.getEventType().name())
+                .eventType(event.getEventType() != null ? event.getEventType().name() : "UNKNOWN")
                 .eventData(filteredData)
                 .recordedAt(event.getRecordedAt())
                 .latitude(latitude)
@@ -329,6 +329,13 @@ public class PublicTraceServiceImpl implements PublicTraceService {
     /** Lọc trường dữ liệu được phép hiển thị công khai. */
     private Map<String, Object> filterEventData(Map<String, Object> rawData, ChainEventType eventType) {
         Map<String, Object> result = new HashMap<>();
+        if (eventType == null) {
+            result.putAll(rawData);
+            result.remove("recordedBy");
+            result.remove("createdAt");
+            result.remove("updatedAt");
+            return result;
+        }
 
         switch (eventType) {
             case HARVEST:
