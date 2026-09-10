@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Trash2,
   Info,
+  CalendarClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +26,7 @@ import { getInspectionRequests } from "@/api/certificationApi";
 import type { ProductionLot } from "@/types/productionLot";
 import type { InspectionRequestListItem } from "@/types/certification";
 import { PRODUCTION_LOT_STATUS_LABELS } from "@/components/production-lot/ProductionLotStatusBadge";
+import { InspectionValidityBadge } from "@/components/production-lot/ProductionLotStatusBadge";
 import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 import { usePermission } from "@/hooks/usePermission";
 import { ROLE_ACCESS } from "@/config/roleAccess";
@@ -295,6 +297,66 @@ export const ProductionLotInspectionPage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* NCL-11-CN-004: Khu vực hiệu lực kết quả kiểm nghiệm */}
+        {lot.inspectionValidity &&
+          lot.status !== "RECALLED" &&
+          lot.status !== "CANCELLED" &&
+          lot.status !== "DISPOSED" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <CalendarClock className="h-4 w-4" />
+                Hiệu lực kết quả kiểm nghiệm
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Trạng thái</p>
+                  <div className="mt-1">
+                    <InspectionValidityBadge status={lot.inspectionValidity.status} />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Ngày hết hiệu lực</p>
+                  <p className="font-medium">
+                    {lot.inspectionValidity.earliestExpiryDate
+                      ? formatDate(lot.inspectionValidity.earliestExpiryDate)
+                      : "—"}
+                  </p>
+                </div>
+                {lot.inspectionValidity.status === "EXPIRING" && lot.inspectionValidity.daysRemaining != null && (
+                  <div>
+                    <p className="text-muted-foreground">Còn lại</p>
+                    <p className="font-medium text-orange-600">
+                      {lot.inspectionValidity.daysRemaining} ngày
+                    </p>
+                  </div>
+                )}
+                {lot.inspectionValidity.status === "EXPIRED" && lot.inspectionValidity.daysOverdue != null && (
+                  <div>
+                    <p className="text-muted-foreground">Quá hạn</p>
+                    <p className="font-medium text-rose-600">
+                      {lot.inspectionValidity.daysOverdue} ngày
+                    </p>
+                  </div>
+                )}
+                {lot.inspectionValidity.status === "EXPIRED" && lot.inspectionValidity.canCreateNewRequest && (
+                  <div className="col-span-2 mt-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate(`/production-lots/${lot.id}/inspection-requests/create`)}
+                    >
+                      <ClipboardList className="h-4 w-4 mr-1.5" />
+                      Tạo yêu cầu kiểm nghiệm mới
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Trạng thái kiểm nghiệm */}
         <Card>
