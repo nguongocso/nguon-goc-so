@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import {
   Alert,
   AlertDescription,
@@ -311,69 +312,137 @@ export const ProductionLotInspectionPage: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 text-sm">
+                {/* Mục 1: Tiêu chí (mỗi tiêu chí 1 dòng, đứng trước Kết quả kiểm nghiệm) */}
                 <div>
-                  <p className="text-muted-foreground">Trạng thái</p>
+                  <p className="text-xs text-muted-foreground">
+                    {lot.inspectionValidity.status === "EXPIRING"
+                      ? "Tiêu chí sắp hết hạn"
+                      : lot.inspectionValidity.status === "EXPIRED"
+                      ? "Tiêu chí đã hết hạn"
+                      : "Tiêu chí"}
+                  </p>
+                  <div className="mt-1 space-y-1">
+                    {(() => {
+                      const validityStatus = lot.inspectionValidity.status;
+                      const crits =
+                        validityStatus === "EXPIRING"
+                          ? lot.inspectionValidity.expiringCriteria
+                          : validityStatus === "EXPIRED"
+                          ? lot.inspectionValidity.expiredCriteria
+                          : lot.inspectionValidity.criteria?.map((c) => c.criterionName);
+                      if (crits && crits.length > 0) {
+                        return crits.map((crit, idx) => (
+                          <p
+                            key={idx}
+                            className={cn(
+                              "font-medium leading-snug break-words",
+                              validityStatus === "EXPIRING"
+                                ? "text-orange-800"
+                                : validityStatus === "EXPIRED"
+                                ? "text-rose-800"
+                                : "text-foreground",
+                            )}
+                          >
+                            {crit}
+                          </p>
+                        ));
+                      }
+                      return <p className="font-medium text-muted-foreground">—</p>;
+                    })()}
+                  </div>
+                </div>
+
+                {/* Mục 2: Kết quả kiểm nghiệm */}
+                <div>
+                  <p className="text-xs text-muted-foreground">Kết quả kiểm nghiệm</p>
+                  <p className="mt-1 font-medium text-emerald-700">
+                    {lot.inspectionValidity.status === "VALID" ||
+                    lot.inspectionValidity.status === "EXPIRING" ||
+                    lot.inspectionValidity.status === "EXPIRED"
+                      ? "Đạt"
+                      : lot.inspectionValidity.status === "NOT_REQUIRED"
+                      ? "Không bắt buộc"
+                      : "Chưa có kết quả Đạt"}
+                  </p>
+                </div>
+
+                {/* Mục 3: Trạng thái */}
+                <div>
+                  <p className="text-xs text-muted-foreground">Trạng thái</p>
                   <div className="mt-1">
                     <InspectionValidityBadge status={lot.inspectionValidity.status} />
                   </div>
                 </div>
+
+                {/* Mục 4: Ngày hết hiệu lực */}
                 <div>
-                  <p className="text-muted-foreground">Ngày hết hiệu lực</p>
-                  <p className="font-medium">
+                  <p className="text-xs text-muted-foreground">Ngày hết hiệu lực</p>
+                  <p className="mt-1 font-medium">
                     {lot.inspectionValidity.earliestExpiryDate
                       ? formatDate(lot.inspectionValidity.earliestExpiryDate)
                       : "—"}
                   </p>
                 </div>
-                {lot.inspectionValidity.status === "EXPIRING" && lot.inspectionValidity.daysRemaining != null && (
-                  <div>
-                    <p className="text-muted-foreground">Còn lại</p>
-                    <p className="font-medium text-orange-600">
-                      {lot.inspectionValidity.daysRemaining} ngày
-                    </p>
-                  </div>
-                )}
-                {lot.inspectionValidity.status === "EXPIRED" && lot.inspectionValidity.daysOverdue != null && (
-                  <div>
-                    <p className="text-muted-foreground">Quá hạn</p>
-                    <p className="font-medium text-rose-600">
-                      {lot.inspectionValidity.daysOverdue} ngày
-                    </p>
-                  </div>
-                )}
-                {lot.inspectionValidity.status === "EXPIRING" &&
-                  lot.inspectionValidity.expiringCriteria &&
-                  lot.inspectionValidity.expiringCriteria.length > 0 && (
-                    <div className="col-span-2 mt-1 rounded-lg border border-orange-200 bg-orange-50 p-2.5 text-xs text-orange-900">
-                      <span className="font-semibold">
-                        Tiêu chí sắp hết hiệu lực ({lot.inspectionValidity.expiringCriteria.length}):
-                      </span>{" "}
-                      {lot.inspectionValidity.expiringCriteria.join(", ")}
-                    </div>
-                  )}
-                {lot.inspectionValidity.status === "EXPIRED" &&
-                  lot.inspectionValidity.expiredCriteria &&
-                  lot.inspectionValidity.expiredCriteria.length > 0 && (
-                    <div className="col-span-2 mt-1 rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-900">
-                      <span className="font-semibold">
-                        Tiêu chí đã hết hiệu lực ({lot.inspectionValidity.expiredCriteria.length}):
-                      </span>{" "}
-                      {lot.inspectionValidity.expiredCriteria.join(", ")}
-                    </div>
-                  )}
-                {lot.inspectionValidity.status === "EXPIRED" && lot.inspectionValidity.canCreateNewRequest && (
-                  <div className="col-span-2 mt-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => navigate(`/production-lots/${lot.id}/inspection-requests/create`)}
-                    >
-                      <ClipboardList className="h-4 w-4 mr-1.5" />
-                      Tạo yêu cầu kiểm nghiệm mới
-                    </Button>
-                  </div>
-                )}
+
+                {/* Mục 5: Còn lại / Quá hạn */}
+                <div>
+                  {lot.inspectionValidity.status === "EXPIRING" &&
+                    lot.inspectionValidity.daysRemaining != null && (
+                      <>
+                        <p className="text-xs text-muted-foreground">Thời gian còn lại</p>
+                        <p className="mt-1 font-semibold text-orange-600">
+                          {lot.inspectionValidity.daysRemaining === 0
+                            ? "Hết hạn hôm nay"
+                            : `Còn ${lot.inspectionValidity.daysRemaining} ngày`}
+                        </p>
+                      </>
+                    )}
+                  {lot.inspectionValidity.status === "EXPIRED" &&
+                    lot.inspectionValidity.daysOverdue != null && (
+                      <>
+                        <p className="text-xs text-muted-foreground">Thời gian quá hạn</p>
+                        <p className="mt-1 font-semibold text-rose-600">
+                          Quá hạn {lot.inspectionValidity.daysOverdue} ngày
+                        </p>
+                      </>
+                    )}
+                  {lot.inspectionValidity.status === "VALID" &&
+                    lot.inspectionValidity.daysRemaining != null && (
+                      <>
+                        <p className="text-xs text-muted-foreground">Thời gian còn lại</p>
+                        <p className="mt-1 font-medium text-emerald-600">
+                          Còn {lot.inspectionValidity.daysRemaining} ngày
+                        </p>
+                      </>
+                    )}
+                  {lot.inspectionValidity.status !== "EXPIRING" &&
+                    lot.inspectionValidity.status !== "EXPIRED" &&
+                    lot.inspectionValidity.status !== "VALID" && (
+                      <>
+                        <p className="text-xs text-muted-foreground">Thời gian</p>
+                        <p className="mt-1 text-muted-foreground">—</p>
+                      </>
+                    )}
+                </div>
               </div>
+
+              {lot.inspectionValidity.status === "EXPIRED" && lot.inspectionValidity.canCreateNewRequest && (
+                <div className="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-gray-100 pt-3">
+                  <p className="text-sm text-rose-600">
+                    Kết quả kiểm nghiệm đã hết hiệu lực. Vui lòng tạo yêu cầu kiểm nghiệm mới để tiếp tục xuất lô hàng và kích hoạt tem.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+                    onClick={() => navigate(`/production-lots/${lot.id}/inspection-requests/create`)}
+                  >
+                    <ClipboardList className="h-4 w-4 mr-1.5" />
+                    Tạo yêu cầu kiểm nghiệm mới
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

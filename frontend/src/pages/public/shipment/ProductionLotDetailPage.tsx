@@ -50,7 +50,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { maskId } from "@/lib/utils";
+import { cn, maskId } from "@/lib/utils";
 import type {
   CanActivateSealCheck,
   InspectionCriterionResult,
@@ -975,6 +975,45 @@ export const ProductionLotDetailPage = () => {
     return lot?.inspectionValidity?.daysRemaining;
   }, [displayedEarliestExpiryDate, today, lot?.inspectionValidity?.daysRemaining]);
 
+  // Danh sách tiêu chí hiển thị trong mục "Tiêu chí" của Card hiệu lực (mỗi tiêu chí 1 dòng)
+  const criteriaToDisplay = useMemo(() => {
+    if (lot?.inspectionValidity?.status === "EXPIRING") {
+      if (effectiveExpiringCriteria.length > 0) {
+        return effectiveExpiringCriteria;
+      }
+      if (lot.inspectionValidity.expiringCriteria && lot.inspectionValidity.expiringCriteria.length > 0) {
+        return lot.inspectionValidity.expiringCriteria;
+      }
+    }
+    if (lot?.inspectionValidity?.status === "EXPIRED") {
+      if (effectiveExpiredCriteria.length > 0) {
+        return effectiveExpiredCriteria;
+      }
+      if (lot.inspectionValidity.expiredCriteria && lot.inspectionValidity.expiredCriteria.length > 0) {
+        return lot.inspectionValidity.expiredCriteria;
+      }
+    }
+    if (criterionRows.length > 0) {
+      return criterionRows.map((row) =>
+        row.meta?.referenceStandard
+          ? `${row.criterion.name} (${row.meta.referenceStandard})`
+          : row.criterion.name,
+      );
+    }
+    if (lot?.inspectionValidity?.criteria && lot.inspectionValidity.criteria.length > 0) {
+      return lot.inspectionValidity.criteria.map((c) => c.criterionName);
+    }
+    return [];
+  }, [
+    lot?.inspectionValidity?.status,
+    lot?.inspectionValidity?.expiringCriteria,
+    lot?.inspectionValidity?.expiredCriteria,
+    lot?.inspectionValidity?.criteria,
+    effectiveExpiringCriteria,
+    effectiveExpiredCriteria,
+    criterionRows,
+  ]);
+
   const canRecordHarvest =
     user?.roleCode === "VT-02" || user?.roleCode === "VT-03";
 
@@ -1441,6 +1480,150 @@ export const ProductionLotDetailPage = () => {
           </TabsTrigger>
         </TabsList>
 
+        {/* NCL-11-CN-004: Khối thông tin hiệu lực kết quả kiểm nghiệm (hiển thị tại tất cả các tab) */}
+        {lot.inspectionValidity &&
+          lot.status !== "RECALLED" &&
+          lot.status !== "CANCELLED" &&
+          lot.status !== "DISPOSED" && (
+            <Card className="mt-4 border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                  <CalendarClock className="h-4 w-4 text-emerald-600" />
+                  Hiệu lực kết quả kiểm nghiệm
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
+                  {/* Mục 1: Tiêu chí (mỗi tiêu chí 1 dòng, đứng trước Kết quả kiểm nghiệm) */}
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      {lot.inspectionValidity.status === "EXPIRING"
+                        ? "Tiêu chí sắp hết hạn"
+                        : lot.inspectionValidity.status === "EXPIRED"
+                        ? "Tiêu chí đã hết hạn"
+                        : "Tiêu chí"}
+                    </p>
+                    <div className="mt-1 space-y-1">
+                      {criteriaToDisplay.length > 0 ? (
+                        criteriaToDisplay.map((crit, idx) => (
+                          <p
+                            key={idx}
+                            className={cn(
+                              "font-medium leading-snug break-words",
+                              lot.inspectionValidity?.status === "EXPIRING"
+                                ? "text-orange-800"
+                                : lot.inspectionValidity?.status === "EXPIRED"
+                                ? "text-rose-800"
+                                : "text-foreground",
+                            )}
+                          >
+                            {crit}
+                          </p>
+                        ))
+                      ) : (
+                        <p className="font-medium text-muted-foreground">—</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mục 2: Kết quả kiểm nghiệm */}
+                  <div>
+                    <p className="text-xs text-muted-foreground">Kết quả kiểm nghiệm</p>
+                    <p className="mt-1 font-medium text-emerald-700">
+                      {lot.inspectionValidity.status === "VALID" ||
+                      lot.inspectionValidity.status === "EXPIRING" ||
+                      lot.inspectionValidity.status === "EXPIRED"
+                        ? "Đạt"
+                        : lot.inspectionValidity.status === "NOT_REQUIRED"
+                        ? "Không bắt buộc"
+                        : "Chưa có kết quả Đạt"}
+                    </p>
+                  </div>
+
+                  {/* Mục 3: Trạng thái hiệu lực */}
+                  <div>
+                    <p className="text-xs text-muted-foreground">Trạng thái hiệu lực</p>
+                    <div className="mt-1">
+                      <InspectionValidityBadge status={lot.inspectionValidity.status} />
+                    </div>
+                  </div>
+
+                  {/* Mục 4: Ngày hết hiệu lực */}
+                  <div>
+                    <p className="text-xs text-muted-foreground">Ngày hết hiệu lực</p>
+                    <p className="mt-1 font-medium">
+                      {displayedEarliestExpiryDate
+                        ? formatDateOnly(displayedEarliestExpiryDate)
+                        : "—"}
+                    </p>
+                  </div>
+
+                  {/* Mục 5: Thời gian còn lại / quá hạn */}
+                  <div>
+                    {lot.inspectionValidity.status === "EXPIRING" &&
+                      displayedDaysRemaining != null && (
+                        <>
+                          <p className="text-xs text-muted-foreground">Thời gian còn lại</p>
+                          <p className="mt-1 font-semibold text-orange-600">
+                            {displayedDaysRemaining === 0
+                              ? "Hết hạn hôm nay"
+                              : `Còn ${displayedDaysRemaining} ngày`}
+                          </p>
+                        </>
+                      )}
+                    {lot.inspectionValidity.status === "EXPIRED" &&
+                      lot.inspectionValidity.daysOverdue != null && (
+                        <>
+                          <p className="text-xs text-muted-foreground">Thời gian quá hạn</p>
+                          <p className="mt-1 font-semibold text-rose-600">
+                            Quá hạn {lot.inspectionValidity.daysOverdue} ngày
+                          </p>
+                        </>
+                      )}
+                    {lot.inspectionValidity.status === "VALID" &&
+                      displayedDaysRemaining != null && (
+                        <>
+                          <p className="text-xs text-muted-foreground">Thời gian còn lại</p>
+                          <p className="mt-1 font-medium text-emerald-600">
+                            Còn {displayedDaysRemaining} ngày
+                          </p>
+                        </>
+                      )}
+                    {lot.inspectionValidity.status !== "EXPIRING" &&
+                      lot.inspectionValidity.status !== "EXPIRED" &&
+                      lot.inspectionValidity.status !== "VALID" && (
+                        <>
+                          <p className="text-xs text-muted-foreground">Thời gian</p>
+                          <p className="mt-1 text-muted-foreground">—</p>
+                        </>
+                      )}
+                  </div>
+                </div>
+
+                {/* CTA khi hết hiệu lực */}
+                {lot.inspectionValidity.status === "EXPIRED" &&
+                  lot.inspectionValidity.canCreateNewRequest && (
+                    <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-gray-100 pt-3">
+                      <p className="text-sm text-rose-600">
+                        Kết quả kiểm nghiệm đã hết hiệu lực. Vui lòng tạo yêu cầu kiểm nghiệm mới để tiếp tục xuất lô hàng và kích hoạt tem.
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0 border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+                        onClick={() =>
+                          navigate(`/production-lots/${lot.id}/inspection-requests/create`)
+                        }
+                      >
+                        <ClipboardList className="h-4 w-4 mr-1.5" />
+                        Tạo yêu cầu kiểm nghiệm mới
+                      </Button>
+                    </div>
+                  )}
+              </CardContent>
+            </Card>
+          )}
+
         <TabsContent value="info" className="mt-4">
           <Card className="border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm">
             <CardContent className="pt-6">
@@ -1508,125 +1691,6 @@ export const ProductionLotDetailPage = () => {
 
         {canInspect && (
           <TabsContent value="inspection" className="mt-4 space-y-4">
-            {/* NCL-11-CN-004: Khối thông tin hiệu lực kết quả kiểm nghiệm */}
-            {lot.inspectionValidity &&
-              lot.status !== "RECALLED" &&
-              lot.status !== "CANCELLED" &&
-              lot.status !== "DISPOSED" && (
-                <Card className="border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                      <CalendarClock className="h-4 w-4 text-emerald-600" />
-                      Hiệu lực kết quả kiểm nghiệm
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 text-sm">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Kết quả kiểm nghiệm</p>
-                        <p className="mt-1 font-medium text-emerald-700">
-                          {lot.inspectionValidity.status === "VALID" ||
-                          lot.inspectionValidity.status === "EXPIRING" ||
-                          lot.inspectionValidity.status === "EXPIRED"
-                            ? "Đạt"
-                            : lot.inspectionValidity.status === "NOT_REQUIRED"
-                            ? "Không bắt buộc"
-                            : "Chưa có kết quả Đạt"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Trạng thái hiệu lực</p>
-                        <div className="mt-1">
-                          <InspectionValidityBadge status={lot.inspectionValidity.status} />
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Ngày hết hiệu lực</p>
-                        <p className="mt-1 font-medium">
-                          {displayedEarliestExpiryDate
-                            ? formatDateOnly(displayedEarliestExpiryDate)
-                            : "—"}
-                        </p>
-                      </div>
-                      <div>
-                        {lot.inspectionValidity.status === "EXPIRING" &&
-                          displayedDaysRemaining != null && (
-                            <>
-                              <p className="text-xs text-muted-foreground">Thời gian còn lại</p>
-                              <p className="mt-1 font-semibold text-orange-600">
-                                {displayedDaysRemaining === 0 ? "Hết hạn hôm nay" : `Còn ${displayedDaysRemaining} ngày`}
-                              </p>
-                            </>
-                          )}
-                        {lot.inspectionValidity.status === "EXPIRED" &&
-                          lot.inspectionValidity.daysOverdue != null && (
-                            <>
-                              <p className="text-xs text-muted-foreground">Thời gian quá hạn</p>
-                              <p className="mt-1 font-semibold text-rose-600">
-                                Quá hạn {lot.inspectionValidity.daysOverdue} ngày
-                              </p>
-                            </>
-                          )}
-                        {lot.inspectionValidity.status === "VALID" &&
-                          displayedDaysRemaining != null && (
-                            <>
-                              <p className="text-xs text-muted-foreground">Thời gian còn lại</p>
-                              <p className="mt-1 font-medium text-emerald-600">
-                                Còn {displayedDaysRemaining} ngày
-                              </p>
-                            </>
-                          )}
-                        {lot.inspectionValidity.status !== "EXPIRING" &&
-                          lot.inspectionValidity.status !== "EXPIRED" &&
-                          lot.inspectionValidity.status !== "VALID" && (
-                            <>
-                              <p className="text-xs text-muted-foreground">Thời gian</p>
-                              <p className="mt-1 text-muted-foreground">—</p>
-                            </>
-                          )}
-                      </div>
-                    </div>
-                    {lot.inspectionValidity.status === "EXPIRING" &&
-                      effectiveExpiringCriteria.length > 0 && (
-                        <div className="mt-3 rounded-lg border border-orange-200 bg-orange-50 p-3 text-xs text-orange-900">
-                          <span className="font-semibold">
-                            Tiêu chí sắp hết hiệu lực ({effectiveExpiringCriteria.length}):
-                          </span>{" "}
-                          {effectiveExpiringCriteria.join(", ")}
-                        </div>
-                      )}
-                    {lot.inspectionValidity.status === "EXPIRED" &&
-                      effectiveExpiredCriteria.length > 0 && (
-                        <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-900">
-                          <span className="font-semibold">
-                            Tiêu chí đã hết hiệu lực ({effectiveExpiredCriteria.length}):
-                          </span>{" "}
-                          {effectiveExpiredCriteria.join(", ")}
-                        </div>
-                      )}
-                    {lot.inspectionValidity.status === "EXPIRED" &&
-                      lot.inspectionValidity.canCreateNewRequest && (
-                        <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-gray-100 pt-3">
-                          <p className="text-sm text-rose-600">
-                            Kết quả kiểm nghiệm đã hết hiệu lực. Vui lòng tạo yêu cầu kiểm nghiệm mới để tiếp tục xuất lô hàng và kích hoạt tem.
-                          </p>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="shrink-0 border-emerald-600 text-emerald-700 hover:bg-emerald-50"
-                            onClick={() =>
-                              navigate(`/production-lots/${lot.id}/inspection-requests/create`)
-                            }
-                          >
-                            <ClipboardList className="h-4 w-4 mr-1.5" />
-                            Tạo yêu cầu kiểm nghiệm mới
-                          </Button>
-                        </div>
-                      )}
-                  </CardContent>
-                </Card>
-              )}
-
             <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
               {/* ── Cột trái: Điều kiện kích hoạt tem + bảng chỉ tiêu ────── */}
               <Card className="border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm lg:col-span-2">
