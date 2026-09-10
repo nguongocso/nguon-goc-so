@@ -68,6 +68,10 @@ import CategoryOverridePage from "@/pages/admin/CategoryOverridePage";
 import CreatePackagingEventPage from "@/pages/packaging-event/CreatePackagingEventPage";
 import CorrectPackagingEventPage from "@/pages/packaging-event/CorrectPackagingEventPage";
 
+// ===== Coop Warehouse =====
+import CreateCoopWarehouseEntryPage from "@/pages/coop-warehouse/CreateCoopWarehouseEntryPage";
+import CreateCoopWarehouseExitPage from "@/pages/coop-warehouse/CreateCoopWarehouseExitPage";
+
 // ===== Preprocessing =====
 import CreatePreprocessingEventPage from "@/pages/preprocessing-event/CreatePreprocessingEventPage";
 import CorrectPreprocessingEventPage from "@/pages/preprocessing-event/CorrectPreprocessingEventPage";
@@ -179,6 +183,11 @@ import { SystemMonitoringPage } from "@/pages/admin/SystemMonitoringPage";
 import { CreateRecallRequestPage } from "@/pages/recall-request/CreateRecallRequestPage";
 import { RecallRequestListPage } from "@/pages/recall-request/RecallRequestListPage";
 import { RecallRequestDetailPage } from "@/pages/recall-request/RecallRequestDetailPage";
+
+// ===== Bulk Recall requests (NCL-08-CN-011) =====
+import { BulkRecallRequestDetailPage } from "@/pages/recall-request/BulkRecallRequestDetailPage";
+import { BulkRecallRequestListPage } from "@/pages/recall-request/BulkRecallRequestListPage";
+import { CreateBulkRecallRequestPage } from "@/pages/recall-request/CreateBulkRecallRequestPage";
 
 // ===== Code range supplement (NCL-04-CN-007) =====
 import { CodeRangeSupplementListPage } from "@/pages/admin/CodeRangeSupplementListPage";
@@ -565,6 +574,17 @@ const AppRoutes = () => (
             />
 
             <Route
+                path="production-lots/:id/create-bulk-recall-request"
+                element={
+                    <RoleRoute
+                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                    >
+                        <CreateBulkRecallRequestPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
                 path="production-lots/:productionLotId/shipments/create"
                 element={
                     <RoleRoute
@@ -828,6 +848,32 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.packagingEventCorrect}
                     >
                         <CorrectPackagingEventPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* =================================================
+          COOP WAREHOUSE (NCL-05-CN-011)
+      ================================================= */}
+
+            <Route
+                path="coop-warehouse-events/entry"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.packagingEventCreate}
+                    >
+                        <CreateCoopWarehouseEntryPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="coop-warehouse-events/exit"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.packagingEventCreate}
+                    >
+                        <CreateCoopWarehouseExitPage />
                     </RoleRoute>
                 }
             />
@@ -1537,6 +1583,32 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.recallRequestManage}
                     >
                         <RecallRequestDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* ===========================================================
+          BULK RECALL REQUEST (NCL-08-CN-011)
+          Danh sách yêu cầu thu hồi theo phạm vi ảnh hưởng
+      =========================================================== */}
+            <Route
+                path="recall-requests/bulk"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.recallRequestManage}
+                    >
+                        <BulkRecallRequestListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="recall-requests/bulk/:id"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.recallRequestManage}
+                    >
+                        <BulkRecallRequestDetailPage />
                     </RoleRoute>
                 }
             />

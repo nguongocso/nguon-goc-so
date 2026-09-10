@@ -1141,10 +1141,10 @@ export const ProductionLotDetailPage = () => {
                 }
                 variant="create"
               >
-                <Package className="h-4 w-4 mr-1" />
                 Ghi đóng gói
               </Button>
             )}
+
             {canCancelLot &&
               CANCELLABLE_PRODUCTION_LOT_STATUSES.includes(lot.status) && (
                 <Button
@@ -1397,6 +1397,7 @@ export const ProductionLotDetailPage = () => {
             canCreate={canCreateShipment}
             canActivate={canActivateShipment}
             canRecall={canRecallShipment}
+            canCreateBulkRecall={canRecallShipment}
           />
         </TabsContent>
 

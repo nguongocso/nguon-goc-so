@@ -1,7 +1,19 @@
 -- Tạo bảng shipment_handovers để lưu thông tin phiếu bàn giao lô hàng
 -- NCL-05-CN-008 + NCL-05-CN-009
+--
+-- LƯU Ý: KHÔNG khai báo COLLATE=utf8mb4_0900_ai_ci vì hai lí do:
+--   1. Đây là collation chỉ tồn tại trên MySQL 8.0. Trên MariaDB câu lệnh
+--      CREATE TABLE thất bại với lỗi "Unknown collation", Flyway ghi nhận
+--      migration failed (success = 0) và chặn mọi lần khởi động về sau.
+--   2. Các bảng cha (shipments, organizations, users) đang dùng
+--      utf8mb4_general_ci; khai báo collation lệch sẽ gây lỗi errno 150
+--      (foreign key mismatch) ngay cả trên MySQL 8.0.
+-- Bảng sẽ kế thừa collation mặc định của database, đồng bộ với các bảng còn lại.
+--
+-- Dùng CREATE TABLE IF NOT EXISTS để migration có thể chạy lại an toàn sau một
+-- lần thất bại giữa chừng (MariaDB/MySQL không hỗ trợ DDL transaction).
 
-CREATE TABLE shipment_handovers (
+CREATE TABLE IF NOT EXISTS shipment_handovers (
     id CHAR(36) PRIMARY KEY,
     shipment_id CHAR(36) NOT NULL,
     from_organization_id CHAR(36) NOT NULL,
@@ -31,7 +43,7 @@ CREATE TABLE shipment_handovers (
     CONSTRAINT fk_handover_confirmed_by FOREIGN KEY (confirmed_by) REFERENCES users(user_id),
     CONSTRAINT fk_handover_rejected_by FOREIGN KEY (rejected_by) REFERENCES users(user_id),
     CONSTRAINT fk_handover_cancelled_by FOREIGN KEY (cancelled_by) REFERENCES users(user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Indexes
 CREATE INDEX idx_handover_shipment ON shipment_handovers(shipment_id);

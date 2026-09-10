@@ -42,6 +42,15 @@ public class PermissionCheckerImpl implements PermissionChecker {
      * Kiểm tra quyền của người dùng hiện tại đối với một resource và action cụ thể.
      * Nếu người dùng không có quyền, ném ra BusinessException với mã lỗi 403.
      *
+     * <p>Thứ tự xét quyền:</p>
+     * <ol>
+     *   <li>Permission phải tồn tại trong DB (nếu thiếu là lỗi cấu hình seed).</li>
+     *   <li>Ghi đè của tổ chức (organization_role_permissions) nếu có.</li>
+     *   <li>Ngược lại dùng quyền mặc định của vai trò (role_permissions);
+     *       vai trò chưa được cấp quyền (không có dòng mapping) xem như
+     *       không có quyền và trả 403.</li>
+     * </ol>
+     *
      * @param resource Tên resource (ví dụ: "production_lot").
      * @param action   Tên action (ví dụ: "view", "create", "update", "delete").
      */
@@ -72,14 +81,14 @@ public class PermissionCheckerImpl implements PermissionChecker {
 
         } else {
 
-            RolePermission defaultPermission = rolePermissionRepository
+            // Không có ghi đè của tổ chức: vai trò chưa được cấp quyền
+            // (không có dòng mapping) xem như không có quyền → 403.
+            enabled = rolePermissionRepository
                     .findByRole_RoleIdAndPermission_PermissionId(
                             role.getRoleId(),
                             permission.getPermissionId())
-                    .orElseThrow(() -> new BusinessException(
-                            "Permission mặc định chưa được cấu hình."));
-
-            enabled = Boolean.TRUE.equals(defaultPermission.getEnabled());
+                    .map(rolePermission -> Boolean.TRUE.equals(rolePermission.getEnabled()))
+                    .orElse(Boolean.FALSE);
         }
 
         if (!enabled) {
