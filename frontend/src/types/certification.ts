@@ -30,7 +30,7 @@ export interface AttachCertificationRequest {
 export interface CreateCertificationRequest {
   standardId: string;
   code: string;
-  issuedBy?: string;
+  issuedBy: string;
   issueDate: string;   // YYYY-MM-DD
   expiryDate: string;  // YYYY-MM-DD
 }

@@ -35,5 +35,8 @@ public enum ChainEventType {
     WAREHOUSE_ENTRY, // Nhập kho HTX
 
     // Sự kiện xuất kho tại hợp tác xã (HTX)
-    WAREHOUSE_EXIT // Xuất kho HTX
+    WAREHOUSE_EXIT, // Xuất kho HTX
+
+    // Sự kiện bàn giao lô hàng
+    HANDOVER // Bàn giao
 }
