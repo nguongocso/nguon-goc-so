@@ -68,4 +68,9 @@ public class CreateProductionLotResponse {
         private LocalDateTime createdAt;
 
         private LocalDateTime updatedAt;
+
+        /**
+         * Thông tin hiệu lực kết quả kiểm nghiệm của lô (NCL-11-CN-004).
+         */
+        private vn.nguongocso.certification.dto.response.InspectionValidityResponse inspectionValidity;
 }
