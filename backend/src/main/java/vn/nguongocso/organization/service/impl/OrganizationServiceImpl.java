@@ -155,27 +155,29 @@ public class OrganizationServiceImpl
 
         /**
          * Lấy danh sách tổ chức nhận cho dropdown phiếu bàn giao.
-         * Chỉ trả các tổ chức ACTIVE và khác tổ chức hiện tại.
+         * Chỉ trả các tổ chức ACTIVE thuộc Doanh nghiệp thu mua (VT-04, loại
+         * ENTERPRISE) và khác tổ chức hiện tại — phiếu bàn giao chỉ nhắm tới VT-04.
          *
          * @return danh sách tổ chức nhận
          */
-        @Override
-        @Transactional(readOnly = true)
-        public List<RecipientOrganizationResponse> getRecipientOrganizations() {
-                UUID currentOrgId = getCurrentOrganizationId();
+@Override
+                @Transactional(readOnly = true)
+                public List<RecipientOrganizationResponse> getRecipientOrganizations() {
+                        UUID currentOrgId = getCurrentOrganizationId();
 
-                return organizationRepository
-                                .findByStatusAndOrganizationIdNot(OrganizationStatus.ACTIVE, currentOrgId)
-                                .stream()
-                                .map(org -> new RecipientOrganizationResponse(
-                                                org.getOrganizationId(),
-                                                org.getName(),
-                                                org.getCode(),
-                                                org.getType(),
-                                                org.getStatus(),
-                                                org.getCreatedAt()))
-                                .toList();
-        }
+                        return organizationRepository
+                                        .findByStatusAndOrganizationIdNot(OrganizationStatus.ACTIVE, currentOrgId)
+                                        .stream()
+                                        .filter(org -> org.getType() == OrganizationType.ENTERPRISE)
+                                        .map(org -> new RecipientOrganizationResponse(
+                                                        org.getOrganizationId(),
+                                                        org.getName(),
+                                                        org.getCode(),
+                                                        org.getType(),
+                                                        org.getStatus(),
+                                                        org.getCreatedAt()))
+                                        .toList();
+                }
 
         private Organization createOrganizationEntity(
                         CreateOrganizationRequest request) {

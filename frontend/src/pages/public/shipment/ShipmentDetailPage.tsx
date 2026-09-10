@@ -8,6 +8,7 @@ import {
   BadgeCheck,
   Ban,
   ChevronDown,
+  FileSignature,
   FileText,
   History,
   LoaderCircle,
@@ -16,7 +17,6 @@ import {
   QrCode,
   ScrollText,
   Trash2,
-  Truck,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -327,7 +327,7 @@ export const ShipmentDetailPage = () => {
                   className="border-blue-300 text-blue-700 hover:bg-blue-50"
                   onClick={() => setShowCreateHandoverDialog(true)}
                 >
-                  <Truck className="mr-1.5 h-4 w-4" />
+                  <FileSignature className="mr-1.5 h-4 w-4" />
                   Tạo phiếu bàn giao
                 </Button>
               )}

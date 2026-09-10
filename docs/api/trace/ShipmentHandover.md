@@ -22,7 +22,7 @@ Cho phép tổ chức giao (owner lô hàng) tạo phiếu bàn giao gửi sang 
 | GET | `/api/v1/shipment-handovers/received` | Danh sách phiếu đã nhận |
 | GET | `/api/v1/shipments/{id}/remaining-handover-quantity` | Số kg còn lại có thể bàn giao |
 | GET | `/api/v1/shipments/{id}/has-pending-handover` | `true` khi lô có phiếu PENDING_CONFIRMATION (nhãn "Đang bàn giao" trên UI) |
-| GET | `/api/v1/organizations/recipient-organizations` | Danh sách tổ chức ACTIVE trừ tổ chức hiện tại (cho dropdown Tổ chức nhận, dùng được bởi VT-02) |
+| GET | `/api/v1/organizations/recipient-organizations` | Danh sách tổ chức nhận: chỉ Doanh nghiệp thu mua (VT-04 / ENTERPRISE) ACTIVE trừ tổ chức hiện tại (cho dropdown Tổ chức nhận, dùng được bởi VT-02) |
 
 ## 3. POST /api/v1/shipment-handovers — Tạo phiếu
 
@@ -173,7 +173,8 @@ Bổ sung để khắc phục lỗi 403 khi VT-02 mở dialog Tạo phiếu bàn
 Nguyên nhân cũ: dialog gọi `GET /admin/organizations` (chỉ VT-01) nên VT-02 luôn 403,
 `Promise.all` fail kéo `remainingQuantity` về 0 giả và dropdown trống.
 
-Quyền: `VT-01`, `VT-02`. Lọc: `status = ACTIVE` và khác tổ chức hiện tại.
+Quyền: `VT-01`, `VT-02`. Lọc: `status = ACTIVE`, `type = ENTERPRISE` (chỉ Doanh nghiệp thu mua
+VT-04 — phiếu bàn giao chỉ nhắm tới VT-04) và khác tổ chức hiện tại.
 
 ```json
 {

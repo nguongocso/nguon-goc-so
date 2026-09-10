@@ -99,6 +99,7 @@ import ShipmentTraceCodesPage from "@/pages/shipment/ShipmentTraceCodesPage";
 // ===== Shipment handover (NCL-05-CN-008 / NCL-05-CN-009) =====
 import { HandoverDetailPage } from "@/pages/shipment-handover/HandoverDetailPage";
 import { ShipmentHandoverReceivedListPage } from "@/pages/shipment-handover/ShipmentHandoverReceivedListPage";
+import { ShipmentHandoverSentListPage } from "@/pages/shipment-handover/ShipmentHandoverSentListPage";
 
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
@@ -707,6 +708,16 @@ const AppRoutes = () => (
                 }
             />
 
+            {/* NCL-05-CN-008/CN-009: Danh sách phiếu bàn giao đã gửi của tổ chức hiện tại (VT-02).
+            Route tĩnh được đặt trước route động :id để khớp đúng path này. */}
+            <Route
+                path="shipment-handovers/sent"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.handoverSentView}>
+                        <ShipmentHandoverSentListPage />
+                    </RoleRoute>
+                }
+            />
             {/* NCL-05-CN-008/CN-009: Chi tiết phiếu bàn giao lô hàng.
             Backend chặn nếu tổ chức hiện tại không phải bên giao/bên nhận. */}
             <Route

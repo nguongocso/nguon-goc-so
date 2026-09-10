@@ -12,7 +12,8 @@ import vn.nguongocso.organization.enums.OrganizationType;
 
 /**
  * Thông tin tổ chức nhận cho dropdown phiếu bàn giao.
- * Chỉ gồm các tổ chức ACTIVE và khác tổ chức hiện tại.
+ * Chỉ gồm các tổ chức Doanh nghiệp thu mua (VT-04, loại ENTERPRISE), ACTIVE và
+ * khác tổ chức hiện tại.
  */
 @Getter
 @Setter
