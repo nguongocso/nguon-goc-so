@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   AlertCircle,
-  ArrowLeft,
   Award,
   CheckCircle2,
   ExternalLink,
@@ -10,7 +9,7 @@ import {
   ShieldCheck,
   XCircle,
 } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   getCertificateDocument,
@@ -86,7 +85,6 @@ const DetailRow = ({ label, value }: DetailRowProps) => (
 
 export const CertificateVerificationDetailPage = () => {
   const { certificateId } = useParams<{ certificateId: string }>();
-  const navigate = useNavigate();
   const [certificate, setCertificate] = useState<CertificateVerification | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -214,11 +212,6 @@ export const CertificateVerificationDetailPage = () => {
         icon={ShieldCheck}
         title="Chi tiết chứng nhận"
         description={certificate ? `${certificate.standardName} · ${certificate.code}` : 'Đối chiếu thông tin và tài liệu chứng nhận.'}
-        actions={
-          <Button variant="outline" onClick={() => navigate('/admin/certifications')}>
-            <ArrowLeft /> Quay lại danh sách
-          </Button>
-        }
       />
 
       {loadError && (
