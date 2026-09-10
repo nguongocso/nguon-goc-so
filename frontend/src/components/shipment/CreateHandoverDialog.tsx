@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Link } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -9,14 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Loader2, Truck } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Truck, CheckCircle2, ChevronDown, Search } from "lucide-react";
 import { toast } from "sonner";
 import type { Shipment } from "@/types/shipment";
 import type { Organization } from "@/types/organization";
@@ -24,6 +19,7 @@ import { getRecipientOrganizations } from "@/api/organizationApi";
 import { createHandover, getRemainingQuantity, uploadHandoverAttachment } from "@/api/handoverApi";
 import { getAssetUrl } from "@/config/runtimeConfig";
 import { getUser } from "@/utils/storage";
+import { normalizeVietnamese } from "@/utils/string";
 import {
   ATTACHMENT_MAX_SIZE,
   ATTACHMENT_MIME_TYPES,
@@ -71,15 +67,9 @@ export const buildRecipientLabelMap = (
 };
 
 /**
- * Hàm render label cho {@code Select.Value} của giỏ hàng tổ chức nhận.
+ * Hàm render label cho giá trị đã chọn của dropdown tổ chức nhận.
  *
- * Base UI truyền thẳng RAW VALUE vào children function
- * (xem node_modules/@base-ui/react/select/value/SelectValue.js:
- * {@code childrenProp(value)}) — KHÔNG phải object {@code { value }}.
- * Vì vậy không được destructure {@code { value }} (sẽ luôn undefined
- * và trigger hiển thị placeholder mãi dù đã chọn — lỗi NCL-05-CN-008).
- *
- * @param value  giá trị đang chọn do Base UI truyền vào (có thể undefined)
+ * @param value  giá trị đang chọn (có thể undefined)
  * @param labels bảng "id tổ chức → tên hiển thị"
  * @returns tên hiển thị của tổ chức, hoặc placeholder khi chưa chọn
  */
@@ -127,11 +117,56 @@ export const CreateHandoverDialog = ({
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState<string>("");
 
+  // YC1: State cho searchable dropdown tổ chức nhận
+  const [orgDropdownOpen, setOrgDropdownOpen] = useState(false);
+  const [orgSearchTerm, setOrgSearchTerm] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // YC3: State lưu ID phiếu vừa tạo thành công để hiển thị inline alert
+  const [createdHandoverId, setCreatedHandoverId] = useState<string | null>(null);
+
   const orgLabels = useMemo(() => buildRecipientLabelMap(organizations), [organizations]);
   const handoverAssetUrl = useMemo(
     () => toHandoverAssetUrl(attachmentPath),
     [attachmentPath],
   );
+
+  // YC1: Lọc danh sách tổ chức theo từ khóa tìm kiếm (bỏ dấu tiếng Việt)
+  const filteredOrganizations = useMemo(() => {
+    if (!orgSearchTerm.trim()) return organizations;
+    const keyword = normalizeVietnamese(orgSearchTerm);
+    return organizations.filter((org) => {
+      const nameNorm = normalizeVietnamese(org.name ?? "");
+      const codeNorm = normalizeVietnamese(org.code ?? "");
+      const idNorm = normalizeVietnamese(org.id);
+      return (
+        nameNorm.includes(keyword) ||
+        codeNorm.includes(keyword) ||
+        idNorm.includes(keyword)
+      );
+    });
+  }, [organizations, orgSearchTerm]);
+
+  // YC1: Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOrgDropdownOpen(false);
+      }
+    };
+    if (orgDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [orgDropdownOpen]);
+
+  // YC1: Focus ô tìm kiếm khi mở dropdown
+  useEffect(() => {
+    if (orgDropdownOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [orgDropdownOpen]);
 
   useEffect(() => {
     if (open && shipment) {
@@ -200,6 +235,11 @@ export const CreateHandoverDialog = ({
     setUploadedFileName("");
     setUploadedFileSize(0);
     setError("");
+    // YC1: Reset trạng thái tìm kiếm
+    setOrgSearchTerm("");
+    setOrgDropdownOpen(false);
+    // YC3: Reset thông báo thành công
+    setCreatedHandoverId(null);
     onClose();
   };
 
@@ -248,9 +288,11 @@ export const CreateHandoverDialog = ({
 
     setLoading(true);
     setError("");
+    // YC3: Reset thông báo cũ trước khi submit mới
+    setCreatedHandoverId(null);
 
     try {
-      await createHandover({
+      const result = await createHandover({
         shipmentId: shipment.id,
         toOrganizationId: selectedOrgId,
         quantity: Number(quantity),
@@ -260,9 +302,9 @@ export const CreateHandoverDialog = ({
         note: note || undefined,
         attachmentPath: attachmentPath || undefined,
       });
-      toast.success("Tạo phiếu bàn giao thành công");
+      // YC3: Lưu ID phiếu vừa tạo, KHÔNG đóng dialog, KHÔNG toast
+      setCreatedHandoverId(result.id);
       onSuccess();
-      handleClose();
     } catch (err: any) {
       setError(getBackendMessage(err, "Không thể tạo phiếu bàn giao"));
     } finally {
@@ -272,6 +314,11 @@ export const CreateHandoverDialog = ({
 
   const quantityNum = Number(quantity);
   const isValidQuantity = quantityNum > 0 && quantityNum <= remainingQuantity;
+
+  // Tên tổ chức đang được chọn để hiển thị trên trigger
+  const selectedOrgLabel = selectedOrgId
+    ? orgLabels.get(selectedOrgId) ?? selectedOrgId
+    : "";
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && handleClose()}>
@@ -285,31 +332,65 @@ export const CreateHandoverDialog = ({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* YC1: Dropdown tìm kiếm tổ chức nhận */}
             <div className="space-y-2">
               <Label>Tổ chức nhận</Label>
-              <Select value={selectedOrgId} onValueChange={(value) => setSelectedOrgId(value ?? "")}>
-                <SelectTrigger className="w-full">
-                  <SelectValue>
-                    {(value) => renderRecipientSelectValue(value, orgLabels)}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {organizations.length === 0 ? (
-                    <p className="px-3.5 py-3 text-sm text-muted-foreground">
-                      Không có tổ chức nhận khả dụng.
-                    </p>
-                  ) : (
-                    organizations.map((org) => {
-                      const displayName = getRecipientDisplayName(org);
-                      return (
-                        <SelectItem key={org.id} value={org.id} label={displayName}>
-                          {displayName}
-                        </SelectItem>
-                      );
-                    })
-                  )}
-                </SelectContent>
-              </Select>
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={() => setOrgDropdownOpen(!orgDropdownOpen)}
+                >
+                  <span className={selectedOrgLabel ? "text-foreground" : "text-muted-foreground"}>
+                    {selectedOrgLabel || "Chọn tổ chức nhận"}
+                  </span>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </button>
+
+                {orgDropdownOpen && (
+                  <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md">
+                    <div className="flex items-center border-b px-3">
+                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                      <input
+                        ref={searchInputRef}
+                        type="text"
+                        className="flex h-9 w-full bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground"
+                        placeholder="Tìm theo tên, mã, mã số thuế..."
+                        value={orgSearchTerm}
+                        onChange={(e) => setOrgSearchTerm(e.target.value)}
+                      />
+                    </div>
+                    <div className="max-h-60 overflow-auto p-1">
+                      {filteredOrganizations.length === 0 ? (
+                        <p className="px-3.5 py-3 text-sm text-muted-foreground">
+                          Không tìm thấy tổ chức phù hợp.
+                        </p>
+                      ) : (
+                        filteredOrganizations.map((org) => {
+                          const displayName = getRecipientDisplayName(org);
+                          const isSelected = org.id === selectedOrgId;
+                          return (
+                            <button
+                              key={org.id}
+                              type="button"
+                              className={`flex w-full items-center rounded-sm px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ${
+                                isSelected ? "bg-accent text-accent-foreground" : ""
+                              }`}
+                              onClick={() => {
+                                setSelectedOrgId(org.id);
+                                setOrgDropdownOpen(false);
+                                setOrgSearchTerm("");
+                              }}
+                            >
+                              {displayName}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -391,10 +472,28 @@ export const CreateHandoverDialog = ({
                 rows={2}
               />
             </div>
+
+            {/* YC3: Thông báo tạo thành công dạng inline alert thay vì toast */}
+            {createdHandoverId && (
+              <Alert variant="success">
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertTitle>Tạo phiếu bàn giao thành công</AlertTitle>
+                <AlertDescription>
+                  Mã phiếu: {createdHandoverId}.{" "}
+                  <Link
+                    to={`/shipment-handovers/${createdHandoverId}`}
+                    className="font-medium underline underline-offset-3 hover:text-foreground"
+                  >
+                    Xem chi tiết phiếu
+                  </Link>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={handleClose}>
-                Hủy
+                Đóng
               </Button>
               <Button
                 type="submit"

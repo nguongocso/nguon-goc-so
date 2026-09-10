@@ -350,6 +350,18 @@ const MENU_GROUPS: MenuGroup[] = [
         href: "/export/open-data",
         allowedRoles: ["VT-05"] as const,
       },
+      {
+        icon: <FileSignature className="h-5 w-5" />,
+        label: "Phiếu bàn giao nhận",
+        href: "/shipment-handovers/received",
+        allowedRoles: ROLE_ACCESS.handoverReceivedView,
+      },
+      {
+        icon: <Truck className="h-5 w-5" />,
+        label: "Phiếu bàn giao đã gửi",
+        href: "/shipment-handovers/sent",
+        allowedRoles: ROLE_ACCESS.handoverSentView,
+      },
     ],
   },
 
@@ -365,12 +377,6 @@ const MENU_GROUPS: MenuGroup[] = [
           label: "Nhập kho",
           href: "/warehouse-receipt",
           allowedRoles: ROLE_ACCESS.warehouseReceipt,
-        },
-        {
-          icon: <FileSignature className="h-5 w-5" />,
-          label: "Phiếu bàn giao nhận",
-          href: "/shipment-handovers/received",
-          allowedRoles: ROLE_ACCESS.handoverReceivedView,
         },
     ],
   },
