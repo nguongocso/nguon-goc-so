@@ -342,6 +342,26 @@ export const ProductionLotInspectionPage: React.FC = () => {
                     </p>
                   </div>
                 )}
+                {lot.inspectionValidity.status === "EXPIRING" &&
+                  lot.inspectionValidity.expiringCriteria &&
+                  lot.inspectionValidity.expiringCriteria.length > 0 && (
+                    <div className="col-span-2 mt-1 rounded-lg border border-orange-200 bg-orange-50 p-2.5 text-xs text-orange-900">
+                      <span className="font-semibold">
+                        Tiêu chí sắp hết hiệu lực ({lot.inspectionValidity.expiringCriteria.length}):
+                      </span>{" "}
+                      {lot.inspectionValidity.expiringCriteria.join(", ")}
+                    </div>
+                  )}
+                {lot.inspectionValidity.status === "EXPIRED" &&
+                  lot.inspectionValidity.expiredCriteria &&
+                  lot.inspectionValidity.expiredCriteria.length > 0 && (
+                    <div className="col-span-2 mt-1 rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-900">
+                      <span className="font-semibold">
+                        Tiêu chí đã hết hiệu lực ({lot.inspectionValidity.expiredCriteria.length}):
+                      </span>{" "}
+                      {lot.inspectionValidity.expiredCriteria.join(", ")}
+                    </div>
+                  )}
                 {lot.inspectionValidity.status === "EXPIRED" && lot.inspectionValidity.canCreateNewRequest && (
                   <div className="col-span-2 mt-2">
                     <Button

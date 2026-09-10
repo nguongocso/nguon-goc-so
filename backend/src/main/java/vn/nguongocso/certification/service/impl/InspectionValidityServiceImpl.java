@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import vn.nguongocso.certification.dto.response.CriterionValidityResponse;
 import vn.nguongocso.certification.dto.response.InspectionValidityResponse;
 import vn.nguongocso.certification.entity.CategoryCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterionResult;
@@ -21,6 +22,7 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -105,18 +107,55 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
         LocalDate earliestExpiry = null;
         boolean hasFailedOrMissing = false;
 
+        List<CriterionValidityResponse> criteriaList = new ArrayList<>();
+        List<String> expiringCriteria = new ArrayList<>();
+        List<String> expiredCriteria = new ArrayList<>();
+
         for (CategoryCriterion assignment : assignments) {
             String name = assignment.getCriterion().getName();
             InspectionCriterionResult latest = latestByCode.get(name);
 
+            CriterionValidityResponse.CriterionValidityResponseBuilder cBuilder = CriterionValidityResponse.builder()
+                    .criterionId(assignment.getCriterion().getId())
+                    .criterionName(name);
+
             if (latest != null && Boolean.TRUE.equals(latest.getPassed()) && latest.getExpiryDate() != null) {
                 passedCriteria++;
-                if (earliestExpiry == null || latest.getExpiryDate().isBefore(earliestExpiry)) {
-                    earliestExpiry = latest.getExpiryDate();
+                LocalDate expiry = latest.getExpiryDate();
+                cBuilder.passed(true).expiryDate(expiry);
+
+                if (earliestExpiry == null || expiry.isBefore(earliestExpiry)) {
+                    earliestExpiry = expiry;
+                }
+
+                if (expiry.isBefore(today)) {
+                    long overdue = ChronoUnit.DAYS.between(expiry, today);
+                    cBuilder.status(InspectionValidityStatus.EXPIRED)
+                            .daysOverdue(overdue)
+                            .daysRemaining(null);
+                    expiredCriteria.add(name);
+                } else {
+                    long remaining = ChronoUnit.DAYS.between(today, expiry);
+                    if (remaining <= warningThresholdDays) {
+                        cBuilder.status(InspectionValidityStatus.EXPIRING)
+                                .daysRemaining(remaining)
+                                .daysOverdue(null);
+                        expiringCriteria.add(name);
+                    } else {
+                        cBuilder.status(InspectionValidityStatus.VALID)
+                                .daysRemaining(remaining)
+                                .daysOverdue(null);
+                    }
                 }
             } else {
                 hasFailedOrMissing = true;
+                cBuilder.passed(latest != null ? latest.getPassed() : false)
+                        .expiryDate(latest != null ? latest.getExpiryDate() : null)
+                        .status(InspectionValidityStatus.NO_VALID_RESULT)
+                        .daysRemaining(null)
+                        .daysOverdue(null);
             }
+            criteriaList.add(cBuilder.build());
         }
 
         // Nếu chưa đạt đủ tất cả chỉ tiêu bắt buộc
@@ -132,6 +171,9 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
                     .latestPassedRequestId(latestPassedRequestId)
                     .inactiveStampCount(inactiveStampCount)
                     .totalStamps(totalStamps)
+                    .criteria(criteriaList)
+                    .expiringCriteria(expiringCriteria)
+                    .expiredCriteria(expiredCriteria)
                     .build();
         }
 
@@ -149,6 +191,9 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
                     .latestPassedRequestId(latestPassedRequestId)
                     .inactiveStampCount(inactiveStampCount)
                     .totalStamps(totalStamps)
+                    .criteria(criteriaList)
+                    .expiringCriteria(expiringCriteria)
+                    .expiredCriteria(expiredCriteria)
                     .build();
         }
 
@@ -168,6 +213,9 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
                 .latestPassedRequestId(latestPassedRequestId)
                 .inactiveStampCount(inactiveStampCount)
                 .totalStamps(totalStamps)
+                .criteria(criteriaList)
+                .expiringCriteria(expiringCriteria)
+                .expiredCriteria(expiredCriteria)
                 .build();
     }
 

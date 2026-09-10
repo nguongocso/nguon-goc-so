@@ -1129,7 +1129,17 @@ public class NotificationServiceImpl implements NotificationService {
                         String expiryStr = (validity != null && validity.getExpiryDate() != null)
                                         ? validity.getExpiryDate().toString()
                                         : "N/A";
-                        content = String.format(INSPECTION_EXPIRED_CONTENT_FORMAT, lot.getName(), expiryStr);
+                        String criteriaStr = (validity != null && validity.getExpiredCriteria() != null && !validity.getExpiredCriteria().isEmpty())
+                                        ? String.join(", ", validity.getExpiredCriteria())
+                                        : null;
+                        if (criteriaStr != null) {
+                                content = String.format(
+                                                "Lô sản xuất \"%s\" có kết quả kiểm nghiệm đã hết hiệu lực vào ngày %s (tiêu chí: %s). "
+                                                                + "Vui lòng tạo yêu cầu kiểm nghiệm mới để đảm bảo tính hợp lệ của sản phẩm.",
+                                                lot.getName(), expiryStr, criteriaStr);
+                        } else {
+                                content = String.format(INSPECTION_EXPIRED_CONTENT_FORMAT, lot.getName(), expiryStr);
+                        }
                 } else {
                         long daysLeft = (validity != null && validity.getDaysUntilExpiry() != null)
                                         ? validity.getDaysUntilExpiry()
@@ -1137,7 +1147,17 @@ public class NotificationServiceImpl implements NotificationService {
                         String expiryStr = (validity != null && validity.getExpiryDate() != null)
                                         ? validity.getExpiryDate().toString()
                                         : "N/A";
-                        content = String.format(INSPECTION_EXPIRING_CONTENT_FORMAT, lot.getName(), daysLeft, expiryStr);
+                        String criteriaStr = (validity != null && validity.getExpiringCriteria() != null && !validity.getExpiringCriteria().isEmpty())
+                                        ? String.join(", ", validity.getExpiringCriteria())
+                                        : null;
+                        if (criteriaStr != null) {
+                                content = String.format(
+                                                "Lô sản xuất \"%s\" có kết quả kiểm nghiệm sẽ hết hiệu lực sau %d ngày (ngày hết hạn: %s, tiêu chí: %s). "
+                                                                + "Vui lòng chủ động lập kế hoạch kiểm nghiệm mới.",
+                                                lot.getName(), daysLeft, expiryStr, criteriaStr);
+                        } else {
+                                content = String.format(INSPECTION_EXPIRING_CONTENT_FORMAT, lot.getName(), daysLeft, expiryStr);
+                        }
                 }
 
                 List<Notification> notifications = recipients.stream()

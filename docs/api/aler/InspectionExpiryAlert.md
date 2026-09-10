@@ -114,7 +114,29 @@ Hệ thống tự động theo dõi ngày hết hiệu lực sớm nhất (`earl
         "canActivate": true,
         "canCreateNewRequest": true,
         "latestPassedRequestId": "d3b07384-d113-49d6-a212-32b704c35b6c",
-        "inactiveStampCount": 200
+        "inactiveStampCount": 200,
+        "expiringCriteria": ["Dư lượng thuốc BVTV"],
+        "expiredCriteria": [],
+        "criteria": [
+          {
+            "criterionId": 101,
+            "criterionName": "Dư lượng thuốc BVTV",
+            "passed": true,
+            "expiryDate": "2026-09-20",
+            "daysRemaining": 10,
+            "daysOverdue": null,
+            "status": "EXPIRING"
+          },
+          {
+            "criterionId": 102,
+            "criterionName": "Kim loại nặng",
+            "passed": true,
+            "expiryDate": "2026-12-15",
+            "daysRemaining": 96,
+            "daysOverdue": null,
+            "status": "VALID"
+          }
+        ]
       }
     },
     {
@@ -196,7 +218,29 @@ Hệ thống tự động theo dõi ngày hết hiệu lực sớm nhất (`earl
       "canActivate": true,
       "canCreateNewRequest": true,
       "latestPassedRequestId": "d3b07384-d113-49d6-a212-32b704c35b6c",
-      "inactiveStampCount": 200
+      "inactiveStampCount": 200,
+      "expiringCriteria": ["Dư lượng thuốc BVTV"],
+      "expiredCriteria": [],
+      "criteria": [
+        {
+          "criterionId": 101,
+          "criterionName": "Dư lượng thuốc BVTV",
+          "passed": true,
+          "expiryDate": "2026-09-20",
+          "daysRemaining": 10,
+          "daysOverdue": null,
+          "status": "EXPIRING"
+        },
+        {
+          "criterionId": 102,
+          "criterionName": "Kim loại nặng",
+          "passed": true,
+          "expiryDate": "2026-12-15",
+          "daysRemaining": 96,
+          "daysOverdue": null,
+          "status": "VALID"
+        }
+      ]
     }
   }
 }

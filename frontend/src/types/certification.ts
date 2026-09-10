@@ -340,7 +340,7 @@ export interface CanActivateSealCheck {
 export type InspectionValidityStatus =
   | 'NOT_REQUIRED' // Không yêu cầu kiểm nghiệm
   | 'NO_VALID_RESULT' // Chưa có kết quả kiểm nghiệm hợp lệ
-  | 'VALID' // Đang hiệu lực
+  | 'VALID' // Còn hiệu lực
   | 'EXPIRING' // Sắp hết hiệu lực
   | 'EXPIRED'; // Hết hiệu lực
 
@@ -369,4 +369,24 @@ export interface InspectionValidityResponse {
   latestPassedRequestId: string | null;
   /** Số mã tem INACTIVE thuộc lô hàng chưa thu hồi, null khi chưa có lô hàng. */
   inactiveStampCount: number | null;
+  /** Danh sách thông tin hiệu lực từng tiêu chí kiểm nghiệm của lô. */
+  criteria?: CriterionValidityResponse[];
+  /** Danh sách tên các chỉ tiêu kiểm nghiệm sắp hết hiệu lực. */
+  expiringCriteria?: string[];
+  /** Danh sách tên các chỉ tiêu kiểm nghiệm đã hết hiệu lực. */
+  expiredCriteria?: string[];
+}
+
+/**
+ * Chi tiết hiệu lực của một chỉ tiêu kiểm nghiệm cụ thể (NCL-11-CN-004).
+ */
+export interface CriterionValidityResponse {
+  criterionId?: number;
+  criterionCode?: string | null;
+  criterionName: string;
+  passed?: boolean;
+  expiryDate?: string | null;
+  daysRemaining?: number | null;
+  daysOverdue?: number | null;
+  status: InspectionValidityStatus;
 }

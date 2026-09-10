@@ -107,7 +107,7 @@ const STATUS_FILTER_OPTIONS = [
 // NCL-11-CN-004: bộ lọc hiệu lực kiểm nghiệm
 const INSPECTION_VALIDITY_FILTER_OPTIONS = [
   { value: "ALL", label: "Tất cả" },
-  { value: "VALID", label: "Đang hiệu lực" },
+  { value: "VALID", label: "Còn hiệu lực" },
   { value: "EXPIRING", label: "Sắp hết hiệu lực" },
   { value: "EXPIRED", label: "Hết hiệu lực" },
   { value: "NO_VALID_RESULT", label: "Chưa có kết quả hợp lệ" },
@@ -253,13 +253,29 @@ export const ProductionLotList = ({
       <div className="flex flex-col gap-1">
         <InspectionValidityBadge status={status} />
         {status === "EXPIRING" && daysRemaining != null && (
-          <span className="text-xs text-orange-600">
+          <span className="text-xs text-orange-600 font-medium">
             Còn {daysRemaining} ngày
           </span>
         )}
+        {status === "EXPIRING" && validity.expiringCriteria && validity.expiringCriteria.length > 0 && (
+          <span
+            className="text-[11px] text-muted-foreground truncate max-w-[200px]"
+            title={`Tiêu chí: ${validity.expiringCriteria.join(", ")}`}
+          >
+            Tiêu chí: {validity.expiringCriteria.join(", ")}
+          </span>
+        )}
         {status === "EXPIRED" && daysOverdue != null && (
-          <span className="text-xs text-rose-600">
+          <span className="text-xs text-rose-600 font-medium">
             Quá hạn {daysOverdue} ngày
+          </span>
+        )}
+        {status === "EXPIRED" && validity.expiredCriteria && validity.expiredCriteria.length > 0 && (
+          <span
+            className="text-[11px] text-muted-foreground truncate max-w-[200px]"
+            title={`Tiêu chí: ${validity.expiredCriteria.join(", ")}`}
+          >
+            Tiêu chí: {validity.expiredCriteria.join(", ")}
           </span>
         )}
         {status === "EXPIRED" && canCreateNewRequest && (
@@ -399,11 +415,10 @@ export const ProductionLotList = ({
                     el.scrollIntoView({ behavior: "smooth", block: "center" });
                   }
                 }}
-                className={`transition-all duration-500 ${
-                  isHighlighted
+                className={`transition-all duration-500 ${isHighlighted
                     ? "bg-amber-100/90 dark:bg-amber-950/60 ring-2 ring-amber-500 font-semibold animate-pulse"
                     : "hover:bg-muted/40"
-                }`}
+                  }`}
               >
                 <TableCell className="text-center font-medium text-muted-foreground">
                   {safePage * PAGE_SIZE + index + 1}

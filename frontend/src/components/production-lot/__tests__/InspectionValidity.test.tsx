@@ -89,8 +89,8 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
     mockNavigate.mockClear();
   });
 
-  // Case 1: API trả EXPIRING -> hiển thị badge "Sắp hết hiệu lực" và "Còn X ngày"
-  it("Case 1: Lô có kết quả kiểm nghiệm sắp hết hạn (EXPIRING) -> hiển thị badge Sắp hết hiệu lực và số ngày còn lại", () => {
+  // Case 1: API trả EXPIRING -> hiển thị badge "Sắp hết hiệu lực", "Còn X ngày" và tên tiêu chí
+  it("Case 1: Lô có kết quả kiểm nghiệm sắp hết hạn (EXPIRING) -> hiển thị badge Sắp hết hiệu lực, số ngày còn lại và tiêu chí", () => {
     const expiringLot: ProductionLot = {
       ...baseLot,
       id: "lot-expiring-1",
@@ -105,6 +105,7 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
         canCreateNewRequest: false,
         latestPassedRequestId: "req-1",
         inactiveStampCount: 50,
+        expiringCriteria: ["Dư lượng thuốc BVTV"],
       },
     };
 
@@ -126,10 +127,11 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
 
     expect(screen.getByText("Sắp hết hiệu lực")).toBeDefined();
     expect(screen.getByText("Còn 10 ngày")).toBeDefined();
+    expect(screen.getByText("Tiêu chí: Dư lượng thuốc BVTV")).toBeDefined();
   });
 
-  // Case 2: API trả EXPIRED -> hiển thị "Hết hiệu lực", "Quá hạn X ngày" và CTA tạo yêu cầu kiểm nghiệm mới
-  it("Case 2: Lô có kết quả kiểm nghiệm hết hạn (EXPIRED) -> hiển thị badge Hết hiệu lực và CTA Tạo yêu cầu kiểm nghiệm mới", () => {
+  // Case 2: API trả EXPIRED -> hiển thị "Hết hiệu lực", "Quá hạn X ngày", tên tiêu chí và CTA tạo yêu cầu kiểm nghiệm mới
+  it("Case 2: Lô có kết quả kiểm nghiệm hết hạn (EXPIRED) -> hiển thị badge Hết hiệu lực, tiêu chí quá hạn và CTA Tạo yêu cầu kiểm nghiệm mới", () => {
     const expiredLot: ProductionLot = {
       ...baseLot,
       id: "lot-expired-2",
@@ -144,6 +146,7 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
         canCreateNewRequest: true,
         latestPassedRequestId: "req-1",
         inactiveStampCount: 30,
+        expiredCriteria: ["Kim loại nặng"],
       },
     };
 
@@ -165,7 +168,7 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
 
     expect(screen.getByText("Hết hiệu lực")).toBeDefined();
     expect(screen.getByText("Quá hạn 5 ngày")).toBeDefined();
-    expect(screen.getByText("Tạo yêu cầu kiểm nghiệm mới")).toBeDefined();
+    expect(screen.getByText("Tiêu chí: Kim loại nặng")).toBeDefined();
   });
 
   // Case 3: Lô đã thu hồi (RECALLED) -> không hiển thị cảnh báo sắp hết hiệu lực / CTA
@@ -209,8 +212,8 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
     expect(screen.queryByText("Còn 8 ngày")).toBeNull();
   });
 
-  // Case 4: Lô đã kích hoạt hết tem / kết quả đang hiệu lực -> hiển thị Đang hiệu lực, không có cảnh báo
-  it("Case 4: Lô có kết quả kiểm nghiệm đang hiệu lực (VALID) -> hiển thị Đang hiệu lực, không có cảnh báo quá hạn hay CTA", () => {
+  // Case 4: Lô đã kích hoạt hết tem / kết quả còn  hiệu lực -> hiển thị Còn hiệu lực, không có cảnh báo
+  it("Case 4: Lô có kết quả kiểm nghiệm Còn hiệu lực (VALID) -> hiển thị Còn hiệu lực, không có cảnh báo quá hạn hay CTA", () => {
     const validLot: ProductionLot = {
       ...baseLot,
       id: "lot-valid-4",

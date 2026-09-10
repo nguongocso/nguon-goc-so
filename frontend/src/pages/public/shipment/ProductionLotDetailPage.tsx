@@ -225,7 +225,12 @@ const CRITERIA_PAGE_SIZE = 10;
 
 // ── Trạng thái tổng hợp của một chỉ tiêu trên tab Kiểm nghiệm ────────────────
 type CriterionRowStatus =
-  "VALID" | "EXPIRED" | "FAILED" | "WAITING" | "NOT_TESTED";
+  | "VALID"
+  | "EXPIRING"
+  | "EXPIRED"
+  | "FAILED"
+  | "WAITING"
+  | "NOT_TESTED";
 
 // Bộ lọc cột "Kết quả" của bảng chỉ tiêu (dựa trên kết quả mới nhất của chỉ tiêu)
 type CriterionResultFilter = "ALL" | "PASSED" | "FAILED" | "NOT_TESTED";
@@ -254,9 +259,13 @@ const CRITERION_ROW_STATUS_META: Record<
     label: "Đạt",
     className: "border-emerald-200 bg-emerald-50 text-emerald-700",
   },
+  EXPIRING: {
+    label: "Sắp hết hiệu lực",
+    className: "border-orange-200 bg-orange-50 text-orange-700",
+  },
   EXPIRED: {
     label: "Hết hiệu lực",
-    className: "border-amber-200 bg-amber-50 text-amber-800",
+    className: "border-rose-200 bg-rose-50 text-rose-700",
   },
   FAILED: {
     label: "Không đạt",
@@ -875,15 +884,25 @@ export const ProductionLotDetailPage = () => {
       const result = latestResultByCode[criterion.criteriaId] ?? null;
       const pendingRequestId = pendingRequestByCode[criterion.criteriaId] ?? null;
       // Ưu tiên WAITING khi có pending request (bất kể kết quả trước đó)
-      const status: CriterionRowStatus = pendingRequestId
-        ? "WAITING"
-        : result
-          ? !result.passed
-            ? "FAILED"
-            : result.expiryDate && result.expiryDate >= today
-              ? "VALID"
-              : "EXPIRED"
-          : "NOT_TESTED";
+      let status: CriterionRowStatus = "NOT_TESTED";
+      if (pendingRequestId) {
+        status = "WAITING";
+      } else if (result) {
+        if (!result.passed) {
+          status = "FAILED";
+        } else if (!result.expiryDate) {
+          status = "VALID";
+        } else if (result.expiryDate < today) {
+          status = "EXPIRED";
+        } else {
+          const expiryTime = new Date(result.expiryDate).getTime();
+          const todayTime = new Date(today).getTime();
+          const daysRemaining = Math.ceil(
+            (expiryTime - todayTime) / (1000 * 60 * 60 * 24),
+          );
+          status = daysRemaining <= 15 ? "EXPIRING" : "VALID";
+        }
+      }
       return {
         criterion,
         meta: criteriaMetaById[criterion.criteriaId] ?? null,
@@ -1514,6 +1533,26 @@ export const ProductionLotDetailPage = () => {
                           )}
                       </div>
                     </div>
+                    {lot.inspectionValidity.status === "EXPIRING" &&
+                      lot.inspectionValidity.expiringCriteria &&
+                      lot.inspectionValidity.expiringCriteria.length > 0 && (
+                        <div className="mt-3 rounded-lg border border-orange-200 bg-orange-50 p-3 text-xs text-orange-900">
+                          <span className="font-semibold">
+                            Tiêu chí sắp hết hiệu lực ({lot.inspectionValidity.expiringCriteria.length}):
+                          </span>{" "}
+                          {lot.inspectionValidity.expiringCriteria.join(", ")}
+                        </div>
+                      )}
+                    {lot.inspectionValidity.status === "EXPIRED" &&
+                      lot.inspectionValidity.expiredCriteria &&
+                      lot.inspectionValidity.expiredCriteria.length > 0 && (
+                        <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-900">
+                          <span className="font-semibold">
+                            Tiêu chí đã hết hiệu lực ({lot.inspectionValidity.expiredCriteria.length}):
+                          </span>{" "}
+                          {lot.inspectionValidity.expiredCriteria.join(", ")}
+                        </div>
+                      )}
                     {lot.inspectionValidity.status === "EXPIRED" &&
                       lot.inspectionValidity.canCreateNewRequest && (
                         <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-gray-100 pt-3">
@@ -1830,9 +1869,19 @@ export const ProductionLotDetailPage = () => {
                                       {getCriterionRowStatusBadge(row.status)}
                                     </TableCell>
                                     <TableCell className="whitespace-normal">
-                                      {row.result && row.result.expiryDate
-                                        ? formatDateOnly(row.result.expiryDate)
-                                        : "—"}
+                                      {row.result && row.result.expiryDate ? (
+                                        <div className="flex flex-col">
+                                          <span>{formatDateOnly(row.result.expiryDate)}</span>
+                                          {row.status === "EXPIRING" && (
+                                            <span className="text-[11px] text-orange-600 font-medium">Sắp hết hạn</span>
+                                          )}
+                                          {row.status === "EXPIRED" && (
+                                            <span className="text-[11px] text-rose-600 font-medium">Đã hết hạn</span>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        "—"
+                                      )}
                                     </TableCell>
                                   </TableRow>
                                 ))}

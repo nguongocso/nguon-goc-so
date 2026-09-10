@@ -76,6 +76,21 @@ public class InspectionValidityResponse {
     private Long totalStamps;
 
     /**
+     * Danh sách thông tin hiệu lực từng chỉ tiêu kiểm nghiệm của lô (NCL-11-CN-004).
+     */
+    private java.util.List<CriterionValidityResponse> criteria;
+
+    /**
+     * Danh sách tên các chỉ tiêu sắp hết hiệu lực (NCL-11-CN-004).
+     */
+    private java.util.List<String> expiringCriteria;
+
+    /**
+     * Danh sách tên các chỉ tiêu đã hết hiệu lực (NCL-11-CN-004).
+     */
+    private java.util.List<String> expiredCriteria;
+
+    /**
      * Helper trả về ngày hết hạn (alias cho earliestExpiryDate).
      */
     public LocalDate getExpiryDate() {
