@@ -1,6 +1,6 @@
 # API: Phiếu bàn giao lô hàng (Shipment Handover)
 
-*NCL-05-CN-008 — Epic NCL-05: Quản lý chuỗi cung ứng*
+*NCL-05-CN-008 / NCL-05-CN-009 — Epic NCL-05: Quản lý chuỗi cung ứng*
 
 ## 1. Thông tin chung
 
@@ -8,7 +8,11 @@
 
 Cho phép tổ chức giao (owner lô hàng) tạo phiếu bàn giao gửi sang tổ chức nhận. Tổ chức nhận xác nhận (accept) mới chuyển trách nhiệm; từ chối (reject), quá hạn (expired) hoặc bên giao hủy (cancel) thì trách nhiệm giữ nguyên ở bên giao.
 
-**Phạm vi (NCL-05-CN-008):** Tạo phiếu + hủy phiếu. Xác nhận/từ chối thuộc NCL-05-CN-009.
+**Phạm vi:**
+- **NCL-05-CN-008:** Tạo phiếu + hủy phiếu.
+- **NCL-05-CN-009:** Xác nhận nhận hàng + từ chối nhận hàng + hết hạn tự động + chuyển quyền sở hữu lô hàng (QTN-31).
+
+**Chuyển quyền sở hữu (QTN-31):** Khi tổ chức nhận xác nhận (accept), hệ thống cập nhật `shipment.organization` sang tổ chức nhận. Từ thời điểm này, chỉ thành viên tổ chức nhận mới được ghi sự kiện tiếp theo cho lô hàng (vận chuyển, nhập kho, bảo quản, v.v.). Tổ chức giao không còn quyền ghi sự kiện cho lô này.
 
 ## 2. Endpoints
 
@@ -17,6 +21,8 @@ Cho phép tổ chức giao (owner lô hàng) tạo phiếu bàn giao gửi sang 
 | POST | `/api/v1/shipment-handovers/attachment` | Upload chứng từ giao hàng (multipart) |
 | POST | `/api/v1/shipment-handovers` | Tạo phiếu bàn giao |
 | POST | `/api/v1/shipment-handovers/{id}/cancel` | Hủy phiếu (bên giao) |
+| POST | `/api/v1/shipment-handovers/{id}/accept` | Xác nhận nhận hàng (bên nhận, NCL-05-CN-009) |
+| POST | `/api/v1/shipment-handovers/{id}/reject` | Từ chối nhận hàng (bên nhận, NCL-05-CN-009) |
 | GET | `/api/v1/shipment-handovers/{id}` | Chi tiết phiếu |
 | GET | `/api/v1/shipment-handovers/sent` | Danh sách phiếu đã gửi |
 | GET | `/api/v1/shipment-handovers/received` | Danh sách phiếu đã nhận |
