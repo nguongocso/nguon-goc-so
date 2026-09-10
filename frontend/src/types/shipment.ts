@@ -45,7 +45,7 @@ export interface Shipment {
   name: string;
   totalQuantity: number;
   packagingInfo?: string;
-  status: 'DRAFT' | 'CODE_PRINTED' | 'ACTIVATED' | 'RECALLED';
+  status: 'DRAFT' | 'CODE_PRINTED' | 'ACTIVATED' | 'RECALLED' | 'SPLIT';
   traceCodes: TraceCode[];
   createdByName: string;
   createdAt: string;
@@ -54,7 +54,7 @@ export interface Shipment {
 export interface ShipmentSummary {
   id: string;
   name: string;
-  status: 'DRAFT' | 'CODE_PRINTED' | 'ACTIVATED' | 'RECALLED';
+  status: 'DRAFT' | 'CODE_PRINTED' | 'ACTIVATED' | 'RECALLED' | 'SPLIT';
   productionLotName: string | null;
   totalQuantity: number | null;
 }
@@ -62,7 +62,7 @@ export interface ShipmentSummary {
 export interface ProcurementShipment {
   id: string;
   name: string;
-  status: 'DRAFT' | 'CODE_PRINTED' | 'ACTIVATED' | 'RECALLED';
+  status: 'DRAFT' | 'CODE_PRINTED' | 'ACTIVATED' | 'RECALLED' | 'SPLIT';
   productionLotName: string | null;
   productCategoryName: string | null;
   organizationName?: string | null;

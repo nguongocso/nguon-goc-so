@@ -95,6 +95,7 @@ import LabelCancellationHistoryPage from "@/pages/shipment/LabelCancellationHist
 import CancelLabelsPage from "@/pages/shipment/CancelLabelsPage";
 import BatchDossierExportPage from "@/pages/shipment/BatchDossierExportPage";
 import ShipmentTraceCodesPage from "@/pages/shipment/ShipmentTraceCodesPage";
+import SplitShipmentPage from "@/pages/shipment/SplitShipmentPage";
 
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
@@ -643,6 +644,15 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-02", "VT-03", "VT-04"]}>
                         <ShipmentDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="shipments/:id/split"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.shipmentSplit}>
+                        <SplitShipmentPage />
                     </RoleRoute>
                 }
             />

@@ -13,6 +13,7 @@ import {
   LoaderCircle,
   MoreVertical,
   Package,
+  PackagePlus,
   QrCode,
   ScrollText,
   Trash2,
@@ -206,6 +207,8 @@ export const ShipmentDetailPage = () => {
     shipment?.status === "DRAFT" || shipment?.status === "CODE_PRINTED";
   const canCancelLabels =
     user?.roleCode === "VT-02" && shipment?.status !== "RECALLED";
+  const canSplitShipment =
+    usePermission(ROLE_ACCESS.shipmentSplit) && shipment?.status === "CODE_PRINTED";
 
   // ── Breadcrumb điều hướng thống nhất (thay nút "Quay lại") ────────────────
   useSetBreadcrumb(
@@ -324,6 +327,15 @@ export const ShipmentDetailPage = () => {
                     >
                       <QrCode className="mr-2 h-4 w-4 text-emerald-600" />
                       Trạng thái mã tem
+                    </DropdownMenuItem>
+                  )}
+                  {canSplitShipment && (
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/shipments/${shipment.id}/split`)}
+                    >
+                      <PackagePlus className="mr-2 h-4 w-4 text-emerald-600" />
+                      Tách lô hàng
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onClick={handleExportDossier} className="cursor-pointer">
