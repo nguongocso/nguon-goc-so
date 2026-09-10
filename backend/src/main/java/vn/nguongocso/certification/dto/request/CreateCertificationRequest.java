@@ -22,6 +22,7 @@ public class CreateCertificationRequest {
     @Size(max = 50, message = "Số hiệu chứng nhận tối đa 50 ký tự")
     private String code;
 
+    @NotBlank(message = "Cơ quan cấp không được để trống")
     @Size(max = 255, message = "Cơ quan cấp tối đa 255 ký tự")
     private String issuedBy;
 

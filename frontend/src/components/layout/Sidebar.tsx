@@ -182,6 +182,12 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ROLE_ACCESS.standardManagement,
       },
       {
+        icon: <ShieldCheck className="h-5 w-5" />,
+        label: "Xác thực chứng nhận",
+        href: "/admin/certifications",
+        allowedRoles: ROLE_ACCESS.certificateVerification,
+      },
+      {
         icon: <Award className="h-5 w-5" />,
         label: "Chứng nhận",
         href: "/certifications",
@@ -533,7 +539,7 @@ function MenuLink({
         "flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200",
         collapsed ? "justify-center px-0 py-3" : "px-3 py-2.5",
         isActive
-          ? "bg-emerald-600 text-white shadow-sm shadow-emerald-200"
+          ? "bg-emerald-700 text-white shadow-sm shadow-emerald-200"
           : "text-muted-foreground hover:bg-emerald-50 hover:text-emerald-700",
       )}
       aria-label={collapsed ? item.label : undefined}
