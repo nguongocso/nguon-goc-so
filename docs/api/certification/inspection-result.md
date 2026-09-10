@@ -133,7 +133,49 @@ Ví dụ: yêu cầu có 5 chỉ tiêu, 3 đạt, 2 không đạt → `totalCrit
 
 - Endpoint `DELETE /api/v1/inspection-results/{resultId}` hiện xóa kết quả không ràng buộc trạng thái yêu cầu. Theo TC-04 của NCL-11-CN-005, sẽ giới hạn: chỉ cho phép xóa khi yêu cầu còn `PENDING_RESULT`; yêu cầu đã kết luận `PASSED`/`FAILED`/`CANCELLED` không được phép xóa kết quả (trả `409`). Chỉnh sửa dữ liệu sai đi qua `PUT /inspection-requests/{requestId}/results` (có lưu vết). Chi tiết: [failed-lot-handling.md](failed-lot-handling.md).
 - `POST /api/v1/production-lots/{lotId}/can-activate-seal` hiện chỉ là API pre-check. NCL-11-CN-005 bổ sung gate bắt buộc tại `POST /api/v1/shipments` và `POST /api/v1/shipments/{id}/activate` để chặn lô chưa đạt ngay từ bước tạo lô hàng (QTN-30).
-- Luồng kiểm nghiệm lại (lô Không đạt → tạo vòng kiểm nghiệm mới → Đạt → quay lại luồng bình thường) dùng lại nguyên trạng các API ở mục 4, không cần endpoint mới.
+## 10. Theo dõi thời hạn hiệu lực và cảnh báo (NCL-11-CN-004 — QTN-21 / QTN-13)
+
+Cập nhật: 2026-09-10. Bổ sung cơ chế theo dõi hiệu lực kết quả kiểm nghiệm đạt, cảnh báo trước hạn theo ngưỡng cấu hình và đánh dấu hết hiệu lực khi quá hạn.
+
+### 10.1 Trạng thái hiệu lực kết quả kiểm nghiệm (`InspectionValidityStatus`)
+Trạng thái hiệu lực là **giá trị suy diễn tại thời điểm đọc (derived state)**, không lưu cứng vào cột database của `production_lot`:
+
+| Trạng thái | Ý nghĩa | Điều kiện suy diễn |
+|---|---|---|
+| `NOT_REQUIRED` | Không yêu cầu kiểm nghiệm | `productCategory.requiresInspection = false` |
+| `NO_VALID_RESULT` | Chưa có kết quả hợp lệ | Lô bắt buộc kiểm nghiệm nhưng chưa kiểm nghiệm, đang chờ kết quả, hoặc chưa đạt đủ mọi chỉ tiêu |
+| `VALID` | Đang hiệu lực | Đạt đủ chỉ tiêu, còn hiệu lực và `daysRemaining > warningThresholdDays` |
+| `EXPIRING` | Sắp hết hiệu lực | Đạt đủ chỉ tiêu, còn hiệu lực và `0 <= daysRemaining <= warningThresholdDays` (mặc định 15 ngày) |
+| `EXPIRED` | Hết hiệu lực | `today > earliestExpiryDate` (kết quả kiểm nghiệm đã quá hạn) |
+
+### 10.2 Khối dữ liệu `inspectionValidity` trong response Lô sản xuất
+Áp dụng tại `GET /api/v1/production-lots` (danh sách) và `GET /api/v1/production-lots/{id}` (chi tiết) dưới dạng trường additive trong `CreateProductionLotResponse`:
+
+```json
+{
+  "inspectionValidity": {
+    "requiresInspection": true,
+    "status": "EXPIRING",
+    "earliestExpiryDate": "2026-09-20",
+    "daysRemaining": 10,
+    "daysOverdue": null,
+    "canActivate": true,
+    "canCreateNewRequest": true,
+    "latestPassedRequestId": "d3b07384-d113-49d6-a212-32b704c35b6c",
+    "inactiveStampCount": 200
+  }
+}
+```
+
+### 10.3 Lối tắt Tạo yêu cầu kiểm nghiệm mới khi quá hạn
+Khi lô ở trạng thái `EXPIRED` (`today > earliestExpiryDate`), frontend hiển thị nhãn "Hết hiệu lực" kèm số ngày quá hạn (`daysOverdue`) và nút lối tắt "Tạo yêu cầu kiểm nghiệm mới".
+- Nút điều hướng tới `/production-lots/{lotId}/inspection-requests/create`.
+- Gọi API tạo yêu cầu `POST /api/v1/production-lots/{lotId}/test-requests`.
+- Yêu cầu mới được tạo hoàn toàn độc lập, kết quả cũ được bảo toàn vĩnh viễn trong lịch sử (`GET /production-lots/{lotId}/inspection-history`), không bị xóa hoặc ghi đè.
+
+### 10.4 Tiến trình nền quét cảnh báo hằng ngày
+Tiến trình `InspectionExpiryScheduler` quét định kỳ (mặc định 01:30 AM) để tạo `Alert` (`INSPECTION_EXPIRING` / `INSPECTION_EXPIRED`) và gửi `Notification` cho Quản lý HTX (`VT-02`).
+- Chi tiết đặc tả cảnh báo, điều kiện lọc lô, quy tắc chống thông báo trùng trong ngày (`1 lô + 1 loại cảnh báo + 1 ngày = tối đa 1 notification`), và endpoint kích hoạt thủ công `POST /api/v1/production-lots/check-inspection-expiry` được tài liệu hóa chi tiết tại [InspectionExpiryAlert.md](../aler/InspectionExpiryAlert.md).
 
 ## Nguồn code đối chiếu
 
@@ -142,3 +184,6 @@ Ví dụ: yêu cầu có 5 chỉ tiêu, 3 đạt, 2 không đạt → `totalCrit
 - `backend/src/main/java/vn/nguongocso/certification/repository/InspectionCriterionResultRepository.java`
 - `backend/src/main/java/vn/nguongocso/certification/enums/InspectionRequestStatus.java`
 - `backend/src/main/java/vn/nguongocso/certification/controller/InspectionRequestController.java`
+- `backend/src/main/java/vn/nguongocso/alert/enums/AlertType.java`
+- `backend/src/main/java/vn/nguongocso/certification/service/InspectionEligibilityService.java`
+
