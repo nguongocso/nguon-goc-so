@@ -286,6 +286,9 @@ class ShipmentHandoverServiceTest {
         assertThat(response.getConfirmedAt()).isNotNull();
         assertThat(response.getConfirmedBy()).isEqualTo(userId);
         verify(chainEventService).saveWithChainHash(any());
+        // QTN-31: Xác nhận phải chuyển quyền sở hữu lô hàng sang tổ chức nhận.
+        verify(shipmentRepository).save(argThat(s ->
+                s.getOrganization().getOrganizationId().equals(fromOrganization.getOrganizationId())));
         // Thông báo xác nhận gửi về tổ chức GIAO với entityId = phiếu bàn giao.
         verify(notificationService)
                 .sendHandoverNotification(any(), any(), eq(handoverId), eq(toOrganization.getOrganizationId()));
