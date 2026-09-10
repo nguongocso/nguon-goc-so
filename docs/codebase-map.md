@@ -427,7 +427,7 @@ API layer        → hooks (optional)  → Pages         → Routes
 | **BE Controller** | `trace/recall/controller/RecallCaseController.java` — `GET /api/v1/recall-cases`, `GET /{id}`, `POST /{id}/close` (đều `@PreAuthorize hasRole('VT-02')`) |
 | **BE Service** | `trace/recall/service/RecallCaseService.java` + `impl/RecallCaseServiceImpl.java` — lazy materialize case từ các lô có shipment `RECALLED` khi list/detail |
 | **BE Entity** | `trace/recall/entity/RecallCase.java` (→ `recall_cases`), `trace/recall/entity/RecallLotResult.java` (→ `recall_lot_results`) |
-| **BE Enums** | `RecallCaseStatus` (`OPEN`, `CLOSED` — một chiều), `LotResolution` (`DESTROYED`, `RETURNED`, `REPROCESSED`, `NOT_RECALLED`) |
+| **BE Enums** | `RecallCaseStatus` (`OPEN`, `CLOSED` — một chiều), `LotResolution` (`DESTROYED`, `RETURNED`, `REPROCESSED`, `UNRECOVERABLE`) |
 | **BE DTO** | `trace/recall/dto/request/CloseRecallCaseRequest.java`, `trace/recall/dto/response/RecallCaseResponse.java`, `RecallLotResultResponse.java` |
 | **BE Tests** | `backend/src/test/java/vn/nguongocso/trace/recall/` |
 | **BE liên quan (đã sửa)** | `notification/service/NotificationService(+Impl)` (thông báo cho tổ chức thu mua khi đóng case), `publicapi/service/impl/PublicTraceServiceImpl` (đổi nội dung cảnh báo công khai theo QTN-09 — không ẩn/xóa) |
