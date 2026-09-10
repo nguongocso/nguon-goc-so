@@ -922,6 +922,59 @@ export const ProductionLotDetailPage = () => {
     today,
   ]);
 
+  // Danh sách tiêu chí sắp hết hiệu lực (ưu tiên dữ liệu chi tiết từ bảng tiêu chí khi đã tải)
+  const effectiveExpiringCriteria = useMemo(() => {
+    if (criterionRows.length > 0) {
+      return criterionRows
+        .filter((row) => row.status === "EXPIRING")
+        .map((row) => {
+          const standard = row.meta?.referenceStandard;
+          return standard
+            ? `${row.criterion.name} (${standard})`
+            : row.criterion.name;
+        });
+    }
+    return lot?.inspectionValidity?.expiringCriteria ?? [];
+  }, [criterionRows, lot?.inspectionValidity?.expiringCriteria]);
+
+  // Danh sách tiêu chí đã hết hiệu lực (ưu tiên dữ liệu chi tiết từ bảng tiêu chí khi đã tải)
+  const effectiveExpiredCriteria = useMemo(() => {
+    if (criterionRows.length > 0) {
+      return criterionRows
+        .filter((row) => row.status === "EXPIRED")
+        .map((row) => {
+          const standard = row.meta?.referenceStandard;
+          return standard
+            ? `${row.criterion.name} (${standard})`
+            : row.criterion.name;
+        });
+    }
+    return lot?.inspectionValidity?.expiredCriteria ?? [];
+  }, [criterionRows, lot?.inspectionValidity?.expiredCriteria]);
+
+  // Ngày hết hạn sớm nhất từ bảng tiêu chí khi đã tải
+  const earliestExpiryDateFromRows = useMemo(() => {
+    if (criterionRows.length === 0) return null;
+    const dates = criterionRows
+      .filter((r) => r.result && r.result.passed && r.result.expiryDate)
+      .map((r) => r.result!.expiryDate!);
+    if (dates.length === 0) return null;
+    return dates.reduce((min, cur) => (cur < min ? cur : min));
+  }, [criterionRows]);
+
+  const displayedEarliestExpiryDate =
+    earliestExpiryDateFromRows || lot?.inspectionValidity?.earliestExpiryDate;
+
+  // Số ngày còn lại tính theo ngày hết hạn sớm nhất thực tế
+  const displayedDaysRemaining = useMemo(() => {
+    if (displayedEarliestExpiryDate && today) {
+      const expiryTime = new Date(displayedEarliestExpiryDate).getTime();
+      const todayTime = new Date(today).getTime();
+      return Math.max(0, Math.ceil((expiryTime - todayTime) / (1000 * 60 * 60 * 24)));
+    }
+    return lot?.inspectionValidity?.daysRemaining;
+  }, [displayedEarliestExpiryDate, today, lot?.inspectionValidity?.daysRemaining]);
+
   const canRecordHarvest =
     user?.roleCode === "VT-02" || user?.roleCode === "VT-03";
 
@@ -1490,18 +1543,18 @@ export const ProductionLotDetailPage = () => {
                       <div>
                         <p className="text-xs text-muted-foreground">Ngày hết hiệu lực</p>
                         <p className="mt-1 font-medium">
-                          {lot.inspectionValidity.earliestExpiryDate
-                            ? formatDateOnly(lot.inspectionValidity.earliestExpiryDate)
+                          {displayedEarliestExpiryDate
+                            ? formatDateOnly(displayedEarliestExpiryDate)
                             : "—"}
                         </p>
                       </div>
                       <div>
                         {lot.inspectionValidity.status === "EXPIRING" &&
-                          lot.inspectionValidity.daysRemaining != null && (
+                          displayedDaysRemaining != null && (
                             <>
                               <p className="text-xs text-muted-foreground">Thời gian còn lại</p>
                               <p className="mt-1 font-semibold text-orange-600">
-                                Còn {lot.inspectionValidity.daysRemaining} ngày
+                                {displayedDaysRemaining === 0 ? "Hết hạn hôm nay" : `Còn ${displayedDaysRemaining} ngày`}
                               </p>
                             </>
                           )}
@@ -1515,11 +1568,11 @@ export const ProductionLotDetailPage = () => {
                             </>
                           )}
                         {lot.inspectionValidity.status === "VALID" &&
-                          lot.inspectionValidity.daysRemaining != null && (
+                          displayedDaysRemaining != null && (
                             <>
                               <p className="text-xs text-muted-foreground">Thời gian còn lại</p>
                               <p className="mt-1 font-medium text-emerald-600">
-                                Còn {lot.inspectionValidity.daysRemaining} ngày
+                                Còn {displayedDaysRemaining} ngày
                               </p>
                             </>
                           )}
@@ -1534,23 +1587,21 @@ export const ProductionLotDetailPage = () => {
                       </div>
                     </div>
                     {lot.inspectionValidity.status === "EXPIRING" &&
-                      lot.inspectionValidity.expiringCriteria &&
-                      lot.inspectionValidity.expiringCriteria.length > 0 && (
+                      effectiveExpiringCriteria.length > 0 && (
                         <div className="mt-3 rounded-lg border border-orange-200 bg-orange-50 p-3 text-xs text-orange-900">
                           <span className="font-semibold">
-                            Tiêu chí sắp hết hiệu lực ({lot.inspectionValidity.expiringCriteria.length}):
+                            Tiêu chí sắp hết hiệu lực ({effectiveExpiringCriteria.length}):
                           </span>{" "}
-                          {lot.inspectionValidity.expiringCriteria.join(", ")}
+                          {effectiveExpiringCriteria.join(", ")}
                         </div>
                       )}
                     {lot.inspectionValidity.status === "EXPIRED" &&
-                      lot.inspectionValidity.expiredCriteria &&
-                      lot.inspectionValidity.expiredCriteria.length > 0 && (
+                      effectiveExpiredCriteria.length > 0 && (
                         <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-900">
                           <span className="font-semibold">
-                            Tiêu chí đã hết hiệu lực ({lot.inspectionValidity.expiredCriteria.length}):
+                            Tiêu chí đã hết hiệu lực ({effectiveExpiredCriteria.length}):
                           </span>{" "}
-                          {lot.inspectionValidity.expiredCriteria.join(", ")}
+                          {effectiveExpiredCriteria.join(", ")}
                         </div>
                       )}
                     {lot.inspectionValidity.status === "EXPIRED" &&

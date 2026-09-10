@@ -348,4 +348,94 @@ class InspectionValidityServiceTest {
         assertThat(response.getTotalStamps()).isEqualTo(100L);
         assertThat(response.getInactiveStampCount()).isEqualTo(40L);
     }
+
+    @Test
+    @DisplayName("Nhiều chỉ tiêu cùng tên nhưng khác tiêu chuẩn: chỉ các chỉ tiêu thực sự sắp hết hạn mới được tính vào expiringCriteria")
+    void testCalculateValidity_multipleSameNameCriteriaDistinctStandards() {
+        InspectionCriterionCatalog cat1 = InspectionCriterionCatalog.builder()
+                .id(1L)
+                .name("Aflatoxin B1")
+                .referenceStandard("FSSC 22000")
+                .build();
+        InspectionCriterionCatalog cat2 = InspectionCriterionCatalog.builder()
+                .id(2L)
+                .name("Aflatoxin B1")
+                .referenceStandard("BRCGS Food Safety")
+                .build();
+        InspectionCriterionCatalog cat3 = InspectionCriterionCatalog.builder()
+                .id(3L)
+                .name("Aflatoxin B1")
+                .referenceStandard("IFS Food")
+                .build();
+
+        CategoryCriterion assign1 = CategoryCriterion.builder().category(category).criterion(cat1).build();
+        CategoryCriterion assign2 = CategoryCriterion.builder().category(category).criterion(cat2).build();
+        CategoryCriterion assign3 = CategoryCriterion.builder().category(category).criterion(cat3).build();
+
+        when(categoryCriterionRepository.findByCategoryIdAndCriteriaStatus(category.getId(), "ACTIVE"))
+                .thenReturn(List.of(assign1, assign2, assign3));
+
+        InspectionCriterion crit1 = InspectionCriterion.builder()
+                .criterionId(1L)
+                .criterionCode("Aflatoxin B1")
+                .criterionName("Aflatoxin B1")
+                .build();
+        InspectionCriterion crit2 = InspectionCriterion.builder()
+                .criterionId(2L)
+                .criterionCode("Aflatoxin B1")
+                .criterionName("Aflatoxin B1")
+                .build();
+        InspectionCriterion crit3 = InspectionCriterion.builder()
+                .criterionId(3L)
+                .criterionCode("Aflatoxin B1")
+                .criterionName("Aflatoxin B1")
+                .build();
+
+        // Chỉ tiêu 1: hết hạn hôm nay (còn 0 ngày <= 15 -> EXPIRING)
+        InspectionCriterionResult res1 = InspectionCriterionResult.builder()
+                .inspectionCriterion(crit1)
+                .passed(true)
+                .resultDate(today)
+                .expiryDate(today)
+                .build();
+
+        // Chỉ tiêu 2: còn hạn 20 ngày (> 15 -> VALID, không sắp hết hạn)
+        InspectionCriterionResult res2 = InspectionCriterionResult.builder()
+                .inspectionCriterion(crit2)
+                .passed(true)
+                .resultDate(today)
+                .expiryDate(today.plusDays(20))
+                .build();
+
+        // Chỉ tiêu 3: còn hạn 10 ngày (<= 15 -> EXPIRING)
+        InspectionCriterionResult res3 = InspectionCriterionResult.builder()
+                .inspectionCriterion(crit3)
+                .passed(true)
+                .resultDate(today)
+                .expiryDate(today.plusDays(10))
+                .build();
+
+        when(resultRepository.findAllByProductionLotId(lot.getId()))
+                .thenReturn(List.of(res1, res2, res3));
+
+        InspectionValidityResponse response = inspectionValidityService.calculateValidity(lot, today);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatus()).isEqualTo(InspectionValidityStatus.EXPIRING);
+        assertThat(response.getEarliestExpiryDate()).isEqualTo(today);
+        assertThat(response.getDaysRemaining()).isEqualTo(0L);
+
+        // Đảm bảo chỉ đúng 2 chỉ tiêu sắp hết hạn, không bị đếm thành 3
+        assertThat(response.getExpiringCriteria())
+                .hasSize(2)
+                .containsExactly("Aflatoxin B1 (FSSC 22000)", "Aflatoxin B1 (IFS Food)")
+                .doesNotContain("Aflatoxin B1 (BRCGS Food Safety)");
+        assertThat(response.getExpiredCriteria()).isEmpty();
+
+        // Kiểm tra chi tiết 3 tiêu chí trong danh sách criteria
+        assertThat(response.getCriteria()).hasSize(3);
+        assertThat(response.getCriteria().get(0).getStatus()).isEqualTo(InspectionValidityStatus.EXPIRING);
+        assertThat(response.getCriteria().get(1).getStatus()).isEqualTo(InspectionValidityStatus.VALID);
+        assertThat(response.getCriteria().get(2).getStatus()).isEqualTo(InspectionValidityStatus.EXPIRING);
+    }
 }

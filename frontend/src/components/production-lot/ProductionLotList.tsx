@@ -416,8 +416,8 @@ export const ProductionLotList = ({
                   }
                 }}
                 className={`transition-all duration-500 ${isHighlighted
-                    ? "bg-amber-100/90 dark:bg-amber-950/60 ring-2 ring-amber-500 font-semibold animate-pulse"
-                    : "hover:bg-muted/40"
+                  ? "bg-amber-100/90 dark:bg-amber-950/60 ring-2 ring-amber-500 font-semibold animate-pulse"
+                  : "hover:bg-muted/40"
                   }`}
               >
                 <TableCell className="text-center font-medium text-muted-foreground">

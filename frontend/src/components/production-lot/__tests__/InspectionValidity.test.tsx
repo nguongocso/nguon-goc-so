@@ -212,7 +212,7 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
     expect(screen.queryByText("Còn 8 ngày")).toBeNull();
   });
 
-  // Case 4: Lô đã kích hoạt hết tem / kết quả còn  hiệu lực -> hiển thị Còn hiệu lực, không có cảnh báo
+  // Case 4: Lô đã kích hoạt hết tem / kết quả còn hiệu lực -> hiển thị Còn hiệu lực, không có cảnh báo
   it("Case 4: Lô có kết quả kiểm nghiệm Còn hiệu lực (VALID) -> hiển thị Còn hiệu lực, không có cảnh báo quá hạn hay CTA", () => {
     const validLot: ProductionLot = {
       ...baseLot,
@@ -247,7 +247,7 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
       />,
     );
 
-    expect(screen.getByText("Đang hiệu lực")).toBeDefined();
+    expect(screen.getByText("Còn hiệu lực")).toBeDefined();
     expect(screen.queryByText("Sắp hết hiệu lực")).toBeNull();
     expect(screen.queryByText("Hết hiệu lực")).toBeNull();
     expect(screen.queryByText("Tạo yêu cầu kiểm nghiệm mới")).toBeNull();

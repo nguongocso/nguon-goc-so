@@ -144,7 +144,7 @@ Trạng thái hiệu lực là **giá trị suy diễn tại thời điểm đ�
 |---|---|---|
 | `NOT_REQUIRED` | Không yêu cầu kiểm nghiệm | `productCategory.requiresInspection = false` |
 | `NO_VALID_RESULT` | Chưa có kết quả hợp lệ | Lô bắt buộc kiểm nghiệm nhưng chưa kiểm nghiệm, đang chờ kết quả, hoặc chưa đạt đủ mọi chỉ tiêu |
-| `VALID` | Đang hiệu lực | Đạt đủ chỉ tiêu, còn hiệu lực và `daysRemaining > warningThresholdDays` |
+| `VALID` | Còn hiệu lực | Đạt đủ chỉ tiêu, còn hiệu lực và `daysRemaining > warningThresholdDays` |
 | `EXPIRING` | Sắp hết hiệu lực | Đạt đủ chỉ tiêu, còn hiệu lực và `0 <= daysRemaining <= warningThresholdDays` (mặc định 15 ngày) |
 | `EXPIRED` | Hết hiệu lực | `today > earliestExpiryDate` (kết quả kiểm nghiệm đã quá hạn) |
 

@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import vn.nguongocso.certification.dto.response.CriterionValidityResponse;
 import vn.nguongocso.certification.dto.response.InspectionValidityResponse;
 import vn.nguongocso.certification.entity.CategoryCriterion;
+import vn.nguongocso.certification.entity.InspectionCriterion;
+import vn.nguongocso.certification.entity.InspectionCriterionCatalog;
 import vn.nguongocso.certification.entity.InspectionCriterionResult;
 import vn.nguongocso.certification.entity.InspectionRequest;
 import vn.nguongocso.certification.enums.InspectionRequestStatus;
@@ -99,8 +101,11 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
                     .build();
         }
 
-        // 3. Lấy kết quả kiểm nghiệm mới nhất cho từng mã chỉ tiêu trên toàn bộ yêu cầu của lô
-        Map<String, InspectionCriterionResult> latestByCode = buildLatestResultsByCode(lot.getId());
+        // 3. Lấy kết quả kiểm nghiệm mới nhất theo từng chỉ tiêu (ưu tiên criterionId từ danh mục)
+        LatestInspectionResultsHolder resultsHolder = new LatestInspectionResultsHolder();
+        for (InspectionCriterionResult result : resultRepository.findAllByProductionLotId(lot.getId())) {
+            resultsHolder.addResult(result);
+        }
 
         int totalCriteria = assignments.size();
         int passedCriteria = 0;
@@ -112,12 +117,19 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
         List<String> expiredCriteria = new ArrayList<>();
 
         for (CategoryCriterion assignment : assignments) {
-            String name = assignment.getCriterion().getName();
-            InspectionCriterionResult latest = latestByCode.get(name);
+            InspectionCriterionCatalog catalog = assignment.getCriterion();
+            String baseName = catalog.getName();
+            String standard = catalog.getReferenceStandard();
+            String displayName = (standard != null && !standard.isBlank())
+                    ? baseName + " (" + standard + ")"
+                    : baseName;
+
+            InspectionCriterionResult latest = resultsHolder.findLatest(catalog);
 
             CriterionValidityResponse.CriterionValidityResponseBuilder cBuilder = CriterionValidityResponse.builder()
-                    .criterionId(assignment.getCriterion().getId())
-                    .criterionName(name);
+                    .criterionId(catalog.getId())
+                    .criterionCode(standard)
+                    .criterionName(displayName);
 
             if (latest != null && Boolean.TRUE.equals(latest.getPassed()) && latest.getExpiryDate() != null) {
                 passedCriteria++;
@@ -133,14 +145,14 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
                     cBuilder.status(InspectionValidityStatus.EXPIRED)
                             .daysOverdue(overdue)
                             .daysRemaining(null);
-                    expiredCriteria.add(name);
+                    expiredCriteria.add(displayName);
                 } else {
                     long remaining = ChronoUnit.DAYS.between(today, expiry);
                     if (remaining <= warningThresholdDays) {
                         cBuilder.status(InspectionValidityStatus.EXPIRING)
                                 .daysRemaining(remaining)
                                 .daysOverdue(null);
-                        expiringCriteria.add(name);
+                        expiringCriteria.add(displayName);
                     } else {
                         cBuilder.status(InspectionValidityStatus.VALID)
                                 .daysRemaining(remaining)
@@ -220,50 +232,70 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
     }
 
     /**
-     * Tìm kết quả kiểm nghiệm mới nhất theo từng chỉ tiêu của lô sản xuất.
-     * Áp dụng nguyên tắc: mới hơn theo resultDate, nếu trùng thì phụ theo updatedAt.
+     * Container lưu trữ kết quả kiểm nghiệm mới nhất của lô, ưu tiên index theo criterionId danh mục
+     * và fallback theo code / name cho dữ liệu legacy.
      */
-    private Map<String, InspectionCriterionResult> buildLatestResultsByCode(UUID lotId) {
-        Map<String, InspectionCriterionResult> latestByCode = new HashMap<>();
+    private static class LatestInspectionResultsHolder {
+        private final Map<Long, InspectionCriterionResult> byCatalogId = new HashMap<>();
+        private final Map<String, InspectionCriterionResult> byCodeOrName = new HashMap<>();
 
-        for (InspectionCriterionResult result : resultRepository.findAllByProductionLotId(lotId)) {
+        void addResult(InspectionCriterionResult result) {
             if (result.getResultDate() == null || result.getInspectionCriterion() == null) {
-                continue;
+                return;
             }
 
-            String code = result.getInspectionCriterion().getCriterionCode();
-            String name = result.getInspectionCriterion().getCriterionName();
+            InspectionCriterion ic = result.getInspectionCriterion();
+            Long criterionId = ic.getCriterionId();
+            if (criterionId != null) {
+                putIfNewer(byCatalogId, criterionId, result);
+            }
 
-            putIfNewer(latestByCode, code, result);
+            String code = ic.getCriterionCode();
+            String name = ic.getCriterionName();
+
+            if (code != null) {
+                putIfNewer(byCodeOrName, code, result);
+            }
             if (name != null && !name.equals(code)) {
-                putIfNewer(latestByCode, name, result);
+                putIfNewer(byCodeOrName, name, result);
             }
         }
 
-        return latestByCode;
-    }
-
-    private void putIfNewer(Map<String, InspectionCriterionResult> map, String key, InspectionCriterionResult result) {
-        if (key == null) {
-            return;
+        InspectionCriterionResult findLatest(InspectionCriterionCatalog catalog) {
+            if (catalog == null) {
+                return null;
+            }
+            if (catalog.getId() != null && byCatalogId.containsKey(catalog.getId())) {
+                return byCatalogId.get(catalog.getId());
+            }
+            if (catalog.getName() != null && byCodeOrName.containsKey(catalog.getName())) {
+                return byCodeOrName.get(catalog.getName());
+            }
+            return null;
         }
 
-        InspectionCriterionResult current = map.get(key);
-        if (current == null) {
-            map.put(key, result);
-            return;
-        }
+        private <K> void putIfNewer(Map<K, InspectionCriterionResult> map, K key, InspectionCriterionResult result) {
+            if (key == null) {
+                return;
+            }
 
-        LocalDateTime resultUpdatedAt = result.getUpdatedAt();
-        LocalDateTime currentUpdatedAt = current.getUpdatedAt();
+            InspectionCriterionResult current = map.get(key);
+            if (current == null) {
+                map.put(key, result);
+                return;
+            }
 
-        boolean isNewer = result.getResultDate().isAfter(current.getResultDate())
-                || (result.getResultDate().isEqual(current.getResultDate())
-                && resultUpdatedAt != null
-                && (currentUpdatedAt == null || resultUpdatedAt.isAfter(currentUpdatedAt)));
+            LocalDateTime resultUpdatedAt = result.getUpdatedAt();
+            LocalDateTime currentUpdatedAt = current.getUpdatedAt();
 
-        if (isNewer) {
-            map.put(key, result);
+            boolean isNewer = result.getResultDate().isAfter(current.getResultDate())
+                    || (result.getResultDate().isEqual(current.getResultDate())
+                    && resultUpdatedAt != null
+                    && (currentUpdatedAt == null || resultUpdatedAt.isAfter(currentUpdatedAt)));
+
+            if (isNewer) {
+                map.put(key, result);
+            }
         }
     }
 
