@@ -6,13 +6,15 @@
 >
 > Loại tài liệu: Phân tích nghiệp vụ và API Contract (contract-first)
 >
-> Trạng thái: **Proposed – chờ review trước khi triển khai các task Jira**
+> Task hiện tại: [NCL-781](https://tran-phuong-doan.atlassian.net/browse/NCL-781) – Chốt quy tắc tách lô hàng và phân bổ mã tem
+>
+> Trạng thái: **Đã đối chiếu Excel – chờ review contract trước khi triển khai backend**
 >
 > Nhánh tài liệu: `feature/NCL-701-split-shipment-multiple-partners`
 
 ## 1. Mục tiêu
 
-Cho phép Quản lý hợp tác xã (VT-02) tách một lô hàng đã kích hoạt thành nhiều lô con để giao cho nhiều doanh nghiệp thu mua. Mỗi lô con:
+Cho phép Quản lý hợp tác xã (VT-02) tách một lô hàng đã sinh mã nhưng chưa kích hoạt thành nhiều lô con để giao cho nhiều doanh nghiệp thu mua. Mỗi lô con:
 
 - có đối tác nhận xác định;
 - nhận một phần mã tem đang thuộc lô cha;
@@ -29,26 +31,35 @@ Thao tác tách chỉ phân bổ lại dữ liệu đã tồn tại. Hệ thốn
 | ID | Loại | Nguồn | Yêu cầu chắc chắn | Tác động dự kiến | Bằng chứng cần có |
 | --- | --- | --- | --- | --- | --- |
 | `NCL-701` | Story | Jira | Tách lô hàng khi giao cho nhiều đối tác | Nghiệp vụ tách lô theo đối tác | Kiểm thử API và UI end-to-end |
-| `NCL-781` | Subtask | Jira | Chốt quy tắc tách lô và phân bổ mã tem | Validation, transaction và thuật toán phân bổ | Unit/integration test |
+| `NCL-781` | Subtask | Jira | Chốt quy tắc tách lô và phân bổ mã tem | Validation, transaction và quy tắc chọn khoảng mã | Review ma trận quy tắc và unit/integration test |
 | `NCL-782` | Subtask | Jira | Thiết kế quan hệ lô cha và lô con | Migration và quan hệ tự tham chiếu của `Shipment` | Migration test |
 | `NCL-783` | Subtask | Jira | Thiết kế màn hình tách lô hàng | API preview, danh sách đối tác và kết quả tách | Frontend test/UI QA |
 | `NCL-785` | Subtask | Jira | Phát triển tách lô và dựng hành trình theo lô con | API tách, chuyển tem, timeline theo lineage | Backend test và runtime test |
 | `NCL-788` | Subtask | Jira | Kiểm thử tách lô hàng | Bộ test thành công, lỗi, quyền và đồng thời | Báo cáo kiểm thử |
+| `NCL-05-CN-010` | Story | Excel backlog, dòng 98 | Lô đã sinh mã và chưa thu hồi được tách toàn phần; tem chưa kích hoạt được phân theo khoảng người dùng chọn; lịch sử chung tới điểm tách | Contract trạng thái, khoảng mã và timeline | `TC-01` đến `TC-04` |
+| `NCL-05-CN-010-CV-01` | Task | Excel Tasks, dòng 474 | Xác định kế thừa lịch sử và ràng buộc tổng số lượng, tổng số mã | Nội dung chính của NCL-781 | Review contract |
+| `NCL-05-CN-010-TC-01` | AC | Excel Acceptance Criteria, dòng 400 | Tách 1.000 mã thành hai lô con 500 mã; giữ liên kết cha và lịch sử tới điểm tách | Luồng thành công | API/integration test |
+| `NCL-05-CN-010-TC-02` | AC | Excel Acceptance Criteria, dòng 401 | Chặn khi tổng phân bổ 1.200 mã vượt 1.000 mã của lô cha | Bảo toàn tổng mã | Validation test |
+| `NCL-05-CN-010-TC-03` | AC | Excel Acceptance Criteria, dòng 402 | Quét mã lô con chỉ thấy lịch sử chung rồi nhánh của đúng lô con | Public timeline | API/UI test |
+| `NCL-05-CN-010-TC-04` | AC | Excel Acceptance Criteria, dòng 403 | Không cho tách lô đang bị thu hồi | Validation trạng thái | Conflict test |
 | `NCL-04-CN-002` | Story liên quan | Excel backlog | Lô hàng được sinh mã truy xuất duy nhất | Không tạo hoặc nhân bản mã khi tách | So sánh tập mã trước/sau |
-| `QTN-02` | Business rule | Excel backlog | Không cấp trùng mã cho hai lô khác nhau | Mỗi mã chỉ thuộc đúng một lô con | Constraint và test tính duy nhất |
-| `QTN-03` | Business rule | Excel backlog | Số tem không vượt sản lượng/hạn mức | Tách không làm thay đổi tổng số tem đã cấp | Test bảo toàn số lượng và hạn mức |
-| `QTN-04` | Business rule | Excel backlog | Chỉ kích hoạt tem sau khi đóng gói | Chỉ tách lô đã `ACTIVATED` | Test sai trạng thái |
+| `QTN-01` | Business rule hỗ trợ | Excel Business Rules | Mỗi tổ chức chỉ thao tác dữ liệu của mình | Chặn truy cập chéo tổ chức | Permission test |
+| `QTN-02` | Business rule | Excel Business Rules | Không cấp trùng mã cho hai lô khác nhau | Mỗi mã chỉ thuộc đúng một lô con | Constraint và test tính duy nhất |
+| `QTN-08` | Business rule | Excel Business Rules | Sự kiện đã ghi không sửa/xóa; chỉ thêm sự kiện mới | Không sao chép hoặc sửa event gốc khi tách | Timeline/hash test |
+| `QTN-24` | Business rule | Excel Business Rules | Thu hồi phải xét toàn bộ lô cùng nguồn | Duyệt lineage cha/con khi xác định phạm vi | Recall regression test |
 
 ### 2.2. Khoảng trống trong Jira
 
-Tại thời điểm lập tài liệu, Story và năm subtask trên Jira chỉ có tiêu đề; các trường Description, User Role, Precondition và Postcondition đều chưa có nội dung. Jira cũng chưa có Acceptance Criteria chính thức cho NCL-701.
+Jira Story và năm subtask chỉ có tiêu đề; các trường Description, User Role, Precondition và Postcondition chưa có nội dung. Tuy nhiên workbook **Bản sao của Nguồn Gốc Số (3).xlsx** đã có Story `NCL-05-CN-010`, bốn Acceptance Criteria và năm task tương ứng. Trong contract này, Excel là nguồn chi tiết để bổ sung cho Jira.
 
 Vì vậy:
 
-- các tiêu đề Jira trong bảng trên được xem là yêu cầu chắc chắn;
-- các quy tắc tại mục 5 là **quyết định contract đề xuất** dựa trên kiến trúc đang chạy và các business rule hiện có;
-- các test case tại mục 14 là tiêu chí kiểm thử đề xuất, chưa thay thế AC chính thức trên Jira;
+- tiêu đề Jira và nội dung Story/AC/Task/Business Rule trong Excel được xem là yêu cầu chắc chắn;
+- các quy tắc tại mục 5 phân biệt rõ phần đã được Excel chốt và phần còn là quyết định kỹ thuật;
+- bốn test case Excel là Acceptance Criteria nguồn; các test bổ sung tại mục 14 dùng để chứng minh bảo mật, transaction và non-regression;
 - nếu Product Owner bổ sung AC khác với tài liệu này, phải cập nhật tài liệu trước khi code.
+
+Excel ghi `QTN-24 (cần bổ sung)` tại Story nhưng sheet Business Rules đã có `QTN-24`. Contract sử dụng nội dung QTN-24 hiện hữu và coi ghi chú “cần bổ sung” là dữ liệu tham chiếu chưa được cập nhật.
 
 ## 3. Hiện trạng hệ thống
 
@@ -81,7 +92,7 @@ Vì vậy:
 
 - Xem trước khả năng tách của một lô hàng.
 - Tra cứu danh sách đối tác doanh nghiệp đang hoạt động.
-- Tách toàn bộ phần mã tem hợp lệ của một lô cha cho ít nhất hai đối tác.
+- Tách toàn bộ số lượng và toàn bộ mã tem `INACTIVE` của một lô cha cho ít nhất hai đối tác.
 - Tạo quan hệ một cấp giữa lô cha và các lô con.
 - Chuyển quyền liên kết của mã tem từ lô cha sang lô con.
 - Dựng timeline của lô con gồm lịch sử nguồn và lịch sử riêng.
@@ -92,7 +103,7 @@ Vì vậy:
 ### 4.2. Không bao gồm
 
 - Sinh mã tem mới hoặc cấp thêm hạn mức.
-- Tách một lô con lần thứ hai (tách đa cấp).
+- Tách một lô con lần thứ hai (tách đa cấp) cho tới khi Product Owner xác nhận yêu cầu này.
 - Gộp các lô con trở lại lô cha.
 - Sửa hoặc hủy kết quả tách sau khi giao dịch thành công.
 - Chia sẻ một lô con cho nhiều đối tác.
@@ -112,25 +123,30 @@ Backend phải kiểm tra đồng thời role, permission `shipment:SPLIT` và `
 Lô cha phải:
 
 - tồn tại và thuộc tổ chức hiện tại;
-- đang ở trạng thái `ACTIVATED`;
+- đã sinh mã và đang ở trạng thái `CODE_PRINTED`;
 - không phải lô con (`parentShipmentId = null`);
 - chưa từng tách;
 - không bị thu hồi;
-- có ít nhất hai mã tem có thể phân bổ.
+- có ít nhất hai mã tem;
+- toàn bộ mã đang thuộc lô cha đều ở trạng thái `INACTIVE`.
 
-Việc chỉ nhận `ACTIVATED` phù hợp với ngữ cảnh “khi giao cho đối tác” và bảo toàn QTN-04.
+Excel quy định “các mã tem chưa kích hoạt được phân về các lô con theo khoảng mã do người dùng chọn”. Trong code hiện tại, lô vừa sinh mã có trạng thái `CODE_PRINTED` và tem có trạng thái `INACTIVE`; khi kích hoạt, lô chuyển sang `ACTIVATED` và tem chuyển sang `ACTIVE`. Vì vậy, thao tác tách diễn ra **trước khi kích hoạt**, không nhận lô `ACTIVATED`.
 
 ### BR-701-03 – Tách toàn phần
 
-Một request phải có ít nhất hai phần phân bổ và tổng `quantity` phải bằng số mã tem có thể phân bổ của lô cha.
+Một request phải có ít nhất hai phần phân bổ. Đồng thời:
+
+- tổng `quantity` của các lô con bằng `Shipment.totalQuantity` của lô cha;
+- tổng số mã trong các khoảng được chọn bằng tổng số mã của lô cha;
+- số mã của từng lô con bằng `quantity` của chính lô con.
 
 Contract không hỗ trợ tách một phần để tránh lô cha vừa là nguồn lineage vừa tiếp tục lưu hành. Nếu nghiệp vụ cần giữ lại hàng tại HTX, phần giữ lại phải được biểu diễn thành một lô con riêng hoặc Product Owner phải bổ sung quy tắc tách một phần trước khi triển khai.
 
 ### BR-701-04 – Đơn vị số lượng
 
-`quantity` là **số đơn vị tem/mã truy xuất**, kiểu số nguyên dương. Không dùng `ProductionLot.actualQuantity` vì trường này là số thực và có thể mang đơn vị kg, tấn, gói hoặc đơn vị khác.
+Trong phạm vi contract hiện tại, `quantity` là **số đơn vị tem/mã truy xuất**, kiểu số nguyên dương. Lựa chọn này bám theo dữ liệu AC “1.000 mã và một tấn hàng” nhưng hệ thống hiện chưa lưu đơn vị khối lượng riêng trên `Shipment`; không dùng `ProductionLot.actualQuantity` để chia vì trường đó thuộc lô sản xuất và có thể mang đơn vị khác.
 
-Số lượng có thể phân bổ được tính bằng số `TraceCode` của lô cha có trạng thái khác `CANCELLED`. Mã đã hủy giữ nguyên trên lô cha để bảo toàn lịch sử và không được chuyển sang lô con.
+Số lượng có thể phân bổ được tính bằng số `TraceCode` trạng thái `INACTIVE` của lô cha. Nếu tồn tại mã `ACTIVE`, `CANCELLED`, `LOCKED`, `SUSPECT` hoặc `RECALLED`, hệ thống chặn toàn bộ thao tác tách để tránh vi phạm yêu cầu tổng mã lô con phải bằng lô cha.
 
 ### BR-701-05 – Đối tác nhận
 
@@ -145,20 +161,23 @@ Một lô con chỉ có một `recipientOrganization`.
 
 ### BR-701-06 – Phân bổ mã tem
 
-Backend lấy các mã có thể phân bổ, sắp xếp tăng dần theo `codeValue`, sau đó cấp tuần tự theo thứ tự phần tử trong `allocations`.
+Người dùng chọn chính xác khoảng mã giao cho từng lô con bằng `fromCode` và `toCode`. Backend không tự quyết định khoảng mã thay người dùng.
 
 Nguyên tắc:
 
+- hai đầu khoảng mã phải tồn tại, thuộc lô cha và có trạng thái `INACTIVE`;
+- số mã thực tế trong khoảng phải bằng `quantity` của lô con;
+- các khoảng không được giao nhau, không được bỏ sót mã và hợp của các khoảng phải đúng bằng tập mã của lô cha;
 - không tạo `TraceCode` mới;
 - không đổi `codeValue`, ảnh QR, trạng thái kích hoạt hoặc thông tin khóa/thu hồi;
 - chỉ cập nhật khóa ngoại `trace_codes.shipment_id` sang lô con;
 - mỗi mã chỉ được chuyển đúng một lần;
-- tổng mã ở các lô con bằng tổng mã có thể phân bổ trước khi tách.
+- thứ tự so sánh khoảng dùng cùng quy tắc thứ tự mã mà hệ thống đã dùng khi sinh mã, không so sánh chuỗi tùy ý ở frontend.
 
 ### BR-701-07 – Trạng thái sau khi tách
 
-- Lô cha chuyển từ `ACTIVATED` sang `SPLIT` và không còn xuất hiện trong danh sách đủ điều kiện giao/thu mua.
-- Các lô con được tạo ở trạng thái `ACTIVATED` vì chỉ nhận các mã đã kích hoạt từ lô cha.
+- Lô cha chuyển từ `CODE_PRINTED` sang `SPLIT` và không còn được kích hoạt hoặc dùng cho giao/thu mua.
+- Các lô con được tạo ở trạng thái `CODE_PRINTED`; toàn bộ mã của lô con vẫn là `INACTIVE` và được kích hoạt riêng theo luồng hiện có.
 - `CodeRange.usedCount` không thay đổi.
 - `Shipment.totalQuantity` của lô cha giữ nguyên để audit; báo cáo nghiệp vụ phải loại lô `SPLIT` khỏi tổng lưu hành để tránh đếm kép.
 
@@ -190,6 +209,8 @@ Timeline lô con được dựng theo thứ tự:
 
 Sự kiện `SPLIT` của mỗi lô con chứa `sourceShipmentId`, `sourceShipmentName`, `recipientOrganizationId`, `recipientOrganizationName`, `allocatedQuantity`, `sourceLastEventHash` và thời điểm tách. Chuỗi băm của lô con bắt đầu từ sự kiện `SPLIT`; `sourceLastEventHash` là bằng chứng liên kết lineage, không ghi đè chuỗi băm của lô cha.
 
+“Kế thừa lịch sử” trong Excel được thực hiện bằng cách tổng hợp lịch sử lô sản xuất + lô cha khi đọc timeline. Không sao chép bản ghi sự kiện sang từng lô con, vì sao chép sẽ vi phạm tinh thần chỉ-thêm-không-sửa của QTN-08 và tạo nhiều bản lịch sử không còn cùng một chuỗi băm.
+
 ### BR-701-10 – Cô lập dữ liệu đối tác
 
 Sau khi tách:
@@ -199,25 +220,34 @@ Sau khi tách:
 - VT-02/VT-03 của tổ chức nguồn vẫn xem được lô cha, các lô con và timeline;
 - tra cứu công khai bằng mã tem tiếp tục hoạt động và tự trỏ tới lô con sau khi cập nhật `trace_codes.shipment_id`.
 
+### BR-701-11 – Phạm vi thu hồi sau khi tách
+
+Theo QTN-24, khi truy vết ảnh hưởng từ lô sản xuất, hệ thống phải lần theo quan hệ lô cha/lô con:
+
+- lô cha `SPLIT` vẫn xuất hiện như nút lineage/audit nhưng không phải lô lưu hành để xử lý thu hồi lần hai;
+- mọi lô con lá phát sinh từ lô cha phải nằm trong phạm vi ảnh hưởng mặc định;
+- nếu loại một lô con khỏi đề nghị thu hồi, người dùng phải nhập lý do theo QTN-24;
+- việc tính tổng phạm vi không được cộng đồng thời số lượng lô cha và lô con.
+
 ## 6. Mô hình trạng thái
 
 ```text
-ACTIVATED (lô cha)
+CODE_PRINTED (lô cha, toàn bộ tem INACTIVE)
     |
     | POST /api/v1/shipments/{id}/split
     v
 SPLIT (lô cha, chỉ còn vai trò lineage/audit)
     |
-    +-- ACTIVATED (lô con A -> đối tác A)
-    +-- ACTIVATED (lô con B -> đối tác B)
-    +-- ACTIVATED (lô con N -> đối tác N)
+    +-- CODE_PRINTED (lô con A -> đối tác A) -> ACTIVATED
+    +-- CODE_PRINTED (lô con B -> đối tác B) -> ACTIVATED
+    +-- CODE_PRINTED (lô con N -> đối tác N) -> ACTIVATED
 ```
 
 Các chuyển trạng thái bị từ chối:
 
-- `DRAFT`, `CODE_PRINTED` hoặc `RECALLED` → `SPLIT`;
+- `DRAFT`, `ACTIVATED` hoặc `RECALLED` → `SPLIT`;
 - `SPLIT` → `SPLIT` lần nữa;
-- lô con `ACTIVATED` → `SPLIT` trong phạm vi Story hiện tại.
+- lô con `CODE_PRINTED` hoặc `ACTIVATED` → `SPLIT` trong phạm vi Story hiện tại.
 
 ## 7. API danh sách đối tác
 
@@ -282,12 +312,17 @@ Cho giao diện biết lô có đủ điều kiện tách hay không và hiển 
   "data": {
     "shipmentId": "9d7b499f-ea66-459a-8eb5-2ad81447ae61",
     "shipmentName": "Lô hàng thanh long tháng 9",
-    "status": "ACTIVATED",
+    "status": "CODE_PRINTED",
     "productionLotId": "d4d9330f-c68d-4f02-a333-e4044769cb68",
     "productionLotName": "Thanh long vụ tháng 9",
     "declaredQuantity": 1000,
-    "assignableQuantity": 980,
-    "cancelledQuantity": 20,
+    "assignableQuantity": 1000,
+    "nonInactiveQuantity": 0,
+    "availableCodeRange": {
+      "fromCode": "HTX00000001",
+      "toCode": "HTX00001000",
+      "quantity": 1000
+    },
     "canSplit": true,
     "blockReasonCode": null,
     "blockMessage": null
@@ -300,10 +335,11 @@ Khi lô không đủ điều kiện, endpoint vẫn trả `200` với `canSplit 
 
 | `blockReasonCode` | Ý nghĩa |
 | --- | --- |
-| `INVALID_STATUS` | Lô không ở trạng thái `ACTIVATED` |
+| `INVALID_STATUS` | Lô chưa ở trạng thái `CODE_PRINTED` hoặc đã kích hoạt/thu hồi |
 | `ALREADY_SPLIT` | Lô cha đã được tách |
 | `CHILD_SHIPMENT` | Đây là lô con |
 | `INSUFFICIENT_CODES` | Có ít hơn hai mã có thể phân bổ |
+| `NON_INACTIVE_CODE_EXISTS` | Có ít nhất một mã không còn ở trạng thái `INACTIVE` |
 
 `403` và `404` vẫn được dùng cho lỗi quyền và không tìm thấy tài nguyên.
 
@@ -326,12 +362,16 @@ Content-Type: application/json
       "recipientOrganizationId": "4f2d3a6e-8e2d-4a70-b2c2-0dfe557a4141",
       "name": "Lô thanh long giao An Phú",
       "quantity": 600,
+      "fromCode": "HTX00000001",
+      "toCode": "HTX00000600",
       "packagingInfo": "Thùng 10 kg"
     },
     {
       "recipientOrganizationId": "1c78c8eb-7da3-4e2c-88a1-75fc73783b45",
       "name": "Lô thanh long giao Minh Long",
-      "quantity": 380,
+      "quantity": 400,
+      "fromCode": "HTX00000601",
+      "toCode": "HTX00001000",
       "packagingInfo": "Thùng 10 kg"
     }
   ]
@@ -346,9 +386,11 @@ Content-Type: application/json
 | `allocations[].recipientOrganizationId` | UUID | Có | ENTERPRISE, ACTIVE, không lặp, khác tổ chức nguồn |
 | `allocations[].name` | string | Có | Sau trim từ 1 đến 255 ký tự |
 | `allocations[].quantity` | integer | Có | Lớn hơn 0 |
+| `allocations[].fromCode` | string | Có | Mã đầu khoảng, phải thuộc lô cha và đang `INACTIVE` |
+| `allocations[].toCode` | string | Có | Mã cuối khoảng, phải thuộc lô cha và đang `INACTIVE` |
 | `allocations[].packagingInfo` | string | Không | Tối đa 500 ký tự |
 
-Tổng `allocations[].quantity` phải bằng `assignableQuantity` tại thời điểm backend khóa và kiểm tra lại lô cha. Frontend không được coi giá trị preview là nguồn sự thật sau khi POST bắt đầu.
+Tổng `allocations[].quantity` phải bằng cả `sourceShipment.totalQuantity` và `assignableQuantity` tại thời điểm backend khóa và kiểm tra lại lô cha. Các khoảng mã phải không giao nhau, không có khoảng trống và phủ đúng toàn bộ mã `INACTIVE` của lô cha. Frontend không được coi giá trị preview là nguồn sự thật sau khi POST bắt đầu.
 
 ### 9.4. Response `201 Created`
 
@@ -364,15 +406,14 @@ Response không trả toàn bộ danh sách mã tem để tránh payload rất l
       "name": "Lô hàng thanh long tháng 9",
       "status": "SPLIT",
       "declaredQuantity": 1000,
-      "allocatedQuantity": 980,
-      "cancelledQuantity": 20
+      "allocatedQuantity": 1000
     },
     "children": [
       {
         "id": "2ff72c65-ef2e-43bd-bda0-157fce51158f",
         "parentShipmentId": "9d7b499f-ea66-459a-8eb5-2ad81447ae61",
         "name": "Lô thanh long giao An Phú",
-        "status": "ACTIVATED",
+        "status": "CODE_PRINTED",
         "recipientOrganization": {
           "id": "4f2d3a6e-8e2d-4a70-b2c2-0dfe557a4141",
           "code": "DN-TM-001",
@@ -386,19 +427,19 @@ Response không trả toàn bộ danh sách mã tem để tránh payload rất l
         "id": "f532f497-87d4-4352-acbf-7660b779c2fd",
         "parentShipmentId": "9d7b499f-ea66-459a-8eb5-2ad81447ae61",
         "name": "Lô thanh long giao Minh Long",
-        "status": "ACTIVATED",
+        "status": "CODE_PRINTED",
         "recipientOrganization": {
           "id": "1c78c8eb-7da3-4e2c-88a1-75fc73783b45",
           "code": "DN-TM-002",
           "name": "Doanh nghiệp Thu mua Minh Long"
         },
-        "totalQuantity": 380,
+        "totalQuantity": 400,
         "firstCode": "HTX00000601",
-        "lastCode": "HTX00000980"
+        "lastCode": "HTX00001000"
       }
     ],
     "totalChildren": 2,
-    "totalAllocatedQuantity": 980,
+    "totalAllocatedQuantity": 1000,
     "splitByName": "Quản lý HTX Demo",
     "splitAt": "2026-09-10T15:10:00"
   },
@@ -479,19 +520,22 @@ Các API dành cho VT-04 phải kiểm tra `shipment.recipientOrganizationId = c
 | 400 | `SPLIT_001` | Có ít hơn 2 phần phân bổ | `Phải phân bổ lô hàng cho ít nhất hai đối tác.` |
 | 400 | `SPLIT_002` | Số lượng không phải số nguyên dương | `Số lượng phân bổ phải lớn hơn 0.` |
 | 400 | `SPLIT_003` | Trùng đối tác | `Mỗi đối tác chỉ được xuất hiện một lần trong yêu cầu tách lô.` |
-| 400 | `SPLIT_004` | Tổng số lượng không bằng số tem có thể phân bổ | `Tổng số lượng phân bổ phải bằng {assignableQuantity}.` |
+| 400 | `SPLIT_004` | Tổng số lượng không bằng số lượng/tổng mã của lô cha | `Tổng số lượng phân bổ phải bằng {sourceQuantity}.` |
 | 400 | `SPLIT_005` | Tổ chức nhận không phải doanh nghiệp ACTIVE | `Đối tác nhận không hợp lệ hoặc đã ngừng hoạt động.` |
 | 400 | `SPLIT_006` | Tổ chức nhận trùng tổ chức nguồn | `Không thể chọn tổ chức nguồn làm đối tác nhận.` |
+| 400 | `SPLIT_007` | Đầu/cuối khoảng không thuộc lô cha hoặc không phải mã `INACTIVE` | `Khoảng mã không hợp lệ hoặc chứa mã không thể phân bổ.` |
+| 400 | `SPLIT_008` | Các khoảng giao nhau, bỏ sót mã hoặc không phủ toàn bộ tập mã | `Các khoảng mã phải liên tục, không trùng và phủ toàn bộ mã của lô cha.` |
+| 400 | `SPLIT_009` | Số mã thực tế trong khoảng khác `quantity` | `Số lượng lô con phải bằng số mã trong khoảng đã chọn.` |
 | 401 | `AUTHENTICATION_REQUIRED` | Chưa đăng nhập/hết phiên | `Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn.` |
 | 403 | `ACCESS_DENIED` | Không phải VT-02/thiếu permission | `Bạn không có quyền tách lô hàng.` |
 | 403 | `CROSS_ORGANIZATION_ACCESS` | Lô cha thuộc tổ chức khác | `Bạn không có quyền tách lô hàng của tổ chức khác.` |
 | 403 | `RECIPIENT_MISMATCH` | VT-04 thao tác lô không giao cho tổ chức mình | `Lô hàng không được giao cho tổ chức của bạn.` |
 | 404 | `SHIPMENT_NOT_FOUND` | Không tìm thấy lô cha | `Không tìm thấy lô hàng.` |
 | 404 | `PARTNER_NOT_FOUND` | Không tìm thấy tổ chức nhận | `Không tìm thấy đối tác nhận.` |
-| 409 | `INVALID_SHIPMENT_STATUS` | Lô không phải `ACTIVATED` | `Chỉ có thể tách lô hàng đã kích hoạt.` |
+| 409 | `INVALID_SHIPMENT_STATUS` | Lô không phải `CODE_PRINTED`, đã kích hoạt hoặc đã thu hồi | `Chỉ có thể tách lô hàng đã sinh mã và chưa kích hoạt.` |
 | 409 | `ALREADY_SPLIT` | Lô đã tách | `Lô hàng đã được tách trước đó.` |
 | 409 | `CHILD_SPLIT_NOT_ALLOWED` | Cố tách lô con | `Không hỗ trợ tách tiếp một lô con.` |
-| 409 | `TRACE_CODE_COUNT_CHANGED` | Tập tem thay đổi giữa preview và POST | `Số lượng mã tem đã thay đổi. Vui lòng tải lại thông tin lô.` |
+| 409 | `TRACE_CODE_STATE_CHANGED` | Số lượng hoặc trạng thái tem thay đổi giữa preview và POST | `Thông tin mã tem đã thay đổi. Vui lòng tải lại thông tin lô.` |
 
 Response lỗi tuân theo `ApiResult` hiện có:
 
@@ -547,13 +591,13 @@ Mọi truy vấn tổng số lượng shipment phải loại `status = SPLIT` ho
 
 ## 14. Test case đề xuất
 
-> Đây là test case contract-first do Jira chưa có Acceptance Criteria chính thức.
+> `TC-01` đến `TC-04` ánh xạ trực tiếp bốn Acceptance Criteria trong Excel. Các test còn lại bổ sung bằng chứng kỹ thuật và non-regression.
 
-- [ ] **TC-01 – Tách thành công:** VT-02 tách lô `ACTIVATED` cho hai đối tác; tạo đúng hai lô con, lô cha thành `SPLIT`.
+- [ ] **TC-01 – Tách thành công (`NCL-05-CN-010-TC-01`):** VT-02 tách lô `CODE_PRINTED` có 1.000 mã `INACTIVE` thành hai lô con 500 mã; tạo đúng hai lô con, giữ lineage/lịch sử và lô cha thành `SPLIT`.
 - [ ] **TC-02 – Bảo toàn mã:** Tổng mã hợp lệ ở các lô con bằng trước khi tách; không có mã mới/trùng/mất; `CodeRange.usedCount` không đổi.
-- [ ] **TC-03 – Mã đã hủy:** Tem `CANCELLED` không chuyển sang lô con và không được tính vào `assignableQuantity`.
-- [ ] **TC-04 – Tổng phân bổ sai:** Tổng nhỏ hơn hoặc lớn hơn `assignableQuantity` bị từ chối; không có dữ liệu nào được tạo.
-- [ ] **TC-05 – Sai trạng thái:** `DRAFT`, `CODE_PRINTED`, `RECALLED`, `SPLIT` bị chặn.
+- [ ] **TC-03 – Tổng phân bổ sai (`NCL-05-CN-010-TC-02`):** Lô cha có 1.000 mã nhưng request phân bổ 1.200 mã bị từ chối; không có dữ liệu nào được tạo.
+- [ ] **TC-04 – Tra cứu lô con (`NCL-05-CN-010-TC-03`):** Quét mã lô con thứ nhất chỉ hiển thị lịch sử chung tới điểm tách rồi tiếp tục theo lô con thứ nhất.
+- [ ] **TC-05 – Lô đang thu hồi (`NCL-05-CN-010-TC-04`):** Lô `RECALLED` bị chặn và thông báo rõ không thể tách lô đang thu hồi.
 - [ ] **TC-06 – Lô con:** Không cho tách tiếp lô có `parentShipmentId`.
 - [ ] **TC-07 – Đối tác sai:** Tổ chức không tồn tại, không ACTIVE, không phải ENTERPRISE, trùng nhau hoặc là tổ chức nguồn bị chặn.
 - [ ] **TC-08 – Cross-tenant:** VT-02 không thể preview/tách lô của HTX khác.
@@ -564,15 +608,19 @@ Mọi truy vấn tổng số lượng shipment phải loại `status = SPLIT` ho
 - [ ] **TC-13 – Cô lập đối tác:** VT-04 chỉ thấy và ghi event cho lô con được giao cho tổ chức mình.
 - [ ] **TC-14 – Tra cứu công khai:** Quét mã cũ sau tách trả đúng lô con và vẫn có lịch sử nguồn.
 - [ ] **TC-15 – Báo cáo:** Tổng sản lượng không tăng sau khi tách; lô cha `SPLIT` không bị đếm kép.
-- [ ] **TC-16 – Payload lớn:** Response tách không trả toàn bộ mã tem; API vẫn đáp ứng với lô có nhiều mã.
+- [ ] **TC-16 – Khoảng mã:** Chặn khoảng giao nhau, bỏ sót mã, mã ngoài lô cha và trường hợp số mã trong khoảng khác `quantity`.
+- [ ] **TC-17 – Trạng thái tem:** Chặn toàn bộ thao tác nếu lô cha có ít nhất một mã không phải `INACTIVE`.
+- [ ] **TC-18 – Thu hồi theo QTN-24:** Truy vết từ lô sản xuất đưa mọi lô con lá vào phạm vi mặc định, không đếm kép lô cha.
+- [ ] **TC-19 – Payload lớn:** Response tách không trả toàn bộ mã tem; API vẫn đáp ứng với lô có nhiều mã.
 
 ## 15. Tác động frontend
 
-- Chỉ hiển thị nút **Tách lô** với VT-02 có permission và lô `ACTIVATED` chưa phải lô con.
-- Màn hình gọi `split-preview` trước, hiển thị số lượng khai báo, có thể phân bổ và đã hủy.
+- Chỉ hiển thị nút **Tách lô** với VT-02 có permission và lô `CODE_PRINTED`, toàn bộ tem còn `INACTIVE`, chưa phải lô con.
+- Màn hình gọi `split-preview` trước, hiển thị tổng số lượng, tổng mã và khoảng mã hiện có.
 - Cho thêm tối thiểu hai dòng đối tác; không cho chọn trùng.
-- Luôn hiển thị tổng đã phân bổ và số còn thiếu/thừa.
-- Vô hiệu hóa nút xác nhận khi tổng chưa bằng `assignableQuantity`.
+- Mỗi dòng nhập đối tác, số lượng, mã đầu và mã cuối; hiển thị ngay số mã thực tế trong khoảng.
+- Luôn hiển thị tổng đã phân bổ, số còn thiếu/thừa và cảnh báo khoảng trùng/không liên tục.
+- Vô hiệu hóa nút xác nhận khi tổng chưa bằng số lượng lô cha hoặc các khoảng chưa phủ đúng toàn bộ mã.
 - Sau thành công, chuyển tới chi tiết lô cha hoặc danh sách lô con và invalidate các query shipment, timeline, eligible shipment và báo cáo liên quan.
 - Hiển thị trạng thái `SPLIT` bằng nhãn tiếng Việt **Đã tách**.
 - Timeline phân biệt sự kiện nguồn/kế thừa và sự kiện riêng của lô con nhưng không làm người dùng hiểu rằng event đã bị sao chép.
@@ -582,7 +630,7 @@ Mọi truy vấn tổng số lượng shipment phải loại `status = SPLIT` ho
 - Bắt buộc tenant isolation ở service/repository; không tin `organizationId` từ request.
 - Không trả danh sách thành viên hoặc dữ liệu nhạy cảm khi tìm đối tác.
 - Khóa lô cha và tập mã tem trong transaction để chống double allocation.
-- Không nhận trực tiếp danh sách `traceCodeId` từ client trong contract hiện tại, tránh IDOR và phân bổ thiếu/trùng; backend tự phân bổ xác định theo `codeValue`.
+- Không nhận trực tiếp `traceCodeId`. Client gửi `fromCode`/`toCode` theo yêu cầu Excel; backend phải dựng tập mã từ lô cha đã khóa và kiểm tra ownership, trạng thái, giao nhau, khoảng trống và số lượng để ngăn IDOR/phân bổ thiếu-trùng.
 - Không sửa `codeValue`, trạng thái khóa/thu hồi hoặc file QR.
 - Activity log dùng action `SPLIT_SHIPMENT`, entity là lô cha, metadata chứa danh sách lô con và tổng số lượng nhưng không chứa token/thông tin nhạy cảm.
 - Các API chi tiết/timeline phải kiểm tra organization scope, không chỉ dựa vào role.
@@ -590,10 +638,10 @@ Mọi truy vấn tổng số lượng shipment phải loại `status = SPLIT` ho
 ## 17. Non-regression
 
 - `POST /api/v1/shipments` vẫn tạo shipment và mã tem như hiện tại.
-- `POST /api/v1/shipments/{id}/activate` không thay đổi với shipment thường.
+- `POST /api/v1/shipments/{id}/activate` không thay đổi với shipment thường và được dùng riêng cho từng lô con `CODE_PRINTED`.
 - QR/code value đã phát hành vẫn tra cứu được sau tách.
 - Hạn mức dải mã không thay đổi do thao tác tách.
-- Thu hồi phải áp dụng đúng trên lô con; lô cha `SPLIT` không được thu hồi như một lô đang lưu hành.
+- Thu hồi theo QTN-24 phải duyệt đúng các lô con lá; lô cha `SPLIT` chỉ giữ vai trò lineage và không bị đếm/thu hồi như một lô đang lưu hành.
 - Xuất hồ sơ truy xuất của lô con phải bao gồm lineage nguồn nhưng không lặp chứng từ.
 - Shipment chưa tách tiếp tục dùng response cũ nhờ các trường mới là nullable/additive.
 
@@ -601,13 +649,19 @@ Mọi truy vấn tổng số lượng shipment phải loại `status = SPLIT` ho
 
 Các điểm dưới đây chưa có trong Jira và cần được xác nhận trước khi chuyển sang backend implementation:
 
-1. Có bắt buộc tách toàn bộ hay cho phép giữ lại một phần hàng trên lô cha?
-2. Có cho phép một lô con tiếp tục được tách ở mắt xích sau hay chỉ hỗ trợ một cấp?
-3. Đối tác có cần nhận notification ngay khi được phân bổ lô không?
-4. Với shipment cũ chưa có `recipientOrganizationId`, có backfill từ sự kiện thu mua hay yêu cầu gán thủ công?
-5. Việc phân bổ tự động theo thứ tự `codeValue` có phù hợp vận hành thực tế, hay người dùng cần quét/chọn chính xác dải tem đã giao?
+Excel đã chốt hai điểm từng để mở trong bản phân tích ban đầu:
 
-Cho tới khi có phản hồi khác, contract triển khai mặc định theo các quyết định tại mục 5: **tách toàn phần, một cấp, không notification và backend tự phân bổ mã theo thứ tự tăng dần**.
+- bắt buộc tách toàn phần vì tổng số lượng và tổng mã lô con phải bằng lô cha;
+- người dùng chọn khoảng mã cho từng lô con, backend không tự phân bổ.
+
+Các điểm còn cần Product Owner xác nhận trước backend implementation:
+
+1. Có cho phép một lô con tiếp tục được tách ở mắt xích sau hay chỉ hỗ trợ một cấp?
+2. Đối tác có cần nhận notification ngay khi được phân bổ lô không?
+3. Với shipment cũ chưa có `recipientOrganizationId`, có backfill từ sự kiện thu mua hay yêu cầu gán thủ công?
+4. `Shipment.totalQuantity` có luôn tương ứng một-một với số mã hay cần bổ sung số lượng vật lý và đơn vị đo riêng cho từng lô con?
+
+Cho tới khi có phản hồi khác, phạm vi triển khai an toàn là **tách toàn phần, một cấp, không notification, mỗi `quantity` tương ứng một mã và người dùng chọn khoảng mã**.
 
 ## 19. Thứ tự triển khai sau khi contract được duyệt
 
