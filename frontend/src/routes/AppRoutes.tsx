@@ -183,6 +183,8 @@ import { RecallRequestDetailPage } from "@/pages/recall-request/RecallRequestDet
 
 // ===== Bulk Recall requests (NCL-08-CN-011) =====
 import { BulkRecallRequestDetailPage } from "@/pages/recall-request/BulkRecallRequestDetailPage";
+import { RecallCaseListPage } from "@/pages/recall/RecallCaseListPage";
+import { RecallCaseDetailPage } from "@/pages/recall/RecallCaseDetailPage";
 import { BulkRecallRequestListPage } from "@/pages/recall-request/BulkRecallRequestListPage";
 import { CreateBulkRecallRequestPage } from "@/pages/recall-request/CreateBulkRecallRequestPage";
 
@@ -1592,6 +1594,26 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.recallRequestManage}
                     >
                         <BulkRecallRequestDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* ===========================================================
+          RECALL CASE (NCL-08-CN-012)
+      =========================================================== */}
+            <Route
+                path="recall-cases"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.recallCaseManage || ["VT-02"]}>
+                        <RecallCaseListPage />
+                    </RoleRoute>
+                }
+            />
+            <Route
+                path="recall-cases/:id"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.recallCaseManage || ["VT-02"]}>
+                        <RecallCaseDetailPage />
                     </RoleRoute>
                 }
             />

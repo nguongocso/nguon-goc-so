@@ -45,6 +45,9 @@ import vn.nguongocso.trace.service.SuspectDetectionService;
 import vn.nguongocso.recall.entity.RecallRequest;
 import vn.nguongocso.recall.enums.RecallRequestStatus;
 import vn.nguongocso.recall.repository.RecallRequestRepository;
+import vn.nguongocso.trace.recall.entity.RecallCase;
+import vn.nguongocso.trace.recall.enums.RecallCaseStatus;
+import vn.nguongocso.trace.recall.repository.RecallCaseRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -65,6 +68,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
     private final SuspectDetectionService suspectDetectionService;
     private final RecallRepository recallRepository;
     private final RecallRequestRepository recallRequestRepository;
+    private final RecallCaseRepository recallCaseRepository;
     private final ProductionLotCertificationRepository productionLotCertificationRepository;
     private final InspectionRequestRepository inspectionRequestRepository;
     private final InspectionCriterionResultRepository inspectionCriterionResultRepository;
@@ -253,6 +257,16 @@ public class PublicTraceServiceImpl implements PublicTraceService {
      * @return thông điệp thu hồi
      */
     private String resolveRecallMessage(Shipment shipment) {
+        // Nếu shipment thuộc case CLOSED → trả thông điệp đã xử lý xong (TC-03, NCL-08-CN-012)
+        List<RecallCase> closedCases = recallCaseRepository.findClosedByShipmentId(
+                shipment.getId(), RecallCaseStatus.CLOSED);
+        if (!closedCases.isEmpty()) {
+            RecallCase closedCase = closedCases.get(0);
+            String dateStr = (closedCase.getClosedAt() != null)
+                    ? closedCase.getClosedAt().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    : "";
+            return "LÔ HÀNG ĐÃ XỬ LÝ XONG. Vụ việc thu hồi đã đóng ngày " + dateStr + ".";
+        }
         Optional<RecallRequest> approvedRequest = recallRequestRepository
                 .findTopByShipment_IdAndStatusOrderByApprovedAtDesc(
                         shipment.getId(), RecallRequestStatus.APPROVED);

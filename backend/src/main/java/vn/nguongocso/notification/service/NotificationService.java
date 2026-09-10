@@ -137,4 +137,13 @@ public interface NotificationService {
             UUID requestId,
             String action,
             List<vn.nguongocso.auth.entity.User> recipients);
+
+    /**
+     * Gửi thông báo kết thúc vụ việc thu hồi (NCL-08-CN-012) cho các tổ chức thu mua.
+     *
+     * @param caseCode     mã vụ việc thu hồi
+     * @param recipientIds danh sách ID người dùng nhận thông báo
+     * @return số lượng thông báo đã tạo
+     */
+    int sendRecallCaseClosedNotification(String caseCode, List<UUID> recipientIds);
 }
