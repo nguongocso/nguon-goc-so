@@ -98,6 +98,7 @@ import ShipmentTraceCodesPage from "@/pages/shipment/ShipmentTraceCodesPage";
 
 // ===== Shipment handover (NCL-05-CN-008 / NCL-05-CN-009) =====
 import { HandoverDetailPage } from "@/pages/shipment-handover/HandoverDetailPage";
+import { HandoverListPage } from "@/pages/handover/HandoverListPage";
 import { ShipmentHandoverReceivedListPage } from "@/pages/shipment-handover/ShipmentHandoverReceivedListPage";
 import { ShipmentHandoverSentListPage } from "@/pages/shipment-handover/ShipmentHandoverSentListPage";
 
@@ -724,6 +725,24 @@ const AppRoutes = () => (
                 path="shipment-handovers/:id"
                 element={
                     <RoleRoute allowedRoles={AUTHENTICATED_ROLE_CODES}>
+                        <HandoverDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* VT-04: Danh sách và chi tiết phiếu bàn giao nhận */}
+            <Route
+                path="handover"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.handoverList}>
+                        <HandoverListPage />
+                    </RoleRoute>
+                }
+            />
+            <Route
+                path="handover/:id"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.handoverList}>
                         <HandoverDetailPage />
                     </RoleRoute>
                 }

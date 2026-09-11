@@ -1,5 +1,25 @@
 import apiClient from './axiosConfig';
 import type { CreateHandoverPayload, ShipmentHandover, HandoverDetailResponse } from '@/types/shipmentHandover';
+import type { HandoverSummary, HandoverListParams } from '@/types/handover';
+import type { PageResponse } from '@/types/common';
+
+/**
+ * Lấy danh sách phiếu bàn giao nhận cho tổ chức thu mua (VT-04).
+ * GET /api/v1/handovers
+ */
+export const getHandovers = async (
+  params?: HandoverListParams,
+): Promise<PageResponse<HandoverSummary>> => {
+  const response = await apiClient.get<{ data: PageResponse<HandoverSummary> }>('/handovers', {
+    params,
+  });
+  return response.data.data;
+};
+
+/**
+ * Alias cho acceptHandover
+ */
+export const confirmHandover = acceptHandover;
 
 /**
  * Tạo phiếu bàn giao mới.
