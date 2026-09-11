@@ -8,6 +8,7 @@ import {
   BadgeCheck,
   Ban,
   ChevronDown,
+  FileSignature,
   FileText,
   History,
   LoaderCircle,
@@ -39,6 +40,9 @@ import type { ChainEventResponse } from "@/types/packaging";
 import { maskId } from "@/lib/utils";
 import { QrCodeGrid } from "@/components/shipment/QrCodeGrid";
 import { ExportLabelsDialog } from "@/components/shipment/ExportLabelsDialog";
+import { CreateHandoverDialog } from "@/components/shipment/CreateHandoverDialog";
+import { HandoverPendingBadge } from "@/components/shipment/HandoverPendingBadge";
+import { hasPendingHandover } from "@/api/handoverApi";
 import { ShipmentTimelineItem } from "@/components/shipment/ShipmentTimelineItem";
 import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDialog";
 import { RecallShipmentDialog } from "@/components/shipment/RecallShipmentDialog";
@@ -72,6 +76,8 @@ export const ShipmentDetailPage = () => {
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [loadingShipment, setLoadingShipment] = useState(true);
   const [shipmentError, setShipmentError] = useState<string | null>(null);
+  // NCL-05-CN-008: nhãn "Đang bàn giao" khi có phiếu chờ xác nhận
+  const [pendingHandover, setPendingHandover] = useState(false);
 
   // ── Timeline data ──────────────────────────────────────────────────────────
   const [timeline, setTimeline] = useState<ChainEventResponse[]>([]);
@@ -100,6 +106,8 @@ export const ShipmentDetailPage = () => {
   const canExportLabels = usePermission(ROLE_ACCESS.labelExport);
   // NCL-04-CN-008: Xem và tra cứu trạng thái từng mã tem trong lô hàng
   const canViewTraceCodes = usePermission(ROLE_ACCESS.traceCodeView);
+  // NCL-05-CN-008-009: Tạo phiếu bàn giao (chỉ VT-02 chủ lô)
+  const canCreateHandover = usePermission(ROLE_ACCESS.handoverCreate);
 
   // ── Loaders ────────────────────────────────────────────────────────────────
 
@@ -110,6 +118,12 @@ export const ShipmentDetailPage = () => {
     try {
       const data = await getShipmentById(effectiveShipmentId);
       setShipment(data);
+      // Nhãn "Đang bàn giao": best-effort, backend cũ chưa có endpoint thì ẩn nhãn
+      try {
+        setPendingHandover(await hasPendingHandover(effectiveShipmentId));
+      } catch {
+        setPendingHandover(false);
+      }
     } catch (err: any) {
       setShipmentError(
         err.response?.data?.message ??
@@ -196,6 +210,8 @@ export const ShipmentDetailPage = () => {
 
   // NCL-04-CN-005: Dialog xuất tem QR
   const [showLabelsDialog, setShowLabelsDialog] = useState(false);
+  // NCL-05-CN-008-009: Dialog tạo phiếu bàn giao
+  const [showCreateHandoverDialog, setShowCreateHandoverDialog] = useState(false);
 
   // ── Derived flags ──────────────────────────────────────────────────────────
   const canActivateThis =
@@ -268,6 +284,7 @@ export const ShipmentDetailPage = () => {
                   {shipment.name}
                 </h1>
                 <ShipmentStatusBadge status={shipment.status} />
+                {pendingHandover && <HandoverPendingBadge />}
               </div>
               <p className="font-mono text-xs text-muted-foreground">
                 {maskId(shipment.id)}
@@ -300,6 +317,18 @@ export const ShipmentDetailPage = () => {
                 >
                   <BadgeCheck className="mr-1 h-4 w-4" />
                   Kích hoạt
+                </Button>
+              )}
+
+              {/* NCL-05-CN-008-009: Tạo phiếu bàn giao */}
+              {canCreateHandover && shipment.status === "ACTIVATED" && (
+                <Button
+                  variant="outline"
+                  className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                  onClick={() => setShowCreateHandoverDialog(true)}
+                >
+                  <FileSignature className="mr-1.5 h-4 w-4" />
+                  Tạo phiếu bàn giao
                 </Button>
               )}
 
@@ -653,6 +682,17 @@ export const ShipmentDetailPage = () => {
         open={showLabelsDialog}
         shipment={shipment}
         onClose={() => setShowLabelsDialog(false)}
+      />
+
+      {/* NCL-05-CN-008-009: Dialog tạo phiếu bàn giao */}
+      <CreateHandoverDialog
+        open={showCreateHandoverDialog}
+        shipment={shipment}
+        onClose={() => setShowCreateHandoverDialog(false)}
+        onSuccess={() => {
+          setShowCreateHandoverDialog(false);
+          void loadShipment();
+        }}
       />
     </div>
   );

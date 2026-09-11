@@ -40,6 +40,12 @@ export const formatActionType = (action: string): string => {
     RECORD_PROCUREMENT_EVENT: 'Ghi sự kiện thu mua',
     RECORD_WAREHOUSE_RECEIPT: 'Ghi nhận nhập kho',
     RECORD_STORAGE_CONDITION: 'Ghi điều kiện bảo quản',
+    RECORD_HANDOVER_EVENT: 'Ghi sự kiện bàn giao',
+    HANDOVER: 'Bàn giao',
+    CREATE_HANDOVER: 'Tạo phiếu bàn giao',
+    ACCEPT_HANDOVER: 'Xác nhận bàn giao',
+    REJECT_HANDOVER: 'Từ chối bàn giao',
+    CANCEL_HANDOVER: 'Hủy phiếu bàn giao',
 
     // Dossier & Export
     EXPORT: 'Xuất hồ sơ nguồn gốc',
@@ -156,6 +162,9 @@ export const formatTargetType = (target: string): string => {
     FARM_AREA: 'Vùng trồng',
     FARMAREA: 'Vùng trồng',
     SHIPMENT: 'Lô hàng',
+    SHIPMENT_HANDOVER: 'Phiếu bàn giao',
+    SHIPMENTHANDOVER: 'Phiếu bàn giao',
+    HANDOVER: 'Phiếu bàn giao',
     CHAIN_EVENT: 'Sự kiện chuỗi',
     CHAINEVENT: 'Sự kiện chuỗi',
     PRODUCT_CATEGORY: 'Loại nông sản',

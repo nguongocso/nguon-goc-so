@@ -203,6 +203,28 @@ API layer        → hooks (optional)  → Pages         → Routes
 | **FE Types** | `types/shipment.ts`, `types/scan.ts` |
 | **Migrations** | `V6` (shipments, trace_codes, recalls), `V21` (suspect fields), `V32` (code_range), `V45` (label_cancellation), `V20260830130000` (unlock fields) |
 
+### 2.10.1 Shipment Handover — Phiếu bàn giao lô hàng (NCL-05-CN-008/CN-009, package `trace`)
+
+| Lớp | File |
+|---|---|
+| **BE Controller** | `trace/controller/ShipmentHandoverController.java` — `POST` create (VT-02), `POST /attachment` upload chứng từ (VT-02), `POST /{id}/cancel` (VT-02), `POST /{id}/accept` + `/reject` (VT-02/VT-04 bên nhận), `GET /{id}`, `GET /sent` (VT-02), `GET /received` (VT-02/VT-04); `trace/controller/ShipmentController.java` — `GET /{id}/remaining-handover-quantity`, `GET /eligible` (`@PreAuthorize VT-04`) |
+| **BE Service** | `trace/service/ShipmentHandoverService.java` + `impl/ShipmentHandoverServiceImpl.java` (create/cancel/accept/reject/getById/sent/received/remaining/hasPending/uploadAttachment); `ShipmentServiceImpl.getEligibleShipments()` — liệt kê lô cho màn hình Thu mua **scope theo tổ chức hiện tại**: lô ĐÃ THU MUA / ĐÃ NHẬP KHO (sự kiện `PROCUREMENT`/`WAREHOUSE_RECEIPT` do org ghi) ∪ lô ĐÃ XÁC NHẬN BÀN GIAO (**phiếu bàn giao MỚI NHẤT** nhắm tới org ở trạng thái **ACCEPTED**); lô chỉ có phiếu PENDING hoặc phiếu mới nhất REJECTED/EXPIRED/CANCELLED → KHÔNG hiển thị (kể cả khi có phiếu ACCEPTED cũ — quan hệ hiện tại đã kết thúc); `organization/service/impl/OrganizationServiceImpl.getRecipientOrganizations()` — org nhận cho dropdown chỉ là **Doanh nghiệp thu mua (VT-04 / ENTERPRISE)** ACTIVE, trừ org hiện tại; `trace/service/HandoverExpiryService.java` + `impl/HandoverExpiryServiceImpl.java` (lazy-expire khi đọc + cron) |
+| **BE Entity** | `trace/entity/ShipmentHandover.java`, `trace/enums/ShipmentHandoverStatus.java` (PENDING_CONFIRMATION/ACCEPTED/REJECTED/EXPIRED/CANCELLED) |
+| **BE Repository** | `trace/repository/ShipmentHandoverRepository.java` (SUM committed, findExpiredPending, existsByShipmentIdAndStatus, findByToOrganizationOrganizationId); `event/repository/ChainEventRepository.java` (+`findShipmentIdsByRecordedOrganizationIdAndEventTypeIn`) |
+| **BE Scheduler** | `trace/scheduler/HandoverExpiryScheduler.java` — cron `app.handover.expiry-check-cron` (mặc định mỗi giờ) quét phiếu PENDING quá `expires_at` → EXPIRED (idempotent, `@Transactional(REQUIRES_NEW)`) |
+| **BE DTO** | `trace/dto/request/CreateHandoverRequest.java`, `CancelHandoverRequest.java`, `trace/dto/response/HandoverResponse.java`, `trace/dto/response/HandoverAttachmentUploadResponse.java` (`filePath`), `organization/dto/response/RecipientOrganizationResponse.java` (danh sách org nhận cho dropdown) |
+| **BE liên quan** | `event/enums/ChainEventType.java` (+`HANDOVER`), `trace/repository/TraceCodeRepository.java` (+`existsByShipmentIdAndStatus`), `trace/service/impl/ImpactScopeTraceServiceImpl.java` (+case HANDOVER), `notification` (+`entityId` để điều hướng tới phiếu) |
+| **FE Components** | `components/shipment/CreateHandoverDialog.tsx` (form tạo phiếu: dropdown org nhận hiển thị tên qua `getRecipientDisplayName`/`buildRecipientLabelMap` — không hiện UUID, số lượng + "còn lại" từ API, plannedAt, phương tiện, áp tải, ghi chú, chứng từ); `components/common/AttachmentUploader.tsx` (**component chuẩn tải file dùng chung**: MIME {image/jpeg,image/png,application/pdf} + ≤5MB, `ATTACHMENT_MAX_SIZE`/`formatFileSize` — nguồn chân lý FE, đồng bộ backend); `components/shipment/HandoverStatusBadge.tsx`, `HandoverPendingBadge.tsx` |
+| **FE Pages** | `pages/shipment-handover/ShipmentHandoverSentListPage.tsx (route `/shipment-handovers/sent`, VT-02); pages/shipment-handover/ShipmentHandoverReceivedListPage.tsx` (route `/shipment-handovers/received`, VT-04 — danh sách phiếu nhận, badge trạng thái, "Xem chi tiết"); `pages/shipment-handover/HandoverDetailPage.tsx` (route `/shipment-handovers/:id` — chi tiết phiếu, card "Xác nhận nhận hàng"/"Từ chối" theo org+status, chứng từ, không có nút "Quay lại" đầu trang, thông tin xác nhận/từ chối/hủy/lý do dồn trong "Thông tin chung") |
+| **FE Entry points** | `pages/public/shipment/ShipmentList.tsx` — mục dropdown "Tạo phiếu bàn giao" ngay trong bảng lô hàng (VT-02 + lô ACTIVATED); `pages/public/shipment/ShipmentDetailPage.tsx` — nút "Tạo phiếu bàn giao"; `components/shipment/ProcurementShipmentList.tsx` — nút "Xem phiếu bàn giao" (map shipmentId→phiếu mới nhất) + nút "Ghi nhận thu mua" khi **phiếu mới nhất ACCEPTED** (backend đã loại lô có phiếu mới nhất bị từ chối khỏi `/eligible`) |
+| **FE API** | `api/handoverApi.ts` (createHandover, cancelHandover, uploadHandoverAttachment, getRemainingQuantity, getSentHandovers, getReceivedHandovers, getHandoverById, acceptHandover, rejectHandover), `api/shipmentApi.ts` (`getEligibleShipments`), `api/organizationApi.ts` (`getRecipientOrganizations`) |
+| **FE Types** | `types/shipmentHandover.ts` |
+| **Migration** | `V20260908000000__create_shipment_handovers.sql` (bảng + 6 index, FKs, collation `utf8mb4_0900_ai_ci`), `V20260909000001__add_entity_id_to_notifications.sql` |
+| **Docs** | `docs/api/trace/ShipmentHandover.md` (API contract), `docs/testing/NCL-05-CN-008_manual_test.md` (kịch bản kiểm thử thủ công TC-01→TC-20) |
+| **Tests** | `backend/src/test/java/vn/nguongocso/trace/service/ShipmentHandoverServiceTest.java` (18), `ShipmentServiceImplTest` (+`getEligibleShipments` scope org), `HandoverExpiryServiceTest`, `ShipmentControllerTest`; FE `__tests__/CreateHandoverDialog.test.tsx`, `HandoverDetailPage.test.tsx`, `ShipmentHandoverReceivedListPage.test.tsx` |
+| **Config** | `app.handover.expiry-hours` (48h), `app.handover.expiry-check-cron`, `app.upload.handover.max-size` (mặc định 5MB, env `UPLOAD_HANDOVER_MAX_SIZE`) |
+
+
 ### 2.11 Code Ranges — Quản lý khoảng mã (package `trace`)
 
 | Lớp | File |
@@ -336,12 +358,14 @@ API layer        → hooks (optional)  → Pages         → Routes
 | **BE** | `alert/controller/AlertController.java`, `alert/controller/ActivityLogController.java`, `alert/service/AlertService.java` + `impl`, `alert/service/ActivityLogService.java` + `impl`, `alert/service/ScanAnomalyDetectionService.java` + `impl` |
 | | `alert/entity/Alert.java`, `AlertDetails.java`, `ScanPoint.java`, `ActivityLog.java` (→ `activity_logs` table) |
 | | `alert/event/ActivityLogEvent.java`, `alert/listener/ActivityLogListener.java`, `alert/specification/ActivityLogSpecification.java` |
-| **FE Pages** | `pages/scan-anomaly-alert/ScanAnomalyAlertPage.tsx` |
-| **FE Components** | `pages/scan-anomaly-alert/components/ScanAnomalyAlertDetailsDialog.tsx`, `ResolveScanAnomalyAlertDialog.tsx` |
-| **FE API** | `api/scanAnomalyAlertApi.ts` |
-| **FE Types** | `types/scanAnomalyAlert.ts` |
-| **Migration** | `V8` (alerts), `V10` (activity_logs, trace_code_scan_logs) |
+| | `alert/controller/AnomalyThresholdController.java`, `alert/service/AnomalyThresholdService.java` + `impl`, `alert/entity/AnomalyThreshold.java`, `alert/repository/AnomalyThresholdRepository.java`, `alert/dto/request/CategoryThresholdOverrideRequest.java`, `UpdateGlobalThresholdRequest.java`, `ImpactEstimationRequest.java`, `alert/dto/response/AllThresholdsResponse.java`, `AnomalyThresholdResponse.java`, `ImpactEstimationResponse.java`, `alert/util/ScanAnomalyUtils.java` |
+| **FE Components** | `components/admin/anomaly-threshold/GlobalThresholdCard.tsx`, `CategoryOverridesTable.tsx`, `ImpactEstimationCard.tsx` |
+| **FE Pages** | `pages/scan-anomaly-alert/ScanAnomalyAlertPage.tsx`, `pages/admin/AnomalyThresholdPage.tsx`, `pages/admin/CategoryOverridePage.tsx` |
+| **FE API** | `api/anomalyThresholdApi.ts`, `api/scanAnomalyAlertApi.ts` |
+| **FE Types** | `types/anomalyThreshold.ts`, `types/scanAnomalyAlert.ts` |
+| **Migration** | `V8` (alerts), `V10` (activity_logs, trace_code_scan_logs), `V20260830150000` (anomaly_thresholds) |
 | **Pattern** | Audit log: `@Auditable(action, entityType, description)` trên service method → `AuditAspect` → `ActivityLogEvent` → `ActivityLogListener` (async) → `activity_logs`. Hoặc publish trực tiếp: `eventPublisher.publishEvent(ActivityLogEvent.builder()...)`. |
+| **Docs** | `docs/api/trace/NCL-08-CN-014_AnomalyThresholdConfiguration.md` |
 
 ### 2.21 Notifications (package `notification`)
 
@@ -418,7 +442,41 @@ API layer        → hooks (optional)  → Pages         → Routes
 | **FE API** | `api/productFeedbackApi.ts` |
 | **FE Types** | `types/productFeedback.ts` |
 
-### 2.28 Recall Cases — Vụ việc thu hồi (package `trace/recall`)
+### 2.28 Milestone Reminder — Nhắc lịch canh tác (NCL-03-CN-007, package `farm`)
+
+| Lớp | File |
+|---|---|
+| **BE Controller** | `farm/controller/MilestoneReminderController.java` |
+| **BE Service** | `farm/service/MilestoneReminderService.java` + `impl/MilestoneReminderServiceImpl.java` |
+| **BE Entity** | `farm/entity/MilestoneReminder.java` (PK UUID `CHAR(36)`) |
+| **BE Repository** | `farm/repository/MilestoneReminderRepository.java` |
+| **BE Scheduler** | `farm/scheduler/MilestoneReminderScheduler.java` (cron `@Scheduled` 02:00 AM) |
+| **BE DTO** | `farm/dto/response/MilestoneReminderResponse.java` |
+| **BE Migration** | `V20260908100000__create_milestone_reminders.sql` (bảng + index + FKs), `V20260908110000__create_view_cultivation_milestones.sql` |
+| **FE Component** | `components/farm-log/MilestoneReminderCard.tsx` (+ `__tests__`) |
+| **FE API** | `api/milestoneReminderApi.ts` |
+| **FE Types** | `types/milestoneReminder.ts` |
+| **FE Page liên quan** | Cập nhật `pages/farm-log/CreateFarmLogPage.tsx`, `pages/production-lot/ProductionLotInspectionPage.tsx` |
+| **Docs** | `docs/api/farm/NCL-03-CN-007_MilestoneReminder.md` |
+| **Ghi chú** | Quét lô `APPROVED` có `plantingDate`, đối chiếu `cultivation_milestone(is_mandatory=true)` với `farm_logs` không đính chính (`isCorrected=false`) theo `activityType`. Nhắc tạo mới chống trùng `(lot_id, milestone_id, reminder_date, user_id)` (`reminder_date` = `DATE`). Khi người dùng nhập `FarmLog` đúng `activityType` → tự động `COMPLETED` (`completed_at`). Gửi thông báo `Notification` loại `TASK`. |
+
+### 2.29 Chain Progress Tracking Board — Bảng tiến độ chuỗi (NCL-10-CN-013, package `farm`)
+
+| Lớp | File |
+|---|---|
+| **BE DTO** | `farm/dto/response/ChainProgressBoardResponse.java`, `ChainProgressItemResponse.java`, `ChainProgressStageGroupResponse.java` |
+| **BE Controller** | Cập nhật `farm/controller/ProductionLotController.java` (thêm endpoint `GET /production-lots/chain-progress`) |
+| **BE Service** | `ProductionLotService.java` + `impl` (thêm phương thức lấy tiến độ chuỗi theo 9 giai đoạn) |
+| **BE Enum** | `farm/enums/ChainProgressStage.java` (9 giai đoạn quy chuẩn) |
+| **FE Component** | `components/production-lot/ChainProgressBoard.tsx` |
+| **FE Page** | `pages/production-lot/ChainProgressPage.tsx` (mới), `pages/production-lot/ProductionLotInspectionPage.tsx` (cập nhật) |
+| **FE Types** | `types/productionLot.ts` (cập nhật) |
+| **FE API** | `api/productionLotApi.ts` (cập nhật) |
+| **FE Route** | `routes/AppRoutes.tsx` (thêm `/production-lots/chain-progress`) |
+| **Docs** | `docs/api/farm/NCL-10-CN-013_ChainProgressTrackingBoard.md` |
+| **Ghi chú** | 9 giai đoạn: `DRAFT` → `PENDING` → `APPROVED` → `HARVESTED` → `PREPROCESSED` → `WAITING_TEST_RESULT` → `PACKAGED` → `TAG_ACTIVATED` → `IN_CIRCULATION`. Mỗi giai đoạn hiển thị `count` + danh sách `items` (`id`, `name`, `farmAreaName`, `productCategoryName`, `status`, `currentStage`, `daysInStage`, `isStagnant`, `nextActionRequired`, `targetScreen`). Ngưỡng tồn đọng (`stagnantThresholdDays`, mặc định 10 ngày) qua `stagnantThresholdDays`. Phân lập theo `organizationId`. |
+
+### 2.30 Recall Cases — Vụ việc thu hồi (package `trace/recall`)
 
 > **Trạng thái: HOÀN TẤT** — User Story `NCL-08-CN-012 close recall case` trên branch `feature/NCL-08-CN-012-close-recall-case`.
 
@@ -556,6 +614,8 @@ Không có Feign — mọi call đều trực tiếp trong cùng JVM qua service
 | `/admin/standards` | StandardManagementPage | VT-01 |
 | `/admin/inspection-criteria` | InspectionCriteriaManagementPage | VT-01 |
 | `/admin/cultivation-milestones` | CultivationMilestoneManagementPage | VT-01 |
+| `/admin/anomaly-thresholds` | AnomalyThresholdPage | VT-01 |
+| `/admin/anomaly-thresholds/categories` | CategoryOverridePage | VT-01 |
 | `/admin/suspect-trace-codes` | SuspectTraceCodeListPage | VT-01 |
 | `/integration/api-keys` | PartnerApiKeyListPage | VT-01, VT-02 |
 | `/organizations` | OrganizationListPage | VT-01 |
@@ -566,8 +626,11 @@ Không có Feign — mọi call đều trực tiếp trong cùng JVM qua service
 | `/login-history` | LoginHistoryPage | All Authenticated |
 | `/notifications` | NotificationsPage | All Authenticated |
 | `/event-chain-verification` | EventChainVerificationPage | VT-01, VT-04, VT-05 |
+| `/production-lots/chain-progress` | ChainProgressPage | VT-01, VT-02, VT-03 |
 | `/offline-events` | OfflineEventPage | VT-02, VT-03 |
 | `/export/open-data` | ExportOpenDataPage | VT-05 |
+| `/shipment-handovers/received` | ShipmentHandoverReceivedListPage | VT-04 |
+| `/shipment-handovers/:id` | HandoverDetailPage | VT-01, VT-02, VT-03, VT-04 |
 
 ---
 
@@ -606,7 +669,15 @@ Không có Feign — mọi call đều trực tiếp trong cùng JVM qua service
 | `schema/V48` | lot_assignments |
 | `schema/V49` | accreditation_scopes |
 | `schema/V65` | cultivation_milestone (merged from V63 catalog+mapping) |
+| `schema/V20260830150000` | anomaly_thresholds |
+| `schema/V20260908000000` | shipment_handovers (NCL-05-CN-008/009) |
+| `schema/V20260908100000` | milestone_reminders |
+| `schema/V20260908110000` | view_cultivation_milestones |
+| `schema/V20260908160000` | rename_cultivation_milestone_table |
+| `schema/V20260909000001` | add_entity_id_to_notifications |
 | `schema/V20260910000000` | recall_cases, recall_lot_results (NCL-08-CN-012) |
+| `schema/V20260911120000` | add_close_fields_to_bulk_recall_requests |
+| `schema/V20260911140000` | create_recall_evidence_files |
 
 ### 5.2 Data Seeds
 
@@ -622,6 +693,9 @@ Không có Feign — mọi call đều trực tiếp trong cùng JVM qua service
 | `data/V55`–`V56` | standards, inspection_criterion_catalog |
 | `data/V64` | cultivation_milestone (legacy catalog) |
 | `data/V66` | cultivation_milestone (merged table, 10 milestones) |
+| `data/V20260831100000` | seed_lua_3_scans_test |
+| `data/V20260908120000` | seed_milestone_reminder_test_data |
+| `data/V20260908130000` | seed_cultivation_milestones_data |
 
 ---
 
@@ -634,7 +708,7 @@ Không có Feign — mọi call đều trực tiếp trong cùng JVM qua service
 | `management` | Quản lý | Tổ chức, Quản lý thành viên, Cấu hình quyền, Danh mục nông sản, Tiêu chuẩn, Chứng nhận, Khóa API, Dải mã, Tem nghi vấn, Vật tư, Mốc canh tác, Đơn vị kiểm nghiệm, Phân công địa bàn, Phản ánh |
 | `operations` | Vận hành sản xuất | Vùng trồng, Lô sản xuất, Ghi sự kiện, Quét nhanh, Bảo quản, Cảnh báo, Nhật ký lỗi, Offline, Thu hồi |
 | `reports` | Thống kê & Báo cáo | Thống kê tra cứu, Phân tích vùng trồng, So sánh mùa vụ, Báo cáo ngành, Xuất dữ liệu mở |
-| `procurement` | Thu mua | Nhập kho |
+| `procurement` | Thu mua | Nhập kho, Phiếu bàn giao nhận (VT-04) |
 | `system` | Hệ thống | Kiểm chứng dòng sự kiện, Lịch sử hoạt động, Lịch sử đăng nhập, Giám sát đăng nhập, Sao lưu & Phục hồi, Giám sát hệ thống, Hồ sơ |
 
 ---

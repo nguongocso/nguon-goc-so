@@ -3,8 +3,10 @@ package vn.nguongocso.trace.service.impl;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -39,12 +41,17 @@ import vn.nguongocso.trace.dto.response.ProcurementShipmentResponse;
 import vn.nguongocso.trace.dto.response.ShipmentSummaryResponse;
 import vn.nguongocso.trace.entity.CodeRange;
 import vn.nguongocso.trace.entity.Shipment;
+import vn.nguongocso.trace.entity.ShipmentHandover;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
+import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.CodeRangeRepository;
+import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
+import vn.nguongocso.event.enums.ChainEventType;
+import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.trace.service.QRCodeService;
 import vn.nguongocso.trace.service.ShipmentService;
 import vn.nguongocso.permission.service.PermissionChecker;
@@ -67,6 +74,8 @@ public class ShipmentServiceImpl implements ShipmentService {
     private final NotificationService notificationService;
     private final PermissionChecker permissionChecker;
     private final InspectionEligibilityService inspectionEligibilityService;
+    private final ShipmentHandoverRepository shipmentHandoverRepository;
+    private final ChainEventRepository chainEventRepository;
 
     private static final String ORG_MANAGER_ROLE = "VT-02";
 
@@ -630,16 +639,51 @@ public class ShipmentServiceImpl implements ShipmentService {
     }
 
     /**
-     * Lấy danh sách lô hàng đủ điều kiện thu mua (status = ACTIVATED).
-     * Dùng cho Doanh nghiệp thu mua (VT‑04) xem danh sách lô hàng sẵn sàng.
+     * Lấy danh sách lô hàng liên quan đến Doanh nghiệp thu mua (VT‑04) hiện tại:
+     * chỉ lô ĐÃ THU MUA / đã nhập kho (sự kiện PROCUREMENT, WAREHOUSE_RECEIPT do
+     * tổ chức ghi) hoặc lô ĐÃ XÁC NHẬN BÀN GIAO (phiếu bàn giao mới nhất cho tổ
+     * chức ở trạng thái ACCEPTED). Lô chỉ mới có phiếu chờ xác nhận (PENDING) hoặc
+     * phiếu mới nhất bị TỪ CHỐI / hết hạn / hủy sẽ KHÔNG xuất hiện trên bảng.
      *
      * @return danh sách ProcurementShipmentResponse
      */
     @Override
     public List<ProcurementShipmentResponse> getEligibleShipments() {
+        CustomUserDetails currentUser = getCurrentUser();
+        if (currentUser == null || currentUser.getOrganizationId() == null) {
+            return List.of();
+        }
+
+        UUID currentOrgId = currentUser.getOrganizationId();
+        Set<UUID> relatedShipmentIds = new HashSet<>();
+
+        // Lô chỉ được đưa vào dashboard khi phiếu bàn giao MỚI NHẤT cho tổ chức
+        // hiện tại đã ĐƯỢC XÁC NHẬN (ACCEPTED). Phiếu ACCEPTED CŨ không cứu được
+        // lô khi phiếu mới nhất đã REJECTED/EXPIRED/CANCELLED; lô chỉ có phiếu
+        // PENDING (chưa xác nhận) cũng không hiển thị vì nghiệp vụ chưa hoàn tất.
+        Map<UUID, ShipmentHandover> latestHandoverByShipment = shipmentHandoverRepository
+                .findByToOrganizationOrganizationId(currentOrgId)
+                .stream()
+                .collect(Collectors.toMap(
+                        handover -> handover.getShipment().getId(),
+                        handover -> handover,
+                        (first, second) -> first.getCreatedAt().isAfter(second.getCreatedAt())
+                                ? first
+                                : second));
+        latestHandoverByShipment.values().stream()
+                .filter(handover -> handover.getStatus() == ShipmentHandoverStatus.ACCEPTED)
+                .map(handover -> handover.getShipment().getId())
+                .forEach(relatedShipmentIds::add);
+
+        // Lô đã thu mua hoặc đã nhập kho do tổ chức hiện tại ghi nhận.
+        relatedShipmentIds.addAll(chainEventRepository.findShipmentIdsByRecordedOrganizationIdAndEventTypeIn(
+                currentOrgId,
+                List.of(ChainEventType.PROCUREMENT, ChainEventType.WAREHOUSE_RECEIPT)));
+
         List<Shipment> shipments = shipmentRepository.findByStatusOrderByCreatedAtDesc(ShipmentStatus.ACTIVATED);
 
         return shipments.stream()
+                .filter(shipment -> relatedShipmentIds.contains(shipment.getId()))
                 .map(shipment -> {
                     String productionLotName = null;
                     String productCategoryName = null;

@@ -13,6 +13,7 @@ import vn.nguongocso.trace.dto.request.CreateShipmentRequest;
 import vn.nguongocso.trace.dto.response.ShipmentResponse;
 import vn.nguongocso.trace.dto.response.ProcurementShipmentResponse;
 import vn.nguongocso.trace.dto.response.ShipmentSummaryResponse;
+import vn.nguongocso.trace.service.ShipmentHandoverService;
 import vn.nguongocso.trace.service.ShipmentService;
 
 import java.util.List;
@@ -27,6 +28,7 @@ import java.util.UUID;
 public class ShipmentController {
 	private final ShipmentService shipmentService;
 	private final PermissionChecker permissionChecker;
+	private final ShipmentHandoverService handoverService;
 
 	/**
 	 * Tạo lô hàng và sinh mã truy xuất.
@@ -96,10 +98,11 @@ public class ShipmentController {
 	}
 
 	/**
-	 * Lấy danh sách lô hàng đủ điều kiện thu mua (status = ACTIVATED).
-	 * Dùng cho Doanh nghiệp thu mua (VT‑04).
+	 * Lấy danh sách lô hàng liên quan tới Doanh nghiệp thu mua (lô đã thu mua,
+	 * được bàn giao hoặc đã nhập kho). Chỉ VT‑04 được sử dụng.
 	 */
 	@GetMapping("/eligible")
+	@PreAuthorize("hasRole('VT-04')")
 	public ApiResult<List<ProcurementShipmentResponse>> getEligibleShipments() {
 
 		return ApiResult.success(shipmentService.getEligibleShipments());
@@ -116,5 +119,24 @@ public class ShipmentController {
 	public ApiResult<ShipmentResponse> getShipmentById(@PathVariable UUID id) {
 
 		return ApiResult.success(shipmentService.getShipmentById(id));
+	}
+
+	@GetMapping("/{id}/remaining-handover-quantity")
+	public ApiResult<Long> getRemainingHandoverQuantity(@PathVariable UUID id) {
+		return ApiResult.success(handoverService.getRemainingQuantity(id));
+	}
+
+	/**
+	 * Kiểm tra lô hàng có phiếu bàn giao đang chờ xác nhận hay không.
+	 * Frontend dùng để hiển thị nhãn "Đang bàn giao" trong thời gian chờ
+	 * (NCL-05-CN-008). Trạng thái derived từ phiếu PENDING_CONFIRMATION,
+	 * không phải cột mới trên lô hàng.
+	 *
+	 * @param id ID của lô hàng
+	 * @return true khi tồn tại phiếu đang chờ xác nhận
+	 */
+	@GetMapping("/{id}/has-pending-handover")
+	public ApiResult<Boolean> hasPendingHandover(@PathVariable UUID id) {
+		return ApiResult.success(handoverService.hasPendingHandover(id));
 	}
 }

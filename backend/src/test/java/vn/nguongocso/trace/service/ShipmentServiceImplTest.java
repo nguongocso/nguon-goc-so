@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,6 +27,8 @@ import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.certification.dto.response.InspectionEligibilityResult;
 import vn.nguongocso.certification.enums.InspectionBlockReasonCode;
 import vn.nguongocso.certification.service.InspectionEligibilityService;
+import vn.nguongocso.event.enums.ChainEventType;
+import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.auth.entity.User;
@@ -37,13 +40,17 @@ import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.trace.dto.request.CreateShipmentRequest;
+import vn.nguongocso.trace.dto.response.ProcurementShipmentResponse;
 import vn.nguongocso.trace.dto.response.ShipmentResponse;
 import vn.nguongocso.trace.entity.CodeRange;
 import vn.nguongocso.trace.entity.Shipment;
+import vn.nguongocso.trace.entity.ShipmentHandover;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
+import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.CodeRangeRepository;
+import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.QRCodeService;
@@ -81,6 +88,12 @@ class ShipmentServiceImplTest {
 
     @Mock
     private InspectionEligibilityService inspectionEligibilityService;
+
+    @Mock
+    private ShipmentHandoverRepository shipmentHandoverRepository;
+
+    @Mock
+    private ChainEventRepository chainEventRepository;
 
     @InjectMocks
     private ShipmentServiceImpl shipmentService;
@@ -682,5 +695,155 @@ class ShipmentServiceImplTest {
         // Assert
         assertThat(response).isNotNull();
         verify(permissionChecker, times(1)).check("shipment", "READ");
+    }
+
+    // ==================== TEST getEligibleShipments (NCL-05-CN-008/CN-009) ====================
+
+    /** Tạo lô hàng ACTIVATED với ID cho trước. */
+    private Shipment activatedShipment(UUID id, String name) {
+        Shipment shipment = new Shipment();
+        shipment.setId(id);
+        shipment.setName(name);
+        shipment.setStatus(ShipmentStatus.ACTIVATED);
+        shipment.setProductionLot(productionLot);
+        shipment.setOrganization(organization);
+        shipment.setTotalQuantity(50L);
+        shipment.setCreatedAt(LocalDateTime.now());
+        return shipment;
+    }
+
+    /**
+     * Chỉ trả về lô liên quan đến tổ chức hiện tại: lô ĐÃ XÁC NHẬN BÀN GIAO cho
+     * tổ chức (phiếu ACCEPTED) hoặc lô đã ghi sự kiện PROCUREMENT/WAREHOUSE_RECEIPT
+     * bởi chính tổ chức. Lô chỉ được bàn giao cho tổ chức khác thì bị loại.
+     */
+    @Test
+    void getEligibleShipments_ShouldOnlyReturnShipmentsRelatedToCurrentOrg() {
+        // Arrange
+        UUID shipmentFromHandover = UUID.randomUUID();
+        UUID shipmentFromProcurement = UUID.randomUUID();
+        UUID unrelatedShipment = UUID.randomUUID();
+
+        Shipment shipmentA = activatedShipment(shipmentFromHandover, "Lô đã xác nhận bàn giao");
+        Shipment shipmentB = activatedShipment(shipmentFromProcurement, "Lô đã thu mua");
+        Shipment shipmentC = activatedShipment(unrelatedShipment, "Lô bàn giao cho tổ chức khác");
+
+        ShipmentHandover handoverToCurrentOrg = ShipmentHandover.builder()
+                .shipment(shipmentA)
+                .toOrganization(organization)
+                .status(ShipmentHandoverStatus.ACCEPTED)
+                .build();
+
+        when(shipmentHandoverRepository.findByToOrganizationOrganizationId(organizationId))
+                .thenReturn(List.of(handoverToCurrentOrg));
+        when(chainEventRepository.findShipmentIdsByRecordedOrganizationIdAndEventTypeIn(
+                organizationId,
+                List.of(ChainEventType.PROCUREMENT, ChainEventType.WAREHOUSE_RECEIPT)))
+                .thenReturn(List.of(shipmentFromProcurement));
+        when(shipmentRepository.findByStatusOrderByCreatedAtDesc(ShipmentStatus.ACTIVATED))
+                .thenReturn(List.of(shipmentA, shipmentB, shipmentC));
+
+        // Act
+        List<ProcurementShipmentResponse> result = shipmentService.getEligibleShipments();
+
+        // Assert
+        assertThat(result)
+                .extracting(ProcurementShipmentResponse::getId)
+                .containsExactly(shipmentFromHandover, shipmentFromProcurement);
+    }
+
+    /**
+     * Lô có phiếu bàn giao bị TỪ CHỐI (REJECTED) hoặc chỉ MỚI CHỜ XÁC NHẬN
+     * (PENDING) nhắm tới tổ chức hiện tại đều KHÔNG đưa vào dashboard thu mua
+     * (VT-04) — bảng chỉ hiển thị lô ĐÃ THU MUA hoặc ĐÃ XÁC NHẬN BÀN GIAO.
+     * Trạng thái EXPIRED/CANCELLED cũng bị loại tương tự.
+     */
+    @Test
+    void getEligibleShipments_ShouldExcludeRejectedAndPendingHandovers() {
+        // Arrange
+        UUID rejectedShipmentId = UUID.randomUUID();
+
+        Shipment rejectedShipment = activatedShipment(rejectedShipmentId, "Lô bị từ chối bàn giao");
+        Shipment pendingShipment = activatedShipment(UUID.randomUUID(), "Lô đang chờ xác nhận");
+
+        ShipmentHandover rejectedHandover = ShipmentHandover.builder()
+                .shipment(rejectedShipment)
+                .toOrganization(organization)
+                .status(ShipmentHandoverStatus.REJECTED)
+                .build();
+        ShipmentHandover pendingHandover = ShipmentHandover.builder()
+                .shipment(pendingShipment)
+                .toOrganization(organization)
+                .status(ShipmentHandoverStatus.PENDING_CONFIRMATION)
+                .build();
+
+        when(shipmentHandoverRepository.findByToOrganizationOrganizationId(organizationId))
+                .thenReturn(List.of(rejectedHandover, pendingHandover));
+        when(chainEventRepository.findShipmentIdsByRecordedOrganizationIdAndEventTypeIn(
+                organizationId,
+                List.of(ChainEventType.PROCUREMENT, ChainEventType.WAREHOUSE_RECEIPT)))
+                .thenReturn(List.of());
+        when(shipmentRepository.findByStatusOrderByCreatedAtDesc(ShipmentStatus.ACTIVATED))
+                .thenReturn(List.of(rejectedShipment, pendingShipment));
+
+        // Act
+        List<ProcurementShipmentResponse> result = shipmentService.getEligibleShipments();
+
+        // Assert
+        assertThat(result).isEmpty();
+    }
+
+    /**
+     * Lô có phiếu ACCEPTED CŨ nhưng phiếu MỚI NHẤT bị TỪ CHỐI (REJECTED) → KHÔNG
+     * đưa vào dashboard (đúng tình huống "Nho đợt 1": 2 lần ACCEPTED rồi lần cuối
+     * REJECTED). Phiếu ACCEPTED cũ không cứu được lô.
+     */
+    @Test
+    void getEligibleShipments_ShouldExcludeShipmentWhoseLatestHandoverIsRejected() {
+        // Arrange
+        UUID lotId = UUID.randomUUID();
+        Shipment lot = activatedShipment(lotId, "Lô có phiếu mới nhất bị từ chối");
+
+        ShipmentHandover acceptedOld = ShipmentHandover.builder()
+                .shipment(lot)
+                .toOrganization(organization)
+                .status(ShipmentHandoverStatus.ACCEPTED)
+                .createdAt(LocalDateTime.now().minusHours(1))
+                .build();
+        ShipmentHandover rejectedNew = ShipmentHandover.builder()
+                .shipment(lot)
+                .toOrganization(organization)
+                .status(ShipmentHandoverStatus.REJECTED)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(shipmentHandoverRepository.findByToOrganizationOrganizationId(organizationId))
+                .thenReturn(List.of(acceptedOld, rejectedNew));
+        when(chainEventRepository.findShipmentIdsByRecordedOrganizationIdAndEventTypeIn(
+                organizationId,
+                List.of(ChainEventType.PROCUREMENT, ChainEventType.WAREHOUSE_RECEIPT)))
+                .thenReturn(List.of());
+        when(shipmentRepository.findByStatusOrderByCreatedAtDesc(ShipmentStatus.ACTIVATED))
+                .thenReturn(List.of(lot));
+
+        // Act
+        List<ProcurementShipmentResponse> result = shipmentService.getEligibleShipments();
+
+        // Assert
+        assertThat(result).isEmpty();
+    }
+
+    /** Không có tổ chức hiện tại thì trả về danh sách rỗng, không truy vấn. */
+    @Test
+    void getEligibleShipments_ShouldReturnEmpty_WhenCurrentUserHasNoOrganization() {
+        // Arrange
+        when(currentUser.getOrganizationId()).thenReturn(null);
+
+        // Act
+        List<ProcurementShipmentResponse> result = shipmentService.getEligibleShipments();
+
+        // Assert
+        assertThat(result).isEmpty();
+        verifyNoInteractions(shipmentHandoverRepository, chainEventRepository, shipmentRepository);
     }
 }

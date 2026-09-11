@@ -47,6 +47,14 @@ public class Notification {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    /**
+     * ID thực thể nghiệp vụ liên kết (VD: shipment_handovers.id).
+     * Null khi thông báo không thuộc về một thực thể cụ thể.
+     */
+    @Column(name = "entity_id")
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID entityId;
+
     @Column(nullable = false)
     private Boolean isRead = false;
 

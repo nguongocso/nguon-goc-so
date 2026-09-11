@@ -29,6 +29,7 @@ import vn.nguongocso.trace.dto.response.ShipmentResponse;
 import vn.nguongocso.trace.dto.response.TraceCodeResponse;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
+import vn.nguongocso.trace.service.ShipmentHandoverService;
 import vn.nguongocso.trace.service.ShipmentService;
 
 import java.time.LocalDateTime;
@@ -49,6 +50,9 @@ class ShipmentControllerTest {
 
     @MockitoBean
     private ShipmentService shipmentService;
+
+    @MockitoBean
+    private ShipmentHandoverService shipmentHandoverService;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;

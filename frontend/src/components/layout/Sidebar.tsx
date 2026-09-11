@@ -8,6 +8,7 @@ import {
   BookOpen,
   Building2,
   CalendarCheck,
+  FileSignature,
   FileText,
   Hash,
   History,
@@ -320,6 +321,13 @@ const MENU_GROUPS: MenuGroup[] = [
         activePaths: ["/trace/impact-scope"],
       },
       {
+        icon: <FileSignature className="h-5 w-5" />,
+        label: "Phiếu bàn giao đã gửi",
+        href: "/handover/sent",
+        allowedRoles: ["VT-02"] as const,
+        activePaths: ["/handover/sent"],
+      },
+      {
         icon: <PackageX className="h-5 w-5" />,
         label: "Yêu cầu thu hồi",
         allowedRoles: ROLE_ACCESS.recallRequestManage,
@@ -379,6 +387,13 @@ const MENU_GROUPS: MenuGroup[] = [
         href: "/export/open-data",
         allowedRoles: ["VT-05"] as const,
       },
+      {
+        icon: <FileSignature className="h-5 w-5" />,
+        label: "Phiếu bàn giao nhận",
+        href: "/shipment-handovers/received",
+        allowedRoles: ["VT-02"] as const,
+        activePaths: ["/shipment-handovers/received"],
+      },
     ],
   },
 
@@ -388,7 +403,13 @@ const MENU_GROUPS: MenuGroup[] = [
     label: "Thu mua",
     icon: <ShoppingCart className="h-5 w-5" />,
     items: [
-
+      {
+        icon: <FileSignature className="h-5 w-5" />,
+        label: "Phiếu bàn giao nhận",
+        href: "/handover",
+        allowedRoles: ["VT-04"] as const,
+        activePaths: ["/handover"],
+      },
       {
         icon: <Warehouse className="h-5 w-5" />,
         label: "Nhập kho",
@@ -807,6 +828,54 @@ export function Sidebar({
   ];
 
   const isActiveLeaf = (item: MenuItem) => {
+    // Phiếu bàn giao đã gửi (VT-02): giữ active khi ở /handover/sent hoặc xem chi tiết phiếu gửi
+    if (item.href === "/handover/sent") {
+      if (
+        location.pathname === "/handover/sent" ||
+        (location.pathname.startsWith("/handover/") && user?.roleCode === "VT-02") ||
+        (location.pathname.startsWith("/shipment-handovers/") &&
+          !location.pathname.startsWith("/shipment-handovers/received") &&
+          user?.roleCode === "VT-02")
+      ) {
+        return true;
+      }
+    }
+
+    // Phiếu bàn giao nhận (VT-04): giữ active khi ở /handover hoặc xem chi tiết
+    if (item.href === "/handover") {
+      if (
+        location.pathname === "/handover" ||
+        (location.pathname.startsWith("/handover/") &&
+          !location.pathname.startsWith("/handover/sent") &&
+          user?.roleCode === "VT-04") ||
+        (location.pathname.startsWith("/shipment-handovers/") &&
+          !location.pathname.startsWith("/shipment-handovers/sent") &&
+          user?.roleCode === "VT-04")
+      ) {
+        return true;
+      }
+    }
+
+    // Phiếu bàn giao nhận (VT-02): giữ active khi xem chi tiết phiếu bàn giao
+    if (item.href === "/shipment-handovers/received") {
+      if (
+        location.pathname === "/shipment-handovers/received" ||
+        (location.pathname.startsWith("/shipment-handovers/") &&
+          !location.pathname.startsWith("/shipment-handovers/sent") &&
+          user?.roleCode !== "VT-04" &&
+          user?.roleCode !== "VT-02")
+      ) {
+        return true;
+      }
+    }
+
+    // Phiếu bàn giao đã gửi (VT-02 cũ nếu truy cập URL cũ): giữ active khi ở /shipment-handovers/sent
+    if (item.href === "/shipment-handovers/sent") {
+      if (location.pathname === "/shipment-handovers/sent") {
+        return true;
+      }
+    }
+
     const matchedItems = allVisibleItems.filter((menuItem) => {
       const paths = getItemPaths(menuItem);
       return paths.some(
