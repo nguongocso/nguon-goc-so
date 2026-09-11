@@ -43,7 +43,6 @@ import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.farm.repository.FarmLogAttachmentRepository;
 import vn.nguongocso.farm.repository.FarmLogRepository;
 import vn.nguongocso.organization.entity.Organization;
-import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.report.dto.response.DossierCheckResponse;
 import vn.nguongocso.report.dto.response.Gs1DossierExportResponse;
 import vn.nguongocso.report.dto.response.Gs1Event;
@@ -69,6 +68,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -90,7 +90,6 @@ public class DossierServiceImpl implements DossierService {
     private final ChainEventRepository chainEventRepository;
     private final DossierExportHistoryRepository exportHistoryRepository;
     private final UserRepository userRepository;
-    private final OrganizationUserRepository organizationUserRepository;
     private final TraceCodeRepository traceCodeRepository;
     private final InspectionRequestRepository inspectionRequestRepository;
     private final InspectionCriterionResultRepository inspectionCriterionResultRepository;
@@ -295,7 +294,7 @@ public class DossierServiceImpl implements DossierService {
         }
 
         // 6. Kiểm tra sự kiện không rỗng (không tạo hồ sơ trống)
-        List<ChainEvent> events = chainEventRepository.findByShipment_IdOrderByRecordedAtAsc(shipmentId);
+        List<ChainEvent> events = getShipmentEventsWithLineage(shipment);
         if (events == null || events.isEmpty()) {
             throw new BusinessException("Lô chưa có sự kiện nào để xuất hồ sơ.");
         }
@@ -868,7 +867,7 @@ public class DossierServiceImpl implements DossierService {
         addTableHeaderCell(eventTable, "Chi tiết dữ liệu", boldFont);
         addTableHeaderCell(eventTable, "Người ghi nhận", boldFont);
 
-        List<ChainEvent> events = chainEventRepository.findByShipment_IdOrderByRecordedAtAsc(shipment.getId());
+        List<ChainEvent> events = getShipmentEventsWithLineage(shipment);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         if (events != null) {
             for (ChainEvent ev : events) {
@@ -911,35 +910,38 @@ public class DossierServiceImpl implements DossierService {
         // 3. Quyền Doanh nghiệp thu mua (VT-04): Lô hàng sẵn sàng thu mua (ACTIVATED)
         // hoặc đã được thu mua bởi doanh nghiệp của mình
         if ("VT-04".equals(role)) {
-            if (shipment.getStatus() == ShipmentStatus.ACTIVATED) {
-                return;
-            }
-
-            boolean isAssociated = false;
-            List<ChainEvent> events = chainEventRepository.findByShipment_IdOrderByRecordedAtAsc(shipment.getId());
-            for (ChainEvent event : events) {
-                if (event.getEventType() == ChainEventType.PROCUREMENT && !event.isCorrection()) {
-                    UUID recorderId = event.getRecordedBy().getUserId();
-                    boolean belongsToSameOrg = organizationUserRepository
-                            .findByOrganization_OrganizationIdAndUser_UserId(
-                                    currentUser.getOrganizationId(), recorderId)
-                            .isPresent();
-                    if (belongsToSameOrg) {
-                        isAssociated = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!isAssociated) {
+            if (shipment.getRecipientOrganization() == null
+                    || !currentUser.getOrganizationId()
+                            .equals(shipment.getRecipientOrganization().getOrganizationId())) {
                 throw new AccessDeniedException(
-                        "Từ chối thao tác: Lô hàng này không thuộc sở hữu thu mua của doanh nghiệp bạn.");
+                        "Từ chối thao tác: Lô hàng này không được giao cho doanh nghiệp của bạn.");
             }
             return;
         }
 
         // Các role khác không được phép truy cập
         throw new AccessDeniedException("Từ chối thao tác: Bạn không có quyền xem hoặc xuất hồ sơ cho lô hàng này.");
+    }
+
+    private List<ChainEvent> getShipmentEventsWithLineage(Shipment shipment) {
+        List<ChainEvent> events = new ArrayList<>();
+        if (shipment.getParentShipment() != null) {
+            LocalDateTime splitAt = shipment.getSplitAt();
+            chainEventRepository.findByShipment_IdOrderByRecordedAtAsc(
+                            shipment.getParentShipment().getId())
+                    .stream()
+                    .filter(event -> splitAt == null || event.getRecordedAt() == null
+                            || !event.getRecordedAt().isAfter(splitAt))
+                    .forEach(events::add);
+        }
+        List<ChainEvent> shipmentEvents = chainEventRepository
+                .findByShipment_IdOrderByRecordedAtAsc(shipment.getId());
+        if (shipmentEvents != null) {
+            events.addAll(shipmentEvents);
+        }
+        events.sort(Comparator.comparing(ChainEvent::getRecordedAt,
+                Comparator.nullsLast(Comparator.naturalOrder())));
+        return events;
     }
 
     private void logDossierExport(Shipment shipment, CustomUserDetails currentUser, String status, String ipAddress,

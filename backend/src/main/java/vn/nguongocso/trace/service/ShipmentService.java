@@ -2,6 +2,10 @@ package vn.nguongocso.trace.service;
 
 import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.trace.dto.request.CreateShipmentRequest;
+import vn.nguongocso.trace.dto.request.SplitShipmentRequest;
+import vn.nguongocso.trace.dto.response.PartnerOrganizationResponse;
+import vn.nguongocso.trace.dto.response.SplitPreviewResponse;
+import vn.nguongocso.trace.dto.response.SplitShipmentResponse;
 import vn.nguongocso.trace.dto.response.ShipmentResponse;
 import vn.nguongocso.trace.dto.response.ProcurementShipmentResponse;
 import vn.nguongocso.trace.dto.response.ShipmentSummaryResponse;
@@ -72,4 +76,10 @@ public interface ShipmentService {
      * @return thông tin chi tiết lô hàng
      */
     ShipmentResponse getShipmentById(UUID id);
+
+    PageResponse<PartnerOrganizationResponse> getPartnerOrganizations(String keyword, int page, int size);
+
+    SplitPreviewResponse getSplitPreview(UUID shipmentId);
+
+    SplitShipmentResponse splitShipment(UUID shipmentId, SplitShipmentRequest request);
 }

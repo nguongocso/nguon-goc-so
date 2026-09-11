@@ -39,6 +39,7 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
         @Query("SELECT COALESCE(SUM(s.totalQuantity), 0) " +
                         "FROM Shipment s " +
                         "WHERE s.organization.organizationId IN :organizationIds " +
+                        "AND s.status <> vn.nguongocso.trace.enums.ShipmentStatus.SPLIT " +
                         "AND s.createdAt >= :fromDate " +
                         "AND s.createdAt < :toDate")
         Double getTotalQuantity(
@@ -58,6 +59,7 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
                         "JOIN s.productionLot pl " +
                         "JOIN pl.productCategory pc " +
                         "WHERE s.organization.organizationId IN :organizationIds " +
+                        "AND s.status <> vn.nguongocso.trace.enums.ShipmentStatus.SPLIT " +
                         "AND s.createdAt >= :fromDate " +
                         "AND s.createdAt < :toDate " +
                         "GROUP BY pc.name " +
@@ -73,6 +75,7 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
         @Query("SELECT COUNT(s) " +
                         "FROM Shipment s " +
                         "WHERE s.organization.organizationId IN :organizationIds " +
+                        "AND s.status <> vn.nguongocso.trace.enums.ShipmentStatus.SPLIT " +
                         "AND s.createdAt >= :fromDate " +
                         "AND s.createdAt < :toDate")
         Long countShipments(
@@ -113,6 +116,8 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
         /** Kiểm tra lô đã có lô con hay chưa. */
         boolean existsByParentShipment_Id(UUID parentShipmentId);
 
+        long countByParentShipment_Id(UUID parentShipmentId);
+
         /**
          * Tìm lô con theo ID và tổ chức nhận để bảo đảm cách ly dữ liệu đối tác.
          */
@@ -126,6 +131,9 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
          */
         List<Shipment> findByStatusOrderByCreatedAtDesc(ShipmentStatus status);
 
+        List<Shipment> findByStatusAndRecipientOrganization_OrganizationIdOrderByCreatedAtDesc(
+                        ShipmentStatus status, UUID recipientOrganizationId);
+
         /**
          * Lấy danh sách lô hàng đủ điều kiện xuất báo cáo / lọc theo nhiều tiêu chí.
          * Bao gồm: tổ chức, khoảng thời gian, danh mục sản phẩm, danh sách shipment.
@@ -138,6 +146,7 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
                         "AND (:fromDate IS NULL OR s.createdAt >= :fromDate) " +
                         "AND (:toDate IS NULL OR s.createdAt <= :toDate) " +
                         "AND s.status <> vn.nguongocso.trace.enums.ShipmentStatus.RECALLED " +
+                        "AND s.status <> vn.nguongocso.trace.enums.ShipmentStatus.SPLIT " +
                         "AND (:categoryIds IS NULL OR pc.id IN :categoryIds) " +
                         "AND (:shipmentIds IS NULL OR s.id IN :shipmentIds)")
         List<Shipment> findEligibleShipments(

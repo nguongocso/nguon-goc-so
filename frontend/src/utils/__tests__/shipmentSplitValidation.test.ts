@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ShipmentSplitAllocation, ShipmentSplitPreview } from '@/types/shipmentSplit';
-import { validateShipmentSplit } from '@/utils/shipmentSplitValidation';
+import {
+  assignSequentialCodeRanges,
+  distributeShipmentQuantitiesEvenly,
+  validateShipmentSplit,
+} from '@/utils/shipmentSplitValidation';
 
 const preview: ShipmentSplitPreview = {
   shipmentId: 'shipment-1',
@@ -30,6 +34,40 @@ function allocation(overrides: Partial<ShipmentSplitAllocation>): ShipmentSplitA
 }
 
 describe('validateShipmentSplit', () => {
+  it('chia đều số lượng và tự gán dải mã liên tục', () => {
+    const result = distributeShipmentQuantitiesEvenly(preview, [
+      allocation({ quantity: 0, fromCode: '', toCode: '' }),
+      allocation({
+        recipientOrganizationId: 'partner-2',
+        quantity: 0,
+        fromCode: '',
+        toCode: '',
+      }),
+      allocation({
+        recipientOrganizationId: 'partner-3',
+        quantity: 0,
+        fromCode: '',
+        toCode: '',
+      }),
+    ]);
+
+    expect(result.map(({ quantity, fromCode, toCode }) => ({ quantity, fromCode, toCode }))).toEqual([
+      { quantity: 334, fromCode: 'HTX00000001', toCode: 'HTX00000334' },
+      { quantity: 333, fromCode: 'HTX00000335', toCode: 'HTX00000667' },
+      { quantity: 333, fromCode: 'HTX00000668', toCode: 'HTX00001000' },
+    ]);
+  });
+
+  it('tính lại dải mã khi người dùng thay đổi số lượng', () => {
+    const result = assignSequentialCodeRanges(preview, [
+      allocation({ quantity: 250 }),
+      allocation({ recipientOrganizationId: 'partner-2', quantity: 750 }),
+    ]);
+
+    expect(result[0]).toMatchObject({ fromCode: 'HTX00000001', toCode: 'HTX00000250' });
+    expect(result[1]).toMatchObject({ fromCode: 'HTX00000251', toCode: 'HTX00001000' });
+  });
+
   it('chấp nhận hai lô con phủ đủ 1.000 tem liên tục', () => {
     const result = validateShipmentSplit(preview, [
       allocation({}),

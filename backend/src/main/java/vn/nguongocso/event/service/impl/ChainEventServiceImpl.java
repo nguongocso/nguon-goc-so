@@ -11,6 +11,8 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.nguongocso.alert.event.ActivityLogEvent;
@@ -680,6 +682,7 @@ public class ChainEventServiceImpl implements ChainEventService {
     public List<ChainEventResponse> getShipmentTimeline(UUID shipmentId) {
         Shipment shipment = shipmentRepository.findById(shipmentId)
                 .orElseThrow(() -> new BusinessException("Lô hàng không tồn tại."));
+        validateShipmentTimelineScope(shipment);
 
         List<ChainEvent> shipmentEvents = chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipmentId);
 
@@ -697,14 +700,49 @@ public class ChainEventServiceImpl implements ChainEventService {
                     .collect(Collectors.toList());
         }
 
-        List<ChainEvent> allEvents = new ArrayList<>();
-        allEvents.addAll(shipmentEvents);
-        allEvents.addAll(productionLotEvents);
-        allEvents.sort(Comparator.comparing(ChainEvent::getRecordedAt));
+        List<ChainEventResponse> timeline = new ArrayList<>();
+        productionLotEvents.forEach(event -> timeline.add(toChainEventResponse(event,
+                "PRODUCTION_LOT", null, true)));
+        if (shipment.getParentShipment() != null) {
+            Shipment parent = shipment.getParentShipment();
+            LocalDateTime splitAt = shipment.getSplitAt();
+            chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(parent.getId()).stream()
+                    .filter(event -> splitAt == null || event.getRecordedAt() == null || !event.getRecordedAt().isAfter(splitAt))
+                    .forEach(event -> timeline.add(toChainEventResponse(event,
+                            "SOURCE_SHIPMENT", parent.getId(), true)));
+        }
+        shipmentEvents.forEach(event -> timeline.add(toChainEventResponse(event,
+                shipment.getParentShipment() == null ? "SOURCE_SHIPMENT" : "CHILD_SHIPMENT",
+                shipment.getId(), false)));
+        timeline.sort(Comparator.comparing(ChainEventResponse::getRecordedAt,
+                Comparator.nullsLast(Comparator.naturalOrder())));
+        return timeline;
+    }
 
-        return allEvents.stream()
-                .map(this::toChainEventResponse)
-                .collect(Collectors.toList());
+    private void validateShipmentTimelineScope(Shipment shipment) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails currentUser)) {
+            throw new BusinessException(HttpStatus.UNAUTHORIZED, "Bạn chưa đăng nhập.",
+                    Map.of("code", "AUTHENTICATION_REQUIRED"));
+        }
+
+        UUID organizationId = currentUser.getOrganizationId();
+        if ("VT-04".equals(currentUser.getRoleCode())) {
+            if (organizationId == null || shipment.getRecipientOrganization() == null
+                    || !organizationId.equals(shipment.getRecipientOrganization().getOrganizationId())) {
+                throw new BusinessException(HttpStatus.FORBIDDEN,
+                        "Lô hàng không được giao cho tổ chức của bạn.",
+                        Map.of("code", "RECIPIENT_MISMATCH"));
+            }
+            return;
+        }
+
+        if (organizationId == null || shipment.getOrganization() == null
+                || !organizationId.equals(shipment.getOrganization().getOrganizationId())) {
+            throw new BusinessException(HttpStatus.FORBIDDEN,
+                    "Bạn không có quyền xem dòng sự kiện của lô hàng thuộc tổ chức khác.",
+                    Map.of("code", "CROSS_ORGANIZATION_ACCESS"));
+        }
     }
 
     private void validateEventPermission(CustomUserDetails currentUser) {
@@ -797,6 +835,11 @@ public class ChainEventServiceImpl implements ChainEventService {
     }
 
     private ChainEventResponse toChainEventResponse(ChainEvent event) {
+        return toChainEventResponse(event, null, null, false);
+    }
+
+    private ChainEventResponse toChainEventResponse(ChainEvent event, String lineageLevel,
+            UUID sourceShipmentId, boolean inherited) {
         Map<String, Object> eventDataMap = parseEventData(event.getEventData());
 
         Double latitude = null;
@@ -820,6 +863,9 @@ public class ChainEventServiceImpl implements ChainEventService {
                 .recordedAt(event.getRecordedAt())
                 .recordedByName(recordedByName)
                 .createdAt(event.getCreatedAt())
+                .lineageLevel(lineageLevel)
+                .sourceShipmentId(sourceShipmentId)
+                .inherited(inherited)
                 .build();
     }
 

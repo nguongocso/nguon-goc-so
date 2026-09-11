@@ -67,7 +67,10 @@ public class ProcurementEventServiceTest {
         shipment = new Shipment();
         shipment.setId(shipmentId);
         shipment.setName("Lô hàng 1");
-        shipment.setOrganization(org);
+        Organization sourceOrganization = new Organization();
+        sourceOrganization.setOrganizationId(UUID.randomUUID());
+        shipment.setOrganization(sourceOrganization);
+        shipment.setRecipientOrganization(org);
         shipment.setStatus(ShipmentStatus.ACTIVATED);
 
         userDetails = mock(CustomUserDetails.class);
@@ -121,6 +124,7 @@ public class ProcurementEventServiceTest {
     @Test
     void recordProcurement_shouldThrow_whenShipmentRecalled() {
         when(userDetails.getRoleCode()).thenReturn("VT-04");
+        when(userDetails.getOrganizationId()).thenReturn(orgId);
 
         shipment.setStatus(ShipmentStatus.RECALLED);
         when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
@@ -132,6 +136,22 @@ public class ProcurementEventServiceTest {
         assertThatThrownBy(() -> service.recordProcurementEvent(request, userDetails))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Lô hàng đã bị thu hồi, không thể ghi sự kiện.");
+    }
+
+    @Test
+    void recordProcurement_shouldRejectDifferentRecipientOrganization() {
+        when(userDetails.getRoleCode()).thenReturn("VT-04");
+        when(userDetails.getOrganizationId()).thenReturn(UUID.randomUUID());
+        when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
+
+        RecordProcurementEventRequest request = new RecordProcurementEventRequest();
+        request.setShipmentId(shipmentId);
+        request.setReceivedQuantity(100L);
+
+        assertThatThrownBy(() -> service.recordProcurementEvent(request, userDetails))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Lô hàng không được giao cho tổ chức của bạn.");
+        verify(chainEventService, never()).saveWithChainHash(any());
     }
 
     @Test

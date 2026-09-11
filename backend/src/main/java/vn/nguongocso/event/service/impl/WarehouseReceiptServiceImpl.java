@@ -83,6 +83,12 @@ public class WarehouseReceiptServiceImpl implements WarehouseReceiptService {
             throw new BusinessException("Mã truy xuất chưa được gắn với lô hàng.");
         }
 
+        if (shipment.getRecipientOrganization() == null || !currentUser.getOrganizationId()
+                .equals(shipment.getRecipientOrganization().getOrganizationId())) {
+            throw new BusinessException(HttpStatus.FORBIDDEN,
+                    "Lô hàng không được giao cho tổ chức của bạn.", Map.of("code", "RECIPIENT_MISMATCH"));
+        }
+
         // 4. Validate shipment status (QTN-05)
         try {
             if (shipment.getStatus() == ShipmentStatus.RECALLED) {

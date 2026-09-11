@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlertCircle, Loader2, PackagePlus, Plus, Trash2 } from 'lucide-react';
+import { AlertCircle, Equal, Loader2, PackagePlus, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -30,7 +30,11 @@ import type {
   ShipmentSplitAllocation,
   ShipmentSplitPreview,
 } from '@/types/shipmentSplit';
-import { validateShipmentSplit } from '@/utils/shipmentSplitValidation';
+import {
+  assignSequentialCodeRanges,
+  distributeShipmentQuantitiesEvenly,
+  validateShipmentSplit,
+} from '@/utils/shipmentSplitValidation';
 
 const EMPTY_ALLOCATION: ShipmentSplitAllocation = {
   recipientOrganizationId: '',
@@ -82,6 +86,7 @@ export default function SplitShipmentPage() {
         ]);
         setPreview(previewData);
         setPartners(partnerPage.items);
+        setAllocations((current) => distributeShipmentQuantitiesEvenly(previewData, current));
       } catch (error) {
         setLoadError(getErrorMessage(error, 'Không thể tải dữ liệu tách lô hàng.'));
       } finally {
@@ -101,14 +106,27 @@ export default function SplitShipmentPage() {
     field: K,
     value: ShipmentSplitAllocation[K],
   ) => {
-    setAllocations((current) =>
-      current.map((item, itemIndex) => (itemIndex === index ? { ...item, [field]: value } : item)),
-    );
+    setAllocations((current) => {
+      const updated = current.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item,
+      );
+      return field === 'quantity' && preview
+        ? assignSequentialCodeRanges(preview, updated)
+        : updated;
+    });
   };
 
   const removeAllocation = (index: number) => {
     if (allocations.length <= 2) return;
-    setAllocations((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    setAllocations((current) => {
+      const updated = current.filter((_, itemIndex) => itemIndex !== index);
+      return preview ? assignSequentialCodeRanges(preview, updated) : updated;
+    });
+  };
+
+  const distributeEvenly = () => {
+    if (!preview) return;
+    setAllocations((current) => distributeShipmentQuantitiesEvenly(preview, current));
   };
 
   const handleSubmit = async () => {
@@ -124,7 +142,7 @@ export default function SplitShipmentPage() {
           packagingInfo: item.packagingInfo?.trim() || undefined,
         })),
       });
-      toast.success(`Đã tách thành công ${result.childShipments.length} lô con.`);
+      toast.success(`Đã tách thành công ${result.children.length} lô con.`);
       navigate(`/shipments/${shipmentId}`);
     } catch (error) {
       toast.error(getErrorMessage(error, 'Không thể tách lô hàng.'));
@@ -196,14 +214,24 @@ export default function SplitShipmentPage() {
             <CardTitle className="text-lg">Phương án phân bổ</CardTitle>
             <p className="mt-1 text-sm text-slate-500">Mỗi đối tác nhận một lô con và một khoảng mã liên tục.</p>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setAllocations((current) => [...current, { ...EMPTY_ALLOCATION }])}
-            disabled={!preview.canSplit}
-          >
-            <Plus className="mr-2 size-4" /> Thêm lô con
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={distributeEvenly}
+              disabled={!preview.canSplit || preview.assignableQuantity < allocations.length}
+            >
+              <Equal className="mr-2 size-4" /> Chia đều số tem
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setAllocations((current) => [...current, { ...EMPTY_ALLOCATION }])}
+              disabled={!preview.canSplit}
+            >
+              <Plus className="mr-2 size-4" /> Thêm lô con
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {allocations.map((allocation, index) => (
@@ -254,20 +282,20 @@ export default function SplitShipmentPage() {
                     onChange={(event) => updateAllocation(index, 'quantity', Number(event.target.value))}
                   />
                 </Field>
-                <Field label="Mã bắt đầu" required>
+                <Field label="Mã bắt đầu (tự động)" required>
                   <Input
                     value={allocation.fromCode}
                     disabled={!preview.canSplit}
+                    readOnly
                     placeholder={preview.availableCodeRange.fromCode}
-                    onChange={(event) => updateAllocation(index, 'fromCode', event.target.value)}
                   />
                 </Field>
-                <Field label="Mã kết thúc" required>
+                <Field label="Mã kết thúc (tự động)" required>
                   <Input
                     value={allocation.toCode}
                     disabled={!preview.canSplit}
+                    readOnly
                     placeholder={preview.availableCodeRange.toCode}
-                    onChange={(event) => updateAllocation(index, 'toCode', event.target.value)}
                   />
                 </Field>
                 <Field label="Quy cách đóng gói">

@@ -49,6 +49,14 @@ export interface Shipment {
   traceCodes: TraceCode[];
   createdByName: string;
   createdAt: string;
+  parentShipmentId: string | null;
+  recipientOrganization: {
+    id: string;
+    code: string;
+    name: string;
+  } | null;
+  childCount: number;
+  splitAt: string | null;
 }
 
 export interface ShipmentSummary {

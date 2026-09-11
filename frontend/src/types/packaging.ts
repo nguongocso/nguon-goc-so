@@ -17,11 +17,14 @@ export interface CorrectPackagingRequest {
 export interface ChainEventResponse {
   id: string;
   shipmentId: string | null;
-  eventType: 'PREPROCESSING' | 'PACKAGING' | 'HARVEST' | 'TRANSPORT' | 'PROCUREMENT' | 'CORRECTION';
+  eventType: 'PREPROCESSING' | 'PACKAGING' | 'HARVEST' | 'TRANSPORT' | 'PROCUREMENT' | 'CORRECTION' | 'SPLIT';
   eventData: Record<string, any>;
   latitude: number | null;
   longitude: number | null;
   recordedAt: string;
   recordedByName: string;
   createdAt: string;
+  lineageLevel?: 'PRODUCTION_LOT' | 'SOURCE_SHIPMENT' | 'CHILD_SHIPMENT' | null;
+  sourceShipmentId?: string | null;
+  inherited?: boolean;
 }

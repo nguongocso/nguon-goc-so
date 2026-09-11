@@ -10,6 +10,9 @@ import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.trace.dto.request.CreateShipmentRequest;
+import vn.nguongocso.trace.dto.request.SplitShipmentRequest;
+import vn.nguongocso.trace.dto.response.SplitPreviewResponse;
+import vn.nguongocso.trace.dto.response.SplitShipmentResponse;
 import vn.nguongocso.trace.dto.response.ShipmentResponse;
 import vn.nguongocso.trace.dto.response.ProcurementShipmentResponse;
 import vn.nguongocso.trace.dto.response.ShipmentSummaryResponse;
@@ -103,6 +106,18 @@ public class ShipmentController {
 	public ApiResult<List<ProcurementShipmentResponse>> getEligibleShipments() {
 
 		return ApiResult.success(shipmentService.getEligibleShipments());
+	}
+
+	@GetMapping("/{shipmentId}/split-preview")
+	public ApiResult<SplitPreviewResponse> getSplitPreview(@PathVariable UUID shipmentId) {
+		return ApiResult.success(shipmentService.getSplitPreview(shipmentId));
+	}
+
+	@PostMapping("/{shipmentId}/split")
+	@ResponseStatus(HttpStatus.CREATED)
+	public ApiResult<SplitShipmentResponse> splitShipment(@PathVariable UUID shipmentId,
+			@Valid @RequestBody SplitShipmentRequest request) {
+		return ApiResult.success(HttpStatus.CREATED.value(), shipmentService.splitShipment(shipmentId, request));
 	}
 
 	/**

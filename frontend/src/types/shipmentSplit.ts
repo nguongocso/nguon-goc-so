@@ -39,15 +39,25 @@ export interface SplitShipmentRequest {
 }
 
 export interface SplitShipmentResult {
-  parentShipmentId: string;
-  parentStatus: 'SPLIT';
-  childShipments: Array<{
+  sourceShipment: {
     id: string;
     name: string;
-    recipientOrganizationId: string;
-    recipientOrganizationName: string;
-    quantity: number;
-    fromCode: string;
-    toCode: string;
+    status: 'SPLIT';
+    declaredQuantity: number;
+    allocatedQuantity: number;
+  };
+  children: Array<{
+    id: string;
+    parentShipmentId: string;
+    name: string;
+    status: 'CODE_PRINTED';
+    recipientOrganization: PartnerOrganization;
+    totalQuantity: number;
+    firstCode: string;
+    lastCode: string;
   }>;
+  totalChildren: number;
+  totalAllocatedQuantity: number;
+  splitByName: string;
+  splitAt: string;
 }

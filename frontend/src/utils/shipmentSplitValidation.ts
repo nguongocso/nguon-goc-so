@@ -10,12 +10,61 @@ export interface SplitValidationResult {
 interface ParsedCode {
   prefix: string;
   value: number;
+  digitCount: number;
 }
 
 function parseCode(code: string): ParsedCode | null {
   const match = code.trim().match(/^(.*?)(\d+)$/);
   if (!match) return null;
-  return { prefix: match[1], value: Number(match[2]) };
+  return { prefix: match[1], value: Number(match[2]), digitCount: match[2].length };
+}
+
+function formatCode(code: ParsedCode, value: number): string {
+  return `${code.prefix}${String(value).padStart(code.digitCount, '0')}`;
+}
+
+export function assignSequentialCodeRanges(
+  preview: ShipmentSplitPreview,
+  allocations: ShipmentSplitAllocation[],
+): ShipmentSplitAllocation[] {
+  const parentStart = parseCode(preview.availableCodeRange.fromCode);
+  const parentEnd = parseCode(preview.availableCodeRange.toCode);
+  if (!parentStart || !parentEnd || parentStart.prefix !== parentEnd.prefix) return allocations;
+
+  let nextCodeValue = parentStart.value;
+  let canContinue = true;
+
+  return allocations.map((allocation) => {
+    if (!canContinue || !Number.isInteger(allocation.quantity) || allocation.quantity <= 0) {
+      canContinue = false;
+      return { ...allocation, fromCode: '', toCode: '' };
+    }
+
+    const endCodeValue = nextCodeValue + allocation.quantity - 1;
+    const result = {
+      ...allocation,
+      fromCode: formatCode(parentStart, nextCodeValue),
+      toCode: formatCode(parentStart, endCodeValue),
+    };
+    nextCodeValue = endCodeValue + 1;
+    return result;
+  });
+}
+
+export function distributeShipmentQuantitiesEvenly(
+  preview: ShipmentSplitPreview,
+  allocations: ShipmentSplitAllocation[],
+): ShipmentSplitAllocation[] {
+  if (allocations.length === 0) return allocations;
+
+  const baseQuantity = Math.floor(preview.assignableQuantity / allocations.length);
+  const remainder = preview.assignableQuantity % allocations.length;
+  const distributed = allocations.map((allocation, index) => ({
+    ...allocation,
+    quantity: baseQuantity + (index < remainder ? 1 : 0),
+  }));
+
+  return assignSequentialCodeRanges(preview, distributed);
 }
 
 export function validateShipmentSplit(
