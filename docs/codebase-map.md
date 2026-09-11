@@ -476,6 +476,26 @@ API layer        → hooks (optional)  → Pages         → Routes
 | **Docs** | `docs/api/farm/NCL-10-CN-013_ChainProgressTrackingBoard.md` |
 | **Ghi chú** | 9 giai đoạn: `DRAFT` → `PENDING` → `APPROVED` → `HARVESTED` → `PREPROCESSED` → `WAITING_TEST_RESULT` → `PACKAGED` → `TAG_ACTIVATED` → `IN_CIRCULATION`. Mỗi giai đoạn hiển thị `count` + danh sách `items` (`id`, `name`, `farmAreaName`, `productCategoryName`, `status`, `currentStage`, `daysInStage`, `isStagnant`, `nextActionRequired`, `targetScreen`). Ngưỡng tồn đọng (`stagnantThresholdDays`, mặc định 10 ngày) qua `stagnantThresholdDays`. Phân lập theo `organizationId`. |
 
+### 2.30 Recall Cases — Vụ việc thu hồi (package `trace/recall`)
+
+> **Trạng thái: HOÀN TẤT** — User Story `NCL-08-CN-012 close recall case` trên branch `feature/NCL-08-CN-012-close-recall-case`.
+
+| Lớp | File |
+|---|---|
+| **BE Controller** | `trace/recall/controller/RecallCaseController.java` — `GET /api/v1/recall-cases`, `GET /{id}`, `POST /{id}/close` (đều `@PreAuthorize hasRole('VT-02')`) |
+| **BE Service** | `trace/recall/service/RecallCaseService.java` + `impl/RecallCaseServiceImpl.java` — lazy materialize case từ các lô có shipment `RECALLED` khi list/detail |
+| **BE Entity** | `trace/recall/entity/RecallCase.java` (→ `recall_cases`), `trace/recall/entity/RecallLotResult.java` (→ `recall_lot_results`) |
+| **BE Enums** | `RecallCaseStatus` (`OPEN`, `CLOSED` — một chiều), `LotResolution` (`DESTROYED`, `RETURNED`, `REPROCESSED`, `UNRECOVERABLE`) |
+| **BE DTO** | `trace/recall/dto/request/CloseRecallCaseRequest.java`, `trace/recall/dto/response/RecallCaseResponse.java`, `RecallLotResultResponse.java` |
+| **BE Tests** | `backend/src/test/java/vn/nguongocso/trace/recall/` |
+| **BE liên quan (đã sửa)** | `notification/service/NotificationService(+Impl)` (thông báo cho tổ chức thu mua khi đóng case), `publicapi/service/impl/PublicTraceServiceImpl` (đổi nội dung cảnh báo công khai theo QTN-09 — không ẩn/xóa) |
+| **FE Pages** | `pages/recall/RecallCaseListPage.tsx`, `RecallCaseDetailPage.tsx`, `pages/recall/CloseRecallCaseDialog.tsx` |
+| **FE API/Types** | `api/recallCaseApi.ts` + `types/recallCase.ts` |
+| **FE Route/Quyền (đã thêm)** | `routes/AppRoutes.tsx` (`/recall-cases`, `/recall-cases/:id`), `config/roleAccess.ts` (`recallCaseManage: ['VT-02']`). Sidebar đã có item "Vụ việc thu hồi" |
+| **Docs API** | `docs/api/recall/RecallCase.md` |
+| **Migration** | `V20260910000000` (recall_cases, recall_lot_results) |
+| **Ghi chú** | Khác `Recall` (§2.18 ghi chú — thu hồi lô/tem cá thể) và `RecallRequest`/bulk recall (NCL-08-CN-008/011): `RecallCase` là vụ việc thu hồi ở cấp tổ chức, gom kết quả xử lý từng shipment `RECALLED` (bảng `recall_lot_results`), chỉ đóng khi mọi lô đã có kết quả + bắt buộc biện pháp khắc phục. |
+
 ---
 
 ## 3. Cross-cutting Infrastructure
@@ -586,6 +606,8 @@ Không có Feign — mọi call đều trực tiếp trong cùng JVM qua service
 | `/storage-condition` | StorageConditionPage | VT-03, VT-04 |
 | `/certifications` | CertificationListPage | VT-02 |
 | `/recall-requests` | RecallRequestListPage | VT-02 |
+| `/recall-cases` | RecallCaseListPage | VT-02 — NCL-08-CN-012 |
+| `/recall-cases/:id` | RecallCaseDetailPage | VT-02 — NCL-08-CN-012 |
 | `/admin/code-ranges` | CodeRangeListPage | VT-01 |
 | `/admin/product-categories` | ProductCategoryManagementPage | VT-01 |
 | `/admin/input-materials` | InputMaterialManagementPage | VT-01, VT-02, VT-03, VT-04 |
@@ -648,11 +670,14 @@ Không có Feign — mọi call đều trực tiếp trong cùng JVM qua service
 | `schema/V49` | accreditation_scopes |
 | `schema/V65` | cultivation_milestone (merged from V63 catalog+mapping) |
 | `schema/V20260830150000` | anomaly_thresholds |
+| `schema/V20260908000000` | shipment_handovers (NCL-05-CN-008/009) |
 | `schema/V20260908100000` | milestone_reminders |
 | `schema/V20260908110000` | view_cultivation_milestones |
 | `schema/V20260908160000` | rename_cultivation_milestone_table |
-| `schema/V20260908000000` | shipment_handovers |
 | `schema/V20260909000001` | add_entity_id_to_notifications |
+| `schema/V20260910000000` | recall_cases, recall_lot_results (NCL-08-CN-012) |
+| `schema/V20260911120000` | add_close_fields_to_bulk_recall_requests |
+| `schema/V20260911140000` | create_recall_evidence_files |
 
 ### 5.2 Data Seeds
 

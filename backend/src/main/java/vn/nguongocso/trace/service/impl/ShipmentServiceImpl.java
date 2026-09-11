@@ -618,10 +618,10 @@ public class ShipmentServiceImpl implements ShipmentService {
             throw new BusinessException("Mã truy xuất không liên kết với lô hàng nào.");
         }
 
-        // Không cho phép ghi sự kiện nếu lô hàng đã bị thu hồi
-        if (shipment.getStatus() == ShipmentStatus.RECALLED) {
+        // Không cho phép ghi sự kiện nếu lô hàng đã hoặc đang bị thu hồi
+        if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
             throw new BusinessException(
-                    "Lô hàng " + shipment.getName() + " đã bị thu hồi, không thể ghi nhận thu mua.");
+                    "Lô hàng " + shipment.getName() + " đang hoặc đã bị thu hồi, không thể ghi nhận thu mua.");
         }
 
         String productionLotName = null;
