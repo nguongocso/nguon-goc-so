@@ -260,4 +260,53 @@ describe("NCL-05-CN-009 - HandoverDetailPage Xác nhận/Từ chối", () => {
     expect(menuLink.className).toContain("bg-emerald-700");
     expect(menuLink.className).toContain("text-white");
   });
+
+  it("hiển thị breadcrumb liên kết về /handover khi xem chi tiết qua route /handover/:id", async () => {
+    vi.mocked(handoverApi.getHandoverById).mockResolvedValue(
+      buildHandover() as never,
+    );
+
+    render(
+      <MemoryRouter initialEntries={[`/handover/${handoverId}`]}>
+        <BreadcrumbOverrideProvider>
+          <AppBreadcrumb />
+          <Routes>
+            <Route path="/handover/:id" element={<HandoverDetailPage />} />
+          </Routes>
+        </BreadcrumbOverrideProvider>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Chi tiết phiếu bàn giao")).toBeInTheDocument();
+    const handoverLink = screen.getByRole("link", { name: "Phiếu bàn giao nhận" });
+    expect(handoverLink).toBeInTheDocument();
+    expect(handoverLink).toHaveAttribute("href", "/handover");
+  });
+
+  it("Sidebar giữ active menu item 'Phiếu bàn giao nhận' khi ở trang chi tiết /handover/:id (VT-04)", async () => {
+    vi.mocked(handoverApi.getHandoverById).mockResolvedValue(
+      buildHandover() as never,
+    );
+
+    render(
+      <MemoryRouter initialEntries={[`/handover/${handoverId}`]}>
+        <Sidebar
+          collapsed={false}
+          setCollapsed={vi.fn()}
+          mobileOpen={false}
+          setMobileOpen={vi.fn()}
+        />
+        <Routes>
+          <Route path="/handover/:id" element={<HandoverDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Thu mua")).toBeInTheDocument();
+    const menuLink = screen.getByRole("link", { name: /Phiếu bàn giao nhận/ });
+    expect(menuLink).toBeInTheDocument();
+    expect(menuLink.getAttribute("href")).toBe("/handover");
+    expect(menuLink.className).toContain("bg-emerald-700");
+    expect(menuLink.className).toContain("text-white");
+  });
 });

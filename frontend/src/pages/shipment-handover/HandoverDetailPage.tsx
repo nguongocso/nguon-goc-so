@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   CalendarClock,
@@ -58,6 +58,7 @@ const formatDateTime = (iso?: string | null): string => {
 export const HandoverDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
 
   const [handover, setHandover] = useState<HandoverDetailResponse | null>(null);
@@ -67,9 +68,12 @@ export const HandoverDetailPage = () => {
   const [rejectReason, setRejectReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
 
+  const isHandoverRoute = location.pathname.startsWith("/handover");
+  const handoverListHref = isHandoverRoute ? "/handover" : "/shipment-handovers/received";
+
   useSetBreadcrumb([
     { label: "Tổng quan", href: "/dashboard" },
-    { label: "Phiếu bàn giao nhận", href: "/shipment-handovers/received" },
+    { label: "Phiếu bàn giao nhận", href: handoverListHref },
     { label: "Chi tiết phiếu bàn giao" },
   ]);
 
