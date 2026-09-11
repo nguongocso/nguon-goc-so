@@ -8,6 +8,9 @@ import type {
     ApproveProductionLotRequest,
     ApproveProductionLotResult,
     CancelProductionLotRequest,
+    CloneProductionLotPreview,
+    CloneProductionLotRequest,
+    CloneProductionLotResponse,
     CreateProductionLotRequest,
     CreateProductionLotResponse,
     DisposeProductionLotRequest,
@@ -189,6 +192,47 @@ export const cancelProductionLot = async (
         `/production-lots/${id}/cancel`,
         payload,
     );
+
+    return response.data.data;
+};
+
+// =========================================================
+// CLONE PRODUCTION LOT FROM PREVIOUS SEASON (NCL-02-CN-007)
+// =========================================================
+
+/**
+ * Lấy dữ liệu xem trước khi tạo lô sản xuất mới từ mẫu vụ trước.
+ *
+ * GET /api/v1/production-lots/{sourceLotId}/clone-preview
+ *
+ * Chỉ VT-02. Response chỉ chứa dữ liệu nền cần cho form, không expose
+ * lịch sử vận hành của lô mẫu.
+ */
+export const getCloneProductionLotPreview = async (
+    sourceLotId: string,
+): Promise<CloneProductionLotPreview> => {
+    const response = await apiClient.get<
+        ApiDataResponse<CloneProductionLotPreview>
+    >(`/production-lots/${sourceLotId}/clone-preview`);
+
+    return response.data.data;
+};
+
+/**
+ * Tạo lô sản xuất mới từ mẫu vụ trước.
+ *
+ * POST /api/v1/production-lots/{sourceLotId}/clone
+ *
+ * Chỉ VT-02. Lô mới luôn ở trạng thái DRAFT, kế thừa vùng trồng / loại
+ * nông sản / chứng nhận còn hiệu lực của lô mẫu.
+ */
+export const cloneProductionLot = async (
+    sourceLotId: string,
+    payload: CloneProductionLotRequest,
+): Promise<CloneProductionLotResponse> => {
+    const response = await apiClient.post<
+        ApiDataResponse<CloneProductionLotResponse>
+    >(`/production-lots/${sourceLotId}/clone`, payload);
 
     return response.data.data;
 };

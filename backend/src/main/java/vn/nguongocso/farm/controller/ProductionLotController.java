@@ -23,10 +23,13 @@ import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.dto.request.ApproveProductionLotRequest;
 import vn.nguongocso.farm.dto.request.CancelProductionLotRequest;
+import vn.nguongocso.farm.dto.request.CloneProductionLotRequest;
 import vn.nguongocso.farm.dto.request.CreateProductionLotRequest;
 import vn.nguongocso.farm.dto.request.DisposeProductionLotRequest;
 import vn.nguongocso.farm.dto.request.ProductionLotImportRequest;
 import vn.nguongocso.farm.dto.request.UpdateProductionLotRequest;
+import vn.nguongocso.farm.dto.response.CloneProductionLotPreviewResponse;
+import vn.nguongocso.farm.dto.response.CloneProductionLotResponse;
 import vn.nguongocso.farm.dto.response.CreateProductionLotResponse;
 import vn.nguongocso.farm.dto.response.ProductionLotImportHistoryResponse;
 import vn.nguongocso.farm.dto.response.ProductionLotImportResultResponse;
@@ -53,6 +56,8 @@ import vn.nguongocso.report.dto.response.ProductionLotDashboardResponse;
  * <li>Nhập lô sản xuất từ Excel</li>
  * <li>Tải file Excel mẫu</li>
  * <li>Xem lịch sử import</li>
+ * <li>Xem trước dữ liệu tạo lô từ mẫu vụ trước (NCL-02-CN-007)</li>
+ * <li>Tạo lô sản xuất mới từ mẫu vụ trước (NCL-02-CN-007)</li>
  * </ul>
  */
 @RestController
@@ -440,6 +445,66 @@ public class ProductionLotController {
 
                 CreateProductionLotResponse response = productionLotService.disposeProductionLot(
                                 id,
+                                request,
+                                userDetails);
+
+                return ResponseEntity.ok(
+                                ApiResult.success(response));
+        }
+
+        /**
+         * API lấy dữ liệu xem trước khi tạo lô sản xuất mới từ mẫu vụ trước
+         * (NCL-02-CN-007).
+         *
+         * <p>
+         * Chỉ Quản lý hợp tác xã (VT-02) được tạo lô từ mẫu. Response chỉ chứa
+         * dữ liệu nền cần cho form, không expose lịch sử vận hành của lô mẫu.
+         * </p>
+         */
+        @GetMapping("/{sourceLotId}/clone-preview")
+        @PreAuthorize("hasRole('VT-02')")
+        public ResponseEntity<ApiResult<CloneProductionLotPreviewResponse>> getClonePreview(
+                        @PathVariable UUID sourceLotId,
+
+                        @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+                permissionChecker.check(
+                                "PRODUCTION_LOT",
+                                "CREATE");
+
+                CloneProductionLotPreviewResponse response = productionLotService.getClonePreview(
+                                sourceLotId,
+                                userDetails);
+
+                return ResponseEntity.ok(
+                                ApiResult.success(response));
+        }
+
+        /**
+         * API tạo lô sản xuất mới từ mẫu vụ trước (NCL-02-CN-007).
+         *
+         * <p>
+         * Chỉ Quản lý hợp tác xã (VT-02) được tạo lô từ mẫu. Lô mới luôn ở
+         * trạng thái DRAFT, kế thừa vùng trồng / loại nông sản / chứng nhận
+         * còn hiệu lực của lô mẫu và tuyệt đối không sao chép lịch sử vận
+         * hành của lô cũ.
+         * </p>
+         */
+        @PostMapping("/{sourceLotId}/clone")
+        @PreAuthorize("hasRole('VT-02')")
+        public ResponseEntity<ApiResult<CloneProductionLotResponse>> clone(
+                        @PathVariable UUID sourceLotId,
+
+                        @Valid @RequestBody CloneProductionLotRequest request,
+
+                        @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+                permissionChecker.check(
+                                "PRODUCTION_LOT",
+                                "CREATE");
+
+                CloneProductionLotResponse response = productionLotService.cloneProductionLot(
+                                sourceLotId,
                                 request,
                                 userDetails);
 

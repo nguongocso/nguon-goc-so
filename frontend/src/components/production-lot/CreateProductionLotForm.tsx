@@ -16,7 +16,7 @@ import type {
 } from "@/types/productionLot";
 import axios from "axios";
 import { CheckCircle2, PackageOpen, Sprout } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { getLocalDateString } from "@/utils/dateTime";
 import { selectAllOnFocus, preventMouseUpCollapse } from "@/utils/inputUtils";
 
@@ -25,6 +25,14 @@ interface CreateProductionLotFormProps {
   productCategories: ProductCategoryOption[];
   onCancel: () => void;
   onSubmit?: (payload: CreateProductionLotRequest) => Promise<void> | void;
+  /** Giá trị khởi tạo khác mặc định (dùng khi prefill từ lô mẫu NCL-02-CN-007). */
+  initialValues?: CreateProductionLotRequest;
+  /** Khóa vùng trồng + loại nông sản vì được kế thừa từ lô mẫu. */
+  lockFarmAreaAndCategory?: boolean;
+  /** Nhãn nút submit (mặc định "Tạo lô sản xuất"). */
+  submitLabel?: string;
+  /** Banner hiển thị phía trên form (ví dụ nguồn lô mẫu). */
+  infoBanner?: ReactNode;
 }
 
 interface FormErrors {
@@ -57,8 +65,14 @@ const CreateProductionLotForm = ({
   productCategories,
   onCancel,
   onSubmit,
+  initialValues,
+  lockFarmAreaAndCategory = false,
+  submitLabel = "Tạo lô sản xuất",
+  infoBanner,
 }: CreateProductionLotFormProps) => {
-  const [form, setForm] = useState<CreateProductionLotRequest>(initialForm);
+  const [form, setForm] = useState<CreateProductionLotRequest>(
+    initialValues ?? initialForm,
+  );
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreated, setIsCreated] = useState(false);
@@ -143,6 +157,7 @@ const CreateProductionLotForm = ({
 
       <form onSubmit={handleSubmit} noValidate>
         <CardContent className="space-y-7 px-6 py-6 sm:px-8">
+          {infoBanner}
           <div className="space-y-2">
             <Label htmlFor="productionLotName">
               Tên lô sản xuất <span className="text-red-600">*</span>
@@ -174,6 +189,7 @@ const CreateProductionLotForm = ({
                 id="farmAreaId"
                 className={selectClassName}
                 value={form.farmAreaId ?? ""}
+                disabled={lockFarmAreaAndCategory}
                 onChange={(event) => {
                   setForm((current) => ({
                     ...current,
@@ -197,6 +213,11 @@ const CreateProductionLotForm = ({
               {errors.farmAreaId && (
                 <p className="text-xs text-red-600">{errors.farmAreaId}</p>
               )}
+              {lockFarmAreaAndCategory && (
+                <p className="text-xs text-slate-500">
+                  Vùng trồng được kế thừa từ lô mẫu, không thay đổi.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -207,6 +228,7 @@ const CreateProductionLotForm = ({
                 id="productCategoryId"
                 className={selectClassName}
                 value={form.productCategoryId}
+                disabled={lockFarmAreaAndCategory}
                 onChange={(event) => {
                   setForm((current) => ({
                     ...current,
@@ -229,6 +251,11 @@ const CreateProductionLotForm = ({
               {errors.productCategoryId && (
                 <p className="text-xs text-red-600">
                   {errors.productCategoryId}
+                </p>
+              )}
+              {lockFarmAreaAndCategory && (
+                <p className="text-xs text-slate-500">
+                  Loại nông sản được kế thừa từ lô mẫu, không thay đổi.
                 </p>
               )}
             </div>
@@ -363,7 +390,7 @@ const CreateProductionLotForm = ({
             variant="create"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Đang tạo..." : "Tạo lô sản xuất"}
+            {isSubmitting ? "Đang tạo..." : submitLabel}
           </Button>
         </CardFooter>
       </form>

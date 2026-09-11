@@ -148,6 +148,47 @@ export type InspectionStatus =
   | 'RE_INSPECTION_PENDING'; // Đang kiểm nghiệm lại
 
 // ============================================================
+// NCL-02-CN-007: Tạo lô sản xuất từ mẫu vụ trước
+// ============================================================
+
+export interface CloneCertificationInfo {
+  id: string;
+  name: string;
+  code: string;
+  expiryDate: string;
+}
+
+export interface CloneProductionLotRequest {
+  name: string;
+  expectedQuantity: number;
+  expectedQuantityUnit: string;
+  plantingDate: string | null;
+}
+
+export interface CloneProductionLotPreview {
+  sourceLotId: string;
+  sourceLotName: string;
+  farmAreaId: string;
+  farmAreaName: string;
+  productCategoryId: string;
+  productCategoryName: string;
+  name: string;
+  expectedQuantity: number;
+  expectedQuantityUnit: string;
+  plantingDate: string | null;
+  activeCertifications: CloneCertificationInfo[];
+  skippedCertifications: CloneCertificationInfo[];
+  warnings: string[];
+}
+
+export interface CloneProductionLotResponse {
+  lot: CreateProductionLotResponse;
+  copiedCertifications: CloneCertificationInfo[];
+  skippedCertifications: CloneCertificationInfo[];
+  warnings: string[];
+}
+
+// ============================================================
 // NCL-10-CN-013: Bảng theo dõi tiến độ chuỗi của từng lô
 // ============================================================
 
