@@ -104,6 +104,7 @@ export const ROLE_ACCESS = {
   handoverCreate: ['VT-02'] as const,
   handoverReceivedView: ['VT-02', 'VT-04'] as const,
   handoverSentView: ['VT-02'] as const,
+  handoverList: ['VT-04'] as const,
 
   // ✅ NCL-08-CN-010 - Truy vết phạm vi ảnh hưởng của lô (Chỉ Quản lý HTX VT-02 thực hiện)
   impactScopeTrace: ['VT-02'] as const,
