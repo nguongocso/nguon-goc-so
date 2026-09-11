@@ -12,14 +12,17 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.InspectionCriterionCatalogRequest;
+import vn.nguongocso.certification.dto.request.InspectionExpiryThresholdRequest;
 import vn.nguongocso.certification.dto.response.InspectionCriterionCatalogResponse;
+import vn.nguongocso.certification.dto.response.InspectionExpiryThresholdResponse;
 import vn.nguongocso.certification.service.InspectionCriterionCatalogService;
+import vn.nguongocso.certification.service.InspectionExpiryConfigService;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.common.PageResponse;
 
 /**
  * Controller quản lý danh mục chỉ tiêu kiểm nghiệm.
- * Story: NCL-09-CN-009
+ * Story: NCL-09-CN-009, NCL-11-CN-004
  */
 @RestController
 @RequestMapping("/api/v1/inspection-criteria")
@@ -27,6 +30,7 @@ import vn.nguongocso.common.PageResponse;
 public class InspectionCriterionCatalogController {
 
     private final InspectionCriterionCatalogService inspectionCriterionCatalogService;
+    private final InspectionExpiryConfigService inspectionExpiryConfigService;
 
     /**
      * Danh sách chỉ tiêu kiểm nghiệm (phân trang, lọc theo keyword/status).
@@ -117,5 +121,27 @@ public class InspectionCriterionCatalogController {
             @AuthenticationPrincipal CustomUserDetails currentUser) {
         inspectionCriterionCatalogService.deleteCriterion(id, currentUser);
         return ApiResult.success(null);
+    }
+
+    /**
+     * Lấy cấu hình ngưỡng cảnh báo hết hiệu lực kiểm nghiệm (NCL-11-CN-004).
+     * Chỉ PLATFORM_ADMIN (VT-01).
+     */
+    @GetMapping("/expiry-threshold")
+    @PreAuthorize("hasRole('VT-01')")
+    public ApiResult<InspectionExpiryThresholdResponse> getExpiryThreshold() {
+        return ApiResult.success(inspectionExpiryConfigService.getThresholdConfig());
+    }
+
+    /**
+     * Cập nhật cấu hình ngưỡng cảnh báo hết hiệu lực kiểm nghiệm (NCL-11-CN-004).
+     * Chỉ PLATFORM_ADMIN (VT-01).
+     */
+    @PutMapping("/expiry-threshold")
+    @PreAuthorize("hasRole('VT-01')")
+    public ApiResult<InspectionExpiryThresholdResponse> updateExpiryThreshold(
+            @Valid @RequestBody InspectionExpiryThresholdRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        return ApiResult.success(inspectionExpiryConfigService.updateThresholdConfig(request, currentUser));
     }
 }

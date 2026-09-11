@@ -33,6 +33,9 @@ import vn.nguongocso.trace.entity.Recall;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
+import vn.nguongocso.certification.dto.response.InspectionValidityResponse;
+import vn.nguongocso.certification.enums.InspectionValidityStatus;
+import vn.nguongocso.farm.entity.ProductionLot;
 
 /**
  * Triển khai dịch vụ thông báo.
@@ -93,6 +96,18 @@ public class NotificationServiceImpl implements NotificationService {
         private static final String INSPECTION_FAILED_CONTENT_FORMAT =
                         "Lô sản xuất \"%s\" có kết quả kiểm nghiệm KHÔNG ĐẠT. "
                                         + "Vui lòng xử lý lô theo một trong hai hướng: loại bỏ lô hoặc tạo yêu cầu kiểm nghiệm lại.";
+
+        private static final String INSPECTION_EXPIRING_TITLE = "Cảnh báo: Kết quả kiểm nghiệm sắp hết hiệu lực";
+
+        private static final String INSPECTION_EXPIRING_CONTENT_FORMAT =
+                        "Lô sản xuất \"%s\" có kết quả kiểm nghiệm sẽ hết hiệu lực sau %d ngày (ngày hết hạn: %s). "
+                                        + "Vui lòng chủ động lập kế hoạch kiểm nghiệm mới.";
+
+        private static final String INSPECTION_EXPIRED_TITLE = "Kết quả kiểm nghiệm đã hết hiệu lực";
+
+        private static final String INSPECTION_EXPIRED_CONTENT_FORMAT =
+                        "Lô sản xuất \"%s\" có kết quả kiểm nghiệm đã hết hiệu lực vào ngày %s. "
+                                        + "Vui lòng tạo yêu cầu kiểm nghiệm mới để đảm bảo tính hợp lệ của sản phẩm.";
 
         private final NotificationRepository notificationRepository;
 
@@ -1134,5 +1149,100 @@ public class NotificationServiceImpl implements NotificationService {
                                 requestId);
 
                 return notifications.size();
+        }
+
+        /**
+         * Gửi thông báo cảnh báo kiểm nghiệm sắp hết hiệu lực hoặc đã hết hiệu lực
+         * cho các người dùng thuộc tổ chức của lô có quyền notification:READ (NCL-11-CN-004).
+         *
+         * @param alert    bản ghi cảnh báo tương ứng
+         * @param lot      lô sản xuất
+         * @param validity thông tin hiệu lực kiểm nghiệm
+         */
+        @Override
+        public void sendInspectionExpiryNotification(
+                        Alert alert,
+                        ProductionLot lot,
+                        InspectionValidityResponse validity) {
+
+                if (lot == null || lot.getOrganization() == null || lot.getOrganization().getOrganizationId() == null) {
+                        log.warn("Không thể gửi thông báo kiểm nghiệm: lô sản xuất hoặc tổ chức không hợp lệ.");
+                        return;
+                }
+
+                UUID organizationId = lot.getOrganization().getOrganizationId();
+                List<User> recipients = getNotificationRecipients(organizationId);
+
+                if (recipients.isEmpty()) {
+                        log.warn(
+                                        "Không có người dùng có permission {}:{} để nhận thông báo kiểm nghiệm. organizationId={}, lotId={}",
+                                        NOTIFICATION_RESOURCE,
+                                        NOTIFICATION_READ_ACTION,
+                                        organizationId,
+                                        lot.getId());
+                        return;
+                }
+
+                boolean isExpired = (alert != null && alert.getType() == AlertType.INSPECTION_EXPIRED)
+                                || (validity != null && validity.getStatus() == InspectionValidityStatus.EXPIRED);
+
+                String title = isExpired ? INSPECTION_EXPIRED_TITLE : INSPECTION_EXPIRING_TITLE;
+                String content;
+                if (isExpired) {
+                        String expiryStr = (validity != null && validity.getExpiryDate() != null)
+                                        ? validity.getExpiryDate().toString()
+                                        : "N/A";
+                        String criteriaStr = (validity != null && validity.getExpiredCriteria() != null && !validity.getExpiredCriteria().isEmpty())
+                                        ? String.join(", ", validity.getExpiredCriteria())
+                                        : null;
+                        if (criteriaStr != null) {
+                                content = String.format(
+                                                "Lô sản xuất \"%s\" có kết quả kiểm nghiệm đã hết hiệu lực vào ngày %s (tiêu chí: %s). "
+                                                                + "Vui lòng tạo yêu cầu kiểm nghiệm mới để đảm bảo tính hợp lệ của sản phẩm.",
+                                                lot.getName(), expiryStr, criteriaStr);
+                        } else {
+                                content = String.format(INSPECTION_EXPIRED_CONTENT_FORMAT, lot.getName(), expiryStr);
+                        }
+                } else {
+                        long daysLeft = (validity != null && validity.getDaysUntilExpiry() != null)
+                                        ? validity.getDaysUntilExpiry()
+                                        : 0;
+                        String expiryStr = (validity != null && validity.getExpiryDate() != null)
+                                        ? validity.getExpiryDate().toString()
+                                        : "N/A";
+                        String criteriaStr = (validity != null && validity.getExpiringCriteria() != null && !validity.getExpiringCriteria().isEmpty())
+                                        ? String.join(", ", validity.getExpiringCriteria())
+                                        : null;
+                        if (criteriaStr != null) {
+                                content = String.format(
+                                                "Lô sản xuất \"%s\" có kết quả kiểm nghiệm sẽ hết hiệu lực sau %d ngày (ngày hết hạn: %s, tiêu chí: %s). "
+                                                                + "Vui lòng chủ động lập kế hoạch kiểm nghiệm mới.",
+                                                lot.getName(), daysLeft, expiryStr, criteriaStr);
+                        } else {
+                                content = String.format(INSPECTION_EXPIRING_CONTENT_FORMAT, lot.getName(), daysLeft, expiryStr);
+                        }
+                }
+
+                List<Notification> notifications = recipients.stream()
+                                .map(user -> {
+                                        Notification notification = new Notification();
+                                        notification.setUser(user);
+                                        notification.setType(NotificationType.ALERT);
+                                        notification.setTitle(title);
+                                        notification.setContent(content);
+                                        notification.setIsRead(false);
+                                        notification.setReadAt(null);
+                                        return notification;
+                                })
+                                .toList();
+
+                notificationRepository.saveAll(notifications);
+
+                log.info(
+                                "Đã tạo {} notification cảnh báo kiểm nghiệm (type={}). organizationId={}, lotId={}",
+                                notifications.size(),
+                                isExpired ? AlertType.INSPECTION_EXPIRED : AlertType.INSPECTION_EXPIRING,
+                                organizationId,
+                                lot.getId());
         }
 }

@@ -1,8 +1,9 @@
 import {useEffect, useState, useMemo} from "react";
 import {useNavigate} from "react-router-dom";
 import {toast} from "sonner";
-import {Eye, EyeOff, Pencil, Plus, Trash2, FlaskConical} from "lucide-react";
+import {Eye, EyeOff, Pencil, Plus, Trash2, FlaskConical, SlidersHorizontal} from "lucide-react";
 import {Button} from "@/components/ui/button";
+import {InspectionExpiryThresholdDialog} from "@/components/certification/InspectionExpiryThresholdDialog";
 import {TableCell, TableHead, TableRow} from "@/components/ui/table";
 import {
     AlertDialog,
@@ -60,6 +61,7 @@ export default function InspectionCriteriaManagementPage() {
     const [togglingId, setTogglingId] = useState<number | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<InspectionCriterion | null>(null);
     const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+    const [thresholdDialogOpen, setThresholdDialogOpen] = useState(false);
 
     const fetchAll = async () => {
         setLoading(true);
@@ -239,9 +241,19 @@ export default function InspectionCriteriaManagementPage() {
                     <>
                         <HelpButton screenKey="admin-inspection-criteria" />
                         {canManage && (
-                            <Button variant="create" size="sm" onClick={() => navigate("/admin/inspection-criteria/create")}>
-                                <Plus className="h-4 w-4 mr-1" /> Thêm chỉ tiêu
-                            </Button>
+                            <>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setThresholdDialogOpen(true)}
+                                    title="Cấu hình ngưỡng số ngày cảnh báo kiểm nghiệm sắp hết hiệu lực"
+                                >
+                                    <SlidersHorizontal className="h-4 w-4 mr-1.5" /> Cấu hình ngưỡng cảnh báo
+                                </Button>
+                                <Button variant="create" size="sm" onClick={() => navigate("/admin/inspection-criteria/create")}>
+                                    <Plus className="h-4 w-4 mr-1" /> Thêm chỉ tiêu
+                                </Button>
+                            </>
                         )}
                     </>
                 }
@@ -320,6 +332,11 @@ export default function InspectionCriteriaManagementPage() {
                     </AlertDialogFooter>
                 </AlertDialogPopup>
             </AlertDialog>
+
+            <InspectionExpiryThresholdDialog
+                open={thresholdDialogOpen}
+                onClose={() => setThresholdDialogOpen(false)}
+            />
         </div>
     );
 }

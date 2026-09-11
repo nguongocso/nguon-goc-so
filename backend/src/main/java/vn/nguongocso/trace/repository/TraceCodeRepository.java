@@ -100,6 +100,29 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 	boolean existsActivatedByProductionLotId(@Param("productionLotId") UUID productionLotId);
 
 	/**
+	 * NCL-11-CN-004: Đếm số tem chưa kích hoạt (INACTIVE) thuộc các lô hàng chưa thu hồi của lô sản xuất.
+	 *
+	 * @param productionLotId ID của lô sản xuất
+	 * @return số tem INACTIVE
+	 */
+	@Query("SELECT COUNT(tc) FROM TraceCode tc "
+			+ "WHERE tc.shipment.productionLot.id = :productionLotId "
+			+ "AND tc.shipment.status <> vn.nguongocso.trace.enums.ShipmentStatus.RECALLED "
+			+ "AND tc.status = vn.nguongocso.trace.enums.TraceCodeStatus.INACTIVE")
+	long countInactiveByProductionLotId(@Param("productionLotId") UUID productionLotId);
+
+	/**
+	 * NCL-11-CN-004: Đếm tổng số tem đã in thuộc các lô hàng chưa thu hồi của lô sản xuất.
+	 *
+	 * @param productionLotId ID của lô sản xuất
+	 * @return tổng số tem
+	 */
+	@Query("SELECT COUNT(tc) FROM TraceCode tc "
+			+ "WHERE tc.shipment.productionLot.id = :productionLotId "
+			+ "AND tc.shipment.status <> vn.nguongocso.trace.enums.ShipmentStatus.RECALLED")
+	long countTotalByProductionLotId(@Param("productionLotId") UUID productionLotId);
+
+	/**
 	 * Tìm mã theo lô hàng và giá trị codeValue.
 	 */
 	Optional<TraceCode> findByShipmentIdAndCodeValue(UUID shipmentId, String codeValue);

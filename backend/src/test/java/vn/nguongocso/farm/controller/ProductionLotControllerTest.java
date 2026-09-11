@@ -78,6 +78,9 @@ class ProductionLotControllerTest {
         @MockitoBean
         private ProductionLotImportHistoryRepository importHistoryRepository;
 
+        @MockitoBean
+        private vn.nguongocso.certification.service.InspectionExpiryService inspectionExpiryService;
+
     private UUID lotId;
     private CustomUserDetails userDetails;
     private UpdateProductionLotRequest validRequest;
@@ -304,4 +307,4 @@ class ProductionLotControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false));
     }
-}
+}

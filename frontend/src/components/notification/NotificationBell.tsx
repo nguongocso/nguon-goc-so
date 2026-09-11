@@ -58,6 +58,12 @@ export const NotificationBell = () => {
     if (!notification.isRead) {
       void markAsRead(notification.id).then(() => refreshUnreadCount());
     }
+    // NCL-11-CN-004: Điều hướng tới danh sách lô sản xuất khi thông báo liên quan đến kiểm nghiệm
+    const text = `${notification.title} ${notification.content}`.toLowerCase();
+    if (text.includes("kiểm nghiệm") || text.includes("lô sản xuất")) {
+      setOpen(false);
+      navigate("/production-lots");
+    }
   };
 
   const handleEmailNoticeClick = () => {
