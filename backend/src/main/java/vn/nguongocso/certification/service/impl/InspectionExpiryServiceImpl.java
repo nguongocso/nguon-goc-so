@@ -14,6 +14,7 @@ import vn.nguongocso.alert.repository.AlertRepository;
 import vn.nguongocso.certification.dto.response.InspectionScanResult;
 import vn.nguongocso.certification.dto.response.InspectionValidityResponse;
 import vn.nguongocso.certification.enums.InspectionValidityStatus;
+import vn.nguongocso.certification.service.InspectionExpiryConfigService;
 import vn.nguongocso.certification.service.InspectionExpiryService;
 import vn.nguongocso.certification.service.InspectionValidityService;
 import vn.nguongocso.farm.entity.ProductionLot;
@@ -44,6 +45,7 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
     private final AlertRepository alertRepository;
     private final NotificationService notificationService;
     private final ObjectMapper objectMapper;
+    private final InspectionExpiryConfigService inspectionExpiryConfigService;
 
     @Value("${app.inspection.expiry-warning-threshold-days:15}")
     private int warningThresholdDays;
@@ -64,8 +66,9 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
     @Override
     @Transactional
     public InspectionScanResult scanAndAlertExpiringInspections(LocalDate today) {
+        int effectiveThreshold = getEffectiveWarningThresholdDays();
         log.info("⏰ Bắt đầu quét kiểm tra kết quả kiểm nghiệm lô sản xuất cho ngày: {}, ngưỡng cảnh báo: {} ngày",
-                today, warningThresholdDays);
+                today, effectiveThreshold);
 
         List<ProductionLot> allLots = productionLotRepository.findAll();
 
@@ -171,7 +174,7 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
             details.put("daysUntilExpiry", validity.getDaysUntilExpiry());
             details.put("inactiveStampCount", validity.getInactiveStampCount());
             details.put("totalStamps", validity.getTotalStamps());
-            details.put("thresholdConfigured", warningThresholdDays);
+            details.put("thresholdConfigured", getEffectiveWarningThresholdDays());
 
             if (objectMapper != null) {
                 try {
@@ -297,7 +300,7 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
         details.put("daysUntilExpiry", validity.getDaysUntilExpiry());
         details.put("inactiveStampCount", validity.getInactiveStampCount());
         details.put("totalStamps", validity.getTotalStamps());
-        details.put("thresholdConfigured", warningThresholdDays);
+        details.put("thresholdConfigured", getEffectiveWarningThresholdDays());
 
         if (objectMapper != null) {
             try {
@@ -352,6 +355,24 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
             alertRepository.save(alert);
             log.info("⚙️ Tự động RESOLVED cảnh báo sắp hết hiệu lực của lô ID: {}", lotId);
         }
+    }
+
+    /**
+     * Lấy số ngày cảnh báo hiệu lực kiểm nghiệm thực tế (ưu tiên cấu hình động từ DB).
+     */
+    private int getEffectiveWarningThresholdDays() {
+        if (inspectionExpiryConfigService != null) {
+            try {
+                int days = inspectionExpiryConfigService.getWarningThresholdDays();
+                if (days > 0) {
+                    return days;
+                }
+            } catch (Exception e) {
+                log.warn("Không thể lấy cấu hình ngưỡng cảnh báo kiểm nghiệm động, dùng giá trị cấu hình tĩnh {}: {}",
+                        warningThresholdDays, e.getMessage());
+            }
+        }
+        return warningThresholdDays > 0 ? warningThresholdDays : 15;
     }
 }
 

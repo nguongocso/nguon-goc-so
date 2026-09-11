@@ -16,6 +16,7 @@ import vn.nguongocso.certification.enums.InspectionValidityStatus;
 import vn.nguongocso.certification.repository.CategoryCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
+import vn.nguongocso.certification.service.InspectionExpiryConfigService;
 import vn.nguongocso.certification.service.InspectionValidityService;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
@@ -31,7 +32,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Triển khai tính toán trạng thái hiệu lực kiểm nghiệm của lô sản xuất (NCL-11-CN-004).
+ * Triển khai dịch vụ xác định và suy diễn hiệu lực kết quả kiểm nghiệm (NCL-11-CN-004).
  */
 @Service
 @Slf4j
@@ -42,6 +43,7 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
     private final InspectionCriterionResultRepository resultRepository;
     private final InspectionRequestRepository inspectionRequestRepository;
     private final TraceCodeRepository traceCodeRepository;
+    private final InspectionExpiryConfigService inspectionExpiryConfigService;
 
     @Value("${app.inspection.expiry-warning-threshold-days:15}")
     private int warningThresholdDays;
@@ -148,7 +150,8 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
                     expiredCriteria.add(displayName);
                 } else {
                     long remaining = ChronoUnit.DAYS.between(today, expiry);
-                    if (remaining <= warningThresholdDays) {
+                    int effectiveThreshold = getEffectiveWarningThresholdDays();
+                    if (remaining <= effectiveThreshold) {
                         cBuilder.status(InspectionValidityStatus.EXPIRING)
                                 .daysRemaining(remaining)
                                 .daysOverdue(null);
@@ -355,5 +358,23 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
         }
 
         return true;
+    }
+
+    /**
+     * Lấy số ngày cảnh báo hiệu lực kiểm nghiệm thực tế (ưu tiên cấu hình động từ DB).
+     */
+    private int getEffectiveWarningThresholdDays() {
+        if (inspectionExpiryConfigService != null) {
+            try {
+                int days = inspectionExpiryConfigService.getWarningThresholdDays();
+                if (days > 0) {
+                    return days;
+                }
+            } catch (Exception e) {
+                log.warn("Không thể lấy cấu hình ngưỡng cảnh báo kiểm nghiệm động, dùng giá trị cấu hình tĩnh {}: {}",
+                        warningThresholdDays, e.getMessage());
+            }
+        }
+        return warningThresholdDays > 0 ? warningThresholdDays : 15;
     }
 }
