@@ -3,6 +3,7 @@ package vn.nguongocso.trace.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -81,7 +82,7 @@ class HandoverControllerTest {
                 .totalPages(1)
                 .build();
 
-        when(handoverService.listForCurrentOrganization(anyString(), anyString(), anyInt(), anyInt()))
+        when(handoverService.listForCurrentOrganization(anyString(), anyString(), anyInt(), anyInt(), any()))
                 .thenReturn(pageResponse);
 
         mockMvc.perform(get("/api/v1/handovers")
@@ -93,6 +94,44 @@ class HandoverControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.items[0].shipmentName").value("Lô cam Vinh"))
                 .andExpect(jsonPath("$.data.items[0].fromOrganizationName").value("HTX Nông Nghiệp Hòa Bình"));
+    }
+
+    @Test
+    @WithMockUser(username = "coop@example.com", roles = {"VT-02"})
+    void testListHandovers_Success_VT02() throws Exception {
+        UUID id = UUID.randomUUID();
+        HandoverSummaryResponse summary = HandoverSummaryResponse.builder()
+                .id(id)
+                .shipmentId(UUID.randomUUID())
+                .shipmentName("Lô cam Vinh")
+                .fromOrganizationName("HTX Nông Nghiệp Hòa Bình")
+                .toOrganizationName("Công ty Thực Phẩm Sạch")
+                .quantity(500L)
+                .unit("kg")
+                .status(ShipmentHandoverStatus.PENDING_CONFIRMATION)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        PageResponse<HandoverSummaryResponse> pageResponse = PageResponse.<HandoverSummaryResponse>builder()
+                .items(List.of(summary))
+                .page(0)
+                .size(10)
+                .totalElements(1)
+                .totalPages(1)
+                .build();
+
+        when(handoverService.listForCurrentOrganization(anyString(), anyString(), anyInt(), anyInt(), any()))
+                .thenReturn(pageResponse);
+
+        mockMvc.perform(get("/api/v1/handovers")
+                        .param("status", "PENDING")
+                        .param("search", "cam")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.items[0].shipmentName").value("Lô cam Vinh"))
+                .andExpect(jsonPath("$.data.items[0].toOrganizationName").value("Công ty Thực Phẩm Sạch"));
     }
 
     @Test

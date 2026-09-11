@@ -119,11 +119,11 @@ class ShipmentHandoverServiceTest {
         // Setup SecurityContext
         org.springframework.security.core.Authentication authentication =
                 mock(org.springframework.security.core.Authentication.class);
-        when(authentication.isAuthenticated()).thenReturn(true);
-        when(authentication.getPrincipal()).thenReturn(currentUser);
+        lenient().when(authentication.isAuthenticated()).thenReturn(true);
+        lenient().when(authentication.getPrincipal()).thenReturn(currentUser);
         org.springframework.security.core.context.SecurityContext securityContext =
                 mock(org.springframework.security.core.context.SecurityContext.class);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
+        lenient().when(securityContext.getAuthentication()).thenReturn(authentication);
         org.springframework.security.core.context.SecurityContextHolder.setContext(securityContext);
     }
 
@@ -574,6 +574,7 @@ class ShipmentHandoverServiceTest {
 
     @Test
     void testListForCurrentOrganization_Success() {
+        when(currentUser.getRoleCode()).thenReturn("VT-04");
         ShipmentHandover handover = ShipmentHandover.builder()
                 .id(UUID.randomUUID())
                 .shipment(shipment)
@@ -597,5 +598,33 @@ class ShipmentHandoverServiceTest {
         assertThat(response.getItems().get(0).getFromOrganizationName()).isEqualTo(fromOrganization.getName());
         assertThat(response.getItems().get(0).getQuantity()).isEqualTo(300L);
         verify(handoverExpiryService).expireOverdueHandovers();
+    }
+
+    @Test
+    void testListForCurrentOrganization_VT02_SentHandovers() {
+        when(currentUser.getRoleCode()).thenReturn("VT-02");
+        ShipmentHandover handover = ShipmentHandover.builder()
+                .id(UUID.randomUUID())
+                .shipment(shipment)
+                .fromOrganization(fromOrganization)
+                .toOrganization(toOrganization)
+                .quantity(500L)
+                .status(ShipmentHandoverStatus.ACCEPTED)
+                .createdBy(mock(User.class))
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Page<ShipmentHandover> page = new PageImpl<>(List.of(handover));
+        when(handoverRepository.findSentHandoversWithFilters(eq(fromOrgId), eq(ShipmentHandoverStatus.ACCEPTED), eq("Lô"), any(Pageable.class)))
+                .thenReturn(page);
+
+        PageResponse<HandoverSummaryResponse> response = handoverService.listForCurrentOrganization("ACCEPTED", "Lô", 0, 10, currentUser);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getItems()).hasSize(1);
+        assertThat(response.getItems().get(0).getShipmentName()).isEqualTo(shipment.getName());
+        assertThat(response.getItems().get(0).getToOrganizationName()).isEqualTo(toOrganization.getName());
+        assertThat(response.getItems().get(0).getQuantity()).isEqualTo(500L);
+        verify(handoverRepository).findSentHandoversWithFilters(eq(fromOrgId), eq(ShipmentHandoverStatus.ACCEPTED), eq("Lô"), any(Pageable.class));
     }
 }

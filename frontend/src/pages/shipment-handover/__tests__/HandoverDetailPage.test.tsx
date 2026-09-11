@@ -12,6 +12,7 @@ const handoverId = "3dd95ecb-978f-42f7-8b09-cf1a966872d0";
 const toOrgId = "327a40dc-a396-11f1-aea2-32ec817c7ea4";
 const otherOrgId = "327a3a0e-a396-11f1-aea2-32ec817c7ea4";
 
+let mockRoleCode = "VT-04";
 let mockOrgId: string = toOrgId;
 
 vi.mock("@/hooks/useAuth", () => ({
@@ -20,8 +21,8 @@ vi.mock("@/hooks/useAuth", () => ({
       userId: "user-123",
       username: "procurement",
       fullName: "Nhân viên thu mua Demo",
-      roleCode: "VT-04",
-      roleName: "Doanh nghiệp thu mua",
+      roleCode: mockRoleCode,
+      roleName: mockRoleCode === "VT-02" ? "Quản lý HTX" : "Doanh nghiệp thu mua",
       organizationId: mockOrgId,
       organizationName: "Công ty Nông Sản Việt Demo",
       organizationCode: "DEMO_NSV",
@@ -81,6 +82,7 @@ function renderPage() {
 
 describe("NCL-05-CN-009 - HandoverDetailPage Xác nhận/Từ chối", () => {
   beforeEach(() => {
+    mockRoleCode = "VT-04";
     mockOrgId = toOrgId;
     vi.clearAllMocks();
   });
@@ -308,5 +310,80 @@ describe("NCL-05-CN-009 - HandoverDetailPage Xác nhận/Từ chối", () => {
     expect(menuLink.getAttribute("href")).toBe("/handover");
     expect(menuLink.className).toContain("bg-emerald-700");
     expect(menuLink.className).toContain("text-white");
+  });
+
+  it("hiển thị breadcrumb 'Phiếu bàn giao đã gửi' liên kết về /handover/sent khi user là VT-02", async () => {
+    mockRoleCode = "VT-02";
+    vi.mocked(handoverApi.getHandoverById).mockResolvedValue(
+      buildHandover() as never,
+    );
+
+    render(
+      <MemoryRouter initialEntries={[`/handover/${handoverId}`]}>
+        <BreadcrumbOverrideProvider>
+          <AppBreadcrumb />
+          <Routes>
+            <Route path="/handover/:id" element={<HandoverDetailPage />} />
+          </Routes>
+        </BreadcrumbOverrideProvider>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Chi tiết phiếu bàn giao")).toBeInTheDocument();
+    const handoverLink = screen.getByRole("link", { name: "Phiếu bàn giao đã gửi" });
+    expect(handoverLink).toBeInTheDocument();
+    expect(handoverLink).toHaveAttribute("href", "/handover/sent");
+  });
+
+  it("Sidebar giữ active menu item 'Phiếu bàn giao đã gửi' khi ở trang chi tiết /handover/:id (VT-02)", async () => {
+    mockRoleCode = "VT-02";
+    vi.mocked(handoverApi.getHandoverById).mockResolvedValue(
+      buildHandover() as never,
+    );
+
+    render(
+      <MemoryRouter initialEntries={[`/handover/${handoverId}`]}>
+        <Sidebar
+          collapsed={false}
+          setCollapsed={vi.fn()}
+          mobileOpen={false}
+          setMobileOpen={vi.fn()}
+        />
+        <Routes>
+          <Route path="/handover/:id" element={<HandoverDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Vận hành sản xuất")).toBeInTheDocument();
+    const menuLink = screen.getByRole("link", { name: /Phiếu bàn giao đã gửi/ });
+    expect(menuLink).toBeInTheDocument();
+    expect(menuLink.getAttribute("href")).toBe("/handover/sent");
+    expect(menuLink.className).toContain("bg-emerald-700");
+    expect(menuLink.className).toContain("text-white");
+  });
+
+  it("VT-02 bên giao không nhìn thấy nút Xác nhận/Từ chối dù phiếu đang PENDING", async () => {
+    mockRoleCode = "VT-02";
+    mockOrgId = otherOrgId;
+    vi.mocked(handoverApi.getHandoverById).mockResolvedValue(
+      buildHandover({ status: "PENDING_CONFIRMATION" }) as never,
+    );
+
+    render(
+      <MemoryRouter initialEntries={[`/handover/${handoverId}`]}>
+        <Routes>
+          <Route path="/handover/:id" element={<HandoverDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Phiếu bàn giao")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Xác nhận nhận hàng/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Từ chối/ }),
+    ).not.toBeInTheDocument();
   });
 });
