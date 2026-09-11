@@ -10,6 +10,7 @@ export const ChainEventType = {
   STORAGE_CONDITION: 'STORAGE_CONDITION',
   WAREHOUSE_ENTRY: 'WAREHOUSE_ENTRY',
   WAREHOUSE_EXIT: 'WAREHOUSE_EXIT',
+  HANDOVER: 'HANDOVER',
 } as const;
 
 export type ChainEventType = (typeof ChainEventType)[keyof typeof ChainEventType];
@@ -26,6 +27,7 @@ export const ChainEventTypeLabel: Record<ChainEventType, string> = {
   [ChainEventType.STORAGE_CONDITION]: 'Điều kiện bảo quản',
   [ChainEventType.WAREHOUSE_ENTRY]: 'Nhập kho HTX',
   [ChainEventType.WAREHOUSE_EXIT]: 'Xuất kho HTX',
+  [ChainEventType.HANDOVER]: 'Bàn giao',
 };
 
 // English display labels for event types
@@ -40,4 +42,5 @@ export const ChainEventTypeEnLabel: Record<ChainEventType, string> = {
   [ChainEventType.STORAGE_CONDITION]: 'Storage Condition',
   [ChainEventType.WAREHOUSE_ENTRY]: 'HTX Warehouse Entry',
   [ChainEventType.WAREHOUSE_EXIT]: 'HTX Warehouse Exit',
+  [ChainEventType.HANDOVER]: 'Handover',
 };

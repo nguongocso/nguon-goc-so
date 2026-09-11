@@ -156,4 +156,16 @@ describe('utils/activityLogFormatter — Thu hồi hàng loạt (NCL-08-CN-011)'
     expect(getActionColor('APPROVE_BULK_RECALL_REQUEST')).toContain('emerald');
     expect(getActionColor('REJECT_BULK_RECALL_REQUEST')).toContain('rose');
   });
+
+  describe('HANDOVER → Bàn giao', () => {
+    it('hiển thị Bàn giao thay vì raw HANDOVER', () => {
+      expect(formatActionType('HANDOVER')).toBe('Bàn giao');
+      expect(formatActionType('RECORD_HANDOVER_EVENT')).toBe('Ghi sự kiện bàn giao');
+      expect(formatActionType('CREATE_HANDOVER')).toBe('Tạo phiếu bàn giao');
+      expect(formatActionType('ACCEPT_HANDOVER')).toBe('Xác nhận bàn giao');
+      expect(formatActionType('REJECT_HANDOVER')).toBe('Từ chối bàn giao');
+      expect(formatTargetType('SHIPMENT_HANDOVER')).toBe('Phiếu bàn giao');
+      expect(formatTargetType('HANDOVER')).toBe('Phiếu bàn giao');
+    });
+  });
 });

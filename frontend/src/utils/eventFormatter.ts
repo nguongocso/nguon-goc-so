@@ -15,6 +15,7 @@ export const EVENT_TYPE_VN_LABELS: Record<ChainEventType, string> = {
   STORAGE_CONDITION: 'Điều kiện bảo quản',
   WAREHOUSE_ENTRY: 'Nhập kho HTX',
   WAREHOUSE_EXIT: 'Xuất kho HTX',
+  HANDOVER: 'Bàn giao',
 };
 
 export function getEventTypeLabel(eventType: string): string {
@@ -88,6 +89,13 @@ const KNOWN_FIELD_LABELS: Record<string, string> = {
   threshold: 'Ngưỡng cho phép',
   reason: 'Lý do chênh lệch',
   receiptDate: 'Ngày nhập kho',
+
+  // ========== Handover (NCL-05-CN-009) ==========
+  action: 'Hành động',
+  fromOrgId: 'Mã bên giao',
+  toOrgId: 'Mã bên nhận',
+  fromOrganizationName: 'Bên giao',
+  toOrganizationName: 'Bên nhận',
 };
 
 /**
@@ -114,6 +122,13 @@ function isISODateString(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?$/.test(value);
 }
 
+const HANDOVER_ACTION_TRANSLATIONS: Record<string, string> = {
+  ACCEPTED: 'Đã xác nhận',
+  REJECTED: 'Từ chối',
+  EXPIRED: 'Hết hiệu lực',
+  PENDING: 'Chờ xác nhận',
+};
+
 export function formatEventValue(value: unknown): string {
   if (value === null || value === undefined) {
     return '';
@@ -135,6 +150,9 @@ export function formatEventValue(value: unknown): string {
   }
 
   if (typeof value === 'string') {
+    if (HANDOVER_ACTION_TRANSLATIONS[value]) {
+      return HANDOVER_ACTION_TRANSLATIONS[value];
+    }
     if (isISODateString(value)) {
       try {
         return new Date(value).toLocaleDateString('vi-VN', {
@@ -217,7 +235,14 @@ export function getTranslatedEventData(
 
   for (const [key, value] of Object.entries(data)) {
     // Skip internal / identifier-only fields
-    if (key === 'shipmentId' || key === 'productionLotId' || key === 'deviceSource' || key === 'images') {
+    if (
+      key === 'shipmentId' ||
+      key === 'productionLotId' ||
+      key === 'deviceSource' ||
+      key === 'images' ||
+      key === 'fromOrgId' ||
+      key === 'toOrgId'
+    ) {
       continue;
     }
 
