@@ -99,6 +99,7 @@ import ShipmentTraceCodesPage from "@/pages/shipment/ShipmentTraceCodesPage";
 // ===== Shipment handover (NCL-05-CN-008 / NCL-05-CN-009) =====
 import { HandoverDetailPage } from "@/pages/shipment-handover/HandoverDetailPage";
 import { HandoverListPage } from "@/pages/handover/HandoverListPage";
+import { SentHandoverListPage } from "@/pages/handover/SentHandoverListPage";
 import { ShipmentHandoverReceivedListPage } from "@/pages/shipment-handover/ShipmentHandoverReceivedListPage";
 import { ShipmentHandoverSentListPage } from "@/pages/shipment-handover/ShipmentHandoverSentListPage";
 
@@ -730,7 +731,7 @@ const AppRoutes = () => (
                 }
             />
 
-            {/* VT-04: Danh sách và chi tiết phiếu bàn giao nhận */}
+            {/* VT-04: Danh sách phiếu bàn giao nhận */}
             <Route
                 path="handover"
                 element={
@@ -739,10 +740,22 @@ const AppRoutes = () => (
                     </RoleRoute>
                 }
             />
+
+            {/* VT-02: Danh sách phiếu bàn giao đã gửi */}
+            <Route
+                path="handover/sent"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.sentHandoverList}>
+                        <SentHandoverListPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* Chi tiết phiếu bàn giao (VT-02 bên giao, VT-04 bên nhận) */}
             <Route
                 path="handover/:id"
                 element={
-                    <RoleRoute allowedRoles={ROLE_ACCESS.handoverList}>
+                    <RoleRoute allowedRoles={ROLE_ACCESS.handoverReceivedView}>
                         <HandoverDetailPage />
                     </RoleRoute>
                 }
