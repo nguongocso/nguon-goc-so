@@ -166,9 +166,6 @@ export function ShipmentHandoverReceivedListPage() {
                 <div className="font-semibold text-foreground">
                   {handover.shipmentName}
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  {handover.shipmentId}
-                </div>
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {handover.fromOrganizationName ?? "—"}
