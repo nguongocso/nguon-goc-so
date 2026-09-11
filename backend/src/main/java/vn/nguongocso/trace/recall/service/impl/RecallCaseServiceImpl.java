@@ -13,8 +13,11 @@ import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.organization.enums.OrganizationUserStatus;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
+import vn.nguongocso.trace.entity.CodeRange;
 import vn.nguongocso.trace.entity.Shipment;
+import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
+import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.recall.dto.request.CloseRecallCaseRequest;
 import vn.nguongocso.trace.recall.dto.response.RecallCaseResponse;
 import vn.nguongocso.trace.recall.dto.response.RecallLotResultResponse;
@@ -25,7 +28,9 @@ import vn.nguongocso.trace.recall.enums.RecallCaseStatus;
 import vn.nguongocso.trace.recall.repository.RecallCaseRepository;
 import vn.nguongocso.trace.recall.repository.RecallLotResultRepository;
 import vn.nguongocso.trace.recall.service.RecallCaseService;
+import vn.nguongocso.trace.repository.CodeRangeRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
+import vn.nguongocso.trace.repository.TraceCodeRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -43,11 +48,11 @@ import java.util.stream.Collectors;
 /**
  * Triển khai dịch vụ quản lý vụ việc thu hồi (NCL-08-CN-012).
  *
- * <p>Vụ việc thu hồi gom toàn bộ lô hàng (Shipment) ở trạng thái {@code RECALLED}
+ * <p>Vụ việc thu hồi gom toàn bộ lô hàng (Shipment) ở trạng thái {@code RECALLING}
  * của một lô sản xuất. Khi gọi danh sách, hệ thống tự tạo vụ việc (lazy
- * materialize) cho các lô sản xuất đã có lô hàng bị thu hồi nhưng chưa có vụ
+ * materialize) cho các lô sản xuất có lô hàng đang thu hồi nhưng chưa có vụ
  * việc. Vụ việc chỉ được đóng khi mọi lô hàng đã có kết quả xử lý và đã nhập
- * biện pháp khắc phục phòng ngừa (QTN-27).</p>
+ * biện pháp khắc phục phòng ngừa (QTN-27), sau đó chuyển lô hàng sang {@code RECALLED}.</p>
  */
 @Slf4j
 @Service
@@ -82,6 +87,8 @@ public class RecallCaseServiceImpl implements RecallCaseService {
     private final OrganizationUserRepository organizationUserRepository;
     private final NotificationService notificationService;
     private final ActivityLogService activityLogService;
+    private final TraceCodeRepository traceCodeRepository;
+    private final CodeRangeRepository codeRangeRepository;
 
     /**
      * Danh sách vụ việc thu hồi của tổ chức hiện tại.
@@ -97,6 +104,11 @@ public class RecallCaseServiceImpl implements RecallCaseService {
 
         List<RecallCase> cases =
                 recallCaseRepository.findByOrganizationIdOrderByCreatedAtDesc(organizationId);
+        Map<UUID, List<Shipment>> recallingByLot =
+                shipmentRepository.findByOrganization_OrganizationIdAndStatus(
+                                organizationId, ShipmentStatus.RECALLING)
+                        .stream()
+                        .collect(Collectors.groupingBy(s -> s.getProductionLot().getId()));
         Map<UUID, List<Shipment>> recalledByLot =
                 shipmentRepository.findByOrganization_OrganizationIdAndStatus(
                                 organizationId, ShipmentStatus.RECALLED)
@@ -104,8 +116,12 @@ public class RecallCaseServiceImpl implements RecallCaseService {
                         .collect(Collectors.groupingBy(s -> s.getProductionLot().getId()));
 
         return cases.stream()
-                .map(rc -> toResponse(rc, recalledByLot.getOrDefault(
-                        rc.getProductionLot().getId(), List.of())))
+                .map(rc -> {
+                    List<Shipment> lotShipments = rc.getStatus() == RecallCaseStatus.OPEN
+                            ? recallingByLot.getOrDefault(rc.getProductionLot().getId(), List.of())
+                            : recalledByLot.getOrDefault(rc.getProductionLot().getId(), List.of());
+                    return toResponse(rc, lotShipments);
+                })
                 .toList();
     }
 
@@ -116,8 +132,19 @@ public class RecallCaseServiceImpl implements RecallCaseService {
         RecallCase recallCase = recallCaseRepository
                 .findByIdAndOrganizationId(id, currentUser.getOrganizationId())
                 .orElseThrow(() -> new BusinessException(MSG_CASE_NOT_FOUND));
-        List<Shipment> shipments = shipmentRepository.findByProductionLotIdAndStatus(
-                recallCase.getProductionLot().getId(), ShipmentStatus.RECALLED);
+
+        List<Shipment> shipments;
+        if (recallCase.getStatus() == RecallCaseStatus.OPEN) {
+            shipments = shipmentRepository.findByProductionLotIdAndStatus(
+                    recallCase.getProductionLot().getId(), ShipmentStatus.RECALLING);
+        } else {
+            List<RecallLotResult> lotResults = recallLotResultRepository.findByRecallCaseId(recallCase.getId());
+            shipments = lotResults.stream().map(RecallLotResult::getShipment).toList();
+            if (shipments.isEmpty()) {
+                shipments = shipmentRepository.findByProductionLotIdAndStatus(
+                        recallCase.getProductionLot().getId(), ShipmentStatus.RECALLED);
+            }
+        }
         return toResponse(recallCase, shipments);
     }
 
@@ -153,9 +180,14 @@ public class RecallCaseServiceImpl implements RecallCaseService {
             throw new BusinessException(MSG_MEASURES_REQUIRED);
         }
 
-        // 4. Phạm vi vụ việc = mọi lô hàng RECALLED của lô sản xuất (QTN-24)
+        // Kiểm tra số lượng tệp biên bản đính kèm (tối đa 5 tệp)
+        if (request.getEvidenceFileIds() != null && request.getEvidenceFileIds().size() > 5) {
+            throw new BusinessException("Chỉ được đính kèm tối đa 5 tệp biên bản thu hồi.");
+        }
+
+        // 4. Phạm vi vụ việc = mọi lô hàng RECALLING của lô sản xuất (QTN-24)
         List<Shipment> shipments = shipmentRepository.findByProductionLotIdAndStatus(
-                recallCase.getProductionLot().getId(), ShipmentStatus.RECALLED);
+                recallCase.getProductionLot().getId(), ShipmentStatus.RECALLING);
 
         // 5. Mọi lô phải có kết quả xử lý — chặn đóng và liệt kê lô còn thiếu (TC-02)
         Map<UUID, CloseRecallCaseRequest.LotResultItem> itemByShipment = new HashMap<>();
@@ -219,6 +251,31 @@ public class RecallCaseServiceImpl implements RecallCaseService {
         }
         recallLotResultRepository.saveAll(results);
 
+        // 6b. Cập nhật trạng thái các lô hàng sang RECALLED và hoàn tất mã tem
+        for (Shipment shipment : shipments) {
+            shipment.setStatus(ShipmentStatus.RECALLED);
+            shipmentRepository.save(shipment);
+
+            // Cập nhật trạng thái toàn bộ TraceCode sang RECALLED
+            List<TraceCode> traceCodes = traceCodeRepository.findByShipmentId(shipment.getId());
+            traceCodes.forEach(code -> code.setStatus(TraceCodeStatus.RECALLED));
+            traceCodeRepository.saveAll(traceCodes);
+
+            // Hoàn trả số lượng mã đã dùng cho dải mã của tổ chức
+            if (!traceCodes.isEmpty()) {
+                CodeRange codeRange = shipment.getCodeRange() != null
+                        ? shipment.getCodeRange()
+                        : codeRangeRepository
+                                .findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(
+                                        shipment.getOrganization().getOrganizationId())
+                                .orElse(null);
+                if (codeRange != null) {
+                    codeRange.setUsedCount(Math.max(0, codeRange.getUsedCount() - traceCodes.size()));
+                    codeRangeRepository.save(codeRange);
+                }
+            }
+        }
+
         // 7. Đóng vụ việc — một chiều, không cho sửa kết quả sau khi đóng
         recallCase.setStatus(RecallCaseStatus.CLOSED);
         recallCase.setRemediationMeasures(remediation);
@@ -251,11 +308,11 @@ public class RecallCaseServiceImpl implements RecallCaseService {
      * hàng bị thu hồi nhưng chưa có vụ việc. Idempotent theo lô sản xuất.
      */
     private void materializeOpenCases(UUID organizationId) {
-        List<Shipment> recalled = shipmentRepository
+        List<Shipment> recalling = shipmentRepository
                 .findByOrganization_OrganizationIdAndStatus(
-                        organizationId, ShipmentStatus.RECALLED);
+                        organizationId, ShipmentStatus.RECALLING);
         Map<UUID, Shipment> lotShipment = new HashMap<>();
-        for (Shipment shipment : recalled) {
+        for (Shipment shipment : recalling) {
             lotShipment.putIfAbsent(shipment.getProductionLot().getId(), shipment);
         }
         for (Map.Entry<UUID, Shipment> entry : lotShipment.entrySet()) {

@@ -92,6 +92,9 @@ class PublicTraceServiceImplTest {
     private RecallCaseRepository recallCaseRepository;
 
     @Mock
+    private vn.nguongocso.recall.repository.BulkRecallShipmentRepository bulkRecallShipmentRepository;
+
+    @Mock
     private ReverseGeocodingService reverseGeocodingService;
 
     private PublicTraceServiceImpl publicTraceService;
@@ -112,6 +115,7 @@ class PublicTraceServiceImplTest {
                 recallRepository,
                 recallRequestRepository,
                 recallCaseRepository,
+                bulkRecallShipmentRepository,
                 productionLotCertificationRepository,
                 inspectionRequestRepository,
                 inspectionCriterionResultRepository,

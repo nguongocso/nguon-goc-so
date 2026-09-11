@@ -8,30 +8,30 @@ Nhánh git: feature/NCL-08-CN-012-close-recall-case
 
 Mục tiêu
 
-Cho phép Quản lý hợp tác xã (VT-02) đóng một vụ việc thu hồi sau khi đã xử lý tất cả các lô liên quan, ghi nhận biện pháp khắc phục, và cập nhật nội dung cảnh báo công khai cho các lô đã thu hồi thuộc vụ việc này. Hệ thống gửi thông báo cho các tổ chức thu mua liên quan và giữ nguyên khóa vĩnh viễn trên mã truy xuất.
-
-Nhật ký này phục vụ:
-
-- Đóng vụ việc thu hồi một cách có kiểm soát (chỉ khi mọi lô đã có kết quả xử lý).
-- Ghi nhận biện pháp khắc phục phòng ngừa cho truy vết và kiểm toán.
-- Đổi nội dung cảnh báo công khai (không ẩn, không xóa) theo quy tắc QTN-09.
-- Thông báo cho doanh nghiệp thu mua liên quan qua `NotificationService`.
+Cho phép Quản lý hợp tác xã (VT-02) kết thúc vụ việc thu hồi trực tiếp từ danh sách "Yêu cầu thu hồi theo phạm vi ảnh hưởng" đối với các yêu cầu đã duyệt (`APPROVED`), hoặc từ màn hình chi tiết yêu cầu. Sau khi đã xử lý tất cả các lô liên quan và ghi nhận biện pháp khắc phục phòng ngừa (QTN-27):
+- Yêu cầu thu hồi hàng loạt chuyển trạng thái sang **"Đã xử lý" (`COMPLETED`)**.
+- Các lô hàng trong phạm vi chuyển sang trạng thái `RECALLED`.
+- Toàn bộ mã tem của các lô hàng chuyển sang `TraceCodeStatus.RECALLED` và hoàn trả hạn ngạch dải mã (`CodeRange`).
+- Vụ việc thu hồi (`RecallCase`) chuyển sang trạng thái `CLOSED`.
+- Cập nhật nội dung cảnh báo công khai khi quét mã tem thành: "LÔ HÀNG ĐÃ XỬ LÝ XONG. Vụ việc thu hồi đã đóng ngày dd/mm/yyyy." (QTN-09, QTN-27).
+- Hệ thống gửi thông báo cho các doanh nghiệp thu mua liên quan và ghi nhận ActivityLog.
 
 2. Endpoint
 
-GET /api/v1/recall-cases
+PUT /api/v1/recall-requests/bulk/{id}/close
 
-Danh sách vụ việc thu hồi (lazy materialize từ các `ProductionLot` có shipment `RECALLED` thuộc tổ chức người dùng).
-
-GET /api/v1/recall-cases/{id}
-
-Chi tiết vụ việc thu hồi kèm danh sách kết quả xử lý từng lô.
+Endpoint chính thức để kết thúc vụ việc thu hồi gắn liền với yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng (`id` là UUID của `BulkRecallRequest`).
+- Yêu cầu: Quyền `recall:UPDATE` hoặc vai trò `VT-02`.
+- Trạng thái yêu cầu trước khi đóng: Phải là `APPROVED`.
+- Trạng thái yêu cầu sau khi đóng: Chuyển sang `COMPLETED` ("Đã xử lý").
 
 PUT /api/v1/recall-cases/{id}/close
 
-Đóng vụ việc thu hồi.
+Endpoint phụ/dịch vụ nội bộ để đóng vụ việc thu hồi trực tiếp theo UUID của `RecallCase`.
 
-Cả 3 endpoint đều được bảo vệ bởi `@PreAuthorize("hasRole('VT-02')")` (Quản lý hợp tác xã).
+GET /api/v1/recall-cases/{id} và GET /api/v1/recall-cases
+
+Endpoint tra cứu dữ liệu vụ việc thu hồi nội bộ (được bảo vệ bởi `@PreAuthorize("hasRole('VT-02')")`).
 
 3. Điều kiện
 
@@ -43,7 +43,7 @@ Người dùng:
 Điều kiện về vụ việc:
 
 - Case phải ở trạng thái `OPEN`.
-- `req.lotResults` phải phủ hết mọi shipment `RECALLED` thuộc vụ việc; nếu thiếu → lỗi 400 liệt kê các lô còn thiếu.
+- `req.lotResults` phải phủ hết mọi shipment `RECALLING` thuộc vụ việc; nếu thiếu → lỗi 400 liệt kê các lô còn thiếu.
 - `remediationMeasures` bắt buộc (không được rỗng).
 - `recoveredQuantity` của từng lô phải ≥ 0 và ≤ `shipment.totalQuantity`.
 
@@ -51,7 +51,7 @@ Người dùng:
 
 4.1 Lazy materialize (TC-01 / AC)
 
-Khi gọi `GET` list, hệ thống kiểm tra các `ProductionLot` có ≥1 `Shipment` với `status = RECALLED` thuộc tổ chức người dùng mà chưa có bản ghi `RecallCase`. Nếu có, tạo bản ghi `RecallCase` mới (`status = OPEN`) trước khi trả kết quả. Việc tạo này là idempotent (kiểm tra `existsByProductionLotId`; mỗi lô sản xuất chỉ có tối đa một vụ việc).
+Khi gọi `GET` list, hệ thống kiểm tra các `ProductionLot` có ≥1 `Shipment` với `status = RECALLING` thuộc tổ chức người dùng mà chưa có bản ghi `RecallCase`. Nếu có, tạo bản ghi `RecallCase` mới (`status = OPEN`) trước khi trả kết quả. Việc tạo này là idempotent (kiểm tra `existsByProductionLotId`; mỗi lô sản xuất chỉ có tối đa một vụ việc).
 
 4.2 Đóng vụ việc (TC-01, TC-02)
 
@@ -61,10 +61,12 @@ Trong cùng một transaction (`RecallCaseServiceImpl.close`):
 - Kiểm tra `RecallCase` tồn tại và thuộc tổ chức người dùng (`findByIdAndOrganizationId`); không tìm thấy → 404.
 - Kiểm tra `status = OPEN`; đã `CLOSED` → 400.
 - Kiểm tra `remediationMeasures` không rỗng sau khi trim (QTN-27).
-- Phạm vi vụ việc = mọi `Shipment.RECALLED` của lô sản xuất (QTN-24).
+- Phạm vi vụ việc = mọi `Shipment.RECALLING` của lô sản xuất (QTN-24).
 - Kiểm tra `req.lotResults` phủ hết các lô đó; thiếu → `BusinessException` liệt kê các lô còn thiếu (TC-02). Chặn lô trùng trong danh sách.
 - Kiểm tra từng lô: `resolution` bắt buộc, `recoveredQuantity` trong khoảng `[0, totalQuantity]`; nếu `resolution = UNRECOVERABLE` thì bắt buộc `notes` (lý do + biện pháp xử lý rủi ro).
 - Tạo/cập nhật `RecallLotResult` cho từng lô, đánh dấu case `CLOSED`, set `closedBy`/`closedAt`, lưu `remediationMeasures` và `evidenceFileIds`.
+- Chuyển trạng thái tất cả các lô hàng trong vụ việc từ `RECALLING` sang `RECALLED`.
+- Chuyển trạng thái toàn bộ `TraceCode` của các lô hàng sang `TraceCodeStatus.RECALLED` và hoàn trả hạn ngạch dải mã.
 - Gọi `NotificationService.sendRecallCaseClosedNotification(...)` trong cùng transaction (TC-04).
 - Ghi lịch sử hoạt động qua `ActivityLogService` (QTN-08).
 

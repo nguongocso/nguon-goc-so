@@ -9,6 +9,7 @@ export const SHIPMENT_STATUS_LABELS: Record<ShipmentStatus, string> = {
   DRAFT: "Nháp",
   CODE_PRINTED: "Đã in mã",
   ACTIVATED: "Đã kích hoạt",
+  RECALLING: "Đang thu hồi",
   RECALLED: "Đã thu hồi",
 };
 
@@ -28,6 +29,8 @@ const SHIPMENT_STATUS_CLASSES: Record<ShipmentStatus, string> = {
     "bg-status-packaged/10 text-status-packaged border-status-packaged/20",
   ACTIVATED:
     "bg-status-approved/10 text-status-approved border-status-approved/20",
+  RECALLING:
+    "bg-amber-500/10 text-amber-600 border-amber-500/20",
   RECALLED:
     "bg-status-rejected/10 text-status-rejected border-status-rejected/20",
 };

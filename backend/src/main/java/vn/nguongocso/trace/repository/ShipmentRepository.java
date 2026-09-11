@@ -30,15 +30,25 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
 
         /**
          * Lấy danh sách lô hàng theo ID lô sản xuất và trạng thái.
-         * Dùng cho NCL-08-CN-012: phạm vi vụ việc thu hồi = mọi lô hàng RECALLED.
+         * Dùng cho NCL-08-CN-012: phạm vi vụ việc thu hồi = các lô hàng RECALLING (khi mở) hoặc RECALLED (khi đóng).
          */
         List<Shipment> findByProductionLotIdAndStatus(UUID productionLotId, ShipmentStatus status);
 
         /**
+         * Lấy danh sách lô hàng theo ID lô sản xuất và danh sách trạng thái.
+         */
+        List<Shipment> findByProductionLotIdAndStatusIn(UUID productionLotId, java.util.Collection<ShipmentStatus> statuses);
+
+        /**
          * Lấy danh sách lô hàng theo tổ chức và trạng thái.
-         * Dùng cho NCL-08-CN-012: lazy materialize vụ việc thu hồi của tổ chức.
+         * Dùng cho NCL-08-CN-012: lazy materialize vụ việc thu hồi của tổ chức từ các lô RECALLING.
          */
         List<Shipment> findByOrganization_OrganizationIdAndStatus(UUID organizationId, ShipmentStatus status);
+
+        /**
+         * Lấy danh sách lô hàng theo tổ chức và danh sách trạng thái.
+         */
+        List<Shipment> findByOrganization_OrganizationIdAndStatusIn(UUID organizationId, java.util.Collection<ShipmentStatus> statuses);
 
         /**
          * Lấy danh sách lô hàng theo ID của lô sản xuất với phân trang.
