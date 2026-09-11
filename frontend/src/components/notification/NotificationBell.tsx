@@ -68,7 +68,6 @@ export const NotificationBell = () => {
     if (text.includes("kiểm nghiệm") || text.includes("lô sản xuất")) {
       navigate("/production-lots");
     }
-    }
   };
 
   const handleEmailNoticeClick = () => {
