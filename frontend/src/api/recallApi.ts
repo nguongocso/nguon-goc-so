@@ -21,7 +21,7 @@ import type {
 } from '@/types/bulkRecall';
 
 /**
- * Thu hồi một lô hàng đang hiệu lực.
+ * Thu hồi một lô hàng còn hiệu lực.
  * POST /api/v1/shipments/{shipmentId}/recall
  */
 export const recallShipment = async (

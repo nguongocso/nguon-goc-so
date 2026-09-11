@@ -34,3 +34,16 @@ export interface InspectionCriterionQueryParams {
   page?: number;
   size?: number;
 }
+
+/** Phản hồi cấu hình ngưỡng cảnh báo kiểm nghiệm sắp hết hạn */
+export interface InspectionExpiryThresholdResponse {
+  warningThresholdDays: number;
+  updatedAt?: string | null;
+  updatedByName?: string | null;
+}
+
+/** Payload cập nhật cấu hình ngưỡng cảnh báo kiểm nghiệm sắp hết hạn */
+export interface UpdateInspectionExpiryThresholdRequest {
+  warningThresholdDays: number;
+}
+

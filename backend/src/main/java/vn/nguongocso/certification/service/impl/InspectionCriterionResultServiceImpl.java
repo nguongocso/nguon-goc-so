@@ -1,6 +1,7 @@
 package vn.nguongocso.certification.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.FileSystemResource;
@@ -26,6 +27,7 @@ import vn.nguongocso.certification.repository.InspectionCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.service.InspectionCriterionResultService;
+import vn.nguongocso.certification.service.InspectionExpiryService;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.ProductCategory;
@@ -78,6 +80,7 @@ import java.util.stream.Collectors;
  * </p>
  */
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional
 public class InspectionCriterionResultServiceImpl
@@ -148,6 +151,7 @@ public class InspectionCriterionResultServiceImpl
     private final Clock clock;
     private final ApplicationEventPublisher eventPublisher;
     private final vn.nguongocso.notification.service.NotificationService notificationService;
+    private final InspectionExpiryService inspectionExpiryService;
 
     @Value("${app.upload.base-dir}")
     private String baseDir;
@@ -216,6 +220,17 @@ public class InspectionCriterionResultServiceImpl
 
         // Cập nhật trạng thái yêu cầu kiểm nghiệm nếu tất cả chỉ tiêu đều đạt
         checkAndUpdateRequestStatus(inspectionRequest);
+
+        // Quét và cảnh báo hiệu lực kiểm nghiệm ngay tại thời điểm ghi nhận kết quả (<= 15 ngày hoặc hết hạn)
+        if (inspectionRequest.getProductionLot() != null) {
+            try {
+                inspectionExpiryService.checkAndAlertLotExpiry(
+                        inspectionRequest.getProductionLot(),
+                        LocalDate.now(clock));
+            } catch (Exception e) {
+                log.error("Lỗi khi quét và cảnh báo hiệu lực kiểm nghiệm sau khi ghi nhận kết quả kiểm nghiệm: ", e);
+            }
+        }
 
         // Ghi nhật ký hoạt động (TASK-27): phân biệt rõ thao tác ghi mới và cập nhật
         publishActivityLog(
@@ -319,6 +334,17 @@ public class InspectionCriterionResultServiceImpl
         //    hợp lệ đã được lưu (không có trạng thái trung gian)
         // ============================================================
         checkAndUpdateRequestStatus(inspectionRequest);
+
+        // Quét và cảnh báo hiệu lực kiểm nghiệm ngay tại thời điểm ghi nhận kết quả hàng loạt (<= 15 ngày hoặc hết hạn)
+        if (inspectionRequest.getProductionLot() != null) {
+            try {
+                inspectionExpiryService.checkAndAlertLotExpiry(
+                        inspectionRequest.getProductionLot(),
+                        LocalDate.now(clock));
+            } catch (Exception e) {
+                log.error("Lỗi khi quét và cảnh báo hiệu lực kiểm nghiệm sau khi ghi nhận hàng loạt kết quả kiểm nghiệm: ", e);
+            }
+        }
 
         // ============================================================
         // 4. Ghi nhật ký hoạt động (TASK-27): một bản ghi duy nhất

@@ -5,6 +5,8 @@ import type {
   InspectionCriterion,
   InspectionCriterionRequest,
   InspectionCriterionQueryParams,
+  InspectionExpiryThresholdResponse,
+  UpdateInspectionExpiryThresholdRequest,
 } from '@/types/inspectionCriterion';
 
 /**
@@ -140,3 +142,29 @@ export const setMandatoryInspection = async (
   );
   return response.data.data;
 };
+
+/**
+ * Lấy cấu hình ngưỡng cảnh báo kiểm nghiệm sắp hết hiệu lực (mặc định 15 ngày)
+ * GET /api/v1/inspection-criteria/expiry-threshold
+ */
+export const getInspectionExpiryThreshold = async (): Promise<InspectionExpiryThresholdResponse> => {
+  const response = await apiClient.get<{ data: InspectionExpiryThresholdResponse }>(
+    '/inspection-criteria/expiry-threshold'
+  );
+  return response.data.data;
+};
+
+/**
+ * Cập nhật cấu hình ngưỡng cảnh báo kiểm nghiệm sắp hết hiệu lực (chỉ PLATFORM_ADMIN — VT-01)
+ * PUT /api/v1/inspection-criteria/expiry-threshold
+ */
+export const updateInspectionExpiryThreshold = async (
+  data: UpdateInspectionExpiryThresholdRequest
+): Promise<InspectionExpiryThresholdResponse> => {
+  const response = await apiClient.put<{ data: InspectionExpiryThresholdResponse }>(
+    '/inspection-criteria/expiry-threshold',
+    data
+  );
+  return response.data.data;
+};
+
