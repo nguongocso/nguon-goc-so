@@ -43,6 +43,9 @@ import vn.nguongocso.trace.dto.response.ProcurementShipmentResponse;
 import vn.nguongocso.trace.dto.response.ShipmentSummaryResponse;
 import vn.nguongocso.trace.entity.CodeRange;
 import vn.nguongocso.trace.entity.Shipment;
+import vn.nguongocso.trace.entity.ShipmentHandover;
+import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
+import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
@@ -85,6 +88,7 @@ public class ShipmentServiceImpl implements ShipmentService {
     private final PermissionChecker permissionChecker;
     private final InspectionEligibilityService inspectionEligibilityService;
     private final OrganizationRepository organizationRepository;
+    private final ShipmentHandoverRepository shipmentHandoverRepository;
     private final ChainEventRepository chainEventRepository;
     private final EventHashService eventHashService;
     private final ObjectMapper objectMapper;
@@ -635,7 +639,6 @@ public class ShipmentServiceImpl implements ShipmentService {
             throw new BusinessException("Mã truy xuất không liên kết với lô hàng nào.");
         }
 
-        // Không cho phép ghi sự kiện nếu lô hàng đã bị thu hồi
         if (shipment.getStatus() == ShipmentStatus.RECALLED) {
             throw new BusinessException(
                     "Lô hàng " + shipment.getName() + " đã bị thu hồi, không thể ghi nhận thu mua.");
@@ -656,18 +659,43 @@ public class ShipmentServiceImpl implements ShipmentService {
     }
 
     /**
-     * Lấy danh sách lô hàng đủ điều kiện thu mua (status = ACTIVATED).
-     * Dùng cho Doanh nghiệp thu mua (VT‑04) xem danh sách lô hàng sẵn sàng.
+     * Lấy danh sách lô hàng liên quan đến Doanh nghiệp thu mua (VT‑04) hiện tại:
+     * chỉ lô đã thu mua/nhập kho hoặc đã xác nhận bàn giao cho tổ chức.
      *
-     * @return danh sách ProcurementShipmentResponse
+     * @return danh sách lô hàng đủ điều kiện
      */
     @Override
     public List<ProcurementShipmentResponse> getEligibleShipments() {
-        List<Shipment> shipments = shipmentRepository
-                .findByStatusAndRecipientOrganization_OrganizationIdOrderByCreatedAtDesc(
-                        ShipmentStatus.ACTIVATED, getCurrentUser().getOrganizationId());
+        CustomUserDetails currentUser = getCurrentUser();
+        if (currentUser == null || currentUser.getOrganizationId() == null) {
+            return List.of();
+        }
+
+        UUID currentOrgId = currentUser.getOrganizationId();
+        Set<UUID> relatedShipmentIds = new HashSet<>();
+
+        Map<UUID, ShipmentHandover> latestHandoverByShipment = shipmentHandoverRepository
+                .findByToOrganizationOrganizationId(currentOrgId)
+                .stream()
+                .collect(Collectors.toMap(
+                        handover -> handover.getShipment().getId(),
+                        handover -> handover,
+                        (first, second) -> first.getCreatedAt().isAfter(second.getCreatedAt())
+                                ? first
+                                : second));
+        latestHandoverByShipment.values().stream()
+                .filter(handover -> handover.getStatus() == ShipmentHandoverStatus.ACCEPTED)
+                .map(handover -> handover.getShipment().getId())
+                .forEach(relatedShipmentIds::add);
+
+        relatedShipmentIds.addAll(chainEventRepository.findShipmentIdsByRecordedOrganizationIdAndEventTypeIn(
+                currentOrgId,
+                List.of(ChainEventType.PROCUREMENT, ChainEventType.WAREHOUSE_RECEIPT)));
+
+        List<Shipment> shipments = shipmentRepository.findByStatusOrderByCreatedAtDesc(ShipmentStatus.ACTIVATED);
 
         return shipments.stream()
+                .filter(shipment -> relatedShipmentIds.contains(shipment.getId()))
                 .map(shipment -> {
                     String productionLotName = null;
                     String productCategoryName = null;
@@ -680,7 +708,8 @@ public class ShipmentServiceImpl implements ShipmentService {
                     }
                     if (shipment.getOrganization() != null) {
                         organizationName = shipment.getOrganization().getName();
-                    } else if (shipment.getProductionLot() != null && shipment.getProductionLot().getOrganization() != null) {
+                    } else if (shipment.getProductionLot() != null
+                            && shipment.getProductionLot().getOrganization() != null) {
                         organizationName = shipment.getProductionLot().getOrganization().getName();
                     }
 

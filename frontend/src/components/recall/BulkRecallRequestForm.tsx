@@ -12,6 +12,7 @@ import type { ShipmentTraceDto, ProductionLotTraceDto } from '@/types/impactScop
 const LOT_STATUS_MAP: Record<string, { label: string; tone: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }> = {
     ACTIVATED: { label: 'Đã kích hoạt', tone: 'success' },
     DRAFT: { label: 'Dự thảo', tone: 'neutral' },
+    RECALLING: { label: 'Đang thu hồi', tone: 'warning' },
     RECALLED: { label: 'Đã thu hồi', tone: 'danger' },
     SPLIT: { label: 'Đã tách', tone: 'neutral' },
     CODE_PRINTED: { label: 'Đã in mã', tone: 'info' },
@@ -72,7 +73,7 @@ export const BulkRecallRequestForm: React.FC<BulkRecallRequestFormProps> = ({
     const initialItems: LotSelectionItem[] = useMemo(() =>
         shipments.map((ship) => {
             const status = ship.status || '';
-            const isRecalled = status === 'RECALLED';
+            const isRecalled = status === 'RECALLED' || status === 'RECALLING';
             const isSplitParent = status === 'SPLIT';
             const isUnavailable = isRecalled || isSplitParent;
             const orgName = ship.receivingOrganizations?.[0]?.organizationName || '';
@@ -85,8 +86,10 @@ export const BulkRecallRequestForm: React.FC<BulkRecallRequestFormProps> = ({
                 isRecalled,
                 isSplitParent,
                 included: !isUnavailable,
-                exclusionReason: isRecalled
-                    ? 'Lô đã được thu hồi trước đó'
+                exclusionReason: status === 'RECALLING'
+                    ? 'Lô hàng đang trong quá trình thu hồi'
+                    : isRecalled
+                      ? 'Lô đã được thu hồi trước đó'
                     : isSplitParent
                       ? 'Lô cha đã tách chỉ dùng để truy vết'
                       : '',

@@ -7,6 +7,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,8 +23,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.alert.dto.request.ActivityLogRequest;
 import vn.nguongocso.alert.service.ActivityLogService;
 import vn.nguongocso.auth.entity.User;
@@ -35,22 +46,46 @@ import vn.nguongocso.recall.dto.request.CreateBulkRecallRequest;
 import vn.nguongocso.recall.dto.request.RejectBulkRecallRequest;
 import vn.nguongocso.recall.dto.response.BulkRecallRequestResponse;
 import vn.nguongocso.recall.dto.response.BulkRecallShipmentItem;
+import vn.nguongocso.recall.dto.response.RecallEvidenceResponse;
 import vn.nguongocso.recall.entity.BulkRecallRequest;
 import vn.nguongocso.recall.entity.BulkRecallShipment;
+import vn.nguongocso.recall.entity.RecallEvidenceFile;
 import vn.nguongocso.recall.enums.BulkRecallRequestStatus;
 import vn.nguongocso.recall.repository.BulkRecallRequestRepository;
 import vn.nguongocso.recall.repository.BulkRecallShipmentRepository;
+import vn.nguongocso.recall.repository.RecallEvidenceFileRepository;
 import vn.nguongocso.recall.service.BulkRecallNotificationService;
 import vn.nguongocso.recall.service.BulkRecallRequestService;
 import vn.nguongocso.trace.dto.request.RecallRequest;
+import vn.nguongocso.trace.entity.CodeRange;
 import vn.nguongocso.trace.entity.Shipment;
+import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
+import vn.nguongocso.trace.enums.TraceCodeStatus;
+import vn.nguongocso.trace.recall.dto.request.CloseRecallCaseRequest;
+import vn.nguongocso.trace.recall.entity.RecallCase;
+import vn.nguongocso.trace.recall.entity.RecallLotResult;
+import vn.nguongocso.trace.recall.enums.LotResolution;
+import vn.nguongocso.trace.recall.enums.RecallCaseStatus;
+import vn.nguongocso.trace.recall.repository.RecallCaseRepository;
+import vn.nguongocso.trace.recall.repository.RecallLotResultRepository;
+import vn.nguongocso.trace.repository.CodeRangeRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
+import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.ShipmentRecallService;
 
+import java.math.BigDecimal;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
+
 /**
- * Triển khai dịch vụ quản lý yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011).
+ * Triển khai dịch vụ quản lý yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011, NCL-08-CN-012).
  */
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -91,6 +126,14 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
     private final NotificationService notificationService;
     private final BulkRecallNotificationService bulkRecallNotificationService;
     private final ActivityLogService activityLogService;
+    private final RecallCaseRepository recallCaseRepository;
+    private final RecallLotResultRepository recallLotResultRepository;
+    private final TraceCodeRepository traceCodeRepository;
+    private final CodeRangeRepository codeRangeRepository;
+    private final RecallEvidenceFileRepository recallEvidenceFileRepository;
+
+    @Value("${app.upload.base-dir}")
+    private String baseDir;
 
     // =========================================================
     // Public methods
@@ -148,8 +191,8 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
                 throw new BusinessException(MSG_ORG_MISMATCH);
             }
 
-            // Kiểm tra đã RECALLED chưa
-            if (shipment.getStatus() == ShipmentStatus.RECALLED) {
+            // Kiểm tra đã RECALLED hoặc RECALLING chưa
+            if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
                 throw new BusinessException(MSG_SHIPMENT_ALREADY_RECALLED);
             }
             validateRecallableShipment(shipment);
@@ -327,7 +370,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         bulkRequest.setApprovalRemarks(request.getRemarks());
         bulkRecallRequestRepository.save(bulkRequest);
 
-        // 8. Thu hồi từng lô hàng
+        // 8. Chuyển trạng thái từng lô hàng sang RECALLING (Đang thu hồi)
         Set<UUID> notifiedUserIds = new HashSet<>();
         for (BulkRecallShipment shipmentRecord : includedShipments) {
             Shipment shipment = shipmentRecord.getShipment();
@@ -337,18 +380,31 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
                     shipment.getId(), currentUser.getOrganizationId())
                     .orElseThrow(() -> new BusinessException(MSG_SHIPMENT_NOT_FOUND));
 
-            if (freshShipment.getStatus() == ShipmentStatus.RECALLED) {
+            if (freshShipment.getStatus() == ShipmentStatus.RECALLED
+                    || freshShipment.getStatus() == ShipmentStatus.RECALLING) {
                 throw new BusinessException(HttpStatus.CONFLICT, MSG_SHIPMENT_RECALLED_BY_OTHER);
             }
             validateRecallableShipment(freshShipment);
 
-            // Gọi ShipmentRecallService để thu hồi
-            RecallRequest recallRequest = new RecallRequest();
-            recallRequest.setReason(bulkRequest.getReason());
-            shipmentRecallService.recallShipment(freshShipment.getId(), recallRequest, null);
+            // Chuyển trạng thái lô hàng sang RECALLING (Đang thu hồi)
+            freshShipment.setStatus(ShipmentStatus.RECALLING);
+            shipmentRepository.save(freshShipment);
+            shipmentRecord.setShipment(freshShipment);
 
             // Thu thập user nhận notification (từ các tổ chức thu mua)
             collectBuyerUserIds(freshShipment, notifiedUserIds);
+        }
+
+        // Đảm bảo mở/tạo vụ việc thu hồi (RecallCase) ở trạng thái OPEN nếu chưa tồn tại
+        if (!recallCaseRepository.existsByProductionLotId(bulkRequest.getProductionLot().getId())) {
+            RecallCase recallCase = RecallCase.builder()
+                    .caseCode("RC-" + DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(LocalDateTime.now())
+                            + "-" + String.format("%04X", ThreadLocalRandom.current().nextInt(0x10000)))
+                    .productionLot(bulkRequest.getProductionLot())
+                    .organizationId(currentUser.getOrganizationId())
+                    .status(RecallCaseStatus.OPEN)
+                    .build();
+            recallCaseRepository.save(recallCase);
         }
 
         // 9. Gửi notification cho các bên liên quan
@@ -523,6 +579,357 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
     }
 
     /**
+     * {@inheritDoc}
+     *
+     * <p>Quy trình kết thúc vụ việc thu hồi gắn liền với yêu cầu thu hồi hàng loạt (NCL-08-CN-012):
+     * <ol>
+     *   <li>Kiểm tra vai trò VT-02 và cách ly tổ chức</li>
+     *   <li>Kiểm tra trạng thái yêu cầu phải là APPROVED</li>
+     *   <li>Validate biện pháp khắc phục phòng ngừa bắt buộc (QTN-27)</li>
+     *   <li>Validate danh sách kết quả xử lý phải phủ hết các lô included</li>
+     *   <li>Lưu kết quả xử lý từng lô vào RecallLotResult</li>
+     *   <li>Chuyển trạng thái các lô hàng sang RECALLED, hoàn trả mã tem</li>
+     *   <li>Cập nhật vụ việc thu hồi RecallCase sang CLOSED</li>
+     *   <li>Cập nhật yêu cầu thu hồi hàng loạt sang COMPLETED ("Đã xử lý")</li>
+     *   <li>Gửi thông báo tới các doanh nghiệp thu mua liên quan</li>
+     *   <li>Ghi lịch sử hoạt động ActivityLog</li>
+     * </ol>
+     */
+    @Override
+    public BulkRecallRequestResponse closeBulkRecallRequest(
+            UUID id, CloseRecallCaseRequest request, CustomUserDetails currentUser) {
+
+        // 1. Kiểm tra vai trò VT-02
+        if (!"VT-02".equals(currentUser.getRoleCode())) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "Bạn không có quyền kết thúc vụ việc thu hồi.");
+        }
+
+        // 2. Lấy yêu cầu thu hồi hàng loạt với pessimistic lock
+        BulkRecallRequest bulkRequest = bulkRecallRequestRepository.findByIdWithLock(id)
+                .orElseThrow(() -> new BusinessException(MSG_REQUEST_NOT_FOUND));
+
+        // 3. Kiểm tra quyền truy cập tổ chức
+        validateOrganizationAccess(currentUser, bulkRequest.getProductionLot());
+
+        // 4. Kiểm tra trạng thái yêu cầu: chỉ được kết thúc khi đã APPROVED
+        if (bulkRequest.getStatus() != BulkRecallRequestStatus.APPROVED) {
+            throw new BusinessException(HttpStatus.CONFLICT,
+                    "Chỉ có thể kết thúc vụ việc khi yêu cầu ở trạng thái Đã duyệt (APPROVED).");
+        }
+
+        // 5. Biện pháp khắc phục phòng ngừa là bắt buộc (QTN-27)
+        String remediation = request.getRemediationMeasures() == null
+                ? ""
+                : request.getRemediationMeasures().trim();
+        if (remediation.isEmpty()) {
+            throw new BusinessException("Biện pháp khắc phục phòng ngừa là bắt buộc trước khi đóng vụ việc.");
+        }
+
+        // Kiểm tra số lượng tệp biên bản đính kèm (tối đa 5 tệp)
+        if (request.getEvidenceFileIds() != null && request.getEvidenceFileIds().size() > 5) {
+            throw new BusinessException("Chỉ được đính kèm tối đa 5 tệp biên bản thu hồi.");
+        }
+
+        // 6. Lấy danh sách các lô hàng included trong yêu cầu thu hồi này
+        List<BulkRecallShipment> includedBulkShipments = bulkRecallShipmentRepository
+                .findByBulkRecallRequestIdAndIncluded(id, true);
+        if (includedBulkShipments.isEmpty()) {
+            throw new BusinessException("Yêu cầu thu hồi không có lô hàng nào trong phạm vi.");
+        }
+
+        List<Shipment> shipments = includedBulkShipments.stream()
+                .map(BulkRecallShipment::getShipment)
+                .toList();
+
+        // 7. Mọi lô hàng included phải có kết quả xử lý
+        Map<UUID, CloseRecallCaseRequest.LotResultItem> itemByShipment = new HashMap<>();
+        List<CloseRecallCaseRequest.LotResultItem> lotResultItems = request.getLotResults() != null
+                ? request.getLotResults()
+                : List.of();
+
+        for (CloseRecallCaseRequest.LotResultItem item : lotResultItems) {
+            if (item.getShipmentId() == null) {
+                throw new BusinessException("Lô hàng không thuộc vụ việc thu hồi này.");
+            }
+            if (itemByShipment.containsKey(item.getShipmentId())) {
+                throw new BusinessException(
+                        String.format("Lô hàng %s bị trùng trong danh sách kết quả xử lý.", item.getShipmentId()));
+            }
+            itemByShipment.put(item.getShipmentId(), item);
+        }
+
+        List<Shipment> missing = shipments.stream()
+                .filter(s -> !itemByShipment.containsKey(s.getId()))
+                .toList();
+        if (!missing.isEmpty()) {
+            String missingNames = missing.stream().map(Shipment::getName).collect(Collectors.joining(", "));
+            throw new BusinessException(String.format(
+                    "Còn %d lô chưa có kết quả xử lý: %s. Vui lòng nhập đủ kết quả xử lý cho tất cả các lô.",
+                    missing.size(), missingNames));
+        }
+
+        // 8. Tìm hoặc tạo RecallCase cho lô sản xuất này
+        RecallCase recallCase = recallCaseRepository.findByProductionLotId(bulkRequest.getProductionLot().getId())
+                .orElseGet(() -> {
+                    RecallCase newCase = RecallCase.builder()
+                            .caseCode("RC-" + DateTimeFormatter.ofPattern("yyyyMMddHHmmss").format(LocalDateTime.now())
+                                    + "-" + String.format("%04X", ThreadLocalRandom.current().nextInt(0x10000)))
+                            .productionLot(bulkRequest.getProductionLot())
+                            .organizationId(currentUser.getOrganizationId())
+                            .status(RecallCaseStatus.OPEN)
+                            .build();
+                    return recallCaseRepository.save(newCase);
+                });
+
+        // 9. Kiểm tra và lưu kết quả xử lý từng lô
+        Map<UUID, RecallLotResult> existingResults = recallLotResultRepository
+                .findByRecallCaseId(recallCase.getId())
+                .stream()
+                .collect(Collectors.toMap(r -> r.getShipment().getId(), r -> r));
+
+        List<RecallLotResult> resultsToSave = new ArrayList<>();
+        for (Shipment shipment : shipments) {
+            CloseRecallCaseRequest.LotResultItem item = itemByShipment.get(shipment.getId());
+
+            if (item.getResolution() == null) {
+                throw new BusinessException(String.format("Kết quả xử lý của lô hàng %s là bắt buộc.", shipment.getName()));
+            }
+            BigDecimal quantity = item.getRecoveredQuantity();
+            if (quantity == null) {
+                throw new BusinessException(String.format("Số lượng thu hồi được của lô hàng %s là bắt buộc.", shipment.getName()));
+            }
+            BigDecimal maxQuantity = BigDecimal.valueOf(shipment.getTotalQuantity());
+            if (quantity.signum() < 0 || quantity.compareTo(maxQuantity) > 0) {
+                throw new BusinessException(String.format(
+                        "Số lượng thu hồi được của lô hàng %s phải nằm trong khoảng từ 0 đến %s.",
+                        shipment.getName(), shipment.getTotalQuantity()));
+            }
+            if (item.getResolution() == LotResolution.UNRECOVERABLE && (item.getNotes() == null || item.getNotes().isBlank())) {
+                throw new BusinessException(String.format(
+                        "Lô hàng %s: khi chọn kết quả \"Không thu hồi được\", bắt buộc nhập lý do và biện pháp xử lý rủi ro.",
+                        shipment.getName()));
+            }
+
+            RecallLotResult result = existingResults.getOrDefault(
+                    shipment.getId(), RecallLotResult.builder().build());
+            result.setRecallCase(recallCase);
+            result.setShipment(shipment);
+            result.setResolution(item.getResolution());
+            result.setRecoveredQuantity(quantity);
+            result.setNotes(item.getNotes());
+            resultsToSave.add(result);
+        }
+        recallLotResultRepository.saveAll(resultsToSave);
+
+        // 10. Chuyển trạng thái các lô hàng sang RECALLED và hoàn trả mã tem
+        for (Shipment shipment : shipments) {
+            shipment.setStatus(ShipmentStatus.RECALLED);
+            shipmentRepository.save(shipment);
+
+            // Cập nhật trạng thái toàn bộ TraceCode sang RECALLED
+            List<TraceCode> traceCodes = traceCodeRepository.findByShipmentId(shipment.getId());
+            traceCodes.forEach(code -> code.setStatus(TraceCodeStatus.RECALLED));
+            traceCodeRepository.saveAll(traceCodes);
+
+            // Hoàn trả số lượng mã đã dùng cho dải mã của tổ chức
+            if (!traceCodes.isEmpty()) {
+                CodeRange codeRange = shipment.getCodeRange() != null
+                        ? shipment.getCodeRange()
+                        : codeRangeRepository
+                                .findFirstByOrganizationOrganizationIdOrderByCreatedAtDesc(
+                                        shipment.getOrganization().getOrganizationId())
+                                .orElse(null);
+                if (codeRange != null) {
+                    codeRange.setUsedCount(Math.max(0, codeRange.getUsedCount() - traceCodes.size()));
+                    codeRangeRepository.save(codeRange);
+                }
+            }
+        }
+
+        // 11. Đóng RecallCase (đồng bộ để hỗ trợ tra cứu tem công khai QTN-09, QTN-27)
+        User currentUserEntity = userRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new BusinessException(MSG_USER_NOT_FOUND));
+        LocalDateTime now = LocalDateTime.now();
+        String evidenceSerialized = serializeEvidence(request.getEvidenceFileIds());
+
+        recallCase.setStatus(RecallCaseStatus.CLOSED);
+        recallCase.setRemediationMeasures(remediation);
+        recallCase.setEvidenceFileIds(evidenceSerialized);
+        recallCase.setClosedBy(currentUserEntity);
+        recallCase.setClosedAt(now);
+        recallCaseRepository.save(recallCase);
+
+        // 12. Cập nhật BulkRecallRequest sang trạng thái COMPLETED
+        bulkRequest.setStatus(BulkRecallRequestStatus.COMPLETED);
+        bulkRequest.setClosedBy(currentUserEntity);
+        bulkRequest.setClosedAt(now);
+        bulkRequest.setRemediationMeasures(remediation);
+        bulkRequest.setEvidenceFileIds(evidenceSerialized);
+        bulkRecallRequestRepository.save(bulkRequest);
+
+        // 13. Gửi thông báo kết thúc thu hồi tới doanh nghiệp thu mua liên quan
+        notifyProcurementOrganizations(recallCase, shipments);
+
+        // 14. Ghi lịch sử hoạt động ActivityLog
+        logActivity(currentUserEntity, "CLOSE_BULK_RECALL_REQUEST",
+                String.format("Kết thúc vụ việc thu hồi lô sản xuất: %s. Mã vụ việc: %s. Số lô xử lý: %d",
+                        bulkRequest.getProductionLot().getName(), recallCase.getCaseCode(), shipments.size()),
+                "bulk_recall_request", bulkRequest.getId());
+
+        return toResponse(bulkRequest);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional
+    public RecallEvidenceResponse uploadEvidenceFile(MultipartFile file, CustomUserDetails currentUser) {
+        // 1. Kiểm tra vai trò quản lý
+        if (!"VT-02".equals(currentUser.getRoleCode()) && !"VT-01".equals(currentUser.getRoleCode())) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "Bạn không có quyền tải lên tệp biên bản thu hồi.");
+        }
+
+        // 2. Validate tệp không rỗng
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException("Tệp tải lên không được để trống.");
+        }
+
+        // 3. Giới hạn dung lượng 10MB
+        if (file.getSize() > 10 * 1024 * 1024L) {
+            throw new BusinessException("Dung lượng tệp vượt quá giới hạn 10MB.");
+        }
+
+        // 4. Kiểm tra định dạng PDF hoặc Word (.docx, .doc)
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || originalFilename.isBlank()) {
+            throw new BusinessException("Tên tệp không hợp lệ.");
+        }
+        String lower = originalFilename.toLowerCase();
+        if (!lower.endsWith(".pdf") && !lower.endsWith(".docx") && !lower.endsWith(".doc")) {
+            throw new BusinessException("Chỉ chấp nhận tệp biên bản định dạng PDF (.pdf) hoặc Word (.docx, .doc).");
+        }
+
+        // 5. Lưu tệp lên ổ đĩa
+        try {
+            Path uploadDir = Paths.get(baseDir, "recall-evidences");
+            Files.createDirectories(uploadDir);
+
+            String filePrefix = UUID.randomUUID().toString();
+            String safeName = originalFilename.replaceAll("[^a-zA-Z0-9._-]", "_");
+            String storedFileName = filePrefix + "_" + safeName;
+            Path targetPath = uploadDir.resolve(storedFileName);
+
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+            User user = userRepository.findById(currentUser.getUserId())
+                    .orElseThrow(() -> new BusinessException(MSG_USER_NOT_FOUND));
+
+            RecallEvidenceFile evidenceFile = RecallEvidenceFile.builder()
+                    .fileName(originalFilename)
+                    .filePath(targetPath.toString())
+                    .fileSize(file.getSize())
+                    .contentType(file.getContentType() != null ? file.getContentType() : "application/octet-stream")
+                    .uploadedBy(user)
+                    .uploadedAt(LocalDateTime.now())
+                    .build();
+
+            evidenceFile = recallEvidenceFileRepository.save(evidenceFile);
+
+            return RecallEvidenceResponse.builder()
+                    .id(evidenceFile.getId())
+                    .fileName(evidenceFile.getFileName())
+                    .fileSize(evidenceFile.getFileSize())
+                    .contentType(evidenceFile.getContentType())
+                    .downloadUrl("/api/v1/recall-requests/bulk/evidence/" + evidenceFile.getId())
+                    .uploadedAt(evidenceFile.getUploadedAt())
+                    .build();
+        } catch (IOException e) {
+            log.error("Lỗi khi lưu tệp biên bản thu hồi", e);
+            throw new BusinessException("Không thể lưu trữ tệp biên bản tải lên.");
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public EvidenceFileContent getEvidenceFile(UUID fileId, CustomUserDetails currentUser) {
+        RecallEvidenceFile evidenceFile = recallEvidenceFileRepository.findById(fileId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Không tìm thấy tệp biên bản thu hồi."));
+
+        Path filePath = Paths.get(evidenceFile.getFilePath());
+        if (!Files.exists(filePath)) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "Tệp biên bản không tồn tại trên máy chủ.");
+        }
+
+        return new EvidenceFileContent(
+                new FileSystemResource(filePath),
+                evidenceFile.getFileName(),
+                evidenceFile.getContentType()
+        );
+    }
+
+    /**
+     * Gửi thông báo kết thúc thu hồi tới doanh nghiệp thu mua liên quan.
+     */
+    private void notifyProcurementOrganizations(RecallCase recallCase, List<Shipment> shipments) {
+        List<UUID> shipmentIds = shipments.stream().map(Shipment::getId).toList();
+        List<UUID> procurementOrgIds =
+                chainEventRepository.findDistinctProcurementOrganizationIdsByShipmentIds(shipmentIds);
+        if (procurementOrgIds.isEmpty()) {
+            return;
+        }
+
+        Set<UUID> recipientIds = new LinkedHashSet<>();
+        for (UUID orgId : procurementOrgIds) {
+            organizationUserRepository
+                    .findByOrganization_OrganizationIdAndStatus(orgId, OrganizationUserStatus.ACTIVE)
+                    .forEach(ou -> {
+                        if (ou.getUser() != null) {
+                            recipientIds.add(ou.getUser().getUserId());
+                        }
+                    });
+        }
+        if (!recipientIds.isEmpty()) {
+            notificationService.sendRecallCaseClosedNotification(
+                    recallCase.getCaseCode(), new ArrayList<>(recipientIds));
+        }
+    }
+
+    /**
+     * Chuỗi hóa danh sách ID tệp biên bản (phân tách bởi dấu phẩy) hoặc null.
+     */
+    private String serializeEvidence(List<UUID> evidenceFileIds) {
+        if (evidenceFileIds == null || evidenceFileIds.isEmpty()) {
+            return null;
+        }
+        return evidenceFileIds.stream().map(UUID::toString).collect(Collectors.joining(","));
+    }
+
+    /**
+     * Phân giải chuỗi ID tệp biên bản đã lưu thành danh sách UUID hợp lệ.
+     */
+    private List<UUID> parseEvidence(String stored) {
+        if (stored == null || stored.isBlank()) {
+            return List.of();
+        }
+        return java.util.Arrays.stream(stored.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(s -> {
+                    try {
+                        return UUID.fromString(s);
+                    } catch (IllegalArgumentException e) {
+                        return null;
+                    }
+                })
+                .filter(java.util.Objects::nonNull)
+                .toList();
+    }
+
+    /**
      * Chuyển đổi entity sang response DTO.
      */
     private BulkRecallRequestResponse toResponse(BulkRecallRequest entity) {
@@ -547,12 +954,35 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
                         .build()
                 : null;
 
+        BulkRecallRequestResponse.UserInfo closedBy = entity.getClosedBy() != null
+                ? BulkRecallRequestResponse.UserInfo.builder()
+                        .userId(entity.getClosedBy().getUserId())
+                        .fullName(entity.getClosedBy().getFullName())
+                        .build()
+                : null;
+
+        // Lấy thông tin vụ việc liên kết nếu có
+        RecallCase recallCase = recallCaseRepository.findByProductionLotId(entity.getProductionLot().getId())
+                .orElse(null);
+        String caseCode = recallCase != null ? recallCase.getCaseCode() : null;
+
+        Map<UUID, RecallLotResult> resultMap = new HashMap<>();
+        if (recallCase != null) {
+            recallLotResultRepository.findByRecallCaseId(recallCase.getId())
+                    .forEach(r -> resultMap.put(r.getShipment().getId(), r));
+        }
+
         // Load shipments từ repository
         List<BulkRecallShipment> shipments = bulkRecallShipmentRepository
                 .findByBulkRecallRequestId(entity.getId());
 
         List<BulkRecallShipmentItem> shipmentItems = new ArrayList<>();
         for (BulkRecallShipment s : shipments) {
+            RecallLotResult lotResult = resultMap.get(s.getShipment().getId());
+            String unit = s.getShipment().getProductionLot() != null
+                    ? s.getShipment().getProductionLot().getExpectedQuantityUnit()
+                    : null;
+
             shipmentItems.add(BulkRecallShipmentItem.builder()
                     .id(s.getId())
                     .shipmentId(s.getShipment().getId())
@@ -561,7 +991,46 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
                     .shipmentStatus(s.getShipment().getStatus().name())
                     .included(s.isIncluded())
                     .exclusionReason(s.getExclusionReason())
+                    .unit(unit)
+                    .totalQuantity(s.getShipment().getTotalQuantity())
+                    .resolution(lotResult != null ? lotResult.getResolution() : null)
+                    .recoveredQuantity(lotResult != null ? lotResult.getRecoveredQuantity() : null)
+                    .notes(lotResult != null ? lotResult.getNotes() : null)
                     .build());
+        }
+
+        String remediation = entity.getRemediationMeasures() != null
+                ? entity.getRemediationMeasures()
+                : (recallCase != null ? recallCase.getRemediationMeasures() : null);
+
+        String evidenceRaw = entity.getEvidenceFileIds() != null
+                ? entity.getEvidenceFileIds()
+                : (recallCase != null ? recallCase.getEvidenceFileIds() : null);
+
+        LocalDateTime closedAt = entity.getClosedAt() != null
+                ? entity.getClosedAt()
+                : (recallCase != null ? recallCase.getClosedAt() : null);
+
+        if (closedBy == null && recallCase != null && recallCase.getClosedBy() != null) {
+            closedBy = BulkRecallRequestResponse.UserInfo.builder()
+                    .userId(recallCase.getClosedBy().getUserId())
+                    .fullName(recallCase.getClosedBy().getFullName())
+                    .build();
+        }
+
+        List<UUID> parsedEvidenceIds = parseEvidence(evidenceRaw);
+        List<RecallEvidenceResponse> evidenceFiles = List.of();
+        if (parsedEvidenceIds != null && !parsedEvidenceIds.isEmpty()) {
+            evidenceFiles = recallEvidenceFileRepository.findByIdIn(parsedEvidenceIds).stream()
+                    .map(f -> RecallEvidenceResponse.builder()
+                            .id(f.getId())
+                            .fileName(f.getFileName())
+                            .fileSize(f.getFileSize())
+                            .contentType(f.getContentType())
+                            .downloadUrl("/api/v1/recall-requests/bulk/evidence/" + f.getId())
+                            .uploadedAt(f.getUploadedAt())
+                            .build())
+                    .toList();
         }
 
         return BulkRecallRequestResponse.builder()
@@ -579,6 +1048,12 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
                 .rejectedBy(rejectedBy)
                 .rejectedAt(entity.getRejectedAt())
                 .rejectionReason(entity.getRejectionReason())
+                .closedBy(closedBy)
+                .closedAt(closedAt)
+                .remediationMeasures(remediation)
+                .evidenceFileIds(parsedEvidenceIds)
+                .evidenceFiles(evidenceFiles)
+                .caseCode(caseCode)
                 .shipments(shipmentItems)
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())

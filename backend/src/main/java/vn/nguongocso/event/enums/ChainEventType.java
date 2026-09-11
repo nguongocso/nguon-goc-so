@@ -5,7 +5,6 @@ package vn.nguongocso.event.enums;
  *
  * @author Triệu Văn Đại
  */
-
 public enum ChainEventType {
     // Sự kiện thu hoạch
     HARVEST, // Thu hoạch
@@ -31,14 +30,14 @@ public enum ChainEventType {
     // Sự kiện theo dõi điều kiện bảo quản khi vận chuyển.
     STORAGE_CONDITION, // Theo dõi bảo quản
 
+    // Sự kiện bàn giao
+    HANDOVER, // Bàn giao
+
     // Sự kiện nhập kho tại hợp tác xã (HTX)
     WAREHOUSE_ENTRY, // Nhập kho HTX
 
     // Sự kiện xuất kho tại hợp tác xã (HTX)
     WAREHOUSE_EXIT, // Xuất kho HTX
-
-    // Sự kiện bàn giao lô hàng
-    HANDOVER, // Bàn giao
 
     // Sự kiện đánh dấu điểm bắt đầu hành trình riêng của lô con
     SPLIT // Tách lô

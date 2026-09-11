@@ -577,7 +577,7 @@ public class ChainEventServiceImpl implements ChainEventService {
 
         try {
             validateOrganization(shipment, currentUser);
-            if (shipment.getStatus() == ShipmentStatus.RECALLED) {
+            if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
                 throw new BusinessException("Lô hàng đã bị thu hồi, không thể ghi sự kiện vận chuyển.");
             }
             if (shipment.getStatus() != ShipmentStatus.ACTIVATED) {
@@ -980,8 +980,8 @@ public class ChainEventServiceImpl implements ChainEventService {
             validateOrganization(shipment, currentUser);
         }
 
-        if (shipment.getStatus() == ShipmentStatus.RECALLED) {
-            throw new BusinessException(HttpStatus.CONFLICT, "Lô hàng đã bị thu hồi.");
+        if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Lô hàng đang hoặc đã bị thu hồi.");
         }
 
         if (shipment.getStatus() != ShipmentStatus.ACTIVATED) {
@@ -1090,9 +1090,9 @@ public class ChainEventServiceImpl implements ChainEventService {
         }
 
         // 5. Validate shipment status (QTN-05)
-        if (shipment.getStatus() == ShipmentStatus.RECALLED) {
+        if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
             throw new BusinessException(
-                    "Lô hàng chưa được kích hoạt hoặc đã bị thu hồi, không thể ghi nhận mốc bảo quản.");
+                    "Lô hàng chưa được kích hoạt hoặc đang/đã bị thu hồi, không thể ghi nhận mốc bảo quản.");
         }
         if (shipment.getStatus() != ShipmentStatus.ACTIVATED) {
             throw new BusinessException(
@@ -1401,8 +1401,8 @@ public class ChainEventServiceImpl implements ChainEventService {
         try {
             validateOrganization(shipment, currentUser);
 
-            if (shipment.getStatus() == ShipmentStatus.RECALLED) {
-                throw new BusinessException("Lô hàng đã bị thu hồi, không thể ghi sự kiện.");
+            if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
+                throw new BusinessException("Lô hàng đang hoặc đã bị thu hồi, không thể ghi sự kiện.");
             }
 
             LocalDateTime entryTime = request.getEntryTime();
@@ -1515,8 +1515,8 @@ public class ChainEventServiceImpl implements ChainEventService {
         try {
             validateOrganization(shipment, currentUser);
 
-            if (shipment.getStatus() == ShipmentStatus.RECALLED) {
-                throw new BusinessException("Lô hàng đã bị thu hồi, không thể ghi sự kiện.");
+            if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
+                throw new BusinessException("Lô hàng đang hoặc đã bị thu hồi, không thể ghi sự kiện.");
             }
 
             // TC-02: Chặn xuất kho khi chưa có sự kiện nhập kho HTX trước đó

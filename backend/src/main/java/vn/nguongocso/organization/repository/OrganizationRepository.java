@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import vn.nguongocso.organization.entity.Organization;
+import vn.nguongocso.organization.enums.OrganizationStatus;
 import vn.nguongocso.organization.enums.OrganizationType;
 
 /**
@@ -98,4 +99,14 @@ public interface OrganizationRepository extends JpaRepository<Organization, UUID
             @org.springframework.data.repository.query.Param("status") vn.nguongocso.organization.enums.OrganizationStatus status,
             @org.springframework.data.repository.query.Param("organizationId") UUID organizationId,
             @org.springframework.data.repository.query.Param("keyword") String keyword, Pageable pageable);
+
+    /**
+     * Tìm các tổ chức theo trạng thái, loại trừ một tổ chức cụ thể.
+     * Phục vụ dropdown tổ chức nhận trong phiếu bàn giao.
+     *
+     * @param status trạng thái cần lọc (thường là ACTIVE)
+     * @param organizationId ID tổ chức hiện tại cần loại trừ
+     * @return danh sách tổ chức phù hợp
+     */
+    List<Organization> findByStatusAndOrganizationIdNot(OrganizationStatus status, UUID organizationId);
 }

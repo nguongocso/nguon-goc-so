@@ -24,6 +24,7 @@ import {
   Hash,
   History,
   Eye,
+  FileSignature,
   QrCode,
   LogIn,
   LogOut,
@@ -56,6 +57,7 @@ import { useDeleteDraftShipment } from "@/hooks/useDeleteDraftShipment";
 import { checkCanActivateSeal } from "@/api/certificationApi";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ExportLabelsDialog } from "@/components/shipment/ExportLabelsDialog";
+import { CreateHandoverDialog } from "@/components/shipment/CreateHandoverDialog";
 
 
 interface ShipmentListProps {
@@ -109,10 +111,14 @@ export const ShipmentList = ({
   const [labelExportShipment, setLabelExportShipment] =
     useState<Shipment | null>(null);
 
+  // NCL-05-CN-008-009: Lô hàng đang tạo phiếu bàn giao từ dropdown thao tác
+  const [handoverShipment, setHandoverShipment] = useState<Shipment | null>(
+    null,
+  );
+
   type SelectionTarget = "BATCH_DOSSIER" | "WAREHOUSE_ENTRY" | "WAREHOUSE_EXIT" | null;
   const [selectionTarget, setSelectionTarget] = useState<SelectionTarget>(null);
   const isSelectionMode = selectionTarget !== null;
-
   const [selectedShipmentIds, setSelectedShipmentIds] = useState<string[]>([]);
   const canExportGs1 = usePermission(ROLE_ACCESS.gs1DossierExport);
   const canExportBatch = usePermission(ROLE_ACCESS.batchDossierExport);
@@ -120,6 +126,8 @@ export const ShipmentList = ({
   const canExportLabels = usePermission(ROLE_ACCESS.labelExport);
   // NCL-04-CN-007: Chỉ VT-02 được gửi yêu cầu cấp bổ sung mã
   const canRequestSupplement = usePermission(ROLE_ACCESS.supplementCreate);
+  // NCL-05-CN-008-009: Chỉ VT-02 được tạo phiếu bàn giao lô hàng
+  const canCreateHandover = usePermission(ROLE_ACCESS.handoverCreate);
 
   const [filterFromDate, setFilterFromDate] = useState("");
   const [filterToDate, setFilterToDate] = useState("");
@@ -679,6 +687,20 @@ export const ShipmentList = ({
                                   </DropdownMenuItem>
                                 )}
 
+                              {/* NCL-05-CN-008-009: Tạo phiếu bàn giao — chỉ VT-02,
+                              lô đã kích hoạt tem (gating khớp trang chi tiết) */}
+                              {canCreateHandover &&
+                                shipment.status === "ACTIVATED" && (
+                                  <DropdownMenuItem
+                                    onClick={() =>
+                                      setHandoverShipment(shipment)
+                                    }
+                                  >
+                                    <FileSignature className="size-4" />
+                                    Tạo phiếu bàn giao
+                                  </DropdownMenuItem>
+                                )}
+
                               {((canRecall &&
                                 shipment.status !== "RECALLED" &&
                                 shipment.status !== "SPLIT") ||
@@ -828,6 +850,17 @@ export const ShipmentList = ({
         open={labelExportShipment !== null}
         shipment={labelExportShipment}
         onClose={() => setLabelExportShipment(null)}
+      />
+
+      {/* NCL-05-CN-008-009: Dialog tạo phiếu bàn giao từ dropdown thao tác */}
+      <CreateHandoverDialog
+        open={handoverShipment !== null}
+        shipment={handoverShipment}
+        onClose={() => setHandoverShipment(null)}
+        onSuccess={() => {
+          setHandoverShipment(null);
+          reload();
+        }}
       />
 
     </>

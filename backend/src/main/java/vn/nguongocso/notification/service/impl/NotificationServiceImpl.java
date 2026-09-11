@@ -535,6 +535,7 @@ public class NotificationServiceImpl implements NotificationService {
                                 .type(notification.getType())
                                 .title(notification.getTitle())
                                 .content(notification.getContent())
+                                .entityId(notification.getEntityId())
                                 .isRead(notification.getIsRead())
                                 .readAt(notification.getReadAt())
                                 .createdAt(notification.getCreatedAt())
@@ -1003,6 +1004,73 @@ public class NotificationServiceImpl implements NotificationService {
                                 lotName);
         }
 
+        // =========================================================
+        // 6. THÔNG BÁO VÒNG ĐỜI PHIẾU BÀN GIAO (NCL-05-CN-008/CN-009)
+        // =========================================================
+
+        /**
+         * Gửi thông báo vòng đời phiếu bàn giao tới mọi người dùng thuộc
+         * tổ chức chỉ định có permission {@code notification:READ}.
+         *
+         * @param title          tiêu đề thông báo
+         * @param content        nội dung thông báo
+         * @param entityId       ID phiếu bàn giao để người dùng bấm vào
+         *                       thông báo có thể mở chi tiết phiếu
+         * @param organizationId tổ chức nhận thông báo
+         */
+        @Override
+        public void sendHandoverNotification(
+                        String title,
+                        String content,
+                        UUID entityId,
+                        UUID organizationId) {
+
+                if (organizationId == null) {
+                        log.warn(
+                                        "Không thể gửi thông báo bàn giao: organizationId null. title={}",
+                                        title);
+                        return;
+                }
+
+                List<User> recipients =
+                                getNotificationRecipients(organizationId);
+
+                if (recipients.isEmpty()) {
+                        log.warn(
+                                        "Không có người dùng có permission {}:{} để nhận "
+                                                        + "thông báo bàn giao. organizationId={}, title={}",
+                                        NOTIFICATION_RESOURCE,
+                                        NOTIFICATION_READ_ACTION,
+                                        organizationId,
+                                        title);
+                        return;
+                }
+
+                List<Notification> notifications = recipients.stream()
+                                .map(user -> {
+                                        Notification notification = new Notification();
+                                        notification.setUser(user);
+                                        notification.setType(
+                                                        NotificationType.ALERT);
+                                        notification.setTitle(title);
+                                        notification.setContent(content);
+                                        notification.setEntityId(entityId);
+                                        notification.setIsRead(false);
+                                        notification.setReadAt(null);
+                                        return notification;
+                                })
+                                .toList();
+
+                notificationRepository.saveAll(notifications);
+
+                log.info(
+                                "Đã tạo {} notification bàn giao. "
+                                                + "organizationId={}, title={}",
+                                notifications.size(),
+                                organizationId,
+                                title);
+        }
+
         /**
          * Gửi thông báo kết quả duyệt yêu cầu cấp bổ sung dải mã truy xuất
          * (NCL-04-CN-007) cho danh sách người dùng được chỉ định.
@@ -1245,4 +1313,43 @@ public class NotificationServiceImpl implements NotificationService {
                                 organizationId,
                                 lot.getId());
         }
+
+        @Override
+        public int sendRecallCaseClosedNotification(String caseCode, List<UUID> recipientIds) {
+                if (caseCode == null || recipientIds == null || recipientIds.isEmpty()) {
+                        log.warn("Không có người dùng để nhận thông báo kết thúc vụ việc thu hồi. caseCode={}", caseCode);
+                        return 0;
+                }
+
+                List<User> recipients = userRepository.findAllById(recipientIds);
+
+                if (recipients.isEmpty()) {
+                        return 0;
+                }
+
+                String content = String.format(
+                                "Vụ việc thu hồi %s đã được xử lý và kết thúc.",
+                                caseCode);
+
+                List<Notification> notifications = recipients.stream()
+                                .map(user -> {
+                                        Notification notification = new Notification();
+                                        notification.setUser(user);
+                                        notification.setType(NotificationType.ALERT);
+                                        notification.setTitle("Thông báo kết thúc vụ việc thu hồi");
+                                        notification.setContent(content);
+                                        notification.setIsRead(false);
+                                        notification.setReadAt(null);
+                                        return notification;
+                                })
+                                .toList();
+
+                notificationRepository.saveAll(notifications);
+
+                log.info("Đã tạo {} thông báo kết thúc vụ việc thu hồi. caseCode={}",
+                                notifications.size(), caseCode);
+
+                return notifications.size();
+        }
+
 }

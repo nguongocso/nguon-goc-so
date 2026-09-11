@@ -13,6 +13,11 @@ export interface NotificationResponse {
   type: NotificationType;
   title: string;
   content: string;
+  /**
+   * ID thực thể nghiệp vụ liên kết (VD: phiếu bàn giao lô hàng).
+   * Null khi thông báo không có thực thể đính kèm.
+   */
+  entityId: string | null;
   isRead: boolean;
   readAt: string | null;
   createdAt: string;

@@ -155,7 +155,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
         long recalledShipmentsCount = 0;
 
         for (Shipment s : shipments) {
-            if (s.getStatus() == ShipmentStatus.RECALLED) {
+            if (s.getStatus() == ShipmentStatus.RECALLED || s.getStatus() == ShipmentStatus.RECALLING) {
                 recalledShipmentsCount++;
             }
 
@@ -284,9 +284,9 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
             case HARVEST -> "Thu hoạch";
             case STORAGE_CONDITION -> "Bảo quản";
             case CORRECTION -> "Đính chính";
+            case HANDOVER -> "Bàn giao";
             case WAREHOUSE_ENTRY -> "Nhập kho HTX";
             case WAREHOUSE_EXIT -> "Xuất kho HTX";
-            case HANDOVER -> "Bàn giao";
             default -> type.name();
         };
     }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import type { Shipment } from "@/types/shipment";
 import {
   BadgeCheck,
   Ban,
+  FileSignature,
   FileText,
   History,
   Package,
@@ -21,6 +22,9 @@ import {
 import { maskId } from "@/lib/utils";
 import { QrCodeGrid } from "./QrCodeGrid";
 import { ExportLabelsDialog } from "./ExportLabelsDialog";
+import { CreateHandoverDialog } from "./CreateHandoverDialog";
+import { HandoverPendingBadge } from "./HandoverPendingBadge";
+import { hasPendingHandover } from "@/api/handoverApi";
 import { ShipmentStatusBadge } from "./ShipmentStatusBadge";
 import { DetailSection } from "@/components/common/detail/DetailSection";
 import { DetailField } from "@/components/common/detail/DetailField";
@@ -75,6 +79,34 @@ export const ShipmentDetailDialog = ({
   // NCL-04-CN-005: Chỉ VT-02 được xuất tem QR
   const canExportLabels = usePermission(ROLE_ACCESS.labelExport);
   const [showLabelsDialog, setShowLabelsDialog] = useState(false);
+  const [showHandoverDialog, setShowHandoverDialog] = useState(false);
+
+  // NCL-05-CN-008: Nút "Tạo phiếu bàn giao" chỉ hiện khi lô đã kích hoạt tem,
+  // chưa thu hồi và không có tem bị khóa.
+  const showHandover = shipment?.status === "ACTIVATED";
+  const hasLockedTraceCodes =
+    shipment?.traceCodes?.some((tc) => tc.status === "LOCKED") ?? false;
+
+  // NCL-05-CN-008: nhãn "Đang bàn giao" khi có phiếu chờ xác nhận.
+  const [pendingHandover, setPendingHandover] = useState(false);
+  useEffect(() => {
+    if (!open || !shipment) {
+      setPendingHandover(false);
+      return;
+    }
+    let cancelled = false;
+    // Best-effort: backend cũ chưa có endpoint thì ẩn nhãn
+    hasPendingHandover(shipment.id)
+      .then((value) => {
+        if (!cancelled) setPendingHandover(value);
+      })
+      .catch(() => {
+        if (!cancelled) setPendingHandover(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, shipment]);
 
   return (
     <>
@@ -116,6 +148,7 @@ export const ShipmentDetailDialog = ({
                   </h3>
 
                   <ShipmentStatusBadge status={shipment.status} />
+                  {pendingHandover && <HandoverPendingBadge />}
                 </div>
 
                 <p className="mt-1 break-all text-sm text-muted-foreground">
@@ -229,6 +262,19 @@ export const ShipmentDetailDialog = ({
                 Xuất hồ sơ
               </Button>
 
+              {/* Tạo phiếu bàn giao — NCL-05-CN-008 */}
+              {showHandover && !hasLockedTraceCodes && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowHandoverDialog(true)}
+                  className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                >
+                  <FileSignature className="mr-1.5 size-3.5" />
+                  Tạo phiếu bàn giao
+                </Button>
+              )}
+
               {/* Export QR Labels — NCL-04-CN-005 */}
               {canExportLabels &&
                 shipment.status !== "DRAFT" &&
@@ -303,6 +349,22 @@ export const ShipmentDetailDialog = ({
         open={showLabelsDialog}
         shipment={shipment}
         onClose={() => setShowLabelsDialog(false)}
+      />
+
+      {/* NCL-05-CN-008: Dialog tạo phiếu bàn giao */}
+      <CreateHandoverDialog
+        open={showHandoverDialog}
+        shipment={shipment}
+        onClose={() => setShowHandoverDialog(false)}
+        onSuccess={() => {
+          setShowHandoverDialog(false);
+          // Vừa tạo phiếu mới → nhãn "Đang bàn giao" phải hiện ngay
+          if (shipment) {
+            hasPendingHandover(shipment.id)
+              .then(setPendingHandover)
+              .catch(() => setPendingHandover(false));
+          }
+        }}
       />
     </>
   );

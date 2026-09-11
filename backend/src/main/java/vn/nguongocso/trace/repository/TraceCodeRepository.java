@@ -170,4 +170,6 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 			@Param("orgId") UUID orgId,
 			@Param("status") TraceCodeStatus status,
 			@Param("search") String search);
+
+	boolean existsByShipmentIdAndStatus(UUID shipmentId, TraceCodeStatus status);
 }

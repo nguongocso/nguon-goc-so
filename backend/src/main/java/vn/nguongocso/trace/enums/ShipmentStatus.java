@@ -12,5 +12,7 @@ public enum ShipmentStatus {
 
     SPLIT, // Đã tách thành các lô con
 
+    RECALLING, // Đang thu hồi
+
     RECALLED // Đã thu hồi
 }

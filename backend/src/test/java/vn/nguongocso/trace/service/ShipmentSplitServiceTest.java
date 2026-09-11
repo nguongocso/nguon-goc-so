@@ -43,6 +43,7 @@ import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.CodeRangeRepository;
+import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.impl.ShipmentServiceImpl;
@@ -65,7 +66,7 @@ class ShipmentSplitServiceTest {
         service = new ShipmentServiceImpl(shipments, codes, mock(CodeRangeRepository.class),
                 mock(ProductionLotRepository.class), mock(QRCodeService.class), users,
                 mock(ApplicationEventPublisher.class), mock(NotificationService.class), permissions,
-                mock(InspectionEligibilityService.class), organizations, events,
+                mock(InspectionEligibilityService.class), organizations, mock(ShipmentHandoverRepository.class), events,
                 new EventHashService(new ObjectMapper()), new ObjectMapper());
         actor = mock(CustomUserDetails.class);
         when(actor.getRoleCode()).thenReturn("VT-02"); when(actor.getOrganizationId()).thenReturn(sourceOrgId);

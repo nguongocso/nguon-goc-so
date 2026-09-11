@@ -1,3 +1,5 @@
+import type { ChainEventType } from '@/enums/chainEventType';
+
 export interface RecordPackagingRequest {
   productionLotId: string;
   packagingSpecification: string;
@@ -17,7 +19,7 @@ export interface CorrectPackagingRequest {
 export interface ChainEventResponse {
   id: string;
   shipmentId: string | null;
-  eventType: 'PREPROCESSING' | 'PACKAGING' | 'HARVEST' | 'TRANSPORT' | 'PROCUREMENT' | 'CORRECTION' | 'SPLIT';
+  eventType: ChainEventType;
   eventData: Record<string, any>;
   latitude: number | null;
   longitude: number | null;

@@ -91,8 +91,8 @@ public class WarehouseReceiptServiceImpl implements WarehouseReceiptService {
 
         // 4. Validate shipment status (QTN-05)
         try {
-            if (shipment.getStatus() == ShipmentStatus.RECALLED) {
-                throw new BusinessException("Lô hàng chưa được kích hoạt hoặc đã bị thu hồi, không thể ghi nhận nhập kho.");
+            if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
+                throw new BusinessException("Lô hàng chưa được kích hoạt hoặc đang/đã bị thu hồi, không thể ghi nhận nhập kho.");
             }
             if (shipment.getStatus() != ShipmentStatus.ACTIVATED) {
                 throw new BusinessException("Lô hàng chưa được kích hoạt hoặc đã bị thu hồi, không thể ghi nhận nhập kho.");

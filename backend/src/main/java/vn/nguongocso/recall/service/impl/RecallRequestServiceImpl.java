@@ -81,8 +81,10 @@ public class RecallRequestServiceImpl implements RecallRequestService {
                 request.getShipmentId(), currentUser.getOrganizationId())
                 .orElseThrow(() -> new BusinessException(MSG_SHIPMENT_NOT_FOUND));
 
-        if (shipment.getStatus() == ShipmentStatus.RECALLED) {
-            throw new BusinessException(MSG_SHIPMENT_ALREADY_RECALLED);
+        if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
+            throw new BusinessException(shipment.getStatus() == ShipmentStatus.RECALLING
+                    ? "Lô hàng đang trong quá trình thu hồi."
+                    : MSG_SHIPMENT_ALREADY_RECALLED);
         }
         validateRecallableShipment(shipment);
 
@@ -148,8 +150,10 @@ public class RecallRequestServiceImpl implements RecallRequestService {
             throw new BusinessException(MSG_SHIPMENT_MISMATCH);
         }
 
-        if (shipment.getStatus() == ShipmentStatus.RECALLED) {
-            throw new BusinessException(MSG_SHIPMENT_ALREADY_RECALLED);
+        if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
+            throw new BusinessException(shipment.getStatus() == ShipmentStatus.RECALLING
+                    ? "Lô hàng đang trong quá trình thu hồi."
+                    : MSG_SHIPMENT_ALREADY_RECALLED);
         }
         validateRecallableShipment(shipment);
 

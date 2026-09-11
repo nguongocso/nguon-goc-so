@@ -183,6 +183,14 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/storage-condition", "Bảo quản"],
   ["/event-chain-verification", "Xác minh chuỗi sự kiện"],
 
+  // Shipment handover (NCL-05-CN-008/CN-009)
+  ["/shipment-handovers/received", "Phiếu bàn giao nhận"],
+  ["/shipment-handovers/sent", "Phiếu bàn giao đã gửi"],
+  ["/shipment-handovers/:id", "Chi tiết phiếu bàn giao"],
+  ["/handover/sent", "Phiếu bàn giao đã gửi"],
+  ["/handover/:id", "Chi tiết phiếu bàn giao"],
+  ["/handover", "Phiếu bàn giao nhận"],
+
   // Mobile / Invitations / Recall / Feedback
   ["/mobile/record-event", "Ghi sự kiện di động"],
   ["/invitations/create", "Tạo lời mời"],
@@ -342,6 +350,14 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
   ["/warehouse-receipt", ROLE_ACCESS.warehouseReceipt],
   ["/storage-condition", ROLE_ACCESS.storageCondition],
   ["/event-chain-verification", ROLE_ACCESS.eventChainVerification],
+
+  // Shipment handover (NCL-05-CN-008/CN-009)
+  ["/shipment-handovers/received", ROLE_ACCESS.handoverReceivedView],
+  ["/shipment-handovers/sent", ROLE_ACCESS.handoverSentView],
+  ["/shipment-handovers/:id", AUTHENTICATED_ROLE_CODES],
+  ["/handover/sent", ROLE_ACCESS.sentHandoverList],
+  ["/handover/:id", AUTHENTICATED_ROLE_CODES],
+  ["/handover", ROLE_ACCESS.handoverReceivedView],
 
   // Mobile / Invitations / Recall / Feedback
   ["/mobile/record-event", ["VT-02", "VT-03"]],
