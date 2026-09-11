@@ -147,9 +147,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
                 .build();
 
         // Dựng Nhánh Xuôi (Downstream): Lô hàng (Shipments)
-        List<Shipment> shipments = shipmentRepository.findByProductionLotId(productionLot.getId()).stream()
-                .filter(shipment -> shipment.getStatus() != ShipmentStatus.SPLIT)
-                .toList();
+        List<Shipment> shipments = shipmentRepository.findByProductionLotId(productionLot.getId());
         List<ShipmentTraceDto> shipmentDtos = new ArrayList<>();
 
         long totalActivatedStampsAll = 0;
@@ -259,7 +257,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
         }
 
         ImpactScopeSummaryDto summary = ImpactScopeSummaryDto.builder()
-                .totalShipments(shipmentDtos.size())
+                .totalShipments(shipments.stream().filter(shipment -> shipment.getStatus() != ShipmentStatus.SPLIT).count())
                 .totalActivatedStamps(totalActivatedStampsAll)
                 .totalReceivingOrganizations(receivingOrgIds.size())
                 .totalRecalledShipments(recalledShipmentsCount)

@@ -265,6 +265,28 @@ class BulkRecallRequestServiceImplTest {
     }
 
     @Test
+    @DisplayName("TC-04B: Tạo đề nghị thất bại - lô cha đã SPLIT")
+    void createBulkRecallRequest_Fail_SplitParent() {
+        Shipment splitParent = createShipment(shipmentId1, "SHIP-PARENT", ShipmentStatus.SPLIT);
+        CreateBulkRecallRequest request = new CreateBulkRecallRequest();
+        request.setProductionLotId(productionLotId);
+        request.setReason("Lý do test");
+        request.setIncludedShipmentIds(List.of(shipmentId1));
+
+        when(productionLotRepository.findById(productionLotId)).thenReturn(Optional.of(productionLot));
+        when(bulkRecallRequestRepository.existsByProductionLot_IdAndStatus(
+                productionLotId, BulkRecallRequestStatus.PENDING)).thenReturn(false);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(shipmentRepository.findById(shipmentId1)).thenReturn(Optional.of(splitParent));
+
+        assertThatThrownBy(() -> service.createBulkRecallRequest(request, currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Không thể thu hồi lô cha đã tách");
+
+        verify(bulkRecallRequestRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("TC-05: Tao de nghi that bai - to chuc khac")
     void createBulkRecallRequest_Fail_OrganizationMismatch() {
         UUID otherOrgId = UUID.randomUUID();

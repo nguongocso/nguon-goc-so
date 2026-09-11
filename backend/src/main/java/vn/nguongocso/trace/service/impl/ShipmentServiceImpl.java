@@ -898,5 +898,15 @@ public class ShipmentServiceImpl implements ShipmentService {
     private BusinessException accessDenied() { return splitError(HttpStatus.FORBIDDEN, "Bạn không có quyền tách lô hàng.", "ACCESS_DENIED"); }
     private BusinessException splitError(HttpStatus status, String message, String code) { return new BusinessException(status, message, Map.of("code", code)); }
     private String previewBlockReason(Shipment s, List<TraceCode> codes, long inactive) { if (s.getParentShipment() != null) return "CHILD_SHIPMENT"; if (s.getStatus() == ShipmentStatus.SPLIT || shipmentRepository.existsByParentShipment_Id(s.getId())) return "ALREADY_SPLIT"; if (s.getStatus() != ShipmentStatus.CODE_PRINTED) return "INVALID_STATUS"; if (codes.size() < 2) return "INSUFFICIENT_CODES"; return inactive != codes.size() || codes.size() != s.getTotalQuantity() ? "NON_INACTIVE_CODE_EXISTS" : null; }
-    private String previewMessage(String reason) { return reason == null ? null : "Lô hàng chưa đáp ứng điều kiện tách: " + reason; }
+    private String previewMessage(String reason) {
+        if (reason == null) return null;
+        return switch (reason) {
+            case "INVALID_STATUS" -> "Chỉ có thể tách lô hàng đã sinh mã và chưa kích hoạt.";
+            case "ALREADY_SPLIT" -> "Lô hàng đã được tách trước đó.";
+            case "CHILD_SHIPMENT" -> "Không hỗ trợ tách tiếp một lô con.";
+            case "INSUFFICIENT_CODES" -> "Lô hàng cần ít nhất hai mã tem chưa kích hoạt để tách.";
+            case "NON_INACTIVE_CODE_EXISTS" -> "Tất cả mã tem của lô phải ở trạng thái chưa kích hoạt.";
+            default -> "Lô hàng chưa đáp ứng điều kiện tách.";
+        };
+    }
 }

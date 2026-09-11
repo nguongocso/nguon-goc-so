@@ -195,7 +195,9 @@ export default function SplitShipmentPage() {
           <Summary label="Số tem có thể phân" value={preview.assignableQuantity.toLocaleString('vi-VN')} />
           <Summary
             label="Dải mã hiện có"
-            value={`${preview.availableCodeRange.fromCode} – ${preview.availableCodeRange.toCode}`}
+            value={preview.availableCodeRange
+              ? `${preview.availableCodeRange.fromCode} – ${preview.availableCodeRange.toCode}`
+              : 'Không còn mã để phân bổ'}
           />
         </CardContent>
       </Card>
@@ -287,7 +289,7 @@ export default function SplitShipmentPage() {
                     value={allocation.fromCode}
                     disabled={!preview.canSplit}
                     readOnly
-                    placeholder={preview.availableCodeRange.fromCode}
+                    placeholder={preview.availableCodeRange?.fromCode || 'Không có mã'}
                   />
                 </Field>
                 <Field label="Mã kết thúc (tự động)" required>
@@ -295,7 +297,7 @@ export default function SplitShipmentPage() {
                     value={allocation.toCode}
                     disabled={!preview.canSplit}
                     readOnly
-                    placeholder={preview.availableCodeRange.toCode}
+                    placeholder={preview.availableCodeRange?.toCode || 'Không có mã'}
                   />
                 </Field>
                 <Field label="Quy cách đóng gói">
@@ -313,13 +315,17 @@ export default function SplitShipmentPage() {
         </CardContent>
       </Card>
 
-      <Card className="sticky bottom-4 border-emerald-200 shadow-lg">
+      <Card className="border-emerald-200 shadow-lg lg:sticky lg:bottom-4">
         <CardContent className="flex flex-col gap-4 pt-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="font-semibold text-slate-900">
               Đã phân bổ {validation?.allocatedQuantity.toLocaleString('vi-VN')} / {preview.assignableQuantity.toLocaleString('vi-VN')} tem
             </p>
-            {validation?.errors.length ? (
+            {!preview.canSplit ? (
+              <p className="mt-1 text-sm text-slate-600">
+                Lô hàng không thể phân bổ ở trạng thái hiện tại.
+              </p>
+            ) : validation?.errors.length ? (
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-red-600">
                 {validation.errors.map((error) => <li key={error}>{error}</li>)}
               </ul>
@@ -328,14 +334,18 @@ export default function SplitShipmentPage() {
             )}
           </div>
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="outline" onClick={() => navigate(`/shipments/${shipmentId}`)}>Hủy</Button>
-            <Button
-              type="button"
-              disabled={!preview.canSplit || !validation?.isValid || submitting}
-              onClick={() => setConfirmOpen(true)}
-            >
-              Xác nhận tách lô
+            <Button type="button" variant="outline" onClick={() => navigate(`/shipments/${shipmentId}`)}>
+              {preview.canSplit ? 'Hủy' : 'Quay lại'}
             </Button>
+            {preview.canSplit && (
+              <Button
+                type="button"
+                disabled={!validation?.isValid || submitting}
+                onClick={() => setConfirmOpen(true)}
+              >
+                Xác nhận tách lô
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

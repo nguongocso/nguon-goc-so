@@ -54,6 +54,7 @@ public class RecallRequestServiceImpl implements RecallRequestService {
     private static final String MSG_SHIPMENT_NOT_FOUND = "Không tìm thấy lô hàng.";
     private static final String MSG_REQUEST_NOT_FOUND = "Không tìm thấy yêu cầu thu hồi.";
     private static final String MSG_SHIPMENT_ALREADY_RECALLED = "Lô hàng đã bị thu hồi trước đó.";
+    private static final String MSG_SPLIT_PARENT_NOT_RECALLABLE = "Không thể thu hồi lô cha đã tách; vui lòng chọn lô con trong phạm vi ảnh hưởng.";
     private static final String MSG_LOT_NOT_ACTIVE = "Chỉ có thể tạo yêu cầu thu hồi cho lô sản xuất đang hiệu lực (APPROVED, HARVESTED hoặc PACKAGED).";
     private static final String MSG_PENDING_EXISTS = "Lô hàng này đã có yêu cầu thu hồi đang chờ duyệt.";
     private static final String MSG_SHIPMENT_REQUIRED = "Phải xác định lô hàng cần thu hồi.";
@@ -83,6 +84,7 @@ public class RecallRequestServiceImpl implements RecallRequestService {
         if (shipment.getStatus() == ShipmentStatus.RECALLED) {
             throw new BusinessException(MSG_SHIPMENT_ALREADY_RECALLED);
         }
+        validateRecallableShipment(shipment);
 
         ProductionLot lot = shipment.getProductionLot();
         if (lot.getStatus() != ProductionLotStatus.APPROVED
@@ -149,6 +151,7 @@ public class RecallRequestServiceImpl implements RecallRequestService {
         if (shipment.getStatus() == ShipmentStatus.RECALLED) {
             throw new BusinessException(MSG_SHIPMENT_ALREADY_RECALLED);
         }
+        validateRecallableShipment(shipment);
 
         ProductionLot lot = shipment.getProductionLot();
         if (lot.getStatus() != ProductionLotStatus.APPROVED
@@ -176,6 +179,12 @@ public class RecallRequestServiceImpl implements RecallRequestService {
 
         RecallRequest saved = recallRequestRepository.save(recallRequest);
         return toResponse(saved);
+    }
+
+    private void validateRecallableShipment(Shipment shipment) {
+        if (shipment.getStatus() == ShipmentStatus.SPLIT) {
+            throw new BusinessException(MSG_SPLIT_PARENT_NOT_RECALLABLE);
+        }
     }
 
     @Override

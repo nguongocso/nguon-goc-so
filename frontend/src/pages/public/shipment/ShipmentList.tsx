@@ -680,14 +680,16 @@ export const ShipmentList = ({
                                 )}
 
                               {((canRecall &&
-                                shipment.status !== "RECALLED") ||
-                                shipment.status === "DRAFT" ||
-                                shipment.status === "CODE_PRINTED") && (
+                                shipment.status !== "RECALLED" &&
+                                shipment.status !== "SPLIT") ||
+                                ((!shipment.parentShipmentId && shipment.status === "DRAFT") ||
+                                (!shipment.parentShipmentId && shipment.status === "CODE_PRINTED"))) && (
                                   <DropdownMenuSeparator />
                                 )}
 
                               {canRecall &&
-                                shipment.status !== "RECALLED" && (
+                                shipment.status !== "RECALLED" &&
+                                shipment.status !== "SPLIT" && (
                                   <DropdownMenuItem
                                     variant="destructive"
                                     onClick={() =>
@@ -699,7 +701,8 @@ export const ShipmentList = ({
                                   </DropdownMenuItem>
                                 )}
 
-                              {(shipment.status === "DRAFT" ||
+                              {!shipment.parentShipmentId &&
+                                (shipment.status === "DRAFT" ||
                                 shipment.status === "CODE_PRINTED") && (
                                   <DropdownMenuItem
                                     variant="destructive"

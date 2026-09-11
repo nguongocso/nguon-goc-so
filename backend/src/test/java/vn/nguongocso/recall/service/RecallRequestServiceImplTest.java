@@ -134,6 +134,23 @@ class RecallRequestServiceImplTest {
     }
 
     @Test
+    void create_shouldThrow_whenShipmentIsSplitParent() {
+        ProductionLot lot = productionLot();
+        Shipment shipment = shipment(lot, "Lô cha đã tách");
+        shipment.setStatus(ShipmentStatus.SPLIT);
+        CreateRecallRequest request = new CreateRecallRequest();
+        request.setShipmentId(shipment.getId());
+        request.setReason("Thu hồi lô cha");
+
+        when(shipmentRepository.findOwnedByIdForRecallUpdate(shipment.getId(), organizationId))
+                .thenReturn(Optional.of(shipment));
+
+        assertThatThrownBy(() -> service.create(request, currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Không thể thu hồi lô cha đã tách");
+    }
+
+    @Test
     void create_shouldThrow_whenPendingRecallExistsForShipment() {
         ProductionLot lot = productionLot();
         Shipment shipment = shipment(lot, "Lô hàng đang chờ duyệt");

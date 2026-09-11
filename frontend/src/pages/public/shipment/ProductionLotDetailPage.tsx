@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   ClipboardList,
   LoaderCircle,
+  Maximize2,
   Package,
   Plus,
   Search,
@@ -682,7 +683,9 @@ export const ProductionLotDetailPage = () => {
       } catch (error) {
         setInspectionRequests([]);
         setInspectionPageData(null);
-        setInspectionError("Không thể tải danh sách yêu cầu kiểm nghiệm");
+        setInspectionError(
+          getApiErrorMessage(error, "Không thể tải danh sách yêu cầu kiểm nghiệm"),
+        );
       } finally {
         setInspectionLoading(false);
       }
@@ -880,8 +883,8 @@ export const ProductionLotDetailPage = () => {
     }
   }, [id]);
 
-    useEffect(() => {
-    if (canInspect && id) {
+  useEffect(() => {
+    if (canInspect && id && activeTab === "inspection") {
       void loadInspectionRequests(inspectionStatus, inspectionPage);
       void loadCanActivateCheck();
       void loadInspectionInsights();
@@ -1071,7 +1074,10 @@ export const ProductionLotDetailPage = () => {
   }
 
 
-  const mandatoryInspection = productCategoryInfo?.requiresInspection ?? false;
+  const mandatoryInspection =
+    productCategoryInfo?.requiresInspection ??
+    lot.inspectionValidity?.requiresInspection ??
+    false;
 
   const deriveInspectionStatus = (): "NOT_INSPECTED" | "PASSED" | "FAILED" | "EXPIRED" | "RE_INSPECTION_PENDING" => {
     if (!mandatoryInspection) return "PASSED";
@@ -2399,11 +2405,13 @@ export const ProductionLotDetailPage = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-7 px-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                      className="h-8 px-2.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
                       title="Mở rộng lịch sử yêu cầu kiểm nghiệm"
+                      aria-label="Mở rộng lịch sử yêu cầu kiểm nghiệm"
                       onClick={() => setShowInspectionHistoryModal(true)}
                     >
-                      &gt;&gt;&gt;
+                      <Maximize2 className="mr-1 h-3.5 w-3.5" />
+                      Xem tất cả
                     </Button>
                   </div>
                   <Button

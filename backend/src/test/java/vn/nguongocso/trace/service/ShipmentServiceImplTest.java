@@ -38,6 +38,7 @@ import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.trace.dto.request.CreateShipmentRequest;
 import vn.nguongocso.trace.dto.response.ShipmentResponse;
+import vn.nguongocso.trace.dto.response.SplitPreviewResponse;
 import vn.nguongocso.trace.entity.CodeRange;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
@@ -682,5 +683,37 @@ class ShipmentServiceImplTest {
         // Assert
         assertThat(response).isNotNull();
         verify(permissionChecker, times(1)).check("shipment", "READ");
+    }
+
+    @Test
+    void getSplitPreview_ShouldReturnUserFriendlyMessage_WhenShipmentAlreadyActivated() {
+        Shipment shipment = new Shipment();
+        shipment.setId(shipmentId);
+        shipment.setOrganization(organization);
+        shipment.setProductionLot(productionLot);
+        shipment.setName("Lô hàng đã kích hoạt");
+        shipment.setTotalQuantity(2L);
+        shipment.setStatus(ShipmentStatus.ACTIVATED);
+
+        TraceCode firstCode = new TraceCode();
+        firstCode.setId(UUID.randomUUID());
+        firstCode.setCodeValue("NCL000001");
+        firstCode.setStatus(TraceCodeStatus.ACTIVE);
+
+        TraceCode secondCode = new TraceCode();
+        secondCode.setId(UUID.randomUUID());
+        secondCode.setCodeValue("NCL000002");
+        secondCode.setStatus(TraceCodeStatus.ACTIVE);
+
+        when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
+        when(traceCodeRepository.findByShipmentId(shipmentId))
+                .thenReturn(List.of(firstCode, secondCode));
+
+        SplitPreviewResponse response = shipmentService.getSplitPreview(shipmentId);
+
+        assertThat(response.isCanSplit()).isFalse();
+        assertThat(response.getBlockReasonCode()).isEqualTo("INVALID_STATUS");
+        assertThat(response.getBlockMessage())
+                .isEqualTo("Chỉ có thể tách lô hàng đã sinh mã và chưa kích hoạt.");
     }
 }

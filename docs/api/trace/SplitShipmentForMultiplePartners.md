@@ -190,6 +190,7 @@ Nguyên tắc:
 - Các lô con được tạo ở trạng thái `CODE_PRINTED`; toàn bộ mã của lô con vẫn là `INACTIVE` và được kích hoạt riêng theo luồng hiện có.
 - `CodeRange.usedCount` không thay đổi.
 - `Shipment.totalQuantity` của lô cha giữ nguyên để audit; báo cáo nghiệp vụ phải loại lô `SPLIT` khỏi tổng lưu hành để tránh đếm kép.
+- Lô con `CODE_PRINTED` không được đi vào luồng hủy bản nháp vì thao tác này sẽ xóa mã đã được phân bổ và làm sai `CodeRange.usedCount`.
 
 ### BR-701-08 – Giao dịch và đồng thời
 
@@ -238,6 +239,7 @@ Theo QTN-24, khi truy vết ảnh hưởng từ lô sản xuất, hệ thống p
 - mọi lô con lá phát sinh từ lô cha phải nằm trong phạm vi ảnh hưởng mặc định;
 - nếu loại một lô con khỏi đề nghị thu hồi, người dùng phải nhập lý do theo QTN-24;
 - việc tính tổng phạm vi không được cộng đồng thời số lượng lô cha và lô con.
+- Các API tạo yêu cầu thu hồi đơn, từ phản ánh, hàng loạt và API thu hồi trực tiếp đều phải từ chối lô cha `SPLIT`.
 
 ## 6. Mô hình trạng thái
 
@@ -340,6 +342,8 @@ Cho giao diện biết lô có đủ điều kiện tách hay không và hiển 
   "timestamp": "2026-09-10T08:05:00Z"
 }
 ```
+
+`availableCodeRange` là nullable. Khi lô không còn mã, API trả `null`, `canSplit = false` và frontend phải hiển thị trạng thái không đủ điều kiện thay vì đọc trực tiếp `fromCode`/`toCode`.
 
 Khi lô không đủ điều kiện, endpoint vẫn trả `200` với `canSplit = false` và một trong các mã:
 
@@ -622,6 +626,11 @@ Mọi truy vấn tổng số lượng shipment phải loại `status = SPLIT` ho
 - [ ] **TC-17 – Trạng thái tem:** Chặn toàn bộ thao tác nếu lô cha có ít nhất một mã không phải `INACTIVE`.
 - [ ] **TC-18 – Thu hồi theo QTN-24:** Truy vết từ lô sản xuất đưa mọi lô con lá vào phạm vi mặc định, không đếm kép lô cha.
 - [ ] **TC-19 – Payload lớn:** Response tách không trả toàn bộ mã tem; API vẫn đáp ứng với lô có nhiều mã.
+- [ ] **TC-20 – Bảo vệ lineage:** Không cho hủy nháp lô con `CODE_PRINTED`; không xóa mã, không giảm `CodeRange.usedCount` và không làm mất quan hệ với lô cha.
+- [ ] **TC-21 – Lô cha đã tách:** Không cho tạo/duyệt yêu cầu thu hồi hoặc thu hồi trực tiếp lô cha `SPLIT`; các lô con lá vẫn có thể được chọn theo QTN-24.
+- [ ] **TC-22 – Preview không có mã:** Frontend xử lý `availableCodeRange = null` và không phát sinh lỗi render.
+- [ ] **TC-23 – Nguồn timeline:** Nhãn sự kiện `PRODUCTION_LOT` hiển thị là kế thừa từ lô sản xuất; `SOURCE_SHIPMENT` hiển thị là kế thừa từ lô cha.
+- [ ] **TC-24 – Dữ liệu mở:** Kết xuất chỉ chứa lô lưu hành/lô con, không chứa đồng thời parent `SPLIT` và các lô con.
 
 ## 15. Tác động frontend
 

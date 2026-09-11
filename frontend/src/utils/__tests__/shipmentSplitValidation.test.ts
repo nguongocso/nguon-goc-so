@@ -121,4 +121,15 @@ describe('validateShipmentSplit', () => {
     expect(result.isValid).toBe(false);
     expect(result.errors.some((error) => error.includes('bị hở hoặc chồng lấn'))).toBe(true);
   });
+
+  it('xử lý preview không còn dải mã mà không phát sinh lỗi', () => {
+    const previewWithoutCodes = { ...preview, availableCodeRange: null, canSplit: false };
+    const allocations = [allocation({}), allocation({ recipientOrganizationId: 'partner-2' })];
+
+    expect(assignSequentialCodeRanges(previewWithoutCodes, allocations)).toEqual(allocations);
+    expect(validateShipmentSplit(previewWithoutCodes, allocations)).toMatchObject({
+      isValid: false,
+      errors: expect.arrayContaining(['Lô hàng không còn dải mã để phân bổ.']),
+    });
+  });
 });

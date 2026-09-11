@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -232,6 +233,22 @@ class EventValidationServiceImplTest {
         assertThatThrownBy(() -> eventValidationService.deleteDraft(shipment.getId(), currentUser))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("Không thể hủy bản nháp");
+    }
+
+    @Test
+    void deleteDraft_fail_splitChild() {
+        Shipment parent = new Shipment();
+        parent.setId(UUID.randomUUID());
+        shipment.setStatus(ShipmentStatus.CODE_PRINTED);
+        shipment.setParentShipment(parent);
+        when(shipmentRepository.findById(shipment.getId())).thenReturn(Optional.of(shipment));
+
+        assertThatThrownBy(() -> eventValidationService.deleteDraft(shipment.getId(), currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Không thể hủy lô con");
+
+        verify(traceCodeRepository, never()).deleteByShipmentId(shipment.getId());
+        verify(shipmentRepository, never()).delete(shipment);
     }
 
     @Test

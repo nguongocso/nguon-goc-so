@@ -13,7 +13,7 @@ export interface ShipmentSplitPreview {
   declaredQuantity: number;
   assignableQuantity: number;
   nonInactiveQuantity: number;
-  availableCodeRange: ShipmentCodeRange;
+  availableCodeRange: ShipmentCodeRange | null;
   canSplit: boolean;
   blockReasonCode: string | null;
   blockMessage: string | null;

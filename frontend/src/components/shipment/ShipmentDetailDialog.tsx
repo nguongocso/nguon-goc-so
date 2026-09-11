@@ -67,9 +67,10 @@ export const ShipmentDetailDialog = ({
   const showActivate =
     canActivate && shipment?.status === "CODE_PRINTED";
   const showRecall =
-    canRecall && shipment?.status !== "RECALLED";
+    canRecall && shipment?.status !== "RECALLED" && shipment?.status !== "SPLIT";
   const showDeleteDraft =
-    shipment?.status === "DRAFT" || shipment?.status === "CODE_PRINTED";
+    !shipment?.parentShipmentId &&
+    (shipment?.status === "DRAFT" || shipment?.status === "CODE_PRINTED");
 
   // NCL-04-CN-005: Chỉ VT-02 được xuất tem QR
   const canExportLabels = usePermission(ROLE_ACCESS.labelExport);

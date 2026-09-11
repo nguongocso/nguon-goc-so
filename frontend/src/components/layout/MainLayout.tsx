@@ -148,7 +148,7 @@ export function MainLayout() {
           isMobile={isMobile}
           isTablet={isTablet}
         />
-        <main className="min-w-0 flex-1 p-3 sm:p-4 md:p-5 lg:p-6 xl:p-8">
+        <main className="min-w-0 flex-1 p-3 sm:p-4 md:p-5 md:pl-14 lg:p-6 lg:pl-14 xl:p-8">
           <BreadcrumbOverrideProvider>
             <div className="mx-auto w-full max-w-7xl">
               {/* Breadcrumb điều hướng thống nhất thay cho nút "Quay lại" */}

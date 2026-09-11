@@ -106,7 +106,9 @@ export const ShipmentTimelineItem = ({ event, index, total }: Props) => {
 
         {event.inherited && (
           <div className="mt-2 rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-800">
-            Sự kiện được kế thừa từ lô cha
+            {event.lineageLevel === 'PRODUCTION_LOT'
+              ? 'Sự kiện được kế thừa từ lô sản xuất'
+              : 'Sự kiện được kế thừa từ lô cha'}
             {event.sourceShipmentId && (
               <span className="ml-1 text-sky-700">({maskId(event.sourceShipmentId)})</span>
             )}.

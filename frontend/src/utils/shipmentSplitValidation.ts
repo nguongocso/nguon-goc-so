@@ -27,6 +27,7 @@ export function assignSequentialCodeRanges(
   preview: ShipmentSplitPreview,
   allocations: ShipmentSplitAllocation[],
 ): ShipmentSplitAllocation[] {
+  if (!preview.availableCodeRange) return allocations;
   const parentStart = parseCode(preview.availableCodeRange.fromCode);
   const parentEnd = parseCode(preview.availableCodeRange.toCode);
   if (!parentStart || !parentEnd || parentStart.prefix !== parentEnd.prefix) return allocations;
@@ -106,6 +107,11 @@ export function validateShipmentSplit(
         ? `Còn thiếu ${remainingQuantity.toLocaleString('vi-VN')} tem chưa phân bổ.`
         : `Đã phân bổ vượt ${Math.abs(remainingQuantity).toLocaleString('vi-VN')} tem.`,
     );
+  }
+
+  if (!preview.availableCodeRange) {
+    errors.push('Lô hàng không còn dải mã để phân bổ.');
+    return { errors: [...new Set(errors)], allocatedQuantity, remainingQuantity, isValid: false };
   }
 
   const parentStart = parseCode(preview.availableCodeRange.fromCode);
