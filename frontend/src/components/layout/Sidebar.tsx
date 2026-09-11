@@ -384,8 +384,8 @@ const MENU_GROUPS: MenuGroup[] = [
         icon: <FileSignature className="h-5 w-5" />,
         label: "Phiếu bàn giao nhận",
         href: "/shipment-handovers/received",
-        allowedRoles: ROLE_ACCESS.handoverReceivedView,
-        activePaths: ["/handover"],
+        allowedRoles: ["VT-02"] as const,
+        activePaths: ["/shipment-handovers/received"],
       },
       {
         icon: <Truck className="h-5 w-5" />,
@@ -402,13 +402,19 @@ const MENU_GROUPS: MenuGroup[] = [
     label: "Thu mua",
     icon: <ShoppingCart className="h-5 w-5" />,
     items: [
-
-{
-          icon: <Warehouse className="h-5 w-5" />,
-          label: "Nhập kho",
-          href: "/warehouse-receipt",
-          allowedRoles: ROLE_ACCESS.warehouseReceipt,
-        },
+      {
+        icon: <FileSignature className="h-5 w-5" />,
+        label: "Phiếu bàn giao nhận",
+        href: "/handover",
+        allowedRoles: ["VT-04"] as const,
+        activePaths: ["/handover"],
+      },
+      {
+        icon: <Warehouse className="h-5 w-5" />,
+        label: "Nhập kho",
+        href: "/warehouse-receipt",
+        allowedRoles: ROLE_ACCESS.warehouseReceipt,
+      },
     ],
   },
 
@@ -821,14 +827,26 @@ export function Sidebar({
   ];
 
   const isActiveLeaf = (item: MenuItem) => {
-    // Phiếu bàn giao nhận: giữ active khi xem chi tiết phiếu bàn giao
+    // Phiếu bàn giao nhận (VT-04): giữ active khi ở /handover hoặc xem chi tiết
+    if (item.href === "/handover") {
+      if (
+        location.pathname === "/handover" ||
+        location.pathname.startsWith("/handover/") ||
+        (location.pathname.startsWith("/shipment-handovers/") &&
+          !location.pathname.startsWith("/shipment-handovers/sent") &&
+          user?.roleCode === "VT-04")
+      ) {
+        return true;
+      }
+    }
+
+    // Phiếu bàn giao nhận (VT-02): giữ active khi xem chi tiết phiếu bàn giao
     if (item.href === "/shipment-handovers/received") {
       if (
         location.pathname === "/shipment-handovers/received" ||
         (location.pathname.startsWith("/shipment-handovers/") &&
           !location.pathname.startsWith("/shipment-handovers/sent") &&
-          user?.roleCode !== "VT-02") ||
-        location.pathname.startsWith("/handover")
+          user?.roleCode !== "VT-04")
       ) {
         return true;
       }
