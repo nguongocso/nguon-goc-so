@@ -80,24 +80,22 @@ describe("NCL-02-CN-007 - CreateProductionLotPage gộp tạo mới + tạo từ
     vi.mocked(productionLotApi.getProductionLots).mockResolvedValue(lots);
   });
 
-  it("hiển thị dropdown sao chép từ vụ trước và form tạo mới khi không chọn lô mẫu", async () => {
+  it("hiển thị nút sao chép từ vụ trước và form tạo mới khi không chọn lô mẫu", async () => {
     renderPage();
 
-    const sourceSelect = await screen.findByLabelText(
-      /Sao chép từ lô vụ trước/i,
-    ) as HTMLSelectElement;
-    expect(sourceSelect).toBeInTheDocument();
+    const copyButton = await screen.findByRole("button", {
+      name: /Sao chép từ lô vụ trước/i,
+    });
+    expect(copyButton).toBeEnabled();
 
     await waitFor(() => {
       expect(
         screen.getByLabelText(/Tên lô sản xuất/i),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Tạo lô sản xuất" }),
+        screen.getByRole("button", { name: /^Tạo$/ }),
       ).toBeInTheDocument();
     });
-
-    expect(sourceSelect.value).toBe("");
   });
 
   it("chọn lô mẫu gọi clone-preview, prefill form và khóa vùng trồng + loại nông sản", async () => {
@@ -106,32 +104,29 @@ describe("NCL-02-CN-007 - CreateProductionLotPage gộp tạo mới + tạo từ
     );
     renderPage();
 
-    const sourceSelect = await screen.findByLabelText(
-      /Sao chép từ lô vụ trước/i,
+    // Mở chế độ sao chép rồi chọn lô mẫu từ dropdown tên lô.
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Sao chép từ lô vụ trước/i }),
     );
-    fireEvent.change(sourceSelect, { target: { value: "lot-1" } });
+    const lotSelect = (await screen.findByLabelText(
+      /Tên lô sản xuất/i,
+    )) as HTMLSelectElement;
+    fireEvent.change(lotSelect, { target: { value: "lot-1" } });
 
     await waitFor(() => {
       expect(
         productionLotApi.getCloneProductionLotPreview,
       ).toHaveBeenCalledWith("lot-1");
+      expect(screen.getByText("Vùng trồng số 1")).toBeInTheDocument();
+      expect(screen.getByText("Lúa")).toBeInTheDocument();
     });
 
+    // Form remount với tên gợi ý là vụ tiếp theo của lô mẫu.
     expect(
-      await screen.findByText(/Dữ liệu kế thừa từ lô/i),
+      await screen.findByDisplayValue("Lô lúa vụ hè 2025 vụ 2"),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("VietGAP (VG-001)"),
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByDisplayValue("Lô lúa vụ hè 2025"),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText(/Vùng trồng/i)).toBeDisabled();
-    expect(screen.getByLabelText(/Loại nông sản/i)).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: "Tạo lô từ mẫu" }),
-    ).toBeInTheDocument();
+    expect(screen.getAllByLabelText("Kế thừa từ lô mẫu")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: /^Tạo$/ })).toBeInTheDocument();
   });
 
   it("submit khi đã chọn lô mẫu gọi cloneProductionLot với dữ liệu vụ mới", async () => {
@@ -173,13 +168,16 @@ describe("NCL-02-CN-007 - CreateProductionLotPage gộp tạo mới + tạo từ
 
     renderPage();
 
-    const sourceSelect = await screen.findByLabelText(
-      /Sao chép từ lô vụ trước/i,
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Sao chép từ lô vụ trước/i }),
     );
-    fireEvent.change(sourceSelect, { target: { value: "lot-1" } });
+    const lotSelect = (await screen.findByLabelText(
+      /Tên lô sản xuất/i,
+    )) as HTMLSelectElement;
+    fireEvent.change(lotSelect, { target: { value: "lot-1" } });
 
-    // Chờ form được remount + prefill từ lô mẫu trước khi chỉnh sửa.
-    await screen.findByDisplayValue("Lô lúa vụ hè 2025");
+    // Chờ form được remount + prefill từ lô mẫu (tên vụ tiếp theo) trước khi chỉnh sửa.
+    await screen.findByDisplayValue("Lô lúa vụ hè 2025 vụ 2");
 
     fireEvent.change(
       screen.getByLabelText(/Tên lô sản xuất/i),
@@ -189,7 +187,7 @@ describe("NCL-02-CN-007 - CreateProductionLotPage gộp tạo mới + tạo từ
       target: { value: "1200" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Tạo lô từ mẫu" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Tạo$/ }));
 
     await waitFor(() => {
       expect(productionLotApi.cloneProductionLot).toHaveBeenCalledWith(
@@ -204,31 +202,18 @@ describe("NCL-02-CN-007 - CreateProductionLotPage gộp tạo mới + tạo từ
     });
   });
 
-  it("bỏ chọn lô mẫu giữ lại giá trị đã prefill nhưng mở khóa form (về tạo lô thường)", async () => {
-    vi.mocked(productionLotApi.getCloneProductionLotPreview).mockResolvedValue(
-      preview,
-    );
+  it("vô hiệu hóa nút sao chép khi không có lô vụ trước", async () => {
+    vi.mocked(productionLotApi.getProductionLots).mockResolvedValue([]);
     renderPage();
 
-    const sourceSelect = await screen.findByLabelText(
-      /Sao chép từ lô vụ trước/i,
-    );
-    fireEvent.change(sourceSelect, { target: { value: "lot-1" } });
-
-    await screen.findByText(/Dữ liệu kế thừa từ lô/i);
-
-    fireEvent.change(sourceSelect, { target: { value: "" } });
-
-    await waitFor(() => {
-      expect(screen.queryByText(/Dữ liệu kế thừa từ lô/i)).not.toBeInTheDocument();
-      expect(screen.getByLabelText(/Vùng trồng/i)).toBeEnabled();
+    const copyButton = await screen.findByRole("button", {
+      name: /Sao chép từ lô vụ trước/i,
     });
-
+    await waitFor(() => {
+      expect(copyButton).toBeDisabled();
+    });
     expect(
-      screen.getByDisplayValue("Lô lúa vụ hè 2025"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Tạo lô sản xuất" }),
+      screen.getByText("Không có lô vụ trước để sao chép"),
     ).toBeInTheDocument();
   });
 });

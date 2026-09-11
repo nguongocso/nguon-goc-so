@@ -59,10 +59,21 @@ describe('CreateProductionLotForm chế độ clone (NCL-02-CN-007)', () => {
       />,
     );
 
-    expect(screen.getByLabelText(/Vùng trồng/)).toBeDisabled();
-    expect(screen.getByLabelText(/Loại nông sản/)).toBeDisabled();
+    // Chế độ khóa: giá trị kế thừa hiển thị dạng văn bản, không thể sửa.
+    expect(screen.getByText('Vùng trồng số 1')).toBeInTheDocument();
+    expect(screen.getByText('Lúa')).toBeInTheDocument();
+    expect(screen.getAllByLabelText('Kế thừa từ lô mẫu')).toHaveLength(2);
+    expect(
+      screen.queryByRole('combobox', { name: /Vùng trồng/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', { name: /Loại nông sản/ }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByText('Vùng trồng được kế thừa từ lô mẫu, không thay đổi.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Loại nông sản được kế thừa từ lô mẫu, không thay đổi.'),
     ).toBeInTheDocument();
   });
 

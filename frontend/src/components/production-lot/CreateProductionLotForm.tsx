@@ -16,7 +16,7 @@ import type {
   ProductionLot,
 } from "@/types/productionLot";
 import axios from "axios";
-import { CheckCircle2, PackageOpen, Sprout, Copy, X, Lock, Plus } from "lucide-react";
+import { CheckCircle2, PackageOpen, Sprout, Copy, Lock, Plus } from "lucide-react";
 import { useState, type FormEvent, type ReactNode, useEffect } from "react";
 import { getLocalDateString } from "@/utils/dateTime";
 import { selectAllOnFocus, preventMouseUpCollapse } from "@/utils/inputUtils";
@@ -40,8 +40,6 @@ interface CreateProductionLotFormProps {
   isLoadingPreviousLots?: boolean;
   /** Callback khi người dùng chọn một lô vụ trước từ dropdown. */
   onSelectPreviousLot?: (lotId: string) => void;
-  /** Callback khi người dùng hủy chế độ sao chép và quay lại text input. */
-  onCancelCopy?: () => void;
 }
 
 interface FormErrors {
@@ -81,7 +79,6 @@ const CreateProductionLotForm = ({
   previousLots = [],
   isLoadingPreviousLots = false,
   onSelectPreviousLot,
-  onCancelCopy,
 }: CreateProductionLotFormProps) => {
   const [isCopyMode, setIsCopyMode] = useState(false);
   const [suggestedName, setSuggestedName] = useState<string | null>(null);

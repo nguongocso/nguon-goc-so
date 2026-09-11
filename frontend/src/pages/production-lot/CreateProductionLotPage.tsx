@@ -10,7 +10,6 @@ import CreateProductionLotForm from '@/components/production-lot/CreateProductio
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import type {
   CloneProductionLotPreview,
   CreateProductionLotRequest,
@@ -20,20 +19,10 @@ import type {
 } from '@/types/productionLot';
 import { HelpButton } from '@/components/help/HelpButton';
 import axios from 'axios';
-import {
-  AlertTriangle,
-  BadgeCheck,
-  Copy,
-  LoaderCircle,
-  RefreshCw,
-  Sprout,
-} from 'lucide-react';
+import { LoaderCircle, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-
-const selectClassName =
-  'h-10 w-full rounded-lg border border-input bg-white px-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-3 focus:ring-emerald-100';
 
 /**
  * Chuyển dữ liệu preview của lô mẫu thành giá trị khởi tạo của form.
@@ -68,10 +57,8 @@ const CreateProductionLotPage = () => {
 
   const [lots, setLots] = useState<ProductionLot[]>([]);
   const [isLoadingLots, setIsLoadingLots] = useState(true);
-  const [lotsError, setLotsError] = useState('');
 
   // NCL-02-CN-007: chọn lô mẫu vụ trước để tạo nhanh vụ mới (không bắt buộc).
-  const [sourceLotId, setSourceLotId] = useState('');
   const [preview, setPreview] = useState<CloneProductionLotPreview | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [previewError, setPreviewError] = useState('');
@@ -105,12 +92,11 @@ const CreateProductionLotPage = () => {
 
   const loadLots = useCallback(async () => {
     setIsLoadingLots(true);
-    setLotsError('');
     try {
       const data = await getProductionLots();
       setLots(data);
     } catch {
-      setLotsError('Không thể tải danh sách lô sản xuất. Vui lòng thử lại.');
+      // Dropdown lô vụ trước là tính năng phụ: khi lỗi thì rỗng, không chặn tạo lô.
     } finally {
       setIsLoadingLots(false);
     }
@@ -253,7 +239,6 @@ const CreateProductionLotPage = () => {
               submitLabel="Tạo"
               infoBanner={undefined}
               onSelectPreviousLot={(lotId) => {
-                setSourceLotId(lotId);
                 if (lotId) {
                   void loadPreview(lotId);
                 } else {
@@ -261,12 +246,6 @@ const CreateProductionLotPage = () => {
                   setPreviewError('');
                   setIsLoadingPreview(false);
                 }
-              }}
-              onCancelCopy={() => {
-                setSourceLotId('');
-                setPreview(null);
-                setPreviewError('');
-                setIsLoadingPreview(false);
               }}
               onCancel={() => navigate('/production-lots')}
               onSubmit={handleSubmit}
