@@ -6,9 +6,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -57,6 +61,7 @@ public class ShipmentHandoverServiceImpl implements ShipmentHandoverService {
     private final NotificationService notificationService;
     private final PermissionChecker permissionChecker;
     private final HandoverExpiryService handoverExpiryService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${app.handover.expiry-hours:48}")
     private int handoverExpiryHours;
@@ -368,10 +373,27 @@ public class ShipmentHandoverServiceImpl implements ShipmentHandoverService {
     }
 
     private String buildHandoverEventData(ShipmentHandover handover, String action) {
-        return String.format("{\"action\":\"%s\",\"quantity\":%d,\"fromOrgId\":\"%s\",\"toOrgId\":\"%s\"}",
-                action, handover.getQuantity(),
-                handover.getFromOrganization().getOrganizationId(),
-                handover.getToOrganization().getOrganizationId());
+        try {
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("action", action);
+            data.put("quantity", handover.getQuantity());
+            data.put("fromOrgId", handover.getFromOrganization() != null ? handover.getFromOrganization().getOrganizationId() : null);
+            data.put("fromOrganizationName", handover.getFromOrganization() != null ? handover.getFromOrganization().getName() : null);
+            data.put("toOrgId", handover.getToOrganization() != null ? handover.getToOrganization().getOrganizationId() : null);
+            data.put("toOrganizationName", handover.getToOrganization() != null ? handover.getToOrganization().getName() : null);
+            return objectMapper.writeValueAsString(data);
+        } catch (Exception e) {
+            String fromOrgName = handover.getFromOrganization() != null && handover.getFromOrganization().getName() != null
+                    ? handover.getFromOrganization().getName().replace("\"", "\\\"") : "";
+            String toOrgName = handover.getToOrganization() != null && handover.getToOrganization().getName() != null
+                    ? handover.getToOrganization().getName().replace("\"", "\\\"") : "";
+            return String.format("{\"action\":\"%s\",\"quantity\":%d,\"fromOrgId\":\"%s\",\"fromOrganizationName\":\"%s\",\"toOrgId\":\"%s\",\"toOrganizationName\":\"%s\"}",
+                    action, handover.getQuantity(),
+                    handover.getFromOrganization() != null ? handover.getFromOrganization().getOrganizationId() : "",
+                    fromOrgName,
+                    handover.getToOrganization() != null ? handover.getToOrganization().getOrganizationId() : "",
+                    toOrgName);
+        }
     }
 
     /**

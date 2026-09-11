@@ -21,6 +21,7 @@ import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.auth.security.SecurityUtils;
+import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.service.ChainEventService;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.notification.service.NotificationService;
@@ -286,7 +287,13 @@ class ShipmentHandoverServiceTest {
         assertThat(response.getConfirmedAt()).isNotNull();
         assertThat(response.getConfirmedBy()).isEqualTo(userId);
         // QTN-31: Xác nhận phải ghi nhận sự kiện HANDOVER trên timeline và gửi thông báo về bên giao.
-        verify(chainEventService).saveWithChainHash(any());
+        verify(chainEventService).saveWithChainHash(argThat(event ->
+                event.getEventType() == ChainEventType.HANDOVER &&
+                event.getEventData().contains("fromOrganizationName") &&
+                event.getEventData().contains(fromOrganization.getName()) &&
+                event.getEventData().contains("toOrganizationName") &&
+                event.getEventData().contains(toOrganization.getName())
+        ));
         // Thông báo xác nhận gửi về tổ chức GIAO với entityId = phiếu bàn giao.
         verify(notificationService)
                 .sendHandoverNotification(any(), any(), eq(handoverId), eq(toOrganization.getOrganizationId()));
