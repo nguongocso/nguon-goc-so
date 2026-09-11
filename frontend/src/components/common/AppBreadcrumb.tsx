@@ -186,6 +186,7 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/shipment-handovers/received", "Phiếu bàn giao nhận"],
   ["/shipment-handovers/sent", "Phiếu bàn giao đã gửi"],
   ["/shipment-handovers/:id", "Chi tiết phiếu bàn giao"],
+  ["/handover/sent", "Phiếu bàn giao đã gửi"],
   ["/handover/:id", "Chi tiết phiếu bàn giao"],
   ["/handover", "Phiếu bàn giao nhận"],
 
@@ -352,6 +353,7 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
   ["/shipment-handovers/received", ROLE_ACCESS.handoverReceivedView],
   ["/shipment-handovers/sent", ROLE_ACCESS.handoverSentView],
   ["/shipment-handovers/:id", AUTHENTICATED_ROLE_CODES],
+  ["/handover/sent", ROLE_ACCESS.sentHandoverList],
   ["/handover/:id", AUTHENTICATED_ROLE_CODES],
   ["/handover", ROLE_ACCESS.handoverReceivedView],
 

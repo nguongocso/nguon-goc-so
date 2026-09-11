@@ -68,12 +68,17 @@ export const HandoverDetailPage = () => {
   const [rejectReason, setRejectReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
 
+  const isSender = user?.roleCode === "VT-02";
   const isHandoverRoute = location.pathname.startsWith("/handover");
-  const handoverListHref = isHandoverRoute ? "/handover" : "/shipment-handovers/received";
+
+  const handoverListLabel = isSender ? "Phiếu bàn giao đã gửi" : "Phiếu bàn giao nhận";
+  const handoverListHref = isSender
+    ? (isHandoverRoute ? "/handover/sent" : "/shipment-handovers/sent")
+    : (isHandoverRoute ? "/handover" : "/shipment-handovers/received");
 
   useSetBreadcrumb([
     { label: "Tổng quan", href: "/dashboard" },
-    { label: "Phiếu bàn giao nhận", href: handoverListHref },
+    { label: handoverListLabel, href: handoverListHref },
     { label: "Chi tiết phiếu bàn giao" },
   ]);
 
