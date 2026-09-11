@@ -58,6 +58,11 @@ public interface ShipmentHandoverService {
     PageResponse<HandoverSummaryResponse> listForCurrentOrganization(String status, String search, int page, int size);
 
     /**
+     * Lấy danh sách phiếu bàn giao của tổ chức hiện tại theo vai trò (VT-02: đã gửi, VT-04: đã nhận).
+     */
+    PageResponse<HandoverSummaryResponse> listForCurrentOrganization(String status, String search, int page, int size, vn.nguongocso.auth.service.CustomUserDetails currentUser);
+
+    /**
      * Lấy số lượng còn lại có thể bàn giao của lô hàng.
      */
     Long getRemainingQuantity(UUID shipmentId);

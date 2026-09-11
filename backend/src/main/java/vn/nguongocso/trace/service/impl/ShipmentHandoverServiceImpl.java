@@ -259,7 +259,14 @@ public class ShipmentHandoverServiceImpl implements ShipmentHandoverService {
 
     @Override
     public PageResponse<HandoverSummaryResponse> listForCurrentOrganization(String status, String search, int page, int size) {
-        CustomUserDetails currentUser = getCurrentUser();
+        return listForCurrentOrganization(status, search, page, size, getCurrentUser());
+    }
+
+    @Override
+    public PageResponse<HandoverSummaryResponse> listForCurrentOrganization(String status, String search, int page, int size, CustomUserDetails currentUser) {
+        if (currentUser == null) {
+            currentUser = getCurrentUser();
+        }
         handoverExpiryService.expireOverdueHandovers();
 
         ShipmentHandoverStatus parsedStatus = null;
@@ -278,11 +285,18 @@ public class ShipmentHandoverServiceImpl implements ShipmentHandoverService {
         String keyword = (search != null && !search.isBlank()) ? search.trim() : null;
         Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size), Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        Page<ShipmentHandover> paged = handoverRepository.findReceivedHandoversWithFilters(
-                currentUser.getOrganizationId(),
-                parsedStatus,
-                keyword,
-                pageable);
+        boolean isSender = "VT-02".equals(currentUser.getRoleCode());
+        Page<ShipmentHandover> paged = isSender
+                ? handoverRepository.findSentHandoversWithFilters(
+                        currentUser.getOrganizationId(),
+                        parsedStatus,
+                        keyword,
+                        pageable)
+                : handoverRepository.findReceivedHandoversWithFilters(
+                        currentUser.getOrganizationId(),
+                        parsedStatus,
+                        keyword,
+                        pageable);
 
         return PageResponse.from(paged, paged.getContent().stream().map(this::mapToSummaryResponse).toList());
     }

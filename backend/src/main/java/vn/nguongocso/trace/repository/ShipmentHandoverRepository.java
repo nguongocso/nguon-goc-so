@@ -38,6 +38,10 @@ public interface ShipmentHandoverRepository extends JpaRepository<ShipmentHandov
     List<ShipmentHandover> findExpiredPending(@Param("status") ShipmentHandoverStatus status,
                                               @Param("now") LocalDateTime now);
 
+    /**
+     * Truy vấn danh sách phiếu bàn giao mà tổ chức hiện tại là BÊN NHẬN (VT-04).
+     * Hỗ trợ lọc theo trạng thái, tìm kiếm theo tên lô hàng / tên tổ chức giao và phân trang.
+     */
     @Query("SELECT h FROM ShipmentHandover h " +
            "WHERE h.toOrganization.organizationId = :orgId " +
            "AND (:status IS NULL OR h.status = :status) " +
@@ -46,6 +50,23 @@ public interface ShipmentHandoverRepository extends JpaRepository<ShipmentHandov
            "     OR LOWER(h.fromOrganization.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
            "ORDER BY h.createdAt DESC")
     Page<ShipmentHandover> findReceivedHandoversWithFilters(
+            @Param("orgId") UUID orgId,
+            @Param("status") ShipmentHandoverStatus status,
+            @Param("keyword") String keyword,
+            Pageable pageable);
+
+    /**
+     * Truy vấn danh sách phiếu bàn giao mà tổ chức hiện tại là BÊN GIAO (VT-02).
+     * Hỗ trợ lọc theo trạng thái, tìm kiếm theo tên lô hàng / tên tổ chức nhận và phân trang.
+     */
+    @Query("SELECT h FROM ShipmentHandover h " +
+           "WHERE h.fromOrganization.organizationId = :orgId " +
+           "AND (:status IS NULL OR h.status = :status) " +
+           "AND (:keyword IS NULL OR :keyword = '' " +
+           "     OR LOWER(h.shipment.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "     OR LOWER(h.toOrganization.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+           "ORDER BY h.createdAt DESC")
+    Page<ShipmentHandover> findSentHandoversWithFilters(
             @Param("orgId") UUID orgId,
             @Param("status") ShipmentHandoverStatus status,
             @Param("keyword") String keyword,

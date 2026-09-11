@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.trace.dto.request.CancelHandoverRequest;
@@ -22,7 +24,7 @@ import vn.nguongocso.trace.dto.response.HandoverSummaryResponse;
 import vn.nguongocso.trace.service.ShipmentHandoverService;
 
 /**
- * Controller xử lý API danh sách và thao tác phiếu bàn giao cho tổ chức thu mua (VT-04).
+ * Controller xử lý API danh sách và thao tác phiếu bàn giao cho tổ chức bàn giao (VT-02) và thu mua (VT-04).
  */
 @RestController
 @RequestMapping("/api/v1/handovers")
@@ -32,18 +34,20 @@ public class HandoverController {
     private final ShipmentHandoverService handoverService;
 
     /**
-     * Lấy danh sách phiếu bàn giao nhận của tổ chức hiện tại.
+     * Lấy danh sách phiếu bàn giao của tổ chức hiện tại.
      * Hỗ trợ tìm kiếm, lọc trạng thái và phân trang.
-     * Dành riêng cho Doanh nghiệp thu mua (VT-04) và Quản lý HTX bên nhận (VT-02).
+     * - VT-04: Phiếu nhận (toOrganization = currentUser.organization)
+     * - VT-02: Phiếu đã gửi (fromOrganization = currentUser.organization)
      */
     @GetMapping
-    @PreAuthorize("hasRole('VT-04')")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<PageResponse<HandoverSummaryResponse>>> list(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        PageResponse<HandoverSummaryResponse> response = handoverService.listForCurrentOrganization(status, search, page, size);
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        PageResponse<HandoverSummaryResponse> response = handoverService.listForCurrentOrganization(status, search, page, size, currentUser);
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
