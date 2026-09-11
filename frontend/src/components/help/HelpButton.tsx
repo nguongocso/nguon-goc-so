@@ -192,10 +192,11 @@ const LOCAL_HELP_CONTENT: Record<
   'bulk-recall-request-list': {
     title: 'Yêu cầu thu hồi theo phạm vi ảnh hưởng',
     steps: [
-      'Xem danh sách các yêu cầu thu hồi theo phạm vi ảnh hưởng',
-      'Sử dụng tìm kiếm hoặc lọc trạng thái để tìm yêu cầu cần xử lý',
-      'Chọn "Chi tiết" để xem thông tin yêu cầu và phạm vi các lô bị ảnh hưởng',
-      'Với yêu cầu "Chờ duyệt", tài khoản có quyền phê duyệt có thể "Phê duyệt" hoặc "Từ chối" yêu cầu',
+      'Xem danh sách các yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng của hợp tác xã',
+      'Sử dụng thanh tìm kiếm hoặc lọc trạng thái (Chờ duyệt, Đã duyệt, Từ chối, Đã xử lý) để tra cứu yêu cầu cần xử lý',
+      'Tại cột "Thao tác", với yêu cầu "Chờ duyệt": Quản lý HTX có thể nhấn icon Phê duyệt (dấu tích xanh) hoặc Từ chối (dấu X đỏ) và nhập lý do',
+      'Tại cột "Thao tác", với yêu cầu "Đã duyệt": Quản lý HTX nhấn icon Kết thúc vụ việc (sổ kiểm tra) để ghi nhận kết quả xử lý các lô, biện pháp khắc phục và đính kèm tối đa 5 tệp biên bản (.pdf, .docx)',
+      'Tại cột "Chi tiết", chọn biểu tượng Chi tiết (con mắt) để xem toàn bộ thông tin yêu cầu, danh sách lô hàng ảnh hưởng, tiến trình và mở xem tệp biên bản đính kèm trên tab mới',
     ],
   },
   'bulk-recall-request-create': {

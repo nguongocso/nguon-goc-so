@@ -45,6 +45,9 @@ import vn.nguongocso.trace.service.SuspectDetectionService;
 import vn.nguongocso.recall.entity.RecallRequest;
 import vn.nguongocso.recall.enums.RecallRequestStatus;
 import vn.nguongocso.recall.repository.RecallRequestRepository;
+import vn.nguongocso.recall.entity.BulkRecallShipment;
+import vn.nguongocso.recall.enums.BulkRecallRequestStatus;
+import vn.nguongocso.recall.repository.BulkRecallShipmentRepository;
 import vn.nguongocso.trace.recall.entity.RecallCase;
 import vn.nguongocso.trace.recall.enums.RecallCaseStatus;
 import vn.nguongocso.trace.recall.repository.RecallCaseRepository;
@@ -69,6 +72,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
     private final RecallRepository recallRepository;
     private final RecallRequestRepository recallRequestRepository;
     private final RecallCaseRepository recallCaseRepository;
+    private final BulkRecallShipmentRepository bulkRecallShipmentRepository;
     private final ProductionLotCertificationRepository productionLotCertificationRepository;
     private final InspectionRequestRepository inspectionRequestRepository;
     private final InspectionCriterionResultRepository inspectionCriterionResultRepository;
@@ -165,7 +169,8 @@ public class PublicTraceServiceImpl implements PublicTraceService {
 
         validateTraceCodeLookup(traceCode);
 
-        boolean isRecalled = shipment.getStatus() == ShipmentStatus.RECALLED;
+        boolean isRecalled = shipment.getStatus() == ShipmentStatus.RECALLED
+                || shipment.getStatus() == ShipmentStatus.RECALLING;
 
         String recallMessage = null;
         if (isRecalled) {
@@ -267,17 +272,38 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                     : "";
             return "LÔ HÀNG ĐÃ XỬ LÝ XONG. Vụ việc thu hồi đã đóng ngày " + dateStr + ".";
         }
+
+        // Kiểm tra yêu cầu thu hồi hàng loạt đã duyệt (NCL-08-CN-011)
+        Optional<BulkRecallShipment> bulkRecallShipment = bulkRecallShipmentRepository
+                .findTopByShipment_IdAndIncludedAndBulkRecallRequest_StatusOrderByCreatedAtDesc(
+                        shipment.getId(), true, BulkRecallRequestStatus.APPROVED);
+        if (bulkRecallShipment.isPresent()) {
+            String reason = bulkRecallShipment.get().getBulkRecallRequest().getReason();
+            if (shipment.getStatus() == ShipmentStatus.RECALLING) {
+                return "CẢNH BÁO: Lô hàng đang trong quá trình thu hồi. Lý do: " + reason;
+            }
+            return reason;
+        }
+
         Optional<RecallRequest> approvedRequest = recallRequestRepository
                 .findTopByShipment_IdAndStatusOrderByApprovedAtDesc(
                         shipment.getId(), RecallRequestStatus.APPROVED);
         if (approvedRequest.isPresent()) {
-            return approvedRequest.get().getReason();
+            String reason = approvedRequest.get().getReason();
+            if (shipment.getStatus() == ShipmentStatus.RECALLING) {
+                return "CẢNH BÁO: Lô hàng đang trong quá trình thu hồi. Lý do: " + reason;
+            }
+            return reason;
         }
 
         return recallRepository
                 .findTopByShipmentOrderByRecalledAtDesc(shipment)
-                .map(Recall::getReason)
-                .orElse("Lô hàng này đã bị thu hồi.");
+                .map(r -> shipment.getStatus() == ShipmentStatus.RECALLING
+                        ? "CẢNH BÁO: Lô hàng đang trong quá trình thu hồi. Lý do: " + r.getReason()
+                        : r.getReason())
+                .orElse(shipment.getStatus() == ShipmentStatus.RECALLING
+                        ? "CẢNH BÁO: Lô hàng đang trong quá trình thu hồi."
+                        : "Lô hàng này đã bị thu hồi.");
     }
 
     /**
@@ -293,7 +319,8 @@ public class PublicTraceServiceImpl implements PublicTraceService {
             throw new BusinessException("Mã tem này đã được đánh dấu HỦY do sự cố in hỏng/lỗi tem và không có giá trị truy xuất nguồn gốc.");
         }
 
-        boolean isRecalled = shipment.getStatus() == ShipmentStatus.RECALLED;
+        boolean isRecalled = shipment.getStatus() == ShipmentStatus.RECALLED
+                || shipment.getStatus() == ShipmentStatus.RECALLING;
         boolean isLocked = traceCode.getStatus() == TraceCodeStatus.LOCKED;
 
         if (!isRecalled && !isLocked && traceCode.getStatus() != TraceCodeStatus.ACTIVE

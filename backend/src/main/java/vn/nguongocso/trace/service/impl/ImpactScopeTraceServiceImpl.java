@@ -155,7 +155,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
         long recalledShipmentsCount = 0;
 
         for (Shipment s : shipments) {
-            if (s.getStatus() == ShipmentStatus.RECALLED) {
+            if (s.getStatus() == ShipmentStatus.RECALLED || s.getStatus() == ShipmentStatus.RECALLING) {
                 recalledShipmentsCount++;
             }
 

@@ -28,3 +28,19 @@ export function isoToLocalDateTimeInputValue(iso: string): string {
   if (Number.isNaN(parsed.getTime())) return getLocalDateTimeString();
   return getLocalDateTimeString(parsed);
 }
+
+/** Chuyển ISO timestamp sang định dạng hiển thị ngày giờ tiếng Việt dd/MM/yyyy HH:mm */
+export function formatDateTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+

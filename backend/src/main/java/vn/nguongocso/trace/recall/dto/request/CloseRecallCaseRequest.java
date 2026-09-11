@@ -4,6 +4,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import vn.nguongocso.trace.recall.enums.LotResolution;
 
@@ -21,7 +22,8 @@ public class CloseRecallCaseRequest {
     @NotBlank(message = "Biện pháp khắc phục phòng ngừa không được để trống.")
     private String remediationMeasures;
 
-    /** Danh sách ID tệp biên bản/bằng chứng đã upload (tùy chọn). */
+    /** Danh sách ID tệp biên bản/bằng chứng đã upload (tối đa 5 tệp). */
+    @Size(max = 5, message = "Chỉ được đính kèm tối đa 5 tệp biên bản.")
     private List<UUID> evidenceFileIds;
 
     /** Kết quả xử lý từng lô — bắt buộc và phải phủ hết các lô trong vụ việc. */

@@ -326,8 +326,18 @@ public class TraceCodeStatusServiceImpl implements TraceCodeStatusService {
                     .build());
         }
 
-        // 7. Sự kiện thu hồi nếu mã/lô hàng ở trạng thái RECALLED
-        if (tc.getStatus() == TraceCodeStatus.RECALLED
+        // 7. Sự kiện thu hồi nếu mã/lô hàng ở trạng thái RECALLING hoặc RECALLED
+        if (tc.getShipment() != null && tc.getShipment().getStatus() == ShipmentStatus.RECALLING) {
+            LocalDateTime recallTime = (tc.getShipment().getUpdatedAt() != null)
+                    ? tc.getShipment().getUpdatedAt()
+                    : LocalDateTime.now();
+            list.add(HistoryEvent.builder()
+                    .type("RECALLING")
+                    .timestamp(recallTime)
+                    .details("Lô hàng đang trong quá trình thu hồi")
+                    .actorName("Hệ thống")
+                    .build());
+        } else if (tc.getStatus() == TraceCodeStatus.RECALLED
                 || (tc.getShipment() != null && tc.getShipment().getStatus() == ShipmentStatus.RECALLED)) {
             LocalDateTime recallTime = (tc.getShipment() != null && tc.getShipment().getUpdatedAt() != null)
                     ? tc.getShipment().getUpdatedAt()

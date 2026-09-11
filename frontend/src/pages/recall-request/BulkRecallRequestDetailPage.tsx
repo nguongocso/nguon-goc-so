@@ -13,37 +13,43 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { LoaderCircle, XCircle, AlertTriangle, Package } from 'lucide-react';
+import { LoaderCircle, XCircle, AlertTriangle, Package, ClipboardCheck, ExternalLink, FileText } from 'lucide-react';
 import {
   approveBulkRecallRequest,
   getBulkRecallRequest,
+  getEvidenceDownloadUrl,
   rejectBulkRecallRequest,
 } from '@/api/recallApi';
 import { useAuth } from '@/hooks/useAuth';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
+import { CloseBulkRecallDialog, RESOLUTION_LABEL } from './CloseBulkRecallDialog';
 import type { BulkRecallRequest, BulkRecallShipmentItem } from '@/types/bulkRecall';
 
 const STATUS_MAP: Record<string, { label: string; tone: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }> = {
   PENDING: { label: 'Chờ duyệt', tone: 'warning' },
-  APPROVED: { label: 'Đã duyệt', tone: 'success' },
+  APPROVED: { label: 'Đã duyệt', tone: 'info' },
+  COMPLETED: { label: 'Đã xử lý', tone: 'success' },
   REJECTED: { label: 'Đã từ chối', tone: 'danger' },
 };
 
 const SHIPMENT_STATUS_MAP: Record<string, { label: string; tone: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }> = {
   ACTIVATED: { label: 'Đã kích hoạt', tone: 'success' },
   DRAFT: { label: 'Dự thảo', tone: 'neutral' },
+  RECALLING: { label: 'Đang thu hồi', tone: 'warning' },
   RECALLED: { label: 'Đã thu hồi', tone: 'danger' },
   CODE_PRINTED: { label: 'Đã in mã', tone: 'info' },
 };
 
 /**
- * Trang chi tiết yêu cầu thu hồi hàng loạt (NCL-08-CN-011).
+ * Trang chi tiết yêu cầu thu hồi hàng loạt (NCL-08-CN-011, NCL-08-CN-012).
  * 
  * Hiển thị:
  * - Thông tin yêu cầu
  * - Danh sách lô hàng trong phạm vi
  * - Nút phê duyệt/từ chối (nếu có quyền)
+ * - Nút kết thúc vụ việc (nếu đã duyệt)
+ * - Thông tin kết quả xử lý và biện pháp khắc phục (khi đã hoàn thành)
  */
 export const BulkRecallRequestDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -62,6 +68,7 @@ export const BulkRecallRequestDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -86,8 +93,14 @@ export const BulkRecallRequestDetailPage = () => {
   // Kiểm tra user có phải là người tạo không
   const isOwnRequest = user?.userId === request?.requestedBy?.userId;
 
+  // Quyền quản lý hợp tác xã (VT-02) hoặc Admin (VT-01)
+  const isManager = user?.roleCode === 'VT-02' || user?.roleCode === 'VT-01';
+
   // Kiểm tra có thể approve không
-  const canApprove = request?.status === 'PENDING' && !isOwnRequest;
+  const canApprove = request?.status === 'PENDING' && !isOwnRequest && isManager;
+
+  // Kiểm tra có thể kết thúc vụ việc thu hồi không (NCL-08-CN-012)
+  const canClose = request?.status === 'APPROVED' && isManager;
 
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return '—';
@@ -106,8 +119,7 @@ export const BulkRecallRequestDetailPage = () => {
         remarks: remarks.trim() || undefined,
       });
       toast.success(
-        `Đã phê duyệt yêu cầu thu hồi. Tổng số lô chuyển sang trạng thái "Đã thu hồi": ${
-          result.shipments?.filter(s => s.included).length || 0
+        `Đã phê duyệt yêu cầu thu hồi. Tổng số lô chuyển sang trạng thái "Đang thu hồi": ${result.shipments?.filter(s => s.included).length || 0
         }`,
       );
       setApproveDialogOpen(false);
@@ -151,7 +163,7 @@ export const BulkRecallRequestDetailPage = () => {
       <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-500">
         <XCircle className="w-12 h-12 mb-4" />
         <p>Không tìm thấy yêu cầu thu hồi</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate('/recall-requests')}>
+        <Button variant="outline" className="mt-4" onClick={() => navigate('/recall-requests/bulk')}>
           Quay lại danh sách
         </Button>
       </div>
@@ -170,10 +182,12 @@ export const BulkRecallRequestDetailPage = () => {
             Yêu cầu thu hồi hàng loạt
           </h1>
         </div>
-        <StatusBadge
-          label={STATUS_MAP[request.status]?.label || request.status}
-          tone={STATUS_MAP[request.status]?.tone || 'neutral'}
-        />
+        <div className="flex items-center gap-3">
+          <StatusBadge
+            label={STATUS_MAP[request.status]?.label || request.status}
+            tone={STATUS_MAP[request.status]?.tone || 'neutral'}
+          />
+        </div>
       </div>
 
       {/* Thông tin yêu cầu */}
@@ -220,15 +234,76 @@ export const BulkRecallRequestDetailPage = () => {
         </div>
       )}
 
-      {/* Danh sách lô hàng */}
+      {/* Thông tin kết thúc vụ việc khi đã hoàn thành (COMPLETED) */}
+      {request.status === 'COMPLETED' && (
+        <Card className="border-emerald-200 bg-emerald-50/20">
+          <CardContent className="p-6">
+            <h2 className="text-lg font-semibold text-emerald-900 mb-4 flex items-center gap-2">
+              <ClipboardCheck className="w-5 h-5 text-emerald-600" />
+              Kết quả xử lý & Biện pháp khắc phục phòng ngừa
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-slate-500">Người kết thúc:</span>
+                <p className="font-medium text-slate-800">{request.closedBy?.fullName || '—'}</p>
+              </div>
+              <div>
+                <span className="text-slate-500">Thời gian kết thúc:</span>
+                <p className="font-medium text-slate-800">{formatDate(request.closedAt)}</p>
+              </div>
+              {((request.evidenceFiles && request.evidenceFiles.length > 0) ||
+                (request.evidenceFileIds && request.evidenceFileIds.length > 0)) && (
+                  <div className="md:col-span-2 space-y-1.5">
+                    <span className="text-slate-500 font-medium text-xs">
+                      Tệp biên bản / bằng chứng thu hồi:
+                    </span>
+                    {request.evidenceFiles && request.evidenceFiles.length > 0 ? (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {request.evidenceFiles.map((file) => (
+                          <a
+                            key={file.id}
+                            href={getEvidenceDownloadUrl(file.id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-emerald-300 bg-white hover:bg-emerald-50 text-emerald-800 text-xs transition-colors shadow-xs group"
+                            title="Bấm để mở xem tệp trong tab mới của trình duyệt"
+                          >
+                            <FileText className="h-3.5 w-3.5 text-emerald-600 group-hover:text-emerald-700" />
+                            <span className="font-medium max-w-[200px] truncate group-hover:underline">{file.fileName}</span>
+                            <span className="text-slate-400 text-[11px]">
+                              ({Math.round(file.fileSize / 1024)} KB)
+                            </span>
+                            <ExternalLink className="h-3 w-3 text-slate-400 group-hover:text-emerald-700 ml-0.5" />
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="font-mono text-xs text-slate-700 mt-0.5">
+                        {request.evidenceFileIds?.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                )}
+              {request.remediationMeasures && (
+                <div className="md:col-span-2 bg-white p-3 rounded-lg border border-emerald-200">
+                  <span className="text-slate-700 font-medium">Biện pháp khắc phục phòng ngừa chung:</span>
+                  <p className="mt-1 text-slate-800 whitespace-pre-line text-sm">{request.remediationMeasures}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Danh sách lô hàng trong phạm vi */}
       <Card>
         <CardContent className="p-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">
             Phạm vi thu hồi ({includedShipments.length} lô)
           </h2>
-          
+
           {includedShipments.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {includedShipments.map((shipment) => (
                 <ShipmentItem key={shipment.id} shipment={shipment} />
               ))}
@@ -260,25 +335,25 @@ export const BulkRecallRequestDetailPage = () => {
         <Card>
           <CardContent className="p-6">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">
-              {request.status === 'APPROVED' ? 'Thông tin phê duyệt' : 'Thông tin từ chối'}
+              {request.status === 'REJECTED' ? 'Thông tin từ chối' : 'Thông tin phê duyệt'}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-slate-500">
-                  {request.status === 'APPROVED' ? 'Người phê duyệt:' : 'Người từ chối:'}
+                  {request.status === 'REJECTED' ? 'Người từ chối:' : 'Người phê duyệt:'}
                 </span>
                 <p className="font-medium">
-                  {request.status === 'APPROVED' 
-                    ? request.approvedBy?.fullName 
-                    : request.rejectedBy?.fullName}
+                  {request.status === 'REJECTED'
+                    ? request.rejectedBy?.fullName
+                    : request.approvedBy?.fullName}
                 </p>
               </div>
               <div>
                 <span className="text-slate-500">
-                  {request.status === 'APPROVED' ? 'Thời gian phê duyệt:' : 'Thời gian từ chối:'}
+                  {request.status === 'REJECTED' ? 'Thời gian từ chối:' : 'Thời gian phê duyệt:'}
                 </span>
                 <p className="font-medium">
-                  {formatDate(request.status === 'APPROVED' ? request.approvedAt : request.rejectedAt)}
+                  {formatDate(request.status === 'REJECTED' ? request.rejectedAt : request.approvedAt)}
                 </p>
               </div>
               {request.approvalRemarks && (
@@ -299,35 +374,45 @@ export const BulkRecallRequestDetailPage = () => {
       )}
 
       {/* Action buttons */}
-      {canApprove && (
-        <div className="flex gap-3">
+      <div className="flex gap-3">
+        {canApprove && (
+          <>
+            <Button
+              variant="outline"
+              onClick={() => setRejectDialogOpen(true)}
+            >
+              Từ chối
+            </Button>
+            <Button onClick={() => setApproveDialogOpen(true)}>
+              Phê duyệt
+            </Button>
+          </>
+        )}
+        {canClose && (
           <Button
-            variant="outline"
-            onClick={() => setRejectDialogOpen(true)}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+            onClick={() => setCloseDialogOpen(true)}
           >
-            Từ chối
+            Kết thúc vụ việc
           </Button>
-          <Button onClick={() => setApproveDialogOpen(true)}>
-            Phê duyệt
-          </Button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Approve Confirmation Dialog */}
       <AlertDialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-                        <AlertDialogTitle>Phê duyệt yêu cầu thu hồi hàng loạt</AlertDialogTitle>
+            <AlertDialogTitle>Phê duyệt yêu cầu thu hồi hàng loạt</AlertDialogTitle>
           </AlertDialogHeader>
           <div className="space-y-4">
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
               <p className="font-medium mb-1">Cảnh báo quan trọng</p>
               <p>
                 Sau khi phê duyệt, {includedShipments.length} lô hàng trong phạm vi sẽ chuyển sang trạng thái{' '}
-                <strong>"Đã thu hồi"</strong> và hệ thống sẽ:
+                <strong>"Đang thu hồi"</strong> và hệ thống sẽ:
               </p>
               <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>Kích hoạt cảnh báo công khai cho từng mã tem</li>
+                <li>Bật cảnh báo thu hồi công khai khi tra cứu tem cho các lô hàng này</li>
                 <li>Gửi thông báo đến các doanh nghiệp thu mua liên quan</li>
               </ul>
             </div>
@@ -377,6 +462,14 @@ export const BulkRecallRequestDetailPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Close Bulk Recall Dialog (NCL-08-CN-012) */}
+      <CloseBulkRecallDialog
+        open={closeDialogOpen}
+        bulkRequest={request}
+        onClose={() => setCloseDialogOpen(false)}
+        onSuccess={load}
+      />
     </div>
   );
 };
@@ -395,29 +488,61 @@ const ShipmentItem: React.FC<{ shipment: BulkRecallShipmentItem; excluded?: bool
 
   return (
     <div
-      className={`flex items-center justify-between p-3 rounded-lg border ${
-        excluded ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-200'
-      }`}
+      className={`p-3.5 rounded-lg border ${excluded ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-200'
+        }`}
     >
-      <div className="flex items-center gap-3">
-        <Package className={`w-5 h-5 ${excluded ? 'text-slate-400' : 'text-blue-500'}`} />
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-sm">{shipment.shipmentName}</span>
-            <StatusBadge label={statusInfo.label} tone={statusInfo.tone} />
-            {excluded && (
-              <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
-                Bị loại
-              </span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Package className={`w-5 h-5 ${excluded ? 'text-slate-400' : 'text-blue-500'}`} />
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-sm text-slate-900">{shipment.shipmentName}</span>
+              <StatusBadge label={statusInfo.label} tone={statusInfo.tone} />
+              {excluded && (
+                <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
+                  Bị loại
+                </span>
+              )}
+            </div>
+            {excluded && shipment.exclusionReason && (
+              <p className="text-xs text-slate-500 mt-1">
+                Lý do loại: {shipment.exclusionReason}
+              </p>
             )}
           </div>
-          {excluded && shipment.exclusionReason && (
-            <p className="text-xs text-slate-500 mt-1">
-              Lý do loại: {shipment.exclusionReason}
-            </p>
+        </div>
+
+        {shipment.totalQuantity != null && (
+          <div className="text-xs text-muted-foreground">
+            Tổng: <span className="font-medium text-slate-700">{shipment.totalQuantity}</span>{' '}
+            {shipment.unit || ''}
+          </div>
+        )}
+      </div>
+
+      {/* Kết quả xử lý lô khi vụ việc đã kết thúc */}
+      {shipment.resolution && (
+        <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs bg-emerald-50/40 p-2.5 rounded-md">
+          <div className="flex items-center gap-2">
+            <span className="text-slate-600">Kết quả xử lý:</span>
+            <span className="font-semibold text-emerald-800">
+              {RESOLUTION_LABEL[shipment.resolution] || shipment.resolution}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-600">Thu hồi được:</span>
+            <span className="font-semibold text-emerald-800">
+              {shipment.recoveredQuantity ?? 0} {shipment.unit || ''}
+            </span>
+          </div>
+          {shipment.notes && (
+            <div className="w-full text-slate-700 mt-1 bg-white/70 p-2 rounded border border-emerald-100">
+              <span className="font-medium text-slate-800">Biện pháp khắc phục: </span>
+              {shipment.notes}
+            </div>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 };

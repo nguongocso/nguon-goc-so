@@ -21,6 +21,10 @@ public interface RecallCaseRepository extends JpaRepository<RecallCase, UUID> {
 
     Optional<RecallCase> findByIdAndOrganizationId(UUID id, UUID organizationId);
 
+    Optional<RecallCase> findByProductionLotIdAndStatus(UUID productionLotId, RecallCaseStatus status);
+
+    Optional<RecallCase> findByProductionLotId(UUID productionLotId);
+
     boolean existsByProductionLotId(UUID productionLotId);
 
     /**

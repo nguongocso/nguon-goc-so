@@ -39,6 +39,8 @@ import vn.nguongocso.farm.service.ProductionLotImportService;
 import vn.nguongocso.farm.service.ProductionLotService;
 import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.report.dto.response.ProductionLotDashboardResponse;
+import vn.nguongocso.certification.dto.response.InspectionScanResult;
+import vn.nguongocso.certification.service.InspectionExpiryService;
 
 /**
  * Controller quản lý lô sản xuất.
@@ -72,6 +74,8 @@ public class ProductionLotController {
         private final ProductionLotImportService productionLotImportService;
 
         private final ProductionLotImportHistoryRepository importHistoryRepository;
+
+        private final InspectionExpiryService inspectionExpiryService;
 
         /**
          * API tạo mới lô sản xuất.
@@ -511,4 +515,20 @@ public class ProductionLotController {
                 return ResponseEntity.ok(
                                 ApiResult.success(response));
         }
-}
+
+        /**
+         * API kích hoạt quét và kiểm tra hạn kết quả kiểm nghiệm của các lô sản xuất (NCL-11-CN-004).
+         *
+         * <p>
+         * Dành cho Quản trị viên (VT-01) kích hoạt thủ công ngoài scheduler định kỳ.
+         * </p>
+         *
+         * @return kết quả quét chi tiết
+         */
+        @PostMapping("/check-inspection-expiry")
+        @PreAuthorize("hasRole('VT-01')")
+        public ResponseEntity<ApiResult<InspectionScanResult>> checkInspectionExpiry() {
+                InspectionScanResult result = inspectionExpiryService.scanAndAlertExpiringInspections();
+                return ResponseEntity.ok(ApiResult.success(result));
+        }
+}

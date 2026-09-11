@@ -74,15 +74,16 @@ public class RecallRequestServiceImpl implements RecallRequestService {
     private final NotificationService notificationService;
 
     @Override
-    @Auditable(action = "CREATE_RECALL_REQUEST", entityType = "RECALL_REQUEST",
-            description = "'Tạo yêu cầu thu hồi lô hàng ID: ' + #request.shipmentId")
+    @Auditable(action = "CREATE_RECALL_REQUEST", entityType = "RECALL_REQUEST", description = "'Tạo yêu cầu thu hồi lô hàng ID: ' + #request.shipmentId")
     public RecallRequestResponse create(CreateRecallRequest request, CustomUserDetails currentUser) {
         Shipment shipment = shipmentRepository.findOwnedByIdForRecallUpdate(
                 request.getShipmentId(), currentUser.getOrganizationId())
                 .orElseThrow(() -> new BusinessException(MSG_SHIPMENT_NOT_FOUND));
 
-        if (shipment.getStatus() == ShipmentStatus.RECALLED) {
-            throw new BusinessException(MSG_SHIPMENT_ALREADY_RECALLED);
+        if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
+            throw new BusinessException(shipment.getStatus() == ShipmentStatus.RECALLING
+                    ? "Lô hàng đang trong quá trình thu hồi."
+                    : MSG_SHIPMENT_ALREADY_RECALLED);
         }
 
         ProductionLot lot = shipment.getProductionLot();
@@ -106,7 +107,8 @@ public class RecallRequestServiceImpl implements RecallRequestService {
         recallRequest.setRequestedAt(LocalDateTime.now());
         recallRequest.setReason(request.getReason().trim());
         recallRequest.setEvidence(request.getEvidence() != null && !request.getEvidence().isBlank()
-                ? request.getEvidence().trim() : null);
+                ? request.getEvidence().trim()
+                : null);
         recallRequest.setStatus(RecallRequestStatus.PENDING);
 
         RecallRequest saved = recallRequestRepository.save(recallRequest);
@@ -114,8 +116,7 @@ public class RecallRequestServiceImpl implements RecallRequestService {
     }
 
     @Override
-    @Auditable(action = "CREATE_RECALL_REQUEST", entityType = "RECALL_REQUEST",
-            description = "'Tạo yêu cầu thu hồi từ phản ánh ID: ' + #feedback.id")
+    @Auditable(action = "CREATE_RECALL_REQUEST", entityType = "RECALL_REQUEST", description = "'Tạo yêu cầu thu hồi từ phản ánh ID: ' + #feedback.id")
     public RecallRequestResponse createFromFeedback(
             ProductFeedback feedback,
             UUID requestedShipmentId,
@@ -147,8 +148,10 @@ public class RecallRequestServiceImpl implements RecallRequestService {
             throw new BusinessException(MSG_SHIPMENT_MISMATCH);
         }
 
-        if (shipment.getStatus() == ShipmentStatus.RECALLED) {
-            throw new BusinessException(MSG_SHIPMENT_ALREADY_RECALLED);
+        if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
+            throw new BusinessException(shipment.getStatus() == ShipmentStatus.RECALLING
+                    ? "Lô hàng đang trong quá trình thu hồi."
+                    : MSG_SHIPMENT_ALREADY_RECALLED);
         }
 
         ProductionLot lot = shipment.getProductionLot();
@@ -223,8 +226,7 @@ public class RecallRequestServiceImpl implements RecallRequestService {
     }
 
     @Override
-    @Auditable(action = "APPROVE_RECALL_REQUEST", entityType = "RECALL_REQUEST",
-            description = "'Duyệt yêu cầu thu hồi ID: ' + #id")
+    @Auditable(action = "APPROVE_RECALL_REQUEST", entityType = "RECALL_REQUEST", description = "'Duyệt yêu cầu thu hồi ID: ' + #id")
     public RecallRequestResponse approve(UUID id, ApproveRecallRequest request, CustomUserDetails currentUser) {
         RecallRequest recallRequest = recallRequestRepository.findByIdAndProductionLot_Organization_OrganizationId(
                 id, currentUser.getOrganizationId())
@@ -248,8 +250,7 @@ public class RecallRequestServiceImpl implements RecallRequestService {
                 .orElseThrow(() -> new BusinessException(MSG_USER_NOT_FOUND));
 
         // Thu hồi lô hàng và toàn bộ mã tem thuộc lô hàng đó
-        vn.nguongocso.trace.dto.request.RecallRequest shipmentRecall =
-                new vn.nguongocso.trace.dto.request.RecallRequest();
+        vn.nguongocso.trace.dto.request.RecallRequest shipmentRecall = new vn.nguongocso.trace.dto.request.RecallRequest();
         shipmentRecall.setReason(recallRequest.getReason());
         shipmentRecallService.recallShipment(recallRequest.getShipment().getId(), shipmentRecall, null);
 
@@ -276,8 +277,7 @@ public class RecallRequestServiceImpl implements RecallRequestService {
     }
 
     @Override
-    @Auditable(action = "REJECT_RECALL_REQUEST", entityType = "RECALL_REQUEST",
-            description = "'Từ chối yêu cầu thu hồi ID: ' + #id")
+    @Auditable(action = "REJECT_RECALL_REQUEST", entityType = "RECALL_REQUEST", description = "'Từ chối yêu cầu thu hồi ID: ' + #id")
     public RecallRequestResponse reject(UUID id, RejectRecallRequest request, CustomUserDetails currentUser) {
         RecallRequest recallRequest = recallRequestRepository.findByIdAndProductionLot_Organization_OrganizationId(
                 id, currentUser.getOrganizationId())

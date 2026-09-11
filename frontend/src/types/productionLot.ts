@@ -1,3 +1,5 @@
+import type { InspectionValidityResponse } from './certification';
+
 export interface ProductionLot {
   id: string;
   code?: string;
@@ -31,6 +33,8 @@ export interface ProductionLot {
   disposedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  // NCL-11-CN-004: thông tin hiệu lực kết quả kiểm nghiệm (additive, backward-compatible)
+  inspectionValidity?: InspectionValidityResponse | null;
 }
 
 export interface CancelProductionLotRequest {

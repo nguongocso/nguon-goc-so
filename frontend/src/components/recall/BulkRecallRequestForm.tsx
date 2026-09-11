@@ -12,6 +12,7 @@ import type { ShipmentTraceDto, ProductionLotTraceDto } from '@/types/impactScop
 const LOT_STATUS_MAP: Record<string, { label: string; tone: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }> = {
     ACTIVATED: { label: 'Đã kích hoạt', tone: 'success' },
     DRAFT: { label: 'Dự thảo', tone: 'neutral' },
+    RECALLING: { label: 'Đang thu hồi', tone: 'warning' },
     RECALLED: { label: 'Đã thu hồi', tone: 'danger' },
     CODE_PRINTED: { label: 'Đã in mã', tone: 'info' },
     APPROVED: { label: 'Đã duyệt', tone: 'success' },
@@ -70,7 +71,7 @@ export const BulkRecallRequestForm: React.FC<BulkRecallRequestFormProps> = ({
     const initialItems: LotSelectionItem[] = useMemo(() =>
         shipments.map((ship) => {
             const status = ship.status || '';
-            const isRecalled = status === 'RECALLED';
+            const isRecalled = status === 'RECALLED' || status === 'RECALLING';
             const orgName = ship.receivingOrganizations?.[0]?.organizationName || '';
             return {
                 shipmentId: ship.id,
@@ -80,7 +81,11 @@ export const BulkRecallRequestForm: React.FC<BulkRecallRequestFormProps> = ({
                 organizationName: orgName,
                 isRecalled,
                 included: !isRecalled,
-                exclusionReason: isRecalled ? 'Lô đã được thu hồi trước đó' : '',
+                exclusionReason: status === 'RECALLING'
+                    ? 'Lô hàng đang trong quá trình thu hồi'
+                    : isRecalled
+                        ? 'Lô đã được thu hồi trước đó'
+                        : '',
             };
         }),
         [shipments]

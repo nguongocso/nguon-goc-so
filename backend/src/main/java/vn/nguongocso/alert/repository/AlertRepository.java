@@ -72,4 +72,27 @@ public interface AlertRepository extends JpaRepository<Alert, UUID> {
             UUID relatedEntityId,
             AlertType type,
             AlertStatus status);
+
+    /**
+     * Kiểm tra đã tồn tại cảnh báo cho thực thể cùng loại trong khoảng thời gian (NCL-11-CN-004: chống duplicate trong ngày).
+     */
+    @Query("""
+            SELECT COUNT(a) > 0
+            FROM Alert a
+            WHERE a.relatedEntityId = :relatedEntityId
+              AND a.type = :type
+              AND a.createdAt >= :fromDate
+              AND a.createdAt <= :toDate
+            """)
+    boolean existsAlertToday(
+            @Param("relatedEntityId") UUID relatedEntityId,
+            @Param("type") AlertType type,
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate);
+
+    boolean existsByRelatedEntityIdAndTypeAndCreatedAtBetween(
+            UUID relatedEntityId,
+            AlertType type,
+            LocalDateTime fromDate,
+            LocalDateTime toDate);
 }
