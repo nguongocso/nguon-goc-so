@@ -415,7 +415,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
 ### 3.1 Cấu hình Tiến trình Quét
 | Thuộc tính | Giá trị mặc định | Mô tả |
 |---|---|---|
-| `app.inspection.expiry-check-cron` | `0 30 1 * * ?` | Biểu thức Cron chạy lúc 01:30 AM hằng ngày |
+| `app.inspection.expiry-check-cron` | `0 0 0 * * ?` | Biểu thức Cron chạy lúc 00:00 (nửa đêm) hằng ngày |
 | `app.inspection.expiry-warning-threshold-days` | `15` | Ngưỡng cảnh báo trước khi hết hiệu lực (số ngày) |
 
 ### 3.2 Quy trình Xử lý của Scheduler
@@ -436,6 +436,15 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
    - Nếu **CHƯA CÓ**:
      - Lưu bản ghi `Alert` vào bảng `alerts`.
      - Tạo và lưu `Notification` vào bảng `notifications` cho tất cả người dùng có quyền `notification:READ` thuộc tổ chức sở hữu lô.
+
+### 3.3 Quét tức thì tại thời điểm ghi nhận kết quả kiểm nghiệm (Real-time Trigger)
+Khi người dùng thực hiện ghi nhận kết quả kiểm nghiệm (đơn lẻ qua `POST /inspection-criteria/{criterionId}/results` hoặc hàng loạt qua `PUT /inspection-requests/{requestId}/results`):
+1. Hệ thống lưu kết quả và cập nhật trạng thái yêu cầu kiểm nghiệm (`checkAndUpdateRequestStatus`).
+2. Ngay lập tức gọi `inspectionExpiryService.checkAndAlertLotExpiry(lot, LocalDate.now())` để kiểm tra thời hạn hiệu lực của lô.
+3. Nếu trạng thái hiệu lực của lô rơi vào diện cảnh báo (`EXPIRING` với `daysRemaining <= 15` hoặc `EXPIRED`):
+   - Tạo bản ghi `Alert` (loại `INSPECTION_EXPIRING` hoặc `INSPECTION_EXPIRED`).
+   - Gửi ngay lập tức `Notification` đến Quản lý HTX có quyền `notification:READ` mà không cần đợi tiến trình nền 00:00 đêm.
+4. Sau đó qua mỗi ngày vào lúc **00:00**, tiến trình định kỳ tự động chạy để cập nhật ngày hết hạn và nếu tiếp tục có chỉ tiêu/lô nào chuyển sang hết hạn thì tạo cảnh báo và gửi thông báo tiếp theo.
 
 ---
 

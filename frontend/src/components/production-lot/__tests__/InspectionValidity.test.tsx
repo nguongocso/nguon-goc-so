@@ -126,12 +126,12 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
     );
 
     expect(screen.getByText("Sắp hết hiệu lực")).toBeDefined();
-    expect(screen.getByText("Còn 10 ngày")).toBeDefined();
-    expect(screen.getByText("Tiêu chí: Dư lượng thuốc BVTV")).toBeDefined();
+    expect(screen.queryByText("Còn 10 ngày")).toBeNull();
+    expect(screen.queryByText("Tiêu chí: Dư lượng thuốc BVTV")).toBeNull();
   });
 
-  // Case 2: API trả EXPIRED -> hiển thị "Hết hiệu lực", "Quá hạn X ngày", tên tiêu chí và CTA tạo yêu cầu kiểm nghiệm mới
-  it("Case 2: Lô có kết quả kiểm nghiệm hết hạn (EXPIRED) -> hiển thị badge Hết hiệu lực, tiêu chí quá hạn và CTA Tạo yêu cầu kiểm nghiệm mới", () => {
+  // Case 2: API trả EXPIRED -> hiển thị "Hết hiệu lực", không hiển thị số ngày quá hạn hay tiêu chí trong bảng danh sách
+  it("Case 2: Lô có kết quả kiểm nghiệm hết hạn (EXPIRED) -> hiển thị badge Hết hiệu lực trong danh sách", () => {
     const expiredLot: ProductionLot = {
       ...baseLot,
       id: "lot-expired-2",
@@ -167,8 +167,8 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
     );
 
     expect(screen.getByText("Hết hiệu lực")).toBeDefined();
-    expect(screen.getByText("Quá hạn 5 ngày")).toBeDefined();
-    expect(screen.getByText("Tiêu chí: Kim loại nặng")).toBeDefined();
+    expect(screen.queryByText("Quá hạn 5 ngày")).toBeNull();
+    expect(screen.queryByText("Tiêu chí: Kim loại nặng")).toBeNull();
   });
 
   // Case 3: Lô đã thu hồi (RECALLED) -> không hiển thị cảnh báo sắp hết hiệu lực / CTA
@@ -253,8 +253,8 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
     expect(screen.queryByText("Tạo yêu cầu kiểm nghiệm mới")).toBeNull();
   });
 
-  // Case 5: Click CTA Tạo yêu cầu kiểm nghiệm mới -> điều hướng đúng route
-  it("Case 5: Bấm CTA Tạo yêu cầu kiểm nghiệm mới -> điều hướng đúng sang route tạo yêu cầu kiểm nghiệm của chính lô đó", () => {
+  // Case 5: Tại danh sách Lô sản xuất, cột Hiệu lực kiểm nghiệm chỉ hiển thị trạng thái hiện tại, không hiển thị CTA
+  it("Case 5: Tại danh sách Lô sản xuất, cột Hiệu lực kiểm nghiệm hiển thị trạng thái Hết hiệu lực gọn gàng, không hiển thị nút CTA", () => {
     const expiredLot: ProductionLot = {
       ...baseLot,
       id: "lot-action-5",
@@ -288,12 +288,8 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
       />,
     );
 
-    const ctaButton = screen.getByText("Tạo yêu cầu kiểm nghiệm mới");
-    fireEvent.click(ctaButton);
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      "/production-lots/lot-action-5/inspection-requests/create",
-    );
+    expect(screen.getByText("Hết hiệu lực")).toBeDefined();
+    expect(screen.queryByText("Tạo yêu cầu kiểm nghiệm mới")).toBeNull();
   });
 
   // Case 6: API error / field missing / null inspectionValidity -> UI fallback an toàn, không crash

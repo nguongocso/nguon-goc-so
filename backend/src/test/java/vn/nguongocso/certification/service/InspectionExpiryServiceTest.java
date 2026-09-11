@@ -327,4 +327,84 @@ class InspectionExpiryServiceTest {
         assertThat(result.getNotificationsSent()).isEqualTo(1);
         verify(notificationService, times(1)).sendInspectionExpiryNotification(any(Alert.class), eq(lot), eq(validity));
     }
+
+    @Test
+    @DisplayName("checkAndAlertLotExpiry: Lô có kết quả kiểm nghiệm sắp hết hạn (<= 15 ngày) -> tạo Alert và Notification ngay lập tức")
+    void testCheckAndAlertLotExpiry_expiring_createsAlertAndNotification() {
+        InspectionValidityResponse validity = InspectionValidityResponse.builder()
+                .requiresInspection(true)
+                .status(InspectionValidityStatus.EXPIRING)
+                .earliestExpiryDate(today.plusDays(7))
+                .daysRemaining(7L)
+                .inactiveStampCount(100L)
+                .totalStamps(100L)
+                .canActivate(true)
+                .build();
+
+        when(inspectionValidityService.calculateValidity(lot, today)).thenReturn(validity);
+        when(alertRepository.existsAlertToday(eq(lot.getId()), eq(AlertType.INSPECTION_EXPIRING), any(), any()))
+                .thenReturn(false);
+
+        boolean alerted = inspectionExpiryService.checkAndAlertLotExpiry(lot, today);
+
+        assertThat(alerted).isTrue();
+        ArgumentCaptor<Alert> alertCaptor = ArgumentCaptor.forClass(Alert.class);
+        verify(alertRepository, times(1)).save(alertCaptor.capture());
+        assertThat(alertCaptor.getValue().getType()).isEqualTo(AlertType.INSPECTION_EXPIRING);
+        verify(notificationService, times(1)).sendInspectionExpiryNotification(any(Alert.class), eq(lot), eq(validity));
+    }
+
+    @Test
+    @DisplayName("checkAndAlertLotExpiry: Lô có kết quả kiểm nghiệm đã hết hạn -> tạo Alert EXPIRED và tự động resolve alert EXPIRING")
+    void testCheckAndAlertLotExpiry_expired_createsAlertAndResolvesExpiring() {
+        InspectionValidityResponse validity = InspectionValidityResponse.builder()
+                .requiresInspection(true)
+                .status(InspectionValidityStatus.EXPIRED)
+                .earliestExpiryDate(today.minusDays(1))
+                .daysOverdue(1L)
+                .inactiveStampCount(100L)
+                .totalStamps(100L)
+                .canActivate(false)
+                .build();
+
+        when(inspectionValidityService.calculateValidity(lot, today)).thenReturn(validity);
+        when(alertRepository.existsAlertToday(eq(lot.getId()), eq(AlertType.INSPECTION_EXPIRED), any(), any()))
+                .thenReturn(false);
+        when(alertRepository.findByRelatedEntityIdAndTypeAndStatus(lot.getId(), AlertType.INSPECTION_EXPIRING, AlertStatus.PENDING))
+                .thenReturn(List.of());
+
+        boolean alerted = inspectionExpiryService.checkAndAlertLotExpiry(lot, today);
+
+        assertThat(alerted).isTrue();
+        ArgumentCaptor<Alert> alertCaptor = ArgumentCaptor.forClass(Alert.class);
+        verify(alertRepository, times(1)).save(alertCaptor.capture());
+        assertThat(alertCaptor.getValue().getType()).isEqualTo(AlertType.INSPECTION_EXPIRED);
+        verify(notificationService, times(1)).sendInspectionExpiryNotification(any(Alert.class), eq(lot), eq(validity));
+    }
+
+    @Test
+    @DisplayName("checkAndAlertLotExpiry: Lô có kết quả kiểm nghiệm còn hạn dài (> 15 ngày) -> không tạo Alert")
+    void testCheckAndAlertLotExpiry_valid_doesNotAlert() {
+        InspectionValidityResponse validity = InspectionValidityResponse.builder()
+                .requiresInspection(true)
+                .status(InspectionValidityStatus.VALID)
+                .earliestExpiryDate(today.plusDays(30))
+                .daysRemaining(30L)
+                .inactiveStampCount(100L)
+                .totalStamps(100L)
+                .canActivate(true)
+                .build();
+
+        when(inspectionValidityService.calculateValidity(lot, today)).thenReturn(validity);
+        when(alertRepository.findByRelatedEntityIdAndTypeAndStatus(lot.getId(), AlertType.INSPECTION_EXPIRING, AlertStatus.PENDING))
+                .thenReturn(List.of());
+        when(alertRepository.findByRelatedEntityIdAndTypeAndStatus(lot.getId(), AlertType.INSPECTION_EXPIRED, AlertStatus.PENDING))
+                .thenReturn(List.of());
+
+        boolean alerted = inspectionExpiryService.checkAndAlertLotExpiry(lot, today);
+
+        assertThat(alerted).isFalse();
+        verify(alertRepository, never()).save(any(Alert.class));
+        verify(notificationService, never()).sendInspectionExpiryNotification(any(), any(), any());
+    }
 }

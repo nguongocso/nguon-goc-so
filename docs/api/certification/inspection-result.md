@@ -173,8 +173,8 @@ Khi lô ở trạng thái `EXPIRED` (`today > earliestExpiryDate`), frontend hi�
 - Gọi API tạo yêu cầu `POST /api/v1/production-lots/{lotId}/test-requests`.
 - Yêu cầu mới được tạo hoàn toàn độc lập, kết quả cũ được bảo toàn vĩnh viễn trong lịch sử (`GET /production-lots/{lotId}/inspection-history`), không bị xóa hoặc ghi đè.
 
-### 10.4 Tiến trình nền quét cảnh báo hằng ngày
-Tiến trình `InspectionExpiryScheduler` quét định kỳ (mặc định 01:30 AM) để tạo `Alert` (`INSPECTION_EXPIRING` / `INSPECTION_EXPIRED`) và gửi `Notification` cho Quản lý HTX (`VT-02`).
+### 10.4 Tiến trình nền quét cảnh báo hằng ngày và quét tức thì
+Tiến trình `InspectionExpiryScheduler` quét định kỳ (mặc định 00:00 - nửa đêm) để tạo `Alert` (`INSPECTION_EXPIRING` / `INSPECTION_EXPIRED`) và gửi `Notification` cho Quản lý HTX (`VT-02`). Ngoài ra, ngay tại thời điểm ghi nhận kết quả (`POST /inspection-criteria/{criterionId}/results` hoặc `PUT /inspection-requests/{requestId}/results`), hệ thống lập tức quét thời hạn hiệu lực (`<= 15 ngày` hoặc hết hạn) để tạo cảnh báo và gửi thông báo ngay.
 - Chi tiết đặc tả cảnh báo, điều kiện lọc lô, quy tắc chống thông báo trùng trong ngày (`1 lô + 1 loại cảnh báo + 1 ngày = tối đa 1 notification`), và endpoint kích hoạt thủ công `POST /api/v1/production-lots/check-inspection-expiry` được tài liệu hóa chi tiết tại [InspectionExpiryAlert.md](../aler/InspectionExpiryAlert.md).
 
 ## Nguồn code đối chiếu

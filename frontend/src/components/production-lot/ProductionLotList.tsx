@@ -16,7 +16,6 @@ import type {
 import {
   Ban,
   ClipboardCheck,
-  ClipboardList,
   FileUp,
   LoaderCircle,
   NotebookPen,
@@ -248,49 +247,7 @@ export const ProductionLotList = ({
     if (!validity) {
       return <span className="text-xs text-muted-foreground">—</span>;
     }
-    const { status, daysRemaining, daysOverdue, canCreateNewRequest } = validity;
-    return (
-      <div className="flex flex-col gap-1">
-        <InspectionValidityBadge status={status} />
-        {status === "EXPIRING" && daysRemaining != null && (
-          <span className="text-xs text-orange-600 font-medium">
-            Còn {daysRemaining} ngày
-          </span>
-        )}
-        {status === "EXPIRING" && validity.expiringCriteria && validity.expiringCriteria.length > 0 && (
-          <span
-            className="text-[11px] text-muted-foreground truncate max-w-[200px]"
-            title={`Tiêu chí: ${validity.expiringCriteria.join(", ")}`}
-          >
-            Tiêu chí: {validity.expiringCriteria.join(", ")}
-          </span>
-        )}
-        {status === "EXPIRED" && daysOverdue != null && (
-          <span className="text-xs text-rose-600 font-medium">
-            Quá hạn {daysOverdue} ngày
-          </span>
-        )}
-        {status === "EXPIRED" && validity.expiredCriteria && validity.expiredCriteria.length > 0 && (
-          <span
-            className="text-[11px] text-muted-foreground truncate max-w-[200px]"
-            title={`Tiêu chí: ${validity.expiredCriteria.join(", ")}`}
-          >
-            Tiêu chí: {validity.expiredCriteria.join(", ")}
-          </span>
-        )}
-        {status === "EXPIRED" && canCreateNewRequest && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs mt-1"
-            onClick={() => navigate(`/production-lots/${lot.id}/inspection-requests/create`)}
-          >
-            <ClipboardList className="size-3 mr-1" />
-            Tạo yêu cầu kiểm nghiệm mới
-          </Button>
-        )}
-      </div>
-    );
+    return <InspectionValidityBadge status={validity.status} />;
   };
 
   return (

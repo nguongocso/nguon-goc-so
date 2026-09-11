@@ -10,7 +10,7 @@ import vn.nguongocso.certification.service.InspectionExpiryService;
  * Lớp InspectionExpiryScheduler chịu trách nhiệm quét định kỳ thời hạn kết quả kiểm nghiệm
  * của các lô sản xuất và kích hoạt tạo cảnh báo/thông báo.
  * (NCL-11-CN-004)
- * Mặc định chạy vào lúc 01:30 AM hàng ngày.
+ * Mặc định chạy vào lúc 00:00 (nửa đêm) hàng ngày.
  */
 @Component
 @Slf4j
@@ -21,9 +21,9 @@ public class InspectionExpiryScheduler {
 
     /**
      * Tự động quét kiểm tra thời hạn kết quả kiểm nghiệm lô sản xuất.
-     * Cấu hình qua app.inspection.expiry-check-cron, mặc định: 0 30 1 * * ? (01:30 AM).
+     * Cấu hình qua app.inspection.expiry-check-cron, mặc định: 0 0 0 * * ? (00:00 AM hàng ngày).
      */
-    @Scheduled(cron = "${app.inspection.expiry-check-cron:0 30 1 * * ?}")
+    @Scheduled(cron = "${app.inspection.expiry-check-cron:0 0 0 * * ?}")
     public void scheduleInspectionExpiryCheck() {
         log.info("⏰ Bắt đầu chạy Scheduled Job: Quét kiểm tra thời hạn kết quả kiểm nghiệm.");
         try {

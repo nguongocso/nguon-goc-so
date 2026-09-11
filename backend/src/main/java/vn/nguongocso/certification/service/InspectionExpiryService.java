@@ -23,4 +23,15 @@ public interface InspectionExpiryService {
      * @return kết quả tổng hợp sau khi quét
      */
     InspectionScanResult scanAndAlertExpiringInspections(LocalDate today);
+
+    /**
+     * Quét và gửi cảnh báo hết hạn/sắp hết hạn cho một lô sản xuất cụ thể theo ngày chỉ định.
+     * Thường được gọi ngay tại thời điểm ghi nhận kết quả kiểm nghiệm hoặc cập nhật kết quả.
+     *
+     * @param lot lô sản xuất cần kiểm tra
+     * @param today ngày tính toán mốc hiệu lực
+     * @return true nếu đã tạo cảnh báo và gửi thông báo, false nếu bỏ qua hoặc không thỏa mãn điều kiện
+     */
+    boolean checkAndAlertLotExpiry(vn.nguongocso.farm.entity.ProductionLot lot, LocalDate today);
 }
+

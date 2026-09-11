@@ -46,7 +46,7 @@ export const PRODUCTION_LOT_STATUS_CLASSES: Record<ProductionLotStatus, string> 
 /** Nhãn hiển thị cho trạng thái hiệu lực kiểm nghiệm (tiếng Việt). */
 export const INSPECTION_VALIDITY_LABELS: Record<InspectionValidityStatus, string> = {
   NOT_REQUIRED: "Không yêu cầu kiểm nghiệm",
-  NO_VALID_RESULT: "Chưa có kết quả hợp lệ",
+  NO_VALID_RESULT: "Chưa có kết quả kiểm nghiệm",
   VALID: "Còn hiệu lực",
   EXPIRING: "Sắp hết hiệu lực",
   EXPIRED: "Hết hiệu lực",
