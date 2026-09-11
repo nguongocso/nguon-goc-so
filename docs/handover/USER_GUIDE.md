@@ -217,10 +217,41 @@ Tạo **lô hàng** từ lô sản xuất đã đóng gói, cấp **mã truy xu�
 ### 9.3 Các chức năng liên quan
 - **Xuất tem QR để in**: menu/route `label-export`.
 - **Hủy tem / lịch sử hủy tem**: route `/shipments/:id/cancel-labels`.
-- **Thu hồi lô hàng**: menu **Tạo yêu cầu thu hồi** (VT-03) /
-  **Danh sách yêu cầu thu hồi** (VT-02).
 - **Tem nghi vấn** (VT-01): mã bị nghi ngờ quét bất thường.
 - **Cảnh báo tem bất thường** (VT-01, VT-02).
+
+### 9.4 Bàn giao lô hàng giữa HTX và Doanh nghiệp thu mua (NCL-05-CN-008/009)
+- **Bên gửi (VT-02 Quản lý HTX):**
+  1. Menu **Vận hành sản xuất → Bàn giao đã gửi** (route `/handover/sent`).
+  2. Xem danh sách các phiếu bàn giao gửi tới đối tác thu mua kèm trạng thái: `PENDING_CONFIRMATION` (Chờ xác nhận), `ACCEPTED` (Đã nhận), `REJECTED` (Bị từ chối), `CANCELLED` (Đã hủy), `EXPIRED` (Hết hạn).
+  3. Tạo phiếu bàn giao mới: chọn lô hàng, chọn doanh nghiệp thu mua đối tác, nhập số lượng, thông tin xe vận chuyển, người vận chuyển và hạn xác nhận.
+- **Bên nhận (VT-04 Doanh nghiệp thu mua):**
+  1. Menu **Chuỗi cung ứng → Bàn giao lô hàng** (route `/handover`).
+  2. Xem danh sách phiếu bàn giao gửi đến công ty.
+  3. **Xác nhận bàn giao:** Bấm nút **Xác nhận** khi nhận đủ hàng. Hệ thống tự động chuyển quyền sở hữu lô hàng sang bên nhận (`QTN-31`) và ghi sự kiện chuỗi `HANDOVER`.
+  4. **Từ chối bàn giao:** Bấm nút **Từ chối**, nhập lý do (ví dụ: hàng hư hỏng, không đúng quy cách) để trả lại phiếu cho HTX và gửi thông báo cảnh báo.
+
+### 9.5 Quản lý vụ việc thu hồi & Biện pháp khắc phục (NCL-08-CN-011/012)
+- **Truy vết phạm vi ảnh hưởng (VT-02):** Menu **Thu hồi & Cảnh báo → Truy vết phạm vi** (`/trace/impact-scope`), nhập mã lô sản xuất hoặc mã tem để xem toàn bộ danh sách các lô hàng và tem bị ảnh hưởng liên đới.
+- **Yêu cầu thu hồi hàng loạt (VT-02, VT-03):** Menu **Thu hồi & Cảnh báo → Yêu cầu thu hồi** (`/recall-requests/bulk`), chọn lô nguồn, tích chọn các lô hàng cần thu hồi khẩn cấp, nhập lý do vi phạm.
+- **Phê duyệt thu hồi (Nguyên tắc 4 mắt QTN-22):** Quản lý thứ hai của HTX vào xem chi tiết yêu cầu thu hồi và bấm **Phê duyệt**. Khi duyệt, toàn bộ lô hàng được chuyển trạng thái `RECALLING`.
+- **Kết thúc vụ việc thu hồi (VT-02):** Menu **Thu hồi & Cảnh báo → Vụ việc thu hồi** (`/recall-cases`):
+  1. Chọn vụ việc thu hồi đang ở trạng thái `OPEN`.
+  2. Nhập kết quả xử lý cho từng lô hàng: chọn hình thức xử lý (`DESTROYED` - Tiêu hủy, `RETURNED` - Trả về, `REPROCESSED` - Tái chế/xử lý lại, hoặc `UNRECOVERABLE` - Không thể thu hồi kèm giải trình).
+  3. Nhập số lượng thực thu hồi của từng lô.
+  4. Nhập **Biện pháp khắc phục phòng ngừa** (`remediationMeasures` - bắt buộc theo QTN-27).
+  5. Đính kèm biên bản/chứng từ xử lý (file PDF/Word) và bấm **Đóng vụ việc**.
+  6. Vụ việc chuyển sang `CLOSED`, toàn bộ lô hàng chuyển sang `RECALLED`.
+
+### 9.6 Bảng theo dõi tiến độ chuỗi (NCL-10-CN-013)
+- Menu **Vận hành sản xuất → Tiến độ chuỗi** (route `/production-lots/chain-progress`).
+- Hiển thị bảng Kanban hoặc danh sách theo dõi vòng đời từng lô: Chuẩn bị → Canh tác → Thu hoạch → Sơ chế → Đóng gói → Bàn giao → Xuất kho.
+- Hệ thống tự động gắn huy hiệu cảnh báo màu cam đối với các lô bị **Tồn đọng** quá ngưỡng quy định (mặc định 10 ngày không có sự kiện mới).
+
+### 9.7 Kiểm chứng tính toàn vẹn chuỗi băm (QTN-19, TC-02)
+- Menu **Hệ thống → Kiểm chứng dòng sự kiện** (hoặc route `/chain-events/verification`).
+- Cho phép VT-01 (Admin), VT-04 (Thu mua) và VT-05 (Cơ quan quản lý) kiểm tra chuỗi băm mật mã học SHA-256 của từng lô hàng.
+- Hệ thống kiểm tra từng cặp sự kiện liên tiếp: nếu mọi `hash` và `previous_hash` khớp nhau, trạng thái hiển thị **INTACT** (Toàn vẹn). Nếu phát hiện can thiệp dữ liệu trái phép, hệ thống cảnh báo **CORRUPTED** và chỉ rõ sự kiện bị sai lệch.
 
 ### Kết quả mong đợi
 Mỗi sản phẩm có tem QR duy nhất; khi quét, người tiêu dùng xem được hành trình đầy đủ.
