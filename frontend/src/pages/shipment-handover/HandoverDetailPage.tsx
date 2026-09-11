@@ -174,45 +174,6 @@ const assetUrl = toHandoverAssetUrl(handover.attachmentPath);
         />
       </div>
 
-      {canRespond && (
-        <Card className="border-emerald-200 bg-emerald-50/40">
-          <CardHeader>
-            <CardTitle className="text-base">Xác nhận nhận hàng</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Bạn đang là tổ chức nhận của phiếu bàn giao này. Xác nhận nhận
-              hàng sẽ ghi sự kiện bàn giao vào chuỗi hành trình và chuyển
-              trách nhiệm với lô hàng cho tổ chức của bạn. Từ chối sẽ nhả lại
-              số lượng bàn giao cho bên giao.
-            </p>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleAccept}
-                disabled={accepting}
-                className="flex-1"
-              >
-                {accepting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <CheckCheck className="mr-2 h-4 w-4" />
-                )}
-                {accepting ? "Đang xác nhận..." : "Xác nhận nhận hàng"}
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1 text-red-600 hover:text-red-700"
-                disabled={accepting}
-                onClick={() => setRejectDialogOpen(true)}
-              >
-                <XCircle className="mr-2 h-4 w-4" />
-                Từ chối nhận hàng
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Thông tin chung</CardTitle>
@@ -315,6 +276,45 @@ const assetUrl = toHandoverAssetUrl(handover.attachmentPath);
               <FileText className="h-4 w-4" />
               Xem chứng từ giao hàng
             </a>
+          </CardContent>
+        </Card>
+      )}
+
+      {canRespond && (
+        <Card className="border-emerald-200 bg-emerald-50/40">
+          <CardHeader>
+            <CardTitle className="text-base">Xác nhận nhận hàng</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Bạn đang là tổ chức nhận của phiếu bàn giao này. Xác nhận nhận
+              hàng sẽ ghi sự kiện bàn giao vào chuỗi hành trình và chuyển
+              trách nhiệm với lô hàng cho tổ chức của bạn. Từ chối sẽ nhả lại
+              số lượng bàn giao cho bên giao.
+            </p>
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                disabled={accepting}
+                onClick={() => setRejectDialogOpen(true)}
+              >
+                <XCircle className="mr-2 h-4 w-4" />
+                Từ chối nhận hàng
+              </Button>
+              <Button
+                onClick={handleAccept}
+                disabled={accepting}
+                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {accepting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCheck className="mr-2 h-4 w-4" />
+                )}
+                {accepting ? "Đang xác nhận..." : "Xác nhận nhận hàng"}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
