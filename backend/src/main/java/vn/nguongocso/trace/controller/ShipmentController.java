@@ -59,6 +59,38 @@ public class ShipmentController {
 	}
 
 	/**
+	 * Lấy danh sách lô hàng theo ID lô sản xuất.
+	 *
+	 * @param productionLotId ID của lô sản xuất
+	 * @return danh sách lô hàng
+	 */
+	@GetMapping("/production-lots/{productionLotId}")
+	@PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
+	public ApiResult<List<ShipmentResponse>> getShipmentsByProductionLot(@PathVariable UUID productionLotId) {
+
+		return ApiResult.success(shipmentService.getShipmentsByProductionLot(productionLotId));
+	}
+
+	/**
+	 * Lấy danh sách lô hàng theo ID lô sản xuất với phân trang.
+	 *
+	 * @param productionLotId ID của lô sản xuất
+	 * @param page            số trang (mặc định 0)
+	 * @param size            số bản ghi trên mỗi trang (mặc định 10)
+	 * @return danh sách lô hàng phân trang
+	 */
+	@GetMapping("/production-lots/{productionLotId}/paged")
+	@PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
+	public ApiResult<PageResponse<ShipmentResponse>> getShipmentsByProductionLotPaged(
+			@PathVariable UUID productionLotId,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size) {
+
+		return ApiResult.success(
+				shipmentService.getShipmentsByProductionLotPaged(productionLotId, page, size));
+	}
+
+	/**
 	 * Tra cứu lô hàng bằng mã truy xuất (codeValue in trên tem QR).
 	 * Dùng bởi VT-04 để xác nhận lô hàng trước khi ghi sự kiện thu mua.
 	 *
