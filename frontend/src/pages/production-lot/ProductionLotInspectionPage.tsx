@@ -545,8 +545,8 @@ export const ProductionLotInspectionPage: React.FC = () => {
                 </table>
               </div>
 
-              {/* CTA khi có chỉ tiêu hết hiệu lực: hiện nút yêu cầu kiểm nghiệm lại ngay lập tức */}
-              {hasExpiredCriterion && (lot.inspectionValidity?.canCreateNewRequest ?? true) && (
+              {/* CTA khi có chỉ tiêu hết hiệu lực: chỉ hiện nút và hướng dẫn yêu cầu kiểm nghiệm lại cho Quản lý hợp tác xã (canInspect = true) */}
+              {hasExpiredCriterion && canInspect && (lot.inspectionValidity?.canCreateNewRequest ?? true) && (
                 <div
                   className={cn(
                     "mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t pt-3",

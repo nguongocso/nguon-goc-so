@@ -1662,9 +1662,10 @@ export const ProductionLotDetailPage = () => {
                 </table>
               </div>
 
-              {/* CTA khi có chỉ tiêu hết hiệu lực: hiện nút yêu cầu kiểm nghiệm lại ngay lập tức */}
+              {/* CTA khi có chỉ tiêu hết hiệu lực: chỉ hiện nút và hướng dẫn yêu cầu kiểm nghiệm lại cho Quản lý hợp tác xã (canInspect = true) */}
               {hasExpiredCriterion &&
-                (lot.inspectionValidity?.canCreateNewRequest ?? canInspect) && (
+                canInspect &&
+                (lot.inspectionValidity?.canCreateNewRequest ?? true) && (
                   <div
                     className={cn(
                       "mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t pt-3",
