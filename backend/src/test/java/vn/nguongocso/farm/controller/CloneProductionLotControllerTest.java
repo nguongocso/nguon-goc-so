@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.auth.service.CustomUserDetailsService;
+import vn.nguongocso.certification.service.InspectionExpiryService;
 import vn.nguongocso.config.JwtTokenProvider;
 import vn.nguongocso.config.SecurityConfig;
 import vn.nguongocso.farm.dto.request.CloneProductionLotRequest;
@@ -76,6 +77,10 @@ class CloneProductionLotControllerTest {
 
     @MockitoBean
     private ProductionLotImportHistoryRepository importHistoryRepository;
+
+    /** Mock thêm sau khi merge develop: controller có thêm endpoint kiểm tra hạn kiểm nghiệm (NCL-11-CN-004). */
+    @MockitoBean
+    private InspectionExpiryService inspectionExpiryService;
 
     private final UUID orgId = UUID.randomUUID();
     private final UUID userId = UUID.randomUUID();
