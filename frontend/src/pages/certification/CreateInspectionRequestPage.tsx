@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
 import {
@@ -81,6 +81,18 @@ const toISODate = (date: Date) => {
   return `${date.getFullYear()}-${month}-${day}`;
 };
 
+/**
+ * Tính chênh lệch số ngày giữa ngày mục tiêu và ngày cơ sở (targetDateStr - baseDateStr).
+ * Sử dụng Date.UTC để tránh sai lệch múi giờ địa phương.
+ */
+const calculateDaysDifference = (targetDateStr: string, baseDateStr: string): number => {
+  const [y1, m1, d1] = targetDateStr.split("-").map(Number);
+  const [y2, m2, d2] = baseDateStr.split("-").map(Number);
+  const utc1 = Date.UTC(y1, m1 - 1, d1);
+  const utc2 = Date.UTC(y2, m2 - 1, d2);
+  return Math.round((utc1 - utc2) / (1000 * 60 * 60 * 24));
+};
+
 // Helper trích xuất thông báo lỗi từ API
 const getApiErrorMessage = (error: unknown, fallback: string): string => {
   if (axios.isAxiosError(error)) {
@@ -119,6 +131,7 @@ interface CriterionRow {
   unit: string | null;
   maxThreshold: number | null;
   isCreated: boolean;
+  isExpired: boolean;
 }
 
 // Định dạng kích thước tệp đính kèm
@@ -141,6 +154,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
     lotId?: string;
     id?: string;
   }>();
+  const [searchParams] = useSearchParams();
   const effectiveLotId = paramLotId || paramId || "";
 
   const today = useMemo(() => toISODate(new Date()), []);
@@ -170,10 +184,14 @@ export const CreateInspectionRequestPage: React.FC = () => {
   /** Map catalog criteriaId -> {unit, maxThreshold} lấy từ bộ chỉ tiêu của loại nông sản. */
   const [catalogCriteriaMap, setCatalogCriteriaMap] = useState<Map<number, InspectionCriterion>>(new Map());
   /**
-   * Tập khóa chuẩn hóa các chỉ tiêu đã từng thuộc yêu cầu kiểm nghiệm
-   * của lô (deriving từ GET /test-requests + chi tiết từng request).
+   * Tập khóa chuẩn hóa các chỉ tiêu đang bị chặn (đang có hiệu lực hoặc đang chờ kết quả).
    */
   const [createdCriterionKeys, setCreatedCriterionKeys] = useState<Set<string>>(new Set());
+  /**
+   * Tập khóa chuẩn hóa các chỉ tiêu đã từng kiểm nghiệm nhưng kết quả đã hết hiệu lực
+   * (được phép chọn lại để yêu cầu kiểm nghiệm lại).
+   */
+  const [expiredCriterionKeys, setExpiredCriterionKeys] = useState<Set<string>>(new Set());
   const [isRefreshingHistory, setIsRefreshingHistory] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -197,7 +215,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
   // Search & Filter trong danh sách chỉ tiêu
   const [criteriaSearch, setCriteriaSearch] = useState("");
-  const [criteriaFilter, setCriteriaFilter] = useState<"ALL" | "CREATED" | "NOT_CREATED">("ALL");
+  const [criteriaFilter, setCriteriaFilter] = useState<"ALL" | "EXPIRED" | "CREATED" | "NOT_CREATED">("ALL");
   const [criteriaPage, setCriteriaPage] = useState(1);
 
   // Validation Touch State
@@ -220,25 +238,29 @@ export const CreateInspectionRequestPage: React.FC = () => {
   );
 
   /**
-   * Thu thập tập khóa các chỉ tiêu đang BỊ CHẶN chọn lại khi tạo yêu cầu mới
-   * (tập "Đã tạo" của lô), dựa trên toàn bộ lịch sử YÊU CẦU KIỂM NGHIỆM.
+   * Thu thập tập khóa các chỉ tiêu bị chặn và các chỉ tiêu đã hết hiệu lực,
+   * dựa trên toàn bộ lịch sử YÊU CẦU KIỂM NGHIỆM của lô.
    *
    * Quy tắc:
-   * - Chỉ tiêu chưa có kết quả hoặc kết quả chốt gần nhất là ĐẠT  -> bị chặn.
-   * - Chỉ tiêu được ghi nhận KHÔNG ĐẠT ở lần xét gần nhất -> KHÔNG bị chặn:
-   *   trạng thái hiển thị đặt lại thành "Chưa tạo" và cho phép chọn lại
-   *   để tạo yêu cầu kiểm nghiệm mới.
+   * - Chỉ tiêu chưa có kết quả (đang chờ xử lý) -> bị chặn (createdKeys).
+   * - Chỉ tiêu có kết quả gần nhất KHÔNG ĐẠT -> không bị chặn, trạng thái "Chưa tạo".
+   * - Chỉ tiêu có kết quả gần nhất ĐẠT:
+   *   + Nếu có ngày hết hạn và đã quá hạn (< ngày hôm nay) -> KHÔNG bị chặn,
+   *     thuộc tập expiredKeys ("Hết hiệu lực"), cho phép chọn để yêu cầu kiểm nghiệm lại!
+   *   + Nếu còn hiệu lực (>= ngày hôm nay hoặc không có ngày hết hạn) -> bị chặn (createdKeys, "Đã tạo").
    *
    * "Gần nhất" xác định bằng createdAt của InspectionCriterionResult nên
    * không phụ thuộc thứ tự sắp xếp danh sách request trả về.
-   *
-   * Duyệt phân trang GET /test-requests?lotId=... rồi lấy chi tiết từng
-   * request (GET /inspection-requests/{id}) để đọc kết quả snapshot.
-   * Toàn bộ dùng API sẵn có — không tạo endpoint mới.
    */
-  const fetchCreatedCriterionKeys = useCallback(async (): Promise<Set<string>> => {
+  const fetchCriteriaHistory = useCallback(async (): Promise<{
+    createdKeys: Set<string>;
+    expiredKeys: Set<string>;
+  }> => {
     // Kết quả chốt gần nhất theo từng khóa chỉ tiêu (code đã chuẩn hóa)
-    const latestResultByKey = new Map<string, { passed: boolean; at: number }>();
+    const latestResultByKey = new Map<
+      string,
+      { passed: boolean; expiryDate: string | null; at: number }
+    >();
     // Khóa thuộc request nhưng chưa ghi kết quả (đang chờ / chưa hoàn tất)
     const keysWithoutResult = new Set<string>();
     let page = 0;
@@ -260,10 +282,13 @@ export const CreateInspectionRequestPage: React.FC = () => {
       requestIds.map(async (requestId) => {
         try {
           const detail = await getInspectionRequestDetail(requestId);
+          // Bỏ qua các yêu cầu đã bị hủy
+          if (detail.status === "CANCELLED") return;
           detail.criteria?.forEach((criterion) => {
-            const key = criterion.criterionDefinitionId != null
-              ? normalizeCriterionKey(criterion.criterionDefinitionId)
-              : null;
+            const key =
+              criterion.criterionDefinitionId != null
+                ? normalizeCriterionKey(criterion.criterionDefinitionId)
+                : null;
             if (!key) return;
             if (criterion.result == null) {
               keysWithoutResult.add(key);
@@ -272,7 +297,11 @@ export const CreateInspectionRequestPage: React.FC = () => {
             const at = Date.parse(criterion.result.createdAt ?? "") || 0;
             const prev = latestResultByKey.get(key);
             if (!prev || at >= prev.at) {
-              latestResultByKey.set(key, { passed: criterion.result.passed, at });
+              latestResultByKey.set(key, {
+                passed: criterion.result.passed,
+                expiryDate: criterion.result.expiryDate ?? null,
+                at,
+              });
             }
           });
         } catch {
@@ -281,46 +310,69 @@ export const CreateInspectionRequestPage: React.FC = () => {
       })
     );
 
-    // Khóa bị chặn = chưa có kết quả, HOẶC kết quả chốt gần nhất là ĐẠT.
-    // Riêng kết quả chốt gần nhất KHÔNG ĐẠT -> mở lại lựa chọn ("Chưa tạo").
-    return new Set<string>([
-      ...keysWithoutResult,
-      ...[...latestResultByKey.entries()]
-        .filter(([, value]) => value.passed)
-        .map(([key]) => key),
-    ]);
+    const todayStr = toISODate(new Date());
+    const blockedKeys = new Set<string>([...keysWithoutResult]);
+    const expiredKeys = new Set<string>();
+
+    for (const [key, value] of latestResultByKey.entries()) {
+      // Nếu đang có yêu cầu chờ kết quả thì bắt buộc phải chờ, không tạo trùng
+      if (keysWithoutResult.has(key)) continue;
+
+      if (!value.passed) {
+        // Lần kiểm nghiệm gần nhất không đạt -> mở lại lựa chọn ("Chưa tạo")
+        continue;
+      }
+
+      // Kết quả Đạt: kiểm tra ngày hết hạn
+      if (value.expiryDate) {
+        const diff = calculateDaysDifference(value.expiryDate, todayStr);
+        if (diff < 0) {
+          // Đã hết hiệu lực -> CHO PHÉP CHỌN ĐỂ YÊU CẦU KIỂM NGHIỆM LẠI!
+          expiredKeys.add(key);
+          continue;
+        }
+      }
+
+      // Còn hạn hoặc không có ngày hết hạn -> bị chặn
+      blockedKeys.add(key);
+    }
+
+    return { createdKeys: blockedKeys, expiredKeys };
   }, [effectiveLotId]);
 
   /**
    * Tải lại dữ liệu bảng chỉ tiêu: chỉ tiêu áp dụng cho lô + đơn vị/ngưỡng
-   * từ bộ chỉ tiêu của loại nông sản + trạng thái Đã tạo/Chưa tạo từ lịch sử.
-   *
-   * Lưu ý: tập khóa trả về bởi fetchCreatedCriterionKeys là các khóa BỊ CHẶN.
-   * Chỉ tiêu từng bị ghi nhận KHÔNG ĐẠT ở lần xét gần nhất sẽ không nằm trong
-   * tập này -> hiển thị "Chưa tạo" và cho phép chọn để tạo yêu cầu kiểm tra lại.
+   * từ bộ chỉ tiêu của loại nông sản + trạng thái Đã tạo/Hết hiệu lực/Chưa tạo từ lịch sử.
    */
   const loadCriteriaSectionData = useCallback(
     async (
       productCategoryId: string
-    ): Promise<{ criteriaRes: LotTestCriteriaResult; createdKeys: Set<string> }> => {
-      const [criteriaRes, catalogRes, createdKeys] = await Promise.all([
+    ): Promise<{
+      criteriaRes: LotTestCriteriaResult;
+      createdKeys: Set<string>;
+      expiredKeys: Set<string>;
+    }> => {
+      const [criteriaRes, catalogRes, historyRes] = await Promise.all([
         getLotTestCriteria(effectiveLotId),
         getProductCategoryCriteria(productCategoryId, true).catch(
           () => [] as InspectionCriterion[]
         ),
-        fetchCreatedCriterionKeys(),
+        fetchCriteriaHistory(),
       ]);
+
+      const { createdKeys, expiredKeys } = historyRes;
 
       setCriteriaData(criteriaRes);
       setCatalogCriteriaMap(new Map(catalogRes.map((c) => [c.id, c])));
       setCreatedCriterionKeys(createdKeys);
+      setExpiredCriterionKeys(expiredKeys);
 
-      return { criteriaRes, createdKeys };
+      return { criteriaRes, createdKeys, expiredKeys };
     },
-    [effectiveLotId, fetchCreatedCriterionKeys]
+    [effectiveLotId, fetchCriteriaHistory]
   );
 
-  /** Danh sách id chỉ tiêu còn được phép chọn trong danh sách đã tải. */
+  /** Danh sách id chỉ tiêu còn được phép chọn trong danh sách đã tải (chưa tạo hoặc đã hết hiệu lực). */
   const getSelectableIdsFromRows = (
     rows: { code: string; name: string; criteriaId: number }[],
     createdKeys: Set<string>
@@ -359,11 +411,15 @@ export const CreateInspectionRequestPage: React.FC = () => {
         setUnitsLoading(false);
       }
 
-      const { criteriaRes, createdKeys } = await loadCriteriaSectionData(
+      const { criteriaRes, createdKeys, expiredKeys } = await loadCriteriaSectionData(
         lotRes.productCategoryId
       );
 
       const selectableIds = getSelectableIdsFromRows(criteriaRes.criteria ?? [], createdKeys);
+
+      // Nếu có query param ?criteriaId=... từ nút kiểm nghiệm lại của một chỉ tiêu cụ thể
+      const queryCriteriaId = searchParams.get("criteriaId");
+      const targetId = queryCriteriaId ? Number(queryCriteriaId) : null;
 
       // Kiểm tra xem có bản nháp nào đã lưu trước đó không
       const savedDraft = localStorage.getItem(draftStorageKey);
@@ -377,7 +433,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
           if (parsed.deliveryMethod) setDeliveryMethod(parsed.deliveryMethod);
           if (parsed.notes) setNotes(parsed.notes);
           if (Array.isArray(parsed.selectedCriteriaIds)) {
-            // Chỉ khôi phục những chỉ tiêu chưa từng tạo yêu cầu cho lô
+            // Chỉ khôi phục những chỉ tiêu còn được phép chọn (chưa tạo hoặc đã hết hiệu lực)
             setSelectedCriteriaIds(
               parsed.selectedCriteriaIds.filter((id: number) => selectableIds.has(id))
             );
@@ -388,8 +444,21 @@ export const CreateInspectionRequestPage: React.FC = () => {
         } catch {
           // ignore corrupted draft
         }
+      } else if (targetId && selectableIds.has(targetId)) {
+        // Đến từ nút kiểm nghiệm lại của một chỉ tiêu cụ thể: ưu tiên chọn chỉ tiêu đó
+        setSelectedCriteriaIds([targetId]);
+      } else if (expiredKeys.size > 0) {
+        // Nếu có chỉ tiêu đã hết hiệu lực, ưu tiên chọn các chỉ tiêu hết hiệu lực
+        const expiredSelectableIds = (criteriaRes.criteria ?? [])
+          .filter((c) => expiredKeys.has(normalizeCriterionKey(c.criteriaId)))
+          .map((c) => c.criteriaId);
+        setSelectedCriteriaIds(
+          expiredSelectableIds.length > 0
+            ? expiredSelectableIds
+            : [...selectableIds]
+        );
       } else {
-        // Mặc định chọn toàn bộ chỉ tiêu CHƯA từng tạo yêu cầu kiểm nghiệm
+        // Mặc định chọn toàn bộ chỉ tiêu có thể chọn
         setSelectedCriteriaIds([...selectableIds]);
       }
     } catch (err: unknown) {
@@ -402,7 +471,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [effectiveLotId, draftStorageKey, loadCriteriaSectionData]);
+  }, [effectiveLotId, draftStorageKey, searchParams, loadCriteriaSectionData]);
 
   useEffect(() => {
     void loadInitialData();
@@ -410,8 +479,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
 
   /**
    * Refetch lại toàn bộ dữ liệu bảng chỉ tiêu từ server sau khi tạo
-   * yêu cầu thành công để trạng thái Đã tạo/Chưa tạo phản ánh chính xác
-   * dữ liệu backend (không dựa vào state local).
+   * yêu cầu thành công để trạng thái phản ánh chính xác dữ liệu backend.
    */
   const refreshCriteriaSection = async () => {
     if (!lot?.productCategoryId) return;
@@ -426,26 +494,27 @@ export const CreateInspectionRequestPage: React.FC = () => {
     }
   };
 
-  // --- Dữ liệu dòng bảng chỉ tiêu (gộp đơn vị/ngưỡng + trạng thái Đã tạo từ lịch sử server) ---
+  // --- Dữ liệu dòng bảng chỉ tiêu (gộp đơn vị/ngưỡng + trạng thái từ lịch sử server) ---
   const criterionRows = useMemo<CriterionRow[]>(() => {
     if (!criteriaData?.criteria) return [];
     return criteriaData.criteria.map((item) => {
       const catalogEntry = catalogCriteriaMap.get(item.criteriaId);
+      const key = normalizeCriterionKey(item.criteriaId);
       return {
         criteriaId: item.criteriaId,
         code: item.code,
         name: item.name,
         unit: catalogEntry?.unit ?? null,
         maxThreshold: catalogEntry?.maxThreshold ?? null,
-        isCreated: createdCriterionKeys.has(
-          normalizeCriterionKey(item.criteriaId)
-        ),
+        isCreated: createdCriterionKeys.has(key),
+        isExpired: expiredCriterionKeys.has(key),
       };
     });
-  }, [criteriaData, catalogCriteriaMap, createdCriterionKeys]);
+  }, [criteriaData, catalogCriteriaMap, createdCriterionKeys, expiredCriterionKeys]);
 
   const totalCriteriaCount = criterionRows.length;
   const createdCriteriaCount = criterionRows.filter((row) => row.isCreated).length;
+  const expiredCriteriaCount = criterionRows.filter((row) => row.isExpired).length;
 
   // --- Filter danh sách chỉ tiêu ---
   const filteredCriteria = useMemo(() => {
@@ -456,8 +525,9 @@ export const CreateInspectionRequestPage: React.FC = () => {
         item.name.toLowerCase().includes(keyword) ||
         item.code.toLowerCase().includes(keyword);
 
+      if (criteriaFilter === "EXPIRED") return matchSearch && item.isExpired;
       if (criteriaFilter === "CREATED") return matchSearch && item.isCreated;
-      if (criteriaFilter === "NOT_CREATED") return matchSearch && !item.isCreated;
+      if (criteriaFilter === "NOT_CREATED") return matchSearch && !item.isCreated && !item.isExpired;
       return matchSearch;
     });
   }, [criterionRows, criteriaSearch, criteriaFilter]);
@@ -846,6 +916,14 @@ export const CreateInspectionRequestPage: React.FC = () => {
                   >
                     Chọn cho lần này: {selectedCount} chỉ tiêu
                   </Badge>
+                  {expiredCriteriaCount > 0 && (
+                    <Badge
+                      variant="outline"
+                      className="rounded-full border-red-300 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700"
+                    >
+                      Hết hiệu lực: {expiredCriteriaCount}
+                    </Badge>
+                  )}
                   <Badge
                     variant="outline"
                     className="rounded-full border-slate-300 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700"
@@ -887,12 +965,20 @@ export const CreateInspectionRequestPage: React.FC = () => {
                     {(
                       [
                         { value: "ALL", label: `Tất cả (${totalCriteriaCount})` },
-                        { value: "CREATED", label: `Đã tạo (${createdCriteriaCount})` },
+                        ...(expiredCriteriaCount > 0
+                          ? [
+                              {
+                                value: "EXPIRED" as const,
+                                label: `Hết hiệu lực (${expiredCriteriaCount})`,
+                              },
+                            ]
+                          : []),
+                        { value: "CREATED" as const, label: `Đã tạo (${createdCriteriaCount})` },
                         {
-                          value: "NOT_CREATED",
-                          label: `Chưa tạo (${totalCriteriaCount - createdCriteriaCount})`,
+                          value: "NOT_CREATED" as const,
+                          label: `Chưa tạo (${totalCriteriaCount - createdCriteriaCount - expiredCriteriaCount})`,
                         },
-                      ] as const
+                      ] satisfies { value: "ALL" | "EXPIRED" | "CREATED" | "NOT_CREATED"; label: string }[]
                     ).map((pill) => (
                       <button
                         key={pill.value}
@@ -949,13 +1035,22 @@ export const CreateInspectionRequestPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Banner khi không còn chỉ tiêu Chưa tạo nào cho lô */}
+                  {/* Banner khi không còn chỉ tiêu nào có thể tạo cho lô */}
                   {createdCriteriaCount > 0 && createdCriteriaCount === totalCriteriaCount && (
                     <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-xs text-amber-800">
                       <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                       <span>
-                        Tất cả chỉ tiêu của lô này đã được tạo yêu cầu kiểm nghiệm. Bạn không thể
-                        tạo thêm yêu cầu mới cho lô này.
+                        Tất cả chỉ tiêu của lô này đã được tạo yêu cầu kiểm nghiệm và vẫn còn hiệu lực. Bạn không thể tạo thêm yêu cầu mới cho lô này.
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Banner thông báo khi có chỉ tiêu hết hiệu lực */}
+                  {expiredCriteriaCount > 0 && (
+                    <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-xs text-amber-900">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                      <span>
+                        Lô này có <strong>{expiredCriteriaCount}</strong> chỉ tiêu đã hết hiệu lực kiểm nghiệm. Bạn có thể chọn các chỉ tiêu này để tạo yêu cầu kiểm nghiệm lại.
                       </span>
                     </div>
                   )}
@@ -986,9 +1081,13 @@ export const CreateInspectionRequestPage: React.FC = () => {
                             className={`transition-colors ${
                               criterion.isCreated
                                 ? "cursor-not-allowed bg-muted/40 opacity-70"
-                                : isChecked
-                                  ? "cursor-pointer bg-emerald-50/40 hover:bg-muted/40"
-                                  : "cursor-pointer hover:bg-muted/40"
+                                : criterion.isExpired
+                                  ? isChecked
+                                    ? "cursor-pointer bg-red-50/40 hover:bg-red-50/60"
+                                    : "cursor-pointer hover:bg-muted/40"
+                                  : isChecked
+                                    ? "cursor-pointer bg-emerald-50/40 hover:bg-muted/40"
+                                    : "cursor-pointer hover:bg-muted/40"
                             }`}
                           >
                             <TableCell className="text-center font-medium text-muted-foreground">
@@ -1010,7 +1109,14 @@ export const CreateInspectionRequestPage: React.FC = () => {
                               {criterion.unit ?? "—"}
                             </TableCell>
                             <TableCell>
-                              {criterion.isCreated ? (
+                              {criterion.isExpired ? (
+                                <Badge
+                                  variant="outline"
+                                  className="rounded-full border-red-300 bg-red-50 px-2.5 py-0.5 text-[11px] font-semibold text-red-700"
+                                >
+                                  Hết hiệu lực
+                                </Badge>
+                              ) : criterion.isCreated ? (
                                 <Badge
                                   variant="outline"
                                   className="rounded-full border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800"
@@ -1036,9 +1142,11 @@ export const CreateInspectionRequestPage: React.FC = () => {
                                 disabled={criterion.isCreated || isRefreshingHistory}
                                 aria-label={`Chọn chỉ tiêu ${criterion.name}`}
                                 title={
-                                  criterion.isCreated
-                                    ? "Chỉ tiêu đã từng thuộc yêu cầu kiểm nghiệm của lô này"
-                                    : undefined
+                                  criterion.isExpired
+                                    ? "Kết quả kiểm nghiệm đã hết hiệu lực - có thể chọn để yêu cầu kiểm nghiệm lại"
+                                    : criterion.isCreated
+                                      ? "Chỉ tiêu đang có kết quả còn hiệu lực hoặc đang chờ xử lý"
+                                      : undefined
                                 }
                               />
                             </TableCell>

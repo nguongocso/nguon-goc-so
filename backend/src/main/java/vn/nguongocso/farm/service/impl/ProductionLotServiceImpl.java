@@ -36,6 +36,8 @@ import vn.nguongocso.report.dto.response.ProductionLotDashboardResponse;
 import vn.nguongocso.report.service.ReportAccessLogService;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 
+import vn.nguongocso.certification.dto.response.InspectionValidityResponse;
+import vn.nguongocso.certification.service.InspectionValidityService;
 import vn.nguongocso.certification.enums.InspectionRequestStatus;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.event.enums.ChainEventType;
@@ -75,6 +77,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
     private final ChainEventRepository chainEventRepository;
     private final HarvestEligibilityService harvestEligibilityService;
     private final CodeRangeRepository codeRangeRepository;
+    private final InspectionValidityService inspectionValidityService;
 
     private final ApplicationEventPublisher eventPublisher;
 
@@ -390,6 +393,10 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
     /** Chuyển entity lô sản xuất sang response. */
     private CreateProductionLotResponse mapToResponse(ProductionLot lot) {
+        InspectionValidityResponse inspectionValidity = (inspectionValidityService != null)
+                ? inspectionValidityService.calculateValidity(lot)
+                : null;
+
         return CreateProductionLotResponse.builder()
                 .id(lot.getId())
                 .farmAreaId(lot.getFarmArea() != null ? lot.getFarmArea().getId() : null)
@@ -418,6 +425,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .disposedAt(lot.getDisposedAt())
                 .createdAt(lot.getCreatedAt())
                 .updatedAt(lot.getUpdatedAt())
+                .inspectionValidity(inspectionValidity)
                 .build();
     }
 
@@ -883,4 +891,4 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .stages(stageGroups)
                 .build();
     }
-}
+}

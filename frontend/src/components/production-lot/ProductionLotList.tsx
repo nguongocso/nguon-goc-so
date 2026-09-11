@@ -35,7 +35,10 @@ import { Pagination } from "@/components/common/Pagination";
 import { RefreshButton } from "@/components/common/RefreshButton";
 import { SearchInput } from "@/components/common/SearchInput";
 import { StatusBadge, type StatusTone } from "@/components/common/StatusBadge";
-import { PRODUCTION_LOT_STATUS_LABELS } from "./ProductionLotStatusBadge";
+import {
+  PRODUCTION_LOT_STATUS_LABELS,
+  InspectionValidityBadge,
+} from "./ProductionLotStatusBadge";
 import { useAuth } from "@/hooks/useAuth";
 import { ApproveProductionLotDialog } from "./Approveproductionlotdialog";
 import {
@@ -100,6 +103,16 @@ const STATUS_FILTER_OPTIONS = [
   })),
 ];
 
+// NCL-11-CN-004: bộ lọc hiệu lực kiểm nghiệm
+const INSPECTION_VALIDITY_FILTER_OPTIONS = [
+  { value: "ALL", label: "Tất cả" },
+  { value: "VALID", label: "Còn hiệu lực" },
+  { value: "EXPIRING", label: "Sắp hết hiệu lực" },
+  { value: "EXPIRED", label: "Hết hiệu lực" },
+  { value: "NO_VALID_RESULT", label: "Chưa có kết quả hợp lệ" },
+  { value: "NOT_REQUIRED", label: "Không yêu cầu kiểm nghiệm" },
+];
+
 export const ProductionLotList = ({
   lots,
   isLoading,
@@ -125,6 +138,8 @@ export const ProductionLotList = ({
   const [search, setSearch] = useState("");
   // NCL-02-CN-006: mặc định chỉ hiển thị các lô đang canh tác (ẩn lô đã hủy)
   const [statusFilter, setStatusFilter] = useState("ACTIVE");
+  // NCL-11-CN-004: bộ lọc hiệu lực kiểm nghiệm
+  const [inspectionValidityFilter, setInspectionValidityFilter] = useState("ALL");
   const [page, setPage] = useState(0);
   const [confirmingLot, setConfirmingLot] =
     useState<ProductionLot | null>(null);
@@ -167,9 +182,18 @@ export const ProductionLotList = ({
         (statusFilter === "ACTIVE"
           ? lot.status !== "CANCELLED"
           : lot.status === statusFilter);
-      return matchesSearch && matchesStatus;
+      // NCL-11-CN-004: lọc theo trạng thái hiệu lực kiểm nghiệm
+      const isExcludedFromExpiry =
+        lot.status === "RECALLED" ||
+        lot.status === "CANCELLED" ||
+        lot.status === "DISPOSED";
+      const matchesInspectionValidity =
+        inspectionValidityFilter === "ALL" ||
+        (!isExcludedFromExpiry &&
+          lot.inspectionValidity?.status === inspectionValidityFilter);
+      return matchesSearch && matchesStatus && matchesInspectionValidity;
     });
-  }, [lots, search, statusFilter]);
+  }, [lots, search, statusFilter, inspectionValidityFilter]);
 
   // Tự động chuyển trang đến lô được chọn và kích hoạt hiệu ứng chớp sáng
   useEffect(() => {
@@ -196,7 +220,8 @@ export const ProductionLotList = ({
 
   const hasActiveFilter =
     search.trim() !== "" ||
-    (statusFilter !== "ALL" && statusFilter !== "ACTIVE");
+    (statusFilter !== "ALL" && statusFilter !== "ACTIVE") ||
+    inspectionValidityFilter !== "ALL";
 
   const renderStatus = (status: ProductionLot["status"]) => {
     const label = PRODUCTION_LOT_STATUS_LABELS[status];
@@ -204,6 +229,25 @@ export const ProductionLotList = ({
       return <StatusBadge label={status || "Không xác định"} tone="neutral" />;
     }
     return <StatusBadge label={label} tone={STATUS_TONES[status]} />;
+  };
+
+  // NCL-11-CN-004: hiển thị trạng thái hiệu lực kết quả kiểm nghiệm
+  const renderInspectionValidity = (lot: ProductionLot) => {
+    // Quy tắc 5 & 6: Nếu lô đang thu hồi, đã thu hồi, đã hủy hoặc đã loại bỏ,
+    // ưu tiên nghiệp vụ đó, tuyệt đối không hiển thị cảnh báo hiệu lực kiểm nghiệm.
+    if (
+      lot.status === "RECALLED" ||
+      lot.status === "CANCELLED" ||
+      lot.status === "DISPOSED"
+    ) {
+      return <span className="text-xs text-muted-foreground">—</span>;
+    }
+
+    const validity = lot.inspectionValidity;
+    if (!validity) {
+      return <span className="text-xs text-muted-foreground">—</span>;
+    }
+    return <InspectionValidityBadge status={validity.status} />;
   };
 
   return (
@@ -267,6 +311,14 @@ export const ProductionLotList = ({
                 }}
                 options={STATUS_FILTER_OPTIONS}
               />
+              <FilterSelect
+                value={inspectionValidityFilter}
+                onValueChange={(value) => {
+                  setInspectionValidityFilter(value ?? "ALL");
+                  setPage(0);
+                }}
+                options={INSPECTION_VALIDITY_FILTER_OPTIONS}
+              />
             </>
           }
           right={
@@ -285,6 +337,7 @@ export const ProductionLotList = ({
               <TableHead>Vùng trồng</TableHead>
               <TableHead>Nông sản</TableHead>
               <TableHead>Trạng thái</TableHead>
+              <TableHead>Hiệu lực kiểm nghiệm</TableHead>
               <TableHead className="text-center">Thao tác</TableHead>
               <TableHead className="text-center">Chi tiết</TableHead>
             </>
@@ -319,11 +372,10 @@ export const ProductionLotList = ({
                     el.scrollIntoView({ behavior: "smooth", block: "center" });
                   }
                 }}
-                className={`transition-all duration-500 ${
-                  isHighlighted
-                    ? "bg-amber-100/90 dark:bg-amber-950/60 ring-2 ring-amber-500 font-semibold animate-pulse"
-                    : "hover:bg-muted/40"
-                }`}
+                className={`transition-all duration-500 ${isHighlighted
+                  ? "bg-amber-100/90 dark:bg-amber-950/60 ring-2 ring-amber-500 font-semibold animate-pulse"
+                  : "hover:bg-muted/40"
+                  }`}
               >
                 <TableCell className="text-center font-medium text-muted-foreground">
                   {safePage * PAGE_SIZE + index + 1}
@@ -347,6 +399,9 @@ export const ProductionLotList = ({
                   {lot.productCategoryName ?? "—"}
                 </TableCell>
                 <TableCell>{renderStatus(lot.status)}</TableCell>
+                <TableCell>
+                  {renderInspectionValidity(lot)}
+                </TableCell>
                 <TableCell className="text-center">
                   <div className="flex justify-center gap-1">
                     {showEdit && (
@@ -429,7 +484,7 @@ export const ProductionLotList = ({
           })}
           loading={isLoading}
           empty={!isLoading && filteredLots.length === 0}
-          colSpan={7}
+          colSpan={8}
           loadingMessage="Đang tải danh sách lô sản xuất..."
           emptyMessage={
             hasActiveFilter

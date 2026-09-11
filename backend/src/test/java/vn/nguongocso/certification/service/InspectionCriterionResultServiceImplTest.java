@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -45,6 +46,8 @@ import vn.nguongocso.certification.repository.CategoryCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
+import vn.nguongocso.certification.service.InspectionCriterionResultService;
+import vn.nguongocso.certification.service.InspectionExpiryService;
 import vn.nguongocso.certification.service.impl.InspectionCriterionResultServiceImpl;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.ProductCategory;
@@ -93,6 +96,9 @@ class InspectionCriterionResultServiceImplTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private InspectionExpiryService inspectionExpiryService;
 
     @InjectMocks
     private InspectionCriterionResultServiceImpl service;
@@ -1561,5 +1567,76 @@ class InspectionCriterionResultServiceImplTest {
         assertThat(response.getReason())
                 .contains("chưa được cấu hình");
         assertThat(response.getTotalCriteria()).isZero();
+    }
+
+    // ============================================================
+    // NCL-11-CN-004: Quét hạn kiểm nghiệm ngay khi ghi kết quả
+    // ============================================================
+
+    @Test
+    @DisplayName("NCL-11-CN-004: Khi ghi nhận kết quả kiểm nghiệm đơn lẻ thành công -> kích hoạt quét cảnh báo hạn kiểm nghiệm cho lô")
+    void testRecordOrUpdateResult_triggersInspectionExpiryScan() {
+        LocalDate resultDate = LocalDate.now();
+        LocalDate expiryDate = LocalDate.now().plusDays(10);
+        InspectionCriterionResultRequest request =
+                InspectionCriterionResultRequest.builder()
+                        .resultDate(resultDate)
+                        .expiryDate(expiryDate)
+                        .passed(true)
+                        .filePath("/path/to/result.pdf")
+                        .build();
+
+        when(criterionRepository.findById(criterionId)).thenReturn(Optional.of(criterion));
+        when(resultRepository.findByInspectionCriterion_Id(criterionId)).thenReturn(Optional.empty());
+
+        InspectionCriterionResult result = InspectionCriterionResult.builder()
+                .id(UUID.randomUUID())
+                .inspectionCriterion(criterion)
+                .resultDate(resultDate)
+                .expiryDate(expiryDate)
+                .passed(true)
+                .createdBy(user)
+                .build();
+        when(resultRepository.save(any(InspectionCriterionResult.class))).thenReturn(result);
+        when(resultRepository.countTotalCriteria(inspectionRequestId)).thenReturn(1);
+        when(resultRepository.findByInspectionCriterion_InspectionRequest_Id(inspectionRequestId))
+                .thenReturn(List.of(result));
+
+        service.recordOrUpdateResult(criterionId.toString(), request, currentUser);
+
+        verify(inspectionExpiryService).checkAndAlertLotExpiry(eq(lot), any());
+    }
+
+    @Test
+    @DisplayName("NCL-11-CN-004: Khi ghi nhận kết quả kiểm nghiệm hàng loạt thành công -> kích hoạt quét cảnh báo hạn kiểm nghiệm cho lô")
+    void testRecordResultsBatch_triggersInspectionExpiryScan() {
+        LocalDate resultDate = LocalDate.now();
+        LocalDate expiryDate = LocalDate.now().plusDays(10);
+        InspectionCriterionResultRequest item =
+                InspectionCriterionResultRequest.builder()
+                        .criterionId(criterionId.toString())
+                        .resultDate(resultDate)
+                        .expiryDate(expiryDate)
+                        .passed(true)
+                        .filePath("/path/to/result.pdf")
+                        .build();
+
+        when(requestRepository.findById(inspectionRequestId)).thenReturn(Optional.of(inspectionRequest));
+        when(resultRepository.findByInspectionCriterion_Id(criterionId)).thenReturn(Optional.empty());
+        when(resultRepository.countTotalCriteria(inspectionRequestId)).thenReturn(1);
+
+        InspectionCriterionResult result = InspectionCriterionResult.builder()
+                .id(UUID.randomUUID())
+                .inspectionCriterion(criterion)
+                .resultDate(resultDate)
+                .expiryDate(expiryDate)
+                .passed(true)
+                .build();
+        when(resultRepository.findByInspectionCriterion_InspectionRequest_Id(inspectionRequestId))
+                .thenReturn(List.of(result));
+
+        service.recordResults(inspectionRequestId, List.of(item), currentUser);
+
+        verify(inspectionExpiryService).checkAndAlertLotExpiry(eq(lot), any());
     }
 }
