@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import vn.nguongocso.alert.entity.Alert;
 import vn.nguongocso.auth.entity.AccountLock;
 import vn.nguongocso.auth.entity.LoginAnomaly;
+import vn.nguongocso.certification.entity.Certification;
 import vn.nguongocso.notification.dto.response.NotificationResponse;
 import vn.nguongocso.notification.dto.response.UnreadCountResponse;
 import vn.nguongocso.common.PageResponse;
@@ -109,6 +110,15 @@ public interface NotificationService {
      * @param organizationId tổ chức sở hữu lô sản xuất
      */
     void sendInspectionFailedNotification(String lotName, UUID organizationId);
+
+    /**
+     * Gửi thông báo khi chứng nhận bị Quản trị viên nền tảng (VT-01) từ chối xác thực (NCL-09-CN-012, QTN-34).
+     *
+     * @param certification   chứng nhận bị từ chối
+     * @param rejectionReason lý do từ chối
+     * @return số lượng thông báo đã tạo
+     */
+    int sendCertificationRejectionNotification(Certification certification, String rejectionReason);
 
     /**
      * Gửi thông báo workflow nội bộ cho yêu cầu thu hồi hàng loạt

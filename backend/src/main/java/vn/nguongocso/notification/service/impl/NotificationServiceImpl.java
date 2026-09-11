@@ -1052,6 +1052,69 @@ public class NotificationServiceImpl implements NotificationService {
                 return notifications.size();
         }
 
+        private static final String CERTIFICATION_REJECTED_TITLE = "Chứng nhận bị từ chối xác thực";
+
+        /**
+         * Gửi thông báo khi chứng nhận bị Quản trị viên nền tảng (VT-01) từ chối xác thực (NCL-09-CN-012, QTN-34).
+         *
+         * @param certification   chứng nhận bị từ chối
+         * @param rejectionReason lý do từ chối
+         * @return số lượng thông báo đã tạo
+         */
+        @Override
+        public int sendCertificationRejectionNotification(
+                        Certification certification,
+                        String rejectionReason) {
+                if (certification == null || certification.getOrganization() == null) {
+                        log.warn("Không thể gửi thông báo từ chối chứng nhận: chứng nhận hoặc tổ chức null");
+                        return 0;
+                }
+
+                UUID organizationId = certification.getOrganization().getOrganizationId();
+                List<User> recipients = getNotificationRecipients(organizationId);
+
+                if (recipients.isEmpty()) {
+                        log.warn(
+                                        "Không có người dùng có permission {}:{} để nhận "
+                                                        + "thông báo từ chối chứng nhận. organizationId={}, certificationId={}",
+                                        NOTIFICATION_RESOURCE,
+                                        NOTIFICATION_READ_ACTION,
+                                        organizationId,
+                                        certification.getId());
+                        return 0;
+                }
+
+                String certIdentifier = certification.getName() != null ? certification.getName() : certification.getCode();
+                String content = String.format(
+                                "Chứng nhận \"%s\" (%s) đã bị từ chối xác thực. Lý do: %s. Vui lòng kiểm tra và nộp lại thông tin/chứng nhận phù hợp.",
+                                certIdentifier,
+                                certification.getCode(),
+                                rejectionReason != null ? rejectionReason : "Không có lý do chi tiết");
+
+                List<Notification> notifications = recipients.stream()
+                                .map(user -> {
+                                        Notification notification = new Notification();
+                                        notification.setUser(user);
+                                        notification.setType(NotificationType.ALERT);
+                                        notification.setTitle(CERTIFICATION_REJECTED_TITLE);
+                                        notification.setContent(content);
+                                        notification.setIsRead(false);
+                                        notification.setReadAt(null);
+                                        return notification;
+                                })
+                                .toList();
+
+                notificationRepository.saveAll(notifications);
+
+                log.info(
+                                "Đã tạo {} notification từ chối chứng nhận. organizationId={}, certificationId={}",
+                                notifications.size(),
+                                organizationId,
+                                certification.getId());
+
+                return notifications.size();
+        }
+
         @Override
         public int sendBulkRecallWorkflowNotification(
                 String title,

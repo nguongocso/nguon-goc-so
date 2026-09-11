@@ -62,6 +62,8 @@ export const formatActionType = (action: string): string => {
     UPDATE_CERTIFICATION: 'Cập nhật chứng nhận',
     DELETE_CERTIFICATION: 'Xóa chứng nhận',
     ATTACH_CERTIFICATION: 'Gắn chứng nhận',
+    VERIFY_CERTIFICATION: 'Xác thực chứng nhận',
+    REJECT_CERTIFICATION: 'Từ chối chứng nhận',
 
     // Production Lot
     CREATE_PRODUCTION_LOT: 'Tạo lô sản xuất',
@@ -248,6 +250,7 @@ export const getActionColor = (action: string): string => {
     act.includes('RECORD') ||
     act.includes('ATTACH') ||
     act.includes('ACTIVATE') ||
+    act.includes('VERIFY') ||
     act.includes('RESOLVE')
   ) {
     return 'bg-blue-100 text-blue-800 border-blue-200';
