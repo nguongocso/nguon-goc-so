@@ -15,6 +15,10 @@ import java.util.UUID;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.security.SecurityUtils;
+import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.service.ChainEventService;
@@ -36,6 +41,7 @@ import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.trace.dto.request.CancelHandoverRequest;
 import vn.nguongocso.trace.dto.request.CreateHandoverRequest;
 import vn.nguongocso.trace.dto.response.HandoverResponse;
+import vn.nguongocso.trace.dto.response.HandoverSummaryResponse;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.ShipmentHandover;
 import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
@@ -249,6 +255,52 @@ public class ShipmentHandoverServiceImpl implements ShipmentHandoverService {
         CustomUserDetails currentUser = getCurrentUser();
         List<ShipmentHandover> handovers = handoverRepository.findByToOrganizationOrganizationId(currentUser.getOrganizationId());
         return handovers.stream().map(this::mapToResponse).toList();
+    }
+
+    @Override
+    public PageResponse<HandoverSummaryResponse> listForCurrentOrganization(String status, String search, int page, int size) {
+        CustomUserDetails currentUser = getCurrentUser();
+        handoverExpiryService.expireOverdueHandovers();
+
+        ShipmentHandoverStatus parsedStatus = null;
+        if (status != null && !status.isBlank() && !status.equalsIgnoreCase("ALL")) {
+            if (status.equalsIgnoreCase("PENDING")) {
+                parsedStatus = ShipmentHandoverStatus.PENDING_CONFIRMATION;
+            } else {
+                try {
+                    parsedStatus = ShipmentHandoverStatus.valueOf(status.trim().toUpperCase());
+                } catch (IllegalArgumentException ignored) {
+                    parsedStatus = null;
+                }
+            }
+        }
+
+        String keyword = (search != null && !search.isBlank()) ? search.trim() : null;
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size), Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Page<ShipmentHandover> paged = handoverRepository.findReceivedHandoversWithFilters(
+                currentUser.getOrganizationId(),
+                parsedStatus,
+                keyword,
+                pageable);
+
+        return PageResponse.from(paged, paged.getContent().stream().map(this::mapToSummaryResponse).toList());
+    }
+
+    private HandoverSummaryResponse mapToSummaryResponse(ShipmentHandover handover) {
+        return HandoverSummaryResponse.builder()
+                .id(handover.getId())
+                .shipmentId(handover.getShipment() != null ? handover.getShipment().getId() : null)
+                .shipmentName(handover.getShipment() != null ? handover.getShipment().getName() : "")
+                .fromOrganizationName(handover.getFromOrganization() != null ? handover.getFromOrganization().getName() : "")
+                .toOrganizationName(handover.getToOrganization() != null ? handover.getToOrganization().getName() : "")
+                .quantity(handover.getQuantity())
+                .unit("kg")
+                .status(handover.getStatus())
+                .createdAt(handover.getCreatedAt())
+                .confirmedAt(handover.getConfirmedAt())
+                .rejectionReason(handover.getCancelReason())
+                .build();
     }
 
     @Override

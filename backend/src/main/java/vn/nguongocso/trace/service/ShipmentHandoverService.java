@@ -5,9 +5,11 @@ import java.util.UUID;
 
 import org.springframework.web.multipart.MultipartFile;
 
+import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.trace.dto.request.CancelHandoverRequest;
 import vn.nguongocso.trace.dto.request.CreateHandoverRequest;
 import vn.nguongocso.trace.dto.response.HandoverResponse;
+import vn.nguongocso.trace.dto.response.HandoverSummaryResponse;
 
 /**
  * Service xử lý nghiệp vụ phiếu bàn giao lô hàng.
@@ -49,6 +51,11 @@ public interface ShipmentHandoverService {
      * Lấy danh sách phiếu bàn giao đã nhận (đến tổ chức hiện tại).
      */
     List<HandoverResponse> getReceivedHandovers();
+
+    /**
+     * Lấy danh sách phiếu bàn giao nhận của tổ chức hiện tại có phân trang và tìm kiếm.
+     */
+    PageResponse<HandoverSummaryResponse> listForCurrentOrganization(String status, String search, int page, int size);
 
     /**
      * Lấy số lượng còn lại có thể bàn giao của lô hàng.

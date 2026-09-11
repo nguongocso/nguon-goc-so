@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,11 +17,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.auth.security.SecurityUtils;
+import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.service.ChainEventService;
 import vn.nguongocso.exception.BusinessException;
@@ -32,6 +37,7 @@ import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.trace.dto.request.CancelHandoverRequest;
 import vn.nguongocso.trace.dto.request.CreateHandoverRequest;
 import vn.nguongocso.trace.dto.response.HandoverResponse;
+import vn.nguongocso.trace.dto.response.HandoverSummaryResponse;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.ShipmentHandover;
 import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
@@ -564,5 +570,32 @@ class ShipmentHandoverServiceTest {
 
         assertThatThrownBy(() -> handoverService.getById(handoverId))
                 .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void testListForCurrentOrganization_Success() {
+        ShipmentHandover handover = ShipmentHandover.builder()
+                .id(UUID.randomUUID())
+                .shipment(shipment)
+                .fromOrganization(fromOrganization)
+                .toOrganization(toOrganization)
+                .quantity(300L)
+                .status(ShipmentHandoverStatus.PENDING_CONFIRMATION)
+                .createdBy(mock(User.class))
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Page<ShipmentHandover> page = new PageImpl<>(List.of(handover));
+        when(handoverRepository.findReceivedHandoversWithFilters(eq(fromOrgId), eq(ShipmentHandoverStatus.PENDING_CONFIRMATION), eq("Lô"), any(Pageable.class)))
+                .thenReturn(page);
+
+        PageResponse<HandoverSummaryResponse> response = handoverService.listForCurrentOrganization("PENDING", "Lô", 0, 10);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getItems()).hasSize(1);
+        assertThat(response.getItems().get(0).getShipmentName()).isEqualTo(shipment.getName());
+        assertThat(response.getItems().get(0).getFromOrganizationName()).isEqualTo(fromOrganization.getName());
+        assertThat(response.getItems().get(0).getQuantity()).isEqualTo(300L);
+        verify(handoverExpiryService).expireOverdueHandovers();
     }
 }
