@@ -1245,4 +1245,43 @@ public class NotificationServiceImpl implements NotificationService {
                                 organizationId,
                                 lot.getId());
         }
+
+        @Override
+        public int sendRecallCaseClosedNotification(String caseCode, List<UUID> recipientIds) {
+                if (caseCode == null || recipientIds == null || recipientIds.isEmpty()) {
+                        log.warn("Không có người dùng để nhận thông báo kết thúc vụ việc thu hồi. caseCode={}", caseCode);
+                        return 0;
+                }
+
+                List<User> recipients = userRepository.findAllById(recipientIds);
+
+                if (recipients.isEmpty()) {
+                        return 0;
+                }
+
+                String content = String.format(
+                                "Vụ việc thu hồi %s đã được xử lý và kết thúc.",
+                                caseCode);
+
+                List<Notification> notifications = recipients.stream()
+                                .map(user -> {
+                                        Notification notification = new Notification();
+                                        notification.setUser(user);
+                                        notification.setType(NotificationType.ALERT);
+                                        notification.setTitle("Thông báo kết thúc vụ việc thu hồi");
+                                        notification.setContent(content);
+                                        notification.setIsRead(false);
+                                        notification.setReadAt(null);
+                                        return notification;
+                                })
+                                .toList();
+
+                notificationRepository.saveAll(notifications);
+
+                log.info("Đã tạo {} thông báo kết thúc vụ việc thu hồi. caseCode={}",
+                                notifications.size(), caseCode);
+
+                return notifications.size();
+        }
+
 }

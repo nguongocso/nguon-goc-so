@@ -25,9 +25,10 @@ import vn.nguongocso.recall.dto.request.CreateBulkRecallRequest;
 import vn.nguongocso.recall.dto.request.RejectBulkRecallRequest;
 import vn.nguongocso.recall.dto.response.BulkRecallRequestResponse;
 import vn.nguongocso.recall.service.BulkRecallRequestService;
+import vn.nguongocso.trace.recall.dto.request.CloseRecallCaseRequest;
 
 /**
- * Controller quản lý yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011).
+ * Controller quản lý yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011, NCL-08-CN-012).
  */
 @RestController
 @RequestMapping("/api/v1/recall-requests/bulk")
@@ -130,5 +131,72 @@ public class BulkRecallRequestController {
                 .rejectBulkRecallRequest(id, request, currentUser);
 
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
+    }
+
+    /**
+     * Kết thúc vụ việc thu hồi gắn liền với yêu cầu thu hồi hàng loạt (NCL-08-CN-012).
+     *
+     * PUT /api/v1/recall-requests/bulk/{id}/close
+     */
+    @PutMapping("/{id}/close")
+    public ResponseEntity<ApiResult<BulkRecallRequestResponse>> closeBulkRecallRequest(
+            @PathVariable UUID id,
+            @Valid @RequestBody CloseRecallCaseRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        permissionChecker.check("recall", "UPDATE");
+
+        BulkRecallRequestResponse response = bulkRecallRequestService
+                .closeBulkRecallRequest(id, request, currentUser);
+
+        return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
+    }
+
+    /**
+     * Tải lên tệp biên bản đính kèm vụ việc thu hồi (NCL-08-CN-012).
+     * Hỗ trợ định dạng PDF (.pdf) hoặc Word (.docx, .doc).
+     *
+     * POST /api/v1/recall-requests/bulk/evidence
+     */
+    @PostMapping(value = "/evidence", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResult<vn.nguongocso.recall.dto.response.RecallEvidenceResponse>> uploadEvidence(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        permissionChecker.check("recall", "UPDATE");
+
+        vn.nguongocso.recall.dto.response.RecallEvidenceResponse response = bulkRecallRequestService
+                .uploadEvidenceFile(file, currentUser);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResult.success(HttpStatus.CREATED.value(), response));
+    }
+
+    /**
+     * Tải xuống hoặc xem tệp biên bản thu hồi đã tải lên.
+     *
+     * GET /api/v1/recall-requests/bulk/evidence/{fileId}
+     */
+    @GetMapping("/evidence/{fileId}")
+    public ResponseEntity<org.springframework.core.io.Resource> getEvidenceFile(
+            @PathVariable UUID fileId,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        permissionChecker.check("recall", "READ");
+
+        BulkRecallRequestService.EvidenceFileContent fileContent = bulkRecallRequestService
+                .getEvidenceFile(fileId, currentUser);
+
+        org.springframework.http.MediaType mediaType;
+        try {
+            mediaType = org.springframework.http.MediaType.parseMediaType(fileContent.contentType());
+        } catch (Exception e) {
+            mediaType = org.springframework.http.MediaType.APPLICATION_OCTET_STREAM;
+        }
+
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileContent.fileName() + "\"")
+                .body(fileContent.resource());
     }
 }

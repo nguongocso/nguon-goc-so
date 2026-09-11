@@ -116,9 +116,9 @@ public class LabelExportServiceImpl implements LabelExportService {
             throw new BusinessException(HttpStatus.FORBIDDEN, "Bạn không có quyền xuất tem lô hàng của tổ chức khác.");
         }
 
-        // 4. Lô hàng đã thu hồi thì không được xuất tem
-        if (shipment.getStatus() == ShipmentStatus.RECALLED) {
-            throw new BusinessException("Lô hàng đã bị thu hồi, không thể xuất tem.");
+        // 4. Lô hàng đang hoặc đã thu hồi thì không được xuất tem
+        if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
+            throw new BusinessException("Lô hàng đã bị thu hồi hoặc đang trong quá trình thu hồi, không thể xuất tem.");
         }
 
         // 5. Khổ tem phải nằm trong danh sách đã cấu hình

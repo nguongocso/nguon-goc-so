@@ -1,10 +1,11 @@
+import "@testing-library/jest-dom/vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { InspectionExpiryThresholdDialog } from "../InspectionExpiryThresholdDialog";
-import * as inspectionCriterionApi from "@/api/inspectionCriterionApi";
+import * as inspectionCriterionApi from "../../../api/inspectionCriterionApi";
 
-vi.mock("@/api/inspectionCriterionApi", () => ({
+vi.mock("../../../api/inspectionCriterionApi", () => ({
   getInspectionExpiryThreshold: vi.fn(),
   updateInspectionExpiryThreshold: vi.fn(),
 }));

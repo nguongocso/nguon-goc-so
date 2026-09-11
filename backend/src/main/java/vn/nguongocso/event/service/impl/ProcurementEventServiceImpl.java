@@ -64,7 +64,7 @@ public class ProcurementEventServiceImpl implements ProcurementEventService {
 
         try {
             // 4. Kiểm tra trạng thái lô: Không được thu hồi (QTN-05)
-            if (shipment.getStatus() == ShipmentStatus.RECALLED) {
+            if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
                 throw new BusinessException("Lô hàng đã bị thu hồi, không thể ghi sự kiện.");
             }
 

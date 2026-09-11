@@ -12,16 +12,17 @@
 | **Endpoint phụ** | `GET /api/v1/recall-requests/bulk/{id}` |
 | **Endpoint phụ** | `PUT /api/v1/recall-requests/bulk/{id}/approve` |
 | **Endpoint phụ** | `PUT /api/v1/recall-requests/bulk/{id}/reject` |
+| **Endpoint phụ** | `PUT /api/v1/recall-requests/bulk/{id}/close` (NCL-08-CN-012) |
 | **Endpoint phụ** | `GET /api/v1/recall-requests/bulk` |
 | **Phương thức** | `POST`, `GET`, `PUT` |
-| **Bảo mật** | Yêu cầu JWT token (ACCESS). Phân quyền qua `PermissionChecker` (RBAC trong DB): `recall:CREATE` (tạo), `recall:READ` (tra cứu), `recall:UPDATE` (phê duyệt/từ chối). Vai trò mặc định được cấp: VT-02 Quản lý HTX, VT-01 Admin (xem `V20260909090000__seed_recall_update_permission.sql`) |
-| **Phụ thuộc** | NCL-08-CN-010 (Truy vết phạm vi ảnh hưởng) |
+| **Bảo mật** | Yêu cầu JWT token (ACCESS). Phân quyền qua `PermissionChecker` (RBAC trong DB): `recall:CREATE` (tạo), `recall:READ` (tra cứu), `recall:UPDATE` (phê duyệt/từ chối/kết thúc vụ việc). Vai trò mặc định được cấp: VT-02 Quản lý HTX, VT-01 Admin (xem `V20260909090000__seed_recall_update_permission.sql`) |
+| **Phụ thuộc** | NCL-08-CN-010 (Truy vết phạm vi ảnh hưởng), NCL-08-CN-012 (Kết thúc vụ việc thu hồi) |
 
 ---
 
 ## 2. Mô tả nghiệp vụ & Quy tắc (Business Rules)
 
-User Story **NCL-08-CN-011** cho phép Quản lý hợp tác xã (VT-02) tạo yêu cầu thu hồi **nhiều lô hàng** cùng lúc dựa trên kết quả truy vết phạm vi ảnh hưởng từ NCL-08-CN-010. Story này mở rộng quy trình thu hồi hiện có (NCL-08-CN-008) để hỗ trợ thu hồi hàng loạt theo phạm vi ảnh hưởng của một lô sản xuất.
+User Story **NCL-08-CN-011** cho phép Quản lý hợp tác xã (VT-02) tạo yêu cầu thu hồi **nhiều lô hàng** cùng lúc dựa trên kết quả truy vết phạm vi ảnh hưởng từ NCL-08-CN-010. Story này mở rộng quy trình thu hồi hiện có (NCL-08-CN-008) để hỗ trợ thu hồi hàng loạt theo phạm vi ảnh hưởng của một lô sản xuất. Đồng thời tích hợp trực tiếp luồng kết thúc vụ việc thu hồi (NCL-08-CN-012).
 
 ### Quy tắc nghiệp vụ chi tiết:
 
@@ -36,8 +37,8 @@ User Story **NCL-08-CN-011** cho phép Quản lý hợp tác xã (VT-02) tạo y
    - Không được đưa lô thuộc organization khác vào phạm vi thu hồi.
    - Backend phải validate mỗi shipment thuộc organization của người dùng hiện tại.
 
-3. **Loại bỏ lô đã RECALLED:**
-   - Lô đã thu hồi trước đó (status = RECALLED) phải bị loại khỏi phạm vi.
+3. **Loại bỏ lô đã RECALLED hoặc RECALLING:**
+   - Lô đã thu hồi hoặc đang thu hồi trước đó (status = RECALLED hoặc RECALLING) phải bị loại khỏi phạm vi.
    - Phải ghi rõ lý do loại bỏ.
 
 4. **Validation phạm vi cuối cùng:**
@@ -45,22 +46,24 @@ User Story **NCL-08-CN-011** cho phép Quản lý hợp tác xã (VT-02) tạo y
    - Nếu có lô bị loại nhưng không có lý do → Không được tạo yêu cầu.
 
 5. **Mã vụ việc thu hồi:**
-   - Mỗi vụ việc thu hồi có mã riêng (UUID).
+   - Mỗi vụ việc thu hồi có mã riêng (UUID / caseCode dạng RC-yyyyMMddHHmmss-XXXX).
    - Một vụ việc có thể chứa nhiều lô hàng.
 
 6. **Trạng thái yêu cầu:**
    - Yêu cầu ban đầu ở trạng thái `PENDING` (chờ phê duyệt).
-   - Sau khi được phê duyệt: `APPROVED`.
+   - Sau khi được phê duyệt: `APPROVED` (các lô hàng chuyển sang `RECALLING`).
    - Sau khi bị từ chối: `REJECTED`.
+   - Sau khi kết thúc vụ việc thu hồi: `COMPLETED` ("Đã xử lý", các lô hàng chuyển sang `RECALLED`).
 
 7. **Người tạo KHÔNG được tự phê duyệt (QTN-22):**
    - Người tạo yêu cầu không được phép phê duyệt chính yêu cầu của mình.
 
 8. **Tác động khi phê duyệt:**
-   - Các lô trong phạm vi chuyển sang trạng thái `RECALLED`.
-   - Bật cảnh báo công khai cho từng mã tem (TraceCode) thuộc các lô.
+   - Các lô trong phạm vi chuyển sang trạng thái `RECALLING` (Đang thu hồi).
+   - Bật cảnh báo thu hồi công khai trên hệ thống tra cứu tem cho các lô này.
    - Gửi notification đến các doanh nghiệp thu mua đã nhận lô.
    - Ghi nhận lịch sử/audit tương ứng.
+   - Kích hoạt/mở vụ việc thu hồi (RecallCase - NCL-08-CN-012) để tiếp tục quá trình xử lý và kết thúc thu hồi.
 
 ---
 
@@ -380,9 +383,9 @@ Content-Type: application/json
 
 #### Mô tả:
 Phê duyệt yêu cầu thu hồi theo phạm vi ảnh hưởng. Khi phê duyệt:
-- Tất cả lô hàng trong `includedShipments` chuyển sang trạng thái `RECALLED`.
-- Toàn bộ TraceCode thuộc các lô hàng chuyển sang `RECALLED`.
-- Cảnh báo công khai được bật cho từng mã tem.
+- Tất cả lô hàng trong `includedShipments` chuyển sang trạng thái `RECALLING` (Đang thu hồi).
+- Kích hoạt cảnh báo thu hồi công khai trên hệ thống tra cứu đối với các lô hàng này.
+- Mở hoặc liên kết vụ việc thu hồi (RecallCase) ở trạng thái `OPEN` để quản lý việc xử lý và đóng thu hồi (NCL-08-CN-012).
 - Notification được gửi đến các doanh nghiệp thu mua.
 - AuditLog được ghi nhận.
 
@@ -415,7 +418,7 @@ Phê duyệt yêu cầu thu hồi theo phạm vi ảnh hưởng. Khi phê duyệ
 | Người dùng chưa được cấp permission `recall:UPDATE` | 403 | `"Bạn không có quyền thực hiện chức năng này."` |
 | Yêu cầu không ở trạng thái PENDING | 409 | `"Chỉ có thể phê duyệt yêu cầu ở trạng thái PENDING."` |
 | Người phê duyệt trùng người tạo | 400 | `"Bạn không thể phê duyệt yêu cầu do chính mình tạo."` |
-| Một trong các lô hàng đã RECALLED sau khi tạo yêu cầu | 409 | `"Lô hàng {shipmentId} đã bị thu hồi bởi một yêu cầu khác. Vui lòng cập nhật yêu cầu."` |
+| Một trong các lô hàng đã RECALLED hoặc RECALLING sau khi tạo yêu cầu | 409 | `"Lô hàng {shipmentId} đã bị thu hồi bởi một yêu cầu khác. Vui lòng cập nhật yêu cầu."` |
 
 #### Responses:
 
@@ -424,7 +427,7 @@ Phê duyệt yêu cầu thu hồi theo phạm vi ảnh hưởng. Khi phê duyệ
 {
   "success": true,
   "status": 200,
-  "message": "Phê duyệt yêu cầu thu hồi thành công. 2 lô hàng đã chuyển sang trạng thái RECALLED.",
+  "message": "Phê duyệt yêu cầu thu hồi thành công. 2 lô hàng đã chuyển sang trạng thái RECALLING (Đang thu hồi).",
   "data": {
     "id": "f6j3d789-46gh-9j67-336f-666666666666",
     "productionLotId": "b2f9f345-02cd-5f23-992b-222222222222",
@@ -440,21 +443,21 @@ Phê duyệt yêu cầu thu hồi theo phạm vi ảnh hưởng. Khi phê duyệ
         "shipmentId": "c3g0a456-13de-6g34-003c-333333333333",
         "shipmentCode": "SHIP-8821",
         "shipmentName": "Lô hàng dâu tây siêu thị A",
-        "status": "RECALLED",
+        "status": "RECALLING",
         "totalQuantity": 1500,
         "excluded": false,
         "exclusionReason": null,
-        "recalledAt": "2026-09-08T11:00:00"
+        "recalledAt": null
       },
       {
         "shipmentId": "d4h1b567-24ef-7h45-114d-444444444444",
         "shipmentCode": "SHIP-8822",
         "shipmentName": "Lô hàng dâu tây siêu thị B",
-        "status": "RECALLED",
+        "status": "RECALLING",
         "totalQuantity": 2000,
         "excluded": false,
         "exclusionReason": null,
-        "recalledAt": "2026-09-08T11:00:00"
+        "recalledAt": null
       }
     ],
     "excludedShipments": [

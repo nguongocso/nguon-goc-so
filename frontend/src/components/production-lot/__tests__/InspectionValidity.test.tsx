@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { ProductionLotList } from "../ProductionLotList";
@@ -6,8 +7,8 @@ import {
   InspectionValidityBadge,
   INSPECTION_VALIDITY_LABELS,
 } from "../ProductionLotStatusBadge";
-import type { ProductionLot } from "@/types/productionLot";
-import type { InspectionValidityStatus } from "@/types/certification";
+import type { ProductionLot } from "../../../types/productionLot";
+import type { InspectionValidityStatus } from "../../../types/certification";
 
 const mockNavigate = vi.fn();
 
@@ -19,7 +20,7 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
-vi.mock("@/hooks/useAuth", () => ({
+vi.mock("../../../hooks/useAuth", () => ({
   useAuth: () => ({
     user: {
       userId: "user-test-1",
@@ -59,6 +60,23 @@ const baseLot: ProductionLot = {
   createdAt: "2026-01-10T08:00:00Z",
   updatedAt: "2026-06-20T10:00:00Z",
   inspectionValidity: null,
+};
+
+const defaultProps = {
+  isLoading: false,
+  canCreate: false,
+  canEdit: false,
+  canSubmitForApproval: false,
+  canApprove: false,
+  canRecordFarmLog: false,
+  canCancel: false,
+  onCreate: vi.fn(),
+  onEdit: vi.fn(),
+  onSubmitForApproval: vi.fn().mockResolvedValue(undefined),
+  onDecideApproval: vi.fn().mockResolvedValue(undefined),
+  onRecordFarmLog: vi.fn(),
+  onCancel: vi.fn().mockResolvedValue(undefined),
+  onRefresh: vi.fn(),
 };
 
 const renderWithRouter = (ui: React.ReactElement) => {
@@ -111,17 +129,8 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
 
     renderWithRouter(
       <ProductionLotList
+        {...defaultProps}
         lots={[expiringLot]}
-        isLoading={false}
-        canCreate={false}
-        canUpdate={false}
-        canDelete={false}
-        canApprove={false}
-        canViewDetail={true}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-        onApproveSuccess={vi.fn()}
-        onRefresh={vi.fn()}
       />,
     );
 
@@ -152,17 +161,8 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
 
     renderWithRouter(
       <ProductionLotList
+        {...defaultProps}
         lots={[expiredLot]}
-        isLoading={false}
-        canCreate={false}
-        canUpdate={false}
-        canDelete={false}
-        canApprove={false}
-        canViewDetail={true}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-        onApproveSuccess={vi.fn()}
-        onRefresh={vi.fn()}
       />,
     );
 
@@ -193,17 +193,8 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
 
     renderWithRouter(
       <ProductionLotList
+        {...defaultProps}
         lots={[recalledLot]}
-        isLoading={false}
-        canCreate={false}
-        canUpdate={false}
-        canDelete={false}
-        canApprove={false}
-        canViewDetail={true}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-        onApproveSuccess={vi.fn()}
-        onRefresh={vi.fn()}
       />,
     );
 
@@ -233,17 +224,8 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
 
     renderWithRouter(
       <ProductionLotList
+        {...defaultProps}
         lots={[validLot]}
-        isLoading={false}
-        canCreate={false}
-        canUpdate={false}
-        canDelete={false}
-        canApprove={false}
-        canViewDetail={true}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-        onApproveSuccess={vi.fn()}
-        onRefresh={vi.fn()}
       />,
     );
 
@@ -274,17 +256,8 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
 
     renderWithRouter(
       <ProductionLotList
+        {...defaultProps}
         lots={[expiredLot]}
-        isLoading={false}
-        canCreate={false}
-        canUpdate={false}
-        canDelete={false}
-        canApprove={false}
-        canViewDetail={true}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-        onApproveSuccess={vi.fn()}
-        onRefresh={vi.fn()}
       />,
     );
 
@@ -304,17 +277,8 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
     expect(() => {
       renderWithRouter(
         <ProductionLotList
+          {...defaultProps}
           lots={[nullValidityLot]}
-          isLoading={false}
-          canCreate={false}
-          canUpdate={false}
-          canDelete={false}
-          canApprove={false}
-          canViewDetail={true}
-          onEdit={vi.fn()}
-          onDelete={vi.fn()}
-          onApproveSuccess={vi.fn()}
-          onRefresh={vi.fn()}
         />,
       );
     }).not.toThrow();
@@ -324,3 +288,4 @@ describe("NCL-11-CN-004: ProductionLotList Inspection Validity", () => {
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);
   });
 });
+

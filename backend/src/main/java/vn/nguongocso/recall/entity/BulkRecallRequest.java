@@ -96,6 +96,19 @@ public class BulkRecallRequest {
     @Column(name = "rejection_reason", columnDefinition = "TEXT")
     private String rejectionReason;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "closed_by")
+    private User closedBy;
+
+    @Column(name = "closed_at")
+    private LocalDateTime closedAt;
+
+    @Column(name = "remediation_measures", columnDefinition = "TEXT")
+    private String remediationMeasures;
+
+    @Column(name = "evidence_file_ids", columnDefinition = "TEXT")
+    private String evidenceFileIds;
+
     @OneToMany(mappedBy = "bulkRecallRequest", cascade = CascadeType.ALL, orphanRemoval = true)
     private java.util.List<BulkRecallShipment> shipments = new java.util.ArrayList<>();
 

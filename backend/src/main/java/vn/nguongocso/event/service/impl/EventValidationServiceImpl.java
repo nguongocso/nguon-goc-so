@@ -101,7 +101,7 @@ public class EventValidationServiceImpl implements EventValidationService {
             if (eventType == ChainEventType.TRANSPORT
                     && !shipment.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
                 message = "Bạn không thuộc tổ chức quản lý của lô hàng này.";
-            } else if (shipment.getStatus() == ShipmentStatus.RECALLED) {
+            } else if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
                 message = "Lô hàng đã bị thu hồi, không thể ghi sự kiện.";
             } else if (shipment.getStatus() != ShipmentStatus.ACTIVATED) {
                 message = "Lô hàng chưa được kích hoạt, không thể ghi sự kiện.";
