@@ -137,4 +137,16 @@ public interface NotificationService {
             UUID requestId,
             String action,
             List<vn.nguongocso.auth.entity.User> recipients);
+
+    /**
+     * Gửi cảnh báo cho Quản lý hợp tác xã khi lô sản xuất có kết quả kiểm nghiệm sắp hết hiệu lực hoặc đã hết hiệu lực (NCL-11-CN-004).
+     *
+     * @param alert     cảnh báo liên quan
+     * @param lot       lô sản xuất
+     * @param validity  thông tin hiệu lực kiểm nghiệm
+     */
+    void sendInspectionExpiryNotification(
+            vn.nguongocso.alert.entity.Alert alert,
+            vn.nguongocso.farm.entity.ProductionLot lot,
+            vn.nguongocso.certification.dto.response.InspectionValidityResponse validity);
 }

@@ -328,3 +328,66 @@ export interface CanActivateSealCheck {
   passedCriteria: number;
   failedOrExpiredCriteria: number;
 }
+
+// ============================================================
+// NCL-11-CN-004: Cảnh báo kết quả kiểm nghiệm sắp hết hiệu lực
+// ============================================================
+
+/**
+ * Trạng thái hiệu lực kết quả kiểm nghiệm của lô sản xuất.
+ * Giá trị suy diễn tại thời điểm đọc, KHÔNG lưu vào database.
+ */
+export type InspectionValidityStatus =
+  | 'NOT_REQUIRED' // Không yêu cầu kiểm nghiệm
+  | 'NO_VALID_RESULT' // Chưa có kết quả kiểm nghiệm hợp lệ
+  | 'VALID' // Còn hiệu lực
+  | 'EXPIRING' // Sắp hết hiệu lực
+  | 'EXPIRED'; // Hết hiệu lực
+
+/**
+ * Khối dữ liệu hiệu lực kết quả kiểm nghiệm của lô sản xuất.
+ * Bổ sung additive vào response danh sách/chi tiết lô.
+ *
+ * Các field được tính bởi Backend — Frontend KHÔNG được tự tính lại.
+ */
+export interface InspectionValidityResponse {
+  /** Lô thuộc loại nông sản bắt buộc kiểm nghiệm hay không. */
+  requiresInspection: boolean;
+  /** Trạng thái hiệu lực suy diễn tại thời điểm đọc. */
+  status: InspectionValidityStatus;
+  /** Ngày hết hiệu lực sớm nhất (YYYY-MM-DD), null khi không xác định. */
+  earliestExpiryDate: string | null;
+  /** Số ngày còn hiệu lực, null khi đã hết hạn. */
+  daysRemaining: number | null;
+  /** Số ngày quá hạn, null khi chưa hết hạn. */
+  daysOverdue: number | null;
+  /** Lô có đủ điều kiện kích hoạt tem theo QTN-21. */
+  canActivate: boolean;
+  /** Lô đang ở trạng thái cho phép tạo yêu cầu kiểm nghiệm mới. */
+  canCreateNewRequest: boolean;
+  /** ID yêu cầu kiểm nghiệm PASSED mới nhất, null nếu không có. */
+  latestPassedRequestId: string | null;
+  /** Số mã tem INACTIVE thuộc lô hàng chưa thu hồi, null khi chưa có lô hàng. */
+  inactiveStampCount: number | null;
+  /** Danh sách thông tin hiệu lực từng tiêu chí kiểm nghiệm của lô. */
+  criteria?: CriterionValidityResponse[];
+  /** Danh sách tên các chỉ tiêu kiểm nghiệm sắp hết hiệu lực. */
+  expiringCriteria?: string[];
+  /** Danh sách tên các chỉ tiêu kiểm nghiệm đã hết hiệu lực. */
+  expiredCriteria?: string[];
+}
+
+/**
+ * Chi tiết hiệu lực của một chỉ tiêu kiểm nghiệm cụ thể (NCL-11-CN-004).
+ */
+export interface CriterionValidityResponse {
+  criterionId?: number;
+  criterionCode?: string | null;
+  criterionName: string;
+  passed?: boolean;
+  expiryDate?: string | null;
+  daysRemaining?: number | null;
+  daysOverdue?: number | null;
+  status: InspectionValidityStatus;
+}
+

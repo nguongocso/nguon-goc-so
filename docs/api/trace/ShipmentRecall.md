@@ -26,7 +26,7 @@ Nhật ký này phục vụ:
 
 POST /api/v1/shipments/{shipmentId}/recall
 
-Thu hồi một lô hàng đang hiệu lực.
+Thu hồi một lô hàng còn hiệu lực.
 
 GET /api/v1/shipments/{shipmentId}/recall
 
@@ -392,7 +392,7 @@ Ghi chú: việc cập nhật hàng loạt TraceCode sang RECALLED được th�
 
 Bao gồm
 
-•  Thu hồi lô hàng (Shipment) đang hiệu lực theo yêu cầu của Quản lý hợp tác xã sở hữu lô.
+•  Thu hồi lô hàng (Shipment) còn hiệu lực theo yêu cầu của Quản lý hợp tác xã sở hữu lô.
 
 •  Kiểm soát quyền theo tổ chức: chỉ tổ chức sở hữu lô (hoặc VT-01) mới được thu hồi.
 

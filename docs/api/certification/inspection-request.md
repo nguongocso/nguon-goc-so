@@ -14,6 +14,7 @@ Tai lieu nay phan biet ro yeu cau cua DOCX voi hanh vi da duoc implement. Ten lo
 5. Yeu cau moi duoc tao voi trang thai domain `PENDING_RESULT`; response API tra ve chuoi `PENDING`.
 6. Neu da co yeu cau `PENDING_RESULT` cung bo tieu chi cho lo, backend tra `409 CONFLICT`, tru khi client gui `confirmDuplicate = true`. Identity cua tieu chi duoc xac dinh boi `criterionId` (khong phai name). Hai tieu chi khac ID nhung cung ten KHONG bi coi la trung lap.
 7. Sau khi tao yeu cau, ket qua co the duoc ghi tung tieu chi bang `POST`, hoac ghi toan bo bang `PUT` tai cap request. Chi tiet luong nay nam trong [inspection-result.md](inspection-result.md).
+8. Doi voi lo co ket qua kiem nghiem da het hieu luc (`status = EXPIRED` theo NCL-11-CN-004), VT-02 su dung loi tat de tao yeu cau kiem nghiem moi qua `POST /api/v1/production-lots/{lotId}/test-requests`. Yeu cau moi duoc tao hoan toan doc lap, khong ghi de hay xoa ket qua cu; toan bo lich su kiem nghiem van duoc bao luu day du.
 
 ## 2. API lay tieu chi cua lo
 

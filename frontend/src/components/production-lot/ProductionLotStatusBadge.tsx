@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { ProductionLot } from "@/types/productionLot";
+import type { InspectionValidityStatus } from "@/types/certification";
 
 export type ProductionLotStatus = ProductionLot["status"];
 
@@ -38,6 +39,28 @@ export const PRODUCTION_LOT_STATUS_CLASSES: Record<ProductionLotStatus, string> 
   DISPOSED: "bg-status-rejected/10 text-status-rejected border-status-rejected/20",
 };
 
+// ============================================================
+// NCL-11-CN-004: Trạng thái hiệu lực kết quả kiểm nghiệm
+// ============================================================
+
+/** Nhãn hiển thị cho trạng thái hiệu lực kiểm nghiệm (tiếng Việt). */
+export const INSPECTION_VALIDITY_LABELS: Record<InspectionValidityStatus, string> = {
+  NOT_REQUIRED: "Không yêu cầu kiểm nghiệm",
+  NO_VALID_RESULT: "Chưa có kết quả kiểm nghiệm",
+  VALID: "Còn hiệu lực",
+  EXPIRING: "Sắp hết hiệu lực",
+  EXPIRED: "Hết hiệu lực",
+};
+
+/** Ánh xạ màu cho trạng thái hiệu lực kiểm nghiệm. */
+export const INSPECTION_VALIDITY_CLASSES: Record<InspectionValidityStatus, string> = {
+  NOT_REQUIRED: "bg-slate-500/10 text-slate-600 border-slate-200",
+  NO_VALID_RESULT: "bg-amber-500/10 text-amber-700 border-amber-200",
+  VALID: "bg-emerald-500/10 text-emerald-700 border-emerald-200",
+  EXPIRING: "bg-orange-500/10 text-orange-700 border-orange-200",
+  EXPIRED: "bg-rose-500/10 text-rose-700 border-rose-200",
+};
+
 interface ProductionLotStatusBadgeProps {
   status: ProductionLotStatus;
   className?: string;
@@ -51,6 +74,26 @@ export function ProductionLotStatusBadge({ status, className }: ProductionLotSta
       className={cn(PRODUCTION_LOT_STATUS_CLASSES[status], className)}
     >
       {PRODUCTION_LOT_STATUS_LABELS[status]}
+    </Badge>
+  );
+}
+
+interface InspectionValidityBadgeProps {
+  status: InspectionValidityStatus;
+  className?: string;
+}
+
+/**
+ * Badge trạng thái hiệu lực kết quả kiểm nghiệm (NCL-11-CN-004).
+ * Tái sử dụng Badge component hiện có, không tạo component mới.
+ */
+export function InspectionValidityBadge({ status, className }: InspectionValidityBadgeProps) {
+  return (
+    <Badge
+      variant="outline"
+      className={cn(INSPECTION_VALIDITY_CLASSES[status], className)}
+    >
+      {INSPECTION_VALIDITY_LABELS[status]}
     </Badge>
   );
 }
