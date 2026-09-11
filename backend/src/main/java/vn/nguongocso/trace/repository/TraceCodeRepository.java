@@ -163,4 +163,13 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 			@Param("orgId") UUID orgId,
 			@Param("status") TraceCodeStatus status,
 			@Param("search") String search);
+
+	/**
+	 * Tìm danh sách mã tem theo danh sách lô sản xuất và trạng thái (NCL-07-CN-006).
+	 */
+	@Query("SELECT tc FROM TraceCode tc WHERE tc.shipment.productionLot.id IN :lotIds AND tc.status = :status")
+	List<TraceCode> findByProductionLotIdsAndStatus(
+			@Param("lotIds") java.util.Collection<UUID> lotIds,
+			@Param("status") TraceCodeStatus status);
 }
+

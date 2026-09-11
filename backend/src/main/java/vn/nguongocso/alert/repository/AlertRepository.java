@@ -95,4 +95,12 @@ public interface AlertRepository extends JpaRepository<Alert, UUID> {
             AlertType type,
             LocalDateTime fromDate,
             LocalDateTime toDate);
-}
+
+    /**
+     * Tìm cảnh báo theo danh sách ID thực thể và loại cảnh báo (NCL-07-CN-006).
+     */
+    @Query("SELECT a FROM Alert a WHERE a.relatedEntityId IN :lotIds AND a.type = :type")
+    java.util.List<Alert> findByRelatedEntityIdInAndType(
+            @Param("lotIds") java.util.Collection<UUID> lotIds,
+            @Param("type") AlertType type);
+}
