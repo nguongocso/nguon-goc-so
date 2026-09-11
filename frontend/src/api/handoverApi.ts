@@ -17,11 +17,6 @@ export const getHandovers = async (
 };
 
 /**
- * Alias cho acceptHandover
- */
-export const confirmHandover = acceptHandover;
-
-/**
  * Tạo phiếu bàn giao mới.
  * POST /api/v1/shipment-handovers
  */
@@ -93,6 +88,11 @@ export const acceptHandover = async (id: string): Promise<ShipmentHandover> => {
   const response = await apiClient.post<{ data: ShipmentHandover }>(`/shipment-handovers/${id}/accept`);
   return response.data.data;
 };
+
+/**
+ * Alias cho acceptHandover
+ */
+export const confirmHandover = acceptHandover;
 
 /**
  * Từ chối nhận bàn giao.
