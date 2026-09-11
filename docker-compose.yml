@@ -39,7 +39,7 @@ services:
       additional_contexts:
         m2repo: ~/.m2
 
-    restart: unless-stopped
+    restart: on-failure:5
 
     environment:
       DB_HOST: ${DB_HOST}
