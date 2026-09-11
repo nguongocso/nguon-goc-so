@@ -184,7 +184,10 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
 
   // Shipment handover (NCL-05-CN-008/CN-009)
   ["/shipment-handovers/received", "Phiếu bàn giao nhận"],
+  ["/shipment-handovers/sent", "Phiếu bàn giao đã gửi"],
   ["/shipment-handovers/:id", "Chi tiết phiếu bàn giao"],
+  ["/handover/:id", "Chi tiết phiếu bàn giao"],
+  ["/handover", "Phiếu bàn giao nhận"],
 
   // Mobile / Invitations / Recall / Feedback
   ["/mobile/record-event", "Ghi sự kiện di động"],
@@ -347,7 +350,10 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
 
   // Shipment handover (NCL-05-CN-008/CN-009)
   ["/shipment-handovers/received", ROLE_ACCESS.handoverReceivedView],
+  ["/shipment-handovers/sent", ROLE_ACCESS.handoverSentView],
   ["/shipment-handovers/:id", AUTHENTICATED_ROLE_CODES],
+  ["/handover/:id", AUTHENTICATED_ROLE_CODES],
+  ["/handover", ROLE_ACCESS.handoverReceivedView],
 
   // Mobile / Invitations / Recall / Feedback
   ["/mobile/record-event", ["VT-02", "VT-03"]],

@@ -30,6 +30,7 @@ import { acceptHandover, getHandoverById, rejectHandover } from "@/api/handoverA
 import { useAuth } from "@/hooks/useAuth";
 import { toHandoverAssetUrl } from "@/components/shipment/CreateHandoverDialog";
 import { HandoverStatusBadge } from "@/components/shipment/HandoverStatusBadge";
+import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 import type { HandoverDetailResponse } from "@/types/shipmentHandover";
 
 const formatDateTime = (iso?: string | null): string => {
@@ -65,6 +66,12 @@ export const HandoverDetailPage = () => {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
+
+  useSetBreadcrumb([
+    { label: "Tổng quan", href: "/dashboard" },
+    { label: "Phiếu bàn giao nhận", href: "/shipment-handovers/received" },
+    { label: "Chi tiết phiếu bàn giao" },
+  ]);
 
   const load = useCallback(async () => {
     if (!id) return;

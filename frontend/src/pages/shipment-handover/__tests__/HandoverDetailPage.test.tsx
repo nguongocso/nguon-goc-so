@@ -5,6 +5,8 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { HandoverDetailPage } from "../HandoverDetailPage";
 import * as handoverApi from "@/api/handoverApi";
 import { toast } from "sonner";
+import { AppBreadcrumb, BreadcrumbOverrideProvider } from "@/components/common/AppBreadcrumb";
+import { Sidebar } from "@/components/layout/Sidebar";
 
 const handoverId = "3dd95ecb-978f-42f7-8b09-cf1a966872d0";
 const toOrgId = "327a40dc-a396-11f1-aea2-32ec817c7ea4";
@@ -202,5 +204,60 @@ describe("NCL-05-CN-009 - HandoverDetailPage Xác nhận/Từ chối", () => {
       );
     });
     expect(await screen.findByText("Đã từ chối")).toBeInTheDocument();
+  });
+
+  it("hiển thị breadcrumb đúng phân cấp: Tổng quan > Phiếu bàn giao nhận > Chi tiết phiếu bàn giao", async () => {
+    vi.mocked(handoverApi.getHandoverById).mockResolvedValue(
+      buildHandover() as never,
+    );
+
+    render(
+      <MemoryRouter initialEntries={[`/shipment-handovers/${handoverId}`]}>
+        <BreadcrumbOverrideProvider>
+          <AppBreadcrumb />
+          <Routes>
+            <Route
+              path="/shipment-handovers/:id"
+              element={<HandoverDetailPage />}
+            />
+          </Routes>
+        </BreadcrumbOverrideProvider>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Chi tiết phiếu bàn giao")).toBeInTheDocument();
+    const handoverLink = screen.getByRole("link", { name: "Phiếu bàn giao nhận" });
+    expect(handoverLink).toBeInTheDocument();
+    expect(handoverLink).toHaveAttribute("href", "/shipment-handovers/received");
+  });
+
+  it("Sidebar giữ active menu item 'Phiếu bàn giao nhận' khi ở trang chi tiết /shipment-handovers/:id", async () => {
+    vi.mocked(handoverApi.getHandoverById).mockResolvedValue(
+      buildHandover() as never,
+    );
+
+    render(
+      <MemoryRouter initialEntries={[`/shipment-handovers/${handoverId}`]}>
+        <Sidebar
+          collapsed={false}
+          setCollapsed={vi.fn()}
+          mobileOpen={false}
+          setMobileOpen={vi.fn()}
+        />
+        <Routes>
+          <Route
+            path="/shipment-handovers/:id"
+            element={<HandoverDetailPage />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Phiếu bàn giao")).toBeInTheDocument();
+    const menuLink = screen.getByRole("link", { name: /Phiếu bàn giao nhận/ });
+    expect(menuLink).toBeInTheDocument();
+    // Class khi active có bg-emerald-700 text-white
+    expect(menuLink.className).toContain("bg-emerald-700");
+    expect(menuLink.className).toContain("text-white");
   });
 });

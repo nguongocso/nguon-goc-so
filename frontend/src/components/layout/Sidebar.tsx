@@ -385,6 +385,7 @@ const MENU_GROUPS: MenuGroup[] = [
         label: "Phiếu bàn giao nhận",
         href: "/shipment-handovers/received",
         allowedRoles: ROLE_ACCESS.handoverReceivedView,
+        activePaths: ["/handover"],
       },
       {
         icon: <Truck className="h-5 w-5" />,
@@ -820,6 +821,31 @@ export function Sidebar({
   ];
 
   const isActiveLeaf = (item: MenuItem) => {
+    // Phiếu bàn giao nhận: giữ active khi xem chi tiết phiếu bàn giao
+    if (item.href === "/shipment-handovers/received") {
+      if (
+        location.pathname === "/shipment-handovers/received" ||
+        (location.pathname.startsWith("/shipment-handovers/") &&
+          !location.pathname.startsWith("/shipment-handovers/sent") &&
+          user?.roleCode !== "VT-02") ||
+        location.pathname.startsWith("/handover")
+      ) {
+        return true;
+      }
+    }
+
+    // Phiếu bàn giao đã gửi (VT-02): giữ active khi xem chi tiết phiếu gửi
+    if (item.href === "/shipment-handovers/sent") {
+      if (
+        location.pathname === "/shipment-handovers/sent" ||
+        (location.pathname.startsWith("/shipment-handovers/") &&
+          !location.pathname.startsWith("/shipment-handovers/received") &&
+          user?.roleCode === "VT-02")
+      ) {
+        return true;
+      }
+    }
+
     const matchedItems = allVisibleItems.filter((menuItem) => {
       const paths = getItemPaths(menuItem);
       return paths.some(
