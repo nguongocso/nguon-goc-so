@@ -321,6 +321,13 @@ const MENU_GROUPS: MenuGroup[] = [
         activePaths: ["/trace/impact-scope"],
       },
       {
+        icon: <FileSignature className="h-5 w-5" />,
+        label: "Phiếu bàn giao đã gửi",
+        href: "/handover/sent",
+        allowedRoles: ["VT-02"] as const,
+        activePaths: ["/handover/sent"],
+      },
+      {
         icon: <PackageX className="h-5 w-5" />,
         label: "Yêu cầu thu hồi",
         allowedRoles: ROLE_ACCESS.recallRequestManage,
@@ -386,12 +393,6 @@ const MENU_GROUPS: MenuGroup[] = [
         href: "/shipment-handovers/received",
         allowedRoles: ["VT-02"] as const,
         activePaths: ["/shipment-handovers/received"],
-      },
-      {
-        icon: <Truck className="h-5 w-5" />,
-        label: "Phiếu bàn giao đã gửi",
-        href: "/shipment-handovers/sent",
-        allowedRoles: ROLE_ACCESS.handoverSentView,
       },
     ],
   },
@@ -827,11 +828,26 @@ export function Sidebar({
   ];
 
   const isActiveLeaf = (item: MenuItem) => {
+    // Phiếu bàn giao đã gửi (VT-02): giữ active khi ở /handover/sent hoặc xem chi tiết phiếu gửi
+    if (item.href === "/handover/sent") {
+      if (
+        location.pathname === "/handover/sent" ||
+        (location.pathname.startsWith("/handover/") && user?.roleCode === "VT-02") ||
+        (location.pathname.startsWith("/shipment-handovers/") &&
+          !location.pathname.startsWith("/shipment-handovers/received") &&
+          user?.roleCode === "VT-02")
+      ) {
+        return true;
+      }
+    }
+
     // Phiếu bàn giao nhận (VT-04): giữ active khi ở /handover hoặc xem chi tiết
     if (item.href === "/handover") {
       if (
         location.pathname === "/handover" ||
-        location.pathname.startsWith("/handover/") ||
+        (location.pathname.startsWith("/handover/") &&
+          !location.pathname.startsWith("/handover/sent") &&
+          user?.roleCode === "VT-04") ||
         (location.pathname.startsWith("/shipment-handovers/") &&
           !location.pathname.startsWith("/shipment-handovers/sent") &&
           user?.roleCode === "VT-04")
@@ -846,20 +862,16 @@ export function Sidebar({
         location.pathname === "/shipment-handovers/received" ||
         (location.pathname.startsWith("/shipment-handovers/") &&
           !location.pathname.startsWith("/shipment-handovers/sent") &&
-          user?.roleCode !== "VT-04")
+          user?.roleCode !== "VT-04" &&
+          user?.roleCode !== "VT-02")
       ) {
         return true;
       }
     }
 
-    // Phiếu bàn giao đã gửi (VT-02): giữ active khi xem chi tiết phiếu gửi
+    // Phiếu bàn giao đã gửi (VT-02 cũ nếu truy cập URL cũ): giữ active khi ở /shipment-handovers/sent
     if (item.href === "/shipment-handovers/sent") {
-      if (
-        location.pathname === "/shipment-handovers/sent" ||
-        (location.pathname.startsWith("/shipment-handovers/") &&
-          !location.pathname.startsWith("/shipment-handovers/received") &&
-          user?.roleCode === "VT-02")
-      ) {
+      if (location.pathname === "/shipment-handovers/sent") {
         return true;
       }
     }
