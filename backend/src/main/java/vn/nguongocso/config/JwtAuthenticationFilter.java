@@ -234,6 +234,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             );
         }
 
+        /*
+         * Cho phép lấy token qua query parameter (phục vụ mở tệp đính kèm trong tab mới của trình duyệt).
+         */
+        String queryToken = request.getParameter("token");
+        if (queryToken != null && !queryToken.isBlank()) {
+            return queryToken.trim();
+        }
+
         return null;
     }
 }

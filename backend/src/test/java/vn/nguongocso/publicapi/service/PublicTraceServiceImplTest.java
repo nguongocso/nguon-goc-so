@@ -47,6 +47,7 @@ import vn.nguongocso.recall.repository.RecallRequestRepository;
 import vn.nguongocso.trace.repository.RecallRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 import vn.nguongocso.trace.service.SuspectDetectionService;
+import vn.nguongocso.trace.recall.repository.RecallCaseRepository;
 
 /**
  * Kiểm thử contract NCL-08-CN-007 & TASK-16:
@@ -88,6 +89,12 @@ class PublicTraceServiceImplTest {
     private InspectionCriterionResultRepository inspectionCriterionResultRepository;
 
     @Mock
+    private RecallCaseRepository recallCaseRepository;
+
+    @Mock
+    private vn.nguongocso.recall.repository.BulkRecallShipmentRepository bulkRecallShipmentRepository;
+
+    @Mock
     private ReverseGeocodingService reverseGeocodingService;
 
     private PublicTraceServiceImpl publicTraceService;
@@ -107,6 +114,8 @@ class PublicTraceServiceImplTest {
                 suspectDetectionService,
                 recallRepository,
                 recallRequestRepository,
+                recallCaseRepository,
+                bulkRecallShipmentRepository,
                 productionLotCertificationRepository,
                 inspectionRequestRepository,
                 inspectionCriterionResultRepository,

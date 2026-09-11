@@ -34,6 +34,12 @@ public class BulkRecallRequestResponse {
     private UserInfo rejectedBy;
     private LocalDateTime rejectedAt;
     private String rejectionReason;
+    private UserInfo closedBy;
+    private LocalDateTime closedAt;
+    private String remediationMeasures;
+    private List<UUID> evidenceFileIds;
+    private List<RecallEvidenceResponse> evidenceFiles;
+    private String caseCode;
     private List<BulkRecallShipmentItem> shipments;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

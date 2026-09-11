@@ -28,4 +28,10 @@ public interface BulkRecallShipmentRepository extends JpaRepository<BulkRecallSh
      * Xóa tất cả chi tiết theo yêu cầu thu hồi.
      */
     void deleteByBulkRecallRequestId(UUID bulkRecallRequestId);
+
+    /**
+     * Tìm yêu cầu thu hồi mới nhất của lô hàng theo trạng thái yêu cầu.
+     */
+    java.util.Optional<BulkRecallShipment> findTopByShipment_IdAndIncludedAndBulkRecallRequest_StatusOrderByCreatedAtDesc(
+            UUID shipmentId, boolean included, vn.nguongocso.recall.enums.BulkRecallRequestStatus status);
 }
