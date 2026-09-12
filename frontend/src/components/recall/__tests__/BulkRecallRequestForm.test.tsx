@@ -114,6 +114,19 @@ describe("BulkRecallRequestForm - bang Pham vi thu hoi", () => {
         expect(screen.getByText("Hiển thị 1–20 trong tổng số 25 lô")).toBeInTheDocument();
     });
 
+    it("lo cha da tach chi hien thi de truy vet va khong the chon", () => {
+        renderForm([
+            makeShipment(1, { status: "SPLIT" }),
+            makeShipment(2, { status: "CODE_PRINTED" }),
+        ]);
+
+        expect(screen.getByText("Lô cha đã tách chỉ dùng để truy vết")).toBeInTheDocument();
+        expect(screen.getByText("Đã chọn 1/1 lô")).toBeInTheDocument();
+
+        const row = screen.getByText("Lo xoai 001").closest("tr");
+        expect(row?.querySelector('[role="checkbox"]')).toHaveAttribute("aria-disabled", "true");
+    });
+
     it("tim kiem khong co ket qua hien thi empty-state", () => {
         renderForm([makeShipment(1)]);
         fireEvent.change(screen.getByLabelText("Tìm theo mã lô"), {

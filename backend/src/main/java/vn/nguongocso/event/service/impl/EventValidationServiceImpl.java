@@ -138,6 +138,10 @@ public class EventValidationServiceImpl implements EventValidationService {
             throw new BusinessException("Bạn không thuộc tổ chức quản lý của lô hàng này.");
         }
 
+        if (shipment.getParentShipment() != null) {
+            throw new BusinessException("Không thể hủy lô con đã được phân bổ từ lô cha.");
+        }
+
         // Kiểm tra trạng thái
         if (shipment.getStatus() != ShipmentStatus.DRAFT && shipment.getStatus() != ShipmentStatus.CODE_PRINTED) {
             throw new BusinessException("Không thể hủy bản nháp vì lô hàng đã được kích hoạt hoặc thu hồi.");

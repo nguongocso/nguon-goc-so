@@ -26,4 +26,7 @@ export interface ChainEventResponse {
   recordedAt: string;
   recordedByName: string;
   createdAt: string;
+  lineageLevel?: 'PRODUCTION_LOT' | 'SOURCE_SHIPMENT' | 'CHILD_SHIPMENT' | null;
+  sourceShipmentId?: string | null;
+  inherited?: boolean;
 }

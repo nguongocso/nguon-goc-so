@@ -15,6 +15,7 @@ export const EVENT_TYPE_VN_LABELS: Record<ChainEventType, string> = {
   STORAGE_CONDITION: 'Điều kiện bảo quản',
   WAREHOUSE_ENTRY: 'Nhập kho HTX',
   WAREHOUSE_EXIT: 'Xuất kho HTX',
+  SPLIT: 'Đã tách lô',
   HANDOVER: 'Bàn giao',
 };
 
@@ -90,6 +91,16 @@ const KNOWN_FIELD_LABELS: Record<string, string> = {
   reason: 'Lý do chênh lệch',
   receiptDate: 'Ngày nhập kho',
 
+  // Tách lô hàng
+  sourceShipmentId: 'Mã lô hàng nguồn',
+  sourceShipmentName: 'Tên lô hàng nguồn',
+  recipientOrganizationId: 'Mã tổ chức nhận',
+  recipientOrganizationName: 'Đối tác nhận hàng',
+  allocatedQuantity: 'Số lượng phân bổ',
+  fromCode: 'Mã bắt đầu',
+  toCode: 'Mã kết thúc',
+  sourceLastEventHash: 'Mã băm sự kiện nguồn',
+
   // ========== Handover (NCL-05-CN-009) ==========
   action: 'Hành động',
   fromOrgId: 'Mã bên giao',
@@ -97,6 +108,29 @@ const KNOWN_FIELD_LABELS: Record<string, string> = {
   fromOrganizationName: 'Bên giao',
   toOrganizationName: 'Bên nhận',
 };
+
+const HIDDEN_EVENT_FIELDS = new Set([
+  'shipmentId',
+  'productionLotId',
+  'deviceSource',
+  'images',
+  'fromOrgId',
+  'toOrgId',
+]);
+
+const SPLIT_HIDDEN_FIELDS = new Set([
+  'sourceShipmentId',
+  'recipientOrganizationId',
+  'sourceLastEventHash',
+]);
+
+const SPLIT_FIELD_ORDER = [
+  'sourceShipmentName',
+  'recipientOrganizationName',
+  'allocatedQuantity',
+  'fromCode',
+  'toCode',
+];
 
 /**
  * Converts a camelCase backend field name into a human-readable Vietnamese label.
@@ -174,6 +208,27 @@ export function isEventValueEmpty(value: unknown): boolean {
   return value === null || value === undefined || value === '';
 }
 
+export function getDisplayEventDataEntries(
+  eventType: string,
+  data: Record<string, unknown>,
+): Array<[string, unknown]> {
+  return Object.entries(data)
+    .filter(([key, value]) => {
+      if (HIDDEN_EVENT_FIELDS.has(key)) return false;
+      if (eventType === 'SPLIT' && SPLIT_HIDDEN_FIELDS.has(key)) return false;
+      if (key === 'earlyHarvest' && (value === false || value === 'false')) return false;
+      if (key === 'unmatchedMaterials' && Array.isArray(value) && value.length === 0) return false;
+      return !isEventValueEmpty(value);
+    })
+    .sort(([firstKey], [secondKey]) => {
+      if (eventType !== 'SPLIT') return 0;
+      const firstIndex = SPLIT_FIELD_ORDER.indexOf(firstKey);
+      const secondIndex = SPLIT_FIELD_ORDER.indexOf(secondKey);
+      return (firstIndex === -1 ? Number.MAX_SAFE_INTEGER : firstIndex)
+        - (secondIndex === -1 ? Number.MAX_SAFE_INTEGER : secondIndex);
+    });
+}
+
 // ─────────────────────────────────────────────
 // Date / DateTime formatting (vi-VN)
 // ─────────────────────────────────────────────
@@ -228,37 +283,12 @@ export function formatDisplayDate(iso: string): string {
  * Returns a flat Record<string, string> ready for display.
  */
 export function getTranslatedEventData(
-  _eventType: string,
+  eventType: string,
   data: Record<string, unknown>,
 ): Record<string, string> {
   const result: Record<string, string> = {};
 
-  for (const [key, value] of Object.entries(data)) {
-    // Skip internal / identifier-only fields
-    if (
-      key === 'shipmentId' ||
-      key === 'productionLotId' ||
-      key === 'deviceSource' ||
-      key === 'images' ||
-      key === 'fromOrgId' ||
-      key === 'toOrgId'
-    ) {
-      continue;
-    }
-
-    // Don't show "Thu hoạch sớm: Không" when earlyHarvest is false or normal harvest
-    if (key === 'earlyHarvest' && (value === false || value === 'false')) {
-      continue;
-    }
-
-    if (isEventValueEmpty(value)) {
-      continue;
-    }
-
-    if (Array.isArray(value) && value.length === 0) {
-      continue;
-    }
-
+  for (const [key, value] of getDisplayEventDataEntries(eventType, data)) {
     const label = formatFieldLabel(key);
     const formatted = formatEventValue(value);
     if (formatted) {

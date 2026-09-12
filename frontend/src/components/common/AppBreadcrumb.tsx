@@ -81,6 +81,7 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/production-lots", "Lô sản xuất"],
 
   // Shipments
+  ["/shipments/:id/split", "Tách lô hàng"],
   [
     "/production-lots/:productionLotId/shipments/create",
     "Tạo lô hàng",
@@ -253,6 +254,7 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
   ["/production-lots", ROLE_ACCESS.productionLotList],
 
   // Shipments
+  ["/shipments/:id/split", ROLE_ACCESS.shipmentSplit],
   [
     "/production-lots/:productionLotId/shipments/create",
     ["VT-01", "VT-02", "VT-03"],

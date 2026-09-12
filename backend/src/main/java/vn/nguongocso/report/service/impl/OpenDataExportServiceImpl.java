@@ -28,6 +28,7 @@ import vn.nguongocso.report.service.ReportAccessLogService;
 import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.trace.entity.Shipment;
+import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 
 import java.nio.charset.StandardCharsets;
@@ -151,7 +152,9 @@ public class OpenDataExportServiceImpl implements OpenDataExportService {
 
             // 6. Truy vấn Shipments và ChainEvents liên quan
             List<UUID> eligibleLotIds = eligibleLots.stream().map(ProductionLot::getId).toList();
-            List<Shipment> shipments = shipmentRepository.findByProductionLotIdIn(eligibleLotIds);
+            List<Shipment> shipments = shipmentRepository.findByProductionLotIdIn(eligibleLotIds).stream()
+                    .filter(shipment -> shipment.getStatus() != ShipmentStatus.SPLIT)
+                    .toList();
 
             Map<UUID, List<Shipment>> shipmentsByLot = shipments.stream()
                     .collect(Collectors.groupingBy(sh -> sh.getProductionLot().getId()));

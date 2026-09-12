@@ -101,6 +101,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
     private static final String MSG_SHIPMENT_REQUIRED = "Phải chọn ít nhất một lô hàng để thu hồi.";
     private static final String MSG_EXCLUSION_REASON_REQUIRED = "Lô hàng bị loại phải có lý do loại bỏ.";
     private static final String MSG_SHIPMENT_ALREADY_RECALLED = "Lô hàng đã được thu hồi trước đó.";
+    private static final String MSG_SPLIT_PARENT_NOT_RECALLABLE = "Không thể thu hồi lô cha đã tách; vui lòng chọn các lô con trong phạm vi ảnh hưởng.";
     private static final String MSG_SHIPMENT_NOT_BELONG_TO_LOT = "Lô hàng không thuộc lô sản xuất đã chọn.";
     private static final String MSG_CANNOT_APPROVE_OWN = "Bạn không thể phê duyệt yêu cầu do chính mình tạo.";
     private static final String MSG_NOT_PENDING = "Chỉ có thể xử lý yêu cầu ở trạng thái PENDING.";
@@ -194,6 +195,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
             if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
                 throw new BusinessException(MSG_SHIPMENT_ALREADY_RECALLED);
             }
+            validateRecallableShipment(shipment);
 
             BulkRecallShipment record = new BulkRecallShipment();
             record.setShipment(shipment);
@@ -382,6 +384,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
                     || freshShipment.getStatus() == ShipmentStatus.RECALLING) {
                 throw new BusinessException(HttpStatus.CONFLICT, MSG_SHIPMENT_RECALLED_BY_OTHER);
             }
+            validateRecallableShipment(freshShipment);
 
             // Chuyển trạng thái lô hàng sang RECALLING (Đang thu hồi)
             freshShipment.setStatus(ShipmentStatus.RECALLING);
@@ -485,6 +488,12 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
 
         if (request.getIncludedShipmentIds() == null || request.getIncludedShipmentIds().isEmpty()) {
             throw new BusinessException(MSG_SHIPMENT_REQUIRED);
+        }
+    }
+
+    private void validateRecallableShipment(Shipment shipment) {
+        if (shipment.getStatus() == ShipmentStatus.SPLIT) {
+            throw new BusinessException(MSG_SPLIT_PARENT_NOT_RECALLABLE);
         }
     }
 

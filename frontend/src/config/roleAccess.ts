@@ -78,6 +78,9 @@ export const ROLE_ACCESS = {
   // ✅ NCL-04-CN-005 - Xuất tem QR cho lô hàng để in
   labelExport: ['VT-02'] as const,
 
+  // NCL-05-CN-010 - Tách lô hàng khi giao cho nhiều đối tác
+  shipmentSplit: ['VT-02'] as const,
+
   // ✅ NCL-670 - Phân công địa bàn quản lý cho cán bộ quản lý ngành (VT-05)
   areaAssignment: ['VT-01'] as const,
 

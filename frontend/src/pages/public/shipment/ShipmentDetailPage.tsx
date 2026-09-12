@@ -14,6 +14,7 @@ import {
   LoaderCircle,
   MoreVertical,
   Package,
+  PackagePlus,
   QrCode,
   ScrollText,
   Trash2,
@@ -217,11 +218,21 @@ export const ShipmentDetailPage = () => {
   const canActivateThis =
     canActivate && shipment?.status === "CODE_PRINTED";
   const canRecallThis =
-    canRecall && shipment?.status !== "RECALLED";
+    canRecall && shipment?.status !== "RECALLED" && shipment?.status !== "SPLIT";
   const canDeleteDraft =
-    shipment?.status === "DRAFT" || shipment?.status === "CODE_PRINTED";
+    !shipment?.parentShipmentId &&
+    (shipment?.status === "DRAFT" || shipment?.status === "CODE_PRINTED");
   const canCancelLabels =
-    user?.roleCode === "VT-02" && shipment?.status !== "RECALLED";
+    user?.roleCode === "VT-02" &&
+    shipment?.status !== "RECALLED" &&
+    shipment?.status !== "SPLIT";
+  const canSplitShipment =
+    usePermission(ROLE_ACCESS.shipmentSplit) &&
+    shipment?.status === "CODE_PRINTED" &&
+    !shipment.parentShipmentId &&
+    (shipment.traceCodes?.length ?? 0) >= 2 &&
+    shipment.traceCodes?.length === shipment.totalQuantity &&
+    (shipment.traceCodes ?? []).every((code) => code.status === "INACTIVE");
 
   // ── Breadcrumb điều hướng thống nhất (thay nút "Quay lại") ────────────────
   useSetBreadcrumb(
@@ -276,9 +287,9 @@ export const ShipmentDetailPage = () => {
       {/* ── Header card ── */}
       <Card className="border-slate-200 bg-white shadow-sm rounded-xl">
         <CardContent className="pt-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             {/* Title + meta */}
-            <div className="space-y-1">
+            <div className="min-w-0 space-y-1">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                   {shipment.name}
@@ -353,6 +364,15 @@ export const ShipmentDetailPage = () => {
                     >
                       <QrCode className="mr-2 h-4 w-4 text-emerald-600" />
                       Trạng thái mã tem
+                    </DropdownMenuItem>
+                  )}
+                  {canSplitShipment && (
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/shipments/${shipment.id}/split`)}
+                    >
+                      <PackagePlus className="mr-2 h-4 w-4 text-emerald-600" />
+                      Tách lô hàng
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onClick={handleExportDossier} className="cursor-pointer">

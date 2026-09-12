@@ -33,4 +33,12 @@ public class ShipmentResponse {
     private String createdByName;
 
     private LocalDateTime createdAt;
+
+    private UUID parentShipmentId;
+
+    private PartnerOrganizationResponse recipientOrganization;
+
+    private long childCount;
+
+    private LocalDateTime splitAt;
 }

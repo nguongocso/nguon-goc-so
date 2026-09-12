@@ -14,6 +14,7 @@ const LOT_STATUS_MAP: Record<string, { label: string; tone: 'success' | 'warning
     DRAFT: { label: 'Dự thảo', tone: 'neutral' },
     RECALLING: { label: 'Đang thu hồi', tone: 'warning' },
     RECALLED: { label: 'Đã thu hồi', tone: 'danger' },
+    SPLIT: { label: 'Đã tách', tone: 'neutral' },
     CODE_PRINTED: { label: 'Đã in mã', tone: 'info' },
     APPROVED: { label: 'Đã duyệt', tone: 'success' },
     PACKAGED: { label: 'Đã đóng gói', tone: 'info' },
@@ -48,6 +49,7 @@ interface LotSelectionItem {
     organizationId: string;
     organizationName: string;
     isRecalled: boolean;
+    isSplitParent: boolean;
     included: boolean;
     exclusionReason: string;
 }
@@ -72,6 +74,8 @@ export const BulkRecallRequestForm: React.FC<BulkRecallRequestFormProps> = ({
         shipments.map((ship) => {
             const status = ship.status || '';
             const isRecalled = status === 'RECALLED' || status === 'RECALLING';
+            const isSplitParent = status === 'SPLIT';
+            const isUnavailable = isRecalled || isSplitParent;
             const orgName = ship.receivingOrganizations?.[0]?.organizationName || '';
             return {
                 shipmentId: ship.id,
@@ -80,12 +84,15 @@ export const BulkRecallRequestForm: React.FC<BulkRecallRequestFormProps> = ({
                 organizationId: ship.receivingOrganizations?.[0]?.organizationId || '',
                 organizationName: orgName,
                 isRecalled,
-                included: !isRecalled,
+                isSplitParent,
+                included: !isUnavailable,
                 exclusionReason: status === 'RECALLING'
                     ? 'Lô hàng đang trong quá trình thu hồi'
                     : isRecalled
-                        ? 'Lô đã được thu hồi trước đó'
-                        : '',
+                      ? 'Lô đã được thu hồi trước đó'
+                    : isSplitParent
+                      ? 'Lô cha đã tách chỉ dùng để truy vết'
+                      : '',
             };
         }),
         [shipments]
@@ -96,7 +103,7 @@ export const BulkRecallRequestForm: React.FC<BulkRecallRequestFormProps> = ({
     const handleToggleIncluded = (shipmentId: string) => {
         setItems(prev => prev.map(item => {
             if (item.shipmentId !== shipmentId) return item;
-            if (item.isRecalled) return item;
+            if (item.isRecalled || item.isSplitParent) return item;
             const newIncluded = !item.included;
             return {
                 ...item,
@@ -109,7 +116,7 @@ export const BulkRecallRequestForm: React.FC<BulkRecallRequestFormProps> = ({
     const handleToggleAll = () => {
         const allIncluded = selectableItems.every(item => item.included);
         setItems(prev => prev.map(item => {
-            if (item.isRecalled) return item;
+            if (item.isRecalled || item.isSplitParent) return item;
             return {
                 ...item,
                 included: !allIncluded,
@@ -124,11 +131,11 @@ export const BulkRecallRequestForm: React.FC<BulkRecallRequestFormProps> = ({
         ));
     };
 
-    const selectableItems = items.filter(item => !item.isRecalled);
+    const selectableItems = items.filter(item => !item.isRecalled && !item.isSplitParent);
     const allSelected = selectableItems.length > 0 && selectableItems.every(item => item.included);
 
     const includedItems = items.filter(item => item.included);
-    const excludedItems = items.filter(item => !item.included && !item.isRecalled);
+    const excludedItems = items.filter(item => !item.included && !item.isRecalled && !item.isSplitParent);
     const excludedWithoutReason = excludedItems.filter(item => !item.exclusionReason.trim());
     const hasScope = includedItems.length > 0;
 
@@ -140,9 +147,9 @@ export const BulkRecallRequestForm: React.FC<BulkRecallRequestFormProps> = ({
             if (!matchesKeyword) return false;
             switch (statusFilter) {
                 case 'SELECTABLE':
-                    return !item.isRecalled;
+                    return !item.isRecalled && !item.isSplitParent;
                 case 'INCLUDED':
-                    return !item.isRecalled && item.included;
+                    return !item.isRecalled && !item.isSplitParent && item.included;
                 case 'RECALLED':
                     return item.isRecalled;
                 case 'EXCLUDED':
@@ -371,12 +378,12 @@ export const BulkRecallRequestForm: React.FC<BulkRecallRequestFormProps> = ({
                                         const status = statusDisplay(item.status);
                                         const serialNumber = (safeCurrentPage - 1) * pageSize + index + 1;
                                     return (
-                                        <tr key={item.shipmentId} className={item.isRecalled ? 'bg-red-50/50' : ''}>
+                                        <tr key={item.shipmentId} className={item.isRecalled || item.isSplitParent ? 'bg-red-50/50' : ''}>
                                             <td className="px-3 py-2">
                                                 <Checkbox
                                                     checked={item.included}
                                                     onCheckedChange={() => handleToggleIncluded(item.shipmentId)}
-                                                    disabled={creating || item.isRecalled}
+                                                    disabled={creating || item.isRecalled || item.isSplitParent}
                                                 />
                                             </td>
                                             <td className="px-3 py-2 text-center text-slate-500">
@@ -400,7 +407,7 @@ export const BulkRecallRequestForm: React.FC<BulkRecallRequestFormProps> = ({
                                                 {item.organizationName || '—'}
                                             </td>
                                             <td className="px-3 py-2">
-                                                {item.isRecalled ? (
+                                                {item.isRecalled || item.isSplitParent ? (
                                                     <span className="text-sm text-slate-500">
                                                         {item.exclusionReason}
                                                     </span>

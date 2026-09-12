@@ -34,6 +34,7 @@ import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.trace.entity.Shipment;
+import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 
 import java.math.BigDecimal;
@@ -268,7 +269,16 @@ public class OpenDataExportServiceTest {
         shipment.setOrganization(org);
         shipment.setCreatedAt(LocalDateTime.now());
 
-        when(shipmentRepository.findByProductionLotIdIn(anyList())).thenReturn(List.of(shipment));
+        Shipment splitParent = new Shipment();
+        splitParent.setId(UUID.randomUUID());
+        splitParent.setName("Split Parent Must Not Be Exported");
+        splitParent.setStatus(ShipmentStatus.SPLIT);
+        splitParent.setTotalQuantity(50);
+        splitParent.setProductionLot(lot);
+        splitParent.setOrganization(org);
+        splitParent.setCreatedAt(LocalDateTime.now());
+
+        when(shipmentRepository.findByProductionLotIdIn(anyList())).thenReturn(List.of(splitParent, shipment));
 
         ChainEvent event = ChainEvent.builder()
                 .id(UUID.randomUUID())
@@ -290,6 +300,9 @@ public class OpenDataExportServiceTest {
 
         // Then
         assertThat(result).isNotNull();
+        assertThat(new String(result, StandardCharsets.UTF_8))
+                .contains("Shipment A")
+                .doesNotContain("Split Parent Must Not Be Exported");
         verify(reportAccessLogService, times(1)).logAccess(
                 eq(userId), eq(orgId), eq(orgId), eq("OPEN_DATA_EXPORT"), eq(true), eq(ipAddress)
         );

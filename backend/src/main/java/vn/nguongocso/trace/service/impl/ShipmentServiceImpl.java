@@ -3,13 +3,15 @@ package vn.nguongocso.trace.service.impl;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Comparator;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -42,20 +44,31 @@ import vn.nguongocso.trace.dto.response.ShipmentSummaryResponse;
 import vn.nguongocso.trace.entity.CodeRange;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.ShipmentHandover;
+import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
+import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
-import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
 import vn.nguongocso.trace.repository.CodeRangeRepository;
-import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
-import vn.nguongocso.event.enums.ChainEventType;
-import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.trace.service.QRCodeService;
 import vn.nguongocso.trace.service.ShipmentService;
 import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.trace.dto.response.TraceCodeResponse;
+import vn.nguongocso.trace.dto.request.SplitShipmentRequest;
+import vn.nguongocso.trace.dto.request.SplitShipmentAllocationRequest;
+import vn.nguongocso.trace.dto.response.PartnerOrganizationResponse;
+import vn.nguongocso.trace.dto.response.SplitPreviewResponse;
+import vn.nguongocso.trace.dto.response.SplitShipmentResponse;
+import vn.nguongocso.organization.entity.Organization;
+import vn.nguongocso.organization.enums.OrganizationStatus;
+import vn.nguongocso.organization.enums.OrganizationType;
+import vn.nguongocso.organization.repository.OrganizationRepository;
+import vn.nguongocso.event.entity.ChainEvent;
+import vn.nguongocso.event.enums.ChainEventType;
+import vn.nguongocso.event.repository.ChainEventRepository;
+import vn.nguongocso.event.service.EventHashService;
 
 /**
  * Service xử lý nghiệp vụ quản lý lô hàng và sinh mã truy xuất.
@@ -74,8 +87,11 @@ public class ShipmentServiceImpl implements ShipmentService {
     private final NotificationService notificationService;
     private final PermissionChecker permissionChecker;
     private final InspectionEligibilityService inspectionEligibilityService;
+    private final OrganizationRepository organizationRepository;
     private final ShipmentHandoverRepository shipmentHandoverRepository;
     private final ChainEventRepository chainEventRepository;
+    private final EventHashService eventHashService;
+    private final ObjectMapper objectMapper;
 
     private static final String ORG_MANAGER_ROLE = "VT-02";
 
@@ -585,7 +601,12 @@ public class ShipmentServiceImpl implements ShipmentService {
                                 .codeValue(traceCode.getCodeValue()).qrImage(traceCode.getQrImage())
                                 .status(traceCode.getStatus()).build())
                         .toList())
-                .createdByName(createdByName).createdAt(shipment.getCreatedAt()).build();
+                .createdByName(createdByName).createdAt(shipment.getCreatedAt())
+                .parentShipmentId(shipment.getParentShipment() != null ? shipment.getParentShipment().getId() : null)
+                .recipientOrganization(shipment.getRecipientOrganization() != null
+                        ? partnerResponse(shipment.getRecipientOrganization()) : null)
+                .childCount(shipmentRepository.countByParentShipment_Id(shipment.getId()))
+                .splitAt(shipment.getSplitAt()).build();
     }
 
     private void checkAndSendAlert(CodeRange range) {
@@ -618,10 +639,9 @@ public class ShipmentServiceImpl implements ShipmentService {
             throw new BusinessException("Mã truy xuất không liên kết với lô hàng nào.");
         }
 
-        // Không cho phép ghi sự kiện nếu lô hàng đã hoặc đang bị thu hồi
-        if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
+        if (shipment.getStatus() == ShipmentStatus.RECALLED) {
             throw new BusinessException(
-                    "Lô hàng " + shipment.getName() + " đang hoặc đã bị thu hồi, không thể ghi nhận thu mua.");
+                    "Lô hàng " + shipment.getName() + " đã bị thu hồi, không thể ghi nhận thu mua.");
         }
 
         String productionLotName = null;
@@ -640,12 +660,9 @@ public class ShipmentServiceImpl implements ShipmentService {
 
     /**
      * Lấy danh sách lô hàng liên quan đến Doanh nghiệp thu mua (VT‑04) hiện tại:
-     * chỉ lô ĐÃ THU MUA / đã nhập kho (sự kiện PROCUREMENT, WAREHOUSE_RECEIPT do
-     * tổ chức ghi) hoặc lô ĐÃ XÁC NHẬN BÀN GIAO (phiếu bàn giao mới nhất cho tổ
-     * chức ở trạng thái ACCEPTED). Lô chỉ mới có phiếu chờ xác nhận (PENDING) hoặc
-     * phiếu mới nhất bị TỪ CHỐI / hết hạn / hủy sẽ KHÔNG xuất hiện trên bảng.
+     * chỉ lô đã thu mua/nhập kho hoặc đã xác nhận bàn giao cho tổ chức.
      *
-     * @return danh sách ProcurementShipmentResponse
+     * @return danh sách lô hàng đủ điều kiện
      */
     @Override
     public List<ProcurementShipmentResponse> getEligibleShipments() {
@@ -657,10 +674,6 @@ public class ShipmentServiceImpl implements ShipmentService {
         UUID currentOrgId = currentUser.getOrganizationId();
         Set<UUID> relatedShipmentIds = new HashSet<>();
 
-        // Lô chỉ được đưa vào dashboard khi phiếu bàn giao MỚI NHẤT cho tổ chức
-        // hiện tại đã ĐƯỢC XÁC NHẬN (ACCEPTED). Phiếu ACCEPTED CŨ không cứu được
-        // lô khi phiếu mới nhất đã REJECTED/EXPIRED/CANCELLED; lô chỉ có phiếu
-        // PENDING (chưa xác nhận) cũng không hiển thị vì nghiệp vụ chưa hoàn tất.
         Map<UUID, ShipmentHandover> latestHandoverByShipment = shipmentHandoverRepository
                 .findByToOrganizationOrganizationId(currentOrgId)
                 .stream()
@@ -675,7 +688,6 @@ public class ShipmentServiceImpl implements ShipmentService {
                 .map(handover -> handover.getShipment().getId())
                 .forEach(relatedShipmentIds::add);
 
-        // Lô đã thu mua hoặc đã nhập kho do tổ chức hiện tại ghi nhận.
         relatedShipmentIds.addAll(chainEventRepository.findShipmentIdsByRecordedOrganizationIdAndEventTypeIn(
                 currentOrgId,
                 List.of(ChainEventType.PROCUREMENT, ChainEventType.WAREHOUSE_RECEIPT)));
@@ -696,7 +708,8 @@ public class ShipmentServiceImpl implements ShipmentService {
                     }
                     if (shipment.getOrganization() != null) {
                         organizationName = shipment.getOrganization().getName();
-                    } else if (shipment.getProductionLot() != null && shipment.getProductionLot().getOrganization() != null) {
+                    } else if (shipment.getProductionLot() != null
+                            && shipment.getProductionLot().getOrganization() != null) {
                         organizationName = shipment.getProductionLot().getOrganization().getName();
                     }
 
@@ -741,6 +754,13 @@ public class ShipmentServiceImpl implements ShipmentService {
             if (userOrgId == null || !userOrgId.equals(shipment.getOrganization().getOrganizationId())) {
                 throw new BusinessException("Bạn không có quyền truy cập lô hàng của tổ chức khác.");
             }
+        } else if ("VT-04".equals(roleCode)) {
+            UUID userOrgId = currentUser.getOrganizationId();
+            if (userOrgId == null || shipment.getRecipientOrganization() == null
+                    || !userOrgId.equals(shipment.getRecipientOrganization().getOrganizationId())) {
+                throw splitError(HttpStatus.FORBIDDEN,
+                        "Lô hàng không được giao cho tổ chức của bạn.", "RECIPIENT_MISMATCH");
+            }
         }
 
         // Lấy danh sách TraceCode liên kết với lô hàng
@@ -749,5 +769,173 @@ public class ShipmentServiceImpl implements ShipmentService {
         String createdByName = shipment.getCreatedBy() != null ? shipment.getCreatedBy().getFullName() : null;
 
         return buildShipmentResponse(shipment, traceCodes, createdByName);
+    }
+
+    @Override
+    public PageResponse<PartnerOrganizationResponse> getPartnerOrganizations(String keyword, int page, int size) {
+        requireSplitActor("organization", "READ");
+        Page<Organization> partners = organizationRepository
+                .searchActiveEnterprisePartners(
+                        OrganizationType.ENTERPRISE, OrganizationStatus.ACTIVE,
+                        getCurrentUser().getOrganizationId(), keyword == null ? "" : keyword.trim(),
+                        PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), Sort.by("name")));
+        return PageResponse.from(partners, partners.getContent().stream().map(this::partnerResponse).toList());
+    }
+
+    @Override
+    public SplitPreviewResponse getSplitPreview(UUID shipmentId) {
+        requireSplitActor("shipment", "SPLIT");
+        Shipment shipment = findOwnedShipmentForPreview(shipmentId);
+        List<TraceCode> codes = traceCodeRepository.findByShipmentId(shipmentId).stream()
+                .sorted(Comparator.comparing(TraceCode::getCodeValue).thenComparing(TraceCode::getId)).toList();
+        long inactive = codes.stream().filter(c -> c.getStatus() == TraceCodeStatus.INACTIVE).count();
+        String reason = previewBlockReason(shipment, codes, inactive);
+        return SplitPreviewResponse.builder().shipmentId(shipment.getId()).shipmentName(shipment.getName())
+                .status(shipment.getStatus()).productionLotId(shipment.getProductionLot().getId())
+                .productionLotName(shipment.getProductionLot().getName()).declaredQuantity(shipment.getTotalQuantity())
+                .assignableQuantity(inactive).nonInactiveQuantity(codes.size() - inactive)
+                .availableCodeRange(codes.isEmpty() ? null : SplitPreviewResponse.CodeRange.builder()
+                        .fromCode(codes.getFirst().getCodeValue()).toCode(codes.getLast().getCodeValue())
+                        .quantity(inactive).build())
+                .canSplit(reason == null).blockReasonCode(reason).blockMessage(previewMessage(reason)).build();
+    }
+
+    @Override
+    public SplitShipmentResponse splitShipment(UUID shipmentId, SplitShipmentRequest request) {
+        requireSplitActor("shipment", "SPLIT");
+        CustomUserDetails actor = getCurrentUser();
+        Shipment parent = shipmentRepository.findOwnedByIdForSplitUpdate(shipmentId, actor.getOrganizationId())
+                .orElseThrow(() -> splitError(HttpStatus.NOT_FOUND, "Không tìm thấy lô hàng.", "SHIPMENT_NOT_FOUND"));
+        validateParentForSplit(parent);
+        List<TraceCode> codes = traceCodeRepository.findAllByShipmentIdForSplitUpdate(shipmentId);
+        validateLockedCodes(parent, codes);
+        validateAllocations(request, parent, codes);
+
+        LocalDateTime splitAt = LocalDateTime.now();
+        User splitBy = userRepository.getReferenceById(actor.getUserId());
+        String sourceLastEventHash = chainEventRepository.findTopByShipmentIdOrderByCreatedAtDesc(parent.getId())
+                .map(ChainEvent::getHash).orElse(null);
+        List<SplitShipmentResponse.ChildShipment> children = new ArrayList<>();
+        for (SplitShipmentAllocationRequest allocation : request.getAllocations()) {
+            Organization recipient = validRecipient(allocation.getRecipientOrganizationId(), parent.getOrganization().getOrganizationId());
+            Shipment child = new Shipment();
+            child.setProductionLot(parent.getProductionLot()); child.setOrganization(parent.getOrganization());
+            child.setCodeRange(parent.getCodeRange()); child.setParentShipment(parent); child.setRecipientOrganization(recipient);
+            child.setSplitAt(splitAt); child.setSplitBy(splitBy); child.setCreatedBy(splitBy);
+            child.setName(allocation.getName().trim()); child.setPackagingInfo(allocation.getPackagingInfo());
+            child.setTotalQuantity(allocation.getQuantity()); child.setStatus(ShipmentStatus.CODE_PRINTED);
+            child = shipmentRepository.save(child);
+            List<TraceCode> allocated = codesForRange(codes, allocation.getFromCode(), allocation.getToCode());
+            Shipment persistedChild = child;
+            allocated.forEach(code -> code.setShipment(persistedChild));
+            traceCodeRepository.saveAll(allocated);
+            saveSplitEvent(child, parent, recipient, allocation, actor, splitAt, sourceLastEventHash);
+            children.add(SplitShipmentResponse.ChildShipment.builder().id(child.getId()).parentShipmentId(parent.getId())
+                    .name(child.getName()).status(child.getStatus()).recipientOrganization(partnerResponse(recipient))
+                    .totalQuantity(child.getTotalQuantity()).firstCode(allocation.getFromCode())
+                    .lastCode(allocation.getToCode()).build());
+        }
+        parent.setStatus(ShipmentStatus.SPLIT); parent.setSplitAt(splitAt); parent.setSplitBy(splitBy);
+        shipmentRepository.save(parent);
+        publishActivityLog(actor, "SPLIT_SHIPMENT", "Tách lô hàng " + parent.getName(), "SHIPMENT", parent.getId().toString());
+        return SplitShipmentResponse.builder().sourceShipment(SplitShipmentResponse.SourceShipment.builder()
+                .id(parent.getId()).name(parent.getName()).status(parent.getStatus()).declaredQuantity(parent.getTotalQuantity())
+                .allocatedQuantity(parent.getTotalQuantity()).build()).children(children).totalChildren(children.size())
+                .totalAllocatedQuantity(parent.getTotalQuantity()).splitByName(actor.getFullName()).splitAt(splitAt).build();
+    }
+
+    private void requireSplitActor(String resource, String action) {
+        CustomUserDetails actor = getCurrentUser();
+        if (actor == null || !ORG_MANAGER_ROLE.equals(actor.getRoleCode())) throw accessDenied();
+        try { permissionChecker.check(resource, action); } catch (BusinessException ex) { throw accessDenied(); }
+    }
+
+    private Shipment findOwnedShipmentForPreview(UUID shipmentId) {
+        Shipment shipment = shipmentRepository.findById(shipmentId)
+                .orElseThrow(() -> splitError(HttpStatus.NOT_FOUND, "Không tìm thấy lô hàng.", "SHIPMENT_NOT_FOUND"));
+        if (!shipment.getOrganization().getOrganizationId().equals(getCurrentUser().getOrganizationId()))
+            throw splitError(HttpStatus.FORBIDDEN, "Bạn không có quyền tách lô hàng của tổ chức khác.", "CROSS_ORGANIZATION_ACCESS");
+        return shipment;
+    }
+
+    private void validateParentForSplit(Shipment parent) {
+        if (parent.getParentShipment() != null) throw splitError(HttpStatus.CONFLICT, "Không hỗ trợ tách tiếp một lô con.", "CHILD_SPLIT_NOT_ALLOWED");
+        if (parent.getStatus() == ShipmentStatus.SPLIT || shipmentRepository.existsByParentShipment_Id(parent.getId()))
+            throw splitError(HttpStatus.CONFLICT, "Lô hàng đã được tách trước đó.", "ALREADY_SPLIT");
+        if (parent.getStatus() != ShipmentStatus.CODE_PRINTED)
+            throw splitError(HttpStatus.CONFLICT, "Chỉ có thể tách lô hàng đã sinh mã và chưa kích hoạt.", "INVALID_SHIPMENT_STATUS");
+    }
+
+    private void validateLockedCodes(Shipment parent, List<TraceCode> codes) {
+        if (codes.size() != parent.getTotalQuantity() || codes.size() < 2 ||
+                codes.stream().anyMatch(c -> c.getStatus() != TraceCodeStatus.INACTIVE))
+            throw splitError(HttpStatus.CONFLICT, "Thông tin mã tem đã thay đổi. Vui lòng tải lại thông tin lô.", "TRACE_CODE_STATE_CHANGED");
+    }
+
+    private void validateAllocations(SplitShipmentRequest request, Shipment parent, List<TraceCode> codes) {
+        if (request.getAllocations() == null || request.getAllocations().size() < 2)
+            throw splitError(HttpStatus.BAD_REQUEST, "Phải phân bổ lô hàng cho ít nhất hai đối tác.", "SPLIT_001");
+        Set<UUID> recipients = new HashSet<>(); long total = 0; Set<UUID> selected = new HashSet<>();
+        for (SplitShipmentAllocationRequest allocation : request.getAllocations()) {
+            if (!recipients.add(allocation.getRecipientOrganizationId())) throw splitError(HttpStatus.BAD_REQUEST, "Mỗi đối tác chỉ được xuất hiện một lần trong yêu cầu tách lô.", "SPLIT_003");
+            if (allocation.getQuantity() == null || allocation.getQuantity() <= 0) throw splitError(HttpStatus.BAD_REQUEST, "Số lượng phân bổ phải lớn hơn 0.", "SPLIT_002");
+            List<TraceCode> range = codesForRange(codes, allocation.getFromCode(), allocation.getToCode());
+            if (range.size() != allocation.getQuantity()) throw splitError(HttpStatus.BAD_REQUEST, "Số lượng lô con phải bằng số mã trong khoảng đã chọn.", "SPLIT_009");
+            for (TraceCode code : range) if (!selected.add(code.getId())) throw splitError(HttpStatus.BAD_REQUEST, "Các khoảng mã phải liên tục, không trùng và phủ toàn bộ mã của lô cha.", "SPLIT_008");
+            total += allocation.getQuantity(); validRecipient(allocation.getRecipientOrganizationId(), parent.getOrganization().getOrganizationId());
+        }
+        if (total != parent.getTotalQuantity()) throw splitError(HttpStatus.BAD_REQUEST, "Tổng số lượng phân bổ phải bằng " + parent.getTotalQuantity() + ".", "SPLIT_004");
+        if (selected.size() != codes.size()) throw splitError(HttpStatus.BAD_REQUEST, "Các khoảng mã phải liên tục, không trùng và phủ toàn bộ mã của lô cha.", "SPLIT_008");
+    }
+
+    private List<TraceCode> codesForRange(List<TraceCode> codes, String from, String to) {
+        int start = -1, end = -1;
+        for (int i = 0; i < codes.size(); i++) { if (codes.get(i).getCodeValue().equals(from)) start = i; if (codes.get(i).getCodeValue().equals(to)) end = i; }
+        if (start < 0 || end < start) throw splitError(HttpStatus.BAD_REQUEST, "Khoảng mã không hợp lệ hoặc chứa mã không thể phân bổ.", "SPLIT_007");
+        return codes.subList(start, end + 1);
+    }
+
+    private Organization validRecipient(UUID id, UUID sourceOrganizationId) {
+        if (sourceOrganizationId.equals(id)) throw splitError(HttpStatus.BAD_REQUEST, "Không thể chọn tổ chức nguồn làm đối tác nhận.", "SPLIT_006");
+        Organization recipient = organizationRepository.findById(id)
+                .orElseThrow(() -> splitError(HttpStatus.NOT_FOUND, "Không tìm thấy đối tác nhận.", "PARTNER_NOT_FOUND"));
+        if (recipient.getType() != OrganizationType.ENTERPRISE || recipient.getStatus() != OrganizationStatus.ACTIVE)
+            throw splitError(HttpStatus.BAD_REQUEST, "Đối tác nhận không hợp lệ hoặc đã ngừng hoạt động.", "SPLIT_005");
+        return recipient;
+    }
+
+    private void saveSplitEvent(Shipment child, Shipment parent, Organization recipient, SplitShipmentAllocationRequest allocation,
+            CustomUserDetails actor, LocalDateTime splitAt, String sourceLastEventHash) {
+        try {
+            Map<String, Object> data = new HashMap<>(); data.put("sourceShipmentId", parent.getId().toString());
+            data.put("sourceShipmentName", parent.getName());
+            data.put("recipientOrganizationId", recipient.getOrganizationId().toString());
+            data.put("recipientOrganizationName", recipient.getName());
+            data.put("allocatedQuantity", allocation.getQuantity());
+            data.put("fromCode", allocation.getFromCode());
+            data.put("toCode", allocation.getToCode());
+            data.put("sourceLastEventHash", sourceLastEventHash);
+            User recordedBy = userRepository.getReferenceById(actor.getUserId());
+            ChainEvent event = ChainEvent.builder().shipment(child).eventType(ChainEventType.SPLIT)
+                    .eventData(objectMapper.writeValueAsString(data)).recordedAt(splitAt).recordedBy(recordedBy)
+                    .recordedOrganizationId(actor.getOrganizationId()).isCorrection(false).build();
+            event.setPreviousHash(null); event.setHash(eventHashService.calculateHash(event, "")); chainEventRepository.save(event);
+        } catch (Exception e) { throw new IllegalStateException("Không thể ghi sự kiện tách lô.", e); }
+    }
+
+    private PartnerOrganizationResponse partnerResponse(Organization org) { return PartnerOrganizationResponse.builder().id(org.getOrganizationId()).code(org.getCode()).name(org.getName()).build(); }
+    private BusinessException accessDenied() { return splitError(HttpStatus.FORBIDDEN, "Bạn không có quyền tách lô hàng.", "ACCESS_DENIED"); }
+    private BusinessException splitError(HttpStatus status, String message, String code) { return new BusinessException(status, message, Map.of("code", code)); }
+    private String previewBlockReason(Shipment s, List<TraceCode> codes, long inactive) { if (s.getParentShipment() != null) return "CHILD_SHIPMENT"; if (s.getStatus() == ShipmentStatus.SPLIT || shipmentRepository.existsByParentShipment_Id(s.getId())) return "ALREADY_SPLIT"; if (s.getStatus() != ShipmentStatus.CODE_PRINTED) return "INVALID_STATUS"; if (codes.size() < 2) return "INSUFFICIENT_CODES"; return inactive != codes.size() || codes.size() != s.getTotalQuantity() ? "NON_INACTIVE_CODE_EXISTS" : null; }
+    private String previewMessage(String reason) {
+        if (reason == null) return null;
+        return switch (reason) {
+            case "INVALID_STATUS" -> "Chỉ có thể tách lô hàng đã sinh mã và chưa kích hoạt.";
+            case "ALREADY_SPLIT" -> "Lô hàng đã được tách trước đó.";
+            case "CHILD_SHIPMENT" -> "Không hỗ trợ tách tiếp một lô con.";
+            case "INSUFFICIENT_CODES" -> "Lô hàng cần ít nhất hai mã tem chưa kích hoạt để tách.";
+            case "NON_INACTIVE_CODE_EXISTS" -> "Tất cả mã tem của lô phải ở trạng thái chưa kích hoạt.";
+            default -> "Lô hàng chưa đáp ứng điều kiện tách.";
+        };
     }
 }

@@ -26,7 +26,17 @@ Before creating new documentation, inspect existing API documentation and follow
 
 ---
 
-## 2. Contract-First Integrity
+## 2. File Naming
+
+Name each API documentation file after the User Story title only.
+
+* Do not include Jira User Story or task codes in the filename.
+* Use `SplitShipmentForMultiplePartners.md`, not `NCL-701_SplitShipmentForMultiplePartners.md`.
+* Jira codes may remain inside the document for traceability.
+
+---
+
+## 3. Contract-First Integrity
 
 The API documentation must accurately describe the API contract that will actually be implemented.
 
@@ -35,7 +45,7 @@ The API documentation must accurately describe the API contract that will actual
 
 ---
 
-## 3. Dedicated Git Commit
+## 4. Dedicated Git Commit
 
 After completing API documentation:
 

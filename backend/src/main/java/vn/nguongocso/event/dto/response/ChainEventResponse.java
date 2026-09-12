@@ -38,4 +38,8 @@ public class ChainEventResponse {
     private String recordedByName;
 
     private LocalDateTime createdAt;
+
+    private String lineageLevel;
+    private UUID sourceShipmentId;
+    private Boolean inherited;
 }

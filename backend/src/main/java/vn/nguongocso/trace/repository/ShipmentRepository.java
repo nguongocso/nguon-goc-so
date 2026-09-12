@@ -61,6 +61,7 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
         @Query("SELECT COALESCE(SUM(s.totalQuantity), 0) " +
                         "FROM Shipment s " +
                         "WHERE s.organization.organizationId IN :organizationIds " +
+                        "AND s.status <> vn.nguongocso.trace.enums.ShipmentStatus.SPLIT " +
                         "AND s.createdAt >= :fromDate " +
                         "AND s.createdAt < :toDate")
         Double getTotalQuantity(
@@ -80,6 +81,7 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
                         "JOIN s.productionLot pl " +
                         "JOIN pl.productCategory pc " +
                         "WHERE s.organization.organizationId IN :organizationIds " +
+                        "AND s.status <> vn.nguongocso.trace.enums.ShipmentStatus.SPLIT " +
                         "AND s.createdAt >= :fromDate " +
                         "AND s.createdAt < :toDate " +
                         "GROUP BY pc.name " +
@@ -95,6 +97,7 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
         @Query("SELECT COUNT(s) " +
                         "FROM Shipment s " +
                         "WHERE s.organization.organizationId IN :organizationIds " +
+                        "AND s.status <> vn.nguongocso.trace.enums.ShipmentStatus.SPLIT " +
                         "AND s.createdAt >= :fromDate " +
                         "AND s.createdAt < :toDate")
         Long countShipments(
@@ -119,10 +122,39 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
                         @Param("organizationId") UUID organizationId);
 
         /**
+         * Khóa lô nguồn thuộc tổ chức hiện tại trong transaction tách lô.
+         */
+        @Lock(LockModeType.PESSIMISTIC_WRITE)
+        @Query("SELECT s FROM Shipment s " +
+                        "WHERE s.id = :shipmentId " +
+                        "AND s.organization.organizationId = :organizationId")
+        Optional<Shipment> findOwnedByIdForSplitUpdate(
+                        @Param("shipmentId") UUID shipmentId,
+                        @Param("organizationId") UUID organizationId);
+
+        /** Lấy các lô con trực tiếp của một lô cha theo thứ tự tạo. */
+        List<Shipment> findAllByParentShipment_IdOrderByCreatedAtAsc(UUID parentShipmentId);
+
+        /** Kiểm tra lô đã có lô con hay chưa. */
+        boolean existsByParentShipment_Id(UUID parentShipmentId);
+
+        long countByParentShipment_Id(UUID parentShipmentId);
+
+        /**
+         * Tìm lô con theo ID và tổ chức nhận để bảo đảm cách ly dữ liệu đối tác.
+         */
+        Optional<Shipment> findByIdAndRecipientOrganization_OrganizationId(
+                        UUID shipmentId,
+                        UUID recipientOrganizationId);
+
+        /**
          * Lấy danh sách lô hàng đủ điều kiện thu mua (status = ACTIVATED).
          * Dùng cho Doanh nghiệp thu mua (VT‑04) xem các lô hàng sẵn sàng.
          */
         List<Shipment> findByStatusOrderByCreatedAtDesc(ShipmentStatus status);
+
+        List<Shipment> findByStatusAndRecipientOrganization_OrganizationIdOrderByCreatedAtDesc(
+                        ShipmentStatus status, UUID recipientOrganizationId);
 
         /**
          * Lấy danh sách lô hàng đủ điều kiện xuất báo cáo / lọc theo nhiều tiêu chí.
@@ -136,6 +168,7 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
                         "AND (:fromDate IS NULL OR s.createdAt >= :fromDate) " +
                         "AND (:toDate IS NULL OR s.createdAt <= :toDate) " +
                         "AND s.status <> vn.nguongocso.trace.enums.ShipmentStatus.RECALLED " +
+                        "AND s.status <> vn.nguongocso.trace.enums.ShipmentStatus.SPLIT " +
                         "AND (:categoryIds IS NULL OR pc.id IN :categoryIds) " +
                         "AND (:shipmentIds IS NULL OR s.id IN :shipmentIds)")
         List<Shipment> findEligibleShipments(

@@ -44,6 +44,7 @@ public class ShipmentRecallServiceImpl implements ShipmentRecallService {
 
     private static final String MSG_SHIPMENT_NOT_FOUND = "Không tìm thấy lô hàng.";
     private static final String MSG_SHIPMENT_ALREADY_RECALLED = "Lô hàng đã được thu hồi trước đó.";
+    private static final String MSG_SPLIT_PARENT_NOT_RECALLABLE = "Không thể thu hồi lô cha đã tách; vui lòng thu hồi các lô con trong phạm vi ảnh hưởng.";
     private static final String MSG_USER_NOT_FOUND = "Người dùng không tồn tại.";
     private static final String MSG_NO_PERMISSION = "Bạn không có quyền thu hồi lô hàng.";
     private static final String MSG_NO_PERMISSION_OTHER_ORG = "Bạn không có quyền thu hồi lô hàng của tổ chức khác.";
@@ -80,6 +81,9 @@ public class ShipmentRecallServiceImpl implements ShipmentRecallService {
         // 4. Không cho phép thu hồi lại
         if (shipment.getStatus() == ShipmentStatus.RECALLED) {
             throw new BusinessException(MSG_SHIPMENT_ALREADY_RECALLED);
+        }
+        if (shipment.getStatus() == ShipmentStatus.SPLIT) {
+            throw new BusinessException(MSG_SPLIT_PARENT_NOT_RECALLABLE);
         }
 
         // 5. Lấy user thực hiện thao tác
