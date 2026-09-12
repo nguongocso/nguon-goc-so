@@ -38,12 +38,11 @@
 > https://github.com/nguongocso/nguon-goc-so/actions/runs/33737740338.
 > Automated validation = PASS. Chi tiết: mục 6.5.
 >
-> 🌟 **Cập nhật 11/09/2026 — NCL-10-CN-015 End-to-End Regression & Hash Integrity (PASS):**
+> 🌟 **Cập nhật 11/09/2026 — NCL-10-CN-015 End-to-End Regression & Hash Integrity:**
 > Kiểm thử hồi quy toàn diện trên luồng nghiệp vụ mới nhất:
-> 1. Xác nhận/từ chối bàn giao lô hàng (`NCL-05-CN-009`) kèm chuyển quyền sở hữu QTN-31.
-> 2. Đóng vụ việc thu hồi và khắc phục phòng ngừa (`NCL-08-CN-012`) kèm nguyên tắc 4 mắt QTN-22.
-> 3. Kiểm chứng tính toàn vẹn chuỗi băm sự kiện (`QTN-19, TC-02`) trên lô có cả sự kiện Handover và Recall: 12/12 sự kiện băm SHA-256 liên tục, `verificationStatus: INTACT`.
-> 4. Kiểm toán cách ly dữ liệu đa tổ chức (`QTN-01, TC-03`): 7/7 bài test đạt 100% không rò rỉ chéo.
+> 1. Luồng 20 bước mở rộng (`NCL-10-CN-015-TC-01`): Xác nhận/từ chối bàn giao lô hàng (`NCL-05-CN-009`) kèm chuyển quyền sở hữu QTN-31; Đóng vụ việc thu hồi và khắc phục phòng ngừa (`NCL-08-CN-012`) kèm nguyên tắc 4 mắt QTN-22; Gửi phản ánh chất lượng (`ProductFeedback`); In tem PDF; Vận chuyển; Sơ chế độc lập.
+> 2. Kiểm chứng tính toàn vẹn chuỗi băm sự kiện (`NCL-10-CN-015-TC-02`, QTN-19) trên lô có cả sự kiện Handover và Recall: 12/12 sự kiện băm SHA-256 liên tục, `verificationStatus: INTACT`.
+> 3. Kiểm toán cách ly dữ liệu đa tổ chức (`NCL-10-CN-015-TC-03`, QTN-01): 7/7 bài test từ chối truy cập thành công (PASS); tuy nhiên vế ghi lịch sử (Audit Log) cho các lỗi 403/400 nghiệp vụ chưa được ghi nhận (FAIL phần ghi lịch sử).
 > Chi tiết bằng chứng API và JSON response: [NCL-10-CN-015_TEST_EVIDENCE.md](./NCL-10-CN-015_TEST_EVIDENCE.md).
 
 - Mã story: **NCL-10-CN-011-CV-05 / NCL-10-CN-015**
