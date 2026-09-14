@@ -1,3 +1,4 @@
+import '@testing-library/jest-dom/vitest';
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
@@ -33,6 +34,7 @@ const mockNotificationItem: NotificationResponse = {
   type: "ALERT",
   title: "Cảnh báo: Kết quả kiểm nghiệm sắp hết hiệu lực",
   content: 'Lô sản xuất "Lô chè Shan Tuyết A1" có kết quả kiểm nghiệm sẽ hết hiệu lực sau 10 ngày (ngày hết hạn: 2026-09-20). Vui lòng chủ động lập kế hoạch kiểm nghiệm mới.',
+  entityId: null,
   isRead: false,
   readAt: null,
   createdAt: "2026-09-10T08:00:00Z",
@@ -76,14 +78,14 @@ describe("NCL-11-CN-004: Notification Inspection Navigation", () => {
     await waitFor(() => {
       expect(
         screen.getByText("Cảnh báo: Kết quả kiểm nghiệm sắp hết hiệu lực"),
-      ).toBeDefined();
+      ).toBeInTheDocument();
     });
 
     // Bấm vào item thông báo
     const itemButton = screen.getByText(
       "Cảnh báo: Kết quả kiểm nghiệm sắp hết hiệu lực",
     ).closest("button");
-    expect(itemButton).toBeDefined();
+    expect(itemButton).toBeInTheDocument();
     fireEvent.click(itemButton!);
 
     // Kiểm tra markAsRead được gọi
