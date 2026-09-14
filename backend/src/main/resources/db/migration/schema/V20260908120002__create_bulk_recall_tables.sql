@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS bulk_recall_requests (
     CONSTRAINT fk_bulk_recall_rejected_by
         FOREIGN KEY (rejected_by) REFERENCES users(user_id),
     CONSTRAINT uk_bulk_recall_pending_lot UNIQUE (pending_production_lot_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB;
 
 -- Index cho tìm kiếm theo production lot và status (kiểm tra an toàn tránh trùng lặp)
 SET @idx1 = (
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS bulk_recall_shipments (
         FOREIGN KEY (bulk_recall_request_id) REFERENCES bulk_recall_requests(id) ON DELETE CASCADE,
     CONSTRAINT fk_bulk_recall_shipment_shipment
         FOREIGN KEY (shipment_id) REFERENCES shipments(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB;
 
 -- Index cho tìm kiếm theo bulk recall request
 SET @idx3 = (
