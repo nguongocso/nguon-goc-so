@@ -10,7 +10,7 @@ import type { PartnerApiKeyResponse, PartnerApiKeyStatus } from '@/types/apiKey'
 import { ApiKeyStatusBadge } from '@/components/apiKey/ApiKeyStatusBadge';
 import { RawApiKeyModal } from '@/components/apiKey/RawApiKeyModal';
 import { RevokeApiKeyDialog } from '@/components/apiKey/RevokeApiKeyDialog';
-import { CreateTestApiKeyModal } from '@/components/apiKey/CreateTestApiKeyModal';
+
 import { usePermission } from '@/hooks/usePermission';
 import { HelpButton } from '@/components/help/HelpButton';
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
@@ -52,9 +52,9 @@ export const PartnerApiKeyListPage: React.FC = () => {
   const pageSize = 10;
 
   // States quản lý Modal
-  const [showCreateTestModal, setShowCreateTestModal] = useState(false);
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<PartnerApiKeyResponse | null>(null);
   const [revokeKeyTarget, setRevokeKeyTarget] = useState<PartnerApiKeyResponse | null>(null);
+
 
   const fetchApiKeys = async () => {
     try {
@@ -91,11 +91,6 @@ export const PartnerApiKeyListPage: React.FC = () => {
     fetchApiKeys();
   };
 
-  const handleCreateTestKeySuccess = (createdKey: PartnerApiKeyResponse) => {
-    fetchApiKeys();
-    setNewlyCreatedKey(createdKey);
-  };
-
   return (
     <div className="space-y-6">
       {/* Header trang */}
@@ -120,12 +115,13 @@ export const PartnerApiKeyListPage: React.FC = () => {
               <>
                 <Button
                   variant="outline"
-                  onClick={() => setShowCreateTestModal(true)}
+                  onClick={() => navigate('/integration/api-keys/create-test')}
                   className="shrink-0 gap-2 border-primary/40 text-primary hover:bg-primary/10"
                 >
                   <FlaskConical className="w-4 h-4 text-primary" />
                   <span>Cấp khóa thử nghiệm</span>
                 </Button>
+
                 <Button
                   variant="create"
                   onClick={() => navigate('/integration/api-keys/create')}
@@ -310,12 +306,6 @@ export const PartnerApiKeyListPage: React.FC = () => {
       </ListCard>
 
       {/* Modals & Dialogs */}
-      <CreateTestApiKeyModal
-        open={showCreateTestModal}
-        onClose={() => setShowCreateTestModal(false)}
-        onSuccess={handleCreateTestKeySuccess}
-      />
-
       <RawApiKeyModal
         open={!!newlyCreatedKey}
         apiKeyData={newlyCreatedKey}

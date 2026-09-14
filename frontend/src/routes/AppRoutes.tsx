@@ -167,9 +167,11 @@ import ImpactScopeTracePage from "@/pages/trace/ImpactScopeTracePage";
 // ===== Organization Detail =====
 import OrganizationDetailPage from "@/pages/organization/OrganizationDetailPage";
 
-// ===== Partner API Keys (NCL-12-CN-001) =====
+// ===== Partner API Keys (NCL-12-CN-001 / NCL-12-CN-004) =====
 import PartnerApiKeyListPage from "@/pages/apiKey/PartnerApiKeyListPage";
 import CreatePartnerApiKeyPage from "@/pages/apiKey/CreatePartnerApiKeyPage";
+import CreateTestPartnerApiKeyPage from "@/pages/apiKey/CreateTestPartnerApiKeyPage";
+
 
 // ===== Product Feedback =====
 import ProductFeedbackManagementPage from "@/pages/product-feedback/ProductFeedbackManagementPage";
@@ -1512,6 +1514,16 @@ const AppRoutes = () => (
                     </RoleRoute>
                 }
             />
+
+            <Route
+                path="integration/api-keys/create-test"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.apiKeyManagement}>
+                        <CreateTestPartnerApiKeyPage />
+                    </RoleRoute>
+                }
+            />
+
 
 
             {/* =================================================
