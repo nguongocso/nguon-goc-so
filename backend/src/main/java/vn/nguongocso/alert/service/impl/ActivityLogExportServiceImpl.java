@@ -115,6 +115,11 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
                     HttpStatus.FORBIDDEN,
                     "Chỉ Quản lý tổ chức (VT-02) mới được xuất nhật ký hoạt động.");
         }
+        if (currentUser.getOrganizationId() == null) {
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN,
+                    "Người dùng không thuộc tổ chức nào.");
+        }
         if (request == null) {
             throw new BusinessException("Bộ lọc xuất nhật ký không được để trống.");
         }

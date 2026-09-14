@@ -69,6 +69,13 @@ class ActivityLogExportSpecificationTest {
         assertThat(toCount).isEqualTo(1);
     }
 
+    @Test
+    void hasOrganizationId_shouldReturnDisjunction_whenOrganizationIdIsNull() {
+        activityLogRepository.save(createLog(UUID.randomUUID(), "manager", "Quản lý", "ACTION", "LOT", LocalDateTime.now()));
+        List<ActivityLog> logs = activityLogRepository.findAll(ActivityLogSpecification.hasOrganizationId(null));
+        assertThat(logs).isEmpty();
+    }
+
     private ActivityLog createLog(
             UUID organizationId,
             String username,

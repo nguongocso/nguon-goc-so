@@ -267,5 +267,57 @@ class ActivityLogExportServiceTest {
         assertThat(service.protectFormula("normal value")).isEqualTo("normal value");
         assertThat(service.protectFormula(" Nguyễn Văn A")).isEqualTo(" Nguyễn Văn A");
     }
+
+    @Test
+    void validateRequest_shouldThrowForbidden_whenUserHasNoOrganizationId() {
+        when(currentUser.getRoleCode()).thenReturn("VT-02");
+        when(currentUser.getOrganizationId()).thenReturn(null);
+
+        assertThatThrownBy(() -> service.preview(
+                ActivityLogExportFilterRequest.builder().build(),
+                currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Người dùng không thuộc tổ chức nào.");
+
+        assertThatThrownBy(() -> service.exportCsv(
+                ActivityLogExportFilterRequest.builder().build(),
+                currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Người dùng không thuộc tổ chức nào.");
+    }
+
+    @Test
+    void exportCsv_shouldNotExposeSensitiveFields_userId_organizationId_ipAddress_description() {
+        UUID randomUserId = UUID.randomUUID();
+        String secretIp = "192.168.1.99";
+        String secretDesc = "Secret internal description";
+
+        ActivityLog log = ActivityLog.builder()
+                .organizationId(organizationId)
+                .userId(randomUserId)
+                .username("test_user")
+                .fullName("Người dùng thử nghiệm")
+                .action("ACTION_TEST")
+                .description(secretDesc)
+                .entityType("ENTITY_TEST")
+                .entityId("ID-999")
+                .ipAddress(secretIp)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(currentUser.getRoleCode()).thenReturn("VT-02");
+        when(currentUser.getOrganizationId()).thenReturn(organizationId);
+        when(activityLogRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(log)));
+
+        byte[] csv = service.exportCsv(ActivityLogExportFilterRequest.builder().build(), currentUser);
+        String csvContent = new String(csv, StandardCharsets.UTF_8);
+
+        // Kiểm tra tuyệt đối không xuất các trường nhạy cảm
+        assertThat(csvContent).doesNotContain(randomUserId.toString());
+        assertThat(csvContent).doesNotContain(organizationId.toString());
+        assertThat(csvContent).doesNotContain(secretIp);
+        assertThat(csvContent).doesNotContain(secretDesc);
+    }
 }
 

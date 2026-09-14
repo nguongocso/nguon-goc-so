@@ -13,9 +13,12 @@ import java.util.UUID;
 public class ActivityLogSpecification {
     /**
      * Tạo Specification để lọc ActivityLog theo organizationId.
+     * Nếu organizationId là null, trả về disjunction (luôn sai) để đảm bảo cách ly dữ liệu.
      */
     public static Specification<ActivityLog> hasOrganizationId(UUID organizationId) {
-        return (root, query, cb) -> cb.equal(root.get("organizationId"), organizationId);
+        return (root, query, cb) -> organizationId == null
+                ? cb.disjunction()
+                : cb.equal(root.get("organizationId"), organizationId);
     }
 
     /**
