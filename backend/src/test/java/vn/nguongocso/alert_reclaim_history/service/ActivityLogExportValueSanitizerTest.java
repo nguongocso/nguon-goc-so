@@ -79,6 +79,38 @@ class ActivityLogExportValueSanitizerTest {
     }
 
     @Test
+    @DisplayName("Che các khóa nhạy cảm có tiền tố và bí mật nằm trong giá trị text JSON")
+    void sanitize_prefixedKeysAndJsonTextValues_shouldMaskAllSecrets() {
+        String input = """
+                {
+                    "newPassword": "new-pass",
+                    "authToken": "token-value",
+                    "clientCredential": "credential-value",
+                    "note": "authorization: Bearer secret-with-spaces",
+                    "messages": ["api_key=key-in-array", "Nội dung an toàn"]
+                }
+                """;
+
+        String output = sanitizer.sanitize(input);
+
+        assertThat(output).doesNotContain(
+                "new-pass", "token-value", "credential-value", "Bearer", "secret-with-spaces", "key-in-array");
+        assertThat(output).contains(
+                "\"newPassword\":\"***\"", "\"authToken\":\"***\"", "\"clientCredential\":\"***\"");
+        assertThat(output).contains("\"note\":\"authorization:***\"");
+        assertThat(output).contains("\"messages\":[\"api_key=***\",\"Nội dung an toàn\"]");
+    }
+
+    @Test
+    @DisplayName("Che bí mật trong chuỗi JSON scalar")
+    void sanitize_jsonStringScalar_shouldMaskSecret() {
+        String output = sanitizer.sanitize("\"refreshToken=token-scalar\"");
+
+        assertThat(output).isEqualTo("\"refreshToken=***\"");
+        assertThat(output).doesNotContain("token-scalar");
+    }
+
+    @Test
     @DisplayName("Che chuỗi văn bản không phải JSON theo mẫu key-value nhạy cảm")
     void sanitize_plainTextSecrets_shouldMaskPatternMatches() {
         String input = "Cập nhật tài khoản: password=mySecret123; apiKey: key999; username=nongdan; authorization=Bearer xyz";
@@ -87,7 +119,7 @@ class ActivityLogExportValueSanitizerTest {
 
         assertThat(output).doesNotContain("mySecret123");
         assertThat(output).doesNotContain("key999");
-        assertThat(output).doesNotContain("Bearer xyz");
+        assertThat(output).doesNotContain("Bearer", "xyz");
         assertThat(output).contains("password=***");
         assertThat(output).contains("apiKey:***");
         assertThat(output).contains("authorization=***");

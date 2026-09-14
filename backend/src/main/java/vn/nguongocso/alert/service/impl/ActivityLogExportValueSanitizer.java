@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.RequiredArgsConstructor;
@@ -23,9 +24,11 @@ public class ActivityLogExportValueSanitizer {
     private static final Set<String> SENSITIVE_KEYS = Set.of(
             "password", "passwordhash", "token", "accesstoken", "refreshtoken", "idtoken",
             "secret", "clientsecret", "credential", "credentials", "apikey", "privatekey",
-            "accesskey", "authorization", "cookie", "setcookie");
+            "accesskey", "authorization", "cookie", "setcookie", "jwt");
     private static final Pattern TEXT_SECRET = Pattern.compile(
-            "(?i)(password|token|secret|credential|api[_-]?key|authorization)\\s*([:=])\\s*([^,;\\s]+)");
+            "(?i)([A-Za-z0-9_.-]*(?:password|token|secret|credential|api[_-]?key|"
+                    + "private[_-]?key|access[_-]?key|authorization|cookie)[A-Za-z0-9_.-]*)"
+                    + "\\s*([:=])\\s*([^,;\\r\\n]+)");
 
     private final ObjectMapper objectMapper;
 
@@ -34,11 +37,13 @@ public class ActivityLogExportValueSanitizer {
         if (value == null || value.isBlank()) return value;
         try {
             JsonNode root = objectMapper.readTree(value);
+            if (root != null && root.isTextual()) {
+                return objectMapper.writeValueAsString(maskText(root.textValue()));
+            }
             maskRecursively(root);
             return objectMapper.writeValueAsString(root);
         } catch (JsonProcessingException ignored) {
-            Matcher matcher = TEXT_SECRET.matcher(value);
-            return matcher.replaceAll("$1$2" + MASK);
+            return maskText(value);
         }
     }
 
@@ -50,15 +55,27 @@ public class ActivityLogExportValueSanitizer {
             while (fields.hasNext()) {
                 Map.Entry<String, JsonNode> field = fields.next();
                 if (isSensitive(field.getKey())) object.put(field.getKey(), MASK);
-                else maskRecursively(field.getValue());
+                else if (field.getValue().isTextual()) {
+                    object.put(field.getKey(), maskText(field.getValue().textValue()));
+                } else maskRecursively(field.getValue());
             }
         } else if (node.isArray()) {
-            node.forEach(this::maskRecursively);
+            ArrayNode array = (ArrayNode) node;
+            for (int i = 0; i < array.size(); i++) {
+                JsonNode item = array.get(i);
+                if (item.isTextual()) array.set(i, objectMapper.getNodeFactory().textNode(maskText(item.textValue())));
+                else maskRecursively(item);
+            }
         }
     }
 
     private boolean isSensitive(String key) {
         String normalized = key == null ? "" : key.replaceAll("[^A-Za-z0-9]", "").toLowerCase();
-        return SENSITIVE_KEYS.contains(normalized);
+        return SENSITIVE_KEYS.stream().anyMatch(normalized::endsWith);
+    }
+
+    private String maskText(String value) {
+        Matcher matcher = TEXT_SECRET.matcher(value);
+        return matcher.replaceAll("$1$2" + MASK);
     }
 }

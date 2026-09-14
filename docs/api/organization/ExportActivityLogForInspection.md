@@ -8,7 +8,7 @@
 >
 > Phụ thuộc: NCL-101 và `NCL-08-CN-004` (xem lịch sử hoạt động)
 >
-> Loại tài liệu: API Contract-first · Trạng thái: **Đã triển khai direct/async, đang hoàn thiện validation** · Phiên bản: v1
+> Loại tài liệu: API Contract-first · Trạng thái: **Đã triển khai direct/async** · Phiên bản: v1
 >
 > Lưu ý: preview, export CSV trực tiếp, export nền/job/notification và mô hình dữ liệu audit bổ sung đã được triển khai trên nhánh nêu trên. Dữ liệu lịch sử trước migration không được suy diễn ngược `actorRole`, `beforeValue`, `afterValue`.
 
@@ -22,7 +22,7 @@ Cho phép Quản lý tổ chức xuất các bản ghi nhật ký hoạt động
 |---|---|---|
 | Quản lý tổ chức (`VT-02` / `ORG_MANAGER`) | Preview, yêu cầu export, xem trạng thái và tải file export của mình/tổ chức mình | `organizationId` chỉ lấy từ `CustomUserDetails` của JWT; không nhận từ client |
 
-Mọi endpoint yêu cầu `Authorization: Bearer <token>`. Không có quyền trả `403`; chưa xác thực trả `401`.
+Mọi endpoint yêu cầu `Authorization: Bearer <token>`. Theo cấu hình Spring Security hiện tại của dự án, request chưa xác thực và người dùng sai vai trò đều bị từ chối với `403`; service tiếp tục kiểm tra `VT-02` và tenant như lớp bảo vệ thứ hai.
 
 ## 3. Business Rules
 
@@ -52,9 +52,9 @@ DTO dùng chung: `ActivityLogExportFilterRequest`.
 |---|---|---:|---|
 | `startDate` | string | Không | `yyyy-MM-dd`, bao gồm toàn bộ ngày bắt đầu |
 | `endDate` | string | Không | `yyyy-MM-dd`, bao gồm toàn bộ ngày kết thúc; không nhỏ hơn `startDate` |
-| `action` | string | Không | Mã action Activity Log |
-| `actorName` | string | Không | Tìm gần đúng trên `username` hoặc `fullName` trong tenant |
-| `objectType` | string | Không | Ánh xạ sang `entityType` |
+| `action` | string | Không | Mã action Activity Log, tối đa 100 ký tự |
+| `actorName` | string | Không | Tìm gần đúng trên `username` hoặc `fullName` trong tenant, tối đa 255 ký tự |
+| `objectType` | string | Không | Ánh xạ sang `entityType`, tối đa 50 ký tự |
 
 Không có `organizationId`, `objectId`, `userId`. Danh sách action/object type dùng các giá trị đã biết từ màn hình/lịch sử hiện tại; v1 không có metadata endpoint. Nếu sau này cần selector giá trị phân biệt chính xác theo tenant, cần task riêng.
 
@@ -97,7 +97,7 @@ Object JSON được serialize compact thành một giá trị CSV và escape d�
 
 ## 7. API Endpoints
 
-Mọi response JSON, gồm lỗi, dùng wrapper `ApiResult` hiện hữu. Binary CSV trả raw response, không bọc `ApiResult`.
+Response JSON của controller/service dùng wrapper `ApiResult` hiện hữu. Từ chối tại Spring Security filter có thể trả `403` trước khi vào controller và không có wrapper; binary CSV trả raw response, không bọc `ApiResult`.
 
 | Method | Path | Mục đích | Trạng thái source |
 |---|---|---|---|
@@ -110,10 +110,10 @@ Bốn endpoint đã được triển khai theo cùng contract và đều giới 
 
 | Endpoint | Quyền | Request/validation | Success | Lỗi chính |
 |---|---|---|---|---|
-| `POST .../exports/preview` | `VT-02` | JSON `ActivityLogExportFilterRequest`; ngày đúng định dạng, `startDate <= endDate` | `200 ApiResult<Preview>` | `400`, `401`, `403` |
-| `POST .../exports` | `VT-02` | Cùng DTO và validation với preview | `200` raw CSV hoặc `202 ApiResult<ExportJob>` | `400` không dữ liệu/validation, `401`, `403`, `500` tạo file trực tiếp |
-| `GET .../exports/{exportId}` | `VT-02` cùng tenant | Không body; `exportId` là UUID | `200 ApiResult<ExportJob>` | `401`, `403`, `404` chung cho không tồn tại/khác tenant |
-| `GET .../exports/{exportId}/download` | `VT-02` cùng tenant | Không body; job phải `SUCCESS`, file phải tồn tại | `200` raw CSV | `401`, `403`, `404`, `409` chưa hoàn tất |
+| `POST .../exports/preview` | `VT-02` | JSON `ActivityLogExportFilterRequest`; ngày đúng định dạng, `startDate <= endDate` | `200 ApiResult<Preview>` | `400`, `403` |
+| `POST .../exports` | `VT-02` | Cùng DTO và validation với preview | `200` raw CSV hoặc `202 ApiResult<ExportJob>` | `400` không dữ liệu/validation, `403`, `500` tạo file trực tiếp |
+| `GET .../exports/{exportId}` | `VT-02` cùng tenant | Không body; `exportId` là UUID | `200 ApiResult<ExportJob>` | `403`, `404` chung cho không tồn tại/khác tenant |
+| `GET .../exports/{exportId}/download` | `VT-02` cùng tenant | Không body; job phải `SUCCESS`, file phải tồn tại | `200` raw CSV | `403`, `404`, `409` chưa hoàn tất |
 
 ## 8. Preview Count
 
@@ -236,7 +236,7 @@ Migration `V20260914150000__add_activity_log_export_jobs.sql` đã bổ sung `ac
 | TC-03 – tenant isolation | Current-user scope, 404 chung, mục 3/14 | Đã áp dụng cho preview/request/status/download |
 | TC-04 – ghi lịch sử export | `EXPORT_ACTIVITY_LOG` sau snapshot, mục 13 | Đã triển khai direct và lúc chấp nhận async |
 | TC-05 – preview count | Endpoint preview dùng cùng filter/query, mục 8 | Đã triển khai `DIRECT`/`ASYNC` theo ngưỡng |
-| TC-06 – dữ liệu lớn | Vượt ngưỡng tạo snapshot + job nền, notification và link tải | Đã triển khai; cần runtime/UI validation |
+| TC-06 – dữ liệu lớn | Vượt ngưỡng tạo snapshot + job nền, notification và link tải | Đã triển khai và có kiểm thử tích hợp backend |
 
 Ma trận yêu cầu:
 
@@ -257,7 +257,7 @@ Ma trận yêu cầu:
 | Preview count | Baseline NCL-08-CN-015-TC-05 | Cùng filter/query với snapshot | Preview endpoint | Count parity test khi dữ liệu không đổi |
 | Dữ liệu lớn | Baseline NCL-08-CN-015-TC-06 | Vượt ngưỡng tạo snapshot và job nền; hoàn tất gửi notification | Job/item, `TaskExecutor`, HTTP 202 | Boundary direct/async + status/download test |
 
-Kiểm thử bắt buộc khi triển khai: TC01–TC06; sai khoảng ngày; 401/403; actor/object/job khác tenant; `download` khi `IN_PROGRESS`; file thiếu; lỗi worker `FAILED`; CSV escape/formula injection; denylist before/after; event export không nằm trong snapshot; và hồi quy `GET /activity-logs`.
+Kiểm thử bắt buộc khi triển khai: TC01–TC06; sai khoảng ngày; `403` cho anonymous/sai vai trò; actor/object/job khác tenant; `download` khi `IN_PROGRESS`; file thiếu; lỗi worker `FAILED`; CSV escape/formula injection; denylist before/after; event export không nằm trong snapshot; và hồi quy `GET /activity-logs`.
 
 ## 17. GAP / quyết định cần xác nhận
 
@@ -266,7 +266,7 @@ Kiểm thử bắt buộc khi triển khai: TC01–TC06; sai khoảng ngày; 401
 3. Ngưỡng direct mặc định 10.000 là technical configurable threshold, không phải Business Rule cố định của BA/PO. Giới hạn khoảng thời gian xuất mặc định 365 ngày là configurable max range v1 (`app.activity-log-export.max-range-days=365`). Khi vượt ngưỡng direct, hệ thống chuyển sang job nền đúng baseline; khi vượt khoảng thời gian, hệ thống từ chối HTTP 400 và không ghi audit.
 4. **Operational GAP – Lưu trữ file và Retention/Cleanup Policy:** Job và snapshot đã có migration, khóa ngoại/index và tenant-scoped service. File được lưu tạm thời tại thư mục cấu hình `ACTIVITY_LOG_EXPORT_STORAGE_DIR`. Môi trường production cần gắn volume lưu trữ bền vững (persistent storage). Việc xây dựng chính sách hết hạn tệp (retention policy), thời hạn tải và tiến trình định kỳ dọn dẹp file cũ (cleanup scheduler) là một Operational GAP cần task vận hành và xác nhận nghiệp vụ riêng từ BA/PO, không thuộc phạm vi User Story hiện tại.
 5. Export không dùng listener audit bất đồng bộ: service ghi `EXPORT_ACTIVITY_LOG` bằng `saveAndFlush` trong transaction trước khi trả `200/202`; worker chỉ xử lý file sau commit.
-6. Mã lỗi chuẩn dùng `ApiResult`: khoảng ngày không hợp lệ `400`; không dữ liệu `400`; không xác thực `401`; không đủ quyền `403`; job tenant khác/không tồn tại `404`; job chưa hoàn tất `409`; file thiếu `404`; tạo file/lỗi nền: job `FAILED`, lỗi đồng bộ `500` và notification theo quyết định nghiệp vụ. Không công bố chi tiết tenant khác.
+6. Mã lỗi thực tế: khoảng ngày không hợp lệ `400`; không dữ liệu `400`; anonymous/sai vai trò `403` theo Spring Security hiện tại; job tenant khác/không tồn tại `404`; job chưa hoàn tất `409`; file thiếu `404`; tạo file/lỗi nền: job `FAILED`, lỗi đồng bộ `500` và notification theo quyết định nghiệp vụ. Lỗi controller/service dùng `ApiResult`; lỗi bị chặn trước controller có thể không dùng wrapper. Không công bố chi tiết tenant khác.
 7. **GAP – Ghi nhật ký truy cập trái phép / từ chối truy cập theo QTN-01:** Hệ thống hiện tại **chưa có cơ chế global Security/Audit** tự động ghi nhận các request bị từ chối do sai vai trò (403 Forbidden), thiếu tenant context (không có `organizationId`), hoặc dò quét dữ liệu chéo tenant. Cơ chế `ACCESS_DENIED` duy nhất hiện có trong hệ thống đang được hardcode cục bộ tại `GlobalExceptionHandler.publishAccessDeniedAudit()` chỉ dành riêng cho endpoint `/api/v1/admin/monitoring`. `AuditAspect` hiện hữu chỉ bắt `@AfterReturning` trên các method `@Auditable` thành công của người dùng hợp lệ. Do đó, việc ghi vết từ chối truy cập cho `NCL-08-CN-015` được xác định là một GAP thực sự so với QTN-01 của toàn hệ thống và cần task kiến trúc riêng để thiết lập cơ chế global security audit chung, không tự ý mở rộng cục bộ trong User Story này.
 
 Ví dụ lỗi dùng chung, trong đó `path` thay đổi theo endpoint thực tế:

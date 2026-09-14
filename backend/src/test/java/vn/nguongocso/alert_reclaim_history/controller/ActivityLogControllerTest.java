@@ -29,6 +29,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -174,5 +175,21 @@ public class ActivityLogControllerTest {
                         .contentType("application/json")
                         .content("{}"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void previewExport_shouldReturnBadRequest_whenFilterExceedsStorageLimit() throws Exception {
+        CustomUserDetails user = createCustomUserDetails("manager", "VT-02");
+        String actorName = "a".repeat(256);
+
+        mockMvc.perform(post("/api/v1/organizations/activity-logs/exports/preview")
+                        .with(authentication(new UsernamePasswordAuthenticationToken(
+                                user, null, user.getAuthorities())))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content("{\"actorName\":\"" + actorName + "\"}"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(activityLogExportService);
     }
 }
