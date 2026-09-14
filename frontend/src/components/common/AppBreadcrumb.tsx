@@ -150,8 +150,6 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/admin/anomaly-thresholds/categories/:id/edit", "Chỉnh sửa cấu hình theo loại nông sản"],
   ["/admin/anomaly-thresholds", "Cấu hình ngưỡng quét bất thường"],
   ["/admin/account-areas", "Phân công địa bàn"],
-  ["/integration/api-keys/create", "Cấp khóa API"],
-  ["/integration/api-keys", "Khóa API đối tác"],
 
   // Reports
   ["/reports/alert-lots/:lotId", "Chi tiết lô có cảnh báo"],
@@ -175,6 +173,7 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/certifications", "Kiểm nghiệm & chứng nhận"],
 
   // Integration / Export / Permissions
+  ["/integration/api-keys/create-test", "Cấp khóa thử nghiệm"],
   ["/integration/api-keys/create", "Cấp khóa API"],
   ["/integration/api-keys", "Khóa API đối tác"],
   ["/export/open-data", "Dữ liệu mở"],
@@ -346,6 +345,7 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
   ["/certifications", ["VT-02"]],
 
   // Integration / Export / Permissions
+  ["/integration/api-keys/create-test", ROLE_ACCESS.apiKeyManagement],
   ["/integration/api-keys/create", ROLE_ACCESS.apiKeyManagement],
   ["/integration/api-keys", ROLE_ACCESS.apiKeyManagement],
   ["/export/open-data", ROLE_ACCESS.exportOpenData],

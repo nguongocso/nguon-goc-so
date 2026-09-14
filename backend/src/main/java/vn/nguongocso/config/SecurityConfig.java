@@ -147,7 +147,8 @@ public class SecurityConfig {
                          */
                         .requestMatchers(
                                 "/api/v1/public/**",
-                                "/api/v1/partner/**"
+                                "/api/v1/partner/**",
+                                "/api/publicapi/**"
                         ).permitAll()
 
                         /*
@@ -263,7 +264,8 @@ public class SecurityConfig {
                 List.of(
                         "Authorization",
                         "Content-Type",
-                        "X-API-KEY"
+                        "X-API-KEY",
+                        "X-Api-Key"
                 )
         );
 

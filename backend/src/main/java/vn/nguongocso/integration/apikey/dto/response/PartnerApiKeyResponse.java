@@ -35,6 +35,17 @@ public class PartnerApiKeyResponse {
     private LocalDateTime expiresAt;
     private PartnerApiKeyStatus status;
 
+    /**
+     * Đánh dấu khóa thử nghiệm (Sandbox).
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("is_test")
+    private Boolean isTest;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("isTest")
+    public Boolean getIsTestCamel() {
+        return isTest;
+    }
+
     private Long totalCalls;
     private Long failedCalls;
     private LocalDateTime lastCalledAt;
