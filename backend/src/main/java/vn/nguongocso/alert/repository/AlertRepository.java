@@ -103,4 +103,16 @@ public interface AlertRepository extends JpaRepository<Alert, UUID> {
     java.util.List<Alert> findByRelatedEntityIdInAndType(
             @Param("lotIds") java.util.Collection<UUID> lotIds,
             @Param("type") AlertType type);
+
+    /**
+     * Tìm cảnh báo theo tổ chức và trạng thái (NCL-08-CN-016).
+     */
+    java.util.List<Alert> findByOrganizationOrganizationIdAndStatus(
+            UUID organizationId,
+            AlertStatus status);
+
+    /**
+     * Tìm tất cả cảnh báo theo trạng thái (NCL-08-CN-016).
+     */
+    java.util.List<Alert> findByStatus(AlertStatus status);
 }
