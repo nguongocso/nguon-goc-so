@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS recall_cases (
     CONSTRAINT fk_recall_case_on_lot FOREIGN KEY (production_lot_id) REFERENCES production_lot (id),
     CONSTRAINT fk_recall_case_on_org FOREIGN KEY (organization_id) REFERENCES organizations (organization_id),
     CONSTRAINT fk_recall_case_on_closed_by FOREIGN KEY (closed_by) REFERENCES users (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE INDEX idx_recall_cases_status ON recall_cases (status);
 CREATE INDEX idx_recall_cases_lot ON recall_cases (production_lot_id);
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS recall_lot_results (
     CONSTRAINT uq_recall_result_case_shipment UNIQUE (recall_case_id, shipment_id),
     CONSTRAINT fk_recall_result_on_case FOREIGN KEY (recall_case_id) REFERENCES recall_cases (id) ON DELETE CASCADE,
     CONSTRAINT fk_recall_result_on_shipment FOREIGN KEY (shipment_id) REFERENCES shipments (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE INDEX idx_recall_result_case ON recall_lot_results (recall_case_id);
 CREATE INDEX idx_recall_result_shipment ON recall_lot_results (shipment_id);

@@ -1,10 +1,11 @@
 -- ============================================================
--- V20260908120000: Bulk recall requests (NCL-08-CN-011)
+-- V20260908120002: Bulk recall requests (NCL-08-CN-011)
 -- Thu hồi theo phạm vi ảnh hưởng của lô sản xuất
 --
--- LƯU Ý: version V20260908000000 đã được dùng bởi migration
--- "rename recalling count to recalled count" nên phải dùng
--- version mới (20260908120000) để Flyway nhận diện được migration mới.
+-- LƯU Ý: version này được đổi từ V20260908120000 sang V20260908120002
+-- vì V20260908120000 bị trùng với test data seed migration. Flyway đã
+-- ghi nhận V20260908120000 là test data seed nên schema này phải dùng
+-- version mới để Flyway nhận diện và áp dụng đúng.
 -- ============================================================
 
 -- Bảng đề nghị thu hồi hàng loạt
@@ -41,7 +42,7 @@ CREATE TABLE IF NOT EXISTS bulk_recall_requests (
     CONSTRAINT fk_bulk_recall_rejected_by
         FOREIGN KEY (rejected_by) REFERENCES users(user_id),
     CONSTRAINT uk_bulk_recall_pending_lot UNIQUE (pending_production_lot_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Index cho tìm kiếm theo production lot và status
 CREATE INDEX idx_bulk_recall_production_lot_status
@@ -67,7 +68,7 @@ CREATE TABLE IF NOT EXISTS bulk_recall_shipments (
         FOREIGN KEY (bulk_recall_request_id) REFERENCES bulk_recall_requests(id) ON DELETE CASCADE,
     CONSTRAINT fk_bulk_recall_shipment_shipment
         FOREIGN KEY (shipment_id) REFERENCES shipments(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Index cho tìm kiếm theo bulk recall request
 CREATE INDEX idx_bulk_recall_shipment_request
