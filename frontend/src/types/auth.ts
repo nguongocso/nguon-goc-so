@@ -71,6 +71,8 @@ export interface AuthUserInfo {
   organizationCode: string;
   organizationName: string;
   organizationType: OrganizationType;
+  organizationProvinceId?: string | null;
+  organizationCommuneId?: string | null;
 
   permissions?: string[];
 

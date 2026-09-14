@@ -25,5 +25,8 @@ public class ReadonlyChainEventItem {
     private String recordedByName;
     private String location;
     private Boolean earlyHarvest;
+    private Boolean hasAlert;
+    private String alertWarning;
+    private String shipmentName;
     private String description;
 }

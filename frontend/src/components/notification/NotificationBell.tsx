@@ -30,21 +30,43 @@ export const NotificationBell = () => {
     (!user.email || user.email.trim() === '')
   );
 
+  const isMissingTerritory = Boolean(
+    user &&
+    hasAnyRole(user.roleCode, ROLE_ACCESS.organizationProfile) &&
+    user.roleCode === 'VT-02' &&
+    (!user.organizationProvinceId || !user.organizationCommuneId)
+  );
+
   const emailNoticeKey = user ? `session_read_email_notice_${user.userId}` : '';
   const [isEmailNoticeRead, setIsEmailNoticeRead] = useState<boolean>(() => {
     return emailNoticeKey ? sessionStorage.getItem(emailNoticeKey) === 'true' : false;
   });
 
-  // Đồng bộ trạng thái đã đọc khi user thay đổi hoặc email cập nhật
+  const territoryNoticeKey = user?.organizationId
+    ? `session_read_org_territory_notice_${user.organizationId}`
+    : '';
+  const [isTerritoryNoticeRead, setIsTerritoryNoticeRead] = useState<boolean>(() => {
+    return territoryNoticeKey ? sessionStorage.getItem(territoryNoticeKey) === 'true' : false;
+  });
+
+  // Đồng bộ trạng thái đã đọc khi user thay đổi hoặc email/địa bàn cập nhật
   useEffect(() => {
     if (emailNoticeKey) {
       setIsEmailNoticeRead(sessionStorage.getItem(emailNoticeKey) === 'true');
     }
   }, [emailNoticeKey, user?.email]);
 
-  // Tổng số lượng thông báo chưa đọc (bao gồm thông báo nhắc email nếu chưa đọc)
+  useEffect(() => {
+    if (territoryNoticeKey) {
+      setIsTerritoryNoticeRead(sessionStorage.getItem(territoryNoticeKey) === 'true');
+    }
+  }, [territoryNoticeKey, user?.organizationProvinceId, user?.organizationCommuneId]);
+
+  // Tổng số lượng thông báo chưa đọc (bao gồm thông báo nhắc email và nhắc địa bàn nếu chưa đọc)
   const totalUnreadCount =
-    apiUnreadCount + (isMissingEmail && !isEmailNoticeRead ? 1 : 0);
+    apiUnreadCount +
+    (isMissingEmail && !isEmailNoticeRead ? 1 : 0) +
+    (isMissingTerritory && !isTerritoryNoticeRead ? 1 : 0);
 
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
@@ -73,6 +95,15 @@ export const NotificationBell = () => {
     }
     setOpen(false);
     navigate('/profile');
+  };
+
+  const handleTerritoryNoticeClick = () => {
+    if (territoryNoticeKey) {
+      sessionStorage.setItem(territoryNoticeKey, 'true');
+      setIsTerritoryNoticeRead(true);
+    }
+    setOpen(false);
+    navigate('/organizations/profile');
   };
 
   return (
@@ -104,6 +135,9 @@ export const NotificationBell = () => {
           isMissingEmail={isMissingEmail}
           isEmailNoticeRead={isEmailNoticeRead}
           onEmailNoticeClick={handleEmailNoticeClick}
+          isMissingTerritory={isMissingTerritory}
+          isTerritoryNoticeRead={isTerritoryNoticeRead}
+          onTerritoryNoticeClick={handleTerritoryNoticeClick}
         />
       </DropdownMenuContent>
     </DropdownMenu>

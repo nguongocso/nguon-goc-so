@@ -27,6 +27,10 @@ import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.entity.OrganizationUser;
 import vn.nguongocso.organization.enums.OrganizationStatus;
 import vn.nguongocso.organization.enums.OrganizationType;
+import org.springframework.context.ApplicationEventPublisher;
+import vn.nguongocso.organization.entity.AdministrativeUnit;
+import vn.nguongocso.organization.enums.AdministrativeUnitLevel;
+import vn.nguongocso.organization.repository.AdministrativeUnitRepository;
 import vn.nguongocso.organization.enums.OrganizationUserStatus;
 import vn.nguongocso.organization.repository.OrganizationRepository;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
@@ -53,6 +57,12 @@ public class OrganizationServiceTest {
 
     @Mock
     private OrganizationRepository organizationRepository;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    private AdministrativeUnitRepository administrativeUnitRepository;
 
     @Mock
     private SecurityContext securityContext;
@@ -133,6 +143,91 @@ public class OrganizationServiceTest {
         assertThat(response.getEmail()).isEqualTo("new@htx.com");
 
         verify(organizationRepository).save(existingOrg);
+    }
+
+    @Test
+    void updateCurrentOrganizationProfile_withDivisions_shouldUpdateAndReturn() {
+        mockLogin();
+
+        UUID provinceId = UUID.randomUUID();
+        UUID communeId = UUID.randomUUID();
+
+        AdministrativeUnit province = AdministrativeUnit.builder()
+                .id(provinceId)
+                .code("36")
+                .name("Ninh Bình")
+                .level(AdministrativeUnitLevel.PROVINCE)
+                .active(true)
+                .build();
+
+        AdministrativeUnit commune = AdministrativeUnit.builder()
+                .id(communeId)
+                .code("04098")
+                .name("Hoa Lư")
+                .level(AdministrativeUnitLevel.COMMUNE)
+                .province(province)
+                .active(true)
+                .build();
+
+        OrganizationUpdateRequest request = new OrganizationUpdateRequest();
+        request.setName("HTX Nông nghiệp Hoa Lư");
+        request.setAddress("Thôn 1");
+        request.setProvinceId(provinceId);
+        request.setCommuneId(communeId);
+
+        when(organizationRepository.findById(orgId)).thenReturn(Optional.of(existingOrg));
+        when(organizationRepository.save(any(Organization.class))).thenReturn(existingOrg);
+        when(administrativeUnitRepository.findById(provinceId)).thenReturn(Optional.of(province));
+        when(administrativeUnitRepository.findById(communeId)).thenReturn(Optional.of(commune));
+
+        OrganizationProfileResponse response = organizationServiceImpl.updateCurrentOrganization(request);
+
+        assertThat(response.getName()).isEqualTo("HTX Nông nghiệp Hoa Lư");
+        assertThat(response.getProvinceId()).isEqualTo(provinceId);
+        assertThat(response.getProvinceName()).isEqualTo("Ninh Bình");
+        assertThat(response.getCommuneId()).isEqualTo(communeId);
+        assertThat(response.getCommuneName()).isEqualTo("Hoa Lư");
+    }
+
+    @Test
+    void updateCurrentOrganizationProfile_invalidCommuneParent_shouldThrow() {
+        mockLogin();
+
+        UUID provinceId = UUID.randomUUID();
+        UUID otherProvinceId = UUID.randomUUID();
+        UUID communeId = UUID.randomUUID();
+
+        AdministrativeUnit province = AdministrativeUnit.builder()
+                .id(provinceId)
+                .level(AdministrativeUnitLevel.PROVINCE)
+                .active(true)
+                .build();
+
+        AdministrativeUnit otherProvince = AdministrativeUnit.builder()
+                .id(otherProvinceId)
+                .level(AdministrativeUnitLevel.PROVINCE)
+                .active(true)
+                .build();
+
+        AdministrativeUnit commune = AdministrativeUnit.builder()
+                .id(communeId)
+                .level(AdministrativeUnitLevel.COMMUNE)
+                .province(otherProvince)
+                .active(true)
+                .build();
+
+        OrganizationUpdateRequest request = new OrganizationUpdateRequest();
+        request.setName("HTX Lỗi");
+        request.setProvinceId(provinceId);
+        request.setCommuneId(communeId);
+
+        when(organizationRepository.findById(orgId)).thenReturn(Optional.of(existingOrg));
+        when(administrativeUnitRepository.findById(provinceId)).thenReturn(Optional.of(province));
+        when(administrativeUnitRepository.findById(communeId)).thenReturn(Optional.of(commune));
+
+        assertThatThrownBy(() -> organizationServiceImpl.updateCurrentOrganization(request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Xã/phường không thuộc tỉnh/thành phố đã chọn");
     }
 
     @Test

@@ -226,7 +226,7 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
         )}
         {canOpenOrganizationProfile && (
           <DropdownMenuItem onClick={() => navigate('/organizations/profile')}>
-            Hồ sơ tổ chức hiện tại
+            <span className="flex-1">Hồ sơ tổ chức hiện tại</span>
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

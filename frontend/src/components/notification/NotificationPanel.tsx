@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { AlertTriangle, Bell, CheckCircle2, Info, MailWarning } from 'lucide-react';
+import { AlertTriangle, Bell, CheckCircle2, Info, MailWarning, MapPinOff } from 'lucide-react';
 import type { NotificationResponse, NotificationType } from '@/types/notification';
 import { cn } from '@/lib/utils';
 
@@ -10,6 +10,9 @@ interface NotificationPanelProps {
   isMissingEmail?: boolean;
   isEmailNoticeRead?: boolean;
   onEmailNoticeClick?: () => void;
+  isMissingTerritory?: boolean;
+  isTerritoryNoticeRead?: boolean;
+  onTerritoryNoticeClick?: () => void;
 }
 
 const TYPE_ICON: Record<NotificationType, typeof Bell> = {
@@ -66,6 +69,9 @@ export const NotificationPanel = ({
   isMissingEmail = false,
   isEmailNoticeRead = false,
   onEmailNoticeClick,
+  isMissingTerritory = false,
+  isTerritoryNoticeRead = false,
+  onTerritoryNoticeClick,
 }: NotificationPanelProps) => {
   return (
     <div className="w-80 max-w-[90vw]">
@@ -105,11 +111,42 @@ export const NotificationPanel = ({
           </div>
         )}
 
+        {/* Cảnh báo thiết lập địa bàn hành chính cho HTX */}
+        {isMissingTerritory && (
+          <div className="border-b border-amber-100 bg-amber-50/75 transition-colors hover:bg-amber-100/70">
+            <button
+              type="button"
+              onClick={onTerritoryNoticeClick}
+              className="flex w-full items-start gap-3 px-3 py-3 text-left"
+            >
+              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-700">
+                <MapPinOff className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center justify-between gap-1.5">
+                  <span className="truncate text-sm font-semibold text-amber-900">
+                    Cần thiết lập địa bàn hành chính
+                  </span>
+                  {!isTerritoryNoticeRead && (
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500 animate-pulse" />
+                  )}
+                </span>
+                <span className="mt-0.5 block text-xs text-amber-800/90 leading-relaxed">
+                  Hợp tác xã chưa chọn Tỉnh/Thành phố và Xã/Phường. Vui lòng cập nhật để đồng bộ với Cán bộ ngành.
+                </span>
+                <span className="mt-1 block text-[11px] font-semibold text-amber-700 underline">
+                  Cập nhật hồ sơ tổ chức &rarr;
+                </span>
+              </span>
+            </button>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="flex justify-center py-8">
             <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-primary" />
           </div>
-        ) : items.length === 0 && !isMissingEmail ? (
+        ) : items.length === 0 && !isMissingEmail && !isMissingTerritory ? (
           <div className="px-4 py-10 text-center text-muted-foreground">
             <Bell className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
             <p className="text-sm">Chưa có thông báo nào</p>

@@ -664,24 +664,27 @@ class TerritoryLotAlertIntegrationTest {
     }
 
     // =========================================================================
-    // TC-09: Xuất Excel danh sách lô có cảnh báo
+    // TC-09: Xuất PDF danh sách lô có cảnh báo
     // =========================================================================
     @Test
-    @DisplayName("TC-09: Xuất Excel áp dụng đúng phạm vi địa bàn và bộ lọc, không bypass")
-    void tc09_exportAlertLots_generatesValidExcelFile() {
+    @DisplayName("TC-09: Xuất PDF áp dụng đúng phạm vi địa bàn và bộ lọc, không bypass")
+    void tc09_exportAlertLots_generatesValidPdfFile() {
         CustomUserDetails principal = loginAs(vt05Assigned);
 
-        byte[] excelBytes = territoryLotAlertService.exportAlertLots(
+        byte[] pdfBytes = territoryLotAlertService.exportAlertLots(
                 principal, null, null, null, null, null);
 
-        assertThat(excelBytes).isNotNull();
-        assertThat(excelBytes.length).isGreaterThan(1000); // File Excel hợp lệ có dung lượng lớn hơn 1KB
+        assertThat(pdfBytes).isNotNull();
+        assertThat(pdfBytes.length).isGreaterThan(500); // File PDF hợp lệ có dung lượng lớn hơn 500 bytes
+        // Kiểm tra magic byte định dạng PDF (%PDF)
+        assertThat(new String(pdfBytes, 0, 4)).isEqualTo("%PDF");
 
-        // Người dùng chưa có địa bàn xuất file rỗng an toàn
+        // Người dùng chưa có địa bàn xuất file PDF rỗng an toàn
         CustomUserDetails unassignedPrincipal = loginAs(vt05Unassigned);
-        byte[] emptyExcelBytes = territoryLotAlertService.exportAlertLots(
+        byte[] emptyPdfBytes = territoryLotAlertService.exportAlertLots(
                 unassignedPrincipal, null, null, null, null, null);
-        assertThat(emptyExcelBytes).isNotNull();
+        assertThat(emptyPdfBytes).isNotNull();
+        assertThat(new String(emptyPdfBytes, 0, 4)).isEqualTo("%PDF");
     }
 
     // =========================================================================
@@ -714,4 +717,57 @@ class TerritoryLotAlertIntegrationTest {
                         && it.getAlertTypes().contains(LotAlertType.INSPECTION_EXPIRED)))
                 .isTrue();
     }
+
+    // =========================================================================
+    // TC-11: Dòng sự kiện chuỗi cung ứng chỉ trả về sự kiện của đúng lô và chuẩn hóa tọa độ
+    // =========================================================================
+    @Test
+    @DisplayName("TC-11: Dòng sự kiện chuỗi cung ứng chỉ lấy sự kiện của đúng lô và format vị trí Point thành 'Tọa độ: ...'")
+    void tc11_timelineEvents_isolatedPerLotAndFormatLocation() {
+        CustomUserDetails principal = loginAs(vt05Assigned);
+
+        // Tạo 1 sự kiện thu hoạch unassigned cho lotLockedLabel
+        ChainEvent ev1 = ChainEvent.builder()
+                .eventType(ChainEventType.HARVEST)
+                .recordedAt(LocalDateTime.now().minusDays(3))
+                .recordedBy(vt05Assigned)
+                .eventData("{\"productionLotId\":\"" + lotLockedLabel.getId() + "\",\"notes\":\"Thu hoạch của lô test\"}")
+                .location(new org.locationtech.jts.geom.GeometryFactory().createPoint(
+                        new org.locationtech.jts.geom.Coordinate(105.8865152, 21.5482368)))
+                .isCorrection(false)
+                .build();
+        chainEventRepository.save(ev1);
+
+        // Tạo 1 sự kiện thu hoạch unassigned cho 1 lô khác
+        ChainEvent evOther = ChainEvent.builder()
+                .eventType(ChainEventType.HARVEST)
+                .recordedAt(LocalDateTime.now().minusDays(2))
+                .recordedBy(vt05Assigned)
+                .eventData("{\"productionLotId\":\"" + lotRecall1.getId() + "\",\"notes\":\"Thu hoạch của lô khác\"}")
+                .location(new org.locationtech.jts.geom.GeometryFactory().createPoint(
+                        new org.locationtech.jts.geom.Coordinate(106.12345, 10.54321)))
+                .isCorrection(false)
+                .build();
+        chainEventRepository.save(evOther);
+
+        AlertLotDetailResponse detail = territoryLotAlertService.getAlertLotDetail(
+                principal, lotLockedLabel.getId());
+
+        assertThat(detail.getTimelineEvents()).isNotEmpty();
+
+        // Khẳng định có ev1 và không có evOther
+        List<UUID> eventIds = detail.getTimelineEvents().stream()
+                .map(vn.nguongocso.report.dto.response.ReadonlyChainEventItem::getEventId)
+                .toList();
+        assertThat(eventIds).contains(ev1.getId());
+        assertThat(eventIds).doesNotContain(evOther.getId());
+
+        // Khẳng định định dạng vị trí: "Tọa độ: 105.8865152, 21.5482368"
+        var itemOpt = detail.getTimelineEvents().stream()
+                .filter(it -> ev1.getId().equals(it.getEventId()))
+                .findFirst();
+        assertThat(itemOpt).isPresent();
+        assertThat(itemOpt.get().getLocation()).isEqualTo("Tọa độ: 105.8865152, 21.5482368");
+    }
 }
+

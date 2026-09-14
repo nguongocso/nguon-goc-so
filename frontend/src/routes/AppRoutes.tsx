@@ -111,6 +111,8 @@ import FailedEventLogsPage from "@/pages/report/FailedEventLogsPage";
 import CropAreaAnalysisPage from "@/pages/report/CropAreaAnalysisPage";
 import IndustryReportPage from "@/pages/report/IndustryReportPage";
 import SeasonYieldComparisonPage from "@/pages/report/SeasonYieldComparisonPage";
+import TerritoryAlertLotListPage from "@/pages/report/TerritoryAlertLotListPage";
+import TerritoryAlertLotDetailPage from "@/pages/report/TerritoryAlertLotDetailPage";
 
 // ===== Alerts =====
 import ScanAnomalyAlertPage from "@/pages/scan-anomaly-alert/ScanAnomalyAlertPage";
@@ -563,7 +565,7 @@ const AppRoutes = () => (
                 path="production-lots/:id"
                 element={
                     <RoleRoute
-                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                        allowedRoles={["VT-01", "VT-02", "VT-03", "VT-05"]}
                     >
                         <ProductionLotDetailPage />
                     </RoleRoute>
@@ -1278,6 +1280,25 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={["VT-05"]}>
                         <IndustryReportPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* NCL-07-CN-006: Danh sách và chi tiết lô có cảnh báo theo địa bàn cho VT-05 */}
+            <Route
+                path="reports/alert-lots"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.territoryAlertLots}>
+                        <TerritoryAlertLotListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="reports/alert-lots/:lotId"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.territoryAlertLots}>
+                        <TerritoryAlertLotDetailPage />
                     </RoleRoute>
                 }
             />

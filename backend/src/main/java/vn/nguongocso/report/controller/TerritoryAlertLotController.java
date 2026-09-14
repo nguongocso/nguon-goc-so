@@ -26,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.common.PageResponse;
+import vn.nguongocso.organization.service.AreaScopeResult;
 import vn.nguongocso.organization.service.AreaScopeService;
 import vn.nguongocso.report.dto.response.AlertLotDetailResponse;
 import vn.nguongocso.report.dto.response.AlertLotSummaryResponse;
@@ -41,12 +42,13 @@ import vn.nguongocso.report.service.TerritoryLotAlertService;
 public class TerritoryAlertLotController {
 
     private final TerritoryLotAlertService territoryLotAlertService;
+    private final AreaScopeService areaScopeService;
 
     /**
      * Lấy danh sách lô có cảnh báo theo địa bàn phụ trách.
      */
     @GetMapping
-    @PreAuthorize("hasRole('VT-05') or hasRole('VT-01')")
+    @PreAuthorize("hasRole('VT-05')")
     public ResponseEntity<ApiResult<PageResponse<AlertLotSummaryResponse>>> getAlertLots(
             @RequestParam(required = false) String alertType,
             @RequestParam(required = false) UUID organizationId,
@@ -67,7 +69,12 @@ public class TerritoryAlertLotController {
         PageResponse<AlertLotSummaryResponse> result = territoryLotAlertService.getAlertLots(
                 currentUser, parsedAlertType, organizationId, fromDate, toDate, unitIds, pageable);
 
-        String message = (result.getTotalElements() == 0 && result.getItems().isEmpty())
+        // Chỉ gán thông báo chưa phân công địa bàn khi người dùng thực sự chưa được gán địa bàn phụ trách nào.
+        // Tuyệt đối không gán khi người dùng đã có địa bàn nhưng danh sách lọc rỗng.
+        AreaScopeResult scope = areaScopeService != null
+                ? areaScopeService.resolveOrganizationsForReports(currentUser, null)
+                : null;
+        String message = (scope != null && scope.isEmptyScope())
                 ? AreaScopeService.UNASSIGNED_MESSAGE
                 : "Truy vấn danh sách lô có cảnh báo thành công.";
 
@@ -85,7 +92,7 @@ public class TerritoryAlertLotController {
      * Lấy chi tiết một lô có cảnh báo (Read-only).
      */
     @GetMapping("/{lotId}")
-    @PreAuthorize("hasRole('VT-05') or hasRole('VT-01')")
+    @PreAuthorize("hasRole('VT-05')")
     public ResponseEntity<ApiResult<AlertLotDetailResponse>> getAlertLotDetail(
             @PathVariable UUID lotId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
@@ -103,10 +110,10 @@ public class TerritoryAlertLotController {
     }
 
     /**
-     * Xuất file Excel danh sách lô có cảnh báo theo địa bàn.
+     * Xuất file PDF danh sách lô có cảnh báo theo địa bàn.
      */
     @GetMapping("/export")
-    @PreAuthorize("hasRole('VT-05') or hasRole('VT-01')")
+    @PreAuthorize("hasRole('VT-05')")
     public ResponseEntity<byte[]> exportAlertLots(
             @RequestParam(required = false) String alertType,
             @RequestParam(required = false) UUID organizationId,
@@ -117,11 +124,11 @@ public class TerritoryAlertLotController {
 
         LotAlertType parsedAlertType = LotAlertType.fromString(alertType);
 
-        byte[] excelBytes = territoryLotAlertService.exportAlertLots(
+        byte[] pdfBytes = territoryLotAlertService.exportAlertLots(
                 currentUser, parsedAlertType, organizationId, fromDate, toDate, unitIds);
 
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        String fileName = "Danh_sach_lo_canh_bao_" + timestamp + ".xlsx";
+        String fileName = "Danh_sach_lo_canh_bao_" + timestamp + ".pdf";
 
         ContentDisposition disposition = ContentDisposition.attachment()
                 .filename(fileName, StandardCharsets.UTF_8)
@@ -129,7 +136,7 @@ public class TerritoryAlertLotController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
-                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-                .body(excelBytes);
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
     }
 }

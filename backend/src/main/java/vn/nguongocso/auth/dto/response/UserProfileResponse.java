@@ -44,6 +44,10 @@ public class UserProfileResponse {
 
     private OrganizationType organizationType;
 
+    private UUID organizationProvinceId;
+
+    private UUID organizationCommuneId;
+
     private List<String> permissions;
 
     private LocalDateTime createdAt;

@@ -32,9 +32,12 @@ import vn.nguongocso.organization.dto.response.OrganizationProfileResponse;
 import vn.nguongocso.organization.dto.response.OrganizationResponse;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.entity.OrganizationUser;
+import vn.nguongocso.organization.entity.AdministrativeUnit;
+import vn.nguongocso.organization.enums.AdministrativeUnitLevel;
 import vn.nguongocso.organization.enums.OrganizationStatus;
 import vn.nguongocso.organization.enums.OrganizationType;
 import vn.nguongocso.organization.enums.OrganizationUserStatus;
+import vn.nguongocso.organization.repository.AdministrativeUnitRepository;
 import vn.nguongocso.organization.repository.OrganizationRepository;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.organization.service.OrganizationService;
@@ -64,6 +67,7 @@ public class OrganizationServiceImpl
 
         private final PasswordEncoder passwordEncoder;
         private final ApplicationEventPublisher eventPublisher;
+        private final AdministrativeUnitRepository administrativeUnitRepository;
 
         public OrganizationServiceImpl(
                         OrganizationRepository organizationRepository,
@@ -71,7 +75,8 @@ public class OrganizationServiceImpl
                         RoleRepository roleRepository,
                         OrganizationUserRepository organizationUserRepository,
                         PasswordEncoder passwordEncoder,
-                        ApplicationEventPublisher eventPublisher) {
+                        ApplicationEventPublisher eventPublisher,
+                        AdministrativeUnitRepository administrativeUnitRepository) {
                 this.organizationRepository = organizationRepository;
 
                 this.userRepository = userRepository;
@@ -82,6 +87,7 @@ public class OrganizationServiceImpl
 
                 this.passwordEncoder = passwordEncoder;
                 this.eventPublisher = eventPublisher;
+                this.administrativeUnitRepository = administrativeUnitRepository;
         }
 
         /**
@@ -493,6 +499,8 @@ public class OrganizationServiceImpl
                 organization.setAddress(
                                 request.getAddress());
 
+                applyDivisions(organization, request.getProvinceId(), request.getCommuneId());
+
                 organization.setPhone(
                                 request.getPhone());
 
@@ -549,6 +557,8 @@ public class OrganizationServiceImpl
                 organization.setAddress(
                                 request.getAddress());
 
+                applyDivisions(organization, request.getProvinceId(), request.getCommuneId());
+
                 organization.setPhone(
                                 request.getPhone());
 
@@ -566,6 +576,39 @@ public class OrganizationServiceImpl
         }
 
         /**
+         * Áp dụng đơn vị hành chính (Tỉnh/Xã) cho tổ chức và kiểm tra tính hợp lệ.
+         */
+        private void applyDivisions(Organization organization, UUID provinceId, UUID communeId) {
+                if (provinceId != null) {
+                        AdministrativeUnit province = administrativeUnitRepository.findById(provinceId)
+                                        .filter(unit -> unit.isActive() && unit.getLevel() == AdministrativeUnitLevel.PROVINCE)
+                                        .orElseThrow(() -> new BusinessException("Tỉnh/thành phố không nằm trong danh mục hành chính hoặc không hợp lệ"));
+                        organization.setProvince(province);
+                } else {
+                        organization.setProvince(null);
+                }
+
+                if (communeId != null) {
+                        if (organization.getProvince() == null) {
+                                throw new BusinessException("Vui lòng chọn Tỉnh/thành phố trước khi chọn Xã/phường");
+                        }
+                        AdministrativeUnit commune = administrativeUnitRepository.findById(communeId)
+                                        .filter(unit -> unit.isActive() && unit.getLevel() == AdministrativeUnitLevel.COMMUNE)
+                                        .orElseThrow(() -> new BusinessException("Xã/phường không nằm trong danh mục hành chính hoặc không hợp lệ"));
+
+                        UUID parentProvinceId = commune.getProvince() != null ? commune.getProvince().getId()
+                                        : (commune.getParent() != null ? commune.getParent().getId() : null);
+
+                        if (parentProvinceId == null || !parentProvinceId.equals(organization.getProvince().getId())) {
+                                throw new BusinessException("Xã/phường không thuộc tỉnh/thành phố đã chọn");
+                        }
+                        organization.setCommune(commune);
+                } else {
+                        organization.setCommune(null);
+                }
+        }
+
+        /**
          * Chuyển entity Organization sang OrganizationProfileResponse.
          *
          * @param organization entity tổ chức
@@ -573,6 +616,11 @@ public class OrganizationServiceImpl
          */
         private OrganizationProfileResponse toProfileResponse(
                         Organization organization) {
+                UUID provinceId = organization.getProvince() != null ? organization.getProvince().getId() : null;
+                String provinceName = organization.getProvince() != null ? organization.getProvince().getName() : null;
+                UUID communeId = organization.getCommune() != null ? organization.getCommune().getId() : null;
+                String communeName = organization.getCommune() != null ? organization.getCommune().getName() : null;
+
                 return OrganizationProfileResponse
                                 .builder()
                                 .organizationId(
@@ -588,6 +636,10 @@ public class OrganizationServiceImpl
                                                 organization.getStatus())
                                 .address(
                                                 organization.getAddress())
+                                .provinceId(provinceId)
+                                .provinceName(provinceName)
+                                .communeId(communeId)
+                                .communeName(communeName)
                                 .phone(
                                                 organization.getPhone())
                                 .email(

@@ -1,5 +1,6 @@
 package vn.nguongocso.report.service.impl;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -8,12 +9,16 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.locationtech.jts.geom.Point;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -30,13 +35,18 @@ import vn.nguongocso.alert.enums.AlertType;
 import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.alert.repository.AlertRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.certification.entity.InspectionCriterion;
+import vn.nguongocso.certification.entity.InspectionCriterionResult;
 import vn.nguongocso.certification.entity.InspectionRequest;
 import vn.nguongocso.certification.enums.InspectionRequestStatus;
+import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.event.entity.ChainEvent;
+import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
+import vn.nguongocso.farm.entity.FarmArea;
 import vn.nguongocso.farm.entity.ProductFeedback;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductFeedbackSeverity;
@@ -47,6 +57,7 @@ import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.service.AreaScopeResult;
 import vn.nguongocso.organization.service.AreaScopeService;
+import vn.nguongocso.publicapi.service.ReverseGeocodingService;
 import vn.nguongocso.recall.entity.RecallRequest;
 import vn.nguongocso.recall.enums.RecallRequestStatus;
 import vn.nguongocso.recall.repository.RecallRequestRepository;
@@ -59,6 +70,7 @@ import vn.nguongocso.report.dto.response.LotAlertEvidenceDetail;
 import vn.nguongocso.report.dto.response.ReadonlyChainEventItem;
 import vn.nguongocso.report.enums.LotAlertType;
 import vn.nguongocso.report.excel.TerritoryAlertLotExcelGenerator;
+import vn.nguongocso.report.pdf.TerritoryAlertLotPdfGenerator;
 import vn.nguongocso.report.service.TerritoryLotAlertService;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
@@ -82,12 +94,17 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
     private final TraceCodeRepository traceCodeRepository;
     private final RecallRequestRepository recallRequestRepository;
     private final InspectionRequestRepository inspectionRequestRepository;
+    private final InspectionCriterionResultRepository inspectionCriterionResultRepository;
     private final ChainEventRepository chainEventRepository;
     private final ProductFeedbackRepository productFeedbackRepository;
     private final AlertRepository alertRepository;
     private final TerritoryAlertLotExcelGenerator excelGenerator;
+    private final TerritoryAlertLotPdfGenerator pdfGenerator;
     private final ApplicationEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
+
+    @Autowired(required = false)
+    private ReverseGeocodingService reverseGeocodingService;
 
     @Override
     public PageResponse<AlertLotSummaryResponse> getAlertLots(
@@ -201,10 +218,10 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
                     .thenComparing(AlertLotSummaryResponse::getLotCode, Comparator.nullsLast(Comparator.naturalOrder())));
         }
 
-        // 2. Tạo file Excel qua generator
+        // 2. Tạo file PDF qua generator
         LocalDate fromLocalDate = fromDate != null ? fromDate.toLocalDate() : null;
         LocalDate toLocalDate = toDate != null ? toDate.toLocalDate() : null;
-        byte[] excelBytes = excelGenerator.generate(exportLots, currentUser.getFullName(), fromLocalDate, toLocalDate);
+        byte[] pdfBytes = pdfGenerator.generate(exportLots, currentUser.getFullName(), fromLocalDate, toLocalDate);
 
         // 3. Ghi nhận nhật ký hoạt động ActivityLog
         try {
@@ -214,7 +231,7 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
                     .fullName(currentUser.getFullName())
                     .organizationId(currentUser.getOrganizationId())
                     .action("EXPORT_ALERT_LOTS")
-                    .description("Xuất danh sách lô có cảnh báo theo địa bàn phụ trách. Số lượng lô: " + exportLots.size())
+                    .description("Xuất danh sách lô có cảnh báo theo địa bàn phụ trách dưới dạng PDF. Số lượng lô: " + exportLots.size())
                     .entityType("REPORT")
                     .entityId("TERRITORY_ALERT_LOTS")
                     .timestamp(LocalDateTime.now())
@@ -223,7 +240,7 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
             log.warn("Không thể ghi nhận ActivityLog khi xuất báo cáo: {}", e.getMessage());
         }
 
-        return excelBytes;
+        return pdfBytes;
     }
 
     /**
@@ -549,6 +566,30 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
         return null;
     }
 
+    /**
+     * Trích xuất và giải mã địa chỉ vùng trồng từ tọa độ Point (WGS84).
+     * Sử dụng ReverseGeocodingService (LocationIQ) để giải mã tọa độ thành địa chỉ hành chính có nghĩa.
+     * Fallback hiển thị chuỗi tọa độ nếu không thể phân giải.
+     */
+    private String resolveFarmAreaAddress(FarmArea farmArea) {
+        if (farmArea == null || farmArea.getLocation() == null) {
+            return null;
+        }
+        double lat = farmArea.getLocation().getY();
+        double lon = farmArea.getLocation().getX();
+        try {
+            if (reverseGeocodingService != null) {
+                String geocoded = reverseGeocodingService.reverseGeocode(lat, lon);
+                if (geocoded != null && !geocoded.isBlank()) {
+                    return geocoded;
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Không thể giải mã địa chỉ từ tọa độ vùng trồng: lat={}, lon={}", lat, lon, e);
+        }
+        return String.format(Locale.US, "Tọa độ: %.5f, %.5f", lat, lon);
+    }
+
     private AlertLotInfoItem buildLotInfoItem(ProductionLot lot) {
         return AlertLotInfoItem.builder()
                 .lotId(lot.getId())
@@ -562,7 +603,7 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
                 .harvestDate(lot.getHarvestDate())
                 .productCategoryName(lot.getProductCategory() != null ? lot.getProductCategory().getName() : null)
                 .farmAreaName(lot.getFarmArea() != null ? lot.getFarmArea().getName() : null)
-                .farmAreaAddress(lot.getOrganization() != null ? lot.getOrganization().getAddress() : null)
+                .farmAreaAddress(resolveFarmAreaAddress(lot.getFarmArea()))
                 .createdAt(lot.getCreatedAt())
                 .build();
     }
@@ -589,7 +630,10 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
         // 1. RECALLING
         boolean isRecalled = lot.getStatus() == ProductionLotStatus.RECALLED;
         List<Shipment> shipments = shipmentRepository.findByProductionLotId(lotId);
-        boolean hasRecalledShipment = shipments.stream().anyMatch(s -> s.getStatus() == ShipmentStatus.RECALLED);
+        List<Shipment> recalledShipments = shipments.stream()
+                .filter(s -> s.getStatus() == ShipmentStatus.RECALLED || s.getStatus() == ShipmentStatus.RECALLING)
+                .toList();
+        boolean hasRecalledShipment = !recalledShipments.isEmpty();
         List<RecallRequest> recalls = recallRequestRepository.findByProductionLotIdInAndStatusIn(
                 List.of(lotId), List.of(RecallRequestStatus.PENDING, RecallRequestStatus.APPROVED));
 
@@ -597,6 +641,31 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
             Map<String, Object> data = new HashMap<>();
             data.put("lotStatus", lot.getStatus() != null ? lot.getStatus().name() : null);
             data.put("hasRecalledShipment", hasRecalledShipment);
+            data.put("affectedStage", "Khâu xuất kho & Lưu thông thương mại");
+            data.put("traceRule", "Truy vết xuôi (Downstream): Cảnh báo phát sinh từ lô hàng xuất kho phái sinh hoặc quyết định thu hồi toàn lô");
+
+            if (isRecalled) {
+                data.put("recallScope", "Toàn bộ lô sản xuất (" + (lot.getName() != null ? lot.getName() : lot.getId()) + ")");
+            } else if (hasRecalledShipment) {
+                data.put("recallScope", recalledShipments.size() + " lô hàng xuất kho");
+            }
+
+            if (!recalledShipments.isEmpty()) {
+                List<Map<String, Object>> recalledShipmentItems = recalledShipments.stream()
+                        .map(s -> {
+                            Map<String, Object> item = new HashMap<>();
+                            item.put("id", s.getId());
+                            item.put("name", s.getName());
+                            item.put("quantity", s.getTotalQuantity());
+                            item.put("status", s.getStatus() != null ? s.getStatus().name() : null);
+                            item.put("packagingInfo", s.getPackagingInfo());
+                            return item;
+                        })
+                        .toList();
+                data.put("recalledShipmentList", recalledShipmentItems);
+                data.put("recalledShipmentNames", recalledShipments.stream().map(Shipment::getName).toList());
+            }
+
             if (!recalls.isEmpty()) {
                 RecallRequest latest = recalls.get(0);
                 data.put("recallRequestId", latest.getId());
@@ -604,6 +673,9 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
                 data.put("recallStatus", latest.getStatus().name());
                 data.put("requestedAt", latest.getRequestedAt());
                 data.put("approvedAt", latest.getApprovedAt());
+                if (latest.getShipment() != null) {
+                    data.put("targetShipmentName", latest.getShipment().getName());
+                }
             }
 
             LocalDateTime trigAt = !recalls.isEmpty()
@@ -626,8 +698,10 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
         if (!lockedCodes.isEmpty()) {
             Map<String, Object> data = new HashMap<>();
             data.put("lockedCount", lockedCodes.size());
+            data.put("affectedStage", "Khâu kích hoạt & Lưu thông tem truy xuất");
+            data.put("traceRule", "Truy vết xuôi (Downstream): Khóa tem nghi vấn giả mạo hoặc bất thường lượt quét");
             List<String> sampleCodes = lockedCodes.stream()
-                    .limit(5)
+                    .limit(10)
                     .map(TraceCode::getCodeValue)
                     .toList();
             data.put("sampleCodes", sampleCodes);
@@ -658,6 +732,47 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
             data.put("inspectionUnit", first.getInspectionUnit());
             data.put("sampleSentDate", first.getSampleSentDate());
             data.put("scopeWarningDetails", first.getScopeWarningDetails());
+            data.put("affectedStage", "Khâu kiểm nghiệm chất lượng & An toàn thực phẩm");
+            data.put("traceRule", "Truy vết tại khâu kiểm định chất lượng: Đối chiếu kết quả phân tích phòng Lab với ngưỡng tiêu chuẩn");
+
+            List<InspectionCriterionResult> criterionResults = inspectionCriterionResultRepository
+                    .findByInspectionCriterion_InspectionRequest_Id(first.getId());
+
+            int totalCriteria = first.getCriteria() != null && !first.getCriteria().isEmpty()
+                    ? first.getCriteria().size()
+                    : criterionResults.size();
+
+            List<InspectionCriterionResult> failedResults = criterionResults.stream()
+                    .filter(r -> Boolean.FALSE.equals(r.getPassed()))
+                    .toList();
+
+            int failedCount = failedResults.size();
+            int passedCount = (int) criterionResults.stream()
+                    .filter(r -> Boolean.TRUE.equals(r.getPassed()))
+                    .count();
+
+            List<String> failedCriterionNames = failedResults.stream()
+                    .map(r -> r.getInspectionCriterion() != null ? r.getInspectionCriterion().getCriterionName() : "Chỉ tiêu không đạt")
+                    .distinct()
+                    .toList();
+
+            if (failedCriterionNames.isEmpty() && first.getCriteria() != null && !first.getCriteria().isEmpty()) {
+                failedCriterionNames = first.getCriteria().stream()
+                        .map(InspectionCriterion::getCriterionName)
+                        .distinct()
+                        .toList();
+                if (failedCount == 0) {
+                    failedCount = failedCriterionNames.size();
+                }
+            }
+
+            int finalTotal = totalCriteria > 0 ? totalCriteria : (failedCount > 0 ? failedCount : 1);
+            int finalFailed = failedCount > 0 ? failedCount : 1;
+            data.put("failedRatio", finalFailed + "/" + finalTotal + " chỉ tiêu không đạt");
+            data.put("failedCriteriaCount", finalFailed);
+            data.put("totalCriteriaCount", finalTotal);
+            data.put("passedCriteriaCount", passedCount);
+            data.put("failedCriteriaNames", failedCriterionNames);
 
             details.add(LotAlertEvidenceDetail.builder()
                     .alertType(LotAlertType.INSPECTION_FAILED)
@@ -671,13 +786,17 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
 
         // 4. QUARANTINE_OVERWRITTEN
         List<ChainEvent> harvestEvents = chainEventRepository.findHarvestEventsByLotIds(List.of(lotId));
-        Optional<ChainEvent> earlyEventOpt = harvestEvents.stream().filter(this::isEarlyHarvestEvent).findFirst();
+        Optional<ChainEvent> earlyEventOpt = harvestEvents.stream()
+                .filter(ce -> lotId.equals(extractLotIdFromEvent(ce)) && isEarlyHarvestEvent(ce))
+                .findFirst();
         if (earlyEventOpt.isPresent()) {
             ChainEvent ev = earlyEventOpt.get();
             Map<String, Object> data = new HashMap<>();
             data.put("eventId", ev.getId());
             data.put("recordedAt", ev.getRecordedAt());
             data.put("rawEventData", ev.getEventData());
+            data.put("affectedStage", "Khâu canh tác & Thu hoạch nông sản");
+            data.put("traceRule", "Truy vết ngược (Upstream): Đối chiếu thời gian cách ly thuốc BVTV với nhật ký thu hoạch thực tế");
 
             details.add(LotAlertEvidenceDetail.builder()
                     .alertType(LotAlertType.QUARANTINE_OVERWRITTEN)
@@ -702,6 +821,8 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
             data.put("content", fb.getContent());
             data.put("feedbackStatus", fb.getStatus().name());
             data.put("openFeedbackCount", seriousFeedbacks.size());
+            data.put("affectedStage", "Khâu lưu thông & Phản ánh thị trường");
+            data.put("traceRule", "Truy vết hai chiều (Bi-directional): Khoanh vùng lô sản xuất từ phản ánh của người tiêu dùng");
 
             details.add(LotAlertEvidenceDetail.builder()
                     .alertType(LotAlertType.SERIOUS_FEEDBACK_OPEN)
@@ -722,6 +843,8 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
             data.put("alertId", al.getId());
             data.put("message", al.getMessage());
             data.put("createdAt", al.getCreatedAt());
+            data.put("affectedStage", "Khâu quản lý hiệu lực chứng nhận");
+            data.put("traceRule", "Truy vết thời hạn hiệu lực của phiếu kết quả kiểm nghiệm");
 
             details.add(LotAlertEvidenceDetail.builder()
                     .alertType(LotAlertType.INSPECTION_EXPIRED)
@@ -740,36 +863,71 @@ public class TerritoryLotAlertServiceImpl implements TerritoryLotAlertService {
         List<Shipment> shipments = shipmentRepository.findByProductionLotId(lot.getId());
         List<UUID> shipmentIds = shipments.stream().map(Shipment::getId).toList();
 
-        List<ChainEvent> events;
+        List<ChainEvent> shipmentEvents;
         if (!shipmentIds.isEmpty()) {
-            events = chainEventRepository.findByShipmentIdInOrderByRecordedAtAsc(shipmentIds);
+            shipmentEvents = chainEventRepository.findByShipmentIdInOrderByRecordedAtAsc(shipmentIds);
         } else {
-            events = Collections.emptyList();
+            shipmentEvents = Collections.emptyList();
         }
 
-        // Bổ sung các event độc lập nếu có (như harvest cũ gắn với lot)
-        List<ChainEvent> harvestEvents = chainEventRepository.findHarvestEventsByLotIds(List.of(lot.getId()));
-        Set<UUID> existingIds = events.stream().map(ChainEvent::getId).collect(Collectors.toSet());
-        List<ChainEvent> combined = new ArrayList<>(events);
-        for (ChainEvent he : harvestEvents) {
-            if (!existingIds.contains(he.getId())) {
-                combined.add(he);
+        // Bổ sung các sự kiện độc lập của chính lô này (như Thu hoạch, Sơ chế, Đóng gói chưa gắn shipment)
+        List<ChainEvent> unassignedEvents = chainEventRepository.findByShipmentIsNullAndEventTypeIn(
+                List.of(ChainEventType.HARVEST, ChainEventType.PREPROCESSING, ChainEventType.PACKAGING));
+        List<ChainEvent> lotUnassignedEvents = unassignedEvents.stream()
+                .filter(e -> lot.getId().equals(extractLotIdFromEvent(e)))
+                .toList();
+
+        Set<UUID> existingIds = new HashSet<>();
+        List<ChainEvent> combined = new ArrayList<>();
+        for (ChainEvent se : shipmentEvents) {
+            if (existingIds.add(se.getId())) {
+                combined.add(se);
+            }
+        }
+        for (ChainEvent ue : lotUnassignedEvents) {
+            if (existingIds.add(ue.getId())) {
+                combined.add(ue);
             }
         }
         combined.sort(Comparator.comparing(ChainEvent::getRecordedAt, Comparator.nullsLast(Comparator.naturalOrder())));
 
         return combined.stream()
-                .map(e -> ReadonlyChainEventItem.builder()
-                        .eventId(e.getId())
-                        .eventType(e.getEventType() != null ? e.getEventType().name() : null)
-                        .eventTypeName(getEventTypeName(e))
-                        .recordedAt(e.getRecordedAt())
-                        .recordedByName(e.getRecordedBy() != null ? e.getRecordedBy().getFullName() : null)
-                        .location(e.getLocation() != null ? e.getLocation().toText() : null)
-                        .earlyHarvest(isEarlyHarvestEvent(e))
-                        .description(extractEventDescription(e))
-                        .build())
+                .map(e -> {
+                    boolean isEarly = isEarlyHarvestEvent(e);
+                    boolean isRecalledShipmentEvent = e.getShipment() != null &&
+                            (e.getShipment().getStatus() == ShipmentStatus.RECALLED || e.getShipment().getStatus() == ShipmentStatus.RECALLING);
+                    boolean hasAlert = isEarly || isRecalledShipmentEvent;
+                    String alertWarning = null;
+                    if (isEarly) {
+                        alertWarning = "Thu hoạch sớm trước thời gian cách ly thuốc BVTV";
+                    } else if (isRecalledShipmentEvent) {
+                        alertWarning = "Thuộc lô hàng '" + e.getShipment().getName() + "' đang bị thu hồi";
+                    }
+
+                    return ReadonlyChainEventItem.builder()
+                            .eventId(e.getId())
+                            .eventType(e.getEventType() != null ? e.getEventType().name() : null)
+                            .eventTypeName(getEventTypeName(e))
+                            .recordedAt(e.getRecordedAt())
+                            .recordedByName(e.getRecordedBy() != null ? e.getRecordedBy().getFullName() : null)
+                            .location(formatEventLocation(e.getLocation()))
+                            .earlyHarvest(isEarly)
+                            .hasAlert(hasAlert)
+                            .alertWarning(alertWarning)
+                            .shipmentName(e.getShipment() != null ? e.getShipment().getName() : null)
+                            .description(extractEventDescription(e))
+                            .build();
+                })
                 .toList();
+    }
+
+    private String formatEventLocation(Point point) {
+        if (point == null) {
+            return null;
+        }
+        return String.format(Locale.US, "Tọa độ: %s, %s",
+                BigDecimal.valueOf(point.getX()).stripTrailingZeros().toPlainString(),
+                BigDecimal.valueOf(point.getY()).stripTrailingZeros().toPlainString());
     }
 
     private String getEventTypeName(ChainEvent e) {

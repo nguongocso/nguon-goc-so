@@ -30,6 +30,7 @@ import vn.nguongocso.auth.service.CustomUserDetailsService;
 import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.config.JwtTokenProvider;
 import vn.nguongocso.config.SecurityConfig;
+import vn.nguongocso.organization.service.AreaScopeService;
 import vn.nguongocso.report.dto.response.AlertBadgeSummary;
 import vn.nguongocso.report.dto.response.AlertLotDetailResponse;
 import vn.nguongocso.report.dto.response.AlertLotInfoItem;
@@ -51,6 +52,9 @@ class TerritoryAlertLotControllerTest {
 
     @MockitoBean
     private TerritoryLotAlertService territoryLotAlertService;
+
+    @MockitoBean
+    private AreaScopeService areaScopeService;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
@@ -103,26 +107,11 @@ class TerritoryAlertLotControllerTest {
     }
 
     @Test
-    @DisplayName("Quản trị hệ thống (VT-01) truy vấn danh sách thành công (200 OK)")
+    @DisplayName("Quản trị hệ thống (VT-01) không có quyền truy cập chức năng này (403 Forbidden)")
     @WithMockUser(roles = "VT-01")
-    void getAlertLots_success_asAdmin() throws Exception {
-        PageResponse<AlertLotSummaryResponse> emptyPage = PageResponse.<AlertLotSummaryResponse>builder()
-                .items(Collections.emptyList())
-                .page(0)
-                .size(10)
-                .totalElements(0)
-                .totalPages(0)
-                .first(true)
-                .last(true)
-                .build();
-
-        when(territoryLotAlertService.getAlertLots(any(), any(), any(), any(), any(), any(), any()))
-                .thenReturn(emptyPage);
-
+    void getAlertLots_forbidden_asAdmin() throws Exception {
         mockMvc.perform(get("/api/v1/reports/alert-lots").with(csrf()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.totalElements").value(0));
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -164,17 +153,18 @@ class TerritoryAlertLotControllerTest {
     }
 
     @Test
-    @DisplayName("Xuất file Excel thành công với header attachment (200 OK)")
+    @DisplayName("Xuất file PDF thành công với header attachment (200 OK)")
     @WithMockUser(roles = "VT-05")
     void exportAlertLots_success() throws Exception {
-        byte[] fakeExcel = new byte[]{1, 2, 3, 4, 5};
+        byte[] fakePdf = new byte[]{0x25, 0x50, 0x44, 0x46, 0x0A}; // %PDF-
         when(territoryLotAlertService.exportAlertLots(any(), any(), any(), any(), any(), any()))
-                .thenReturn(fakeExcel);
+                .thenReturn(fakePdf);
 
         mockMvc.perform(get("/api/v1/reports/alert-lots/export").with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, org.hamcrest.Matchers.containsString("attachment; filename=")))
-                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, org.hamcrest.Matchers.containsString(".pdf")))
+                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, org.hamcrest.Matchers.containsString("application/pdf")));
     }
 
     @Test
