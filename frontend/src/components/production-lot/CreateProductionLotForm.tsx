@@ -20,6 +20,7 @@ import { CheckCircle2, PackageOpen, Sprout, Copy, Lock, Plus } from "lucide-reac
 import { useState, type FormEvent, type ReactNode, useEffect } from "react";
 import { getLocalDateString } from "@/utils/dateTime";
 import { selectAllOnFocus, preventMouseUpCollapse } from "@/utils/inputUtils";
+import { PRODUCTION_LOT_STATUS_LABELS } from "./ProductionLotStatusBadge";
 
 interface CreateProductionLotFormProps {
   farmAreas: FarmAreaOption[];
@@ -241,7 +242,7 @@ const CreateProductionLotForm = ({
                   {previousLots.map((lot) => (
                     <option key={lot.id} value={lot.id}>
                       {lot.name} · {lot.farmAreaName ?? "Chưa có vùng trồng"} ·{" "}
-                      {lot.status}
+                      {PRODUCTION_LOT_STATUS_LABELS[lot.status] ?? lot.status}
                     </option>
                   ))}
                 </select>

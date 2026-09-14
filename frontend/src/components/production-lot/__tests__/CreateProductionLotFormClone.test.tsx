@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CreateProductionLotForm from '../CreateProductionLotForm';
-import type { CreateProductionLotRequest } from '@/types/productionLot';
+import type { CreateProductionLotRequest, ProductionLot } from '@/types/productionLot';
 
 const farmAreas = [{ id: 'area-1', name: 'Vùng trồng số 1' }];
 const productCategories = [{ id: 'cat-1', name: 'Lúa' }];
@@ -104,4 +104,94 @@ describe('CreateProductionLotForm chế độ clone (NCL-02-CN-007)', () => {
       name: 'Lô lúa vụ đông xuân 2026',
     });
   });
+
+  it('hiển thị trạng thái tiếng Việt của lô vụ trước trong dropdown chọn sao chép', () => {
+    const mockPreviousLots: ProductionLot[] = [
+      {
+        id: 'lot-prev-1',
+        name: 'Lô xoài Cát Chu',
+        organizationName: 'HTX Hà Nội',
+        farmAreaId: 'area-1',
+        farmAreaName: 'Vùng trồng xoài Hà Nội',
+        productCategoryId: 'cat-1',
+        productCategoryName: 'Xoài',
+        expectedQuantity: 500,
+        expectedQuantityUnit: 'kg',
+        actualQuantity: null,
+        plantingDate: '2025-01-01',
+        harvestDate: '2025-06-01',
+        status: 'APPROVED',
+        approvalNotes: null,
+        createdByName: 'Admin',
+        approvedByName: 'Manager',
+        cancellationReason: null,
+        cancellationNote: null,
+        cancelledByName: null,
+        cancelledAt: null,
+        disposalReason: null,
+        handlingMeasure: null,
+        disposalNote: null,
+        disposedByName: null,
+        disposedAt: null,
+        createdAt: '2025-01-01T00:00:00Z',
+        updatedAt: '2025-01-01T00:00:00Z',
+      },
+      {
+        id: 'lot-prev-2',
+        name: 'Lô lúa vụ 1',
+        organizationName: 'HTX Hà Nội',
+        farmAreaId: null,
+        farmAreaName: null,
+        productCategoryId: 'cat-1',
+        productCategoryName: 'Lúa',
+        expectedQuantity: 200,
+        expectedQuantityUnit: 'kg',
+        actualQuantity: null,
+        plantingDate: '2025-02-01',
+        harvestDate: '2025-07-01',
+        status: 'HARVESTED',
+        approvalNotes: null,
+        createdByName: 'Admin',
+        approvedByName: 'Manager',
+        cancellationReason: null,
+        cancellationNote: null,
+        cancelledByName: null,
+        cancelledAt: null,
+        disposalReason: null,
+        handlingMeasure: null,
+        disposalNote: null,
+        disposedByName: null,
+        disposedAt: null,
+        createdAt: '2025-02-01T00:00:00Z',
+        updatedAt: '2025-02-01T00:00:00Z',
+      },
+    ];
+
+    render(
+      <CreateProductionLotForm
+        farmAreas={farmAreas}
+        productCategories={productCategories}
+        onCancel={mockOnCancel}
+        onSubmit={mockOnSubmit}
+        previousLots={mockPreviousLots}
+      />,
+    );
+
+    // Bấm nút "Sao chép từ lô vụ trước"
+    fireEvent.click(screen.getByRole('button', { name: /Sao chép từ lô vụ trước/i }));
+
+    // Kiểm tra dropdown hiển thị trạng thái tiếng Việt
+    expect(
+      screen.getByRole('option', {
+        name: 'Lô xoài Cát Chu · Vùng trồng xoài Hà Nội · Đã duyệt',
+      }),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('option', {
+        name: 'Lô lúa vụ 1 · Chưa có vùng trồng · Đã thu hoạch',
+      }),
+    ).toBeInTheDocument();
+  });
 });
+
