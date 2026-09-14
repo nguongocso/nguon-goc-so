@@ -562,7 +562,7 @@ print("Kết quả:", data)`;
                   <td className="p-3 font-semibold text-foreground">Mã lô sản xuất (GTIN)</td>
                   <td className="p-3 font-mono text-primary font-semibold">epcList / itemGtin</td>
                   <td className="p-3 font-mono text-xs">urn:epc:id:sgtin:8938501...</td>
-                  <td className="p-3 text-muted-foreground">Mã định danh thương phẩm toàn cầu theo GS1</td>
+                  <td className="p-3 text-muted-foreground">Mã định danh sản phẩm theo GS1 toàn cầu</td>
                 </tr>
                 <tr className="hover:bg-muted/30">
                   <td className="p-3 font-semibold text-foreground">Mã vùng trồng / Cơ sở</td>
