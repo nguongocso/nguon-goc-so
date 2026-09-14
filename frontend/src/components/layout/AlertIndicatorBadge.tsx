@@ -69,14 +69,14 @@ export const AlertIndicatorBadge: React.FC = () => {
       onClick={handleClick}
       title={titleText}
       aria-label={titleText}
-      className="relative text-muted-foreground hover:text-emerald-700 hover:bg-emerald-50"
+      className="relative rounded-lg border border-input bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground hover:text-emerald-700"
     >
       <ShieldAlert className={`h-5 w-5 ${unviewedCount > 0 && hasHighSeverity ? 'text-red-600' : ''}`} />
 
       {unviewedCount > 0 && (
         <span
-          className={`absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-bold text-white shadow-sm ${
-            hasHighSeverity ? 'bg-red-600 animate-pulse ring-2 ring-white' : 'bg-amber-600 ring-1 ring-white'
+          className={`absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-bold text-white shadow-sm ring-2 ring-white ${
+            hasHighSeverity ? 'bg-red-600 animate-pulse' : 'bg-amber-600'
           }`}
         >
           {unviewedCount > 99 ? '99+' : unviewedCount}

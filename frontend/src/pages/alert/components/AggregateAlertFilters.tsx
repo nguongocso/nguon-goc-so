@@ -43,6 +43,31 @@ const STATUSES = [
   { value: 'ALL', label: 'Tất cả trạng thái' },
 ];
 
+const ALERT_TYPE_LABELS: Record<string, string> = {
+  ALL: 'Tất cả nguồn cảnh báo',
+  SCAN_ANOMALY: 'Tem quét bất thường',
+  CERT_EXPIRING: 'Chứng nhận sắp hết hạn',
+  CERT_EXPIRED: 'Chứng nhận đã hết hạn',
+  INSPECTION_EXPIRING: 'Kiểm nghiệm sắp hết hiệu lực',
+  INSPECTION_EXPIRED: 'Kiểm nghiệm đã hết hiệu lực',
+  UNPROCESSED_FEEDBACK: 'Phản ánh chưa xử lý',
+  CODE_RANGE_QUOTA: 'Hạn mức dải mã sắp hết',
+  OVERDUE_MILESTONE: 'Mốc canh tác quá hạn',
+  OPEN_RECALL_CASE: 'Vụ việc thu hồi đang mở',
+};
+
+const SEVERITY_LABELS: Record<string, string> = {
+  ALL: 'Tất cả mức độ',
+  HIGH: 'Mức cao / Khẩn cấp',
+  MEDIUM: 'Mức trung bình',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  OPEN: 'Đang mở (Cần xử lý)',
+  RESOLVED: 'Đã giải quyết / Đóng',
+  ALL: 'Tất cả trạng thái',
+};
+
 export const AggregateAlertFilters: React.FC<AggregateAlertFiltersProps> = ({
   filters,
   onFilterChange,
@@ -70,7 +95,9 @@ export const AggregateAlertFilters: React.FC<AggregateAlertFiltersProps> = ({
           }
         >
           <SelectTrigger className="text-sm">
-            <SelectValue placeholder="Loại nguồn cảnh báo" />
+            <SelectValue>
+              {ALERT_TYPE_LABELS[filters.type || 'ALL'] || 'Tất cả nguồn cảnh báo'}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {ALERT_TYPES.map((t) => (
@@ -91,7 +118,9 @@ export const AggregateAlertFilters: React.FC<AggregateAlertFiltersProps> = ({
           }
         >
           <SelectTrigger className="text-sm">
-            <SelectValue placeholder="Mức khẩn cấp" />
+            <SelectValue>
+              {SEVERITY_LABELS[filters.severity || 'ALL'] || 'Tất cả mức độ'}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {SEVERITIES.map((s) => (
@@ -112,7 +141,9 @@ export const AggregateAlertFilters: React.FC<AggregateAlertFiltersProps> = ({
           }
         >
           <SelectTrigger className="text-sm">
-            <SelectValue placeholder="Trạng thái" />
+            <SelectValue>
+              {STATUS_LABELS[filters.status || 'OPEN'] || 'Đang mở (Cần xử lý)'}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {STATUSES.map((st) => (
