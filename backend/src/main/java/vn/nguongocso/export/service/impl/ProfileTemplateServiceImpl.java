@@ -431,7 +431,9 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
     }
 
     private void validateOrganizationOwnership(UUID orgId, CustomUserDetails currentUser) {
-        if (currentUser.getOrganizationId() == null || !currentUser.getOrganizationId().equals(orgId)) {
+        if (currentUser == null || currentUser.getOrganizationId() == null || !currentUser.getOrganizationId().equals(orgId)) {
+            log.warn("Từ chối thao tác mẫu hồ sơ: orgId yêu cầu={}, orgId của user={}, username={}",
+                    orgId, currentUser != null ? currentUser.getOrganizationId() : null, currentUser != null ? currentUser.getUsername() : null);
             throw new TemplateNotOwnedException("Từ chối thao tác: Bạn không có quyền truy cập dữ liệu của tổ chức khác.");
         }
     }

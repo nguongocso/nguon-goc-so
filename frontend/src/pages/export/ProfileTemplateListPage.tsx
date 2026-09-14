@@ -45,20 +45,30 @@ export const ProfileTemplateListPage: React.FC = () => {
     deleteTemplate,
   } = useProfileTemplates(orgId);
 
+  const safeTemplates = useMemo(() => (Array.isArray(templates) ? templates : []), [templates]);
+
+  console.log('[ProfileTemplateListPage] Render:', {
+    username: user?.username,
+    roleCode: user?.roleCode,
+    orgId,
+    templatesCount: safeTemplates.length,
+    loading,
+  });
+
   const [search, setSearch] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<ProfileTemplate | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   // Lọc client side theo tên mẫu hoặc tên đối tác
   const filteredTemplates = useMemo(() => {
-    if (!search.trim()) return templates;
+    if (!search.trim()) return safeTemplates;
     const q = search.toLowerCase().trim();
-    return templates.filter(
+    return safeTemplates.filter(
       (t) =>
-        t.name.toLowerCase().includes(q) ||
+        (t.name && t.name.toLowerCase().includes(q)) ||
         (t.partnerName && t.partnerName.toLowerCase().includes(q))
     );
-  }, [templates, search]);
+  }, [safeTemplates, search]);
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;

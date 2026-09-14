@@ -99,38 +99,49 @@ export const ProfileTemplateFormPage: React.FC = () => {
   // Tải danh mục trường khả dụng và chi tiết template nếu là edit
   useEffect(() => {
     const initData = async () => {
-      if (!orgId) return;
+      if (!orgId) {
+        console.warn('[ProfileTemplateFormPage] orgId chưa sẵn sàng');
+        return;
+      }
+      console.log('[ProfileTemplateFormPage] Bắt đầu tải dữ liệu form: orgId =', orgId, 'isEdit =', isEdit, 'id =', id);
       setLoading(true);
       try {
-        const groups = await getAvailableFields(orgId);
+        const rawGroups = await getAvailableFields(orgId);
+        const groups = Array.isArray(rawGroups) ? rawGroups : [];
+        console.log('[ProfileTemplateFormPage] Danh mục trường đã tải:', groups.length, 'nhóm');
         setAvailableGroups(groups);
 
         // Mặc định nạp tất cả các trường bắt buộc QTN-11
         const defaultMandatoryItems: FieldSelectionItem[] = [];
         groups.forEach((g) => {
-          g.fields.forEach((f) => {
-            if (f.isMandatory) {
-              defaultMandatoryItems.push({
-                fieldKey: f.key,
-                fieldGroup: g.group,
-                isMandatory: true,
-                sortOrder: defaultMandatoryItems.length + 1,
-              });
-            }
-          });
+          if (Array.isArray(g.fields)) {
+            g.fields.forEach((f) => {
+              if (f.isMandatory) {
+                defaultMandatoryItems.push({
+                  fieldKey: f.key,
+                  fieldGroup: g.group,
+                  isMandatory: true,
+                  sortOrder: defaultMandatoryItems.length + 1,
+                });
+              }
+            });
+          }
         });
 
         if (isEdit && id) {
+          console.log('[ProfileTemplateFormPage] Đang tải chi tiết mẫu hồ sơ:', id);
           const tpl = await getProfileTemplateById(orgId, id);
-          setValue('name', tpl.name);
+          console.log('[ProfileTemplateFormPage] Chi tiết mẫu hồ sơ đã tải:', tpl);
+          setValue('name', tpl.name || '');
           setValue('partnerName', tpl.partnerName || '');
-          setValue('isDefault', tpl.isDefault);
+          setValue('isDefault', Boolean(tpl.isDefault));
 
           // Map trường đã lưu
-          const savedFields: FieldSelectionItem[] = tpl.fields.map((f, idx) => ({
+          const rawFields = Array.isArray(tpl.fields) ? tpl.fields : [];
+          const savedFields: FieldSelectionItem[] = rawFields.map((f, idx) => ({
             fieldKey: f.fieldKey,
             fieldGroup: f.fieldGroup,
-            isMandatory: f.isMandatory,
+            isMandatory: Boolean(f.isMandatory),
             sortOrder: f.sortOrder || idx + 1,
           }));
 
@@ -148,6 +159,7 @@ export const ProfileTemplateFormPage: React.FC = () => {
           setSelectedFields(defaultMandatoryItems);
         }
       } catch (err: unknown) {
+        console.error('[ProfileTemplateFormPage] Lỗi khi khởi tạo form:', err);
         const msg =
           (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
           'Không thể khởi tạo thông tin mẫu hồ sơ';

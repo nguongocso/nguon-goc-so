@@ -34,12 +34,15 @@ public class ProfileTemplateController {
 
     /**
      * Lấy danh mục tất cả các trường dữ liệu hệ thống hỗ trợ cấu hình.
+     * Hỗ trợ cả /catalog và /available-fields để đồng bộ với các phiên bản frontend.
      */
-    @GetMapping("/catalog")
+    @GetMapping({"/catalog", "/available-fields"})
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<ApiResult<List<FieldGroupDefinition>>> getCatalog(
             @PathVariable UUID orgId) {
+        log.info("Nhận yêu cầu lấy danh mục trường dữ liệu mẫu hồ sơ: orgId={}", orgId);
         List<FieldGroupDefinition> catalog = profileTemplateService.getAllAvailableFields();
+        log.info("Lấy danh mục trường thành công: orgId={}, tổng số nhóm={}", orgId, catalog.size());
         return ResponseEntity.ok(ApiResult.success(catalog));
     }
 
@@ -51,7 +54,9 @@ public class ProfileTemplateController {
     public ResponseEntity<ApiResult<List<ProfileTemplateResponse>>> listTemplates(
             @PathVariable UUID orgId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
+        log.info("Nhận yêu cầu lấy danh sách mẫu hồ sơ: orgId={}, user={}", orgId, currentUser != null ? currentUser.getUsername() : "anonymous");
         List<ProfileTemplateResponse> templates = profileTemplateService.listTemplates(orgId, currentUser);
+        log.info("Lấy danh sách mẫu hồ sơ thành công: orgId={}, số lượng={}", orgId, templates.size());
         return ResponseEntity.ok(ApiResult.success(templates));
     }
 
@@ -64,7 +69,10 @@ public class ProfileTemplateController {
             @PathVariable UUID orgId,
             @Valid @RequestBody CreateProfileTemplateRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
+        log.info("Nhận yêu cầu tạo mẫu hồ sơ: orgId={}, name={}, partnerName={}, user={}",
+                orgId, request.getName(), request.getPartnerName(), currentUser != null ? currentUser.getUsername() : "anonymous");
         ProfileTemplateResponse response = profileTemplateService.createTemplate(orgId, request, currentUser);
+        log.info("Tạo mẫu hồ sơ thành công: orgId={}, templateId={}", orgId, response.getId());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
@@ -77,7 +85,9 @@ public class ProfileTemplateController {
     public ResponseEntity<ApiResult<ProfileTemplateResponse>> getDefaultTemplate(
             @PathVariable UUID orgId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
+        log.info("Nhận yêu cầu lấy mẫu hồ sơ mặc định: orgId={}, user={}", orgId, currentUser != null ? currentUser.getUsername() : "anonymous");
         ProfileTemplateResponse response = profileTemplateService.getDefaultTemplateResponse(orgId, currentUser);
+        log.info("Lấy mẫu mặc định thành công: orgId={}, templateId={}", orgId, response.getId());
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
@@ -90,7 +100,10 @@ public class ProfileTemplateController {
             @PathVariable UUID orgId,
             @PathVariable UUID templateId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
+        log.info("Nhận yêu cầu lấy chi tiết mẫu hồ sơ: orgId={}, templateId={}, user={}",
+                orgId, templateId, currentUser != null ? currentUser.getUsername() : "anonymous");
         ProfileTemplateResponse response = profileTemplateService.getTemplate(orgId, templateId, currentUser);
+        log.info("Lấy chi tiết mẫu hồ sơ thành công: orgId={}, templateId={}, name={}", orgId, templateId, response.getName());
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
@@ -104,7 +117,10 @@ public class ProfileTemplateController {
             @PathVariable UUID templateId,
             @Valid @RequestBody UpdateProfileTemplateRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
+        log.info("Nhận yêu cầu cập nhật mẫu hồ sơ: orgId={}, templateId={}, user={}",
+                orgId, templateId, currentUser != null ? currentUser.getUsername() : "anonymous");
         ProfileTemplateResponse response = profileTemplateService.updateTemplate(orgId, templateId, request, currentUser);
+        log.info("Cập nhật mẫu hồ sơ thành công: orgId={}, templateId={}", orgId, templateId);
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
@@ -117,7 +133,10 @@ public class ProfileTemplateController {
             @PathVariable UUID orgId,
             @PathVariable UUID templateId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
+        log.info("Nhận yêu cầu xóa mẫu hồ sơ: orgId={}, templateId={}, user={}",
+                orgId, templateId, currentUser != null ? currentUser.getUsername() : "anonymous");
         profileTemplateService.deleteTemplate(orgId, templateId, currentUser);
+        log.info("Xóa mẫu hồ sơ thành công: orgId={}, templateId={}", orgId, templateId);
         return ResponseEntity.ok(ApiResult.success(null));
     }
 }

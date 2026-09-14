@@ -1,6 +1,20 @@
 import apiClient from './axiosConfig';
 import type { ExportOpenDataRequest } from '@/types/export';
 
+interface ApiResult<T> {
+  code?: number;
+  status?: string;
+  data: T;
+  message?: string;
+}
+
+function extractData<T>(resData: ApiResult<T> | T): T {
+  if (resData && typeof resData === 'object' && 'data' in (resData as Record<string, unknown>)) {
+    return (resData as ApiResult<T>).data;
+  }
+  return resData as T;
+}
+
 /**
  * Xuất dữ liệu mở
  * POST /api/v1/export/open-data
@@ -9,6 +23,7 @@ import type { ExportOpenDataRequest } from '@/types/export';
 export const exportOpenData = async (
   data: ExportOpenDataRequest
 ): Promise<Blob> => {
+  console.log('[exportApi] exportOpenData:', data);
   const response = await apiClient.post('/export/open-data', data, {
     responseType: 'blob',
   });
@@ -17,18 +32,27 @@ export const exportOpenData = async (
 
 /**
  * Xem trước hồ sơ xuất theo mẫu
+ * GET /api/v1/export/shipments/{shipmentId}/preview
  */
 export const getExportPreview = async (
   shipmentId: string,
   templateId?: string
 ): Promise<Record<string, unknown>> => {
+  console.log('[exportApi] getExportPreview:', { shipmentId, templateId });
   const params: Record<string, string> = {};
   if (templateId) {
     params.templateId = templateId;
   }
-  const response = await apiClient.get<Record<string, unknown>>(
-    `/export/open-data/shipments/${shipmentId}/preview`,
-    { params }
-  );
-  return response.data;
+  try {
+    const response = await apiClient.get<ApiResult<Record<string, unknown>> | Record<string, unknown>>(
+      `/export/shipments/${shipmentId}/preview`,
+      { params }
+    );
+    const data = extractData(response.data);
+    console.log('[exportApi] getExportPreview - Thành công:', data);
+    return data;
+  } catch (err) {
+    console.error('[exportApi] getExportPreview - Thất bại:', err);
+    throw err;
+  }
 };
