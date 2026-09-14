@@ -296,6 +296,9 @@ public class CertificationServiceImpl implements CertificationService {
                 "Tạo chứng nhận '" + certification.getCode() + "' cho tiêu chuẩn " + standard.getName(),
                 "CERTIFICATION", certification.getId().toString());
 
+        // Kiểm tra và phát sinh cảnh báo ngay nếu chứng nhận sắp hết hạn hoặc đã hết hạn
+        checkAndCreateAlertForSingleCertification(certification);
+
         // 8. Trả về response
         return toCertificationResponse(certification);
     }
@@ -921,6 +924,9 @@ public class CertificationServiceImpl implements CertificationService {
             alert.setSeverity(AlertSeverity.HIGH);
             alert.setStatus(AlertStatus.PENDING);
             alert.setCreatedAt(LocalDateTime.now());
+            alert.setOrganization(cert.getOrganization());
+            alert.setMessage(String.format("Chứng nhận \"%s\" (%s) đã hết hiệu lực từ ngày %s (quá hạn %d ngày).",
+                    cert.getName(), cert.getCode(), cert.getExpiryDate(), daysOverdue));
             try {
                 alert.setDetails(objectMapper.writeValueAsString(details));
             } catch (Exception e) {
@@ -958,6 +964,9 @@ public class CertificationServiceImpl implements CertificationService {
             alert.setSeverity(AlertSeverity.MEDIUM);
             alert.setStatus(AlertStatus.PENDING);
             alert.setCreatedAt(LocalDateTime.now());
+            alert.setOrganization(cert.getOrganization());
+            alert.setMessage(String.format("Chứng nhận \"%s\" (%s) sắp hết hạn sau %d ngày (ngày hết hạn: %s).",
+                    cert.getName(), cert.getCode(), daysRemaining, cert.getExpiryDate()));
             try {
                 alert.setDetails(objectMapper.writeValueAsString(details));
             } catch (Exception e) {
@@ -969,6 +978,25 @@ public class CertificationServiceImpl implements CertificationService {
             notificationService.sendCertificationExpiryNotification(alert);
             log.info("⚠️ Đã tạo cảnh báo CERT_EXPIRING cho chứng nhận '{}' (còn {} ngày)", cert.getName(),
                     daysRemaining);
+        }
+    }
+
+    /**
+     * Kiểm tra nhanh và phát sinh cảnh báo cho một chứng nhận đơn lẻ (dùng khi tạo mới hoặc cập nhật).
+     */
+    private void checkAndCreateAlertForSingleCertification(Certification cert) {
+        if (cert == null || cert.getExpiryDate() == null) {
+            return;
+        }
+        LocalDate today = LocalDate.now();
+        LocalDate expiryDate = cert.getExpiryDate();
+        if (expiryDate.isBefore(today)) {
+            processExpiredCertification(cert, today);
+        } else {
+            long daysRemaining = expiryDate.toEpochDay() - today.toEpochDay();
+            if (daysRemaining <= warningThresholdDays) {
+                processExpiringCertification(cert, daysRemaining);
+            }
         }
     }
 

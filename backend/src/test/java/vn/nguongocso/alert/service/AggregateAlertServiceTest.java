@@ -14,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import vn.nguongocso.alert.dto.response.AggregateAlertCountResponse;
+import vn.nguongocso.alert.dto.response.AggregateAlertItemResponse;
 import vn.nguongocso.alert.dto.response.AggregateAlertPageResponse;
 import vn.nguongocso.alert.dto.response.UnviewedAlertCountResponse;
 import vn.nguongocso.alert.entity.Alert;
@@ -42,6 +43,10 @@ import vn.nguongocso.trace.recall.entity.RecallCase;
 import vn.nguongocso.trace.recall.enums.RecallCaseStatus;
 import vn.nguongocso.trace.recall.repository.RecallCaseRepository;
 import vn.nguongocso.trace.repository.CodeRangeRepository;
+
+import vn.nguongocso.certification.entity.Certification;
+import vn.nguongocso.certification.enums.CertificationVerificationStatus;
+import vn.nguongocso.certification.repository.CertificationRepository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -80,6 +85,9 @@ class AggregateAlertServiceTest {
     private OrganizationRepository organizationRepository;
 
     @Mock
+    private CertificationRepository certificationRepository;
+
+    @Mock
     private ObjectMapper objectMapper;
 
     @InjectMocks
@@ -109,6 +117,9 @@ class AggregateAlertServiceTest {
         lenient().when(userDetailsAdmin.getRoleCode()).thenReturn("VT-01");
         lenient().when(userDetailsAdmin.getOrganizationId()).thenReturn(null);
         lenient().when(userDetailsAdmin.getUsername()).thenReturn("admin_platform");
+
+        lenient().when(certificationRepository.findByOrganizationId(any())).thenReturn(Collections.emptyList());
+        lenient().when(certificationRepository.findAll()).thenReturn(Collections.emptyList());
     }
 
     @AfterEach
@@ -378,5 +389,50 @@ class AggregateAlertServiceTest {
         assertNotNull(countResponse);
         assertEquals(1, countResponse.getUnviewedCount());
         assertTrue(countResponse.isHasHighSeverity());
+    }
+
+    /**
+     * Kiểm thử phát hiện chứng nhận sắp hết hạn trực tiếp từ CertificationRepository theo thời gian thực.
+     */
+    @Test
+    void testCollectCertificationAlerts_realTimeExpiringCertification() {
+        mockSecurityContext(userDetailsCoopA);
+
+        Certification certExpiring = Certification.builder()
+                .id(UUID.randomUUID())
+                .name("VietGAP Bưởi da xanh")
+                .code("VG-BDX-001")
+                .expiryDate(LocalDate.now().plusDays(10)) // Còn 10 ngày (<= 30 ngày)
+                .verificationStatus(CertificationVerificationStatus.VERIFIED)
+                .organization(orgA)
+                .createdAt(LocalDateTime.now().minusDays(5))
+                .build();
+
+        when(certificationRepository.findByOrganizationId(orgIdA))
+                .thenReturn(List.of(certExpiring));
+        when(alertRepository.findByOrganizationOrganizationIdAndStatus(orgIdA, AlertStatus.PENDING))
+                .thenReturn(Collections.emptyList());
+        when(productFeedbackRepository.findByProductionLot_Organization_OrganizationIdAndStatusIn(eq(orgIdA), any()))
+                .thenReturn(Collections.emptyList());
+        when(codeRangeRepository.findByOrganizationOrganizationId(orgIdA))
+                .thenReturn(Collections.emptyList());
+        when(milestoneReminderRepository.findByProductionLot_Organization_OrganizationIdAndStatusOrderByOverdueDaysDesc(orgIdA, MilestoneReminderStatus.OPEN))
+                .thenReturn(Collections.emptyList());
+        when(recallCaseRepository.findByOrganizationIdAndStatusOrderByCreatedAtDesc(orgIdA, RecallCaseStatus.OPEN))
+                .thenReturn(Collections.emptyList());
+
+        Pageable pageable = PageRequest.of(0, 10);
+        AggregateAlertPageResponse response = aggregateAlertService.getAggregateAlerts(
+                null, null, "OPEN", null, null, null, null, pageable);
+
+        assertNotNull(response);
+        assertEquals(1, response.getTotalElements());
+        AggregateAlertItemResponse item = response.getItems().get(0);
+        assertEquals(AggregateAlertType.CERT_EXPIRING, item.getType());
+        assertEquals("Chứng nhận sắp hết hạn hiệu lực", item.getTitle());
+        assertEquals("VietGAP Bưởi da xanh", item.getRelatedEntityName());
+        assertEquals(AlertSeverity.MEDIUM, item.getSeverity());
+        assertEquals("/certifications", item.getActionUrl());
+        assertEquals(orgA.getName(), item.getOrganizationName());
     }
 }

@@ -20,6 +20,9 @@ import vn.nguongocso.alert.repository.AlertRepository;
 import vn.nguongocso.alert.service.AggregateAlertService;
 import vn.nguongocso.auth.security.SecurityUtils;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.certification.entity.Certification;
+import vn.nguongocso.certification.enums.CertificationVerificationStatus;
+import vn.nguongocso.certification.repository.CertificationRepository;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.MilestoneReminder;
 import vn.nguongocso.farm.entity.ProductFeedback;
@@ -57,6 +60,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
     private final MilestoneReminderRepository milestoneReminderRepository;
     private final RecallCaseRepository recallCaseRepository;
     private final OrganizationRepository organizationRepository;
+    private final CertificationRepository certificationRepository;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -180,6 +184,9 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         // Nguồn 1, 2, 3: Bảng alerts (Tem quét bất thường, Chứng nhận, Kiểm nghiệm)
         collectAlertsFromAlertTable(result, orgId, includeOpen, includeResolved);
 
+        // Nguồn 2 & 3: Bổ sung cảnh báo chứng nhận sắp hết hạn/hết hạn trực tiếp từ CertificationRepository thời gian thực
+        collectCertificationAlerts(result, orgId, includeOpen, includeResolved);
+
         // Nguồn 4: Phản ánh của người tiêu dùng chưa xử lý
         collectProductFeedbackAlerts(result, orgId, includeOpen, includeResolved);
 
@@ -271,6 +278,107 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                     .organizationName(alert.getOrganization() != null ? alert.getOrganization().getName() : "")
                     .status(alert.getStatus() == AlertStatus.PENDING ? "OPEN" : "RESOLVED")
                     .build());
+        }
+    }
+
+    /**
+     * Thu thập cảnh báo chứng nhận sắp hết hạn (Nguồn 2) và đã hết hạn (Nguồn 3)
+     * trực tiếp từ CertificationRepository để đảm bảo hiển thị tức thì theo thời gian thực (TC-01, TC-02).
+     */
+    private void collectCertificationAlerts(
+            List<AggregateAlertItemResponse> result,
+            UUID orgId,
+            boolean includeOpen,
+            boolean includeResolved) {
+
+        // Tập hợp các ID chứng nhận đã có cảnh báo trong kết quả (từ bảng alerts)
+        Set<UUID> existingCertAlertIds = new HashSet<>();
+        for (AggregateAlertItemResponse item : result) {
+            if (item.getType() == AggregateAlertType.CERT_EXPIRING || item.getType() == AggregateAlertType.CERT_EXPIRED) {
+                if (item.getRelatedEntityId() != null) {
+                    existingCertAlertIds.add(item.getRelatedEntityId());
+                }
+            }
+        }
+
+        List<Certification> certifications = (orgId != null)
+                ? certificationRepository.findByOrganizationId(orgId)
+                : certificationRepository.findAll();
+
+        LocalDate today = LocalDate.now();
+
+        for (Certification cert : certifications) {
+            if (cert.getVerificationStatus() == CertificationVerificationStatus.REJECTED) {
+                continue;
+            }
+            if (existingCertAlertIds.contains(cert.getId())) {
+                // Đã có cảnh báo từ bảng alerts, bỏ qua để không trùng lặp
+                continue;
+            }
+
+            LocalDate expiryDate = cert.getExpiryDate();
+            if (expiryDate == null) {
+                continue;
+            }
+
+            Organization org = cert.getOrganization();
+            UUID certOrgId = org != null ? org.getOrganizationId() : null;
+            String orgName = org != null ? org.getName() : "";
+            LocalDateTime createdAt = cert.getCreatedAt() != null ? cert.getCreatedAt() : LocalDateTime.now();
+
+            if (expiryDate.isBefore(today)) {
+                // Chứng nhận đã hết hạn (CERT_EXPIRED)
+                if (includeOpen) {
+                    long daysOverdue = today.toEpochDay() - expiryDate.toEpochDay();
+                    String title = "Chứng nhận đã hết hiệu lực";
+                    String message = String.format("Chứng nhận \"%s\" (%s) đã hết hiệu lực từ ngày %s (quá hạn %d ngày).",
+                            cert.getName(), cert.getCode(), expiryDate, daysOverdue);
+
+                    result.add(AggregateAlertItemResponse.builder()
+                            .id(cert.getId())
+                            .type(AggregateAlertType.CERT_EXPIRED)
+                            .typeName(AggregateAlertType.CERT_EXPIRED.getDisplayName())
+                            .severity(AlertSeverity.HIGH)
+                            .title(title)
+                            .message(message)
+                            .relatedEntityType("Certification")
+                            .relatedEntityId(cert.getId())
+                            .relatedEntityName(cert.getName())
+                            .createdAt(createdAt)
+                            .actionUrl("/certifications")
+                            .organizationId(certOrgId)
+                            .organizationName(orgName)
+                            .status("OPEN")
+                            .build());
+                }
+            } else {
+                long daysRemaining = expiryDate.toEpochDay() - today.toEpochDay();
+                if (daysRemaining <= 30) {
+                    // Chứng nhận sắp hết hạn (CERT_EXPIRING) - trong ngưỡng 30 ngày
+                    if (includeOpen) {
+                        String title = "Chứng nhận sắp hết hạn hiệu lực";
+                        String message = String.format("Chứng nhận \"%s\" (%s) sắp hết hạn sau %d ngày (ngày hết hạn: %s).",
+                                cert.getName(), cert.getCode(), daysRemaining, expiryDate);
+
+                        result.add(AggregateAlertItemResponse.builder()
+                                .id(cert.getId())
+                                .type(AggregateAlertType.CERT_EXPIRING)
+                                .typeName(AggregateAlertType.CERT_EXPIRING.getDisplayName())
+                                .severity(AlertSeverity.MEDIUM)
+                                .title(title)
+                                .message(message)
+                                .relatedEntityType("Certification")
+                                .relatedEntityId(cert.getId())
+                                .relatedEntityName(cert.getName())
+                                .createdAt(createdAt)
+                                .actionUrl("/certifications")
+                                .organizationId(certOrgId)
+                                .organizationName(orgName)
+                                .status("OPEN")
+                                .build());
+                    }
+                }
+            }
         }
     }
 
