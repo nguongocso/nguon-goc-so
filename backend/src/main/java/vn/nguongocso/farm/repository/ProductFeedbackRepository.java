@@ -25,4 +25,14 @@ public interface ProductFeedbackRepository extends JpaRepository<ProductFeedback
     boolean existsByLookupCodeHash(String lookupCodeHash);
 
     boolean existsByTraceCode_IdAndSeverity(UUID traceCodeId, ProductFeedbackSeverity severity);
+
+    /**
+     * Tìm các phản ánh nghiêm trọng chưa đóng theo danh sách lô sản xuất (NCL-07-CN-006).
+     */
+    @org.springframework.data.jpa.repository.Query("SELECT pf FROM ProductFeedback pf WHERE pf.productionLot.id IN :lotIds AND pf.severity IN :severities AND pf.status <> :closedStatus")
+    java.util.List<ProductFeedback> findSeriousOpenFeedbacksByLotIds(
+            @org.springframework.data.repository.query.Param("lotIds") java.util.Collection<UUID> lotIds,
+            @org.springframework.data.repository.query.Param("severities") java.util.Collection<ProductFeedbackSeverity> severities,
+            @org.springframework.data.repository.query.Param("closedStatus") vn.nguongocso.farm.enums.ProductFeedbackStatus closedStatus);
 }
+

@@ -56,6 +56,9 @@ export const ROLE_ACCESS = {
   // ✅ Từ file 1
   seasonYieldComparison: ['VT-01', 'VT-05'] as const,
 
+  // ✅ NCL-07-CN-006 - Danh sách lô có cảnh báo theo địa bàn cho Cán bộ quản lý ngành (VT-05)
+  territoryAlertLots: ['VT-05'] as const,
+
   // ✅ Từ file 2
   rolePermissionConfig: ['VT-02'] as const,
 

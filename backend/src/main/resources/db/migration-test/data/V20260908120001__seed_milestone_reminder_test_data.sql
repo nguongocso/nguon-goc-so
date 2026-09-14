@@ -1,10 +1,13 @@
 -- ============================================================
--- V20260908120000: Seed mốc canh tác và phân công lô cho test/UI
+-- V20260908120001: Seed mốc canh tác và phân công lô cho test/UI
 --                  (User Story: NCL-03-CN-007)
+-- LƯU Ý: Dùng tên bảng cultivation_milestones (số nhiều) sau khi
+--   migration V20260908160000 đổi tên từ cultivation_milestone sang
+--   cultivation_milestones.
 -- ============================================================
 
 -- 1. Seed mốc canh tác bắt buộc cho loại nông sản Lúa (00000000-0000-0000-0000-000800000004)
-INSERT IGNORE INTO cultivation_milestone (
+INSERT IGNORE INTO cultivation_milestones (
     name, description, activity_type, expected_days_from_planting, product_category_id, standard_id, is_mandatory, created_at
 ) VALUES 
 (

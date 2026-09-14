@@ -28,6 +28,10 @@ interface ProductionLotBoardProps {
   onRecordProcurement?: (lotId: string) => void;
   /** Ẩn khối tiêu đề của card (trang /production-lots đã có ListPageHeader riêng). */
   hideCardHeader?: boolean;
+  /** Callback làm mới dữ liệu từ component cha. */
+  onRefresh?: () => void;
+  /** Trạng thái đang làm mới dữ liệu từ component cha. */
+  isRefreshing?: boolean;
 }
 
 export const ProductionLotBoard = ({
@@ -41,6 +45,8 @@ export const ProductionLotBoard = ({
   canCancel: propCanCancel,
   onRecordProcurement,
   hideCardHeader = false,
+  onRefresh: onRefreshProp,
+  isRefreshing: isRefreshingProp,
 }: ProductionLotBoardProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -158,8 +164,8 @@ export const ProductionLotBoard = ({
       onCancel={handleCancelProductionLot}
       onRecordProcurement={onRecordProcurement}
       hideCardHeader={hideCardHeader}
-      onRefresh={propLots !== undefined ? undefined : () => void refresh()}
-      isRefreshing={isRefreshing}
+      onRefresh={onRefreshProp ?? (propLots !== undefined ? undefined : () => void refresh())}
+      isRefreshing={isRefreshingProp ?? isRefreshing}
     />
   );
 };

@@ -44,8 +44,15 @@ public class PartnerTraceController {
         if (partnerApiKey != null) {
             log.info("Đối tác '{}' (orgId={}) gọi API truy xuất mã={}",
                     partnerApiKey.getPartnerName(),
-                    partnerApiKey.getOrganization().getOrganizationId(),
+                    partnerApiKey.getOrganization() != null ? partnerApiKey.getOrganization().getOrganizationId() : "N/A",
                     codeValue);
+
+            // TC-01, TC-02: Nếu là khóa thử nghiệm -> Trả dữ liệu mẫu Sandbox chuẩn
+            if (Boolean.TRUE.equals(partnerApiKey.getIsTest())) {
+                log.info("Đối tác '{}' gọi tra cứu bằng khóa thử nghiệm mã={} -> Trả dữ liệu mẫu Sandbox (NCL-12-CN-004)",
+                        partnerApiKey.getPartnerName(), codeValue);
+                return ResponseEntity.ok(ApiResult.success(vn.nguongocso.integration.partner.util.PartnerSampleDataProvider.getSampleTraceResponse()));
+            }
         }
 
         PublicTraceResponse response = publicTraceService.getPublicTrace(
@@ -54,6 +61,7 @@ public class PartnerTraceController {
                 longitude,
                 getClientIp(request),
                 request.getHeader("User-Agent"));
+        response.setIsTest(false);
 
         return ResponseEntity.ok(ApiResult.success(response));
     }

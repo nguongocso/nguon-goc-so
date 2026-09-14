@@ -150,10 +150,10 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/admin/anomaly-thresholds/categories/:id/edit", "Chỉnh sửa cấu hình theo loại nông sản"],
   ["/admin/anomaly-thresholds", "Cấu hình ngưỡng quét bất thường"],
   ["/admin/account-areas", "Phân công địa bàn"],
-  ["/integration/api-keys/create", "Cấp khóa API"],
-  ["/integration/api-keys", "Khóa API đối tác"],
 
   // Reports
+  ["/reports/alert-lots/:lotId", "Chi tiết lô có cảnh báo"],
+  ["/reports/alert-lots", "Theo dõi lô có cảnh báo"],
   ["/reports/lookup-statistics", "Thống kê tra cứu"],
   ["/reports/crop-area-analysis", "Phân tích vùng trồng"],
   ["/reports/season-yield-comparison", "So sánh mùa vụ"],
@@ -172,6 +172,7 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/certifications", "Kiểm nghiệm & chứng nhận"],
 
   // Integration / Export / Permissions
+  ["/integration/api-keys/create-test", "Cấp khóa thử nghiệm"],
   ["/integration/api-keys/create", "Cấp khóa API"],
   ["/integration/api-keys", "Khóa API đối tác"],
   ["/export/open-data", "Dữ liệu mở"],
@@ -250,7 +251,7 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
   ],
   ["/inspection-requests/:requestId/results", ["VT-02"]],
   ["/production-lots/:id/edit", ROLE_ACCESS.productionLotEdit],
-  ["/production-lots/:id", ["VT-01", "VT-02", "VT-03"]],
+  ["/production-lots/:id", ["VT-01", "VT-02", "VT-03", "VT-05"]],
   ["/production-lots", ROLE_ACCESS.productionLotList],
 
   // Shipments
@@ -322,6 +323,8 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
   ["/admin/account-areas", ROLE_ACCESS.areaAssignment],
 
   // Reports
+  ["/reports/alert-lots/:lotId", ROLE_ACCESS.territoryAlertLots],
+  ["/reports/alert-lots", ROLE_ACCESS.territoryAlertLots],
   ["/reports/lookup-statistics", ["VT-01", "VT-02"]],
   ["/reports/crop-area-analysis", ["VT-02", "VT-03"]],
   ["/reports/season-yield-comparison", ROLE_ACCESS.seasonYieldComparison],
@@ -340,6 +343,7 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
   ["/certifications", ["VT-02"]],
 
   // Integration / Export / Permissions
+  ["/integration/api-keys/create-test", ROLE_ACCESS.apiKeyManagement],
   ["/integration/api-keys/create", ROLE_ACCESS.apiKeyManagement],
   ["/integration/api-keys", ROLE_ACCESS.apiKeyManagement],
   ["/export/open-data", ROLE_ACCESS.exportOpenData],

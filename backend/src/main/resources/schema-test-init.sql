@@ -1,0 +1,6 @@
+CREATE DOMAIN IF NOT EXISTS POINT AS BLOB;
+
+CREATE TABLE IF NOT EXISTS cultivation_milestones (
+    id CHAR(36) PRIMARY KEY,
+    name VARCHAR(255)
+);

@@ -109,6 +109,7 @@ import PublicHomePage from "@/pages/public/PublicHomePage";
 import TraceLookupPage from "@/pages/public/TraceLookupPage";
 import ProductFeedbackLookupPage from "@/pages/public/ProductFeedbackLookupPage";
 import JoinOrganizationPage from "@/pages/public/JoinOrganizationPage";
+import DataPortalDocsPage from "@/pages/public/DataPortalDocsPage";
 
 // ===== Reports =====
 import LookupStatisticsPage from "@/pages/report/LookupStatisticsPage";
@@ -119,6 +120,8 @@ import FailedEventLogsPage from "@/pages/report/FailedEventLogsPage";
 import CropAreaAnalysisPage from "@/pages/report/CropAreaAnalysisPage";
 import IndustryReportPage from "@/pages/report/IndustryReportPage";
 import SeasonYieldComparisonPage from "@/pages/report/SeasonYieldComparisonPage";
+import TerritoryAlertLotListPage from "@/pages/report/TerritoryAlertLotListPage";
+import TerritoryAlertLotDetailPage from "@/pages/report/TerritoryAlertLotDetailPage";
 
 // ===== Alerts =====
 import ScanAnomalyAlertPage from "@/pages/scan-anomaly-alert/ScanAnomalyAlertPage";
@@ -164,9 +167,11 @@ import ImpactScopeTracePage from "@/pages/trace/ImpactScopeTracePage";
 // ===== Organization Detail =====
 import OrganizationDetailPage from "@/pages/organization/OrganizationDetailPage";
 
-// ===== Partner API Keys (NCL-12-CN-001) =====
+// ===== Partner API Keys (NCL-12-CN-001 / NCL-12-CN-004) =====
 import PartnerApiKeyListPage from "@/pages/apiKey/PartnerApiKeyListPage";
 import CreatePartnerApiKeyPage from "@/pages/apiKey/CreatePartnerApiKeyPage";
+import CreateTestPartnerApiKeyPage from "@/pages/apiKey/CreateTestPartnerApiKeyPage";
+
 
 // ===== Product Feedback =====
 import ProductFeedbackManagementPage from "@/pages/product-feedback/ProductFeedbackManagementPage";
@@ -366,6 +371,22 @@ const AppRoutes = () => (
         <Route
             path="/join"
             element={<JoinOrganizationPage />}
+        />
+
+        {/* NCL-12-CN-004: Trang tài liệu cổng dữ liệu công khai cho bên thứ ba */}
+        <Route
+            path="/portal"
+            element={<DataPortalDocsPage />}
+        />
+
+        <Route
+            path="/docs/api"
+            element={<DataPortalDocsPage />}
+        />
+
+        <Route
+            path="/public/portal-docs"
+            element={<DataPortalDocsPage />}
         />
 
 
@@ -571,7 +592,7 @@ const AppRoutes = () => (
                 path="production-lots/:id"
                 element={
                     <RoleRoute
-                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                        allowedRoles={["VT-01", "VT-02", "VT-03", "VT-05"]}
                     >
                         <ProductionLotDetailPage />
                     </RoleRoute>
@@ -1361,6 +1382,25 @@ const AppRoutes = () => (
                 }
             />
 
+            {/* NCL-07-CN-006: Danh sách và chi tiết lô có cảnh báo theo địa bàn cho VT-05 */}
+            <Route
+                path="reports/alert-lots"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.territoryAlertLots}>
+                        <TerritoryAlertLotListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="reports/alert-lots/:lotId"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.territoryAlertLots}>
+                        <TerritoryAlertLotDetailPage />
+                    </RoleRoute>
+                }
+            />
+
 
             {/* =================================================
           NOTIFICATIONS
@@ -1474,6 +1514,16 @@ const AppRoutes = () => (
                     </RoleRoute>
                 }
             />
+
+            <Route
+                path="integration/api-keys/create-test"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.apiKeyManagement}>
+                        <CreateTestPartnerApiKeyPage />
+                    </RoleRoute>
+                }
+            />
+
 
 
             {/* =================================================

@@ -6,6 +6,16 @@ export interface CreateApiKeyRequest {
   expiresAt: string; // ISO String: YYYY-MM-DDTHH:mm:ss
 }
 
+/**
+ * Yêu cầu cấp khóa thử nghiệm (Sandbox API Key) cho bên thứ ba (NCL-12-CN-004)
+ */
+export interface CreateTestApiKeyRequest {
+  partnerName: string;
+  rateLimitPerHour?: number;
+  expiresAt?: string;
+  expireDays?: number;
+}
+
 export interface PartnerApiKeyResponse {
   id: string;
   organizationId: string;
@@ -15,6 +25,8 @@ export interface PartnerApiKeyResponse {
   rateLimitPerHour: number;
   expiresAt: string;
   status: PartnerApiKeyStatus;
+  isTest?: boolean;
+  is_test?: boolean;
   totalCalls: number;
   failedCalls: number;
   lastCalledAt?: string | null;
@@ -35,3 +47,4 @@ export interface ApiKeyPageResponse {
   size: number;
   number: number;
 }
+

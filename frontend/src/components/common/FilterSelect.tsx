@@ -38,6 +38,7 @@ export const FilterSelect: React.FC<FilterSelectProps> = ({
       <SelectTrigger
         size={size}
         aria-label={ariaLabel}
+        title={selectedLabel || placeholder || undefined}
         className={cn('w-full sm:w-auto min-w-[200px]', className)}
       >
         <span className="flex-1 text-left truncate pr-1">
