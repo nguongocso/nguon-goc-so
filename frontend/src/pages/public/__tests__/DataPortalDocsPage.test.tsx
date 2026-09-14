@@ -1,8 +1,18 @@
+import '@testing-library/jest-dom/vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DataPortalDocsPage } from '../DataPortalDocsPage';
 import { toast } from 'sonner';
+
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
 
 vi.mock('sonner', () => ({
   toast: {
@@ -19,12 +29,16 @@ vi.mock('@/hooks/useAuth', () => ({
 }));
 
 describe('DataPortalDocsPage (NCL-12-CN-004)', () => {
+  const writeTextMock = vi.fn().mockResolvedValue(undefined);
+
   beforeEach(() => {
     vi.clearAllMocks();
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: vi.fn().mockResolvedValue(undefined),
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
+        writeText: writeTextMock,
       },
+      writable: true,
+      configurable: true,
     });
   });
 
@@ -52,7 +66,6 @@ describe('DataPortalDocsPage (NCL-12-CN-004)', () => {
     expect(screen.getByText(/X-API-KEY: <chuỗi_khóa>/i)).toBeInTheDocument();
     expect(screen.getByText(/Chế độ Thử nghiệm \(Sandbox Mode - is_test: true\)/i)).toBeInTheDocument();
   });
-
 
   it('renders endpoint list including public lots and GS1 endpoints', () => {
     renderPage();
@@ -96,9 +109,18 @@ describe('DataPortalDocsPage (NCL-12-CN-004)', () => {
     fireEvent.click(copyBtns[0]);
 
     await waitFor(() => {
-      expect(navigator.clipboard.writeText).toHaveBeenCalled();
+      expect(writeTextMock).toHaveBeenCalled();
       expect(toast.success).toHaveBeenCalledWith('Đã sao chép vào khay nhớ tạm!');
     });
+  });
+
+  it('navigates to /login when clicking "Đăng nhập"', () => {
+    renderPage();
+
+    const loginBtn = screen.getByRole('button', { name: /Đăng nhập/i });
+    fireEvent.click(loginBtn);
+
+    expect(mockNavigate).toHaveBeenCalledWith('/login');
   });
 
   it('renders GS1 EPCIS mapping table and HTTP error codes reference', () => {
@@ -111,4 +133,3 @@ describe('DataPortalDocsPage (NCL-12-CN-004)', () => {
     expect(screen.getByText(/API Key đã hết hạn/i)).toBeInTheDocument();
   });
 });
-
