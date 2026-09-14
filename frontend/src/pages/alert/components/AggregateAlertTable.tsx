@@ -58,23 +58,23 @@ export const AggregateAlertTable: React.FC<AggregateAlertTableProps> = ({
 
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
-      <table className="w-full text-left text-sm text-gray-600">
+      <table className="w-full min-w-[1050px] text-left text-sm text-gray-600">
         <thead className="border-b border-gray-200 bg-gray-50/75 text-xs font-semibold uppercase tracking-wider text-gray-500">
           <tr>
             <th scope="col" className="px-4 py-3.5 whitespace-nowrap w-28">
               Mức độ
             </th>
-            <th scope="col" className="px-4 py-3.5 whitespace-nowrap w-44">
+            <th scope="col" className="px-4 py-3.5 whitespace-nowrap w-48">
               Nguồn cảnh báo
             </th>
-            <th scope="col" className="px-4 py-3.5 min-w-[240px]">
+            <th scope="col" className="px-4 py-3.5 min-w-[300px]">
               Nội dung cảnh báo
             </th>
             <th scope="col" className="px-4 py-3.5 whitespace-nowrap w-48">
               Đối tượng liên quan
             </th>
             {isAdmin && (
-              <th scope="col" className="px-4 py-3.5 whitespace-nowrap w-44">
+              <th scope="col" className="px-4 py-3.5 whitespace-nowrap w-40">
                 Tổ chức
               </th>
             )}
@@ -122,27 +122,27 @@ export const AggregateAlertTable: React.FC<AggregateAlertTableProps> = ({
                 </td>
 
                 {/* Cột 2: Loại nguồn cảnh báo */}
-                <td className="px-4 py-3.5 whitespace-nowrap">
+                <td className="px-4 py-3.5 whitespace-nowrap w-48">
                   <span
-                    className={`inline-block rounded-md border px-2 py-0.5 text-xs font-medium ${typeStyle.bg} ${typeStyle.text} ${typeStyle.border}`}
+                    className={`inline-block rounded-md border px-2.5 py-1 text-xs font-medium whitespace-nowrap ${typeStyle.bg} ${typeStyle.text} ${typeStyle.border}`}
                   >
                     {item.typeName}
                   </span>
                 </td>
 
-                {/* Cột 3: Nội dung cảnh báo */}
-                <td className="px-4 py-3.5">
-                  <div className="font-medium text-gray-900 line-clamp-1">
+                {/* Cột 3: Nội dung cảnh báo - không cắt bớt thông tin */}
+                <td className="px-4 py-3.5 min-w-[280px]">
+                  <div className="font-medium text-gray-900 leading-snug break-words">
                     {item.title}
                   </div>
-                  <div className="text-xs text-gray-500 line-clamp-2 mt-0.5">
+                  <div className="text-xs text-gray-500 mt-1 leading-relaxed break-words">
                     {item.message}
                   </div>
                 </td>
 
-                {/* Cột 4: Đối tượng liên quan */}
-                <td className="px-4 py-3.5 whitespace-nowrap">
-                  <div className="font-medium text-gray-800 text-xs truncate max-w-[180px]" title={item.relatedEntityName || '—'}>
+                {/* Cột 4: Đối tượng liên quan - hiển thị đầy đủ */}
+                <td className="px-4 py-3.5 whitespace-normal min-w-[160px] max-w-[220px]">
+                  <div className="font-medium text-gray-800 text-xs leading-snug break-words" title={item.relatedEntityName || '—'}>
                     {item.relatedEntityName || '—'}
                   </div>
                   <div className="text-[11px] text-gray-400 mt-0.5">

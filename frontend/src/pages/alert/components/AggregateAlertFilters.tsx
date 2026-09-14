@@ -19,7 +19,7 @@ interface AggregateAlertFiltersProps {
 }
 
 const ALERT_TYPES = [
-  { value: 'ALL', label: 'Tất cả loại nguồn cảnh báo' },
+  { value: 'ALL', label: 'Tất cả nguồn cảnh báo' },
   { value: 'SCAN_ANOMALY', label: 'Tem quét bất thường' },
   { value: 'CERT_EXPIRING', label: 'Chứng nhận sắp hết hạn' },
   { value: 'CERT_EXPIRED', label: 'Chứng nhận đã hết hạn' },
@@ -32,7 +32,7 @@ const ALERT_TYPES = [
 ];
 
 const SEVERITIES = [
-  { value: 'ALL', label: 'Tất cả mức khẩn cấp' },
+  { value: 'ALL', label: 'Tất cả mức độ' },
   { value: 'HIGH', label: 'Mức cao / Khẩn cấp' },
   { value: 'MEDIUM', label: 'Mức trung bình' },
 ];
@@ -74,32 +74,32 @@ export const AggregateAlertFilters: React.FC<AggregateAlertFiltersProps> = ({
   onReset,
 }) => {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:flex-wrap sm:items-center">
+    <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm xl:flex-row xl:items-center">
       {/* Tìm kiếm từ khóa */}
-      <div className="relative flex-1 min-w-[220px]">
+      <div className="relative flex-1 min-w-[240px]">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <Input
           placeholder="Tìm kiếm nội dung, đối tượng liên quan..."
           value={filters.keyword || ''}
           onChange={(e) => onFilterChange({ keyword: e.target.value, page: 0 })}
-          className="pl-9 text-sm"
+          className="h-10 pl-9 text-sm"
         />
       </div>
 
       {/* Lọc loại cảnh báo */}
-      <div className="w-full sm:w-[220px]">
+      <div className="w-full sm:w-[250px] shrink-0">
         <Select
           value={filters.type || 'ALL'}
           onValueChange={(val: string | null) =>
             onFilterChange({ type: !val || val === 'ALL' ? undefined : val, page: 0 })
           }
         >
-          <SelectTrigger className="text-sm">
+          <SelectTrigger className="h-10 w-full justify-between text-sm">
             <SelectValue>
               {ALERT_TYPE_LABELS[filters.type || 'ALL'] || 'Tất cả nguồn cảnh báo'}
             </SelectValue>
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent align="start" className="min-w-[250px] max-w-sm">
             {ALERT_TYPES.map((t) => (
               <SelectItem key={t.value} value={t.value}>
                 {t.label}
@@ -110,19 +110,19 @@ export const AggregateAlertFilters: React.FC<AggregateAlertFiltersProps> = ({
       </div>
 
       {/* Lọc mức khẩn cấp */}
-      <div className="w-full sm:w-[170px]">
+      <div className="w-full sm:w-[190px] shrink-0">
         <Select
           value={filters.severity || 'ALL'}
           onValueChange={(val: string | null) =>
             onFilterChange({ severity: !val || val === 'ALL' ? undefined : val, page: 0 })
           }
         >
-          <SelectTrigger className="text-sm">
+          <SelectTrigger className="h-10 w-full justify-between text-sm">
             <SelectValue>
               {SEVERITY_LABELS[filters.severity || 'ALL'] || 'Tất cả mức độ'}
             </SelectValue>
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent align="start" className="min-w-[190px]">
             {SEVERITIES.map((s) => (
               <SelectItem key={s.value} value={s.value}>
                 {s.label}
@@ -133,19 +133,19 @@ export const AggregateAlertFilters: React.FC<AggregateAlertFiltersProps> = ({
       </div>
 
       {/* Lọc trạng thái */}
-      <div className="w-full sm:w-[170px]">
+      <div className="w-full sm:w-[210px] shrink-0">
         <Select
           value={filters.status || 'OPEN'}
           onValueChange={(val: string | null) =>
             onFilterChange({ status: !val || val === 'ALL' ? undefined : val, page: 0 })
           }
         >
-          <SelectTrigger className="text-sm">
+          <SelectTrigger className="h-10 w-full justify-between text-sm">
             <SelectValue>
               {STATUS_LABELS[filters.status || 'OPEN'] || 'Đang mở (Cần xử lý)'}
             </SelectValue>
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent align="start" className="min-w-[210px]">
             {STATUSES.map((st) => (
               <SelectItem key={st.value} value={st.value}>
                 {st.label}
@@ -159,9 +159,8 @@ export const AggregateAlertFilters: React.FC<AggregateAlertFiltersProps> = ({
       <Button
         type="button"
         variant="outline"
-        size="sm"
         onClick={onReset}
-        className="h-10 text-gray-600 hover:text-gray-900"
+        className="h-10 shrink-0 whitespace-nowrap text-gray-600 hover:text-gray-900 px-3"
         title="Đặt lại toàn bộ bộ lọc"
       >
         <RotateCcw className="mr-1.5 h-4 w-4" />
