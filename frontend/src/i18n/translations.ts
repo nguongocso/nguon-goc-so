@@ -70,6 +70,23 @@ export const translations = {
 
     // Feedback
     feedback_title: 'Gửi phản ánh sản phẩm',
+    feedback_desc: 'Nếu bạn nghi ngờ tem giả hoặc thấy thông tin của {productName} chưa chính xác, hãy gửi phản ánh để hợp tác xã kiểm tra.',
+    feedback_content_label: 'Nội dung phản ánh *',
+    feedback_placeholder: 'Ví dụ: Thông tin ngày thu hoạch trên hệ thống không khớp với bao bì sản phẩm.',
+    feedback_validation_required: 'Vui lòng nhập nội dung phản ánh.',
+    feedback_validation_max: 'Nội dung phản ánh không được vượt quá 1000 ký tự.',
+    feedback_submitting: 'Đang gửi...',
+    feedback_submit_btn: 'Gửi phản ánh',
+    feedback_success_title: 'Đã gửi phản ánh',
+    feedback_success_desc: 'Hợp tác xã sẽ tiếp nhận và cập nhật tiến độ xử lý trên hệ thống.',
+    feedback_lookup_code_label: 'Mã tra cứu phản ánh của bạn',
+    feedback_save_code_warning: 'Hãy lưu mã này ngay. Vì lý do bảo mật, hệ thống không thể hiển thị lại mã sau khi bạn rời trang.',
+    feedback_copy_code_btn: 'Sao chép mã',
+    feedback_lookup_status_btn: 'Tra cứu trạng thái',
+    feedback_submit_another: 'Gửi phản ánh khác',
+    feedback_toast_success: 'Đã gửi phản ánh. Vui lòng lưu mã tra cứu.',
+    feedback_toast_copy_success: 'Đã sao chép mã tra cứu.',
+    feedback_toast_copy_error: 'Không thể sao chép tự động. Vui lòng chọn và sao chép mã.',
     feedback_not_available: 'Chức năng gửi phản ánh không khả dụng cho sản phẩm này.',
 
     // Event Types
