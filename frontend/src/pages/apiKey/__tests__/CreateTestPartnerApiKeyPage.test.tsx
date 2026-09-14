@@ -45,9 +45,8 @@ describe('CreateTestPartnerApiKeyPage (NCL-12-CN-004)', () => {
     renderPage();
 
     expect(
-      screen.getByRole('heading', { name: /Cấp khóa API thử nghiệm \(Sandbox\)/i })
+      screen.getByRole('heading', { name: /Cấp khóa API thử nghiệm/i })
     ).toBeInTheDocument();
-    expect(screen.getByText(/Đặc quyền Sandbox \(is_test=true\)/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Tên đối tác \/ Đơn vị thử nghiệm/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Hạn mức gọi API/i)).toHaveValue(100);
     expect(screen.getByLabelText(/Thời gian hết hạn khóa/i)).toBeInTheDocument();

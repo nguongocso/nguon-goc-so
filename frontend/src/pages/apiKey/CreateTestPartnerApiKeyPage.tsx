@@ -9,7 +9,6 @@ import {
   Check,
   ArrowLeft,
   Info,
-  Sparkles,
 } from "lucide-react";
 import { createTestApiKey } from "@/api/apiKeyApi";
 import type { PartnerApiKeyResponse } from "@/types/apiKey";
@@ -126,7 +125,7 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <FlaskConical className="size-6 text-emerald-600 dark:text-emerald-500" />
-            Cấp khóa API thử nghiệm (Sandbox)
+            Cấp khóa API thử nghiệm
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Tạo khóa truy cập Sandbox cho phép đội kỹ thuật bên thứ ba kết nối và kiểm thử API với dữ liệu mẫu chuẩn hóa, an toàn tuyệt đối.
@@ -246,19 +245,6 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
           </CardHeader>
           <form noValidate onSubmit={handleSubmit}>
             <CardContent className="space-y-5 pt-6">
-              {/* Sandbox Special Notice Box */}
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs sm:text-sm text-emerald-900 dark:text-emerald-200 leading-relaxed">
-                <Sparkles className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <span className="font-semibold block text-emerald-950 dark:text-emerald-100">
-                    Đặc quyền Sandbox (is_test=true):
-                  </span>
-                  <p>
-                    Khóa này có tiền tố <code className="font-mono font-bold text-emerald-700 dark:text-emerald-300">nks_test_</code>. Mọi truy vấn lấy lô sản xuất sẽ trả về dữ liệu mẫu mô phỏng chuẩn GS1, trường <code className="font-mono font-semibold">is_test: true</code> luôn được đính kèm để bảo vệ tuyệt đối dữ liệu thật của HTX.
-                  </p>
-                </div>
-              </div>
-
               {/* Tên đối tác */}
               <div className="space-y-1.5">
                 <Label htmlFor="partnerName" className="text-sm font-medium">
