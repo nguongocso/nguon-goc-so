@@ -4,8 +4,6 @@ import org.springframework.data.jpa.domain.Specification;
 import vn.nguongocso.alert.entity.ActivityLog;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.UUID;
 
 /**
@@ -46,6 +44,15 @@ public class ActivityLogSpecification {
     }
 
     /**
+     * Tạo Specification để lọc ActivityLog theo loại đối tượng dữ liệu.
+     */
+    public static Specification<ActivityLog> hasEntityType(String entityType) {
+        return (root, query, cb) -> (entityType == null || entityType.isBlank())
+                ? cb.conjunction()
+                : cb.equal(root.get("entityType"), entityType);
+    }
+
+    /**
      * Tạo Specification để lọc ActivityLog theo khoảng thời gian tạo.
      *
      * <p>
@@ -58,13 +65,16 @@ public class ActivityLogSpecification {
             if (startDate == null && endDate == null) {
                 return cb.conjunction();
             }
-            LocalDateTime startDateTime = startDate != null
-                    ? startDate.atStartOfDay()
-                    : LocalDateTime.MIN;
-            LocalDateTime endDateTime = endDate != null
-                    ? endDate.atTime(LocalTime.MAX)
-                    : LocalDateTime.now();
-            return cb.between(root.get("createdAt"), startDateTime, endDateTime);
+            if (startDate == null) {
+                return cb.lessThanOrEqualTo(root.get("createdAt"), endDate.atTime(23, 59, 59, 999_999_999));
+            }
+            if (endDate == null) {
+                return cb.greaterThanOrEqualTo(root.get("createdAt"), startDate.atStartOfDay());
+            }
+            return cb.between(
+                    root.get("createdAt"),
+                    startDate.atStartOfDay(),
+                    endDate.atTime(23, 59, 59, 999_999_999));
         };
     }
 }

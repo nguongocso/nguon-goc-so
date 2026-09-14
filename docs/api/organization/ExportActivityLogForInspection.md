@@ -8,9 +8,9 @@
 >
 > Phụ thuộc: NCL-101 và `NCL-08-CN-004` (xem lịch sử hoạt động)
 >
-> Loại tài liệu: API Contract-first · Trạng thái: **Proposed** · Phiên bản: v1
+> Loại tài liệu: API Contract-first · Trạng thái: **Triển khai một phần (NCL-857)** · Phiên bản: v1
 >
-> Lưu ý: các API, bảng và trường được đánh dấu **đề xuất** trong tài liệu này chưa được source hiện tại triển khai.
+> Lưu ý: preview và export CSV trực tiếp đã được triển khai trong NCL-857. Export nền/job/notification, bảng mới và các trường Activity Log bổ sung vẫn là **đề xuất**, chưa được source hiện tại triển khai.
 
 ## 1. Mục tiêu
 
@@ -30,7 +30,7 @@ Mọi endpoint yêu cầu `Authorization: Bearer <token>`. Không có quyền tr
 - **QTN-08 – dòng sự kiện chỉ thêm:** không sửa/xóa Activity Log để phục vụ export. Sau khi snapshot được chấp nhận/tạo thành công, thêm một event `EXPORT_ACTIVITY_LOG`; event này không thuộc snapshot hiện tại.
 - Không có dữ liệu khớp bộ lọc: trả `400`, không sinh file/job và không ghi audit export.
 - Cùng một DTO/bộ đặc tả lọc được dùng cho preview, snapshot và export để tránh sai lệch số lượng.
-- CSV là định dạng duy nhất của v1: `text/csv;charset=UTF-8`. Giá trị phải escape đúng CSV; mọi giá trị bắt đầu bằng `=`, `+`, `-`, `@` phải được bảo vệ khỏi CSV formula injection (ví dụ tiền tố dấu nháy đơn).
+- CSV là định dạng duy nhất của v1: `text/csv;charset=UTF-8`, có BOM UTF-8 để tương thích Excel. Giá trị phải escape đúng CSV; mọi giá trị bắt đầu bằng `=`, `+`, `-`, `@` phải được bảo vệ khỏi CSV formula injection (ví dụ tiền tố dấu nháy đơn).
 - Không xuất `userId`, `organizationId`, `ipAddress`, `description`, mật khẩu, token, secret hoặc credential. `description` chỉ là tóm tắt tự do, không đủ để suy ra before/after có cấu trúc và hiện chưa có sanitizer.
 
 ## 4. Luồng nghiệp vụ
@@ -97,14 +97,14 @@ Object JSON được serialize compact thành một giá trị CSV và escape d�
 
 Mọi response JSON, gồm lỗi, dùng wrapper `ApiResult` hiện hữu. Binary CSV trả raw response, không bọc `ApiResult`.
 
-| Method | Path | Mục đích |
-|---|---|---|
-| `POST` | `/api/v1/organizations/activity-logs/exports/preview` | Đếm và gợi ý mode |
-| `POST` | `/api/v1/organizations/activity-logs/exports` | Tạo export trực tiếp hoặc nền |
-| `GET` | `/api/v1/organizations/activity-logs/exports/{exportId}` | Xem job async |
-| `GET` | `/api/v1/organizations/activity-logs/exports/{exportId}/download` | Tải CSV job hoàn tất |
+| Method | Path | Mục đích | Trạng thái source |
+|---|---|---|---|
+| `POST` | `/api/v1/organizations/activity-logs/exports/preview` | Đếm và gợi ý mode | Đã triển khai NCL-857 |
+| `POST` | `/api/v1/organizations/activity-logs/exports` | Tạo export trực tiếp hoặc nền | Đã triển khai nhánh `DIRECT`; `ASYNC` chưa triển khai |
+| `GET` | `/api/v1/organizations/activity-logs/exports/{exportId}` | Xem job async | Đề xuất, chưa triển khai |
+| `GET` | `/api/v1/organizations/activity-logs/exports/{exportId}/download` | Tải CSV job hoàn tất | Đề xuất, chưa triển khai |
 
-Đây là các endpoint **đề xuất**; API hiện có chỉ là `GET /api/v1/organizations/activity-logs`.
+Hai endpoint POST đã được triển khai trong NCL-857. Hai endpoint GET phụ thuộc thiết kế job nền và vẫn là **đề xuất**.
 
 | Endpoint | Quyền | Request/validation | Success | Lỗi chính |
 |---|---|---|---|---|
@@ -123,11 +123,11 @@ Body là `ActivityLogExportFilterRequest`. Backend dùng đúng truy vấn filte
 {
   "success": true,
   "status": 200,
-  "data": { "count": 1248, "mode": "ASYNC" }
+  "data": { "count": 248, "mode": "DIRECT" }
 }
 ```
 
-`mode` là `DIRECT` hoặc `ASYNC`, do server quyết định. Ngưỡng số bản ghi/chỉ số tài nguyên chưa được chốt.
+Trong phạm vi NCL-857, `mode` luôn là `DIRECT`. Giá trị `ASYNC` chỉ được bật sau khi ngưỡng số bản ghi/chỉ số tài nguyên và thiết kế job được chốt, triển khai.
 
 Preview không tạo snapshot. Nếu có Activity Log mới giữa preview và lúc xác nhận, `recordCount` của export có thể tăng; đây là thay đổi dữ liệu hợp lệ, không phải sai khác logic. `recordCount` trả từ export/job là số lượng snapshot có thẩm quyền.
 
@@ -135,7 +135,7 @@ Preview không tạo snapshot. Nếu có Activity Log mới giữa preview và l
 
 ### `POST /api/v1/organizations/activity-logs/exports`
 
-Body giống preview. Server tự chọn mode sau khi tạo snapshot.
+Body giống preview. Trong NCL-857, server tạo snapshot trong bộ nhớ và xử lý mode `DIRECT`; cơ chế tự chọn `ASYNC` chưa được bật.
 
 - **DIRECT:** `200 OK`, `Content-Type: text/csv;charset=UTF-8`, `Content-Disposition: attachment; filename="activity-logs-<timestamp>.csv"`; response là bytes CSV. Snapshot/job nội bộ hoàn tất đồng bộ.
 - **ASYNC:** `202 Accepted`, trả `ApiResult`:
@@ -213,7 +213,7 @@ Event `EXPORT_ACTIVITY_LOG` được ghi **sau** khi transaction cố định sn
 |---|---|---|
 | Activity Log | `organizationId,userId,username,fullName,action,description,entityType,entityId,ipAddress,createdAt` | Dùng trực tiếp các trường mapping ở mục 6; không lộ ID/IP/description |
 | Filter/scoping | `ActivityLogSpecification` + service lấy organization từ current user | Tái sử dụng cho preview/export/snapshot |
-| API hiện hữu | `GET /api/v1/organizations/activity-logs` | Là nguồn filter/role `VT-02`; chưa có export API |
+| API hiện hữu | `GET /api/v1/organizations/activity-logs`, `POST .../exports/preview`, `POST .../exports` | Hai POST đã hỗ trợ preview và direct CSV trong NCL-857; async chưa có |
 | `CustomUserDetails` | Có `roleCode`, `roleName` | Không phải lịch sử role trong Event; không dùng để khôi phục role quá khứ |
 | Before/after | Không tồn tại; chỉ có `description` text | Không đáp ứng đầy đủ TC-01 |
 | Notification | `user,type,title,content,entityId` | Dùng `INFO`, `entityId=exportId` |
@@ -225,19 +225,19 @@ Event `EXPORT_ACTIVITY_LOG` được ghi **sau** khi transaction cố định sn
 
 | AC/TC | Contract/logic đáp ứng | Trạng thái tài liệu |
 |---|---|---|
-| TC-01 – export thành công | CSV schema mục 6; direct/async mục 9–10 | Chưa đạt đầy đủ với source cũ do thiếu role/before/after |
-| TC-02 – không có dữ liệu | `400`, không file/job/audit | Proposed |
-| TC-03 – tenant isolation | Current-user scope, 404 chung, mục 3/14 | Proposed |
-| TC-04 – ghi lịch sử export | `EXPORT_ACTIVITY_LOG` sau snapshot, mục 13 | Proposed |
-| TC-05 – preview count | Endpoint preview dùng cùng filter/query, mục 8 | Proposed |
-| TC-06 – dữ liệu lớn | Server chọn `ASYNC`, TaskExecutor, notification/download | Proposed |
+| TC-01 – export thành công | CSV schema mục 6; direct/async mục 9–10 | Direct đã triển khai; chưa đạt đầy đủ do thiếu role/before/after |
+| TC-02 – không có dữ liệu | `400`, không file/job/audit | Đã triển khai cho direct |
+| TC-03 – tenant isolation | Current-user scope, 404 chung, mục 3/14 | Đã áp dụng cho hai POST; job/download chưa triển khai |
+| TC-04 – ghi lịch sử export | `EXPORT_ACTIVITY_LOG` sau snapshot, mục 13 | Đã triển khai cho direct |
+| TC-05 – preview count | Endpoint preview dùng cùng filter/query, mục 8 | Đã triển khai, mode hiện là `DIRECT` |
+| TC-06 – dữ liệu lớn | Server chọn `ASYNC`, TaskExecutor, notification/download | Chưa triển khai |
 
 Ma trận yêu cầu:
 
 | Yêu cầu | Nguồn | Hành vi | API/DB tác động | Bằng chứng/validation |
 |---|---|---|---|---|
 | Chốt trường file | NCL-854 | Chín cột cố định ở mục 6; thiếu dữ liệu phải ghi GAP | ActivityLog capture/model additive | Review schema/source; chưa implement |
-| Xuất theo bộ lọc | NCL-857 | Preview và export dùng cùng DTO/specification | Hai POST endpoint, mở rộng specification | TC-01, TC-02, TC-05 |
+| Xuất theo bộ lọc | NCL-857 | Preview và export dùng cùng DTO/specification | Hai POST endpoint, mở rộng specification | Đã triển khai direct; test service/controller đạt |
 | Bảo đảm phạm vi | NCL-860 | JWT/current tenant ở query, job và file | Tenant-scoped repository/service | TC-03 + negative cross-tenant |
 | Kiểm thử export | NCL-862 | Bao phủ direct, async, security và lỗi | Test plan cuối mục 16 | Chưa chạy vì task docs-only |
 | Xem lịch sử hiện có | NCL-101 / NCL-08-CN-004-TC-01 | Giữ `GET /activity-logs`; export dựa cùng dữ liệu | Không phá contract hiện có | Regression test GET |
@@ -274,4 +274,4 @@ Ví dụ lỗi dùng chung, trong đó `path` thay đổi theo endpoint thực t
 }
 ```
 
-**Trạng thái validation:** chỉ kiểm tra tính nhất quán contract-first với nguồn được cung cấp; chưa có backend/frontend/runtime/test nào được thực thi và không tuyên bố AC đã pass.
+**Trạng thái validation NCL-857:** backend preview/direct CSV và test service/controller đã được triển khai. Export nền/job/notification, migration bổ sung Activity Log, runtime với database thật và toàn bộ TC01–TC06 chưa hoàn tất; không tuyên bố toàn bộ Story đã pass.

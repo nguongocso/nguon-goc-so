@@ -1,14 +1,21 @@
 package vn.nguongocso.alert.controller;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.nio.charset.StandardCharsets;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +24,9 @@ import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.alert.dto.response.ActivityLogResponse;
+import vn.nguongocso.alert.dto.request.ActivityLogExportFilterRequest;
+import vn.nguongocso.alert.dto.response.ActivityLogExportPreviewResponse;
+import vn.nguongocso.alert.service.ActivityLogExportService;
 import vn.nguongocso.alert.service.ActivityLogService;
 
 /**
@@ -29,6 +39,7 @@ import vn.nguongocso.alert.service.ActivityLogService;
 public class ActivityLogController {
 
     private final ActivityLogService activityLogService;
+    private final ActivityLogExportService activityLogExportService;
 
     /**
      * API lấy danh sách lịch sử hoạt động của tổ chức hiện tại.
@@ -79,6 +90,38 @@ public class ActivityLogController {
                 );
 
         return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Đếm số bản ghi nhật ký khớp bộ lọc trước khi xuất.
+     */
+    @PostMapping("/exports/preview")
+    @PreAuthorize("hasRole('VT-02')")
+    public ResponseEntity<ApiResult<ActivityLogExportPreviewResponse>> previewExport(
+            @Valid @RequestBody ActivityLogExportFilterRequest filter,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        ActivityLogExportPreviewResponse response = activityLogExportService.preview(filter, currentUser);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Xuất trực tiếp snapshot nhật ký hoạt động khớp bộ lọc ra tệp CSV.
+     */
+    @PostMapping("/exports")
+    @PreAuthorize("hasRole('VT-02')")
+    public ResponseEntity<byte[]> exportActivityLogs(
+            @Valid @RequestBody ActivityLogExportFilterRequest filter,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        byte[] csvBytes = activityLogExportService.exportCsv(filter, currentUser);
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        ContentDisposition disposition = ContentDisposition.attachment()
+                .filename("activity-logs-" + timestamp + ".csv", StandardCharsets.UTF_8)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+                .body(csvBytes);
     }
 
     /**
