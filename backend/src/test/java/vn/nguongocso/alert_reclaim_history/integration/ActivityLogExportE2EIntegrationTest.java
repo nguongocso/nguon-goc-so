@@ -204,44 +204,38 @@ public class ActivityLogExportE2EIntegrationTest {
         assertThat(csvBytes[2]).isEqualTo((byte) 0xBF);
 
         String csvString = new String(csvBytes, 3, csvBytes.length - 3, StandardCharsets.UTF_8);
-        try (CSVParser parser = CSVFormat.DEFAULT.builder()
-                .setDelimiter(';')
-                .setHeader()
-                .setSkipHeaderRecord(true)
-                .get()
-                .parse(new InputStreamReader(
-                        new ByteArrayInputStream(csvBytes, 3, csvBytes.length - 3), StandardCharsets.UTF_8))) {
+        try (CSVParser parser = CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).get().parse(new InputStreamReader(new ByteArrayInputStream(csvBytes, 3, csvBytes.length - 3), StandardCharsets.UTF_8))) {
             List<String> headerNames = parser.getHeaderNames();
             assertThat(headerNames).containsExactly(
-                    "Thời gian",
-                    "Người thực hiện",
-                    "Tên đăng nhập",
-                    "Vai trò",
-                    "Hành động",
-                    "Loại đối tượng",
-                    "Mã đối tượng",
-                    "Dữ liệu trước",
-                    "Dữ liệu sau"
+                    "occurredAt",
+                    "actorName",
+                    "actorUsername",
+                    "actorRole",
+                    "actionType",
+                    "objectType",
+                    "objectIdentifier",
+                    "beforeValue",
+                    "afterValue"
             );
 
             List<CSVRecord> records = parser.getRecords();
             assertThat(records).hasSize(2);
 
             CSVRecord r1 = records.get(0);
-            assertThat(r1.get("Người thực hiện")).isEqualTo("Nguyễn Văn An");
-            assertThat(r1.get("Tên đăng nhập")).isEqualTo("manager_a");
-            assertThat(r1.get("Vai trò")).isEqualTo("Quản lý hợp tác xã (VT-02)");
-            assertThat(r1.get("Hành động")).isEqualTo("Cập nhật lô sản xuất");
-            assertThat(r1.get("Loại đối tượng")).isEqualTo("Lô sản xuất");
-            assertThat(r1.get("Mã đối tượng")).isEqualTo("LOT-001");
-            assertThat(r1.get("Dữ liệu trước")).isEqualTo("{\"status\":\"OLD\"}");
-            assertThat(r1.get("Dữ liệu sau")).isEqualTo("{\"status\":\"NEW\"}");
+            assertThat(r1.get("actorName")).isEqualTo("Nguyễn Văn An");
+            assertThat(r1.get("actorUsername")).isEqualTo("manager_a");
+            assertThat(r1.get("actorRole")).isEqualTo("VT-02");
+            assertThat(r1.get("actionType")).isEqualTo("UPDATE_PRODUCTION_LOT");
+            assertThat(r1.get("objectType")).isEqualTo("PRODUCTION_LOT");
+            assertThat(r1.get("objectIdentifier")).isEqualTo("LOT-001");
+            assertThat(r1.get("beforeValue")).isEqualTo("{\"status\":\"OLD\"}");
+            assertThat(r1.get("afterValue")).isEqualTo("{\"status\":\"NEW\"}");
 
             CSVRecord r2 = records.get(1);
-            assertThat(r2.get("Người thực hiện")).isEqualTo("Trần Thị Bình");
-            assertThat(r2.get("Tên đăng nhập")).isEqualTo("recorder_a");
-            assertThat(r2.get("Hành động")).isEqualTo("Cập nhật lô sản xuất");
-            assertThat(r2.get("Mã đối tượng")).isEqualTo("LOT-002");
+            assertThat(r2.get("actorName")).isEqualTo("Trần Thị Bình");
+            assertThat(r2.get("actorUsername")).isEqualTo("recorder_a");
+            assertThat(r2.get("actionType")).isEqualTo("UPDATE_PRODUCTION_LOT");
+            assertThat(r2.get("objectIdentifier")).isEqualTo("LOT-002");
         }
 
         // 6. Refresh danh sách qua API GET: Xác nhận xuất hiện sự kiện EXPORT_ACTIVITY_LOG
