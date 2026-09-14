@@ -136,4 +136,28 @@ describe("ActivityLogExportDialog", () => {
     const downloadBtn = screen.getByRole("button", { name: /Tải tệp CSV/i });
     expect(downloadBtn).toBeDisabled();
   });
+
+  it("vô hiệu hóa nút tải tệp và hiển thị cảnh báo khi số lượng bản ghi vượt quá 10.000", async () => {
+    vi.mocked(activityLogApi.previewExportActivityLogs).mockResolvedValue({
+      count: 15000,
+      mode: "DIRECT",
+    });
+
+    render(
+      <ActivityLogExportDialog
+        open={true}
+        onClose={vi.fn()}
+        filter={defaultFilter}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Vượt quá giới hạn xuất trực tiếp")).toBeInTheDocument();
+      expect(screen.getByText(/Xuất trực tiếp hỗ trợ tối đa/)).toBeInTheDocument();
+    });
+
+    const downloadBtn = screen.getByRole("button", { name: /Tải tệp CSV/i });
+    expect(downloadBtn).toBeDisabled();
+  });
 });
+

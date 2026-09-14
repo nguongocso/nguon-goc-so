@@ -10,6 +10,9 @@ import java.util.List;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
@@ -32,6 +35,7 @@ import vn.nguongocso.exception.BusinessException;
 @Service
 @RequiredArgsConstructor
 public class ActivityLogExportServiceImpl implements ActivityLogExportService {
+    public static final int MAX_DIRECT_EXPORT_RECORDS = 10_000;
     private static final String ROLE_ORGANIZATION_MANAGER = "VT-02";
     private static final String DIRECT_MODE = "DIRECT";
     private static final String NULL_VALUE = "null";
@@ -70,12 +74,22 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
             CustomUserDetails currentUser) {
         validateRequest(request, currentUser);
 
-        List<ActivityLog> snapshot = activityLogRepository.findAll(
+        Sort sort = Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("id"));
+        Pageable pageable = PageRequest.of(0, MAX_DIRECT_EXPORT_RECORDS + 1, sort);
+
+        Page<ActivityLog> page = activityLogRepository.findAll(
                 buildSpecification(request, currentUser),
-                Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("id")));
+                pageable);
+
+        List<ActivityLog> snapshot = page.getContent();
 
         if (snapshot.isEmpty()) {
             throw new BusinessException("Không có nhật ký hoạt động trong phạm vi lọc.");
+        }
+
+        if (snapshot.size() > MAX_DIRECT_EXPORT_RECORDS) {
+            throw new BusinessException(
+                    "Số lượng bản ghi vượt quá giới hạn xuất trực tiếp (tối đa 10.000 bản ghi). Vui lòng thu hẹp khoảng thời gian hoặc điều kiện lọc.");
         }
 
         byte[] csv = createCsv(snapshot);
@@ -185,11 +199,15 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
                 : currentUser.getUsername();
     }
 
-    private String protectFormula(String value) {
+    public String protectFormula(String value) {
         if (value == null || value.isEmpty()) {
             return value;
         }
-        char first = value.charAt(0);
+        String stripped = value.stripLeading();
+        if (stripped.isEmpty()) {
+            return value;
+        }
+        char first = stripped.charAt(0);
         return first == '=' || first == '+' || first == '-' || first == '@'
                 ? "'" + value
                 : value;

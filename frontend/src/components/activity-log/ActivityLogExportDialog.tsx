@@ -101,7 +101,9 @@ export const ActivityLogExportDialog = ({
     }
   };
 
+  const MAX_DIRECT_EXPORT_RECORDS = 10_000;
   const hasNoData = recordCount === 0;
+  const isOverLimit = (recordCount ?? 0) > MAX_DIRECT_EXPORT_RECORDS;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && !exporting && onClose()}>
@@ -145,6 +147,19 @@ export const ActivityLogExportDialog = ({
                 <p className="mt-0.5 text-amber-700">
                   Không tìm thấy nhật ký hoạt động nào trong phạm vi bộ lọc đang chọn. Bạn cần điều
                   chỉnh lại điều kiện lọc trước khi xuất.
+                </p>
+              </div>
+            </div>
+          ) : isOverLimit ? (
+            <div className="flex items-start gap-3 p-4 border border-amber-200 rounded-xl bg-amber-50 text-amber-900">
+              <AlertCircle className="w-5 h-5 mt-0.5 shrink-0 text-amber-600" />
+              <div className="text-sm">
+                <p className="font-semibold">Vượt quá giới hạn xuất trực tiếp</p>
+                <p className="mt-1 text-amber-800">
+                  Có <strong>{recordCount?.toLocaleString('vi-VN')}</strong> bản ghi.
+                </p>
+                <p className="mt-0.5 text-amber-800">
+                  Xuất trực tiếp hỗ trợ tối đa <strong>10.000</strong> bản ghi. Vui lòng thu hẹp khoảng thời gian hoặc điều kiện lọc.
                 </p>
               </div>
             </div>
@@ -242,7 +257,7 @@ export const ActivityLogExportDialog = ({
             type="button"
             className="bg-emerald-700 hover:bg-emerald-800 text-white gap-2 font-medium"
             onClick={handleExport}
-            disabled={loadingPreview || !!previewError || hasNoData || exporting}
+            disabled={loadingPreview || !!previewError || hasNoData || isOverLimit || exporting}
           >
             {exporting ? (
               <>

@@ -28,9 +28,10 @@ Mọi endpoint yêu cầu `Authorization: Bearer <token>`. Không có quyền tr
 
 - **QTN-01 – cách ly dữ liệu:** truy vấn Activity Log và Export Job luôn ràng buộc `organizationId` của người dùng hiện tại trong service/query. Không nhận `organizationId`, `userId` hay `objectId` làm bộ lọc client; không tiết lộ sự tồn tại của dữ liệu/job/file khác tổ chức.
 - **QTN-08 – dòng sự kiện chỉ thêm:** không sửa/xóa Activity Log để phục vụ export. Sau khi snapshot được chấp nhận/tạo thành công, thêm một event `EXPORT_ACTIVITY_LOG`; event này không thuộc snapshot hiện tại.
+- **Giới hạn xuất trực tiếp (DIRECT export limit):** Chế độ DIRECT export trong Story v1 giới hạn tối đa 10.000 bản ghi (`MAX_DIRECT_EXPORT_RECORDS = 10_000`). Nếu số lượng bản ghi vượt quá 10.000 (truy vấn snapshot lấy được từ 10.001 bản ghi trở lên), yêu cầu export bị từ chối với HTTP 400 (`BusinessException`), không tạo CSV, không ghi audit `EXPORT_ACTIVITY_LOG`, và thông báo người dùng thu hẹp khoảng thời gian hoặc điều kiện lọc. Đây là giới hạn kỹ thuật an toàn của DIRECT mode v1; ASYNC export không thuộc phạm vi Story hiện tại.
 - Không có dữ liệu khớp bộ lọc: trả `400`, không sinh file/job và không ghi audit export.
 - Cùng một DTO/bộ đặc tả lọc được dùng cho preview, snapshot và export để tránh sai lệch số lượng.
-- CSV là định dạng duy nhất của v1: `text/csv;charset=UTF-8`, có BOM UTF-8 để tương thích Excel. Giá trị phải escape đúng CSV; mọi giá trị bắt đầu bằng `=`, `+`, `-`, `@` phải được bảo vệ khỏi CSV formula injection (ví dụ tiền tố dấu nháy đơn).
+- CSV là định dạng duy nhất của v1: `text/csv;charset=UTF-8`, có BOM UTF-8 để tương thích Excel. Giá trị phải escape đúng CSV; mọi giá trị mà sau khi loại bỏ khoảng trắng đầu dòng (`stripLeading()`) bắt đầu bằng `=`, `+`, `-`, `@` phải được bảo vệ khỏi CSV formula injection bằng cách thêm tiền tố dấu nháy đơn (`'`) vào đầu toàn bộ giá trị xuất ra.
 - Không xuất `userId`, `organizationId`, `ipAddress`, `description`, mật khẩu, token, secret hoặc credential. `description` chỉ là tóm tắt tự do, không đủ để suy ra before/after có cấu trúc và hiện chưa có sanitizer.
 
 ## 4. Luồng nghiệp vụ
@@ -127,33 +128,46 @@ Body là `ActivityLogExportFilterRequest`. Backend dùng đúng truy vấn filte
 }
 ```
 
-Trong phạm vi NCL-857, `mode` luôn là `DIRECT`. Giá trị `ASYNC` chỉ được bật sau khi ngưỡng số bản ghi/chỉ số tài nguyên và thiết kế job được chốt, triển khai.
-
-Preview không tạo snapshot. Nếu có Activity Log mới giữa preview và lúc xác nhận, `recordCount` của export có thể tăng; đây là thay đổi dữ liệu hợp lệ, không phải sai khác logic. `recordCount` trả từ export/job là số lượng snapshot có thẩm quyền.
+- Trong phạm vi Story v1, `mode` luôn là `DIRECT`. Hợp đồng API và response schema được giữ nguyên (không tự ý thêm trường mới).
+- `count` phản ánh tổng số bản ghi thực tế theo bộ lọc tại thời điểm truy vấn và **có thể vượt quá 10.000 bản ghi** (ví dụ: `15.000`).
+- Nếu `count > 10.000`:
+  - Preview vẫn trả về số lượng thực tế để người dùng biết quy mô dữ liệu.
+  - Frontend dựa vào `count` và ngưỡng DIRECT (`10.000`) để hiển thị cảnh báo: *"Có {count} bản ghi. Xuất trực tiếp hỗ trợ tối đa 10.000 bản ghi. Vui lòng thu hẹp khoảng thời gian hoặc điều kiện lọc."*
+  - Frontend vô hiệu hóa (disable) nút "Tải tệp CSV", ngăn người dùng gửi request chắc chắn sẽ bị từ chối.
+- Preview không tạo snapshot. Nếu có Activity Log mới giữa preview và lúc xác nhận, `recordCount` của export có thể thay đổi; đây là thay đổi dữ liệu tự nhiên, không phải sai khác logic.
 
 ## 9. Export trực tiếp
 
 ### `POST /api/v1/organizations/activity-logs/exports`
 
-Body giống preview. Trong NCL-857, server tạo snapshot trong bộ nhớ và xử lý mode `DIRECT`; cơ chế tự chọn `ASYNC` chưa được bật.
+Body giống preview. Trong Story v1, backend xử lý mode `DIRECT`; `ASYNC` export chưa thuộc phạm vi triển khai của Story này.
 
-- **DIRECT:** `200 OK`, `Content-Type: text/csv;charset=UTF-8`, `Content-Disposition: attachment; filename="activity-logs-<timestamp>.csv"`; response là bytes CSV. Snapshot/job nội bộ hoàn tất đồng bộ.
-- **ASYNC:** `202 Accepted`, trả `ApiResult`:
+#### Giới hạn và an toàn bộ nhớ (OOM Protection):
+- Backend không bao giờ thực hiện `findAll(specification, sort)` không giới hạn vào RAM.
+- Query snapshot được giới hạn chặt chẽ ở database layer thông qua `PageRequest.of(0, 10001, sort)` (`MAX_DIRECT_EXPORT_RECORDS + 1`).
+- Thứ tự sắp xếp giữ nguyên: `createdAt ASC`, `id ASC`.
 
+#### Xử lý kết quả theo ngưỡng:
+- **Trường hợp kết quả <= 10.000 bản ghi:**
+  - `200 OK`, `Content-Type: text/csv;charset=UTF-8`, `Content-Disposition: attachment; filename="activity-logs-<timestamp>.csv"`; response là nội dung CSV nhị phân có UTF-8 BOM.
+  - Sau khi sinh file thành công, ghi audit log `EXPORT_ACTIVITY_LOG` với trạng thái `SUCCESS`.
+- **Trường hợp kết quả > 10.000 bản ghi (query DB trả đủ 10.001 bản ghi):**
+  - Từ chối export, trả về HTTP `400 Bad Request` dạng JSON (`ApiResult`).
+  - **Không** tạo file CSV.
+  - **Không** ghi audit log `EXPORT_ACTIVITY_LOG`.
+  - Message phản hồi nghiệp vụ rõ ràng:
+  
 ```json
 {
-  "success": true,
-  "status": 202,
-  "data": {
-    "exportId": "b6b05fbc-6f2a-4d8f-a6e4-4ddc0fa0af31",
-    "status": "IN_PROGRESS",
-    "recordCount": 1248,
-    "createdAt": "2026-09-14T09:00:00+07:00"
-  }
+  "success": false,
+  "status": 400,
+  "message": "Số lượng bản ghi vượt quá giới hạn xuất trực tiếp (tối đa 10.000 bản ghi). Vui lòng thu hẹp khoảng thời gian hoặc điều kiện lọc.",
+  "path": "/api/v1/organizations/activity-logs/exports",
+  "timestamp": "2026-09-14T02:05:00Z"
 }
 ```
 
-Không tạo file rỗng. Direct không trả URL tải riêng.
+- Không tạo file rỗng. Direct không trả URL tải riêng.
 
 ## 10. Background Export
 
@@ -230,7 +244,7 @@ Event `EXPORT_ACTIVITY_LOG` được ghi **sau** khi transaction cố định sn
 | TC-03 – tenant isolation | Current-user scope, 404 chung, mục 3/14 | Đã áp dụng cho hai POST; job/download chưa triển khai |
 | TC-04 – ghi lịch sử export | `EXPORT_ACTIVITY_LOG` sau snapshot, mục 13 | Đã triển khai cho direct |
 | TC-05 – preview count | Endpoint preview dùng cùng filter/query, mục 8 | Đã triển khai, mode hiện là `DIRECT` |
-| TC-06 – dữ liệu lớn | Server chọn `ASYNC`, TaskExecutor, notification/download | Chưa triển khai |
+| TC-06 – dữ liệu lớn | Chặn OOM bằng query limit 10.001 ở DB; từ chối khi > 10.000; async hoãn | Đã áp dụng safety guard cho direct v1; async chưa triển khai |
 
 Ma trận yêu cầu:
 
@@ -239,7 +253,7 @@ Ma trận yêu cầu:
 | Chốt trường file | NCL-854 | Chín cột cố định ở mục 6; thiếu dữ liệu phải ghi GAP | ActivityLog capture/model additive | Review schema/source; chưa implement |
 | Xuất theo bộ lọc | NCL-857 | Preview và export dùng cùng DTO/specification | Hai POST endpoint, mở rộng specification | Đã triển khai direct; test service/controller đạt |
 | Bảo đảm phạm vi | NCL-860 | JWT/current tenant ở query, job và file | Tenant-scoped repository/service | TC-03 + negative cross-tenant |
-| Kiểm thử export | NCL-862 | Bao phủ direct, async, security và lỗi | Test plan cuối mục 16 | Chưa chạy vì task docs-only |
+| Kiểm thử export | NCL-862 | Bao phủ direct, boundary, security và lỗi | Test plan cuối mục 16 | Đã bổ sung unit/boundary tests |
 | Xem lịch sử hiện có | NCL-101 / NCL-08-CN-004-TC-01 | Giữ `GET /activity-logs`; export dựa cùng dữ liệu | Không phá contract hiện có | Regression test GET |
 | Trạng thái rỗng | NCL-08-CN-004-TC-02 | GET hiện tại vẫn trả items rỗng; preview trả count 0 | Không đổi GET | Existing controller/service + regression test |
 | Chỉ lịch sử tổ chức mình | NCL-08-CN-004-TC-03 | Scope từ JWT/current user | Reuse `hasOrganizationId` | Cross-tenant test |
@@ -249,7 +263,7 @@ Ma trận yêu cầu:
 | Tenant isolation | Baseline NCL-08-CN-015-TC-03, QTN-01 | Không rò count/job/file/metadata | Scope từ `CustomUserDetails` | Permission/cross-tenant tests |
 | Ghi lịch sử export | Baseline NCL-08-CN-015-TC-04, QTN-08 | Audit sau snapshot, không sửa log cũ | Durable append-only audit | Snapshot/audit ordering test |
 | Preview count | Baseline NCL-08-CN-015-TC-05 | Cùng filter/query với snapshot | Preview endpoint | Count parity test khi dữ liệu không đổi |
-| Dữ liệu lớn | Baseline NCL-08-CN-015-TC-06 | `202`, job nền, notification, download | Job/items + TaskExecutor + Notification | Async integration test |
+| Dữ liệu lớn | Baseline NCL-08-CN-015-TC-06 | Query DB giới hạn 10.001; từ chối khi > 10.000; FE cảnh báo và disable tải | Bounded query Pageable, Http 400 | Boundary test 9.999 / 10.000 / 10.001 |
 
 Kiểm thử bắt buộc khi triển khai: TC01–TC06; sai khoảng ngày; 401/403; actor/object/job khác tenant; `download` khi `IN_PROGRESS`; file thiếu; lỗi worker `FAILED`; CSV escape/formula injection; denylist before/after; event export không nằm trong snapshot; và hồi quy `GET /activity-logs`.
 
@@ -257,7 +271,7 @@ Kiểm thử bắt buộc khi triển khai: TC01–TC06; sai khoảng ngày; 401
 
 1. Jira NCL-706/NCL-854/NCL-857/NCL-860/NCL-862 hiện không có description/AC live; TC01–TC06 từ baseline attachment là evidence nghiệp vụ. Excel mới ngày 2026-08-14 có QTN-01, QTN-08, `NCL-08-CN-004` và TC/task liên quan, nhưng không có `NCL-08-CN-015`/NCL-706/NCL-854; workbook cũ có nội dung liên quan tương tự.
 2. Source thiếu role lịch sử và before/after. Vì vậy không thể khẳng định TC-01 pass cho dữ liệu cũ cho đến khi có thay đổi additive về capture/model; các cột hiện là `null`.
-3. Cần BA/PO chốt ngưỡng direct/async dạng số, thời gian giữ file, expiry/cleanup, retry và kích thước file tối đa. Chỉ dùng `410` nếu chính sách retention tương lai xác định file hết hạn; v1 dùng `404` khi file thiếu.
+3. Giới hạn DIRECT export trong Story v1 đã được chốt kỹ thuật là tối đa 10.000 bản ghi. Query DB bắt buộc dùng `PageRequest.of(0, 10001, sort)` để chặn nguy cơ OOM. Khi vượt 10.000 bản ghi, từ chối export trực tiếp và yêu cầu người dùng thu hẹp bộ lọc. Cơ chế ASYNC export (job nền, retention, storage) được hoãn sang giai đoạn sau và không nằm trong phạm vi Story v1 này.
 4. Bảng `job`/`job_item` và các cột ActivityLog là proposal DB, không phải migration đã tồn tại. Cần thiết kế khóa/index, quyền file storage và transaction cụ thể trước backend implementation.
 5. Audit hiện tại qua `ActivityLogListener` là bất đồng bộ và nuốt lỗi sau khi log; chưa đủ bảo đảm TC-04 cho export. Task backend phải chọn cơ chế ghi bền vững/transaction hoặc outbox trước khi trả thành công, không làm yếu tính nhất quán chỉ để tái sử dụng annotation hiện tại.
 6. Mã lỗi chuẩn dùng `ApiResult`: khoảng ngày không hợp lệ `400`; không dữ liệu `400`; không xác thực `401`; không đủ quyền `403`; job tenant khác/không tồn tại `404`; job chưa hoàn tất `409`; file thiếu `404`; tạo file/lỗi nền: job `FAILED`, lỗi đồng bộ `500` và notification theo quyết định nghiệp vụ. Không công bố chi tiết tenant khác.
