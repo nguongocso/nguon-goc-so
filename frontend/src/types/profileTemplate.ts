@@ -16,6 +16,7 @@ export interface ProfileTemplate {
   name: string;
   partnerName?: string | null;
   isDefault: boolean;
+  default?: boolean;
   fields: ProfileTemplateField[];
   createdAt?: string;
   updatedAt?: string;

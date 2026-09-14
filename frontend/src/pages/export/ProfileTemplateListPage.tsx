@@ -68,7 +68,7 @@ export const ProfileTemplateListPage: React.FC = () => {
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
-    if (deleteTarget.isDefault) {
+    if (deleteTarget.isDefault || deleteTarget.default) {
       toast.error('Không thể xóa mẫu hồ sơ đang được đặt làm mặc định');
       setDeleteTarget(null);
       return;
@@ -163,7 +163,7 @@ export const ProfileTemplateListPage: React.FC = () => {
               <TableCell className="font-medium">
                 <div className="flex items-center gap-2">
                   <span className="text-foreground">{template.name}</span>
-                  {template.isDefault && (
+                  {(template.isDefault || template.default) && (
                     <Badge variant="success" className="text-[11px] px-2 py-0.5">
                       Mặc định
                     </Badge>
@@ -210,9 +210,9 @@ export const ProfileTemplateListPage: React.FC = () => {
                         variant="ghost"
                         size="icon-sm"
                         onClick={() => setDeleteTarget(template)}
-                        disabled={template.isDefault}
+                        disabled={Boolean(template.isDefault || template.default)}
                         title={
-                          template.isDefault
+                          (template.isDefault || template.default)
                             ? 'Không thể xóa mẫu mặc định'
                             : 'Xóa mẫu hồ sơ'
                         }
@@ -220,7 +220,7 @@ export const ProfileTemplateListPage: React.FC = () => {
                       >
                         <Trash2
                           className={`size-4 ${
-                            template.isDefault
+                            (template.isDefault || template.default)
                               ? 'text-disabled cursor-not-allowed'
                               : 'text-destructive hover:opacity-80'
                           }`}

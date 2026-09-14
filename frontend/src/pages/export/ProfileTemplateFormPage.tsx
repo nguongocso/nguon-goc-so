@@ -135,7 +135,7 @@ export const ProfileTemplateFormPage: React.FC = () => {
           console.log('[ProfileTemplateFormPage] Chi tiết mẫu hồ sơ đã tải:', tpl);
           setValue('name', tpl.name || '');
           setValue('partnerName', tpl.partnerName || '');
-          setValue('isDefault', Boolean(tpl.isDefault));
+          setValue('isDefault', Boolean(tpl.isDefault ?? tpl.default));
 
           // Map trường đã lưu
           const rawFields = Array.isArray(tpl.fields) ? tpl.fields : [];
@@ -215,7 +215,7 @@ export const ProfileTemplateFormPage: React.FC = () => {
       const payload = {
         name: data.name.trim(),
         partnerName: data.partnerName?.trim() || undefined,
-        isDefault: data.isDefault,
+        isDefault: Boolean(data.isDefault),
         selectedFields: selectedFields.map((f, idx) => ({
           fieldKey: f.fieldKey,
           fieldGroup: f.fieldGroup || 'OTHER',
@@ -345,8 +345,13 @@ export const ProfileTemplateFormPage: React.FC = () => {
             </div>
 
             {/* Mặc định switch */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-muted/20">
-              <div className="space-y-0.5">
+            <div
+              className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer select-none"
+              onClick={() => {
+                setValue('isDefault', !watch('isDefault'), { shouldValidate: true, shouldDirty: true });
+              }}
+            >
+              <div className="space-y-0.5 pointer-events-none">
                 <Label htmlFor="isDefault" className="text-sm font-medium cursor-pointer">
                   Đặt làm mẫu hồ sơ mặc định của tổ chức
                 </Label>
@@ -354,18 +359,20 @@ export const ProfileTemplateFormPage: React.FC = () => {
                   Khi người xuất không chọn mẫu cụ thể, hệ thống sẽ tự động áp dụng mẫu mặc định này.
                 </p>
               </div>
-              <Controller
-                name="isDefault"
-                control={control}
-                render={({ field }) => (
-                  <Switch
-                    id="isDefault"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                    disabled={submitting}
-                  />
-                )}
-              />
+              <div onClick={(e) => e.stopPropagation()}>
+                <Controller
+                  name="isDefault"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch
+                      id="isDefault"
+                      checked={Boolean(field.value)}
+                      onCheckedChange={(checked) => field.onChange(Boolean(checked))}
+                      disabled={submitting}
+                    />
+                  )}
+                />
+              </div>
             </div>
 
             {/* Thông báo lỗi validation QTN-11 nếu có */}

@@ -1,5 +1,6 @@
 package vn.nguongocso.export.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -32,6 +33,7 @@ public class ProfileTemplateResponse {
     private String description;
 
     /** Cờ mẫu mặc định của tổ chức */
+    @JsonProperty("isDefault")
     private boolean isDefault;
 
     /** Tổng số trường được chọn */
@@ -45,4 +47,9 @@ public class ProfileTemplateResponse {
 
     /** Thời điểm cập nhật lần cuối */
     private LocalDateTime updatedAt;
+
+    @JsonProperty("isDefault")
+    public boolean isDefault() {
+        return this.isDefault;
+    }
 }

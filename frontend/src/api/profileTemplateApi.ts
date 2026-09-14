@@ -83,6 +83,18 @@ export const getAvailableFields = async (
 };
 
 /**
+ * Chuẩn hóa đối tượng ProfileTemplate đảm bảo isDefault luôn là boolean chính xác
+ */
+export const normalizeProfileTemplate = (t: any): ProfileTemplate => {
+  if (!t) return t;
+  const isDefault = Boolean(t.isDefault ?? t.default ?? t.is_default ?? false);
+  return {
+    ...t,
+    isDefault,
+  };
+};
+
+/**
  * Lấy danh sách các mẫu hồ sơ của tổ chức
  * GET /api/v1/organizations/{orgId}/profile-templates
  */
@@ -95,8 +107,9 @@ export const getProfileTemplates = async (
       `/organizations/${organizationId}/profile-templates`
     );
     const data = extractData(response.data);
-    console.log('[profileTemplateApi] getProfileTemplates - Thành công, số lượng:', Array.isArray(data) ? data.length : typeof data, data);
-    return data;
+    const list = Array.isArray(data) ? data.map(normalizeProfileTemplate) : [];
+    console.log('[profileTemplateApi] getProfileTemplates - Thành công, số lượng:', list.length, list);
+    return list;
   } catch (err) {
     console.error('[profileTemplateApi] getProfileTemplates - Thất bại:', err);
     throw err;
@@ -116,7 +129,7 @@ export const getProfileTemplateById = async (
     const response = await apiClient.get<ApiResult<ProfileTemplate> | ProfileTemplate>(
       `/organizations/${organizationId}/profile-templates/${templateId}`
     );
-    const data = extractData(response.data);
+    const data = normalizeProfileTemplate(extractData(response.data));
     console.log('[profileTemplateApi] getProfileTemplateById - Thành công:', data);
     return data;
   } catch (err) {
@@ -137,7 +150,7 @@ export const getDefaultProfileTemplate = async (
     const response = await apiClient.get<ApiResult<ProfileTemplate> | ProfileTemplate>(
       `/organizations/${organizationId}/profile-templates/default`
     );
-    const data = extractData(response.data);
+    const data = normalizeProfileTemplate(extractData(response.data));
     console.log('[profileTemplateApi] getDefaultProfileTemplate - Thành công:', data);
     return data;
   } catch (err) {
@@ -160,7 +173,7 @@ export const createProfileTemplate = async (
       `/organizations/${organizationId}/profile-templates`,
       data
     );
-    const created = extractData(response.data);
+    const created = normalizeProfileTemplate(extractData(response.data));
     console.log('[profileTemplateApi] createProfileTemplate - Thành công:', created);
     return created;
   } catch (err) {
@@ -184,7 +197,7 @@ export const updateProfileTemplate = async (
       `/organizations/${organizationId}/profile-templates/${templateId}`,
       data
     );
-    const updated = extractData(response.data);
+    const updated = normalizeProfileTemplate(extractData(response.data));
     console.log('[profileTemplateApi] updateProfileTemplate - Thành công:', updated);
     return updated;
   } catch (err) {

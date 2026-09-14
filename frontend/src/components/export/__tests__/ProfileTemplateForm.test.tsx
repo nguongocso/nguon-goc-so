@@ -157,4 +157,44 @@ describe('ProfileTemplateFormPage (NCL-07-CN-007)', () => {
       ).toBeInTheDocument();
     });
   });
+
+  it('submits form with isDefault=true when switch is toggled', async () => {
+    vi.mocked(profileTemplateApi.createProfileTemplate).mockResolvedValue({
+      id: 'tpl-new-default',
+      organizationId: 'org-1111-2222',
+      name: 'Mẫu mặc định tổ chức',
+      isDefault: true,
+      fields: [],
+    });
+
+    render(
+      <BrowserRouter>
+        <ProfileTemplateFormPage />
+      </BrowserRouter>
+    );
+
+    await screen.findByText('Tạo mẫu hồ sơ truy xuất mới');
+
+    // Nhập tên mẫu
+    const nameInput = screen.getByLabelText(/Tên mẫu hồ sơ/i);
+    fireEvent.change(nameInput, { target: { value: 'Mẫu mặc định tổ chức' } });
+
+    // Bật switch
+    const switchEl = screen.getByRole('switch');
+    fireEvent.click(switchEl);
+
+    // Submit
+    const submitBtn = screen.getByRole('button', { name: /Lưu mẫu hồ sơ/i });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(profileTemplateApi.createProfileTemplate).toHaveBeenCalledWith(
+        'org-1111-2222',
+        expect.objectContaining({
+          name: 'Mẫu mặc định tổ chức',
+          isDefault: true,
+        })
+      );
+    });
+  });
 });

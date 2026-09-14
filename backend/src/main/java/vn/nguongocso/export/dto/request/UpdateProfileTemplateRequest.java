@@ -1,5 +1,7 @@
 package vn.nguongocso.export.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -33,6 +35,8 @@ public class UpdateProfileTemplateRequest {
 
     /** Cờ đặt làm mẫu mặc định của tổ chức */
     @Builder.Default
+    @JsonProperty("isDefault")
+    @JsonAlias({"isDefault", "default", "is_default"})
     private Boolean isDefault = false;
 
     /** Danh sách các trường được cấu hình trong mẫu */
