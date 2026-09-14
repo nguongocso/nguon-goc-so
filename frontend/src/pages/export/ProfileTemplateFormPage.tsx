@@ -114,12 +114,15 @@ export const ProfileTemplateFormPage: React.FC = () => {
         // Mặc định nạp tất cả các trường bắt buộc QTN-11
         const defaultMandatoryItems: FieldSelectionItem[] = [];
         groups.forEach((g) => {
+          const gKey = g.fieldGroup || g.group || 'OTHER';
           if (Array.isArray(g.fields)) {
             g.fields.forEach((f) => {
-              if (f.isMandatory) {
+              const isMan = Boolean(f.mandatory ?? f.isMandatory);
+              const fKey = f.fieldKey || f.key || '';
+              if (isMan && fKey) {
                 defaultMandatoryItems.push({
-                  fieldKey: f.key,
-                  fieldGroup: g.group,
+                  fieldKey: fKey,
+                  fieldGroup: gKey,
                   isMandatory: true,
                   sortOrder: defaultMandatoryItems.length + 1,
                 });
@@ -140,7 +143,7 @@ export const ProfileTemplateFormPage: React.FC = () => {
           const rawFields = Array.isArray(tpl.fields) ? tpl.fields : [];
           const savedFields: FieldSelectionItem[] = rawFields.map((f, idx) => ({
             fieldKey: f.fieldKey,
-            fieldGroup: f.fieldGroup,
+            fieldGroup: f.fieldGroup || 'OTHER',
             isMandatory: Boolean(f.isMandatory),
             sortOrder: f.sortOrder || idx + 1,
           }));
@@ -156,6 +159,7 @@ export const ProfileTemplateFormPage: React.FC = () => {
           setSelectedFields(savedFields);
         } else {
           // Khi tạo mới: mặc định chọn tất cả các trường bắt buộc QTN-11
+          console.log('[ProfileTemplateFormPage] Tạo mới: nạp các trường bắt buộc:', defaultMandatoryItems.length);
           setSelectedFields(defaultMandatoryItems);
         }
       } catch (err: unknown) {
@@ -178,11 +182,16 @@ export const ProfileTemplateFormPage: React.FC = () => {
     const missingKeys: string[] = [];
 
     availableGroups.forEach((g) => {
-      g.fields.forEach((f) => {
-        if (f.isMandatory && !selectedKeys.has(f.key)) {
-          missingKeys.push(f.label);
-        }
-      });
+      if (Array.isArray(g.fields)) {
+        g.fields.forEach((f) => {
+          const isMan = Boolean(f.mandatory ?? f.isMandatory);
+          const fKey = f.fieldKey || f.key || '';
+          const fLabel = f.displayName || f.label || fKey;
+          if (isMan && fKey && !selectedKeys.has(fKey)) {
+            missingKeys.push(fLabel);
+          }
+        });
+      }
     });
 
     if (missingKeys.length > 0) {
@@ -211,11 +220,13 @@ export const ProfileTemplateFormPage: React.FC = () => {
         isDefault: data.isDefault,
         selectedFields: selectedFields.map((f, idx) => ({
           fieldKey: f.fieldKey,
-          fieldGroup: f.fieldGroup,
-          isMandatory: f.isMandatory,
+          fieldGroup: f.fieldGroup || 'OTHER',
+          isMandatory: Boolean(f.isMandatory),
           sortOrder: f.sortOrder || idx + 1,
         })),
       };
+
+      console.log('[ProfileTemplateFormPage] Submit payload:', payload);
 
       if (isEdit && id) {
         await updateTemplate(id, payload);
@@ -225,6 +236,7 @@ export const ProfileTemplateFormPage: React.FC = () => {
 
       navigate('/export/profile-templates');
     } catch (err: unknown) {
+      console.error('[ProfileTemplateFormPage] Submit thất bại:', err);
       const resp = (err as { response?: { status?: number; data?: { message?: string } } })?.response;
       if (resp?.status === 422) {
         // Lỗi 422 từ server (TC-02)
@@ -247,7 +259,8 @@ export const ProfileTemplateFormPage: React.FC = () => {
     };
 
     selectedFields.forEach((f) => {
-      const groupKey = f.fieldGroup.toLowerCase();
+      const rawGroup = f.fieldGroup || 'OTHER';
+      const groupKey = rawGroup.toLowerCase();
       if (!mock[groupKey]) {
         mock[groupKey] = {};
       }

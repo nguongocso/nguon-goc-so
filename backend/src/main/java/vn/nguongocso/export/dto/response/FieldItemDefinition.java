@@ -1,5 +1,6 @@
 package vn.nguongocso.export.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 /**
@@ -23,4 +24,27 @@ public class FieldItemDefinition {
 
     /** Diễn giải nghiệp vụ của trường */
     private String description;
+
+    /**
+     * Alias key để tương thích với frontend
+     */
+    public String getKey() {
+        return fieldKey;
+    }
+
+    /**
+     * Alias label để tương thích với frontend
+     */
+    public String getLabel() {
+        return displayName;
+    }
+
+    /**
+     * Alias isMandatory để tương thích với frontend
+     */
+    @JsonProperty("isMandatory")
+    public boolean isMandatoryField() {
+        return mandatory;
+    }
 }
+

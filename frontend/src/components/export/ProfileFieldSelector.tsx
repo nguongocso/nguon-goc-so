@@ -9,7 +9,11 @@ import {
 } from '@/components/ui/accordion';
 import { Card, CardContent } from '@/components/ui/card';
 import { ShieldAlert, CheckCircle2 } from 'lucide-react';
-import type { FieldGroupDefinition, FieldSelectionItem } from '@/types/profileTemplate';
+import type {
+  FieldGroupDefinition,
+  FieldSelectionItem,
+  AvailableFieldItem,
+} from '@/types/profileTemplate';
 
 interface ProfileFieldSelectorProps {
   availableGroups: FieldGroupDefinition[];
@@ -18,16 +22,44 @@ interface ProfileFieldSelectorProps {
   disabled?: boolean;
 }
 
+/** Helper trích xuất khóa định danh trường */
+export const getFieldKey = (f: AvailableFieldItem): string => f.fieldKey || f.key || '';
+
+/** Helper trích xuất tên hiển thị tiếng Việt của trường */
+export const getFieldLabel = (f: AvailableFieldItem): string =>
+  f.displayName || f.label || getFieldKey(f);
+
+/** Helper kiểm tra trường có bắt buộc theo QTN-11 không */
+export const getFieldMandatory = (f: AvailableFieldItem): boolean =>
+  Boolean(f.mandatory ?? f.isMandatory);
+
+/** Helper trích xuất mã nhóm trường */
+export const getGroupKey = (g: FieldGroupDefinition): string =>
+  g.fieldGroup || g.group || '';
+
+/** Helper trích xuất tên nhóm trường */
+export const getGroupLabel = (g: FieldGroupDefinition): string =>
+  g.groupLabel || getGroupKey(g);
+
 export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
   availableGroups,
   selectedFields,
   onChange,
   disabled = false,
 }) => {
+  console.log('[ProfileFieldSelector] Render:', {
+    groupsCount: availableGroups.length,
+    selectedFieldsCount: selectedFields.length,
+  });
+
   // Map lưu trữ fieldKey -> FieldSelectionItem đã chọn
   const selectedMap = useMemo(() => {
     const map = new Map<string, FieldSelectionItem>();
-    selectedFields.forEach((f) => map.set(f.fieldKey, f));
+    selectedFields.forEach((f) => {
+      if (f.fieldKey) {
+        map.set(f.fieldKey, f);
+      }
+    });
     return map;
   }, [selectedFields]);
 
@@ -36,15 +68,18 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
     let mandatory = 0;
     let optional = 0;
     availableGroups.forEach((group) => {
-      group.fields.forEach((f) => {
-        if (selectedMap.has(f.key)) {
-          if (f.isMandatory) {
-            mandatory++;
-          } else {
-            optional++;
+      if (Array.isArray(group.fields)) {
+        group.fields.forEach((f) => {
+          const key = getFieldKey(f);
+          if (selectedMap.has(key)) {
+            if (getFieldMandatory(f)) {
+              mandatory++;
+            } else {
+              optional++;
+            }
           }
-        }
-      });
+        });
+      }
     });
     return {
       mandatoryCount: mandatory,
@@ -61,6 +96,8 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
   ) => {
     if (disabled || isMandatory) return; // Trường bắt buộc không được phép bỏ chọn (TC-02 UX)
 
+    const resolvedGroup = fieldGroup || 'OTHER';
+
     if (selectedMap.has(fieldKey)) {
       // Bỏ chọn trường tùy chọn
       const next = selectedFields.filter((f) => f.fieldKey !== fieldKey);
@@ -71,7 +108,7 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
         ...selectedFields,
         {
           fieldKey,
-          fieldGroup,
+          fieldGroup: resolvedGroup,
           isMandatory: false,
           sortOrder: selectedFields.length + 1,
         },
@@ -85,17 +122,21 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
     if (disabled) return;
     const currentKeys = new Set(selectedFields.map((f) => f.fieldKey));
     const newItems: FieldSelectionItem[] = [];
+    const groupKey = getGroupKey(group);
 
-    group.fields.forEach((f) => {
-      if (!currentKeys.has(f.key)) {
-        newItems.push({
-          fieldKey: f.key,
-          fieldGroup: group.group,
-          isMandatory: f.isMandatory,
-          sortOrder: selectedFields.length + newItems.length + 1,
-        });
-      }
-    });
+    if (Array.isArray(group.fields)) {
+      group.fields.forEach((f) => {
+        const key = getFieldKey(f);
+        if (key && !currentKeys.has(key)) {
+          newItems.push({
+            fieldKey: key,
+            fieldGroup: groupKey,
+            isMandatory: getFieldMandatory(f),
+            sortOrder: selectedFields.length + newItems.length + 1,
+          });
+        }
+      });
+    }
 
     if (newItems.length > 0) {
       onChange([...selectedFields, ...newItems]);
@@ -105,8 +146,10 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
   // Bỏ chọn các trường tùy chọn trong nhóm (giữ lại trường bắt buộc)
   const handleDeselectOptionalInGroup = (group: FieldGroupDefinition) => {
     if (disabled) return;
+    if (!Array.isArray(group.fields)) return;
+
     const optionalKeysInGroup = new Set(
-      group.fields.filter((f) => !f.isMandatory).map((f) => f.key)
+      group.fields.filter((f) => !getFieldMandatory(f)).map((f) => getFieldKey(f))
     );
     const next = selectedFields.filter((f) => !optionalKeysInGroup.has(f.fieldKey));
     onChange(next);
@@ -141,26 +184,30 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
 
       {/* Accordion các nhóm trường */}
       <Accordion
-        defaultValue={availableGroups.map((g) => g.group)}
+        defaultValue={availableGroups.map((g) => getGroupKey(g))}
         className="w-full space-y-3"
       >
         {availableGroups.map((group) => {
-          const groupSelectedCount = group.fields.filter((f) =>
-            selectedMap.has(f.key)
+          const groupKey = getGroupKey(group);
+          const groupLabel = getGroupLabel(group);
+          const fields = Array.isArray(group.fields) ? group.fields : [];
+
+          const groupSelectedCount = fields.filter((f) =>
+            selectedMap.has(getFieldKey(f))
           ).length;
-          const totalInGroup = group.fields.length;
-          const mandatoryInGroup = group.fields.filter((f) => f.isMandatory).length;
+          const totalInGroup = fields.length;
+          const mandatoryInGroup = fields.filter((f) => getFieldMandatory(f)).length;
 
           return (
             <AccordionItem
-              key={group.group}
-              value={group.group}
+              key={groupKey}
+              value={groupKey}
               className="border border-border rounded-xl bg-card px-4 py-1"
             >
               <AccordionTrigger className="hover:no-underline py-3">
                 <div className="flex flex-wrap items-center gap-2.5 text-left">
                   <span className="font-semibold text-sm text-foreground">
-                    {group.groupLabel}
+                    {groupLabel}
                   </span>
                   <Badge variant="outline" className="text-xs text-muted-foreground">
                     {groupSelectedCount}/{totalInGroup} trường
@@ -180,7 +227,7 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
                     type="button"
                     onClick={() => handleSelectAllInGroup(group)}
                     disabled={disabled}
-                    className="text-primary hover:underline font-medium disabled:opacity-50"
+                    className="text-primary hover:underline font-medium disabled:opacity-50 cursor-pointer"
                   >
                     Chọn tất cả
                   </button>
@@ -189,7 +236,7 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
                     type="button"
                     onClick={() => handleDeselectOptionalInGroup(group)}
                     disabled={disabled}
-                    className="text-muted-foreground hover:text-foreground hover:underline disabled:opacity-50"
+                    className="text-muted-foreground hover:text-foreground hover:underline disabled:opacity-50 cursor-pointer"
                   >
                     Bỏ chọn tùy chọn
                   </button>
@@ -197,13 +244,15 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
 
                 {/* Danh sách checkbox các trường */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                  {group.fields.map((field) => {
-                    const isChecked = selectedMap.has(field.key);
-                    const isMandatory = field.isMandatory;
+                  {fields.map((field) => {
+                    const key = getFieldKey(field);
+                    const label = getFieldLabel(field);
+                    const isChecked = selectedMap.has(key);
+                    const isMandatory = getFieldMandatory(field);
 
                     return (
                       <div
-                        key={field.key}
+                        key={key}
                         className={`flex items-start gap-3 p-2.5 rounded-lg border transition-colors ${
                           isMandatory
                             ? 'bg-amber-50/40 border-amber-200/70 dark:bg-amber-950/10 dark:border-amber-800/40'
@@ -213,28 +262,28 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
                         }`}
                       >
                         <Checkbox
-                          id={`field-${field.key}`}
+                          id={`field-${key}`}
                           checked={isChecked}
                           disabled={disabled || isMandatory}
                           onCheckedChange={() =>
-                            handleToggleField(field.key, group.group, isMandatory)
+                            handleToggleField(key, groupKey, isMandatory)
                           }
                           className="mt-0.5"
                         />
                         <div className="flex-1 min-w-0">
                           <label
-                            htmlFor={`field-${field.key}`}
+                            htmlFor={`field-${key}`}
                             className={`text-sm font-medium leading-tight block ${
                               isMandatory
                                 ? 'text-foreground cursor-not-allowed'
                                 : 'text-foreground cursor-pointer'
                             }`}
                           >
-                            {field.label}
+                            {label}
                           </label>
                           <div className="flex items-center gap-1.5 mt-1">
                             <span className="text-xs text-muted-foreground font-mono truncate">
-                              {field.key}
+                              {key}
                             </span>
                             {isMandatory && (
                               <Badge

@@ -23,4 +23,12 @@ public class FieldGroupDefinition {
 
     /** Danh sách các trường thuộc nhóm */
     private List<FieldItemDefinition> fields;
+
+    /**
+     * Alias thuộc tính group để tương thích hoàn toàn với frontend
+     */
+    public String getGroup() {
+        return fieldGroup != null ? fieldGroup.name() : null;
+    }
 }
+

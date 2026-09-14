@@ -44,13 +44,20 @@ export interface UpdateProfileTemplateRequest {
 }
 
 export interface AvailableFieldItem {
+  fieldKey: string;
+  displayName: string;
+  mandatory: boolean;
+  description?: string;
+  // Aliases phục vụ tương thích
   key: string;
   label: string;
   isMandatory: boolean;
 }
 
 export interface FieldGroupDefinition {
-  group: string;
+  fieldGroup: string;
   groupLabel: string;
   fields: AvailableFieldItem[];
+  // Alias phục vụ tương thích
+  group: string;
 }

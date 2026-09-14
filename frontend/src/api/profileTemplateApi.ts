@@ -4,6 +4,7 @@ import type {
   CreateProfileTemplateRequest,
   UpdateProfileTemplateRequest,
   FieldGroupDefinition,
+  AvailableFieldItem,
 } from '@/types/profileTemplate';
 
 /**
@@ -35,12 +36,46 @@ export const getAvailableFields = async (
 ): Promise<FieldGroupDefinition[]> => {
   console.log('[profileTemplateApi] getAvailableFields - Bắt đầu gọi API catalog cho orgId:', organizationId);
   try {
-    const response = await apiClient.get<ApiResult<FieldGroupDefinition[]> | FieldGroupDefinition[]>(
+    const response = await apiClient.get<ApiResult<unknown[]> | unknown[]>(
       `/organizations/${organizationId}/profile-templates/catalog`
     );
-    const data = extractData(response.data);
-    console.log('[profileTemplateApi] getAvailableFields - Thành công:', data);
-    return data;
+    const rawData = extractData(response.data);
+    const list = Array.isArray(rawData) ? rawData : [];
+
+    // Chuẩn hóa dữ liệu để luôn có đầy đủ key, label, isMandatory, group cho cả code mới và cũ
+    const normalized: FieldGroupDefinition[] = list.map((item: unknown) => {
+      const g = item as Record<string, unknown>;
+      const fieldGroup = String(g.fieldGroup || g.group || '');
+      const groupLabel = String(g.groupLabel || fieldGroup);
+      const rawFields = Array.isArray(g.fields) ? (g.fields as Record<string, unknown>[]) : [];
+
+      const fields: AvailableFieldItem[] = rawFields.map((f) => {
+        const fieldKey = String(f.fieldKey || f.key || '');
+        const displayName = String(f.displayName || f.label || fieldKey);
+        const mandatory = Boolean(f.mandatory ?? f.isMandatory);
+        const description = f.description ? String(f.description) : undefined;
+
+        return {
+          fieldKey,
+          key: fieldKey,
+          displayName,
+          label: displayName,
+          mandatory,
+          isMandatory: mandatory,
+          description,
+        };
+      });
+
+      return {
+        fieldGroup,
+        group: fieldGroup,
+        groupLabel,
+        fields,
+      };
+    });
+
+    console.log('[profileTemplateApi] getAvailableFields - Thành công, số nhóm đã chuẩn hóa:', normalized.length);
+    return normalized;
   } catch (err) {
     console.error('[profileTemplateApi] getAvailableFields - Thất bại:', err);
     throw err;
