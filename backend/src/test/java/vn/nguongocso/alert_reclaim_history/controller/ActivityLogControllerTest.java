@@ -148,7 +148,7 @@ public class ActivityLogControllerTest {
     @Test
     void exportActivityLogs_shouldReturnCsv_whenUserIsOrgManager() throws Exception {
         CustomUserDetails user = createCustomUserDetails("manager", "VT-02");
-        byte[] csv = "\ufeffoccurredAt,actorName".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] csv = "\ufeffThời gian;Người thực hiện".getBytes(java.nio.charset.StandardCharsets.UTF_8);
         when(activityLogExportService.requestExport(any(), any())).thenReturn(
                 ActivityLogExportResult.builder().mode("DIRECT").csvBytes(csv).build());
 

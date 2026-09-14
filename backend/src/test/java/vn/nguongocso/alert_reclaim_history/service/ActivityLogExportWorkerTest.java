@@ -58,7 +58,7 @@ class ActivityLogExportWorkerTest {
         ActivityLogExportItem item = ActivityLogExportItem.builder()
                 .jobId(jobId).sequenceNo(0L).occurredAt(LocalDateTime.of(2026, 9, 14, 9, 0))
                 .actorName("Nguyễn Văn An").actorUsername("manager").actorRole("VT-02")
-                .actionType("UPDATE_LOT").objectType("LOT").objectIdentifier("LOT-1")
+                .actionType("UPDATE_PRODUCTION_LOT").objectType("PRODUCTION_LOT").objectIdentifier("LOT-1")
                 .beforeValue("{\"password\":\"should-not-leak\",\"status\":\"OLD\"}")
                 .afterValue("{\"status\":\"NEW\"}").build();
         when(jobRepository.findById(jobId)).thenReturn(Optional.of(job));
@@ -79,7 +79,7 @@ class ActivityLogExportWorkerTest {
         Path output = Path.of(job.getFilePath());
         assertThat(output).exists().isRegularFile();
         String csv = Files.readString(output, StandardCharsets.UTF_8);
-        assertThat(csv).contains("UPDATE_LOT", "OLD", "NEW", "***")
+        assertThat(csv).contains("Cập nhật lô sản xuất", "Lô sản xuất", "OLD", "NEW", "***")
                 .doesNotContain("should-not-leak");
         verify(jobRepository).save(job);
         verify(notificationService).sendActivityLogExportReadyNotification(jobId, requesterId);
