@@ -114,7 +114,12 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
         // Lưu danh sách trường chọn
         List<ProfileTemplateField> fields = buildTemplateFields(savedTemplate, request.getSelectedFields());
         profileTemplateFieldRepository.saveAll(fields);
-        savedTemplate.setFields(fields);
+        if (savedTemplate.getFields() == null) {
+            savedTemplate.setFields(new ArrayList<>());
+        } else {
+            savedTemplate.getFields().clear();
+        }
+        savedTemplate.getFields().addAll(fields);
 
         log.info("Đã tạo mẫu hồ sơ '{}' (ID: {}) cho tổ chức ID: {}", savedTemplate.getName(), savedTemplate.getId(), orgId);
         return mapToResponse(savedTemplate);
@@ -198,12 +203,41 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
         template.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
         template.setIsDefault(isDefault);
 
-        // Xóa trường cũ và lưu trường mới
-        profileTemplateFieldRepository.deleteByTemplate_Id(templateId);
+        // Cập nhật danh sách trường dữ liệu an toàn với orphanRemoval của Hibernate và tránh lỗi dereferencing
+        if (template.getFields() == null) {
+            template.setFields(new ArrayList<>());
+        }
 
-        List<ProfileTemplateField> fields = buildTemplateFields(template, request.getSelectedFields());
-        profileTemplateFieldRepository.saveAll(fields);
-        template.setFields(fields);
+        Map<String, ProfileTemplateField> existingFieldsMap = template.getFields().stream()
+                .filter(f -> f.getFieldKey() != null)
+                .collect(Collectors.toMap(ProfileTemplateField::getFieldKey, f -> f, (f1, f2) -> f1));
+
+        Set<String> newSelectedKeys = new HashSet<>();
+        int order = 1;
+        for (FieldSelectionDto dto : request.getSelectedFields()) {
+            newSelectedKeys.add(dto.getFieldKey());
+            ProfileTemplateField existing = existingFieldsMap.get(dto.getFieldKey());
+            int sortOrder = dto.getSortOrder() != null ? dto.getSortOrder() : order++;
+            boolean mandatory = MandatoryFields.isMandatory(dto.getFieldKey());
+            if (existing != null) {
+                // Cập nhật thông tin trường đã tồn tại trong collection mà không thay đổi identity
+                existing.setFieldGroup(dto.getFieldGroup());
+                existing.setIsMandatory(mandatory);
+                existing.setSortOrder(sortOrder);
+            } else {
+                // Thêm trường mới vào collection
+                template.getFields().add(ProfileTemplateField.builder()
+                        .template(template)
+                        .fieldKey(dto.getFieldKey())
+                        .fieldGroup(dto.getFieldGroup())
+                        .isMandatory(mandatory)
+                        .sortOrder(sortOrder)
+                        .build());
+            }
+        }
+
+        // Xóa những trường không còn được chọn (Hibernate orphanRemoval tự động sinh lệnh DELETE)
+        template.getFields().removeIf(f -> !newSelectedKeys.contains(f.getFieldKey()));
 
         ProfileTemplate updated = profileTemplateRepository.save(template);
         log.info("Đã cập nhật mẫu hồ sơ ID: {} cho tổ chức ID: {}", templateId, orgId);

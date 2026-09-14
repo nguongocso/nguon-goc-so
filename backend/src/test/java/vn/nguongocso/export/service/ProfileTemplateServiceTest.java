@@ -533,6 +533,56 @@ public class ProfileTemplateServiceTest {
     }
 
     @Test
+    @DisplayName("CRUD thành công: Cập nhật mẫu hồ sơ và danh mục trường in-place")
+    void updateTemplate_validTemplate_updatesFieldsSuccessfully() {
+        UUID templateId = UUID.randomUUID();
+        ProfileTemplate template = ProfileTemplate.builder()
+                .id(templateId)
+                .organization(orgA)
+                .name("Mẫu ban đầu")
+                .partnerName("Đối tác cũ")
+                .isDefault(false)
+                .fields(new ArrayList<>())
+                .build();
+
+        // Giả lập template ban đầu có 8 trường bắt buộc
+        List<FieldSelectionDto> initialSelections = createValidSelectionsWithExtraFields(0);
+        for (FieldSelectionDto s : initialSelections) {
+            template.getFields().add(ProfileTemplateField.builder()
+                    .id(UUID.randomUUID())
+                    .template(template)
+                    .fieldKey(s.getFieldKey())
+                    .fieldGroup(s.getFieldGroup())
+                    .isMandatory(true)
+                    .sortOrder(s.getSortOrder())
+                    .build());
+        }
+
+        when(profileTemplateRepository.findById(templateId)).thenReturn(Optional.of(template));
+        when(profileTemplateRepository.save(any(ProfileTemplate.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Request cập nhật với 10 trường (8 trường cũ + 2 trường mới)
+        List<FieldSelectionDto> updatedSelections = createValidSelectionsWithExtraFields(2);
+        UpdateProfileTemplateRequest updateReq = UpdateProfileTemplateRequest.builder()
+                .name("Mẫu đã cập nhật")
+                .partnerName("Đối tác mới")
+                .isDefault(true)
+                .selectedFields(updatedSelections)
+                .build();
+
+        ProfileTemplateResponse resp = profileTemplateService.updateTemplate(orgAId, templateId, updateReq, userDetailsOrgA);
+
+        assertThat(resp).isNotNull();
+        assertThat(resp.getName()).isEqualTo("Mẫu đã cập nhật");
+        assertThat(resp.getPartnerName()).isEqualTo("Đối tác mới");
+        assertThat(resp.isDefault()).isTrue();
+        assertThat(resp.getFields()).hasSize(10);
+        assertThat(template.getFields()).hasSize(10);
+
+        verify(profileTemplateRepository).save(template);
+    }
+
+    @Test
     @DisplayName("Danh mục trường: getAllAvailableFields trả về 8 nhóm trường")
     void getAllAvailableFields_returnsEightGroupsWithMandatoryMarked() {
         List<FieldGroupDefinition> catalog = profileTemplateService.getAllAvailableFields();
