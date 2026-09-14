@@ -7,8 +7,11 @@ import java.util.UUID;
 
 import jakarta.validation.constraints.Email;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import vn.nguongocso.organization.entity.Organization;
+import vn.nguongocso.organization.enums.OrganizationStatus;
 import vn.nguongocso.organization.enums.OrganizationType;
 
 /**
@@ -88,4 +91,22 @@ public interface OrganizationRepository extends JpaRepository<Organization, UUID
      * @return danh sách các tổ chức phù hợp
      */
     List<Organization> findByTypeAndOrganizationIdNot(OrganizationType type, UUID organizationId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT o FROM Organization o WHERE o.type = :type AND o.status = :status "
+            + "AND o.organizationId <> :organizationId AND (LOWER(o.name) LIKE LOWER(CONCAT('%', :keyword, '%')) "
+            + "OR LOWER(o.code) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<Organization> searchActiveEnterprisePartners(@org.springframework.data.repository.query.Param("type") OrganizationType type,
+            @org.springframework.data.repository.query.Param("status") vn.nguongocso.organization.enums.OrganizationStatus status,
+            @org.springframework.data.repository.query.Param("organizationId") UUID organizationId,
+            @org.springframework.data.repository.query.Param("keyword") String keyword, Pageable pageable);
+
+    /**
+     * Tìm các tổ chức theo trạng thái, loại trừ một tổ chức cụ thể.
+     * Phục vụ dropdown tổ chức nhận trong phiếu bàn giao.
+     *
+     * @param status trạng thái cần lọc (thường là ACTIVE)
+     * @param organizationId ID tổ chức hiện tại cần loại trừ
+     * @return danh sách tổ chức phù hợp
+     */
+    List<Organization> findByStatusAndOrganizationIdNot(OrganizationStatus status, UUID organizationId);
 }

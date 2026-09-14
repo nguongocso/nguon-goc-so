@@ -8,7 +8,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
@@ -130,6 +132,11 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 	 */
 	List<TraceCode> findByShipmentIdAndCodeValueBetween(UUID shipmentId, String fromCode, String toCode);
 
+	/** Khóa tập mã của lô theo thứ tự ổn định trước khi phân bổ sang các lô con. */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("SELECT tc FROM TraceCode tc WHERE tc.shipment.id = :shipmentId ORDER BY tc.codeValue ASC, tc.id ASC")
+	List<TraceCode> findAllByShipmentIdForSplitUpdate(@Param("shipmentId") UUID shipmentId);
+
 	/**
 	 * Lấy danh sách mã theo lô hàng và danh sách codeValue.
 	 */
@@ -163,4 +170,6 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 			@Param("orgId") UUID orgId,
 			@Param("status") TraceCodeStatus status,
 			@Param("search") String search);
+
+	boolean existsByShipmentIdAndStatus(UUID shipmentId, TraceCodeStatus status);
 }

@@ -52,6 +52,21 @@ export const getOrganizations = async (): Promise<Organization[]> => {
   return response.data.data;
 };
 
+/**
+ * Danh sách tổ chức nhận cho dropdown phiếu bàn giao.
+ * Chỉ gồm các tổ chức Doanh nghiệp thu mua (VT-04 / ENTERPRISE), ACTIVE và khác
+ * tổ chức hiện tại nên VT-02 dùng được, thay cho GET /admin/organizations
+ * (chỉ VT-01, gây 403).
+ * GET /api/v1/organizations/recipient-organizations
+ */
+export const getRecipientOrganizations = async (): Promise<Organization[]> => {
+  const response = await apiClient.get<{
+    data: Organization[];
+  }>("/organizations/recipient-organizations");
+
+  return response.data.data;
+};
+
 export const getOrganizationDetail = async (
   id: string
 ): Promise<OrganizationDetailResponse> => {

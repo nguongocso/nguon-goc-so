@@ -170,7 +170,9 @@ export default function ProductFeedbackDetailPage() {
               shipment.traceCodes.some((code) => code.id === feedback.traceCodeId),
             )
           : undefined;
-        const recallableShipments = items.filter((shipment) => shipment.status !== "RECALLED");
+        const recallableShipments = items.filter(
+          (shipment) => shipment.status !== "RECALLED" && shipment.status !== "SPLIT",
+        );
         setRecallShipmentId(
           linkedShipment?.id
             ?? (recallableShipments.length === 1 ? recallableShipments[0].id : ""),

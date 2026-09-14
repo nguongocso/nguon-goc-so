@@ -10,6 +10,7 @@ import vn.nguongocso.organization.dto.response.CreateOrganizationMemberResponse;
 import vn.nguongocso.organization.dto.response.OrganizationDetailResponse;
 import vn.nguongocso.organization.dto.response.OrganizationProfileResponse;
 import vn.nguongocso.organization.dto.response.OrganizationResponse;
+import vn.nguongocso.organization.dto.response.RecipientOrganizationResponse;
 
 import java.util.List;
 import java.util.UUID;
@@ -30,6 +31,9 @@ public interface OrganizationService {
 
     /** Lấy danh sách tất cả tổ chức. */
     List<OrganizationResponse> getAllOrganizations();
+
+    /** Lấy danh sách tổ chức ACTIVE trừ tổ chức hiện tại cho phiếu bàn giao. */
+    List<RecipientOrganizationResponse> getRecipientOrganizations();
 
     /** Lấy chi tiết tổ chức. */
     OrganizationDetailResponse getOrganizationDetail(UUID organizationId);

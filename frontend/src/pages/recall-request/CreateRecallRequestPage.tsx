@@ -51,7 +51,9 @@ export const CreateRecallRequestPage = () => {
     getShipmentsByProductionLot(selectedLotId)
       .then((items) => {
         if (cancelled) return;
-        const recallable = items.filter((shipment) => shipment.status !== 'RECALLED');
+        const recallable = items.filter(
+          (shipment) => shipment.status !== 'RECALLED' && shipment.status !== 'SPLIT',
+        );
         setShipments(recallable);
         setSelectedShipmentId(recallable[0]?.id ?? '');
       })

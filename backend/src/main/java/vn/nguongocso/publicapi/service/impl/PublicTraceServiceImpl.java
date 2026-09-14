@@ -182,6 +182,15 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         // Lấy dòng sự kiện của Shipment
         List<ChainEvent> shipmentEvents = chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId());
 
+        List<ChainEvent> sourceShipmentEvents = Collections.emptyList();
+        if (shipment.getParentShipment() != null) {
+            Shipment parentShipment = shipment.getParentShipment();
+            LocalDateTime splitAt = shipment.getSplitAt();
+            sourceShipmentEvents = chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(parentShipment.getId())
+                    .stream().filter(event -> splitAt == null || event.getRecordedAt() == null
+                            || !event.getRecordedAt().isAfter(splitAt)).toList();
+        }
+
         // Lấy dòng sự kiện của ProductionLot
         List<ChainEvent> productionLotEvents = Collections.emptyList();
 
@@ -203,6 +212,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
 
         // Gộp timeline
         List<ChainEvent> allEvents = new ArrayList<>();
+        allEvents.addAll(sourceShipmentEvents);
         allEvents.addAll(shipmentEvents);
         allEvents.addAll(productionLotEvents);
         allEvents.sort(Comparator.comparing(ChainEvent::getRecordedAt, Comparator.nullsLast(Comparator.naturalOrder())));

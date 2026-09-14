@@ -288,13 +288,35 @@ class BulkRecallRequestServiceImplTest {
     }
 
     @Test
-    @DisplayName("TC-04b: Tao de nghi that bai - lo hang dang RECALLING")
+    @DisplayName("TC-04B: Tạo đề nghị thất bại - lô cha đã SPLIT")
+    void createBulkRecallRequest_Fail_SplitParent() {
+        Shipment splitParent = createShipment(shipmentId1, "SHIP-PARENT", ShipmentStatus.SPLIT);
+        CreateBulkRecallRequest request = new CreateBulkRecallRequest();
+        request.setProductionLotId(productionLotId);
+        request.setReason("Lý do test");
+        request.setIncludedShipmentIds(List.of(shipmentId1));
+
+        when(productionLotRepository.findById(productionLotId)).thenReturn(Optional.of(productionLot));
+        when(bulkRecallRequestRepository.existsByProductionLot_IdAndStatus(
+                productionLotId, BulkRecallRequestStatus.PENDING)).thenReturn(false);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(shipmentRepository.findById(shipmentId1)).thenReturn(Optional.of(splitParent));
+
+        assertThatThrownBy(() -> service.createBulkRecallRequest(request, currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Không thể thu hồi lô cha đã tách");
+
+        verify(bulkRecallRequestRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("TC-04C: Tạo đề nghị thất bại - lô hàng đang RECALLING")
     void createBulkRecallRequest_Fail_AlreadyRecalling() {
         Shipment recallingShipment = createShipment(shipmentId1, "SHIP-001", ShipmentStatus.RECALLING);
 
         CreateBulkRecallRequest request = new CreateBulkRecallRequest();
         request.setProductionLotId(productionLotId);
-        request.setReason("Ly do test");
+        request.setReason("Lý do test");
         request.setIncludedShipmentIds(List.of(shipmentId1));
 
         when(productionLotRepository.findById(productionLotId)).thenReturn(Optional.of(productionLot));
