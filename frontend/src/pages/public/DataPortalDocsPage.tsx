@@ -38,15 +38,15 @@ export const DataPortalDocsPage: React.FC = () => {
     }
   };
 
-  const sampleCurl = `curl -X GET "https://api.nguongocso.vn/api/publicapi/v1/lots/sample-lot-001" \\
+  const sampleCurl = `curl -X GET "https://agri-trace.online/api/publicapi/v1/lots/sample-lot-001" \\
   -H "Accept: application/json" \\
-  -H "X-API-KEY: nks_test_a1b2c3d4e5f6g7h8i9j0"`;
+  -H "X-API-KEY: nks_test_sample_key_1234567890"`;
 
-  const sampleFetch = `fetch("https://api.nguongocso.vn/api/publicapi/v1/lots/sample-lot-001", {
+  const sampleFetch = `fetch("https://agri-trace.online/api/publicapi/v1/lots/sample-lot-001", {
   method: "GET",
   headers: {
     "Accept": "application/json",
-    "X-API-KEY": "nks_test_a1b2c3d4e5f6g7h8i9j0"
+    "X-API-KEY": "nks_test_sample_key_1234567890"
   }
 })
   .then(response => response.json())
@@ -55,15 +55,16 @@ export const DataPortalDocsPage: React.FC = () => {
 
   const samplePython = `import requests
 
-url = "https://api.nguongocso.vn/api/publicapi/v1/lots/sample-lot-001"
+url = "https://agri-trace.online/api/publicapi/v1/lots/sample-lot-001"
 headers = {
     "Accept": "application/json",
-    "X-API-KEY": "nks_test_a1b2c3d4e5f6g7h8i9j0"
+    "X-API-KEY": "nks_test_sample_key_1234567890"
 }
 
 response = requests.get(url, headers=headers)
 data = response.json()
 print("Kết quả:", data)`;
+
 
   const sampleJsonResponse = `{
   "success": true,
@@ -216,7 +217,7 @@ print("Kết quả:", data)`;
               </CardHeader>
               <CardContent className="space-y-1.5 text-xs">
                 <div className="font-mono bg-muted p-2 rounded border border-border break-all select-all font-semibold text-foreground">
-                  https://api.nguongocso.vn
+                  https://agri-trace.online
                 </div>
                 <p className="text-muted-foreground">
                   Hỗ trợ cả môi trường kiểm thử cục bộ: <code className="font-mono">http://localhost:8080</code>

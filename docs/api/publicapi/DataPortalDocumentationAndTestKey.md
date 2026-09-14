@@ -14,8 +14,9 @@ Cổng dữ liệu đối tác (**Partner Data Portal**) của hệ thống Ngu�
 
 ### 1.2. Base URL
 - Môi trường phát triển / thử nghiệm (Local / Dev): `http://localhost:8080`
-- Môi trường Staging: `https://staging-api.nguongocso.vn`
-- Môi trường Production: `https://api.nguongocso.vn`
+- Môi trường Staging: `https://staging.agri-trace.online`
+- Môi trường Production: `https://agri-trace.online`
+
 
 ### 1.3. Cơ chế xác thực (Authentication Mechanism)
 - Các endpoint cổng dữ liệu đối tác (`/api/v1/partner/**`) sử dụng cơ chế xác thực qua **Header `X-API-KEY`**.

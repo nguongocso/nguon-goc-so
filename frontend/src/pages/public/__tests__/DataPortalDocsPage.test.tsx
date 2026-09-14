@@ -48,10 +48,11 @@ describe('DataPortalDocsPage (NCL-12-CN-004)', () => {
   it('displays authentication details, Base URL, and Sandbox mode highlights', () => {
     renderPage();
 
-    expect(screen.getByText('https://api.nguongocso.vn')).toBeInTheDocument();
+    expect(screen.getByText('https://agri-trace.online')).toBeInTheDocument();
     expect(screen.getByText(/X-API-KEY: <chuỗi_khóa>/i)).toBeInTheDocument();
     expect(screen.getByText(/Chế độ Thử nghiệm \(Sandbox Mode - is_test: true\)/i)).toBeInTheDocument();
   });
+
 
   it('renders endpoint list including public lots and GS1 endpoints', () => {
     renderPage();
@@ -78,7 +79,7 @@ describe('DataPortalDocsPage (NCL-12-CN-004)', () => {
     const fetchTabBtn = screen.getByRole('button', { name: 'JavaScript' });
     fireEvent.click(fetchTabBtn);
 
-    expect(screen.getByText(/fetch\("https:\/\/api\.nguongocso\.vn/i)).toBeInTheDocument();
+    expect(screen.getByText(/fetch\("https:\/\/agri-trace\.online/i)).toBeInTheDocument();
 
     const pythonTabBtn = screen.getByRole('button', { name: 'Python' });
     fireEvent.click(pythonTabBtn);
