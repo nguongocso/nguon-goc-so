@@ -14,10 +14,12 @@ export interface PublicTraceResponse {
   lotName?: string | null;
   lotCode?: string | null;
   productName: string;
+  productNameEn?: string | null;
   shipmentCode: string;
   shipmentStatus: string;
   recalled: boolean;
   recallMessage: string | null;
+  recallMessageEn?: string | null;
   locked: boolean;
   lockReason: string | null;
   lockedAt: string | null;
