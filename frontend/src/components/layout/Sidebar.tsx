@@ -24,6 +24,7 @@ import {
   PackageX,
   ScanLine,
   ShieldCheck,
+  ShieldAlert,
   Truck,
   User,
   UserCheck,
@@ -286,6 +287,13 @@ const MENU_GROUPS: MenuGroup[] = [
         href: "/storage-condition",
         allowedRoles: ROLE_ACCESS.storageCondition,
       },
+      {
+        icon: <ShieldAlert className="h-5 w-5" />,
+        label: "Tổng hợp cảnh báo",
+        href: "/alerts",
+        allowedRoles: ROLE_ACCESS.aggregateAlerts,
+        activePaths: ["/alerts"],
+      }, 
       {
         icon: <AlertTriangle className="h-5 w-5" />,
         label: "Cảnh báo tem bất thường",
