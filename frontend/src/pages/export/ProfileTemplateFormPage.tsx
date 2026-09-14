@@ -65,7 +65,6 @@ export const ProfileTemplateFormPage: React.FC = () => {
 
   useSetBreadcrumb([
     { label: 'Tổng quan', href: '/dashboard' },
-    { label: 'Xuất dữ liệu mở', href: '/export/open-data' },
     { label: 'Mẫu hồ sơ truy xuất', href: '/export/profile-templates' },
     { label: isEdit ? 'Chỉnh sửa mẫu hồ sơ' : 'Tạo mẫu hồ sơ mới' },
   ]);

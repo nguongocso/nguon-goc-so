@@ -66,6 +66,7 @@ public class DossierController {
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
     public ResponseEntity<byte[]> exportDossierPdf(
             @PathVariable UUID shipmentId,
+            @RequestParam(name = "templateId", required = false) UUID templateId,
             @AuthenticationPrincipal CustomUserDetails currentUser,
             HttpServletRequest request) {
 

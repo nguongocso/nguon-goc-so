@@ -34,7 +34,6 @@ export const ProfileTemplateListPage: React.FC = () => {
 
   useSetBreadcrumb([
     { label: 'Tổng quan', href: '/dashboard' },
-    { label: 'Xuất dữ liệu mở', href: '/export/open-data' },
     { label: 'Mẫu hồ sơ truy xuất' },
   ]);
 

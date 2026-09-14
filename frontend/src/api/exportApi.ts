@@ -56,3 +56,25 @@ export const getExportPreview = async (
     throw err;
   }
 };
+
+/**
+ * Tải file hồ sơ xuất theo mẫu đối tác định dạng JSON hoặc CSV
+ * GET /api/v1/export/shipments/{shipmentId}?templateId={templateId}&format={format}
+ */
+export const exportShipmentWithTemplate = async (
+  shipmentId: string,
+  templateId?: string,
+  format: 'json' | 'csv' | 'pdf' = 'json'
+): Promise<Blob> => {
+  console.log('[exportApi] exportShipmentWithTemplate:', { shipmentId, templateId, format });
+  const params: Record<string, string> = { format };
+  if (templateId && templateId !== 'default') {
+    params.templateId = templateId;
+  }
+  const response = await apiClient.get(`/export/shipments/${shipmentId}`, {
+    params,
+    responseType: 'blob',
+    timeout: 30000,
+  });
+  return response.data;
+};

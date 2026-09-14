@@ -29,9 +29,8 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getShipmentById } from "@/api/shipmentApi";
-import { getLocalDateString } from "@/utils/dateTime";
 import { getShipmentTimeline } from "@/api/chainEventApi";
-import { checkDossierEligibility, exportDossier } from "@/api/dossierApi";
+import { checkDossierEligibility } from "@/api/dossierApi";
 import { useDeleteDraftShipment } from "@/hooks/useDeleteDraftShipment";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { useRecallShipment } from "@/hooks/useRecallShipment";
@@ -48,6 +47,7 @@ import { ShipmentTimelineItem } from "@/components/shipment/ShipmentTimelineItem
 import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDialog";
 import { RecallShipmentDialog } from "@/components/shipment/RecallShipmentDialog";
 import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligibleDialog";
+import { ExportDossierDialog } from "@/components/export/ExportDossierDialog";
 import { ShipmentStatusBadge } from "@/components/shipment/ShipmentStatusBadge";
 import { HelpButton } from "@/components/help/HelpButton";
 import { ROLE_ACCESS } from "@/config/roleAccess";
@@ -94,6 +94,8 @@ export const ShipmentDetailPage = () => {
     open: boolean;
     missingDocs: string[];
   }>({ open: false, missingDocs: [] });
+  // NCL-07-CN-007: Hộp thoại xuất hồ sơ chọn mẫu
+  const [showExportDossierDialog, setShowExportDossierDialog] = useState(false);
 
   const { recallingShipmentId, recallShipment } = useRecallShipment(() => {
     // Reload shipment after recall
@@ -185,22 +187,10 @@ export const ShipmentDetailPage = () => {
         return;
       }
 
-      toast.loading("Đang tạo hồ sơ...");
-      const blob = await exportDossier(shipment.id);
-      toast.dismiss();
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `Ho_so_truy_xuat_${shipment.name}_${getLocalDateString()}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      toast.success("Tải hồ sơ thành công");
+      // Đủ điều kiện → Mở hộp thoại xuất hồ sơ chọn mẫu (NCL-07-CN-007)
+      setShowExportDossierDialog(true);
     } catch (err: any) {
-      toast.dismiss();
-      toast.error(err.message || err.response?.data?.message || "Có lỗi xảy ra khi xuất hồ sơ.");
+      toast.error(err.message || err.response?.data?.message || "Có lỗi xảy ra khi kiểm tra hồ sơ.");
     }
   };
 
@@ -714,6 +704,17 @@ export const ShipmentDetailPage = () => {
           void loadShipment();
         }}
       />
+
+      {/* NCL-07-CN-007: Dialog xuất hồ sơ chọn mẫu */}
+      {shipment && (
+        <ExportDossierDialog
+          open={showExportDossierDialog}
+          onOpenChange={setShowExportDossierDialog}
+          shipmentId={shipment.id}
+          shipmentName={shipment.name}
+          shipmentCode={shipment.id}
+        />
+      )}
     </div>
   );
 };

@@ -19,9 +19,14 @@ export const checkDossierEligibility = async (shipmentId: string): Promise<Dossi
 /**
  * Xuất và tải hồ sơ PDF
  */
-export const exportDossier = async (shipmentId: string): Promise<Blob> => {
+export const exportDossier = async (shipmentId: string, templateId?: string): Promise<Blob> => {
   try {
+    const params: Record<string, string> = {};
+    if (templateId && templateId !== 'default') {
+      params.templateId = templateId;
+    }
     const response = await apiClient.get(`/shipments/${shipmentId}/dossier/export`, {
+      params,
       responseType: 'blob',
       timeout: 30000,
     });

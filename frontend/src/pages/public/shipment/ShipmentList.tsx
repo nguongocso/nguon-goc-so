@@ -32,7 +32,6 @@ import {
 import { useShipments } from "@/hooks/useShipments";
 import { useRecallShipment } from "@/hooks/useRecallShipment";
 import type { Shipment } from "@/types/shipment";
-import { getLocalDateString } from "@/utils/dateTime";
 import { ShipmentTimelineDialog } from "@/components/shipment/ShipmentTimelineDialog";
 import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDialog";
 import { RecallShipmentDialog } from "@/components/shipment/RecallShipmentDialog";
@@ -46,7 +45,6 @@ import {
 import { toast } from "sonner";
 import {
   checkDossierEligibility,
-  exportDossier,
   exportGs1Dossier,
 } from "@/api/dossierApi";
 import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligibleDialog";
@@ -58,6 +56,7 @@ import { checkCanActivateSeal } from "@/api/certificationApi";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { ExportLabelsDialog } from "@/components/shipment/ExportLabelsDialog";
 import { CreateHandoverDialog } from "@/components/shipment/CreateHandoverDialog";
+import { ExportDossierDialog } from "@/components/export/ExportDossierDialog";
 
 
 interface ShipmentListProps {
@@ -115,6 +114,9 @@ export const ShipmentList = ({
   const [handoverShipment, setHandoverShipment] = useState<Shipment | null>(
     null,
   );
+
+  // NCL-07-CN-007: Lô hàng đang mở hộp thoại xuất hồ sơ chọn mẫu
+  const [exportDossierShipment, setExportDossierShipment] = useState<Shipment | null>(null);
 
   type SelectionTarget = "BATCH_DOSSIER" | "WAREHOUSE_ENTRY" | "WAREHOUSE_EXIT" | null;
   const [selectionTarget, setSelectionTarget] = useState<SelectionTarget>(null);
@@ -220,9 +222,8 @@ export const ShipmentList = ({
   };
 
   const handleExportDossier = async (shipment: Shipment) => {
-    let toastId: string | number | undefined;
     try {
-      // 1. Kiểm tra điều kiện
+      // 1. Kiểm tra điều kiện xuất hồ sơ
       const checkResult = await checkDossierEligibility(shipment.id);
 
       if (!checkResult.eligible) {
@@ -235,49 +236,13 @@ export const ShipmentList = ({
         return;
       }
 
-      // 3. Đủ điều kiện → tải file PDF
-      toastId = toast.loading("Đang tạo hồ sơ...");
-      const blob = await exportDossier(shipment.id);
-      toast.dismiss(toastId);
-
-      // Tạo link tải file
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-
-      // Lấy tên file từ Content-Disposition hoặc tự tạo
-      const contentDisposition = (blob as any).headers?.get?.(
-        "content-disposition",
-      );
-
-      let fileName = `Ho_so_truy_xuat_${shipment.name}_${getLocalDateString()}.pdf`;
-
-      if (contentDisposition) {
-        const match = contentDisposition.match(
-          /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/,
-        );
-
-        if (match && match[1]) {
-          fileName = match[1].replace(/['"]/g, "");
-        }
-      }
-
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast.success("Tải hồ sơ thành công");
+      // 3. Đủ điều kiện → Mở hộp thoại chọn mẫu hồ sơ (NCL-07-CN-007)
+      setExportDossierShipment(shipment);
     } catch (error: any) {
-      if (toastId != null) {
-        toast.dismiss(toastId);
-      }
-
       const msg =
         error.message ||
         error.response?.data?.message ||
-        "Có lỗi xảy ra khi xuất hồ sơ.";
+        "Có lỗi xảy ra khi kiểm tra hồ sơ.";
 
       toast.error(msg);
     }
@@ -862,6 +827,17 @@ export const ShipmentList = ({
           reload();
         }}
       />
+
+      {/* NCL-07-CN-007: Dialog xuất hồ sơ chọn mẫu */}
+      {exportDossierShipment && (
+        <ExportDossierDialog
+          open={exportDossierShipment !== null}
+          onOpenChange={(open) => !open && setExportDossierShipment(null)}
+          shipmentId={exportDossierShipment.id}
+          shipmentName={exportDossierShipment.name}
+          shipmentCode={exportDossierShipment.id}
+        />
+      )}
 
     </>
   );
