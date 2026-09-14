@@ -5,9 +5,6 @@ import {
   PlusCircle,
   Pencil,
   Trash2,
-  CheckCircle2,
-  Building,
-  Calendar,
 } from 'lucide-react';
 import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -128,7 +125,7 @@ export const ProfileTemplateListPage: React.FC = () => {
         <DataTableShell
           loading={loading}
           empty={filteredTemplates.length === 0}
-          colSpan={5}
+          colSpan={6}
           loadingMessage="Đang tải danh sách mẫu hồ sơ..."
           emptyMessage={
             search
@@ -149,39 +146,34 @@ export const ProfileTemplateListPage: React.FC = () => {
           }
           header={
             <>
+              <TableHead className="font-medium text-label w-[60px] text-center">STT</TableHead>
               <TableHead className="font-medium text-label w-[30%]">Tên mẫu hồ sơ</TableHead>
               <TableHead className="font-medium text-label w-[25%]">Đối tác áp dụng</TableHead>
               <TableHead className="font-medium text-label w-[15%]">Số trường chọn</TableHead>
-              <TableHead className="font-medium text-label w-[15%]">Trạng thái</TableHead>
-              <TableHead className="font-medium text-label text-right w-[15%]">Thao tác</TableHead>
+              <TableHead className="font-medium text-label w-[15%]">Thời gian tạo</TableHead>
+              <TableHead className="font-medium text-label text-right w-[100px]">Thao tác</TableHead>
             </>
           }
-          body={filteredTemplates.map((template) => (
+          body={filteredTemplates.map((template, index) => (
             <TableRow key={template.id} className="hover:bg-table-hover transition-colors">
+              <TableCell className="text-center font-medium text-muted-foreground text-sm">
+                {index + 1}
+              </TableCell>
+
               <TableCell className="font-medium">
                 <div className="flex items-center gap-2">
                   <span className="text-foreground">{template.name}</span>
                   {template.isDefault && (
-                    <Badge variant="success" className="text-[11px] gap-1 px-2 py-0.5">
-                      <CheckCircle2 className="size-3" />
+                    <Badge variant="success" className="text-[11px] px-2 py-0.5">
                       Mặc định
                     </Badge>
                   )}
                 </div>
-                {template.createdAt && (
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                    <Calendar className="size-3" />
-                    <span>Tạo: {new Date(template.createdAt).toLocaleDateString('vi-VN')}</span>
-                  </div>
-                )}
               </TableCell>
 
               <TableCell>
                 {template.partnerName ? (
-                  <div className="flex items-center gap-1.5 text-sm text-foreground">
-                    <Building className="size-3.5 text-muted-foreground shrink-0" />
-                    <span>{template.partnerName}</span>
-                  </div>
+                  <span className="text-sm text-foreground">{template.partnerName}</span>
                 ) : (
                   <span className="text-xs text-muted-foreground italic">Dùng chung (Nhiều đối tác)</span>
                 )}
@@ -193,16 +185,10 @@ export const ProfileTemplateListPage: React.FC = () => {
                 </Badge>
               </TableCell>
 
-              <TableCell>
-                {template.isDefault ? (
-                  <Badge variant="default" className="text-xs">
-                    Áp dụng mặc định
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary" className="text-xs">
-                    Theo đối tác
-                  </Badge>
-                )}
+              <TableCell className="text-sm text-muted-foreground">
+                {template.createdAt
+                  ? new Date(template.createdAt).toLocaleDateString('vi-VN')
+                  : '—'}
               </TableCell>
 
               <TableCell className="text-right">
