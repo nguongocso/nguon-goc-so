@@ -32,11 +32,15 @@ import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.farm.service.impl.ProductionLotServiceImpl;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
+import vn.nguongocso.organization.constant.RoleCode;
+import vn.nguongocso.organization.service.AreaScopeResult;
+import vn.nguongocso.organization.service.AreaScopeService;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @ExtendWith(MockitoExtension.class)
@@ -66,6 +70,9 @@ public class ProductionLotServiceTest {
     @Mock
     private InspectionEligibilityService inspectionEligibilityService;
 
+    @Mock
+    private AreaScopeService areaScopeService;
+
     @InjectMocks
     private ProductionLotServiceImpl productionLotService;
 
@@ -80,8 +87,8 @@ public class ProductionLotServiceTest {
         userId = UUID.randomUUID();
         lotId = UUID.randomUUID();
         userDetails = mock(CustomUserDetails.class);
-        when(userDetails.getOrganizationId()).thenReturn(orgId);
-        when(userDetails.getUserId()).thenReturn(userId);
+        lenient().when(userDetails.getOrganizationId()).thenReturn(orgId);
+        lenient().when(userDetails.getUserId()).thenReturn(userId);
 
         // NCL-11-CN-005 (QTN-30): mặc định lô không có kết luận FAILED.
         lenient().when(inspectionEligibilityService.hasLatestFailedConclusion(any(ProductionLot.class)))
@@ -470,5 +477,58 @@ public class ProductionLotServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Lô sản xuất không thuộc tổ chức của bạn");
         verify(productionLotRepository, never()).save(any(ProductionLot.class));
+    }
+
+    @Test
+    void getAllProductionLots_whenOrgManager_shouldFindByOrganizationId() {
+        // Given
+        when(userDetails.getRoleCode()).thenReturn(RoleCode.ORG_MANAGER);
+        ProductionLot lot = createPendingLot();
+        when(productionLotRepository.findByOrganization_OrganizationId(orgId)).thenReturn(List.of(lot));
+
+        // When
+        List<CreateProductionLotResponse> responses = productionLotService.getAllProductionLots(userDetails);
+
+        // Then
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).getId()).isEqualTo(lot.getId());
+        verify(productionLotRepository).findByOrganization_OrganizationId(orgId);
+        verifyNoInteractions(areaScopeService);
+    }
+
+    @Test
+    void getAllProductionLots_whenRegulatorWithAssignedArea_shouldFindInOrganizations() {
+        // Given
+        when(userDetails.getRoleCode()).thenReturn(RoleCode.REGULATOR);
+        UUID coopOrgId = UUID.randomUUID();
+        AreaScopeResult scope = AreaScopeResult.of(Set.of(coopOrgId));
+        when(areaScopeService.resolveOrganizationsForReports(userDetails, null)).thenReturn(scope);
+
+        ProductionLot lot = createPendingLot();
+        when(productionLotRepository.findAllInOrganizationsWithDetails(Set.of(coopOrgId))).thenReturn(List.of(lot));
+
+        // When
+        List<CreateProductionLotResponse> responses = productionLotService.getAllProductionLots(userDetails);
+
+        // Then
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).getId()).isEqualTo(lot.getId());
+        verify(productionLotRepository).findAllInOrganizationsWithDetails(Set.of(coopOrgId));
+        verify(productionLotRepository, never()).findByOrganization_OrganizationId(any());
+    }
+
+    @Test
+    void getAllProductionLots_whenRegulatorWithUnassignedArea_shouldReturnEmpty() {
+        // Given
+        when(userDetails.getRoleCode()).thenReturn(RoleCode.REGULATOR);
+        when(areaScopeService.resolveOrganizationsForReports(userDetails, null)).thenReturn(AreaScopeResult.emptyScope());
+
+        // When
+        List<CreateProductionLotResponse> responses = productionLotService.getAllProductionLots(userDetails);
+
+        // Then
+        assertThat(responses).isEmpty();
+        verify(productionLotRepository, never()).findAllInOrganizationsWithDetails(any());
+        verify(productionLotRepository, never()).findByOrganization_OrganizationId(any());
     }
 }

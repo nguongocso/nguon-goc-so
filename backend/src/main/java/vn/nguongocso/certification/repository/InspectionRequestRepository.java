@@ -104,4 +104,12 @@ public interface InspectionRequestRepository
             UUID organizationId,
             InspectionRequestStatus status,
             Pageable pageable);
-}
+
+    /**
+     * Tìm danh sách yêu cầu kiểm nghiệm theo danh sách lô sản xuất và trạng thái (NCL-07-CN-006).
+     */
+    @Query("SELECT ir FROM InspectionRequest ir WHERE ir.productionLot.id IN :lotIds AND ir.status = :status")
+    List<InspectionRequest> findByProductionLotIdInAndStatus(
+            @Param("lotIds") java.util.Collection<UUID> lotIds,
+            @Param("status") InspectionRequestStatus status);
+}

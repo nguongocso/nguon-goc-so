@@ -7,6 +7,10 @@ export interface OrganizationProfile {
   type: OrganizationType;
   status: "ACTIVE" | "INACTIVE";
   address: string | null;
+  provinceId?: string | null;
+  provinceName?: string | null;
+  communeId?: string | null;
+  communeName?: string | null;
   phone: string | null;
   email: string | null;
   createdAt: string;
@@ -16,9 +20,12 @@ export interface OrganizationProfile {
 export interface UpdateOrganizationRequest {
   name: string;
   address?: string;
+  provinceId?: string | null;
+  communeId?: string | null;
   phone?: string;
   email?: string;
 }
+
 
 export interface OrganizationProfileResponse {
   success: boolean;

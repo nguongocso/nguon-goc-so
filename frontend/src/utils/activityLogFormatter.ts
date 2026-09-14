@@ -112,6 +112,7 @@ export const formatActionType = (action: string): string => {
     CREATE_MEMBER: 'Thêm thành viên',
     UPDATE_ROLE_PERMISSIONS: 'Cấu hình quyền vai trò',
     ACCESS_DENIED: 'Truy cập trái phép bị chặn',
+    UPDATE_PROFILE: 'Cập nhật hồ sơ người dùng',
 
     // API Key
     CREATE_API_KEY: 'Cấp API key đối tác',
@@ -273,7 +274,7 @@ export const getActionColor = (action: string): string => {
   ) {
     return 'bg-rose-100 text-rose-800 border-rose-200';
   }
-    if (
+  if (
     act.includes('RECALL') ||
     act.includes('LOCK') ||
     act.includes('SUBMIT') ||

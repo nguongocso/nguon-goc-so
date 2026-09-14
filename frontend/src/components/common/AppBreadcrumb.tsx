@@ -154,6 +154,8 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/integration/api-keys", "Khóa API đối tác"],
 
   // Reports
+  ["/reports/alert-lots/:lotId", "Chi tiết lô có cảnh báo"],
+  ["/reports/alert-lots", "Theo dõi lô có cảnh báo"],
   ["/reports/lookup-statistics", "Thống kê tra cứu"],
   ["/reports/crop-area-analysis", "Phân tích vùng trồng"],
   ["/reports/season-yield-comparison", "So sánh mùa vụ"],
@@ -250,7 +252,7 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
   ],
   ["/inspection-requests/:requestId/results", ["VT-02"]],
   ["/production-lots/:id/edit", ROLE_ACCESS.productionLotEdit],
-  ["/production-lots/:id", ["VT-01", "VT-02", "VT-03"]],
+  ["/production-lots/:id", ["VT-01", "VT-02", "VT-03", "VT-05"]],
   ["/production-lots", ROLE_ACCESS.productionLotList],
 
   // Shipments
@@ -322,6 +324,8 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
   ["/admin/account-areas", ROLE_ACCESS.areaAssignment],
 
   // Reports
+  ["/reports/alert-lots/:lotId", ROLE_ACCESS.territoryAlertLots],
+  ["/reports/alert-lots", ROLE_ACCESS.territoryAlertLots],
   ["/reports/lookup-statistics", ["VT-01", "VT-02"]],
   ["/reports/crop-area-analysis", ["VT-02", "VT-03"]],
   ["/reports/season-yield-comparison", ROLE_ACCESS.seasonYieldComparison],

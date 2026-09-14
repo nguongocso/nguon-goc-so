@@ -37,6 +37,8 @@ public class CustomUserDetails implements UserDetails {
     private final String organizationName;
     private final String organizationCode;
     private final OrganizationType organizationType;
+    private final UUID organizationProvinceId;
+    private final UUID organizationCommuneId;
     private final String roleCode;
     private final String roleName;
     private final List<GrantedAuthority> authorities;
@@ -51,6 +53,12 @@ public class CustomUserDetails implements UserDetails {
         this.organizationName = orgUser.getOrganization().getName();
         this.organizationCode = orgUser.getOrganization().getCode();
         this.organizationType = orgUser.getOrganization().getType();
+        this.organizationProvinceId = orgUser.getOrganization() != null && orgUser.getOrganization().getProvince() != null
+                ? orgUser.getOrganization().getProvince().getId()
+                : null;
+        this.organizationCommuneId = orgUser.getOrganization() != null && orgUser.getOrganization().getCommune() != null
+                ? orgUser.getOrganization().getCommune().getId()
+                : null;
         this.roleCode = role.getCode();
         this.roleName = role.getName();
         this.authorities = List.of(
@@ -135,6 +143,14 @@ public class CustomUserDetails implements UserDetails {
 
     public String getEmail() {
         return user != null ? user.getEmail() : null;
+    }
+
+    public UUID getOrganizationProvinceId() {
+        return organizationProvinceId;
+    }
+
+    public UUID getOrganizationCommuneId() {
+        return organizationCommuneId;
     }
 
 }

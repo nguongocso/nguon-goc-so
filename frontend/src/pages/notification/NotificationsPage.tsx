@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Bell, CheckCircle2, ChevronLeft, ChevronRight, Info, MailWarning } from 'lucide-react';
+import { AlertTriangle, Bell, CheckCircle2, ChevronLeft, ChevronRight, Info, MailWarning, MapPinOff } from 'lucide-react';
 import { HelpButton } from '@/components/help/HelpButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -94,6 +94,32 @@ const NotificationsPage = () => {
       (filter === 'UNREAD' && !isEmailNoticeRead) ||
       (filter === 'READ' && isEmailNoticeRead));
 
+  // Cảnh báo thiếu địa bàn hành chính đối với vai trò Quản lý HTX (VT-02)
+  const isMissingTerritory = Boolean(
+    user &&
+    user.roleCode === 'VT-02' &&
+    (!user.organizationProvinceId || !user.organizationCommuneId)
+  );
+
+  const territoryNoticeKey = user?.organizationId
+    ? `session_read_org_territory_notice_${user.organizationId}`
+    : '';
+  const [isTerritoryNoticeRead, setIsTerritoryNoticeRead] = useState<boolean>(() => {
+    return territoryNoticeKey ? sessionStorage.getItem(territoryNoticeKey) === 'true' : false;
+  });
+
+  useEffect(() => {
+    if (territoryNoticeKey) {
+      setIsTerritoryNoticeRead(sessionStorage.getItem(territoryNoticeKey) === 'true');
+    }
+  }, [territoryNoticeKey, user?.organizationProvinceId, user?.organizationCommuneId]);
+
+  const showTerritoryNotice =
+    isMissingTerritory &&
+    (filter === 'ALL' ||
+      (filter === 'UNREAD' && !isTerritoryNoticeRead) ||
+      (filter === 'READ' && isTerritoryNoticeRead));
+
   const handleItemClick = (notification: NotificationResponse) => {
     if (!notification.isRead) {
       void markAsRead(notification.id).then(() => refreshUnreadCount());
@@ -116,6 +142,15 @@ const NotificationsPage = () => {
       void refreshUnreadCount();
     }
     navigate('/profile');
+  };
+
+  const handleTerritoryNoticeClick = () => {
+    if (territoryNoticeKey) {
+      sessionStorage.setItem(territoryNoticeKey, 'true');
+      setIsTerritoryNoticeRead(true);
+      void refreshUnreadCount();
+    }
+    navigate('/organizations/profile');
   };
 
   return (
@@ -159,7 +194,7 @@ const NotificationsPage = () => {
             <div className="flex justify-center py-12">
               <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-primary" />
             </div>
-          ) : items.length === 0 && !showEmailNotice ? (
+          ) : items.length === 0 && !showEmailNotice && !showTerritoryNotice ? (
             <div className="px-4 py-16 text-center text-muted-foreground">
               <Bell className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
               <p className="font-medium">Chưa có thông báo nào</p>
@@ -193,6 +228,38 @@ const NotificationsPage = () => {
                       </span>
                       <span className="mt-2 inline-flex items-center text-xs font-semibold text-amber-700 underline">
                         Cập nhật hồ sơ người dùng ngay &rarr;
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              )}
+              {showTerritoryNotice && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={handleTerritoryNoticeClick}
+                    className="flex w-full items-start gap-3 bg-amber-50/80 px-4 py-4 text-left transition-colors hover:bg-amber-100/70"
+                  >
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-700">
+                      <MapPinOff className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center justify-between gap-1.5">
+                        <span className="font-medium text-amber-950">
+                          Cần thiết lập địa bàn hành chính
+                        </span>
+                        {!isTerritoryNoticeRead && (
+                          <span
+                            className="size-2 shrink-0 rounded-full bg-red-500 ring-2 ring-white"
+                            title="Chưa đọc"
+                          />
+                        )}
+                      </span>
+                      <span className="mt-1 block text-sm text-amber-900/90 leading-relaxed">
+                        Hợp tác xã chưa chọn Tỉnh/Thành phố và Xã/Phường. Vui lòng cập nhật để đồng bộ với Cán bộ ngành.
+                      </span>
+                      <span className="mt-2 inline-flex items-center text-xs font-semibold text-amber-700 underline">
+                        Cập nhật hồ sơ tổ chức ngay &rarr;
                       </span>
                     </span>
                   </button>

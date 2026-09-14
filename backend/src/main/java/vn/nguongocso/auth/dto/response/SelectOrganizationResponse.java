@@ -57,6 +57,10 @@ public class SelectOrganizationResponse {
 
         private String organizationType;
 
+        private String organizationProvinceId;
+
+        private String organizationCommuneId;
+
         private String roleCode;
 
         private String roleName;

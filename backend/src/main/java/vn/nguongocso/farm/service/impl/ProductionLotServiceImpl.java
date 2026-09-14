@@ -59,6 +59,10 @@ import vn.nguongocso.farm.enums.ChainProgressStage;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 
+import vn.nguongocso.organization.constant.RoleCode;
+import vn.nguongocso.organization.service.AreaScopeResult;
+import vn.nguongocso.organization.service.AreaScopeService;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -87,6 +91,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
     private final CodeRangeRepository codeRangeRepository;
     private final ProductionLotCertificationRepository productionLotCertificationRepository;
     private final InspectionValidityService inspectionValidityService;
+    private final AreaScopeService areaScopeService;
 
     private final ApplicationEventPublisher eventPublisher;
 
@@ -388,15 +393,37 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         return mapToResponse(lot);
     }
 
-    /** Lấy danh sách lô sản xuất của tổ chức hiện tại. */
+    /**
+     * Lấy danh sách lô sản xuất.
+     * Đối với VT-05 (Cán bộ quản lý ngành): lấy danh sách lô của các tổ chức thuộc địa bàn phân công quản lý.
+     * Đối với các vai trò khác (VT-02, VT-03, VT-04...): lấy danh sách lô thuộc tổ chức hiện tại.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<CreateProductionLotResponse> getAllProductionLots(CustomUserDetails userDetails) {
-        UUID orgId = userDetails.getOrganizationId();
+        String roleCode = userDetails.getRoleCode();
 
-        log.info("Lấy danh sách lô sản xuất cho tổ chức id={}", orgId);
-
-        List<ProductionLot> lots = productionLotRepository.findByOrganization_OrganizationId(orgId);
+        List<ProductionLot> lots;
+        if (RoleCode.REGULATOR.equals(roleCode)) {
+            AreaScopeResult scope = areaScopeService.resolveOrganizationsForReports(userDetails, null);
+            if (scope.isEmptyScope()) {
+                log.info("Cán bộ quản lý ngành [{}] chưa được phân công địa bàn quản lý. Trả về danh sách rỗng.",
+                        userDetails.getUsername());
+                return Collections.emptyList();
+            } else if (scope.isAll()) {
+                lots = productionLotRepository.findAllWithDetails();
+            } else {
+                Set<UUID> orgIds = scope.getOrganizationIds();
+                if (orgIds == null || orgIds.isEmpty()) {
+                    return Collections.emptyList();
+                }
+                lots = productionLotRepository.findAllInOrganizationsWithDetails(orgIds);
+            }
+        } else {
+            UUID orgId = userDetails.getOrganizationId();
+            log.info("Lấy danh sách lô sản xuất cho tổ chức id={}", orgId);
+            lots = productionLotRepository.findByOrganization_OrganizationId(orgId);
+        }
 
         return lots.stream()
                 .map(this::mapToResponse)
