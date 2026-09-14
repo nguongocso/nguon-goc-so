@@ -18,14 +18,26 @@ interface AggregateAlertTableProps {
 
 const TYPE_STYLE_MAP: Record<AggregateAlertType, { bg: string; text: string; border: string }> = {
   SCAN_ANOMALY: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
-  CERT_EXPIRING: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
-  CERT_EXPIRED: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
-  INSPECTION_EXPIRING: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
-  INSPECTION_EXPIRED: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+  CERT_EXPIRING: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  CERT_EXPIRED: { bg: 'bg-teal-50', text: 'text-teal-800', border: 'border-teal-200' },
+  INSPECTION_EXPIRING: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
+  INSPECTION_EXPIRED: { bg: 'bg-cyan-50', text: 'text-cyan-800', border: 'border-cyan-200' },
   UNPROCESSED_FEEDBACK: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-  CODE_RANGE_QUOTA: { bg: 'bg-yellow-50', text: 'text-yellow-800', border: 'border-yellow-200' },
+  CODE_RANGE_QUOTA: { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
   OVERDUE_MILESTONE: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
   OPEN_RECALL_CASE: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' },
+};
+
+const RELATED_ENTITY_TYPE_LABELS: Record<string, string> = {
+  TRACE_CODE: 'Mã tem truy xuất',
+  ProductionLot: 'Lô sản xuất',
+  PRODUCTION_LOT: 'Lô sản xuất',
+  Certification: 'Chứng nhận chất lượng',
+  CERTIFICATION: 'Chứng nhận chất lượng',
+  PRODUCT_FEEDBACK: 'Phản ánh người tiêu dùng',
+  CODE_RANGE: 'Dải mã truy xuất',
+  MILESTONE_REMINDER: 'Mốc canh tác bắt buộc',
+  RECALL_CASE: 'Vụ việc thu hồi',
 };
 
 export const AggregateAlertTable: React.FC<AggregateAlertTableProps> = ({
@@ -146,7 +158,7 @@ export const AggregateAlertTable: React.FC<AggregateAlertTableProps> = ({
                     {item.relatedEntityName || '—'}
                   </div>
                   <div className="text-[11px] text-gray-400 mt-0.5">
-                    {item.relatedEntityType}
+                    {RELATED_ENTITY_TYPE_LABELS[item.relatedEntityType] || item.relatedEntityType}
                   </div>
                 </td>
 

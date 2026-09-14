@@ -77,9 +77,11 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
 
         UUID targetOrgId = resolveTargetOrganizationId(organizationId);
         String effectiveStatus = (status == null || status.isBlank()) ? "OPEN" : status.toUpperCase();
+        CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
+        boolean isAdmin = ROLE_ADMIN.equals(currentUser.getRoleCode());
 
         // 1. Gom tất cả các mục từ 7 nguồn theo tổ chức và trạng thái
-        List<AggregateAlertItemResponse> allItems = collectAllAlerts(targetOrgId, effectiveStatus);
+        List<AggregateAlertItemResponse> allItems = collectAllAlerts(targetOrgId, effectiveStatus, isAdmin);
 
         // 2. Thống kê theo mức khẩn cấp và loại trước khi lọc chi tiết
         AggregateAlertCountResponse summaryCounts = calculateSummaryCounts(allItems);
@@ -126,8 +128,10 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
     @Override
     @Transactional(readOnly = true)
     public AggregateAlertCountResponse getAggregateAlertCounts(UUID organizationId) {
+        CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
+        boolean isAdmin = ROLE_ADMIN.equals(currentUser.getRoleCode());
         UUID targetOrgId = resolveTargetOrganizationId(organizationId);
-        List<AggregateAlertItemResponse> openItems = collectAllAlerts(targetOrgId, "OPEN");
+        List<AggregateAlertItemResponse> openItems = collectAllAlerts(targetOrgId, "OPEN", isAdmin);
         return calculateSummaryCounts(openItems);
     }
 
@@ -136,16 +140,18 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
     public UnviewedAlertCountResponse getUnviewedAlertCount() {
         CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
         String roleCode = currentUser.getRoleCode();
+        boolean isAdmin = ROLE_ADMIN.equals(roleCode);
 
-        UUID targetOrgId = ROLE_ADMIN.equals(roleCode) ? null : currentUser.getOrganizationId();
-        List<AggregateAlertItemResponse> openItems = collectAllAlerts(targetOrgId, "OPEN");
+        UUID targetOrgId = isAdmin ? null : currentUser.getOrganizationId();
+        List<AggregateAlertItemResponse> openItems = collectAllAlerts(targetOrgId, "OPEN", isAdmin);
 
-        long count = openItems.size();
-        boolean hasHigh = openItems.stream().anyMatch(item -> item.getSeverity() == AlertSeverity.HIGH);
+        long unviewedCount = openItems.size();
+        boolean hasHighSeverity = openItems.stream()
+                .anyMatch(item -> item.getSeverity() == AlertSeverity.HIGH);
 
         return UnviewedAlertCountResponse.builder()
-                .unviewedCount(count)
-                .hasHighSeverity(hasHigh)
+                .unviewedCount(unviewedCount)
+                .hasHighSeverity(hasHighSeverity)
                 .build();
     }
 
@@ -175,28 +181,28 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
     /**
      * Thu thập cảnh báo từ 7 nguồn dữ liệu.
      */
-    private List<AggregateAlertItemResponse> collectAllAlerts(UUID orgId, String statusFilter) {
+    private List<AggregateAlertItemResponse> collectAllAlerts(UUID orgId, String statusFilter, boolean isAdmin) {
         List<AggregateAlertItemResponse> result = new ArrayList<>();
 
         boolean includeOpen = "OPEN".equalsIgnoreCase(statusFilter) || "ALL".equalsIgnoreCase(statusFilter);
         boolean includeResolved = "RESOLVED".equalsIgnoreCase(statusFilter) || "ALL".equalsIgnoreCase(statusFilter);
 
         // Nguồn 1, 2, 3: Bảng alerts (Tem quét bất thường, Chứng nhận, Kiểm nghiệm)
-        collectAlertsFromAlertTable(result, orgId, includeOpen, includeResolved);
+        collectAlertsFromAlertTable(result, orgId, includeOpen, includeResolved, isAdmin);
 
         // Nguồn 2 & 3: Bổ sung cảnh báo chứng nhận sắp hết hạn/hết hạn trực tiếp từ CertificationRepository thời gian thực
-        collectCertificationAlerts(result, orgId, includeOpen, includeResolved);
+        collectCertificationAlerts(result, orgId, includeOpen, includeResolved, isAdmin);
 
         // Nguồn 4: Phản ánh của người tiêu dùng chưa xử lý
         collectProductFeedbackAlerts(result, orgId, includeOpen, includeResolved);
 
         // Nguồn 5: Hạn mức dải mã truy xuất sắp hết
         if (includeOpen) {
-            collectCodeRangeQuotaAlerts(result, orgId);
+            collectCodeRangeQuotaAlerts(result, orgId, isAdmin);
         }
 
         // Nguồn 6: Mốc canh tác quá hạn ghi nhật ký
-        collectMilestoneReminderAlerts(result, orgId, includeOpen, includeResolved);
+        collectMilestoneReminderAlerts(result, orgId, includeOpen, includeResolved, isAdmin);
 
         // Nguồn 7: Vụ việc thu hồi đang mở
         collectRecallCaseAlerts(result, orgId, includeOpen, includeResolved);
@@ -211,7 +217,8 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
             List<AggregateAlertItemResponse> result,
             UUID orgId,
             boolean includeOpen,
-            boolean includeResolved) {
+            boolean includeResolved,
+            boolean isAdmin) {
 
         List<Alert> alerts = new ArrayList<>();
         if (includeOpen) {
@@ -233,31 +240,38 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
             AggregateAlertType aggType = mapAlertTypeToAggregate(alert.getType());
             String actionUrl;
             String defaultTitle;
+            String entityTypeDisplay;
 
             switch (alert.getType()) {
                 case SCAN_ANOMALY:
                     actionUrl = "/alerts/scan-anomaly";
                     defaultTitle = "Tem quét bất thường cần xác minh";
+                    entityTypeDisplay = "Mã tem truy xuất";
                     break;
                 case CERT_EXPIRING:
-                    actionUrl = "/certifications";
+                    actionUrl = isAdmin ? "/admin/certifications" : "/certifications";
                     defaultTitle = "Chứng nhận sắp hết hạn hiệu lực";
+                    entityTypeDisplay = "Chứng nhận chất lượng";
                     break;
                 case CERT_EXPIRED:
-                    actionUrl = "/certifications";
+                    actionUrl = isAdmin ? "/admin/certifications" : "/certifications";
                     defaultTitle = "Chứng nhận đã hết hiệu lực";
+                    entityTypeDisplay = "Chứng nhận chất lượng";
                     break;
                 case INSPECTION_EXPIRING:
                     actionUrl = "/production-lots/" + alert.getRelatedEntityId();
                     defaultTitle = "Kết quả kiểm nghiệm sắp hết hiệu lực";
+                    entityTypeDisplay = "Lô sản xuất";
                     break;
                 case INSPECTION_EXPIRED:
                     actionUrl = "/production-lots/" + alert.getRelatedEntityId();
                     defaultTitle = "Kết quả kiểm nghiệm đã hết hiệu lực";
+                    entityTypeDisplay = "Lô sản xuất";
                     break;
                 default:
                     actionUrl = "/alerts";
                     defaultTitle = "Cảnh báo hệ thống";
+                    entityTypeDisplay = "Cảnh báo hệ thống";
             }
 
             String entityName = extractEntityNameFromDetails(alert.getDetails());
@@ -269,7 +283,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                     .severity(alert.getSeverity())
                     .title(defaultTitle)
                     .message(alert.getMessage() != null ? alert.getMessage() : defaultTitle)
-                    .relatedEntityType(alert.getRelatedEntityType())
+                    .relatedEntityType(entityTypeDisplay)
                     .relatedEntityId(alert.getRelatedEntityId())
                     .relatedEntityName(entityName)
                     .createdAt(alert.getCreatedAt())
@@ -289,7 +303,8 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
             List<AggregateAlertItemResponse> result,
             UUID orgId,
             boolean includeOpen,
-            boolean includeResolved) {
+            boolean includeResolved,
+            boolean isAdmin) {
 
         // Tập hợp các ID chứng nhận đã có cảnh báo trong kết quả (từ bảng alerts)
         Set<UUID> existingCertAlertIds = new HashSet<>();
@@ -325,6 +340,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
             UUID certOrgId = org != null ? org.getOrganizationId() : null;
             String orgName = org != null ? org.getName() : "";
             LocalDateTime createdAt = cert.getCreatedAt() != null ? cert.getCreatedAt() : LocalDateTime.now();
+            String certActionUrl = isAdmin ? "/admin/certifications" : "/certifications";
 
             if (expiryDate.isBefore(today)) {
                 // Chứng nhận đã hết hạn (CERT_EXPIRED)
@@ -341,11 +357,11 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                             .severity(AlertSeverity.HIGH)
                             .title(title)
                             .message(message)
-                            .relatedEntityType("Certification")
+                            .relatedEntityType("Chứng nhận chất lượng")
                             .relatedEntityId(cert.getId())
                             .relatedEntityName(cert.getName())
                             .createdAt(createdAt)
-                            .actionUrl("/certifications")
+                            .actionUrl(certActionUrl)
                             .organizationId(certOrgId)
                             .organizationName(orgName)
                             .status("OPEN")
@@ -361,21 +377,21 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                                 cert.getName(), cert.getCode(), daysRemaining, expiryDate);
 
                         result.add(AggregateAlertItemResponse.builder()
-                                .id(cert.getId())
-                                .type(AggregateAlertType.CERT_EXPIRING)
-                                .typeName(AggregateAlertType.CERT_EXPIRING.getDisplayName())
-                                .severity(AlertSeverity.MEDIUM)
-                                .title(title)
-                                .message(message)
-                                .relatedEntityType("Certification")
-                                .relatedEntityId(cert.getId())
-                                .relatedEntityName(cert.getName())
-                                .createdAt(createdAt)
-                                .actionUrl("/certifications")
-                                .organizationId(certOrgId)
-                                .organizationName(orgName)
-                                .status("OPEN")
-                                .build());
+                            .id(cert.getId())
+                            .type(AggregateAlertType.CERT_EXPIRING)
+                            .typeName(AggregateAlertType.CERT_EXPIRING.getDisplayName())
+                            .severity(AlertSeverity.MEDIUM)
+                            .title(title)
+                            .message(message)
+                            .relatedEntityType("Chứng nhận chất lượng")
+                            .relatedEntityId(cert.getId())
+                            .relatedEntityName(cert.getName())
+                            .createdAt(createdAt)
+                            .actionUrl(certActionUrl)
+                            .organizationId(certOrgId)
+                            .organizationName(orgName)
+                            .status("OPEN")
+                            .build());
                     }
                 }
             }
@@ -428,7 +444,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                     .severity(severity)
                     .title("Phản ánh của người tiêu dùng (" + (pf.getStatus() == ProductFeedbackStatus.NEW ? "Mới" : "Đang xử lý") + ")")
                     .message(pf.getContent())
-                    .relatedEntityType("PRODUCT_FEEDBACK")
+                    .relatedEntityType("Phản ánh người tiêu dùng")
                     .relatedEntityId(pf.getId())
                     .relatedEntityName(lotName)
                     .createdAt(pf.getCreatedAt())
@@ -443,7 +459,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
     /**
      * Gom cảnh báo hạn mức dải mã truy xuất (Nguồn 5).
      */
-    private void collectCodeRangeQuotaAlerts(List<AggregateAlertItemResponse> result, UUID orgId) {
+    private void collectCodeRangeQuotaAlerts(List<AggregateAlertItemResponse> result, UUID orgId, boolean isAdmin) {
         List<CodeRange> codeRanges = (orgId != null)
                 ? codeRangeRepository.findByOrganizationOrganizationId(orgId)
                 : codeRangeRepository.findAll();
@@ -463,6 +479,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                         cr.getPrefix(), used, cr.getTotalLimit(), percent);
 
                 Organization org = cr.getOrganization();
+                String codeRangeActionUrl = isAdmin ? "/admin/code-range-supplements" : "/code-range-supplements/create";
 
                 result.add(AggregateAlertItemResponse.builder()
                         .id(cr.getId())
@@ -471,11 +488,11 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                         .severity(severity)
                         .title(title)
                         .message(message)
-                        .relatedEntityType("CODE_RANGE")
+                        .relatedEntityType("Dải mã truy xuất")
                         .relatedEntityId(cr.getId())
                         .relatedEntityName(cr.getPrefix())
                         .createdAt(cr.getUpdatedAt() != null ? cr.getUpdatedAt() : cr.getCreatedAt())
-                        .actionUrl("/code-range-supplements/create")
+                        .actionUrl(codeRangeActionUrl)
                         .organizationId(org != null ? org.getOrganizationId() : null)
                         .organizationName(org != null ? org.getName() : "")
                         .status("OPEN")
@@ -491,7 +508,8 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
             List<AggregateAlertItemResponse> result,
             UUID orgId,
             boolean includeOpen,
-            boolean includeResolved) {
+            boolean includeResolved,
+            boolean isAdmin) {
 
         List<MilestoneReminder> reminders = new ArrayList<>();
         if (includeOpen) {
@@ -524,6 +542,13 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
             String message = String.format("Lô sản xuất '%s' đã quá hạn mốc canh tác bắt buộc '%s' %d ngày.",
                     lotName, milestoneName, overdueDays);
 
+            String milestoneActionUrl;
+            if (isAdmin) {
+                milestoneActionUrl = lotId != null ? "/production-lots/" + lotId : "/production-lots";
+            } else {
+                milestoneActionUrl = lotId != null ? "/farm-logs/create?lotId=" + lotId : "/farm-logs/create";
+            }
+
             result.add(AggregateAlertItemResponse.builder()
                     .id(mr.getId())
                     .type(AggregateAlertType.OVERDUE_MILESTONE)
@@ -531,11 +556,11 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                     .severity(severity)
                     .title(title)
                     .message(message)
-                    .relatedEntityType("MILESTONE_REMINDER")
+                    .relatedEntityType("Mốc canh tác bắt buộc")
                     .relatedEntityId(mr.getId())
                     .relatedEntityName(lotName)
                     .createdAt(mr.getCreatedAt())
-                    .actionUrl(lotId != null ? "/farm-logs/create?lotId=" + lotId : "/farm-logs/create")
+                    .actionUrl(milestoneActionUrl)
                     .organizationId(org != null ? org.getOrganizationId() : null)
                     .organizationName(org != null ? org.getName() : "")
                     .status(mr.getStatus() == MilestoneReminderStatus.OPEN ? "OPEN" : "RESOLVED")
@@ -580,6 +605,9 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
             });
 
             String lotName = rc.getProductionLot() != null ? rc.getProductionLot().getName() : "Lô sản xuất";
+            String recallActionUrl = rc.getProductionLot() != null
+                    ? "/production-lots/" + rc.getProductionLot().getId()
+                    : "/recall-requests";
 
             result.add(AggregateAlertItemResponse.builder()
                     .id(rc.getId())
@@ -589,11 +617,11 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                     .title("Vụ việc thu hồi đang mở: " + rc.getCaseCode())
                     .message(String.format("Vụ việc thu hồi %s đối với lô '%s' đang mở và cần xử lý dứt điểm các lô hàng liên quan.",
                             rc.getCaseCode(), lotName))
-                    .relatedEntityType("RECALL_CASE")
+                    .relatedEntityType("Vụ việc thu hồi")
                     .relatedEntityId(rc.getId())
                     .relatedEntityName(rc.getCaseCode())
                     .createdAt(rc.getCreatedAt())
-                    .actionUrl("/recall-cases/" + rc.getId())
+                    .actionUrl(recallActionUrl)
                     .organizationId(rc.getOrganizationId())
                     .organizationName(orgName)
                     .status(rc.getStatus() == RecallCaseStatus.OPEN ? "OPEN" : "RESOLVED")
