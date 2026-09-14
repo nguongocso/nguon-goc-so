@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS system_configurations (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (config_key),
     CONSTRAINT fk_system_configs_updated_by FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Seed cấu hình ngưỡng cảnh báo hết hiệu lực kiểm nghiệm mặc định 15 ngày
 INSERT IGNORE INTO system_configurations (config_key, config_value, description)

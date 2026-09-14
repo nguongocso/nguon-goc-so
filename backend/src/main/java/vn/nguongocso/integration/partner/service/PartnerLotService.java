@@ -24,12 +24,14 @@ import vn.nguongocso.integration.partner.dto.response.PartnerFarmLogSummaryRespo
 import vn.nguongocso.integration.partner.dto.response.PartnerLotDossierResponse;
 import vn.nguongocso.integration.partner.dto.response.PartnerLotInfoResponse;
 import vn.nguongocso.integration.partner.dto.response.PartnerOrgInfoResponse;
+import vn.nguongocso.integration.partner.util.PartnerSampleDataProvider;
 import vn.nguongocso.organization.entity.Organization;
 
 /**
- * Service xử lý lấy hồ sơ truy xuất lô sản xuất cho bên thứ ba (NCL-12-CN-002).
+ * Service xử lý lấy hồ sơ truy xuất lô sản xuất cho bên thứ ba (NCL-12-CN-002, NCL-12-CN-004).
  * <p>
- * Đảm bảo quy tắc bảo mật Cách ly Dữ liệu Tổ chức (Tenant Isolation - TC-04).
+ * Đảm bảo quy tắc bảo mật Cách ly Dữ liệu Tổ chức (Tenant Isolation - TC-04) đối với khóa thật,
+ * và điều hướng trả dữ liệu mẫu chuẩn Sandbox đối với khóa thử nghiệm (TC-01, TC-02).
  */
 @Service
 @RequiredArgsConstructor
@@ -43,13 +45,21 @@ public class PartnerLotService {
     /**
      * Lấy hồ sơ truy xuất đầy đủ của lô sản xuất cho bên thứ ba.
      * <p>
-     * Thực thi quy tắc Cách ly Dữ liệu Tổ chức (Tenant Isolation - TC-04):
-     * Chỉ cho phép truy xuất lô thuộc sở hữu của Hợp tác xã tương ứng với PartnerApiKey.
+     * - Đối với khóa thử nghiệm (isTest = true): LUÔN trả về dữ liệu mẫu Sandbox kèm đánh dấu isTest = true (TC-01, TC-02).
+     * - Đối với khóa thật: Thực thi quy tắc Cách ly Dữ liệu Tổ chức (Tenant Isolation - TC-04):
+     *   Chỉ cho phép truy xuất lô thuộc sở hữu của Hợp tác xã tương ứng với PartnerApiKey.
      */
     @Transactional(readOnly = true)
     public PartnerLotDossierResponse getLotDossierForPartner(UUID lotId, PartnerApiKey partnerApiKey) {
         if (partnerApiKey == null || partnerApiKey.getOrganization() == null) {
             throw new BusinessException("Khóa truy cập không hợp lệ hoặc thiếu thông tin tổ chức");
+        }
+
+        // TC-01, TC-02: Nếu là khóa thử nghiệm -> Trả dữ liệu mẫu Sandbox chuẩn
+        if (Boolean.TRUE.equals(partnerApiKey.getIsTest())) {
+            log.info("Bên thứ ba '{}' gọi lấy hồ sơ lô bằng khóa thử nghiệm (lotId={}) -> Trả dữ liệu mẫu Sandbox (NCL-12-CN-004)",
+                    partnerApiKey.getPartnerName(), lotId);
+            return PartnerSampleDataProvider.getSampleLotDossier();
         }
 
         UUID organizationId = partnerApiKey.getOrganization().getOrganizationId();
@@ -149,6 +159,7 @@ public class PartnerLotService {
                 .farmAreaInfo(farmAreaInfo)
                 .certifications(certResponses)
                 .farmLogSummary(logSummary)
+                .isTest(false)
                 .build();
     }
 }

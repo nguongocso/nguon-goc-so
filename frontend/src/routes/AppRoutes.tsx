@@ -109,6 +109,7 @@ import PublicHomePage from "@/pages/public/PublicHomePage";
 import TraceLookupPage from "@/pages/public/TraceLookupPage";
 import ProductFeedbackLookupPage from "@/pages/public/ProductFeedbackLookupPage";
 import JoinOrganizationPage from "@/pages/public/JoinOrganizationPage";
+import DataPortalDocsPage from "@/pages/public/DataPortalDocsPage";
 
 // ===== Reports =====
 import LookupStatisticsPage from "@/pages/report/LookupStatisticsPage";
@@ -167,9 +168,11 @@ import ImpactScopeTracePage from "@/pages/trace/ImpactScopeTracePage";
 // ===== Organization Detail =====
 import OrganizationDetailPage from "@/pages/organization/OrganizationDetailPage";
 
-// ===== Partner API Keys (NCL-12-CN-001) =====
+// ===== Partner API Keys (NCL-12-CN-001 / NCL-12-CN-004) =====
 import PartnerApiKeyListPage from "@/pages/apiKey/PartnerApiKeyListPage";
 import CreatePartnerApiKeyPage from "@/pages/apiKey/CreatePartnerApiKeyPage";
+import CreateTestPartnerApiKeyPage from "@/pages/apiKey/CreateTestPartnerApiKeyPage";
+
 
 // ===== Product Feedback =====
 import ProductFeedbackManagementPage from "@/pages/product-feedback/ProductFeedbackManagementPage";
@@ -369,6 +372,22 @@ const AppRoutes = () => (
         <Route
             path="/join"
             element={<JoinOrganizationPage />}
+        />
+
+        {/* NCL-12-CN-004: Trang tài liệu cổng dữ liệu công khai cho bên thứ ba */}
+        <Route
+            path="/portal"
+            element={<DataPortalDocsPage />}
+        />
+
+        <Route
+            path="/docs/api"
+            element={<DataPortalDocsPage />}
+        />
+
+        <Route
+            path="/public/portal-docs"
+            element={<DataPortalDocsPage />}
         />
 
 
@@ -1507,6 +1526,16 @@ const AppRoutes = () => (
                     </RoleRoute>
                 }
             />
+
+            <Route
+                path="integration/api-keys/create-test"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.apiKeyManagement}>
+                        <CreateTestPartnerApiKeyPage />
+                    </RoleRoute>
+                }
+            />
+
 
 
             {/* =================================================
