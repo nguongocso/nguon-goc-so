@@ -63,10 +63,11 @@ export const RouteMap = ({ events }: RouteMapProps) => {
     locationEvents.forEach((event, index) => {
       const lat = event.latitude!;
       const lng = event.longitude!;
-      const rawLabel = getEventTypeLabel(event.eventType);
+      const rawLabel = getEventTypeLabel(event.eventType, lang);
       const eventTypeKey = `event_${event.eventType}` as any;
-      const label = isEn ? t(eventTypeKey) : rawLabel;
-      const date = formatDisplayDateTime(event.recordedAt);
+      const translatedLabel = t(eventTypeKey);
+      const label = translatedLabel && !translatedLabel.startsWith('event_') ? translatedLabel : rawLabel;
+      const date = formatDisplayDateTime(event.recordedAt, lang);
 
       coords.push([lat, lng]);
 
@@ -74,6 +75,7 @@ export const RouteMap = ({ events }: RouteMapProps) => {
       const translatedData = getTranslatedEventData(
         event.eventType,
         (event.eventData as Record<string, unknown>) || {},
+        lang,
       );
 
       const detailsHtml = Object.entries(translatedData)
@@ -139,7 +141,7 @@ export const RouteMap = ({ events }: RouteMapProps) => {
         leafletMapRef.current = null;
       }
     };
-  }, [locationEvents, isEn, t]);
+  }, [locationEvents, isEn, lang, t]);
 
   // Nếu không có tọa độ, không hiển thị
   if (locationEvents.length === 0) {

@@ -1,5 +1,17 @@
 import React from 'react';
-import { Calendar, Package, Truck, Sprout, Clipboard, AlertTriangle, FileSignature } from 'lucide-react';
+import {
+  Calendar,
+  Package,
+  Truck,
+  Sprout,
+  AlertTriangle,
+  FileSignature,
+  ShoppingCart,
+  PackageCheck,
+  Warehouse,
+  Thermometer,
+  GitFork,
+} from 'lucide-react';
 import type { PublicChainEventItem } from '@/types/publicTrace';
 import {
   getEventTypeLabel,
@@ -11,11 +23,17 @@ import { useLanguage } from '@/context/LanguageContext';
 
 const EVENT_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   HARVEST: Sprout,
+  PREPROCESSING: PackageCheck,
   PACKAGING: Package,
   TRANSPORT: Truck,
-  PROCUREMENT: Clipboard,
+  PROCUREMENT: ShoppingCart,
   CORRECTION: Calendar,
   HANDOVER: FileSignature,
+  WAREHOUSE_RECEIPT: Warehouse,
+  WAREHOUSE_ENTRY: Warehouse,
+  WAREHOUSE_EXIT: Warehouse,
+  STORAGE_CONDITION: Thermometer,
+  SPLIT: GitFork,
 };
 
 const USER_TEXT_FIELDS = new Set([
@@ -51,10 +69,10 @@ export const Timeline: React.FC<TimelineProps> = ({ events }: TimelineProps) => 
     <div className="relative pl-6 border-l-2 border-border space-y-6">
       {events.map((event, index) => {
         const Icon = EVENT_ICONS[event.eventType] || Calendar;
-        const rawLabel = getEventTypeLabel(event.eventType);
-        // Dịch eventType nếu chuyển sang tiếng Anh
+        const rawLabel = getEventTypeLabel(event.eventType, lang);
         const eventTypeKey = `event_${event.eventType}` as any;
-        const label = isEn ? t(eventTypeKey) : rawLabel;
+        const translatedLabel = t(eventTypeKey);
+        const label = translatedLabel && !translatedLabel.startsWith('event_') ? translatedLabel : rawLabel;
 
         const isEarlyHarvest =
           event.eventType === 'HARVEST' &&
@@ -62,6 +80,7 @@ export const Timeline: React.FC<TimelineProps> = ({ events }: TimelineProps) => 
         const translatedData = getTranslatedEventData(
           event.eventType,
           (event.eventData as Record<string, unknown>) || {},
+          lang,
         );
         const entries = Object.entries(translatedData);
 
@@ -88,13 +107,12 @@ export const Timeline: React.FC<TimelineProps> = ({ events }: TimelineProps) => 
                     </div>
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {formatDisplayDateTime(event.recordedAt)}
+                      {formatDisplayDateTime(event.recordedAt, lang)}
                     </span>
                   </div>
                   {entries.length > 0 && (
                     <div className="mt-1 text-sm text-muted-foreground space-y-1">
                       {entries.map(([fieldLabel, value]) => {
-                        // Kiểm tra xem trường này có phải là dữ liệu tự do do user nhập tiếng Việt không
                         const rawKeys = Object.keys(event.eventData || {});
                         const matchingKey = rawKeys.find(k => USER_TEXT_FIELDS.has(k));
                         const isUserText = Boolean(matchingKey);
