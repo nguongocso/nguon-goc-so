@@ -32,7 +32,11 @@ import vn.nguongocso.integration.apikey.service.PartnerApiKeyService;
 public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String API_KEY_HEADER = "X-API-KEY";
-    private static final String PARTNER_PATH_PREFIX = "/api/v1/partner/";
+    private static final String API_KEY_HEADER_ALT = "X-Api-Key";
+    private static final java.util.List<String> FILTER_PREFIXES = java.util.List.of(
+            "/api/v1/partner/",
+            "/api/publicapi/"
+    );
 
     private final ObjectProvider<PartnerApiKeyService> partnerApiKeyServiceProvider;
     private final ObjectMapper objectMapper;
@@ -40,7 +44,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return !path.startsWith(PARTNER_PATH_PREFIX);
+        return FILTER_PREFIXES.stream().noneMatch(path::startsWith);
     }
 
     @Override
@@ -56,6 +60,9 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String apiKey = request.getHeader(API_KEY_HEADER);
+        if (apiKey == null || apiKey.isBlank()) {
+            apiKey = request.getHeader(API_KEY_HEADER_ALT);
+        }
         String clientIp = getClientIp(request);
 
         try {
