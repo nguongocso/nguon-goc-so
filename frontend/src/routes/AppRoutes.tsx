@@ -109,6 +109,7 @@ import PublicHomePage from "@/pages/public/PublicHomePage";
 import TraceLookupPage from "@/pages/public/TraceLookupPage";
 import ProductFeedbackLookupPage from "@/pages/public/ProductFeedbackLookupPage";
 import JoinOrganizationPage from "@/pages/public/JoinOrganizationPage";
+import DataPortalDocsPage from "@/pages/public/DataPortalDocsPage";
 
 // ===== Reports =====
 import LookupStatisticsPage from "@/pages/report/LookupStatisticsPage";
@@ -368,6 +369,22 @@ const AppRoutes = () => (
         <Route
             path="/join"
             element={<JoinOrganizationPage />}
+        />
+
+        {/* NCL-12-CN-004: Trang tài liệu cổng dữ liệu công khai cho bên thứ ba */}
+        <Route
+            path="/portal"
+            element={<DataPortalDocsPage />}
+        />
+
+        <Route
+            path="/docs/api"
+            element={<DataPortalDocsPage />}
+        />
+
+        <Route
+            path="/public/portal-docs"
+            element={<DataPortalDocsPage />}
         />
 
 
