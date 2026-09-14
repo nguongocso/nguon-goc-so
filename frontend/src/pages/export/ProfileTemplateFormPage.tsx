@@ -7,7 +7,6 @@ import {
   FileText,
   Save,
   Eye,
-  ArrowLeft,
   Loader2,
   Building,
   AlertCircle,
@@ -279,21 +278,7 @@ export const ProfileTemplateFormPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header điều hướng quay lại */}
-      <div className="flex items-center justify-between">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/export/profile-templates')}
-          className="gap-2 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" />
-          <span>Quay lại danh sách mẫu</span>
-        </Button>
-      </div>
-
+    <div className="space-y-6">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Card thông tin cơ bản của mẫu */}
         <Card>
