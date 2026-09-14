@@ -22,7 +22,11 @@ import {
   User,
 } from 'lucide-react';
 import type { ActivityLogExportFilterRequest } from '@/types/activityLog';
-import { previewExportActivityLogs, downloadActivityLogsCsv } from '@/api/activityLogApi';
+import {
+  getActivityLogApiError,
+  previewExportActivityLogs,
+  requestActivityLogExport,
+} from '@/api/activityLogApi';
 import { formatActionType, formatTargetType } from '@/utils/activityLogFormatter';
 import { toast } from 'sonner';
 
@@ -44,7 +48,7 @@ export const ActivityLogExportDialog = ({
 }: Props) => {
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [recordCount, setRecordCount] = useState<number | null>(null);
-  const [exportMode, setExportMode] = useState<string>('DIRECT');
+  const [exportMode, setExportMode] = useState<'DIRECT' | 'ASYNC'>('DIRECT');
   const [exporting, setExporting] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
@@ -65,10 +69,11 @@ export const ActivityLogExportDialog = ({
           setRecordCount(res.count);
           setExportMode(res.mode);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (isMounted) {
-          const msg =
-            err.response?.data?.message || 'Không thể tính toán số lượng bản ghi xem trước.';
+          const msg = await getActivityLogApiError(
+            err, 'Không thể tính toán số lượng bản ghi xem trước.',
+          );
           setPreviewError(msg);
         }
       } finally {
@@ -83,27 +88,27 @@ export const ActivityLogExportDialog = ({
     return () => {
       isMounted = false;
     };
-  }, [open, filter]);
+  }, [open, filter.action, filter.actorName, filter.startDate, filter.endDate, filter.objectType]);
 
   const handleExport = async () => {
     setExporting(true);
     try {
-      await downloadActivityLogsCsv(filter);
-      toast.success('Xuất nhật ký hoạt động thành công.');
+      const result = await requestActivityLogExport(filter);
+      toast.success(result.mode === 'DIRECT'
+        ? 'Xuất nhật ký hoạt động thành công.'
+        : 'Đã tạo yêu cầu xuất nền. Hệ thống sẽ thông báo khi tệp sẵn sàng.');
       onExportSuccess?.();
       onClose();
-    } catch (err: any) {
-      const msg =
-        err.response?.data?.message || 'Không thể tải xuống tệp nhật ký hoạt động.';
+    } catch (err: unknown) {
+      const msg = await getActivityLogApiError(err, 'Không thể tạo tệp nhật ký hoạt động.');
       toast.error(msg);
     } finally {
       setExporting(false);
     }
   };
 
-  const MAX_DIRECT_EXPORT_RECORDS = 10_000;
   const hasNoData = recordCount === 0;
-  const isOverLimit = (recordCount ?? 0) > MAX_DIRECT_EXPORT_RECORDS;
+  const isAsync = exportMode === 'ASYNC';
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && !exporting && onClose()}>
@@ -150,16 +155,16 @@ export const ActivityLogExportDialog = ({
                 </p>
               </div>
             </div>
-          ) : isOverLimit ? (
+          ) : isAsync ? (
             <div className="flex items-start gap-3 p-4 border border-amber-200 rounded-xl bg-amber-50 text-amber-900">
               <AlertCircle className="w-5 h-5 mt-0.5 shrink-0 text-amber-600" />
               <div className="text-sm">
-                <p className="font-semibold">Vượt quá giới hạn xuất trực tiếp</p>
+                <p className="font-semibold">Sẽ xử lý trong nền</p>
                 <p className="mt-1 text-amber-800">
                   Có <strong>{recordCount?.toLocaleString('vi-VN')}</strong> bản ghi.
                 </p>
                 <p className="mt-0.5 text-amber-800">
-                  Xuất trực tiếp hỗ trợ tối đa <strong>10.000</strong> bản ghi. Vui lòng thu hẹp khoảng thời gian hoặc điều kiện lọc.
+                  Dữ liệu vượt ngưỡng xuất trực tiếp. Hệ thống sẽ tạo snapshot, xử lý trong nền và gửi thông báo khi tệp sẵn sàng.
                 </p>
               </div>
             </div>
@@ -257,17 +262,17 @@ export const ActivityLogExportDialog = ({
             type="button"
             className="bg-emerald-700 hover:bg-emerald-800 text-white gap-2 font-medium"
             onClick={handleExport}
-            disabled={loadingPreview || !!previewError || hasNoData || isOverLimit || exporting}
+            disabled={loadingPreview || !!previewError || hasNoData || exporting}
           >
             {exporting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Đang tạo tệp CSV...
+                {isAsync ? 'Đang tạo yêu cầu...' : 'Đang tạo tệp CSV...'}
               </>
             ) : (
               <>
                 <Download className="w-4 h-4" />
-                Tải tệp CSV
+                {isAsync ? 'Tạo yêu cầu xuất nền' : 'Tải tệp CSV'}
               </>
             )}
           </Button>

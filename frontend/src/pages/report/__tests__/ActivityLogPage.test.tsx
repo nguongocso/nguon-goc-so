@@ -9,11 +9,14 @@ import { toast } from "sonner";
 vi.mock("@/api/activityLogApi", () => ({
   getActivityLogs: vi.fn(),
   previewExportActivityLogs: vi.fn(),
-  downloadActivityLogsCsv: vi.fn(),
+  requestActivityLogExport: vi.fn(),
+  getActivityLogExportJob: vi.fn(),
+  downloadActivityLogExportJob: vi.fn(),
+  getActivityLogApiError: vi.fn((_error, fallback) => Promise.resolve(fallback)),
 }));
 
 vi.mock("sonner", () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 
 vi.mock("@/components/help/HelpButton", () => ({
@@ -67,7 +70,7 @@ describe("ActivityLogPage E2E / Page Integration Tests", () => {
       mode: "DIRECT",
     });
 
-    vi.mocked(activityLogApi.downloadActivityLogsCsv).mockResolvedValue();
+    vi.mocked(activityLogApi.requestActivityLogExport).mockResolvedValue({ mode: "DIRECT" });
 
     // Mock URL.createObjectURL & revokeObjectURL
     window.URL.createObjectURL = vi.fn(() => "blob:http://localhost/mock-url");
@@ -101,22 +104,26 @@ describe("ActivityLogPage E2E / Page Integration Tests", () => {
     await user.click(downloadBtn);
 
     await waitFor(() => {
-      expect(activityLogApi.downloadActivityLogsCsv).toHaveBeenCalledTimes(1);
+      expect(activityLogApi.requestActivityLogExport).toHaveBeenCalledTimes(1);
       expect(toast.success).toHaveBeenCalledWith("Xuất nhật ký hoạt động thành công.");
     });
   });
 
-  it("gọi lại API khi người dùng bấm nút 'Làm mới'", async () => {
+  it("giữ nguyên toàn bộ bộ lọc URL khi hiển thị và bấm nút 'Làm mới'", async () => {
     const user = userEvent.setup();
 
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[
+        "/activity-logs?action=UPDATE_PRODUCTION_LOT&actorName=manager_a&startDate=2026-09-01&endDate=2026-09-14&objectType=PRODUCTION_LOT",
+      ]}>
         <ActivityLogPage />
       </MemoryRouter>
     );
 
     expect(await screen.findByText("Lịch sử hoạt động hệ thống")).toBeInTheDocument();
     expect(activityLogApi.getActivityLogs).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText("Người thực hiện")).toHaveValue("manager_a");
+    expect(screen.getByLabelText("Từ ngày")).toHaveValue("2026-09-01");
 
     // Bấm nút "Làm mới"
     const refreshBtn = screen.getByRole("button", { name: /Làm mới/i });
@@ -124,13 +131,20 @@ describe("ActivityLogPage E2E / Page Integration Tests", () => {
 
     await waitFor(() => {
       expect(activityLogApi.getActivityLogs).toHaveBeenCalledTimes(2);
+      expect(activityLogApi.getActivityLogs).toHaveBeenLastCalledWith(expect.objectContaining({
+        action: "UPDATE_PRODUCTION_LOT",
+        actorName: "manager_a",
+        startDate: "2026-09-01",
+        endDate: "2026-09-14",
+        objectType: "PRODUCTION_LOT",
+      }));
     });
   });
 
-  it("hiển thị cảnh báo và vô hiệu hóa nút tải khi preview trả về vượt quá 10.000 bản ghi", async () => {
+  it("hiển thị chế độ nền và cho phép tạo export job khi dữ liệu lớn", async () => {
     vi.mocked(activityLogApi.previewExportActivityLogs).mockResolvedValue({
       count: 12500,
-      mode: "DIRECT",
+      mode: "ASYNC",
     });
 
     const user = userEvent.setup();
@@ -146,10 +160,10 @@ describe("ActivityLogPage E2E / Page Integration Tests", () => {
     const exportBtn = screen.getByRole("button", { name: /Xuất nhật ký/i });
     await user.click(exportBtn);
 
-    expect(await screen.findByText("Vượt quá giới hạn xuất trực tiếp")).toBeInTheDocument();
-    expect(screen.getByText(/Xuất trực tiếp hỗ trợ tối đa/)).toBeInTheDocument();
+    expect(await screen.findByText("Sẽ xử lý trong nền")).toBeInTheDocument();
+    expect(screen.getByText(/Hệ thống sẽ tạo snapshot/)).toBeInTheDocument();
 
-    const downloadBtn = screen.getByRole("button", { name: /Tải tệp CSV/i });
-    expect(downloadBtn).toBeDisabled();
+    const requestButton = screen.getByRole("button", { name: /Tạo yêu cầu xuất nền/i });
+    expect(requestButton).toBeEnabled();
   });
 });

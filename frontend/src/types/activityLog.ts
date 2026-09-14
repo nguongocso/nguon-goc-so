@@ -23,6 +23,7 @@ export interface ActivityLogParams {
   actorName?: string;
   startDate?: string;
   endDate?: string;
+  objectType?: string;
 }
 
 export interface ActivityLogExportFilterRequest {
@@ -35,5 +36,23 @@ export interface ActivityLogExportFilterRequest {
 
 export interface ActivityLogExportPreviewResponse {
   count: number;
-  mode: string;
-}
+  mode: 'DIRECT' | 'ASYNC';
+}
+
+export type ActivityLogExportStatus = 'IN_PROGRESS' | 'SUCCESS' | 'FAILED';
+
+export interface ActivityLogExportJobResponse {
+  exportId: string;
+  mode: 'ASYNC';
+  status: ActivityLogExportStatus;
+  recordCount: number;
+  fileName?: string;
+  fileSize?: number;
+  createdAt: string;
+  completedAt?: string;
+  downloadUrl?: string;
+}
+
+export type ActivityLogExportRequestResult =
+  | { mode: 'DIRECT' }
+  | { mode: 'ASYNC'; job: ActivityLogExportJobResponse };

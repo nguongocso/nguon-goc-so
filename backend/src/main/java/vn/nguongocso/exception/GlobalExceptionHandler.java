@@ -236,6 +236,7 @@ public class GlobalExceptionHandler {
                                 .userId(user.getUserId())
                                 .username(user.getUsername())
                                 .fullName(user.getFullName())
+                                .actorRole(user.getRoleCode())
                                 .organizationId(user.getOrganizationId())
                                 .action("ACCESS_DENIED")
                                 .description("Truy cập trái phép vào API giám sát hệ thống ("

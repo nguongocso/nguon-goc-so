@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, X } from "lucide-react";
-import { formatActionType } from "@/utils/activityLogFormatter";
+import { formatActionType, formatTargetType } from "@/utils/activityLogFormatter";
+import type { ActivityLogExportFilterRequest } from "@/types/activityLog";
 
 const FILTER_ACTIONS = [
   "CREATE",
@@ -55,21 +56,39 @@ const ACTION_OPTIONS = FILTER_ACTIONS.map((value) => ({
   label: formatActionType(value),
 }));
 
+const OBJECT_TYPES = [
+  "PRODUCTION_LOT", "FARM_LOG", "FARM_AREA", "SHIPMENT", "CHAIN_EVENT",
+  "CERTIFICATION", "USER", "ORGANIZATION", "INSPECTION_REQUEST", "RECALL_REQUEST",
+  "ACTIVITY_LOG_EXPORT",
+].map((value) => ({ value, label: formatTargetType(value) }));
+const ALL_VALUE = "__ALL__";
+
 interface Props {
-  onFilter: (params: any) => void;
+  onFilter: (params: ActivityLogExportFilterRequest) => void;
   onReset: () => void;
   loading?: boolean;
+  initialValues?: ActivityLogExportFilterRequest;
 }
 
-export const ActivityLogFilter = ({ onFilter, onReset, loading }: Props) => {
-  const [action, setAction] = useState("");
-  const [actorName, setActorName] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+export const ActivityLogFilter = ({ onFilter, onReset, loading, initialValues }: Props) => {
+  const [action, setAction] = useState(initialValues?.action ?? "");
+  const [actorName, setActorName] = useState(initialValues?.actorName ?? "");
+  const [startDate, setStartDate] = useState(initialValues?.startDate ?? "");
+  const [endDate, setEndDate] = useState(initialValues?.endDate ?? "");
+  const [objectType, setObjectType] = useState(initialValues?.objectType ?? "");
+
+  useEffect(() => {
+    setAction(initialValues?.action ?? "");
+    setActorName(initialValues?.actorName ?? "");
+    setStartDate(initialValues?.startDate ?? "");
+    setEndDate(initialValues?.endDate ?? "");
+    setObjectType(initialValues?.objectType ?? "");
+  }, [initialValues?.action, initialValues?.actorName, initialValues?.startDate,
+    initialValues?.endDate, initialValues?.objectType]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onFilter({ action, actorName, startDate, endDate });
+    onFilter({ action, actorName, startDate, endDate, objectType });
   };
 
   const handleReset = () => {
@@ -77,6 +96,7 @@ export const ActivityLogFilter = ({ onFilter, onReset, loading }: Props) => {
     setActorName("");
     setStartDate("");
     setEndDate("");
+    setObjectType("");
     onReset();
   };
 
@@ -91,7 +111,7 @@ export const ActivityLogFilter = ({ onFilter, onReset, loading }: Props) => {
     <Card className="border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm">
       <CardContent className="p-5">
         <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* Loại thao tác */}
             <div className="space-y-1.5">
               <Label
@@ -101,8 +121,8 @@ export const ActivityLogFilter = ({ onFilter, onReset, loading }: Props) => {
                 Loại thao tác
               </Label>
               <Select
-                value={action}
-                onValueChange={(value) => setAction(value ?? "")}
+                value={action || ALL_VALUE}
+                onValueChange={(value) => setAction(value && value !== ALL_VALUE ? value : "")}
               >
                 <SelectTrigger
                   id="action"
@@ -113,7 +133,7 @@ export const ActivityLogFilter = ({ onFilter, onReset, loading }: Props) => {
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tất cả</SelectItem>
+                  <SelectItem value={ALL_VALUE}>Tất cả</SelectItem>
                   {ACTION_OPTIONS.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}
@@ -172,6 +192,29 @@ export const ActivityLogFilter = ({ onFilter, onReset, loading }: Props) => {
                 onChange={(e) => setEndDate(e.target.value)}
                 className="border-emerald-200 focus-visible:ring-emerald-100"
               />
+            </div>
+
+            {/* Loại đối tượng */}
+            <div className="space-y-1.5">
+              <Label htmlFor="objectType" className="text-sm font-medium text-emerald-800">
+                Loại đối tượng
+              </Label>
+              <Select
+                value={objectType || ALL_VALUE}
+                onValueChange={(value) => setObjectType(value && value !== ALL_VALUE ? value : "")}
+              >
+                <SelectTrigger id="objectType" className="border-emerald-200 focus:ring-emerald-100">
+                  <SelectValue placeholder="Tất cả">
+                    {objectType ? formatTargetType(objectType) : "Tất cả"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_VALUE}>Tất cả</SelectItem>
+                  {OBJECT_TYPES.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

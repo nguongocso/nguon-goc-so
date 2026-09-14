@@ -1,6 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { getActivityLogs } from "@/api/activityLogApi";
+import {
+  downloadActivityLogExportJob,
+  getActivityLogApiError,
+  getActivityLogExportJob,
+  getActivityLogs,
+} from "@/api/activityLogApi";
 import type { ActivityLog, ActivityLogParams } from "@/types/activityLog";
 import { ActivityLogFilter } from "@/components/activity-log/ActivityLogFilter";
 import { ActivityLogTable } from "@/components/activity-log/ActivityLogTable";
@@ -48,6 +53,7 @@ export default function ActivityLogPage() {
         actorName: params.actorName || undefined,
         startDate: params.startDate || undefined,
         endDate: params.endDate || undefined,
+        objectType: params.objectType || undefined,
       });
       setLogs(data.items);
       setPageInfo({
@@ -80,15 +86,18 @@ export default function ActivityLogPage() {
       params.startDate = searchParams.get("startDate")!;
     if (searchParams.get("endDate"))
       params.endDate = searchParams.get("endDate")!;
+    if (searchParams.get("objectType"))
+      params.objectType = searchParams.get("objectType")!;
     fetchLogs(params);
   }, [page, size, searchParams]);
 
-  const handleFilter = (filters: any) => {
+  const handleFilter = (filters: ActivityLogExportFilterRequest) => {
     const params = new URLSearchParams();
     if (filters.action) params.set("action", filters.action);
     if (filters.actorName) params.set("actorName", filters.actorName);
     if (filters.startDate) params.set("startDate", filters.startDate);
     if (filters.endDate) params.set("endDate", filters.endDate);
+    if (filters.objectType) params.set("objectType", filters.objectType);
     setPage(0);
     setSearchParams(params);
   };
@@ -104,12 +113,46 @@ export default function ActivityLogPage() {
     }
   };
 
-  const currentExportFilter: ActivityLogExportFilterRequest = {
+  const currentExportFilter = useMemo<ActivityLogExportFilterRequest>(() => ({
     action: searchParams.get("action") || undefined,
     actorName: searchParams.get("actorName") || undefined,
     startDate: searchParams.get("startDate") || undefined,
     endDate: searchParams.get("endDate") || undefined,
-  };
+    objectType: searchParams.get("objectType") || undefined,
+  }), [searchParams]);
+
+  const refreshCurrentLogs = () => fetchLogs({ page, size, ...currentExportFilter });
+
+  useEffect(() => {
+    const exportJobId = searchParams.get("exportJobId");
+    if (!exportJobId) return;
+    let active = true;
+    const downloadCompletedJob = async () => {
+      try {
+        const job = await getActivityLogExportJob(exportJobId);
+        if (job.status === "SUCCESS") {
+          await downloadActivityLogExportJob(exportJobId);
+          if (active) toast.success("Đã tải tệp nhật ký hoạt động.");
+        } else if (active) {
+          toast.info(job.status === "IN_PROGRESS"
+            ? "Tệp nhật ký vẫn đang được xử lý."
+            : "Yêu cầu xuất nhật ký đã thất bại.");
+        }
+      } catch (error: unknown) {
+        if (active) {
+          toast.error(await getActivityLogApiError(error, "Không thể tải tệp nhật ký hoạt động."));
+        }
+      } finally {
+        if (active) {
+          const next = new URLSearchParams(searchParams);
+          next.delete("exportJobId");
+          setSearchParams(next, { replace: true });
+        }
+      }
+    };
+    void downloadCompletedJob();
+    return () => { active = false; };
+  }, [searchParams, setSearchParams]);
 
   return (
     <div className="space-y-6">
@@ -125,7 +168,7 @@ export default function ActivityLogPage() {
           <HelpButton screenKey="report-activity-log" />
           <Button
             variant="outline"
-            onClick={() => fetchLogs({ page, size })}
+            onClick={refreshCurrentLogs}
             disabled={loading}
           >
             <RefreshCw
@@ -150,6 +193,7 @@ export default function ActivityLogPage() {
         onFilter={handleFilter}
         onReset={handleReset}
         loading={loading}
+        initialValues={currentExportFilter}
       />
 
       {/* Bảng danh sách */}
@@ -221,7 +265,7 @@ export default function ActivityLogPage() {
         open={exportDialogOpen}
         onClose={() => setExportDialogOpen(false)}
         filter={currentExportFilter}
-        onExportSuccess={() => fetchLogs({ page, size })}
+        onExportSuccess={refreshCurrentLogs}
       />
     </div>
   );

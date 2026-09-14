@@ -21,6 +21,7 @@ const TYPE_ICON: Record<NotificationType, typeof Bell> = {
   ANOMALY_OPEN: AlertTriangle,
   ANOMALY_DISMISSED: CheckCircle2,
   ACCOUNT_UNLOCKED: Info,
+  ACTIVITY_LOG_EXPORT_READY: CheckCircle2,
 };
 
 const TYPE_STYLE: Record<NotificationType, string> = {
@@ -32,6 +33,7 @@ const TYPE_STYLE: Record<NotificationType, string> = {
   ANOMALY_OPEN: 'bg-error-bg text-destructive',
   ANOMALY_DISMISSED: 'bg-success-bg text-success',
   ACCOUNT_UNLOCKED: 'bg-info-bg text-info',
+  ACTIVITY_LOG_EXPORT_READY: 'bg-success-bg text-success',
 };
 
 const formatNotificationReason = (content: string) => {

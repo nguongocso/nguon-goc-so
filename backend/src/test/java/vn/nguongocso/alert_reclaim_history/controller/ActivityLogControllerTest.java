@@ -17,6 +17,7 @@ import vn.nguongocso.config.JwtTokenProvider;
 import vn.nguongocso.config.SecurityConfig;
 import vn.nguongocso.alert.controller.ActivityLogController;
 import vn.nguongocso.alert.dto.response.ActivityLogExportPreviewResponse;
+import vn.nguongocso.alert.dto.response.ActivityLogExportResult;
 import vn.nguongocso.alert.service.ActivityLogExportService;
 import vn.nguongocso.alert.service.ActivityLogService;
 import vn.nguongocso.organization.entity.Organization;
@@ -92,7 +93,7 @@ public class ActivityLogControllerTest {
                 .totalPages(0)
                 .build();
 
-        when(activityLogService.getActivityLogs(anyInt(), anyInt(), any(), any(), any(), any(), any()))
+        when(activityLogService.getActivityLogs(anyInt(), anyInt(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(response);
 
         mockMvc.perform(get("/api/v1/organizations/activity-logs")
@@ -147,7 +148,8 @@ public class ActivityLogControllerTest {
     void exportActivityLogs_shouldReturnCsv_whenUserIsOrgManager() throws Exception {
         CustomUserDetails user = createCustomUserDetails("manager", "VT-02");
         byte[] csv = "\ufeffoccurredAt,actorName".getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        when(activityLogExportService.exportCsv(any(), any())).thenReturn(csv);
+        when(activityLogExportService.requestExport(any(), any())).thenReturn(
+                ActivityLogExportResult.builder().mode("DIRECT").csvBytes(csv).build());
 
         mockMvc.perform(post("/api/v1/organizations/activity-logs/exports")
                         .with(authentication(new UsernamePasswordAuthenticationToken(

@@ -8,7 +8,8 @@ import { toast } from "sonner";
 
 vi.mock("@/api/activityLogApi", () => ({
   previewExportActivityLogs: vi.fn(),
-  downloadActivityLogsCsv: vi.fn(),
+  requestActivityLogExport: vi.fn(),
+  getActivityLogApiError: vi.fn((_error, fallback) => Promise.resolve(fallback)),
 }));
 
 vi.mock("sonner", () => ({
@@ -89,7 +90,7 @@ describe("ActivityLogExportDialog", () => {
       count: 10,
       mode: "DIRECT",
     });
-    vi.mocked(activityLogApi.downloadActivityLogsCsv).mockResolvedValue(undefined);
+    vi.mocked(activityLogApi.requestActivityLogExport).mockResolvedValue({ mode: "DIRECT" });
 
     render(
       <ActivityLogExportDialog
@@ -108,7 +109,7 @@ describe("ActivityLogExportDialog", () => {
     await user.click(downloadBtn);
 
     await waitFor(() => {
-      expect(activityLogApi.downloadActivityLogsCsv).toHaveBeenCalledWith(defaultFilter);
+      expect(activityLogApi.requestActivityLogExport).toHaveBeenCalledWith(defaultFilter);
       expect(toast.success).toHaveBeenCalledWith("Xuất nhật ký hoạt động thành công.");
       expect(onExportSuccess).toHaveBeenCalled();
       expect(onClose).toHaveBeenCalled();
@@ -119,6 +120,9 @@ describe("ActivityLogExportDialog", () => {
     vi.mocked(activityLogApi.previewExportActivityLogs).mockRejectedValue({
       response: { data: { message: "Ngày bắt đầu không được sau ngày kết thúc." } },
     });
+    vi.mocked(activityLogApi.getActivityLogApiError).mockResolvedValue(
+      "Ngày bắt đầu không được sau ngày kết thúc.",
+    );
 
     render(
       <ActivityLogExportDialog
@@ -137,10 +141,21 @@ describe("ActivityLogExportDialog", () => {
     expect(downloadBtn).toBeDisabled();
   });
 
-  it("vô hiệu hóa nút tải tệp và hiển thị cảnh báo khi số lượng bản ghi vượt quá 10.000", async () => {
+  it("cho phép tạo job nền khi preview trả về chế độ ASYNC", async () => {
+    const user = userEvent.setup();
     vi.mocked(activityLogApi.previewExportActivityLogs).mockResolvedValue({
       count: 15000,
-      mode: "DIRECT",
+      mode: "ASYNC",
+    });
+    vi.mocked(activityLogApi.requestActivityLogExport).mockResolvedValue({
+      mode: "ASYNC",
+      job: {
+        exportId: "db5164c7-b7bd-4a0c-8ee4-3eb9d7f16e5d",
+        mode: "ASYNC",
+        status: "IN_PROGRESS",
+        recordCount: 15000,
+        createdAt: "2026-09-14T10:30:00",
+      },
     });
 
     render(
@@ -152,12 +167,19 @@ describe("ActivityLogExportDialog", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Vượt quá giới hạn xuất trực tiếp")).toBeInTheDocument();
-      expect(screen.getByText(/Xuất trực tiếp hỗ trợ tối đa/)).toBeInTheDocument();
+      expect(screen.getByText("Sẽ xử lý trong nền")).toBeInTheDocument();
+      expect(screen.getByText(/Hệ thống sẽ tạo snapshot/)).toBeInTheDocument();
     });
 
-    const downloadBtn = screen.getByRole("button", { name: /Tải tệp CSV/i });
-    expect(downloadBtn).toBeDisabled();
+    const requestButton = screen.getByRole("button", { name: /Tạo yêu cầu xuất nền/i });
+    expect(requestButton).toBeEnabled();
+    await user.click(requestButton);
+
+    await waitFor(() => {
+      expect(activityLogApi.requestActivityLogExport).toHaveBeenCalledWith(defaultFilter);
+      expect(toast.success).toHaveBeenCalledWith(
+        "Đã tạo yêu cầu xuất nền. Hệ thống sẽ thông báo khi tệp sẵn sàng.",
+      );
+    });
   });
 });
-

@@ -28,7 +28,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +39,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import vn.nguongocso.alert.dto.request.ActivityLogExportFilterRequest;
 import vn.nguongocso.alert.entity.ActivityLog;
+import vn.nguongocso.alert.entity.ActivityLogExportItem;
+import vn.nguongocso.alert.entity.ActivityLogExportJob;
+import vn.nguongocso.alert.repository.ActivityLogExportItemRepository;
+import vn.nguongocso.alert.repository.ActivityLogExportJobRepository;
 import vn.nguongocso.alert.repository.ActivityLogRepository;
 import vn.nguongocso.auth.entity.Role;
 import vn.nguongocso.auth.entity.User;
@@ -57,6 +63,7 @@ import vn.nguongocso.organization.entity.OrganizationUser;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@TestPropertySource(properties = "app.activity-log-export.direct-limit=2")
 @Transactional
 public class ActivityLogExportE2EIntegrationTest {
 
@@ -65,6 +72,15 @@ public class ActivityLogExportE2EIntegrationTest {
 
     @Autowired
     private ActivityLogRepository activityLogRepository;
+
+    @Autowired
+    private ActivityLogExportJobRepository exportJobRepository;
+
+    @Autowired
+    private ActivityLogExportItemRepository exportItemRepository;
+
+    @Autowired
+    private vn.nguongocso.alert.service.impl.ActivityLogExportWorker activityLogExportWorker;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -117,8 +133,11 @@ public class ActivityLogExportE2EIntegrationTest {
                 .fullName(fullName)
                 .action(action)
                 .description("Mô tả thao tác " + action)
+                .actorRole(username.startsWith("recorder") ? "VT-03" : "VT-02")
                 .entityType(entityType)
                 .entityId(entityId)
+                .beforeValue("{\"status\":\"OLD\"}")
+                .afterValue("{\"status\":\"NEW\"}")
                 .createdAt(createdAt)
                 .build();
     }
@@ -205,12 +224,12 @@ public class ActivityLogExportE2EIntegrationTest {
             CSVRecord r1 = records.get(0);
             assertThat(r1.get("actorName")).isEqualTo("Nguyễn Văn An");
             assertThat(r1.get("actorUsername")).isEqualTo("manager_a");
-            assertThat(r1.get("actorRole")).isEqualTo("null");
+            assertThat(r1.get("actorRole")).isEqualTo("VT-02");
             assertThat(r1.get("actionType")).isEqualTo("UPDATE_PRODUCTION_LOT");
             assertThat(r1.get("objectType")).isEqualTo("PRODUCTION_LOT");
             assertThat(r1.get("objectIdentifier")).isEqualTo("LOT-001");
-            assertThat(r1.get("beforeValue")).isEqualTo("null");
-            assertThat(r1.get("afterValue")).isEqualTo("null");
+            assertThat(r1.get("beforeValue")).isEqualTo("{\"status\":\"OLD\"}");
+            assertThat(r1.get("afterValue")).isEqualTo("{\"status\":\"NEW\"}");
 
             CSVRecord r2 = records.get(1);
             assertThat(r2.get("actorName")).isEqualTo("Trần Thị Bình");
@@ -230,6 +249,44 @@ public class ActivityLogExportE2EIntegrationTest {
 
         // 7. Xác nhận bản ghi EXPORT_ACTIVITY_LOG mới sinh KHÔNG nằm trong nội dung CSV của chính lần xuất đó
         assertThat(csvString).doesNotContain("EXPORT_ACTIVITY_LOG");
+    }
+
+    @Test
+    @DisplayName("Dữ liệu vượt ngưỡng tạo job và snapshot bất biến, không lộ job sang tenant khác")
+    void testE2E_AsyncSnapshotAndTenantScopedJob() throws Exception {
+        activityLogRepository.saveAll(List.of(
+                createLog(orgIdA, "manager_a", "Nguyễn Văn An", "UPDATE_LOT", "LOT", "LOT-1", LocalDateTime.now()),
+                createLog(orgIdA, "manager_a", "Nguyễn Văn An", "UPDATE_LOT", "LOT", "LOT-2", LocalDateTime.now()),
+                createLog(orgIdA, "manager_a", "Nguyễn Văn An", "UPDATE_LOT", "LOT", "LOT-3", LocalDateTime.now())));
+
+        ActivityLogExportFilterRequest filter = new ActivityLogExportFilterRequest();
+        MvcResult result = mockMvc.perform(post("/api/v1/organizations/activity-logs/exports")
+                .with(authentication(new UsernamePasswordAuthenticationToken(userManagerOrgA, null, userManagerOrgA.getAuthorities())))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(filter)))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.data.mode").value("ASYNC"))
+                .andExpect(jsonPath("$.data.status").value("IN_PROGRESS"))
+                .andExpect(jsonPath("$.data.recordCount").value(3))
+                .andExpect(jsonPath("$.data.exportId").exists())
+                .andReturn();
+
+        UUID jobId = UUID.fromString(objectMapper.readTree(result.getResponse().getContentAsString())
+                .path("data").path("exportId").asText());
+        ActivityLogExportJob job = exportJobRepository.findById(jobId).orElseThrow();
+        List<ActivityLogExportItem> snapshot = exportItemRepository
+                .findByJobId(jobId, PageRequest.of(0, 10)).getContent();
+
+        assertThat(job.getOrganizationId()).isEqualTo(orgIdA);
+        assertThat(snapshot).hasSize(3);
+        assertThat(snapshot).extracting(ActivityLogExportItem::getActionType)
+                .doesNotContain("EXPORT_ACTIVITY_LOG");
+
+        mockMvc.perform(get("/api/v1/organizations/activity-logs/exports/{exportId}", jobId)
+                .with(authentication(new UsernamePasswordAuthenticationToken(userManagerOrgB, null, userManagerOrgB.getAuthorities())))
+                .with(csrf()))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -402,5 +459,87 @@ public class ActivityLogExportE2EIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Ngày bắt đầu không được sau ngày kết thúc."));
+    }
+
+    @Test
+    @DisplayName("Kiểm tra giới hạn khoảng thời gian: Vượt quá maxRangeDays (365 ngày) trả HTTP 400 và không ghi audit")
+    void testE2E_ExceedsMaxRangeDays_ShouldReturn400_NoAudit() throws Exception {
+        ActivityLogExportFilterRequest filter = new ActivityLogExportFilterRequest();
+        filter.setStartDate(java.time.LocalDate.of(2024, 1, 1));
+        filter.setEndDate(java.time.LocalDate.of(2025, 1, 2)); // 367 days > 365 days
+
+        // 1. Preview bị từ chối với 400
+        mockMvc.perform(post("/api/v1/organizations/activity-logs/exports/preview")
+                .with(authentication(new UsernamePasswordAuthenticationToken(userManagerOrgA, null, userManagerOrgA.getAuthorities())))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(filter)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Khoảng thời gian xuất nhật ký không được vượt quá 365 ngày."));
+
+        // 2. Export bị từ chối với 400
+        mockMvc.perform(post("/api/v1/organizations/activity-logs/exports")
+                .with(authentication(new UsernamePasswordAuthenticationToken(userManagerOrgA, null, userManagerOrgA.getAuthorities())))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(filter)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Khoảng thời gian xuất nhật ký không được vượt quá 365 ngày."));
+
+        // 3. Khẳng định không tạo bất kỳ audit log nào
+        long auditCount = activityLogRepository.findAll().stream()
+                .filter(log -> "EXPORT_ACTIVITY_LOG".equals(log.getAction()))
+                .count();
+        assertThat(auditCount).isZero();
+    }
+
+    @Test
+    @DisplayName("Kiểm tra tính bất biến của Snapshot (Immutability): Log mới chèn sau snapshot không lọt vào tệp worker xuất")
+    void testE2E_SnapshotImmutability_NewLogsAfterSnapshotNotIncludedInWorkerOutput() throws Exception {
+        // 1. Tạo 3 log ban đầu cho Org A (vượt directLimit=2 để kích hoạt ASYNC)
+        activityLogRepository.saveAll(List.of(
+                createLog(orgIdA, "manager_a", "Nguyễn Văn An", "ACTION_1", "LOT", "LOT-1", LocalDateTime.now().minusHours(3)),
+                createLog(orgIdA, "manager_a", "Nguyễn Văn An", "ACTION_2", "LOT", "LOT-2", LocalDateTime.now().minusHours(2)),
+                createLog(orgIdA, "manager_a", "Nguyễn Văn An", "ACTION_3", "LOT", "LOT-3", LocalDateTime.now().minusHours(1))));
+
+        ActivityLogExportFilterRequest filter = new ActivityLogExportFilterRequest();
+
+        // 2. Gửi request export để chốt snapshot
+        MvcResult result = mockMvc.perform(post("/api/v1/organizations/activity-logs/exports")
+                .with(authentication(new UsernamePasswordAuthenticationToken(userManagerOrgA, null, userManagerOrgA.getAuthorities())))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(filter)))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.data.mode").value("ASYNC"))
+                .andExpect(jsonPath("$.data.recordCount").value(3))
+                .andReturn();
+
+        UUID jobId = UUID.fromString(objectMapper.readTree(result.getResponse().getContentAsString())
+                .path("data").path("exportId").asText());
+
+        // 3. Chèn thêm log thứ 4 VÀO DATABASE SAU KHI SNAPSHOT ĐÃ TẠO
+        ActivityLog postSnapshotLog = createLog(orgIdA, "manager_a", "Nguyễn Văn An", "POST_SNAPSHOT_ACTION", "LOT", "LOT-4", LocalDateTime.now());
+        activityLogRepository.save(postSnapshotLog);
+
+        // 4. Cho worker xử lý job
+        activityLogExportWorker.process(jobId);
+
+        // 5. Tải file CSV qua endpoint download và kiểm tra nội dung
+        MvcResult downloadResult = mockMvc.perform(get("/api/v1/organizations/activity-logs/exports/{jobId}/download", jobId)
+                .with(authentication(new UsernamePasswordAuthenticationToken(userManagerOrgA, null, userManagerOrgA.getAuthorities())))
+                .with(csrf()))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        byte[] csvBytes = downloadResult.getResponse().getContentAsByteArray();
+        String csvContent = new String(csvBytes, StandardCharsets.UTF_8);
+
+        // Khẳng định: File CSV chứa 3 log ban đầu, TUYỆT ĐỐI KHÔNG chứa log thứ 4 mới chèn sau snapshot
+        assertThat(csvContent).contains("ACTION_1", "ACTION_2", "ACTION_3");
+        assertThat(csvContent).doesNotContain("POST_SNAPSHOT_ACTION");
+        assertThat(csvContent).doesNotContain("LOT-4");
     }
 }

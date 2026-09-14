@@ -59,6 +59,10 @@ export const NotificationBell = () => {
       void markAsRead(notification.id).then(() => refreshUnreadCount());
     }
     setOpen(false);
+    if (notification.type === 'ACTIVITY_LOG_EXPORT_READY' && notification.entityId) {
+      navigate(`/activity-logs?exportJobId=${notification.entityId}`);
+      return;
+    }
     if (notification.entityId) {
       navigate(`/shipment-handovers/${notification.entityId}`);
       return;
