@@ -296,7 +296,7 @@ class ActivityLogExportServiceTest {
         log.setBeforeValue("{\"status\":\"OLD\",\"password\":\"plain-text\",\"nested\":{\"access_token\":\"abc\"}}");
         log.setAfterValue("credential=my-secret;status=NEW");
         String csv = new String(csvWriter().writeActivities(List.of(log)), StandardCharsets.UTF_8);
-        assertThat(csv).contains("' =cmd", "VT-03", "before", "after");
+        assertThat(csv).contains("' =cmd", "Người ghi sự kiện (VT-03)", "Dữ liệu trước", "Dữ liệu sau");
         assertThat(csv).contains("***", "OLD", "NEW");
         assertThat(csv).doesNotContain(log.getOrganizationId().toString(), log.getUserId().toString(),
                 "plain-text", "my-secret", "abc");

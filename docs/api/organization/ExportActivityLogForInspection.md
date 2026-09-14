@@ -32,7 +32,7 @@ Mọi endpoint yêu cầu `Authorization: Bearer <token>`. Theo cấu hình Spri
 - **Giới hạn khoảng thời gian xuất:** Khoảng thời gian giữa `startDate` và `endDate` không được vượt quá 365 ngày (cấu hình kỹ thuật qua `app.activity-log-export.max-range-days`, mặc định 365 ngày cho v1). Nếu vượt quá giới hạn cấu hình, request preview và export đều bị từ chối với HTTP 400 Bad Request, không tạo snapshot/job/file và không ghi audit.
 - Không có dữ liệu khớp bộ lọc: trả `400`, không sinh file/job và không ghi audit export.
 - Cùng một DTO/bộ đặc tả lọc được dùng cho preview, snapshot và export để tránh sai lệch số lượng.
-- CSV là định dạng duy nhất của v1: `text/csv;charset=UTF-8`, có BOM UTF-8 để tương thích Excel. Giá trị phải escape đúng CSV; mọi giá trị mà sau khi loại bỏ khoảng trắng đầu dòng (`stripLeading()`) bắt đầu bằng `=`, `+`, `-`, `@` phải được bảo vệ khỏi CSV formula injection bằng cách thêm tiền tố dấu nháy đơn (`'`) vào đầu toàn bộ giá trị xuất ra.
+- CSV là định dạng duy nhất của v1: `text/csv;charset=UTF-8`, có BOM UTF-8 và dùng dấu phẩy (`,`) như định dạng ban đầu để Microsoft Excel tách dữ liệu thành các cột. Tiêu đề cột và các nhãn nghiệp vụ được xuất bằng tiếng Việt. Giá trị phải escape đúng CSV; mọi giá trị mà sau khi loại bỏ khoảng trắng đầu dòng (`stripLeading()`) bắt đầu bằng `=`, `+`, `-`, `@` phải được bảo vệ khỏi CSV formula injection bằng cách thêm tiền tố dấu nháy đơn (`'`) vào đầu toàn bộ giá trị xuất ra.
 - Không xuất `userId`, `organizationId`, `ipAddress`, `description`, mật khẩu, token, secret hoặc credential. `description` chỉ là tóm tắt tự do, không được dùng để suy ra before/after. `beforeValue`/`afterValue` đi qua sanitizer dùng chung trước khi ghi CSV.
 
 ## 4. Luồng nghiệp vụ
@@ -72,26 +72,26 @@ Ví dụ body:
 
 ## 6. Schema dữ liệu file export
 
-Header CSV gồm 9 cột kỹ thuật cố định, theo đúng thứ tự:
+Header CSV gồm 9 cột hiển thị tiếng Việt cố định, theo đúng thứ tự:
 
 ```text
-occurredAt,actorName,actorUsername,actorRole,actionType,objectType,objectIdentifier,beforeValue,afterValue
+Thời gian,Người thực hiện,Tên đăng nhập,Vai trò,Hành động,Loại đối tượng,Mã đối tượng,Dữ liệu trước,Dữ liệu sau
 ```
 
-| Cột nghiệp vụ | Nguồn/mapping hiện tại | Có sẵn | Cách export / gap |
+| Cột trong tệp | Nguồn/mapping hiện tại | Có sẵn | Cách export / gap |
 |---|---|---:|---|
-| `occurredAt` | `ActivityLog.createdAt` | Có | ISO-8601 theo múi giờ nghiệp vụ `Asia/Ho_Chi_Minh`; không tự gắn nhãn UTC cho `LocalDateTime` hiện tại |
-| `actorName` | `fullName`, fallback `username` | Có | Dùng `fullName` khi không rỗng, nếu không dùng `username`, đúng mapping API hiện tại |
-| `actorUsername` | `username` | Có | Định danh phù hợp, được phép xuất |
-| `actorRole` | `ActivityLog.actorRole` / `ActivityLogEvent.actorRole` | Có từ migration mới | Role tại thời điểm ghi event; literal `null` cho dữ liệu lịch sử cũ |
-| `actionType` | `action` | Có | Xuất trực tiếp |
-| `objectType` | `entityType` | Có | Ánh xạ 1:1 |
-| `objectIdentifier` | `entityId` | Có một phần | Xuất ID hiện có; chưa có code/tên nghiệp vụ ổn định |
-| `beforeValue` | `ActivityLog.beforeValue` | Có từ migration mới | JSON compact đã che khóa nhạy cảm hoặc literal `null` |
-| `afterValue` | `ActivityLog.afterValue` | Có từ migration mới | JSON compact đã che khóa nhạy cảm hoặc literal `null` |
+| `Thời gian` | `ActivityLog.createdAt` | Có | Hiển thị theo định dạng Việt Nam `dd/MM/yyyy HH:mm:ss`, giữ nguyên múi giờ nghiệp vụ `Asia/Ho_Chi_Minh` của `LocalDateTime` hiện tại |
+| `Người thực hiện` | `fullName`, fallback `username` | Có | Dùng `fullName` khi không rỗng, nếu không dùng `username`, đúng mapping API hiện tại |
+| `Tên đăng nhập` | `username` | Có | Giữ nguyên định danh tài khoản |
+| `Vai trò` | `ActivityLog.actorRole` / `ActivityLogEvent.actorRole` | Có từ migration mới | Việt hóa mã vai trò đã biết và giữ kèm mã, ví dụ `Quản lý hợp tác xã (VT-02)`; dữ liệu lịch sử cũ hiển thị `Không có dữ liệu` |
+| `Hành động` | `action` | Có | Việt hóa theo cùng ý nghĩa hiển thị trên màn hình; mã chưa biết được giữ nguyên để không mất thông tin |
+| `Loại đối tượng` | `entityType` | Có | Việt hóa theo cùng ý nghĩa hiển thị trên màn hình; mã chưa biết được giữ nguyên |
+| `Mã đối tượng` | `entityId` | Có một phần | Giữ nguyên ID hiện có; chưa có code/tên nghiệp vụ ổn định |
+| `Dữ liệu trước` | `ActivityLog.beforeValue` | Có từ migration mới | JSON compact đã che khóa nhạy cảm; khi không có dữ liệu hiển thị `Không có dữ liệu` |
+| `Dữ liệu sau` | `ActivityLog.afterValue` | Có từ migration mới | JSON compact đã che khóa nhạy cảm; khi không có dữ liệu hiển thị `Không có dữ liệu` |
 | Tenant scope | `organizationId` | Có | Chỉ dùng nội bộ để ràng buộc query, **không xuất** |
 
-`beforeValue`/`afterValue` được parse JSON khi có thể và áp dụng denylist đệ quy với `password`, `token`, `secret`, `credential`, API/private/access key, authorization, cookie và biến thể tương đương. Chuỗi không phải JSON được che theo mẫu key-value phổ biến. Khi không có dữ liệu, ô CSV là literal `null`, không thay bằng `description`.
+`beforeValue`/`afterValue` được parse JSON khi có thể và áp dụng denylist đệ quy với `password`, `token`, `secret`, `credential`, API/private/access key, authorization, cookie và biến thể tương đương. Chuỗi không phải JSON được che theo mẫu key-value phổ biến. Nội dung JSON và định danh không được dịch vì phải bảo toàn dữ liệu audit gốc. Khi không có dữ liệu, ô CSV là `Không có dữ liệu`, không thay bằng `description`.
 
 Object JSON được serialize compact thành một giá trị CSV và escape dấu nháy kép theo quy tắc CSV. `actorName`, `actorUsername`, `objectIdentifier` và mọi giá trị text cũng phải qua bước chống formula injection trước khi ghi file.
 
@@ -150,7 +150,7 @@ Body giống preview. Backend tự chọn `DIRECT` hoặc `ASYNC` từ số lư�
 
 #### Xử lý kết quả theo ngưỡng:
 - **Trường hợp kết quả <= 10.000 bản ghi:**
-  - `200 OK`, `Content-Type: text/csv;charset=UTF-8`, `Content-Disposition: attachment; filename="activity-logs-<timestamp>.csv"`; response là nội dung CSV nhị phân có UTF-8 BOM.
+  - `200 OK`, `Content-Type: text/csv;charset=UTF-8`, `Content-Disposition: attachment; filename="activity-logs-<timestamp>.csv"`; response là nội dung CSV nhị phân có UTF-8 BOM, dấu phân cách `,`, tiêu đề và nhãn nghiệp vụ tiếng Việt để mở thành bảng trong Excel.
   - Sau khi sinh file thành công, ghi audit log `EXPORT_ACTIVITY_LOG` với trạng thái `SUCCESS`.
 - **Trường hợp kết quả vượt ngưỡng direct:** tạo snapshot bất biến, trả `202 Accepted` với `ApiResult<ActivityLogExportJobResponse>`, ghi audit `EXPORT_ACTIVITY_LOG` trạng thái `IN_PROGRESS`, rồi sinh file bằng `TaskExecutor`.
 
@@ -242,7 +242,7 @@ Ma trận yêu cầu:
 
 | Yêu cầu | Nguồn | Hành vi | API/DB tác động | Bằng chứng/validation |
 |---|---|---|---|---|
-| Chốt trường file | NCL-854 | Chín cột cố định ở mục 6 | ActivityLog capture/model additive | Migration + file-content test |
+| Chốt trường file | NCL-854 + yêu cầu người dùng 2026-09-14 | Chín cột cố định ở mục 6, hiển thị dạng bảng và Việt hóa | ActivityLog capture/model additive; writer trình bày CSV | Migration + file-content test |
 | Xuất theo bộ lọc | NCL-857 | Preview và export dùng cùng DTO/specification | Hai POST endpoint, mở rộng specification | Đã triển khai direct; test service/controller đạt |
 | Bảo đảm phạm vi | NCL-860 | JWT/current tenant ở query, job và file | Tenant-scoped repository/service | TC-03 + negative cross-tenant |
 | Kiểm thử export | NCL-862 | Bao phủ direct, boundary, security và lỗi | Test plan cuối mục 16 | Đã bổ sung unit/boundary tests |

@@ -8,6 +8,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import org.apache.commons.csv.CSVFormat;
@@ -24,10 +26,12 @@ import vn.nguongocso.exception.BusinessException;
 @Component
 @RequiredArgsConstructor
 public class ActivityLogCsvWriter {
-    private static final String NULL_VALUE = "null";
+    private static final char CSV_DELIMITER = ',';
+    private static final String NULL_VALUE = "Không có dữ liệu";
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
     private static final String[] CSV_HEADERS = {
-            "occurredAt", "actorName", "actorUsername", "actorRole", "actionType",
-            "objectType", "objectIdentifier", "beforeValue", "afterValue"
+            "Thời gian", "Người thực hiện", "Tên đăng nhập", "Vai trò", "Hành động",
+            "Loại đối tượng", "Mã đối tượng", "Dữ liệu trước", "Dữ liệu sau"
     };
     private final ActivityLogExportValueSanitizer valueSanitizer;
 
@@ -40,8 +44,10 @@ public class ActivityLogCsvWriter {
             try (Writer writer = new OutputStreamWriter(output, StandardCharsets.UTF_8);
                     CSVPrinter printer = new CSVPrinter(writer, csvFormat())) {
                 for (ActivityLog log : logs) {
-                    print(printer, log.getCreatedAt(), actorName(log), log.getUsername(), log.getActorRole(),
-                            log.getAction(), log.getEntityType(), log.getEntityId(),
+                    print(printer, formatDateTime(log.getCreatedAt()), actorName(log), log.getUsername(),
+                            ActivityLogExportLabelFormatter.formatRole(log.getActorRole()),
+                            ActivityLogExportLabelFormatter.formatAction(log.getAction()),
+                            ActivityLogExportLabelFormatter.formatObjectType(log.getEntityType()), log.getEntityId(),
                             valueSanitizer.sanitize(log.getBeforeValue()),
                             valueSanitizer.sanitize(log.getAfterValue()));
                 }
@@ -62,8 +68,10 @@ public class ActivityLogCsvWriter {
 
     /** Ghi một dòng snapshot vào CSV nền. */
     public void print(CSVPrinter printer, ActivityLogExportItem item) throws IOException {
-        print(printer, item.getOccurredAt(), item.getActorName(), item.getActorUsername(), item.getActorRole(),
-                item.getActionType(), item.getObjectType(), item.getObjectIdentifier(),
+        print(printer, formatDateTime(item.getOccurredAt()), item.getActorName(), item.getActorUsername(),
+                ActivityLogExportLabelFormatter.formatRole(item.getActorRole()),
+                ActivityLogExportLabelFormatter.formatAction(item.getActionType()),
+                ActivityLogExportLabelFormatter.formatObjectType(item.getObjectType()), item.getObjectIdentifier(),
                 valueSanitizer.sanitize(item.getBeforeValue()),
                 valueSanitizer.sanitize(item.getAfterValue()));
     }
@@ -77,11 +85,19 @@ public class ActivityLogCsvWriter {
     }
 
     private CSVFormat csvFormat() {
-        return CSVFormat.DEFAULT.builder().setHeader(CSV_HEADERS).setRecordSeparator("\r\n").get();
+        return CSVFormat.DEFAULT.builder()
+                .setDelimiter(CSV_DELIMITER)
+                .setHeader(CSV_HEADERS)
+                .setRecordSeparator("\r\n")
+                .get();
     }
 
     private String actorName(ActivityLog log) {
         return log.getFullName() != null && !log.getFullName().isBlank() ? log.getFullName() : log.getUsername();
+    }
+
+    private String formatDateTime(LocalDateTime value) {
+        return value == null ? null : DATE_TIME_FORMATTER.format(value);
     }
 
     /** Bảo vệ giá trị khỏi bị bảng tính diễn giải thành công thức. */
