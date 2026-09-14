@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import vn.nguongocso.alert.service.ActivityLogService;
@@ -64,8 +65,9 @@ class ShipmentRecallServiceImplTest {
         currentUser = mock(CustomUserDetails.class);
         when(currentUser.getRoleCode()).thenReturn("VT-02");
         when(currentUser.getOrganizationId()).thenReturn(organizationId);
-        SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(currentUser, null));
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(new UsernamePasswordAuthenticationToken(currentUser, null));
+        SecurityContextHolder.setContext(context);
     }
 
     @AfterEach

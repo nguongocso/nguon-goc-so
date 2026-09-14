@@ -44,7 +44,7 @@ import vn.nguongocso.organization.repository.OrganizationUserRepository;
  * và xuất token JWT ra file tạm để phục vụ kiểm thử runtime curl tự động.
  */
 @Component
-@Profile("test")
+@Profile("runtime-test")
 @RequiredArgsConstructor
 public class TestProfileDataLoader implements CommandLineRunner {
 
