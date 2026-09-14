@@ -101,6 +101,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
         description="Quản lý cấp khóa truy cập, hạn mức gọi API và thu hồi quyền tích hợp dữ liệu của các doanh nghiệp thu mua."
         actions={
           <>
+            <HelpButton screenKey="admin-api-keys" />
             <Button
               variant="outline"
               onClick={() => window.open('/portal', '_blank')}
@@ -110,7 +111,6 @@ export const PartnerApiKeyListPage: React.FC = () => {
               <BookOpen className="w-4 h-4 text-primary" />
               <span className="hidden sm:inline">Tài liệu cổng dữ liệu</span>
             </Button>
-            <HelpButton screenKey="admin-api-keys" />
             {canManage && (
               <>
                 <Button
