@@ -51,7 +51,10 @@ export const ROLE_ACCESS = {
   notificationInbox: AUTHENTICATED_ROLE_CODES,
 
   // ✅ Từ file 2
-  exportOpenData: ['VT-05'] as const,
+  exportOpenData: ['VT-02', 'VT-05'] as const,
+
+  // ✅ NCL-07-CN-007 - Cấu hình trường dữ liệu trong hồ sơ truy xuất theo yêu cầu đối tác
+  profileTemplateManage: ['VT-02'] as const,
 
   // ✅ Từ file 1
   seasonYieldComparison: ['VT-01', 'VT-05'] as const,

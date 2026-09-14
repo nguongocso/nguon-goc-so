@@ -390,9 +390,16 @@ const MENU_GROUPS: MenuGroup[] = [
       },
       {
         icon: <FileText className="h-5 w-5" />,
+        label: "Mẫu hồ sơ truy xuất",
+        href: "/export/profile-templates",
+        allowedRoles: ["VT-02"] as const,
+        activePaths: ["/export/profile-templates", "/export/profile-templates/new"],
+      },
+      {
+        icon: <FileText className="h-5 w-5" />,
         label: "Xuất dữ liệu mở",
         href: "/export/open-data",
-        allowedRoles: ["VT-05"] as const,
+        allowedRoles: ["VT-02", "VT-05"] as const,
       },
       {
         icon: <FileSignature className="h-5 w-5" />,

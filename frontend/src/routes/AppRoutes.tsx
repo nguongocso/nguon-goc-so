@@ -151,6 +151,8 @@ import NotificationsPage from "@/pages/notification/NotificationsPage";
 
 // ===== Export Open Data =====
 import ExportOpenDataPage from "@/pages/export/ExportOpenDataPage";
+import ProfileTemplateListPage from "@/pages/export/ProfileTemplateListPage";
+import ProfileTemplateFormPage from "@/pages/export/ProfileTemplateFormPage";
 
 // ===== Import Production Lot =====
 import ImportProductionLotPage from "@/pages/production-lot/ImportProductionLotPage";
@@ -1537,6 +1539,43 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.exportOpenData}
                     >
                         <ExportOpenDataPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* =================================================
+          PROFILE TEMPLATES (NCL-07-CN-007)
+      ================================================= */}
+
+            <Route
+                path="export/profile-templates"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.profileTemplateManage}
+                    >
+                        <ProfileTemplateListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="export/profile-templates/new"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.profileTemplateManage}
+                    >
+                        <ProfileTemplateFormPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="export/profile-templates/:id/edit"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.profileTemplateManage}
+                    >
+                        <ProfileTemplateFormPage />
                     </RoleRoute>
                 }
             />
