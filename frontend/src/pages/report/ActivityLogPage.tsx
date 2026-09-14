@@ -12,14 +12,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, RefreshCw } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 import { toast } from "sonner";
 import type { PageResponse } from "@/types/common";
+import { ActivityLogExportDialog } from "@/components/activity-log/ActivityLogExportDialog";
+import type { ActivityLogExportFilterRequest } from "@/types/activityLog";
 
 export default function ActivityLogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+
   const [pageInfo, setPageInfo] = useState<
     Omit<PageResponse<ActivityLog>, "items">
   >({
@@ -100,6 +104,13 @@ export default function ActivityLogPage() {
     }
   };
 
+  const currentExportFilter: ActivityLogExportFilterRequest = {
+    action: searchParams.get("action") || undefined,
+    actorName: searchParams.get("actorName") || undefined,
+    startDate: searchParams.get("startDate") || undefined,
+    endDate: searchParams.get("endDate") || undefined,
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -122,8 +133,17 @@ export default function ActivityLogPage() {
             />
             Làm mới
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => setExportDialogOpen(true)}
+            className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 hover:text-emerald-900 gap-1.5 font-medium"
+          >
+            <Download className="h-4 w-4" />
+            Xuất nhật ký
+          </Button>
         </div>
       </div>
+
 
       {/* Bộ lọc */}
       <ActivityLogFilter
@@ -196,6 +216,14 @@ export default function ActivityLogPage() {
           </div>
         )}
       </div>
+
+      <ActivityLogExportDialog
+        open={exportDialogOpen}
+        onClose={() => setExportDialogOpen(false)}
+        filter={currentExportFilter}
+        onExportSuccess={() => fetchLogs({ page, size })}
+      />
     </div>
   );
 }
+

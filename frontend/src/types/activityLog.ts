@@ -24,3 +24,16 @@ export interface ActivityLogParams {
   startDate?: string;
   endDate?: string;
 }
+
+export interface ActivityLogExportFilterRequest {
+  startDate?: string;
+  endDate?: string;
+  action?: string;
+  actorName?: string;
+  objectType?: string;
+}
+
+export interface ActivityLogExportPreviewResponse {
+  count: number;
+  mode: string;
+}
