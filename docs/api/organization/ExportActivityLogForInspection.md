@@ -2,6 +2,8 @@
 
 > Jira Story: NCL-706 (`NCL-08-CN-015`)
 >
+> Nhánh triển khai: `feature/NCL-08-CN-015-export-activity-log`
+>
 > Epic: NCL-79 · Task tài liệu/thiết kế: NCL-854 · Liên quan: NCL-857, NCL-860, NCL-862
 >
 > Phụ thuộc: NCL-101 và `NCL-08-CN-004` (xem lịch sử hoạt động)
