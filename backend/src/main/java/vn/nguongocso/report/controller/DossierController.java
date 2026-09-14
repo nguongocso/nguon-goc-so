@@ -20,11 +20,13 @@ import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.report.exception.DossierValidationException;
 import vn.nguongocso.report.dto.response.DossierCheckResponse;
 import vn.nguongocso.report.dto.response.Gs1DossierExportResponse;
+import vn.nguongocso.export.service.ProfileTemplateService;
 import vn.nguongocso.report.service.DossierService;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -39,6 +41,7 @@ public class DossierController {
 
     private final DossierService dossierService;
     private final PermissionChecker permissionChecker;
+    private final ProfileTemplateService profileTemplateService;
 
     /**
      * API Kiểm tra điều kiện xuất hồ sơ truy xuất.
@@ -81,6 +84,26 @@ public class DossierController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
+    }
+
+    /**
+     * API Xem trước hồ sơ truy xuất áp dụng mẫu cấu hình trường dữ liệu đối tác (NCL-07-CN-007).
+     *
+     * @param shipmentId  ID lô hàng
+     * @param templateId  ID mẫu hồ sơ (tùy chọn)
+     * @param currentUser Người dùng hiện tại
+     * @return Dữ liệu hồ sơ xem trước đã lọc theo trường của mẫu
+     */
+    @GetMapping("/{shipmentId}/dossier/preview")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-04')")
+    public ResponseEntity<ApiResult<Map<String, Object>>> previewDossierWithTemplate(
+            @PathVariable UUID shipmentId,
+            @RequestParam(name = "templateId", required = false) UUID templateId,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        permissionChecker.check("SHIPMENT", "READ");
+        Map<String, Object> previewData = profileTemplateService.buildPreview(shipmentId, templateId, currentUser);
+        return ResponseEntity.ok(ApiResult.success(previewData));
     }
 
     /**

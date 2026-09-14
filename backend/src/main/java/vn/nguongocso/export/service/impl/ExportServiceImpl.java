@@ -9,6 +9,8 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.nguongocso.auth.entity.User;
+import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
@@ -16,14 +18,23 @@ import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.exception.BusinessException;
+import vn.nguongocso.exception.ResourceNotFoundException;
+import vn.nguongocso.export.constant.MandatoryFields;
 import vn.nguongocso.export.dto.request.ExportOpenDataRequest;
 import vn.nguongocso.export.dto.response.Qtn11ErrorDetailDto;
+import vn.nguongocso.export.entity.ExportLog;
+import vn.nguongocso.export.entity.ProfileTemplate;
+import vn.nguongocso.export.entity.ProfileTemplateField;
+import vn.nguongocso.export.exception.TemplateNotOwnedException;
+import vn.nguongocso.export.repository.ExportLogRepository;
+import vn.nguongocso.export.repository.ProfileTemplateRepository;
 import vn.nguongocso.export.schema.OpenDataSchema;
 import vn.nguongocso.export.service.ExportService;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.repository.FarmLogRepository;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.repository.ShipmentRepository;
+import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -33,6 +44,7 @@ import java.util.stream.Collectors;
 /**
  * Triển khai dịch vụ xuất dữ liệu công khai.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ExportServiceImpl implements ExportService {
@@ -41,6 +53,9 @@ public class ExportServiceImpl implements ExportService {
     private final ChainEventRepository chainEventRepository;
     private final FarmLogRepository farmLogRepository;
     private final ProductionLotCertificationRepository productionLotCertificationRepository;
+    private final ProfileTemplateRepository profileTemplateRepository;
+    private final ExportLogRepository exportLogRepository;
+    private final UserRepository userRepository;
 
     private static final List<ChainEventType> REQUIRED_EVENT_TYPES = List.of(
             ChainEventType.HARVEST,
@@ -388,5 +403,155 @@ public class ExportServiceImpl implements ExportService {
             case PROCUREMENT -> "Thu mua (PROCUREMENT)";
             default -> type.name();
         };
+    }
+
+    /**
+     * Xuất hồ sơ truy xuất áp dụng mẫu cấu hình theo yêu cầu đối tác (NCL-07-CN-007).
+     */
+    @Override
+    @Transactional
+    public Resource exportWithTemplate(UUID shipmentId, UUID templateId, String format, CustomUserDetails currentUser) {
+        Shipment shipment = shipmentRepository.findById(shipmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin lô hàng."));
+
+        UUID userOrgId = currentUser.getOrganizationId();
+        if ("VT-02".equals(currentUser.getRoleCode())) {
+            if (shipment.getOrganization() == null || !shipment.getOrganization().getOrganizationId().equals(userOrgId)) {
+                throw new TemplateNotOwnedException("Từ chối thao tác: Lô hàng không thuộc tổ chức của bạn.");
+            }
+        }
+
+        // 1. Xác định mẫu hồ sơ áp dụng
+        ProfileTemplate template = null;
+        if (templateId != null) {
+            template = profileTemplateRepository.findById(templateId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin mẫu hồ sơ."));
+            if (!template.getOrganization().getOrganizationId().equals(userOrgId)) {
+                throw new TemplateNotOwnedException("Mẫu hồ sơ không thuộc tổ chức của bạn.");
+            }
+        } else {
+            // TC-03: không chọn mẫu -> dùng mẫu mặc định của tổ chức
+            template = profileTemplateRepository.findByOrganization_OrganizationIdAndIsDefaultTrue(userOrgId).orElse(null);
+        }
+
+        // 2. Thu thập các trường được chọn
+        Set<String> selectedFieldKeys;
+        if (template != null && template.getFields() != null && !template.getFields().isEmpty()) {
+            selectedFieldKeys = template.getFields().stream()
+                    .map(ProfileTemplateField::getFieldKey)
+                    .collect(Collectors.toSet());
+        } else {
+            selectedFieldKeys = new HashSet<>(MandatoryFields.FIELD_DISPLAY_NAMES.keySet());
+        }
+
+        // 3. Build schema đã lọc theo các trường được chọn (TC-01)
+        OpenDataSchema schema = buildFilteredSchema(List.of(shipment), currentUser, selectedFieldKeys);
+
+        // 4. Ghi nhận nhật ký xuất hồ sơ ExportLog (TC-03)
+        User user = currentUser.getUserId() != null
+                ? userRepository.findById(currentUser.getUserId()).orElse(null)
+                : null;
+
+        ExportLog exportLog = ExportLog.builder()
+                .shipment(shipment)
+                .template(template)
+                .exportedBy(user)
+                .exportedAt(LocalDateTime.now())
+                .build();
+        exportLogRepository.save(exportLog);
+
+        log.info("Đã ghi nhận nhật ký xuất hồ sơ (ExportLog ID: {}) cho shipment ID: {}, template: {}",
+                exportLog.getId(), shipment.getId(), template != null ? template.getName() : "Mặc định hệ thống");
+
+        // 5. Sinh file trả về
+        return generateFile(schema, format);
+    }
+
+    private OpenDataSchema buildFilteredSchema(List<Shipment> shipments, CustomUserDetails currentUser, Set<String> selectedFieldKeys) {
+        List<UUID> shipmentIds = shipments.stream().map(Shipment::getId).collect(Collectors.toList());
+
+        boolean includeTimeline = selectedFieldKeys.stream().anyMatch(k -> k.startsWith("chainEvent."));
+        Map<UUID, List<ChainEvent>> eventsByShipment = new HashMap<>();
+        if (includeTimeline) {
+            List<ChainEvent> allEvents = chainEventRepository.findByShipmentIdInOrderByRecordedAtAsc(shipmentIds);
+            eventsByShipment = allEvents.stream().collect(Collectors.groupingBy(e -> e.getShipment().getId()));
+        }
+
+        boolean includeCerts = selectedFieldKeys.stream().anyMatch(k -> k.startsWith("certification."));
+        Map<UUID, List<ProductionLotCertification>> certsByLot = new HashMap<>();
+        if (includeCerts) {
+            List<UUID> lotIds = shipments.stream()
+                    .map(Shipment::getProductionLot)
+                    .filter(Objects::nonNull)
+                    .map(ProductionLot::getId)
+                    .distinct()
+                    .collect(Collectors.toList());
+            List<ProductionLotCertification> allCerts = productionLotCertificationRepository.findByProductionLotIdIn(lotIds);
+            certsByLot = allCerts.stream().collect(Collectors.groupingBy(c -> c.getProductionLot().getId()));
+        }
+
+        Map<UUID, List<ChainEvent>> finalEventsMap = eventsByShipment;
+        Map<UUID, List<ProductionLotCertification>> finalCertsMap = certsByLot;
+
+        List<OpenDataSchema.ShipmentData> shipmentDataList = shipments.stream().map(s -> {
+            ProductionLot lot = s.getProductionLot();
+            List<ChainEvent> events = finalEventsMap.getOrDefault(s.getId(), Collections.emptyList());
+            List<ProductionLotCertification> certs = lot != null
+                    ? finalCertsMap.getOrDefault(lot.getId(), Collections.emptyList())
+                    : Collections.emptyList();
+
+            List<OpenDataSchema.TimelineEvent> timeline = includeTimeline
+                    ? events.stream().map(e -> OpenDataSchema.TimelineEvent.builder()
+                            .eventType(selectedFieldKeys.contains("chainEvent.eventType") ? e.getEventType().name() : null)
+                            .recordedAt(selectedFieldKeys.contains("chainEvent.recordedAt") ? e.getRecordedAt() : null)
+                            .recordedBy(selectedFieldKeys.contains("chainEvent.recordedBy") && e.getRecordedBy() != null ? e.getRecordedBy().getFullName() : null)
+                            .location(selectedFieldKeys.contains("chainEvent.location") && e.getLocation() != null ? OpenDataSchema.Location.builder()
+                                    .latitude(e.getLocation().getY())
+                                    .longitude(e.getLocation().getX())
+                                    .build() : null)
+                            .data(selectedFieldKeys.contains("chainEvent.eventData") ? parseEventData(e.getEventData()) : null)
+                            .build()).collect(Collectors.toList())
+                    : Collections.emptyList();
+
+            List<OpenDataSchema.CertificationInfo> certInfos = includeCerts
+                    ? certs.stream().map(plc -> {
+                        var cert = plc.getCertification();
+                        return OpenDataSchema.CertificationInfo.builder()
+                                .standardName(selectedFieldKeys.contains("certification.standardName") ? cert.getName() : null)
+                                .certificationCode(selectedFieldKeys.contains("certification.certificationCode") ? cert.getCode() : null)
+                                .issueDate(selectedFieldKeys.contains("certification.issueDate") && cert.getIssueDate() != null ? cert.getIssueDate().atStartOfDay() : null)
+                                .expiryDate(selectedFieldKeys.contains("certification.expiryDate") && cert.getExpiryDate() != null ? cert.getExpiryDate().atStartOfDay() : null)
+                                .build();
+                    }).collect(Collectors.toList())
+                    : Collections.emptyList();
+
+            return OpenDataSchema.ShipmentData.builder()
+                    .id(s.getId())
+                    .name(selectedFieldKeys.contains("shipment.name") ? s.getName() : null)
+                    .productionLotName(selectedFieldKeys.contains("productionLot.name") && lot != null ? lot.getName() : null)
+                    .productCategory(selectedFieldKeys.contains("productionLot.productCategory") && lot != null && lot.getProductCategory() != null ? lot.getProductCategory().getName() : null)
+                    .totalQuantity(selectedFieldKeys.contains("shipment.totalQuantity") ? (double) s.getTotalQuantity() : null)
+                    .unit(lot != null ? lot.getExpectedQuantityUnit() : null)
+                    .status(selectedFieldKeys.contains("shipment.status") ? s.getStatus().name() : null)
+                    .timeline(timeline)
+                    .certifications(certInfos)
+                    .build();
+        }).collect(Collectors.toList());
+
+        OpenDataSchema.ExporterInfo exporterInfo = null;
+        if (currentUser != null && (selectedFieldKeys.contains("organization.name") || selectedFieldKeys.contains("organization.code"))) {
+            exporterInfo = OpenDataSchema.ExporterInfo.builder()
+                    .userId(currentUser.getUserId())
+                    .fullName(currentUser.getFullName())
+                    .organizationId(currentUser.getOrganizationId())
+                    .organizationName(selectedFieldKeys.contains("organization.name") ? currentUser.getOrganizationName() : null)
+                    .build();
+        }
+
+        return OpenDataSchema.builder()
+                .exportedAt(LocalDateTime.now())
+                .exporter(exporterInfo)
+                .shipments(shipmentDataList)
+                .build();
     }
 }
