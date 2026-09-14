@@ -496,6 +496,29 @@ API layer        → hooks (optional)  → Pages         → Routes
 | **Migration** | `V20260910000000` (recall_cases, recall_lot_results) |
 | **Ghi chú** | Khác `Recall` (§2.18 ghi chú — thu hồi lô/tem cá thể) và `RecallRequest`/bulk recall (NCL-08-CN-008/011): `RecallCase` là vụ việc thu hồi ở cấp tổ chức, gom kết quả xử lý từng shipment `RECALLED` (bảng `recall_lot_results`), chỉ đóng khi mọi lô đã có kết quả + bắt buộc biện pháp khắc phục. |
 
+### 2.29 Clone Production Lot — Tạo lô sản xuất từ mẫu vụ trước (NCL-02-CN-007, package `farm`)
+
+> **Trạng thái: ĐANG TRIỂN KHAI** — User Story `NCL-02-CN-007` trên branch `feature/NCL-02-CN-007-clone-production-lot`.
+
+| Lớp | File |
+|---|---|
+| **BE Controller** | `farm/controller/ProductionLotController.java` — thêm `GET /{sourceLotId}/clone-preview` (xem trước), `POST /{sourceLotId}/clone` (tạo lô mới từ mẫu), cả hai `@PreAuthorize("hasRole('VT-02')")` |
+| **BE Service** | `farm/service/ProductionLotService.java` + `impl/ProductionLotServiceImpl.java` — thêm `getClonePreview()`, `cloneProductionLot()` |
+| **BE DTO Request** | `farm/dto/request/CloneProductionLotRequest.java` — `name`, `expectedQuantity`, `expectedQuantityUnit`, `plantingDate` |
+| **BE DTO Response** | `farm/dto/response/CloneProductionLotPreviewResponse.java`, `CloneProductionLotResponse.java`, `CloneCertificationInfo.java` |
+| **BE Tests** | `backend/src/test/java/vn/nguongocso/farm/controller/CloneProductionLotControllerTest.java`, `CloneProductionLotServiceTest.java` |
+| **FE Pages** | `pages/production-lot/CreateProductionLotPage.tsx` — gộp chung luồng tạo mới + tạo từ mẫu: dropdown "Sao chép từ lô vụ trước (không bắt buộc)" ở đầu form, chọn lô mẫu → gọi clone-preview prefill + khóa vùng trồng/nông sản, submit → `cloneProductionLot`; bỏ trống → tạo lô thường (`createProductionLot`) |
+| **FE Components** | `components/production-lot/CreateProductionLotForm.tsx` (hỗ trợ `initialValues`/`lockFarmAreaAndCategory`/`infoBanner`), `ProductionLotList.tsx`, `ProductionLotBoard.tsx` |
+| **FE API** | `api/productionLotApi.ts` — `getCloneProductionLotPreview()` (clone-preview), `cloneProductionLot()` (clone) |
+| **FE Types** | `types/productionLot.ts` — thêm `CloneProductionLotPreview`, `CloneProductionLotResponse`, `CloneCertificationInfo` |
+| **FE Tests** | `frontend/src/api/__tests__/productionLotCloneApi.test.ts`, `components/production-lot/__tests__/CreateProductionLotFormClone.test.tsx` |
+| **Docs API** | `docs/api/farm/CloneProductionLot.md` |
+| **Seed Data** | `docs/testing/NCL-02-CN-007-seed.sql` |
+| **Migration** | Không cần migration mới — tái sử dụng schema `production_lot` (V4) và `production_lot_certifications` (V7) hiện có |
+| **Roles** | `VT-02` (Quản lý hợp tác xã) — chỉ role này được tạo lô từ mẫu |
+| **Quy tắc nghiệp vụ** | QTN-01 (cách ly dữ liệu giữa các tổ chức), QTN-13 (hạn dùng chứng nhận — chỉ copy chứng nhận còn hiệu lực) |
+| **Ghi chú** | Lô mới luôn ở trạng thái `DRAFT`, kế thừa vùng trồng / loại nông sản / chứng nhận còn hiệu lực từ lô mẫu, tuyệt đối không sao chép lịch sử vận hành (nhật ký canh tác, sự kiện chuỗi, lô hàng, mã truy xuất). Đã gộp `CloneProductionLotPage` vào `CreateProductionLotPage`; route `/production-lots/clone` đã xóa. |
+
 ---
 
 ## 3. Cross-cutting Infrastructure
@@ -593,7 +616,7 @@ Không có Feign — mọi call đều trực tiếp trong cùng JVM qua service
 |---|---|---|
 | `/dashboard` | DashboardPage | All Authenticated |
 | `/production-lots` | ProductionLotListPage | VT-02, VT-03 |
-| `/production-lots/create` | CreateProductionLotPage | VT-02 |
+| `/production-lots/create` | CreateProductionLotPage (tạo mới + tạo từ mẫu vụ trước) | VT-02 — NCL-02-CN-007 |
 | `/production-lots/:id/edit` | ProductionLotEditPage | VT-02 |
 | `/farm-areas` | FarmAreaListPage | VT-02 |
 | `/farm-logs/create` | CreateFarmLogPage | VT-02, VT-03 |

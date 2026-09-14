@@ -8,13 +8,21 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.nguongocso.alert.event.ActivityLogEvent;
+import vn.nguongocso.certification.entity.Certification;
+import vn.nguongocso.certification.entity.ProductionLotCertification;
+import vn.nguongocso.certification.enums.CertificationVerificationStatus;
+import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
 import vn.nguongocso.certification.service.InspectionEligibilityService;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.farm.dto.request.ApproveProductionLotRequest;
 import vn.nguongocso.farm.dto.request.CancelProductionLotRequest;
+import vn.nguongocso.farm.dto.request.CloneProductionLotRequest;
 import vn.nguongocso.farm.dto.request.CreateProductionLotRequest;
 import vn.nguongocso.farm.dto.request.DisposeProductionLotRequest;
 import vn.nguongocso.farm.dto.request.UpdateProductionLotRequest;
+import vn.nguongocso.farm.dto.response.CloneCertificationInfo;
+import vn.nguongocso.farm.dto.response.CloneProductionLotPreviewResponse;
+import vn.nguongocso.farm.dto.response.CloneProductionLotResponse;
 import vn.nguongocso.farm.dto.response.CreateProductionLotResponse;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.farm.dto.response.UpdateProductionLotResponse;
@@ -77,6 +85,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
     private final ChainEventRepository chainEventRepository;
     private final HarvestEligibilityService harvestEligibilityService;
     private final CodeRangeRepository codeRangeRepository;
+    private final ProductionLotCertificationRepository productionLotCertificationRepository;
     private final InspectionValidityService inspectionValidityService;
 
     private final ApplicationEventPublisher eventPublisher;
@@ -139,6 +148,234 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 savedLot.getId().toString());
 
         return mapToResponse(savedLot);
+    }
+
+    /**
+     * Lấy dữ liệu xem trước khi tạo lô sản xuất mới từ mẫu vụ trước
+     * (NCL-02-CN-007).
+     *
+     * <p>
+     * Chỉ trả dữ liệu nền cần cho form; không expose lịch sử vận hành của lô
+     * mẫu. Lô mẫu phải thuộc tổ chức hiện tại (QTN-01) và vùng trồng của lô
+     * mẫu phải đang active.
+     * </p>
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public CloneProductionLotPreviewResponse getClonePreview(UUID sourceLotId, CustomUserDetails userDetails) {
+        log.info("Lấy dữ liệu xem trước tạo lô từ mẫu với sourceLotId={}", sourceLotId);
+
+        UUID orgId = userDetails.getOrganizationId();
+
+        ProductionLot sourceLot = productionLotRepository.findById(sourceLotId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lô sản xuất mẫu"));
+
+        if (!sourceLot.getOrganization().getOrganizationId().equals(orgId)) {
+            throw new BusinessException("Lô sản xuất mẫu không thuộc tổ chức của bạn");
+        }
+
+        FarmArea farmArea = resolveActiveCloneFarmArea(sourceLot, orgId);
+        ProductCategory productCategory = resolveActiveCloneProductCategory(sourceLot);
+
+        List<ProductionLotCertification> sourceCertifications = productionLotCertificationRepository
+                .findByProductionLotId(sourceLotId);
+
+        List<CloneCertificationInfo> activeCertifications = new ArrayList<>();
+        List<CloneCertificationInfo> skippedCertifications = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
+
+        for (ProductionLotCertification plc : sourceCertifications) {
+            Certification cert = plc.getCertification();
+            if (isCertificationUsableForClone(cert)) {
+                activeCertifications.add(toCloneCertificationInfo(cert));
+            } else {
+                skippedCertifications.add(toCloneCertificationInfo(cert));
+                warnings.add(buildSkippedCertificationWarning(cert));
+            }
+        }
+
+        return CloneProductionLotPreviewResponse.builder()
+                .sourceLotId(sourceLot.getId())
+                .sourceLotName(sourceLot.getName())
+                .farmAreaId(farmArea.getId())
+                .farmAreaName(farmArea.getName())
+                .productCategoryId(productCategory.getId())
+                .productCategoryName(productCategory.getName())
+                .name(sourceLot.getName())
+                .expectedQuantity(sourceLot.getExpectedQuantity())
+                .expectedQuantityUnit(sourceLot.getExpectedQuantityUnit())
+                .plantingDate(sourceLot.getPlantingDate())
+                .activeCertifications(activeCertifications)
+                .skippedCertifications(skippedCertifications)
+                .warnings(warnings)
+                .build();
+    }
+
+    /**
+     * Tạo lô sản xuất mới từ mẫu vụ trước (NCL-02-CN-007).
+     *
+     * <p>
+     * Lô mới là một nghiệp vụ hoàn toàn mới: chỉ kế thừa vùng trồng, loại
+     * nông sản và các chứng nhận còn hiệu lực; tuyệt đối không sao chép id,
+     * tổ chức / người tạo của lô mẫu, trạng thái, sản lượng thực tế, ngày
+     * thu hoạch, dữ liệu phê duyệt / hủy / loại bỏ, nhật ký canh tác, sự
+     * kiện chuỗi, lô hàng hay mã truy xuất.
+     * </p>
+     */
+    @Override
+    @Transactional
+    public CloneProductionLotResponse cloneProductionLot(UUID sourceLotId, CloneProductionLotRequest request,
+            CustomUserDetails userDetails) {
+        log.info("Bắt đầu tạo lô sản xuất mới từ mẫu với sourceLotId={}", sourceLotId);
+
+        UUID userId = userDetails.getUserId();
+        UUID orgId = userDetails.getOrganizationId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin tài khoản"));
+        Organization organization = organizationRepository.findById(orgId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin tổ chức tương ứng"));
+
+        ProductionLot sourceLot = productionLotRepository.findById(sourceLotId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lô sản xuất mẫu"));
+
+        if (!sourceLot.getOrganization().getOrganizationId().equals(orgId)) {
+            throw new BusinessException("Lô sản xuất mẫu không thuộc tổ chức của bạn");
+        }
+
+        FarmArea farmArea = resolveActiveCloneFarmArea(sourceLot, orgId);
+        ProductCategory productCategory = resolveActiveCloneProductCategory(sourceLot);
+
+        ProductionLot newLot = ProductionLot.builder()
+                .organization(organization)
+                .farmArea(farmArea)
+                .productCategory(productCategory)
+                .name(request.getName().trim())
+                .expectedQuantity(request.getExpectedQuantity())
+                .expectedQuantityUnit(request.getExpectedQuantityUnit())
+                .plantingDate(request.getPlantingDate())
+                .status(ProductionLotStatus.DRAFT)
+                .createdBy(user)
+                .build();
+
+        ProductionLot savedLot = productionLotRepository.save(newLot);
+        log.info("Đã tạo lô sản xuất mới id={} từ mẫu id={}", savedLot.getId(), sourceLotId);
+
+        List<ProductionLotCertification> sourceCertifications = productionLotCertificationRepository
+                .findByProductionLotId(sourceLotId);
+
+        List<CloneCertificationInfo> copiedCertifications = new ArrayList<>();
+        List<CloneCertificationInfo> skippedCertifications = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
+
+        for (ProductionLotCertification sourceAssociation : sourceCertifications) {
+            Certification cert = sourceAssociation.getCertification();
+            if (!isCertificationUsableForClone(cert)) {
+                skippedCertifications.add(toCloneCertificationInfo(cert));
+                warnings.add(buildSkippedCertificationWarning(cert));
+                continue;
+            }
+            ProductionLotCertification newAssociation = ProductionLotCertification.builder()
+                    .productionLot(savedLot)
+                    .certification(cert)
+                    .attachedBy(user)
+                    .note(sourceAssociation.getNote())
+                    .build();
+            productionLotCertificationRepository.save(newAssociation);
+            copiedCertifications.add(toCloneCertificationInfo(cert));
+        }
+
+        publishActivityLog(
+                userDetails,
+                "CREATE",
+                "Tạo lô sản xuất " + savedLot.getName() + " từ mẫu lô " + sourceLot.getName(),
+                "ProductionLot",
+                savedLot.getId().toString());
+
+        return CloneProductionLotResponse.builder()
+                .lot(mapToResponse(savedLot))
+                .copiedCertifications(copiedCertifications)
+                .skippedCertifications(skippedCertifications)
+                .warnings(warnings)
+                .build();
+    }
+
+    /**
+     * Lấy vùng trồng kế thừa từ lô mẫu và kiểm tra còn active.
+     */
+    private FarmArea resolveActiveCloneFarmArea(ProductionLot sourceLot, UUID orgId) {
+        FarmArea farmArea = sourceLot.getFarmArea();
+        if (farmArea == null) {
+            throw new BusinessException("Lô mẫu chưa có vùng trồng, không thể tạo lô mới từ mẫu này");
+        }
+        if (!farmArea.getOrganization().getOrganizationId().equals(orgId)) {
+            throw new BusinessException("Khu vực canh tác này không thuộc tổ chức của bạn");
+        }
+        if (Boolean.FALSE.equals(farmArea.getIsActive())) {
+            throw new BusinessException("Vùng trồng '" + farmArea.getName()
+                    + "' hiện đã ngừng sử dụng, không thể tạo lô mới từ mẫu này. Vui lòng chọn một lô mẫu khác");
+        }
+        return farmArea;
+    }
+
+    /**
+     * Lấy loại nông sản kế thừa từ lô mẫu và kiểm tra còn active.
+     */
+    private ProductCategory resolveActiveCloneProductCategory(ProductionLot sourceLot) {
+        ProductCategory productCategory = sourceLot.getProductCategory();
+        if (productCategory == null) {
+            throw new BusinessException("Lô mẫu chưa có loại nông sản, không thể tạo lô mới từ mẫu này");
+        }
+        if (Boolean.FALSE.equals(productCategory.getIsActive())) {
+            throw new BusinessException("Loại nông sản này hiện đang ngưng hoạt động");
+        }
+        return productCategory;
+    }
+
+    /**
+     * Kiểm tra chứng nhận có được phép sao chép sang lô mới hay không.
+     *
+     * <p>
+     * Tái sử dụng đúng quy tắc gắn chứng nhận hiện hành (QTN-13 về hạn dùng
+     * và QTN-34 về xác thực, xem
+     * {@code CertificationServiceImpl.attachCertification}): chỉ sao chép
+     * chứng nhận còn hiệu lực ({@code expiryDate >= hôm nay}) và không bị từ
+     * chối xác thực.
+     * </p>
+     */
+    private boolean isCertificationUsableForClone(Certification cert) {
+        if (cert == null) {
+            return false;
+        }
+        if (cert.getVerificationStatus() == CertificationVerificationStatus.REJECTED) {
+            return false;
+        }
+        if (cert.getExpiryDate() == null || cert.getExpiryDate().isBefore(LocalDate.now())) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Chuyển chứng nhận sang thông tin rút gọn dùng cho clone.
+     */
+    private CloneCertificationInfo toCloneCertificationInfo(Certification cert) {
+        return CloneCertificationInfo.builder()
+                .id(cert.getId())
+                .name(cert.getName())
+                .code(cert.getCode())
+                .expiryDate(cert.getExpiryDate())
+                .build();
+    }
+
+    /**
+     * Dựng cảnh báo hiển thị khi một chứng nhận của lô mẫu bị bỏ qua.
+     */
+    private String buildSkippedCertificationWarning(Certification cert) {
+        if (cert.getVerificationStatus() == CertificationVerificationStatus.REJECTED) {
+            return "Chứng nhận '" + cert.getName() + "' đã bị từ chối xác thực nên không được sao chép sang lô mới.";
+        }
+        return "Chứng nhận '" + cert.getName() + "' đã hết hạn nên không được sao chép sang lô mới.";
     }
 
     /** Lấy chi tiết lô sản xuất theo ID. */
