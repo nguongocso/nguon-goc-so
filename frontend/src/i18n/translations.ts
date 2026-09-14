@@ -153,6 +153,23 @@ export const translations = {
 
     // Feedback
     feedback_title: 'Submit Product Feedback',
+    feedback_desc: 'If you suspect a counterfeit label or find inaccurate information for {productName}, please submit feedback for verification.',
+    feedback_content_label: 'Feedback Content *',
+    feedback_placeholder: 'Example: Harvest date in the system does not match the product packaging.',
+    feedback_validation_required: 'Please enter feedback content.',
+    feedback_validation_max: 'Feedback content must not exceed 1000 characters.',
+    feedback_submitting: 'Submitting...',
+    feedback_submit_btn: 'Submit Feedback',
+    feedback_success_title: 'Feedback Submitted',
+    feedback_success_desc: 'The cooperative will receive your feedback and update processing progress on the system.',
+    feedback_lookup_code_label: 'Your feedback lookup code',
+    feedback_save_code_warning: 'Please save this code now. For security reasons, the system cannot display it again after you leave this page.',
+    feedback_copy_code_btn: 'Copy Code',
+    feedback_lookup_status_btn: 'Check Status',
+    feedback_submit_another: 'Submit Another Feedback',
+    feedback_toast_success: 'Feedback submitted successfully. Please save your lookup code.',
+    feedback_toast_copy_success: 'Lookup code copied to clipboard.',
+    feedback_toast_copy_error: 'Unable to copy automatically. Please select and copy the code manually.',
     feedback_not_available: 'Feedback submittal is not available for this product.',
 
     // Event Types
