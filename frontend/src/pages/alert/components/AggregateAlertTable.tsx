@@ -6,7 +6,9 @@ import {
   ExternalLink,
   CheckCircle2,
   Building2,
+  Eye,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { AggregateAlertItem, AggregateAlertType } from '@/types/aggregateAlert';
@@ -184,18 +186,46 @@ export const AggregateAlertTable: React.FC<AggregateAlertTableProps> = ({
                       <CheckCircle2 className="h-3.5 w-3.5" />
                       Đã xử lý
                     </span>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleActionClick(item.actionUrl)}
-                      className="h-8 gap-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 border-emerald-300"
-                    >
-                      <span>Xử lý ngay</span>
-                      <ExternalLink className="h-3.5 w-3.5 text-emerald-600" />
-                    </Button>
-                  )}
+                  ) : (() => {
+                    let label = 'Xử lý ngay';
+                    let IconComponent = ExternalLink;
+                    let onClick = () => handleActionClick(item.actionUrl);
+
+                    if (isAdmin) {
+                      if (item.type === 'OVERDUE_MILESTONE') {
+                        label = 'Giám sát lô';
+                        IconComponent = Eye;
+                        onClick = () => {
+                          toast.info('Cảnh báo mốc canh tác thuộc nghiệp vụ sản xuất của Quản lý HTX (VT-02). Bạn đang chuyển tới trang lô sản xuất để giám sát.');
+                          handleActionClick(item.actionUrl);
+                        };
+                      } else if (item.type === 'INSPECTION_EXPIRING' || item.type === 'INSPECTION_EXPIRED') {
+                        label = 'Giám sát lô';
+                        IconComponent = Eye;
+                        onClick = () => {
+                          toast.info('Bạn đang chuyển tới trang lô sản xuất để giám sát kết quả kiểm nghiệm.');
+                          handleActionClick(item.actionUrl);
+                        };
+                      } else if (item.type === 'CODE_RANGE_QUOTA') {
+                        label = 'Duyệt cấp bù';
+                      } else if (item.type === 'CERT_EXPIRING' || item.type === 'CERT_EXPIRED') {
+                        label = 'Thẩm định';
+                      }
+                    }
+
+                    return (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={onClick}
+                        className="h-8 gap-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 border-emerald-300"
+                      >
+                        <span>{label}</span>
+                        <IconComponent className="h-3.5 w-3.5 text-emerald-600" />
+                      </Button>
+                    );
+                  })()}
                 </td>
               </tr>
             );
