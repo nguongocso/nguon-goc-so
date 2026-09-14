@@ -65,7 +65,9 @@ export const AggregateAlertFilters: React.FC<AggregateAlertFiltersProps> = ({
       <div className="w-full sm:w-[220px]">
         <Select
           value={filters.type || 'ALL'}
-          onValueChange={(val) => onFilterChange({ type: val === 'ALL' ? undefined : val, page: 0 })}
+          onValueChange={(val: string | null) =>
+            onFilterChange({ type: !val || val === 'ALL' ? undefined : val, page: 0 })
+          }
         >
           <SelectTrigger className="text-sm">
             <SelectValue placeholder="Loại nguồn cảnh báo" />
@@ -84,7 +86,9 @@ export const AggregateAlertFilters: React.FC<AggregateAlertFiltersProps> = ({
       <div className="w-full sm:w-[170px]">
         <Select
           value={filters.severity || 'ALL'}
-          onValueChange={(val) => onFilterChange({ severity: val === 'ALL' ? undefined : val, page: 0 })}
+          onValueChange={(val: string | null) =>
+            onFilterChange({ severity: !val || val === 'ALL' ? undefined : val, page: 0 })
+          }
         >
           <SelectTrigger className="text-sm">
             <SelectValue placeholder="Mức khẩn cấp" />
@@ -103,7 +107,9 @@ export const AggregateAlertFilters: React.FC<AggregateAlertFiltersProps> = ({
       <div className="w-full sm:w-[170px]">
         <Select
           value={filters.status || 'OPEN'}
-          onValueChange={(val) => onFilterChange({ status: val, page: 0 })}
+          onValueChange={(val: string | null) =>
+            onFilterChange({ status: !val || val === 'ALL' ? undefined : val, page: 0 })
+          }
         >
           <SelectTrigger className="text-sm">
             <SelectValue placeholder="Trạng thái" />

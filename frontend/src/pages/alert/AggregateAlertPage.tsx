@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldAlert } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { ListPageHeader } from '@/components/common/ListPageHeader';
 import { Pagination } from '@/components/common/Pagination';
@@ -76,8 +76,9 @@ export default function AggregateAlertPage() {
     <div className="space-y-6">
       {/* Tiêu đề trang chuẩn hệ thống */}
       <ListPageHeader
+        icon={ShieldAlert}
         title="Tổng hợp cảnh báo"
-        subtitle={
+        description={
           isAdmin
             ? 'Theo dõi và quản lý tập trung toàn bộ các cảnh báo đang mở trên toàn nền tảng'
             : 'Giám sát tập trung các cảnh báo đang mở của tổ chức từ 7 nguồn và xử lý dứt điểm'
