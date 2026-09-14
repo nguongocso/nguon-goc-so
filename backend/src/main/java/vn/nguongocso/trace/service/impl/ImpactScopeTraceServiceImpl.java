@@ -257,7 +257,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
         }
 
         ImpactScopeSummaryDto summary = ImpactScopeSummaryDto.builder()
-                .totalShipments(shipmentDtos.size())
+                .totalShipments(shipments.stream().filter(shipment -> shipment.getStatus() != ShipmentStatus.SPLIT).count())
                 .totalActivatedStamps(totalActivatedStampsAll)
                 .totalReceivingOrganizations(receivingOrgIds.size())
                 .totalRecalledShipments(recalledShipmentsCount)
@@ -284,9 +284,9 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
             case HARVEST -> "Thu hoạch";
             case STORAGE_CONDITION -> "Bảo quản";
             case CORRECTION -> "Đính chính";
+            case HANDOVER -> "Bàn giao";
             case WAREHOUSE_ENTRY -> "Nhập kho HTX";
             case WAREHOUSE_EXIT -> "Xuất kho HTX";
-            case HANDOVER -> "Bàn giao";
             default -> type.name();
         };
     }

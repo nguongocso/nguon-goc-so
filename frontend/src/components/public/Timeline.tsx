@@ -1,4 +1,4 @@
-import { Calendar, Package, Truck, Sprout, Clipboard, AlertTriangle } from 'lucide-react';
+import { Calendar, Package, Truck, Sprout, Clipboard, AlertTriangle, FileSignature } from 'lucide-react';
 import type { PublicChainEventItem } from '@/types/publicTrace';
 import {
   getEventTypeLabel,
@@ -13,6 +13,7 @@ const EVENT_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   TRANSPORT: Truck,
   PROCUREMENT: Clipboard,
   CORRECTION: Calendar,
+  HANDOVER: FileSignature,
 };
 
 interface TimelineProps {

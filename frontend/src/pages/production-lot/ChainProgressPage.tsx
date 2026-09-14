@@ -23,7 +23,7 @@ const STAGNANT_THRESHOLD_OPTIONS = [
 export const ChainProgressPage: React.FC = () => {
   useSetBreadcrumb([
     { label: 'Tổng quan', href: '/dashboard' },
-    { label: 'Chain progress' },
+    { label: 'Bảng tiến độ chuỗi' },
   ]);
 
   const [data, setData] = useState<ChainProgressBoardData | null>(null);

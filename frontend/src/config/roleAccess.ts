@@ -81,6 +81,9 @@ export const ROLE_ACCESS = {
   // ✅ NCL-04-CN-005 - Xuất tem QR cho lô hàng để in
   labelExport: ['VT-02'] as const,
 
+  // NCL-05-CN-010 - Tách lô hàng khi giao cho nhiều đối tác
+  shipmentSplit: ['VT-02'] as const,
+
   // ✅ NCL-670 - Phân công địa bàn quản lý cho cán bộ quản lý ngành (VT-05)
   areaAssignment: ['VT-01'] as const,
 
@@ -102,6 +105,13 @@ export const ROLE_ACCESS = {
 
   // ✅ NCL-04-CN-008 - Xem và tra cứu trạng thái từng mã tem trong lô hàng
   traceCodeView: ['VT-02'] as const,
+
+  // ✅ NCL-05-CN-008-009 - Bàn giao lô hàng
+  handoverCreate: ['VT-02'] as const,
+  handoverReceivedView: ['VT-02', 'VT-04'] as const,
+  handoverSentView: ['VT-02'] as const,
+  handoverList: ['VT-04'] as const,
+  sentHandoverList: ['VT-02'] as const,
 
   // ✅ NCL-08-CN-010 - Truy vết phạm vi ảnh hưởng của lô (Chỉ Quản lý HTX VT-02 thực hiện)
   impactScopeTrace: ['VT-02'] as const,

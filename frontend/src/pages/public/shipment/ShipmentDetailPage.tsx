@@ -8,11 +8,13 @@ import {
   BadgeCheck,
   Ban,
   ChevronDown,
+  FileSignature,
   FileText,
   History,
   LoaderCircle,
   MoreVertical,
   Package,
+  PackagePlus,
   QrCode,
   ScrollText,
   Trash2,
@@ -39,6 +41,9 @@ import type { ChainEventResponse } from "@/types/packaging";
 import { maskId } from "@/lib/utils";
 import { QrCodeGrid } from "@/components/shipment/QrCodeGrid";
 import { ExportLabelsDialog } from "@/components/shipment/ExportLabelsDialog";
+import { CreateHandoverDialog } from "@/components/shipment/CreateHandoverDialog";
+import { HandoverPendingBadge } from "@/components/shipment/HandoverPendingBadge";
+import { hasPendingHandover } from "@/api/handoverApi";
 import { ShipmentTimelineItem } from "@/components/shipment/ShipmentTimelineItem";
 import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDialog";
 import { RecallShipmentDialog } from "@/components/shipment/RecallShipmentDialog";
@@ -72,6 +77,8 @@ export const ShipmentDetailPage = () => {
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [loadingShipment, setLoadingShipment] = useState(true);
   const [shipmentError, setShipmentError] = useState<string | null>(null);
+  // NCL-05-CN-008: nhãn "Đang bàn giao" khi có phiếu chờ xác nhận
+  const [pendingHandover, setPendingHandover] = useState(false);
 
   // ── Timeline data ──────────────────────────────────────────────────────────
   const [timeline, setTimeline] = useState<ChainEventResponse[]>([]);
@@ -100,6 +107,8 @@ export const ShipmentDetailPage = () => {
   const canExportLabels = usePermission(ROLE_ACCESS.labelExport);
   // NCL-04-CN-008: Xem và tra cứu trạng thái từng mã tem trong lô hàng
   const canViewTraceCodes = usePermission(ROLE_ACCESS.traceCodeView);
+  // NCL-05-CN-008-009: Tạo phiếu bàn giao (chỉ VT-02 chủ lô)
+  const canCreateHandover = usePermission(ROLE_ACCESS.handoverCreate);
 
   // ── Loaders ────────────────────────────────────────────────────────────────
 
@@ -110,6 +119,12 @@ export const ShipmentDetailPage = () => {
     try {
       const data = await getShipmentById(effectiveShipmentId);
       setShipment(data);
+      // Nhãn "Đang bàn giao": best-effort, backend cũ chưa có endpoint thì ẩn nhãn
+      try {
+        setPendingHandover(await hasPendingHandover(effectiveShipmentId));
+      } catch {
+        setPendingHandover(false);
+      }
     } catch (err: any) {
       setShipmentError(
         err.response?.data?.message ??
@@ -196,16 +211,28 @@ export const ShipmentDetailPage = () => {
 
   // NCL-04-CN-005: Dialog xuất tem QR
   const [showLabelsDialog, setShowLabelsDialog] = useState(false);
+  // NCL-05-CN-008-009: Dialog tạo phiếu bàn giao
+  const [showCreateHandoverDialog, setShowCreateHandoverDialog] = useState(false);
 
   // ── Derived flags ──────────────────────────────────────────────────────────
   const canActivateThis =
     canActivate && shipment?.status === "CODE_PRINTED";
   const canRecallThis =
-    canRecall && shipment?.status !== "RECALLED";
+    canRecall && shipment?.status !== "RECALLED" && shipment?.status !== "SPLIT";
   const canDeleteDraft =
-    shipment?.status === "DRAFT" || shipment?.status === "CODE_PRINTED";
+    !shipment?.parentShipmentId &&
+    (shipment?.status === "DRAFT" || shipment?.status === "CODE_PRINTED");
   const canCancelLabels =
-    user?.roleCode === "VT-02" && shipment?.status !== "RECALLED";
+    user?.roleCode === "VT-02" &&
+    shipment?.status !== "RECALLED" &&
+    shipment?.status !== "SPLIT";
+  const canSplitShipment =
+    usePermission(ROLE_ACCESS.shipmentSplit) &&
+    shipment?.status === "CODE_PRINTED" &&
+    !shipment.parentShipmentId &&
+    (shipment.traceCodes?.length ?? 0) >= 2 &&
+    shipment.traceCodes?.length === shipment.totalQuantity &&
+    (shipment.traceCodes ?? []).every((code) => code.status === "INACTIVE");
 
   // ── Breadcrumb điều hướng thống nhất (thay nút "Quay lại") ────────────────
   useSetBreadcrumb(
@@ -260,14 +287,15 @@ export const ShipmentDetailPage = () => {
       {/* ── Header card ── */}
       <Card className="border-slate-200 bg-white shadow-sm rounded-xl">
         <CardContent className="pt-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             {/* Title + meta */}
-            <div className="space-y-1">
+            <div className="min-w-0 space-y-1">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                   {shipment.name}
                 </h1>
                 <ShipmentStatusBadge status={shipment.status} />
+                {pendingHandover && <HandoverPendingBadge />}
               </div>
               <p className="font-mono text-xs text-muted-foreground">
                 {maskId(shipment.id)}
@@ -303,6 +331,18 @@ export const ShipmentDetailPage = () => {
                 </Button>
               )}
 
+              {/* NCL-05-CN-008-009: Tạo phiếu bàn giao */}
+              {canCreateHandover && shipment.status === "ACTIVATED" && (
+                <Button
+                  variant="outline"
+                  className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                  onClick={() => setShowCreateHandoverDialog(true)}
+                >
+                  <FileSignature className="mr-1.5 h-4 w-4" />
+                  Tạo phiếu bàn giao
+                </Button>
+              )}
+
               {/* Dropdown chứa tất cả thao tác bổ sung */}
               <DropdownMenu>
                 <DropdownMenuTrigger className="px-3 py-2 gap-1.5 border-slate-200 hover:bg-slate-50">
@@ -324,6 +364,15 @@ export const ShipmentDetailPage = () => {
                     >
                       <QrCode className="mr-2 h-4 w-4 text-emerald-600" />
                       Trạng thái mã tem
+                    </DropdownMenuItem>
+                  )}
+                  {canSplitShipment && (
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/shipments/${shipment.id}/split`)}
+                    >
+                      <PackagePlus className="mr-2 h-4 w-4 text-emerald-600" />
+                      Tách lô hàng
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onClick={handleExportDossier} className="cursor-pointer">
@@ -653,6 +702,17 @@ export const ShipmentDetailPage = () => {
         open={showLabelsDialog}
         shipment={shipment}
         onClose={() => setShowLabelsDialog(false)}
+      />
+
+      {/* NCL-05-CN-008-009: Dialog tạo phiếu bàn giao */}
+      <CreateHandoverDialog
+        open={showCreateHandoverDialog}
+        shipment={shipment}
+        onClose={() => setShowCreateHandoverDialog(false)}
+        onSuccess={() => {
+          setShowCreateHandoverDialog(false);
+          void loadShipment();
+        }}
       />
     </div>
   );

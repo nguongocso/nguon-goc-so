@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.auth.service.CustomUserDetailsService;
+import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.config.JwtTokenProvider;
 import vn.nguongocso.config.SecurityConfig;
 import vn.nguongocso.exception.BusinessException;
@@ -29,6 +30,7 @@ import vn.nguongocso.trace.dto.response.ShipmentResponse;
 import vn.nguongocso.trace.dto.response.TraceCodeResponse;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
+import vn.nguongocso.trace.service.ShipmentHandoverService;
 import vn.nguongocso.trace.service.ShipmentService;
 
 import java.time.LocalDateTime;
@@ -49,6 +51,9 @@ class ShipmentControllerTest {
 
     @MockitoBean
     private ShipmentService shipmentService;
+
+    @MockitoBean
+    private ShipmentHandoverService shipmentHandoverService;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
@@ -208,6 +213,44 @@ class ShipmentControllerTest {
                         .with(csrf()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Tem đã được kích hoạt trước đó."));
+    }
+
+    @Test
+    @WithMockUser(roles = "VT-02")
+    void getShipmentsByProductionLot_ShouldReturnOk_WhenLotExists() throws Exception {
+        ShipmentResponse response = buildSuccessResponse();
+        when(shipmentService.getShipmentsByProductionLot(productionLotId))
+                .thenReturn(List.of(response));
+
+        mockMvc.perform(get("/api/v1/shipments/production-lots/{productionLotId}", productionLotId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[0].id").value(shipmentId.toString()));
+    }
+
+    @Test
+    @WithMockUser(roles = "VT-02")
+    void getShipmentsByProductionLotPaged_ShouldReturnOk_WhenLotExists() throws Exception {
+        ShipmentResponse response = buildSuccessResponse();
+        PageResponse<ShipmentResponse> pageResponse = PageResponse.<ShipmentResponse>builder()
+                .items(List.of(response))
+                .page(0)
+                .size(10)
+                .totalElements(1)
+                .totalPages(1)
+                .first(true)
+                .last(true)
+                .build();
+        when(shipmentService.getShipmentsByProductionLotPaged(productionLotId, 0, 10))
+                .thenReturn(pageResponse);
+
+        mockMvc.perform(get("/api/v1/shipments/production-lots/{productionLotId}/paged", productionLotId)
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.items[0].id").value(shipmentId.toString()))
+                .andExpect(jsonPath("$.data.totalElements").value(1));
     }
 
     @Test

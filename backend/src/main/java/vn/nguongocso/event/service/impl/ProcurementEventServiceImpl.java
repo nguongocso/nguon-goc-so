@@ -62,6 +62,12 @@ public class ProcurementEventServiceImpl implements ProcurementEventService {
                 .orElseThrow(() -> new BusinessException("Không tìm thấy lô hàng."));
 
 
+        if (shipment.getRecipientOrganization() == null || !currentUser.getOrganizationId()
+                .equals(shipment.getRecipientOrganization().getOrganizationId())) {
+            throw new BusinessException(org.springframework.http.HttpStatus.FORBIDDEN,
+                    "Lô hàng không được giao cho tổ chức của bạn.", Map.of("code", "RECIPIENT_MISMATCH"));
+        }
+
         try {
             // 4. Kiểm tra trạng thái lô: Không được thu hồi (QTN-05)
             if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
