@@ -7,6 +7,7 @@ import {
   getTranslatedEventData,
   formatDisplayDateTime,
 } from '@/utils/eventFormatter';
+import { useLanguage } from '@/context/LanguageContext';
 
 // Fix icon mặc định của Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -21,6 +22,9 @@ interface RouteMapProps {
 }
 
 export const RouteMap = ({ events }: RouteMapProps) => {
+  const { lang, t } = useLanguage();
+  const isEn = lang === 'en';
+
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
 
@@ -59,7 +63,9 @@ export const RouteMap = ({ events }: RouteMapProps) => {
     locationEvents.forEach((event, index) => {
       const lat = event.latitude!;
       const lng = event.longitude!;
-      const label = getEventTypeLabel(event.eventType);
+      const rawLabel = getEventTypeLabel(event.eventType);
+      const eventTypeKey = `event_${event.eventType}` as any;
+      const label = isEn ? t(eventTypeKey) : rawLabel;
       const date = formatDisplayDateTime(event.recordedAt);
 
       coords.push([lat, lng]);
@@ -107,7 +113,7 @@ export const RouteMap = ({ events }: RouteMapProps) => {
             <div style="font-size: 13px; color: #666; margin-top: 2px;">${date}</div>
             ${detailsHtml ? `<div style="margin-top: 6px;">${detailsHtml}</div>` : ''}
             <div style="font-size: 12px; color: #999; margin-top: 4px;">
-              Sự kiện #${index + 1}/${locationEvents.length}
+              ${isEn ? `Event #${index + 1}/${locationEvents.length}` : `Sự kiện #${index + 1}/${locationEvents.length}`}
             </div>
           </div>
         `);
@@ -133,14 +139,14 @@ export const RouteMap = ({ events }: RouteMapProps) => {
         leafletMapRef.current = null;
       }
     };
-  }, [locationEvents]);
+  }, [locationEvents, isEn, t]);
 
   // Nếu không có tọa độ, không hiển thị
   if (locationEvents.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">
-        <p className="text-lg font-semibold">Không có dữ liệu vị trí</p>
-        <p className="text-sm">Các sự kiện của lô hàng này chưa có tọa độ để hiển thị trên bản đồ.</p>
+        <p className="text-lg font-semibold">{isEn ? "No location data available" : "Không có dữ liệu vị trí"}</p>
+        <p className="text-sm">{isEn ? "Events in this shipment do not have GPS coordinates to show on map." : "Các sự kiện của lô hàng này chưa có tọa độ để hiển thị trên bản đồ."}</p>
       </div>
     );
   }
@@ -149,8 +155,8 @@ export const RouteMap = ({ events }: RouteMapProps) => {
     <div className="relative z-0 isolate bg-white rounded-xl shadow-sm overflow-hidden">
       <div ref={mapRef} style={{ height: '450px', width: '100%' }} />
       <div className="p-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-400 flex justify-between">
-        <span>{locationEvents.length} điểm hành trình</span>
-        <span>Click marker để xem chi tiết</span>
+        <span>{locationEvents.length} {isEn ? "journey points" : "điểm hành trình"}</span>
+        <span>{isEn ? "Click marker for details" : "Click marker để xem chi tiết"}</span>
       </div>
     </div>
   );
