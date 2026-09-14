@@ -5,6 +5,7 @@
 CREATE TABLE standards (
     id CHAR(36) NOT NULL PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE,
+    name_en VARCHAR(255),
     description TEXT,
     issuing_body VARCHAR(255),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
