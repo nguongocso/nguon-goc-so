@@ -68,42 +68,51 @@ print("Kết quả:", data)`;
 
   const sampleJsonResponse = `{
   "success": true,
-  "is_test": true,
-  "message": "Tra cứu hồ sơ lô sản xuất thử nghiệm thành công (Sandbox)",
+  "status": 200,
   "data": {
-    "id": "b3e944c3-6379-4d6d-b8d4-f6551b9e0751",
-    "lotCode": "LOT-SANDBOX-2026-001",
-    "productName": "Xoài Cát Chu Cao Lãnh (Thử nghiệm)",
-    "productCategory": "Trái cây xuất khẩu",
-    "farmName": "Hợp tác xã Nông nghiệp Xanh Cao Lãnh",
-    "cultivationStandard": "VietGAP / GlobalGAP",
-    "totalQuantity": 5000,
-    "unit": "KG",
-    "harvestDate": "2026-09-10T08:00:00Z",
-    "expiryDate": "2026-10-10T23:59:59Z",
-    "status": "COMPLETED",
-    "gs1": {
-      "gtin": "08938501234567",
-      "gln": "8938501234001",
-      "batchNumber": "BATCH-202609-01"
+    "lotInfo": {
+      "lotId": "00000000-0000-0000-0000-000000000001",
+      "lotName": "[DỮ LIỆU MẪU] Lô Xoài Cát Chu Thử Nghiệm",
+      "productCategoryName": "Xoài Cát Chu",
+      "expectedQuantity": 10000.0,
+      "actualQuantity": 9800.0,
+      "quantityUnit": "KG",
+      "plantingDate": "2026-02-01",
+      "harvestDate": "2026-07-15",
+      "status": "HARVESTED"
     },
-    "events": [
+    "organizationInfo": {
+      "organizationId": "00000000-0000-0000-0000-000000000002",
+      "organizationName": "[DỮ LIỆU MẪU] Hợp Tác Xã Trái Cây Mẫu Nguồn Gốc Số",
+      "organizationCode": "HTX-TEST-DEMO",
+      "address": "Khu Thực Nghiệm Công Nghệ Nông Nghiệp Số",
+      "phone": "0901234567",
+      "email": "sandbox@nguongocso.vn"
+    },
+    "farmAreaInfo": {
+      "farmAreaId": "00000000-0000-0000-0000-000000000003",
+      "farmAreaName": "[DỮ LIỆU MẪU] Vùng Canh Tác Thực Nghiệm A1",
+      "area": 2.0,
+      "areaUnit": "HECTARE"
+    },
+    "certifications": [
       {
-        "bizStep": "urn:epcglobal:cbv:bizstep:harvesting",
-        "action": "ADD",
-        "eventTime": "2026-09-10T08:00:00Z",
-        "recordLocation": "Vùng trồng VT-CL-01, Đồng Tháp",
-        "operator": "Kỹ thuật viên HTX"
-      },
-      {
-        "bizStep": "urn:epcglobal:cbv:bizstep:inspecting",
-        "action": "OBSERVE",
-        "eventTime": "2026-09-10T14:30:00Z",
-        "disposition": "urn:epcglobal:cbv:disp:passed",
-        "operator": "Trung tâm kiểm nghiệm chất lượng"
+        "certificationName": "[DỮ LIỆU MẪU] Chứng nhận VietGAP Mẫu",
+        "standardName": "VietGAP",
+        "certificateCode": "VG-TEST-9999",
+        "issueDate": "2026-01-01",
+        "expiryDate": "2027-01-01",
+        "issuedBy": "Hệ Thống Kiểm Nghiệm Thử Nghiệm"
       }
-    ]
-  }
+    ],
+    "farmLogSummary": {
+      "totalLogsRecorded": 25,
+      "lastActivityAt": "2026-07-15T10:00:00"
+    },
+    "is_test": true,
+    "testNotice": "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế"
+  },
+  "timestamp": "2026-09-14T10:00:00.000Z"
 }`;
 
   return (
