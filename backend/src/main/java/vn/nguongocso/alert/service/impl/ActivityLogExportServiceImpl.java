@@ -235,13 +235,16 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
                 .organizationId(user.getOrganizationId()).userId(user.getUserId())
                 .username(user.getUsername()).fullName(resolveCurrentUserName(user)).actorRole(user.getRoleCode())
                 .action("EXPORT_ACTIVITY_LOG")
-                .description("Xuất nhật ký hoạt động: startDate=" + valueOrNull(request.getStartDate())
-                        + ", endDate=" + valueOrNull(request.getEndDate())
-                        + ", action=" + valueOrNull(request.getAction())
-                        + ", actorName=" + valueOrNull(request.getActorName())
-                        + ", objectType=" + valueOrNull(request.getObjectType())
-                        + ", recordCount=" + recordCount + ", status=" + status
-                        + ", exportJobId=" + valueOrNull(jobId))
+                .description("Xuất nhật ký hoạt động: từ ngày=" + valueOrDefault(request.getStartDate(), "toàn bộ")
+                        + ", đến ngày=" + valueOrDefault(request.getEndDate(), "toàn bộ")
+                        + ", hành động="
+                        + valueOrDefault(ActivityLogExportLabelFormatter.formatAction(request.getAction()), "tất cả")
+                        + ", người thực hiện=" + valueOrDefault(request.getActorName(), "tất cả")
+                        + ", loại đối tượng="
+                        + valueOrDefault(
+                                ActivityLogExportLabelFormatter.formatObjectType(request.getObjectType()), "tất cả")
+                        + ", số bản ghi=" + recordCount + ", trạng thái=" + formatExportStatus(status)
+                        + ", mã yêu cầu=" + valueOrDefault(jobId, "không có"))
                 .entityType("ACTIVITY_LOG_EXPORT").entityId(jobId == null ? null : jobId.toString())
                 .createdAt(LocalDateTime.now(clock)).build();
         activityLogRepository.saveAndFlush(exportLog);
@@ -255,8 +258,17 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
         return user.getFullName() != null && !user.getFullName().isBlank() ? user.getFullName() : user.getUsername();
     }
 
-    private String valueOrNull(Object value) {
-        return value == null || value.toString().isBlank() ? "null" : value.toString();
+    private String valueOrDefault(Object value, String defaultValue) {
+        return value == null || value.toString().isBlank() ? defaultValue : value.toString();
+    }
+
+    private String formatExportStatus(String status) {
+        return switch (status) {
+            case "SUCCESS" -> "thành công";
+            case "IN_PROGRESS" -> "đang xử lý";
+            case "FAILED" -> "thất bại";
+            default -> status;
+        };
     }
 
     private String normalized(String value) {

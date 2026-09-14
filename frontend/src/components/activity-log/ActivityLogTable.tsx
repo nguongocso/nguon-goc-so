@@ -12,6 +12,7 @@ import type { ActivityLog } from '@/types/activityLog';
 import { ActivityLogDetailDialog } from './ActivityLogDetailDialog';
 import {
   formatActionType,
+  formatActivityLogDescription,
   formatTargetType,
   getActionColor,
 } from '@/utils/activityLogFormatter';
@@ -68,6 +69,7 @@ export const ActivityLogTable = ({ logs, loading }: Props) => {
               const actionVal = getActionValue(log);
               const targetVal = getTargetValue(log);
               const targetIdVal = getTargetIdValue(log);
+              const description = formatActivityLogDescription(log.description, actionVal);
 
               return (
                 <TableRow key={log.id} className="transition-colors hover:bg-table-hover">
@@ -102,8 +104,8 @@ export const ActivityLogTable = ({ logs, loading }: Props) => {
                     )}
                   </TableCell>
                   <TableCell className="max-w-[320px]">
-                    <span className="block truncate text-sm text-foreground" title={log.description}>
-                      {log.description || '—'}
+                    <span className="block truncate text-sm text-foreground" title={description}>
+                      {description}
                     </span>
                   </TableCell>
                   <TableCell className="text-center">
