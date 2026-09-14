@@ -37,6 +37,9 @@ public class Standard {
     @Column(name = "name", nullable = false, unique = true)
     private String name;
 
+    @Column(name = "name_en")
+    private String nameEn;
+
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 

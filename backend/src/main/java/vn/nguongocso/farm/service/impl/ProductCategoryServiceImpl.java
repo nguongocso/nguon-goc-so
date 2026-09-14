@@ -92,6 +92,7 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
 		ProductCategory category = new ProductCategory();
 		category.setId(UUID.randomUUID());
 		category.setName(request.getName().trim());
+		category.setNameEn(request.getNameEn() != null && !request.getNameEn().trim().isBlank() ? request.getNameEn().trim() : null);
 		category.setGroup(request.getGroup().trim());
 		category.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
 		category.setIsActive(true);
@@ -127,6 +128,7 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
 		}
 
 		category.setName(request.getName().trim());
+		category.setNameEn(request.getNameEn() != null && !request.getNameEn().trim().isBlank() ? request.getNameEn().trim() : null);
 		category.setGroup(request.getGroup().trim());
 		category.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
 		category.setIsActive(request.getIsActive());
@@ -144,6 +146,7 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
 		return ProductCategoryResponse.builder()
 				.id(category.getId())
 				.name(category.getName())
+				.nameEn(category.getNameEn())
 				.group(category.getGroup())
 				.description(category.getDescription())
 				.isActive(category.getIsActive())

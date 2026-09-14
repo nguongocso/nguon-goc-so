@@ -99,6 +99,7 @@ public class InspectionCriterionCatalogServiceImpl implements InspectionCriterio
 
         InspectionCriterionCatalog entity = InspectionCriterionCatalog.builder()
                 .name(name)
+                .nameEn(request.getNameEn() != null && !request.getNameEn().trim().isBlank() ? request.getNameEn().trim() : null)
                 .unit(unit)
                 .maxThreshold(request.getMaxThreshold())
                 .referenceStandard(referenceStandard)
@@ -128,6 +129,7 @@ public class InspectionCriterionCatalogServiceImpl implements InspectionCriterio
         }
 
         entity.setName(name);
+        entity.setNameEn(request.getNameEn() != null && !request.getNameEn().trim().isBlank() ? request.getNameEn().trim() : null);
         entity.setUnit(unit);
         entity.setMaxThreshold(request.getMaxThreshold());
         entity.setReferenceStandard(referenceStandard);
@@ -208,6 +210,7 @@ public class InspectionCriterionCatalogServiceImpl implements InspectionCriterio
         return InspectionCriterionCatalogResponse.builder()
                 .id(entity.getId())
                 .name(entity.getName())
+                .nameEn(entity.getNameEn())
                 .unit(entity.getUnit())
                 .maxThreshold(entity.getMaxThreshold())
                 .referenceStandard(entity.getReferenceStandard())
