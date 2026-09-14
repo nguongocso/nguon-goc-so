@@ -13,7 +13,6 @@ import {
   LogIn,
   AlertTriangle,
   FileCode,
-  Zap,
 } from 'lucide-react';
 import { Logo } from '@/components/common/Logo';
 import { Button } from '@/components/ui/button';
@@ -187,21 +186,6 @@ print("Kết quả:", data)`;
               API chuẩn hóa kết nối bên thứ ba, cho phép doanh nghiệp thu mua, sàn thương mại
               điện tử và hệ thống ERP tự động truy xuất hồ sơ nguồn gốc sản phẩm theo hướng chuẩn quốc tế GS1 EPCIS.
             </p>
-
-            <div className="flex flex-wrap gap-2 pt-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-card border border-border text-foreground shadow-xs">
-                <Server className="w-3 h-3 text-primary" />
-                RESTful JSON API
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-card border border-border text-foreground shadow-xs">
-                <Layers className="w-3 h-3 text-primary" />
-                Mô phỏng GS1 EPCIS 2.0
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-card border border-border text-foreground shadow-xs">
-                <Zap className="w-3 h-3 text-amber-500" />
-                Môi trường Sandbox Thử nghiệm
-              </span>
-            </div>
           </div>
         </div>
       </section>
@@ -440,33 +424,30 @@ print("Kết quả:", data)`;
                 <button
                   type="button"
                   onClick={() => setActiveTab('curl')}
-                  className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
-                    activeTab === 'curl'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${activeTab === 'curl'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                    }`}
                 >
                   cURL
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('fetch')}
-                  className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
-                    activeTab === 'fetch'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${activeTab === 'fetch'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                    }`}
                 >
                   JavaScript
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('python')}
-                  className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
-                    activeTab === 'python'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${activeTab === 'python'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                    }`}
                 >
                   Python
                 </button>
@@ -491,8 +472,8 @@ print("Kết quả:", data)`;
                     activeTab === 'curl'
                       ? sampleCurl
                       : activeTab === 'fetch'
-                      ? sampleFetch
-                      : samplePython;
+                        ? sampleFetch
+                        : samplePython;
                   copyToClipboard(textToCopy, 'code-sample');
                 }}
               >
@@ -578,7 +559,7 @@ print("Kết quả:", data)`;
               </thead>
               <tbody className="divide-y divide-border">
                 <tr className="hover:bg-muted/30">
-                  <td className="p-3 font-semibold text-foreground">Mã sản phẩm (GTIN)</td>
+                  <td className="p-3 font-semibold text-foreground">Mã lô sản xuất (GTIN)</td>
                   <td className="p-3 font-mono text-primary font-semibold">epcList / itemGtin</td>
                   <td className="p-3 font-mono text-xs">urn:epc:id:sgtin:8938501...</td>
                   <td className="p-3 text-muted-foreground">Mã định danh thương phẩm toàn cầu theo GS1</td>
@@ -599,7 +580,7 @@ print("Kết quả:", data)`;
                   <td className="p-3 font-semibold text-foreground">Trạng thái chất lượng</td>
                   <td className="p-3 font-mono text-primary font-semibold">disposition</td>
                   <td className="p-3 font-mono text-xs">urn:epcglobal:cbv:disp:...</td>
-                  <td className="p-3 text-muted-foreground">Đạt chuẩn (active/passed), Đang kiểm dịch (in_progress)</td>
+                  <td className="p-3 text-muted-foreground">Đạt chuẩn (active/passed), Đang kiểm nghiệm (in_progress)</td>
                 </tr>
                 <tr className="hover:bg-muted/30">
                   <td className="p-3 font-semibold text-foreground">Thời điểm ghi nhận</td>

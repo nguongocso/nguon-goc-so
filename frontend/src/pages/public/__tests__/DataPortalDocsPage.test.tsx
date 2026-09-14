@@ -55,7 +55,7 @@ describe('DataPortalDocsPage (NCL-12-CN-004)', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: /Tài liệu Cổng dữ liệu Nguồn Gốc Số/i })
     ).toBeInTheDocument();
-    expect(screen.getByText(/Môi trường Sandbox Thử nghiệm/i)).toBeInTheDocument();
+    expect(screen.getByText(/Cổng tích hợp B2B & Chuỗi cung ứng nông sản/i)).toBeInTheDocument();
     expect(screen.getByText(/1\. Tổng quan & Cơ chế Xác thực/i)).toBeInTheDocument();
   });
 
@@ -127,7 +127,7 @@ describe('DataPortalDocsPage (NCL-12-CN-004)', () => {
     renderPage();
 
     expect(screen.getByText('5. Bảng Ánh xạ Thuộc tính theo Chuẩn GS1 EPCIS')).toBeInTheDocument();
-    expect(screen.getByText('Mã sản phẩm (GTIN)')).toBeInTheDocument();
+    expect(screen.getByText('Mã lô sản xuất (GTIN)')).toBeInTheDocument();
     expect(screen.getByText('6. Bảng Mã Lỗi Tổng hợp (HTTP Error Codes)')).toBeInTheDocument();
     expect(screen.getByText('401')).toBeInTheDocument();
     expect(screen.getByText(/API Key đã hết hạn/i)).toBeInTheDocument();
