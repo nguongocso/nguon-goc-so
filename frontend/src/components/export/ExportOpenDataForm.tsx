@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Download, Loader2, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Download, Loader2, X, FileText, Eye, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { getLocalDateString } from '@/utils/dateTime';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ import { getProductCategories } from '@/api/productCategoryApi';
 import { getOrganizations } from '@/api/organizationApi';
 import { ProvinceUnitMultiSelect } from '@/components/common/ProvinceUnitMultiSelect';
 import { useAuth } from '@/hooks/useAuth';
+import { useProfileTemplates } from '@/hooks/useProfileTemplates';
 import type { Organization } from '@/types/organization';
 import type { ProductCategory } from '@/types/productCategory';
 import {
@@ -38,6 +40,7 @@ import {
   Qtn11ErrorModal,
   type Qtn11ErrorDetail,
 } from './Qtn11ErrorModal';
+import { DossierPreviewDialog } from './DossierPreviewDialog';
 
 // Helper: format date to datetime-local string (YYYY-MM-DDTHH:mm)
 const toDateTimeLocal = (date: Date, endOfDay = false): string => {
@@ -68,6 +71,12 @@ export const ExportOpenDataForm = () => {
   const [activeQuickRange, setActiveQuickRange] = useState<QuickRangeKey>(null);
   const [qtn11ErrorModalOpen, setQtn11ErrorModalOpen] = useState(false);
   const [qtn11Errors, setQtn11Errors] = useState<Qtn11ErrorDetail[]>([]);
+  const [previewTemplateModalOpen, setPreviewTemplateModalOpen] = useState(false);
+
+  // Mẫu hồ sơ truy xuất theo đối tác (NCL-07-CN-007)
+  const isManager = user?.roleCode === 'VT-02';
+  const orgIdForTemplate = user?.organizationId;
+  const { templates: profileTemplates } = useProfileTemplates(orgIdForTemplate);
 
   const {
     control,
@@ -84,10 +93,12 @@ export const ExportOpenDataForm = () => {
       shipmentIds: [],
       fromDate: undefined,
       toDate: undefined,
+      templateId: undefined,
     },
   });
 
   const selectedFormat = watch('format');
+  const selectedTemplateId = watch('templateId');
   const selectedCategoryIds = watch('productCategoryIds') || [];
   const fromDate = watch('fromDate');
   const toDate = watch('toDate');
@@ -177,6 +188,10 @@ export const ExportOpenDataForm = () => {
         payload.productCategoryIds = data.productCategoryIds;
       if (data.shipmentIds?.length) payload.shipmentIds = data.shipmentIds;
       if (canFilterByUnit && unitIds.length > 0) payload.unitIds = unitIds;
+      // NCL-07-CN-007: Gửi templateId nếu có chọn mẫu cụ thể (khác rỗng / default)
+      if (data.templateId && data.templateId !== 'default') {
+        payload.templateId = data.templateId;
+      }
 
       const blob = await exportOpenData(payload as Parameters<typeof exportOpenData>[0]);
 
@@ -527,6 +542,77 @@ export const ExportOpenDataForm = () => {
             )}
           </div>
 
+          {/* Mẫu hồ sơ truy xuất theo đối tác (NCL-07-CN-007) */}
+          <div className="space-y-2 p-3.5 rounded-xl border border-border bg-card">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <FileText className="size-4 text-primary" />
+                <Label htmlFor="templateId" className="font-semibold text-sm">
+                  Mẫu hồ sơ truy xuất
+                </Label>
+              </div>
+              {isManager && (
+                <Link
+                  to="/export/profile-templates"
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                >
+                  <Settings className="size-3" />
+                  <span>Quản lý mẫu hồ sơ</span>
+                </Link>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <Controller
+                  name="templateId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value || 'default'}
+                      onValueChange={(val) =>
+                        field.onChange(val === 'default' ? undefined : val)
+                      }
+                      disabled={submitting}
+                    >
+                      <SelectTrigger id="templateId">
+                        <SelectValue placeholder="Chọn mẫu hồ sơ áp dụng" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="default">
+                          Dùng mẫu mặc định của tổ chức
+                        </SelectItem>
+                        {profileTemplates.map((tpl) => (
+                          <SelectItem key={tpl.id} value={tpl.id}>
+                            {tpl.name}
+                            {tpl.partnerName ? ` (${tpl.partnerName})` : ''}
+                            {tpl.isDefault ? ' — [Mặc định]' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setPreviewTemplateModalOpen(true)}
+                className="gap-1.5 shrink-0"
+                title="Xem trước cấu trúc hồ sơ theo mẫu"
+              >
+                <Eye className="size-4 text-primary" />
+                <span className="hidden sm:inline">Xem trước</span>
+              </Button>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Tùy biến các trường dữ liệu đưa vào hồ sơ theo đúng yêu cầu biểu mẫu của đối tác thu mua (TC-01, TC-03).
+            </p>
+          </div>
+
           {/* Định dạng */}
           <div className="space-y-2">
             <Label>Định dạng *</Label>
@@ -599,6 +685,16 @@ export const ExportOpenDataForm = () => {
         open={qtn11ErrorModalOpen}
         onClose={() => setQtn11ErrorModalOpen(false)}
         errors={qtn11Errors}
+      />
+
+      {/* Modal xem trước theo mẫu hồ sơ (NCL-07-CN-007) */}
+      <DossierPreviewDialog
+        open={previewTemplateModalOpen}
+        onClose={() => setPreviewTemplateModalOpen(false)}
+        templateId={selectedTemplateId && selectedTemplateId !== 'default' ? selectedTemplateId : undefined}
+        templateName={
+          profileTemplates.find((t) => t.id === selectedTemplateId)?.name || 'Mẫu mặc định'
+        }
       />
     </Card>
   );
