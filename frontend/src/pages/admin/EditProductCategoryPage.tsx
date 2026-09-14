@@ -22,6 +22,7 @@ const emptyToUndefined = {
 
 const formSchema = z.object({
   name: z.string().min(1, "Tên không được để trống").max(255),
+  nameEn: z.string().max(255).optional(),
   group: z.string().min(1, "Nhóm hàng không được để trống").max(100),
   description: z.string().optional(),
   isActive: z.boolean().optional(),
@@ -57,6 +58,7 @@ export const EditProductCategoryPage: React.FC = () => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
+      nameEn: "",
       group: "",
       description: "",
       isActive: true,
@@ -79,6 +81,7 @@ export const EditProductCategoryPage: React.FC = () => {
         if (found) {
           setCategory(found);
           setValue("name", found.name);
+          setValue("nameEn", found.nameEn || "");
           setValue("group", found.group);
           setValue("description", found.description || "");
           setValue("isActive", found.isActive);
@@ -113,6 +116,7 @@ export const EditProductCategoryPage: React.FC = () => {
     try {
       await updateProductCategory(id, {
         name: values.name,
+        nameEn: values.nameEn || undefined,
         group: values.group,
         description: values.description || undefined,
         isActive: values.isActive ?? false,
@@ -163,18 +167,34 @@ export const EditProductCategoryPage: React.FC = () => {
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-5 pt-6">
-            <div className="space-y-1.5">
-              <Label htmlFor="name" className="text-sm font-medium">
-                Tên loại nông sản <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="name"
-                {...register("name")}
-                placeholder="VD: Xoài Cát Chu"
-              />
-              {errors.name && (
-                <p className="text-sm text-red-500">{errors.name.message}</p>
-              )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-sm font-medium">
+                  Tên loại nông sản <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="name"
+                  {...register("name")}
+                  placeholder="VD: Xoài Cát Chu"
+                />
+                {errors.name && (
+                  <p className="text-sm text-red-500">{errors.name.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="nameEn" className="text-sm font-medium">
+                  Tên tiếng Anh (English Name)
+                </Label>
+                <Input
+                  id="nameEn"
+                  {...register("nameEn")}
+                  placeholder="VD: Cat Chu Mango"
+                />
+                {errors.nameEn && (
+                  <p className="text-sm text-red-500">{errors.nameEn.message}</p>
+                )}
+              </div>
             </div>
 
             <div className="space-y-1.5">

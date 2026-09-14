@@ -1,6 +1,7 @@
 export interface Standard {
   id: string;
   name: string;
+  nameEn?: string | null;
   description: string | null;
   issuingBody: string | null;
   isActive: boolean;
@@ -10,12 +11,14 @@ export interface Standard {
 
 export interface CreateStandardRequest {
   name: string;
+  nameEn?: string;
   description?: string;
   issuingBody?: string;
 }
 
 export interface UpdateStandardRequest {
   name: string;
+  nameEn?: string;
   description?: string;
   issuingBody?: string;
   isActive: boolean;

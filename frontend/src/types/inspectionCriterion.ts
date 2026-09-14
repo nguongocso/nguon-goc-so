@@ -7,6 +7,7 @@ export type InspectionCriterionStatus = 'ACTIVE' | 'INACTIVE';
 export interface InspectionCriterion {
   id: number;
   name: string;
+  nameEn?: string | null;
   unit: string;
   maxThreshold: number;
   referenceStandard: string | null;
@@ -23,6 +24,7 @@ export interface InspectionCriterion {
 /** Payload tạo/cập nhật chỉ tiêu kiểm nghiệm. */
 export interface InspectionCriterionRequest {
   name: string;
+  nameEn?: string;
   unit: string;
   maxThreshold: number;
   referenceStandard?: string;
