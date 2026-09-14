@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import {
-  Table,
-  TableBody,
   TableCell,
   TableHead,
-  TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { DataTableShell } from '@/components/common/DataTableShell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
@@ -41,23 +39,6 @@ const formatDate = (iso: string) => {
 export const ActivityLogTable = ({ logs, loading }: Props) => {
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
-  if (logs.length === 0) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        <p className="text-lg font-semibold">Chưa có hoạt động</p>
-        <p className="text-sm">Chưa có thao tác nào được ghi nhận trong hệ thống.</p>
-      </div>
-    );
-  }
-
   const getActionValue = (log: ActivityLog) => log.actionType || log.action;
   const getTargetValue = (log: ActivityLog) => log.targetType || log.entityType || '';
   const getTargetIdValue = (log: ActivityLog) => log.targetId || log.entityId || '';
@@ -65,32 +46,37 @@ export const ActivityLogTable = ({ logs, loading }: Props) => {
 
   return (
     <>
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[170px]">Thời gian</TableHead>
-              <TableHead className="w-[180px]">Người thực hiện</TableHead>
-              <TableHead className="w-[160px]">Hành động</TableHead>
-              <TableHead className="w-[150px]">Đối tượng</TableHead>
-              <TableHead>Mô tả</TableHead>
-              <TableHead className="w-[110px] text-center">Thao tác</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+      <DataTableShell
+        loading={loading}
+        empty={!loading && logs.length === 0}
+        colSpan={6}
+        loadingMessage="Đang tải lịch sử hoạt động..."
+        emptyMessage="Chưa có thao tác nào được ghi nhận trong hệ thống."
+        header={
+          <>
+            <TableHead className="w-[170px]">Thời gian</TableHead>
+            <TableHead className="w-[180px]">Người thực hiện</TableHead>
+            <TableHead className="w-[160px]">Hành động</TableHead>
+            <TableHead className="w-[150px]">Đối tượng</TableHead>
+            <TableHead>Mô tả</TableHead>
+            <TableHead className="w-[110px] text-center">Thao tác</TableHead>
+          </>
+        }
+        body={
+          <>
             {logs.map((log) => {
               const actionVal = getActionValue(log);
               const targetVal = getTargetValue(log);
               const targetIdVal = getTargetIdValue(log);
 
               return (
-                <TableRow key={log.id} className="hover:bg-slate-50/80 transition-colors">
-                  <TableCell className="whitespace-nowrap text-sm text-slate-600 font-mono">
+                <TableRow key={log.id} className="transition-colors hover:bg-table-hover">
+                  <TableCell className="whitespace-nowrap font-mono text-sm text-muted-foreground">
                     {formatDate(log.createdAt)}
                   </TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-medium text-slate-800">{getActorValue(log)}</div>
+                      <div className="font-medium text-foreground">{getActorValue(log)}</div>
                       <div className="text-xs text-muted-foreground">@{log.username}</div>
                     </div>
                   </TableCell>
@@ -102,7 +88,7 @@ export const ActivityLogTable = ({ logs, loading }: Props) => {
                   <TableCell>
                     {targetVal ? (
                       <div>
-                        <span className="text-sm font-medium text-slate-700">
+                        <span className="text-sm font-medium text-foreground">
                           {formatTargetType(targetVal)}
                         </span>
                         {targetIdVal && (
@@ -116,28 +102,27 @@ export const ActivityLogTable = ({ logs, loading }: Props) => {
                     )}
                   </TableCell>
                   <TableCell className="max-w-[320px]">
-                    <span className="truncate block text-sm text-slate-700" title={log.description}>
+                    <span className="block truncate text-sm text-foreground" title={log.description}>
                       {log.description || '—'}
                     </span>
                   </TableCell>
                   <TableCell className="text-center">
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon-sm"
                       onClick={() => setSelectedLog(log)}
-                      className="h-8 px-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 gap-1"
+                      aria-label="Xem chi tiết thao tác"
                       title="Xem chi tiết thao tác"
                     >
-                      <Eye className="h-4 w-4" />
-                      <span className="text-xs font-medium">Chi tiết</span>
+                      <Eye className="size-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
               );
             })}
-          </TableBody>
-        </Table>
-      </div>
+          </>
+        }
+      />
 
       {/* Modal Chi tiết hoạt động */}
       <ActivityLogDetailDialog

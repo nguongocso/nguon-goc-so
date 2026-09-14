@@ -9,6 +9,10 @@ import {
 import type { ActivityLog, ActivityLogParams } from "@/types/activityLog";
 import { ActivityLogFilter } from "@/components/activity-log/ActivityLogFilter";
 import { ActivityLogTable } from "@/components/activity-log/ActivityLogTable";
+import { ListCard } from "@/components/common/ListCard";
+import { DataTablePagination } from "@/components/common/DataTablePagination";
+import { ListPageHeader } from "@/components/common/ListPageHeader";
+import { ListToolbar } from "@/components/common/ListToolbar";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -17,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Download, RefreshCw } from "lucide-react";
+import { FileDown, History, RefreshCw } from "lucide-react";
 import { HelpButton } from "@/components/help/HelpButton";
 import { toast } from "sonner";
 import type { PageResponse } from "@/types/common";
@@ -156,36 +160,28 @@ export default function ActivityLogPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Lịch sử hoạt động hệ thống</h1>
-          <p className="text-sm text-muted-foreground">
-            Theo dõi và kiểm tra toàn bộ nhật ký thao tác trong tổ chức
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <HelpButton screenKey="report-activity-log" />
-          <Button
-            variant="outline"
-            onClick={refreshCurrentLogs}
-            disabled={loading}
-          >
-            <RefreshCw
-              className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`}
-            />
-            Làm mới
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setExportDialogOpen(true)}
-            className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 hover:text-emerald-900 gap-1.5 font-medium"
-          >
-            <Download className="h-4 w-4" />
-            Xuất nhật ký
-          </Button>
-        </div>
-      </div>
+      <ListPageHeader
+        icon={History}
+        title="Lịch sử hoạt động"
+        description="Theo dõi và kiểm tra toàn bộ nhật ký thao tác trong tổ chức"
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <HelpButton screenKey="report-activity-log" />
+            <Button
+              variant="outline"
+              onClick={refreshCurrentLogs}
+              disabled={loading}
+            >
+              <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
+              Làm mới
+            </Button>
+            <Button onClick={() => setExportDialogOpen(true)}>
+              <FileDown className="size-4" />
+              Xuất nhật ký
+            </Button>
+          </div>
+        }
+      />
 
 
       {/* Bộ lọc */}
@@ -197,69 +193,52 @@ export default function ActivityLogPage() {
       />
 
       {/* Bảng danh sách */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-        <div className="p-4 border-b flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">
-            Tổng số: {pageInfo.totalElements} bản ghi
-          </span>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Hiển thị</span>
-            <Select
-              value={String(size)}
-              onValueChange={(value) => {
-                setSize(Number(value));
-                setPage(0);
-              }}
-            >
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="Chọn size" />
-              </SelectTrigger>
-              <SelectContent>
-                {[5, 10, 20, 50].map((s) => (
-                  <SelectItem key={s} value={String(s)}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-sm text-muted-foreground">bản ghi</span>
-          </div>
-        </div>
+      <ListCard>
+        <ListToolbar
+          left={
+            <span className="text-sm text-muted-foreground">
+              Tổng số: {pageInfo.totalElements} bản ghi
+            </span>
+          }
+          right={
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Hiển thị</span>
+              <Select
+                value={String(size)}
+                onValueChange={(value) => {
+                  setSize(Number(value));
+                  setPage(0);
+                }}
+              >
+                <SelectTrigger className="w-[120px]" aria-label="Số bản ghi mỗi trang">
+                  <SelectValue placeholder="Chọn số lượng" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[5, 10, 20, 50].map((s) => (
+                    <SelectItem key={s} value={String(s)}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-muted-foreground">bản ghi</span>
+            </div>
+          }
+        />
 
-        <div className="p-4">
-          <ActivityLogTable logs={logs} loading={loading} />
-        </div>
+        <ActivityLogTable logs={logs} loading={loading} />
 
         {/* Phân trang */}
         {!loading && pageInfo.totalPages > 1 && (
-          <div className="flex items-center justify-between border-t px-4 py-3">
-            <div className="text-sm text-muted-foreground">
-              Trang {pageInfo.page + 1} / {pageInfo.totalPages}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPage(page - 1)}
-                disabled={pageInfo.first}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm">
-                {pageInfo.page + 1} / {pageInfo.totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPage(page + 1)}
-                disabled={pageInfo.last}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          <DataTablePagination
+            page={pageInfo.page}
+            pageSize={pageInfo.size}
+            totalElements={pageInfo.totalElements}
+            onPageChange={goToPage}
+            itemLabel="bản ghi"
+          />
         )}
-      </div>
+      </ListCard>
 
       <ActivityLogExportDialog
         open={exportDialogOpen}

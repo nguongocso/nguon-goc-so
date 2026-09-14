@@ -9,12 +9,12 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   AlertCircle,
   Calendar,
   CheckCircle2,
-  Download,
-  FileSpreadsheet,
+  FileDown,
   Info,
   Layers,
   Loader2,
@@ -112,97 +112,97 @@ export const ActivityLogExportDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && !exporting && onClose()}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden sm:max-w-xl">
-        <DialogHeader className="p-6 pb-4 border-b border-border bg-card">
+      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-hidden sm:max-w-xl">
+        <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <FileSpreadsheet className="w-5 h-5" />
+            <div className="flex size-10 items-center justify-center rounded-lg bg-primary-light text-primary">
+              <FileDown className="size-5" />
             </div>
             <div>
-              <DialogTitle className="text-xl font-bold text-foreground">
+              <DialogTitle className="text-lg font-semibold text-foreground">
                 Xuất nhật ký hoạt động
               </DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground mt-0.5">
+              <DialogDescription className="mt-1">
                 Xem trước số lượng và tải tệp CSV snapshot phục vụ kiểm tra
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+        <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
           {/* Card trạng thái số lượng bản ghi */}
           {loadingPreview ? (
-            <div className="flex flex-col items-center justify-center p-6 border border-slate-200 rounded-xl bg-slate-50 text-muted-foreground gap-2">
-              <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+            <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-border bg-muted/30 p-6 text-muted-foreground">
+              <Loader2 className="size-6 animate-spin text-primary" />
               <span className="text-sm font-medium">Đang tính toán số lượng bản ghi...</span>
             </div>
           ) : previewError ? (
-            <div className="flex items-start gap-3 p-4 border border-rose-200 rounded-xl bg-rose-50 text-rose-800">
-              <AlertCircle className="w-5 h-5 mt-0.5 shrink-0 text-rose-600" />
-              <div className="text-sm">
-                <p className="font-semibold">Lỗi xem trước số lượng</p>
-                <p className="mt-0.5 text-rose-700">{previewError}</p>
-              </div>
-            </div>
+            <Alert variant="destructive" className="p-4">
+              <AlertCircle />
+              <AlertTitle>Lỗi xem trước số lượng</AlertTitle>
+              <AlertDescription>{previewError}</AlertDescription>
+            </Alert>
           ) : hasNoData ? (
-            <div className="flex items-start gap-3 p-4 border border-amber-200 rounded-xl bg-amber-50 text-amber-900">
-              <AlertCircle className="w-5 h-5 mt-0.5 shrink-0 text-amber-600" />
-              <div className="text-sm">
-                <p className="font-semibold">Không có bản ghi phù hợp</p>
-                <p className="mt-0.5 text-amber-700">
+            <Alert variant="warning" className="p-4">
+              <AlertCircle />
+              <AlertTitle>Không có bản ghi phù hợp</AlertTitle>
+              <AlertDescription>
                   Không tìm thấy nhật ký hoạt động nào trong phạm vi bộ lọc đang chọn. Bạn cần điều
                   chỉnh lại điều kiện lọc trước khi xuất.
-                </p>
-              </div>
-            </div>
+              </AlertDescription>
+            </Alert>
           ) : isAsync ? (
-            <div className="flex items-start gap-3 p-4 border border-amber-200 rounded-xl bg-amber-50 text-amber-900">
-              <AlertCircle className="w-5 h-5 mt-0.5 shrink-0 text-amber-600" />
-              <div className="text-sm">
-                <p className="font-semibold">Sẽ xử lý trong nền</p>
-                <p className="mt-1 text-amber-800">
+            <Alert variant="warning" className="p-4">
+              <AlertCircle />
+              <AlertTitle>Sẽ xử lý trong nền</AlertTitle>
+              <AlertDescription>
+                <p>
                   Có <strong>{recordCount?.toLocaleString('vi-VN')}</strong> bản ghi.
                 </p>
-                <p className="mt-0.5 text-amber-800">
+                <p>
                   Dữ liệu vượt ngưỡng xuất trực tiếp. Hệ thống sẽ tạo snapshot, xử lý trong nền và gửi thông báo khi tệp sẵn sàng.
                 </p>
-              </div>
-            </div>
+              </AlertDescription>
+            </Alert>
           ) : (
-            <div className="flex items-center justify-between p-4 border border-emerald-200 rounded-xl bg-emerald-50/70 text-emerald-950">
+            <Alert
+              variant="success"
+              className="flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <CheckCircle2 className="size-4" />
               <div className="space-y-0.5">
-                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
+                <AlertTitle className="text-xs font-semibold uppercase tracking-wider">
                   Snapshot dữ liệu
-                </span>
-                <p className="text-sm font-medium text-emerald-900">
+                </AlertTitle>
+                <AlertDescription className="font-medium">
                   Tổng số bản ghi sẽ xuất ra tệp
-                </p>
+                </AlertDescription>
               </div>
               <div className="flex items-center gap-2">
                 <Badge
                   variant="outline"
-                  className="bg-white text-emerald-800 border-emerald-300 text-base font-bold px-3.5 py-1 shadow-sm"
+                  className="border-success/30 bg-card px-3 py-1 text-base font-bold text-success"
                 >
                   {recordCount} bản ghi
                 </Badge>
                 {exportMode === 'DIRECT' && (
-                  <Badge variant="secondary" className="text-xs text-slate-600 font-normal">
+                  <Badge variant="secondary" className="text-xs font-normal">
                     Trực tiếp
                   </Badge>
                 )}
               </div>
-            </div>
+            </Alert>
           )}
 
           {/* Phạm vi bộ lọc đang áp dụng */}
-          <div className="border border-border rounded-xl p-4 bg-slate-50/50 space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Info className="w-3.5 h-3.5" />
+          <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
+            <h4 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <Info className="size-3.5" />
               Bộ lọc đang áp dụng
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-sm">
-              <div className="flex items-center gap-2 text-slate-700">
-                <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+              <div className="flex items-center gap-2 text-foreground">
+                <Calendar className="size-4 shrink-0 text-muted-foreground" />
                 <span className="text-muted-foreground text-xs">Thời gian:</span>
                 <span className="font-medium truncate">
                   {filter.startDate || filter.endDate
@@ -211,22 +211,22 @@ export const ActivityLogExportDialog = ({
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 text-slate-700">
-                <Layers className="w-4 h-4 text-slate-400 shrink-0" />
+              <div className="flex items-center gap-2 text-foreground">
+                <Layers className="size-4 shrink-0 text-muted-foreground" />
                 <span className="text-muted-foreground text-xs">Thao tác:</span>
                 <span className="font-medium truncate">
                   {filter.action ? formatActionType(filter.action) : 'Tất cả'}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 text-slate-700">
-                <User className="w-4 h-4 text-slate-400 shrink-0" />
+              <div className="flex items-center gap-2 text-foreground">
+                <User className="size-4 shrink-0 text-muted-foreground" />
                 <span className="text-muted-foreground text-xs">Người thực hiện:</span>
                 <span className="font-medium truncate">{filter.actorName || 'Tất cả'}</span>
               </div>
 
-              <div className="flex items-center gap-2 text-slate-700">
-                <ShieldCheck className="w-4 h-4 text-slate-400 shrink-0" />
+              <div className="flex items-center gap-2 text-foreground">
+                <ShieldCheck className="size-4 shrink-0 text-muted-foreground" />
                 <span className="text-muted-foreground text-xs">Loại đối tượng:</span>
                 <span className="font-medium truncate">
                   {filter.objectType ? formatTargetType(filter.objectType) : 'Tất cả'}
@@ -236,20 +236,20 @@ export const ActivityLogExportDialog = ({
           </div>
 
           {/* Quy chuẩn an toàn dữ liệu */}
-          <div className="p-3.5 rounded-xl border border-slate-200 bg-white text-xs text-muted-foreground space-y-1.5">
-            <div className="flex items-center gap-1.5 font-medium text-slate-800">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <div className="space-y-1.5 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5 font-medium text-foreground">
+              <CheckCircle2 className="size-4 shrink-0 text-success" />
               <span>Tiêu chuẩn xuất tệp an toàn (QTN-01, QTN-08)</span>
             </div>
-            <ul className="list-disc list-inside space-y-0.5 text-slate-600 pl-1">
+            <ul className="list-inside list-disc space-y-0.5 pl-1">
               <li>Định dạng CSV UTF-8 có BOM tương thích Microsoft Excel.</li>
               <li>Chống tấn công chèn mã công thức (Formula Injection) cho các ô text.</li>
-              <li>Tự động ghi sự kiện nhật ký thao tác xuất (<code className="text-emerald-700 font-mono">EXPORT_ACTIVITY_LOG</code>).</li>
+              <li>Tự động ghi sự kiện nhật ký thao tác xuất (<code className="font-mono text-primary">EXPORT_ACTIVITY_LOG</code>).</li>
             </ul>
           </div>
         </div>
 
-        <DialogFooter className="p-4 border-t border-border bg-slate-50 flex items-center justify-end gap-2">
+        <DialogFooter>
           <Button
             type="button"
             variant="outline"
@@ -260,19 +260,18 @@ export const ActivityLogExportDialog = ({
           </Button>
           <Button
             type="button"
-            className="bg-emerald-700 hover:bg-emerald-800 text-white gap-2 font-medium"
             onClick={handleExport}
             disabled={loadingPreview || !!previewError || hasNoData || exporting}
           >
             {exporting ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
                 {isAsync ? 'Đang tạo yêu cầu...' : 'Đang tạo tệp CSV...'}
               </>
             ) : (
               <>
-                <Download className="w-4 h-4" />
-                {isAsync ? 'Tạo yêu cầu xuất nền' : 'Tải tệp CSV'}
+                <FileDown className="size-4" />
+                {isAsync ? 'Tạo yêu cầu xuất nền' : 'Xuất tệp CSV'}
               </>
             )}
           </Button>

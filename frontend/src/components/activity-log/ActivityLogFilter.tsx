@@ -108,7 +108,7 @@ export const ActivityLogFilter = ({ onFilter, onReset, loading, initialValues }:
   };
 
   return (
-    <Card className="border-emerald-100 bg-white/80 backdrop-blur-sm shadow-sm">
+    <Card>
       <CardContent className="p-5">
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -116,7 +116,7 @@ export const ActivityLogFilter = ({ onFilter, onReset, loading, initialValues }:
             <div className="space-y-1.5">
               <Label
                 htmlFor="action"
-                className="text-sm font-medium text-emerald-800"
+                className="text-sm font-medium text-label"
               >
                 Loại thao tác
               </Label>
@@ -124,10 +124,7 @@ export const ActivityLogFilter = ({ onFilter, onReset, loading, initialValues }:
                 value={action || ALL_VALUE}
                 onValueChange={(value) => setAction(value && value !== ALL_VALUE ? value : "")}
               >
-                <SelectTrigger
-                  id="action"
-                  className="border-emerald-200 focus:ring-emerald-100"
-                >
+                <SelectTrigger id="action">
                   <SelectValue placeholder="Tất cả">
                     {getActionLabel(action)}
                   </SelectValue>
@@ -147,7 +144,7 @@ export const ActivityLogFilter = ({ onFilter, onReset, loading, initialValues }:
             <div className="space-y-1.5">
               <Label
                 htmlFor="actorName"
-                className="text-sm font-medium text-emerald-800"
+                className="text-sm font-medium text-label"
               >
                 Người thực hiện
               </Label>
@@ -156,7 +153,6 @@ export const ActivityLogFilter = ({ onFilter, onReset, loading, initialValues }:
                 value={actorName}
                 onChange={(e) => setActorName(e.target.value)}
                 placeholder="Tên hoặc username..."
-                className="border-emerald-200 focus-visible:ring-emerald-100"
               />
             </div>
 
@@ -164,7 +160,7 @@ export const ActivityLogFilter = ({ onFilter, onReset, loading, initialValues }:
             <div className="space-y-1.5">
               <Label
                 htmlFor="startDate"
-                className="text-sm font-medium text-emerald-800"
+                className="text-sm font-medium text-label"
               >
                 Từ ngày
               </Label>
@@ -173,7 +169,6 @@ export const ActivityLogFilter = ({ onFilter, onReset, loading, initialValues }:
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="border-emerald-200 focus-visible:ring-emerald-100"
               />
             </div>
 
@@ -181,7 +176,7 @@ export const ActivityLogFilter = ({ onFilter, onReset, loading, initialValues }:
             <div className="space-y-1.5">
               <Label
                 htmlFor="endDate"
-                className="text-sm font-medium text-emerald-800"
+                className="text-sm font-medium text-label"
               >
                 Đến ngày
               </Label>
@@ -190,20 +185,19 @@ export const ActivityLogFilter = ({ onFilter, onReset, loading, initialValues }:
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="border-emerald-200 focus-visible:ring-emerald-100"
               />
             </div>
 
             {/* Loại đối tượng */}
             <div className="space-y-1.5">
-              <Label htmlFor="objectType" className="text-sm font-medium text-emerald-800">
+              <Label htmlFor="objectType" className="text-sm font-medium text-label">
                 Loại đối tượng
               </Label>
               <Select
                 value={objectType || ALL_VALUE}
                 onValueChange={(value) => setObjectType(value && value !== ALL_VALUE ? value : "")}
               >
-                <SelectTrigger id="objectType" className="border-emerald-200 focus:ring-emerald-100">
+                <SelectTrigger id="objectType">
                   <SelectValue placeholder="Tất cả">
                     {objectType ? formatTargetType(objectType) : "Tất cả"}
                   </SelectValue>
@@ -218,10 +212,10 @@ export const ActivityLogFilter = ({ onFilter, onReset, loading, initialValues }:
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-emerald-100">
+          <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
             <Button
               type="button"
-              variant="delete"
+              variant="outline"
               size="sm"
               onClick={handleReset}
               disabled={loading}

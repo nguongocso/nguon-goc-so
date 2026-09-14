@@ -87,7 +87,7 @@ describe("ActivityLogPage E2E / Page Integration Tests", () => {
     );
 
     // Kiểm tra trang tải dữ liệu ban đầu
-    expect(await screen.findByText("Lịch sử hoạt động hệ thống")).toBeInTheDocument();
+    expect(await screen.findByText("Lịch sử hoạt động")).toBeInTheDocument();
     expect(await screen.findByText("Cập nhật thông tin lô")).toBeInTheDocument();
     expect(screen.getByText("Tạo mới lô sản xuất")).toBeInTheDocument();
 
@@ -99,8 +99,8 @@ describe("ActivityLogPage E2E / Page Integration Tests", () => {
     expect(await screen.findByText("Xuất nhật ký hoạt động")).toBeInTheDocument();
     expect(await screen.findByText("2 bản ghi")).toBeInTheDocument();
 
-    // Bấm "Tải tệp CSV"
-    const downloadBtn = screen.getByRole("button", { name: /Tải tệp CSV/i });
+    // Bấm "Xuất tệp CSV"
+    const downloadBtn = screen.getByRole("button", { name: /Xuất tệp CSV/i });
     await user.click(downloadBtn);
 
     await waitFor(() => {
@@ -120,7 +120,7 @@ describe("ActivityLogPage E2E / Page Integration Tests", () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText("Lịch sử hoạt động hệ thống")).toBeInTheDocument();
+    expect(await screen.findByText("Lịch sử hoạt động")).toBeInTheDocument();
     expect(activityLogApi.getActivityLogs).toHaveBeenCalledTimes(1);
     expect(screen.getByLabelText("Người thực hiện")).toHaveValue("manager_a");
     expect(screen.getByLabelText("Từ ngày")).toHaveValue("2026-09-01");
@@ -155,7 +155,7 @@ describe("ActivityLogPage E2E / Page Integration Tests", () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText("Lịch sử hoạt động hệ thống")).toBeInTheDocument();
+    expect(await screen.findByText("Lịch sử hoạt động")).toBeInTheDocument();
 
     const exportBtn = screen.getByRole("button", { name: /Xuất nhật ký/i });
     await user.click(exportBtn);

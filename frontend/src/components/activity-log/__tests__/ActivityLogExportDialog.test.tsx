@@ -56,7 +56,7 @@ describe("ActivityLogExportDialog", () => {
     expect(screen.getByText("Trực tiếp")).toBeInTheDocument();
     expect(screen.getByText(/2026-09-01 đến 2026-09-14/)).toBeInTheDocument();
     expect(screen.getByText("Nguyễn Văn A")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Tải tệp CSV/i })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Xuất tệp CSV/i })).toBeEnabled();
   });
 
   it("vô hiệu hóa nút tải tệp khi số lượng bản ghi bằng 0", async () => {
@@ -77,7 +77,7 @@ describe("ActivityLogExportDialog", () => {
       expect(screen.getByText("Không có bản ghi phù hợp")).toBeInTheDocument();
     });
 
-    const downloadBtn = screen.getByRole("button", { name: /Tải tệp CSV/i });
+    const downloadBtn = screen.getByRole("button", { name: /Xuất tệp CSV/i });
     expect(downloadBtn).toBeDisabled();
   });
 
@@ -105,7 +105,7 @@ describe("ActivityLogExportDialog", () => {
       expect(screen.getByText("10 bản ghi")).toBeInTheDocument();
     });
 
-    const downloadBtn = screen.getByRole("button", { name: /Tải tệp CSV/i });
+    const downloadBtn = screen.getByRole("button", { name: /Xuất tệp CSV/i });
     await user.click(downloadBtn);
 
     await waitFor(() => {
@@ -137,7 +137,7 @@ describe("ActivityLogExportDialog", () => {
       expect(screen.getByText("Ngày bắt đầu không được sau ngày kết thúc.")).toBeInTheDocument();
     });
 
-    const downloadBtn = screen.getByRole("button", { name: /Tải tệp CSV/i });
+    const downloadBtn = screen.getByRole("button", { name: /Xuất tệp CSV/i });
     expect(downloadBtn).toBeDisabled();
   });
 
