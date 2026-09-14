@@ -8,4 +8,4 @@ CREATE TABLE IF NOT EXISTS recall_evidence_files (
     uploaded_by CHAR(36) NOT NULL,
     uploaded_at TIMESTAMP NOT NULL,
     CONSTRAINT fk_recall_evidence_user FOREIGN KEY (uploaded_by) REFERENCES users(user_id)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
