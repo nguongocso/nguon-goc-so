@@ -1,26 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft,
   History,
   CheckCircle2,
   Clock,
   AlertTriangle,
   Ban,
-  ChevronDown,
-  ChevronRight,
   Key,
   Send,
-  Webhook,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import type {
-  PartnerApiKeyResponse,
   PartnerWebhookNotificationResponse,
   WebhookDeliveryStatus,
 } from '@/types/apiKey';
-import { getPartnerWebhookNotifications, getApiKeys } from '@/api/apiKeyApi';
+import { getPartnerWebhookNotifications } from '@/api/apiKeyApi';
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import { ListCard } from '@/components/common/ListCard';
 import { ListToolbar } from '@/components/common/ListToolbar';
@@ -46,11 +41,6 @@ const STATUS_FILTER_OPTIONS = [
 export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  // Nhận thông tin apiKey truyền qua router state (nếu có từ trang danh sách)
-  const initialApiKey = (location.state as { apiKey?: PartnerApiKeyResponse })?.apiKey || null;
-  const [apiKey, setApiKey] = useState<PartnerApiKeyResponse | null>(initialApiKey);
 
   const [notifications, setNotifications] = useState<PartnerWebhookNotificationResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -69,18 +59,6 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
     { label: 'Khóa API đối tác', href: '/integration/api-keys' },
     { label: 'Lịch sử thông báo thu hồi' },
   ]);
-
-  // Nếu chưa có apiKey trong state, tải lại từ API
-  useEffect(() => {
-    if (!apiKey && id) {
-      getApiKeys(undefined, 0, 100)
-        .then((res) => {
-          const found = res.content.find((k) => k.id === id);
-          if (found) setApiKey(found);
-        })
-        .catch(() => {});
-    }
-  }, [id, apiKey]);
 
   const fetchHistory = async () => {
     if (!id) return;
@@ -159,18 +137,9 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header trang lớn với nút quay lại */}
+      {/* Header trang (chỉ giữ biểu tượng và tiêu đề, điều hướng bằng breadcrumbs) */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate('/integration/api-keys')}
-            className="h-10 w-10 shrink-0"
-            title="Quay lại danh sách khóa API"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
           <div className="p-2.5 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
             <History className="w-6 h-6" />
           </div>
@@ -178,17 +147,6 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Lịch sử gửi thông báo thu hồi
             </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Đối tác:{' '}
-              <span className="font-semibold text-foreground">
-                {apiKey?.partnerName || 'Đang tải thông tin...'}
-              </span>{' '}
-              {apiKey?.keyPrefix && (
-                <code className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">
-                  {apiKey.keyPrefix}...
-                </code>
-              )}
-            </p>
           </div>
         </div>
 
@@ -205,29 +163,8 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Thông tin Webhook Endpoint và Thống kê */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card className="bg-card">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="truncate pr-2">
-              <p className="text-xs font-medium text-muted-foreground">Địa chỉ nhận thông báo</p>
-              <h4 className="text-sm font-semibold mt-1 text-foreground truncate" title={apiKey?.webhookUrl || 'Chưa cấu hình'}>
-                {apiKey?.webhookUrl ? apiKey.webhookUrl.replace(/^https?:\/\//, '') : 'Chưa cấu hình'}
-              </h4>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {apiKey?.isWebhookActive !== false ? (
-                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">● Đang hoạt động</span>
-                ) : (
-                  <span className="text-amber-600 dark:text-amber-400 font-medium">● Tạm dừng</span>
-                )}
-              </p>
-            </div>
-            <div className="p-3 bg-primary/10 text-primary rounded-full shrink-0">
-              <Webhook className="w-5 h-5" />
-            </div>
-          </CardContent>
-        </Card>
-
+      {/* Thống kê phát thông báo */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-card">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
@@ -388,13 +325,12 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
                   <TableCell className="text-center">
                     {item.attempts && item.attempts.length > 0 ? (
                       <Button
-                        variant="ghost"
                         size="sm"
-                        className="h-8 px-2 text-xs text-primary gap-1"
+                        variant="outline"
+                        className="h-8 text-xs"
                         onClick={() => toggleExpand(item.id)}
                       >
-                        {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                        <span>{isExpanded ? 'Đóng' : `Xem (${item.attempts.length})`}</span>
+                        {isExpanded ? 'Đóng' : 'Chi tiết'}
                       </Button>
                     ) : (
                       <span className="text-xs text-muted-foreground">-</span>

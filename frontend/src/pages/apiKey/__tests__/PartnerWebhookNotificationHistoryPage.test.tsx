@@ -95,7 +95,6 @@ describe('PartnerWebhookNotificationHistoryPage (NCL-12-CN-006)', () => {
     expect(screen.getByText(/Lịch sử gửi thông báo thu hồi/i)).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByText('Công ty thực phẩm Aigu')).toBeInTheDocument();
       expect(screen.getByText('GGJ00000005')).toBeInTheDocument();
       expect(screen.getAllByText(/Thành công/i).length).toBeGreaterThan(0);
     });
@@ -120,7 +119,7 @@ describe('PartnerWebhookNotificationHistoryPage (NCL-12-CN-006)', () => {
       expect(screen.getByText('GGJ00000005')).toBeInTheDocument();
     });
 
-    const expandBtn = screen.getByRole('button', { name: /Xem \(1\)/i });
+    const expandBtn = screen.getByRole('button', { name: /Chi tiết/i });
     expect(expandBtn).toBeInTheDocument();
     fireEvent.click(expandBtn);
 
