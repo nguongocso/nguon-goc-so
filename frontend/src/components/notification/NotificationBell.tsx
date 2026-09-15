@@ -8,6 +8,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { NotificationPanel } from '@/components/notification/NotificationPanel';
+import {
+  NotificationDetailDialog,
+  isApiKeyWarningNotification,
+} from '@/components/notification/NotificationDetailDialog';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useUnreadCount } from '@/hooks/useUnreadCount';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,6 +27,8 @@ export const NotificationBell = () => {
     size: 8,
     autoLoad: false,
   });
+  // Thông báo cảnh báo khóa API đang được xem chi tiết trong popup (NCL-12-CN-005)
+  const [selectedNotification, setSelectedNotification] = useState<NotificationResponse | null>(null);
 
   const isMissingEmail = Boolean(
     user &&
@@ -77,6 +83,15 @@ export const NotificationBell = () => {
   };
 
   const handleItemClick = (notification: NotificationResponse) => {
+    // NCL-12-CN-005: Cảnh báo khóa API mở popup chi tiết, không điều hướng
+    if (isApiKeyWarningNotification(notification)) {
+      if (!notification.isRead) {
+        void markAsRead(notification.id).then(() => refreshUnreadCount());
+      }
+      setSelectedNotification({ ...notification, isRead: true, readAt: notification.readAt ?? new Date().toISOString() });
+      setOpen(false);
+      return;
+    }
     if (!notification.isRead) {
       void markAsRead(notification.id).then(() => refreshUnreadCount());
     }
@@ -114,7 +129,23 @@ export const NotificationBell = () => {
     navigate('/organizations/profile');
   };
 
+  // Đóng popup chi tiết cảnh báo khóa API
+  const handleDialogClose = () => {
+    setSelectedNotification(null);
+  };
+
+  // Đánh dấu đã đọc từ trong popup chi tiết và làm mới số lượng chưa đọc
+  const handleDialogMarkAsRead = (id: string) => {
+    void markAsRead(id).then(() => refreshUnreadCount());
+    setSelectedNotification((current) =>
+      current && current.id === id
+        ? { ...current, isRead: true, readAt: current.readAt ?? new Date().toISOString() }
+        : current,
+    );
+  };
+
   return (
+    <>
     <DropdownMenu open={open} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger
         render={
@@ -149,5 +180,12 @@ export const NotificationBell = () => {
         />
       </DropdownMenuContent>
     </DropdownMenu>
+    {/* Popup chi tiết cảnh báo khóa API nằm ngoài DropdownMenu để tránh bị cắt/lỗi focus */}
+    <NotificationDetailDialog
+      notification={selectedNotification}
+      onClose={handleDialogClose}
+      onMarkAsRead={handleDialogMarkAsRead}
+    />
+    </>
   );
 };

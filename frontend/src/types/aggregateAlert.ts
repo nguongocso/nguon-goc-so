@@ -11,7 +11,9 @@ export type AggregateAlertType =
   | 'UNPROCESSED_FEEDBACK'
   | 'CODE_RANGE_QUOTA'
   | 'OVERDUE_MILESTONE'
-  | 'OPEN_RECALL_CASE';
+  | 'OPEN_RECALL_CASE'
+  | 'API_KEY_EXPIRING'
+  | 'API_KEY_QUOTA_WARNING';
 
 export type AggregateAlertSeverity = 'HIGH' | 'MEDIUM';
 

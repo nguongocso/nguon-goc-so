@@ -29,6 +29,8 @@ const ALERT_TYPES = [
   { value: 'CODE_RANGE_QUOTA', label: 'Hạn mức dải mã sắp hết' },
   { value: 'OVERDUE_MILESTONE', label: 'Mốc canh tác quá hạn' },
   { value: 'OPEN_RECALL_CASE', label: 'Vụ việc thu hồi đang mở' },
+  { value: 'API_KEY_EXPIRING', label: 'Khóa truy cập sắp hết hạn' },
+  { value: 'API_KEY_QUOTA_WARNING', label: 'Khóa sắp chạm hạn mức' },
 ];
 
 const SEVERITIES = [
@@ -54,6 +56,8 @@ const ALERT_TYPE_LABELS: Record<string, string> = {
   CODE_RANGE_QUOTA: 'Hạn mức dải mã sắp hết',
   OVERDUE_MILESTONE: 'Mốc canh tác quá hạn',
   OPEN_RECALL_CASE: 'Vụ việc thu hồi đang mở',
+  API_KEY_EXPIRING: 'Khóa truy cập sắp hết hạn',
+  API_KEY_QUOTA_WARNING: 'Khóa sắp chạm hạn mức',
 };
 
 const SEVERITY_LABELS: Record<string, string> = {

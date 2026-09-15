@@ -42,9 +42,9 @@ export interface PartnerApiKeyResponse {
 
 export interface ApiKeyPageResponse {
   content: PartnerApiKeyResponse[];
+  page: number;
+  size: number;
   totalElements: number;
   totalPages: number;
-  size: number;
-  number: number;
 }
 

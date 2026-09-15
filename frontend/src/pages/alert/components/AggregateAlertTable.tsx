@@ -28,6 +28,8 @@ const TYPE_STYLE_MAP: Record<AggregateAlertType, { bg: string; text: string; bor
   CODE_RANGE_QUOTA: { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
   OVERDUE_MILESTONE: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
   OPEN_RECALL_CASE: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' },
+  API_KEY_EXPIRING: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
+  API_KEY_QUOTA_WARNING: { bg: 'bg-yellow-50', text: 'text-yellow-800', border: 'border-yellow-200' },
 };
 
 const RELATED_ENTITY_TYPE_LABELS: Record<string, string> = {
@@ -40,6 +42,7 @@ const RELATED_ENTITY_TYPE_LABELS: Record<string, string> = {
   CODE_RANGE: 'Dải mã truy xuất',
   MILESTONE_REMINDER: 'Mốc canh tác bắt buộc',
   RECALL_CASE: 'Vụ việc thu hồi',
+  PARTNER_API_KEY: 'Khóa API đối tác',
 };
 
 export const AggregateAlertTable: React.FC<AggregateAlertTableProps> = ({
@@ -208,6 +211,8 @@ export const AggregateAlertTable: React.FC<AggregateAlertTableProps> = ({
                         };
                       } else if (item.type === 'CODE_RANGE_QUOTA') {
                         label = 'Duyệt cấp bù';
+                      } else if (item.type === 'API_KEY_EXPIRING' || item.type === 'API_KEY_QUOTA_WARNING') {
+                        label = 'Xem khóa';
                       } else if (item.type === 'CERT_EXPIRING' || item.type === 'CERT_EXPIRED') {
                         label = 'Thẩm định';
                       }
