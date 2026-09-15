@@ -158,6 +158,7 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/reports/crop-area-analysis", "Phân tích vùng trồng"],
   ["/reports/season-yield-comparison", "So sánh mùa vụ"],
   ["/reports/industry", "Báo cáo ngành"],
+  ["/reports/organization-usage", "Mức độ sử dụng nền tảng"],
   ["/activity-logs", "Nhật ký hoạt động"],
   ["/login-history", "Lịch sử đăng nhập"],
   ["/login-anomalies", "Bất thường đăng nhập"],

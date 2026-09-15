@@ -2,6 +2,7 @@ package vn.nguongocso.farm.repository;
 
 import java.util.List;
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -123,4 +124,38 @@ public interface FarmLogRepository extends JpaRepository<FarmLog, UUID> {
 	List<FarmLog> findByProductionLotIdAndActivityType(
 			@Param("productionLotId") UUID productionLotId,
 			@Param("activityType") FarmActivityType activityType);
+
+	/**
+	 * Đếm số mục nhật ký canh tác theo từng tổ chức trong khoảng thời gian
+	 * (NCL-07-CN-008). Tổ chức được suy ra qua lô sản xuất của nhật ký.
+	 * Dùng {@code createdAt} (thời điểm ghi nhật ký).
+	 *
+	 * @param from mốc bắt đầu khoảng thời gian
+	 * @param to   mốc kết thúc khoảng thời gian
+	 * @return danh sách [organizationId, số lượng]
+	 */
+	@Query("""
+			SELECT pl.organization.organizationId, COUNT(fl)
+			FROM FarmLog fl
+			JOIN fl.productionLotId pl
+			WHERE fl.createdAt BETWEEN :from AND :to
+			GROUP BY pl.organization.organizationId
+			""")
+	List<Object[]> countFarmLogsGroupedByOrg(
+			@Param("from") LocalDateTime from,
+			@Param("to") LocalDateTime to);
+
+	/**
+	 * Lấy thời điểm ghi nhật ký mới nhất của từng tổ chức (NCL-07-CN-008,
+	 * phục vụ tính lastActivityAt).
+	 *
+	 * @return danh sách [organizationId, createdAt lớn nhất]
+	 */
+	@Query("""
+			SELECT pl.organization.organizationId, MAX(fl.createdAt)
+			FROM FarmLog fl
+			JOIN fl.productionLotId pl
+			GROUP BY pl.organization.organizationId
+			""")
+	List<Object[]> maxFarmLogCreatedAtGroupedByOrg();
 }
