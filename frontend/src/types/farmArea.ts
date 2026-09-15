@@ -121,6 +121,7 @@ export interface FarmAreaBoundaryResponse {
   calculatedArea: number | null;
   points: LatLng[];
   areaDeviationPercentage?: number | null;
+  thresholdPercentage: number;
   updatedAt?: string | null;
 }
 
@@ -137,4 +138,4 @@ export interface AreaDeviationErrorData {
   calculatedArea: number;
   deviationPercentage: number;
   thresholdPercentage: number;
-}
+}

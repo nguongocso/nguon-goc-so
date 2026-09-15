@@ -115,6 +115,7 @@ class FarmAreaBoundaryServiceImplTest {
         assertThat(farmArea.getBoundaryUpdatedAt()).isNotNull();
         assertThat(response.getPoints()).hasSize(4);
         assertThat(response.getDeclaredAreaUnit()).isEqualTo(AreaUnit.HA);
+        assertThat(response.getThresholdPercentage()).isEqualByComparingTo("30.0");
         verify(farmAreaRepository).save(farmArea);
     }
 

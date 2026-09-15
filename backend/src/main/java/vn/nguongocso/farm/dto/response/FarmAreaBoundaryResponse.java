@@ -28,5 +28,6 @@ public class FarmAreaBoundaryResponse {
     private BigDecimal calculatedArea;
     private List<LatLngDto> points;
     private BigDecimal areaDeviationPercentage;
+    private BigDecimal thresholdPercentage;
     private LocalDateTime updatedAt;
 }

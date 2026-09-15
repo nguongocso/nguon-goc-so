@@ -266,6 +266,7 @@ Snapshot audit dùng cùng một cấu trúc cho `beforeValue` và `afterValue`:
       { "latitude": 21.587000, "longitude": 105.827800 }
     ],
     "areaDeviationPercentage": 2.39,
+    "thresholdPercentage": 30.0,
     "updatedAt": "2026-09-15T10:00:00Z"
   },
   "timestamp": "2026-09-15T10:00:00.123Z"
@@ -297,6 +298,7 @@ Snapshot audit dùng cùng một cấu trúc cho `beforeValue` và `afterValue`:
       { "latitude": 21.588200, "longitude": 105.828000 },
       { "latitude": 21.587000, "longitude": 105.827800 }
     ],
+    "thresholdPercentage": 30.0,
     "updatedAt": "2026-09-15T10:00:00Z"
   }
 }
@@ -459,7 +461,7 @@ private LocalDateTime boundaryUpdatedAt;
 - Tạo `BoundaryMapEditor.tsx`: hiển thị `MapContainer`, `TileLayer`, `Polygon` và marker đỉnh kéo được.
 - Tạo `BoundaryPastePanel.tsx`: parse textarea và hiển thị lỗi theo dòng.
 - Tạo `AreaDeviationConfirmDialog.tsx`: hiển thị dữ liệu từ lỗi `409`, không tự tính lại số liệu trong dialog.
-- Mở rộng `farmAreaApi.ts` và `types/farmArea.ts` theo đúng request/response tại Mục 7; không đặt URL API trực tiếp trong component.
+- Mở rộng `farmAreaApi.ts` và `types/farmArea.ts` theo đúng request/response tại Mục 7; frontend lấy `thresholdPercentage` từ backend thay vì hard-code ngưỡng; không đặt URL API trực tiếp trong component.
 
 ### 11.2. Trạng thái màn hình
 

@@ -299,6 +299,7 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
                 .calculatedArea(farmArea.getCalculatedArea())
                 .points(toPoints(farmArea.getBoundary()))
                 .areaDeviationPercentage(deviation)
+                .thresholdPercentage(properties.getBoundaryDeviationThresholdPercent())
                 .updatedAt(farmArea.getBoundaryUpdatedAt())
                 .build();
     }

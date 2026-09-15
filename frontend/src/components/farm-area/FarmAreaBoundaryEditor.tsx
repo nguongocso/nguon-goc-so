@@ -32,12 +32,19 @@ import { AreaDeviationConfirmDialog } from './AreaDeviationConfirmDialog';
 interface Props {
   farmArea: FarmArea;
   onSaveSuccess?: (updatedBoundary: FarmAreaBoundaryResponse) => void;
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
-export const FarmAreaBoundaryEditor: React.FC<Props> = ({ farmArea, onSaveSuccess }) => {
+export const FarmAreaBoundaryEditor: React.FC<Props> = ({
+  farmArea,
+  onSaveSuccess,
+  onDirtyChange,
+}) => {
   const [savedBoundary, setSavedBoundary] = useState<FarmAreaBoundaryResponse | null>(null);
   const [draftPoints, setDraftPoints] = useState<LatLng[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedVertexIndex, setSelectedVertexIndex] = useState<number | null>(null);
 
@@ -52,6 +59,7 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({ farmArea, onSaveSucces
     const fetchBoundary = async () => {
       try {
         setIsLoading(true);
+        setLoadError(null);
         const data = await getFarmAreaBoundary(farmArea.id);
         if (!isMounted) return;
 
@@ -60,7 +68,9 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({ farmArea, onSaveSucces
         setDraftPoints(initialPoints);
       } catch (error: any) {
         if (!isMounted) return;
-        toast.error(error.response?.data?.message || 'Không thể tải ranh giới vùng trồng');
+        const message = error.response?.data?.message || 'Không thể tải ranh giới vùng trồng';
+        setLoadError(message);
+        toast.error(message);
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -71,7 +81,7 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({ farmArea, onSaveSucces
     return () => {
       isMounted = false;
     };
-  }, [farmArea.id]);
+  }, [farmArea.id, reloadKey]);
 
   // So sánh xem draft có thay đổi so với dữ liệu đã lưu không
   const isDirty = (() => {
@@ -88,11 +98,18 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({ farmArea, onSaveSucces
     return false;
   })();
 
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+    return () => onDirtyChange?.(false);
+  }, [isDirty, onDirtyChange]);
+
   // Tính diện tích xem trước (tạm tính)
   const declaredAreaHa = farmArea.area || 0;
   const calculatedAreaHa = calculateGeodesicAreaHa(draftPoints);
   const deviationPercent = calculateAreaDeviation(declaredAreaHa, calculatedAreaHa);
-  const isDeviationHigh = deviationPercent > 30.0;
+  const thresholdPercentage = savedBoundary?.thresholdPercentage;
+  const isDeviationHigh =
+    thresholdPercentage != null && deviationPercent > thresholdPercentage;
 
   // Thêm một đỉnh mới
   const handleAddPoint = (point: LatLng) => {
@@ -177,21 +194,9 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({ farmArea, onSaveSucces
       const status = error.response?.status;
       const errorData = error.response?.data?.errors as AreaDeviationErrorData | undefined;
 
-      // Xử lý khi cần xác nhận vượt ngưỡng 30% (TC-03, HTTP 409)
-      if (
-        status === 409 &&
-        (errorData?.code === 'AREA_DEVIATION_CONFIRMATION_REQUIRED' ||
-          error.response?.data?.message?.includes('chênh lệch'))
-      ) {
-        setDeviationError(
-          errorData ?? {
-            code: 'AREA_DEVIATION_CONFIRMATION_REQUIRED',
-            declaredArea: declaredAreaHa,
-            calculatedArea: calculatedAreaHa,
-            deviationPercentage: deviationPercent,
-            thresholdPercentage: 30.0,
-          }
-        );
+      // Dialog chỉ dùng số liệu chính thức từ lỗi 409 của backend.
+      if (status === 409 && errorData?.code === 'AREA_DEVIATION_CONFIRMATION_REQUIRED') {
+        setDeviationError(errorData);
         setConfirmDialogOpen(true);
         return;
       }
@@ -207,6 +212,24 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({ farmArea, onSaveSucces
       <div className="flex h-72 items-center justify-center text-sm text-muted-foreground">
         <RefreshCw className="mr-2 size-5 animate-spin text-emerald-600" />
         Đang tải dữ liệu ranh giới vùng trồng...
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-72 flex-col items-center justify-center gap-4 rounded-xl border border-red-200 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-950/30">
+        <AlertTriangle className="size-8 text-red-600" />
+        <div>
+          <h2 className="font-semibold text-red-800 dark:text-red-300">
+            Không thể tải ranh giới vùng trồng
+          </h2>
+          <p className="mt-1 text-sm text-red-700 dark:text-red-400">{loadError}</p>
+        </div>
+        <Button type="button" variant="outline" onClick={() => setReloadKey((value) => value + 1)}>
+          <RefreshCw className="mr-2 size-4" />
+          Thử lại
+        </Button>
       </div>
     );
   }
@@ -314,7 +337,7 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({ farmArea, onSaveSucces
               <div className="rounded-lg bg-amber-50 p-2.5 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 flex items-start gap-2">
                 <AlertTriangle className="size-4 shrink-0 mt-0.5 text-amber-600" />
                 <p className="leading-tight">
-                  Chênh lệch &gt; 30% so với diện tích khai báo. Khi lưu sẽ yêu cầu xác nhận.
+                  Chênh lệch &gt; {thresholdPercentage}% so với diện tích khai báo. Khi lưu sẽ yêu cầu xác nhận.
                 </p>
               </div>
             )}

@@ -78,6 +78,7 @@ class FarmAreaBoundaryControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(id.toString()))
+                .andExpect(jsonPath("$.data.thresholdPercentage").value(30.0))
                 .andExpect(jsonPath("$.data.points.length()").value(3));
 
         verify(permissionChecker).check("FARM_AREA", "UPDATE");
@@ -144,6 +145,7 @@ class FarmAreaBoundaryControllerTest {
                 .calculatedArea(new BigDecimal("1.1"))
                 .points(validRequest().getPoints())
                 .areaDeviationPercentage(new BigDecimal("10.0"))
+                .thresholdPercentage(new BigDecimal("30.0"))
                 .build();
     }
 }
