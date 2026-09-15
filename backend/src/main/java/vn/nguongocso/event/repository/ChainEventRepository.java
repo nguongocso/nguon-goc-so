@@ -208,7 +208,11 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
                 @Param("shipmentId") UUID shipmentId,
                 @Param("eventType") ChainEventType eventType);
 
-        /**
+        boolean existsByShipmentIdAndRecordedOrganizationId(UUID shipmentId, UUID recordedOrganizationId);
+
+        boolean existsByShipmentIdAndRecordedOrganizationIdAndEventType(
+                UUID shipmentId, UUID recordedOrganizationId, ChainEventType eventType);
+
         /**
          * Lấy danh sách ID lô hàng đã được tổ chức chỉ định ghi nhận các loại
          * sự kiện (không tính sự kiện đính chính). Dùng cho NCL-05-CN-008/CN-009
