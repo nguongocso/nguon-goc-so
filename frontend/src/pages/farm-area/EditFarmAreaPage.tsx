@@ -29,6 +29,9 @@ export const EditFarmAreaPage: React.FC = () => {
   useEffect(() => {
     if (!boundaryDirty) return;
 
+    let currentHistoryIndex = window.history.state?.idx;
+    let restoringHistory = false;
+
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
@@ -48,10 +51,36 @@ export const EditFarmAreaPage: React.FC = () => {
       }
     };
 
+    const handlePopState = (event: PopStateEvent) => {
+      if (restoringHistory) {
+        restoringHistory = false;
+        return;
+      }
+
+      const targetHistoryIndex = event.state?.idx;
+      if (window.confirm(UNSAVED_BOUNDARY_MESSAGE)) {
+        currentHistoryIndex = targetHistoryIndex;
+        return;
+      }
+
+      if (typeof currentHistoryIndex === 'number' && typeof targetHistoryIndex === 'number') {
+        const delta = targetHistoryIndex - currentHistoryIndex;
+        if (delta !== 0) {
+          restoringHistory = true;
+          window.history.go(-delta);
+        }
+      } else {
+        restoringHistory = true;
+        window.history.forward();
+      }
+    };
+
     window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
     document.addEventListener("click", handleLinkClick, true);
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
       document.removeEventListener("click", handleLinkClick, true);
     };
   }, [boundaryDirty]);

@@ -137,6 +137,9 @@ export interface ParseResult {
   errors: string[];
 }
 
+/** Giới hạn số đỉnh để bảo đảm request và snapshot lịch sử có kích thước an toàn. */
+export const MAX_BOUNDARY_POINTS = 500;
+
 /**
  * Phân tích danh sách tọa độ văn bản (ví dụ copy từ Google Earth/GPS).
  * Hỗ trợ các định dạng dòng: "vĩ độ, kinh độ", "vĩ độ kinh độ", hoặc cách nhau bởi tab.
@@ -153,11 +156,20 @@ export function parseCoordinatesText(text: string): ParseResult {
   }
 
   const lines = text.split(/\r?\n/);
+  let firstContentIndex = 0;
+  let lastContentIndex = lines.length - 1;
+  while (firstContentIndex <= lastContentIndex && !lines[firstContentIndex].trim()) {
+    firstContentIndex++;
+  }
+  while (lastContentIndex >= firstContentIndex && !lines[lastContentIndex].trim()) {
+    lastContentIndex--;
+  }
 
-  for (let index = 0; index < lines.length; index++) {
+  for (let index = firstContentIndex; index <= lastContentIndex; index++) {
     const rawLine = lines[index].trim();
     if (!rawLine) {
-      continue; // Bỏ qua dòng trống
+      errors.push(`Dòng ${index + 1}: Không được để dòng trống giữa danh sách tọa độ.`);
+      continue;
     }
 
     const lineNumber = index + 1;
@@ -167,7 +179,7 @@ export function parseCoordinatesText(text: string): ParseResult {
       ? rawLine.split(',').map((s) => s.trim())
       : rawLine.split(/\s+/).map((s) => s.trim());
 
-    if (parts.length !== 2) {
+    if (parts.length !== 2 || parts.some((part) => part.length === 0)) {
       errors.push(`Dòng ${lineNumber}: Sai định dạng (cần "vĩ độ, kinh độ"): "${rawLine}"`);
       continue;
     }
@@ -175,7 +187,7 @@ export function parseCoordinatesText(text: string): ParseResult {
     const lat = Number(parts[0]);
     const lng = Number(parts[1]);
 
-    if (isNaN(lat) || isNaN(lng)) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       errors.push(`Dòng ${lineNumber}: Tọa độ không phải là số hợp lệ: "${rawLine}"`);
       continue;
     }
@@ -200,6 +212,10 @@ export function parseCoordinatesText(text: string): ParseResult {
     }
 
     points.push({ latitude: lat, longitude: lng });
+  }
+
+  if (points.length > MAX_BOUNDARY_POINTS) {
+    errors.push(`Ranh giới chỉ được có tối đa ${MAX_BOUNDARY_POINTS} đỉnh (hiện có ${points.length} đỉnh).`);
   }
 
   // Kiểm tra nếu người dùng lặp điểm đầu ở cuối (vòng khép kín thừa)

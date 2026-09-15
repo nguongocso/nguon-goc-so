@@ -21,7 +21,7 @@ public class UpdateFarmAreaBoundaryRequest {
 
     @Valid
     @NotNull(message = "Danh sách tọa độ không được để trống")
-    @Size(min = 3, message = "Ranh giới vùng trồng phải có tối thiểu 3 đỉnh")
+    @Size(min = 3, max = 500, message = "Ranh giới vùng trồng phải có từ 3 đến 500 đỉnh")
     private List<LatLngDto> points;
 
     @Builder.Default

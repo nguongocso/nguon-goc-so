@@ -116,6 +116,26 @@ class FarmAreaBoundaryControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "VT-02")
+    void updateBoundary_shouldReturnBadRequest_whenMoreThanFiveHundredPoints() throws Exception {
+        UUID id = UUID.randomUUID();
+        List<LatLngDto> points = new java.util.ArrayList<>();
+        for (int index = 0; index < 501; index++) {
+            points.add(new LatLngDto(21.0 + index * 0.000001, 105.0 + index * 0.000001));
+        }
+        UpdateFarmAreaBoundaryRequest request = new UpdateFarmAreaBoundaryRequest(points, false);
+
+        mockMvc.perform(put("/api/v1/farm-areas/{id}/boundary", id)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.points").exists());
+
+        verify(farmAreaBoundaryService, never()).updateBoundary(any(), any());
+    }
+
+    @Test
     @WithMockUser(roles = "VT-03")
     void getBoundary_shouldReturnOk_forReadableRole() throws Exception {
         UUID id = UUID.randomUUID();

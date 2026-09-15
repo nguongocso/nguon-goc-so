@@ -53,6 +53,18 @@ vi.mock('../BoundaryPastePanel', () => ({
       >
         Áp dụng ranh giới tự cắt
       </button>
+      <button
+        type="button"
+        onClick={() =>
+          onApplyPoints([
+            { latitude: 21, longitude: 105 },
+            { latitude: 21.001, longitude: 105.001 },
+            { latitude: 21.002, longitude: 105.002 },
+          ])
+        }
+      >
+        Áp dụng ranh giới thẳng hàng
+      </button>
     </>
   ),
 }));
@@ -133,6 +145,19 @@ describe('FarmAreaBoundaryEditor', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Áp dụng ranh giới tự cắt' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('các cạnh tự cắt nhau');
+    expect(screen.getByText('Bản đồ thử nghiệm')).toHaveAttribute('data-invalid', 'true');
+    expect(screen.getByRole('button', { name: 'Lưu ranh giới' })).toBeDisabled();
+    expect(apiMocks.updateBoundary).not.toHaveBeenCalled();
+  });
+
+  it('cảnh báo và không cho lưu khi các đỉnh thẳng hàng', async () => {
+    apiMocks.getBoundary.mockResolvedValue(boundaryResponse);
+
+    render(<FarmAreaBoundaryEditor farmArea={farmArea} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Áp dụng ranh giới thẳng hàng' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('diện tích lớn hơn 0');
     expect(screen.getByText('Bản đồ thử nghiệm')).toHaveAttribute('data-invalid', 'true');
     expect(screen.getByRole('button', { name: 'Lưu ranh giới' })).toBeDisabled();
     expect(apiMocks.updateBoundary).not.toHaveBeenCalled();

@@ -79,7 +79,7 @@ Cho phép **Quản lý hợp tác xã (`VT-02`)** khoanh ranh giới vùng trồ
 | Nội dung | Quyết định |
 |---|---|
 | Cách khoanh ranh giới | Người dùng chấm/kéo đỉnh trên bản đồ hoặc dán từng dòng tọa độ theo dạng `latitude, longitude`. Hai cách tạo cùng một danh sách đỉnh có thứ tự. |
-| Số đỉnh | Tối thiểu 3 đỉnh **phân biệt**. Điểm đầu không lặp lại ở cuối request; backend tự khép kín vòng polygon khi kiểm tra và lưu. |
+| Số đỉnh | Từ 3 đến 500 đỉnh **phân biệt**. Điểm đầu không lặp lại ở cuối request; backend tự khép kín vòng polygon khi kiểm tra và lưu. Giới hạn trên bảo đảm request và snapshot audit phù hợp dung lượng cột `TEXT`. |
 | Dữ liệu không hợp lệ | Từ chối tọa độ ngoài miền hợp lệ, đỉnh liên tiếp trùng nhau, dưới 3 đỉnh phân biệt, polygon tự cắt hoặc có diện tích bằng 0. `confirmed` không bỏ qua các lỗi này. |
 | Thứ tự tọa độ | API dùng object `{ latitude, longitude }`; khi tạo geometry, trục X là `longitude`, trục Y là `latitude`, hệ tọa độ WGS84/SRID 4326. |
 | Diện tích chính thức | Backend tính diện tích trắc địa trên WGS84. Kết quả chuẩn hóa sang hecta theo `1 ha = 10.000 m²`, giữ độ chính xác khi tính và làm tròn `HALF_UP` đến 4 chữ số thập phân khi lưu/trả API. |
@@ -104,7 +104,7 @@ $$
 | Diện tích tính toán | Lưu ở `farm_areas.calculated_area` bằng `DECIMAL(10,4)`, đơn vị cố định là hecta. Không dùng `area_unit` cho trường này; `area` và `area_unit` hiện có tiếp tục biểu diễn diện tích khai báo. |
 | Thời điểm thay đổi | `farm_areas.boundary_updated_at` lưu thời điểm ranh giới được thiết lập hoặc cập nhật thành công. Không cập nhật trường này khi request bị từ chối hoặc chỉ sửa thông tin vùng trồng khác. |
 | Tương thích dữ liệu cũ | Ba cột mới đều cho phép `NULL`; không backfill polygon từ `location POINT` vì một điểm không đủ suy ra ranh giới. Vùng trồng cũ tiếp tục hoạt động và API trả `points = []`, `calculatedArea = null` khi chưa khoanh ranh giới. |
-| Phiên bản ranh giới | Không tạo bảng phiên bản riêng. Mỗi lần lưu ghi `ActivityLog` trong cùng transaction; `activity_logs.before_value` và `after_value` lưu snapshot JSON gọn của phiên bản cũ/mới, còn `entity_id` liên kết logic tới `farm_areas.id`. Nếu không ghi được audit thì cập nhật ranh giới cũng rollback. |
+| Phiên bản ranh giới | Không tạo bảng phiên bản riêng. Mỗi lần lưu ghi `ActivityLog` trong cùng transaction; `activity_logs.before_value` và `after_value` lưu snapshot JSON gọn của phiên bản cũ/mới, còn `entity_id` liên kết logic tới `farm_areas.id`. Nếu không ghi được audit thì cập nhật ranh giới cũng rollback. Các cập nhật cùng một vùng trồng được khóa tuần tự để snapshot trước/sau không bị ghi đè hoặc sai phiên bản. |
 | Spatial index | Chưa tạo spatial index trong Story này. `boundary` phải nullable để tương thích dữ liệu cũ, trong khi MySQL 8.4 yêu cầu cột geometry thuộc spatial index là `NOT NULL`; các endpoint hiện tại cũng truy xuất theo khóa vùng trồng thay vì truy vấn giao/cắt không gian. Chỉ bổ sung index bằng migration mới khi có User Story tìm kiếm không gian và chiến lược backfill bắt buộc `boundary`. |
 
 Snapshot audit dùng cùng một cấu trúc cho `beforeValue` và `afterValue`:
@@ -235,11 +235,11 @@ Snapshot audit dùng cùng một cấu trúc cho `beforeValue` và `afterValue`:
 }
 ```
 
-* `points` (List<LatLngDto>, bắt buộc): Danh sách tọa độ các đỉnh theo thứ tự nối vòng. Tối thiểu 3 đỉnh phân biệt; không lặp điểm đầu ở cuối danh sách vì backend tự khép kín polygon.
+* `points` (List<LatLngDto>, bắt buộc): Danh sách tọa độ các đỉnh theo thứ tự nối vòng. Từ 3 đến 500 đỉnh phân biệt; không lặp điểm đầu ở cuối danh sách vì backend tự khép kín polygon.
 * `confirmed` (Boolean, mặc định `false`): Cờ xác nhận lưu khi diện tích tính toán vượt ngưỡng chênh lệch đang cấu hình.
 
 #### Validation Rules:
-1. `points` không được null và phải có tối thiểu 3 tọa độ phân biệt (`NCL-02-CN-008-TC-02`).
+1. `points` không được null và phải có từ 3 đến 500 tọa độ phân biệt (`NCL-02-CN-008-TC-02`).
 2. Tọa độ mỗi điểm: `latitude` nằm trong [-90.0, 90.0], `longitude` nằm trong [-180.0, 180.0].
 3. Không chấp nhận hai đỉnh liên tiếp trùng nhau; nếu client lặp điểm đầu ở cuối danh sách thì request không đúng contract.
 4. Backend tự khép kín vòng và đa giác kết quả phải là đa giác đơn, không tự giao cắt và có diện tích lớn hơn 0.
@@ -341,7 +341,7 @@ Snapshot audit dùng cùng một cấu trúc cho `beforeValue` và `afterValue`:
 
 | HTTP Status | Mã lỗi logic | Điều kiện xảy ra | Thông điệp phản hồi |
 |---:|---|---|---|
-| `400` | `INVALID_BOUNDARY_POINTS` | Dưới 3 đỉnh phân biệt, lặp điểm đầu ở cuối, đỉnh liên tiếp trùng nhau hoặc diện tích bằng 0 | Ranh giới vùng trồng phải có tối thiểu 3 đỉnh phân biệt và tạo được polygon có diện tích |
+| `400` | `INVALID_BOUNDARY_POINTS` | Dưới 3 hoặc trên 500 đỉnh, lặp điểm đầu ở cuối, đỉnh liên tiếp trùng nhau hoặc diện tích bằng 0 | Ranh giới vùng trồng phải có từ 3 đến 500 đỉnh phân biệt và tạo được polygon có diện tích |
 | `400` | `SELF_INTERSECTING_BOUNDARY` | Các cạnh của đa giác cắt nhau | Ranh giới vùng trồng không hợp lệ do các cạnh tự cắt nhau |
 | `400` | `INVALID_COORDINATES` | Tọa độ đỉnh vượt ngoài dải địa lý chuẩn | Tọa độ đỉnh không hợp lệ (vĩ độ [-90, 90], kinh độ [-180, 180]) |
 | `409` | `AREA_DEVIATION_CONFIRMATION_REQUIRED` | Lệch diện tích vượt ngưỡng cấu hình và `confirmed == false` | Diện tích tính từ ranh giới vượt ngưỡng chênh lệch cho phép; cần xác nhận trước khi lưu |
@@ -383,6 +383,7 @@ Chi tiết payload phản hồi khi cần xác nhận chênh lệch diện tích
     - `beforeValue`: Snapshot JSON phiên bản cũ; `null` khi thiết lập lần đầu
     - `afterValue`: Snapshot JSON phiên bản mới
   - Snapshot chỉ được phát sau khi transaction cập nhật ranh giới hoàn tất thành công, bảo đảm lịch sử không ghi nhận một phiên bản chưa được lưu.
+  - Backend dùng khóa ghi bi quan khi đọc vùng trồng cho thao tác cập nhật; hai yêu cầu đồng thời được xử lý tuần tự và mỗi audit luôn lấy đúng phiên bản vừa tồn tại trước nó.
 
 ---
 
@@ -483,7 +484,7 @@ private LocalDateTime boundaryUpdatedAt;
 1. Click bản đồ chỉ thêm đỉnh khi tab ranh giới đang ở chế độ chỉnh sửa; click marker không tạo thêm đỉnh.
 2. Kéo marker cập nhật đúng phần tử trong danh sách và preview polygon ngay lập tức.
 3. Mỗi dòng paste phải có đúng hai số hữu hạn phân cách bằng dấu phẩy; bỏ qua dòng trắng đầu/cuối, không bỏ qua dòng lỗi ở giữa.
-4. Kiểm tra vĩ độ [-90, 90], kinh độ [-180, 180], tối thiểu 3 đỉnh phân biệt, đỉnh liên tiếp không trùng và không lặp điểm đầu ở cuối.
+4. Kiểm tra vĩ độ [-90, 90], kinh độ [-180, 180], từ 3 đến 500 đỉnh phân biệt, đỉnh liên tiếp không trùng và không lặp điểm đầu ở cuối.
 5. Client phát hiện self-intersection để phản hồi sớm, nhưng không thay thế validation backend.
 6. Nút `Lưu ranh giới` chỉ bật khi draft đã thay đổi, đạt validation client và không có request đang chạy.
 7. Không tự gửi `confirmed=true`; cờ này chỉ được dùng sau thao tác xác nhận rõ ràng trong dialog `409`.
@@ -530,6 +531,8 @@ private LocalDateTime boundaryUpdatedAt;
 - [x] **TC-20 (UI xác nhận 409):** Dialog hiển thị đúng số liệu backend; hủy không lưu, xác nhận gửi lại cùng points với `confirmed=true`; thay đổi draft bắt buộc quay lại `confirmed=false` (`AreaDeviationConfirmDialog`).
 - [x] **TC-21 (UI không mất dữ liệu):** Khôi phục ranh giới ban đầu, quản lý draft tách biệt với thông tin chung (`FarmAreaBoundaryEditor`).
 - [x] **TC-22 (UI responsive/accessibility):** Bố cục dùng được trên desktop/mobile; nhập bằng textarea và danh sách đỉnh không phụ thuộc hoàn toàn vào thao tác chuột; nút icon có accessible name theo chuẩn `AI_DESIGN_SYSTEM.md`.
+- [x] **TC-23 (Giới hạn dữ liệu):** API và UI từ chối danh sách trên 500 đỉnh; snapshot audit luôn nằm trong giới hạn lưu trữ đã thiết kế.
+- [x] **TC-24 (Cập nhật đồng thời):** Backend khóa vùng trồng trong transaction cập nhật để không ghi đè ranh giới hoặc tạo snapshot `beforeValue` lỗi thời.
 
 ---
 
@@ -546,7 +549,7 @@ private LocalDateTime boundaryUpdatedAt;
 - **Đã chốt:**
   - CV-01 hoàn tất: hai cách nhập cùng tạo danh sách đỉnh có thứ tự; backend tự khép kín polygon.
   - Ngưỡng chênh lệch là cấu hình, mặc định 30%; so sánh theo điều kiện lớn hơn (`>`), không phải lớn hơn hoặc bằng.
-  - Số đỉnh tối thiểu: 3 đỉnh phân biệt; không lặp điểm đầu ở cuối request.
+  - Số đỉnh: từ 3 đến 500 đỉnh phân biệt; không lặp điểm đầu ở cuối request.
   - Backend tính diện tích chính thức theo WGS84 và trả hecta; frontend chỉ tính xem trước.
   - Vượt ngưỡng khi chưa xác nhận trả `409 Conflict` với `errors.code = AREA_DEVIATION_CONFIRMATION_REQUIRED`.
   - Phân quyền: `VT-02` quản lý tổ chức.

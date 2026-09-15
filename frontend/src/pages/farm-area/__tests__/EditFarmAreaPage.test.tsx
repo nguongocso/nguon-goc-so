@@ -123,4 +123,25 @@ describe('EditFarmAreaPage - bảo vệ draft ranh giới', () => {
     expect(confirmSpy).toHaveBeenCalledTimes(1);
     expect(event.defaultPrevented).toBe(true);
   });
+
+  it('khôi phục vị trí lịch sử khi người dùng hủy thao tác Back', async () => {
+    window.history.replaceState({ ...window.history.state, idx: 2 }, '', window.location.href);
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const historyGoSpy = vi.spyOn(window.history, 'go').mockImplementation(() => undefined);
+
+    render(
+      <MemoryRouter initialEntries={['/farm-areas/farm-area-1/edit']}>
+        <Routes>
+          <Route path="/farm-areas/:id/edit" element={<EditFarmAreaPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    fireEvent.click(await screen.findByRole('tab', { name: /Ranh giới trên bản đồ/i }));
+    await screen.findByText('Trình chỉnh sửa ranh giới');
+    window.dispatchEvent(new PopStateEvent('popstate', { state: { idx: 1 } }));
+
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(historyGoSpy).toHaveBeenCalledWith(1);
+  });
 });

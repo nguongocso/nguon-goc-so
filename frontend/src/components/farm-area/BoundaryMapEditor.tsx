@@ -75,12 +75,15 @@ export const BoundaryMapEditor: React.FC<Props> = ({
   const onSelectPointRef = useRef(onSelectPoint);
   onSelectPointRef.current = onSelectPoint;
 
+  const disabledRef = useRef(disabled);
+  disabledRef.current = disabled;
+
   // Khởi tạo bản đồ 1 lần duy nhất
   useEffect(() => {
     if (!mapContainerRef.current || leafletMapRef.current) return;
 
-    const defaultLat = initialCenter?.latitude || 21.587568;
-    const defaultLng = initialCenter?.longitude || 105.826176;
+    const defaultLat = initialCenter?.latitude ?? 21.587568;
+    const defaultLng = initialCenter?.longitude ?? 105.826176;
 
     const map = L.map(mapContainerRef.current).setView([defaultLat, defaultLng], 14);
 
@@ -90,6 +93,7 @@ export const BoundaryMapEditor: React.FC<Props> = ({
 
     // Lắng nghe sự kiện click trên bản đồ để thêm đỉnh
     map.on('click', (e: L.LeafletMouseEvent) => {
+      if (disabledRef.current) return;
       onAddPointRef.current({
         latitude: Number(e.latlng.lat.toFixed(6)),
         longitude: Number(e.latlng.lng.toFixed(6)),

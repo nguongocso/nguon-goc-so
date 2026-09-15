@@ -56,6 +56,7 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
     private static final int AREA_SCALE = 4;
     private static final int DEVIATION_CALCULATION_SCALE = 10;
     private static final int DEVIATION_RESPONSE_SCALE = 2;
+    private static final int MAX_BOUNDARY_POINTS = 500;
 
     private final FarmAreaRepository farmAreaRepository;
     private final GeometryFactory geometryFactory;
@@ -77,7 +78,7 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
     public FarmAreaBoundaryResponse updateBoundary(UUID farmAreaId, UpdateFarmAreaBoundaryRequest request) {
         CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
         ensureManagerRole(currentUser);
-        FarmArea farmArea = getOwnedFarmArea(farmAreaId, currentUser);
+        FarmArea farmArea = getOwnedFarmAreaForUpdate(farmAreaId, currentUser);
 
         Polygon polygon = validateAndCreatePolygon(request != null ? request.getPoints() : null);
         BigDecimal preciseCalculatedArea = calculateGeodesicAreaHa(request.getPoints());
@@ -114,13 +115,26 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
                         "Không tìm thấy vùng trồng",
                         Map.of("code", "FARM_AREA_NOT_FOUND")));
 
+        ensureOwnedOrganization(farmArea, currentUser);
+        return farmArea;
+    }
+
+    private FarmArea getOwnedFarmAreaForUpdate(UUID farmAreaId, CustomUserDetails currentUser) {
+        FarmArea farmArea = farmAreaRepository.findByIdForBoundaryUpdate(farmAreaId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND,
+                        "Không tìm thấy vùng trồng",
+                        Map.of("code", "FARM_AREA_NOT_FOUND")));
+        ensureOwnedOrganization(farmArea, currentUser);
+        return farmArea;
+    }
+
+    private void ensureOwnedOrganization(FarmArea farmArea, CustomUserDetails currentUser) {
         UUID ownerOrganizationId = farmArea.getOrganization().getOrganizationId();
         if (!Objects.equals(ownerOrganizationId, currentUser.getOrganizationId())) {
             throw new BusinessException(HttpStatus.FORBIDDEN,
                     "Bạn không có quyền truy cập vùng trồng của tổ chức khác",
                     Map.of("code", "FORBIDDEN"));
         }
-        return farmArea;
     }
 
     private void ensureReadableRole(CustomUserDetails currentUser) {
@@ -145,6 +159,10 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
         if (points == null || points.size() < 3) {
             throw boundaryError("INVALID_BOUNDARY_POINTS",
                     "Ranh giới vùng trồng phải có tối thiểu 3 đỉnh phân biệt");
+        }
+        if (points.size() > MAX_BOUNDARY_POINTS) {
+            throw boundaryError("INVALID_BOUNDARY_POINTS",
+                    "Ranh giới vùng trồng chỉ được có tối đa 500 đỉnh");
         }
 
         Set<CoordinateKey> distinctPoints = new HashSet<>();

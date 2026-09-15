@@ -137,5 +137,30 @@ describe('geoAreaCalculator', () => {
       const result = parseCoordinatesText(text);
       expect(result.errors.some((e) => e.includes('trùng lặp'))).toBe(true);
     });
+
+    it('báo lỗi khi thiếu một thành phần tọa độ sau dấu phẩy', () => {
+      const result = parseCoordinatesText(`21.0285,\n21.0300, 105.8560\n21.0270, 105.8580`);
+
+      expect(result.errors.some((error) => error.includes('Dòng 1: Sai định dạng'))).toBe(true);
+      expect(result.points).not.toContainEqual({ latitude: 21.0285, longitude: 0 });
+    });
+
+    it('báo lỗi khi có dòng trống giữa danh sách nhưng cho phép dòng trống ở hai đầu', () => {
+      const result = parseCoordinatesText(`\n21.0285, 105.8542\n\n21.0300, 105.8560\n21.0270, 105.8580\n`);
+
+      expect(result.errors.some((error) => error.includes('Dòng 3: Không được để dòng trống'))).toBe(true);
+      expect(result.errors.some((error) => error.includes('Dòng 1'))).toBe(false);
+    });
+
+    it('báo lỗi khi danh sách vượt quá 500 đỉnh', () => {
+      const text = Array.from(
+        { length: 501 },
+        (_, index) => `${21 + index * 0.000001}, ${105 + index * 0.000001}`
+      ).join('\n');
+
+      const result = parseCoordinatesText(text);
+
+      expect(result.errors.some((error) => error.includes('tối đa 500 đỉnh'))).toBe(true);
+    });
   });
 });

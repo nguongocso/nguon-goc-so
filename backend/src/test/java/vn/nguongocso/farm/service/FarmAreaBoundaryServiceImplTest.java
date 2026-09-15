@@ -103,7 +103,7 @@ class FarmAreaBoundaryServiceImplTest {
 
     @Test
     void updateBoundary_shouldSavePolygonAndCalculatedArea_whenValid() {
-        when(farmAreaRepository.findById(farmAreaId)).thenReturn(Optional.of(farmArea));
+        when(farmAreaRepository.findByIdForBoundaryUpdate(farmAreaId)).thenReturn(Optional.of(farmArea));
         UpdateFarmAreaBoundaryRequest request = request(validSquare(), false);
 
         FarmAreaBoundaryResponse response = service.updateBoundary(farmAreaId, request);
@@ -122,7 +122,7 @@ class FarmAreaBoundaryServiceImplTest {
     @Test
     void updateBoundary_shouldRequireConfirmation_whenDeviationExceedsThreshold() {
         farmArea.setArea(new BigDecimal("0.1000"));
-        when(farmAreaRepository.findById(farmAreaId)).thenReturn(Optional.of(farmArea));
+        when(farmAreaRepository.findByIdForBoundaryUpdate(farmAreaId)).thenReturn(Optional.of(farmArea));
 
         assertThatThrownBy(() -> service.updateBoundary(farmAreaId, request(validSquare(), false)))
                 .isInstanceOfSatisfying(BusinessException.class, exception -> {
@@ -139,7 +139,7 @@ class FarmAreaBoundaryServiceImplTest {
     @Test
     void updateBoundary_shouldSave_whenDeviationConfirmed() {
         farmArea.setArea(new BigDecimal("0.1000"));
-        when(farmAreaRepository.findById(farmAreaId)).thenReturn(Optional.of(farmArea));
+        when(farmAreaRepository.findByIdForBoundaryUpdate(farmAreaId)).thenReturn(Optional.of(farmArea));
 
         FarmAreaBoundaryResponse response = service.updateBoundary(farmAreaId, request(validSquare(), true));
 
@@ -149,7 +149,7 @@ class FarmAreaBoundaryServiceImplTest {
 
     @Test
     void updateBoundary_shouldRejectSelfIntersectingPolygon() {
-        when(farmAreaRepository.findById(farmAreaId)).thenReturn(Optional.of(farmArea));
+        when(farmAreaRepository.findByIdForBoundaryUpdate(farmAreaId)).thenReturn(Optional.of(farmArea));
         List<LatLngDto> bowTie = List.of(
                 point(21.0000, 105.0000), point(21.0010, 105.0010),
                 point(21.0000, 105.0010), point(21.0010, 105.0000));
@@ -164,7 +164,7 @@ class FarmAreaBoundaryServiceImplTest {
 
     @Test
     void updateBoundary_shouldRejectSelfIntersectingPolygonFromEditorRegression() {
-        when(farmAreaRepository.findById(farmAreaId)).thenReturn(Optional.of(farmArea));
+        when(farmAreaRepository.findByIdForBoundaryUpdate(farmAreaId)).thenReturn(Optional.of(farmArea));
         List<LatLngDto> bowTie = List.of(
                 point(21.586174, 105.807344), point(21.584359, 105.807001),
                 point(21.584658, 105.807816), point(21.585915, 105.806604));
@@ -182,7 +182,7 @@ class FarmAreaBoundaryServiceImplTest {
 
     @Test
     void updateBoundary_shouldRejectLessThanThreePoints() {
-        when(farmAreaRepository.findById(farmAreaId)).thenReturn(Optional.of(farmArea));
+        when(farmAreaRepository.findByIdForBoundaryUpdate(farmAreaId)).thenReturn(Optional.of(farmArea));
 
         assertThatThrownBy(() -> service.updateBoundary(farmAreaId,
                 request(List.of(point(21.0, 105.0), point(21.1, 105.1)), false)))
@@ -196,7 +196,7 @@ class FarmAreaBoundaryServiceImplTest {
         Organization otherOrganization = new Organization();
         otherOrganization.setOrganizationId(UUID.randomUUID());
         farmArea.setOrganization(otherOrganization);
-        when(farmAreaRepository.findById(farmAreaId)).thenReturn(Optional.of(farmArea));
+        when(farmAreaRepository.findByIdForBoundaryUpdate(farmAreaId)).thenReturn(Optional.of(farmArea));
 
         assertThatThrownBy(() -> service.updateBoundary(farmAreaId, request(validSquare(), false)))
                 .isInstanceOfSatisfying(BusinessException.class,
@@ -213,14 +213,14 @@ class FarmAreaBoundaryServiceImplTest {
                 .isInstanceOfSatisfying(BusinessException.class,
                         exception -> assertThat(exception.getStatus()).isEqualTo(HttpStatus.FORBIDDEN));
 
-        verify(farmAreaRepository, never()).findById(any());
+        verify(farmAreaRepository, never()).findByIdForBoundaryUpdate(any());
     }
 
     @Test
     void updateBoundary_shouldSaveOldAndNewSnapshots() {
         farmArea.setBoundary(createPolygon(validSquare()));
         farmArea.setCalculatedArea(new BigDecimal("1.1000"));
-        when(farmAreaRepository.findById(farmAreaId)).thenReturn(Optional.of(farmArea));
+        when(farmAreaRepository.findByIdForBoundaryUpdate(farmAreaId)).thenReturn(Optional.of(farmArea));
 
         service.updateBoundary(farmAreaId, request(List.of(
                 point(21.0000, 105.0000), point(21.0000, 105.0012),
@@ -238,7 +238,7 @@ class FarmAreaBoundaryServiceImplTest {
 
     @Test
     void updateBoundary_shouldPropagateAuditFailure() {
-        when(farmAreaRepository.findById(farmAreaId)).thenReturn(Optional.of(farmArea));
+        when(farmAreaRepository.findByIdForBoundaryUpdate(farmAreaId)).thenReturn(Optional.of(farmArea));
         doThrow(new IllegalStateException("Không thể lưu nhật ký"))
                 .when(activityLogService).logActivity(any(ActivityLogRequest.class));
 
@@ -248,6 +248,23 @@ class FarmAreaBoundaryServiceImplTest {
 
         verify(farmAreaRepository).save(farmArea);
         verify(activityLogService).logActivity(any(ActivityLogRequest.class));
+    }
+
+    @Test
+    void updateBoundary_shouldRejectMoreThanMaximumPoints() {
+        when(farmAreaRepository.findByIdForBoundaryUpdate(farmAreaId)).thenReturn(Optional.of(farmArea));
+        List<LatLngDto> points = new java.util.ArrayList<>();
+        for (int index = 0; index < 501; index++) {
+            points.add(point(21.0 + index * 0.000001, 105.0 + index * 0.000001));
+        }
+
+        assertThatThrownBy(() -> service.updateBoundary(farmAreaId, request(points, true)))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(((Map<?, ?>) exception.getDetails()).get("code"))
+                                .isEqualTo("INVALID_BOUNDARY_POINTS"));
+
+        verify(farmAreaRepository, never()).save(any());
+        verify(activityLogService, never()).logActivity(any());
     }
 
     @Test

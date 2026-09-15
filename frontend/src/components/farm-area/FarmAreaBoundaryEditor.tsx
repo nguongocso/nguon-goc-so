@@ -25,6 +25,7 @@ import {
   calculateAreaDeviation,
   calculateGeodesicAreaHa,
   hasSelfIntersection,
+  MAX_BOUNDARY_POINTS,
 } from '@/utils/geoAreaCalculator';
 import { BoundaryMapEditor } from './BoundaryMapEditor';
 import { BoundaryPastePanel } from './BoundaryPastePanel';
@@ -112,9 +113,20 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
   const isDeviationHigh =
     thresholdPercentage != null && deviationPercent > thresholdPercentage;
   const isSelfIntersecting = hasSelfIntersection(draftPoints);
+  const distinctPointCount = new Set(
+    draftPoints.map((point) => `${point.latitude},${point.longitude}`)
+  ).size;
+  const hasValidArea = calculatedAreaHa > 0;
+  const isGeometryInvalid =
+    draftPoints.length >= 3 && (distinctPointCount < 3 || !hasValidArea);
+  const isBoundaryInvalid = isSelfIntersecting || isGeometryInvalid;
 
   // Thêm một đỉnh mới
   const handleAddPoint = (point: LatLng) => {
+    if (draftPoints.length >= MAX_BOUNDARY_POINTS) {
+      toast.error(`Ranh giới chỉ được có tối đa ${MAX_BOUNDARY_POINTS} đỉnh.`);
+      return;
+    }
     // Tránh trùng điểm liền kề
     if (draftPoints.length > 0) {
       const last = draftPoints[draftPoints.length - 1];
@@ -181,6 +193,16 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
 
     if (isSelfIntersecting) {
       toast.error('Ranh giới không hợp lệ do các cạnh tự cắt nhau.');
+      return;
+    }
+
+    if (isGeometryInvalid) {
+      toast.error('Ranh giới phải có tối thiểu 3 đỉnh phân biệt và diện tích lớn hơn 0.');
+      return;
+    }
+
+    if (draftPoints.length > MAX_BOUNDARY_POINTS) {
+      toast.error(`Ranh giới chỉ được có tối đa ${MAX_BOUNDARY_POINTS} đỉnh.`);
       return;
     }
 
@@ -296,7 +318,7 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
             onSelectPoint={setSelectedVertexIndex}
             selectedIndex={selectedVertexIndex}
             disabled={isSaving}
-            invalid={isSelfIntersecting}
+            invalid={isBoundaryInvalid}
           />
         </div>
 
@@ -358,6 +380,17 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
                 <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-600" />
                 <p className="leading-tight">
                   Ranh giới không hợp lệ do các cạnh tự cắt nhau. Hãy điều chỉnh lại các đỉnh trước khi lưu.
+                </p>
+              </div>
+            )}
+            {isGeometryInvalid && !isSelfIntersecting && (
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-800 dark:bg-red-950/40 dark:text-red-300"
+              >
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-600" />
+                <p className="leading-tight">
+                  Ranh giới phải có tối thiểu 3 đỉnh phân biệt và diện tích lớn hơn 0.
                 </p>
               </div>
             )}
@@ -457,6 +490,8 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
               ? 'Cần tối thiểu 3 đỉnh để có thể lưu ranh giới.'
               : isSelfIntersecting
               ? 'Ranh giới tự cắt nhau nên chưa thể lưu.'
+              : isGeometryInvalid
+              ? 'Ranh giới không tạo được diện tích nên chưa thể lưu.'
               : isDirty
               ? 'Bạn có thay đổi ranh giới chưa được lưu vào hệ thống.'
               : 'Ranh giới đã được lưu đồng bộ với máy chủ.'}
@@ -479,7 +514,13 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
             type="button"
             variant="default"
             onClick={() => performSave(false)}
-            disabled={!isDirty || draftPoints.length < 3 || isSelfIntersecting || isSaving}
+            disabled={
+              !isDirty ||
+              draftPoints.length < 3 ||
+              draftPoints.length > MAX_BOUNDARY_POINTS ||
+              isBoundaryInvalid ||
+              isSaving
+            }
             className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white min-w-32"
           >
             {isSaving ? (
