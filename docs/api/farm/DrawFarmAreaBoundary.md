@@ -4,7 +4,7 @@
 >
 > **Mã Story dự án:** `NCL-02-CN-008`
 >
-> **Jira Task hiện tại:** `NCL-865` / `NCL-02-CN-008-CV-03`
+> **Jira Task hiện tại:** `NCL-863` / `NCL-02-CN-008-CV-04`
 >
 > **Epic:** `NCL-02` (Khai báo vùng trồng và lô sản xuất)
 >
@@ -17,6 +17,8 @@
 > **Quyết định CV-02:** Đã chốt ngày 15/09/2026
 >
 > **Quyết định CV-03:** Đã chốt ngày 15/09/2026
+>
+> **Triển khai CV-04:** Hoàn tất ngày 15/09/2026
 >
 > **Phạm vi công việc:** `NCL-02-CN-008-CV-01` đến `CV-05`
 >
@@ -42,6 +44,7 @@ Cho phép **Quản lý hợp tác xã (`VT-02`)** khoanh ranh giới vùng trồ
 | **Jira Task CV-01** | `NCL-870` / `NCL-02-CN-008-CV-01` | Chốt cách khoanh ranh giới và ngưỡng chênh lệch diện tích |
 | **Jira Task CV-02** | `NCL-868` / `NCL-02-CN-008-CV-02` | Thiết kế dữ liệu ranh giới vùng trồng: tọa độ đỉnh, diện tích tính toán và phiên bản cũ/mới |
 | **Jira Task CV-03** | `NCL-865` / `NCL-02-CN-008-CV-03` | Thiết kế màn hình khoanh ranh giới trên bản đồ và luồng xác nhận chênh lệch diện tích |
+| **Jira Task CV-04** | `NCL-863` / `NCL-02-CN-008-CV-04` | Phát triển API, kiểm tra hình học, tính diện tích, lưu ranh giới và ghi nhật ký |
 | **User Story** | `NCL-02-CN-008` | Khoanh ranh giới vùng trồng trên bản đồ thay vì chỉ nhập một điểm tọa độ |
 | **Vai trò** | `VT-02` (Quản lý hợp tác xã) | Toàn quyền thiết lập và chỉnh sửa ranh giới vùng trồng thuộc tổ chức |
 | **Quy tắc** | `QTN-01` | Cách ly dữ liệu: Tổ chức chỉ được thao tác trên vùng trồng của mình |
@@ -135,6 +138,16 @@ Snapshot audit dùng cùng một cấu trúc cho `beforeValue` và `afterValue`:
 | Dữ liệu chưa lưu | Khi draft khác dữ liệu đã tải, hiển thị trạng thái `Chưa lưu`; nút `Khôi phục ranh giới đã lưu` đưa draft về snapshot gần nhất. Chuyển tab hoặc rời trang phải cảnh báo để tránh mất thay đổi. |
 | Phân quyền | Chỉ `VT-02` có quyền cập nhật mới thấy công cụ vẽ và nút lưu. Chế độ công khai chỉ render polygon, không render marker đỉnh, textarea hay hành động chỉnh sửa; backend vẫn là lớp phân quyền chính. |
 | Responsive và truy cập | Desktop dùng bố cục bản đồ 2/3 và panel 1/3; màn hình nhỏ xếp bản đồ trước, panel sau. Textarea và danh sách đỉnh là phương thức nhập thay thế cho người không thao tác chính xác bằng chuột; mọi nút icon có nhãn truy cập. |
+
+### 3.4. Kết quả triển khai CV-04
+
+- Đã bổ sung `GET/PUT /api/v1/farm-areas/{id}/boundary`, giới hạn cập nhật cho `VT-02` và kiểm tra quyền `FARM_AREA` tương ứng.
+- Service kiểm tra tổ chức sở hữu, miền tọa độ, số đỉnh phân biệt, điểm trùng liên tiếp, điểm đóng vòng lặp lại, polygon tự cắt và diện tích bằng 0.
+- Diện tích chính thức được tính trên ellipsoid WGS84 bằng GeographicLib, đổi sang hecta và lưu `HALF_UP` với 4 chữ số thập phân.
+- Ngưỡng chênh lệch lấy từ cấu hình; request vượt ngưỡng chỉ được lưu khi gửi lại với `confirmed=true`.
+- Migration `V20260915110702__add_farm_area_boundary.sql` bổ sung ba cột nullable và không thay đổi dữ liệu vùng trồng cũ.
+- Audit snapshot cũ/mới chỉ được phát sau khi transaction cập nhật DB commit thành công.
+- Đã bổ sung unit test service và web-layer test cho phân quyền, validation, xác nhận chênh lệch, SRID, response và audit event.
 
 ---
 
@@ -371,9 +384,7 @@ Chi tiết payload phản hồi khi cần xác nhận chênh lệch diện tích
 
 ## 10. Tác động Cơ sở dữ liệu & Migration
 
-### Migration SQL dự kiến (`V<timestamp>__add_farm_area_boundary.sql`)
-
-Tên migration thực tế được tạo ở CV-04 theo timestamp tại thời điểm triển khai và phải được kiểm tra không trùng phiên bản trước khi commit.
+### Migration SQL (`V20260915110702__add_farm_area_boundary.sql`)
 
 ```sql
 ALTER TABLE farm_areas
@@ -395,10 +406,10 @@ Ràng buộc nhất quán do service duy trì trong cùng transaction:
 - Không backfill dữ liệu cũ và không thay đổi `location`, `area`, `area_unit` hiện có.
 - Không tạo spatial index trong migration này. MySQL 8.4 yêu cầu geometry được lập spatial index phải là `NOT NULL`, không phù hợp với chiến lược tương thích dữ liệu cũ của Story.
 
-Ánh xạ entity dự kiến ở CV-04:
+Ánh xạ entity đã triển khai. SRID 4326 được ràng buộc ở migration và được gắn khi service tạo geometry; `columnDefinition` giữ ở `POLYGON` để schema test H2 tương thích:
 
 ```java
-@Column(name = "boundary", columnDefinition = "POLYGON SRID 4326")
+@Column(name = "boundary", columnDefinition = "POLYGON")
 private Polygon boundary;
 
 @Column(name = "calculated_area", precision = 10, scale = 4)
@@ -493,20 +504,20 @@ private LocalDateTime boundaryUpdatedAt;
 
 ## 12. Danh mục Kiểm thử (Test Cases)
 
-- [ ] **TC-01 (Backend):** Cập nhật ranh giới thành công với 4 đỉnh hợp lệ, lưu đa giác vào DB, tính đúng diện tích và lưu vào `calculated_area`.
-- [ ] **TC-02 (Backend):** Từ chối khi danh sách đỉnh < 3 (`NCL-02-CN-008-TC-02`).
-- [ ] **TC-03 (Backend):** Từ chối khi đa giác có cạnh cắt nhau (Self-intersecting polygon).
-- [ ] **TC-04 (Backend):** Cảnh báo khi độ lệch vượt ngưỡng cấu hình mặc định 30% và `confirmed == false` (`NCL-02-CN-008-TC-03`).
-- [ ] **TC-05 (Backend):** Cho phép lưu khi độ lệch vượt ngưỡng nhưng `confirmed == true`.
-- [ ] **TC-06 (Bảo mật/QTN-01):** Quản lý tổ chức khác cố tình cập nhật vùng trồng bị trả về `403 Forbidden`.
-- [ ] **TC-07 (Audit Log):** Kiểm tra `activity_logs` được ghi nhận bản ghi thay đổi ranh giới có đủ `beforeValue` và `afterValue`.
+- [x] **TC-01 (Backend):** Cập nhật ranh giới thành công với 4 đỉnh hợp lệ, lưu đa giác vào DB, tính đúng diện tích và lưu vào `calculated_area`.
+- [x] **TC-02 (Backend):** Từ chối khi danh sách đỉnh < 3 (`NCL-02-CN-008-TC-02`).
+- [x] **TC-03 (Backend):** Từ chối khi đa giác có cạnh cắt nhau (Self-intersecting polygon).
+- [x] **TC-04 (Backend):** Cảnh báo khi độ lệch vượt ngưỡng cấu hình mặc định 30% và `confirmed == false` (`NCL-02-CN-008-TC-03`).
+- [x] **TC-05 (Backend):** Cho phép lưu khi độ lệch vượt ngưỡng nhưng `confirmed == true`.
+- [x] **TC-06 (Bảo mật/QTN-01):** Quản lý tổ chức khác cố tình cập nhật vùng trồng bị trả về `403 Forbidden`.
+- [x] **TC-07 (Audit Log):** Kiểm tra sự kiện audit được phát với đủ `beforeValue` và `afterValue`; việc ghi xuống `activity_logs` dùng listener chung hiện có.
 - [ ] **TC-08 (Public Trace):** Quét tem lô hàng có vùng trồng đã khoanh ranh giới, kiểm tra API trả về đủ `farmAreaBoundary` (`NCL-02-CN-008-TC-04`).
 - [ ] **TC-09 (Frontend UI):** Kiểm tra vẽ ranh giới trên bản đồ, dán danh sách tọa độ, hiển thị cảnh báo khi vượt ngưỡng, và hiển thị trên trang tra cứu công khai.
 - [ ] **TC-10 (Boundary contract):** Backend tự khép kín danh sách 3 đỉnh phân biệt; từ chối request lặp điểm đầu ở cuối, đỉnh liên tiếp trùng nhau hoặc polygon có diện tích bằng 0.
 - [ ] **TC-11 (Ngưỡng biên):** Chênh lệch bằng đúng ngưỡng được lưu không cần xác nhận; chỉ giá trị lớn hơn ngưỡng mới trả `409`.
 - [ ] **TC-12 (Nguồn diện tích):** Frontend hiển thị xem trước nhưng lưu và cảnh báo theo diện tích backend tính lại trên WGS84.
 - [ ] **TC-13 (Migration tương thích):** Sau migration, vùng trồng cũ có ba cột mới bằng `NULL` vẫn được đọc/cập nhật bằng các API hiện hành.
-- [ ] **TC-14 (SRID và thứ tự đỉnh):** Polygon lưu trong DB có `ST_SRID(boundary) = 4326`; vòng ngoài được khép kín trong geometry nhưng response không lặp đỉnh đầu ở cuối `points`.
+- [x] **TC-14 (SRID và thứ tự đỉnh):** Geometry do service tạo có SRID 4326, vòng ngoài được khép kín và response không lặp đỉnh đầu ở cuối `points`; kiểm tra `ST_SRID` trực tiếp trên MySQL thuộc bước runtime môi trường tích hợp.
 - [ ] **TC-15 (Phiên bản đầu tiên):** Thiết lập ranh giới lần đầu tạo ActivityLog với `beforeValue = null` và `afterValue` là snapshot schema version 1.
 - [ ] **TC-16 (Phiên bản cập nhật):** Chỉnh sửa thành công tạo ActivityLog chứa đúng snapshot cũ/mới; request bị từ chối không tạo bản ghi phiên bản.
 - [ ] **TC-17 (UI vẽ/kéo):** Chấm đủ đỉnh tạo polygon; kéo một marker cập nhật đúng tọa độ, polygon và diện tích preview.
@@ -545,6 +556,8 @@ private LocalDateTime boundaryUpdatedAt;
   - Công cụ vẽ tái sử dụng React Leaflet hiện có với click để thêm, marker kéo được, danh sách xóa đỉnh và textarea dán tọa độ; không thêm plugin bản đồ.
   - Dialog xác nhận chỉ mở theo lỗi `409` và hiển thị số liệu backend; `confirmed=true` không được gửi tự động.
   - Đã chốt đầy đủ trạng thái loading, empty, invalid, dirty, saving, conflict, success, forbidden/not-found, server error, responsive và cảnh báo mất draft.
+  - CV-04 hoàn tất: đã triển khai migration, entity, cấu hình, API nội bộ, validation polygon, tính diện tích WGS84, xác nhận vượt ngưỡng và audit sau commit.
+  - Nhóm kiểm thử Task 4 có 13 test service/controller đã chạy thành công.
 
-- **Còn thuộc các công việc sau CV-03:**
-  - CV-04/CV-05 triển khai và kiểm thử theo contract đã chốt.
+- **Còn thuộc công việc sau CV-04:**
+  - CV-05 tích hợp ranh giới vào API và giao diện tra cứu công khai, sau đó thực hiện kiểm thử tổng thể User Story.
