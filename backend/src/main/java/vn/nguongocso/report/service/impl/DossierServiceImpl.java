@@ -36,6 +36,7 @@ import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.report.exception.DossierValidationException;
 import vn.nguongocso.exception.ResourceNotFoundException;
+import vn.nguongocso.farm.entity.FarmArea;
 import vn.nguongocso.farm.entity.FarmLog;
 import vn.nguongocso.farm.entity.FarmLogAttachment;
 import vn.nguongocso.farm.entity.ProductionLot;
@@ -773,16 +774,57 @@ public class DossierServiceImpl implements DossierService {
 
         document.add(new Paragraph(" "));
 
-        // 2. Thông tin chung về Lô sản xuất
+        // 2. Thông tin chung về Đơn vị sản xuất & Lô sản xuất
         ProductionLot lot = shipment.getProductionLot();
+        Organization org = shipment.getOrganization() != null
+                ? shipment.getOrganization()
+                : (lot != null ? lot.getOrganization() : null);
+        FarmArea farmArea = lot != null ? lot.getFarmArea() : null;
+
         boolean hasLotInfo = selectedFieldKeys == null || selectedFieldKeys.stream().anyMatch(k -> k.startsWith("productionLot.") || k.startsWith("organization.") || k.startsWith("farmArea."));
         if (hasLotInfo) {
-            document.add(new Paragraph("I. THÔNG TIN LÔ SẢN XUẤT", headerFont));
+            document.add(new Paragraph("I. THÔNG TIN ĐƠN VỊ & LÔ SẢN XUẤT", headerFont));
             document.add(new Paragraph(" "));
             PdfPTable lotTable = new PdfPTable(2);
             lotTable.setWidthPercentage(100);
             lotTable.setSpacingAfter(15);
 
+            // Thông tin tổ chức / HTX
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("organization.name")) {
+                addTableCell(lotTable, "Đơn vị sản xuất (HTX):", boldFont);
+                addTableCell(lotTable, (org != null && org.getName() != null) ? org.getName() : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("organization.code")) {
+                addTableCell(lotTable, "Mã định danh HTX:", boldFont);
+                addTableCell(lotTable, (org != null && org.getCode() != null) ? org.getCode() : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("organization.address")) {
+                addTableCell(lotTable, "Địa chỉ trụ sở:", boldFont);
+                addTableCell(lotTable, (org != null && org.getAddress() != null) ? org.getAddress() : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("organization.phone")) {
+                addTableCell(lotTable, "Số điện thoại liên hệ:", boldFont);
+                addTableCell(lotTable, (org != null && org.getPhone() != null) ? org.getPhone() : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("organization.email")) {
+                addTableCell(lotTable, "Email liên hệ:", boldFont);
+                addTableCell(lotTable, (org != null && org.getEmail() != null) ? org.getEmail() : "N/A", normalFont);
+            }
+
+            // Thông tin vùng trồng
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("farmArea.name")) {
+                addTableCell(lotTable, "Vùng chuyên canh / Vùng trồng:", boldFont);
+                addTableCell(lotTable, (farmArea != null && farmArea.getName() != null) ? farmArea.getName() : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("farmArea.area")) {
+                addTableCell(lotTable, "Diện tích canh tác:", boldFont);
+                String areaStr = (farmArea != null && farmArea.getArea() != null)
+                        ? farmArea.getArea() + " " + (farmArea.getAreaUnit() != null ? farmArea.getAreaUnit().name() : "ha")
+                        : "N/A";
+                addTableCell(lotTable, areaStr, normalFont);
+            }
+
+            // Thông tin lô sản xuất
             if (selectedFieldKeys == null || selectedFieldKeys.contains("productionLot.name")) {
                 addTableCell(lotTable, "Tên lô sản xuất:", boldFont);
                 addTableCell(lotTable, lot != null && lot.getName() != null ? lot.getName() : "N/A", normalFont);
@@ -791,11 +833,6 @@ public class DossierServiceImpl implements DossierService {
                 addTableCell(lotTable, "Danh mục sản phẩm:", boldFont);
                 addTableCell(lotTable, (lot != null && lot.getProductCategory() != null && lot.getProductCategory().getName() != null)
                         ? lot.getProductCategory().getName() : "N/A", normalFont);
-            }
-            if (selectedFieldKeys == null || selectedFieldKeys.contains("organization.name")) {
-                addTableCell(lotTable, "Đơn vị sản xuất (HTX):", boldFont);
-                addTableCell(lotTable, (lot != null && lot.getOrganization() != null && lot.getOrganization().getName() != null)
-                        ? lot.getOrganization().getName() : "N/A", normalFont);
             }
             if (selectedFieldKeys == null || selectedFieldKeys.contains("productionLot.plantingDate")) {
                 addTableCell(lotTable, "Ngày xuống giống:", boldFont);
@@ -826,6 +863,10 @@ public class DossierServiceImpl implements DossierService {
                                 ? lot.getActualQuantity() + " kg"
                                 : "N/A",
                         normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("productionLot.status")) {
+                addTableCell(lotTable, "Trạng thái lô sản xuất:", boldFont);
+                addTableCell(lotTable, (lot != null && lot.getStatus() != null) ? lot.getStatus().name() : "N/A", normalFont);
             }
 
             if (lotTable.getRows().size() > 0) {

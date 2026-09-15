@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,520 +13,573 @@ import {
   Loader2,
   Copy,
   Check,
-  Eye,
   X,
   FileJson,
   FileText,
-  Building2,
-  Package,
-  Calendar,
+  FileSpreadsheet,
+  Download,
+  ExternalLink,
   ShieldCheck,
-  Clock,
-  Sparkles,
-  Layers,
+  AlertCircle,
+  Table as TableIcon,
+  Code2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { exportDossier } from '@/api/dossierApi';
+import { exportShipmentWithTemplate } from '@/api/exportApi';
 import { getOpenDataPreview } from '@/api/profileTemplateApi';
 
-interface PreviewOrganization {
-  name?: string;
-  code?: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-}
-
-interface PreviewFarmArea {
-  name?: string;
-  area?: number;
-  areaUnit?: string;
-}
-
-interface PreviewProductionLot {
-  name?: string;
-  productCategory?: string;
-  plantingDate?: string;
-  harvestDate?: string;
-  expectedQuantity?: number;
-  actualQuantity?: number;
-  status?: string;
-}
-
-interface PreviewShipment {
-  name?: string;
-  totalQuantity?: number;
-  packagingInfo?: string;
-  status?: string;
-}
-
-interface PreviewFarmLog {
-  executedDate?: string;
-  activityType?: string;
-  material?: string;
-  quantity?: number;
-  notes?: string;
-}
-
-interface PreviewInspection {
-  sampleSentDate?: string;
-  inspectionUnit?: string;
-  status?: string;
-}
-
-interface PreviewTimelineEvent {
-  recordedAt?: string;
-  eventType?: string;
-  recordedBy?: string;
-}
-
-interface PreviewAppliedTemplate {
-  templateId?: string;
-  templateName?: string;
-  isDefault?: boolean;
-  totalFields?: number;
-}
-
-interface DossierPreviewDialogProps {
+export interface DossierPreviewDialogProps {
   open: boolean;
   onClose: () => void;
   shipmentId?: string;
+  shipmentName?: string;
   templateId?: string;
   templateName?: string;
   activeFormat?: 'pdf' | 'json' | 'csv';
   initialData?: Record<string, unknown> | null;
 }
 
+interface CsvParsedRow {
+  isHeader?: boolean;
+  isSection?: boolean;
+  cells: string[];
+}
+
 export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
   open,
   onClose,
   shipmentId,
+  shipmentName,
   templateId,
   templateName,
   activeFormat = 'pdf',
   initialData,
 }) => {
-  const [data, setData] = useState<Record<string, unknown> | null>(initialData || null);
+  const [format, setFormat] = useState<'pdf' | 'json' | 'csv'>(activeFormat);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'document' | 'json'>(
-    activeFormat === 'json' ? 'json' : 'document'
+  const [error, setError] = useState<string | null>(null);
+
+  // PDF state
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+
+  // CSV state
+  const [csvContent, setCsvContent] = useState<string | null>(null);
+  const [csvParsed, setCsvParsed] = useState<CsvParsedRow[]>([]);
+  const [csvViewMode, setCsvViewMode] = useState<'table' | 'raw'>('table');
+
+  // JSON state
+  const [jsonString, setJsonString] = useState<string>(
+    initialData ? JSON.stringify(initialData, null, 2) : ''
   );
 
-  useEffect(() => {
-    if (activeFormat === 'json') {
-      setActiveTab('json');
-    } else {
-      setActiveTab('document');
-    }
-  }, [activeFormat, open]);
+  // Lưu trữ tham chiếu URL để giải phóng bộ nhớ khi đóng/chuyển
+  const currentPdfUrlRef = useRef<string | null>(null);
 
+  // Đồng bộ format ban đầu khi mở dialog
   useEffect(() => {
-    if (initialData) {
-      setData(initialData);
+    if (open) {
+      setFormat(activeFormat);
+      setError(null);
+    }
+  }, [open, activeFormat]);
+
+  // Giải phóng URL đối tượng blob khi hủy modal hoặc đổi URL
+  useEffect(() => {
+    return () => {
+      if (currentPdfUrlRef.current) {
+        URL.revokeObjectURL(currentPdfUrlRef.current);
+        currentPdfUrlRef.current = null;
+      }
+    };
+  }, []);
+
+  // Hàm parse nội dung CSV thành bảng trực quan
+  const parseCsvText = (text: string): CsvParsedRow[] => {
+    const lines = text.split(/\r?\n/);
+    const result: CsvParsedRow[] = [];
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line) continue;
+
+      // Dòng chú thích / tiêu đề phần bắt đầu bằng #
+      if (line.startsWith('#')) {
+        result.push({
+          isSection: true,
+          cells: [line.replace(/^#\s*/, '')],
+        });
+        continue;
+      }
+
+      // Tách ô bằng dấu phẩy có xử lý dấu ngoặc kép
+      const cells: string[] = [];
+      let current = '';
+      let insideQuote = false;
+
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          if (insideQuote && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else {
+            insideQuote = !insideQuote;
+          }
+        } else if (char === ',' && !insideQuote) {
+          cells.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      cells.push(current.trim());
+
+      // Phán đoán dòng tiêu đề cột
+      const isHeaderRow =
+        cells.includes('Nhóm thông tin') ||
+        cells.includes('STT') ||
+        cells.includes('Trường dữ liệu');
+
+      result.push({
+        isHeader: isHeaderRow,
+        cells,
+      });
+    }
+
+    return result;
+  };
+
+  // Nạp dữ liệu xem trước theo đúng định dạng đang chọn
+  useEffect(() => {
+    if (!open) {
+      if (currentPdfUrlRef.current) {
+        URL.revokeObjectURL(currentPdfUrlRef.current);
+        currentPdfUrlRef.current = null;
+      }
+      setPdfUrl(null);
+      setPdfBlob(null);
+      setCsvContent(null);
+      setCsvParsed([]);
+      if (!initialData) {
+        setJsonString('');
+      }
+      setError(null);
       return;
     }
 
-    if (open && shipmentId) {
-      const fetchPreview = async () => {
-        setLoading(true);
-        try {
-          const res = await getOpenDataPreview(shipmentId, templateId);
-          setData(res);
-        } catch (err: unknown) {
-          const msg =
-            (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-            'Không thể xem trước dữ liệu hồ sơ';
-          toast.error(msg);
-          setData(null);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchPreview();
-    } else if (!open) {
-      setData(null);
-      setCopied(false);
+    // Nếu là chế độ thiết kế mẫu hồ sơ (chưa có shipmentId, có initialData)
+    if (initialData && !shipmentId) {
+      setJsonString(JSON.stringify(initialData, null, 2));
+      return;
     }
-  }, [open, shipmentId, templateId, initialData]);
 
-  const handleCopy = () => {
-    if (!data) return;
-    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+    if (!shipmentId) return;
+
+    let isMounted = true;
+
+    const fetchPreviewData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        if (format === 'pdf') {
+          // Lấy đúng file PDF thực tế do backend tạo ra
+          const blob = await exportDossier(shipmentId, templateId);
+          if (!isMounted) return;
+
+          if (currentPdfUrlRef.current) {
+            URL.revokeObjectURL(currentPdfUrlRef.current);
+          }
+          const url = URL.createObjectURL(blob);
+          currentPdfUrlRef.current = url;
+          setPdfBlob(blob);
+          setPdfUrl(url);
+        } else if (format === 'csv') {
+          // Lấy đúng file CSV thực tế
+          const blob = await exportShipmentWithTemplate(shipmentId, templateId, 'csv');
+          if (!isMounted) return;
+
+          const text = await blob.text();
+          setCsvContent(text);
+          setCsvParsed(parseCsvText(text));
+        } else {
+          // Lấy dữ liệu JSON chuẩn
+          const res = await getOpenDataPreview(shipmentId, templateId);
+          if (!isMounted) return;
+
+          setJsonString(JSON.stringify(res, null, 2));
+        }
+      } catch (err: unknown) {
+        if (!isMounted) return;
+        const msg =
+          (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          (err as { message?: string })?.message ||
+          'Không thể khởi tạo bản xem trước hồ sơ';
+        setError(msg);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchPreviewData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [open, shipmentId, templateId, format, initialData]);
+
+  // Xử lý tải file trực tiếp từ modal
+  const handleDownloadCurrent = () => {
+    if (format === 'pdf' && pdfBlob) {
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Ho_so_truy_xuat_${shipmentName || shipmentId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Đã tải tệp PDF về máy');
+    } else if (format === 'csv' && csvContent) {
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dossier_profile_${shipmentName || shipmentId}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Đã tải tệp CSV về máy');
+    } else if (format === 'json' && jsonString) {
+      const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dossier_profile_${shipmentName || shipmentId}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Đã tải tệp JSON về máy');
+    }
+  };
+
+  // Sao chép nội dung text (JSON hoặc CSV)
+  const handleCopyText = (content: string, typeName: string) => {
+    if (!content) return;
+    navigator.clipboard.writeText(content);
     setCopied(true);
-    toast.success('Đã sao chép cấu trúc JSON vào bộ nhớ tạm');
+    toast.success(`Đã sao chép nội dung ${typeName} vào bộ nhớ tạm`);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const jsonString = data ? JSON.stringify(data, null, 2) : '';
-
-  // Trích xuất các trường dữ liệu từ preview với kiểu rõ ràng
-  const org = (data?.organization as PreviewOrganization) || null;
-  const farmArea = (data?.farmArea as PreviewFarmArea) || null;
-  const lot = (data?.productionLot as PreviewProductionLot) || null;
-  const shipment = (data?.shipment as PreviewShipment) || null;
-  const farmLogs = Array.isArray(data?.farmLogs) ? (data.farmLogs as PreviewFarmLog[]) : [];
-  const inspections = Array.isArray(data?.inspections)
-    ? (data.inspections as PreviewInspection[])
-    : [];
-  const timelineEvents = Array.isArray(data?.timelineEvents)
-    ? (data.timelineEvents as PreviewTimelineEvent[])
-    : [];
-  const appliedTemplate = (data?.appliedTemplate as PreviewAppliedTemplate) || null;
-
   return (
     <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-6">
-        <DialogHeader className="space-y-1.5 pb-2 border-b">
+      <DialogContent className="max-w-5xl max-h-[92vh] flex flex-col p-6">
+        {/* Header */}
+        <DialogHeader className="space-y-1.5 pb-2.5 border-b">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pr-6">
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
-                <FileText className="size-5" />
+                {format === 'pdf' ? (
+                  <FileText className="size-5" />
+                ) : format === 'csv' ? (
+                  <FileSpreadsheet className="size-5" />
+                ) : (
+                  <FileJson className="size-5" />
+                )}
               </div>
               <div>
-                <DialogTitle className="text-lg font-bold text-foreground">
-                  Xem trước hồ sơ truy xuất nguồn gốc
-                </DialogTitle>
+                <div className="flex items-center gap-2">
+                  <DialogTitle className="text-base sm:text-lg font-bold text-foreground">
+                    Bản xem trước xuất hồ sơ
+                  </DialogTitle>
+                  <Badge variant="outline" className="text-[11px] bg-emerald-50 text-emerald-700 border-emerald-300 font-medium">
+                    Chuẩn hóa 100%
+                  </Badge>
+                </div>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                  Nội dung hiển thị được lọc chính xác theo mẫu hồ sơ đã chọn
+                  Mẫu áp dụng: <strong className="text-foreground">{templateName || 'Mặc định'}</strong>
+                  {shipmentName && (
+                    <>
+                      {' '}&bull; Lô hàng: <span className="font-semibold text-foreground">{shipmentName}</span>
+                    </>
+                  )}
                 </DialogDescription>
               </div>
             </div>
 
-            {/* Toggle tabs */}
-            <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border text-xs">
-              <button
-                type="button"
-                onClick={() => setActiveTab('document')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
-                  activeTab === 'document'
-                    ? 'bg-background text-foreground shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <FileText className="size-3.5 text-emerald-600" />
-                <span>Bản in tài liệu / PDF</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('json')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
-                  activeTab === 'json'
-                    ? 'bg-background text-foreground shadow-xs'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <FileJson className="size-3.5 text-blue-600" />
-                <span>Dữ liệu JSON</span>
-              </button>
-            </div>
+            {/* Bộ chuyển đổi định dạng xem trước (PDF / CSV / JSON) */}
+            {!initialData && (
+              <div className="flex items-center gap-1 bg-muted/70 p-1 rounded-lg border text-xs">
+                <button
+                  type="button"
+                  onClick={() => setFormat('pdf')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
+                    format === 'pdf'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <FileText className="size-3.5 text-emerald-600" />
+                  <span>Bản in PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormat('csv')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
+                    format === 'csv'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <FileSpreadsheet className="size-3.5 text-emerald-600" />
+                  <span>Bảng CSV</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormat('json')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
+                    format === 'json'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <FileJson className="size-3.5 text-emerald-600" />
+                  <span>Dữ liệu JSON</span>
+                </button>
+              </div>
+            )}
           </div>
         </DialogHeader>
 
-        {/* Content Box */}
-        <div className="flex-1 min-h-[350px] max-h-[62vh] overflow-y-auto my-2 rounded-xl border border-border bg-slate-50/50 dark:bg-slate-950/30 p-4">
+        {/* Thân hiển thị nội dung xem trước */}
+        <div className="flex-1 overflow-hidden min-h-[380px] max-h-[66vh] py-2 flex flex-col">
           {loading ? (
-            <div className="h-full min-h-[300px] flex flex-col items-center justify-center gap-2 p-8 text-muted-foreground">
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground">
               <Loader2 className="size-8 animate-spin text-emerald-600" />
-              <p className="text-sm font-medium">Đang khởi tạo bản xem trước hồ sơ...</p>
-            </div>
-          ) : !data ? (
-            <div className="h-full min-h-[300px] flex flex-col items-center justify-center gap-2 p-8 text-muted-foreground">
-              <Eye className="size-8 stroke-1 text-muted-foreground/60" />
-              <p className="text-sm">Không có dữ liệu xem trước</p>
-              <p className="text-xs text-muted-foreground/80">
-                Hãy kiểm tra thông tin lô hàng hoặc cấu hình mẫu hồ sơ
-              </p>
-            </div>
-          ) : activeTab === 'json' ? (
-            // TAB DỮ LIỆU JSON
-            <div className="rounded-lg bg-card p-4 border overflow-auto">
-              <pre className="font-mono text-xs leading-relaxed text-foreground whitespace-pre-wrap break-all select-all">
-                {jsonString}
-              </pre>
-            </div>
-          ) : (
-            // TAB BẢN TÀI LIỆU TRỰC QUAN (DOCUMENT / PDF PREVIEW)
-            <div className="max-w-3xl mx-auto bg-card p-6 sm:p-8 rounded-xl border shadow-xs space-y-6 text-foreground">
-              {/* Tiêu đề Quốc hiệu & Văn bản */}
-              <div className="text-center space-y-1.5 pb-4 border-b">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+              <div className="text-center">
+                <p className="text-sm font-semibold text-foreground">
+                  Đang kết xuất tệp {format.toUpperCase()} thực tế...
                 </p>
-                <p className="text-xs italic text-muted-foreground underline decoration-1 underline-offset-4">
-                  Độc lập - Tự do - Hạnh phúc
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Hệ thống đang sinh dữ liệu và áp dụng bộ lọc trường của mẫu hồ sơ
                 </p>
-                <div className="pt-3">
-                  <h2 className="text-base sm:text-lg font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wide">
-                    HỒ SƠ TRUY XUẤT NGUỒN GỐC SẢN PHẨM
-                  </h2>
-                  <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
-                    {Boolean(appliedTemplate?.templateName) && (
-                      <Badge variant="outline" className="text-xs border-emerald-300 text-emerald-700 bg-emerald-50/70">
-                        <Sparkles className="size-3 mr-1 text-emerald-600" />
-                        Mẫu: {appliedTemplate?.templateName}
-                      </Badge>
-                    )}
-                    {Boolean(templateName) && !appliedTemplate?.templateName && (
-                      <Badge variant="outline" className="text-xs border-emerald-300 text-emerald-700 bg-emerald-50/70">
-                        Mẫu: {templateName}
-                      </Badge>
-                    )}
-                    {Boolean(shipmentId) && (
-                      <span className="text-xs text-muted-foreground">
-                        Mã lô hàng: <strong className="text-foreground">{shipmentId}</strong>
-                      </span>
-                    )}
+              </div>
+            </div>
+          ) : error ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground p-6 text-center">
+              <AlertCircle className="size-10 text-amber-500" />
+              <div className="max-w-md">
+                <p className="text-sm font-semibold text-foreground">Không thể tạo bản xem trước</p>
+                <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">{error}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFormat((prev) => (prev === 'pdf' ? 'pdf' : prev))}
+                className="mt-2 text-xs"
+              >
+                Thử tải lại
+              </Button>
+            </div>
+          ) : format === 'pdf' && !initialData ? (
+            /* =================== XEM TRƯỚC PDF THẬT 100% =================== */
+            <div className="flex-1 flex flex-col rounded-lg border overflow-hidden bg-slate-100 dark:bg-slate-900">
+              {pdfUrl ? (
+                <iframe
+                  src={`${pdfUrl}#toolbar=1&navpanes=0`}
+                  className="w-full h-full border-0 rounded-lg shadow-inner"
+                  title="Bản in PDF hồ sơ truy xuất"
+                />
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground">
+                  Chưa tải được tệp PDF
+                </div>
+              )}
+            </div>
+          ) : format === 'csv' && !initialData ? (
+            /* =================== XEM TRƯỚC CSV THẬT 100% =================== */
+            <div className="flex-1 flex flex-col rounded-lg border overflow-hidden bg-background">
+              {/* Thanh công cụ xem CSV */}
+              <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/40 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-muted-foreground">Chế độ xem:</span>
+                  <div className="inline-flex rounded-md border bg-background p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setCsvViewMode('table')}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs transition-colors ${
+                        csvViewMode === 'table'
+                          ? 'bg-muted font-semibold text-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <TableIcon className="size-3" />
+                      Bảng tính
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCsvViewMode('raw')}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs transition-colors ${
+                        csvViewMode === 'raw'
+                          ? 'bg-muted font-semibold text-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <Code2 className="size-3" />
+                      Dữ liệu thô
+                    </button>
                   </div>
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  Chuẩn mã hóa UTF-8 BOM cho Microsoft Excel
                 </div>
               </div>
 
-              {/* I. THÔNG TIN ĐƠN VỊ SẢN XUẤT & LÔ SẢN XUẤT */}
-              {(org || lot || farmArea) && (
-                <div className="space-y-2.5">
-                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase text-emerald-700 dark:text-emerald-400">
-                    <Building2 className="size-4" />
-                    <span>I. THÔNG TIN LÔ SẢN XUẤT & ĐƠN VỊ CANH TÁC</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50 border">
-                    {Boolean(lot?.name) && (
-                      <div>
-                        <span className="text-muted-foreground">Tên lô sản xuất:</span>{' '}
-                        <strong className="text-foreground">{lot?.name}</strong>
-                      </div>
-                    )}
-                    {Boolean(lot?.productCategory) && (
-                      <div>
-                        <span className="text-muted-foreground">Danh mục sản phẩm:</span>{' '}
-                        <strong className="text-foreground">{lot?.productCategory}</strong>
-                      </div>
-                    )}
-                    {Boolean(org?.name) && (
-                      <div>
-                        <span className="text-muted-foreground">Đơn vị sản xuất (HTX):</span>{' '}
-                        <strong className="text-foreground">{org?.name}</strong>
-                      </div>
-                    )}
-                    {Boolean(org?.code) && (
-                      <div>
-                        <span className="text-muted-foreground">Mã HTX:</span>{' '}
-                        <strong className="text-foreground">{org?.code}</strong>
-                      </div>
-                    )}
-                    {Boolean(org?.address) && (
-                      <div className="sm:col-span-2">
-                        <span className="text-muted-foreground">Địa chỉ:</span>{' '}
-                        <span className="text-foreground">{org?.address}</span>
-                      </div>
-                    )}
-                    {Boolean(farmArea?.name) && (
-                      <div>
-                        <span className="text-muted-foreground">Vùng trồng:</span>{' '}
-                        <span className="text-foreground">
-                          {farmArea?.name}
-                          {farmArea?.area !== undefined && ` (${farmArea.area} ${farmArea.areaUnit || ''})`}
-                        </span>
-                      </div>
-                    )}
-                    {Boolean(lot?.plantingDate) && (
-                      <div>
-                        <span className="text-muted-foreground">Ngày xuống giống:</span>{' '}
-                        <span className="text-foreground">{lot?.plantingDate}</span>
-                      </div>
-                    )}
-                    {Boolean(lot?.harvestDate) && (
-                      <div>
-                        <span className="text-muted-foreground">Ngày thu hoạch:</span>{' '}
-                        <span className="text-foreground">{lot?.harvestDate}</span>
-                      </div>
-                    )}
-                    {lot?.expectedQuantity !== undefined && (
-                      <div>
-                        <span className="text-muted-foreground">Sản lượng dự kiến:</span>{' '}
-                        <span className="text-foreground">{lot.expectedQuantity}</span>
-                      </div>
-                    )}
-                    {lot?.actualQuantity !== undefined && (
-                      <div>
-                        <span className="text-muted-foreground">Sản lượng thực tế:</span>{' '}
-                        <span className="text-foreground">{lot.actualQuantity} kg</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+              {csvViewMode === 'table' ? (
+                <div className="flex-1 overflow-auto p-2">
+                  <table className="w-full text-xs border-collapse border border-slate-200 dark:border-slate-800">
+                    <tbody>
+                      {csvParsed.map((row, rIdx) => {
+                        if (row.isSection) {
+                          return (
+                            <tr key={rIdx} className="bg-emerald-50/80 dark:bg-emerald-950/40 border-b">
+                              <td
+                                colSpan={4}
+                                className="px-3 py-2 font-bold text-emerald-800 dark:text-emerald-300 text-xs uppercase tracking-wide"
+                              >
+                                {row.cells[0]}
+                              </td>
+                            </tr>
+                          );
+                        }
 
-              {/* II. THÔNG TIN LÔ HÀNG VẬN CHUYỂN */}
-              {shipment && (
-                <div className="space-y-2.5">
-                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase text-emerald-700 dark:text-emerald-400">
-                    <Package className="size-4" />
-                    <span>II. THÔNG TIN LÔ HÀNG VẬN CHUYỂN</span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50 border">
-                    {Boolean(shipment?.name) && (
-                      <div>
-                        <span className="text-muted-foreground">Tên lô hàng:</span>{' '}
-                        <strong className="text-foreground">{shipment?.name}</strong>
-                      </div>
-                    )}
-                    {shipment?.totalQuantity !== undefined && (
-                      <div>
-                        <span className="text-muted-foreground">Số lượng:</span>{' '}
-                        <strong className="text-foreground">{shipment.totalQuantity} sản phẩm</strong>
-                      </div>
-                    )}
-                    {Boolean(shipment?.packagingInfo) && (
-                      <div>
-                        <span className="text-muted-foreground">Quy cách đóng gói:</span>{' '}
-                        <span className="text-foreground">{shipment?.packagingInfo}</span>
-                      </div>
-                    )}
-                    {Boolean(shipment?.status) && (
-                      <div>
-                        <span className="text-muted-foreground">Trạng thái:</span>{' '}
-                        <Badge variant="secondary" className="text-[10px]">
-                          {shipment?.status}
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+                        if (row.isHeader) {
+                          return (
+                            <tr key={rIdx} className="bg-slate-100 dark:bg-slate-800/80 border-b font-semibold">
+                              {row.cells.map((cell, cIdx) => (
+                                <th
+                                  key={cIdx}
+                                  className="px-3 py-2 text-left border-r border-slate-200 dark:border-slate-700 last:border-r-0 font-semibold text-foreground"
+                                >
+                                  {cell}
+                                </th>
+                              ))}
+                            </tr>
+                          );
+                        }
 
-              {/* III. LỊCH TRÌNH CANH TÁC & CHỨNG TỪ */}
-              {farmLogs.length > 0 && (
-                <div className="space-y-2.5">
-                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase text-emerald-700 dark:text-emerald-400">
-                    <Calendar className="size-4" />
-                    <span>III. LỊCH TRÌNH CANH TÁC & CHỨNG TỪ ({farmLogs.length} ghi chép)</span>
-                  </div>
-                  <div className="overflow-x-auto border rounded-lg">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-slate-100 dark:bg-slate-900 text-muted-foreground font-semibold border-b">
-                        <tr>
-                          <th className="p-2 w-10 text-center">STT</th>
-                          <th className="p-2">Ngày thực hiện</th>
-                          <th className="p-2">Hoạt động</th>
-                          <th className="p-2">Vật tư / Số lượng</th>
-                          <th className="p-2">Ghi chú</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {farmLogs.map((log, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30">
-                            <td className="p-2 text-center text-muted-foreground">{idx + 1}</td>
-                            <td className="p-2 whitespace-nowrap">{log.executedDate || '—'}</td>
-                            <td className="p-2 font-medium">{log.activityType || '—'}</td>
-                            <td className="p-2">
-                              {log.material
-                                ? `${log.material}${log.quantity ? ` (${log.quantity})` : ''}`
-                                : '—'}
-                            </td>
-                            <td className="p-2 text-muted-foreground">{log.notes || '—'}</td>
+                        return (
+                          <tr
+                            key={rIdx}
+                            className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-muted/40 transition-colors"
+                          >
+                            {row.cells.map((cell, cIdx) => (
+                              <td
+                                key={cIdx}
+                                className="px-3 py-1.5 border-r border-slate-100 dark:border-slate-800 last:border-r-0 text-foreground whitespace-pre-wrap"
+                              >
+                                {cell}
+                              </td>
+                            ))}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="flex-1 overflow-auto p-3 bg-slate-950 text-slate-100 font-mono text-xs rounded-b-lg">
+                  <pre className="whitespace-pre">{csvContent || 'Không có dữ liệu CSV'}</pre>
                 </div>
               )}
-
-              {/* IV. LỊCH SỬ KIỂM NGHIỆM */}
-              {inspections.length > 0 && (
-                <div className="space-y-2.5">
-                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase text-emerald-700 dark:text-emerald-400">
-                    <ShieldCheck className="size-4" />
-                    <span>IV. LỊCH SỬ KIỂM NGHIỆM ({inspections.length} hồ sơ)</span>
-                  </div>
-                  <div className="overflow-x-auto border rounded-lg">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-slate-100 dark:bg-slate-900 text-muted-foreground font-semibold border-b">
-                        <tr>
-                          <th className="p-2 w-10 text-center">STT</th>
-                          <th className="p-2">Ngày gửi mẫu</th>
-                          <th className="p-2">Đơn vị kiểm nghiệm</th>
-                          <th className="p-2">Kết quả / Trạng thái</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {inspections.map((insp, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30">
-                            <td className="p-2 text-center text-muted-foreground">{idx + 1}</td>
-                            <td className="p-2 whitespace-nowrap">{insp.sampleSentDate || '—'}</td>
-                            <td className="p-2 font-medium">{insp.inspectionUnit || '—'}</td>
-                            <td className="p-2">
-                              <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-300">
-                                {insp.status || 'Đạt tiêu chuẩn'}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* V. DÒNG SỰ KIỆN CHUỖI CUNG ỨNG */}
-              {timelineEvents.length > 0 && (
-                <div className="space-y-2.5">
-                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase text-emerald-700 dark:text-emerald-400">
-                    <Clock className="size-4" />
-                    <span>V. DÒNG SỰ KIỆN CHUỖI CUNG ỨNG ({timelineEvents.length} sự kiện)</span>
-                  </div>
-                  <div className="overflow-x-auto border rounded-lg">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-slate-100 dark:bg-slate-900 text-muted-foreground font-semibold border-b">
-                        <tr>
-                          <th className="p-2 w-10 text-center">STT</th>
-                          <th className="p-2">Thời điểm ghi nhận</th>
-                          <th className="p-2">Loại sự kiện</th>
-                          <th className="p-2">Người ghi nhận</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {timelineEvents.map((ev, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30">
-                            <td className="p-2 text-center text-muted-foreground">{idx + 1}</td>
-                            <td className="p-2 whitespace-nowrap">{ev.recordedAt || '—'}</td>
-                            <td className="p-2 font-medium">{ev.eventType || '—'}</td>
-                            <td className="p-2 text-muted-foreground">{ev.recordedBy || 'Hệ thống'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+            </div>
+          ) : (
+            /* =================== XEM TRƯỚC JSON THẬT 100% =================== */
+            <div className="flex-1 flex flex-col rounded-lg border overflow-hidden bg-slate-950 text-slate-100">
+              <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-800 bg-slate-900/60 text-xs">
+                <span className="text-slate-400 font-mono">application/json</span>
+                <span className="text-emerald-400 font-medium text-[11px]">
+                  Cấu trúc phân cấp chuẩn theo mẫu
+                </span>
+              </div>
+              <div className="flex-1 overflow-auto p-4 font-mono text-xs leading-relaxed">
+                <pre className="text-emerald-300 whitespace-pre">{jsonString}</pre>
+              </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
         <DialogFooter className="sm:justify-between items-center gap-2 border-t pt-3">
-          <div className="text-xs text-muted-foreground flex items-center gap-2">
-            {data && (
-              <>
-                <span className="flex items-center gap-1">
-                  <Layers className="size-3.5 text-muted-foreground" />
-                  {activeTab === 'document' ? 'Chế độ mô phỏng bản in PDF' : `Kích thước: ${Math.round((jsonString.length / 1024) * 10) / 10} KB`}
-                </span>
-              </>
-            )}
+          <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <ShieldCheck className="size-4 text-emerald-600" />
+            <span>Nội dung xem trước trùng khớp 100% với tệp tải về</span>
           </div>
-          <div className="flex items-center gap-2">
-            {data && (
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Nút mở tab mới cho PDF */}
+            {format === 'pdf' && pdfUrl && (
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleCopy}
+                onClick={() => window.open(pdfUrl, '_blank')}
+                className="gap-1.5 text-xs"
+              >
+                <ExternalLink className="size-3.5" />
+                <span>Mở tab mới</span>
+              </Button>
+            )}
+
+            {/* Nút sao chép cho CSV/JSON */}
+            {format === 'csv' && csvContent && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleCopyText(csvContent, 'CSV')}
+                className="gap-1.5 text-xs"
+              >
+                {copied ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
+                <span>{copied ? 'Đã sao chép' : 'Sao chép CSV'}</span>
+              </Button>
+            )}
+
+            {format === 'json' && jsonString && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleCopyText(jsonString, 'JSON')}
                 className="gap-1.5 text-xs"
               >
                 {copied ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
                 <span>{copied ? 'Đã sao chép' : 'Sao chép JSON'}</span>
               </Button>
             )}
+
+            {/* Nút tải file trực tiếp từ bản xem trước */}
+            {!initialData && shipmentId && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleDownloadCurrent}
+                disabled={loading}
+                className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
+              >
+                <Download className="size-3.5" />
+                <span>Tải tệp này về máy ({format.toUpperCase()})</span>
+              </Button>
+            )}
+
             <Button type="button" variant="outline" size="sm" onClick={onClose} className="gap-1 text-xs">
               <X className="size-3.5" />
               <span>Đóng</span>
@@ -537,3 +590,5 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
     </Dialog>
   );
 };
+
+export default DossierPreviewDialog;
