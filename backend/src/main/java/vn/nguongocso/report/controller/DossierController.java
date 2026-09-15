@@ -72,7 +72,9 @@ public class DossierController {
 
         permissionChecker.check("SHIPMENT", "READ");
         String ipAddress = extractClientIp(request);
-        byte[] pdfBytes = dossierService.exportDossierPdf(shipmentId, currentUser, ipAddress);
+        byte[] pdfBytes = templateId != null
+                ? dossierService.exportDossierPdf(shipmentId, templateId, currentUser, ipAddress)
+                : dossierService.exportDossierPdf(shipmentId, currentUser, ipAddress);
 
         String rawFileName = "Ho_so_truy_xuat_" + shipmentId + "_" +
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".pdf";

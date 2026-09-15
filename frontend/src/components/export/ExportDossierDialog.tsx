@@ -328,6 +328,7 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
           shipmentId={shipmentId}
           templateId={activeTemplateId}
           templateName={activeTemplate?.name || 'Mẫu mặc định'}
+          activeFormat={selectedFormat}
         />
       )}
     </>

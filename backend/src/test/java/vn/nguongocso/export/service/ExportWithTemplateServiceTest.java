@@ -76,6 +76,9 @@ public class ExportWithTemplateServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private ProfileTemplateService profileTemplateService;
+
     @InjectMocks
     private ExportServiceImpl exportService;
 
@@ -211,6 +214,13 @@ public class ExportWithTemplateServiceTest {
 
         mockShipmentAndRelatedData();
 
+        Map<String, Object> mockPreview = new LinkedHashMap<>();
+        mockPreview.put("organization", Map.of("name", "HTX Xanh Lam Đồng"));
+        mockPreview.put("productionLot", Map.of("name", "Lô Cà Rốt 01", "productCategory", "Rau củ sạch"));
+        mockPreview.put("shipment", Map.of("name", "Chuyến hàng số 01"));
+        mockPreview.put("timelineEvents", List.of(Map.of("eventType", "HARVEST")));
+        when(profileTemplateService.buildPreview(eq(shipmentId), eq(templateId), any())).thenReturn(mockPreview);
+
         Resource result = exportService.exportWithTemplate(shipmentId, templateId, "json", currentUser);
 
         assertThat(result).isNotNull();
@@ -223,6 +233,33 @@ public class ExportWithTemplateServiceTest {
     }
 
     @Test
+    @DisplayName("TC-02: exportWithTemplate định dạng CSV trả về nội dung bảng đầy đủ theo cấu hình mẫu")
+    void tc02_exportWithTemplate_csv_success() throws Exception {
+        UUID templateId = UUID.randomUUID();
+        ProfileTemplate template = buildTestTemplate(templateId, false);
+        when(profileTemplateRepository.findById(templateId)).thenReturn(Optional.of(template));
+
+        mockShipmentAndRelatedData();
+
+        Map<String, Object> mockPreview = new LinkedHashMap<>();
+        mockPreview.put("organization", Map.of("name", "HTX Xanh Lam Đồng", "code", "HTX001"));
+        mockPreview.put("productionLot", Map.of("name", "Lô Cà Rốt 01", "productCategory", "Rau củ sạch"));
+        mockPreview.put("shipment", Map.of("name", "Chuyến hàng số 01"));
+        mockPreview.put("farmLogs", List.of(Map.of("activityType", "HARVEST", "material", "Máy gặt")));
+        when(profileTemplateService.buildPreview(eq(shipmentId), eq(templateId), any())).thenReturn(mockPreview);
+
+        Resource result = exportService.exportWithTemplate(shipmentId, templateId, "csv", currentUser);
+
+        assertThat(result).isNotNull();
+        String csvContent = new String(result.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        assertThat(csvContent).contains("HTX Xanh Lam Đồng");
+        assertThat(csvContent).contains("Lô Cà Rốt 01");
+        assertThat(csvContent).contains("Chuyến hàng số 01");
+        assertThat(csvContent).contains("HARVEST");
+        assertThat(csvContent).contains("HỒ SƠ TRUY XUẤT NGUỒN GỐC SẢN PHẨM");
+    }
+
+    @Test
     @DisplayName("TC-03: templateId == null -> dùng mẫu mặc định và ghi ExportLog")
     void tc03_exportWithTemplate_nullTemplate_usesDefaultAndLogs() {
         UUID defaultTemplateId = UUID.randomUUID();
@@ -232,6 +269,10 @@ public class ExportWithTemplateServiceTest {
                 .thenReturn(Optional.of(defaultTemplate));
 
         mockShipmentAndRelatedData();
+
+        Map<String, Object> mockPreview = new LinkedHashMap<>();
+        mockPreview.put("organization", Map.of("name", "HTX Xanh Lam Đồng"));
+        when(profileTemplateService.buildPreview(eq(shipmentId), isNull(), any())).thenReturn(mockPreview);
 
         User user = User.builder().userId(userId).fullName("Nguyễn Văn A").build();
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));

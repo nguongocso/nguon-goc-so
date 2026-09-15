@@ -245,28 +245,106 @@ export const ProfileTemplateFormPage: React.FC = () => {
     }
   };
 
-  // Tạo mock data xem trước JSON
+  // Tạo mock data xem trước phản ánh đúng cấu trúc thực tế của backend
   const previewMockData = useMemo(() => {
+    const selectedKeySet = new Set(selectedFields.map((f) => f.fieldKey));
+
     const mock: Record<string, unknown> = {
-      schemaVersion: '1.0.0',
-      exportedAt: new Date().toISOString(),
-      templateApplied: {
-        name: formName || 'Mẫu đang tạo',
+      shipmentId: 'SHIP-MOCK-2026-DEMO',
+      appliedTemplate: {
+        templateName: formName || 'Mẫu đang tạo',
         totalFields: selectedFields.length,
+        isDefault: Boolean(watch('isDefault')),
       },
     };
 
-    selectedFields.forEach((f) => {
-      const rawGroup = f.fieldGroup || 'OTHER';
-      const groupKey = rawGroup.toLowerCase();
-      if (!mock[groupKey]) {
-        mock[groupKey] = {};
-      }
-      (mock[groupKey] as Record<string, unknown>)[f.fieldKey] = `[Dữ liệu mẫu cho trường: ${f.fieldKey}]`;
-    });
+    // 1. Organization
+    const orgData: Record<string, unknown> = {};
+    if (selectedKeySet.has('organization.name')) orgData.name = 'Hợp tác xã Nông nghiệp Xanh Lam Đồng';
+    if (selectedKeySet.has('organization.code')) orgData.code = 'HTX-LAMDONG-01';
+    if (selectedKeySet.has('organization.address')) orgData.address = 'Thôn 3, Xã Đạ Ròn, Huyện Đơn Dương, Tỉnh Lâm Đồng';
+    if (selectedKeySet.has('organization.phone')) orgData.phone = '0263.3888.999';
+    if (selectedKeySet.has('organization.email')) orgData.email = 'lienhe@htxxanh.vn';
+    if (Object.keys(orgData).length > 0) mock.organization = orgData;
+
+    // 2. FarmArea
+    const farmAreaData: Record<string, unknown> = {};
+    if (selectedKeySet.has('farmArea.name')) farmAreaData.name = 'Vùng chuyên canh Cà Rốt Đơn Dương';
+    if (selectedKeySet.has('farmArea.area')) farmAreaData.area = 5.2;
+    if (selectedKeySet.has('farmArea.areaUnit')) farmAreaData.areaUnit = 'HECTARE';
+    if (Object.keys(farmAreaData).length > 0) mock.farmArea = farmAreaData;
+
+    // 3. ProductionLot
+    const lotData: Record<string, unknown> = {};
+    if (selectedKeySet.has('productionLot.name')) lotData.name = 'Lô Cà Rốt hữu cơ VietGAP 2026';
+    if (selectedKeySet.has('productionLot.productCategory')) lotData.productCategory = 'Rau củ quả tươi';
+    if (selectedKeySet.has('productionLot.plantingDate')) lotData.plantingDate = '2026-06-15';
+    if (selectedKeySet.has('productionLot.harvestDate')) lotData.harvestDate = '2026-09-10';
+    if (selectedKeySet.has('productionLot.expectedQuantity')) lotData.expectedQuantity = 12500;
+    if (selectedKeySet.has('productionLot.actualQuantity')) lotData.actualQuantity = 12800;
+    if (selectedKeySet.has('productionLot.status')) lotData.status = 'PACKAGED';
+    if (Object.keys(lotData).length > 0) mock.productionLot = lotData;
+
+    // 4. Shipment
+    const shipmentData: Record<string, unknown> = {};
+    if (selectedKeySet.has('shipment.name')) shipmentData.name = 'Chuyến hàng xuất siêu thị Go! - Đà Lạt';
+    if (selectedKeySet.has('shipment.totalQuantity')) shipmentData.totalQuantity = 2000;
+    if (selectedKeySet.has('shipment.packagingInfo')) shipmentData.packagingInfo = 'Thùng carton 10kg, dán tem QR GS1';
+    if (selectedKeySet.has('shipment.status')) shipmentData.status = 'DELIVERING';
+    if (Object.keys(shipmentData).length > 0) mock.shipment = shipmentData;
+
+    // 5. FarmLogs
+    const hasFarmLogs = selectedFields.some((f) => f.fieldKey.startsWith('farmLog.'));
+    if (hasFarmLogs) {
+      mock.farmLogs = [
+        {
+          executedDate: '2026-06-15',
+          activityType: 'PLANTING',
+          material: 'Giống cà rốt F1 Kuroda',
+          quantity: 2.5,
+          notes: 'Gieo hạt vụ thu đông, độ ẩm đất 75%',
+        },
+        {
+          executedDate: '2026-07-10',
+          activityType: 'FERTILIZING',
+          material: 'Phân trùn quế vi sinh',
+          quantity: 500,
+          notes: 'Bón thúc lần 1 theo quy trình hữu cơ',
+        },
+      ];
+    }
+
+    // 6. Inspections
+    const hasInspections = selectedFields.some((f) => f.fieldKey.startsWith('inspection.'));
+    if (hasInspections) {
+      mock.inspections = [
+        {
+          sampleSentDate: '2026-09-08',
+          inspectionUnit: 'Trung tâm Phân tích Quatest 3',
+          status: 'Đạt tiêu chuẩn an toàn VietGAP',
+        },
+      ];
+    }
+
+    // 7. Timeline
+    const hasTimeline = selectedFields.some((f) => f.fieldKey.startsWith('chainEvent.'));
+    if (hasTimeline) {
+      mock.timelineEvents = [
+        {
+          recordedAt: '2026-09-10 08:30:00',
+          eventType: 'HARVEST',
+          recordedBy: 'Nguyễn Văn Quản Lý',
+        },
+        {
+          recordedAt: '2026-09-12 14:00:00',
+          eventType: 'PACKAGING',
+          recordedBy: 'Trần Thị Đóng Gói',
+        },
+      ];
+    }
 
     return mock;
-  }, [formName, selectedFields]);
+  }, [formName, selectedFields, watch]);
 
   if (loading) {
     return (
