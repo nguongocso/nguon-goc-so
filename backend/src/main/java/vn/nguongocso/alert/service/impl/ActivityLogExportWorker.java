@@ -7,13 +7,12 @@ import java.nio.file.Paths;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.commons.csv.CSVPrinter;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
@@ -41,10 +40,15 @@ public class ActivityLogExportWorker {
     @Value("${app.activity-log-export.storage-dir:./uploads/activity-log-exports}")
     private String storageDirectory;
 
-    /** Xử lý một job đã được commit và snapshot hoàn tất. */
-    public void process(UUID jobId) {
-        ActivityLogExportJob job = jobRepository.findById(jobId).orElse(null);
-        if (job == null || job.getStatus() != ActivityLogExportStatus.IN_PROGRESS) return;
+    @Value("${app.activity-log-export.lease-seconds:300}")
+    private long leaseSeconds;
+
+    /** Xử lý một job đã giành được lease và có snapshot hoàn tất. */
+    public void process(UUID jobId, String processingToken) {
+        ActivityLogExportJob job = jobRepository
+                .findByIdAndProcessingTokenAndStatus(jobId, processingToken, ActivityLogExportStatus.IN_PROGRESS)
+                .orElse(null);
+        if (job == null) return;
 
         Path output = null;
         try {
@@ -56,47 +60,77 @@ public class ActivityLogExportWorker {
             if (!output.startsWith(directory)) throw new IOException("Đường dẫn tệp export không hợp lệ.");
 
             try (CSVPrinter printer = csvWriter.openFile(output)) {
-                int pageNumber = 0;
-                Page<ActivityLogExportItem> page;
+                long lastSequenceNo = -1L;
+                List<ActivityLogExportItem> items;
                 do {
-                    page = itemRepository.findByJobId(jobId,
-                            PageRequest.of(pageNumber++, PAGE_SIZE, Sort.by("sequenceNo").ascending()));
-                    for (ActivityLogExportItem item : page.getContent()) csvWriter.print(printer, item);
-                } while (page.hasNext());
+                    if (!renewLease(jobId, processingToken)) {
+                        throw new LeaseLostException();
+                    }
+                    items = itemRepository.findByJobIdAndSequenceNoGreaterThanOrderBySequenceNoAsc(
+                            jobId, lastSequenceNo, PageRequest.of(0, PAGE_SIZE));
+                    for (ActivityLogExportItem item : items) csvWriter.print(printer, item);
+                    if (!items.isEmpty()) lastSequenceNo = items.get(items.size() - 1).getSequenceNo();
+                } while (items.size() == PAGE_SIZE);
             }
 
+            if (!renewLease(jobId, processingToken)) {
+                deleteOutput(output);
+                return;
+            }
             job.setStatus(ActivityLogExportStatus.SUCCESS);
             job.setFileName(fileName);
             job.setFilePath(output.toString());
             job.setFileSize(Files.size(output));
             job.setCompletedAt(LocalDateTime.now(clock));
+            job.setProcessingToken(null);
+            job.setLeaseExpiresAt(null);
             jobRepository.save(job);
             try {
                 notificationService.sendActivityLogExportReadyNotification(jobId, job.getRequestedBy());
             } catch (RuntimeException notificationError) {
                 log.error("Không thể gửi thông báo export nhật ký đã hoàn tất cho job {}", jobId, notificationError);
             }
+        } catch (LeaseLostException exception) {
+            deleteOutput(output);
+            log.warn("Dừng export job {} vì worker không còn giữ lease.", jobId);
         } catch (Exception error) {
-            if (output != null) {
-                try { Files.deleteIfExists(output); } catch (IOException cleanupError) {
-                    log.warn("Không thể xóa tệp export lỗi {}", output, cleanupError);
-                }
+            deleteOutput(output);
+            if (renewLeaseSafely(jobId, processingToken)) {
+                job.setStatus(ActivityLogExportStatus.FAILED);
+                job.setErrorMessage("Không thể tạo tệp nhật ký hoạt động.");
+                job.setCompletedAt(LocalDateTime.now(clock));
+                job.setProcessingToken(null);
+                job.setLeaseExpiresAt(null);
+                jobRepository.save(job);
             }
-            job.setStatus(ActivityLogExportStatus.FAILED);
-            job.setErrorMessage("Không thể tạo tệp nhật ký hoạt động.");
-            job.setCompletedAt(LocalDateTime.now(clock));
-            jobRepository.save(job);
             log.error("Xử lý export nhật ký nền thất bại cho job {}", jobId, error);
         }
     }
 
-    /** Đánh dấu job thất bại khi executor không thể tiếp nhận tác vụ sau commit. */
-    public void markDispatchFailed(UUID jobId) {
-        ActivityLogExportJob job = jobRepository.findById(jobId).orElse(null);
-        if (job == null || job.getStatus() != ActivityLogExportStatus.IN_PROGRESS) return;
-        job.setStatus(ActivityLogExportStatus.FAILED);
-        job.setErrorMessage("Không thể khởi tạo xử lý tệp nhật ký nền.");
-        job.setCompletedAt(LocalDateTime.now(clock));
-        jobRepository.save(job);
+    private boolean renewLease(UUID jobId, String processingToken) {
+        return jobRepository.renewLease(jobId, processingToken,
+                LocalDateTime.now(clock).plusSeconds(leaseSeconds), ActivityLogExportStatus.IN_PROGRESS) == 1;
+    }
+
+    private boolean renewLeaseSafely(UUID jobId, String processingToken) {
+        try {
+            return renewLease(jobId, processingToken);
+        } catch (RuntimeException exception) {
+            log.warn("Không thể gia hạn lease cho export job {}.", jobId, exception);
+            return false;
+        }
+    }
+
+    private void deleteOutput(Path output) {
+        if (output == null) return;
+        try {
+            Files.deleteIfExists(output);
+        } catch (IOException cleanupError) {
+            log.warn("Không thể xóa tệp export lỗi {}", output, cleanupError);
+        }
+    }
+
+    private static final class LeaseLostException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
     }
 }

@@ -178,8 +178,10 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 || shipment.getStatus() == ShipmentStatus.RECALLING;
 
         String recallMessage = null;
+        String recallMessageEn = null;
         if (isRecalled) {
             recallMessage = resolveRecallMessage(shipment);
+            recallMessageEn = resolveRecallMessageEn(shipment);
         }
 
         boolean isLocked = traceCode.getStatus() == TraceCodeStatus.LOCKED;
@@ -234,6 +236,9 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         String productName = (productionLot != null && productionLot.getProductCategory() != null)
                 ? productionLot.getProductCategory().getName()
                 : (productionLot != null ? productionLot.getName() : "Sản phẩm");
+        String productNameEn = (productionLot != null && productionLot.getProductCategory() != null)
+                ? productionLot.getProductCategory().getNameEn()
+                : null;
         String shipmentCode = (shipment.getName() != null && !shipment.getName().isBlank())
                 ? shipment.getName()
                 : shipment.getId().toString();
@@ -253,10 +258,12 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .lotName(lotName)
                 .lotCode(lotCode)
                 .productName(productName)
+                .productNameEn(productNameEn)
                 .shipmentCode(shipmentCode)
                 .shipmentStatus(shipment.getStatus() != null ? shipment.getStatus().name() : "UNKNOWN")
                 .recalled(isRecalled)
                 .recallMessage(recallMessage)
+                .recallMessageEn(recallMessageEn)
                 .locked(isLocked)
                 .lockReason(traceCode.getLockReason())
                 .lockedAt(traceCode.getLockedAt())
@@ -270,24 +277,27 @@ public class PublicTraceServiceImpl implements PublicTraceService {
 
     /**
      * Ánh xạ thông tin ranh giới vùng trồng sang DTO công khai (QTN-12, CV-05).
-     * Trả null khi lô sản xuất chưa gắn vùng trồng hoặc vùng trồng chưa được khoanh ranh giới.
+     * Trả về null khi lô sản xuất chưa gắn vùng trồng hoặc chưa có ranh giới.
      */
     private PublicFarmAreaBoundaryDto buildFarmAreaBoundaryDto(ProductionLot productionLot) {
         if (productionLot == null) {
             return null;
         }
+
         FarmArea farmArea = productionLot.getFarmArea();
         if (farmArea == null || farmArea.getBoundary() == null) {
             return null;
         }
+
         Polygon boundary = farmArea.getBoundary();
         Coordinate[] coordinates = boundary.getExteriorRing().getCoordinates();
         List<LatLngDto> points = new ArrayList<>(Math.max(0, coordinates.length - 1));
         for (int index = 0; index < coordinates.length - 1; index++) {
-            Coordinate coord = coordinates[index];
-            // JTS: X = kinh độ (longitude), Y = vĩ độ (latitude)
-            points.add(new LatLngDto(coord.getY(), coord.getX()));
+            Coordinate coordinate = coordinates[index];
+            // JTS: X là kinh độ, Y là vĩ độ.
+            points.add(new LatLngDto(coordinate.getY(), coordinate.getX()));
         }
+
         return PublicFarmAreaBoundaryDto.builder()
                 .id(farmArea.getId())
                 .name(farmArea.getName())
@@ -351,6 +361,55 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .orElse(shipment.getStatus() == ShipmentStatus.RECALLING
                         ? "CẢNH BÁO: Lô hàng đang trong quá trình thu hồi."
                         : "Lô hàng này đã bị thu hồi.");
+    }
+
+    /**
+     * Xác định thông điệp thu hồi hiển thị công khai bằng tiếng Anh (NCL-06-CN-004 TC-03).
+     *
+     * @param shipment lô hàng đang bị thu hồi
+     * @return thông điệp thu hồi tiếng Anh
+     */
+    private String resolveRecallMessageEn(Shipment shipment) {
+        List<RecallCase> closedCases = recallCaseRepository.findClosedByShipmentId(
+                shipment.getId(), RecallCaseStatus.CLOSED);
+        if (!closedCases.isEmpty()) {
+            RecallCase closedCase = closedCases.get(0);
+            String dateStr = (closedCase.getClosedAt() != null)
+                    ? closedCase.getClosedAt().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    : "";
+            return "SHIPMENT RESOLVED. Recall case closed on " + dateStr + ".";
+        }
+
+        Optional<BulkRecallShipment> bulkRecallShipment = bulkRecallShipmentRepository
+                .findTopByShipment_IdAndIncludedAndBulkRecallRequest_StatusOrderByCreatedAtDesc(
+                        shipment.getId(), true, BulkRecallRequestStatus.APPROVED);
+        if (bulkRecallShipment.isPresent()) {
+            String reason = bulkRecallShipment.get().getBulkRecallRequest().getReason();
+            if (shipment.getStatus() == ShipmentStatus.RECALLING) {
+                return "WARNING: Shipment is currently being recalled. Reason: " + reason;
+            }
+            return "WARNING: This shipment has been recalled. Reason: " + reason;
+        }
+
+        Optional<RecallRequest> approvedRequest = recallRequestRepository
+                .findTopByShipment_IdAndStatusOrderByApprovedAtDesc(
+                        shipment.getId(), RecallRequestStatus.APPROVED);
+        if (approvedRequest.isPresent()) {
+            String reason = approvedRequest.get().getReason();
+            if (shipment.getStatus() == ShipmentStatus.RECALLING) {
+                return "WARNING: Shipment is currently being recalled. Reason: " + reason;
+            }
+            return "WARNING: This shipment has been recalled. Reason: " + reason;
+        }
+
+        return recallRepository
+                .findTopByShipmentOrderByRecalledAtDesc(shipment)
+                .map(r -> shipment.getStatus() == ShipmentStatus.RECALLING
+                        ? "WARNING: Shipment is currently being recalled. Reason: " + r.getReason()
+                        : "WARNING: This shipment has been recalled. Reason: " + r.getReason())
+                .orElse(shipment.getStatus() == ShipmentStatus.RECALLING
+                        ? "WARNING: Shipment is currently being recalled."
+                        : "WARNING: This shipment has been recalled.");
     }
 
     /**
@@ -516,9 +575,14 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                         }
                     }
 
+                    String certNameEn = (cert.getStandard() != null && cert.getStandard().getNameEn() != null)
+                            ? cert.getStandard().getNameEn()
+                            : null;
+
                     return PublicCertificationResponse.builder()
                             .certificationId(cert.getId())
                             .certificationName(cert.getName())
+                            .certificationNameEn(certNameEn)
                             .certificationCode(cert.getCode())
                             .issuedBy(cert.getIssuedBy())
                             .issueDate(cert.getIssueDate())
@@ -728,10 +792,13 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         String criterionName = (criterion != null && criterion.getCriterionName() != null)
                 ? criterion.getCriterionName()
                 : "Chỉ tiêu kiểm nghiệm";
+        String criterionNameEn = (criterion != null) ? criterion.getNameEn() : null;
 
         String standardValue = "QCVN / TCCS";
+        String standardValueEn = null;
         if (criterion != null && criterion.getStandard() != null && criterion.getStandard().getName() != null) {
             standardValue = criterion.getStandard().getName();
+            standardValueEn = criterion.getStandard().getNameEn();
         }
 
         String measuredValue = Boolean.TRUE.equals(result.getPassed())
@@ -745,7 +812,9 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         return PublicInspectionCriterionResultDto.builder()
                 .id(result.getId() != null ? result.getId().toString() : UUID.randomUUID().toString())
                 .criterionName(criterionName)
+                .criterionNameEn(criterionNameEn)
                 .standardValue(standardValue)
+                .standardValueEn(standardValueEn)
                 .measuredValue(measuredValue)
                 .passed(result.getPassed())
                 .inspectorName(inspectorName)

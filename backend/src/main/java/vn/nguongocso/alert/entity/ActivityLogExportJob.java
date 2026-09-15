@@ -72,6 +72,12 @@ public class ActivityLogExportJob {
     private LocalDateTime createdAt;
     private LocalDateTime completedAt;
 
+    @Column(name = "processing_token", length = 36)
+    private String processingToken;
+
+    @Column(name = "lease_expires_at")
+    private LocalDateTime leaseExpiresAt;
+
     @PrePersist
     void onCreate() {
         if (id == null) id = UUID.randomUUID();

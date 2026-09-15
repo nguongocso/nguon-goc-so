@@ -41,6 +41,7 @@ import vn.nguongocso.alert.dto.request.ActivityLogExportFilterRequest;
 import vn.nguongocso.alert.entity.ActivityLog;
 import vn.nguongocso.alert.entity.ActivityLogExportItem;
 import vn.nguongocso.alert.entity.ActivityLogExportJob;
+import vn.nguongocso.alert.enums.ActivityLogExportStatus;
 import vn.nguongocso.alert.repository.ActivityLogExportItemRepository;
 import vn.nguongocso.alert.repository.ActivityLogExportJobRepository;
 import vn.nguongocso.alert.repository.ActivityLogRepository;
@@ -282,7 +283,7 @@ public class ActivityLogExportE2EIntegrationTest {
                 .path("data").path("exportId").asText());
         ActivityLogExportJob job = exportJobRepository.findById(jobId).orElseThrow();
         List<ActivityLogExportItem> snapshot = exportItemRepository
-                .findByJobId(jobId, PageRequest.of(0, 10)).getContent();
+                .findByJobIdAndSequenceNoGreaterThanOrderBySequenceNoAsc(jobId, -1L, PageRequest.of(0, 10));
 
         assertThat(job.getOrganizationId()).isEqualTo(orgIdA);
         assertThat(snapshot).hasSize(3);
@@ -531,7 +532,11 @@ public class ActivityLogExportE2EIntegrationTest {
         activityLogRepository.save(postSnapshotLog);
 
         // 4. Cho worker xử lý job
-        activityLogExportWorker.process(jobId);
+        String processingToken = UUID.randomUUID().toString();
+        LocalDateTime claimedAt = LocalDateTime.now();
+        assertThat(exportJobRepository.claim(jobId, processingToken, claimedAt.plusMinutes(5), claimedAt,
+                ActivityLogExportStatus.IN_PROGRESS)).isEqualTo(1);
+        activityLogExportWorker.process(jobId, processingToken);
 
         // 5. Tải file CSV qua endpoint download và kiểm tra nội dung
         MvcResult downloadResult = mockMvc.perform(get("/api/v1/organizations/activity-logs/exports/{jobId}/download", jobId)

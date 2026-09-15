@@ -7,6 +7,7 @@ import {
   getTranslatedEventData,
   formatDisplayDateTime,
 } from '@/utils/eventFormatter';
+import { useLanguage } from '@/context/LanguageContext';
 
 // Fix icon mặc định của Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -18,45 +19,50 @@ L.Icon.Default.mergeOptions({
 
 interface RouteMapProps {
   events: PublicChainEventItem[];
-  /** Ranh giới vùng trồng (CV-05). Hiển thị dạng polygon màu xanh lá read-only. */
   farmAreaBoundary?: PublicFarmAreaBoundary | null;
 }
 
 export const createFarmAreaBoundaryPopupContent = (
   name: string | null | undefined,
-  areaText: string
+  areaText: string,
+  isEnglish = false
 ): HTMLDivElement => {
   const container = document.createElement('div');
   container.style.cssText = 'font-family: system-ui; padding: 4px; min-width: 160px;';
 
   const title = document.createElement('strong');
   title.style.cssText = 'font-size: 14px; color: #059669;';
-  title.textContent = '🌿 Vùng trồng';
+  title.textContent = isEnglish ? '🌿 Farm area' : '🌿 Vùng trồng';
   container.appendChild(title);
 
   const nameRow = document.createElement('div');
   nameRow.style.cssText = 'margin-top: 4px; font-size: 13px;';
   const nameLabel = document.createElement('strong');
-  nameLabel.textContent = 'Tên:';
+  nameLabel.textContent = isEnglish ? 'Name:' : 'Tên:';
   nameRow.append(nameLabel, document.createTextNode(` ${name ?? '—'}`));
   container.appendChild(nameRow);
 
   const areaRow = document.createElement('div');
   areaRow.style.cssText = 'font-size: 13px;';
   const areaLabel = document.createElement('strong');
-  areaLabel.textContent = 'Diện tích tính toán:';
+  areaLabel.textContent = isEnglish ? 'Calculated area:' : 'Diện tích tính toán:';
   areaRow.append(areaLabel, document.createTextNode(` ${areaText}`));
   container.appendChild(areaRow);
 
   const note = document.createElement('div');
   note.style.cssText = 'font-size: 11px; color: #6b7280; margin-top: 4px;';
-  note.textContent = 'Ranh giới hiển thị chỉ mang tính tham khảo.';
+  note.textContent = isEnglish
+    ? 'The displayed boundary is for reference only.'
+    : 'Ranh giới hiển thị chỉ mang tính tham khảo.';
   container.appendChild(note);
 
   return container;
 };
 
 export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
+  const { lang, t } = useLanguage();
+  const isEn = lang === 'en';
+
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
 
@@ -64,30 +70,22 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
   const locationEvents = events.filter(
     (e) => e.latitude !== null && e.longitude !== null
   );
-
-  // Kiểm tra polygon có điểm hợp lệ không
   const boundaryPoints = farmAreaBoundary?.points ?? [];
   const hasBoundary = boundaryPoints.length >= 3;
 
   useEffect(() => {
-    if (!mapRef.current) return;
-    if (locationEvents.length === 0 && !hasBoundary) return;
+    if (!mapRef.current || (locationEvents.length === 0 && !hasBoundary)) return;
 
-    // Tính điểm trung tâm khởi tạo bản đồ
-    let initialCenter: [number, number];
-    if (hasBoundary) {
-      const latAvg =
-        boundaryPoints.reduce((sum, p) => sum + p.latitude, 0) / boundaryPoints.length;
-      const lngAvg =
-        boundaryPoints.reduce((sum, p) => sum + p.longitude, 0) / boundaryPoints.length;
-      initialCenter = [latAvg, lngAvg];
-    } else {
-      initialCenter = [locationEvents[0].latitude!, locationEvents[0].longitude!];
-    }
+    const initialCenter: [number, number] = hasBoundary
+      ? [
+          boundaryPoints.reduce((sum, point) => sum + point.latitude, 0) / boundaryPoints.length,
+          boundaryPoints.reduce((sum, point) => sum + point.longitude, 0) / boundaryPoints.length,
+        ]
+      : [locationEvents[0].latitude!, locationEvents[0].longitude!];
 
     // Khởi tạo bản đồ nếu chưa có
     if (!leafletMapRef.current) {
-      leafletMapRef.current = L.map(mapRef.current).setView(initialCenter, 13);
+      leafletMapRef.current = L.map(mapRef.current).setView(initialCenter, hasBoundary ? 13 : 10);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -96,19 +94,17 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
 
     const map = leafletMapRef.current;
 
-    // Xóa lớp cũ (marker + polygon)
+    // Xóa marker và polygon cũ.
     map.eachLayer((layer) => {
       if (layer instanceof L.Marker || layer instanceof L.Polygon) {
         map.removeLayer(layer);
       }
     });
 
-    // ─── Vẽ polygon ranh giới vùng trồng (CV-05) ───
     if (hasBoundary) {
       const latlngs: L.LatLngExpression[] = boundaryPoints.map(
-        (p) => [p.latitude, p.longitude] as L.LatLngExpression
+        (point) => [point.latitude, point.longitude]
       );
-
       const polygon = L.polygon(latlngs, {
         color: '#059669',
         weight: 2,
@@ -116,25 +112,25 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
         fillOpacity: 0.12,
         dashArray: '4 4',
       }).addTo(map);
-
-      const areaText =
-        farmAreaBoundary?.calculatedArea != null
-          ? `${Number(farmAreaBoundary.calculatedArea).toFixed(4)} ha`
-          : 'Chưa tính';
-
+      const areaText = farmAreaBoundary?.calculatedArea != null
+        ? `${Number(farmAreaBoundary.calculatedArea).toFixed(4)} ha`
+        : isEn ? 'Not calculated' : 'Chưa tính';
       polygon.bindPopup(
-        createFarmAreaBoundaryPopupContent(farmAreaBoundary?.name, areaText)
+        createFarmAreaBoundaryPopupContent(farmAreaBoundary?.name, areaText, isEn)
       );
     }
 
-    // ─── Vẽ marker sự kiện ───
+    // Mảng tọa độ để tính bounds
     const coords: [number, number][] = [];
 
     locationEvents.forEach((event, index) => {
       const lat = event.latitude!;
       const lng = event.longitude!;
-      const label = getEventTypeLabel(event.eventType);
-      const date = formatDisplayDateTime(event.recordedAt);
+      const rawLabel = getEventTypeLabel(event.eventType, lang);
+      const eventTypeKey = `event_${event.eventType}` as any;
+      const translatedLabel = t(eventTypeKey);
+      const label = translatedLabel && !translatedLabel.startsWith('event_') ? translatedLabel : rawLabel;
+      const date = formatDisplayDateTime(event.recordedAt, lang);
 
       coords.push([lat, lng]);
 
@@ -142,6 +138,7 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
       const translatedData = getTranslatedEventData(
         event.eventType,
         (event.eventData as Record<string, unknown>) || {},
+        lang,
       );
 
       const detailsHtml = Object.entries(translatedData)
@@ -181,21 +178,22 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
             <div style="font-size: 13px; color: #666; margin-top: 2px;">${date}</div>
             ${detailsHtml ? `<div style="margin-top: 6px;">${detailsHtml}</div>` : ''}
             <div style="font-size: 12px; color: #999; margin-top: 4px;">
-              Sự kiện #${index + 1}/${locationEvents.length}
+              ${isEn ? `Event #${index + 1}/${locationEvents.length}` : `Sự kiện #${index + 1}/${locationEvents.length}`}
             </div>
           </div>
         `);
     });
 
-    // Fit bounds ưu tiên polygon + marker
     const allCoords: L.LatLngExpression[] = [
       ...coords,
-      ...boundaryPoints.map((p) => [p.latitude, p.longitude] as L.LatLngExpression),
+      ...boundaryPoints.map((point) => [point.latitude, point.longitude] as L.LatLngExpression),
     ];
-
     if (allCoords.length > 1) {
       const bounds = L.latLngBounds(allCoords as L.LatLngBoundsLiteral);
-      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+      map.fitBounds(bounds, {
+        padding: [40, 40],
+        maxZoom: 15,
+      });
     }
 
     // Invalidate size khi component mount
@@ -209,14 +207,13 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
         leafletMapRef.current = null;
       }
     };
-  }, [locationEvents, hasBoundary, boundaryPoints, farmAreaBoundary]);
+  }, [locationEvents, boundaryPoints, hasBoundary, farmAreaBoundary, isEn, lang, t]);
 
-  // Nếu không có tọa độ và không có polygon, không hiển thị
   if (locationEvents.length === 0 && !hasBoundary) {
     return (
       <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">
-        <p className="text-lg font-semibold">Không có dữ liệu vị trí</p>
-        <p className="text-sm">Các sự kiện của lô hàng này chưa có tọa độ để hiển thị trên bản đồ.</p>
+        <p className="text-lg font-semibold">{isEn ? "No location data available" : "Không có dữ liệu vị trí"}</p>
+        <p className="text-sm">{isEn ? "Events in this shipment do not have GPS coordinates to show on map." : "Các sự kiện của lô hàng này chưa có tọa độ để hiển thị trên bản đồ."}</p>
       </div>
     );
   }
@@ -226,17 +223,17 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
       <div ref={mapRef} style={{ height: '450px', width: '100%' }} />
       <div className="p-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-400 flex justify-between items-center">
         <span>
-          {locationEvents.length > 0 && `${locationEvents.length} điểm hành trình`}
+          {locationEvents.length > 0 && `${locationEvents.length} ${isEn ? 'journey points' : 'điểm hành trình'}`}
           {locationEvents.length > 0 && hasBoundary && ' · '}
           {hasBoundary && (
             <span className="text-emerald-600 font-medium">
-              🌿 Ranh giới vùng trồng: {farmAreaBoundary?.name}
+              🌿 {isEn ? 'Farm area' : 'Ranh giới vùng trồng'}: {farmAreaBoundary?.name}
               {farmAreaBoundary?.calculatedArea != null &&
                 ` (${Number(farmAreaBoundary.calculatedArea).toFixed(4)} ha)`}
             </span>
           )}
         </span>
-        <span>Click marker hoặc vùng để xem chi tiết</span>
+        <span>{isEn ? 'Click marker or boundary for details' : 'Click marker hoặc vùng để xem chi tiết'}</span>
       </div>
     </div>
   );

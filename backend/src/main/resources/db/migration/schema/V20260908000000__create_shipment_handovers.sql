@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS shipment_handovers (
     CONSTRAINT fk_handover_confirmed_by FOREIGN KEY (confirmed_by) REFERENCES users(user_id),
     CONSTRAINT fk_handover_rejected_by FOREIGN KEY (rejected_by) REFERENCES users(user_id),
     CONSTRAINT fk_handover_cancelled_by FOREIGN KEY (cancelled_by) REFERENCES users(user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB;
 
 -- Indexes
 CREATE INDEX idx_handover_shipment ON shipment_handovers(shipment_id);
