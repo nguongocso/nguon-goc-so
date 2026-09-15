@@ -111,11 +111,11 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
         isActive,
       });
 
-      toast.success('Cập nhật cấu hình Webhook thành công!');
+      toast.success('Lưu thông tin nhận thông báo thành công!');
       onSuccess();
       onClose();
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Không thể lưu cấu hình Webhook. Vui lòng thử lại.';
+      const msg = err.response?.data?.message || 'Không thể lưu thông tin nhận thông báo. Vui lòng thử lại.';
       toast.error(msg);
     } finally {
       setSaving(false);
@@ -124,13 +124,13 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
 
   const handleTestPing = async () => {
     if (!apiKey.webhookUrl && !webhookUrl.trim()) {
-      toast.error('Vui lòng nhập và lưu địa chỉ Webhook trước khi bắn thử nghiệm.');
+      toast.error('Vui lòng nhập và lưu địa chỉ nhận thông báo trước khi kiểm tra kết nối.');
       return;
     }
 
     // Nếu người dùng vừa thay đổi URL chưa lưu, yêu cầu lưu trước
     if (webhookUrl.trim() !== (apiKey.webhookUrl || '').trim()) {
-      toast.warning('Bạn đã thay đổi URL. Vui lòng nhấn "Lưu cấu hình" trước khi bắn thử.');
+      toast.warning('Bạn đã thay đổi URL. Vui lòng nhấn "Lưu cấu hình" trước khi kiểm tra.');
       return;
     }
 
@@ -140,12 +140,12 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
       const result = await testPingPartnerWebhook(apiKey.id);
       setPingResult(result);
       if (result.isSuccess) {
-        toast.success(`Bắn thử webhook thành công! (HTTP ${result.httpStatus}, ${result.durationMs}ms)`);
+        toast.success(`Kết nối thử nghiệm thành công! (HTTP ${result.httpStatus}, ${result.durationMs}ms)`);
       } else {
-        toast.error(`Máy chủ đối tác phản hồi lỗi hoặc không kết nối được.`);
+        toast.error(`Máy chủ đối tác phản hồi lỗi hoặc không thể kết nối.`);
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Lỗi khi gửi yêu cầu bắn thử webhook.';
+      const msg = err.response?.data?.message || 'Lỗi khi gửi kiểm tra kết nối thử nghiệm.';
       toast.error(msg);
     } finally {
       setPinging(false);
@@ -157,7 +157,7 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
     try {
       await navigator.clipboard.writeText(apiKey.webhookSecret);
       setCopiedSecret(true);
-      toast.success('Đã sao chép khóa bí mật Webhook!');
+      toast.success('Đã sao chép khóa bí mật xác thực!');
       setTimeout(() => setCopiedSecret(false), 3000);
     } catch {
       toast.error('Không thể sao chép tự động.');
@@ -170,13 +170,13 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
         <DialogHeader>
           <div className="flex items-center gap-2 text-primary font-semibold mb-1">
             <Webhook className="w-5 h-5 text-primary" />
-            <span>Cấu hình Webhook thông báo thu hồi</span>
+            <span>Khai báo thông tin nhận thông báo thu hồi</span>
           </div>
           <DialogTitle className="text-xl">
             Đối tác: {apiKey.partnerName}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground pt-1">
-            Hệ thống tự động bắn gói tin HTTP POST thông báo tới địa chỉ này ngay khi lô hàng đối tác đã truy xuất bị thu hồi.
+            Hệ thống tự động gửi thông báo đến địa chỉ này ngay khi lô hàng đối tác đã truy xuất bị thu hồi.
           </DialogDescription>
         </DialogHeader>
 
@@ -184,7 +184,7 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
           {/* Nhập URL */}
           <div className="space-y-2">
             <Label htmlFor="webhook-url" className="text-sm font-medium flex items-center justify-between">
-              <span>Địa chỉ URL Webhook (Endpoint HTTPS) <span className="text-destructive">*</span></span>
+              <span>Địa chỉ tiếp nhận thông báo (URL) <span className="text-destructive">*</span></span>
               {apiKey.webhookUrl && (
                 <span className="text-xs text-muted-foreground font-normal">
                   (Xóa trống để hủy đăng ký)
@@ -231,7 +231,7 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-semibold flex items-center gap-1 text-slate-700 dark:text-slate-300">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Khóa bí mật Webhook (Secret Key xác thực chữ ký HMAC)</span>
+                  <span>Khóa bí mật xác thực thông báo (Secret Key)</span>
                 </Label>
                 <div className="flex items-center gap-1">
                   <Button
@@ -260,7 +260,7 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
                 {showSecret ? apiKey.webhookSecret : apiKey.webhookSecret.replace(/^(.{8})(.*)(.{4})$/, '$1••••••••••••••••$3')}
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Mỗi gói tin gửi đi có Header <code className="text-[11px] font-mono">X-Webhook-Signature: t=timestamp,v1=signature</code> dùng khóa này để kiểm tra tính toàn vẹn.
+                Mỗi gói tin gửi đi có kèm mã xác thực <code className="text-[11px] font-mono">X-Webhook-Signature</code> để đối tác kiểm tra tính toàn vẹn và nguồn gốc dữ liệu.
               </p>
             </div>
           )}
@@ -278,7 +278,7 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
                 disabled={pinging || !apiKey.webhookUrl}
               >
                 {pinging ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5 text-primary" />}
-                <span>Bắn thử nghiệm (Test Ping)</span>
+                <span>Gửi thử nghiệm kết nối</span>
               </Button>
             </div>
 

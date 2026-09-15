@@ -52,9 +52,9 @@ describe('WebhookConfigModal (NCL-12-CN-006)', () => {
       />
     );
 
-    expect(screen.getByText(/Cấu hình Webhook thông báo thu hồi/i)).toBeInTheDocument();
+    expect(screen.getByText(/Khai báo thông tin nhận thông báo thu hồi/i)).toBeInTheDocument();
     expect(screen.getByText(/Đối tác: Doanh Nghiệp Thu Mua Lúa Gạo/i)).toBeInTheDocument();
-    const urlInput = screen.getByLabelText(/Địa chỉ URL Webhook/i) as HTMLInputElement;
+    const urlInput = screen.getByLabelText(/Địa chỉ tiếp nhận thông báo/i) as HTMLInputElement;
     expect(urlInput.value).toBe('https://partner.com/webhook');
   });
 
@@ -68,7 +68,7 @@ describe('WebhookConfigModal (NCL-12-CN-006)', () => {
       />
     );
 
-    const urlInput = screen.getByLabelText(/Địa chỉ URL Webhook/i);
+    const urlInput = screen.getByLabelText(/Địa chỉ tiếp nhận thông báo/i);
     fireEvent.change(urlInput, { target: { value: 'http://insecure-partner.com/webhook' } });
 
     expect(
@@ -95,7 +95,7 @@ describe('WebhookConfigModal (NCL-12-CN-006)', () => {
       />
     );
 
-    const urlInput = screen.getByLabelText(/Địa chỉ URL Webhook/i);
+    const urlInput = screen.getByLabelText(/Địa chỉ tiếp nhận thông báo/i);
     fireEvent.change(urlInput, { target: { value: 'https://partner.com/new-webhook' } });
 
     const saveButton = screen.getByRole('button', { name: /Lưu cấu hình/i });
@@ -108,7 +108,7 @@ describe('WebhookConfigModal (NCL-12-CN-006)', () => {
       });
       expect(mockOnSuccess).toHaveBeenCalled();
       expect(mockOnClose).toHaveBeenCalled();
-      expect(toast.success).toHaveBeenCalledWith('Cập nhật cấu hình Webhook thành công!');
+      expect(toast.success).toHaveBeenCalledWith('Lưu thông tin nhận thông báo thành công!');
     });
   });
 
@@ -130,7 +130,7 @@ describe('WebhookConfigModal (NCL-12-CN-006)', () => {
       />
     );
 
-    const pingButton = screen.getByRole('button', { name: /Bắn thử nghiệm/i });
+    const pingButton = screen.getByRole('button', { name: /Gửi thử nghiệm kết nối/i });
     fireEvent.click(pingButton);
 
     await waitFor(() => {

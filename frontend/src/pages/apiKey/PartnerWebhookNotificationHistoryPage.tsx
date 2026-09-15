@@ -67,7 +67,7 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
   useSetBreadcrumb([
     { label: 'Tổng quan', href: '/dashboard' },
     { label: 'Khóa API đối tác', href: '/integration/api-keys' },
-    { label: 'Lịch sử Webhook' },
+    { label: 'Lịch sử thông báo thu hồi' },
   ]);
 
   // Nếu chưa có apiKey trong state, tải lại từ API
@@ -91,8 +91,8 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
       setNotifications(data.content || []);
       setTotalPages(data.totalPages || 0);
       setTotalElements(data.totalElements || 0);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Không thể tải lịch sử gửi thông báo webhook');
+    } catch {
+      toast.error('Không thể tải lịch sử gửi thông báo.');
       setNotifications([]);
     } finally {
       setLoading(false);
@@ -101,32 +101,38 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
 
   useEffect(() => {
     fetchHistory();
-  }, [id, statusFilter, page]);
+  }, [id, page, statusFilter]);
 
-  // Lọc client side theo từ khóa tìm kiếm (Mã lô hoặc Lý do thu hồi)
+  // Bộ lọc tìm kiếm trên máy khách
   const filteredNotifications = useMemo(() => {
     if (!search.trim()) return notifications;
     const q = search.toLowerCase().trim();
     return notifications.filter(
-      (item) =>
-        item.lotCode.toLowerCase().includes(q) ||
-        (item.publicReason && item.publicReason.toLowerCase().includes(q)) ||
-        (item.targetUrl && item.targetUrl.toLowerCase().includes(q))
+      (n) =>
+        n.lotCode.toLowerCase().includes(q) ||
+        (n.publicReason && n.publicReason.toLowerCase().includes(q)) ||
+        (n.targetUrl && n.targetUrl.toLowerCase().includes(q))
     );
   }, [notifications, search]);
+
+  const toggleExpand = (notifId: string) => {
+    setExpandedId((prev) => (prev === notifId ? null : notifId));
+  };
 
   const renderStatusBadge = (status: WebhookDeliveryStatus) => {
     switch (status) {
       case 'SUCCESS':
         return (
-          <Badge className="bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border-emerald-300 gap-1 font-medium">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Thành công
+          <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 gap-1 font-medium">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>Thành công</span>
           </Badge>
         );
       case 'PENDING_RETRY':
         return (
-          <Badge className="bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300 gap-1 font-medium animate-pulse">
-            <Clock className="w-3.5 h-3.5" /> Chờ thử lại
+          <Badge className="bg-amber-50 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300 border-amber-300 dark:border-amber-800 gap-1 font-medium">
+            <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            <span>Đang thử lại</span>
           </Badge>
         );
       case 'FAILED':
@@ -170,7 +176,7 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Lịch sử thông báo Webhook thu hồi
+              Lịch sử gửi thông báo thu hồi
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               Đối tác:{' '}
@@ -204,7 +210,7 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
         <Card className="bg-card">
           <CardContent className="p-4 flex items-center justify-between">
             <div className="truncate pr-2">
-              <p className="text-xs font-medium text-muted-foreground">Địa chỉ nhận Webhook</p>
+              <p className="text-xs font-medium text-muted-foreground">Địa chỉ nhận thông báo</p>
               <h4 className="text-sm font-semibold mt-1 text-foreground truncate" title={apiKey?.webhookUrl || 'Chưa cấu hình'}>
                 {apiKey?.webhookUrl ? apiKey.webhookUrl.replace(/^https?:\/\//, '') : 'Chưa cấu hình'}
               </h4>
@@ -385,7 +391,7 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
                         variant="ghost"
                         size="sm"
                         className="h-8 px-2 text-xs text-primary gap-1"
-                        onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                        onClick={() => toggleExpand(item.id)}
                       >
                         {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                         <span>{isExpanded ? 'Đóng' : `Xem (${item.attempts.length})`}</span>
@@ -404,7 +410,7 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
                         <div className="flex items-center justify-between text-xs font-semibold text-foreground pb-2 border-b">
                           <span className="flex items-center gap-1.5">
                             <History className="w-4 h-4 text-primary" />
-                            Nhật ký chi tiết các lần gửi gói tin Webhook tới đối tác
+                            Nhật ký chi tiết các lần gửi thông báo tới đối tác
                           </span>
                           <span className="text-muted-foreground font-mono text-[11px]">
                             URL: {item.targetUrl}
@@ -467,7 +473,7 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
           loading={loading}
           empty={!loading && filteredNotifications.length === 0}
           colSpan={8}
-          loadingMessage="Đang tải lịch sử phát thông báo Webhook..."
+          loadingMessage="Đang tải lịch sử gửi thông báo..."
           emptyMessage="Chưa có thông báo thu hồi nào được gửi tới đối tác này."
         />
 

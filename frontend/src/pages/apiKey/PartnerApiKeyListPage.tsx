@@ -212,7 +212,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
               <TableHead className="text-center">Lượt gọi (Tổng / Lỗi)</TableHead>
               <TableHead>Thời hạn hết hạn</TableHead>
               <TableHead>Trạng thái</TableHead>
-              <TableHead>Webhook thu hồi</TableHead>
+              <TableHead>Kênh nhận tin thu hồi</TableHead>
               <TableHead className="text-center">Thao tác</TableHead>
             </>
           }
@@ -304,7 +304,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
                               variant="ghost"
                               size="icon-sm"
                               onClick={() => setWebhookConfigTarget(item)}
-                              title="Cấu hình Webhook nhận tin thu hồi"
+                              title="Khai báo thông tin nhận thông báo thu hồi"
                               className="text-primary hover:text-primary hover:bg-primary/10"
                             >
                               <Webhook className="h-4 w-4" />
@@ -315,7 +315,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
                             variant="ghost"
                             size="icon-sm"
                             onClick={() => navigate(`/integration/api-keys/${item.id}/notifications`, { state: { apiKey: item } })}
-                            title="Lịch sử thông báo thu hồi"
+                            title="Lịch sử gửi thông báo thu hồi"
                             className="text-muted-foreground hover:text-foreground hover:bg-muted"
                           >
                             <History className="h-4 w-4" />

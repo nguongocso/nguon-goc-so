@@ -92,7 +92,7 @@ describe('PartnerWebhookNotificationHistoryPage (NCL-12-CN-006)', () => {
 
     renderPage();
 
-    expect(screen.getByText(/Lịch sử thông báo Webhook thu hồi/i)).toBeInTheDocument();
+    expect(screen.getByText(/Lịch sử gửi thông báo thu hồi/i)).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByText('Công ty thực phẩm Aigu')).toBeInTheDocument();
@@ -125,7 +125,7 @@ describe('PartnerWebhookNotificationHistoryPage (NCL-12-CN-006)', () => {
     fireEvent.click(expandBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/Nhật ký chi tiết các lần gửi gói tin Webhook/i)).toBeInTheDocument();
+      expect(screen.getByText(/Nhật ký chi tiết các lần gửi thông báo/i)).toBeInTheDocument();
       expect(screen.getByText(/Lần #1/i)).toBeInTheDocument();
       expect(screen.getByText(/85 ms/i)).toBeInTheDocument();
       expect(screen.getAllByText(/HTTP 200/i).length).toBeGreaterThan(0);
