@@ -56,7 +56,9 @@ import vn.nguongocso.report.repository.DossierExportHistoryRepository;
 import vn.nguongocso.report.service.DossierService;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
+import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 import vn.nguongocso.trace.enums.ShipmentStatus;
+import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
@@ -85,6 +87,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DossierServiceImpl implements DossierService {
     private final ShipmentRepository shipmentRepository;
+    private final ShipmentHandoverRepository shipmentHandoverRepository;
     private final FarmLogRepository farmLogRepository;
     private final FarmLogAttachmentRepository farmLogAttachmentRepository;
     private final ChainEventRepository chainEventRepository;
@@ -910,9 +913,20 @@ public class DossierServiceImpl implements DossierService {
         // 3. Quyền Doanh nghiệp thu mua (VT-04): Lô hàng sẵn sàng thu mua (ACTIVATED)
         // hoặc đã được thu mua bởi doanh nghiệp của mình
         if ("VT-04".equals(role)) {
-            if (shipment.getRecipientOrganization() == null
-                    || !currentUser.getOrganizationId()
-                            .equals(shipment.getRecipientOrganization().getOrganizationId())) {
+            UUID userOrgId = currentUser.getOrganizationId();
+            boolean isRecipient = shipment.getRecipientOrganization() != null
+                    && userOrgId != null
+                    && userOrgId.equals(shipment.getRecipientOrganization().getOrganizationId());
+
+            boolean hasAcceptedHandover = userOrgId != null
+                    && shipmentHandoverRepository.existsByShipmentIdAndToOrganizationOrganizationIdAndStatus(
+                            shipment.getId(), userOrgId, ShipmentHandoverStatus.ACCEPTED);
+
+            boolean hasProcurement = userOrgId != null
+                    && chainEventRepository.existsByShipmentIdAndRecordedOrganizationIdAndEventType(
+                            shipment.getId(), userOrgId, ChainEventType.PROCUREMENT);
+
+            if (!isRecipient && !hasAcceptedHandover && !hasProcurement) {
                 throw new AccessDeniedException(
                         "Từ chối thao tác: Lô hàng này không được giao cho doanh nghiệp của bạn.");
             }

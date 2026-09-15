@@ -699,6 +699,91 @@ class ShipmentServiceImplTest {
     }
 
     @Test
+    void getShipmentById_ShouldSuccess_WhenVT04HasHandover() {
+        // Arrange
+        lenient().when(currentUser.getRoleCode()).thenReturn("VT-04");
+        lenient().when(currentUser.getOrganizationId()).thenReturn(organizationId);
+
+        Organization otherOrganization = new Organization();
+        otherOrganization.setOrganizationId(UUID.randomUUID());
+
+        Shipment shipment = new Shipment();
+        shipment.setId(shipmentId);
+        shipment.setOrganization(otherOrganization);
+        shipment.setProductionLot(productionLot);
+        shipment.setName("Lô hàng bàn giao cho VT-04");
+        shipment.setTotalQuantity(100L);
+        shipment.setStatus(ShipmentStatus.ACTIVATED);
+        shipment.setCreatedAt(LocalDateTime.now());
+
+        when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
+        when(shipmentHandoverRepository.existsByShipmentIdAndToOrganizationOrganizationId(shipmentId, organizationId))
+                .thenReturn(true);
+        when(traceCodeRepository.findByShipmentId(shipmentId)).thenReturn(List.of());
+
+        // Act
+        ShipmentResponse response = shipmentService.getShipmentById(shipmentId);
+
+        // Assert
+        assertThat(response).isNotNull();
+        assertThat(response.getId()).isEqualTo(shipmentId);
+        verify(permissionChecker, times(1)).check("shipment", "READ");
+    }
+
+    @Test
+    void getShipmentById_ShouldSuccess_WhenVT04IsRecipient() {
+        // Arrange
+        lenient().when(currentUser.getRoleCode()).thenReturn("VT-04");
+        lenient().when(currentUser.getOrganizationId()).thenReturn(organizationId);
+
+        Organization otherOrganization = new Organization();
+        otherOrganization.setOrganizationId(UUID.randomUUID());
+
+        Shipment shipment = new Shipment();
+        shipment.setId(shipmentId);
+        shipment.setOrganization(otherOrganization);
+        shipment.setRecipientOrganization(organization);
+        shipment.setProductionLot(productionLot);
+        shipment.setName("Lô con tách cho VT-04");
+        shipment.setTotalQuantity(100L);
+        shipment.setStatus(ShipmentStatus.ACTIVATED);
+        shipment.setCreatedAt(LocalDateTime.now());
+
+        when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
+        when(traceCodeRepository.findByShipmentId(shipmentId)).thenReturn(List.of());
+
+        // Act
+        ShipmentResponse response = shipmentService.getShipmentById(shipmentId);
+
+        // Assert
+        assertThat(response).isNotNull();
+        assertThat(response.getId()).isEqualTo(shipmentId);
+        verify(permissionChecker, times(1)).check("shipment", "READ");
+    }
+
+    @Test
+    void getShipmentById_ShouldThrowForbidden_WhenVT04HasNoRelationship() {
+        // Arrange
+        lenient().when(currentUser.getRoleCode()).thenReturn("VT-04");
+        lenient().when(currentUser.getOrganizationId()).thenReturn(organizationId);
+
+        Organization otherOrganization = new Organization();
+        otherOrganization.setOrganizationId(UUID.randomUUID());
+
+        Shipment shipment = new Shipment();
+        shipment.setId(shipmentId);
+        shipment.setOrganization(otherOrganization);
+        shipment.setProductionLot(productionLot);
+
+        when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
+
+        // Act & Assert
+        assertThatThrownBy(() -> shipmentService.getShipmentById(shipmentId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage("Lô hàng không được giao cho tổ chức của bạn.");
+    }
+
+    @Test
     void getSplitPreview_ShouldReturnUserFriendlyMessage_WhenShipmentAlreadyActivated() {
         Shipment shipment = new Shipment();
         shipment.setId(shipmentId);
