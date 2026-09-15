@@ -34,5 +34,18 @@ public interface ProductFeedbackRepository extends JpaRepository<ProductFeedback
             @org.springframework.data.repository.query.Param("lotIds") java.util.Collection<UUID> lotIds,
             @org.springframework.data.repository.query.Param("severities") java.util.Collection<ProductFeedbackSeverity> severities,
             @org.springframework.data.repository.query.Param("closedStatus") vn.nguongocso.farm.enums.ProductFeedbackStatus closedStatus);
+
+    /**
+     * Tìm danh sách phản ánh theo tổ chức và danh sách trạng thái (NCL-08-CN-016).
+     */
+    java.util.List<ProductFeedback> findByProductionLot_Organization_OrganizationIdAndStatusIn(
+            UUID organizationId,
+            java.util.Collection<vn.nguongocso.farm.enums.ProductFeedbackStatus> statuses);
+
+    /**
+     * Tìm danh sách tất cả phản ánh theo danh sách trạng thái (NCL-08-CN-016).
+     */
+    java.util.List<ProductFeedback> findByStatusIn(
+            java.util.Collection<vn.nguongocso.farm.enums.ProductFeedbackStatus> statuses);
 }
 

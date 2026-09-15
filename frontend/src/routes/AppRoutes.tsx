@@ -124,6 +124,7 @@ import TerritoryAlertLotListPage from "@/pages/report/TerritoryAlertLotListPage"
 import TerritoryAlertLotDetailPage from "@/pages/report/TerritoryAlertLotDetailPage";
 
 // ===== Alerts =====
+import AggregateAlertPage from "@/pages/alert/AggregateAlertPage";
 import ScanAnomalyAlertPage from "@/pages/scan-anomaly-alert/ScanAnomalyAlertPage";
 
 // ===== Farm area =====
@@ -1421,6 +1422,17 @@ const AppRoutes = () => (
             {/* =================================================
           ALERTS
       ================================================= */}
+
+            <Route
+                path="alerts"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.aggregateAlerts}
+                    >
+                        <AggregateAlertPage />
+                    </RoleRoute>
+                }
+            />
 
             <Route
                 path="alerts/scan-anomaly"
