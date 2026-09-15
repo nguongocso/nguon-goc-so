@@ -148,7 +148,7 @@ class ApiKeyWarningServiceTest {
     }
 
     @Test
-    @DisplayName("TC-02: Chạm ngưỡng hạn mức gửi cảnh báo 1 lần mỗi giờ")
+    @DisplayName("TC-02: Chạm ngưỡng hạn mức gửi cảnh báo 1 lần mỗi ngày")
     void handleQuotaThreshold_notifiesOncePerHour() {
         UUID keyId = UUID.randomUUID();
         ApiKeyQuotaThresholdEvent event = ApiKeyQuotaThresholdEvent.builder()

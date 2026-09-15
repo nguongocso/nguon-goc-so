@@ -64,6 +64,9 @@ public class PartnerApiKeyService {
     // Bộ nhớ tạm đếm số lượt gọi trong 1 giờ: Key = apiKeyId + ":" + yyyyMMddHH
     private final Map<String, AtomicInteger> hourlyRateLimitMap = new ConcurrentHashMap<>();
 
+    // Bộ nhớ tạm đếm số lượt gọi trong 1 ngày: Key = apiKeyId + ":" + yyyyMMdd
+    private final Map<String, AtomicInteger> dailyRateLimitMap = new ConcurrentHashMap<>();
+
     @Value("${app.apikey.quota-warning-ratio:0.8}")
     private double quotaWarningRatio;
 
@@ -334,11 +337,16 @@ public class PartnerApiKeyService {
             throw new BusinessException("Khóa truy cập đã vượt quá hạn mức " + apiKey.getRateLimitPerHour() + " lượt gọi/giờ");
         }
 
-        // 4. Chạm ngưỡng cảnh báo hạn mức (NCL-12-CN-005): phát sự kiện đúng một lần
-        // khi lượt gọi trong giờ vừa đạt ngưỡng, listener tự lo chống trùng theo giờ.
+        // 4. Chạm ngưỡng cảnh báo hạn mức (NCL-12-CN-005): đếm theo cửa sổ ngày,
+        // phát sự kiện đúng một lần khi lượt gọi trong ngày vừa đạt ngưỡng,
+        // listener tự lo chống trùng theo ngày. Chặn 429 vẫn theo cửa sổ giờ.
+        String dailyKey = buildDailyKey(apiKey.getId(), now);
+        int callsInCurrentDay = dailyRateLimitMap.computeIfAbsent(dailyKey, k -> new AtomicInteger(0))
+                .incrementAndGet();
+
         int warningThreshold = (int) Math.ceil(apiKey.getRateLimitPerHour() * quotaWarningRatio);
-        if (warningThreshold > 0 && callsInCurrentHour == warningThreshold) {
-            publishQuotaThresholdEvent(apiKey, callsInCurrentHour);
+        if (warningThreshold > 0 && callsInCurrentDay == warningThreshold) {
+            publishQuotaThresholdEvent(apiKey, callsInCurrentDay);
         }
 
         // Gọi thành công -> Ghi nhận thống kê
@@ -355,10 +363,18 @@ public class PartnerApiKeyService {
     }
 
     /**
-     * Số lượt gọi trong giờ hiện tại của khóa (phục vụ cảnh báo tổng hợp realtime).
+     * Dựng khóa đếm theo ngày cho bộ nhớ tạm cảnh báo hạn mức.
      */
-    public int getHourlyCallCount(UUID apiKeyId) {
-        AtomicInteger counter = hourlyRateLimitMap.get(buildHourlyKey(apiKeyId, LocalDateTime.now()));
+    private String buildDailyKey(UUID apiKeyId, LocalDateTime time) {
+        return apiKeyId.toString() + ":" + String.format("%04d%02d%02d",
+                time.getYear(), time.getMonthValue(), time.getDayOfMonth());
+    }
+
+    /**
+     * Số lượt gọi trong ngày hôm nay của khóa (phục vụ cảnh báo tổng hợp realtime).
+     */
+    public int getDailyCallCount(UUID apiKeyId) {
+        AtomicInteger counter = dailyRateLimitMap.get(buildDailyKey(apiKeyId, LocalDateTime.now()));
         return counter == null ? 0 : counter.get();
     }
 

@@ -27,7 +27,7 @@ import vn.nguongocso.notification.service.NotificationService;
  * Dịch vụ cảnh báo khóa truy cập sắp hết hạn và sắp chạm hạn mức (NCL-12-CN-005, QTN-20).
  * <p>
  * Nguyên tắc: quét hằng ngày các khóa {@code ACTIVE}, cảnh báo một lần mỗi ngày cho
- * hết hạn và một lần mỗi giờ cho hạn mức, bỏ qua khóa đã thu hồi/hết hạn (TC-03, TC-04).
+ * hết hạn và một lần mỗi ngày cho hạn mức, bỏ qua khóa đã thu hồi/hết hạn (TC-03, TC-04).
  * Thông báo tái dùng hạ tầng hộp thư NCL-08-CN-005 (không tạo endpoint mới).
  */
 @Service
@@ -108,7 +108,7 @@ public class ApiKeyWarningService {
     }
 
     /**
-     * Nhận sự kiện chạm ngưỡng hạn mức và gửi cảnh báo một lần mỗi giờ cho mỗi khóa.
+     * Nhận sự kiện chạm ngưỡng hạn mức và gửi cảnh báo một lần mỗi ngày cho mỗi khóa.
      * <p>
      * Không bao giờ ném lỗi ra ngoài để tránh chặn request của đối tác.
      */
@@ -116,9 +116,9 @@ public class ApiKeyWarningService {
     @Transactional
     public void handleQuotaThreshold(ApiKeyQuotaThresholdEvent event) {
         try {
-            LocalDateTime startOfHour = LocalDateTime.now().withMinute(0).withSecond(0).withNano(0);
+            LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
             if (notificationRepository.existsByEntityIdAndTitleAndCreatedAtAfter(
-                    event.getApiKeyId(), QUOTA_TITLE, startOfHour)) {
+                    event.getApiKeyId(), QUOTA_TITLE, startOfDay)) {
                 return;
             }
             int percent = (int) Math.round(event.getUsedCalls() * 100.0 / event.getRateLimitPerHour());
@@ -126,7 +126,7 @@ public class ApiKeyWarningService {
                     QUOTA_TITLE,
                     "Khóa truy cập của đối tác \"" + event.getPartnerName() + "\" đã dùng "
                             + event.getUsedCalls() + "/" + event.getRateLimitPerHour()
-                            + " lượt gọi trong giờ hiện tại (đạt " + percent
+                            + " lượt gọi trong ngày hôm nay (đạt " + percent
                             + "%). Vui lòng nâng hạn mức hoặc chờ sang giờ tiếp theo. "
                             + "Xem chi tiết tại Quản trị khóa truy cập.",
                     event.getApiKeyId(),

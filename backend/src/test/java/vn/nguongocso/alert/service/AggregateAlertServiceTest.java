@@ -380,7 +380,7 @@ class AggregateAlertServiceTest {
                 .build();
         when(partnerApiKeyRepository.findByOrganizationOrganizationId(eq(orgIdA), any()))
                 .thenReturn(new PageImpl<>(List.of(expiring, revoked)));
-        when(partnerApiKeyService.getHourlyCallCount(expiring.getId())).thenReturn(0);
+        when(partnerApiKeyService.getDailyCallCount(expiring.getId())).thenReturn(0);
 
         Pageable pageable = PageRequest.of(0, 10);
         AggregateAlertPageResponse response = aggregateAlertService.getAggregateAlerts(

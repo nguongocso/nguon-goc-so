@@ -589,7 +589,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
             }
 
             if (key.getRateLimitPerHour() != null && key.getRateLimitPerHour() > 0) {
-                int used = partnerApiKeyService.getHourlyCallCount(key.getId());
+                int used = partnerApiKeyService.getDailyCallCount(key.getId());
                 double percent = used * 100.0 / key.getRateLimitPerHour();
                 if (percent >= apiKeyQuotaWarningRatio * 100) {
                     result.add(AggregateAlertItemResponse.builder()
@@ -599,7 +599,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                             .severity(AlertSeverity.MEDIUM)
                             .title("Khóa truy cập sắp chạm hạn mức")
                             .message("Khóa của đối tác \"" + key.getPartnerName() + "\" đã dùng "
-                                    + used + "/" + key.getRateLimitPerHour() + " lượt gọi trong giờ hiện tại.")
+                                    + used + "/" + key.getRateLimitPerHour() + " lượt gọi trong ngày hôm nay.")
                             .relatedEntityType("PARTNER_API_KEY")
                             .relatedEntityId(key.getId())
                             .relatedEntityName(key.getKeyPrefix())

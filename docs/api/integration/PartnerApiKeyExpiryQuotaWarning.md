@@ -15,9 +15,9 @@ Hệ thống chủ động cảnh báo cho Quản lý HTX (`VT-02`, `VT-01` xem 
 |---|---|---|
 | Sắp hết hạn | `0 < expiresAt - now <= 7 ngày`, `status = ACTIVE` | 1 thông báo/ngày/khóa + mục trên `/alerts` |
 | Đã hết hạn | `expiresAt <= now`, `status = ACTIVE` | Persist `status = EXPIRED` (sửa dứt điểm việc key quá hạn vẫn `ACTIVE`) + 1 thông báo |
-| Sắp chạm hạn mức | lượt gọi trong giờ hiện tại `>= 80% rateLimitPerHour` | 1 thông báo/giờ/khóa (bắn đúng 1 lần khi chạm ngưỡng) |
+| Sắp chạm hạn mức | lượt gọi trong ngày hôm nay `>= 80% rateLimitPerHour` (đếm theo ngày, so với 80% con số hạn mức giờ) | 1 thông báo/ngày/khóa (bắn đúng 1 lần khi chạm ngưỡng) |
 | Bỏ qua | `status = REVOKED/EXPIRED` | Không quét, không cảnh báo (TC-03) |
-| Chống trùng | Đã có thông báo cùng `entityId` trong ngày (hết hạn) / trong giờ (hạn mức) | Không tạo thêm (TC-04) |
+| Chống trùng | Đã có thông báo cùng `entityId` trong ngày (hết hạn) / trong ngày (hạn mức) | Không tạo thêm (TC-04) |
 
 Cấu hình (`application.properties`):
 
@@ -103,7 +103,7 @@ Bổ sung 2 loại cảnh báo tính realtime từ `partner_api_keys` (tự đó
 - Payload: `type = ALERT`, `entityId = apiKeyId`, `isRead = false`. FE bấm vào mở popup chi tiết + nút `Xem khóa → /integration/api-keys` (không tạo route/trang mới).
 - Mẫu tiêu đề/nội dung:
   - Hết hạn: `Khóa truy cập sắp hết hạn` / `Khóa truy cập của đối tác "<partnerName>" sẽ hết hạn vào <dd/MM/yyyy HH:mm>. Vui lòng gia hạn để đối tác không bị gián đoạn kết nối. Xem chi tiết tại Quản trị khóa truy cập.`
-  - Hạn mức: `Khóa truy cập sắp chạm hạn mức` / `Khóa của đối tác "<partnerName>" đã dùng <used>/<limit> lượt gọi trong giờ hiện tại (đạt 80%). Vui lòng nâng hạn mức hoặc chờ sang giờ tiếp theo.`
+  - Hạn mức: `Khóa truy cập sắp chạm hạn mức` / `Khóa của đối tác "<partnerName>" đã dùng <used>/<limit> lượt gọi trong ngày hôm nay (đạt 80%). Vui lòng nâng hạn mức hoặc chờ sang giờ tiếp theo.`
 
 ---
 

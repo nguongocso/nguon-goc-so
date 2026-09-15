@@ -8,7 +8,7 @@ import lombok.Getter;
 /**
  * Sự kiện lượt gọi chạm ngưỡng cảnh báo hạn mức của khóa truy cập (NCL-12-CN-005).
  * <p>
- * Được phát ngay trong luồng kiểm tra rate-limit khi số lượt gọi trong giờ hiện tại
+ * Được phát ngay trong luồng kiểm tra rate-limit khi số lượt gọi trong ngày hiện tại
  * vừa chạm ngưỡng cấu hình. Listener chỉ gửi thông báo (không chặn request đối tác).
  */
 @Getter
