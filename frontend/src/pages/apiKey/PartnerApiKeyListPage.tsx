@@ -11,7 +11,6 @@ import { ApiKeyStatusBadge } from '@/components/apiKey/ApiKeyStatusBadge';
 import { RawApiKeyModal } from '@/components/apiKey/RawApiKeyModal';
 import { RevokeApiKeyDialog } from '@/components/apiKey/RevokeApiKeyDialog';
 import { WebhookConfigModal } from '@/components/apiKey/WebhookConfigModal';
-import { WebhookNotificationHistoryModal } from '@/components/apiKey/WebhookNotificationHistoryModal';
 
 import { usePermission } from '@/hooks/usePermission';
 import { HelpButton } from '@/components/help/HelpButton';
@@ -57,7 +56,6 @@ export const PartnerApiKeyListPage: React.FC = () => {
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<PartnerApiKeyResponse | null>(null);
   const [revokeKeyTarget, setRevokeKeyTarget] = useState<PartnerApiKeyResponse | null>(null);
   const [webhookConfigTarget, setWebhookConfigTarget] = useState<PartnerApiKeyResponse | null>(null);
-  const [notificationHistoryTarget, setNotificationHistoryTarget] = useState<PartnerApiKeyResponse | null>(null);
 
 
   const fetchApiKeys = async () => {
@@ -316,7 +314,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            onClick={() => setNotificationHistoryTarget(item)}
+                            onClick={() => navigate(`/integration/api-keys/${item.id}/notifications`, { state: { apiKey: item } })}
                             title="Lịch sử thông báo thu hồi"
                             className="text-muted-foreground hover:text-foreground hover:bg-muted"
                           >
@@ -377,12 +375,6 @@ export const PartnerApiKeyListPage: React.FC = () => {
         apiKey={webhookConfigTarget}
         onClose={() => setWebhookConfigTarget(null)}
         onSuccess={fetchApiKeys}
-      />
-
-      <WebhookNotificationHistoryModal
-        open={!!notificationHistoryTarget}
-        apiKey={notificationHistoryTarget}
-        onClose={() => setNotificationHistoryTarget(null)}
       />
     </div>
   );
