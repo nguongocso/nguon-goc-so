@@ -169,14 +169,9 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
             <History className="w-6 h-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Lịch sử thông báo Webhook thu hồi
-              </h1>
-              <Badge variant="outline" className="font-mono text-xs">
-                NCL-12-CN-006
-              </Badge>
-            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Lịch sử thông báo Webhook thu hồi
+            </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               Đối tác:{' '}
               <span className="font-semibold text-foreground">

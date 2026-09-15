@@ -170,7 +170,7 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
         <DialogHeader>
           <div className="flex items-center gap-2 text-primary font-semibold mb-1">
             <Webhook className="w-5 h-5 text-primary" />
-            <span>Cấu hình Webhook thông báo thu hồi (NCL-12-CN-006)</span>
+            <span>Cấu hình Webhook thông báo thu hồi</span>
           </div>
           <DialogTitle className="text-xl">
             Đối tác: {apiKey.partnerName}
