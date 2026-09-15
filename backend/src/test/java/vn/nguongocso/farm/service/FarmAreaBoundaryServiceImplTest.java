@@ -163,6 +163,24 @@ class FarmAreaBoundaryServiceImplTest {
     }
 
     @Test
+    void updateBoundary_shouldRejectSelfIntersectingPolygonFromEditorRegression() {
+        when(farmAreaRepository.findById(farmAreaId)).thenReturn(Optional.of(farmArea));
+        List<LatLngDto> bowTie = List.of(
+                point(21.586174, 105.807344), point(21.584359, 105.807001),
+                point(21.584658, 105.807816), point(21.585915, 105.806604));
+
+        assertThatThrownBy(() -> service.updateBoundary(farmAreaId, request(bowTie, true)))
+                .isInstanceOfSatisfying(BusinessException.class, exception -> {
+                    assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                    assertThat(((Map<?, ?>) exception.getDetails()).get("code"))
+                            .isEqualTo("SELF_INTERSECTING_BOUNDARY");
+                });
+
+        verify(farmAreaRepository, never()).save(any());
+        verify(activityLogService, never()).logActivity(any());
+    }
+
+    @Test
     void updateBoundary_shouldRejectLessThanThreePoints() {
         when(farmAreaRepository.findById(farmAreaId)).thenReturn(Optional.of(farmArea));
 

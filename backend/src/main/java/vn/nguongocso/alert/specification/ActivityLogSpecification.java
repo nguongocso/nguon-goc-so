@@ -25,9 +25,20 @@ public class ActivityLogSpecification {
      * Tạo Specification để lọc ActivityLog theo action.
      */
     public static Specification<ActivityLog> hasAction(String action) {
-        return (root, query, cb) -> (action == null || action.isBlank())
-                ? cb.conjunction()
-                : cb.equal(root.get("action"), action);
+        return (root, query, cb) -> {
+            if (action == null || action.isBlank()) {
+                return cb.conjunction();
+            }
+
+            String normalizedAction = action.trim();
+            if (!normalizedAction.contains("_")) {
+                return cb.or(
+                        cb.equal(root.get("action"), normalizedAction),
+                        cb.like(root.get("action"), normalizedAction + "\\_%", '\\'));
+            }
+
+            return cb.equal(root.get("action"), normalizedAction);
+        };
     }
 
     /**

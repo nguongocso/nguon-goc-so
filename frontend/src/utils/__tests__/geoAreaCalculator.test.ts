@@ -68,6 +68,17 @@ describe('geoAreaCalculator', () => {
       ).toBe(true);
     });
 
+    it('phát hiện ranh giới tự cắt theo tọa độ tái hiện từ màn hình chỉnh sửa', () => {
+      expect(
+        hasSelfIntersection([
+          { latitude: 21.586174, longitude: 105.807344 },
+          { latitude: 21.584359, longitude: 105.807001 },
+          { latitude: 21.584658, longitude: 105.807816 },
+          { latitude: 21.585915, longitude: 105.806604 },
+        ])
+      ).toBe(true);
+    });
+
     it('không báo lỗi với tam giác', () => {
       expect(
         hasSelfIntersection([
