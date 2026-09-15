@@ -41,7 +41,7 @@ Mọi endpoint yêu cầu `Authorization: Bearer <token>`. Theo cấu hình Spri
 2. Frontend gọi preview bằng cùng bộ lọc; backend áp dụng tenant scope và trả `count`, `mode`.
 3. Người dùng xác nhận export; backend trong transaction xác định tập bản ghi, cố định snapshot ID theo `(createdAt ASC, id ASC)`.
 4. Nếu thuộc ngưỡng trực tiếp, backend tạo CSV từ snapshot. Chỉ sau khi tạo file thành công mới ghi bền vững `EXPORT_ACTIVITY_LOG` với trạng thái `SUCCESS`, rồi trả binary `200`.
-5. Nếu vượt ngưỡng, backend đóng snapshot bằng một câu `INSERT … SELECT` tại database, tạo job `IN_PROGRESS` và giao việc cho `TaskExecutor`. Request không tải/copy toàn bộ tập lớn qua JVM. Sau khi yêu cầu được chấp nhận, backend ghi bền vững `EXPORT_ACTIVITY_LOG` với trạng thái `IN_PROGRESS`, rồi trả `202`.
+5. Nếu vượt ngưỡng, backend đóng snapshot bằng một câu `INSERT … SELECT` tại database, tạo job `IN_PROGRESS`, giành lease bền vững trong database rồi giao việc cho `TaskExecutor`. Request không tải/copy toàn bộ tập lớn qua JVM. Sau khi yêu cầu được chấp nhận, backend ghi bền vững `EXPORT_ACTIVITY_LOG` với trạng thái `IN_PROGRESS`, rồi trả `202`.
 6. Job nền thành công tạo file, đổi `SUCCESS`, gửi notification `ACTIVITY_LOG_EXPORT_READY` với `entityId=exportId`. Người dùng dùng endpoint download, không dùng URL trực tiếp trong notification. Nếu worker lỗi, job đổi `FAILED`; audit đã ghi ở lúc chấp nhận không bị sửa.
 
 ## 5. Bộ lọc
@@ -158,7 +158,9 @@ Body giống preview. Backend tự chọn `DIRECT` hoặc `ASYNC` từ số lư�
 
 ## 10. Background Export
 
-Mode `ASYNC` dùng `TaskExecutor` hiện có và các trạng thái `IN_PROGRESS`, `SUCCESS`, `FAILED`. Snapshot lưu từng dòng tại `activity_log_export_items` bằng một thao tác database trước khi response được commit; worker đọc snapshot theo trang, sinh CSV và lưu đường dẫn nội bộ. Khi thành công, hệ thống gửi notification cho đúng người tạo yêu cầu với `entityId = exportJobId`.
+Mode `ASYNC` dùng `TaskExecutor` hiện có và các trạng thái `IN_PROGRESS`, `SUCCESS`, `FAILED`. Snapshot lưu từng dòng tại `activity_log_export_items` bằng một thao tác database trước khi response được commit. Worker đọc snapshot bằng keyset `(job_id, sequence_no)` theo thứ tự `sequence_no ASC`, không phát sinh total-count cho mỗi lô và không dùng offset tăng dần; cách đọc này không thay đổi thứ tự, nội dung hay chín cột CSV.
+
+Job có `processing_token` và `lease_expires_at` để một thời điểm chỉ một worker được quyền xử lý. Khi ứng dụng khởi động và theo chu kỳ cấu hình, dispatcher quét lại job `IN_PROGRESS` chưa có lease hoặc đã hết lease rồi phân phối lại. Vì vậy job đã trả `202` không phụ thuộc duy nhất vào hàng đợi trong bộ nhớ và có thể tiếp tục sau crash/redeploy.
 
 ## 11. Export Job lifecycle
 
@@ -169,7 +171,7 @@ snapshot tạo xong → IN_PROGRESS → SUCCESS
 
 - `IN_PROGRESS`: file chưa tải được.
 - `SUCCESS`: file tồn tại và được phép tải bởi đúng tenant.
-- `FAILED`: không có file hợp lệ; không tự retry.
+- `FAILED`: worker đã thực thi nhưng không thể tạo file hợp lệ. Job bị gián đoạn do tiến trình dừng hoặc executor tạm đầy vẫn giữ `IN_PROGRESS` và được phân phối lại sau khi lease hết/được trả.
 
 ### `GET /api/v1/organizations/activity-logs/exports/{exportId}`
 
@@ -223,7 +225,7 @@ Event `EXPORT_ACTIVITY_LOG` được ghi **sau** khi transaction cố định sn
 | `CustomUserDetails` | Có `roleCode`, `roleName` | Capture `roleCode` lúc tạo event mới; không khôi phục role cho dữ liệu cũ |
 | Before/after | Nullable trên event/log, sanitizer trước CSV | Annotation/request có thể cung cấp snapshot có cấu trúc; dữ liệu cũ giữ `null` |
 | Notification | `user,type,title,content,entityId` | Dùng `ACTIVITY_LOG_EXPORT_READY`, `entityId=exportId` |
-| Nền | `TaskExecutor`; backup dùng `IN_PROGRESS/SUCCESS/FAILED` | Reuse pattern, không tạo status mới |
+| Nền | `TaskExecutor`; job/lease lưu trong database; trạng thái `IN_PROGRESS/SUCCESS/FAILED` | Không tạo status API mới; tự khôi phục job bị gián đoạn |
 
 Migration `V20260914150000__add_activity_log_export_jobs.sql` đã bổ sung `actor_role`, `before_value`, `after_value`, bảng `activity_log_export_jobs` và `activity_log_export_items`. Item lưu bản sao bất biến của đủ chín trường CSV theo `sequence_no`, không chỉ giữ ID trỏ về Activity Log; vì vậy thay đổi dữ liệu sau khi nhận job không làm đổi file. Dữ liệu cũ giữ `null`, không backfill từ `description`.
 
@@ -264,7 +266,7 @@ Kiểm thử bắt buộc khi triển khai: TC01–TC06; sai khoảng ngày; `40
 1. Jira NCL-706/NCL-854/NCL-857/NCL-860/NCL-862 hiện không có description/AC live; TC01–TC06 từ baseline attachment là evidence nghiệp vụ. Excel mới ngày 2026-08-14 có QTN-01, QTN-08, `NCL-08-CN-004` và TC/task liên quan, nhưng không có `NCL-08-CN-015`/NCL-706/NCL-854; workbook cũ có nội dung liên quan tương tự.
 2. Dữ liệu lịch sử trước migration không có role/before/after và tiếp tục xuất literal `null`; hệ thống không suy diễn từ role hiện tại hoặc `description`. Event mới hỗ trợ capture ba trường additive này.
 3. Ngưỡng direct mặc định 10.000 là technical configurable threshold, không phải Business Rule cố định của BA/PO. Giới hạn khoảng thời gian xuất mặc định 365 ngày là configurable max range v1 (`app.activity-log-export.max-range-days=365`). Khi vượt ngưỡng direct, hệ thống chuyển sang job nền đúng baseline; khi vượt khoảng thời gian, hệ thống từ chối HTTP 400 và không ghi audit.
-4. **Operational GAP – Lưu trữ file và Retention/Cleanup Policy:** Job và snapshot đã có migration, khóa ngoại/index và tenant-scoped service. File được lưu tạm thời tại thư mục cấu hình `ACTIVITY_LOG_EXPORT_STORAGE_DIR`. Môi trường production cần gắn volume lưu trữ bền vững (persistent storage). Việc xây dựng chính sách hết hạn tệp (retention policy), thời hạn tải và tiến trình định kỳ dọn dẹp file cũ (cleanup scheduler) là một Operational GAP cần task vận hành và xác nhận nghiệp vụ riêng từ BA/PO, không thuộc phạm vi User Story hiện tại.
+4. **Operational GAP – Retention/Cleanup Policy:** Job, snapshot và lease phục hồi đã có migration, khóa ngoại/index và tenant-scoped service. Compose chuẩn ánh xạ `ACTIVITY_LOG_EXPORT_STORAGE_DIR=/app/uploads/activity-log-exports` vào volume `backend_uploads`; môi trường production ngoài Compose vẫn phải cung cấp persistent storage tương đương. Chính sách hết hạn tệp, thời hạn tải và tiến trình định kỳ dọn file cũ là một Operational GAP cần task vận hành và xác nhận nghiệp vụ riêng từ BA/PO, không thuộc phạm vi User Story hiện tại.
 5. Export không dùng listener audit bất đồng bộ: service ghi `EXPORT_ACTIVITY_LOG` bằng `saveAndFlush` trong transaction trước khi trả `200/202`; worker chỉ xử lý file sau commit.
 6. Mã lỗi thực tế: khoảng ngày không hợp lệ `400`; không dữ liệu `400`; anonymous/sai vai trò `403` theo Spring Security hiện tại; job tenant khác/không tồn tại `404`; job chưa hoàn tất `409`; file thiếu `404`; tạo file/lỗi nền: job `FAILED`, lỗi đồng bộ `500` và notification theo quyết định nghiệp vụ. Lỗi controller/service dùng `ApiResult`; lỗi bị chặn trước controller có thể không dùng wrapper. Không công bố chi tiết tenant khác.
 7. **GAP – Ghi nhật ký truy cập trái phép / từ chối truy cập theo QTN-01:** Hệ thống hiện tại **chưa có cơ chế global Security/Audit** tự động ghi nhận các request bị từ chối do sai vai trò (403 Forbidden), thiếu tenant context (không có `organizationId`), hoặc dò quét dữ liệu chéo tenant. Cơ chế `ACCESS_DENIED` duy nhất hiện có trong hệ thống đang được hardcode cục bộ tại `GlobalExceptionHandler.publishAccessDeniedAudit()` chỉ dành riêng cho endpoint `/api/v1/admin/monitoring`. `AuditAspect` hiện hữu chỉ bắt `@AfterReturning` trên các method `@Auditable` thành công của người dùng hợp lệ. Do đó, việc ghi vết từ chối truy cập cho `NCL-08-CN-015` được xác định là một GAP thực sự so với QTN-01 của toàn hệ thống và cần task kiến trúc riêng để thiết lập cơ chế global security audit chung, không tự ý mở rộng cục bộ trong User Story này.

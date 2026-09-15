@@ -8,9 +8,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -50,8 +48,7 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
     private final ActivityLogExportJobRepository jobRepository;
     private final ActivityLogExportItemRepository itemRepository;
     private final ActivityLogCsvWriter csvWriter;
-    private final ActivityLogExportWorker worker;
-    private final TaskExecutor taskExecutor;
+    private final ActivityLogExportDispatcher dispatcher;
     private final Clock clock;
 
     @Value("${app.activity-log-export.direct-limit:10000}")
@@ -70,15 +67,13 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
             ActivityLogExportJobRepository jobRepository,
             ActivityLogExportItemRepository itemRepository,
             ActivityLogCsvWriter csvWriter,
-            ActivityLogExportWorker worker,
-            @Qualifier("applicationTaskExecutor") TaskExecutor taskExecutor,
+            ActivityLogExportDispatcher dispatcher,
             Clock clock) {
         this.activityLogRepository = activityLogRepository;
         this.jobRepository = jobRepository;
         this.itemRepository = itemRepository;
         this.csvWriter = csvWriter;
-        this.worker = worker;
-        this.taskExecutor = taskExecutor;
+        this.dispatcher = dispatcher;
         this.clock = clock;
     }
 
@@ -163,13 +158,7 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
     }
 
     private void dispatchAfterCommit(UUID jobId) {
-        Runnable dispatch = () -> {
-            try {
-                taskExecutor.execute(() -> worker.process(jobId));
-            } catch (RuntimeException exception) {
-                worker.markDispatchFailed(jobId);
-            }
-        };
+        Runnable dispatch = () -> dispatcher.dispatch(jobId);
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override public void afterCommit() { dispatch.run(); }
