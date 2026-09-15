@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,9 +30,11 @@ import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.integration.apikey.dto.request.CreateApiKeyRequest;
 import vn.nguongocso.integration.apikey.dto.request.CreateTestApiKeyRequest;
+import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyPageResponse;
 import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyResponse;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
+import vn.nguongocso.integration.apikey.event.ApiKeyQuotaThresholdEvent;
 import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
@@ -60,6 +63,9 @@ public class PartnerApiKeyService {
 
     // Bộ nhớ tạm đếm số lượt gọi trong 1 giờ: Key = apiKeyId + ":" + yyyyMMddHH
     private final Map<String, AtomicInteger> hourlyRateLimitMap = new ConcurrentHashMap<>();
+
+    @Value("${app.apikey.quota-warning-ratio:0.8}")
+    private double quotaWarningRatio;
 
     /**
      * Tạo mới khóa truy cập cho đối tác.
@@ -209,9 +215,12 @@ public class PartnerApiKeyService {
 
     /**
      * Lấy danh sách khóa truy cập của Hợp tác xã hiện tại (phân trang).
+     * <p>
+     * Trả DTO phân trang tường minh thay cho Spring {@code Page} để FE đọc đúng
+     * {@code totalElements/totalPages} (NCL-12-CN-005).
      */
     @Transactional(readOnly = true)
-    public Page<PartnerApiKeyResponse> getOrganizationApiKeys(PartnerApiKeyStatus status, Pageable pageable) {
+    public PartnerApiKeyPageResponse getOrganizationApiKeys(PartnerApiKeyStatus status, Pageable pageable) {
         CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
         UUID organizationId = currentUser.getOrganizationId();
 
@@ -222,7 +231,20 @@ public class PartnerApiKeyService {
             page = partnerApiKeyRepository.findByOrganizationOrganizationId(organizationId, pageable);
         }
 
-        return page.map(this::mapToResponse);
+        return toPageResponse(page);
+    }
+
+    /**
+     * Đóng gói kết quả phân trang khóa truy cập thành DTO tường minh.
+     */
+    private PartnerApiKeyPageResponse toPageResponse(Page<PartnerApiKey> page) {
+        return PartnerApiKeyPageResponse.builder()
+                .content(page.map(this::mapToResponse).getContent())
+                .page(page.getNumber())
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .build();
     }
 
     /**
@@ -302,8 +324,7 @@ public class PartnerApiKeyService {
 
         // 3. Kiểm tra Hạn mức số lượt gọi trong 1 giờ (Rate Limit per Hour - QTN-20)
         LocalDateTime now = LocalDateTime.now();
-        String hourlyKey = apiKey.getId().toString() + ":" + String.format("%04d%02d%02d%02d",
-                now.getYear(), now.getMonthValue(), now.getDayOfMonth(), now.getHour());
+        String hourlyKey = buildHourlyKey(apiKey.getId(), now);
 
         AtomicInteger currentCallCount = hourlyRateLimitMap.computeIfAbsent(hourlyKey, k -> new AtomicInteger(0));
         int callsInCurrentHour = currentCallCount.incrementAndGet();
@@ -313,9 +334,50 @@ public class PartnerApiKeyService {
             throw new BusinessException("Khóa truy cập đã vượt quá hạn mức " + apiKey.getRateLimitPerHour() + " lượt gọi/giờ");
         }
 
+        // 4. Chạm ngưỡng cảnh báo hạn mức (NCL-12-CN-005): phát sự kiện đúng một lần
+        // khi lượt gọi trong giờ vừa đạt ngưỡng, listener tự lo chống trùng theo giờ.
+        int warningThreshold = (int) Math.ceil(apiKey.getRateLimitPerHour() * quotaWarningRatio);
+        if (warningThreshold > 0 && callsInCurrentHour == warningThreshold) {
+            publishQuotaThresholdEvent(apiKey, callsInCurrentHour);
+        }
+
         // Gọi thành công -> Ghi nhận thống kê
         recordCallStats(apiKey, true, 200, clientIp);
         return apiKey;
+    }
+
+    /**
+     * Dựng khóa đếm theo giờ cho bộ nhớ tạm rate-limit.
+     */
+    private String buildHourlyKey(UUID apiKeyId, LocalDateTime time) {
+        return apiKeyId.toString() + ":" + String.format("%04d%02d%02d%02d",
+                time.getYear(), time.getMonthValue(), time.getDayOfMonth(), time.getHour());
+    }
+
+    /**
+     * Số lượt gọi trong giờ hiện tại của khóa (phục vụ cảnh báo tổng hợp realtime).
+     */
+    public int getHourlyCallCount(UUID apiKeyId) {
+        AtomicInteger counter = hourlyRateLimitMap.get(buildHourlyKey(apiKeyId, LocalDateTime.now()));
+        return counter == null ? 0 : counter.get();
+    }
+
+    /**
+     * Phát sự kiện chạm ngưỡng hạn mức. Không bao giờ ném lỗi để tránh chặn
+     * request của đối tác.
+     */
+    private void publishQuotaThresholdEvent(PartnerApiKey apiKey, int usedCalls) {
+        try {
+            eventPublisher.publishEvent(ApiKeyQuotaThresholdEvent.builder()
+                    .apiKeyId(apiKey.getId())
+                    .organizationId(apiKey.getOrganization().getOrganizationId())
+                    .partnerName(apiKey.getPartnerName())
+                    .rateLimitPerHour(apiKey.getRateLimitPerHour())
+                    .usedCalls(usedCalls)
+                    .build());
+        } catch (Exception e) {
+            log.warn("Bỏ qua lỗi phát sự kiện chạm ngưỡng hạn mức cho khóa {}", apiKey.getId(), e);
+        }
     }
 
     /**

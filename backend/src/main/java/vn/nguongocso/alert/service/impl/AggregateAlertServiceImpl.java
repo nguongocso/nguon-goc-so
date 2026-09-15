@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,10 @@ import vn.nguongocso.farm.enums.ProductFeedbackSeverity;
 import vn.nguongocso.farm.enums.ProductFeedbackStatus;
 import vn.nguongocso.farm.repository.MilestoneReminderRepository;
 import vn.nguongocso.farm.repository.ProductFeedbackRepository;
+import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
+import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
+import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
+import vn.nguongocso.integration.apikey.service.PartnerApiKeyService;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
 import vn.nguongocso.trace.entity.CodeRange;
@@ -41,10 +46,12 @@ import vn.nguongocso.trace.repository.CodeRangeRepository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 /**
- * Triển khai dịch vụ tổng hợp cảnh báo gom từ 7 nguồn dữ liệu (NCL-08-CN-016).
+ * Triển khai dịch vụ tổng hợp cảnh báo gom từ 7 nguồn dữ liệu (NCL-08-CN-016)
+ * và cảnh báo khóa truy cập bên thứ ba (NCL-12-CN-005).
  */
 @Slf4j
 @Service
@@ -61,7 +68,15 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
     private final RecallCaseRepository recallCaseRepository;
     private final OrganizationRepository organizationRepository;
     private final CertificationRepository certificationRepository;
+    private final PartnerApiKeyRepository partnerApiKeyRepository;
+    private final PartnerApiKeyService partnerApiKeyService;
     private final ObjectMapper objectMapper;
+
+    @Value("${app.apikey.expiry-warning-days:7}")
+    private int apiKeyExpiryWarningDays;
+
+    @Value("${app.apikey.quota-warning-ratio:0.8}")
+    private double apiKeyQuotaWarningRatio;
 
     @Override
     @Transactional(readOnly = true)
@@ -179,7 +194,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
     }
 
     /**
-     * Thu thập cảnh báo từ 7 nguồn dữ liệu.
+     * Thu thập cảnh báo từ các nguồn dữ liệu.
      */
     private List<AggregateAlertItemResponse> collectAllAlerts(UUID orgId, String statusFilter, boolean isAdmin) {
         List<AggregateAlertItemResponse> result = new ArrayList<>();
@@ -206,6 +221,11 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
 
         // Nguồn 7: Vụ việc thu hồi đang mở
         collectRecallCaseAlerts(result, orgId, includeOpen, includeResolved);
+
+        // Nguồn 8 & 9: Khóa truy cập sắp hết hạn / sắp chạm hạn mức (NCL-12-CN-005, realtime)
+        if (includeOpen) {
+            collectApiKeyAlerts(result, orgId);
+        }
 
         return result;
     }
@@ -497,6 +517,99 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                         .organizationName(org != null ? org.getName() : "")
                         .status("OPEN")
                         .build());
+            }
+        }
+    }
+
+    /**
+     * Gom cảnh báo khóa truy cập sắp hết hạn và sắp chạm hạn mức (Nguồn 8 & 9, NCL-12-CN-005).
+     * <p>
+     * Tính realtime từ {@code partner_api_keys} nên tự đóng khi khóa được gia hạn,
+     * nâng hạn mức hoặc thu hồi — không cần resolve tay.
+     */
+    private void collectApiKeyAlerts(List<AggregateAlertItemResponse> result, UUID orgId) {
+        List<PartnerApiKey> keys;
+        if (orgId != null) {
+            keys = partnerApiKeyRepository.findByOrganizationOrganizationId(orgId, Pageable.unpaged())
+                    .getContent();
+        } else {
+            keys = partnerApiKeyRepository.findByStatus(PartnerApiKeyStatus.ACTIVE);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime warningLimit = now.plusDays(apiKeyExpiryWarningDays);
+
+        for (PartnerApiKey key : keys) {
+            if (key.getStatus() != PartnerApiKeyStatus.ACTIVE || key.getExpiresAt() == null) {
+                continue;
+            }
+            Organization org = key.getOrganization();
+
+            if (!now.isBefore(key.getExpiresAt())) {
+                result.add(AggregateAlertItemResponse.builder()
+                        .id(key.getId())
+                        .type(AggregateAlertType.API_KEY_EXPIRING)
+                        .typeName(AggregateAlertType.API_KEY_EXPIRING.getDisplayName())
+                        .severity(AlertSeverity.HIGH)
+                        .title("Khóa truy cập đã hết hạn")
+                        .message("Khóa của đối tác \"" + key.getPartnerName() + "\" đã hết hạn. "
+                                + "Đối tác không gọi được cổng dữ liệu nữa. Vui lòng cấp khóa mới.")
+                        .relatedEntityType("PARTNER_API_KEY")
+                        .relatedEntityId(key.getId())
+                        .relatedEntityName(key.getKeyPrefix())
+                        .createdAt(now)
+                        .actionUrl("/integration/api-keys")
+                        .organizationId(org != null ? org.getOrganizationId() : null)
+                        .organizationName(org != null ? org.getName() : "")
+                        .status("OPEN")
+                        .build());
+                continue;
+            }
+
+            if (!warningLimit.isBefore(key.getExpiresAt())) {
+                long daysLeft = ChronoUnit.DAYS.between(now.toLocalDate(), key.getExpiresAt().toLocalDate());
+                result.add(AggregateAlertItemResponse.builder()
+                        .id(key.getId())
+                        .type(AggregateAlertType.API_KEY_EXPIRING)
+                        .typeName(AggregateAlertType.API_KEY_EXPIRING.getDisplayName())
+                        .severity(AlertSeverity.MEDIUM)
+                        .title("Khóa truy cập sắp hết hạn")
+                        .message("Khóa của đối tác \"" + key.getPartnerName() + "\" còn " + daysLeft
+                                + " ngày (hết hạn " + key.getExpiresAt().format(
+                                        java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ").")
+                        .relatedEntityType("PARTNER_API_KEY")
+                        .relatedEntityId(key.getId())
+                        .relatedEntityName(key.getKeyPrefix())
+                        .createdAt(now)
+                        .actionUrl("/integration/api-keys")
+                        .organizationId(org != null ? org.getOrganizationId() : null)
+                        .organizationName(org != null ? org.getName() : "")
+                        .status("OPEN")
+                        .build());
+            }
+
+            if (key.getRateLimitPerHour() != null && key.getRateLimitPerHour() > 0) {
+                int used = partnerApiKeyService.getHourlyCallCount(key.getId());
+                double percent = used * 100.0 / key.getRateLimitPerHour();
+                if (percent >= apiKeyQuotaWarningRatio * 100) {
+                    result.add(AggregateAlertItemResponse.builder()
+                            .id(key.getId())
+                            .type(AggregateAlertType.API_KEY_QUOTA_WARNING)
+                            .typeName(AggregateAlertType.API_KEY_QUOTA_WARNING.getDisplayName())
+                            .severity(AlertSeverity.MEDIUM)
+                            .title("Khóa truy cập sắp chạm hạn mức")
+                            .message("Khóa của đối tác \"" + key.getPartnerName() + "\" đã dùng "
+                                    + used + "/" + key.getRateLimitPerHour() + " lượt gọi trong giờ hiện tại.")
+                            .relatedEntityType("PARTNER_API_KEY")
+                            .relatedEntityId(key.getId())
+                            .relatedEntityName(key.getKeyPrefix())
+                            .createdAt(now)
+                            .actionUrl("/integration/api-keys")
+                            .organizationId(org != null ? org.getOrganizationId() : null)
+                            .organizationName(org != null ? org.getName() : "")
+                            .status("OPEN")
+                            .build());
+                }
             }
         }
     }

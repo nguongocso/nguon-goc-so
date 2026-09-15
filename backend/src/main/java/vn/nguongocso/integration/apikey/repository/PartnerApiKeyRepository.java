@@ -1,5 +1,6 @@
 package vn.nguongocso.integration.apikey.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,4 +25,9 @@ public interface PartnerApiKeyRepository extends JpaRepository<PartnerApiKey, UU
 
     @Query("SELECT k FROM PartnerApiKey k WHERE k.id = :id AND k.organization.organizationId = :organizationId")
     Optional<PartnerApiKey> findByIdAndOrganizationId(@Param("id") UUID id, @Param("organizationId") UUID organizationId);
+
+    /**
+     * Quét toàn bộ khóa theo trạng thái (phục vụ scheduler cảnh báo NCL-12-CN-005).
+     */
+    List<PartnerApiKey> findByStatus(PartnerApiKeyStatus status);
 }

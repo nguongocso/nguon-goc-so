@@ -4,7 +4,6 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -22,6 +21,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.integration.apikey.dto.request.CreateApiKeyRequest;
+import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyPageResponse;
 import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyResponse;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 import vn.nguongocso.integration.apikey.service.PartnerApiKeyService;
@@ -77,16 +77,19 @@ public class PartnerApiKeyController {
 
     /**
      * Lấy danh sách khóa truy cập thuộc Hợp tác xã hiện tại.
+     * <p>
+     * Trả DTO phân trang tường minh {@code {content, page, size, totalElements, totalPages}}
+     * (NCL-12-CN-005: sửa lỗi FE đọc {@code totalElements = 0}).
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
-    public ResponseEntity<ApiResult<Page<PartnerApiKeyResponse>>> getOrganizationApiKeys(
+    public ResponseEntity<ApiResult<PartnerApiKeyPageResponse>> getOrganizationApiKeys(
             @RequestParam(required = false) PartnerApiKeyStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<PartnerApiKeyResponse> responses = partnerApiKeyService.getOrganizationApiKeys(status, pageable);
+        PartnerApiKeyPageResponse responses = partnerApiKeyService.getOrganizationApiKeys(status, pageable);
         return ResponseEntity.ok(ApiResult.success(responses));
     }
 

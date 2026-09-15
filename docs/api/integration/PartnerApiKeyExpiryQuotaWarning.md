@@ -76,8 +76,8 @@ Bổ sung 2 loại cảnh báo tính realtime từ `partner_api_keys` (tự đó
 
 | `type` mới | `typeName` | `severity` | `actionUrl` |
 |---|---|---|---|
-| `API_KEY_EXPIRING` | Khóa truy cập sắp hết hạn | `MEDIUM` | `/integration/api-keys` |
-| `API_KEY_QUOTA_WARNING` | Khóa truy cập sắp chạm hạn mức | `MEDIUM` (`HIGH` khi đã vượt 100% và bị 429) | `/integration/api-keys` |
+| `API_KEY_EXPIRING` | Khóa truy cập sắp hết hạn | `MEDIUM` (sắp hết hạn), `HIGH` (đã hết hạn nhưng DB chưa kịp persist) | `/integration/api-keys` |
+| `API_KEY_QUOTA_WARNING` | Khóa truy cập sắp chạm hạn mức | `MEDIUM` | `/integration/api-keys` |
 
 - **Quyền/phạm vi:** giữ nguyên QTN-01 (`VT-01` toàn nền tảng + cột tổ chức, `VT-02` chỉ org mình).
 - Ví dụ item:
