@@ -8,15 +8,8 @@ import { Label } from "@/components/ui/label";
 import { ListCard } from "@/components/common/ListCard";
 import { DataTableShell } from "@/components/common/DataTableShell";
 import { TableCell, TableHead, TableRow } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
-import { useProfileTemplates } from "@/hooks/useProfileTemplates";
+import { ProfileTemplateSelector } from "@/components/export/ProfileTemplateSelector";
 import {
   checkBatchDossierEligibility,
   exportBatchDossier,
@@ -61,8 +54,15 @@ export default function BatchDossierExportPage() {
   // NCL-07-CN-007: chọn mẫu hồ sơ truy xuất theo yêu cầu đối tác khi xuất nhiều lô
   const { user } = useAuth();
   const organizationId = user?.organizationId || "";
-  const { templates } = useProfileTemplates(organizationId);
-  const [selectedTemplateId, setSelectedTemplateId] = useState("default");
+
+  /**
+   * ID mẫu hồ sơ sẽ truyền vào API khi xuất:
+   * - `undefined` → dùng mẫu mặc định hệ thống
+   * - UUID string → dùng mẫu tùy chỉnh của tổ chức
+   * State này được cập nhật qua callback onTemplateChange của ProfileTemplateSelector.
+   */
+  const [activeTemplateId, setActiveTemplateId] = useState<string | undefined>(undefined);
+
 
   const [history, setHistory] = useState<BatchDossierHistoryDto[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -127,7 +127,7 @@ export default function BatchDossierExportPage() {
         shipmentIds: eligibleIds,
         title: title.trim() || undefined,
         note: note.trim() || undefined,
-        templateId: selectedTemplateId !== "default" ? selectedTemplateId : undefined,
+        templateId: activeTemplateId,
       });
 
       toast.dismiss(toastId);
@@ -268,34 +268,17 @@ export default function BatchDossierExportPage() {
                 />
               </div>
 
-              {/* NCL-07-CN-007: chọn mẫu hồ sơ áp dụng cho bộ hồ sơ hợp nhất */}
-              <div className="space-y-2">
-                <Label htmlFor="batch-template">Mẫu hồ sơ áp dụng</Label>
-                <Select
-                  value={selectedTemplateId}
-                  onValueChange={(value) => setSelectedTemplateId(value ?? "default")}
-                >
-                  <SelectTrigger id="batch-template" className="w-full md:w-1/2">
-                    <SelectValue placeholder="Chọn mẫu hồ sơ" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default" label="Mẫu tiêu chuẩn HTX (Mặc định hệ thống)">
-                      Mẫu tiêu chuẩn HTX (Mặc định hệ thống)
-                    </SelectItem>
-                    {templates.map((t) => (
-                      <SelectItem key={t.id} value={t.id} label={t.name}>
-                        {t.name}
-                        {t.partnerName ? ` (${t.partnerName})` : ""}
-                        {t.isDefault ? " — Mặc định" : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Chọn mẫu cấu hình trường dữ liệu theo yêu cầu đối tác. Nếu không chọn, hệ thống dùng
-                  mẫu mặc định của tổ chức hoặc bộ trường chuẩn đầy đủ.
-                </p>
-              </div>
+              {/* NCL-07-CN-007: chọn mẫu hồ sơ áp dụng — dùng component dùng chung với ExportDossierDialog */}
+              <ProfileTemplateSelector
+                organizationId={organizationId}
+                onTemplateChange={(id) => {
+                  setActiveTemplateId(id === "default" ? undefined : id);
+                }}
+                disabled={isExporting}
+                showInfoText
+                triggerClassName="w-full md:w-1/2"
+                triggerId="batch-template"
+              />
 
               <div className="space-y-2">
                 <Label htmlFor="batch-note">Ghi chú bổ sung (Hiển thị trên trang bìa)</Label>

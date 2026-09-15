@@ -7,32 +7,23 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   FileText,
   Download,
   Eye,
   Loader2,
-  CheckCircle2,
   FileCode,
   FileSpreadsheet,
-  Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { useProfileTemplates } from '@/hooks/useProfileTemplates';
 import { exportDossier } from '@/api/dossierApi';
 import { exportShipmentWithTemplate } from '@/api/exportApi';
 import { DossierPreviewDialog } from './DossierPreviewDialog';
 import { getLocalDateString } from '@/utils/dateTime';
+import { ProfileTemplateSelector } from './ProfileTemplateSelector';
+import type { ProfileTemplate } from '@/types/profileTemplate';
 
 interface ExportDossierDialogProps {
   open: boolean;
@@ -41,38 +32,6 @@ interface ExportDossierDialogProps {
   shipmentName: string;
   shipmentCode?: string;
 }
-
-/** Tên hiển thị tiếng Việt của mẫu hồ sơ mặc định do hệ thống cung cấp */
-const DEFAULT_TEMPLATE_DISPLAY_NAME = 'Mẫu tiêu chuẩn HTX (Mặc định hệ thống)';
-
-interface TemplateOptionContentProps {
-  name: string;
-  partnerName?: string | null;
-  isDefault?: boolean;
-}
-
-/**
- * Hiển thị nội dung của một mẫu hồ sơ gồm tên mẫu, đối tác và nhãn "Mặc định".
- * Dùng chung cho cả danh sách lựa chọn và giá trị đang được chọn
- * để câu chữ hiển thị luôn thống nhất, không hiển thị mã (id) của mẫu.
- */
-const TemplateOptionContent: React.FC<TemplateOptionContentProps> = ({
-  name,
-  partnerName,
-  isDefault,
-}) => (
-  <div className="flex min-w-0 items-center gap-2">
-    <span className="truncate">{name}</span>
-    {partnerName ? (
-      <span className="shrink-0 text-xs text-muted-foreground">({partnerName})</span>
-    ) : null}
-    {isDefault ? (
-      <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-        Mặc định
-      </span>
-    ) : null}
-  </div>
-);
 
 export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
   open,
@@ -83,48 +42,20 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
 }) => {
   const { user } = useAuth();
   const organizationId = user?.organizationId || '';
-  const { templates, refresh, loading: loadingTemplates } = useProfileTemplates(organizationId);
 
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('default');
+  const [activeTemplateId, setActiveTemplateId] = useState<string | undefined>(undefined);
+  const [activeTemplate, setActiveTemplate] = useState<ProfileTemplate | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<'pdf' | 'json' | 'csv'>('pdf');
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [showPreview, setShowPreview] = useState<boolean>(false);
 
-  // Tải danh sách mẫu khi mở dialog
-  useEffect(() => {
-    if (open && organizationId) {
-      refresh();
-    }
-  }, [open, organizationId, refresh]);
-
   // Đặt lại state khi mở hộp thoại
   useEffect(() => {
     if (open) {
-      // Tìm mẫu mặc định nếu có
-      const defaultTpl = templates.find((t) => t.isDefault);
-      if (defaultTpl) {
-        setSelectedTemplateId(defaultTpl.id);
-      } else {
-        setSelectedTemplateId('default');
-      }
       setSelectedFormat('pdf');
       setIsExporting(false);
     }
-  }, [open, templates]);
-
-  const activeTemplate = templates.find((t) => t.id === selectedTemplateId);
-  const activeTemplateId = selectedTemplateId !== 'default' ? selectedTemplateId : undefined;
-
-  // Giá trị hiển thị trên ô chọn: luôn dùng tên mẫu tiếng Việt thay vì mã (id) của mẫu
-  const selectedTemplateContent = activeTemplate ? (
-    <TemplateOptionContent
-      name={activeTemplate.name}
-      partnerName={activeTemplate.partnerName}
-      isDefault={activeTemplate.isDefault}
-    />
-  ) : (
-    <span className="truncate font-medium">{DEFAULT_TEMPLATE_DISPLAY_NAME}</span>
-  );
+  }, [open]);
 
   const handleExport = async () => {
     if (!shipmentId) return;
@@ -186,68 +117,17 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
           </DialogHeader>
 
           <div className="space-y-5 py-3">
-            {/* Lựa chọn Mẫu hồ sơ */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="template-select" className="text-sm font-semibold flex items-center gap-1.5">
-                  <Sparkles className="size-4 text-emerald-600" />
-                  Mẫu hồ sơ áp dụng
-                </Label>
-                {activeTemplate?.partnerName && (
-                  <Badge variant="outline" className="text-xs border-emerald-300 text-emerald-700 bg-emerald-50/60">
-                    Đối tác: {activeTemplate.partnerName}
-                  </Badge>
-                )}
-              </div>
-
-              <Select
-                value={selectedTemplateId}
-                onValueChange={(val) => setSelectedTemplateId(val || 'default')}
-                disabled={loadingTemplates || isExporting}
-              >
-                <SelectTrigger id="template-select" className="w-full">
-                  <SelectValue placeholder="Chọn mẫu hồ sơ truy xuất">
-                    {selectedTemplateContent}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="default" label={DEFAULT_TEMPLATE_DISPLAY_NAME}>
-                    <span className="font-medium">{DEFAULT_TEMPLATE_DISPLAY_NAME}</span>
-                  </SelectItem>
-                  {templates.map((tpl) => (
-                    <SelectItem
-                      key={tpl.id}
-                      value={tpl.id}
-                      label={`${tpl.name}${tpl.partnerName ? ` (${tpl.partnerName})` : ''}${tpl.isDefault ? ' — Mặc định' : ''}`}
-                    >
-                      <TemplateOptionContent
-                        name={tpl.name}
-                        partnerName={tpl.partnerName}
-                        isDefault={tpl.isDefault}
-                      />
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Thông tin giải thích về mẫu được chọn */}
-              <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border text-xs text-muted-foreground flex items-start gap-2">
-                <CheckCircle2 className="size-4 text-emerald-500 shrink-0 mt-0.5" />
-                <div>
-                  {selectedTemplateId === 'default' ? (
-                    <span>
-                      Áp dụng biểu mẫu mặc định của HTX gồm đầy đủ các trường bắt buộc và toàn bộ thông tin sản xuất, canh tác, kiểm nghiệm.
-                    </span>
-                  ) : (
-                    <span>
-                      Áp dụng mẫu <strong className="text-foreground">{activeTemplate?.name}</strong>
-                      {activeTemplate?.partnerName ? ` thiết kế cho đối tác ${activeTemplate.partnerName}` : ''}.
-                      Hồ sơ xuất ra sẽ được lọc chính xác theo cấu hình {activeTemplate?.fields?.length || 0} trường đã chọn.
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+                        {/* Lựa chọn Mẫu hồ sơ — dùng component shared dùng chung với BatchDossierExportPage */}
+            <ProfileTemplateSelector
+              organizationId={organizationId}
+              open={open}
+              onTemplateChange={(templateId, template) => {
+                setActiveTemplateId(templateId === 'default' ? undefined : templateId);
+                setActiveTemplate(template);
+              }}
+              disabled={isExporting}
+              showInfoText
+            />
 
             {/* Lựa chọn Định dạng tệp */}
             <div className="space-y-2">
