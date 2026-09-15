@@ -4,7 +4,7 @@
 >
 > **Mã Story dự án:** `NCL-02-CN-008`
 >
-> **Jira Task hiện tại:** `NCL-870` / `NCL-02-CN-008-CV-01`
+> **Jira Task hiện tại:** `NCL-868` / `NCL-02-CN-008-CV-02`
 >
 > **Epic:** `NCL-02` (Khai báo vùng trồng và lô sản xuất)
 >
@@ -13,6 +13,8 @@
 > **Trạng thái:** Proposed
 >
 > **Quyết định CV-01:** Đã chốt ngày 15/09/2026
+>
+> **Quyết định CV-02:** Đã chốt ngày 15/09/2026
 >
 > **Phạm vi công việc:** `NCL-02-CN-008-CV-01` đến `CV-05`
 >
@@ -35,7 +37,8 @@ Cho phép **Quản lý hợp tác xã (`VT-02`)** khoanh ranh giới vùng trồ
 | Thành phần | Mã / Nguồn | Nội dung tóm tắt |
 |---|---|---|
 | **Jira Story** | `NCL-713` | Khoanh ranh giới vùng trồng trên bản đồ |
-| **Jira Task** | `NCL-870` / `NCL-02-CN-008-CV-01` | Chốt cách khoanh ranh giới và ngưỡng chênh lệch diện tích |
+| **Jira Task CV-01** | `NCL-870` / `NCL-02-CN-008-CV-01` | Chốt cách khoanh ranh giới và ngưỡng chênh lệch diện tích |
+| **Jira Task CV-02** | `NCL-868` / `NCL-02-CN-008-CV-02` | Thiết kế dữ liệu ranh giới vùng trồng: tọa độ đỉnh, diện tích tính toán và phiên bản cũ/mới |
 | **User Story** | `NCL-02-CN-008` | Khoanh ranh giới vùng trồng trên bản đồ thay vì chỉ nhập một điểm tọa độ |
 | **Vai trò** | `VT-02` (Quản lý hợp tác xã) | Toàn quyền thiết lập và chỉnh sửa ranh giới vùng trồng thuộc tổ chức |
 | **Quy tắc** | `QTN-01` | Cách ly dữ liệu: Tổ chức chỉ được thao tác trên vùng trồng của mình |
@@ -83,6 +86,38 @@ $$
 \text{deviationPercentage}
 = \frac{|\text{calculatedAreaHa} - \text{declaredAreaHa}|}{\text{declaredAreaHa}} \times 100
 $$
+
+### 3.2. Quyết định đã chốt cho CV-02
+
+| Nội dung | Quyết định |
+|---|---|
+| Ranh giới hiện hành | Lưu trực tiếp trên `farm_areas.boundary` bằng kiểu `POLYGON` giới hạn SRID 4326. Entity ánh xạ sang `org.locationtech.jts.geom.Polygon`; mọi geometry được tạo với X = kinh độ, Y = vĩ độ và `SRID = 4326`. |
+| Danh sách đỉnh | API giữ danh sách có thứ tự dưới dạng `{ latitude, longitude }`. Khi lưu, backend thêm lại đỉnh đầu để tạo `LinearRing` khép kín; khi trả API, backend bỏ tọa độ đóng vòng cuối để không làm thay đổi contract CV-01. |
+| Diện tích tính toán | Lưu ở `farm_areas.calculated_area` bằng `DECIMAL(10,4)`, đơn vị cố định là hecta. Không dùng `area_unit` cho trường này; `area` và `area_unit` hiện có tiếp tục biểu diễn diện tích khai báo. |
+| Thời điểm thay đổi | `farm_areas.boundary_updated_at` lưu thời điểm ranh giới được thiết lập hoặc cập nhật thành công. Không cập nhật trường này khi request bị từ chối hoặc chỉ sửa thông tin vùng trồng khác. |
+| Tương thích dữ liệu cũ | Ba cột mới đều cho phép `NULL`; không backfill polygon từ `location POINT` vì một điểm không đủ suy ra ranh giới. Vùng trồng cũ tiếp tục hoạt động và API trả `points = []`, `calculatedArea = null` khi chưa khoanh ranh giới. |
+| Phiên bản ranh giới | Không tạo bảng phiên bản riêng. Mỗi lần lưu thành công phát `ActivityLogEvent`; `activity_logs.before_value` và `after_value` lưu snapshot JSON gọn của phiên bản cũ/mới, còn `entity_id` liên kết logic tới `farm_areas.id`. |
+| Spatial index | Chưa tạo spatial index trong Story này. `boundary` phải nullable để tương thích dữ liệu cũ, trong khi MySQL 8.4 yêu cầu cột geometry thuộc spatial index là `NOT NULL`; các endpoint hiện tại cũng truy xuất theo khóa vùng trồng thay vì truy vấn giao/cắt không gian. Chỉ bổ sung index bằng migration mới khi có User Story tìm kiếm không gian và chiến lược backfill bắt buộc `boundary`. |
+
+Snapshot audit dùng cùng một cấu trúc cho `beforeValue` và `afterValue`:
+
+```json
+{
+  "schemaVersion": 1,
+  "points": [
+    { "latitude": 21.587568, "longitude": 105.826176 },
+    { "latitude": 21.588500, "longitude": 105.826500 },
+    { "latitude": 21.588200, "longitude": 105.828000 },
+    { "latitude": 21.587000, "longitude": 105.827800 }
+  ],
+  "calculatedArea": 6.8500
+}
+```
+
+- Lần thiết lập ranh giới đầu tiên: `beforeValue = null`, `afterValue` chứa snapshot mới.
+- Các lần chỉnh sửa tiếp theo: `beforeValue` chứa snapshot đang lưu và `afterValue` chứa snapshot vừa được xác nhận.
+- Chỉ ghi audit sau khi cập nhật DB thành công; request `400`, `403`, `404` hoặc `409` không tạo phiên bản mới.
+- Snapshot không chứa thông tin cá nhân hoặc dữ liệu tổ chức ngoài ranh giới và diện tích tính toán.
 
 ---
 
@@ -310,26 +345,51 @@ Chi tiết payload phản hồi khi cần xác nhận chênh lệch diện tích
   - Bắn sự kiện `ActivityLogEvent`:
     - `action`: `"UPDATE_FARM_AREA_BOUNDARY"`
     - `entityType`: `"FARM_AREA"`
-    - `beforeValue`: Tọa độ ranh giới cũ (JSON string)
-    - `afterValue`: Tọa độ ranh giới mới (JSON string)
+    - `entityId`: ID vùng trồng (`farm_areas.id`)
+    - `beforeValue`: Snapshot JSON phiên bản cũ; `null` khi thiết lập lần đầu
+    - `afterValue`: Snapshot JSON phiên bản mới
+  - Snapshot chỉ được phát sau khi transaction cập nhật ranh giới hoàn tất thành công, bảo đảm lịch sử không ghi nhận một phiên bản chưa được lưu.
 
 ---
 
 ## 10. Tác động Cơ sở dữ liệu & Migration
 
-### Migration SQL (`V20260915150000__add_boundary_to_farm_areas.sql`):
+### Migration SQL dự kiến (`V<timestamp>__add_farm_area_boundary.sql`)
+
+Tên migration thực tế được tạo ở CV-04 theo timestamp tại thời điểm triển khai và phải được kiểm tra không trùng phiên bản trước khi commit.
+
 ```sql
 ALTER TABLE farm_areas
-    ADD COLUMN boundary GEOMETRY NULL,
+    ADD COLUMN boundary POLYGON SRID 4326,
     ADD COLUMN calculated_area DECIMAL(10, 4) NULL,
     ADD COLUMN boundary_updated_at DATETIME NULL;
-
--- Tạo Spatial Index hỗ trợ truy vấn không gian
-CREATE SPATIAL INDEX idx_farm_area_boundary ON farm_areas (boundary);
 ```
 
-- Sử dụng kiểu `GEOMETRY` (hoặc `POLYGON`) tương thích MySQL 8 và Hibernate Spatial (`org.locationtech.jts.geom.Polygon`).
-- Cột `boundary` cho phép `NULL` đảm bảo tính tương thích ngược với các vùng trồng cũ chưa kịp khoanh ranh giới.
+| Cột | Kiểu | Null | Ý nghĩa / ràng buộc |
+|---|---|---:|---|
+| `boundary` | `POLYGON SRID 4326` | Có | Ranh giới hiện hành; chỉ nhận Polygon WGS84. Không suy diễn từ `location`. |
+| `calculated_area` | `DECIMAL(10,4)` | Có | Diện tích backend tính, đơn vị hecta, làm tròn `HALF_UP` 4 chữ số. Có giá trị khi `boundary` có giá trị. |
+| `boundary_updated_at` | `DATETIME` | Có | Thời điểm thiết lập/cập nhật ranh giới gần nhất. Có giá trị khi `boundary` có giá trị. |
+
+Ràng buộc nhất quán do service duy trì trong cùng transaction:
+
+- `boundary IS NULL` thì `calculated_area IS NULL` và `boundary_updated_at IS NULL`.
+- `boundary IS NOT NULL` thì `calculated_area > 0` và `boundary_updated_at IS NOT NULL`.
+- Không backfill dữ liệu cũ và không thay đổi `location`, `area`, `area_unit` hiện có.
+- Không tạo spatial index trong migration này. MySQL 8.4 yêu cầu geometry được lập spatial index phải là `NOT NULL`, không phù hợp với chiến lược tương thích dữ liệu cũ của Story.
+
+Ánh xạ entity dự kiến ở CV-04:
+
+```java
+@Column(name = "boundary", columnDefinition = "POLYGON SRID 4326")
+private Polygon boundary;
+
+@Column(name = "calculated_area", precision = 10, scale = 4)
+private BigDecimal calculatedArea;
+
+@Column(name = "boundary_updated_at")
+private LocalDateTime boundaryUpdatedAt;
+```
 
 ---
 
@@ -364,6 +424,10 @@ CREATE SPATIAL INDEX idx_farm_area_boundary ON farm_areas (boundary);
 - [ ] **TC-10 (Boundary contract):** Backend tự khép kín danh sách 3 đỉnh phân biệt; từ chối request lặp điểm đầu ở cuối, đỉnh liên tiếp trùng nhau hoặc polygon có diện tích bằng 0.
 - [ ] **TC-11 (Ngưỡng biên):** Chênh lệch bằng đúng ngưỡng được lưu không cần xác nhận; chỉ giá trị lớn hơn ngưỡng mới trả `409`.
 - [ ] **TC-12 (Nguồn diện tích):** Frontend hiển thị xem trước nhưng lưu và cảnh báo theo diện tích backend tính lại trên WGS84.
+- [ ] **TC-13 (Migration tương thích):** Sau migration, vùng trồng cũ có ba cột mới bằng `NULL` vẫn được đọc/cập nhật bằng các API hiện hành.
+- [ ] **TC-14 (SRID và thứ tự đỉnh):** Polygon lưu trong DB có `ST_SRID(boundary) = 4326`; vòng ngoài được khép kín trong geometry nhưng response không lặp đỉnh đầu ở cuối `points`.
+- [ ] **TC-15 (Phiên bản đầu tiên):** Thiết lập ranh giới lần đầu tạo ActivityLog với `beforeValue = null` và `afterValue` là snapshot schema version 1.
+- [ ] **TC-16 (Phiên bản cập nhật):** Chỉnh sửa thành công tạo ActivityLog chứa đúng snapshot cũ/mới; request bị từ chối không tạo bản ghi phiên bản.
 
 ---
 
@@ -386,8 +450,11 @@ CREATE SPATIAL INDEX idx_farm_area_boundary ON farm_areas (boundary);
   - Phân quyền: `VT-02` quản lý tổ chức.
   - Audit log: ghi vào `ActivityLog`.
   - Public trace: chỉ xem, không sửa (`QTN-12`).
+  - CV-02 hoàn tất: lưu ranh giới hiện hành bằng `POLYGON SRID 4326`, diện tích bằng `DECIMAL(10,4)` theo hecta và thời điểm cập nhật trên `farm_areas`.
+  - Ba cột mới nullable, không backfill từ `location POINT`, bảo đảm vùng trồng cũ tiếp tục hoạt động.
+  - Phiên bản cũ/mới dùng snapshot JSON schema version 1 trong `ActivityLog.beforeValue/afterValue`; không tạo bảng lịch sử riêng.
+  - Chưa tạo spatial index vì `boundary` cần nullable và Story chưa có truy vấn không gian; nếu phát sinh nhu cầu sẽ xử lý bằng migration riêng sau khi có chiến lược backfill.
 
-- **Còn thuộc các công việc sau CV-01:**
-  - CV-02 chốt DDL cụ thể cho kiểu `POLYGON/GEOMETRY`, SRID và chiến lược spatial index tương thích dữ liệu `NULL`.
+- **Còn thuộc các công việc sau CV-02:**
   - CV-03 chốt chi tiết tương tác vẽ/kéo/dán tọa độ trên giao diện.
   - CV-04/CV-05 triển khai và kiểm thử theo contract đã chốt.
