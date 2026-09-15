@@ -3,8 +3,9 @@ package vn.nguongocso.farm.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -25,14 +26,14 @@ import org.locationtech.jts.geom.PrecisionModel;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import vn.nguongocso.alert.event.ActivityLogEvent;
+import vn.nguongocso.alert.dto.request.ActivityLogRequest;
+import vn.nguongocso.alert.service.ActivityLogService;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.config.FarmAreaBoundaryProperties;
@@ -52,7 +53,7 @@ class FarmAreaBoundaryServiceImplTest {
     private FarmAreaRepository farmAreaRepository;
 
     @Mock
-    private ApplicationEventPublisher eventPublisher;
+    private ActivityLogService activityLogService;
 
     @Mock
     private CustomUserDetails currentUser;
@@ -69,7 +70,7 @@ class FarmAreaBoundaryServiceImplTest {
         FarmAreaBoundaryProperties properties = new FarmAreaBoundaryProperties();
         properties.setBoundaryDeviationThresholdPercent(new BigDecimal("30.0"));
         service = new FarmAreaBoundaryServiceImpl(
-                farmAreaRepository, geometryFactory, properties, new ObjectMapper(), eventPublisher);
+                farmAreaRepository, geometryFactory, properties, new ObjectMapper(), activityLogService);
 
         organizationId = UUID.randomUUID();
         farmAreaId = UUID.randomUUID();
@@ -131,7 +132,7 @@ class FarmAreaBoundaryServiceImplTest {
                 });
 
         verify(farmAreaRepository, never()).save(any());
-        verify(eventPublisher, never()).publishEvent(any());
+        verify(activityLogService, never()).logActivity(any());
     }
 
     @Test
@@ -197,7 +198,7 @@ class FarmAreaBoundaryServiceImplTest {
     }
 
     @Test
-    void updateBoundary_shouldPublishOldAndNewSnapshots() {
+    void updateBoundary_shouldSaveOldAndNewSnapshots() {
         farmArea.setBoundary(createPolygon(validSquare()));
         farmArea.setCalculatedArea(new BigDecimal("1.1000"));
         when(farmAreaRepository.findById(farmAreaId)).thenReturn(Optional.of(farmArea));
@@ -206,14 +207,28 @@ class FarmAreaBoundaryServiceImplTest {
                 point(21.0000, 105.0000), point(21.0000, 105.0012),
                 point(21.0010, 105.0012), point(21.0010, 105.0000)), false));
 
-        ArgumentCaptor<ActivityLogEvent> captor = ArgumentCaptor.forClass(ActivityLogEvent.class);
-        verify(eventPublisher).publishEvent(captor.capture());
-        ActivityLogEvent event = captor.getValue();
-        assertThat(event.getAction()).isEqualTo("UPDATE_FARM_AREA_BOUNDARY");
-        assertThat(event.getActorRole()).isEqualTo("VT-02");
-        assertThat(event.getEntityId()).isEqualTo(farmAreaId.toString());
-        assertThat(event.getBeforeValue()).contains("\"schemaVersion\":1", "\"calculatedArea\":1.1000");
-        assertThat(event.getAfterValue()).contains("\"schemaVersion\":1", "\"points\"");
+        ArgumentCaptor<ActivityLogRequest> captor = ArgumentCaptor.forClass(ActivityLogRequest.class);
+        verify(activityLogService).logActivity(captor.capture());
+        ActivityLogRequest logRequest = captor.getValue();
+        assertThat(logRequest.getAction()).isEqualTo("UPDATE_FARM_AREA_BOUNDARY");
+        assertThat(logRequest.getActorRole()).isEqualTo("VT-02");
+        assertThat(logRequest.getEntityId()).isEqualTo(farmAreaId);
+        assertThat(logRequest.getBeforeValue()).contains("\"schemaVersion\":1", "\"calculatedArea\":1.1000");
+        assertThat(logRequest.getAfterValue()).contains("\"schemaVersion\":1", "\"points\"");
+    }
+
+    @Test
+    void updateBoundary_shouldPropagateAuditFailure() {
+        when(farmAreaRepository.findById(farmAreaId)).thenReturn(Optional.of(farmArea));
+        doThrow(new IllegalStateException("Không thể lưu nhật ký"))
+                .when(activityLogService).logActivity(any(ActivityLogRequest.class));
+
+        assertThatThrownBy(() -> service.updateBoundary(farmAreaId, request(validSquare(), false)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Không thể lưu nhật ký");
+
+        verify(farmAreaRepository).save(farmArea);
+        verify(activityLogService).logActivity(any(ActivityLogRequest.class));
     }
 
     @Test

@@ -66,7 +66,7 @@ Cho phép **Quản lý hợp tác xã (`VT-02`)** khoanh ranh giới vùng trồ
 1. **`NCL-02-CN-008-CV-01` (Phân tích nghiệp vụ):**
    Chốt cách nhập và khép kín ranh giới; số đỉnh phân biệt tối thiểu = 3; backend tính diện tích trắc địa trên WGS84 và chuyển đổi về hecta; ngưỡng cảnh báo là cấu hình, mặc định 30%.
 2. **`NCL-02-CN-008-CV-02` (Thiết kế dữ liệu):**
-   Bổ sung trường lưu trữ hình học `boundary` (Polygon SRID 4326), `calculated_area` (Decimal) vào bảng `farm_areas`. Bắn sự kiện `ActivityLogEvent` để lưu lịch sử phiên bản.
+   Bổ sung trường lưu trữ hình học `boundary` (Polygon SRID 4326), `calculated_area` (Decimal) vào bảng `farm_areas`. Ghi `ActivityLog` trong cùng transaction để lưu lịch sử phiên bản.
 3. **`NCL-02-CN-008-CV-03` (Thiết kế giao diện):**
    Dựng công cụ vẽ đa giác trên nền Leaflet, hỗ trợ chấm đỉnh, kéo đỉnh và dán danh sách tọa độ từ clipboard; tính diện tích tức thời; hiển thị hộp thoại xác nhận khi lệch vượt ngưỡng cấu hình.
 4. **`NCL-02-CN-008-CV-04` (Phát triển máy chủ):**
@@ -104,7 +104,7 @@ $$
 | Diện tích tính toán | Lưu ở `farm_areas.calculated_area` bằng `DECIMAL(10,4)`, đơn vị cố định là hecta. Không dùng `area_unit` cho trường này; `area` và `area_unit` hiện có tiếp tục biểu diễn diện tích khai báo. |
 | Thời điểm thay đổi | `farm_areas.boundary_updated_at` lưu thời điểm ranh giới được thiết lập hoặc cập nhật thành công. Không cập nhật trường này khi request bị từ chối hoặc chỉ sửa thông tin vùng trồng khác. |
 | Tương thích dữ liệu cũ | Ba cột mới đều cho phép `NULL`; không backfill polygon từ `location POINT` vì một điểm không đủ suy ra ranh giới. Vùng trồng cũ tiếp tục hoạt động và API trả `points = []`, `calculatedArea = null` khi chưa khoanh ranh giới. |
-| Phiên bản ranh giới | Không tạo bảng phiên bản riêng. Mỗi lần lưu thành công phát `ActivityLogEvent`; `activity_logs.before_value` và `after_value` lưu snapshot JSON gọn của phiên bản cũ/mới, còn `entity_id` liên kết logic tới `farm_areas.id`. |
+| Phiên bản ranh giới | Không tạo bảng phiên bản riêng. Mỗi lần lưu ghi `ActivityLog` trong cùng transaction; `activity_logs.before_value` và `after_value` lưu snapshot JSON gọn của phiên bản cũ/mới, còn `entity_id` liên kết logic tới `farm_areas.id`. Nếu không ghi được audit thì cập nhật ranh giới cũng rollback. |
 | Spatial index | Chưa tạo spatial index trong Story này. `boundary` phải nullable để tương thích dữ liệu cũ, trong khi MySQL 8.4 yêu cầu cột geometry thuộc spatial index là `NOT NULL`; các endpoint hiện tại cũng truy xuất theo khóa vùng trồng thay vì truy vấn giao/cắt không gian. Chỉ bổ sung index bằng migration mới khi có User Story tìm kiếm không gian và chiến lược backfill bắt buộc `boundary`. |
 
 Snapshot audit dùng cùng một cấu trúc cho `beforeValue` và `afterValue`:
@@ -148,8 +148,8 @@ Snapshot audit dùng cùng một cấu trúc cho `beforeValue` và `afterValue`:
 - Diện tích chính thức được tính trên ellipsoid WGS84 bằng GeographicLib, đổi sang hecta và lưu `HALF_UP` với 4 chữ số thập phân.
 - Ngưỡng chênh lệch lấy từ cấu hình; request vượt ngưỡng chỉ được lưu khi gửi lại với `confirmed=true`.
 - Migration `V20260915110702__add_farm_area_boundary.sql` bổ sung ba cột nullable và không thay đổi dữ liệu vùng trồng cũ.
-- Audit snapshot cũ/mới chỉ được phát sau khi transaction cập nhật DB commit thành công.
-- Đã bổ sung unit test service và web-layer test cho phân quyền, validation, xác nhận chênh lệch, SRID, response và audit event.
+- Audit snapshot cũ/mới được ghi nguyên tử trong cùng transaction với cập nhật ranh giới; lỗi ghi audit làm rollback toàn bộ cập nhật.
+- Đã bổ sung unit test service và web-layer test cho phân quyền, validation, xác nhận chênh lệch, SRID, response và audit nguyên tử.
 
 ---
 
@@ -203,7 +203,7 @@ Snapshot audit dùng cùng một cấu trúc cho `beforeValue` và `afterValue`:
                     │
                     ▼
           [Lưu ranh giới + diện tích tính được vào DB]
-          [Ghi ActivityLog phiên bản ranh giới cũ & mới]
+          [Ghi ActivityLog phiên bản ranh giới cũ & mới trong cùng transaction]
                     │
                     ▼
           [Hoàn tất - HTTP 200 OK]
@@ -374,7 +374,7 @@ Chi tiết payload phản hồi khi cần xác nhận chênh lệch diện tích
 - **An toàn tra cứu công khai (`QTN-12`):**
   - Endpoint công khai chỉ trả về tọa độ phục vụ vẽ bản đồ, không trả về ID người tạo, ghi chú nội bộ, hay dữ liệu quản trị tổ chức.
 - **Audit Logging (`CV-02`):**
-  - Bắn sự kiện `ActivityLogEvent`:
+  - Ghi `ActivityLog` trong cùng transaction:
     - `action`: `"UPDATE_FARM_AREA_BOUNDARY"`
     - `entityType`: `"FARM_AREA"`
     - `entityId`: ID vùng trồng (`farm_areas.id`)
@@ -558,6 +558,6 @@ private LocalDateTime boundaryUpdatedAt;
   - Công cụ vẽ tái sử dụng React Leaflet hiện có với click để thêm, marker kéo được, danh sách xóa đỉnh và textarea dán tọa độ; không thêm plugin bản đồ.
   - Dialog xác nhận chỉ mở theo lỗi `409` và hiển thị số liệu backend; `confirmed=true` không được gửi tự động.
   - Đã chốt đầy đủ trạng thái loading, empty, invalid, dirty, saving, conflict, success, forbidden/not-found, server error, responsive và cảnh báo mất draft.
-  - CV-04 hoàn tất: đã triển khai migration, entity, cấu hình, API nội bộ, validation polygon, tính diện tích WGS84, xác nhận vượt ngưỡng và audit sau commit.
+  - CV-04 hoàn tất: đã triển khai migration, entity, cấu hình, API nội bộ, validation polygon, tính diện tích WGS84, xác nhận vượt ngưỡng và audit trong cùng transaction.
   - CV-05 hoàn tất: tích hợp ranh giới vùng trồng vào `PublicTraceResponse` (`PublicFarmAreaBoundaryDto`) và hiển thị trực quan dạng polygon trên `RouteMap` ở trang tra cứu công khai `TraceLookupPage` (chế độ chỉ xem, `QTN-12`).
   - Toàn bộ backend test (PublicTraceControllerTest, PublicTraceServiceImplTest) và frontend typecheck / build đều PASS.

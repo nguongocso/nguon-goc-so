@@ -17,12 +17,9 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.operation.valid.IsValidOp;
 import org.locationtech.jts.operation.valid.TopologyValidationError;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,7 +28,8 @@ import lombok.RequiredArgsConstructor;
 import net.sf.geographiclib.Geodesic;
 import net.sf.geographiclib.PolygonArea;
 import net.sf.geographiclib.PolygonResult;
-import vn.nguongocso.alert.event.ActivityLogEvent;
+import vn.nguongocso.alert.dto.request.ActivityLogRequest;
+import vn.nguongocso.alert.service.ActivityLogService;
 import vn.nguongocso.auth.security.SecurityUtils;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.util.IpUtils;
@@ -63,7 +61,7 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
     private final GeometryFactory geometryFactory;
     private final FarmAreaBoundaryProperties properties;
     private final ObjectMapper objectMapper;
-    private final ApplicationEventPublisher eventPublisher;
+    private final ActivityLogService activityLogService;
 
     @Override
     @Transactional(readOnly = true)
@@ -106,7 +104,7 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
         farmArea.setBoundaryUpdatedAt(updatedAt);
         farmAreaRepository.save(farmArea);
 
-        publishActivityLogAfterCommit(currentUser, farmArea, beforeValue, afterValue, updatedAt);
+        saveActivityLog(currentUser, farmArea, beforeValue, afterValue);
         return toResponse(farmArea, responseDeviation);
     }
 
@@ -264,9 +262,9 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
         }
     }
 
-    private void publishActivityLogAfterCommit(CustomUserDetails currentUser, FarmArea farmArea,
-            String beforeValue, String afterValue, LocalDateTime timestamp) {
-        ActivityLogEvent event = ActivityLogEvent.builder()
+    private void saveActivityLog(CustomUserDetails currentUser, FarmArea farmArea,
+            String beforeValue, String afterValue) {
+        activityLogService.logActivity(ActivityLogRequest.builder()
                 .userId(currentUser.getUserId())
                 .username(currentUser.getUsername())
                 .fullName(currentUser.getFullName())
@@ -275,24 +273,11 @@ public class FarmAreaBoundaryServiceImpl implements FarmAreaBoundaryService {
                 .action("UPDATE_FARM_AREA_BOUNDARY")
                 .description("Cập nhật ranh giới vùng trồng '" + farmArea.getName() + "'")
                 .entityType("FARM_AREA")
-                .entityId(farmArea.getId().toString())
+                .entityId(farmArea.getId())
                 .beforeValue(beforeValue)
                 .afterValue(afterValue)
                 .ipAddress(IpUtils.getClientIp())
-                .timestamp(timestamp)
-                .build();
-
-        if (TransactionSynchronizationManager.isActualTransactionActive()
-                && TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    eventPublisher.publishEvent(event);
-                }
-            });
-            return;
-        }
-        eventPublisher.publishEvent(event);
+                .build());
     }
 
     private FarmAreaBoundaryResponse toResponse(FarmArea farmArea) {

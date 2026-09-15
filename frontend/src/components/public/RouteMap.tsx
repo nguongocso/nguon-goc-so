@@ -22,6 +22,40 @@ interface RouteMapProps {
   farmAreaBoundary?: PublicFarmAreaBoundary | null;
 }
 
+export const createFarmAreaBoundaryPopupContent = (
+  name: string | null | undefined,
+  areaText: string
+): HTMLDivElement => {
+  const container = document.createElement('div');
+  container.style.cssText = 'font-family: system-ui; padding: 4px; min-width: 160px;';
+
+  const title = document.createElement('strong');
+  title.style.cssText = 'font-size: 14px; color: #059669;';
+  title.textContent = '🌿 Vùng trồng';
+  container.appendChild(title);
+
+  const nameRow = document.createElement('div');
+  nameRow.style.cssText = 'margin-top: 4px; font-size: 13px;';
+  const nameLabel = document.createElement('strong');
+  nameLabel.textContent = 'Tên:';
+  nameRow.append(nameLabel, document.createTextNode(` ${name ?? '—'}`));
+  container.appendChild(nameRow);
+
+  const areaRow = document.createElement('div');
+  areaRow.style.cssText = 'font-size: 13px;';
+  const areaLabel = document.createElement('strong');
+  areaLabel.textContent = 'Diện tích tính toán:';
+  areaRow.append(areaLabel, document.createTextNode(` ${areaText}`));
+  container.appendChild(areaRow);
+
+  const note = document.createElement('div');
+  note.style.cssText = 'font-size: 11px; color: #6b7280; margin-top: 4px;';
+  note.textContent = 'Ranh giới hiển thị chỉ mang tính tham khảo.';
+  container.appendChild(note);
+
+  return container;
+};
+
 export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
@@ -89,18 +123,7 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
           : 'Chưa tính';
 
       polygon.bindPopup(
-        `<div style="font-family: system-ui; padding: 4px; min-width: 160px;">
-          <strong style="font-size: 14px; color: #059669;">🌿 Vùng trồng</strong>
-          <div style="margin-top: 4px; font-size: 13px;">
-            <strong>Tên:</strong> ${farmAreaBoundary?.name ?? '—'}
-          </div>
-          <div style="font-size: 13px;">
-            <strong>Diện tích tính toán:</strong> ${areaText}
-          </div>
-          <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
-            Ranh giới hiển thị chỉ mang tính tham khảo.
-          </div>
-        </div>`
+        createFarmAreaBoundaryPopupContent(farmAreaBoundary?.name, areaText)
       );
     }
 
