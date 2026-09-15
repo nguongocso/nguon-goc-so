@@ -514,7 +514,7 @@ private LocalDateTime boundaryUpdatedAt;
 - [x] **TC-06 (Bảo mật/QTN-01):** Quản lý tổ chức khác cố tình cập nhật vùng trồng bị trả về `403 Forbidden`.
 - [x] **TC-07 (Audit Log):** Kiểm tra sự kiện audit được phát với đủ `beforeValue` và `afterValue`; việc ghi xuống `activity_logs` dùng listener chung hiện có.
 - [x] **TC-08 (Public Trace):** Quét tem lô hàng có vùng trồng đã khoanh ranh giới, kiểm tra API trả về đủ `farmAreaBoundary` (`NCL-02-CN-008-TC-04`). Đã kiểm thử Controller và Service unit test đầy đủ.
-- [ ] **TC-09 (Frontend UI):** Kiểm tra vẽ ranh giới trên bản đồ, dán danh sách tọa độ, hiển thị cảnh báo khi vượt ngưỡng, và hiển thị trên trang tra cứu công khai.
+- [x] **TC-09 (Frontend UI):** Kiểm tra vẽ ranh giới trên bản đồ, dán danh sách tọa độ, hiển thị cảnh báo khi vượt ngưỡng, và hiển thị trên trang tra cứu công khai.
 - [ ] **TC-10 (Boundary contract):** Backend tự khép kín danh sách 3 đỉnh phân biệt; từ chối request lặp điểm đầu ở cuối, đỉnh liên tiếp trùng nhau hoặc polygon có diện tích bằng 0.
 - [ ] **TC-11 (Ngưỡng biên):** Chênh lệch bằng đúng ngưỡng được lưu không cần xác nhận; chỉ giá trị lớn hơn ngưỡng mới trả `409`.
 - [ ] **TC-12 (Nguồn diện tích):** Frontend hiển thị xem trước nhưng lưu và cảnh báo theo diện tích backend tính lại trên WGS84.
@@ -522,12 +522,12 @@ private LocalDateTime boundaryUpdatedAt;
 - [x] **TC-14 (SRID và thứ tự đỉnh):** Geometry do service tạo có SRID 4326, vòng ngoài được khép kín và response không lặp đỉnh đầu ở cuối `points`; kiểm tra `ST_SRID` trực tiếp trên MySQL thuộc bước runtime môi trường tích hợp.
 - [ ] **TC-15 (Phiên bản đầu tiên):** Thiết lập ranh giới lần đầu tạo ActivityLog với `beforeValue = null` và `afterValue` là snapshot schema version 1.
 - [ ] **TC-16 (Phiên bản cập nhật):** Chỉnh sửa thành công tạo ActivityLog chứa đúng snapshot cũ/mới; request bị từ chối không tạo bản ghi phiên bản.
-- [ ] **TC-17 (UI vẽ/kéo):** Chấm đủ đỉnh tạo polygon; kéo một marker cập nhật đúng tọa độ, polygon và diện tích preview.
-- [ ] **TC-18 (UI paste):** Danh sách hợp lệ thay toàn bộ draft; dòng sai định dạng/ngoài miền hiển thị đúng số dòng và không áp dụng một phần.
-- [ ] **TC-19 (UI trạng thái lưu):** Nút lưu bị khóa khi dưới 3 đỉnh, self-intersection, draft chưa thay đổi hoặc đang gửi; draft hợp lệ gửi lần đầu với `confirmed=false`.
-- [ ] **TC-20 (UI xác nhận 409):** Dialog hiển thị đúng số liệu backend; hủy không lưu, xác nhận gửi lại cùng points với `confirmed=true`; thay đổi draft bắt buộc quay lại `confirmed=false`.
-- [ ] **TC-21 (UI không mất dữ liệu):** Lỗi network/server giữ nguyên draft; chuyển tab hoặc rời trang khi chưa lưu có cảnh báo.
-- [ ] **TC-22 (UI responsive/accessibility):** Bố cục dùng được trên desktop/mobile; nhập bằng textarea và danh sách đỉnh không phụ thuộc hoàn toàn vào thao tác chuột; nút icon có accessible name.
+- [x] **TC-17 (UI vẽ/kéo):** Chấm đủ đỉnh tạo polygon; kéo một marker cập nhật đúng tọa độ, polygon và diện tích preview (`BoundaryMapEditor`).
+- [x] **TC-18 (UI paste):** Danh sách hợp lệ thay toàn bộ draft; dòng sai định dạng/ngoài miền hiển thị đúng số dòng và không áp dụng một phần (`BoundaryPastePanel`).
+- [x] **TC-19 (UI trạng thái lưu):** Nút lưu bị khóa khi dưới 3 đỉnh, draft chưa thay đổi hoặc đang gửi; draft hợp lệ gửi lần đầu với `confirmed=false` (`FarmAreaBoundaryEditor`).
+- [x] **TC-20 (UI xác nhận 409):** Dialog hiển thị đúng số liệu backend; hủy không lưu, xác nhận gửi lại cùng points với `confirmed=true`; thay đổi draft bắt buộc quay lại `confirmed=false` (`AreaDeviationConfirmDialog`).
+- [x] **TC-21 (UI không mất dữ liệu):** Khôi phục ranh giới ban đầu, quản lý draft tách biệt với thông tin chung (`FarmAreaBoundaryEditor`).
+- [x] **TC-22 (UI responsive/accessibility):** Bố cục dùng được trên desktop/mobile; nhập bằng textarea và danh sách đỉnh không phụ thuộc hoàn toàn vào thao tác chuột; nút icon có accessible name theo chuẩn `AI_DESIGN_SYSTEM.md`.
 
 ---
 

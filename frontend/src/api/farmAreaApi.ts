@@ -1,5 +1,12 @@
 import apiClient from './axiosConfig';
-import type { FarmArea, CreateFarmAreaRequest, UpdateFarmAreaRequest, CropType } from '@/types/farmArea';
+import type {
+  FarmArea,
+  CreateFarmAreaRequest,
+  UpdateFarmAreaRequest,
+  CropType,
+  FarmAreaBoundaryResponse,
+  UpdateFarmAreaBoundaryRequest,
+} from '@/types/farmArea';
 
 // Lấy danh sách vùng trồng
 export const getFarmAreas = async (activeOnly?: boolean): Promise<FarmArea[]> => {
@@ -48,3 +55,18 @@ export const getCropTypes = async (): Promise<CropType[]> => {
     name: item.name,
   }));
 };
+
+/** Lấy ranh giới vùng trồng (CV-04). */
+export const getFarmAreaBoundary = async (id: string): Promise<FarmAreaBoundaryResponse> => {
+  const response = await apiClient.get<{ data: FarmAreaBoundaryResponse }>(`/farm-areas/${id}/boundary`);
+  return response.data.data;
+};
+
+/** Cập nhật ranh giới vùng trồng (CV-04). */
+export const updateFarmAreaBoundary = async (
+  id: string,
+  data: UpdateFarmAreaBoundaryRequest
+): Promise<FarmAreaBoundaryResponse> => {
+  const response = await apiClient.put<{ data: FarmAreaBoundaryResponse }>(`/farm-areas/${id}/boundary`, data);
+  return response.data.data;
+};
