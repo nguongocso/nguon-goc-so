@@ -31,6 +31,7 @@ public class PartnerLotController {
     private static final Logger log = LoggerFactory.getLogger(PartnerLotController.class);
 
     private final PartnerLotService partnerLotService;
+    private final vn.nguongocso.integration.partner.service.PartnerLotAccessService partnerLotAccessService;
 
     /**
      * Lấy hồ sơ truy xuất đầy đủ của lô sản xuất (TC-01, TC-02, TC-03, TC-04).
@@ -49,6 +50,10 @@ public class PartnerLotController {
                 partnerApiKey.getPartnerName(), partnerApiKey.getId(), lotId);
 
         PartnerLotDossierResponse response = partnerLotService.getLotDossierForPartner(lotId, partnerApiKey);
+
+        // Ghi nhận nhật ký truy xuất lô của đối tác phục vụ thông báo thu hồi (NCL-12-CN-006 / TC-03)
+        partnerLotAccessService.recordLotAccess(partnerApiKey, null, lotId);
+
         return ResponseEntity.ok(ApiResult.success(response));
     }
 }

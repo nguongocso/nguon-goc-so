@@ -29,6 +29,7 @@ public class PartnerTraceController {
     private static final Logger log = LoggerFactory.getLogger(PartnerTraceController.class);
 
     private final PublicTraceService publicTraceService;
+    private final vn.nguongocso.integration.partner.service.PartnerLotAccessService partnerLotAccessService;
 
     /**
      * Lấy dữ liệu truy xuất công khai cho bên thứ ba.
@@ -62,6 +63,11 @@ public class PartnerTraceController {
                 getClientIp(request),
                 request.getHeader("User-Agent"));
         response.setIsTest(false);
+
+        // Ghi nhận nhật ký truy xuất lô của đối tác (NCL-12-CN-006 / TC-03)
+        if (partnerApiKey != null && response.getProductionLotId() != null) {
+            partnerLotAccessService.recordLotAccess(partnerApiKey, null, response.getProductionLotId());
+        }
 
         return ResponseEntity.ok(ApiResult.success(response));
     }
