@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Key, PlusCircle, ShieldCheck, Ban, FlaskConical, BookOpen } from 'lucide-react';
+import { Key, PlusCircle, ShieldCheck, Ban, FlaskConical, BookOpen, Webhook, History } from 'lucide-react';
 import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import type { PartnerApiKeyResponse, PartnerApiKeyStatus } from '@/types/apiKey'
 import { ApiKeyStatusBadge } from '@/components/apiKey/ApiKeyStatusBadge';
 import { RawApiKeyModal } from '@/components/apiKey/RawApiKeyModal';
 import { RevokeApiKeyDialog } from '@/components/apiKey/RevokeApiKeyDialog';
+import { WebhookConfigModal } from '@/components/apiKey/WebhookConfigModal';
 
 import { usePermission } from '@/hooks/usePermission';
 import { HelpButton } from '@/components/help/HelpButton';
@@ -54,6 +55,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
   // States quản lý Modal
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<PartnerApiKeyResponse | null>(null);
   const [revokeKeyTarget, setRevokeKeyTarget] = useState<PartnerApiKeyResponse | null>(null);
+  const [webhookConfigTarget, setWebhookConfigTarget] = useState<PartnerApiKeyResponse | null>(null);
 
 
   const fetchApiKeys = async () => {
@@ -210,7 +212,8 @@ export const PartnerApiKeyListPage: React.FC = () => {
               <TableHead className="text-center">Lượt gọi (Tổng / Lỗi)</TableHead>
               <TableHead>Thời hạn hết hạn</TableHead>
               <TableHead>Trạng thái</TableHead>
-              {canManage && <TableHead className="text-center">Thao tác</TableHead>}
+              <TableHead>Kênh nhận tin thu hồi</TableHead>
+              <TableHead className="text-center">Thao tác</TableHead>
             </>
           }
           body={
@@ -230,7 +233,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
                           )}
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
-                          Tạo bởi: {item.createdByFullName || 'Hệ thống'} • {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+                          Tạo bởi: {item.createdByFullName || item.createdByName || 'Hệ thống'} • {new Date(item.createdAt).toLocaleDateString('vi-VN')}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -266,29 +269,77 @@ export const PartnerApiKeyListPage: React.FC = () => {
                       <TableCell>
                         <ApiKeyStatusBadge status={item.status} />
                       </TableCell>
-                      {canManage && (
-                        <TableCell className="text-center">
-                          {item.status === 'ACTIVE' ? (
+                      <TableCell>
+                        {item.webhookUrl ? (
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`inline-block w-2 h-2 rounded-full shrink-0 ${
+                                  item.isWebhookActive !== false ? 'bg-emerald-500' : 'bg-amber-500'
+                                }`}
+                              />
+                              <span
+                                className="font-mono text-xs text-foreground truncate max-w-[130px]"
+                                title={item.webhookUrl}
+                              >
+                                {item.webhookUrl.replace(/^https?:\/\//, '')}
+                              </span>
+                            </div>
+                            <div className="text-[11px]">
+                              {item.isWebhookActive !== false ? (
+                                <span className="text-emerald-600 dark:text-emerald-400 font-medium">Đang nhận tin</span>
+                              ) : (
+                                <span className="text-amber-600 dark:text-amber-400 font-medium">Tạm dừng</span>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">Chưa cấu hình</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          {canManage && (
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => setWebhookConfigTarget(item)}
+                              title="Khai báo thông tin nhận thông báo thu hồi"
+                              className="text-primary hover:text-primary hover:bg-primary/10"
+                            >
+                              <Webhook className="h-4 w-4" />
+                            </Button>
+                          )}
+
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => navigate(`/integration/api-keys/${item.id}/notifications`, { state: { apiKey: item } })}
+                            title="Lịch sử gửi thông báo thu hồi"
+                            className="text-muted-foreground hover:text-foreground hover:bg-muted"
+                          >
+                            <History className="h-4 w-4" />
+                          </Button>
+
+                          {canManage && item.status === 'ACTIVE' && (
                             <Button
                               variant="ghost"
                               size="icon-sm"
                               onClick={() => setRevokeKeyTarget(item)}
-                              title="Thu hồi"
+                              title="Thu hồi khóa"
                               className="text-destructive hover:text-destructive hover:bg-muted"
                             >
                               <Ban className="h-4 w-4" />
                             </Button>
-                          ) : (
-                            <span className="text-xs text-muted-foreground italic">Không có thao tác</span>
                           )}
-                        </TableCell>
-                      )}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))
             }
             loading={loading}
             empty={!loading && filteredKeys.length === 0}
-            colSpan={canManage ? 8 : 7}
+            colSpan={9}
             loadingMessage="Đang tải danh sách khóa API..."
             emptyMessage="Không tìm thấy khóa truy cập nào."
           />
@@ -317,6 +368,13 @@ export const PartnerApiKeyListPage: React.FC = () => {
         apiKeyData={revokeKeyTarget}
         onClose={() => setRevokeKeyTarget(null)}
         onSuccess={handleRevokeSuccess}
+      />
+
+      <WebhookConfigModal
+        open={!!webhookConfigTarget}
+        apiKey={webhookConfigTarget}
+        onClose={() => setWebhookConfigTarget(null)}
+        onSuccess={fetchApiKeys}
       />
     </div>
   );

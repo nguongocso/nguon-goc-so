@@ -39,6 +39,7 @@ public class PartnerApiKeyController {
     private static final Logger log = LoggerFactory.getLogger(PartnerApiKeyController.class);
 
     private final PartnerApiKeyService partnerApiKeyService;
+    private final vn.nguongocso.integration.partner.service.PartnerWebhookService partnerWebhookService;
 
     /**
      * Cấp mới khóa truy cập cho bên thứ ba (TC-01, TC-03).
@@ -100,6 +101,52 @@ public class PartnerApiKeyController {
 
         log.info("Nhận yêu cầu thu hồi khóa truy cập id={}", id);
         PartnerApiKeyResponse response = partnerApiKeyService.revokeApiKey(id);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Đăng ký hoặc cập nhật địa chỉ nhận thông báo Webhook cho khóa API (NCL-12-CN-006).
+     */
+    @org.springframework.web.bind.annotation.PutMapping("/{id}/webhook")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<vn.nguongocso.integration.partner.dto.response.PartnerWebhookResponse>> registerWebhook(
+            @PathVariable UUID id,
+            @Valid @RequestBody vn.nguongocso.integration.partner.dto.request.PartnerWebhookRegistrationRequest request,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal vn.nguongocso.auth.service.CustomUserDetails currentUser) {
+
+        log.info("Cập nhật địa chỉ nhận thông báo webhook cho apiKeyId={}", id);
+        var response = partnerWebhookService.registerWebhookForOrganizationKey(id, request, currentUser);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Bắn thử nghiệm webhook kiểm tra kết nối tới máy chủ đối tác (NCL-12-CN-006).
+     */
+    @PostMapping("/{id}/webhook/test-ping")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<vn.nguongocso.integration.partner.dto.response.WebhookTestPingResponse>> testPingWebhook(
+            @PathVariable UUID id,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal vn.nguongocso.auth.service.CustomUserDetails currentUser) {
+
+        log.info("Bắn thử nghiệm webhook cho apiKeyId={}", id);
+        var response = partnerWebhookService.sendTestPing(id, currentUser);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Xem lịch sử thông báo thu hồi đã gửi cho khóa API đối tác (NCL-12-CN-006).
+     */
+    @GetMapping("/{id}/notifications")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<Page<vn.nguongocso.integration.partner.dto.response.PartnerWebhookNotificationResponse>>> getNotifications(
+            @PathVariable UUID id,
+            @RequestParam(required = false) vn.nguongocso.integration.partner.enums.WebhookDeliveryStatus deliveryStatus,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal vn.nguongocso.auth.service.CustomUserDetails currentUser) {
+
+        PageRequest pageable = PageRequest.of(page, size);
+        var response = partnerWebhookService.getNotificationsForOrganizationKey(id, deliveryStatus, pageable, currentUser);
         return ResponseEntity.ok(ApiResult.success(response));
     }
 }

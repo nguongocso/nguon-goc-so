@@ -27,6 +27,7 @@ import vn.nguongocso.trace.recall.enums.LotResolution;
 import vn.nguongocso.trace.recall.enums.RecallCaseStatus;
 import vn.nguongocso.trace.recall.repository.RecallCaseRepository;
 import vn.nguongocso.trace.recall.repository.RecallLotResultRepository;
+import vn.nguongocso.integration.partner.service.PartnerRecallWebhookDispatcher;
 import vn.nguongocso.trace.recall.service.RecallCaseService;
 import vn.nguongocso.trace.repository.CodeRangeRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
@@ -89,6 +90,7 @@ public class RecallCaseServiceImpl implements RecallCaseService {
     private final ActivityLogService activityLogService;
     private final TraceCodeRepository traceCodeRepository;
     private final CodeRangeRepository codeRangeRepository;
+    private final PartnerRecallWebhookDispatcher partnerRecallWebhookDispatcher;
 
     /**
      * Danh sách vụ việc thu hồi của tổ chức hiện tại.
@@ -286,6 +288,13 @@ public class RecallCaseServiceImpl implements RecallCaseService {
 
         // 8. Gửi thông báo kết thúc thu hồi tới doanh nghiệp thu mua liên quan (TC-04)
         notifyProcurementOrganizations(recallCase, shipments);
+
+        // 8b. Gửi thông báo webhook tự động tới các bên thứ ba khi kết thúc thu hồi RECALLED (NCL-12-CN-006)
+        partnerRecallWebhookDispatcher.dispatchRecallNotifications(
+                shipments,
+                "RECALLED",
+                "Thu hồi theo quyết định xử lý vụ việc của hợp tác xã: " + recallCase.getCaseCode(),
+                remediation);
 
         // 9. Ghi lịch sử hoạt động (QTN-08)
         logCloseActivity(currentUser, recallCase, shipments.size());
