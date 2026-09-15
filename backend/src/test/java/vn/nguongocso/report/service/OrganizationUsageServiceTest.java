@@ -21,6 +21,7 @@ import vn.nguongocso.report.dto.response.OrganizationUsageDashboardResponse;
 import vn.nguongocso.report.dto.response.OrganizationUsageDashboardResponse.MetricComparison;
 import vn.nguongocso.report.dto.response.OrganizationUsageDashboardResponse.OrganizationUsageItem;
 import vn.nguongocso.report.repository.TraceCodeScanLogRepository;
+import vn.nguongocso.report.pdf.OrganizationUsagePdfGenerator;
 import vn.nguongocso.report.service.impl.OrganizationUsageServiceImpl;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
@@ -29,6 +30,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -37,6 +39,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -62,6 +65,8 @@ class OrganizationUsageServiceTest {
     private TraceCodeScanLogRepository traceCodeScanLogRepository;
     @Mock
     private ActivityLogRepository activityLogRepository;
+    @Mock
+    private OrganizationUsagePdfGenerator organizationUsagePdfGenerator;
 
     private OrganizationUsageService service;
 
@@ -75,7 +80,7 @@ class OrganizationUsageServiceTest {
         service = new OrganizationUsageServiceImpl(
                 organizationRepository, productionLotRepository, farmLogRepository,
                 chainEventRepository, traceCodeRepository, traceCodeScanLogRepository,
-                activityLogRepository, fixedClock);
+                activityLogRepository, organizationUsagePdfGenerator, fixedClock);
 
         orgA = buildOrg("HTX A", "HTXA", LocalDateTime.of(2026, 1, 10, 8, 0));
         orgB = buildOrg("HTX B", "HTXB", LocalDateTime.of(2026, 2, 15, 8, 0));
@@ -385,5 +390,62 @@ class OrganizationUsageServiceTest {
                 service.getDashboard(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30), null);
 
         assertThat(findItem(response, orgA.getOrganizationId()).getChainEvents().getCurrent()).isEqualTo(7);
+    }
+
+    @Test
+    @DisplayName("Xuất CSV: bảng tổng hợp 12 cột, cột Trạng thái là trạng thái sử dụng")
+    void exportCsv_HasSttColumn_AndLocalizedTypeStatus() {
+        when(organizationRepository.findAll()).thenReturn(List.of(orgA, orgB, orgC));
+        mockEmptyMetrics();
+        // Kỳ hiện tại có hoạt động cho orgA, kỳ trước có một phần để tính % so sánh
+        when(productionLotRepository.countLotsGroupedByOrg(any(), any()))
+                .thenReturn(rows(new Object[]{orgA.getOrganizationId(), 3L}))
+                .thenReturn(rows(new Object[]{orgA.getOrganizationId(), 2L}));
+        when(activityLogRepository.maxActivityAtGroupedByOrg()).thenReturn(rows(
+                new Object[]{orgA.getOrganizationId(), LocalDateTime.of(2026, 9, 12, 11, 0)},
+                new Object[]{orgB.getOrganizationId(), LocalDateTime.of(2026, 6, 1, 8, 5)}));
+
+        byte[] csvBytes = service.exportCsv(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30), null);
+        String csv = new String(csvBytes, StandardCharsets.UTF_8);
+
+        // BOM UTF-8 và header bảng tổng hợp 12 cột giống giao diện/PDF
+        assertThat(csv).startsWith(
+                "\uFEFFSTT,Mã tổ chức,Tên tổ chức,Loại,Trạng thái,"
+                        + "Lô sản xuất,Nhật ký,Sự kiện chuỗi,Tem kích hoạt,"
+                        + "Tra cứu công khai,Người dùng HT,Hoạt động gần nhất\n");
+        // Không còn các cột chi tiết tách kỳ trước/thay đổi/ngày tạo/trạng thái dữ liệu
+        assertThat(csv).doesNotContain("Lô SX (hiện tại)")
+                .doesNotContain("Ngày tạo")
+                .doesNotContain("Kỳ hiện tại")
+                .doesNotContain("Trạng thái dữ liệu");
+        // Giá trị enum Loại được dịch sang tiếng Việt, không lộ mã enum tổ chức
+        assertThat(csv).contains("Hợp tác xã");
+        assertThat(csv).doesNotContain("COOPERATIVE").doesNotContain("ACTIVE");
+        // Chỉ số tổng hợp dạng current (+x%), tổ chức chưa có dữ liệu hiển thị —
+        assertThat(csv).contains("3 (+50.0%)");
+        assertThat(csv).contains("—");
+        // Cột Trạng thái là trạng thái sử dụng thống nhất với giao diện
+        assertThat(csv).contains("Đang hoạt động");
+        assertThat(csv).contains("Cần liên hệ hỗ trợ");
+        assertThat(csv).contains("Chưa có dữ liệu");
+        // Ngày giờ dạng dd/MM/yyyy HH:mm
+        assertThat(csv).contains("12/09/2026 11:00");
+        assertThat(csv).contains("01/06/2026 08:05");
+        // Dòng dữ liệu đầu tiên bắt đầu bằng số thứ tự 1
+        assertThat(csv).contains("\n1,HTXA,HTX A,");
+    }
+
+    @Test
+    @DisplayName("Xuất PDF: ủy quyền cho PDF generator với dữ liệu dashboard đã tổng hợp")
+    void exportPdf_DelegatesToPdfGenerator() {
+        when(organizationRepository.findAll()).thenReturn(List.of(orgA));
+        mockEmptyMetrics();
+        byte[] pdfBytes = new byte[]{0x25, 0x50, 0x44, 0x46}; // "%PDF"
+        when(organizationUsagePdfGenerator.generate(any())).thenReturn(pdfBytes);
+
+        byte[] result = service.exportPdf(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30), null);
+
+        assertThat(result).isSameAs(pdfBytes);
+        verify(organizationUsagePdfGenerator).generate(any());
     }
 }

@@ -233,15 +233,38 @@ request không có JWT hợp lệ bị từ chối ở tầng bảo mật).
 | **Method**   | `GET`                                        |
 | **Endpoint** | `/api/v1/reports/organization-usage/export`  |
 | **Quyền**    | `VT-01` (vai trò khác: `403 Forbidden`)      |
-| **Định dạng**| CSV (UTF-8 có BOM, mở đúng tiếng Việt trong Excel) |
+| **Định dạng**| CSV (UTF-8 có BOM, mở đúng tiếng Việt trong Excel) hoặc PDF (A4 ngang, font Roboto nhúng hỗ trợ tiếng Việt) |
 
-**Query Parameters:** `startDate`, `endDate`, `organizationId` (giống API dashboard).
+**Query Parameters:**
 
-**Response `200 OK`:** file đính kèm
-`Bao_cao_muc_do_su_dung_yyyyMMdd.csv` (`Content-Type: text/csv`),
-mỗi tổ chức một dòng gồm: mã/tên/loại/trạng thái/ngày tạo tổ chức, kỳ
-hiện tại, kỳ trước, 6 chỉ số (hiện tại/kỳ trước/thay đổi/% thay đổi),
-hoạt động gần nhất, trạng thái cần hỗ trợ, trạng thái dữ liệu.
+| Tham số          | Kiểu  | Bắt buộc | Mô tả                                                        |
+|------------------|-------|----------|--------------------------------------------------------------|
+| `startDate`      | Date  | Không    | Giống API dashboard (mặc định 30 ngày gần nhất).             |
+| `endDate`        | Date  | Không    | Giống API dashboard (mặc định hôm nay).                       |
+| `organizationId` | UUID  | Không    | Lọc một tổ chức cụ thể.                                       |
+| `format`         | String| Không    | Kiểu xuất: `csv` (mặc định khi không truyền) hoặc `pdf`. Giá trị khác → fallback về CSV. |
+
+**Response `200 OK` – CSV:**
+file đính kèm `Bao_cao_muc_do_su_dung_yyyyMMdd.csv` (`Content-Type: text/csv`),
+bảng ở mức tổng hợp giống giao diện (12 cột, UTF-8 có BOM, mở đúng tiếng Việt
+trong Excel): `STT`, `Mã tổ chức`, `Tên tổ chức`, `Loại`, `Trạng thái`,
+`Lô sản xuất`, `Nhật ký`, `Sự kiện chuỗi`, `Tem kích hoạt`,
+`Tra cứu công khai`, `Người dùng HT`, `Hoạt động gần nhất`.
+Cột `Loại` đã Việt hóa (`COOPERATIVE` → "Hợp tác xã", v.v.).
+Cột `Trạng thái` là trạng thái sử dụng thống nhất với giao diện
+(`Cần liên hệ hỗ trợ` / `Đang hoạt động` / `Chưa có dữ liệu`), không phải
+trạng thái hành chính `ACTIVE/INACTIVE` của tổ chức.
+Mỗi chỉ số gộp trong một cột dạng `current (+x%)` (ví dụ `3 (+50.0%)`),
+hiển thị `—` khi tổ chức chưa có dữ liệu trong kỳ; ngày giờ dạng
+`dd/MM/yyyy HH:mm`. Kỳ báo cáo thể hiện qua tham số truy vấn và tên file,
+không lặp lại trên từng dòng.
+
+**Response `200 OK` – PDF:**
+file đính kèm `Bao_cao_muc_do_su_dung_yyyyMMdd.pdf` (`Content-Type: application/pdf`),
+nội dung gồm tiêu đề kỳ báo cáo (kỳ hiện tại, kỳ trước, tổng số tổ chức,
+thời điểm xuất) và bảng theo từng tổ chức: STT, mã/tên/loại,
+trạng thái sử dụng (`Cần liên hệ hỗ trợ` / `Đang hoạt động` / `Chưa có dữ liệu`),
+6 chỉ số dạng `current (+x%)`, hoạt động gần nhất.
 
 ---
 

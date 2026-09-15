@@ -1,6 +1,7 @@
 package vn.nguongocso.report.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -26,6 +27,7 @@ import java.util.UUID;
  * <p>Chỉ Quản trị viên nền tảng (VT-01) được truy cập. Mọi vai trò khác
  * (kể cả VT-02) đều bị từ chối với HTTP 403.</p>
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/reports/organization-usage")
 @RequiredArgsConstructor
@@ -54,23 +56,42 @@ public class OrganizationUsageController {
     }
 
     /**
-     * Xuất báo cáo mức độ sử dụng theo kỳ ra file CSV.
+     * Xuất báo cáo mức độ sử dụng theo kỳ ra file CSV hoặc PDF
+     * (người dùng chọn kiểu xuất qua tham số {@code format}).
      *
      * @param startDate      ngày bắt đầu kỳ hiện tại (yyyy-MM-dd, mặc định 30 ngày gần nhất)
      * @param endDate        ngày kết thúc kỳ hiện tại (yyyy-MM-dd, mặc định hôm nay)
      * @param organizationId lọc một tổ chức cụ thể (mặc định tất cả tổ chức)
-     * @return file CSV đính kèm
+     * @param format         kiểu xuất: {@code csv} (mặc định) hoặc {@code pdf}
+     * @return file báo cáo đính kèm theo kiểu đã chọn
      */
     @GetMapping("/export")
     public ResponseEntity<byte[]> exportOrganizationUsage(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(required = false) UUID organizationId) {
+            @RequestParam(required = false) UUID organizationId,
+            @RequestParam(required = false, defaultValue = "csv") String format) {
 
-        byte[] csvBytes = organizationUsageService.exportCsv(startDate, endDate, organizationId);
+        String normalizedFormat = format == null ? "csv" : format.trim().toLowerCase();
+
+        byte[] fileBytes;
+        MediaType contentType;
+        String fileExtension;
+        if ("pdf".equals(normalizedFormat)) {
+            fileBytes = organizationUsageService.exportPdf(startDate, endDate, organizationId);
+            contentType = MediaType.APPLICATION_PDF;
+            fileExtension = "pdf";
+        } else {
+            if (!"csv".equals(normalizedFormat)) {
+                log.warn("Kiểu xuất không được hỗ trợ: {}, dùng lại kiểu mặc định CSV.", format);
+            }
+            fileBytes = organizationUsageService.exportCsv(startDate, endDate, organizationId);
+            contentType = new MediaType("text", "csv", StandardCharsets.UTF_8);
+            fileExtension = "csv";
+        }
 
         String timestamp = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String fileName = "Bao_cao_muc_do_su_dung_" + timestamp + ".csv";
+        String fileName = "Bao_cao_muc_do_su_dung_" + timestamp + "." + fileExtension;
 
         ContentDisposition disposition = ContentDisposition.attachment()
                 .filename(fileName, StandardCharsets.UTF_8)
@@ -78,7 +99,7 @@ public class OrganizationUsageController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
-                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
-                .body(csvBytes);
+                .contentType(contentType)
+                .body(fileBytes);
     }
 }

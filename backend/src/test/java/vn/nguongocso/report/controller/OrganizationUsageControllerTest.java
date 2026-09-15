@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -108,5 +109,33 @@ class OrganizationUsageControllerTest {
                         .param("endDate", "2026-09-30"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("text/csv"));
+    }
+
+    @Test
+    @WithMockUser(roles = "VT-01")
+    @DisplayName("VT-01 export báo cáo PDF thành công khi format=pdf")
+    void exportOrganizationUsage_PdfFormatSuccess() throws Exception {
+        when(organizationUsageService.exportPdf(any(), any(), any()))
+                .thenReturn(new byte[]{0x25, 0x50, 0x44, 0x46, 0x0A}); // "%PDF-"
+
+        mockMvc.perform(get("/api/v1/reports/organization-usage/export")
+                        .param("format", "pdf"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(org.springframework.http.MediaType.APPLICATION_PDF));
+    }
+
+    @Test
+    @WithMockUser(roles = "VT-01")
+    @DisplayName("Kiểu xuất không hợp lệ dùng lại CSV mặc định")
+    void exportOrganizationUsage_UnknownFormat_FallbackToCsv() throws Exception {
+        when(organizationUsageService.exportCsv(any(), any(), any()))
+                .thenReturn(new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF, 'a'});
+
+        mockMvc.perform(get("/api/v1/reports/organization-usage/export")
+                        .param("format", "xml"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/csv"));
+
+        verify(organizationUsageService).exportCsv(any(), any(), any());
     }
 }

@@ -17,6 +17,9 @@ export interface DownloadedUsageReport {
   fileName: string;
 }
 
+/** Kiểu xuất báo cáo được hỗ trợ. */
+export type OrganizationUsageExportFormat = 'csv' | 'pdf';
+
 /**
  * Lỗi API mang theo HTTP status để UI phân biệt 403 (không có quyền)
  * với lỗi tải dữ liệu thông thường.
@@ -73,10 +76,16 @@ export async function getOrganizationUsage(
 }
 
 /**
- * Trích xuất tên file từ header Content-Disposition.
+ * Trích xuất tên file từ header Content-Disposition,
+ * dùng đuôi file theo kiểu xuất khi header không có sẵn.
  */
-function extractFileName(contentDisposition?: string): string {
-  if (!contentDisposition) return 'Bao_cao_muc_do_su_dung.csv';
+function extractFileName(
+  contentDisposition?: string,
+  format: OrganizationUsageExportFormat = 'csv'
+): string {
+  const fallback = `Bao_cao_muc_do_su_dung.${format}`;
+
+  if (!contentDisposition) return fallback;
 
   const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
   if (utf8Match?.[1]) {
@@ -88,26 +97,27 @@ function extractFileName(contentDisposition?: string): string {
   }
 
   const plainMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
-  return plainMatch?.[1]?.replace(/"/g, '') || 'Bao_cao_muc_do_su_dung.csv';
+  return plainMatch?.[1]?.replace(/"/g, '') || fallback;
 }
 
 /**
- * Xuất báo cáo mức độ sử dụng theo kỳ ra file CSV.
+ * Xuất báo cáo mức độ sử dụng theo kỳ ra file CSV hoặc PDF.
  * GET /api/v1/reports/organization-usage/export
  */
 export async function exportOrganizationUsage(
-  params: OrganizationUsageQueryParams = {}
+  params: OrganizationUsageQueryParams = {},
+  format: OrganizationUsageExportFormat = 'csv'
 ): Promise<DownloadedUsageReport> {
   try {
     const search = buildUsageSearchParams(params);
-    const query = search.toString();
+    search.set('format', format);
     const response = await apiClient.get(
-      `/reports/organization-usage/export${query ? `?${query}` : ''}`,
+      `/reports/organization-usage/export?${search.toString()}`,
       { responseType: 'blob' }
     );
 
     const blob = response.data as Blob;
-    const fileName = extractFileName(response.headers?.['content-disposition']);
+    const fileName = extractFileName(response.headers?.['content-disposition'], format);
 
     return { blob, fileName };
   } catch (err) {

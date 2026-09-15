@@ -198,14 +198,17 @@ describe('NCL-07-CN-008: Bảng điều khiển mức độ sử dụng nền t�
     renderPage();
     await screen.findByText('Hợp tác xã Chè Tân Cương');
 
+    // Cột STT đứng đầu bảng, đánh số theo thứ tự hiển thị
+    expect(screen.getByRole('columnheader', { name: 'STT' })).toBeInTheDocument();
     const rows = screen.getAllByRole('row');
-    expect(within(rows[1]).getAllByRole('cell')[0]).toHaveTextContent(
+    expect(within(rows[1]).getAllByRole('cell')[0]).toHaveTextContent('1');
+    expect(within(rows[1]).getAllByRole('cell')[1]).toHaveTextContent(
       'Hợp tác xã Rau Sạch'
     );
-    expect(within(rows[2]).getAllByRole('cell')[0]).toHaveTextContent(
+    expect(within(rows[2]).getAllByRole('cell')[1]).toHaveTextContent(
       'Hợp tác xã Chè Tân Cương'
     );
-    expect(within(rows[3]).getAllByRole('cell')[0]).toHaveTextContent(
+    expect(within(rows[3]).getAllByRole('cell')[1]).toHaveTextContent(
       'Hợp tác xã mới thành lập'
     );
   });
@@ -234,7 +237,7 @@ describe('NCL-07-CN-008: Bảng điều khiển mức độ sử dụng nền t�
     await user.click(screen.getByRole('button', { name: /Lô sản xuất/ }));
 
     const rows = screen.getAllByRole('row');
-    const firstDataRow = within(rows[1]).getAllByRole('cell')[0];
+    const firstDataRow = within(rows[1]).getAllByRole('cell')[1];
     expect(firstDataRow).toHaveTextContent('Hợp tác xã Rau Sạch');
   });
 
@@ -304,5 +307,49 @@ describe('NCL-07-CN-008: Bảng điều khiển mức độ sử dụng nền t�
       screen.queryByRole('button', { name: 'Áp dụng' })
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Đặt lại' })).not.toBeInTheDocument();
+  });
+
+  it('Export: chọn "Xuất CSV" gọi API xuất với định dạng csv', async () => {
+    vi.spyOn(organizationUsageApi, 'getOrganizationUsage').mockResolvedValue(
+      buildDashboard([])
+    );
+    const exportSpy = vi
+      .spyOn(organizationUsageApi, 'exportOrganizationUsage')
+      .mockResolvedValue({
+        blob: new Blob(['csv'], { type: 'text/csv' }),
+        fileName: 'Bao_cao_muc_do_su_dung.csv',
+      });
+
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: /Xuất báo cáo/i }));
+    await user.click(await screen.findByText(/Xuất CSV/));
+
+    await waitFor(() =>
+      expect(exportSpy).toHaveBeenCalledWith(expect.anything(), 'csv')
+    );
+  });
+
+  it('Export: chọn "Xuất PDF" gọi API xuất với định dạng pdf', async () => {
+    vi.spyOn(organizationUsageApi, 'getOrganizationUsage').mockResolvedValue(
+      buildDashboard([])
+    );
+    const exportSpy = vi
+      .spyOn(organizationUsageApi, 'exportOrganizationUsage')
+      .mockResolvedValue({
+        blob: new Blob(['pdf'], { type: 'application/pdf' }),
+        fileName: 'Bao_cao_muc_do_su_dung.pdf',
+      });
+
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: /Xuất báo cáo/i }));
+    await user.click(await screen.findByText(/Xuất PDF/));
+
+    await waitFor(() =>
+      expect(exportSpy).toHaveBeenCalledWith(expect.anything(), 'pdf')
+    );
   });
 });

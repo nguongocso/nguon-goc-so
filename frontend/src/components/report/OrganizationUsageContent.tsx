@@ -4,7 +4,10 @@ import {
   ArrowDown,
   ArrowUp,
   Building2,
+  ChevronDown,
   Download,
+  FileSpreadsheet,
+  FileText,
   Inbox,
   Minus,
   PhoneCall,
@@ -21,7 +24,12 @@ import { SearchInput } from '@/components/common/SearchInput';
 import { FilterSelect } from '@/components/common/FilterSelect';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -32,6 +40,7 @@ import {
   exportOrganizationUsage,
   getOrganizationUsage,
   OrganizationUsageApiError,
+  type OrganizationUsageExportFormat,
 } from '@/api/organizationUsageApi';
 import { formatDateTime, getLocalDateString } from '@/utils/dateTime';
 import {
@@ -222,22 +231,27 @@ export default function OrganizationUsageContent() {
     }
   };
 
-  const handleExport = async () => {
+  const handleExport = async (format: OrganizationUsageExportFormat) => {
     setIsExporting(true);
     try {
-      const { blob, fileName } = await exportOrganizationUsage({
-        startDate: fromDate || undefined,
-        endDate: toDate || undefined,
-      });
+      const { blob, fileName } = await exportOrganizationUsage(
+        {
+          startDate: fromDate || undefined,
+          endDate: toDate || undefined,
+        },
+        format
+      );
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = fileName || 'Bao_cao_muc_do_su_dung.csv';
+      link.download = fileName || `Bao_cao_muc_do_su_dung.${format}`;
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      toast.success('Xuất báo cáo thành công.');
+      toast.success(
+        format === 'pdf' ? 'Xuất báo cáo PDF thành công.' : 'Xuất báo cáo CSV thành công.'
+      );
     } catch (err: unknown) {
       if (err instanceof OrganizationUsageApiError && err.status === 403) {
         toast.error('Bạn không có quyền xuất báo cáo này.');
@@ -316,14 +330,33 @@ export default function OrganizationUsageContent() {
         actions={
           <>
             <HelpButton screenKey="report-organization-usage" />
-            <Button
-              variant="outline"
-              onClick={() => void handleExport()}
-              disabled={isExporting || isLoading || isForbidden}
-            >
-              <Download className="size-4" />
-              {isExporting ? 'Đang xuất...' : 'Xuất báo cáo'}
-            </Button>
+            {/* Chọn kiểu xuất báo cáo: CSV hoặc PDF */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className="gap-1.5 rounded-[min(var(--radius-md),12px)] border bg-white h-9 px-3 font-medium hover:bg-primary-light disabled:pointer-events-none disabled:opacity-50"
+                disabled={isExporting || isLoading || isForbidden}
+              >
+                <Download className="size-4" />
+                {isExporting ? 'Đang xuất...' : 'Xuất báo cáo'}
+                <ChevronDown className="size-4 opacity-60" aria-hidden />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => void handleExport('csv')}
+                  className="cursor-pointer"
+                >
+                  <FileSpreadsheet className="size-4 text-slate-600" aria-hidden />
+                  Xuất CSV (.csv)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => void handleExport('pdf')}
+                  className="cursor-pointer"
+                >
+                  <FileText className="size-4 text-red-600" aria-hidden />
+                  Xuất PDF (.pdf)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </>
         }
       />
@@ -534,9 +567,11 @@ export default function OrganizationUsageContent() {
                   ? 'Chưa có tổ chức nào trong hệ thống.'
                   : 'Không tìm thấy tổ chức phù hợp với bộ lọc.'
               }
-              colSpan={9}
+              colSpan={10}
               header={
                 <>
+                  {/* Số thứ tự theo thứ tự hiển thị sau sắp xếp/lọc. */}
+                  <TableHead className="w-12">STT</TableHead>
                   <TableHead>
                     <SortButton
                       label="Tổ chức"
@@ -581,8 +616,11 @@ export default function OrganizationUsageContent() {
               }
               body={
                 <>
-                  {displayedItems.map((item) => (
+                  {displayedItems.map((item, index) => (
                     <TableRow key={item.organizationId}>
+                      <TableCell className="tabular-nums text-muted-foreground">
+                        {index + 1}
+                      </TableCell>
                       <TableCell>
                         <div className="font-medium">{item.organizationName}</div>
                       </TableCell>

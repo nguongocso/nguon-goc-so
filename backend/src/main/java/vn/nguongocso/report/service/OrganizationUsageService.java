@@ -29,4 +29,14 @@ public interface OrganizationUsageService {
      * @return nội dung file CSV (UTF-8, có BOM để mở đúng tiếng Việt trong Excel)
      */
     byte[] exportCsv(LocalDate startDate, LocalDate endDate, UUID organizationId);
+
+    /**
+     * Xuất báo cáo mức độ sử dụng theo kỳ ra file PDF.
+     *
+     * @param startDate      ngày bắt đầu kỳ hiện tại (null = 30 ngày gần nhất)
+     * @param endDate        ngày kết thúc kỳ hiện tại (null = hôm nay)
+     * @param organizationId lọc một tổ chức cụ thể (null = tất cả)
+     * @return nội dung file PDF
+     */
+    byte[] exportPdf(LocalDate startDate, LocalDate endDate, UUID organizationId);
 }

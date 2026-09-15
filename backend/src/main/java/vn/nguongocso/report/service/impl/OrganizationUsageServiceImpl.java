@@ -14,6 +14,7 @@ import vn.nguongocso.report.dto.response.OrganizationUsageDashboardResponse;
 import vn.nguongocso.report.dto.response.OrganizationUsageDashboardResponse.MetricComparison;
 import vn.nguongocso.report.dto.response.OrganizationUsageDashboardResponse.OrganizationUsageItem;
 import vn.nguongocso.report.repository.TraceCodeScanLogRepository;
+import vn.nguongocso.report.pdf.OrganizationUsagePdfGenerator;
 import vn.nguongocso.report.service.OrganizationUsageService;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
@@ -54,8 +55,7 @@ public class OrganizationUsageServiceImpl implements OrganizationUsageService {
     /** Số ngày không có hoạt động thì đánh dấu cần liên hệ hỗ trợ. */
     private static final long INACTIVE_THRESHOLD_DAYS = 30;
 
-    private static final DateTimeFormatter CSV_DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    private static final DateTimeFormatter CSV_DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter CSV_DATETIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private final OrganizationRepository organizationRepository;
     private final ProductionLotRepository productionLotRepository;
@@ -64,6 +64,7 @@ public class OrganizationUsageServiceImpl implements OrganizationUsageService {
     private final TraceCodeRepository traceCodeRepository;
     private final TraceCodeScanLogRepository traceCodeScanLogRepository;
     private final ActivityLogRepository activityLogRepository;
+    private final OrganizationUsagePdfGenerator organizationUsagePdfGenerator;
     private final Clock businessClock;
 
     /**
@@ -153,6 +154,9 @@ public class OrganizationUsageServiceImpl implements OrganizationUsageService {
 
     /**
      * Xuất báo cáo mức độ sử dụng theo kỳ ra file CSV.
+     * Bảng CSV ở mức tổng hợp giống bảng trên giao diện và file PDF (12 cột):
+     * STT, định danh tổ chức, trạng thái sử dụng và 6 chỉ số dạng tổng hợp
+     * {@code current (+x%)}, không tách chi tiết kỳ trước/thay đổi thành cột riêng.
      */
     @Override
     @Transactional(readOnly = true)
@@ -161,35 +165,70 @@ public class OrganizationUsageServiceImpl implements OrganizationUsageService {
         StringBuilder csv = new StringBuilder();
         // BOM để Excel mở đúng tiếng Việt
         csv.append('\uFEFF');
-        csv.append("Ma to chuc,Ten to chuc,Loai,Trang thai,Ngay tao,Ky hien tai,Ky truoc,")
-                .append("Lo SX (hien tai),Lo SX (ky truoc),Lo SX (thay doi),Lo SX (% thay doi),")
-                .append("Nhat ky (hien tai),Nhat ky (ky truoc),Nhat ky (thay doi),Nhat ky (% thay doi),")
-                .append("Su kien (hien tai),Su kien (ky truoc),Su kien (thay doi),Su kien (% thay doi),")
-                .append("Tem kich hoat (hien tai),Tem kich hoat (ky truoc),Tem kich hoat (thay doi),Tem kich hoat (% thay doi),")
-                .append("Tra cuu (hien tai),Tra cuu (ky truoc),Tra cuu (thay doi),Tra cuu (% thay doi),")
-                .append("Nguoi dung (hien tai),Nguoi dung (ky truoc),Nguoi dung (thay doi),Nguoi dung (% thay doi),")
-                .append("Hoat dong gan nhat,Can ho tro,Trang thai du lieu\n");
+        csv.append("STT,Mã tổ chức,Tên tổ chức,Loại,Trạng thái,")
+                .append("Lô sản xuất,Nhật ký,Sự kiện chuỗi,Tem kích hoạt,")
+                .append("Tra cứu công khai,Người dùng HT,Hoạt động gần nhất\n");
+        int stt = 1;
         for (OrganizationUsageItem item : dashboard.getItems()) {
-            csv.append(escape(item.getOrganizationCode())).append(',')
+            csv.append(stt++).append(',')
+                    .append(escape(item.getOrganizationCode())).append(',')
                     .append(escape(item.getOrganizationName())).append(',')
-                    .append(escape(item.getOrganizationType())).append(',')
-                    .append(escape(item.getOrganizationStatus())).append(',')
-                    .append(formatDateTime(item.getCreatedAt())).append(',')
-                    .append(dashboard.getStartDate().format(CSV_DATE)).append(" - ")
-                    .append(dashboard.getEndDate().format(CSV_DATE)).append(',')
-                    .append(dashboard.getPreviousStartDate().format(CSV_DATE)).append(" - ")
-                    .append(dashboard.getPreviousEndDate().format(CSV_DATE)).append(',');
-            appendMetric(csv, item.getProductionLots());
-            appendMetric(csv, item.getFarmLogs());
-            appendMetric(csv, item.getChainEvents());
-            appendMetric(csv, item.getActivatedLabels());
-            appendMetric(csv, item.getPublicLookups());
-            appendMetric(csv, item.getActiveUsers());
-            csv.append(formatDateTime(item.getLastActivityAt())).append(',')
-                    .append(item.isNeedsSupport() ? "Co" : "Khong").append(',')
-                    .append(item.isHasData() ? "Co du lieu" : "Chua co du lieu").append('\n');
+                    .append(escape(organizationTypeLabel(item.getOrganizationType()))).append(',')
+                    .append(escape(usageStatusLabel(item))).append(',')
+                    .append(escape(formatMetricAggregate(item.getProductionLots(), item.isHasData()))).append(',')
+                    .append(escape(formatMetricAggregate(item.getFarmLogs(), item.isHasData()))).append(',')
+                    .append(escape(formatMetricAggregate(item.getChainEvents(), item.isHasData()))).append(',')
+                    .append(escape(formatMetricAggregate(item.getActivatedLabels(), item.isHasData()))).append(',')
+                    .append(escape(formatMetricAggregate(item.getPublicLookups(), item.isHasData()))).append(',')
+                    .append(escape(formatMetricAggregate(item.getActiveUsers(), item.isHasData()))).append(',')
+                    .append(formatDateTime(item.getLastActivityAt())).append('\n');
         }
         return csv.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Xuất báo cáo mức độ sử dụng theo kỳ ra file PDF.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] exportPdf(LocalDate startDate, LocalDate endDate, UUID organizationId) {
+        OrganizationUsageDashboardResponse dashboard = getDashboard(startDate, endDate, organizationId);
+        return organizationUsagePdfGenerator.generate(dashboard);
+    }
+
+    /**
+     * Dịch loại tổ chức sang nhãn tiếng Việt (khớp với mapping của frontend).
+     */
+    private String organizationTypeLabel(String type) {
+        if (type == null) {
+            return "";
+        }
+        switch (type) {
+            case "COOPERATIVE":
+                return "Hợp tác xã";
+            case "ENTERPRISE":
+                return "Doanh nghiệp";
+            case "GOVERNMENT":
+                return "Cơ quan quản lý";
+            case "SYSTEM":
+                return "Tổ chức hệ thống";
+            default:
+                return type;
+        }
+    }
+
+    /**
+     * Nhãn trạng thái sử dụng thống nhất với giao diện (không dùng trạng thái
+     * hành chính ACTIVE/INACTIVE của tổ chức cho cột này).
+     */
+    private String usageStatusLabel(OrganizationUsageItem item) {
+        if (item.isNeedsSupport() && item.getLastActivityAt() != null) {
+            return "Cần liên hệ hỗ trợ";
+        }
+        if (item.isHasData()) {
+            return "Đang hoạt động";
+        }
+        return "Chưa có dữ liệu";
     }
 
     /**
@@ -289,11 +328,19 @@ public class OrganizationUsageServiceImpl implements OrganizationUsageService {
         return result;
     }
 
-    private void appendMetric(StringBuilder csv, MetricComparison metric) {
-        csv.append(metric.getCurrent()).append(',')
-                .append(metric.getPrevious()).append(',')
-                .append(metric.getChange()).append(',')
-                .append(metric.getChangePercent() != null ? String.format("%.2f", metric.getChangePercent()) : "").append(',');
+    /**
+     * Định dạng một chỉ số ở mức tổng hợp giống giao diện và file PDF:
+     * {@code current (+x%)}, hiển thị {@code —} khi tổ chức chưa có dữ liệu
+     * trong kỳ. Quy ước previous = 0, current &gt; 0 thành {@code +100.0%}.
+     */
+    private String formatMetricAggregate(MetricComparison metric, boolean hasData) {
+        if (!hasData || metric == null) {
+            return "—";
+        }
+        double percent = metric.getChangePercent() != null
+                ? metric.getChangePercent()
+                : (metric.getChange() > 0 ? 100.0 : 0.0);
+        return String.format("%d (%+.1f%%)", metric.getCurrent(), percent);
     }
 
     private String escape(String value) {

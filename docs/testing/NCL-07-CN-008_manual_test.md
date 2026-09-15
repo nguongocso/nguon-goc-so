@@ -62,7 +62,7 @@
 | Mã | Tên | When | Then | Ưu tiên |
 |---|---|---|---|---|
 | MTC-16 | Gọi API đối chiếu số liệu | Lấy token `admin` rồi gọi `GET /api/v1/reports/organization-usage?startDate=2026-08-16&endDate=2026-09-14` | Response `success=true`; `data.items` có 4 phần tử; HTXA có `productionLots`.current=3, previous=2, change=1, changePercent=50.0; `farmLogs.current=4`; `chainEvents.current=3`; `activatedLabels.current=2`; `publicLookups.current=3`; `activeUsers.current=1`; `needsSupport=false`; `hasData=true`. HTXB `needsSupport=true`, `hasData=false`. HTXC/SYSTEM `hasData=false`. | Trung bình |
-| MTC-17 | Export đối chiếu | Gọi `GET /api/v1/reports/organization-usage/export?startDate=2026-08-16&endDate=2026-09-14` | HTTP `200`, `Content-Type=text/csv;charset=UTF-8`, header `Content-Disposition` có filename `Bao_cao_muc_do_su_dung_...csv`; nội dung CSV có dòng HTXA với 6 cột đúng số liệu. | Trung bình |
+| MTC-17 | Export đối chiếu | Gọi `GET /api/v1/reports/organization-usage/export?startDate=2026-08-16&endDate=2026-09-14` | HTTP `200`, `Content-Type=text/csv;charset=UTF-8`, header `Content-Disposition` có filename `Bao_cao_muc_do_su_dung_...csv`; CSV bảng tổng hợp 12 cột (`STT,Mã tổ chức,Tên tổ chức,Loại,Trạng thái,Lô sản xuất,Nhật ký,Sự kiện chuỗi,Tem kích hoạt,Tra cứu công khai,Người dùng HT,Hoạt động gần nhất`); dòng HTXA có `3 (+50.0%)` đúng số liệu; cột `Trạng thái` là trạng thái sử dụng (`Đang hoạt động`/`Cần liên hệ hỗ trợ`/`Chưa có dữ liệu`); PDF có cùng 12 cột. | Trung bình |
 
 ---
 
