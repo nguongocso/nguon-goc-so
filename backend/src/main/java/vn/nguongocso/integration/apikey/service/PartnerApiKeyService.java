@@ -406,6 +406,9 @@ public class PartnerApiKeyService {
                 .createdAt(key.getCreatedAt())
                 .revokedByName(key.getRevokedBy() != null ? key.getRevokedBy().getFullName() : null)
                 .revokedAt(key.getRevokedAt())
+                .webhookUrl(key.getWebhookUrl())
+                .webhookSecret(key.getWebhookSecret())
+                .isWebhookActive(key.getIsWebhookActive())
                 .build();
     }
 }

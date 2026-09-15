@@ -56,4 +56,8 @@ public class PartnerApiKeyResponse {
     private LocalDateTime createdAt;
     private String revokedByName;
     private LocalDateTime revokedAt;
+
+    private String webhookUrl;
+    private String webhookSecret;
+    private Boolean isWebhookActive;
 }
