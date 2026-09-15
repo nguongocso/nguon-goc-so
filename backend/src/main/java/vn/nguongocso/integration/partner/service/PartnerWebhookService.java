@@ -119,6 +119,13 @@ public class PartnerWebhookService {
             PartnerApiKey apiKey,
             PartnerWebhookRegistrationRequest request) {
 
+        if (request.getWebhookUrl() == null || request.getWebhookUrl().isBlank()) {
+            apiKey.setWebhookUrl(null);
+            apiKey.setIsWebhookActive(false);
+            PartnerApiKey saved = partnerApiKeyRepository.save(apiKey);
+            return mapToWebhookResponse(saved);
+        }
+
         validateSecureUrl(request.getWebhookUrl());
 
         apiKey.setWebhookUrl(request.getWebhookUrl().trim());
