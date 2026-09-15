@@ -27,6 +27,10 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
 
   const statusLabelMap: Record<string, string> = {
     ACTIVE: t('status_active'),
+    ACTIVATED: t('status_active'),
+    SUSPECTED: t('status_suspected'),
+    LOCKED: t('status_locked'),
+    CANCELLED: t('status_cancelled'),
     RECALLED: t('status_recalled'),
     RECALLING: t('status_recalling'),
     DRAFT: t('status_draft'),
@@ -35,6 +39,10 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
 
   const statusColorMap: Record<string, string> = {
     ACTIVE: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+    ACTIVATED: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+    SUSPECTED: 'text-rose-700 bg-rose-50 border-rose-200',
+    LOCKED: 'text-rose-700 bg-rose-50 border-rose-200',
+    CANCELLED: 'text-gray-700 bg-gray-100 border-gray-200',
     RECALLED: 'text-red-700 bg-red-50 border-red-200',
     RECALLING: 'text-amber-700 bg-amber-50 border-amber-200',
     DRAFT: 'text-gray-700 bg-gray-100 border-gray-200',

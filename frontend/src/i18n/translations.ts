@@ -26,6 +26,9 @@ export const translations = {
     status_recalling: 'Đang thu hồi',
     status_draft: 'Nháp',
     status_code_printed: 'Đã in mã',
+    status_suspected: 'Nghi vấn',
+    status_locked: 'Đã khóa',
+    status_cancelled: 'Đã hủy',
 
     // Recall Alert
     recall_alert_title: 'CẢNH BÁO THU HỒI',
@@ -135,6 +138,9 @@ export const translations = {
     status_recalling: 'Being Recalled',
     status_draft: 'Draft',
     status_code_printed: 'Code Printed',
+    status_suspected: 'Suspected',
+    status_locked: 'Locked',
+    status_cancelled: 'Cancelled',
 
     // Recall Alert
     recall_alert_title: 'RECALL WARNING',
