@@ -51,6 +51,87 @@ export function calculateAreaDeviation(declaredArea: number, calculatedArea: num
   return Math.round(deviation * 100) / 100;
 }
 
+const GEOMETRY_EPSILON = 1e-12;
+
+/** Tính tích có hướng của ba điểm trên mặt phẳng kinh độ/vĩ độ. */
+function orientation(a: LatLng, b: LatLng, c: LatLng): number {
+  return (
+    (b.longitude - a.longitude) * (c.latitude - a.latitude) -
+    (b.latitude - a.latitude) * (c.longitude - a.longitude)
+  );
+}
+
+/** Kiểm tra một điểm có nằm trên đoạn thẳng hay không, kể cả hai đầu mút. */
+function isPointOnSegment(point: LatLng, start: LatLng, end: LatLng): boolean {
+  return (
+    Math.abs(orientation(start, end, point)) <= GEOMETRY_EPSILON &&
+    point.longitude >= Math.min(start.longitude, end.longitude) - GEOMETRY_EPSILON &&
+    point.longitude <= Math.max(start.longitude, end.longitude) + GEOMETRY_EPSILON &&
+    point.latitude >= Math.min(start.latitude, end.latitude) - GEOMETRY_EPSILON &&
+    point.latitude <= Math.max(start.latitude, end.latitude) + GEOMETRY_EPSILON
+  );
+}
+
+/** Kiểm tra hai đoạn thẳng có giao nhau hay không. */
+function doSegmentsIntersect(a: LatLng, b: LatLng, c: LatLng, d: LatLng): boolean {
+  const o1 = orientation(a, b, c);
+  const o2 = orientation(a, b, d);
+  const o3 = orientation(c, d, a);
+  const o4 = orientation(c, d, b);
+
+  if (
+    ((o1 > GEOMETRY_EPSILON && o2 < -GEOMETRY_EPSILON) ||
+      (o1 < -GEOMETRY_EPSILON && o2 > GEOMETRY_EPSILON)) &&
+    ((o3 > GEOMETRY_EPSILON && o4 < -GEOMETRY_EPSILON) ||
+      (o3 < -GEOMETRY_EPSILON && o4 > GEOMETRY_EPSILON))
+  ) {
+    return true;
+  }
+
+  return (
+    isPointOnSegment(c, a, b) ||
+    isPointOnSegment(d, a, b) ||
+    isPointOnSegment(a, c, d) ||
+    isPointOnSegment(b, c, d)
+  );
+}
+
+/**
+ * Kiểm tra đa giác có cạnh tự cắt nhau hay không.
+ * Các cặp cạnh kề nhau được bỏ qua vì chúng luôn dùng chung một đỉnh hợp lệ.
+ */
+export function hasSelfIntersection(points: LatLng[]): boolean {
+  if (points.length < 4) {
+    return false;
+  }
+
+  for (let firstEdge = 0; firstEdge < points.length; firstEdge++) {
+    const firstEdgeEnd = (firstEdge + 1) % points.length;
+
+    for (let secondEdge = firstEdge + 1; secondEdge < points.length; secondEdge++) {
+      const secondEdgeEnd = (secondEdge + 1) % points.length;
+      const areAdjacent = firstEdgeEnd === secondEdge || secondEdgeEnd === firstEdge;
+
+      if (areAdjacent) {
+        continue;
+      }
+
+      if (
+        doSegmentsIntersect(
+          points[firstEdge],
+          points[firstEdgeEnd],
+          points[secondEdge],
+          points[secondEdgeEnd]
+        )
+      ) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 export interface ParseResult {
   points: LatLng[];
   errors: string[];

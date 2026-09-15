@@ -21,6 +21,7 @@ interface Props {
   onSelectPoint?: (index: number) => void;
   selectedIndex?: number | null;
   disabled?: boolean;
+  invalid?: boolean;
 }
 
 /** Tạo icon số thứ tự cho đỉnh ranh giới. */
@@ -58,6 +59,7 @@ export const BoundaryMapEditor: React.FC<Props> = ({
   onSelectPoint,
   selectedIndex = null,
   disabled = false,
+  invalid = false,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
@@ -146,10 +148,11 @@ export const BoundaryMapEditor: React.FC<Props> = ({
     // 2. Vẽ Polygon nếu >= 3 đỉnh, hoặc Polyline nếu 2 đỉnh
     if (points.length >= 3) {
       const latlngs: L.LatLngExpression[] = points.map((p) => [p.latitude, p.longitude]);
+      const boundaryColor = invalid ? '#dc2626' : '#059669';
       const polygon = L.polygon(latlngs, {
-        color: '#059669',
+        color: boundaryColor,
         weight: 2.5,
-        fillColor: '#059669',
+        fillColor: boundaryColor,
         fillOpacity: 0.16,
         dashArray: '4 4',
       });
@@ -163,7 +166,7 @@ export const BoundaryMapEditor: React.FC<Props> = ({
       });
       layerGroup.addLayer(polyline);
     }
-  }, [points, selectedIndex, disabled]);
+  }, [points, selectedIndex, disabled, invalid]);
 
   // Căn chỉnh góc nhìn vừa toàn bộ các đỉnh
   const handleFitBounds = () => {
@@ -185,7 +188,9 @@ export const BoundaryMapEditor: React.FC<Props> = ({
         <div className="flex items-center gap-2">
           <MousePointerClick className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span>
-            {disabled
+            {invalid
+              ? 'Ranh giới đang tự cắt nhau. Hãy điều chỉnh lại vị trí hoặc thứ tự các đỉnh.'
+              : disabled
               ? 'Chế độ chỉ xem ranh giới.'
               : points.length < 3
               ? `Chấm ít nhất 3 điểm trên bản đồ để tạo ranh giới (hiện có ${points.length} điểm).`

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   calculateGeodesicAreaHa,
   calculateAreaDeviation,
+  hasSelfIntersection,
   parseCoordinatesText,
 } from '../geoAreaCalculator';
 
@@ -41,6 +42,40 @@ describe('geoAreaCalculator', () => {
 
     it('trả về 0 khi diện tích khai báo <= 0', () => {
       expect(calculateAreaDeviation(0, 5.0)).toBe(0);
+    });
+  });
+
+  describe('hasSelfIntersection', () => {
+    it('không báo lỗi với đa giác hợp lệ', () => {
+      expect(
+        hasSelfIntersection([
+          { latitude: 21, longitude: 105 },
+          { latitude: 21, longitude: 105.01 },
+          { latitude: 21.01, longitude: 105.01 },
+          { latitude: 21.01, longitude: 105 },
+        ])
+      ).toBe(false);
+    });
+
+    it('phát hiện đa giác hình nơ có hai cạnh tự cắt', () => {
+      expect(
+        hasSelfIntersection([
+          { latitude: 21, longitude: 105 },
+          { latitude: 21.01, longitude: 105.01 },
+          { latitude: 21.01, longitude: 105 },
+          { latitude: 21, longitude: 105.01 },
+        ])
+      ).toBe(true);
+    });
+
+    it('không báo lỗi với tam giác', () => {
+      expect(
+        hasSelfIntersection([
+          { latitude: 21, longitude: 105 },
+          { latitude: 21, longitude: 105.01 },
+          { latitude: 21.01, longitude: 105 },
+        ])
+      ).toBe(false);
     });
   });
 

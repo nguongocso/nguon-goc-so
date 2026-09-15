@@ -19,24 +19,41 @@ vi.mock('sonner', () => ({
 }));
 
 vi.mock('../BoundaryMapEditor', () => ({
-  BoundaryMapEditor: () => <div>Bản đồ thử nghiệm</div>,
+  BoundaryMapEditor: ({ invalid }: { invalid?: boolean }) => (
+    <div data-invalid={invalid ? 'true' : 'false'}>Bản đồ thử nghiệm</div>
+  ),
 }));
 
 vi.mock('../BoundaryPastePanel', () => ({
   BoundaryPastePanel: ({ onApplyPoints }: { onApplyPoints: (points: LatLng[]) => void }) => (
-    <button
-      type="button"
-      onClick={() =>
-        onApplyPoints([
-          { latitude: 21, longitude: 105 },
-          { latitude: 21, longitude: 105.001 },
-          { latitude: 21.001, longitude: 105.001 },
-          { latitude: 21.001, longitude: 105 },
-        ])
-      }
-    >
-      Áp dụng tọa độ thử
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() =>
+          onApplyPoints([
+            { latitude: 21, longitude: 105 },
+            { latitude: 21, longitude: 105.001 },
+            { latitude: 21.001, longitude: 105.001 },
+            { latitude: 21.001, longitude: 105 },
+          ])
+        }
+      >
+        Áp dụng tọa độ thử
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          onApplyPoints([
+            { latitude: 21, longitude: 105 },
+            { latitude: 21.001, longitude: 105.001 },
+            { latitude: 21.001, longitude: 105 },
+            { latitude: 21, longitude: 105.001 },
+          ])
+        }
+      >
+        Áp dụng ranh giới tự cắt
+      </button>
+    </>
   ),
 }));
 
@@ -106,5 +123,18 @@ describe('FarmAreaBoundaryEditor', () => {
 
     expect(await screen.findByText(/Chênh lệch > 12.5%/i)).toBeInTheDocument();
     await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(true));
+  });
+
+  it('cảnh báo và không cho lưu khi ranh giới tự cắt', async () => {
+    apiMocks.getBoundary.mockResolvedValue(boundaryResponse);
+
+    render(<FarmAreaBoundaryEditor farmArea={farmArea} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Áp dụng ranh giới tự cắt' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('các cạnh tự cắt nhau');
+    expect(screen.getByText('Bản đồ thử nghiệm')).toHaveAttribute('data-invalid', 'true');
+    expect(screen.getByRole('button', { name: 'Lưu ranh giới' })).toBeDisabled();
+    expect(apiMocks.updateBoundary).not.toHaveBeenCalled();
   });
 });

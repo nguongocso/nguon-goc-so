@@ -24,6 +24,7 @@ import type {
 import {
   calculateAreaDeviation,
   calculateGeodesicAreaHa,
+  hasSelfIntersection,
 } from '@/utils/geoAreaCalculator';
 import { BoundaryMapEditor } from './BoundaryMapEditor';
 import { BoundaryPastePanel } from './BoundaryPastePanel';
@@ -110,6 +111,7 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
   const thresholdPercentage = savedBoundary?.thresholdPercentage;
   const isDeviationHigh =
     thresholdPercentage != null && deviationPercent > thresholdPercentage;
+  const isSelfIntersecting = hasSelfIntersection(draftPoints);
 
   // Thêm một đỉnh mới
   const handleAddPoint = (point: LatLng) => {
@@ -174,6 +176,11 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
   const performSave = async (confirmed: boolean) => {
     if (draftPoints.length < 3) {
       toast.error('Ranh giới phải có tối thiểu 3 đỉnh phân biệt (TC-02).');
+      return;
+    }
+
+    if (isSelfIntersecting) {
+      toast.error('Ranh giới không hợp lệ do các cạnh tự cắt nhau.');
       return;
     }
 
@@ -289,6 +296,7 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
             onSelectPoint={setSelectedVertexIndex}
             selectedIndex={selectedVertexIndex}
             disabled={isSaving}
+            invalid={isSelfIntersecting}
           />
         </div>
 
@@ -338,6 +346,18 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
                 <AlertTriangle className="size-4 shrink-0 mt-0.5 text-amber-600" />
                 <p className="leading-tight">
                   Chênh lệch &gt; {thresholdPercentage}% so với diện tích khai báo. Khi lưu sẽ yêu cầu xác nhận.
+                </p>
+              </div>
+            )}
+
+            {isSelfIntersecting && (
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-800 dark:bg-red-950/40 dark:text-red-300"
+              >
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-600" />
+                <p className="leading-tight">
+                  Ranh giới không hợp lệ do các cạnh tự cắt nhau. Hãy điều chỉnh lại các đỉnh trước khi lưu.
                 </p>
               </div>
             )}
@@ -435,6 +455,8 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
           <span>
             {draftPoints.length < 3
               ? 'Cần tối thiểu 3 đỉnh để có thể lưu ranh giới.'
+              : isSelfIntersecting
+              ? 'Ranh giới tự cắt nhau nên chưa thể lưu.'
               : isDirty
               ? 'Bạn có thay đổi ranh giới chưa được lưu vào hệ thống.'
               : 'Ranh giới đã được lưu đồng bộ với máy chủ.'}
@@ -457,7 +479,7 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
             type="button"
             variant="default"
             onClick={() => performSave(false)}
-            disabled={!isDirty || draftPoints.length < 3 || isSaving}
+            disabled={!isDirty || draftPoints.length < 3 || isSelfIntersecting || isSaving}
             className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white min-w-32"
           >
             {isSaving ? (
