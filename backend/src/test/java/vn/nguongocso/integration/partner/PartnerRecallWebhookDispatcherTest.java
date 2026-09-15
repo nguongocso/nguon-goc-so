@@ -216,4 +216,31 @@ class PartnerRecallWebhookDispatcherTest {
         assertFalse(signature.isBlank());
         assertEquals(64, signature.length()); // SHA-256 hex string = 64 chars
     }
+
+    @Test
+    @DisplayName("Quét và thử lại các thông báo đang ở trạng thái PENDING_RETRY theo lịch giãn dần (CV-04)")
+    void testRetryPendingNotifications_ExecutesPendingRetries() {
+        PartnerWebhookNotification pendingNotif = PartnerWebhookNotification.builder()
+                .id(UUID.randomUUID())
+                .partnerApiKey(activeApiKey)
+                .shipment(shipment)
+                .lotCode(shipment.getName())
+                .newStatus("RECALLING")
+                .targetUrl(activeApiKey.getWebhookUrl())
+                .deliveryStatus(WebhookDeliveryStatus.PENDING_RETRY)
+                .attemptCount(1)
+                .maxAttempts(5)
+                .payload("{}")
+                .nextRetryAt(LocalDateTime.now().minusMinutes(1))
+                .build();
+
+        when(partnerWebhookNotificationRepository.findByDeliveryStatusAndNextRetryAtLessThanEqualOrderByNextRetryAtAsc(
+                eq(WebhookDeliveryStatus.PENDING_RETRY), any(LocalDateTime.class)))
+                .thenReturn(List.of(pendingNotif));
+
+        dispatcher.retryPendingNotifications();
+
+        // Xác nhận đã lưu lại kết quả thử lại
+        verify(partnerWebhookNotificationRepository, org.mockito.Mockito.atLeastOnce()).save(pendingNotif);
+    }
 }
