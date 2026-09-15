@@ -288,6 +288,34 @@ public class ProfileTemplateServiceTest {
         assertThat(totalFieldCount).isEqualTo(10);
     }
 
+    @Test
+    @DisplayName("TC-01b: buildPreview với templateId == null và tổ chức chưa có mẫu mặc định -> Dùng cấu hình mặc định hệ thống thành công")
+    void tc01b_buildPreview_nullTemplate_noOrgDefault_fallsBackToSystemDefault() {
+        UUID shipmentId = UUID.randomUUID();
+
+        // Chuẩn bị Mock Shipment
+        Shipment shipment = new Shipment();
+        shipment.setId(shipmentId);
+        shipment.setName("Chuyến hàng số 01");
+        shipment.setTotalQuantity(1000L);
+        shipment.setOrganization(orgA);
+
+        when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
+        when(profileTemplateRepository.findByOrganization_OrganizationIdAndIsDefaultTrue(orgAId))
+                .thenReturn(Optional.empty()); // Chưa cấu hình mẫu mặc định
+
+        Map<String, Object> preview = profileTemplateService.buildPreview(shipmentId, null, userDetailsOrgA);
+
+        assertThat(preview).isNotNull();
+        assertThat(preview.get("shipmentId")).isEqualTo(shipmentId);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> appliedTemplate = (Map<String, Object>) preview.get("appliedTemplate");
+        assertThat(appliedTemplate).isNotNull();
+        assertThat(appliedTemplate.get("templateName")).isEqualTo("Mặc định hệ thống");
+        assertThat(appliedTemplate.get("isDefault")).isEqualTo(true);
+    }
+
     // =========================================================================
     // TC-02: Bỏ trường bắt buộc QTN-11 -> Ném lỗi 422 MandatoryFieldsViolationException
     // =========================================================================

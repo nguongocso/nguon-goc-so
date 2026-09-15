@@ -314,8 +314,9 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
                 throw new TemplateNotOwnedException("Mẫu hồ sơ không thuộc tổ chức của bạn.");
             }
         } else {
-            // Không truyền templateId -> tìm mẫu mặc định của tổ chức (TC-03)
-            template = getDefaultTemplate(userOrgId);
+            // Không truyền templateId -> tìm mẫu mặc định của tổ chức nếu có (TC-03), nếu không có thì dùng mặc định hệ thống
+            template = profileTemplateRepository.findByOrganization_OrganizationIdAndIsDefaultTrue(userOrgId)
+                    .orElse(null);
         }
 
         // 2. Thu thập tập trường được chọn

@@ -308,9 +308,6 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
                   <DialogTitle className="text-base sm:text-lg font-bold text-foreground">
                     Bản xem trước xuất hồ sơ
                   </DialogTitle>
-                  <Badge variant="outline" className="text-[11px] bg-emerald-50 text-emerald-700 border-emerald-300 font-medium">
-                    Chuẩn hóa 100%
-                  </Badge>
                 </div>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                   Mẫu áp dụng: <strong className="text-foreground">{templateName || 'Mặc định'}</strong>
@@ -330,11 +327,10 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
                   <button
                     type="button"
                     onClick={() => setFormat('pdf')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
-                      format === 'pdf'
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${format === 'pdf'
                         ? 'bg-background text-foreground shadow-sm'
                         : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                      }`}
                   >
                     <FileText className="size-3.5 text-emerald-600" />
                     <span>Bản in PDF</span>
@@ -343,11 +339,10 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
                   <button
                     type="button"
                     onClick={() => setFormat('csv')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
-                      format === 'csv'
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${format === 'csv'
                         ? 'bg-background text-foreground shadow-sm'
                         : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                      }`}
                   >
                     <FileSpreadsheet className="size-3.5 text-emerald-600" />
                     <span>Bảng CSV</span>
@@ -356,11 +351,10 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
                   <button
                     type="button"
                     onClick={() => setFormat('json')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
-                      format === 'json'
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${format === 'json'
                         ? 'bg-background text-foreground shadow-sm'
                         : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                      }`}
                   >
                     <FileJson className="size-3.5 text-emerald-600" />
                     <span>Dữ liệu JSON</span>
@@ -439,11 +433,10 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
                     <button
                       type="button"
                       onClick={() => setCsvViewMode('table')}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs transition-colors ${
-                        csvViewMode === 'table'
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs transition-colors ${csvViewMode === 'table'
                           ? 'bg-muted font-semibold text-foreground'
                           : 'text-muted-foreground hover:text-foreground'
-                      }`}
+                        }`}
                     >
                       <TableIcon className="size-3" />
                       Bảng tính
@@ -451,11 +444,10 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
                     <button
                       type="button"
                       onClick={() => setCsvViewMode('raw')}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs transition-colors ${
-                        csvViewMode === 'raw'
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs transition-colors ${csvViewMode === 'raw'
                           ? 'bg-muted font-semibold text-foreground'
                           : 'text-muted-foreground hover:text-foreground'
-                      }`}
+                        }`}
                     >
                       <Code2 className="size-3" />
                       Dữ liệu thô
