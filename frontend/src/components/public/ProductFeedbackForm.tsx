@@ -56,9 +56,9 @@ export function ProductFeedbackForm({
       const message = isAxiosError<{ message?: string }>(error)
         ? error.response?.data?.message ??
           (error.response
-            ? "Không thể gửi phản ánh. Vui lòng thử lại."
-            : "Không thể kết nối đến máy chủ. Vui lòng thử lại sau.")
-        : "Đã xảy ra lỗi khi gửi phản ánh.";
+            ? t("feedback_error_submit")
+            : t("feedback_error_network"))
+        : t("feedback_error_generic");
 
       toast.error(message);
     }

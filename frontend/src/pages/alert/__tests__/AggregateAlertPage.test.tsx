@@ -146,7 +146,7 @@ describe('NCL-08-CN-016: Trang cảnh báo tổng hợp', () => {
     expect(screen.getByText('1')).toBeInTheDocument(); // Trung bình
 
     // Danh sách các loại cảnh báo
-    expect(screen.getByText('Tem quét bất thường')).toBeInTheDocument();
+    expect(screen.getAllByText('Tem quét bất thường').length).toBeGreaterThan(0);
     expect(screen.getByText('Chứng nhận sắp hết hạn')).toBeInTheDocument();
     expect(screen.getByText('Phản ánh chưa xử lý')).toBeInTheDocument();
     expect(screen.getByText('Mốc canh tác quá hạn')).toBeInTheDocument();

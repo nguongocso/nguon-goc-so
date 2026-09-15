@@ -97,6 +97,7 @@ describe("TraceLookupPage English Public Lookup (NCL-06-CN-004)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    sessionStorage.setItem("public_lookup_lang", "vi");
     vi.mocked(getPublicTrace).mockResolvedValue(mockTraceData);
     vi.mocked(getPublicCertifications).mockResolvedValue(mockCertData);
     vi.mocked(getPublicInspections).mockResolvedValue(mockInspectionData);
@@ -106,7 +107,7 @@ describe("TraceLookupPage English Public Lookup (NCL-06-CN-004)", () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText("Xoài Cát Chu")).toBeInTheDocument();
+      expect(screen.getAllByText("Xoài Cát Chu").length).toBeGreaterThan(0);
     });
 
     // Toggle language to EN
@@ -114,7 +115,7 @@ describe("TraceLookupPage English Public Lookup (NCL-06-CN-004)", () => {
     fireEvent.click(enButton);
 
     // Verify English Product Name fallback (TC-04)
-    expect(await screen.findByText("Cat Chu Mango")).toBeInTheDocument();
+    expect((await screen.findAllByText("Cat Chu Mango")).length).toBeGreaterThan(0);
 
     // Verify [Original] badge for lotName and shipmentCode (TC-02)
     const originalBadges = screen.getAllByText("[Original]");

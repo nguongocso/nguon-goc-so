@@ -5,7 +5,6 @@
 CREATE TABLE product_categories (
     id CHAR(36) NOT NULL,
     name VARCHAR(255) NOT NULL,
-    name_en VARCHAR(255),
     category_group VARCHAR(100),
     description TEXT,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
