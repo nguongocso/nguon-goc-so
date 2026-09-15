@@ -9,30 +9,36 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.time.LocalDate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import vn.nguongocso.alert.service.ScanAnomalyDetectionService;
+import vn.nguongocso.certification.entity.Certification;
 import vn.nguongocso.certification.entity.InspectionCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterionResult;
 import vn.nguongocso.certification.entity.InspectionRequest;
-import vn.nguongocso.certification.entity.Certification;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.certification.enums.CertificationVerificationStatus;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
 import vn.nguongocso.event.repository.ChainEventRepository;
+import vn.nguongocso.farm.entity.FarmArea;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.publicapi.dto.response.PublicInspectionResponse;
 import vn.nguongocso.publicapi.dto.response.PublicLotCertificationsResponse;
@@ -325,5 +331,70 @@ class PublicTraceServiceImplTest {
         assertEquals(1, response.getEvents().size());
         assertEquals("HARVEST", response.getEvents().get(0).getEventType());
         assertEquals(2000.0, response.getEvents().get(0).getEventData().get("quantity"));
+    }
+
+    /**
+     * TC-08: getPublicTrace ánh xạ farmAreaBoundary khi lô sản xuất có vùng trồng và ranh giới.
+     */
+    @Test
+    void getPublicTrace_WhenFarmAreaHasBoundary_ShouldMapFarmAreaBoundary() {
+        GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+        // JTS Polygon: tọa độ khép kín (điểm đầu = điểm cuối), X = kinh độ, Y = vĩ độ
+        Coordinate[] coordinates = new Coordinate[] {
+                new Coordinate(105.8542, 21.0285),
+                new Coordinate(105.8560, 21.0300),
+                new Coordinate(105.8580, 21.0270),
+                new Coordinate(105.8542, 21.0285)
+        };
+        Polygon polygon = geometryFactory.createPolygon(coordinates);
+
+        FarmArea farmArea = FarmArea.builder()
+                .id(UUID.randomUUID())
+                .name("Vùng chè Tân Cương A")
+                .boundary(polygon)
+                .calculatedArea(new BigDecimal("1.2500"))
+                .build();
+
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setName("Lô chè mẫu");
+        lot.setFarmArea(farmArea);
+        shipment.setProductionLot(lot);
+
+        PublicTraceResponse response = publicTraceService.getPublicTrace(codeValue, null, null, "127.0.0.1", "test-agent");
+
+        assertNotNull(response);
+        assertNotNull(response.getFarmAreaBoundary());
+        assertEquals(farmArea.getId(), response.getFarmAreaBoundary().getId());
+        assertEquals("Vùng chè Tân Cương A", response.getFarmAreaBoundary().getName());
+        assertEquals(new BigDecimal("1.2500"), response.getFarmAreaBoundary().getCalculatedArea());
+        // Danh sách đỉnh bỏ điểm khép kín cuối cùng -> còn 3 điểm
+        assertEquals(3, response.getFarmAreaBoundary().getPoints().size());
+        assertEquals(21.0285, response.getFarmAreaBoundary().getPoints().get(0).getLatitude(), 0.0001);
+        assertEquals(105.8542, response.getFarmAreaBoundary().getPoints().get(0).getLongitude(), 0.0001);
+    }
+
+    /**
+     * TC-08b: getPublicTrace trả farmAreaBoundary = null khi vùng trồng chưa được khoanh ranh giới.
+     */
+    @Test
+    void getPublicTrace_WhenFarmAreaHasNoBoundary_ShouldReturnNullFarmAreaBoundary() {
+        FarmArea farmArea = FarmArea.builder()
+                .id(UUID.randomUUID())
+                .name("Vùng chè chưa khoanh")
+                .boundary(null)
+                .calculatedArea(null)
+                .build();
+
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setName("Lô chè mới");
+        lot.setFarmArea(farmArea);
+        shipment.setProductionLot(lot);
+
+        PublicTraceResponse response = publicTraceService.getPublicTrace(codeValue, null, null, "127.0.0.1", "test-agent");
+
+        assertNotNull(response);
+        assertNull(response.getFarmAreaBoundary());
     }
 }

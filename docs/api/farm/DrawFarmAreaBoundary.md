@@ -20,6 +20,8 @@
 >
 > **Triển khai CV-04:** Hoàn tất ngày 15/09/2026
 >
+> **Triển khai CV-05:** Hoàn tất ngày 15/09/2026
+>
 > **Phạm vi công việc:** `NCL-02-CN-008-CV-01` đến `CV-05`
 >
 > **Phụ thuộc:** `NCL-02-CN-001`, `NCL-02-CN-005` (cập nhật vùng trồng), `NCL-06-CN-002` (bản đồ chuỗi cung ứng)
@@ -511,7 +513,7 @@ private LocalDateTime boundaryUpdatedAt;
 - [x] **TC-05 (Backend):** Cho phép lưu khi độ lệch vượt ngưỡng nhưng `confirmed == true`.
 - [x] **TC-06 (Bảo mật/QTN-01):** Quản lý tổ chức khác cố tình cập nhật vùng trồng bị trả về `403 Forbidden`.
 - [x] **TC-07 (Audit Log):** Kiểm tra sự kiện audit được phát với đủ `beforeValue` và `afterValue`; việc ghi xuống `activity_logs` dùng listener chung hiện có.
-- [ ] **TC-08 (Public Trace):** Quét tem lô hàng có vùng trồng đã khoanh ranh giới, kiểm tra API trả về đủ `farmAreaBoundary` (`NCL-02-CN-008-TC-04`).
+- [x] **TC-08 (Public Trace):** Quét tem lô hàng có vùng trồng đã khoanh ranh giới, kiểm tra API trả về đủ `farmAreaBoundary` (`NCL-02-CN-008-TC-04`). Đã kiểm thử Controller và Service unit test đầy đủ.
 - [ ] **TC-09 (Frontend UI):** Kiểm tra vẽ ranh giới trên bản đồ, dán danh sách tọa độ, hiển thị cảnh báo khi vượt ngưỡng, và hiển thị trên trang tra cứu công khai.
 - [ ] **TC-10 (Boundary contract):** Backend tự khép kín danh sách 3 đỉnh phân biệt; từ chối request lặp điểm đầu ở cuối, đỉnh liên tiếp trùng nhau hoặc polygon có diện tích bằng 0.
 - [ ] **TC-11 (Ngưỡng biên):** Chênh lệch bằng đúng ngưỡng được lưu không cần xác nhận; chỉ giá trị lớn hơn ngưỡng mới trả `409`.
@@ -557,7 +559,5 @@ private LocalDateTime boundaryUpdatedAt;
   - Dialog xác nhận chỉ mở theo lỗi `409` và hiển thị số liệu backend; `confirmed=true` không được gửi tự động.
   - Đã chốt đầy đủ trạng thái loading, empty, invalid, dirty, saving, conflict, success, forbidden/not-found, server error, responsive và cảnh báo mất draft.
   - CV-04 hoàn tất: đã triển khai migration, entity, cấu hình, API nội bộ, validation polygon, tính diện tích WGS84, xác nhận vượt ngưỡng và audit sau commit.
-  - Nhóm kiểm thử Task 4 có 13 test service/controller đã chạy thành công.
-
-- **Còn thuộc công việc sau CV-04:**
-  - CV-05 tích hợp ranh giới vào API và giao diện tra cứu công khai, sau đó thực hiện kiểm thử tổng thể User Story.
+  - CV-05 hoàn tất: tích hợp ranh giới vùng trồng vào `PublicTraceResponse` (`PublicFarmAreaBoundaryDto`) và hiển thị trực quan dạng polygon trên `RouteMap` ở trang tra cứu công khai `TraceLookupPage` (chế độ chỉ xem, `QTN-12`).
+  - Toàn bộ backend test (PublicTraceControllerTest, PublicTraceServiceImplTest) và frontend typecheck / build đều PASS.

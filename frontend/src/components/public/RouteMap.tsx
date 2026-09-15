@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import type { PublicChainEventItem } from '@/types/publicTrace';
+import type { PublicChainEventItem, PublicFarmAreaBoundary } from '@/types/publicTrace';
 import {
   getEventTypeLabel,
   getTranslatedEventData,
@@ -18,9 +18,11 @@ L.Icon.Default.mergeOptions({
 
 interface RouteMapProps {
   events: PublicChainEventItem[];
+  /** Ranh giới vùng trồng (CV-05). Hiển thị dạng polygon màu xanh lá read-only. */
+  farmAreaBoundary?: PublicFarmAreaBoundary | null;
 }
 
-export const RouteMap = ({ events }: RouteMapProps) => {
+export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
 
@@ -29,15 +31,29 @@ export const RouteMap = ({ events }: RouteMapProps) => {
     (e) => e.latitude !== null && e.longitude !== null
   );
 
+  // Kiểm tra polygon có điểm hợp lệ không
+  const boundaryPoints = farmAreaBoundary?.points ?? [];
+  const hasBoundary = boundaryPoints.length >= 3;
+
   useEffect(() => {
-    if (!mapRef.current || locationEvents.length === 0) return;
+    if (!mapRef.current) return;
+    if (locationEvents.length === 0 && !hasBoundary) return;
+
+    // Tính điểm trung tâm khởi tạo bản đồ
+    let initialCenter: [number, number];
+    if (hasBoundary) {
+      const latAvg =
+        boundaryPoints.reduce((sum, p) => sum + p.latitude, 0) / boundaryPoints.length;
+      const lngAvg =
+        boundaryPoints.reduce((sum, p) => sum + p.longitude, 0) / boundaryPoints.length;
+      initialCenter = [latAvg, lngAvg];
+    } else {
+      initialCenter = [locationEvents[0].latitude!, locationEvents[0].longitude!];
+    }
 
     // Khởi tạo bản đồ nếu chưa có
     if (!leafletMapRef.current) {
-      leafletMapRef.current = L.map(mapRef.current).setView(
-        [locationEvents[0].latitude!, locationEvents[0].longitude!],
-        10
-      );
+      leafletMapRef.current = L.map(mapRef.current).setView(initialCenter, 13);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -46,14 +62,49 @@ export const RouteMap = ({ events }: RouteMapProps) => {
 
     const map = leafletMapRef.current;
 
-    // Xóa marker cũ
+    // Xóa lớp cũ (marker + polygon)
     map.eachLayer((layer) => {
-      if (layer instanceof L.Marker) {
+      if (layer instanceof L.Marker || layer instanceof L.Polygon) {
         map.removeLayer(layer);
       }
     });
 
-    // Mảng tọa độ để tính bounds
+    // ─── Vẽ polygon ranh giới vùng trồng (CV-05) ───
+    if (hasBoundary) {
+      const latlngs: L.LatLngExpression[] = boundaryPoints.map(
+        (p) => [p.latitude, p.longitude] as L.LatLngExpression
+      );
+
+      const polygon = L.polygon(latlngs, {
+        color: '#059669',
+        weight: 2,
+        fillColor: '#059669',
+        fillOpacity: 0.12,
+        dashArray: '4 4',
+      }).addTo(map);
+
+      const areaText =
+        farmAreaBoundary?.calculatedArea != null
+          ? `${Number(farmAreaBoundary.calculatedArea).toFixed(4)} ha`
+          : 'Chưa tính';
+
+      polygon.bindPopup(
+        `<div style="font-family: system-ui; padding: 4px; min-width: 160px;">
+          <strong style="font-size: 14px; color: #059669;">🌿 Vùng trồng</strong>
+          <div style="margin-top: 4px; font-size: 13px;">
+            <strong>Tên:</strong> ${farmAreaBoundary?.name ?? '—'}
+          </div>
+          <div style="font-size: 13px;">
+            <strong>Diện tích tính toán:</strong> ${areaText}
+          </div>
+          <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">
+            Ranh giới hiển thị chỉ mang tính tham khảo.
+          </div>
+        </div>`
+      );
+    }
+
+    // ─── Vẽ marker sự kiện ───
     const coords: [number, number][] = [];
 
     locationEvents.forEach((event, index) => {
@@ -113,13 +164,15 @@ export const RouteMap = ({ events }: RouteMapProps) => {
         `);
     });
 
-    // Fit bounds nếu có nhiều hơn 1 điểm
-    if (coords.length > 1) {
-      const bounds = L.latLngBounds(coords);
-      map.fitBounds(bounds, {
-        padding: [40, 40],
-        maxZoom: 15,
-      });
+    // Fit bounds ưu tiên polygon + marker
+    const allCoords: L.LatLngExpression[] = [
+      ...coords,
+      ...boundaryPoints.map((p) => [p.latitude, p.longitude] as L.LatLngExpression),
+    ];
+
+    if (allCoords.length > 1) {
+      const bounds = L.latLngBounds(allCoords as L.LatLngBoundsLiteral);
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
     }
 
     // Invalidate size khi component mount
@@ -133,10 +186,10 @@ export const RouteMap = ({ events }: RouteMapProps) => {
         leafletMapRef.current = null;
       }
     };
-  }, [locationEvents]);
+  }, [locationEvents, hasBoundary, boundaryPoints, farmAreaBoundary]);
 
-  // Nếu không có tọa độ, không hiển thị
-  if (locationEvents.length === 0) {
+  // Nếu không có tọa độ và không có polygon, không hiển thị
+  if (locationEvents.length === 0 && !hasBoundary) {
     return (
       <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">
         <p className="text-lg font-semibold">Không có dữ liệu vị trí</p>
@@ -148,9 +201,19 @@ export const RouteMap = ({ events }: RouteMapProps) => {
   return (
     <div className="relative z-0 isolate bg-white rounded-xl shadow-sm overflow-hidden">
       <div ref={mapRef} style={{ height: '450px', width: '100%' }} />
-      <div className="p-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-400 flex justify-between">
-        <span>{locationEvents.length} điểm hành trình</span>
-        <span>Click marker để xem chi tiết</span>
+      <div className="p-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-400 flex justify-between items-center">
+        <span>
+          {locationEvents.length > 0 && `${locationEvents.length} điểm hành trình`}
+          {locationEvents.length > 0 && hasBoundary && ' · '}
+          {hasBoundary && (
+            <span className="text-emerald-600 font-medium">
+              🌿 Ranh giới vùng trồng: {farmAreaBoundary?.name}
+              {farmAreaBoundary?.calculatedArea != null &&
+                ` (${Number(farmAreaBoundary.calculatedArea).toFixed(4)} ha)`}
+            </span>
+          )}
+        </span>
+        <span>Click marker hoặc vùng để xem chi tiết</span>
       </div>
     </div>
   );
