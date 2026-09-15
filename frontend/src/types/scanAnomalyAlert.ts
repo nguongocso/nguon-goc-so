@@ -11,9 +11,11 @@ export interface ScanPoint {
 }
 
 export interface ScanAnomalyAlertDetails {
-  locations: ScanPoint[];
-  scanCount: number;
-  thresholdConfigured: number;
+  locations?: ScanPoint[];
+  scanCount?: number;
+  thresholdConfigured?: number;
+  traceCodeValue?: string;
+  [key: string]: any;
 }
 
 export interface ScanAnomalyAlert {
@@ -22,7 +24,7 @@ export interface ScanAnomalyAlert {
   relatedEntityType: 'TraceCode';
   relatedEntityId: string;
   severity: ScanAnomalyAlertSeverity;
-  details: ScanAnomalyAlertDetails;
+  details?: ScanAnomalyAlertDetails;
   status: ScanAnomalyAlertStatus;
   createdAt: string;
   resolvedAt: string | null;

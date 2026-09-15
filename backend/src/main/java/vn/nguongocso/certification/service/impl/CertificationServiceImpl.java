@@ -824,7 +824,8 @@ public class CertificationServiceImpl implements CertificationService {
     private ProductionLot findLotAndValidateOrganization(UUID lotId, CustomUserDetails currentUser) {
         ProductionLot lot = productionLotRepository.findById(lotId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lô sản xuất."));
-        if (!lot.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
+        boolean isAdmin = currentUser != null && ("VT-01".equals(currentUser.getRoleCode()) || "ROLE_ADMIN".equals(currentUser.getRoleCode()));
+        if (!isAdmin && (currentUser == null || !lot.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId()))) {
             throw new BusinessException("Bạn không có quyền thao tác trên lô sản xuất này.");
         }
         return lot;
