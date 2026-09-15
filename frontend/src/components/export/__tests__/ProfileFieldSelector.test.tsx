@@ -63,7 +63,7 @@ describe('ProfileFieldSelector (NCL-07-CN-007)', () => {
     expect(mandatoryCheckboxes[0]).toHaveAttribute('aria-disabled', 'true');
     expect(mandatoryCheckboxes[0]).toHaveAttribute('data-disabled');
 
-    const mandatoryBadges = screen.getAllByText(/Bắt buộc QTN-11/i);
+    const mandatoryBadges = screen.getAllByText(/Bắt buộc/i);
     expect(mandatoryBadges.length).toBeGreaterThanOrEqual(4);
   });
 

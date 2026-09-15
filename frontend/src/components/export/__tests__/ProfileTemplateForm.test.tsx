@@ -132,7 +132,7 @@ describe('ProfileTemplateFormPage (NCL-07-CN-007)', () => {
       response: {
         status: 422,
         data: {
-          message: 'Hồ sơ truy xuất thiếu các trường bắt buộc theo QTN-11',
+          message: 'Hồ sơ truy xuất thiếu các trường bắt buộc theo',
         },
       },
     });
@@ -153,7 +153,7 @@ describe('ProfileTemplateFormPage (NCL-07-CN-007)', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText('Hồ sơ truy xuất thiếu các trường bắt buộc theo QTN-11')
+        screen.getByText('Hồ sơ truy xuất thiếu các trường bắt buộc theo')
       ).toBeInTheDocument();
     });
   });

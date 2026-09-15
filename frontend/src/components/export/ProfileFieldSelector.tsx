@@ -167,13 +167,13 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
                 Tổng cộng {totalCount} trường được chọn
               </span>
               <p className="text-xs text-muted-foreground">
-                Gồm {mandatoryCount} trường bắt buộc (QTN-11) và {optionalCount} trường mở rộng tùy chọn
+                Gồm {mandatoryCount} trường bắt buộc và {optionalCount} trường mở rộng tùy chọn
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="destructive" className="text-xs font-medium">
-              {mandatoryCount} Bắt buộc QTN-11
+              {mandatoryCount} Bắt buộc
             </Badge>
             <Badge variant="secondary" className="text-xs font-medium">
               {optionalCount} Tùy chọn
@@ -253,13 +253,12 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
                     return (
                       <div
                         key={key}
-                        className={`flex items-start gap-3 p-2.5 rounded-lg border transition-colors ${
-                          isMandatory
-                            ? 'bg-amber-50/40 border-amber-200/70 dark:bg-amber-950/10 dark:border-amber-800/40'
-                            : isChecked
+                        className={`flex items-start gap-3 p-2.5 rounded-lg border transition-colors ${isMandatory
+                          ? 'bg-amber-50/40 border-amber-200/70 dark:bg-amber-950/10 dark:border-amber-800/40'
+                          : isChecked
                             ? 'bg-primary/5 border-primary/20'
                             : 'bg-card border-border hover:bg-muted/40'
-                        }`}
+                          }`}
                       >
                         <Checkbox
                           id={`field-${key}`}
@@ -273,11 +272,10 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
                         <div className="flex-1 min-w-0">
                           <label
                             htmlFor={`field-${key}`}
-                            className={`text-sm font-medium leading-tight block ${
-                              isMandatory
-                                ? 'text-foreground cursor-not-allowed'
-                                : 'text-foreground cursor-pointer'
-                            }`}
+                            className={`text-sm font-medium leading-tight block ${isMandatory
+                              ? 'text-foreground cursor-not-allowed'
+                              : 'text-foreground cursor-pointer'
+                              }`}
                           >
                             {label}
                           </label>
@@ -291,7 +289,7 @@ export const ProfileFieldSelector: React.FC<ProfileFieldSelectorProps> = ({
                                 className="text-[10px] h-4 px-1.5 flex items-center gap-0.5"
                               >
                                 <ShieldAlert className="size-2.5" />
-                                Bắt buộc QTN-11
+                                Bắt buộc
                               </Badge>
                             )}
                           </div>

@@ -36,32 +36,36 @@ public final class MandatoryFields {
     public static final Map<String, String> FIELD_DISPLAY_NAMES = Map.ofEntries(
             Map.entry("organization.name", "Tên tổ chức / HTX"),
             Map.entry("organization.code", "Mã tổ chức"),
-            Map.entry("organization.taxCode", "Mã số thuế"),
+            Map.entry("organization.type", "Loại hình tổ chức"),
+            Map.entry("organization.status", "Trạng thái tổ chức"),
             Map.entry("organization.address", "Địa chỉ trụ sở"),
+            Map.entry("organization.province", "Tỉnh / Thành phố"),
             Map.entry("organization.phone", "Số điện thoại"),
             Map.entry("organization.email", "Email"),
-            Map.entry("organization.representative", "Người đại diện"),
             Map.entry("farmArea.name", "Tên vùng trồng"),
-            Map.entry("farmArea.code", "Mã vùng trồng"),
             Map.entry("farmArea.location", "Tọa độ địa lý"),
             Map.entry("farmArea.area", "Diện tích canh tác"),
             Map.entry("farmArea.areaUnit", "Đơn vị diện tích"),
             Map.entry("farmArea.cropType", "Loại cây trồng"),
+            Map.entry("farmArea.isActive", "Trạng thái vùng trồng"),
             Map.entry("productionLot.name", "Tên / Mã lô sản xuất"),
             Map.entry("productionLot.productCategory", "Danh mục sản phẩm"),
             Map.entry("productionLot.plantingDate", "Ngày xuống giống"),
             Map.entry("productionLot.harvestDate", "Ngày thu hoạch"),
             Map.entry("productionLot.expectedQuantity", "Sản lượng dự kiến"),
+            Map.entry("productionLot.expectedQuantityUnit", "Đơn vị tính sản lượng"),
             Map.entry("productionLot.actualQuantity", "Sản lượng thực tế"),
             Map.entry("productionLot.status", "Trạng thái lô SX"),
             Map.entry("shipment.name", "Tên lô hàng"),
             Map.entry("shipment.totalQuantity", "Số lượng lô hàng"),
             Map.entry("shipment.packagingInfo", "Quy cách đóng gói"),
             Map.entry("shipment.status", "Trạng thái lô hàng"),
+            Map.entry("shipment.createdAt", "Thời điểm tạo lô hàng"),
             Map.entry("farmLog.activityType", "Loại hoạt động canh tác"),
             Map.entry("farmLog.executedDate", "Ngày thực hiện canh tác"),
             Map.entry("farmLog.material", "Vật tư nông nghiệp"),
             Map.entry("farmLog.quantity", "Liều lượng / Số lượng vật tư"),
+            Map.entry("farmLog.unit", "Đơn vị tính vật tư"),
             Map.entry("farmLog.notes", "Ghi chú kỹ thuật canh tác"),
             Map.entry("farmLog.attachments", "Chứng từ đính kèm"),
             Map.entry("inspection.sampleSentDate", "Ngày gửi mẫu"),
@@ -70,6 +74,7 @@ public final class MandatoryFields {
             Map.entry("inspection.passed", "Kết quả Đạt / Không đạt"),
             Map.entry("inspection.resultDate", "Ngày cấp kết quả"),
             Map.entry("inspection.expiryDate", "Hạn hiệu lực kiểm nghiệm"),
+            Map.entry("certification.name", "Tên giấy chứng nhận"),
             Map.entry("certification.standardName", "Tên tiêu chuẩn chứng nhận"),
             Map.entry("certification.certificationCode", "Mã số chứng nhận"),
             Map.entry("certification.issueDate", "Ngày cấp chứng nhận"),
@@ -120,11 +125,12 @@ public final class MandatoryFields {
                 .fields(List.of(
                         createItem("organization.name", "Đơn vị sản xuất và chịu trách nhiệm pháp lý"),
                         createItem("organization.code", "Mã định danh nội bộ của tổ chức"),
-                        createItem("organization.taxCode", "Mã số thuế doanh nghiệp / HTX"),
+                        createItem("organization.type", "Loại hình tổ chức (HTX, doanh nghiệp, nông hộ)"),
+                        createItem("organization.status", "Trạng thái hoạt động của tổ chức"),
                         createItem("organization.address", "Địa chỉ trụ sở hành chính"),
+                        createItem("organization.province", "Tỉnh / Thành phố nơi tổ chức hoạt động"),
                         createItem("organization.phone", "Số điện thoại liên hệ"),
-                        createItem("organization.email", "Địa chỉ email giao dịch"),
-                        createItem("organization.representative", "Họ tên người đại diện pháp luật")
+                        createItem("organization.email", "Địa chỉ email giao dịch")
                 ))
                 .build());
 
@@ -134,11 +140,11 @@ public final class MandatoryFields {
                 .groupLabel(ProfileFieldGroup.FARM_AREA.getLabel())
                 .fields(List.of(
                         createItem("farmArea.name", "Khu vực địa lý canh tác nông sản"),
-                        createItem("farmArea.code", "Mã vùng trồng đã đăng ký"),
                         createItem("farmArea.location", "Tọa độ GPS vùng canh tác"),
                         createItem("farmArea.area", "Quy mô diện tích vùng trồng"),
                         createItem("farmArea.areaUnit", "Đơn vị tính diện tích (m2, ha...)"),
-                        createItem("farmArea.cropType", "Chủng loại cây trồng chủ lực")
+                        createItem("farmArea.cropType", "Chủng loại cây trồng chủ lực"),
+                        createItem("farmArea.isActive", "Trạng thái kích hoạt vận hành của vùng trồng")
                 ))
                 .build());
 
@@ -152,6 +158,7 @@ public final class MandatoryFields {
                         createItem("productionLot.plantingDate", "Thời điểm gieo cấy / xuống giống"),
                         createItem("productionLot.harvestDate", "Thời điểm thu hoạch sản phẩm"),
                         createItem("productionLot.expectedQuantity", "Sản lượng dự kiến thu hoạch"),
+                        createItem("productionLot.expectedQuantityUnit", "Đơn vị tính sản lượng dự kiến"),
                         createItem("productionLot.actualQuantity", "Sản lượng thu hoạch thực tế"),
                         createItem("productionLot.status", "Trạng thái vận hành của lô sản xuất")
                 ))
@@ -165,7 +172,8 @@ public final class MandatoryFields {
                         createItem("shipment.name", "Tên chuyến hàng / lô hàng vận chuyển"),
                         createItem("shipment.totalQuantity", "Tổng sản lượng lô hàng xuất kho"),
                         createItem("shipment.packagingInfo", "Thông tin quy cách đóng gói"),
-                        createItem("shipment.status", "Trạng thái vận hành của lô hàng")
+                        createItem("shipment.status", "Trạng thái vận hành của lô hàng"),
+                        createItem("shipment.createdAt", "Thời điểm tạo lô hàng")
                 ))
                 .build());
 
@@ -178,6 +186,7 @@ public final class MandatoryFields {
                         createItem("farmLog.executedDate", "Thời điểm nông hộ ghi nhận hoạt động"),
                         createItem("farmLog.material", "Tên vật tư phân bón / thuốc BVTV"),
                         createItem("farmLog.quantity", "Liều lượng / khối lượng vật tư đã sử dụng"),
+                        createItem("farmLog.unit", "Đơn vị tính vật tư (kg, lít, chai...)"),
                         createItem("farmLog.notes", "Ghi chú kỹ thuật canh tác"),
                         createItem("farmLog.attachments", "Tệp hóa đơn, ảnh chứng từ đính kèm")
                 ))
@@ -202,6 +211,7 @@ public final class MandatoryFields {
                 .fieldGroup(ProfileFieldGroup.CERTIFICATION)
                 .groupLabel(ProfileFieldGroup.CERTIFICATION.getLabel())
                 .fields(List.of(
+                        createItem("certification.name", "Tên giấy chứng nhận tiêu chuẩn"),
                         createItem("certification.standardName", "Tên tiêu chuẩn: VietGAP, GlobalGAP..."),
                         createItem("certification.certificationCode", "Số hiệu chứng chỉ được cấp"),
                         createItem("certification.issueDate", "Ngày cấp chứng chỉ"),

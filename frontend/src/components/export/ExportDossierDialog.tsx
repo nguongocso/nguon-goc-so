@@ -4,7 +4,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -42,6 +41,38 @@ interface ExportDossierDialogProps {
   shipmentName: string;
   shipmentCode?: string;
 }
+
+/** Tên hiển thị tiếng Việt của mẫu hồ sơ mặc định do hệ thống cung cấp */
+const DEFAULT_TEMPLATE_DISPLAY_NAME = 'Mẫu tiêu chuẩn HTX (Mặc định hệ thống)';
+
+interface TemplateOptionContentProps {
+  name: string;
+  partnerName?: string | null;
+  isDefault?: boolean;
+}
+
+/**
+ * Hiển thị nội dung của một mẫu hồ sơ gồm tên mẫu, đối tác và nhãn "Mặc định".
+ * Dùng chung cho cả danh sách lựa chọn và giá trị đang được chọn
+ * để câu chữ hiển thị luôn thống nhất, không hiển thị mã (id) của mẫu.
+ */
+const TemplateOptionContent: React.FC<TemplateOptionContentProps> = ({
+  name,
+  partnerName,
+  isDefault,
+}) => (
+  <div className="flex min-w-0 items-center gap-2">
+    <span className="truncate">{name}</span>
+    {partnerName ? (
+      <span className="shrink-0 text-xs text-muted-foreground">({partnerName})</span>
+    ) : null}
+    {isDefault ? (
+      <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+        Mặc định
+      </span>
+    ) : null}
+  </div>
+);
 
 export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
   open,
@@ -83,6 +114,17 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
 
   const activeTemplate = templates.find((t) => t.id === selectedTemplateId);
   const activeTemplateId = selectedTemplateId !== 'default' ? selectedTemplateId : undefined;
+
+  // Giá trị hiển thị trên ô chọn: luôn dùng tên mẫu tiếng Việt thay vì mã (id) của mẫu
+  const selectedTemplateContent = activeTemplate ? (
+    <TemplateOptionContent
+      name={activeTemplate.name}
+      partnerName={activeTemplate.partnerName}
+      isDefault={activeTemplate.isDefault}
+    />
+  ) : (
+    <span className="truncate font-medium">{DEFAULT_TEMPLATE_DISPLAY_NAME}</span>
+  );
 
   const handleExport = async () => {
     if (!shipmentId) return;
@@ -139,10 +181,6 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
               </div>
               <div>
                 <DialogTitle className="text-lg font-bold">Xuất hồ sơ truy xuất nguồn gốc</DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground">
-                  Lô hàng: <span className="font-semibold text-foreground">{shipmentName}</span>
-                  {shipmentCode && ` (${shipmentCode})`}
-                </DialogDescription>
               </div>
             </div>
           </DialogHeader>
@@ -168,27 +206,25 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
                 disabled={loadingTemplates || isExporting}
               >
                 <SelectTrigger id="template-select" className="w-full">
-                  <SelectValue placeholder="Chọn mẫu hồ sơ truy xuất" />
+                  <SelectValue placeholder="Chọn mẫu hồ sơ truy xuất">
+                    {selectedTemplateContent}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="default">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Mẫu tiêu chuẩn HTX (Mặc định hệ thống)</span>
-                    </div>
+                  <SelectItem value="default" label={DEFAULT_TEMPLATE_DISPLAY_NAME}>
+                    <span className="font-medium">{DEFAULT_TEMPLATE_DISPLAY_NAME}</span>
                   </SelectItem>
                   {templates.map((tpl) => (
-                    <SelectItem key={tpl.id} value={tpl.id}>
-                      <div className="flex items-center gap-2">
-                        <span>{tpl.name}</span>
-                        {tpl.partnerName && (
-                          <span className="text-xs text-muted-foreground">({tpl.partnerName})</span>
-                        )}
-                        {tpl.isDefault && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-medium">
-                            Mặc định
-                          </span>
-                        )}
-                      </div>
+                    <SelectItem
+                      key={tpl.id}
+                      value={tpl.id}
+                      label={`${tpl.name}${tpl.partnerName ? ` (${tpl.partnerName})` : ''}${tpl.isDefault ? ' — Mặc định' : ''}`}
+                    >
+                      <TemplateOptionContent
+                        name={tpl.name}
+                        partnerName={tpl.partnerName}
+                        isDefault={tpl.isDefault}
+                      />
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -200,7 +236,7 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
                 <div>
                   {selectedTemplateId === 'default' ? (
                     <span>
-                      Áp dụng biểu mẫu mặc định của HTX gồm đầy đủ các trường bắt buộc QTN-11 và toàn bộ thông tin sản xuất, canh tác, kiểm nghiệm.
+                      Áp dụng biểu mẫu mặc định của HTX gồm đầy đủ các trường bắt buộc và toàn bộ thông tin sản xuất, canh tác, kiểm nghiệm.
                     </span>
                   ) : (
                     <span>
@@ -221,11 +257,10 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
                   type="button"
                   disabled={isExporting}
                   onClick={() => setSelectedFormat('pdf')}
-                  className={`p-2.5 rounded-lg border text-left transition-all flex flex-col justify-between ${
-                    selectedFormat === 'pdf'
-                      ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 ring-1 ring-emerald-600'
-                      : 'border-slate-200 hover:border-slate-300 dark:border-slate-800'
-                  }`}
+                  className={`p-2.5 rounded-lg border text-left transition-all flex flex-col justify-between ${selectedFormat === 'pdf'
+                    ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 ring-1 ring-emerald-600'
+                    : 'border-slate-200 hover:border-slate-300 dark:border-slate-800'
+                    }`}
                 >
                   <FileText className={`size-5 mb-1.5 ${selectedFormat === 'pdf' ? 'text-emerald-600' : 'text-slate-500'}`} />
                   <div>
@@ -238,11 +273,10 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
                   type="button"
                   disabled={isExporting}
                   onClick={() => setSelectedFormat('json')}
-                  className={`p-2.5 rounded-lg border text-left transition-all flex flex-col justify-between ${
-                    selectedFormat === 'json'
-                      ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 ring-1 ring-emerald-600'
-                      : 'border-slate-200 hover:border-slate-300 dark:border-slate-800'
-                  }`}
+                  className={`p-2.5 rounded-lg border text-left transition-all flex flex-col justify-between ${selectedFormat === 'json'
+                    ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 ring-1 ring-emerald-600'
+                    : 'border-slate-200 hover:border-slate-300 dark:border-slate-800'
+                    }`}
                 >
                   <FileCode className={`size-5 mb-1.5 ${selectedFormat === 'json' ? 'text-emerald-600' : 'text-slate-500'}`} />
                   <div>
@@ -255,11 +289,10 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
                   type="button"
                   disabled={isExporting}
                   onClick={() => setSelectedFormat('csv')}
-                  className={`p-2.5 rounded-lg border text-left transition-all flex flex-col justify-between ${
-                    selectedFormat === 'csv'
-                      ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 ring-1 ring-emerald-600'
-                      : 'border-slate-200 hover:border-slate-300 dark:border-slate-800'
-                  }`}
+                  className={`p-2.5 rounded-lg border text-left transition-all flex flex-col justify-between ${selectedFormat === 'csv'
+                    ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 ring-1 ring-emerald-600'
+                    : 'border-slate-200 hover:border-slate-300 dark:border-slate-800'
+                    }`}
                 >
                   <FileSpreadsheet className={`size-5 mb-1.5 ${selectedFormat === 'csv' ? 'text-emerald-600' : 'text-slate-500'}`} />
                   <div>

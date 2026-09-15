@@ -496,7 +496,10 @@ public class ExportServiceImpl implements ExportService {
         if (preview.get("organization") instanceof Map<?, ?> org) {
             appendCsvRowIfPresent(sb, "Đơn vị sản xuất (HTX)", "Tên tổ chức", org.get("name"));
             appendCsvRowIfPresent(sb, "Đơn vị sản xuất (HTX)", "Mã định danh", org.get("code"));
+            appendCsvRowIfPresent(sb, "Đơn vị sản xuất (HTX)", "Loại hình tổ chức", org.get("type"));
+            appendCsvRowIfPresent(sb, "Đơn vị sản xuất (HTX)", "Trạng thái tổ chức", org.get("status"));
             appendCsvRowIfPresent(sb, "Đơn vị sản xuất (HTX)", "Địa chỉ", org.get("address"));
+            appendCsvRowIfPresent(sb, "Đơn vị sản xuất (HTX)", "Tỉnh / Thành phố", org.get("province"));
             appendCsvRowIfPresent(sb, "Đơn vị sản xuất (HTX)", "Số điện thoại", org.get("phone"));
             appendCsvRowIfPresent(sb, "Đơn vị sản xuất (HTX)", "Email", org.get("email"));
         }
@@ -504,8 +507,11 @@ public class ExportServiceImpl implements ExportService {
         // Vùng trồng
         if (preview.get("farmArea") instanceof Map<?, ?> farmArea) {
             appendCsvRowIfPresent(sb, "Vùng trồng", "Tên vùng trồng", farmArea.get("name"));
+            appendCsvRowIfPresent(sb, "Vùng trồng", "Tọa độ địa lý", farmArea.get("location"));
             appendCsvRowIfPresent(sb, "Vùng trồng", "Diện tích canh tác", farmArea.get("area"));
             appendCsvRowIfPresent(sb, "Vùng trồng", "Đơn vị diện tích", farmArea.get("areaUnit"));
+            appendCsvRowIfPresent(sb, "Vùng trồng", "Loại cây trồng", farmArea.get("cropType"));
+            appendCsvRowIfPresent(sb, "Vùng trồng", "Trạng thái vùng trồng", farmArea.get("isActive"));
         }
 
         // Lô sản xuất
@@ -515,6 +521,7 @@ public class ExportServiceImpl implements ExportService {
             appendCsvRowIfPresent(sb, "Lô sản xuất", "Ngày xuống giống", lot.get("plantingDate"));
             appendCsvRowIfPresent(sb, "Lô sản xuất", "Ngày thu hoạch", lot.get("harvestDate"));
             appendCsvRowIfPresent(sb, "Lô sản xuất", "Sản lượng dự kiến", lot.get("expectedQuantity"));
+            appendCsvRowIfPresent(sb, "Lô sản xuất", "Đơn vị tính sản lượng", lot.get("expectedQuantityUnit"));
             appendCsvRowIfPresent(sb, "Lô sản xuất", "Sản lượng thực tế", lot.get("actualQuantity"));
             appendCsvRowIfPresent(sb, "Lô sản xuất", "Trạng thái", lot.get("status"));
         }
@@ -525,12 +532,31 @@ public class ExportServiceImpl implements ExportService {
             appendCsvRowIfPresent(sb, "Lô hàng vận chuyển", "Số lượng", shipment.get("totalQuantity"));
             appendCsvRowIfPresent(sb, "Lô hàng vận chuyển", "Quy cách đóng gói", shipment.get("packagingInfo"));
             appendCsvRowIfPresent(sb, "Lô hàng vận chuyển", "Trạng thái", shipment.get("status"));
+            appendCsvRowIfPresent(sb, "Lô hàng vận chuyển", "Thời điểm tạo lô hàng", shipment.get("createdAt"));
+        }
+
+        // Chứng nhận tiêu chuẩn
+        if (preview.get("certifications") instanceof List<?> certs && !certs.isEmpty()) {
+            sb.append("\n# CHỨNG NHẬN TIÊU CHUẨN\n");
+            sb.append("STT,Tên chứng nhận,Tiêu chuẩn,Số hiệu,Ngày cấp,Hạn hiệu lực,Tổ chức chứng nhận\n");
+            int idx = 1;
+            for (Object item : certs) {
+                if (item instanceof Map<?, ?> cItem) {
+                    sb.append(idx++).append(",");
+                    sb.append(escapeCsv(getMapValue(cItem, "name"))).append(",");
+                    sb.append(escapeCsv(getMapValue(cItem, "standardName"))).append(",");
+                    sb.append(escapeCsv(getMapValue(cItem, "certificationCode"))).append(",");
+                    sb.append(escapeCsv(getMapValue(cItem, "issueDate"))).append(",");
+                    sb.append(escapeCsv(getMapValue(cItem, "expiryDate"))).append(",");
+                    sb.append(escapeCsv(getMapValue(cItem, "certifier"))).append("\n");
+                }
+            }
         }
 
         // Nhật ký canh tác
         if (preview.get("farmLogs") instanceof List<?> logs && !logs.isEmpty()) {
             sb.append("\n# LỊCH TRÌNH CANH TÁC & CHỨNG TỪ\n");
-            sb.append("STT,Ngày thực hiện,Hoạt động,Vật tư / Số lượng,Ghi chú\n");
+            sb.append("STT,Ngày thực hiện,Hoạt động,Vật tư / Số lượng,Ghi chú,Chứng từ đính kèm\n");
             int idx = 1;
             for (Object item : logs) {
                 if (item instanceof Map<?, ?> logItem) {
@@ -539,9 +565,16 @@ public class ExportServiceImpl implements ExportService {
                     sb.append(escapeCsv(getMapValue(logItem, "activityType"))).append(",");
                     String mat = getMapValue(logItem, "material");
                     Object qty = logItem.get("quantity");
-                    String matInfo = mat + (qty != null ? " (" + qty + ")" : "");
+                    String unit = getMapValue(logItem, "unit");
+                    String matInfo = mat + (qty != null ? " (" + qty + (!unit.isBlank() ? " " + unit : "") + ")" : "");
                     sb.append(escapeCsv(matInfo.trim())).append(",");
-                    sb.append(escapeCsv(getMapValue(logItem, "notes"))).append("\n");
+                    sb.append(escapeCsv(getMapValue(logItem, "notes"))).append(",");
+
+                    String attStr = "";
+                    if (logItem.get("attachments") instanceof List<?> attList) {
+                        attStr = attList.stream().map(Object::toString).collect(Collectors.joining("; "));
+                    }
+                    sb.append(escapeCsv(attStr)).append("\n");
                 }
             }
         }
@@ -549,14 +582,19 @@ public class ExportServiceImpl implements ExportService {
         // Kiểm nghiệm
         if (preview.get("inspections") instanceof List<?> insps && !insps.isEmpty()) {
             sb.append("\n# LỊCH SỬ KIỂM NGHIỆM\n");
-            sb.append("STT,Ngày gửi mẫu,Đơn vị kiểm nghiệm,Trạng thái / Kết quả\n");
+            sb.append("STT,Ngày gửi mẫu,Đơn vị kiểm nghiệm,Chỉ tiêu / Tiêu chuẩn,Kết quả,Ngày cấp kết quả,Hạn hiệu lực\n");
             int idx = 1;
             for (Object item : insps) {
                 if (item instanceof Map<?, ?> inspItem) {
                     sb.append(idx++).append(",");
                     sb.append(escapeCsv(getMapValue(inspItem, "sampleSentDate"))).append(",");
                     sb.append(escapeCsv(getMapValue(inspItem, "inspectionUnit"))).append(",");
-                    sb.append(escapeCsv(getMapValue(inspItem, "status"))).append("\n");
+                    sb.append(escapeCsv(getMapValue(inspItem, "criterionName"))).append(",");
+                    String res = getMapValue(inspItem, "passed");
+                    if (res.isBlank()) res = getMapValue(inspItem, "status");
+                    sb.append(escapeCsv(res)).append(",");
+                    sb.append(escapeCsv(getMapValue(inspItem, "resultDate"))).append(",");
+                    sb.append(escapeCsv(getMapValue(inspItem, "expiryDate"))).append("\n");
                 }
             }
         }
@@ -564,13 +602,15 @@ public class ExportServiceImpl implements ExportService {
         // Dòng sự kiện
         if (preview.get("timelineEvents") instanceof List<?> events && !events.isEmpty()) {
             sb.append("\n# DÒNG SỰ KIỆN CHUỖI CUNG ỨNG\n");
-            sb.append("STT,Thời điểm ghi nhận,Loại sự kiện,Người ghi nhận\n");
+            sb.append("STT,Thời điểm ghi nhận,Loại sự kiện,Tọa độ địa điểm,Chi tiết sự kiện,Người ghi nhận\n");
             int idx = 1;
             for (Object item : events) {
                 if (item instanceof Map<?, ?> ev) {
                     sb.append(idx++).append(",");
                     sb.append(escapeCsv(getMapValue(ev, "recordedAt"))).append(",");
                     sb.append(escapeCsv(getMapValue(ev, "eventType"))).append(",");
+                    sb.append(escapeCsv(getMapValue(ev, "location"))).append(",");
+                    sb.append(escapeCsv(getMapValue(ev, "eventData"))).append(",");
                     sb.append(escapeCsv(getMapValue(ev, "recordedBy"))).append("\n");
                 }
             }

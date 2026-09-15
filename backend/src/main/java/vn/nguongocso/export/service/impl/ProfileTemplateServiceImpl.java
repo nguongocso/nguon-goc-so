@@ -8,6 +8,9 @@ import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.entity.InspectionRequest;
+import vn.nguongocso.certification.entity.InspectionCriterion;
+import vn.nguongocso.certification.entity.InspectionCriterionResult;
+import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
 import vn.nguongocso.event.entity.ChainEvent;
@@ -30,7 +33,9 @@ import vn.nguongocso.export.repository.ProfileTemplateRepository;
 import vn.nguongocso.export.service.ProfileTemplateService;
 import vn.nguongocso.farm.entity.FarmArea;
 import vn.nguongocso.farm.entity.FarmLog;
+import vn.nguongocso.farm.entity.FarmLogAttachment;
 import vn.nguongocso.farm.entity.ProductionLot;
+import vn.nguongocso.farm.repository.FarmLogAttachmentRepository;
 import vn.nguongocso.farm.repository.FarmLogRepository;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
@@ -55,8 +60,10 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
     private final UserRepository userRepository;
     private final ShipmentRepository shipmentRepository;
     private final FarmLogRepository farmLogRepository;
+    private final FarmLogAttachmentRepository farmLogAttachmentRepository;
     private final ChainEventRepository chainEventRepository;
     private final InspectionRequestRepository inspectionRequestRepository;
+    private final InspectionCriterionResultRepository inspectionCriterionResultRepository;
     private final ProductionLotCertificationRepository productionLotCertificationRepository;
 
     /**
@@ -353,7 +360,10 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
         Map<String, Object> orgData = new LinkedHashMap<>();
         addFieldIfSelected(orgData, "name", "organization.name", selectedFieldKeys, org != null ? org.getName() : null);
         addFieldIfSelected(orgData, "code", "organization.code", selectedFieldKeys, org != null ? org.getCode() : null);
+        addFieldIfSelected(orgData, "type", "organization.type", selectedFieldKeys, org != null && org.getType() != null ? vn.nguongocso.export.util.ExportDisplayFormatter.formatOrganizationType(org.getType()) : null);
+        addFieldIfSelected(orgData, "status", "organization.status", selectedFieldKeys, org != null && org.getStatus() != null ? vn.nguongocso.export.util.ExportDisplayFormatter.formatOrganizationStatus(org.getStatus()) : null);
         addFieldIfSelected(orgData, "address", "organization.address", selectedFieldKeys, org != null ? org.getAddress() : null);
+        addFieldIfSelected(orgData, "province", "organization.province", selectedFieldKeys, org != null && org.getProvince() != null ? org.getProvince().getName() : null);
         addFieldIfSelected(orgData, "phone", "organization.phone", selectedFieldKeys, org != null ? org.getPhone() : null);
         addFieldIfSelected(orgData, "email", "organization.email", selectedFieldKeys, org != null ? org.getEmail() : null);
         if (!orgData.isEmpty()) {
@@ -366,8 +376,15 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
             FarmArea farmArea = lot.getFarmArea();
             Map<String, Object> farmAreaData = new LinkedHashMap<>();
             addFieldIfSelected(farmAreaData, "name", "farmArea.name", selectedFieldKeys, farmArea != null ? farmArea.getName() : null);
+            addFieldIfSelected(farmAreaData, "location", "farmArea.location", selectedFieldKeys,
+                    farmArea != null && farmArea.getLocation() != null ? (farmArea.getLocation().getY() + ", " + farmArea.getLocation().getX()) : null);
             addFieldIfSelected(farmAreaData, "area", "farmArea.area", selectedFieldKeys, farmArea != null ? farmArea.getArea() : null);
-            addFieldIfSelected(farmAreaData, "areaUnit", "farmArea.areaUnit", selectedFieldKeys, farmArea != null && farmArea.getAreaUnit() != null ? farmArea.getAreaUnit().name() : null);
+            addFieldIfSelected(farmAreaData, "areaUnit", "farmArea.areaUnit", selectedFieldKeys,
+                    farmArea != null && farmArea.getAreaUnit() != null ? vn.nguongocso.export.util.ExportDisplayFormatter.formatAreaUnit(farmArea.getAreaUnit()) : null);
+            addFieldIfSelected(farmAreaData, "cropType", "farmArea.cropType", selectedFieldKeys,
+                    farmArea != null && farmArea.getCropType() != null ? farmArea.getCropType().getName() : null);
+            addFieldIfSelected(farmAreaData, "isActive", "farmArea.isActive", selectedFieldKeys,
+                    farmArea != null ? (Boolean.TRUE.equals(farmArea.getIsActive()) ? "Đang hoạt động" : "Tạm ngưng") : null);
             if (!farmAreaData.isEmpty()) {
                 preview.put("farmArea", farmAreaData);
             }
@@ -379,8 +396,9 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
             addFieldIfSelected(lotData, "plantingDate", "productionLot.plantingDate", selectedFieldKeys, lot.getPlantingDate());
             addFieldIfSelected(lotData, "harvestDate", "productionLot.harvestDate", selectedFieldKeys, lot.getHarvestDate());
             addFieldIfSelected(lotData, "expectedQuantity", "productionLot.expectedQuantity", selectedFieldKeys, lot.getExpectedQuantity());
+            addFieldIfSelected(lotData, "expectedQuantityUnit", "productionLot.expectedQuantityUnit", selectedFieldKeys, lot.getExpectedQuantityUnit());
             addFieldIfSelected(lotData, "actualQuantity", "productionLot.actualQuantity", selectedFieldKeys, lot.getActualQuantity());
-            addFieldIfSelected(lotData, "status", "productionLot.status", selectedFieldKeys, lot.getStatus() != null ? lot.getStatus().name() : null);
+            addFieldIfSelected(lotData, "status", "productionLot.status", selectedFieldKeys, lot.getStatus() != null ? vn.nguongocso.export.util.ExportDisplayFormatter.formatProductionLotStatus(lot.getStatus()) : null);
             if (!lotData.isEmpty()) {
                 preview.put("productionLot", lotData);
             }
@@ -391,7 +409,8 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
         addFieldIfSelected(shipmentData, "name", "shipment.name", selectedFieldKeys, shipment.getName());
         addFieldIfSelected(shipmentData, "totalQuantity", "shipment.totalQuantity", selectedFieldKeys, shipment.getTotalQuantity());
         addFieldIfSelected(shipmentData, "packagingInfo", "shipment.packagingInfo", selectedFieldKeys, shipment.getPackagingInfo());
-        addFieldIfSelected(shipmentData, "status", "shipment.status", selectedFieldKeys, shipment.getStatus() != null ? shipment.getStatus().name() : null);
+        addFieldIfSelected(shipmentData, "status", "shipment.status", selectedFieldKeys, shipment.getStatus() != null ? vn.nguongocso.export.util.ExportDisplayFormatter.formatShipmentStatus(shipment.getStatus()) : null);
+        addFieldIfSelected(shipmentData, "createdAt", "shipment.createdAt", selectedFieldKeys, shipment.getCreatedAt());
         if (!shipmentData.isEmpty()) {
             preview.put("shipment", shipmentData);
         }
@@ -402,11 +421,20 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
             List<Map<String, Object>> logList = new ArrayList<>();
             for (FarmLog l : logs) {
                 Map<String, Object> item = new LinkedHashMap<>();
-                addFieldIfSelected(item, "activityType", "farmLog.activityType", selectedFieldKeys, l.getActivityType() != null ? l.getActivityType().name() : null);
+                addFieldIfSelected(item, "activityType", "farmLog.activityType", selectedFieldKeys, l.getActivityType() != null ? vn.nguongocso.export.util.ExportDisplayFormatter.formatFarmActivityType(l.getActivityType()) : null);
                 addFieldIfSelected(item, "executedDate", "farmLog.executedDate", selectedFieldKeys, l.getExecutedDate());
                 addFieldIfSelected(item, "material", "farmLog.material", selectedFieldKeys, l.getMaterial());
                 addFieldIfSelected(item, "quantity", "farmLog.quantity", selectedFieldKeys, l.getQuantity());
+                addFieldIfSelected(item, "unit", "farmLog.unit", selectedFieldKeys, l.getUnit());
                 addFieldIfSelected(item, "notes", "farmLog.notes", selectedFieldKeys, l.getNotes());
+                if (selectedFieldKeys.contains("farmLog.attachments") && l.getId() != null) {
+                    List<FarmLogAttachment> atts = farmLogAttachmentRepository.findByFarmLogId(l.getId());
+                    List<String> fileNames = atts.stream()
+                            .map(FarmLogAttachment::getFileName)
+                            .filter(Objects::nonNull)
+                            .toList();
+                    item.put("attachments", fileNames);
+                }
                 if (!item.isEmpty()) {
                     logList.add(item);
                 }
@@ -416,17 +444,74 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
             }
         }
 
+        // Certification fields
+        if (lot != null && hasAnyPrefixSelected("certification.", selectedFieldKeys)) {
+            List<vn.nguongocso.certification.entity.ProductionLotCertification> certs =
+                    productionLotCertificationRepository.findByProductionLotIdIn(List.of(lot.getId()));
+            List<Map<String, Object>> certList = new ArrayList<>();
+            for (vn.nguongocso.certification.entity.ProductionLotCertification plc : certs) {
+                if (plc.getCertification() != null) {
+                    var c = plc.getCertification();
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    addFieldIfSelected(item, "name", "certification.name", selectedFieldKeys, c.getName());
+                    addFieldIfSelected(item, "standardName", "certification.standardName", selectedFieldKeys,
+                            c.getStandard() != null ? c.getStandard().getName() : null);
+                    addFieldIfSelected(item, "certificationCode", "certification.certificationCode", selectedFieldKeys, c.getCode());
+                    addFieldIfSelected(item, "issueDate", "certification.issueDate", selectedFieldKeys, c.getIssueDate());
+                    addFieldIfSelected(item, "expiryDate", "certification.expiryDate", selectedFieldKeys, c.getExpiryDate());
+                    addFieldIfSelected(item, "certifier", "certification.certifier", selectedFieldKeys, c.getIssuedBy());
+                    if (!item.isEmpty()) {
+                        certList.add(item);
+                    }
+                }
+            }
+            if (!certList.isEmpty()) {
+                preview.put("certifications", certList);
+            }
+        }
+
         // Inspection fields
         if (lot != null && hasAnyPrefixSelected("inspection.", selectedFieldKeys)) {
             List<InspectionRequest> inspections = inspectionRequestRepository.findByProductionLot_IdOrderByCreatedAtDesc(lot.getId());
             List<Map<String, Object>> inspList = new ArrayList<>();
             for (InspectionRequest ir : inspections) {
-                Map<String, Object> item = new LinkedHashMap<>();
-                addFieldIfSelected(item, "sampleSentDate", "inspection.sampleSentDate", selectedFieldKeys, ir.getSampleSentDate());
-                addFieldIfSelected(item, "inspectionUnit", "inspection.inspectionUnit", selectedFieldKeys, ir.getInspectionUnit());
-                addFieldIfSelected(item, "status", "inspection.passed", selectedFieldKeys, ir.getStatus() != null ? ir.getStatus().name() : null);
-                if (!item.isEmpty()) {
-                    inspList.add(item);
+                List<InspectionCriterionResult> results = inspectionCriterionResultRepository.findByInspectionCriterion_InspectionRequest_Id(ir.getId());
+                Map<UUID, InspectionCriterionResult> resultMap = results.stream()
+                        .filter(r -> r.getInspectionCriterion() != null && r.getInspectionCriterion().getId() != null)
+                        .collect(Collectors.toMap(r -> r.getInspectionCriterion().getId(), r -> r, (r1, r2) -> r1));
+
+                if (ir.getCriteria() != null && !ir.getCriteria().isEmpty()) {
+                    for (InspectionCriterion c : ir.getCriteria()) {
+                        InspectionCriterionResult res = resultMap.get(c.getId());
+                        Map<String, Object> item = new LinkedHashMap<>();
+                        addFieldIfSelected(item, "sampleSentDate", "inspection.sampleSentDate", selectedFieldKeys, ir.getSampleSentDate());
+                        addFieldIfSelected(item, "inspectionUnit", "inspection.inspectionUnit", selectedFieldKeys, ir.getInspectionUnit());
+
+                        String critLabel = c.getCriterionName() != null ? c.getCriterionName() : c.getCriterionCode();
+                        if (c.getStandard() != null && c.getStandard().getName() != null) {
+                            critLabel = critLabel + " (" + c.getStandard().getName() + ")";
+                        }
+                        addFieldIfSelected(item, "criterionName", "inspection.criterionName", selectedFieldKeys, critLabel);
+
+                        String outcome = res == null ? "Chưa có kết quả" : (Boolean.TRUE.equals(res.getPassed()) ? "Đạt" : "Không đạt");
+                        addFieldIfSelected(item, "passed", "inspection.passed", selectedFieldKeys, outcome);
+                        addFieldIfSelected(item, "status", "inspection.passed", selectedFieldKeys, outcome);
+                        addFieldIfSelected(item, "resultDate", "inspection.resultDate", selectedFieldKeys, res != null ? res.getResultDate() : null);
+                        addFieldIfSelected(item, "expiryDate", "inspection.expiryDate", selectedFieldKeys, res != null ? res.getExpiryDate() : null);
+                        if (!item.isEmpty()) {
+                            inspList.add(item);
+                        }
+                    }
+                } else {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    addFieldIfSelected(item, "sampleSentDate", "inspection.sampleSentDate", selectedFieldKeys, ir.getSampleSentDate());
+                    addFieldIfSelected(item, "inspectionUnit", "inspection.inspectionUnit", selectedFieldKeys, ir.getInspectionUnit());
+                    String outcome = ir.getStatus() != null ? ir.getStatus().name() : null;
+                    addFieldIfSelected(item, "passed", "inspection.passed", selectedFieldKeys, outcome);
+                    addFieldIfSelected(item, "status", "inspection.passed", selectedFieldKeys, outcome);
+                    if (!item.isEmpty()) {
+                        inspList.add(item);
+                    }
                 }
             }
             if (!inspList.isEmpty()) {
@@ -440,9 +525,14 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
             List<Map<String, Object>> eventList = new ArrayList<>();
             for (ChainEvent ce : events) {
                 Map<String, Object> item = new LinkedHashMap<>();
-                addFieldIfSelected(item, "eventType", "chainEvent.eventType", selectedFieldKeys, ce.getEventType() != null ? ce.getEventType().name() : null);
+                addFieldIfSelected(item, "eventType", "chainEvent.eventType", selectedFieldKeys,
+                        ce.getEventType() != null ? vn.nguongocso.export.util.ExportDisplayFormatter.formatChainEventType(ce.getEventType()) : null);
                 addFieldIfSelected(item, "recordedAt", "chainEvent.recordedAt", selectedFieldKeys, ce.getRecordedAt());
                 addFieldIfSelected(item, "recordedBy", "chainEvent.recordedBy", selectedFieldKeys, ce.getRecordedBy() != null ? ce.getRecordedBy().getFullName() : null);
+                String locStr = ce.getLocation() != null ? (ce.getLocation().getY() + ", " + ce.getLocation().getX()) : null;
+                addFieldIfSelected(item, "location", "chainEvent.location", selectedFieldKeys, locStr);
+                addFieldIfSelected(item, "eventData", "chainEvent.eventData", selectedFieldKeys,
+                        vn.nguongocso.export.util.ExportDisplayFormatter.formatEventData(ce.getEventData(), "; "));
                 if (!item.isEmpty()) {
                     eventList.add(item);
                 }

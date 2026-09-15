@@ -215,7 +215,7 @@ export const ExportOpenDataForm = () => {
           if (json.errors && Array.isArray(json.errors) && json.errors.length > 0) {
             setQtn11Errors(json.errors);
             setQtn11ErrorModalOpen(true);
-            toast.error(json.message || 'Không có lô hàng nào đáp ứng đủ quy tắc QTN-11');
+            toast.error(json.message || 'Không có lô hàng nào đáp ứng đủ quy tắc');
           } else {
             toast.error(json.message || 'Xuất dữ liệu thất bại');
           }
@@ -579,11 +579,15 @@ export const ExportOpenDataForm = () => {
                         <SelectValue placeholder="Chọn mẫu hồ sơ áp dụng" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="default">
+                        <SelectItem value="default" label="Dùng mẫu mặc định của tổ chức">
                           Dùng mẫu mặc định của tổ chức
                         </SelectItem>
                         {profileTemplates.map((tpl) => (
-                          <SelectItem key={tpl.id} value={tpl.id}>
+                          <SelectItem
+                            key={tpl.id}
+                            value={tpl.id}
+                            label={tpl.name + (tpl.partnerName ? ` (${tpl.partnerName})` : '') + (tpl.isDefault ? ' — [Mặc định]' : '')}
+                          >
                             {tpl.name}
                             {tpl.partnerName ? ` (${tpl.partnerName})` : ''}
                             {tpl.isDefault ? ' — [Mặc định]' : ''}

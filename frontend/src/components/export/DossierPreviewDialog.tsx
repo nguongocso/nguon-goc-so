@@ -8,7 +8,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Loader2,
   Copy,
@@ -328,8 +327,8 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
                     type="button"
                     onClick={() => setFormat('pdf')}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${format === 'pdf'
-                        ? 'bg-background text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                       }`}
                   >
                     <FileText className="size-3.5 text-emerald-600" />
@@ -340,8 +339,8 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
                     type="button"
                     onClick={() => setFormat('csv')}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${format === 'csv'
-                        ? 'bg-background text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                       }`}
                   >
                     <FileSpreadsheet className="size-3.5 text-emerald-600" />
@@ -352,8 +351,8 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
                     type="button"
                     onClick={() => setFormat('json')}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${format === 'json'
-                        ? 'bg-background text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                       }`}
                   >
                     <FileJson className="size-3.5 text-emerald-600" />
@@ -434,8 +433,8 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
                       type="button"
                       onClick={() => setCsvViewMode('table')}
                       className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs transition-colors ${csvViewMode === 'table'
-                          ? 'bg-muted font-semibold text-foreground'
-                          : 'text-muted-foreground hover:text-foreground'
+                        ? 'bg-muted font-semibold text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
                         }`}
                     >
                       <TableIcon className="size-3" />
@@ -445,8 +444,8 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
                       type="button"
                       onClick={() => setCsvViewMode('raw')}
                       className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs transition-colors ${csvViewMode === 'raw'
-                          ? 'bg-muted font-semibold text-foreground'
-                          : 'text-muted-foreground hover:text-foreground'
+                        ? 'bg-muted font-semibold text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
                         }`}
                     >
                       <Code2 className="size-3" />

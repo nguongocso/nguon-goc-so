@@ -39,32 +39,36 @@ Hệ thống cung cấp danh mục các trường dữ liệu được phân th�
 |:---|:---|:---|:---:|:---|
 | `ORGANIZATION` | `organization.name` | Tên tổ chức / HTX | **Có** | Đơn vị sản xuất, chịu trách nhiệm pháp lý |
 | `ORGANIZATION` | `organization.code` | Mã tổ chức | Không | Mã định danh HTX trên hệ thống |
-| `ORGANIZATION` | `organization.taxCode` | Mã số thuế | Không | Mã số thuế của HTX |
+| `ORGANIZATION` | `organization.type` | Loại hình tổ chức | Không | HTX, doanh nghiệp, nông hộ... |
+| `ORGANIZATION` | `organization.status` | Trạng thái tổ chức | Không | Trạng thái hoạt động của tổ chức |
 | `ORGANIZATION` | `organization.address` | Địa chỉ trụ sở | Không | Địa chỉ hành chính của tổ chức |
+| `ORGANIZATION` | `organization.province` | Tỉnh / Thành phố | Không | Tỉnh/thành phố nơi tổ chức hoạt động |
 | `ORGANIZATION` | `organization.phone` | Số điện thoại | Không | Số điện thoại liên hệ |
 | `ORGANIZATION` | `organization.email` | Email | Không | Email giao dịch |
-| `ORGANIZATION` | `organization.representative` | Người đại diện | Không | Họ tên người đại diện pháp luật |
 | `FARM_AREA` | `farmArea.name` | Tên vùng trồng | **Có** | Định danh vùng trồng nơi sản xuất |
-| `FARM_AREA` | `farmArea.code` | Mã vùng trồng | Không | Mã số vùng trồng (nếu đã đăng ký) |
 | `FARM_AREA` | `farmArea.location` | Tọa độ địa lý | Không | Kinh độ / Vĩ độ vùng trồng |
 | `FARM_AREA` | `farmArea.area` | Diện tích canh tác | Không | Diện tích vùng trồng |
 | `FARM_AREA` | `farmArea.areaUnit` | Đơn vị diện tích | Không | Đơn vị tính (m2, ha...) |
 | `FARM_AREA` | `farmArea.cropType` | Loại cây trồng | Không | Loại giống cây trồng chủ lực |
+| `FARM_AREA` | `farmArea.isActive` | Trạng thái vùng trồng | Không | Trạng thái kích hoạt của vùng trồng |
 | `PRODUCTION_LOT` | `productionLot.name` | Tên / Mã lô sản xuất | **Có** | Mã định danh lô sản xuất nguồn |
 | `PRODUCTION_LOT` | `productionLot.productCategory` | Danh mục sản phẩm | **Có** | Loại sản phẩm nông sản |
 | `PRODUCTION_LOT` | `productionLot.plantingDate` | Ngày xuống giống | Không | Ngày gieo trồng / xuống giống |
 | `PRODUCTION_LOT` | `productionLot.harvestDate` | Ngày thu hoạch | Không | Ngày bắt đầu thu hoạch |
 | `PRODUCTION_LOT` | `productionLot.expectedQuantity` | Sản lượng dự kiến | Không | Sản lượng ước tính ban đầu |
+| `PRODUCTION_LOT` | `productionLot.expectedQuantityUnit` | Đơn vị tính sản lượng | Không | Đơn vị tính sản lượng dự kiến |
 | `PRODUCTION_LOT` | `productionLot.actualQuantity` | Sản lượng thực tế | Không | Sản lượng thu hoạch thực tế |
 | `PRODUCTION_LOT` | `productionLot.status` | Trạng thái lô SX | Không | CLOSED / PACKAGED... |
 | `SHIPMENT` | `shipment.name` | Tên lô hàng vận chuyển | **Có** | Tên chuyến hàng / lô hàng giao |
 | `SHIPMENT` | `shipment.totalQuantity` | Số lượng lô hàng | **Có** | Tổng số lượng sản phẩm xuất kho |
 | `SHIPMENT` | `shipment.packagingInfo` | Quy cách đóng gói | Không | Thông tin bao bì, quy cách đóng gói |
 | `SHIPMENT` | `shipment.status` | Trạng thái lô hàng | Không | Trạng thái vận hành của lô hàng |
+| `SHIPMENT` | `shipment.createdAt` | Thời điểm tạo lô hàng | Không | Thời điểm lập lô hàng |
 | `FARM_LOG` | `farmLog.activityType` | Loại hoạt động canh tác | **Có** | PLANTING, FERTILIZING, PESTICIDE, HARVESTING |
 | `FARM_LOG` | `farmLog.executedDate` | Ngày thực hiện canh tác | Không | Thời điểm thực hiện hoạt động |
 | `FARM_LOG` | `farmLog.material` | Vật tư nông nghiệp | Không | Tên phân bón, thuốc BVTV, hạt giống |
 | `FARM_LOG` | `farmLog.quantity` | Liều lượng / Khối lượng | Không | Số lượng vật tư sử dụng |
+| `FARM_LOG` | `farmLog.unit` | Đơn vị tính vật tư | Không | kg, lít, chai, bao... |
 | `FARM_LOG` | `farmLog.notes` | Ghi chú kỹ thuật | Không | Hướng dẫn kỹ thuật, thời gian cách ly |
 | `FARM_LOG` | `farmLog.attachments` | Chứng từ nhật ký | Không | Tệp hóa đơn, hình ảnh minh chứng |
 | `INSPECTION` | `inspection.sampleSentDate` | Ngày gửi mẫu kiểm | Không | Thời điểm gửi mẫu phân tích |
@@ -73,6 +77,7 @@ Hệ thống cung cấp danh mục các trường dữ liệu được phân th�
 | `INSPECTION` | `inspection.passed` | Kết quả Đạt / Không đạt | Không | Đánh giá Đạt / Không đạt |
 | `INSPECTION` | `inspection.resultDate` | Ngày cấp kết quả | Không | Ngày phòng kiểm nghiệm trả kết quả |
 | `INSPECTION` | `inspection.expiryDate` | Hạn hiệu lực kiểm nghiệm | Không | Hạn hiệu lực của phiếu phân tích |
+| `CERTIFICATION` | `certification.name` | Tên giấy chứng nhận | Không | Tên chứng chỉ hoặc chứng nhận |
 | `CERTIFICATION` | `certification.standardName` | Tên tiêu chuẩn | Không | VietGAP, GlobalGAP, Hữu cơ... |
 | `CERTIFICATION` | `certification.certificationCode` | Mã số chứng nhận | Không | Số hiệu chứng chỉ được cấp |
 | `CERTIFICATION` | `certification.issueDate` | Ngày cấp chứng nhận | Không | Thời điểm chứng nhận có hiệu lực |
@@ -149,10 +154,10 @@ Lấy toàn bộ các trường dữ liệu mà hệ thống hỗ trợ cấu h�
           "description": "Mã định danh nội bộ của tổ chức"
         },
         {
-          "fieldKey": "organization.taxCode",
-          "displayName": "Mã số thuế",
+          "fieldKey": "organization.type",
+          "displayName": "Loại hình tổ chức",
           "mandatory": false,
-          "description": "Mã số thuế doanh nghiệp / HTX"
+          "description": "Loại hình tổ chức (HTX, doanh nghiệp, nông hộ)"
         }
       ]
     },
@@ -602,11 +607,11 @@ Nếu người dùng cố tình bỏ chọn bất kỳ trường bắt buộc n�
 {
   "name": "Mẫu giao hàng Co.opmart (Cập nhật)",
   "partnerName": "Saigon Co.op - Miền Bắc",
-  "description": "Bổ sung thêm trường mã số thuế",
+  "description": "Bổ sung thêm trường địa chỉ trụ sở",
   "isDefault": true,
   "selectedFields": [
     { "fieldKey": "organization.name", "fieldGroup": "ORGANIZATION", "fieldOrder": 1 },
-    { "fieldKey": "organization.taxCode", "fieldGroup": "ORGANIZATION", "fieldOrder": 2 },
+    { "fieldKey": "organization.address", "fieldGroup": "ORGANIZATION", "fieldOrder": 2 },
     { "fieldKey": "farmArea.name", "fieldGroup": "FARM_AREA", "fieldOrder": 3 },
     { "fieldKey": "productionLot.name", "fieldGroup": "PRODUCTION_LOT", "fieldOrder": 4 },
     { "fieldKey": "productionLot.productCategory", "fieldGroup": "PRODUCTION_LOT", "fieldOrder": 5 },
