@@ -20,7 +20,9 @@ import vn.nguongocso.event.service.impl.ProcurementEventServiceImpl;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.trace.entity.Shipment;
+import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 import vn.nguongocso.trace.enums.ShipmentStatus;
+import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 
 import java.util.Optional;
@@ -36,6 +38,7 @@ import static org.mockito.Mockito.*;
 public class ProcurementEventServiceTest {
 
     @Mock private ShipmentRepository shipmentRepository;
+    @Mock private ShipmentHandoverRepository shipmentHandoverRepository;
     @Mock private ChainEventRepository chainEventRepository;
     @Mock private ChainEventService chainEventService;
     @Mock private UserRepository userRepository;
@@ -165,5 +168,38 @@ public class ProcurementEventServiceTest {
         assertThatThrownBy(() -> service.recordProcurementEvent(request, userDetails))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Chỉ Doanh nghiệp thu mua mới được ghi sự kiện này");
+    }
+
+    @Test
+    void recordProcurement_shouldSuccess_whenShipmentHasAcceptedHandover() throws Exception {
+        shipment.setRecipientOrganization(null); // non-split shipment
+        when(userDetails.getRoleCode()).thenReturn("VT-04");
+        when(userDetails.getOrganizationId()).thenReturn(orgId);
+        when(userDetails.getUserId()).thenReturn(userId);
+        when(userDetails.getUsername()).thenReturn("procurement_user");
+        when(userDetails.getFullName()).thenReturn("Công ty ABC");
+
+        when(shipmentRepository.findById(shipmentId)).thenReturn(Optional.of(shipment));
+        when(shipmentHandoverRepository.existsByShipmentIdAndToOrganizationOrganizationIdAndStatus(
+                shipmentId, orgId, ShipmentHandoverStatus.ACCEPTED)).thenReturn(true);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(objectMapper.writeValueAsString(anyMap())).thenReturn("{\"shipmentId\":\"" + shipmentId + "\"}");
+
+        ChainEvent savedEvent = new ChainEvent();
+        savedEvent.setId(UUID.randomUUID());
+        savedEvent.setEventData("{\"shipmentName\":\"Lô hàng 1\",\"receivedQuantity\":100}");
+        savedEvent.setRecordedBy(user);
+        when(chainEventService.saveWithChainHash(any())).thenReturn(savedEvent);
+
+        RecordProcurementEventRequest request = new RecordProcurementEventRequest();
+        request.setShipmentId(shipmentId);
+        request.setReceivedQuantity(100L);
+        request.setNotes("Đã nhận hàng từ phiếu bàn giao");
+
+        ChainEventResponse response = service.recordProcurementEvent(request, userDetails);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getEventData().get("receivedQuantity")).isEqualTo(100L);
+        verify(chainEventService, times(1)).saveWithChainHash(any());
     }
 }

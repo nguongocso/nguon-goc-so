@@ -870,7 +870,7 @@ export function Sidebar({
       }
     }
 
-    // Phiếu bàn giao nhận (VT-04): giữ active khi ở /handover hoặc xem chi tiết
+    // Phiếu bàn giao nhận (VT-04): giữ active khi ở /handover hoặc xem chi tiết phiếu / lô hàng bàn giao
     if (item.href === "/handover") {
       if (
         location.pathname === "/handover" ||
@@ -879,6 +879,9 @@ export function Sidebar({
           user?.roleCode === "VT-04") ||
         (location.pathname.startsWith("/shipment-handovers/") &&
           !location.pathname.startsWith("/shipment-handovers/sent") &&
+          user?.roleCode === "VT-04") ||
+        ((location.pathname.startsWith("/shipments/") ||
+          location.pathname.includes("/shipments/")) &&
           user?.roleCode === "VT-04")
       ) {
         return true;

@@ -106,6 +106,9 @@ class ChainEventServiceImplTest {
     @Mock
     private TraceCodeRepository traceCodeRepository;
 
+    @Mock
+    private vn.nguongocso.trace.repository.ShipmentHandoverRepository shipmentHandoverRepository;
+
     private CustomUserDetails validUser;
     private ProductionLot productionLot;
     private Organization organization;

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatActionType,
+  formatActivityLogDescription,
   formatTargetType,
   getActionColor,
 } from '@/utils/activityLogFormatter';
@@ -68,6 +69,32 @@ describe('utils/activityLogFormatter — formatActionType', () => {
 describe('utils/activityLogFormatter — getActionColor', () => {
   it('DISPOSE được gán màu rose (hành động loại bỏ/nguy hiểm)', () => {
     expect(getActionColor('DISPOSE')).toContain('rose');
+  });
+});
+
+describe('utils/activityLogFormatter — xuất nhật ký hoạt động', () => {
+  it('Việt hóa mã hành động và loại đối tượng', () => {
+    expect(formatActionType('EXPORT_ACTIVITY_LOG')).toBe('Xuất nhật ký hoạt động');
+    expect(formatTargetType('ACTIVITY_LOG_EXPORT')).toBe('Yêu cầu xuất nhật ký hoạt động');
+  });
+
+  it('Việt hóa mô tả kỹ thuật của cả bản ghi cũ', () => {
+    const description = 'Xuất nhật ký hoạt động: startDate=null, endDate=2026-09-14, '
+      + 'action=UPDATE_PRODUCTION_LOT, actorName=null, objectType=PRODUCTION_LOT, '
+      + 'recordCount=236, status=SUCCESS, exportJobId=null';
+
+    expect(formatActivityLogDescription(description, 'EXPORT_ACTIVITY_LOG')).toBe(
+      'Xuất nhật ký hoạt động: từ ngày: toàn bộ, đến ngày: 2026-09-14, '
+      + 'hành động: Cập nhật lô sản xuất, người thực hiện: tất cả, '
+      + 'loại đối tượng: Lô sản xuất, số bản ghi: 236, trạng thái: thành công, '
+      + 'mã yêu cầu: không có',
+    );
+  });
+
+  it('Không thay đổi mô tả của hành động khác', () => {
+    expect(formatActivityLogDescription('Cập nhật lô sản xuất', 'UPDATE')).toBe(
+      'Cập nhật lô sản xuất',
+    );
   });
 });
 

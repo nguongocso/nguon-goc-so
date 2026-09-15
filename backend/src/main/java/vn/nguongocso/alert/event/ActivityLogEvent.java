@@ -18,6 +18,8 @@ public class ActivityLogEvent {
 
     private String fullName;
 
+    private String actorRole;
+
     private UUID organizationId;
 
     private String action;
@@ -27,6 +29,10 @@ public class ActivityLogEvent {
     private String entityType;
 
     private String entityId;
+
+    private String beforeValue;
+
+    private String afterValue;
 
     private String ipAddress;
 
