@@ -30,6 +30,7 @@ import vn.nguongocso.trace.repository.CodeRangeRepository;
 import vn.nguongocso.trace.repository.RecallRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
+import vn.nguongocso.integration.partner.service.PartnerRecallWebhookDispatcher;
 import vn.nguongocso.trace.service.ShipmentRecallService;
 import vn.nguongocso.alert.dto.request.ActivityLogRequest;
 
@@ -56,6 +57,7 @@ public class ShipmentRecallServiceImpl implements ShipmentRecallService {
     private final UserRepository userRepository;
     private final NotificationService alertNotificationService;
     private final ActivityLogService activityLogService;
+    private final PartnerRecallWebhookDispatcher partnerRecallWebhookDispatcher;
 
     /*
      * {@inheritDoc}
@@ -148,6 +150,13 @@ public class ShipmentRecallServiceImpl implements ShipmentRecallService {
 
         // 10. Gửi thông báo
         alertNotificationService.sendShipmentRecallNotification(recall);
+
+        // 10b. Gửi thông báo webhook tự động tới các bên thứ ba đủ điều kiện (NCL-12-CN-006)
+        partnerRecallWebhookDispatcher.dispatchRecallNotifications(
+                List.of(shipment),
+                "RECALLED",
+                recall.getReason(),
+                null);
 
         // 11. Trả response
         RecallResponse response = new RecallResponse();
