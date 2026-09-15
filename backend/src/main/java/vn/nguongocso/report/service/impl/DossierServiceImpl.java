@@ -276,8 +276,9 @@ public class DossierServiceImpl implements DossierService {
             byte[] pdfData = out.toByteArray();
             long fileSize = pdfData.length;
 
-            // Ghi nhận nhật ký thành công
-            logDossierExport(shipment, currentUser, "SUCCESS", ipAddress, fileSize);
+            // Ghi nhận nhật ký thành công (kèm mẫu hồ sơ đã áp dụng - NCL-07-CN-007)
+            logDossierExport(shipment, currentUser, "SUCCESS", ipAddress, fileSize,
+                    template != null ? template.getId() : null);
 
             publishActivityLog(
                     currentUser,
@@ -1220,6 +1221,12 @@ public class DossierServiceImpl implements DossierService {
 
     private void logDossierExport(Shipment shipment, CustomUserDetails currentUser, String status, String ipAddress,
             Long fileSize) {
+        logDossierExport(shipment, currentUser, status, ipAddress, fileSize, null);
+    }
+
+    // NCL-07-CN-007: ghi nhận thêm mẫu hồ sơ đã áp dụng vào lịch sử xuất
+    private void logDossierExport(Shipment shipment, CustomUserDetails currentUser, String status, String ipAddress,
+            Long fileSize, UUID templateId) {
         try {
             User user = userRepository.findById(currentUser.getUserId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin tài khoản người xuất."));
@@ -1240,6 +1247,7 @@ public class DossierServiceImpl implements DossierService {
                     .fileSize(fileSize)
                     .status(status)
                     .ipAddress(ipAddress)
+                    .templateId(templateId)
                     .build();
 
             exportHistoryRepository.save(history);
@@ -1406,6 +1414,29 @@ public class DossierServiceImpl implements DossierService {
             throw new BusinessException("Không có lô hàng nào đủ điều kiện hoặc thuộc quyền truy cập để xuất bộ hồ sơ.");
         }
 
+        // NCL-07-CN-007: Xác định mẫu hồ sơ áp dụng cho toàn bộ bộ hồ sơ (giống luồng xuất đơn lô).
+        // Ưu tiên mẫu được chọn trong request; nếu không chọn thì dùng mẫu mặc định của tổ chức;
+        // không có mẫu mặc định → dùng bộ trường chuẩn đầy đủ.
+        ProfileTemplate batchTemplate = null;
+        UUID userOrgId = currentUser != null ? currentUser.getOrganizationId() : null;
+        if (request.getTemplateId() != null && profileTemplateRepository != null) {
+            batchTemplate = profileTemplateRepository.findById(request.getTemplateId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin mẫu hồ sơ."));
+            if (userOrgId != null && !batchTemplate.getOrganization().getOrganizationId().equals(userOrgId)) {
+                throw new AccessDeniedException("Mẫu hồ sơ không thuộc tổ chức của bạn.");
+            }
+        } else if (userOrgId != null && profileTemplateRepository != null) {
+            batchTemplate = profileTemplateRepository.findByOrganization_OrganizationIdAndIsDefaultTrue(userOrgId)
+                    .orElse(null);
+        }
+
+        Set<String> batchSelectedFieldKeys = null;
+        if (batchTemplate != null && batchTemplate.getFields() != null && !batchTemplate.getFields().isEmpty()) {
+            batchSelectedFieldKeys = batchTemplate.getFields().stream()
+                    .map(ProfileTemplateField::getFieldKey)
+                    .collect(Collectors.toSet());
+        }
+
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Document document = new Document(PageSize.A4, 36, 36, 36, 36);
             PdfWriter.getInstance(document, out);
@@ -1437,6 +1468,11 @@ public class DossierServiceImpl implements DossierService {
 
             Paragraph pCount = new Paragraph("Tổng số lô hàng xuất hồ sơ: " + eligibleShipments.size() + " lô", normalFont);
             document.add(pCount);
+
+            if (batchTemplate != null) {
+                Paragraph pTemplate = new Paragraph("Mẫu hồ sơ áp dụng: " + batchTemplate.getName(), normalFont);
+                document.add(pTemplate);
+            }
 
             if (request.getNote() != null && !request.getNote().trim().isEmpty()) {
                 Paragraph pNote = new Paragraph("Ghi chú: " + request.getNote().trim(), normalFont);
@@ -1476,7 +1512,8 @@ public class DossierServiceImpl implements DossierService {
             // =========================================================================
             for (Shipment ship : eligibleShipments) {
                 document.newPage();
-                renderShipmentDossierPdf(document, ship, titleFont, headerFont, boldFont, normalFont);
+                // NCL-07-CN-007: render hồ sơ từng lô theo bộ trường của mẫu hồ sơ được chọn
+                renderShipmentDossierPdf(document, ship, batchTemplate, batchSelectedFieldKeys, titleFont, headerFont, boldFont, normalFont);
             }
 
             document.close();
@@ -1485,11 +1522,13 @@ public class DossierServiceImpl implements DossierService {
 
             // Ghi log xuất bộ hồ sơ cho từng lô hàng trong batch
             for (Shipment ship : eligibleShipments) {
-                logDossierExport(ship, currentUser, "SUCCESS", ipAddress, (long) pdfBytes.length);
+                logDossierExport(ship, currentUser, "SUCCESS", ipAddress, (long) pdfBytes.length,
+                        batchTemplate != null ? batchTemplate.getId() : null);
             }
 
             publishActivityLog(currentUser, "EXPORT_BATCH_DOSSIER",
-                    "Xuất bộ hồ sơ hợp nhất cho " + eligibleShipments.size() + " lô hàng",
+                    "Xuất bộ hồ sơ hợp nhất cho " + eligibleShipments.size() + " lô hàng"
+                            + (batchTemplate != null ? " theo mẫu: " + batchTemplate.getName() : ""),
                     "BATCH_DOSSIER", request.getTitle() != null ? request.getTitle() : "ALL");
 
             return pdfBytes;
@@ -1548,6 +1587,7 @@ public class DossierServiceImpl implements DossierService {
                     .fileSize(h.getFileSize())
                     .status(h.getStatus())
                     .ipAddress(h.getIpAddress())
+                    .templateId(h.getTemplateId())
                     .build());
         }
         return result;

@@ -117,7 +117,8 @@ Hệ thống phân loại các lô thành **Lô đủ điều kiện** và **Lô
     "550e8400-e29b-41d4-a716-446655440002"
   ],
   "title": "Bộ hồ sơ Chuyến hàng Giao Siêu thị WinMart #882",
-  "note": "Xuất phần các lô đủ điều kiện"
+  "note": "Xuất phần các lô đủ điều kiện",
+  "templateId": "381a3d77-a236-4ec9-8833-32fb278b511a"
 }
 ```
 
@@ -128,6 +129,7 @@ Hệ thống phân loại các lô thành **Lô đủ điều kiện** và **Lô
 | `shipmentIds` | `List<UUID>` | Có | Danh sách ID các lô hàng ĐỦ ĐIỀU KIỆN cần xuất bộ hồ sơ. |
 | `title` | `String` | Không | Tiêu đề tùy chỉnh cho Chuyến hàng / Đơn giao siêu thị. |
 | `note` | `String` | Không | Ghi chú bổ sung trên trang bìa bộ hồ sơ. |
+| `templateId` | `UUID` | Không | **(NCL-07-CN-007)** Mẫu hồ sơ truy xuất theo yêu cầu đối tác áp dụng cho toàn bộ bộ hồ sơ. Nếu bỏ trống, hệ thống dùng mẫu `isDefault` của tổ chức; nếu không có mẫu mặc định thì dùng bộ trường chuẩn đầy đủ. Mẫu phải thuộc tổ chức của người dùng (`QTN-01`), ngược lại trả `403`. |
 
 ---
 
@@ -196,7 +198,8 @@ Khi danh sách lô có số lượng lớn (ví dụ: > 50 lô), hệ thống ch
       "fileName": "Bo_ho_so_truy_xuat_20260907_222000.pdf",
       "fileSize": 2450820,
       "status": "SUCCESS",
-      "ipAddress": "192.168.1.15"
+      "ipAddress": "192.168.1.15",
+      "templateId": "381a3d77-a236-4ec9-8833-32fb278b511a"
     }
   ],
   "timestamp": "2026-09-07T22:21:00.000Z"

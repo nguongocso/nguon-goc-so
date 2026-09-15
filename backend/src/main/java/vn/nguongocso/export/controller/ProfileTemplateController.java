@@ -37,7 +37,7 @@ public class ProfileTemplateController {
      * Hỗ trợ cả /catalog và /available-fields để đồng bộ với các phiên bản frontend.
      */
     @GetMapping({"/catalog", "/available-fields"})
-    @PreAuthorize("hasRole('VT-02')")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<List<FieldGroupDefinition>>> getCatalog(
             @PathVariable UUID orgId) {
         log.info("Nhận yêu cầu lấy danh mục trường dữ liệu mẫu hồ sơ: orgId={}", orgId);
@@ -50,7 +50,7 @@ public class ProfileTemplateController {
      * Lấy danh sách mẫu hồ sơ thuộc tổ chức của người dùng (TC-04).
      */
     @GetMapping
-    @PreAuthorize("hasRole('VT-02')")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<List<ProfileTemplateResponse>>> listTemplates(
             @PathVariable UUID orgId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
@@ -81,7 +81,7 @@ public class ProfileTemplateController {
      * Lấy mẫu hồ sơ mặc định của tổ chức (TC-03).
      */
     @GetMapping("/default")
-    @PreAuthorize("hasRole('VT-02')")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<ProfileTemplateResponse>> getDefaultTemplate(
             @PathVariable UUID orgId,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
@@ -95,7 +95,7 @@ public class ProfileTemplateController {
      * Lấy thông tin chi tiết mẫu hồ sơ theo ID (TC-04).
      */
     @GetMapping("/{templateId}")
-    @PreAuthorize("hasRole('VT-02')")
+    @PreAuthorize("hasAnyRole('VT-02', 'VT-04')")
     public ResponseEntity<ApiResult<ProfileTemplateResponse>> getTemplate(
             @PathVariable UUID orgId,
             @PathVariable UUID templateId,

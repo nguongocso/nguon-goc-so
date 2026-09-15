@@ -9,6 +9,15 @@ import { ListCard } from "@/components/common/ListCard";
 import { DataTableShell } from "@/components/common/DataTableShell";
 import { TableCell, TableHead, TableRow } from "@/components/ui/table";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useAuth } from "@/hooks/useAuth";
+import { useProfileTemplates } from "@/hooks/useProfileTemplates";
+import {
   checkBatchDossierEligibility,
   exportBatchDossier,
   getBatchDossierExportHistory,
@@ -48,6 +57,12 @@ export default function BatchDossierExportPage() {
 
   const [title, setTitle] = useState("BỘ HỒ SƠ TRUY XUẤT NGUỒN GỐC NÔNG SẢN");
   const [note, setNote] = useState("");
+
+  // NCL-07-CN-007: chọn mẫu hồ sơ truy xuất theo yêu cầu đối tác khi xuất nhiều lô
+  const { user } = useAuth();
+  const organizationId = user?.organizationId || "";
+  const { templates } = useProfileTemplates(organizationId);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("default");
 
   const [history, setHistory] = useState<BatchDossierHistoryDto[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -112,6 +127,7 @@ export default function BatchDossierExportPage() {
         shipmentIds: eligibleIds,
         title: title.trim() || undefined,
         note: note.trim() || undefined,
+        templateId: selectedTemplateId !== "default" ? selectedTemplateId : undefined,
       });
 
       toast.dismiss(toastId);
@@ -250,6 +266,35 @@ export default function BatchDossierExportPage() {
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Ví dụ: BỘ HỒ SƠ TRUY XUẤT CHUYẾN HÀNG SIÊU THỊ CO.OPMART"
                 />
+              </div>
+
+              {/* NCL-07-CN-007: chọn mẫu hồ sơ áp dụng cho bộ hồ sơ hợp nhất */}
+              <div className="space-y-2">
+                <Label htmlFor="batch-template">Mẫu hồ sơ áp dụng</Label>
+                <Select
+                  value={selectedTemplateId}
+                  onValueChange={(value) => setSelectedTemplateId(value ?? "default")}
+                >
+                  <SelectTrigger id="batch-template" className="w-full md:w-1/2">
+                    <SelectValue placeholder="Chọn mẫu hồ sơ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default" label="Mẫu tiêu chuẩn HTX (Mặc định hệ thống)">
+                      Mẫu tiêu chuẩn HTX (Mặc định hệ thống)
+                    </SelectItem>
+                    {templates.map((t) => (
+                      <SelectItem key={t.id} value={t.id} label={t.name}>
+                        {t.name}
+                        {t.partnerName ? ` (${t.partnerName})` : ""}
+                        {t.isDefault ? " — Mặc định" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Chọn mẫu cấu hình trường dữ liệu theo yêu cầu đối tác. Nếu không chọn, hệ thống dùng
+                  mẫu mặc định của tổ chức hoặc bộ trường chuẩn đầy đủ.
+                </p>
               </div>
 
               <div className="space-y-2">

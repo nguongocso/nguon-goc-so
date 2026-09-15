@@ -171,6 +171,8 @@ export interface BatchDossierExportRequest {
   shipmentIds: string[];
   title?: string;
   note?: string;
+  /** Mẫu hồ sơ áp dụng (NCL-07-CN-007); bỏ trống → dùng mẫu mặc định của tổ chức hoặc bộ trường chuẩn */
+  templateId?: string;
 }
 
 export interface BatchDossierHistoryDto {
@@ -186,6 +188,8 @@ export interface BatchDossierHistoryDto {
   fileSize: number;
   status: string;
   ipAddress: string;
+  /** Mẫu hồ sơ đã áp dụng cho lần xuất này (nếu có) */
+  templateId?: string | null;
 }
 
 /**
