@@ -22,6 +22,7 @@ const TYPE_ICON: Record<NotificationType, typeof Bell> = {
   ANOMALY_OPEN: AlertTriangle,
   ANOMALY_DISMISSED: CheckCircle2,
   ACCOUNT_UNLOCKED: Info,
+  ACTIVITY_LOG_EXPORT_READY: CheckCircle2,
 };
 
 const TYPE_STYLE: Record<NotificationType, string> = {
@@ -33,6 +34,7 @@ const TYPE_STYLE: Record<NotificationType, string> = {
   ANOMALY_OPEN: 'bg-error-bg text-destructive',
   ANOMALY_DISMISSED: 'bg-success-bg text-success',
   ACCOUNT_UNLOCKED: 'bg-info-bg text-info',
+  ACTIVITY_LOG_EXPORT_READY: 'bg-success-bg text-success',
 };
 
 const formatNotificationReason = (content: string) => {
@@ -123,6 +125,10 @@ const NotificationsPage = () => {
   const handleItemClick = (notification: NotificationResponse) => {
     if (!notification.isRead) {
       void markAsRead(notification.id).then(() => refreshUnreadCount());
+    }
+    if (notification.type === 'ACTIVITY_LOG_EXPORT_READY' && notification.entityId) {
+      navigate(`/activity-logs?exportJobId=${notification.entityId}`);
+      return;
     }
     if (notification.entityId) {
       navigate(`/shipment-handovers/${notification.entityId}`);

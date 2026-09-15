@@ -16,6 +16,9 @@ import vn.nguongocso.common.PageResponse;
 import vn.nguongocso.config.JwtTokenProvider;
 import vn.nguongocso.config.SecurityConfig;
 import vn.nguongocso.alert.controller.ActivityLogController;
+import vn.nguongocso.alert.dto.response.ActivityLogExportPreviewResponse;
+import vn.nguongocso.alert.dto.response.ActivityLogExportResult;
+import vn.nguongocso.alert.service.ActivityLogExportService;
 import vn.nguongocso.alert.service.ActivityLogService;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.entity.OrganizationUser;
@@ -26,9 +29,13 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -42,6 +49,9 @@ public class ActivityLogControllerTest {
 
     @MockitoBean
     private ActivityLogService activityLogService;
+
+    @MockitoBean
+    private ActivityLogExportService activityLogExportService;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
@@ -84,7 +94,7 @@ public class ActivityLogControllerTest {
                 .totalPages(0)
                 .build();
 
-        when(activityLogService.getActivityLogs(anyInt(), anyInt(), any(), any(), any(), any(), any()))
+        when(activityLogService.getActivityLogs(anyInt(), anyInt(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(response);
 
         mockMvc.perform(get("/api/v1/organizations/activity-logs")
@@ -112,5 +122,74 @@ public class ActivityLogControllerTest {
         mockMvc.perform(get("/api/v1/organizations/activity-logs")
                         .with(csrf()))
                 .andExpect(status().isForbidden()); // 403 vì chưa đăng nhập
+    }
+
+    @Test
+    void previewExport_shouldReturnCount_whenUserIsOrgManager() throws Exception {
+        CustomUserDetails user = createCustomUserDetails("manager", "VT-02");
+        when(activityLogExportService.preview(any(), any()))
+                .thenReturn(ActivityLogExportPreviewResponse.builder()
+                        .count(7)
+                        .mode("DIRECT")
+                        .build());
+
+        mockMvc.perform(post("/api/v1/organizations/activity-logs/exports/preview")
+                        .with(authentication(new UsernamePasswordAuthenticationToken(
+                                user, null, user.getAuthorities())))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content("{\"objectType\":\"PRODUCTION_LOT\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.count").value(7))
+                .andExpect(jsonPath("$.data.mode").value("DIRECT"));
+    }
+
+    @Test
+    void exportActivityLogs_shouldReturnCsv_whenUserIsOrgManager() throws Exception {
+        CustomUserDetails user = createCustomUserDetails("manager", "VT-02");
+        byte[] csv = "\ufeffThời gian,Người thực hiện".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        when(activityLogExportService.requestExport(any(), any())).thenReturn(
+                ActivityLogExportResult.builder().mode("DIRECT").csvBytes(csv).build());
+
+        mockMvc.perform(post("/api/v1/organizations/activity-logs/exports")
+                        .with(authentication(new UsernamePasswordAuthenticationToken(
+                                user, null, user.getAuthorities())))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isOk())
+                .andExpect(header().exists("Content-Disposition"))
+                .andExpect(content().contentType("text/csv;charset=UTF-8"))
+                .andExpect(content().bytes(csv));
+    }
+
+    @Test
+    void previewExport_shouldReturnForbidden_whenUserHasWrongRole() throws Exception {
+        CustomUserDetails user = createCustomUserDetails("recorder", "VT-03");
+
+        mockMvc.perform(post("/api/v1/organizations/activity-logs/exports/preview")
+                        .with(authentication(new UsernamePasswordAuthenticationToken(
+                                user, null, user.getAuthorities())))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void previewExport_shouldReturnBadRequest_whenFilterExceedsStorageLimit() throws Exception {
+        CustomUserDetails user = createCustomUserDetails("manager", "VT-02");
+        String actorName = "a".repeat(256);
+
+        mockMvc.perform(post("/api/v1/organizations/activity-logs/exports/preview")
+                        .with(authentication(new UsernamePasswordAuthenticationToken(
+                                user, null, user.getAuthorities())))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content("{\"actorName\":\"" + actorName + "\"}"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(activityLogExportService);
     }
 }

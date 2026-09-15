@@ -355,17 +355,17 @@ API layer        → hooks (optional)  → Pages         → Routes
 
 | Lớp | File |
 |---|---|
-| **BE** | `alert/controller/AlertController.java`, `alert/controller/ActivityLogController.java`, `alert/service/AlertService.java` + `impl`, `alert/service/ActivityLogService.java` + `impl`, `alert/service/ScanAnomalyDetectionService.java` + `impl` |
-| | `alert/entity/Alert.java`, `AlertDetails.java`, `ScanPoint.java`, `ActivityLog.java` (→ `activity_logs` table) |
+| **BE** | `alert/controller/AlertController.java`, `alert/controller/ActivityLogController.java`, `alert/service/AlertService.java` + `impl`, `alert/service/ActivityLogService.java` + `impl`, `alert/service/ActivityLogExportService.java` + `impl`, `alert/service/impl/ActivityLogExportWorker.java`, `ActivityLogCsvWriter.java`, `alert/service/ScanAnomalyDetectionService.java` + `impl` |
+| | `alert/entity/Alert.java`, `AlertDetails.java`, `ScanPoint.java`, `ActivityLog.java` (→ `activity_logs`), `ActivityLogExportJob.java`, `ActivityLogExportItem.java` |
 | | `alert/event/ActivityLogEvent.java`, `alert/listener/ActivityLogListener.java`, `alert/specification/ActivityLogSpecification.java` |
 | | `alert/controller/AnomalyThresholdController.java`, `alert/service/AnomalyThresholdService.java` + `impl`, `alert/entity/AnomalyThreshold.java`, `alert/repository/AnomalyThresholdRepository.java`, `alert/dto/request/CategoryThresholdOverrideRequest.java`, `UpdateGlobalThresholdRequest.java`, `ImpactEstimationRequest.java`, `alert/dto/response/AllThresholdsResponse.java`, `AnomalyThresholdResponse.java`, `ImpactEstimationResponse.java`, `alert/util/ScanAnomalyUtils.java` |
 | **FE Components** | `components/admin/anomaly-threshold/GlobalThresholdCard.tsx`, `CategoryOverridesTable.tsx`, `ImpactEstimationCard.tsx` |
 | **FE Pages** | `pages/scan-anomaly-alert/ScanAnomalyAlertPage.tsx`, `pages/admin/AnomalyThresholdPage.tsx`, `pages/admin/CategoryOverridePage.tsx` |
 | **FE API** | `api/anomalyThresholdApi.ts`, `api/scanAnomalyAlertApi.ts` |
 | **FE Types** | `types/anomalyThreshold.ts`, `types/scanAnomalyAlert.ts` |
-| **Migration** | `V8` (alerts), `V10` (activity_logs, trace_code_scan_logs), `V20260830150000` (anomaly_thresholds) |
-| **Pattern** | Audit log: `@Auditable(action, entityType, description)` trên service method → `AuditAspect` → `ActivityLogEvent` → `ActivityLogListener` (async) → `activity_logs`. Hoặc publish trực tiếp: `eventPublisher.publishEvent(ActivityLogEvent.builder()...)`. |
-| **Docs** | `docs/api/trace/NCL-08-CN-014_AnomalyThresholdConfiguration.md` |
+| **Migration** | `V8` (alerts), `V10` (activity_logs, trace_code_scan_logs), `V20260830150000` (anomaly_thresholds), `V20260914150000` (actor role/before/after + activity log export job/snapshot) |
+| **Pattern** | Audit log: `@Auditable(action, entityType, description, beforeValue, afterValue)` trên service method → `AuditAspect` → `ActivityLogEvent` → `ActivityLogListener` (async) → `activity_logs`. Export lớn đóng snapshot bằng `INSERT … SELECT`, worker đọc snapshot theo trang và gửi notification khi file sẵn sàng. |
+| **Docs** | `docs/api/trace/NCL-08-CN-014_AnomalyThresholdConfiguration.md`, `docs/api/organization/ExportActivityLogForInspection.md` |
 
 ### 2.21 Notifications (package `notification`)
 
@@ -540,7 +540,7 @@ API layer        → hooks (optional)  → Pages         → Routes
 |---|---|---|
 | `@Auditable` | `BA/common/annotation/Auditable.java` | Annotate service method, hỗ trợ SpEL `#param`/`#result` |
 | `AuditAspect` | `BA/common/aspect/AuditAspect.java` | @AfterReturning aspect → publish event async |
-| `ActivityLogEvent` | `BA/alert/event/ActivityLogEvent.java` | Event payload (userId, orgId, action, description, entityType) |
+| `ActivityLogEvent` | `BA/alert/event/ActivityLogEvent.java` | Event payload (userId, orgId, actorRole, action, description, entityType, beforeValue, afterValue) |
 | `ActivityLogListener` | `BA/alert/listener/ActivityLogListener.java` | @Async @EventListener @Transactional(REQUIRES_NEW) → ghi `activity_logs` |
 | `IpUtils` | `BA/common/util/IpUtils.java` | Lấy client IP (X-Forwarded-For) |
 

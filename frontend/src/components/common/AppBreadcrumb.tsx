@@ -330,7 +330,7 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
   ["/reports/crop-area-analysis", ["VT-02", "VT-03"]],
   ["/reports/season-yield-comparison", ROLE_ACCESS.seasonYieldComparison],
   ["/reports/industry", ["VT-05"]],
-  ["/activity-logs", ["VT-01"]],
+  ["/activity-logs", ["VT-02"]],
   ["/login-history", ["VT-01"]],
   ["/login-anomalies", ["VT-01"]],
   ["/failed-event-logs", ["VT-01"]],
