@@ -4,7 +4,7 @@
 >
 > **Mã Story dự án:** `NCL-02-CN-008`
 >
-> **Jira Task hiện tại:** `NCL-868` / `NCL-02-CN-008-CV-02`
+> **Jira Task hiện tại:** `NCL-865` / `NCL-02-CN-008-CV-03`
 >
 > **Epic:** `NCL-02` (Khai báo vùng trồng và lô sản xuất)
 >
@@ -15,6 +15,8 @@
 > **Quyết định CV-01:** Đã chốt ngày 15/09/2026
 >
 > **Quyết định CV-02:** Đã chốt ngày 15/09/2026
+>
+> **Quyết định CV-03:** Đã chốt ngày 15/09/2026
 >
 > **Phạm vi công việc:** `NCL-02-CN-008-CV-01` đến `CV-05`
 >
@@ -39,6 +41,7 @@ Cho phép **Quản lý hợp tác xã (`VT-02`)** khoanh ranh giới vùng trồ
 | **Jira Story** | `NCL-713` | Khoanh ranh giới vùng trồng trên bản đồ |
 | **Jira Task CV-01** | `NCL-870` / `NCL-02-CN-008-CV-01` | Chốt cách khoanh ranh giới và ngưỡng chênh lệch diện tích |
 | **Jira Task CV-02** | `NCL-868` / `NCL-02-CN-008-CV-02` | Thiết kế dữ liệu ranh giới vùng trồng: tọa độ đỉnh, diện tích tính toán và phiên bản cũ/mới |
+| **Jira Task CV-03** | `NCL-865` / `NCL-02-CN-008-CV-03` | Thiết kế màn hình khoanh ranh giới trên bản đồ và luồng xác nhận chênh lệch diện tích |
 | **User Story** | `NCL-02-CN-008` | Khoanh ranh giới vùng trồng trên bản đồ thay vì chỉ nhập một điểm tọa độ |
 | **Vai trò** | `VT-02` (Quản lý hợp tác xã) | Toàn quyền thiết lập và chỉnh sửa ranh giới vùng trồng thuộc tổ chức |
 | **Quy tắc** | `QTN-01` | Cách ly dữ liệu: Tổ chức chỉ được thao tác trên vùng trồng của mình |
@@ -118,6 +121,20 @@ Snapshot audit dùng cùng một cấu trúc cho `beforeValue` và `afterValue`:
 - Các lần chỉnh sửa tiếp theo: `beforeValue` chứa snapshot đang lưu và `afterValue` chứa snapshot vừa được xác nhận.
 - Chỉ ghi audit sau khi cập nhật DB thành công; request `400`, `403`, `404` hoặc `409` không tạo phiên bản mới.
 - Snapshot không chứa thông tin cá nhân hoặc dữ liệu tổ chức ngoài ranh giới và diện tích tính toán.
+
+### 3.3. Quyết định đã chốt cho CV-03
+
+| Nội dung | Quyết định |
+|---|---|
+| Vị trí màn hình | Giữ route sửa vùng trồng hiện tại `/farm-areas/{id}/edit`; bổ sung hai tab `Thông tin chung` và `Ranh giới trên bản đồ`. `EditFarmAreaForm` hiện có nằm nguyên trong tab đầu, tránh thay đổi luồng cập nhật `location POINT`. |
+| Phạm vi chỉnh sửa | Tab ranh giới dùng endpoint `GET/PUT /api/v1/farm-areas/{id}/boundary` riêng. Lưu thông tin chung và lưu ranh giới là hai thao tác độc lập, không ghép hai request vào một nút lưu. |
+| Công cụ bản đồ | Tái sử dụng Leaflet/React Leaflet đã có. Click bản đồ để thêm đỉnh; mỗi đỉnh hiển thị số thứ tự và có thể kéo; danh sách bên cạnh cho phép xóa đỉnh. Polygon được nối theo đúng thứ tự danh sách. Không bổ sung plugin vẽ mới cho phạm vi Story. |
+| Dán tọa độ | Textarea nhận mỗi dòng theo contract `latitude, longitude`. Nút `Áp dụng danh sách` chỉ thay draft khi toàn bộ dòng hợp lệ; lỗi hiển thị đúng số dòng, không áp dụng một phần. Điểm đóng vòng lặp lại ở dòng cuối bị báo lỗi. |
+| Diện tích xem trước | Panel so sánh luôn hiển thị diện tích khai báo, diện tích ranh giới xem trước và phần trăm chênh lệch. Gắn nhãn `Tạm tính` cho kết quả frontend; sau khi lưu thành công thay bằng số liệu chính thức backend trả về. |
+| Lưu và xác nhận | Lần đầu luôn gửi `confirmed=false`. Nếu backend trả `409 AREA_DEVIATION_CONFIRMATION_REQUIRED`, mở dialog so sánh số liệu backend; chỉ nút `Tôi hiểu và đồng ý lưu` mới gửi lại cùng draft với `confirmed=true`. |
+| Dữ liệu chưa lưu | Khi draft khác dữ liệu đã tải, hiển thị trạng thái `Chưa lưu`; nút `Khôi phục ranh giới đã lưu` đưa draft về snapshot gần nhất. Chuyển tab hoặc rời trang phải cảnh báo để tránh mất thay đổi. |
+| Phân quyền | Chỉ `VT-02` có quyền cập nhật mới thấy công cụ vẽ và nút lưu. Chế độ công khai chỉ render polygon, không render marker đỉnh, textarea hay hành động chỉnh sửa; backend vẫn là lớp phân quyền chính. |
+| Responsive và truy cập | Desktop dùng bố cục bản đồ 2/3 và panel 1/3; màn hình nhỏ xếp bản đồ trước, panel sau. Textarea và danh sách đỉnh là phương thức nhập thay thế cho người không thao tác chính xác bằng chuột; mọi nút icon có nhãn truy cập. |
 
 ---
 
@@ -395,18 +412,82 @@ private LocalDateTime boundaryUpdatedAt;
 
 ## 11. Ảnh hưởng phía Frontend
 
-1. **Trang Chỉnh sửa vùng trồng (`EditFarmAreaPage.tsx`):**
-   - Thêm tab hoặc khu vực "Ranh giới vùng trồng".
-   - Tích hợp Leaflet Map cho phép:
-     - Click chuột để chấm các đỉnh tạo thành đa giác.
-     - Kéo di chuyển đỉnh để căn chỉnh.
-     - Ô dán (paste) danh sách tọa độ dạng text: `lat, lng\nlat, lng...`.
-     - Tính toán và hiển thị diện tích tức thời theo thời gian thực.
-   - Hộp thoại cảnh báo (Modal/Dialog) khi diện tích chênh lệch vượt ngưỡng cấu hình (mặc định 30%):
-     - Hiển thị bảng so sánh diện tích khai báo vs diện tích ranh giới.
-     - Nút "Tôi hiểu và đồng ý lưu" gửi cờ `confirmed: true`.
-2. **Trang Tra cứu công khai (`TraceLookupPage.tsx` / `RouteMap.tsx`):**
-   - Khi `farmAreaBoundary` có dữ liệu: hiển thị Polygon màu xanh lá cây trên bản đồ hành trình `RouteMap` với popup chứa thông tin vùng trồng và diện tích thực địa ở chế độ chỉ đọc.
+### 11.1. Cấu trúc màn hình chỉnh sửa
+
+```text
+┌ Chỉnh sửa vùng trồng ─────────────────────────────────────────────────┐
+│ [Thông tin chung] [Ranh giới trên bản đồ]                             │
+├───────────────────────────────────────────────────────────────────────┤
+│ Ranh giới trên bản đồ                              ● Chưa lưu          │
+│ Chấm trên bản đồ, kéo đỉnh hoặc dán danh sách tọa độ                  │
+│                                                                       │
+│ ┌──────────────────────────────────────┐ ┌──────────────────────────┐ │
+│ │                                      │ │ Diện tích                │ │
+│ │          BẢN ĐỒ LEAFLET              │ │ Khai báo       1,0000 ha │ │
+│ │   ①────────②                         │ │ Ranh giới     1,1200 ha  │ │
+│ │    ╲      ╱   các đỉnh kéo được      │ │ Chênh lệch       12,00%  │ │
+│ │     ④────③                           │ ├──────────────────────────┤ │
+│ │                                      │ │ Danh sách đỉnh (4)       │ │
+│ └──────────────────────────────────────┘ │ 1. 21.58, 105.82    [X]  │ │
+│                                          │ ...                      │ │
+│                                          ├──────────────────────────┤ │
+│                                          │ Dán tọa độ               │ │
+│                                          │ [latitude, longitude...] │ │
+│                                          │ [Áp dụng danh sách]       │ │
+│                                          └──────────────────────────┘ │
+├───────────────────────────────────────────────────────────────────────┤
+│ [Khôi phục ranh giới đã lưu]                    [Lưu ranh giới]       │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+- `EditFarmAreaPage.tsx`: quản lý tab và cảnh báo rời trang khi có draft chưa lưu.
+- `EditFarmAreaForm.tsx`: giữ nguyên trong tab `Thông tin chung`.
+- Tạo `FarmAreaBoundaryEditor.tsx`: điều phối tải dữ liệu, draft, validation, lưu và trạng thái lỗi.
+- Tạo `BoundaryMapEditor.tsx`: hiển thị `MapContainer`, `TileLayer`, `Polygon` và marker đỉnh kéo được.
+- Tạo `BoundaryPastePanel.tsx`: parse textarea và hiển thị lỗi theo dòng.
+- Tạo `AreaDeviationConfirmDialog.tsx`: hiển thị dữ liệu từ lỗi `409`, không tự tính lại số liệu trong dialog.
+- Mở rộng `farmAreaApi.ts` và `types/farmArea.ts` theo đúng request/response tại Mục 7; không đặt URL API trực tiếp trong component.
+
+### 11.2. Trạng thái màn hình
+
+| Trạng thái | Hiển thị | Hành động |
+|---|---|---|
+| Đang tải | Skeleton/loader trong vùng bản đồ và khóa nút lưu | Chờ `GET boundary` hoàn tất |
+| Chưa có ranh giới | Bản đồ căn giữa theo `farmArea.latitude/longitude`, hướng dẫn chấm tối thiểu 3 đỉnh | Cho phép chấm hoặc dán tọa độ |
+| Sẵn sàng | Hiển thị polygon đã lưu, diện tích chính thức và thời điểm cập nhật | Có thể kéo, thêm hoặc xóa đỉnh |
+| Draft hợp lệ | Badge `Chưa lưu`, preview diện tích và chênh lệch | Cho phép lưu/khôi phục |
+| Draft chưa hợp lệ | Cạnh/đỉnh lỗi được tô đỏ khi xác định được; thông báo cụ thể ở panel | Khóa nút lưu, vẫn cho sửa/xóa/dán lại |
+| Đang lưu | Khóa thao tác làm thay đổi draft; nút hiển thị `Đang lưu...` | Chặn gửi lặp request |
+| Cần xác nhận | Dialog dùng `declaredArea`, `calculatedArea`, `deviationPercentage`, `thresholdPercentage` do backend trả | Hủy để sửa hoặc xác nhận gửi lại `confirmed=true` |
+| Lưu thành công | Toast thành công, cập nhật snapshot/diện tích chính thức, bỏ badge `Chưa lưu` | Tiếp tục chỉnh sửa hoặc rời trang |
+| Lỗi server/network | Toast lỗi, giữ nguyên draft và mở lại thao tác | Cho phép thử lưu lại |
+| `403` / `404` | Thông báo không có quyền hoặc không tìm thấy; không hiển thị công cụ chỉnh sửa | Quay về danh sách vùng trồng |
+
+### 11.3. Quy tắc tương tác và validation phía client
+
+1. Click bản đồ chỉ thêm đỉnh khi tab ranh giới đang ở chế độ chỉnh sửa; click marker không tạo thêm đỉnh.
+2. Kéo marker cập nhật đúng phần tử trong danh sách và preview polygon ngay lập tức.
+3. Mỗi dòng paste phải có đúng hai số hữu hạn phân cách bằng dấu phẩy; bỏ qua dòng trắng đầu/cuối, không bỏ qua dòng lỗi ở giữa.
+4. Kiểm tra vĩ độ [-90, 90], kinh độ [-180, 180], tối thiểu 3 đỉnh phân biệt, đỉnh liên tiếp không trùng và không lặp điểm đầu ở cuối.
+5. Client phát hiện self-intersection để phản hồi sớm, nhưng không thay thế validation backend.
+6. Nút `Lưu ranh giới` chỉ bật khi draft đã thay đổi, đạt validation client và không có request đang chạy.
+7. Không tự gửi `confirmed=true`; cờ này chỉ được dùng sau thao tác xác nhận rõ ràng trong dialog `409`.
+8. Nếu người dùng chỉnh sửa draft sau khi dialog mở, đóng dialog và lần lưu tiếp theo phải bắt đầu lại với `confirmed=false`.
+
+### 11.4. Dialog xác nhận chênh lệch
+
+- Tiêu đề: `Xác nhận chênh lệch diện tích`.
+- Nội dung bắt buộc: diện tích khai báo, diện tích backend tính từ ranh giới, tỷ lệ chênh lệch và ngưỡng đang áp dụng.
+- Nút phụ: `Quay lại chỉnh sửa` — đóng dialog, không gửi request.
+- Nút chính: `Tôi hiểu và đồng ý lưu` — gửi lại chính xác danh sách đỉnh hiện tại với `confirmed=true`.
+- Trong lúc xác nhận đang gửi, khóa nút đóng và cả hai hành động để tránh request trùng.
+
+### 11.5. Trang tra cứu công khai
+
+- `TraceLookupPage.tsx` truyền `farmAreaBoundary` vào `RouteMap.tsx` khi response có dữ liệu.
+- `RouteMap` vẽ polygon màu xanh lá, fit bounds gồm cả polygon và các sự kiện có tọa độ; popup chỉ gồm tên vùng trồng và diện tích tính toán.
+- Không hiển thị marker đỉnh, textarea, nút chỉnh sửa hoặc dữ liệu audit ở chế độ công khai (`QTN-12`).
+- Nếu `farmAreaBoundary` không có dữ liệu, bản đồ hành trình hiện tại giữ nguyên hành vi.
 
 ---
 
@@ -428,6 +509,12 @@ private LocalDateTime boundaryUpdatedAt;
 - [ ] **TC-14 (SRID và thứ tự đỉnh):** Polygon lưu trong DB có `ST_SRID(boundary) = 4326`; vòng ngoài được khép kín trong geometry nhưng response không lặp đỉnh đầu ở cuối `points`.
 - [ ] **TC-15 (Phiên bản đầu tiên):** Thiết lập ranh giới lần đầu tạo ActivityLog với `beforeValue = null` và `afterValue` là snapshot schema version 1.
 - [ ] **TC-16 (Phiên bản cập nhật):** Chỉnh sửa thành công tạo ActivityLog chứa đúng snapshot cũ/mới; request bị từ chối không tạo bản ghi phiên bản.
+- [ ] **TC-17 (UI vẽ/kéo):** Chấm đủ đỉnh tạo polygon; kéo một marker cập nhật đúng tọa độ, polygon và diện tích preview.
+- [ ] **TC-18 (UI paste):** Danh sách hợp lệ thay toàn bộ draft; dòng sai định dạng/ngoài miền hiển thị đúng số dòng và không áp dụng một phần.
+- [ ] **TC-19 (UI trạng thái lưu):** Nút lưu bị khóa khi dưới 3 đỉnh, self-intersection, draft chưa thay đổi hoặc đang gửi; draft hợp lệ gửi lần đầu với `confirmed=false`.
+- [ ] **TC-20 (UI xác nhận 409):** Dialog hiển thị đúng số liệu backend; hủy không lưu, xác nhận gửi lại cùng points với `confirmed=true`; thay đổi draft bắt buộc quay lại `confirmed=false`.
+- [ ] **TC-21 (UI không mất dữ liệu):** Lỗi network/server giữ nguyên draft; chuyển tab hoặc rời trang khi chưa lưu có cảnh báo.
+- [ ] **TC-22 (UI responsive/accessibility):** Bố cục dùng được trên desktop/mobile; nhập bằng textarea và danh sách đỉnh không phụ thuộc hoàn toàn vào thao tác chuột; nút icon có accessible name.
 
 ---
 
@@ -454,7 +541,10 @@ private LocalDateTime boundaryUpdatedAt;
   - Ba cột mới nullable, không backfill từ `location POINT`, bảo đảm vùng trồng cũ tiếp tục hoạt động.
   - Phiên bản cũ/mới dùng snapshot JSON schema version 1 trong `ActivityLog.beforeValue/afterValue`; không tạo bảng lịch sử riêng.
   - Chưa tạo spatial index vì `boundary` cần nullable và Story chưa có truy vấn không gian; nếu phát sinh nhu cầu sẽ xử lý bằng migration riêng sau khi có chiến lược backfill.
+  - CV-03 hoàn tất: dùng tab riêng trong trang sửa vùng trồng, giữ nguyên form thông tin chung và tách thao tác lưu ranh giới.
+  - Công cụ vẽ tái sử dụng React Leaflet hiện có với click để thêm, marker kéo được, danh sách xóa đỉnh và textarea dán tọa độ; không thêm plugin bản đồ.
+  - Dialog xác nhận chỉ mở theo lỗi `409` và hiển thị số liệu backend; `confirmed=true` không được gửi tự động.
+  - Đã chốt đầy đủ trạng thái loading, empty, invalid, dirty, saving, conflict, success, forbidden/not-found, server error, responsive và cảnh báo mất draft.
 
-- **Còn thuộc các công việc sau CV-02:**
-  - CV-03 chốt chi tiết tương tác vẽ/kéo/dán tọa độ trên giao diện.
+- **Còn thuộc các công việc sau CV-03:**
   - CV-04/CV-05 triển khai và kiểm thử theo contract đã chốt.
