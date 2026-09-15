@@ -49,6 +49,7 @@ public class StandardServiceImpl implements StandardService {
 
         Standard standard = Standard.builder()
                 .name(name)
+                .nameEn(request.getNameEn() != null && !request.getNameEn().trim().isBlank() ? request.getNameEn().trim() : null)
                 .description(request.getDescription())
                 .issuingBody(request.getIssuingBody())
                 .build();
@@ -77,6 +78,7 @@ public class StandardServiceImpl implements StandardService {
                 });
 
         standard.setName(name);
+        standard.setNameEn(request.getNameEn() != null && !request.getNameEn().trim().isBlank() ? request.getNameEn().trim() : null);
         standard.setDescription(request.getDescription());
         standard.setIssuingBody(request.getIssuingBody());
         standard.setIsActive(request.getIsActive());
@@ -119,6 +121,7 @@ public class StandardServiceImpl implements StandardService {
         return StandardResponse.builder()
                 .id(standard.getId())
                 .name(standard.getName())
+                .nameEn(standard.getNameEn())
                 .description(standard.getDescription())
                 .issuingBody(standard.getIssuingBody())
                 .isActive(standard.getIsActive())

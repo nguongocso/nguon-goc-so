@@ -27,6 +27,10 @@ public interface ShipmentHandoverRepository extends JpaRepository<ShipmentHandov
 
     boolean existsByShipmentIdAndStatus(UUID shipmentId, ShipmentHandoverStatus status);
 
+    boolean existsByShipmentIdAndToOrganizationOrganizationId(UUID shipmentId, UUID orgId);
+
+    boolean existsByShipmentIdAndToOrganizationOrganizationIdAndStatus(UUID shipmentId, UUID orgId, ShipmentHandoverStatus status);
+
     @Query("SELECT COALESCE(SUM(h.quantity), 0) FROM ShipmentHandover h " +
            "WHERE h.shipment.id = :shipmentId " +
            "AND h.status IN (:statuses)")

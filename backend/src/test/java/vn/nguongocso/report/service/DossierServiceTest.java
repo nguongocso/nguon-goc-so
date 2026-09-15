@@ -96,6 +96,9 @@ public class DossierServiceTest {
     @Mock
     private vn.nguongocso.export.repository.ProfileTemplateRepository profileTemplateRepository;
 
+    @Mock
+    private vn.nguongocso.trace.repository.ShipmentHandoverRepository shipmentHandoverRepository;
+
     @InjectMocks
     private DossierServiceImpl dossierService;
 

@@ -52,6 +52,12 @@ public class InspectionCriterion {
     private String criterionName;
 
     /**
+     * Tên chỉ tiêu tiếng Anh (nếu có).
+     */
+    @Column(name = "name_en", length = 255)
+    private String nameEn;
+
+    /**
      * Tiêu chuẩn làm căn cứ cho chỉ tiêu.
      */
     @ManyToOne(fetch = FetchType.LAZY)

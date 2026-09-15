@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,7 @@ import { QrCodeGrid } from "@/components/shipment/QrCodeGrid";
 import { ExportLabelsDialog } from "@/components/shipment/ExportLabelsDialog";
 import { CreateHandoverDialog } from "@/components/shipment/CreateHandoverDialog";
 import { HandoverPendingBadge } from "@/components/shipment/HandoverPendingBadge";
-import { hasPendingHandover } from "@/api/handoverApi";
+import { getReceivedHandovers, hasPendingHandover } from "@/api/handoverApi";
 import { ShipmentTimelineItem } from "@/components/shipment/ShipmentTimelineItem";
 import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDialog";
 import { RecallShipmentDialog } from "@/components/shipment/RecallShipmentDialog";
@@ -71,7 +71,60 @@ export const ShipmentDetailPage = () => {
   }>();
   const effectiveShipmentId = shipmentId || id;
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
+
+  // ── Handover context (NCL-05-CN-008/009 & VT-04 breadcrumb) ────────────────
+  const stateHandoverId = (location.state as { handoverId?: string } | undefined)?.handoverId;
+  const queryHandoverId = searchParams.get("handoverId");
+  const initialHandoverId = stateHandoverId || queryHandoverId || null;
+
+  const [handoverContext, setHandoverContext] = useState<{
+    handoverId: string | null;
+    handoverRoute: string | null;
+    handoverListHref: string;
+    handoverListLabel: string;
+  }>(() => ({
+    handoverId: initialHandoverId,
+    handoverRoute:
+      (location.state as { handoverRoute?: string } | undefined)?.handoverRoute ||
+      (initialHandoverId ? `/shipment-handovers/${initialHandoverId}` : null),
+    handoverListHref:
+      (location.state as { handoverListHref?: string } | undefined)?.handoverListHref ||
+      (user?.roleCode === "VT-04" ? "/handover" : "/shipment-handovers/received"),
+    handoverListLabel:
+      (location.state as { handoverListLabel?: string } | undefined)?.handoverListLabel ||
+      "Phiếu bàn giao nhận",
+  }));
+
+  useEffect(() => {
+    if (handoverContext.handoverId || user?.roleCode !== "VT-04" || !effectiveShipmentId) {
+      return;
+    }
+    let isCancelled = false;
+    getReceivedHandovers()
+      .then((handovers) => {
+        if (isCancelled) return;
+        const matched = handovers.find(
+          (h) => h.shipmentId === effectiveShipmentId,
+        );
+        if (matched) {
+          setHandoverContext({
+            handoverId: matched.id,
+            handoverRoute: `/shipment-handovers/${matched.id}`,
+            handoverListHref: "/handover",
+            handoverListLabel: "Phiếu bàn giao nhận",
+          });
+        }
+      })
+      .catch(() => {
+        // Bỏ qua nếu không tải được danh sách phiếu bàn giao
+      });
+    return () => {
+      isCancelled = true;
+    };
+  }, [handoverContext.handoverId, user?.roleCode, effectiveShipmentId]);
 
   // ── Shipment data ──────────────────────────────────────────────────────────
   const [shipment, setShipment] = useState<Shipment | null>(null);
@@ -225,21 +278,43 @@ export const ShipmentDetailPage = () => {
     (shipment.traceCodes ?? []).every((code) => code.status === "INACTIVE");
 
   // ── Breadcrumb điều hướng thống nhất (thay nút "Quay lại") ────────────────
+  const isFromHandover =
+    Boolean(handoverContext.handoverId) ||
+    Boolean((location.state as { fromHandover?: boolean } | undefined)?.fromHandover) ||
+    user?.roleCode === "VT-04";
+
   useSetBreadcrumb(
     shipment
-      ? [
-          { label: "Tổng quan", href: "/dashboard" },
-          { label: "Lô sản xuất", href: "/production-lots" },
-          ...(lotId
-            ? [
-                {
-                  label: shipment.productionLotName || "Chi tiết lô",
-                  href: `/production-lots/${lotId}`,
-                },
-              ]
-            : []),
-          { label: shipment.name || "Chi tiết lô hàng" },
-        ]
+      ? isFromHandover
+        ? [
+            { label: "Tổng quan", href: "/dashboard" },
+            {
+              label: handoverContext.handoverListLabel,
+              href: handoverContext.handoverListHref,
+            },
+            {
+              label: "Chi tiết phiếu bàn giao",
+              href:
+                handoverContext.handoverRoute ||
+                (handoverContext.handoverId
+                  ? `/shipment-handovers/${handoverContext.handoverId}`
+                  : undefined),
+            },
+            { label: shipment.name || "Chi tiết lô hàng" },
+          ]
+        : [
+            { label: "Tổng quan", href: "/dashboard" },
+            { label: "Lô sản xuất", href: "/production-lots" },
+            ...(lotId
+              ? [
+                  {
+                    label: shipment.productionLotName || "Chi tiết lô",
+                    href: `/production-lots/${lotId}`,
+                  },
+                ]
+              : []),
+            { label: shipment.name || "Chi tiết lô hàng" },
+          ]
       : null,
   );
 

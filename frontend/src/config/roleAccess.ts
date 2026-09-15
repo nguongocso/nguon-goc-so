@@ -33,6 +33,7 @@ export const ROLE_ACCESS = {
   inspectionRequest: ['VT-02'] as const,
 
   scanAnomalyAlerts: ['VT-01', 'VT-02'] as const,
+  aggregateAlerts: ['VT-01', 'VT-02'] as const,
   anomalyThresholdConfig: ['VT-01'] as const,
 
   procurementEvent: ['VT-04'] as const,
@@ -69,7 +70,7 @@ export const ROLE_ACCESS = {
 
   // ✅ NCL-08-CN-008 - Yêu cầu thu hồi lô sản xuất (2 bước)
   recallRequestCreate: ['VT-03'] as const,
-  recallRequestManage: ['VT-02'] as const,
+  recallRequestManage: ['VT-01', 'VT-02'] as const,
 
   // ✅ NCL-04-CN-007 - Yêu cầu cấp bổ sung dải mã truy xuất
   supplementCreate: ['VT-02'] as const,

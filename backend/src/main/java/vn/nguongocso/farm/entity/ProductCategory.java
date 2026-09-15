@@ -30,6 +30,9 @@ public class ProductCategory {
 	@Column(name = "name", nullable = false)
 	private String name;
 
+	@Column(name = "name_en")
+	private String nameEn;
+
 	@Column(name = "category_group")
 	private String group;
 

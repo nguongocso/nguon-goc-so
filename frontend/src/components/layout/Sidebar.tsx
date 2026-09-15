@@ -24,6 +24,7 @@ import {
   PackageX,
   ScanLine,
   ShieldCheck,
+  ShieldAlert,
   Truck,
   User,
   UserCheck,
@@ -286,6 +287,13 @@ const MENU_GROUPS: MenuGroup[] = [
         href: "/storage-condition",
         allowedRoles: ROLE_ACCESS.storageCondition,
       },
+      {
+        icon: <ShieldAlert className="h-5 w-5" />,
+        label: "Tổng hợp cảnh báo",
+        href: "/alerts",
+        allowedRoles: ROLE_ACCESS.aggregateAlerts,
+        activePaths: ["/alerts"],
+      }, 
       {
         icon: <AlertTriangle className="h-5 w-5" />,
         label: "Cảnh báo tem bất thường",
@@ -869,7 +877,7 @@ export function Sidebar({
       }
     }
 
-    // Phiếu bàn giao nhận (VT-04): giữ active khi ở /handover hoặc xem chi tiết
+    // Phiếu bàn giao nhận (VT-04): giữ active khi ở /handover hoặc xem chi tiết phiếu / lô hàng bàn giao
     if (item.href === "/handover") {
       if (
         location.pathname === "/handover" ||
@@ -878,6 +886,9 @@ export function Sidebar({
           user?.roleCode === "VT-04") ||
         (location.pathname.startsWith("/shipment-handovers/") &&
           !location.pathname.startsWith("/shipment-handovers/sent") &&
+          user?.roleCode === "VT-04") ||
+        ((location.pathname.startsWith("/shipments/") ||
+          location.pathname.includes("/shipments/")) &&
           user?.roleCode === "VT-04")
       ) {
         return true;

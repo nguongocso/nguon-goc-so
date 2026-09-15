@@ -16,6 +16,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.annotation.Auditable;
 import vn.nguongocso.alert.event.ActivityLogEvent;
@@ -37,6 +41,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AuditAspect {
     private final ApplicationEventPublisher eventPublisher;
+    private final ObjectMapper objectMapper;
     private final ExpressionParser parser = new SpelExpressionParser();
 
     /**
@@ -78,15 +83,21 @@ public class AuditAspect {
             String evaluatedDescription = parser.parseExpression(auditable.description()).getValue(context,
                     String.class);
 
+            String beforeValue = evaluateOptionalExpression(auditable.beforeValue(), context);
+            String afterValue = evaluateOptionalExpression(auditable.afterValue(), context);
+
             // Xây dựng sự kiện lưu log
             ActivityLogEvent event = ActivityLogEvent.builder()
                     .userId(currentUser.getUserId())
                     .username(currentUser.getUsername())
                     .fullName(currentUser.getFullName())
+                    .actorRole(currentUser.getRoleCode())
                     .organizationId(currentUser.getOrganizationId())
                     .action(auditable.action())
                     .description(evaluatedDescription)
                     .entityType(auditable.entityType())
+                    .beforeValue(beforeValue)
+                    .afterValue(afterValue)
                     .ipAddress(ipAddress)
                     .timestamp(LocalDateTime.now())
                     .build();
@@ -95,6 +106,22 @@ public class AuditAspect {
             eventPublisher.publishEvent(event);
         } catch (Exception e) {
             log.error("Lỗi xảy ra trong quá trình thu thập thông tin lưu vết: {}", e.getMessage(), e);
+        }
+    }
+
+    /** Đánh giá biểu thức SpEL tùy chọn của dữ liệu trước/sau thay đổi. */
+    private String evaluateOptionalExpression(String expression, StandardEvaluationContext context) {
+        if (expression == null || expression.isBlank()) {
+            return null;
+        }
+        Object value = parser.parseExpression(expression).getValue(context);
+        if (value == null || value instanceof String) {
+            return (String) value;
+        }
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalArgumentException("Không thể chuyển dữ liệu audit thành JSON.", exception);
         }
     }
 }

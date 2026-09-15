@@ -60,6 +60,7 @@ export const StandardList: React.FC = () => {
             const matchKeyword =
                 !q ||
                 s.name.toLowerCase().includes(q) ||
+                (s.nameEn?.toLowerCase().includes(q) ?? false) ||
                 (s.issuingBody?.toLowerCase().includes(q) ?? false);
             const matchStatus =
                 status === "ALL" || (status === "true" ? s.isActive : !s.isActive);
@@ -99,7 +100,12 @@ export const StandardList: React.FC = () => {
             <TableCell className="text-center font-medium text-muted-foreground">
                 {safePage * PAGE_SIZE + index + 1}
             </TableCell>
-            <TableCell className="font-medium text-foreground">{std.name}</TableCell>
+            <TableCell>
+                <div className="font-medium text-foreground">{std.name}</div>
+                {std.nameEn && (
+                    <div className="text-xs text-muted-foreground italic">{std.nameEn}</div>
+                )}
+            </TableCell>
             <TableCell>{std.issuingBody || "—"}</TableCell>
             <TableCell className="max-w-xs truncate">{std.description || "—"}</TableCell>
             <TableCell>

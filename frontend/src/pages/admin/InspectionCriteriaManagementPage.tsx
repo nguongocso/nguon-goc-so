@@ -88,6 +88,7 @@ export default function InspectionCriteriaManagementPage() {
             const matchKeyword =
                 !q ||
                 c.name.toLowerCase().includes(q) ||
+                (c.nameEn?.toLowerCase().includes(q) ?? false) ||
                 (c.referenceStandard?.toLowerCase().includes(q) ?? false);
             const matchStatus = status === "ALL" || c.status === status;
             return matchKeyword && matchStatus;
@@ -167,7 +168,12 @@ export default function InspectionCriteriaManagementPage() {
             <TableCell className="text-center font-medium text-muted-foreground">
                 {safePage * PAGE_SIZE + index + 1}
             </TableCell>
-            <TableCell className="font-medium text-foreground">{criterion.name}</TableCell>
+            <TableCell>
+                <div className="font-medium text-foreground">{criterion.name}</div>
+                {criterion.nameEn && (
+                    <div className="text-xs text-muted-foreground italic">{criterion.nameEn}</div>
+                )}
+            </TableCell>
             <TableCell>{criterion.unit}</TableCell>
             <TableCell className="text-center">{criterion.maxThreshold}</TableCell>
             <TableCell>{criterion.referenceStandard || "—"}</TableCell>

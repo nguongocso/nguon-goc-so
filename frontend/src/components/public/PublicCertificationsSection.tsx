@@ -14,6 +14,7 @@ import type {
   PublicCertification,
   PublicLotCertificationsResponse,
 } from "@/types/publicCertification";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface PublicCertificationsSectionProps {
   data?: PublicLotCertificationsResponse | null;
@@ -21,8 +22,8 @@ interface PublicCertificationsSectionProps {
   error?: string | null;
 }
 
-const formatDate = (dateValue: string | null) => {
-  if (!dateValue) return "Chưa cập nhật";
+const formatDate = (dateValue: string | null, notUpdatedText: string) => {
+  if (!dateValue) return notUpdatedText;
 
   const [year, month, day] = dateValue.split("-");
   if (!year || !month || !day) return dateValue;
@@ -31,7 +32,17 @@ const formatDate = (dateValue: string | null) => {
 };
 
 function CertificationCard({ certification }: { certification: PublicCertification }) {
+  const { lang, t } = useLanguage();
+  const isEn = lang === 'en';
+
   const isValid = certification.status === "VALID";
+
+  // TC-04 Fallback: nếu certificationNameEn null thì fallback về certificationName
+  const displayName = isEn ? (certification.certificationNameEn || certification.certificationName) : certification.certificationName;
+
+  const statusLabel = isEn
+    ? (isValid ? t('cert_status_valid') : t('cert_status_expired'))
+    : certification.statusLabel;
 
   return (
     <article
@@ -44,10 +55,10 @@ function CertificationCard({ certification }: { certification: PublicCertificati
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="font-semibold text-gray-900">
-            {certification.certificationName}
+            {displayName}
           </h3>
           <p className="mt-1 break-all font-mono text-xs text-gray-500">
-            Mã: {certification.certificationCode}
+            {isEn ? 'Code' : 'Mã'}: {certification.certificationCode}
           </p>
         </div>
 
@@ -60,7 +71,7 @@ function CertificationCard({ certification }: { certification: PublicCertificati
           variant="outline"
         >
           {isValid ? <BadgeCheck /> : <CircleAlert />}
-          {certification.statusLabel}
+          {statusLabel}
         </Badge>
       </div>
 
@@ -68,9 +79,9 @@ function CertificationCard({ certification }: { certification: PublicCertificati
         <div className="flex items-start gap-2 text-gray-600">
           <Landmark className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
           <div>
-            <dt className="text-xs text-gray-500">Đơn vị cấp</dt>
+            <dt className="text-xs text-gray-500">{t('issued_by')}</dt>
             <dd className="mt-0.5 text-gray-800">
-              {certification.issuedBy || "Chưa cập nhật"}
+              {certification.issuedBy || t('not_updated')}
             </dd>
           </div>
         </div>
@@ -78,9 +89,9 @@ function CertificationCard({ certification }: { certification: PublicCertificati
         <div className="flex items-start gap-2 text-gray-600">
           <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
           <div>
-            <dt className="text-xs text-gray-500">Thời hạn chứng nhận</dt>
+            <dt className="text-xs text-gray-500">{t('expiry_date')}</dt>
             <dd className="mt-0.5 text-gray-800">
-              {formatDate(certification.issueDate)} - {formatDate(certification.expiryDate)}
+              {formatDate(certification.issueDate, t('not_updated'))} - {formatDate(certification.expiryDate, t('not_updated'))}
             </dd>
           </div>
         </div>
@@ -94,6 +105,7 @@ export function PublicCertificationsSection({
   isLoading = false,
   error,
 }: PublicCertificationsSectionProps) {
+  const { t } = useLanguage();
   const certifications = data?.certifications ?? [];
   const hasCertification = Boolean(
     data?.hasCertification && certifications.length > 0
@@ -108,18 +120,15 @@ export function PublicCertificationsSection({
             className="flex items-center gap-2 text-gray-900"
           >
             <Award className="h-5 w-5 text-emerald-600" />
-            Tiêu chuẩn & Chứng nhận
+            {t('certifications_title')}
           </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Thông tin chứng nhận được gắn với lô sản xuất này.
-          </p>
         </CardHeader>
 
         <CardContent className="pt-4">
           {isLoading ? (
             <div className="flex min-h-28 flex-col items-center justify-center gap-3 text-sm text-gray-500">
               <LoaderCircle className="h-6 w-6 animate-spin text-emerald-600" />
-              Đang tải chứng nhận...
+              {t('loading_info')}
             </div>
           ) : error ? (
             <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -138,10 +147,7 @@ export function PublicCertificationsSection({
           ) : (
             <div className="flex min-h-28 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center">
               <FileCheck2 className="h-7 w-7 text-gray-400" />
-              <p className="font-medium text-gray-700">Chưa có chứng nhận</p>
-              <p className="max-w-sm text-sm text-gray-500">
-                Lô sản xuất này chưa được gắn chứng nhận.
-              </p>
+              <p className="font-medium text-gray-700">{t('no_certifications')}</p>
             </div>
           )}
         </CardContent>

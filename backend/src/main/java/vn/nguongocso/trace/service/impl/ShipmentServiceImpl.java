@@ -695,7 +695,9 @@ public class ShipmentServiceImpl implements ShipmentService {
         List<Shipment> shipments = shipmentRepository.findByStatusOrderByCreatedAtDesc(ShipmentStatus.ACTIVATED);
 
         return shipments.stream()
-                .filter(shipment -> relatedShipmentIds.contains(shipment.getId()))
+                .filter(shipment -> relatedShipmentIds.contains(shipment.getId())
+                        || (shipment.getRecipientOrganization() != null
+                                && currentOrgId.equals(shipment.getRecipientOrganization().getOrganizationId())))
                 .map(shipment -> {
                     String productionLotName = null;
                     String productCategoryName = null;
@@ -756,8 +758,20 @@ public class ShipmentServiceImpl implements ShipmentService {
             }
         } else if ("VT-04".equals(roleCode)) {
             UUID userOrgId = currentUser.getOrganizationId();
-            if (userOrgId == null || shipment.getRecipientOrganization() == null
-                    || !userOrgId.equals(shipment.getRecipientOrganization().getOrganizationId())) {
+            boolean isRecipient = shipment.getRecipientOrganization() != null
+                    && userOrgId != null
+                    && userOrgId.equals(shipment.getRecipientOrganization().getOrganizationId());
+
+            boolean hasHandover = userOrgId != null
+                    && shipmentHandoverRepository.existsByShipmentIdAndToOrganizationOrganizationId(id, userOrgId);
+
+            boolean hasRecordedEvent = userOrgId != null
+                    && chainEventRepository.existsByShipmentIdAndRecordedOrganizationId(id, userOrgId);
+
+            boolean isOwner = userOrgId != null && shipment.getOrganization() != null
+                    && userOrgId.equals(shipment.getOrganization().getOrganizationId());
+
+            if (!isRecipient && !hasHandover && !hasRecordedEvent && !isOwner) {
                 throw splitError(HttpStatus.FORBIDDEN,
                         "Lô hàng không được giao cho tổ chức của bạn.", "RECIPIENT_MISMATCH");
             }

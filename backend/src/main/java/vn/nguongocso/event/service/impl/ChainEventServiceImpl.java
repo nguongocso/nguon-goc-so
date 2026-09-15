@@ -43,6 +43,7 @@ import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
+import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
@@ -68,6 +69,7 @@ public class ChainEventServiceImpl implements ChainEventService {
     private final ObjectMapper objectMapper;
     private final TraceCodeRepository traceCodeRepository;
     private final ShipmentRepository shipmentRepository;
+    private final ShipmentHandoverRepository shipmentHandoverRepository;
     private final EventValidationService eventValidationService;
     private final ApplicationEventPublisher eventPublisher;
     private final PermissionChecker permissionChecker;
@@ -728,8 +730,22 @@ public class ChainEventServiceImpl implements ChainEventService {
 
         UUID organizationId = currentUser.getOrganizationId();
         if ("VT-04".equals(currentUser.getRoleCode())) {
-            if (organizationId == null || shipment.getRecipientOrganization() == null
-                    || !organizationId.equals(shipment.getRecipientOrganization().getOrganizationId())) {
+            boolean isRecipient = shipment.getRecipientOrganization() != null
+                    && organizationId != null
+                    && organizationId.equals(shipment.getRecipientOrganization().getOrganizationId());
+
+            boolean hasHandover = organizationId != null
+                    && shipmentHandoverRepository.existsByShipmentIdAndToOrganizationOrganizationId(
+                            shipment.getId(), organizationId);
+
+            boolean hasRecordedEvent = organizationId != null
+                    && chainEventRepository.existsByShipmentIdAndRecordedOrganizationId(
+                            shipment.getId(), organizationId);
+
+            boolean isOwner = organizationId != null && shipment.getOrganization() != null
+                    && organizationId.equals(shipment.getOrganization().getOrganizationId());
+
+            if (!isRecipient && !hasHandover && !hasRecordedEvent && !isOwner) {
                 throw new BusinessException(HttpStatus.FORBIDDEN,
                         "Lô hàng không được giao cho tổ chức của bạn.",
                         Map.of("code", "RECIPIENT_MISMATCH"));

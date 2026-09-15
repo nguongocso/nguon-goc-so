@@ -42,15 +42,39 @@ CREATE TABLE IF NOT EXISTS bulk_recall_requests (
     CONSTRAINT fk_bulk_recall_rejected_by
         FOREIGN KEY (rejected_by) REFERENCES users(user_id),
     CONSTRAINT uk_bulk_recall_pending_lot UNIQUE (pending_production_lot_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB;
 
--- Index cho tìm kiếm theo production lot và status
-CREATE INDEX idx_bulk_recall_production_lot_status
-    ON bulk_recall_requests(production_lot_id, status);
+-- Index cho tìm kiếm theo production lot và status (kiểm tra an toàn tránh trùng lặp)
+SET @idx1 = (
+    SELECT COUNT(*) 
+    FROM information_schema.statistics 
+    WHERE table_schema = DATABASE() 
+      AND table_name = 'bulk_recall_requests' 
+      AND index_name = 'idx_bulk_recall_production_lot_status'
+);
+SET @sql1 = IF(@idx1 > 0, 
+    'SELECT 1', 
+    'CREATE INDEX idx_bulk_recall_production_lot_status ON bulk_recall_requests(production_lot_id, status)'
+);
+PREPARE stmt1 FROM @sql1;
+EXECUTE stmt1;
+DEALLOCATE PREPARE stmt1;
 
 -- Index cho tìm kiếm theo người tạo
-CREATE INDEX idx_bulk_recall_requested_by
-    ON bulk_recall_requests(requested_by);
+SET @idx2 = (
+    SELECT COUNT(*) 
+    FROM information_schema.statistics 
+    WHERE table_schema = DATABASE() 
+      AND table_name = 'bulk_recall_requests' 
+      AND index_name = 'idx_bulk_recall_requested_by'
+);
+SET @sql2 = IF(@idx2 > 0, 
+    'SELECT 1', 
+    'CREATE INDEX idx_bulk_recall_requested_by ON bulk_recall_requests(requested_by)'
+);
+PREPARE stmt2 FROM @sql2;
+EXECUTE stmt2;
+DEALLOCATE PREPARE stmt2;
 
 -- Ràng buộc "một đề nghị PENDING cho mỗi lô sản xuất" đã được định nghĩa
 -- bằng generated column uk_bulk_recall_pending_lot ngay trong CREATE TABLE
@@ -68,12 +92,36 @@ CREATE TABLE IF NOT EXISTS bulk_recall_shipments (
         FOREIGN KEY (bulk_recall_request_id) REFERENCES bulk_recall_requests(id) ON DELETE CASCADE,
     CONSTRAINT fk_bulk_recall_shipment_shipment
         FOREIGN KEY (shipment_id) REFERENCES shipments(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB;
 
 -- Index cho tìm kiếm theo bulk recall request
-CREATE INDEX idx_bulk_recall_shipment_request
-    ON bulk_recall_shipments(bulk_recall_request_id);
+SET @idx3 = (
+    SELECT COUNT(*) 
+    FROM information_schema.statistics 
+    WHERE table_schema = DATABASE() 
+      AND table_name = 'bulk_recall_shipments' 
+      AND index_name = 'idx_bulk_recall_shipment_request'
+);
+SET @sql3 = IF(@idx3 > 0, 
+    'SELECT 1', 
+    'CREATE INDEX idx_bulk_recall_shipment_request ON bulk_recall_shipments(bulk_recall_request_id)'
+);
+PREPARE stmt3 FROM @sql3;
+EXECUTE stmt3;
+DEALLOCATE PREPARE stmt3;
 
 -- Index cho tìm kiếm theo shipment
-CREATE INDEX idx_bulk_recall_shipment_shipment
-    ON bulk_recall_shipments(shipment_id);
+SET @idx4 = (
+    SELECT COUNT(*) 
+    FROM information_schema.statistics 
+    WHERE table_schema = DATABASE() 
+      AND table_name = 'bulk_recall_shipments' 
+      AND index_name = 'idx_bulk_recall_shipment_shipment'
+);
+SET @sql4 = IF(@idx4 > 0, 
+    'SELECT 1', 
+    'CREATE INDEX idx_bulk_recall_shipment_shipment ON bulk_recall_shipments(shipment_id)'
+);
+PREPARE stmt4 FROM @sql4;
+EXECUTE stmt4;
+DEALLOCATE PREPARE stmt4;

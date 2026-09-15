@@ -29,6 +29,9 @@ public class PublicCertificationResponse {
     /** Tên chứng nhận. */
     private String certificationName;
 
+    /** Tên chứng nhận tiếng Anh. */
+    private String certificationNameEn;
+
     /** Số hiệu chứng nhận. */
     private String certificationCode;
 

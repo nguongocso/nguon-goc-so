@@ -165,6 +165,7 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
 
   // Notifications / Alerts
   ["/notifications", "Thông báo"],
+  ["/alerts", "Tổng hợp cảnh báo"],
   ["/alerts/scan-anomaly", "Cảnh báo quét nghi vấn"],
 
   // Certifications
@@ -332,13 +333,14 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
   ["/reports/crop-area-analysis", ["VT-02", "VT-03"]],
   ["/reports/season-yield-comparison", ROLE_ACCESS.seasonYieldComparison],
   ["/reports/industry", ["VT-05"]],
-  ["/activity-logs", ["VT-01"]],
+  ["/activity-logs", ["VT-02"]],
   ["/login-history", ["VT-01"]],
   ["/login-anomalies", ["VT-01"]],
   ["/failed-event-logs", ["VT-01"]],
 
   // Notifications / Alerts
   ["/notifications", ROLE_ACCESS.notificationInbox],
+  ["/alerts", ROLE_ACCESS.aggregateAlerts],
   ["/alerts/scan-anomaly", ROLE_ACCESS.scanAnomalyAlerts],
 
   // Certifications
