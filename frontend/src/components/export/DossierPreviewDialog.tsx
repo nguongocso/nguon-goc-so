@@ -23,6 +23,8 @@ import {
   AlertCircle,
   Table as TableIcon,
   Code2,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { exportDossier } from '@/api/dossierApi';
@@ -60,6 +62,7 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // PDF state
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
@@ -83,6 +86,7 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
     if (open) {
       setFormat(activeFormat);
       setError(null);
+      setIsFullscreen(false);
     }
   }, [open, activeFormat]);
 
@@ -279,12 +283,18 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
-      <DialogContent className="max-w-5xl max-h-[92vh] flex flex-col p-6">
+      <DialogContent
+        className={
+          isFullscreen
+            ? '!fixed !inset-0 !z-50 !w-screen !h-screen !max-w-none !max-h-none !translate-x-0 !translate-y-0 !top-0 !left-0 !rounded-none !p-4 !m-0 flex flex-col bg-background shadow-2xl'
+            : 'w-[96vw] sm:max-w-[95vw] md:max-w-5xl lg:max-w-6xl xl:max-w-7xl h-[92vh] max-h-[94vh] flex flex-col p-4 sm:p-5'
+        }
+      >
         {/* Header */}
-        <DialogHeader className="space-y-1.5 pb-2.5 border-b">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pr-6">
+        <DialogHeader className="space-y-1.5 pb-2.5 border-b shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pr-8">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+              <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 shrink-0">
                 {format === 'pdf' ? (
                   <FileText className="size-5" />
                 ) : format === 'csv' ? (
@@ -313,54 +323,68 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
               </div>
             </div>
 
-            {/* Bộ chuyển đổi định dạng xem trước (PDF / CSV / JSON) */}
-            {!initialData && (
-              <div className="flex items-center gap-1 bg-muted/70 p-1 rounded-lg border text-xs">
-                <button
-                  type="button"
-                  onClick={() => setFormat('pdf')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
-                    format === 'pdf'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <FileText className="size-3.5 text-emerald-600" />
-                  <span>Bản in PDF</span>
-                </button>
+            {/* Bộ chuyển đổi định dạng xem trước & nút toàn màn hình */}
+            <div className="flex items-center gap-2">
+              {!initialData && (
+                <div className="flex items-center gap-1 bg-muted/70 p-1 rounded-lg border text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setFormat('pdf')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
+                      format === 'pdf'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <FileText className="size-3.5 text-emerald-600" />
+                    <span>Bản in PDF</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setFormat('csv')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
-                    format === 'csv'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <FileSpreadsheet className="size-3.5 text-emerald-600" />
-                  <span>Bảng CSV</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormat('csv')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
+                      format === 'csv'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <FileSpreadsheet className="size-3.5 text-emerald-600" />
+                    <span>Bảng CSV</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setFormat('json')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
-                    format === 'json'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <FileJson className="size-3.5 text-emerald-600" />
-                  <span>Dữ liệu JSON</span>
-                </button>
-              </div>
-            )}
+                  <button
+                    type="button"
+                    onClick={() => setFormat('json')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-medium transition-all ${
+                      format === 'json'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <FileJson className="size-3.5 text-emerald-600" />
+                    <span>Dữ liệu JSON</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Nút phóng to / thu nhỏ toàn màn hình */}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground hidden sm:inline-flex shrink-0"
+                title={isFullscreen ? 'Thu nhỏ giao diện' : 'Phóng to toàn màn hình'}
+              >
+                {isFullscreen ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
         {/* Thân hiển thị nội dung xem trước */}
-        <div className="flex-1 overflow-hidden min-h-[380px] max-h-[66vh] py-2 flex flex-col">
+        <div className="flex-1 w-full h-full min-h-0 py-2 flex flex-col overflow-hidden">
           {loading ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground">
               <Loader2 className="size-8 animate-spin text-emerald-600" />
@@ -391,11 +415,11 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
             </div>
           ) : format === 'pdf' && !initialData ? (
             /* =================== XEM TRƯỚC PDF THẬT 100% =================== */
-            <div className="flex-1 flex flex-col rounded-lg border overflow-hidden bg-slate-100 dark:bg-slate-900">
+            <div className="flex-1 w-full h-full min-h-0 flex flex-col rounded-lg border overflow-hidden bg-slate-200 dark:bg-slate-900 shadow-inner">
               {pdfUrl ? (
                 <iframe
-                  src={`${pdfUrl}#toolbar=1&navpanes=0`}
-                  className="w-full h-full border-0 rounded-lg shadow-inner"
+                  src={`${pdfUrl}#toolbar=1&navpanes=0&view=Fit`}
+                  className="w-full h-full min-h-[520px] border-0 flex-1 rounded-lg"
                   title="Bản in PDF hồ sơ truy xuất"
                 />
               ) : (
@@ -406,9 +430,9 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
             </div>
           ) : format === 'csv' && !initialData ? (
             /* =================== XEM TRƯỚC CSV THẬT 100% =================== */
-            <div className="flex-1 flex flex-col rounded-lg border overflow-hidden bg-background">
+            <div className="flex-1 w-full h-full min-h-0 flex flex-col rounded-lg border overflow-hidden bg-background">
               {/* Thanh công cụ xem CSV */}
-              <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/40 text-xs">
+              <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/40 text-xs shrink-0">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-muted-foreground">Chế độ xem:</span>
                   <div className="inline-flex rounded-md border bg-background p-0.5">
@@ -438,13 +462,13 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
                     </button>
                   </div>
                 </div>
-                <div className="text-[11px] text-muted-foreground">
+                <div className="text-[11px] text-muted-foreground hidden sm:block">
                   Chuẩn mã hóa UTF-8 BOM cho Microsoft Excel
                 </div>
               </div>
 
               {csvViewMode === 'table' ? (
-                <div className="flex-1 overflow-auto p-2">
+                <div className="flex-1 min-h-0 overflow-auto p-2">
                   <table className="w-full text-xs border-collapse border border-slate-200 dark:border-slate-800">
                     <tbody>
                       {csvParsed.map((row, rIdx) => {
@@ -496,21 +520,21 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
                   </table>
                 </div>
               ) : (
-                <div className="flex-1 overflow-auto p-3 bg-slate-950 text-slate-100 font-mono text-xs rounded-b-lg">
+                <div className="flex-1 min-h-0 overflow-auto p-3 bg-slate-950 text-slate-100 font-mono text-xs rounded-b-lg">
                   <pre className="whitespace-pre">{csvContent || 'Không có dữ liệu CSV'}</pre>
                 </div>
               )}
             </div>
           ) : (
             /* =================== XEM TRƯỚC JSON THẬT 100% =================== */
-            <div className="flex-1 flex flex-col rounded-lg border overflow-hidden bg-slate-950 text-slate-100">
-              <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-800 bg-slate-900/60 text-xs">
+            <div className="flex-1 w-full h-full min-h-0 flex flex-col rounded-lg border overflow-hidden bg-slate-950 text-slate-100">
+              <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-800 bg-slate-900/60 text-xs shrink-0">
                 <span className="text-slate-400 font-mono">application/json</span>
                 <span className="text-emerald-400 font-medium text-[11px]">
                   Cấu trúc phân cấp chuẩn theo mẫu
                 </span>
               </div>
-              <div className="flex-1 overflow-auto p-4 font-mono text-xs leading-relaxed">
+              <div className="flex-1 min-h-0 overflow-auto p-4 font-mono text-xs leading-relaxed">
                 <pre className="text-emerald-300 whitespace-pre">{jsonString}</pre>
               </div>
             </div>
@@ -518,9 +542,9 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="sm:justify-between items-center gap-2 border-t pt-3">
+        <DialogFooter className="sm:justify-between items-center gap-2 border-t pt-3 shrink-0">
           <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <ShieldCheck className="size-4 text-emerald-600" />
+            <ShieldCheck className="size-4 text-emerald-600 shrink-0" />
             <span>Nội dung xem trước trùng khớp 100% với tệp tải về</span>
           </div>
 
