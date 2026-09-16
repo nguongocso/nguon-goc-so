@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Polygon;
 import org.springframework.stereotype.Service;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.exception.ResourceNotFoundException;
@@ -22,9 +24,12 @@ import vn.nguongocso.certification.repository.ProductionLotCertificationReposito
 import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
+import vn.nguongocso.farm.dto.request.LatLngDto;
+import vn.nguongocso.farm.entity.FarmArea;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.publicapi.dto.response.PublicCertificationResponse;
 import vn.nguongocso.publicapi.dto.response.PublicChainEventItem;
+import vn.nguongocso.publicapi.dto.response.PublicFarmAreaBoundaryDto;
 import vn.nguongocso.publicapi.dto.response.PublicInspectionCriterionResultDto;
 import vn.nguongocso.publicapi.dto.response.PublicInspectionResponse;
 import vn.nguongocso.publicapi.dto.response.PublicInspectionRoundDto;
@@ -241,6 +246,9 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         List<PublicInspectionCriterionResultDto> inspectionResults =
                 resolveLatestResults(fetchPublicInspectionRounds(productionLot));
 
+        // CV-05: Ranh giới vùng trồng công khai (QTN-12)
+        PublicFarmAreaBoundaryDto farmAreaBoundary = buildFarmAreaBoundaryDto(productionLot);
+
         return PublicTraceResponse.builder()
                 .codeValue(traceCode.getCodeValue())
                 .productionLotId(
@@ -263,6 +271,38 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .unlockedAt(traceCode.getUnlockedAt())
                 .events(publicEvents)
                 .inspections(inspectionResults)
+                .farmAreaBoundary(farmAreaBoundary)
+                .build();
+    }
+
+    /**
+     * Ánh xạ thông tin ranh giới vùng trồng sang DTO công khai (QTN-12, CV-05).
+     * Trả về null khi lô sản xuất chưa gắn vùng trồng hoặc chưa có ranh giới.
+     */
+    private PublicFarmAreaBoundaryDto buildFarmAreaBoundaryDto(ProductionLot productionLot) {
+        if (productionLot == null) {
+            return null;
+        }
+
+        FarmArea farmArea = productionLot.getFarmArea();
+        if (farmArea == null || farmArea.getBoundary() == null) {
+            return null;
+        }
+
+        Polygon boundary = farmArea.getBoundary();
+        Coordinate[] coordinates = boundary.getExteriorRing().getCoordinates();
+        List<LatLngDto> points = new ArrayList<>(Math.max(0, coordinates.length - 1));
+        for (int index = 0; index < coordinates.length - 1; index++) {
+            Coordinate coordinate = coordinates[index];
+            // JTS: X là kinh độ, Y là vĩ độ.
+            points.add(new LatLngDto(coordinate.getY(), coordinate.getX()));
+        }
+
+        return PublicFarmAreaBoundaryDto.builder()
+                .id(farmArea.getId())
+                .name(farmArea.getName())
+                .calculatedArea(farmArea.getCalculatedArea())
+                .points(points)
                 .build();
     }
 
