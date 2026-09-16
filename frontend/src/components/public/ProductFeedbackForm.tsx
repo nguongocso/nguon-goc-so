@@ -1,7 +1,6 @@
 import { isAxiosError } from "axios";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { CheckCircle2, Copy, MessageSquareWarning, Search, Send } from "lucide-react";
 
@@ -11,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useLanguage } from "@/context/LanguageContext";
 import type { PublicProductFeedbackCreated } from "@/types/productFeedback";
+import { ProductFeedbackLookupDialog } from "./ProductFeedbackLookupDialog";
 
 interface ProductFeedbackFormProps {
   productionLotId: string;
@@ -30,6 +30,10 @@ export function ProductFeedbackForm({
   const { t } = useLanguage();
   const [submittedFeedback, setSubmittedFeedback] =
     useState<PublicProductFeedbackCreated | null>(null);
+  const [isLookupDialogOpen, setIsLookupDialogOpen] = useState(false);
+  const [lookupInitialCode, setLookupInitialCode] = useState<string | undefined>(
+    undefined,
+  );
   const {
     register,
     handleSubmit,
@@ -93,26 +97,48 @@ export function ProductFeedbackForm({
 
         <div className="mt-5 rounded-xl border border-emerald-200 bg-white p-4 text-center">
           <p className="text-sm font-medium text-gray-600">{t("feedback_lookup_code_label")}</p>
-          <p className="mt-2 select-all break-all font-mono text-xl font-bold tracking-wide text-emerald-800">
-            {submittedFeedback.lookupCode}
-          </p>
+          <div className="mt-2 flex items-center justify-center">
+            {/* Khoảng đệm ẩn cân bằng với 2 icon bên phải để mã luôn nằm ở chính giữa */}
+            <div className="invisible inline-flex shrink-0 items-center gap-1" aria-hidden="true">
+              <div className="h-8 w-8" />
+              <div className="h-8 w-8" />
+            </div>
+
+            <span className="mx-2 select-all break-all font-mono text-xl font-bold tracking-wide text-emerald-800">
+              {submittedFeedback.lookupCode}
+            </span>
+
+            <div className="inline-flex shrink-0 items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => void copyLookupCode()}
+                className="h-8 w-8 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
+                title={t("feedback_copy_code_btn")}
+                aria-label={t("feedback_copy_code_btn")}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => {
+                  setLookupInitialCode(submittedFeedback.lookupCode);
+                  setIsLookupDialogOpen(true);
+                }}
+                className="h-8 w-8 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
+                title={t("feedback_lookup_status_btn")}
+                aria-label={t("feedback_lookup_status_btn")}
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
           <p className="mt-2 text-xs leading-5 text-amber-700">
             {t("feedback_save_code_warning")}
           </p>
-        </div>
-
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          <Button type="button" onClick={() => void copyLookupCode()} className="gap-2">
-            <Copy className="h-4 w-4" />
-            {t("feedback_copy_code_btn")}
-          </Button>
-          <Link
-            to="/public/product-feedbacks/lookup"
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-white px-3 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50"
-          >
-            <Search className="h-4 w-4" />
-            {t("feedback_lookup_status_btn")}
-          </Link>
         </div>
 
         <button
@@ -122,6 +148,12 @@ export function ProductFeedbackForm({
         >
           {t("feedback_submit_another")}
         </button>
+
+        <ProductFeedbackLookupDialog
+          open={isLookupDialogOpen}
+          onOpenChange={setIsLookupDialogOpen}
+          initialCode={lookupInitialCode}
+        />
       </section>
     );
   }
@@ -178,13 +210,32 @@ export function ProductFeedbackForm({
           )}
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setLookupInitialCode(undefined);
+              setIsLookupDialogOpen(true);
+            }}
+            className="gap-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+          >
+            <Search className="h-4 w-4" />
+            {t("feedback_lookup_btn")}
+          </Button>
+
           <Button type="submit" disabled={isSubmitting} variant="create">
             <Send className="h-4 w-4" />
             {isSubmitting ? t("feedback_submitting") : t("feedback_submit_btn")}
           </Button>
         </div>
       </form>
+
+      <ProductFeedbackLookupDialog
+        open={isLookupDialogOpen}
+        onOpenChange={setIsLookupDialogOpen}
+        initialCode={lookupInitialCode}
+      />
     </section>
   );
 }

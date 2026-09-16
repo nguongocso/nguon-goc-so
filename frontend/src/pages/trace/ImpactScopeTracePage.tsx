@@ -12,10 +12,12 @@ import {exportImpactScopeReport, getImpactScopeTrace} from '@/api/impactScopeTra
 import type {ImpactScopeTraceResponse} from '@/types/impactScopeTrace';
 import {useSetBreadcrumb} from '@/components/common/AppBreadcrumb';
 import {HelpButton} from '@/components/help/HelpButton';
+import {useAuth} from '@/hooks/useAuth';
 
 
 export const ImpactScopeTracePage: React.FC = () => {
     const navigate = useNavigate();
+    const {user} = useAuth();
 
     useSetBreadcrumb([
         {label: 'Tổng quan', href: '/dashboard'},
@@ -529,7 +531,7 @@ export const ImpactScopeTracePage: React.FC = () => {
             )}
 
             {/* Nút tạo yêu cầu thu hồi theo phạm vi ảnh hưởng (NCL-08-CN-011) */}
-            {traceData && traceData.shipments && traceData.shipments.length > 0 && (
+            {user?.roleCode !== 'VT-01' && traceData && traceData.shipments && traceData.shipments.length > 0 && (
                 <div className="mt-6 flex justify-end">
                     <button
                         onClick={() => navigate(`/production-lots/${traceData.productionLot.id}/create-bulk-recall-request`)}

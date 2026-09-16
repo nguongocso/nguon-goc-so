@@ -786,7 +786,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
     @Transactional
     public RecallEvidenceResponse uploadEvidenceFile(MultipartFile file, CustomUserDetails currentUser) {
         // 1. Kiểm tra vai trò quản lý
-        if (!"VT-02".equals(currentUser.getRoleCode()) && !"VT-01".equals(currentUser.getRoleCode())) {
+        if (!"VT-02".equals(currentUser.getRoleCode())) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "Bạn không có quyền tải lên tệp biên bản thu hồi.");
         }
 
