@@ -177,6 +177,9 @@ export const ROUTE_TEMPLATES: ReadonlyArray<readonly [string, string]> = [
   ["/integration/api-keys/create-test", "Cấp khóa thử nghiệm"],
   ["/integration/api-keys/create", "Cấp khóa API"],
   ["/integration/api-keys", "Khóa API đối tác"],
+  ["/export/profile-templates/new", "Tạo mẫu hồ sơ"],
+  ["/export/profile-templates/:id/edit", "Chỉnh sửa mẫu hồ sơ"],
+  ["/export/profile-templates", "Mẫu hồ sơ truy xuất"],
   ["/export/open-data", "Dữ liệu mở"],
   ["/permissions/config", "Cấu hình quyền"],
 
@@ -349,6 +352,9 @@ export const ROUTE_ACCESS_CONFIG: ReadonlyArray<
   ["/integration/api-keys/create-test", ROLE_ACCESS.apiKeyManagement],
   ["/integration/api-keys/create", ROLE_ACCESS.apiKeyManagement],
   ["/integration/api-keys", ROLE_ACCESS.apiKeyManagement],
+  ["/export/profile-templates/new", ROLE_ACCESS.profileTemplateManage],
+  ["/export/profile-templates/:id/edit", ROLE_ACCESS.profileTemplateManage],
+  ["/export/profile-templates", ROLE_ACCESS.profileTemplateManage],
   ["/export/open-data", ROLE_ACCESS.exportOpenData],
   ["/permissions/config", ROLE_ACCESS.rolePermissionConfig],
 

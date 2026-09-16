@@ -15,8 +15,19 @@ public interface DossierService {
     // Kiểm tra điều kiện xuất hồ sơ.
     DossierCheckResponse checkEligibility(UUID shipmentId, CustomUserDetails currentUser);
 
-    // Xuất hồ sơ dạng PDF.
+    // Xuất hồ sơ dạng PDF (mặc định đầy đủ).
     byte[] exportDossierPdf(UUID shipmentId, CustomUserDetails currentUser, String ipAddress);
+
+    /**
+     * Xuất hồ sơ truy xuất dạng PDF áp dụng mẫu cấu hình trường đối tác (NCL-07-CN-007).
+     *
+     * @param shipmentId  ID lô hàng
+     * @param templateId  ID mẫu hồ sơ (tùy chọn)
+     * @param currentUser Thông tin người dùng hiện tại
+     * @param ipAddress   Địa chỉ IP client
+     * @return Dữ liệu byte file PDF
+     */
+    byte[] exportDossierPdf(UUID shipmentId, UUID templateId, CustomUserDetails currentUser, String ipAddress);
 
     /**
      * Xuất hồ sơ truy xuất theo lược đồ GS1 mô phỏng.

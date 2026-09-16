@@ -29,5 +29,9 @@ public class BatchDossierCheckResponse {
         private String shipmentName;
         private boolean eligible;
         private List<String> missingDocuments;
+        /** Tổ chức sở hữu lô hàng — VT-04 dùng để tổng hợp mẫu hồ sơ của các HTX trong batch. */
+        private UUID organizationId;
+        /** Tên tổ chức sở hữu lô hàng (hiển thị gợi ý chọn mẫu). */
+        private String organizationName;
     }
 }
