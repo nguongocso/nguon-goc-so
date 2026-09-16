@@ -1,5 +1,6 @@
 package vn.nguongocso.trace.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -186,4 +187,38 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 			@Param("status") TraceCodeStatus status);
 
 	boolean existsByShipmentIdAndStatus(UUID shipmentId, TraceCodeStatus status);
+
+	/**
+	 * Đếm số tem đã kích hoạt theo từng tổ chức trong khoảng thời gian
+	 * (NCL-07-CN-008). Một tem được tính khi {@code activatedAt} nằm trong
+	 * khoảng thời gian; không lọc theo {@code status} hiện tại vì tem sau
+	 * kích hoạt còn có thể chuyển sang SUSPECT/LOCKED/RECALLED.
+	 *
+	 * @param from mốc bắt đầu khoảng thời gian
+	 * @param to   mốc kết thúc khoảng thời gian
+	 * @return danh sách [organizationId, số lượng]
+	 */
+	@Query("""
+			SELECT tc.shipment.organization.organizationId, COUNT(tc)
+			FROM TraceCode tc
+			WHERE tc.activatedAt BETWEEN :from AND :to
+			GROUP BY tc.shipment.organization.organizationId
+			""")
+	List<Object[]> countActivatedGroupedByOrg(
+			@Param("from") LocalDateTime from,
+			@Param("to") LocalDateTime to);
+
+	/**
+	 * Lấy thời điểm kích hoạt tem mới nhất của từng tổ chức (NCL-07-CN-008,
+	 * phục vụ tính lastActivityAt).
+	 *
+	 * @return danh sách [organizationId, activatedAt lớn nhất]
+	 */
+	@Query("""
+			SELECT tc.shipment.organization.organizationId, MAX(tc.activatedAt)
+			FROM TraceCode tc
+			WHERE tc.activatedAt IS NOT NULL
+			GROUP BY tc.shipment.organization.organizationId
+			""")
+	List<Object[]> maxActivatedAtGroupedByOrg();
 }
