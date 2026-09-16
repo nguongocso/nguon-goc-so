@@ -37,7 +37,9 @@ import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyResponse;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
+import vn.nguongocso.integration.apikey.service.ApiKeyQuotaPolicy;
 import vn.nguongocso.integration.apikey.service.PartnerApiKeyService;
+import vn.nguongocso.integration.apikey.service.PartnerApiKeyUsageService;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.entity.OrganizationUser;
 import vn.nguongocso.organization.repository.OrganizationRepository;
@@ -56,6 +58,12 @@ class PartnerApiKeyServiceTest {
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    private PartnerApiKeyUsageService partnerApiKeyUsageService;
+
+    @Mock
+    private ApiKeyQuotaPolicy apiKeyQuotaPolicy;
 
     @InjectMocks
     private PartnerApiKeyService partnerApiKeyService;
@@ -221,6 +229,10 @@ class PartnerApiKeyServiceTest {
                 .build();
 
         when(partnerApiKeyRepository.findByKeyHash(keyHash)).thenReturn(Optional.of(key));
+
+        // NCL-12-CN-005: lượt gọi trong ngày đếm ở DB; ngưỡng cảnh báo lấy từ policy dùng chung.
+        when(partnerApiKeyUsageService.recordCallAndGetDailyCount(key.getId())).thenReturn(1, 2);
+        when(apiKeyQuotaPolicy.warningThreshold(2)).thenReturn(2);
 
         // Lượt 1 OK
         partnerApiKeyService.validateApiKeyAndCheckRateLimit(rawApiKey, "127.0.0.1");

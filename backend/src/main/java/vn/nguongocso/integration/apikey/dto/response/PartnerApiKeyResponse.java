@@ -48,6 +48,17 @@ public class PartnerApiKeyResponse {
 
     private Long totalCalls;
     private Long failedCalls;
+
+    /**
+     * Số lượt gọi trong ngày hôm nay của khóa (chỉ trả ở danh sách khóa - NCL-12-CN-005).
+     */
+    private Integer usedCallsToday;
+
+    /**
+     * Ngưỡng lượt gọi trong ngày kích hoạt cảnh báo "sắp chạm hạn mức"
+     * (chỉ trả ở danh sách khóa - NCL-12-CN-005).
+     */
+    private Integer quotaWarningThreshold;
     private LocalDateTime lastCalledAt;
     private Integer lastCallStatus;
     private String lastCallIp;

@@ -5,6 +5,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -13,7 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -60,15 +60,16 @@ public class PartnerApiKeyService {
     private final OrganizationRepository organizationRepository;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final PartnerApiKeyUsageService partnerApiKeyUsageService;
+    private final ApiKeyQuotaPolicy apiKeyQuotaPolicy;
 
     // Bộ nhớ tạm đếm số lượt gọi trong 1 giờ: Key = apiKeyId + ":" + yyyyMMddHH
     private final Map<String, AtomicInteger> hourlyRateLimitMap = new ConcurrentHashMap<>();
 
-    // Bộ nhớ tạm đếm số lượt gọi trong 1 ngày: Key = apiKeyId + ":" + yyyyMMdd
-    private final Map<String, AtomicInteger> dailyRateLimitMap = new ConcurrentHashMap<>();
-
-    @Value("${app.apikey.quota-warning-ratio:0.8}")
-    private double quotaWarningRatio;
+    // Ghi chú (NCL-12-CN-005): bộ đếm lượt gọi THEO NGÀY không còn ở bộ nhớ tạm mà
+    // được lưu ở DB qua PartnerApiKeyUsageService: không mất khi khởi động lại và
+    // không gửi trùng khi chạy nhiều instance. Bộ đếm THEO GIỜ ở trên vẫn giữ cho
+    // rate limit QTN-20 (trả 429 khi vượt rateLimitPerHour trong 1 giờ).
 
     /**
      * Tạo mới khóa truy cập cho đối tác.
@@ -241,8 +242,22 @@ public class PartnerApiKeyService {
      * Đóng gói kết quả phân trang khóa truy cập thành DTO tường minh.
      */
     private PartnerApiKeyPageResponse toPageResponse(Page<PartnerApiKey> page) {
+        List<PartnerApiKeyResponse> content = page.map(this::mapToResponse).getContent();
+
+        // NCL-12-CN-005: bổ sung số lượt gọi hôm nay + ngưỡng cảnh báo hạn mức bằng
+        // một truy vấn duy nhất (tránh N+1) để FE hiển thị mức dùng mà không tự
+        // hardcode tỷ lệ cấu hình.
+        List<UUID> keyIds = content.stream().map(PartnerApiKeyResponse::getId).toList();
+        Map<UUID, Integer> usedCallsToday = partnerApiKeyUsageService.getDailyCallCounts(keyIds);
+        for (PartnerApiKeyResponse item : content) {
+            item.setUsedCallsToday(usedCallsToday.getOrDefault(item.getId(), 0));
+            item.setQuotaWarningThreshold(item.getRateLimitPerHour() == null
+                    ? null
+                    : apiKeyQuotaPolicy.warningThreshold(item.getRateLimitPerHour()));
+        }
+
         return PartnerApiKeyPageResponse.builder()
-                .content(page.map(this::mapToResponse).getContent())
+                .content(content)
                 .page(page.getNumber())
                 .size(page.getSize())
                 .totalElements(page.getTotalElements())
@@ -337,16 +352,14 @@ public class PartnerApiKeyService {
             throw new BusinessException("Khóa truy cập đã vượt quá hạn mức " + apiKey.getRateLimitPerHour() + " lượt gọi/giờ");
         }
 
-        // 4. Chạm ngưỡng cảnh báo hạn mức (NCL-12-CN-005): đếm theo cửa sổ ngày,
-        // phát sự kiện đúng một lần khi lượt gọi trong ngày vừa đạt ngưỡng,
-        // listener tự lo chống trùng theo ngày. Chặn 429 vẫn theo cửa sổ giờ.
-        String dailyKey = buildDailyKey(apiKey.getId(), now);
-        int callsInCurrentDay = dailyRateLimitMap.computeIfAbsent(dailyKey, k -> new AtomicInteger(0))
-                .incrementAndGet();
-
-        int warningThreshold = (int) Math.ceil(apiKey.getRateLimitPerHour() * quotaWarningRatio);
-        if (warningThreshold > 0 && callsInCurrentDay == warningThreshold) {
-            publishQuotaThresholdEvent(apiKey, callsInCurrentDay);
+        // 4. Chạm ngưỡng cảnh báo hạn mức (NCL-12-CN-005): đếm lượt gọi trong NGÀY ở
+        // DB (không còn dùng bộ nhớ tạm) để số liệu bền vững qua restart và đúng khi
+        // chạy nhiều instance. Dùng ">=" để tự chữa khi bộ đếm đã vượt ngưỡng;
+        // listener chống trùng bằng cờ warning_sent_at. Chặn 429 vẫn theo cửa sổ giờ.
+        int callsInCurrentDay = partnerApiKeyUsageService.recordCallAndGetDailyCount(apiKey.getId());
+        int warningThreshold = apiKeyQuotaPolicy.warningThreshold(apiKey.getRateLimitPerHour());
+        if (warningThreshold > 0 && callsInCurrentDay >= warningThreshold) {
+            publishQuotaThresholdEvent(apiKey, callsInCurrentDay, warningThreshold);
         }
 
         // Gọi thành công -> Ghi nhận thống kê
@@ -363,26 +376,10 @@ public class PartnerApiKeyService {
     }
 
     /**
-     * Dựng khóa đếm theo ngày cho bộ nhớ tạm cảnh báo hạn mức.
-     */
-    private String buildDailyKey(UUID apiKeyId, LocalDateTime time) {
-        return apiKeyId.toString() + ":" + String.format("%04d%02d%02d",
-                time.getYear(), time.getMonthValue(), time.getDayOfMonth());
-    }
-
-    /**
-     * Số lượt gọi trong ngày hôm nay của khóa (phục vụ cảnh báo tổng hợp realtime).
-     */
-    public int getDailyCallCount(UUID apiKeyId) {
-        AtomicInteger counter = dailyRateLimitMap.get(buildDailyKey(apiKeyId, LocalDateTime.now()));
-        return counter == null ? 0 : counter.get();
-    }
-
-    /**
      * Phát sự kiện chạm ngưỡng hạn mức. Không bao giờ ném lỗi để tránh chặn
      * request của đối tác.
      */
-    private void publishQuotaThresholdEvent(PartnerApiKey apiKey, int usedCalls) {
+    private void publishQuotaThresholdEvent(PartnerApiKey apiKey, int usedCalls, int warningThreshold) {
         try {
             eventPublisher.publishEvent(ApiKeyQuotaThresholdEvent.builder()
                     .apiKeyId(apiKey.getId())

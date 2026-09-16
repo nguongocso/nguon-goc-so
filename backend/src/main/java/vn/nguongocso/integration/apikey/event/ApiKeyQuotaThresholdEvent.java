@@ -27,6 +27,9 @@ public class ApiKeyQuotaThresholdEvent {
     /** Hạn mức lượt gọi mỗi giờ của khóa. */
     private int rateLimitPerHour;
 
-    /** Số lượt đã gọi trong giờ hiện tại (vừa chạm ngưỡng). */
+    /** Số lượt đã gọi trong ngày hôm nay (đã chạm ngưỡng cảnh báo). */
     private int usedCalls;
+
+    /** Ngưỡng lượt gọi trong ngày kích hoạt cảnh báo của khóa. */
+    private int warningThreshold;
 }

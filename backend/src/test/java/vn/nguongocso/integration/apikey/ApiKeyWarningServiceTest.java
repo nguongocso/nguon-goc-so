@@ -4,13 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -23,10 +26,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
+import vn.nguongocso.integration.apikey.entity.PartnerApiKeyDailyUsage;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 import vn.nguongocso.integration.apikey.event.ApiKeyQuotaThresholdEvent;
 import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
+import vn.nguongocso.integration.apikey.service.ApiKeyQuotaPolicy;
 import vn.nguongocso.integration.apikey.service.ApiKeyWarningService;
+import vn.nguongocso.integration.apikey.service.PartnerApiKeyUsageService;
 import vn.nguongocso.notification.repository.NotificationRepository;
 import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.organization.entity.Organization;
@@ -46,6 +52,12 @@ class ApiKeyWarningServiceTest {
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private PartnerApiKeyUsageService partnerApiKeyUsageService;
+
+    @Mock
+    private ApiKeyQuotaPolicy apiKeyQuotaPolicy;
+
     @InjectMocks
     private ApiKeyWarningService apiKeyWarningService;
 
@@ -54,7 +66,6 @@ class ApiKeyWarningServiceTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(apiKeyWarningService, "expiryWarningDays", 7);
-        ReflectionTestUtils.setField(apiKeyWarningService, "quotaWarningRatio", 0.8);
         organization = Organization.builder()
                 .organizationId(UUID.randomUUID())
                 .name("HTX Test")
@@ -148,25 +159,117 @@ class ApiKeyWarningServiceTest {
     }
 
     @Test
-    @DisplayName("TC-02: Chạm ngưỡng hạn mức gửi cảnh báo 1 lần mỗi ngày")
-    void handleQuotaThreshold_notifiesOncePerHour() {
+    @DisplayName("TC-02: Chạm ngưỡng hạn mức gửi cảnh báo 1 lần trong ngày (claim ở DB)")
+    void handleQuotaThreshold_notifiesOncePerDay() {
         UUID keyId = UUID.randomUUID();
-        ApiKeyQuotaThresholdEvent event = ApiKeyQuotaThresholdEvent.builder()
+        UUID usageId = UUID.randomUUID();
+        PartnerApiKeyDailyUsage usage = PartnerApiKeyDailyUsage.builder()
+                .id(usageId)
                 .apiKeyId(keyId)
-                .organizationId(organization.getOrganizationId())
-                .partnerName("Doi tac TC-02")
-                .rateLimitPerHour(10)
-                .usedCalls(8)
+                .usageDate(LocalDate.now())
+                .callCount(8)
                 .build();
-        when(notificationRepository.existsByEntityIdAndTitleAndCreatedAtAfter(
-                eq(keyId), eq("Khóa truy cập sắp chạm hạn mức"), any(LocalDateTime.class)))
-                .thenReturn(false)
-                .thenReturn(true);
+        ApiKeyQuotaThresholdEvent event = buildQuotaEvent(keyId, 8);
+
+        when(partnerApiKeyUsageService.findTodayUsage(keyId)).thenReturn(Optional.of(usage));
+        when(partnerApiKeyUsageService.claimQuotaWarning(usageId)).thenReturn(true, false);
+        when(apiKeyQuotaPolicy.warningThresholdPercent()).thenReturn(80);
 
         apiKeyWarningService.handleQuotaThreshold(event);
         apiKeyWarningService.handleQuotaThreshold(event);
 
         verify(notificationService, times(1)).sendHandoverNotification(
                 eq("Khóa truy cập sắp chạm hạn mức"), anyString(), eq(keyId), eq(organization.getOrganizationId()));
+    }
+
+    @Test
+    @DisplayName("Gửi cảnh báo hạn mức thất bại thì nhả cờ để lần đối soát sau gửi lại")
+    void handleQuotaThreshold_releasesClaimOnFailure() {
+        UUID keyId = UUID.randomUUID();
+        UUID usageId = UUID.randomUUID();
+        PartnerApiKeyDailyUsage usage = PartnerApiKeyDailyUsage.builder()
+                .id(usageId)
+                .apiKeyId(keyId)
+                .usageDate(LocalDate.now())
+                .callCount(8)
+                .build();
+        ApiKeyQuotaThresholdEvent event = buildQuotaEvent(keyId, 8);
+
+        when(partnerApiKeyUsageService.findTodayUsage(keyId)).thenReturn(Optional.of(usage));
+        when(partnerApiKeyUsageService.claimQuotaWarning(usageId)).thenReturn(true);
+        when(apiKeyQuotaPolicy.warningThresholdPercent()).thenReturn(80);
+        doThrow(new RuntimeException("lỗi gửi thông báo"))
+                .when(notificationService)
+                .sendHandoverNotification(anyString(), anyString(), any(UUID.class), any(UUID.class));
+
+        apiKeyWarningService.handleQuotaThreshold(event);
+
+        verify(partnerApiKeyUsageService).releaseQuotaWarning(usageId);
+    }
+
+    @Test
+    @DisplayName("TC-05: Job đối soát gửi bù cảnh báo cho khóa đã vượt ngưỡng nhưng chưa cảnh báo")
+    void reconcileQuotaWarnings_sendsCatchUpWarning() {
+        PartnerApiKey key = buildKey("Doi tac TC-05", LocalDateTime.now().plusDays(30), PartnerApiKeyStatus.ACTIVE);
+        PartnerApiKeyDailyUsage usage = PartnerApiKeyDailyUsage.builder()
+                .id(UUID.randomUUID())
+                .apiKeyId(key.getId())
+                .usageDate(LocalDate.now())
+                .callCount(85)
+                .build();
+
+        when(partnerApiKeyUsageService.findTodayUnwarnedUsages()).thenReturn(List.of(usage));
+        when(partnerApiKeyRepository.findAllById(List.of(key.getId()))).thenReturn(List.of(key));
+        when(apiKeyQuotaPolicy.isReached(85, key.getRateLimitPerHour())).thenReturn(true);
+        when(partnerApiKeyUsageService.claimQuotaWarning(usage.getId())).thenReturn(true);
+        when(apiKeyQuotaPolicy.warningThresholdPercent()).thenReturn(80);
+
+        apiKeyWarningService.reconcileQuotaWarnings();
+
+        verify(notificationService, times(1)).sendHandoverNotification(
+                eq("Khóa truy cập sắp chạm hạn mức"), anyString(), eq(key.getId()),
+                eq(organization.getOrganizationId()));
+    }
+
+    @Test
+    @DisplayName("TC-03: Job đối soát bỏ qua khóa đã thu hồi và khóa chưa chạm ngưỡng")
+    void reconcileQuotaWarnings_skipsRevokedAndBelowThreshold() {
+        PartnerApiKey revoked = buildKey("Doi tac TC-03", LocalDateTime.now().plusDays(30), PartnerApiKeyStatus.REVOKED);
+        PartnerApiKey healthy = buildKey("Doi tac binh thuong", LocalDateTime.now().plusDays(30),
+                PartnerApiKeyStatus.ACTIVE);
+        PartnerApiKeyDailyUsage revokedUsage = PartnerApiKeyDailyUsage.builder()
+                .id(UUID.randomUUID())
+                .apiKeyId(revoked.getId())
+                .usageDate(LocalDate.now())
+                .callCount(95)
+                .build();
+        PartnerApiKeyDailyUsage healthyUsage = PartnerApiKeyDailyUsage.builder()
+                .id(UUID.randomUUID())
+                .apiKeyId(healthy.getId())
+                .usageDate(LocalDate.now())
+                .callCount(10)
+                .build();
+
+        when(partnerApiKeyUsageService.findTodayUnwarnedUsages()).thenReturn(List.of(revokedUsage, healthyUsage));
+        when(partnerApiKeyRepository.findAllById(List.of(revoked.getId(), healthy.getId())))
+                .thenReturn(List.of(revoked, healthy));
+        when(apiKeyQuotaPolicy.isReached(10, healthy.getRateLimitPerHour())).thenReturn(false);
+
+        apiKeyWarningService.reconcileQuotaWarnings();
+
+        verify(notificationService, never()).sendHandoverNotification(
+                anyString(), anyString(), any(UUID.class), any(UUID.class));
+        verify(partnerApiKeyUsageService, never()).claimQuotaWarning(any(UUID.class));
+    }
+
+    private ApiKeyQuotaThresholdEvent buildQuotaEvent(UUID keyId, int usedCalls) {
+        return ApiKeyQuotaThresholdEvent.builder()
+                .apiKeyId(keyId)
+                .organizationId(organization.getOrganizationId())
+                .partnerName("Doi tac TC-02")
+                .rateLimitPerHour(10)
+                .usedCalls(usedCalls)
+                .warningThreshold(8)
+                .build();
     }
 }

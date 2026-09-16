@@ -35,7 +35,8 @@ import vn.nguongocso.farm.repository.ProductFeedbackRepository;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
-import vn.nguongocso.integration.apikey.service.PartnerApiKeyService;
+import vn.nguongocso.integration.apikey.service.ApiKeyQuotaPolicy;
+import vn.nguongocso.integration.apikey.service.PartnerApiKeyUsageService;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
 import vn.nguongocso.trace.entity.CodeRange;
@@ -69,14 +70,12 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
     private final OrganizationRepository organizationRepository;
     private final CertificationRepository certificationRepository;
     private final PartnerApiKeyRepository partnerApiKeyRepository;
-    private final PartnerApiKeyService partnerApiKeyService;
+    private final PartnerApiKeyUsageService partnerApiKeyUsageService;
+    private final ApiKeyQuotaPolicy apiKeyQuotaPolicy;
     private final ObjectMapper objectMapper;
 
     @Value("${app.apikey.expiry-warning-days:7}")
     private int apiKeyExpiryWarningDays;
-
-    @Value("${app.apikey.quota-warning-ratio:0.8}")
-    private double apiKeyQuotaWarningRatio;
 
     @Override
     @Transactional(readOnly = true)
@@ -539,6 +538,11 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime warningLimit = now.plusDays(apiKeyExpiryWarningDays);
 
+        // Số lượt gọi trong ngày hôm nay lấy từ DB bằng một truy vấn duy nhất
+        // (NCL-12-CN-005) thay cho bộ đếm trong bộ nhớ tạm trước đây.
+        Map<UUID, Integer> usedCallsToday = partnerApiKeyUsageService.getDailyCallCounts(
+                keys.stream().map(PartnerApiKey::getId).toList());
+
         for (PartnerApiKey key : keys) {
             if (key.getStatus() != PartnerApiKeyStatus.ACTIVE || key.getExpiresAt() == null) {
                 continue;
@@ -589,9 +593,8 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
             }
 
             if (key.getRateLimitPerHour() != null && key.getRateLimitPerHour() > 0) {
-                int used = partnerApiKeyService.getDailyCallCount(key.getId());
-                double percent = used * 100.0 / key.getRateLimitPerHour();
-                if (percent >= apiKeyQuotaWarningRatio * 100) {
+                int used = usedCallsToday.getOrDefault(key.getId(), 0);
+                if (apiKeyQuotaPolicy.isReached(used, key.getRateLimitPerHour())) {
                     result.add(AggregateAlertItemResponse.builder()
                             .id(key.getId())
                             .type(AggregateAlertType.API_KEY_QUOTA_WARNING)
@@ -599,7 +602,9 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                             .severity(AlertSeverity.MEDIUM)
                             .title("Khóa truy cập sắp chạm hạn mức")
                             .message("Khóa của đối tác \"" + key.getPartnerName() + "\" đã dùng "
-                                    + used + "/" + key.getRateLimitPerHour() + " lượt gọi trong ngày hôm nay.")
+                                    + used + "/" + key.getRateLimitPerHour()
+                                    + " lượt gọi trong ngày hôm nay (ngưỡng cảnh báo "
+                                    + apiKeyQuotaPolicy.warningThresholdPercent() + "%).")
                             .relatedEntityType("PARTNER_API_KEY")
                             .relatedEntityId(key.getId())
                             .relatedEntityName(key.getKeyPrefix())
