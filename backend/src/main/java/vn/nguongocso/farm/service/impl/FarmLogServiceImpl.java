@@ -401,10 +401,19 @@ public class FarmLogServiceImpl implements FarmLogService {
 			CustomUserDetails currentUser,
 			ProductionLot productionLot) {
 
-		if (!productionLot.getFarmArea()
-				.getOrganization()
-				.getOrganizationId()
-				.equals(currentUser.getOrganizationId())) {
+		// QTN-01: ưu tiên tổ chức sở hữu trực tiếp của lô; chỉ dùng tổ chức
+		// của vùng trồng khi lô chưa gắn tổ chức (tương thích dữ liệu cũ).
+		// Lô không có cả hai đều bị từ chối thay vì NullPointerException.
+		UUID organizationId = null;
+		if (productionLot.getOrganization() != null) {
+			organizationId = productionLot.getOrganization().getOrganizationId();
+		} else if (productionLot.getFarmArea() != null
+				&& productionLot.getFarmArea().getOrganization() != null) {
+			organizationId = productionLot.getFarmArea().getOrganization().getOrganizationId();
+		}
+
+		if (organizationId == null
+				|| !organizationId.equals(currentUser.getOrganizationId())) {
 
 			throw new BusinessException(ORGANIZATION_ACCESS_MESSAGE);
 		}

@@ -222,4 +222,30 @@ class FarmLogServiceImplTest {
         Mockito.verify(mockReminderService, Mockito.never()).completeRemindersForLotAndActivity(
                 any(), any());
     }
+
+    @Test
+    @DisplayName("NCL-10-CN-012: lô có tổ chức trực tiếp nhưng không có vùng trồng vẫn ghi được (QTN-01)")
+    void create_shouldSucceed_whenLotHasOrganizationButNoFarmArea() {
+        Organization organization = new Organization();
+        organization.setOrganizationId(organizationId);
+
+        ProductionLot lotKhongVungTrong = new ProductionLot();
+        lotKhongVungTrong.setId(UUID.randomUUID());
+        lotKhongVungTrong.setName("Lo khong vung trong");
+        lotKhongVungTrong.setStatus(ProductionLotStatus.APPROVED);
+        lotKhongVungTrong.setOrganization(organization);
+        lotKhongVungTrong.setFarmArea(null);
+        lenient().when(productionLotRepository.findById(lotKhongVungTrong.getId()))
+                .thenReturn(Optional.of(lotKhongVungTrong));
+
+        CreateFarmLogRequest request = new CreateFarmLogRequest();
+        request.setProductionLotId(lotKhongVungTrong.getId());
+        request.setActivityType(FarmActivityType.WATERING);
+        request.setExecutedDate(LocalDate.of(2026, 8, 23));
+
+        FarmLogResponse response = farmLogService.create(request);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getProductionLotId()).isEqualTo(lotKhongVungTrong.getId());
+    }
 }
