@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { ListCard } from "@/components/common/ListCard";
 import { DataTableShell } from "@/components/common/DataTableShell";
 import { TableCell, TableHead, TableRow } from "@/components/ui/table";
+import { useAuth } from "@/hooks/useAuth";
+import { ProfileTemplateSelector } from "@/components/export/ProfileTemplateSelector";
 import {
   checkBatchDossierEligibility,
   exportBatchDossier,
@@ -48,6 +50,19 @@ export default function BatchDossierExportPage() {
 
   const [title, setTitle] = useState("BỘ HỒ SƠ TRUY XUẤT NGUỒN GỐC NÔNG SẢN");
   const [note, setNote] = useState("");
+
+  // NCL-07-CN-007: chọn mẫu hồ sơ truy xuất theo yêu cầu đối tác khi xuất nhiều lô
+  const { user } = useAuth();
+  const organizationId = user?.organizationId || "";
+
+  /**
+   * ID mẫu hồ sơ sẽ truyền vào API khi xuất:
+   * - `undefined` → dùng mẫu mặc định hệ thống
+   * - UUID string → dùng mẫu tùy chỉnh của tổ chức
+   * State này được cập nhật qua callback onTemplateChange của ProfileTemplateSelector.
+   */
+  const [activeTemplateId, setActiveTemplateId] = useState<string | undefined>(undefined);
+
 
   const [history, setHistory] = useState<BatchDossierHistoryDto[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -112,6 +127,7 @@ export default function BatchDossierExportPage() {
         shipmentIds: eligibleIds,
         title: title.trim() || undefined,
         note: note.trim() || undefined,
+        templateId: activeTemplateId,
       });
 
       toast.dismiss(toastId);
@@ -251,6 +267,18 @@ export default function BatchDossierExportPage() {
                   placeholder="Ví dụ: BỘ HỒ SƠ TRUY XUẤT CHUYẾN HÀNG SIÊU THỊ CO.OPMART"
                 />
               </div>
+
+              {/* NCL-07-CN-007: chọn mẫu hồ sơ áp dụng — dùng component dùng chung với ExportDossierDialog */}
+              <ProfileTemplateSelector
+                organizationId={organizationId}
+                onTemplateChange={(id) => {
+                  setActiveTemplateId(id === "default" ? undefined : id);
+                }}
+                disabled={isExporting}
+                showInfoText
+                triggerClassName="w-full md:w-1/2"
+                triggerId="batch-template"
+              />
 
               <div className="space-y-2">
                 <Label htmlFor="batch-note">Ghi chú bổ sung (Hiển thị trên trang bìa)</Label>

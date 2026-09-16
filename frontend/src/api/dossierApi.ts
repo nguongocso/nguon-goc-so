@@ -19,9 +19,14 @@ export const checkDossierEligibility = async (shipmentId: string): Promise<Dossi
 /**
  * Xuất và tải hồ sơ PDF
  */
-export const exportDossier = async (shipmentId: string): Promise<Blob> => {
+export const exportDossier = async (shipmentId: string, templateId?: string): Promise<Blob> => {
   try {
+    const params: Record<string, string> = {};
+    if (templateId && templateId !== 'default') {
+      params.templateId = templateId;
+    }
     const response = await apiClient.get(`/shipments/${shipmentId}/dossier/export`, {
+      params,
       responseType: 'blob',
       timeout: 30000,
     });
@@ -166,6 +171,8 @@ export interface BatchDossierExportRequest {
   shipmentIds: string[];
   title?: string;
   note?: string;
+  /** Mẫu hồ sơ áp dụng (NCL-07-CN-007); bỏ trống → dùng mẫu mặc định của tổ chức hoặc bộ trường chuẩn */
+  templateId?: string;
 }
 
 export interface BatchDossierHistoryDto {
@@ -181,6 +188,8 @@ export interface BatchDossierHistoryDto {
   fileSize: number;
   status: string;
   ipAddress: string;
+  /** Mẫu hồ sơ đã áp dụng cho lần xuất này (nếu có) */
+  templateId?: string | null;
 }
 
 /**

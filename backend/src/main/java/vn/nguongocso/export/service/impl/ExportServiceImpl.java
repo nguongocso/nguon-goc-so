@@ -9,6 +9,8 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.nguongocso.auth.entity.User;
+import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
@@ -16,23 +18,34 @@ import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.exception.BusinessException;
+import vn.nguongocso.exception.ResourceNotFoundException;
+import vn.nguongocso.export.constant.MandatoryFields;
 import vn.nguongocso.export.dto.request.ExportOpenDataRequest;
 import vn.nguongocso.export.dto.response.Qtn11ErrorDetailDto;
+import vn.nguongocso.export.entity.ExportLog;
+import vn.nguongocso.export.entity.ProfileTemplate;
+import vn.nguongocso.export.entity.ProfileTemplateField;
+import vn.nguongocso.export.exception.TemplateNotOwnedException;
+import vn.nguongocso.export.repository.ExportLogRepository;
+import vn.nguongocso.export.repository.ProfileTemplateRepository;
 import vn.nguongocso.export.schema.OpenDataSchema;
 import vn.nguongocso.export.service.ExportService;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.repository.FarmLogRepository;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.repository.ShipmentRepository;
+import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
  * Triển khai dịch vụ xuất dữ liệu công khai.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ExportServiceImpl implements ExportService {
@@ -41,6 +54,10 @@ public class ExportServiceImpl implements ExportService {
     private final ChainEventRepository chainEventRepository;
     private final FarmLogRepository farmLogRepository;
     private final ProductionLotCertificationRepository productionLotCertificationRepository;
+    private final ProfileTemplateRepository profileTemplateRepository;
+    private final ExportLogRepository exportLogRepository;
+    private final UserRepository userRepository;
+    private final vn.nguongocso.export.service.ProfileTemplateService profileTemplateService;
 
     private static final List<ChainEventType> REQUIRED_EVENT_TYPES = List.of(
             ChainEventType.HARVEST,
@@ -388,5 +405,318 @@ public class ExportServiceImpl implements ExportService {
             case PROCUREMENT -> "Thu mua (PROCUREMENT)";
             default -> type.name();
         };
+    }
+
+    /**
+     * Xuất hồ sơ truy xuất áp dụng mẫu cấu hình theo yêu cầu đối tác (NCL-07-CN-007).
+     */
+    @Override
+    @Transactional
+    public Resource exportWithTemplate(UUID shipmentId, UUID templateId, String format, CustomUserDetails currentUser) {
+        Shipment shipment = shipmentRepository.findById(shipmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin lô hàng."));
+
+        UUID userOrgId = currentUser.getOrganizationId();
+        if ("VT-02".equals(currentUser.getRoleCode())) {
+            if (shipment.getOrganization() == null || !shipment.getOrganization().getOrganizationId().equals(userOrgId)) {
+                throw new TemplateNotOwnedException("Từ chối thao tác: Lô hàng không thuộc tổ chức của bạn.");
+            }
+        }
+
+        // 1. Xác định mẫu hồ sơ áp dụng
+        ProfileTemplate template = null;
+        if (templateId != null) {
+            template = profileTemplateRepository.findById(templateId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin mẫu hồ sơ."));
+            if (!template.getOrganization().getOrganizationId().equals(userOrgId)) {
+                throw new TemplateNotOwnedException("Mẫu hồ sơ không thuộc tổ chức của bạn.");
+            }
+        } else {
+            // TC-03: không chọn mẫu -> dùng mẫu mặc định của tổ chức
+            template = profileTemplateRepository.findByOrganization_OrganizationIdAndIsDefaultTrue(userOrgId).orElse(null);
+        }
+
+        // 2. Thu thập các trường được chọn
+        Set<String> selectedFieldKeys;
+        if (template != null && template.getFields() != null && !template.getFields().isEmpty()) {
+            selectedFieldKeys = template.getFields().stream()
+                    .map(ProfileTemplateField::getFieldKey)
+                    .collect(Collectors.toSet());
+        } else {
+            selectedFieldKeys = new HashSet<>(MandatoryFields.FIELD_DISPLAY_NAMES.keySet());
+        }
+
+        // 3. Build dữ liệu xem trước hồ sơ đã lọc theo mẫu (đồng bộ 100% với preview)
+        Map<String, Object> previewData = profileTemplateService.buildPreview(shipmentId, templateId, currentUser);
+
+        // 4. Ghi nhận nhật ký xuất hồ sơ ExportLog (TC-03)
+        User user = currentUser.getUserId() != null
+                ? userRepository.findById(currentUser.getUserId()).orElse(null)
+                : null;
+
+        ExportLog exportLog = ExportLog.builder()
+                .shipment(shipment)
+                .template(template)
+                .exportedBy(user)
+                .exportedAt(LocalDateTime.now())
+                .build();
+        exportLogRepository.save(exportLog);
+
+        log.info("Đã ghi nhận nhật ký xuất hồ sơ (ExportLog ID: {}) cho shipment ID: {}, template: {}",
+                exportLog.getId(), shipment.getId(), template != null ? template.getName() : "Mặc định hệ thống");
+
+        // 5. Sinh file trả về theo định dạng yêu cầu (khớp 100% với bản xem trước)
+        if ("csv".equalsIgnoreCase(format)) {
+            String csvContent = convertPreviewToCsv(previewData);
+            return new ByteArrayResource(csvContent.getBytes(StandardCharsets.UTF_8));
+        }
+
+        // Mặc định JSON
+        try {
+            String jsonContent = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(previewData);
+            return new ByteArrayResource(jsonContent.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            log.error("Lỗi khi chuyển đổi dữ liệu hồ sơ sang JSON: {}", e.getMessage(), e);
+            throw new BusinessException("Lỗi khi tạo file xuất JSON: " + e.getMessage());
+        }
+    }
+
+    private String convertPreviewToCsv(Map<String, Object> preview) {
+        StringBuilder sb = new StringBuilder("\uFEFF");
+
+        sb.append("# HỒ SƠ TRUY XUẤT NGUỒN GỐC SẢN PHẨM\n");
+        if (preview.get("appliedTemplate") instanceof Map<?, ?> tpl) {
+            sb.append("# Mẫu hồ sơ: ").append(escapeCsv(String.valueOf(tpl.get("templateName")))).append("\n");
+        }
+        sb.append("# Thời gian xuất: ").append(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))).append("\n\n");
+
+        sb.append("Nhóm thông tin,Trường dữ liệu,Giá trị\n");
+
+        // Đơn vị sản xuất
+        if (preview.get("organization") instanceof Map<?, ?> org) {
+            appendCsvRowIfPresent(sb, "Đơn vị sản xuất (HTX)", "Tên tổ chức", org.get("name"));
+            appendCsvRowIfPresent(sb, "Đơn vị sản xuất (HTX)", "Mã định danh", org.get("code"));
+            appendCsvRowIfPresent(sb, "Đơn vị sản xuất (HTX)", "Loại hình tổ chức", org.get("type"));
+            appendCsvRowIfPresent(sb, "Đơn vị sản xuất (HTX)", "Trạng thái tổ chức", org.get("status"));
+            appendCsvRowIfPresent(sb, "Đơn vị sản xuất (HTX)", "Địa chỉ", org.get("address"));
+            appendCsvRowIfPresent(sb, "Đơn vị sản xuất (HTX)", "Tỉnh / Thành phố", org.get("province"));
+            appendCsvRowIfPresent(sb, "Đơn vị sản xuất (HTX)", "Số điện thoại", org.get("phone"));
+            appendCsvRowIfPresent(sb, "Đơn vị sản xuất (HTX)", "Email", org.get("email"));
+        }
+
+        // Vùng trồng
+        if (preview.get("farmArea") instanceof Map<?, ?> farmArea) {
+            appendCsvRowIfPresent(sb, "Vùng trồng", "Tên vùng trồng", farmArea.get("name"));
+            appendCsvRowIfPresent(sb, "Vùng trồng", "Tọa độ địa lý", farmArea.get("location"));
+            appendCsvRowIfPresent(sb, "Vùng trồng", "Diện tích canh tác", farmArea.get("area"));
+            appendCsvRowIfPresent(sb, "Vùng trồng", "Đơn vị diện tích", farmArea.get("areaUnit"));
+            appendCsvRowIfPresent(sb, "Vùng trồng", "Loại cây trồng", farmArea.get("cropType"));
+            appendCsvRowIfPresent(sb, "Vùng trồng", "Trạng thái vùng trồng", farmArea.get("isActive"));
+        }
+
+        // Lô sản xuất
+        if (preview.get("productionLot") instanceof Map<?, ?> lot) {
+            appendCsvRowIfPresent(sb, "Lô sản xuất", "Tên lô sản xuất", lot.get("name"));
+            appendCsvRowIfPresent(sb, "Lô sản xuất", "Danh mục sản phẩm", lot.get("productCategory"));
+            appendCsvRowIfPresent(sb, "Lô sản xuất", "Ngày xuống giống", lot.get("plantingDate"));
+            appendCsvRowIfPresent(sb, "Lô sản xuất", "Ngày thu hoạch", lot.get("harvestDate"));
+            appendCsvRowIfPresent(sb, "Lô sản xuất", "Sản lượng dự kiến", lot.get("expectedQuantity"));
+            appendCsvRowIfPresent(sb, "Lô sản xuất", "Đơn vị tính sản lượng", lot.get("expectedQuantityUnit"));
+            appendCsvRowIfPresent(sb, "Lô sản xuất", "Sản lượng thực tế", lot.get("actualQuantity"));
+            appendCsvRowIfPresent(sb, "Lô sản xuất", "Trạng thái", lot.get("status"));
+        }
+
+        // Lô hàng vận chuyển
+        if (preview.get("shipment") instanceof Map<?, ?> shipment) {
+            appendCsvRowIfPresent(sb, "Lô hàng vận chuyển", "Tên lô hàng", shipment.get("name"));
+            appendCsvRowIfPresent(sb, "Lô hàng vận chuyển", "Số lượng", shipment.get("totalQuantity"));
+            appendCsvRowIfPresent(sb, "Lô hàng vận chuyển", "Quy cách đóng gói", shipment.get("packagingInfo"));
+            appendCsvRowIfPresent(sb, "Lô hàng vận chuyển", "Trạng thái", shipment.get("status"));
+            appendCsvRowIfPresent(sb, "Lô hàng vận chuyển", "Thời điểm tạo lô hàng", shipment.get("createdAt"));
+        }
+
+        // Chứng nhận tiêu chuẩn
+        if (preview.get("certifications") instanceof List<?> certs && !certs.isEmpty()) {
+            sb.append("\n# CHỨNG NHẬN TIÊU CHUẨN\n");
+            sb.append("STT,Tên chứng nhận,Tiêu chuẩn,Số hiệu,Ngày cấp,Hạn hiệu lực,Tổ chức chứng nhận\n");
+            int idx = 1;
+            for (Object item : certs) {
+                if (item instanceof Map<?, ?> cItem) {
+                    sb.append(idx++).append(",");
+                    sb.append(escapeCsv(getMapValue(cItem, "name"))).append(",");
+                    sb.append(escapeCsv(getMapValue(cItem, "standardName"))).append(",");
+                    sb.append(escapeCsv(getMapValue(cItem, "certificationCode"))).append(",");
+                    sb.append(escapeCsv(getMapValue(cItem, "issueDate"))).append(",");
+                    sb.append(escapeCsv(getMapValue(cItem, "expiryDate"))).append(",");
+                    sb.append(escapeCsv(getMapValue(cItem, "certifier"))).append("\n");
+                }
+            }
+        }
+
+        // Nhật ký canh tác
+        if (preview.get("farmLogs") instanceof List<?> logs && !logs.isEmpty()) {
+            sb.append("\n# LỊCH TRÌNH CANH TÁC & CHỨNG TỪ\n");
+            sb.append("STT,Ngày thực hiện,Hoạt động,Vật tư / Số lượng,Ghi chú,Chứng từ đính kèm\n");
+            int idx = 1;
+            for (Object item : logs) {
+                if (item instanceof Map<?, ?> logItem) {
+                    sb.append(idx++).append(",");
+                    sb.append(escapeCsv(getMapValue(logItem, "executedDate"))).append(",");
+                    sb.append(escapeCsv(getMapValue(logItem, "activityType"))).append(",");
+                    String mat = getMapValue(logItem, "material");
+                    Object qty = logItem.get("quantity");
+                    String unit = getMapValue(logItem, "unit");
+                    String matInfo = mat + (qty != null ? " (" + qty + (!unit.isBlank() ? " " + unit : "") + ")" : "");
+                    sb.append(escapeCsv(matInfo.trim())).append(",");
+                    sb.append(escapeCsv(getMapValue(logItem, "notes"))).append(",");
+
+                    String attStr = "";
+                    if (logItem.get("attachments") instanceof List<?> attList) {
+                        attStr = attList.stream().map(Object::toString).collect(Collectors.joining("; "));
+                    }
+                    sb.append(escapeCsv(attStr)).append("\n");
+                }
+            }
+        }
+
+        // Kiểm nghiệm
+        if (preview.get("inspections") instanceof List<?> insps && !insps.isEmpty()) {
+            sb.append("\n# LỊCH SỬ KIỂM NGHIỆM\n");
+            sb.append("STT,Ngày gửi mẫu,Đơn vị kiểm nghiệm,Chỉ tiêu / Tiêu chuẩn,Kết quả,Ngày cấp kết quả,Hạn hiệu lực\n");
+            int idx = 1;
+            for (Object item : insps) {
+                if (item instanceof Map<?, ?> inspItem) {
+                    sb.append(idx++).append(",");
+                    sb.append(escapeCsv(getMapValue(inspItem, "sampleSentDate"))).append(",");
+                    sb.append(escapeCsv(getMapValue(inspItem, "inspectionUnit"))).append(",");
+                    sb.append(escapeCsv(getMapValue(inspItem, "criterionName"))).append(",");
+                    String res = getMapValue(inspItem, "passed");
+                    if (res.isBlank()) res = getMapValue(inspItem, "status");
+                    sb.append(escapeCsv(res)).append(",");
+                    sb.append(escapeCsv(getMapValue(inspItem, "resultDate"))).append(",");
+                    sb.append(escapeCsv(getMapValue(inspItem, "expiryDate"))).append("\n");
+                }
+            }
+        }
+
+        // Dòng sự kiện
+        if (preview.get("timelineEvents") instanceof List<?> events && !events.isEmpty()) {
+            sb.append("\n# DÒNG SỰ KIỆN CHUỖI CUNG ỨNG\n");
+            sb.append("STT,Thời điểm ghi nhận,Loại sự kiện,Tọa độ địa điểm,Chi tiết sự kiện,Người ghi nhận\n");
+            int idx = 1;
+            for (Object item : events) {
+                if (item instanceof Map<?, ?> ev) {
+                    sb.append(idx++).append(",");
+                    sb.append(escapeCsv(getMapValue(ev, "recordedAt"))).append(",");
+                    sb.append(escapeCsv(getMapValue(ev, "eventType"))).append(",");
+                    sb.append(escapeCsv(getMapValue(ev, "location"))).append(",");
+                    sb.append(escapeCsv(getMapValue(ev, "eventData"))).append(",");
+                    sb.append(escapeCsv(getMapValue(ev, "recordedBy"))).append("\n");
+                }
+            }
+        }
+
+        return sb.toString();
+    }
+
+    private String getMapValue(Map<?, ?> map, String key) {
+        Object val = map.get(key);
+        return val != null ? val.toString() : "";
+    }
+
+    private void appendCsvRowIfPresent(StringBuilder sb, String group, String label, Object val) {
+        if (val != null) {
+            sb.append(escapeCsv(group)).append(",")
+              .append(escapeCsv(label)).append(",")
+              .append(escapeCsv(val.toString())).append("\n");
+        }
+    }
+
+    private OpenDataSchema buildFilteredSchema(List<Shipment> shipments, CustomUserDetails currentUser, Set<String> selectedFieldKeys) {
+        List<UUID> shipmentIds = shipments.stream().map(Shipment::getId).collect(Collectors.toList());
+
+        boolean includeTimeline = selectedFieldKeys.stream().anyMatch(k -> k.startsWith("chainEvent."));
+        Map<UUID, List<ChainEvent>> eventsByShipment = new HashMap<>();
+        if (includeTimeline) {
+            List<ChainEvent> allEvents = chainEventRepository.findByShipmentIdInOrderByRecordedAtAsc(shipmentIds);
+            eventsByShipment = allEvents.stream().collect(Collectors.groupingBy(e -> e.getShipment().getId()));
+        }
+
+        boolean includeCerts = selectedFieldKeys.stream().anyMatch(k -> k.startsWith("certification."));
+        Map<UUID, List<ProductionLotCertification>> certsByLot = new HashMap<>();
+        if (includeCerts) {
+            List<UUID> lotIds = shipments.stream()
+                    .map(Shipment::getProductionLot)
+                    .filter(Objects::nonNull)
+                    .map(ProductionLot::getId)
+                    .distinct()
+                    .collect(Collectors.toList());
+            List<ProductionLotCertification> allCerts = productionLotCertificationRepository.findByProductionLotIdIn(lotIds);
+            certsByLot = allCerts.stream().collect(Collectors.groupingBy(c -> c.getProductionLot().getId()));
+        }
+
+        Map<UUID, List<ChainEvent>> finalEventsMap = eventsByShipment;
+        Map<UUID, List<ProductionLotCertification>> finalCertsMap = certsByLot;
+
+        List<OpenDataSchema.ShipmentData> shipmentDataList = shipments.stream().map(s -> {
+            ProductionLot lot = s.getProductionLot();
+            List<ChainEvent> events = finalEventsMap.getOrDefault(s.getId(), Collections.emptyList());
+            List<ProductionLotCertification> certs = lot != null
+                    ? finalCertsMap.getOrDefault(lot.getId(), Collections.emptyList())
+                    : Collections.emptyList();
+
+            List<OpenDataSchema.TimelineEvent> timeline = includeTimeline
+                    ? events.stream().map(e -> OpenDataSchema.TimelineEvent.builder()
+                            .eventType(selectedFieldKeys.contains("chainEvent.eventType") ? e.getEventType().name() : null)
+                            .recordedAt(selectedFieldKeys.contains("chainEvent.recordedAt") ? e.getRecordedAt() : null)
+                            .recordedBy(selectedFieldKeys.contains("chainEvent.recordedBy") && e.getRecordedBy() != null ? e.getRecordedBy().getFullName() : null)
+                            .location(selectedFieldKeys.contains("chainEvent.location") && e.getLocation() != null ? OpenDataSchema.Location.builder()
+                                    .latitude(e.getLocation().getY())
+                                    .longitude(e.getLocation().getX())
+                                    .build() : null)
+                            .data(selectedFieldKeys.contains("chainEvent.eventData") ? parseEventData(e.getEventData()) : null)
+                            .build()).collect(Collectors.toList())
+                    : Collections.emptyList();
+
+            List<OpenDataSchema.CertificationInfo> certInfos = includeCerts
+                    ? certs.stream().map(plc -> {
+                        var cert = plc.getCertification();
+                        return OpenDataSchema.CertificationInfo.builder()
+                                .standardName(selectedFieldKeys.contains("certification.standardName") ? cert.getName() : null)
+                                .certificationCode(selectedFieldKeys.contains("certification.certificationCode") ? cert.getCode() : null)
+                                .issueDate(selectedFieldKeys.contains("certification.issueDate") && cert.getIssueDate() != null ? cert.getIssueDate().atStartOfDay() : null)
+                                .expiryDate(selectedFieldKeys.contains("certification.expiryDate") && cert.getExpiryDate() != null ? cert.getExpiryDate().atStartOfDay() : null)
+                                .build();
+                    }).collect(Collectors.toList())
+                    : Collections.emptyList();
+
+            return OpenDataSchema.ShipmentData.builder()
+                    .id(s.getId())
+                    .name(selectedFieldKeys.contains("shipment.name") ? s.getName() : null)
+                    .productionLotName(selectedFieldKeys.contains("productionLot.name") && lot != null ? lot.getName() : null)
+                    .productCategory(selectedFieldKeys.contains("productionLot.productCategory") && lot != null && lot.getProductCategory() != null ? lot.getProductCategory().getName() : null)
+                    .totalQuantity(selectedFieldKeys.contains("shipment.totalQuantity") ? (double) s.getTotalQuantity() : null)
+                    .unit(lot != null ? lot.getExpectedQuantityUnit() : null)
+                    .status(selectedFieldKeys.contains("shipment.status") ? s.getStatus().name() : null)
+                    .timeline(timeline)
+                    .certifications(certInfos)
+                    .build();
+        }).collect(Collectors.toList());
+
+        OpenDataSchema.ExporterInfo exporterInfo = null;
+        if (currentUser != null && (selectedFieldKeys.contains("organization.name") || selectedFieldKeys.contains("organization.code"))) {
+            exporterInfo = OpenDataSchema.ExporterInfo.builder()
+                    .userId(currentUser.getUserId())
+                    .fullName(currentUser.getFullName())
+                    .organizationId(currentUser.getOrganizationId())
+                    .organizationName(selectedFieldKeys.contains("organization.name") ? currentUser.getOrganizationName() : null)
+                    .build();
+        }
+
+        return OpenDataSchema.builder()
+                .exportedAt(LocalDateTime.now())
+                .exporter(exporterInfo)
+                .shipments(shipmentDataList)
+                .build();
     }
 }
