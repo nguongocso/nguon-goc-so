@@ -200,26 +200,26 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
           <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-2 border-t">
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
-              onClick={() => setShowPreview(true)}
-              disabled={isExporting || !shipmentId}
-              className="w-full sm:w-auto gap-1.5 text-xs"
+              onClick={() => onOpenChange(false)}
+              disabled={isExporting}
+              className="w-full sm:w-auto text-xs"
             >
-              <Eye className="size-3.5" />
-              Xem trước hồ sơ
+              Đóng
             </Button>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                onClick={() => onOpenChange(false)}
-                disabled={isExporting}
-                className="w-full sm:w-auto text-xs"
+                onClick={() => setShowPreview(true)}
+                disabled={isExporting || !shipmentId}
+                className="w-full sm:w-auto gap-1.5 text-xs"
               >
-                Đóng
+                <Eye className="size-3.5" />
+                Xem trước hồ sơ
               </Button>
 
               <Button
