@@ -117,6 +117,9 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
     draftPoints.map((point) => `${point.latitude},${point.longitude}`)
   ).size;
   const hasValidArea = calculatedAreaHa > 0;
+  const canCompareArea =
+    distinctPointCount >= 3 && hasValidArea && !isSelfIntersecting;
+  const shouldShowDeviationWarning = isDeviationHigh && canCompareArea;
   const isGeometryInvalid =
     draftPoints.length >= 3 && (distinctPointCount < 3 || !hasValidArea);
   const isBoundaryInvalid = isSelfIntersecting || isGeometryInvalid;
@@ -353,7 +356,7 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
                 <span className="text-muted-foreground">Chênh lệch:</span>
                 <span
                   className={`font-bold ${
-                    isDeviationHigh
+                    shouldShowDeviationWarning
                       ? 'text-amber-600 dark:text-amber-400'
                       : 'text-slate-900 dark:text-foreground'
                   }`}
@@ -363,7 +366,7 @@ export const FarmAreaBoundaryEditor: React.FC<Props> = ({
               </div>
             </div>
 
-            {isDeviationHigh && (
+            {shouldShowDeviationWarning && (
               <div className="rounded-lg bg-amber-50 p-2.5 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 flex items-start gap-2">
                 <AlertTriangle className="size-4 shrink-0 mt-0.5 text-amber-600" />
                 <p className="leading-tight">

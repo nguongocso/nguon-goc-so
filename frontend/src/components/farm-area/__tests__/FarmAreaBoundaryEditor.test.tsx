@@ -42,6 +42,23 @@ vi.mock('../BoundaryPastePanel', () => ({
       </button>
       <button
         type="button"
+        onClick={() => onApplyPoints([{ latitude: 21, longitude: 105 }])}
+      >
+        Áp dụng một điểm
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          onApplyPoints([
+            { latitude: 21, longitude: 105 },
+            { latitude: 21.001, longitude: 105.001 },
+          ])
+        }
+      >
+        Áp dụng hai điểm
+      </button>
+      <button
+        type="button"
         onClick={() =>
           onApplyPoints([
             { latitude: 21, longitude: 105 },
@@ -137,6 +154,19 @@ describe('FarmAreaBoundaryEditor', () => {
     await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(true));
   });
 
+  it('không cảnh báo chênh lệch khi mới có một hoặc hai điểm', async () => {
+    apiMocks.getBoundary.mockResolvedValue(boundaryResponse);
+
+    render(<FarmAreaBoundaryEditor farmArea={farmArea} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Áp dụng một điểm' }));
+    expect(screen.queryByText(/Chênh lệch > 12.5%/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Áp dụng hai điểm' }));
+    expect(screen.queryByText(/Chênh lệch > 12.5%/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lưu ranh giới' })).toBeDisabled();
+  });
+
   it('cảnh báo và không cho lưu khi ranh giới tự cắt', async () => {
     apiMocks.getBoundary.mockResolvedValue(boundaryResponse);
 
@@ -145,6 +175,7 @@ describe('FarmAreaBoundaryEditor', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Áp dụng ranh giới tự cắt' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('các cạnh tự cắt nhau');
+    expect(screen.queryByText(/Chênh lệch > 12.5%/i)).not.toBeInTheDocument();
     expect(screen.getByText('Bản đồ thử nghiệm')).toHaveAttribute('data-invalid', 'true');
     expect(screen.getByRole('button', { name: 'Lưu ranh giới' })).toBeDisabled();
     expect(apiMocks.updateBoundary).not.toHaveBeenCalled();

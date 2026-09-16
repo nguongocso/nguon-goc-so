@@ -486,9 +486,10 @@ private LocalDateTime boundaryUpdatedAt;
 3. Mỗi dòng paste phải có đúng hai số hữu hạn phân cách bằng dấu phẩy; bỏ qua dòng trắng đầu/cuối, không bỏ qua dòng lỗi ở giữa.
 4. Kiểm tra vĩ độ [-90, 90], kinh độ [-180, 180], từ 3 đến 500 đỉnh phân biệt, đỉnh liên tiếp không trùng và không lặp điểm đầu ở cuối.
 5. Client phát hiện self-intersection để phản hồi sớm, nhưng không thay thế validation backend.
-6. Nút `Lưu ranh giới` chỉ bật khi draft đã thay đổi, đạt validation client và không có request đang chạy.
-7. Không tự gửi `confirmed=true`; cờ này chỉ được dùng sau thao tác xác nhận rõ ràng trong dialog `409`.
-8. Nếu người dùng chỉnh sửa draft sau khi dialog mở, đóng dialog và lần lưu tiếp theo phải bắt đầu lại với `confirmed=false`.
+6. Client chỉ cảnh báo chênh lệch diện tích khi có ít nhất 3 đỉnh phân biệt, diện tích preview lớn hơn 0 và ranh giới không tự cắt. Với 1-2 điểm thì chưa có polygon để đối chiếu; với ranh giới tự cắt thì chỉ hiển thị cảnh báo self-intersection.
+7. Nút `Lưu ranh giới` chỉ bật khi draft đã thay đổi, đạt validation client và không có request đang chạy.
+8. Không tự gửi `confirmed=true`; cờ này chỉ được dùng sau thao tác xác nhận rõ ràng trong dialog `409`.
+9. Nếu người dùng chỉnh sửa draft sau khi dialog mở, đóng dialog và lần lưu tiếp theo phải bắt đầu lại với `confirmed=false`.
 
 ### 11.4. Dialog xác nhận chênh lệch
 
