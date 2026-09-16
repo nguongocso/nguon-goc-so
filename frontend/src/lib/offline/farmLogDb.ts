@@ -48,20 +48,22 @@ interface CauHinh {
   giaTri: string;
 }
 
-type FarmLogDb = IDBPDatabase<{
-  [STORE_NHAT_KY_CHO]: {
+interface FarmLogDbSchema {
+  'nhat-ky-cho': {
     key: string;
     value: OfflineEvent;
   };
-  [STORE_LO_CACHE]: {
+  'lo-cache': {
     key: string;
     value: LoDuocPhanCong;
   };
-  [STORE_CAU_HINH]: {
+  'cau-hinh': {
     key: string;
     value: CauHinh;
   };
-}>;
+}
+
+type FarmLogDb = IDBPDatabase<FarmLogDbSchema>;
 
 let dbPromise: Promise<FarmLogDb> | null = null;
 let dbHienTai: FarmLogDb | null = null;
@@ -71,7 +73,7 @@ let dbHienTai: FarmLogDb | null = null;
  */
 export function moDb(): Promise<FarmLogDb> {
   if (!dbPromise) {
-    dbPromise = openDB(DB_NAME, DB_VERSION, {
+    dbPromise = openDB<FarmLogDbSchema>(DB_NAME, DB_VERSION, {
       upgrade(db) {
         if (!db.objectStoreNames.contains(STORE_NHAT_KY_CHO)) {
           db.createObjectStore(STORE_NHAT_KY_CHO, { keyPath: 'offlineEventId' });
@@ -160,12 +162,13 @@ export async function layMotNhatKyCho(offlineEventId: string): Promise<OfflineEv
 }
 
 /**
- * Cập nhật trạng thái (và lý do lỗi) của một bản ghi chờ.
+ * Cập nhật trạng thái (và lý do lỗi, số lần thử) của một bản ghi chờ.
  */
 export async function capNhatTrangThai(
   offlineEventId: string,
   trangThai: NonNullable<OfflineEvent['status']>,
   lyDo?: string,
+  lanThuLai?: number,
 ): Promise<void> {
   const db = await moDb();
   const tx = db.transaction(STORE_NHAT_KY_CHO, 'readwrite');
@@ -173,7 +176,10 @@ export async function capNhatTrangThai(
   if (!banGhi) return;
   banGhi.status = trangThai;
   if (lyDo !== undefined) banGhi.errorMessage = lyDo;
-  if (trangThai === 'syncing') banGhi.lastSyncAttempt = Date.now();
+  if (lanThuLai !== undefined) banGhi.retryCount = lanThuLai;
+  if (trangThai === 'syncing' || trangThai === 'failed') {
+    banGhi.lastSyncAttempt = Date.now();
+  }
   await tx.store.put(banGhi);
   await tx.done;
 }

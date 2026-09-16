@@ -8,6 +8,8 @@ import {
   updateOfflineEventStatus,
 } from '@/services/offlineQueue';
 import { syncOfflineEvents } from '@/api/chainEventApi';
+import { layDanhSachCho } from '@/lib/offline/farmLogDb';
+import { dongBoNhatKyCho } from '@/lib/offline/farmLogSync';
 import type { OfflineEvent, OfflineSyncResultDto } from '@/types/offlineEvent';
 
 const SYNC_POLL_INTERVAL = 10_000;
@@ -17,6 +19,7 @@ const MAX_RETRIES = 3;
 export const useOfflineSync = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingCount, setPendingCount] = useState(0);
+  const [farmLogPendingCount, setFarmLogPendingCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
 
@@ -33,23 +36,43 @@ export const useOfflineSync = () => {
     setPendingCount(count);
   }, []);
 
+  // Đếm nhật ký canh tác chờ trong IndexedDB (NCL-10-CN-012)
+  const refreshFarmLogCount = useCallback(() => {
+    layDanhSachCho()
+      .then((danhSach) => {
+        setFarmLogPendingCount(
+          danhSach.filter((e) => e.status === 'pending' || e.status === 'failed').length,
+        );
+      })
+      .catch(() => {
+        // IndexedDB lỗi: giữ số cũ, không chặn luồng sync chain-event
+      });
+  }, []);
+
   // Cập nhật trạng thái mạng
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
+    const handleOnline = () => {
+      setIsOnline(true);
+      refreshFarmLogCount();
+    };
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     refreshCount();
+    refreshFarmLogCount();
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [refreshCount]);
+  }, [refreshCount, refreshFarmLogCount]);
 
   useEffect(() => {
-    const interval = setInterval(refreshCount, SYNC_POLL_INTERVAL);
+    const interval = setInterval(() => {
+      refreshCount();
+      refreshFarmLogCount();
+    }, SYNC_POLL_INTERVAL);
     return () => clearInterval(interval);
-  }, [refreshCount]);
+  }, [refreshCount, refreshFarmLogCount]);
 
   const sync = useCallback(async (): Promise<void> => {
     if (isSyncingRef.current) return;
@@ -192,12 +215,21 @@ export const useOfflineSync = () => {
           toast.error(msg);
         }
       }
+
+      // Đồng bộ nhật ký canh tác ngoại tuyến (NCL-10-CN-012).
+      // Module tự xử lý lỗi/toast nên không làm hỏng luồng chain-event.
+      try {
+        await dongBoNhatKyCho();
+      } catch {
+        // Đã toast trong module, bỏ qua ở đây
+      }
     } finally {
       isSyncingRef.current = false;
       setIsSyncing(false);
       refreshCount();
+      refreshFarmLogCount();
     }
-  }, [refreshCount]);
+  }, [refreshCount, refreshFarmLogCount]);
 
   // Tự động đồng bộ với debounce
   useEffect(() => {
@@ -218,11 +250,11 @@ export const useOfflineSync = () => {
       return true;
     });
 
-    if (!hasActionable) return;
+    if (!hasActionable && farmLogPendingCount === 0) return;
 
     lastAutoSyncRef.current = now;
     sync();
-  }, [isOnline, sync]);
+  }, [isOnline, sync, farmLogPendingCount]);
 
   const forceSync = useCallback(() => {
     if (isSyncingRef.current) return;
@@ -232,6 +264,7 @@ export const useOfflineSync = () => {
   return {
     isOnline,
     pendingCount,
+    farmLogPendingCount,
     isSyncing,
     lastError,
     sync: forceSync,
@@ -250,6 +283,7 @@ function getEventLabel(event: OfflineEvent): string {
     PACKAGING: 'Đóng gói',
     PROCUREMENT: 'Thu mua',
     MOBILE: 'Ngoài đồng',
+    FARM_LOG: 'Nhật ký canh tác',
   };
   return typeLabels[event.eventType] ?? event.eventType;
 }

@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { RefreshCw, Trash2, X } from 'lucide-react';
 import type { OfflineEvent } from '@/types/offlineEvent';
+import { ChainEventTypeLabel } from '@/enums/chainEventType';
+import { layNhanHoatDong } from '@/utils/farmLogActivity';
 import { maskId } from '@/lib/utils';
 
 // Component hiển thị một event
@@ -32,12 +34,16 @@ const EventItem: React.FC<{
   };
   const currentStatus = event.status || 'pending';
   const config = statusConfig[currentStatus];
+  const tenLoai = ChainEventTypeLabel[event.eventType] ?? event.eventType;
+  const laNhatKy = event.eventType === 'FARM_LOG';
+  const hoatDong = laNhatKy ? layNhanHoatDong(event.eventData?.activityType) : null;
+  const ngayThucHien = laNhatKy ? String(event.eventData?.executedDate ?? '') : '';
 
   return (
     <div className="flex items-start justify-between border-b pb-2 pt-2">
       <div className="flex-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium">{event.eventType}</span>
+          <span className="font-medium">{tenLoai}</span>
           <Badge variant="outline" className="text-xs">
             {event.deviceSource || 'MOBILE'}
           </Badge>
@@ -49,6 +55,12 @@ const EventItem: React.FC<{
         <div className="text-sm text-muted-foreground">
           Lô: {lotName} (ID: {maskId(event.productionLotId) || 'N/A'})
         </div>
+        {laNhatKy && (
+          <div className="text-sm text-muted-foreground">
+            Hoạt động: {hoatDong}
+            {ngayThucHien && <> • Ngày: {ngayThucHien}</>}
+          </div>
+        )}
         <div className="text-xs text-muted-foreground">
           Ghi lúc: {new Date(event.recordedAt).toLocaleString()}
         </div>
