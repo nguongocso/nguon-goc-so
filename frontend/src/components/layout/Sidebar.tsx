@@ -397,10 +397,24 @@ const MENU_GROUPS: MenuGroup[] = [
         activePaths: ["/reports/alert-lots"],
       },
       {
+        icon: <Activity className="h-5 w-5" />,
+        label: "Mức độ sử dụng nền tảng",
+        href: "/reports/organization-usage",
+        allowedRoles: ROLE_ACCESS.organizationUsage,
+        activePaths: ["/reports/organization-usage"],
+      },
+      {
+        icon: <FileText className="h-5 w-5" />,
+        label: "Mẫu hồ sơ truy xuất",
+        href: "/export/profile-templates",
+        allowedRoles: ["VT-02"] as const,
+        activePaths: ["/export/profile-templates", "/export/profile-templates/new"],
+      },
+      {
         icon: <FileText className="h-5 w-5" />,
         label: "Xuất dữ liệu mở",
         href: "/export/open-data",
-        allowedRoles: ["VT-05"] as const,
+        allowedRoles: ROLE_ACCESS.exportOpenData,
       },
       {
         icon: <FileSignature className="h-5 w-5" />,
@@ -870,7 +884,7 @@ export function Sidebar({
       }
     }
 
-    // Phiếu bàn giao nhận (VT-04): giữ active khi ở /handover hoặc xem chi tiết
+    // Phiếu bàn giao nhận (VT-04): giữ active khi ở /handover hoặc xem chi tiết phiếu / lô hàng bàn giao
     if (item.href === "/handover") {
       if (
         location.pathname === "/handover" ||
@@ -879,6 +893,9 @@ export function Sidebar({
           user?.roleCode === "VT-04") ||
         (location.pathname.startsWith("/shipment-handovers/") &&
           !location.pathname.startsWith("/shipment-handovers/sent") &&
+          user?.roleCode === "VT-04") ||
+        ((location.pathname.startsWith("/shipments/") ||
+          location.pathname.includes("/shipments/")) &&
           user?.roleCode === "VT-04")
       ) {
         return true;

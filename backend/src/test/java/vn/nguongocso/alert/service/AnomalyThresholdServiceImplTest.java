@@ -124,7 +124,7 @@ class AnomalyThresholdServiceImplTest {
         assertEquals(10, response.getMaxScansPerDay());
         assertEquals(new BigDecimal("50.00"), response.getMaxDistanceKmPer30Min());
         assertEquals(30, response.getMinTimeBetweenScansMinutes());
-        assertEquals(365, response.getActivationAgeDays());
+        assertEquals(3, response.getActivationAgeDays());
         assertTrue(response.getIsActive());
     }
 
@@ -138,7 +138,7 @@ class AnomalyThresholdServiceImplTest {
                 .maxScansPerDay(15)
                 .maxDistanceKmPer30Min(BigDecimal.valueOf(60.0))
                 .minTimeBetweenScansMinutes(25)
-                .activationAgeDays(180)
+                .activationAgeDays(5)
                 .isActive(true)
                 .createdBy(adminUser)
                 .updatedBy(adminUser)
@@ -154,7 +154,7 @@ class AnomalyThresholdServiceImplTest {
         assertEquals(15, response.getMaxScansPerDay());
         assertEquals(BigDecimal.valueOf(60.0), response.getMaxDistanceKmPer30Min());
         assertEquals(25, response.getMinTimeBetweenScansMinutes());
-        assertEquals(180, response.getActivationAgeDays());
+        assertEquals(5, response.getActivationAgeDays());
     }
 
     @Test
@@ -174,7 +174,7 @@ class AnomalyThresholdServiceImplTest {
                 .maxScansPerDay(12)
                 .maxDistanceKmPer30Min(BigDecimal.valueOf(70.0))
                 .minTimeBetweenScansMinutes(20)
-                .activationAgeDays(200)
+                .activationAgeDays(5)
                 .build();
 
         AnomalyThresholdResponse response = service.updateGlobalThreshold(request, customUserDetails);
@@ -208,7 +208,7 @@ class AnomalyThresholdServiceImplTest {
                 .maxScansPerDay(7)
                 .maxDistanceKmPer30Min(BigDecimal.valueOf(35.0))
                 .minTimeBetweenScansMinutes(15)
-                .activationAgeDays(90)
+                .activationAgeDays(5)
                 .build();
 
         AnomalyThresholdResponse response = service.saveCategoryOverride(request, customUserDetails);
@@ -234,7 +234,7 @@ class AnomalyThresholdServiceImplTest {
                 .maxScansPerDay(7)
                 .maxDistanceKmPer30Min(BigDecimal.valueOf(35.0))
                 .minTimeBetweenScansMinutes(15)
-                .activationAgeDays(90)
+                .activationAgeDays(5)
                 .build();
 
         assertThrows(ResourceNotFoundException.class,
@@ -251,7 +251,7 @@ class AnomalyThresholdServiceImplTest {
                 .maxScansPerDay(7)
                 .maxDistanceKmPer30Min(BigDecimal.valueOf(35.0))
                 .minTimeBetweenScansMinutes(15)
-                .activationAgeDays(90)
+                .activationAgeDays(5)
                 .isActive(true)
                 .build();
 
@@ -275,7 +275,7 @@ class AnomalyThresholdServiceImplTest {
                 .maxScansPerDay(10)
                 .maxDistanceKmPer30Min(BigDecimal.valueOf(50.0))
                 .minTimeBetweenScansMinutes(30)
-                .activationAgeDays(365)
+                .activationAgeDays(3)
                 .isActive(true)
                 .build();
 
@@ -295,7 +295,7 @@ class AnomalyThresholdServiceImplTest {
                 .maxScansPerDay(4)
                 .maxDistanceKmPer30Min(BigDecimal.valueOf(20.0))
                 .minTimeBetweenScansMinutes(10)
-                .activationAgeDays(60)
+                .activationAgeDays(5)
                 .isActive(true)
                 .build();
 
@@ -320,7 +320,7 @@ class AnomalyThresholdServiceImplTest {
                 .maxScansPerDay(14)
                 .maxDistanceKmPer30Min(BigDecimal.valueOf(55.0))
                 .minTimeBetweenScansMinutes(30)
-                .activationAgeDays(365)
+                .activationAgeDays(3)
                 .isActive(true)
                 .build();
 

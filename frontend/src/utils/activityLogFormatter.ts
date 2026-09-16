@@ -51,6 +51,7 @@ export const formatActionType = (action: string): string => {
     EXPORT: 'Xuất hồ sơ nguồn gốc',
     EXPORT_DOSSIER: 'Xuất hồ sơ nguồn gốc',
     GS1_DOSSIER_EXPORT: 'Xuất hồ sơ GS1',
+    EXPORT_ACTIVITY_LOG: 'Xuất nhật ký hoạt động',
 
     // Recall
     CREATE_RECALL_REQUEST: 'Tạo yêu cầu thu hồi',
@@ -86,6 +87,7 @@ export const formatActionType = (action: string): string => {
     // Farm Area
     CREATE_FARM_AREA: 'Tạo vùng trồng',
     UPDATE_FARM_AREA: 'Cập nhật vùng trồng',
+    UPDATE_FARM_AREA_BOUNDARY: 'Cập nhật ranh giới vùng trồng',
     DELETE_FARM_AREA: 'Xóa vùng trồng',
 
     // Input Material
@@ -229,6 +231,7 @@ export const formatTargetType = (target: string): string => {
     SYSTEMMONITORING: 'Giám sát hệ thống',
     ATTACHMENT: 'Chứng từ đính kèm',
     INVITATION: 'Thư mời thành viên',
+    ACTIVITY_LOG_EXPORT: 'Yêu cầu xuất nhật ký hoạt động',
   };
 
   const upper = target.toUpperCase();
@@ -240,6 +243,41 @@ export const formatTargetType = (target: string): string => {
   }
 
   return target;
+};
+
+/** Việt hóa mô tả kỹ thuật của thao tác xuất, bao gồm cả các bản ghi đã lưu trước đây. */
+export const formatActivityLogDescription = (
+  description: string | null | undefined,
+  action?: string,
+): string => {
+  if (!description) return '—';
+
+  const isExportActivityLog = normalizeKey(action || '') === 'EXPORTACTIVITYLOG'
+    || description.startsWith('Xuất nhật ký hoạt động:');
+  if (!isExportActivityLog) return description;
+
+  const displayValue = (value: string, emptyLabel: string) => {
+    const normalized = value.trim();
+    return normalized === 'null' ? emptyLabel : normalized;
+  };
+
+  return description
+    .replace(/startDate=([^,]+)/, (_, value: string) => `từ ngày: ${displayValue(value, 'toàn bộ')}`)
+    .replace(/endDate=([^,]+)/, (_, value: string) => `đến ngày: ${displayValue(value, 'toàn bộ')}`)
+    .replace(/action=([^,]+)/, (_, value: string) => {
+      const normalized = value.trim();
+      return `hành động: ${normalized === 'null' ? 'tất cả' : formatActionType(normalized)}`;
+    })
+    .replace(/actorName=([^,]+)/, (_, value: string) => `người thực hiện: ${displayValue(value, 'tất cả')}`)
+    .replace(/objectType=([^,]+)/, (_, value: string) => {
+      const normalized = value.trim();
+      return `loại đối tượng: ${normalized === 'null' ? 'tất cả' : formatTargetType(normalized)}`;
+    })
+    .replace(/recordCount=([^,]+)/, 'số bản ghi: $1')
+    .replace(/status=SUCCESS\b/, 'trạng thái: thành công')
+    .replace(/status=IN_PROGRESS\b/, 'trạng thái: đang xử lý')
+    .replace(/status=FAILED\b/, 'trạng thái: thất bại')
+    .replace(/exportJobId=([^,]+)/, (_, value: string) => `mã yêu cầu: ${displayValue(value, 'không có')}`);
 };
 
 export const getActionColor = (action: string): string => {

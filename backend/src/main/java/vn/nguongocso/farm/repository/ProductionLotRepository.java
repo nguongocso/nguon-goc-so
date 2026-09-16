@@ -7,6 +7,7 @@ import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -291,4 +292,36 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
         WHERE pl.id = :id
         """)
     Optional<ProductionLot> findByIdWithDetails(@Param("id") UUID id);
+
+    /**
+     * Đếm số lô sản xuất tạo mới theo từng tổ chức trong khoảng thời gian
+     * (NCL-07-CN-008). Dùng {@code createdAt} (thời điểm tạo bản ghi), không
+     * dùng {@code plantingDate} (ngày xuống giống nghiệp vụ).
+     *
+     * @param from mốc bắt đầu khoảng thời gian
+     * @param to   mốc kết thúc khoảng thời gian
+     * @return danh sách [organizationId, số lượng]
+     */
+    @Query("""
+        SELECT pl.organization.organizationId, COUNT(pl)
+        FROM ProductionLot pl
+        WHERE pl.createdAt BETWEEN :from AND :to
+        GROUP BY pl.organization.organizationId
+        """)
+    List<Object[]> countLotsGroupedByOrg(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
+
+    /**
+     * Lấy thời điểm tạo lô mới nhất của từng tổ chức (NCL-07-CN-008,
+     * phục vụ tính lastActivityAt).
+     *
+     * @return danh sách [organizationId, createdAt lớn nhất]
+     */
+    @Query("""
+        SELECT pl.organization.organizationId, MAX(pl.createdAt)
+        FROM ProductionLot pl
+        GROUP BY pl.organization.organizationId
+        """)
+    List<Object[]> maxLotCreatedAtGroupedByOrg();
 }

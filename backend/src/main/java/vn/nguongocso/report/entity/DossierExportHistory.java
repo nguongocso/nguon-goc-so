@@ -65,4 +65,9 @@ public class DossierExportHistory {
     // Địa chỉ IP
     @Column(name = "ip_address")
     private String ipAddress;
+
+    /** Mẫu hồ sơ đã áp dụng khi xuất bộ hồ sơ (NCL-07-CN-007), NULL nếu dùng mẫu mặc định hoặc bộ trường chuẩn */
+    @Column(name = "template_id")
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID templateId;
 }

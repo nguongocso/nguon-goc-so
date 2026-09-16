@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getSuspectDetail, lockTraceCode, unlockTraceCode } from '@/api/suspectTraceCodeApi';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +20,7 @@ import { toast } from 'sonner';
 import { HelpButton } from '@/components/help/HelpButton';
 import { useAuth } from '@/hooks/useAuth';
 
-const formatDateTime = (value: string | null) => {
+const formatDateTime = (value?: string | null) => {
   if (!value) return '—';
   return new Date(value).toLocaleString('vi-VN', {
     day: '2-digit',
@@ -69,6 +69,36 @@ export default function SuspectTraceCodeDetailPage() {
   useEffect(() => {
     fetchDetail();
   }, [traceCodeId]);
+
+  const suspectHelpContent = useMemo(() => {
+    if (detail?.status === 'LOCKED') {
+      return {
+        title: 'Hướng dẫn mở khóa mã tem (Trạng thái Đã khóa)',
+        steps: [
+          'Kiểm tra Lịch sử khóa: Xem kỹ Thời điểm khóa, Người thực hiện khóa và Lý do khóa tem ở phần "Thông tin nghi vấn".',
+          'Thu thập & Xác minh thực tế: Thu thập biên bản giải trình, hóa đơn chứng từ, lịch trình xe vận chuyển hoặc ảnh chụp thực tế từ chủ cơ sở / hợp tác xã.',
+          'Mở biểu mẫu mở khóa: Nhấn nút màu xanh lá "Mở khóa mã tem" ở góc trên bên phải màn hình.',
+          'Nhập kết luận xác minh: Điền nội dung kết luận xử lý vào ô "Kết luận xác minh" (tối thiểu 10 ký tự, nêu rõ kết quả kiểm tra thực địa).',
+          'Cung cấp bằng chứng: Điền thông tin vào ô "Bằng chứng xác minh" (ví dụ: số vận đơn giao nhận, số biên bản làm việc, hình ảnh tem chính hãng).',
+          'Xác nhận mở khóa: Nhấn nút "Xác nhận mở khóa" để đưa tem về trạng thái HOẠT ĐỘNG (ACTIVE), gỡ bỏ cảnh báo khóa trên cổng thông tin công khai.',
+        ],
+      };
+    }
+    if (detail?.status === 'SUSPECT') {
+      return {
+        title: 'Hướng dẫn khóa mã tem nghi vấn (Trạng thái Nghi vấn)',
+        steps: [
+          'Kiểm tra Thông tin nghi vấn: Đối chiếu thông tin Lô hàng, Mã tem, Loại nông sản và Nguồn cấu hình ngưỡng áp dụng.',
+          'Phân tích Chi tiết điểm nghi vấn: Kiểm tra Snapshot bằng chứng vi phạm cố định (+35 Tần suất cao, +45 Di chuyển phi lý, +20 Nhiều địa điểm).',
+          'Đối soát Lịch sử quét 24h: Xem lại bảng lịch sử quét gồm thời gian, vị trí, tọa độ GPS và thiết bị để xác định bất thường phân phối.',
+          'Mở biểu mẫu khóa: Nhấn nút màu đỏ "Khóa mã tem" ở góc trên bên phải màn hình.',
+          'Nhập lý do khóa: Điền cụ thể lý do khóa (ví dụ: phát hiện quét tem đồng thời ở 2 tỉnh cách nhau > 500km, quét lặp bất thường từ thiết bị lạ).',
+          'Xác nhận khóa: Nhấn "Xác nhận khóa" để đưa tem về trạng thái ĐÃ KHÓA (LOCKED), lập tức hiển thị cảnh báo đỏ trên trang quét công khai của người tiêu dùng.',
+        ],
+      };
+    }
+    return undefined;
+  }, [detail?.status]);
 
   if (loading) {
     return (
@@ -162,7 +192,16 @@ export default function SuspectTraceCodeDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <HelpButton screenKey="admin-suspect-trace-codes" />
+          <HelpButton
+            screenKey={
+              detail.status === 'LOCKED'
+                ? 'admin-suspect-trace-code-locked'
+                : detail.status === 'SUSPECT'
+                ? 'admin-suspect-trace-code-suspect'
+                : 'admin-suspect-trace-codes'
+            }
+            customContent={suspectHelpContent}
+          />
           {detail.status === 'SUSPECT' && (
             <Button variant="destructive" onClick={() => setShowLockForm((prev) => !prev)}>
               <Lock className="mr-2 h-4 w-4" />
@@ -394,12 +433,34 @@ export default function SuspectTraceCodeDetailPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <p className="text-sm text-muted-foreground">Lô hàng</p>
-              <p className="font-medium">{detail.shipmentName}</p>
+              <p className="font-medium">{detail.shipmentName || '—'}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Mã tem</p>
               <p className="font-mono text-sm">{detail.codeValue}</p>
             </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Loại nông sản</p>
+              <p className="font-medium text-slate-800">{detail.productCategoryName || 'Chưa phân loại'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Nguồn cấu hình ngưỡng</p>
+              {detail.effectiveThreshold?.productCategoryId ? (
+                <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-800 font-medium">
+                  Ghi đè theo danh mục ({detail.effectiveThreshold.productCategoryName || detail.productCategoryName})
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="border-slate-300 bg-slate-50 text-slate-700 font-medium">
+                  Ngưỡng toàn cục mặc định
+                </Badge>
+              )}
+            </div>
+            {detail.evaluatedAt && (
+              <div>
+                <p className="text-sm text-muted-foreground">Thời điểm đánh giá nghi vấn</p>
+                <p className="font-medium text-slate-800">{formatDateTime(detail.evaluatedAt)}</p>
+              </div>
+            )}
             {detail.lockedAt && (
               <>
                 <div>
@@ -470,14 +531,32 @@ export default function SuspectTraceCodeDetailPage() {
       {/* Score Breakdown */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Chi tiết điểm nghi vấn</CardTitle>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base">Chi tiết điểm nghi vấn (Snapshot bằng chứng)</CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Điểm số và phân tích được chụp lại tại thời điểm hệ thống ghi nhận nghi vấn
+              </CardDescription>
+            </div>
+            {detail.evaluatedAt && (
+              <Badge variant="secondary" className="text-xs">
+                Chụp lúc: {formatDateTime(detail.evaluatedAt)}
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div className="flex items-center gap-2">
                 <ScanLine className="h-4 w-4 text-blue-500" />
-                <span className="text-sm">Tần suất quét cao ({'>'}= 10 lượt/24h)</span>
+                <span className="text-sm">
+                  Tần suất quét cao (
+                  {detail.effectiveThreshold?.maxScansPerDay
+                    ? `≥ ${detail.effectiveThreshold.maxScansPerDay} lượt/24h hoặc ≥ ${detail.effectiveThreshold.maxScansPerHour ?? 5} lượt/giờ`
+                    : '≥ 10 lượt/24h hoặc ≥ 5 lượt/giờ'}
+                  )
+                </span>
               </div>
               <Badge variant={detail.anomalyDetails.scoreBreakdown.highFrequency > 0 ? 'default' : 'secondary'}>
                 +{detail.anomalyDetails.scoreBreakdown.highFrequency}
@@ -487,7 +566,11 @@ export default function SuspectTraceCodeDetailPage() {
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-red-500" />
                 <span className="text-sm">
-                  Khoảng cách không hợp lý ({'>'}50km trong {'<'}30 phút)
+                  Khoảng cách không hợp lý (
+                  {detail.effectiveThreshold?.maxDistanceKmPer30Min
+                    ? `>${detail.effectiveThreshold.maxDistanceKmPer30Min}km trong ≤${detail.effectiveThreshold.minTimeBetweenScansMinutes ?? 30} phút`
+                    : '>50km trong ≤30 phút'}
+                  )
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -502,18 +585,25 @@ export default function SuspectTraceCodeDetailPage() {
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-emerald-500" />
-                <span className="text-sm">Nhiều địa điểm ({'>'}= 5 địa điểm/24h)</span>
+                <span className="text-sm">Nhiều địa điểm khác nhau (≥ 5 địa điểm trong 24h)</span>
               </div>
               <Badge variant={detail.anomalyDetails.scoreBreakdown.multipleLocations > 0 ? 'default' : 'secondary'}>
                 +{detail.anomalyDetails.scoreBreakdown.multipleLocations}
               </Badge>
             </div>
             <div className="flex items-center justify-between rounded-lg border-2 border-primary/20 bg-primary/5 p-3">
-              <span className="font-semibold">Tổng điểm</span>
+              <span className="font-semibold">Tổng điểm nghi vấn</span>
               <span className={`text-lg font-bold ${getScoreColor(detail.suspicionScore)}`}>
                 {detail.suspicionScore}/100
               </span>
             </div>
+          </div>
+
+          <div className="mt-3 flex items-start gap-2 rounded-lg bg-muted/40 p-2.5 text-xs text-muted-foreground">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+            <span>
+              Bằng chứng phân tích điểm nghi vấn được chụp lại cố định tại thời điểm đánh giá ({formatDateTime(detail.evaluatedAt)}), giúp đối soát lịch sử độc lập với cửa sổ trượt 24h của các lượt quét mới phát sinh.
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -521,12 +611,26 @@ export default function SuspectTraceCodeDetailPage() {
       {/* Scan Logs */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Lịch sử quét (24 giờ gần nhất)</CardTitle>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base">Lịch sử quét (Cửa sổ trượt 24 giờ gần nhất)</CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Các lượt quét phát sinh trong vòng 24 giờ qua phục vụ theo dõi thời gian thực
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              {detail.scanLogs.length} lượt quét gần nhất
+            </Badge>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {detail.scanLogs.length === 0 ? (
-            <div className="flex justify-center py-8 text-sm text-muted-foreground">
-              Không có lượt quét nào
+            <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+              <Clock className="h-8 w-8 text-muted-foreground/50 mb-2" />
+              <p className="text-sm font-medium text-slate-700">Không có lượt quét nào trong 24 giờ gần nhất</p>
+              <p className="text-xs text-muted-foreground max-w-md mt-1">
+                Mã tem không phát sinh lượt quét mới trong 24 giờ qua. Dữ liệu bằng chứng vi phạm lúc phát hiện ({formatDateTime(detail.evaluatedAt)}) vẫn được bảo toàn đầy đủ ở phần Chi tiết điểm nghi vấn phía trên.
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">

@@ -350,22 +350,23 @@ API layer        → hooks (optional)  → Pages         → Routes
 | **FE Hooks** | `hooks/useCropAreaAnalysis.ts`, `hooks/useExportIndustryReport.ts` |
 | **FE Types** | `types/dashboard.ts`, `types/lookupStatistics.ts`, `types/cropAreaAnalysis.ts`, `types/seasonYieldComparison.ts`, `types/report.ts`, `types/activityLog.ts`, `types/loginHistory.ts`, `types/loginAnomaly.ts`, `types/monitoring.ts`, `types/export.ts` |
 | **FE Validators** | `utils/validators.ts` (exportOpenDataSchema) |
+| **Báo cáo mức độ sử dụng (NCL-07-CN-008)** | BE: `report/controller/OrganizationUsageController.java` (`GET /api/v1/reports/organization-usage`, `GET /export`, `@PreAuthorize hasRole('VT-01')`), `report/service/OrganizationUsageService.java` + `impl/OrganizationUsageServiceImpl.java` (tổng hợp 6 chỉ số kỳ hiện tại/kỳ trước, `needsSupport` khi 30 ngày không hoạt động, export CSV UTF-8 BOM), `report/dto/response/OrganizationUsageDashboardResponse.java`; Repository bổ sung phương thức thống kê theo tổ chức: `ProductionLotRepository`, `FarmLogRepository`, `ChainEventRepository`, `TraceCodeRepository`, `TraceCodeScanLogRepository`, `ActivityLogRepository` — FE: `pages/report/OrganizationUsagePage.tsx`, `components/report/OrganizationUsageContent.tsx` (4 thẻ tổng hợp + bảng 6 chỉ số + lọc/sắp xếp), `api/organizationUsageApi.ts`, `types/organizationUsage.ts`, route `reports/organization-usage` + `ROLE_ACCESS.organizationUsage=['VT-01']` + sidebar “Mức độ sử dụng nền tảng” — Docs: `docs/api/report/OrganizationUsageDashboard.md`, test: `OrganizationUsageControllerTest.java`, `OrganizationUsageServiceTest.java`, `OrganizationUsagePage.test.tsx` (7 tests) |
 
 ### 2.20 Alerts & Activity Logs (package `alert`)
 
 | Lớp | File |
 |---|---|
-| **BE** | `alert/controller/AlertController.java`, `alert/controller/ActivityLogController.java`, `alert/service/AlertService.java` + `impl`, `alert/service/ActivityLogService.java` + `impl`, `alert/service/ScanAnomalyDetectionService.java` + `impl` |
-| | `alert/entity/Alert.java`, `AlertDetails.java`, `ScanPoint.java`, `ActivityLog.java` (→ `activity_logs` table) |
+| **BE** | `alert/controller/AlertController.java`, `alert/controller/ActivityLogController.java`, `alert/service/AlertService.java` + `impl`, `alert/service/ActivityLogService.java` + `impl`, `alert/service/ActivityLogExportService.java` + `impl`, `alert/service/impl/ActivityLogExportWorker.java`, `ActivityLogCsvWriter.java`, `alert/service/ScanAnomalyDetectionService.java` + `impl` |
+| | `alert/entity/Alert.java`, `AlertDetails.java`, `ScanPoint.java`, `ActivityLog.java` (→ `activity_logs`), `ActivityLogExportJob.java`, `ActivityLogExportItem.java` |
 | | `alert/event/ActivityLogEvent.java`, `alert/listener/ActivityLogListener.java`, `alert/specification/ActivityLogSpecification.java` |
 | | `alert/controller/AnomalyThresholdController.java`, `alert/service/AnomalyThresholdService.java` + `impl`, `alert/entity/AnomalyThreshold.java`, `alert/repository/AnomalyThresholdRepository.java`, `alert/dto/request/CategoryThresholdOverrideRequest.java`, `UpdateGlobalThresholdRequest.java`, `ImpactEstimationRequest.java`, `alert/dto/response/AllThresholdsResponse.java`, `AnomalyThresholdResponse.java`, `ImpactEstimationResponse.java`, `alert/util/ScanAnomalyUtils.java` |
 | **FE Components** | `components/admin/anomaly-threshold/GlobalThresholdCard.tsx`, `CategoryOverridesTable.tsx`, `ImpactEstimationCard.tsx` |
 | **FE Pages** | `pages/scan-anomaly-alert/ScanAnomalyAlertPage.tsx`, `pages/admin/AnomalyThresholdPage.tsx`, `pages/admin/CategoryOverridePage.tsx` |
 | **FE API** | `api/anomalyThresholdApi.ts`, `api/scanAnomalyAlertApi.ts` |
 | **FE Types** | `types/anomalyThreshold.ts`, `types/scanAnomalyAlert.ts` |
-| **Migration** | `V8` (alerts), `V10` (activity_logs, trace_code_scan_logs), `V20260830150000` (anomaly_thresholds) |
-| **Pattern** | Audit log: `@Auditable(action, entityType, description)` trên service method → `AuditAspect` → `ActivityLogEvent` → `ActivityLogListener` (async) → `activity_logs`. Hoặc publish trực tiếp: `eventPublisher.publishEvent(ActivityLogEvent.builder()...)`. |
-| **Docs** | `docs/api/trace/NCL-08-CN-014_AnomalyThresholdConfiguration.md` |
+| **Migration** | `V8` (alerts), `V10` (activity_logs, trace_code_scan_logs), `V20260830150000` (anomaly_thresholds), `V20260914150000` (actor role/before/after + activity log export job/snapshot) |
+| **Pattern** | Audit log: `@Auditable(action, entityType, description, beforeValue, afterValue)` trên service method → `AuditAspect` → `ActivityLogEvent` → `ActivityLogListener` (async) → `activity_logs`. Export lớn đóng snapshot bằng `INSERT … SELECT`, worker đọc snapshot theo trang và gửi notification khi file sẵn sàng. |
+| **Docs** | `docs/api/trace/NCL-08-CN-014_AnomalyThresholdConfiguration.md`, `docs/api/organization/ExportActivityLogForInspection.md` |
 
 ### 2.21 Notifications (package `notification`)
 
@@ -540,7 +541,7 @@ API layer        → hooks (optional)  → Pages         → Routes
 |---|---|---|
 | `@Auditable` | `BA/common/annotation/Auditable.java` | Annotate service method, hỗ trợ SpEL `#param`/`#result` |
 | `AuditAspect` | `BA/common/aspect/AuditAspect.java` | @AfterReturning aspect → publish event async |
-| `ActivityLogEvent` | `BA/alert/event/ActivityLogEvent.java` | Event payload (userId, orgId, action, description, entityType) |
+| `ActivityLogEvent` | `BA/alert/event/ActivityLogEvent.java` | Event payload (userId, orgId, actorRole, action, description, entityType, beforeValue, afterValue) |
 | `ActivityLogListener` | `BA/alert/listener/ActivityLogListener.java` | @Async @EventListener @Transactional(REQUIRES_NEW) → ghi `activity_logs` |
 | `IpUtils` | `BA/common/util/IpUtils.java` | Lấy client IP (X-Forwarded-For) |
 

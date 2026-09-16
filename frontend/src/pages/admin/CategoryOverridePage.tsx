@@ -55,7 +55,7 @@ export const CategoryOverridePage: React.FC = () => {
   const [maxScansPerDay, setMaxScansPerDay] = useState<number>(10);
   const [maxDistanceKmPer30Min, setMaxDistanceKmPer30Min] = useState<number>(50.0);
   const [minTimeBetweenScansMinutes, setMinTimeBetweenScansMinutes] = useState<number>(30);
-  const [activationAgeDays, setActivationAgeDays] = useState<number>(365);
+  const [activationAgeDays, setActivationAgeDays] = useState<number>(3);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -79,7 +79,7 @@ export const CategoryOverridePage: React.FC = () => {
             setMaxScansPerDay(found.maxScansPerDay ?? 10);
             setMaxDistanceKmPer30Min(found.maxDistanceKmPer30Min ?? 50.0);
             setMinTimeBetweenScansMinutes(found.minTimeBetweenScansMinutes ?? 30);
-            setActivationAgeDays(found.activationAgeDays ?? 365);
+            setActivationAgeDays(found.activationAgeDays ?? 3);
           } else {
             toast.error('Không tìm thấy cấu hình ghi đè');
             navigate('/admin/anomaly-thresholds');
@@ -93,7 +93,7 @@ export const CategoryOverridePage: React.FC = () => {
               setMaxScansPerDay(global.maxScansPerDay ?? 10);
               setMaxDistanceKmPer30Min(global.maxDistanceKmPer30Min ?? 50.0);
               setMinTimeBetweenScansMinutes(global.minTimeBetweenScansMinutes ?? 30);
-              setActivationAgeDays(global.activationAgeDays ?? 365);
+              setActivationAgeDays(global.activationAgeDays ?? 3);
             }
           } catch {
             // fallback
@@ -145,8 +145,8 @@ export const CategoryOverridePage: React.FC = () => {
     ) {
       errs.minTimeBetweenScansMinutes = 'Khung thời gian xét di chuyển phải không âm';
     }
-    if (activationAgeDays === undefined || activationAgeDays === null || activationAgeDays < 0) {
-      errs.activationAgeDays = 'Thời hạn kích hoạt phải ≥ 0 ngày';
+    if (activationAgeDays === undefined || activationAgeDays === null || isNaN(activationAgeDays) || activationAgeDays < 0 || activationAgeDays > 7) {
+      errs.activationAgeDays = 'Thời gian ân hạn phải từ 0 đến 7 ngày';
     }
 
     setErrors(errs);
@@ -364,21 +364,22 @@ export const CategoryOverridePage: React.FC = () => {
 
               <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
                 <Label htmlFor="cat-act-age" className="text-sm font-medium">
-                  Thời hạn kích hoạt bình thường (ngày) <span className="text-destructive">*</span>
+                  Thời gian ân hạn miễn kiểm tra sau kích hoạt (ngày) <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="cat-act-age"
                   type="number"
                   min={0}
+                  max={7}
                   value={activationAgeDays}
                   onChange={(e) => setActivationAgeDays(parseInt(e.target.value, 10) || 0)}
-                  placeholder="Ví dụ: 365"
+                  placeholder="Ví dụ: 3"
                 />
                 {errors.activationAgeDays && (
                   <p className="text-xs text-destructive">{errors.activationAgeDays}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Số ngày tối đa từ khi kích hoạt tem đến khi quét mã. Vượt quá sẽ cảnh báo tuổi thọ tem.
+                  Trong khoảng thời gian này kể từ khi tem được kích hoạt, các lượt quét sẽ KHÔNG được đánh giá nghi vấn (khuyến nghị 0–7 ngày).
                 </p>
               </div>
             </div>

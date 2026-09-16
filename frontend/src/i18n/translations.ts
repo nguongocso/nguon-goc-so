@@ -91,6 +91,9 @@ export const translations = {
     feedback_toast_copy_success: 'Đã sao chép mã tra cứu.',
     feedback_toast_copy_error: 'Không thể sao chép tự động. Vui lòng chọn và sao chép mã.',
     feedback_not_available: 'Chức năng gửi phản ánh không khả dụng cho sản phẩm này.',
+    feedback_error_submit: 'Không thể gửi phản ánh. Vui lòng thử lại.',
+    feedback_error_network: 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.',
+    feedback_error_generic: 'Đã xảy ra lỗi khi gửi phản ánh.',
 
     // Event Types
     event_HARVEST: 'Thu hoạch',
@@ -203,6 +206,9 @@ export const translations = {
     feedback_toast_copy_success: 'Lookup code copied to clipboard.',
     feedback_toast_copy_error: 'Unable to copy automatically. Please select and copy the code manually.',
     feedback_not_available: 'Feedback submittal is not available for this product.',
+    feedback_error_submit: 'Failed to submit feedback. Please try again.',
+    feedback_error_network: 'Cannot connect to server. Please try again later.',
+    feedback_error_generic: 'An error occurred while submitting feedback.',
 
     // Event Types
     event_HARVEST: 'Harvest',

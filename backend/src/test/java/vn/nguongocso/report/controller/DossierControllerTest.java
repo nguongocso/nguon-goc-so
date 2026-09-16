@@ -54,8 +54,11 @@ public class DossierControllerTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
-        @MockitoBean
-        private PermissionChecker permissionChecker;
+    @MockitoBean
+    private PermissionChecker permissionChecker;
+
+    @MockitoBean
+    private vn.nguongocso.export.service.ProfileTemplateService profileTemplateService;
 
     private UUID shipmentId;
     private CustomUserDetails userDetails;

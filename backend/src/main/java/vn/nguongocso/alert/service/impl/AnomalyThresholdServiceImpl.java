@@ -53,7 +53,7 @@ public class AnomalyThresholdServiceImpl implements AnomalyThresholdService {
     public static final int DEFAULT_MAX_SCANS_PER_DAY = 10;
     public static final BigDecimal DEFAULT_MAX_DISTANCE_KM = new BigDecimal("50.00");
     public static final int DEFAULT_MIN_TIME_BETWEEN_SCANS_MINUTES = 30;
-    public static final int DEFAULT_ACTIVATION_AGE_DAYS = 365;
+    public static final int DEFAULT_ACTIVATION_AGE_DAYS = 3;
 
     private final AnomalyThresholdRepository anomalyThresholdRepository;
     private final ProductCategoryRepository productCategoryRepository;

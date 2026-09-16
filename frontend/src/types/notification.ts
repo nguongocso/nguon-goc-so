@@ -6,7 +6,8 @@ export type NotificationType =
   | 'ACCOUNT_LOCKED'
   | 'ANOMALY_OPEN'
   | 'ANOMALY_DISMISSED'
-  | 'ACCOUNT_UNLOCKED';
+  | 'ACCOUNT_UNLOCKED'
+  | 'ACTIVITY_LOG_EXPORT_READY';
 
 export interface NotificationResponse {
   id: string;

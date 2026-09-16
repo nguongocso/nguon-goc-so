@@ -24,4 +24,7 @@ public class BatchDossierHistoryDto {
     private Long fileSize;
     private String status;
     private String ipAddress;
+
+    /** Mẫu hồ sơ đã áp dụng (NCL-07-CN-007), NULL nếu dùng mẫu mặc định hoặc bộ trường chuẩn */
+    private UUID templateId;
 }

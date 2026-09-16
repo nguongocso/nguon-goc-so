@@ -386,4 +386,52 @@ describe("NCL-05-CN-009 - HandoverDetailPage Xác nhận/Từ chối", () => {
       screen.queryByRole("button", { name: /Từ chối/ }),
     ).not.toBeInTheDocument();
   });
+
+  it("bấm Xem lô hàng điều hướng sang /shipments/:id kèm handoverId", async () => {
+    vi.mocked(handoverApi.getHandoverById).mockResolvedValue(
+      buildHandover() as never,
+    );
+
+    render(
+      <MemoryRouter initialEntries={[`/shipment-handovers/${handoverId}`]}>
+        <Routes>
+          <Route
+            path="/shipment-handovers/:id"
+            element={<HandoverDetailPage />}
+          />
+          <Route
+            path="/shipments/:id"
+            element={<div data-testid="shipment-page">Trang chi tiết lô hàng</div>}
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Phiếu bàn giao")).toBeInTheDocument();
+    const viewShipmentBtn = screen.getByRole("button", { name: "Xem lô hàng" });
+    await userEvent.click(viewShipmentBtn);
+
+    expect(await screen.findByTestId("shipment-page")).toBeInTheDocument();
+  });
+
+  it("Sidebar giữ active menu item 'Phiếu bàn giao nhận' cho VT-04 khi xem chi tiết lô hàng /shipments/:id", async () => {
+    mockRoleCode = "VT-04";
+    mockOrgId = toOrgId;
+
+    render(
+      <MemoryRouter initialEntries={[`/shipments/00000000-0000-0000-0000-001000000001`]}>
+        <Sidebar
+          collapsed={false}
+          setCollapsed={vi.fn()}
+          mobileOpen={false}
+          setMobileOpen={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    const menuLink = screen.getByRole("link", { name: /Phiếu bàn giao nhận/ });
+    expect(menuLink).toBeInTheDocument();
+    expect(menuLink.className).toContain("bg-emerald-700");
+    expect(menuLink.className).toContain("text-white");
+  });
 });

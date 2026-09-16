@@ -4,6 +4,11 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
 
 import vn.nguongocso.farm.entity.FarmArea;
 
@@ -30,4 +35,11 @@ public interface FarmAreaRepository extends JpaRepository<FarmArea, UUID> {
 	 * Tìm vùng trồng theo ID và ID tổ chức (đảm bảo Tenant Isolation).
 	 */
 	Optional<FarmArea> findByIdAndOrganization_OrganizationId(UUID id, UUID organizationId);
+
+	/**
+	 * Tìm và khóa vùng trồng để tuần tự hóa các yêu cầu cập nhật ranh giới đồng thời.
+	 */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select farmArea from FarmArea farmArea where farmArea.id = :id")
+	Optional<FarmArea> findByIdForBoundaryUpdate(@Param("id") UUID id);
 }

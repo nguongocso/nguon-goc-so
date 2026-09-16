@@ -1,5 +1,6 @@
 package vn.nguongocso.event.repository;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -207,7 +208,11 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
                 @Param("shipmentId") UUID shipmentId,
                 @Param("eventType") ChainEventType eventType);
 
-        /**
+        boolean existsByShipmentIdAndRecordedOrganizationId(UUID shipmentId, UUID recordedOrganizationId);
+
+        boolean existsByShipmentIdAndRecordedOrganizationIdAndEventType(
+                UUID shipmentId, UUID recordedOrganizationId, ChainEventType eventType);
+
         /**
          * Lấy danh sách ID lô hàng đã được tổ chức chỉ định ghi nhận các loại
          * sự kiện (không tính sự kiện đính chính). Dùng cho NCL-05-CN-008/CN-009
@@ -271,5 +276,78 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
                 """)
         List<ChainEvent> findHarvestEventsByLotIds(
                 @Param("lotIds") java.util.Collection<UUID> lotIds);
+
+        /**
+         * Đếm số sự kiện chuỗi (loại trừ đính chính) theo từng tổ chức sở hữu
+         * lô hàng trong khoảng thời gian (NCL-07-CN-008).
+         *
+         * @param from mốc bắt đầu khoảng thời gian
+         * @param to   mốc kết thúc khoảng thời gian
+         * @return danh sách [organizationId, số lượng]
+         */
+        @Query("""
+                SELECT s.organization.organizationId, COUNT(ce)
+                FROM ChainEvent ce
+                JOIN ce.shipment s
+                WHERE ce.isCorrection = false
+                  AND ce.createdAt BETWEEN :from AND :to
+                GROUP BY s.organization.organizationId
+                """)
+        List<Object[]> countEventsGroupedByShipmentOrg(
+                @Param("from") LocalDateTime from,
+                @Param("to") LocalDateTime to);
+
+        /**
+         * Đếm số sự kiện chuỗi chưa gắn lô hàng theo tổ chức đã ghi
+         * (NCL-07-CN-008). Bao phủ các sự kiện legacy lưu productionLotId
+         * trong eventData mà không có shipment.
+         *
+         * @param from mốc bắt đầu khoảng thời gian
+         * @param to   mốc kết thúc khoảng thời gian
+         * @return danh sách [recordedOrganizationId, số lượng]
+         */
+        @Query("""
+                SELECT ce.recordedOrganizationId, COUNT(ce)
+                FROM ChainEvent ce
+                WHERE ce.shipment IS NULL
+                  AND ce.recordedOrganizationId IS NOT NULL
+                  AND ce.isCorrection = false
+                  AND ce.createdAt BETWEEN :from AND :to
+                GROUP BY ce.recordedOrganizationId
+                """)
+        List<Object[]> countUnassignedEventsGroupedByRecordedOrg(
+                @Param("from") LocalDateTime from,
+                @Param("to") LocalDateTime to);
+
+        /**
+         * Lấy thời điểm ghi sự kiện mới nhất của từng tổ chức sở hữu lô hàng
+         * (NCL-07-CN-008, phục vụ tính lastActivityAt).
+         *
+         * @return danh sách [organizationId, createdAt lớn nhất]
+         */
+        @Query("""
+                SELECT s.organization.organizationId, MAX(ce.createdAt)
+                FROM ChainEvent ce
+                JOIN ce.shipment s
+                WHERE ce.isCorrection = false
+                GROUP BY s.organization.organizationId
+                """)
+        List<Object[]> maxEventCreatedAtGroupedByShipmentOrg();
+
+        /**
+         * Lấy thời điểm ghi sự kiện chưa gắn lô hàng mới nhất của từng tổ chức
+         * đã ghi (NCL-07-CN-008, phục vụ tính lastActivityAt).
+         *
+         * @return danh sách [recordedOrganizationId, createdAt lớn nhất]
+         */
+        @Query("""
+                SELECT ce.recordedOrganizationId, MAX(ce.createdAt)
+                FROM ChainEvent ce
+                WHERE ce.shipment IS NULL
+                  AND ce.recordedOrganizationId IS NOT NULL
+                  AND ce.isCorrection = false
+                GROUP BY ce.recordedOrganizationId
+                """)
+        List<Object[]> maxUnassignedEventCreatedAtGroupedByRecordedOrg();
 }
 
