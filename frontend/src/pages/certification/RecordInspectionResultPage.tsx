@@ -16,6 +16,7 @@ import {
     FileText,
     FileUp,
     Info,
+    Link as LinkIcon,
     LoaderCircle,
     RotateCw,
     Search,
@@ -51,6 +52,9 @@ import {
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {HelpButton} from "@/components/help/HelpButton";
+import {IssueInspectionResultLinkDialog} from "@/components/certification/IssueInspectionResultLinkDialog";
+import {getLatestInspectionResultEntryLink} from "@/api/inspectionResultPortalApi";
+import type {InspectionResultEntryLinkResponse} from "@/types/inspectionResultPortal";
 
 const toISODate = (date: Date): string => {
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -79,6 +83,8 @@ interface CriterionRowState {
     filePath: string;
     selectedFileName: string;
     uploading: boolean;
+    entrySource?: 'TESTING_UNIT_PORTAL' | 'COOPERATIVE_MANUAL' | null;
+    createdByName?: string | null;
 }
 
 type FilterTab = "ALL" | "UNSET" | "PASSED" | "FAILED";
@@ -95,6 +101,8 @@ export const RecordInspectionResultPage: React.FC = () => {
 
     const [detail, setDetail] = useState<InspectionRequestDetailResponse | null>(null);
     const [lot, setLot] = useState<ProductionLot | null>(null);
+    const [latestLink, setLatestLink] = useState<InspectionResultEntryLinkResponse | null>(null);
+    const [isIssueLinkOpen, setIsIssueLinkOpen] = useState(false);
 
     // ── Breadcrumb điều hướng thống nhất (thay nút "Quay lại") ────────────────
     useSetBreadcrumb([
@@ -149,8 +157,18 @@ export const RecordInspectionResultPage: React.FC = () => {
                 filePath: c.result?.filePath ?? "",
                 selectedFileName: c.result?.filePath ? c.result.filePath.split("/").pop() || "phiếu-kết-quả" : "",
                 uploading: false,
+                entrySource: c.result?.entrySource ?? null,
+                createdByName: c.result?.createdByName ?? null,
             }));
             setRows(initialRows);
+
+            // Tải thông tin liên kết kiểm nghiệm mới nhất (nếu đã từng cấp)
+            try {
+                const linkData = await getLatestInspectionResultEntryLink(requestId);
+                setLatestLink(linkData);
+            } catch {
+                setLatestLink(null);
+            }
 
             // Fetch lot info
             const effectiveLotId = routeLotId || requestData.lotId;
@@ -263,6 +281,13 @@ export const RecordInspectionResultPage: React.FC = () => {
 
     const handleFileUpload = async (criterionId: string, file: File | null) => {
         if (!file) return;
+
+        // Giới hạn 5MB và định dạng PDF/JPG/PNG theo đúng hợp đồng API
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error("Dung lượng tệp không được vượt quá 5MB.");
+            return;
+        }
+
         setRows((prev) =>
             prev.map((r) =>
                 r.criterionId === criterionId
@@ -521,7 +546,21 @@ export const RecordInspectionResultPage: React.FC = () => {
                     </div>
                 </div>
 
-                <HelpButton screenKey="inspection-result-record"/>
+                <div className="flex items-center gap-2">
+                    {!isReadOnly && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="border-emerald-300 text-emerald-700 hover:bg-emerald-50 font-medium"
+                            onClick={() => setIsIssueLinkOpen(true)}
+                        >
+                            <LinkIcon className="h-4 w-4 mr-1.5 text-emerald-600" />
+                            Cấp link cho đơn vị kiểm nghiệm
+                        </Button>
+                    )}
+                    <HelpButton screenKey="inspection-result-record"/>
+                </div>
             </div>
 
             {isReadOnly && (
@@ -632,6 +671,33 @@ export const RecordInspectionResultPage: React.FC = () => {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Banner hiển thị trạng thái liên kết nhập kết quả của đơn vị kiểm nghiệm (MAJOR 4) */}
+            {latestLink && (
+                <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2.5">
+                        <LinkIcon className="h-4 w-4 text-blue-600 shrink-0" />
+                        <div>
+                            <span className="font-semibold text-slate-900">Liên kết cổng kiểm nghiệm: </span>
+                            <span className="text-slate-600">
+                                Đã gửi tới <strong className="text-slate-800">{latestLink.recipientEmail}</strong> — Hết hạn: {new Date(latestLink.expiresAt).toLocaleString("vi-VN")}
+                            </span>
+                        </div>
+                    </div>
+                    <Badge variant="outline" className={
+                        latestLink.status === 'ACTIVE'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200 font-medium'
+                            : latestLink.status === 'USED'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 font-medium'
+                                : 'bg-slate-100 text-slate-600 border-slate-200 font-medium'
+                    }>
+                        {latestLink.status === 'ACTIVE' && 'Đang mở cổng (chưa nộp)'}
+                        {latestLink.status === 'USED' && 'Đã nộp kết quả qua cổng'}
+                        {latestLink.status === 'EXPIRED' && 'Đã hết hạn'}
+                        {latestLink.status === 'REVOKED' && 'Đã thu hồi'}
+                    </Badge>
+                </div>
+            )}
 
             {/* SECTION 2: Batch Actions Toolbar */}
             {!isReadOnly && (
@@ -857,6 +923,16 @@ export const RecordInspectionResultPage: React.FC = () => {
                                                                       title={r.standardName}>
                                     {r.standardName}
                                   </span>
+                                                            )}
+                                                            {r.entrySource === 'TESTING_UNIT_PORTAL' && (
+                                                                <Badge variant="outline" className="text-[10px] bg-teal-50 text-teal-700 border-teal-200 font-medium">
+                                                                    Đơn vị kiểm nghiệm khai
+                                                                </Badge>
+                                                            )}
+                                                            {r.entrySource === 'COOPERATIVE_MANUAL' && (
+                                                                <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-700 border-slate-200 font-medium">
+                                                                    HTX nhập{r.createdByName ? `: ${r.createdByName}` : ''}
+                                                                </Badge>
                                                             )}
                                                         </div>
                                                     </div>
@@ -1185,6 +1261,14 @@ export const RecordInspectionResultPage: React.FC = () => {
                     )}
                 </div>
             </div>
+            {detail && (
+                <IssueInspectionResultLinkDialog
+                    requestId={detail.testRequestId}
+                    testingUnitName={detail.testingUnit}
+                    isOpen={isIssueLinkOpen}
+                    onClose={() => setIsIssueLinkOpen(false)}
+                />
+            )}
         </div>
     );
 };

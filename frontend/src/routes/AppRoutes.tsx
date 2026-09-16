@@ -208,6 +208,9 @@ import { CodeRangeSupplementPage } from "@/pages/shipment/CodeRangeSupplementPag
 // ===== Area assignment (NCL-670 / NCL-742) =====
 import { AreaAssignmentPage } from "@/pages/admin/AreaAssignmentPage";
 
+// ===== Inspection result entry portal (NCL-11-CN-007) =====
+import { InspectionResultEntryPage } from "@/pages/public/InspectionResultEntryPage";
+
 // =====================================================
 // Constants
 // =====================================================
@@ -390,6 +393,12 @@ const AppRoutes = () => (
             element={<DataPortalDocsPage />}
         />
 
+
+        {/* NCL-11-CN-007: Cổng nhập kết quả dành cho đơn vị kiểm nghiệm */}
+        <Route
+            path="/inspection-result-entry/:token"
+            element={<InspectionResultEntryPage />}
+        />
 
         {/* =================================================
         PROTECTED ROUTES

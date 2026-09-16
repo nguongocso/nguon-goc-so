@@ -270,11 +270,30 @@ export const PublicInspectionSection: React.FC<PublicInspectionSectionProps> = (
                             <div className="font-medium text-gray-900">
                               {criterionNameDisplay}
                             </div>
-                            {item.laboratoryName && (
-                              <div className="text-xs text-gray-500 mt-0.5">
-                                {t('laboratory_label')} {item.laboratoryName}
-                              </div>
-                            )}
+                            <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                              {item.laboratoryName && (
+                                <span className="text-xs text-gray-500">
+                                  {t('laboratory_label')} {item.laboratoryName}
+                                </span>
+                              )}
+                              {item.entrySource === 'TESTING_UNIT_PORTAL' && (
+                                <span
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-cyan-50 text-cyan-700 border border-cyan-200"
+                                  title="Kết quả do chính đơn vị kiểm nghiệm nhập trực tiếp qua cổng liên kết số"
+                                >
+                                  <ShieldCheck className="h-3 w-3 text-cyan-600" />
+                                  Đơn vị kiểm nghiệm khai
+                                </span>
+                              )}
+                              {item.entrySource === 'COOPERATIVE_MANUAL' && (
+                                <span
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200"
+                                  title="Kết quả do Hợp tác xã nhập tay theo phiếu giấy"
+                                >
+                                  HTX nhập
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-gray-600">
                             {standardValueDisplay}
