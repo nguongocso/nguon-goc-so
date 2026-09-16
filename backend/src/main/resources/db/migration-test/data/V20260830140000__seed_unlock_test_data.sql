@@ -127,7 +127,8 @@ VALUES
 -- 5.1. 5 LOCKED codes locked by admin
 INSERT IGNORE INTO trace_codes
     (id, shipment_id, code_value, qr_image, status, activated_at, activated_by, created_at,
-     suspicion_score, suspicion_reason, locked_at, locked_by, lock_reason)
+     suspicion_score, high_frequency_score, impossible_travel_score, multiple_locations_score, evaluated_at,
+     suspicion_reason, locked_at, locked_by, lock_reason)
 SELECT
     CONCAT('00000000-0000-0000-0000-00000001000', t.idx),
     '00000000-0000-0000-0000-000000000083',
@@ -138,22 +139,27 @@ SELECT
     (SELECT user_id FROM users WHERE user_name = 'orgmanager' LIMIT 1),
     DATE_SUB(NOW(), INTERVAL 5 DAY),
     t.score,
+    t.hf_score,
+    t.it_score,
+    t.ml_score,
+    DATE_SUB(NOW(), INTERVAL 1 DAY),
     t.susp_reason,
     DATE_SUB(NOW(), INTERVAL 1 DAY),
     (SELECT user_id FROM users WHERE user_name = 'admin' LIMIT 1),
     t.lck_reason
 FROM (
-    SELECT 1 idx, 85 score, 'Quét 15 lượt trong 24h từ 5 vị trí địa lý khác nhau' susp_reason, 'Phát hiện quét bất thường đồng thời tại Hà Nội và Cần Thơ' lck_reason
-    UNION ALL SELECT 2, 90, 'Khoảng cách di chuyển bất khả thi >500km trong 15 phút', 'Nghi vấn tem bị sao chép hoặc in lậu tại nhiều đại lý'
-    UNION ALL SELECT 3, 75, 'Tần suất quét tăng đột biến vượt ngưỡng 20 lượt/ngày', 'Nhiều người tiêu dùng phản ánh quét mã ra cùng một vị trí lạ'
-    UNION ALL SELECT 4, 80, 'Quét đồng thời từ nhiều địa chỉ IP không xác định', 'Cảnh báo tự động từ hệ thống giám sát an ninh quét mã'
-    UNION ALL SELECT 5, 95, 'Mã tem bị quét lặp lại liên tục từ các thiết bị lạ', 'Phát hiện dấu hiệu gian lận tem nhãn tại chuỗi phân phối'
+    SELECT 1 idx, 100 score, 35 hf_score, 45 it_score, 20 ml_score, 'Quét 15 lượt trong 24h từ 5 vị trí địa lý khác nhau; Di chuyển bất khả thi' susp_reason, 'Phát hiện quét bất thường đồng thời tại Hà Nội và Cần Thơ' lck_reason
+    UNION ALL SELECT 2, 80, 35, 45, 0, 'Khoảng cách di chuyển bất khả thi >500km trong 15 phút; Tần suất cao', 'Nghi vấn tem bị sao chép hoặc in lậu tại nhiều đại lý'
+    UNION ALL SELECT 3, 65, 0, 45, 20, 'Di chuyển bất khả thi và quét từ nhiều vị trí', 'Nhiều người tiêu dùng phản ánh quét mã ra cùng một vị trí lạ'
+    UNION ALL SELECT 4, 80, 35, 45, 0, 'Quét đồng thời từ nhiều địa chỉ IP không xác định', 'Cảnh báo tự động từ hệ thống giám sát an ninh quét mã'
+    UNION ALL SELECT 5, 100, 35, 45, 20, 'Mã tem bị quét lặp lại liên tục từ các thiết bị lạ trên toàn quốc', 'Phát hiện dấu hiệu gian lận tem nhãn tại chuỗi phân phối'
 ) t;
 
 -- 5.2. 3 LOCKED codes locked by admin2
 INSERT IGNORE INTO trace_codes
     (id, shipment_id, code_value, qr_image, status, activated_at, activated_by, created_at,
-     suspicion_score, suspicion_reason, locked_at, locked_by, lock_reason)
+     suspicion_score, high_frequency_score, impossible_travel_score, multiple_locations_score, evaluated_at,
+     suspicion_reason, locked_at, locked_by, lock_reason)
 SELECT
     CONCAT('00000000-0000-0000-0000-00000002000', t.idx),
     '00000000-0000-0000-0000-000000000084',
@@ -164,14 +170,18 @@ SELECT
     (SELECT user_id FROM users WHERE user_name = 'orgmanager' LIMIT 1),
     DATE_SUB(NOW(), INTERVAL 7 DAY),
     t.score,
+    t.hf_score,
+    t.it_score,
+    t.ml_score,
+    DATE_SUB(NOW(), INTERVAL 2 DAY),
     t.susp_reason,
     DATE_SUB(NOW(), INTERVAL 2 DAY),
     '00000000-0000-0000-0000-000000000099',
     t.lck_reason
 FROM (
-    SELECT 1 idx, 80 score, 'Quét tại 4 thành phố khác nhau trong vòng 1 giờ' susp_reason, 'Khóa tạm thời chờ đối soát chứng từ xuất kho HTX' lck_reason
-    UNION ALL SELECT 2, 70, 'Tần suất quét cao từ mạng di động lạ', 'Khóa để xác minh nguồn gốc phân phối lô hàng'
-    UNION ALL SELECT 3, 85, 'Quét lặp lại 18 lượt tại khu vực chợ đầu mối', 'Khóa do nghi ngờ tem bị photocopy dán trên sản phẩm khác'
+    SELECT 1 idx, 80 score, 35 hf_score, 45 it_score, 0 ml_score, 'Quét tại 4 thành phố khác nhau trong vòng 1 giờ' susp_reason, 'Khóa tạm thời chờ đối soát chứng từ xuất kho HTX' lck_reason
+    UNION ALL SELECT 2, 65, 0, 45, 20, 'Tần suất quét và di chuyển bất thường', 'Khóa để xác minh nguồn gốc phân phối lô hàng'
+    UNION ALL SELECT 3, 55, 35, 0, 20, 'Quét lặp lại 18 lượt tại khu vực chợ đầu mối', 'Khóa do nghi ngờ tem bị photocopy dán trên sản phẩm khác'
 ) t;
 
 -- 5.3. 5 ACTIVE normal trace codes
@@ -244,7 +254,8 @@ FROM (
 -- 5.6. 5 SUSPECT trace codes (not yet locked)
 INSERT IGNORE INTO trace_codes
     (id, shipment_id, code_value, qr_image, status, activated_at, activated_by, created_at,
-     suspicion_score, suspicion_reason)
+     suspicion_score, high_frequency_score, impossible_travel_score, multiple_locations_score, evaluated_at,
+     suspicion_reason)
 SELECT
     CONCAT('00000000-0000-0000-0000-00000006000', t.idx),
     '00000000-0000-0000-0000-000000000083',
@@ -255,23 +266,27 @@ SELECT
     (SELECT user_id FROM users WHERE user_name = 'orgmanager' LIMIT 1),
     DATE_SUB(NOW(), INTERVAL 4 DAY),
     t.score,
+    t.hf_score,
+    t.it_score,
+    t.ml_score,
+    DATE_SUB(NOW(), INTERVAL 2 HOUR),
     t.susp_reason
 FROM (
-    SELECT 1 idx, 65 score, 'Quét bất thường từ 3 vị trí khác nhau trong 6 giờ' susp_reason
-    UNION ALL SELECT 2, 70, 'Số lượt quét vượt ngưỡng 15 lần trong 2 giờ'
-    UNION ALL SELECT 3, 60, 'Khoảng cách di chuyển không hợp lý giữa các lượt quét (>100km trong 45 phút)'
-    UNION ALL SELECT 4, 55, 'Tần suất quét tăng đột biến trong giờ cao điểm từ các IP lạ'
-    UNION ALL SELECT 5, 50, 'Quét từ nhiều thiết bị di động khác nhau trong thời gian ngắn'
+    SELECT 1 idx, 65 score, 0 hf_score, 45 it_score, 20 ml_score, 'Quét bất thường từ 3 vị trí khác nhau trong 6 giờ' susp_reason
+    UNION ALL SELECT 2, 80, 35, 45, 0, 'Số lượt quét vượt ngưỡng 15 lần trong 2 giờ; Di chuyển bất khả thi'
+    UNION ALL SELECT 3, 65, 0, 45, 20, 'Khoảng cách di chuyển không hợp lý giữa các lượt quét (>100km trong 45 phút)'
+    UNION ALL SELECT 4, 55, 35, 0, 20, 'Tần suất quét tăng đột biến trong giờ cao điểm từ các IP lạ'
+    UNION ALL SELECT 5, 100, 35, 45, 20, 'Quét từ nhiều thiết bị di động khác nhau trong thời gian ngắn với di chuyển bất khả thi'
 ) t;
 
--- 6. Seed Scan Logs for locked codes
+-- 6. Seed Scan Logs for locked codes and suspect codes
 INSERT IGNORE INTO trace_code_scan_logs
     (id, trace_code_id, scanned_at, ip_address, user_agent, latitude, longitude, location, is_abnormal, abnormal_reason)
 VALUES
 (
     UUID(),
     '00000000-0000-0000-0000-000000010001',
-    DATE_SUB(NOW(), INTERVAL 2 DAY),
+    DATE_SUB(NOW(), INTERVAL 2 HOUR),
     '113.190.234.12',
     'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148',
     21.0285110,
@@ -283,7 +298,7 @@ VALUES
 (
     UUID(),
     '00000000-0000-0000-0000-000000010001',
-    DATE_SUB(NOW(), INTERVAL 46 HOUR),
+    DATE_SUB(NOW(), INTERVAL 1 HOUR),
     '14.161.22.88',
     'Mozilla/5.0 (Linux; Android 14; SM-S918B) Mobile Safari/537.36',
     10.0452000,

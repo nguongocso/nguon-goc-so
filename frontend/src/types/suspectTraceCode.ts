@@ -1,3 +1,5 @@
+import type { AnomalyThresholdConfig } from './anomalyThreshold';
+
 export interface SuspectTraceCodeResponse {
   id: string;
   codeValue: string;
@@ -46,6 +48,9 @@ export interface SuspectTraceCodeDetailResponse
   extends SuspectTraceCodeResponse {
   scanLogs: ScanLogDetail[];
   anomalyDetails: AnomalyDetails;
+  evaluatedAt?: string | null;
+  effectiveThreshold?: AnomalyThresholdConfig | null;
+  productCategoryName?: string | null;
 }
 
 export interface LockTraceCodeRequest {

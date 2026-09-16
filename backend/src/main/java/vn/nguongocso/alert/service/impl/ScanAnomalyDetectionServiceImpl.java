@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +13,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
+import vn.nguongocso.alert.dto.response.AnomalyThresholdResponse;
 import vn.nguongocso.alert.entity.Alert;
 import vn.nguongocso.alert.entity.AlertDetails;
 import vn.nguongocso.alert.entity.ScanPoint;
@@ -19,7 +21,9 @@ import vn.nguongocso.alert.enums.AlertSeverity;
 import vn.nguongocso.alert.enums.AlertStatus;
 import vn.nguongocso.alert.enums.AlertType;
 import vn.nguongocso.alert.repository.AlertRepository;
+import vn.nguongocso.alert.service.AnomalyThresholdService;
 import vn.nguongocso.alert.service.ScanAnomalyDetectionService;
+import vn.nguongocso.alert.util.ScanAnomalyUtils;
 import vn.nguongocso.common.util.GeoDistanceUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.notification.service.NotificationService;
@@ -40,10 +44,9 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
  * </p>
  */
 @Service
-@RequiredArgsConstructor
 public class ScanAnomalyDetectionServiceImpl
         implements ScanAnomalyDetectionService {
-    private static final int DETECTION_WINDOW_MINUTES = 10; // Khoảng thời gian xét các lượt quét (phút)
+    private static final int DETECTION_WINDOW_MINUTES = 10; // Khoảng thời gian xét các lượt quét mặc định (phút)
     private static final double SAME_LOCATION_THRESHOLD_KM = 5.0; // Ngưỡng coi là cùng một vị trí (km)
     private static final int MIN_SCAN_COUNT = 3; // Số lượt quét tối thiểu để đánh giá
     private static final int MIN_DISTINCT_LOCATIONS = 2; // Số vị trí khác nhau tối thiểu để xác định bất thường
@@ -54,13 +57,59 @@ public class ScanAnomalyDetectionServiceImpl
     private final AlertRepository alertRepository;
     private final ObjectMapper objectMapper;
     private final TraceCodeRepository traceCodeRepository;
+    private final AnomalyThresholdService anomalyThresholdService;
+
+    public ScanAnomalyDetectionServiceImpl(
+            TraceCodeScanLogRepository traceCodeScanLogRepository,
+            NotificationService notificationService,
+            AlertRepository alertRepository,
+            ObjectMapper objectMapper,
+            TraceCodeRepository traceCodeRepository) {
+        this(traceCodeScanLogRepository, notificationService, alertRepository, objectMapper, traceCodeRepository, null);
+    }
+
+    @Autowired
+    public ScanAnomalyDetectionServiceImpl(
+            TraceCodeScanLogRepository traceCodeScanLogRepository,
+            NotificationService notificationService,
+            AlertRepository alertRepository,
+            ObjectMapper objectMapper,
+            TraceCodeRepository traceCodeRepository,
+            @Autowired(required = false) AnomalyThresholdService anomalyThresholdService) {
+        this.traceCodeScanLogRepository = traceCodeScanLogRepository;
+        this.notificationService = notificationService;
+        this.alertRepository = alertRepository;
+        this.objectMapper = objectMapper;
+        this.traceCodeRepository = traceCodeRepository;
+        this.anomalyThresholdService = anomalyThresholdService;
+    }
 
     /** Kiểm tra và xử lý khi phát sinh lượt quét mới. */
     @Override
     @Transactional
     public void onScanRecorded(UUID traceCodeId) {
+        TraceCode traceCode = traceCodeRepository.findById(traceCodeId).orElse(null);
+        if (traceCode == null) {
+            return;
+        }
 
-        List<TraceCodeScanLog> scanLogs = getRecentScanLogs(traceCodeId);
+        AnomalyThresholdResponse threshold = getEffectiveThreshold(traceCode);
+
+        // Gate: Grace period check (P1.1 / P1.4)
+        if (traceCode.getActivatedAt() != null) {
+            int gracePeriodDays = (threshold != null && threshold.getActivationAgeDays() != null)
+                    ? threshold.getActivationAgeDays()
+                    : AnomalyThresholdServiceImpl.DEFAULT_ACTIVATION_AGE_DAYS;
+            if (ScanAnomalyUtils.isWithinGracePeriod(traceCode.getActivatedAt(), LocalDateTime.now(), gracePeriodDays)) {
+                return;
+            }
+        }
+
+        int windowMinutes = (threshold != null && threshold.getMinTimeBetweenScansMinutes() != null)
+                ? threshold.getMinTimeBetweenScansMinutes()
+                : DETECTION_WINDOW_MINUTES;
+
+        List<TraceCodeScanLog> scanLogs = getRecentScanLogs(traceCodeId, windowMinutes);
 
         boolean anomaly = isAnomaly(scanLogs);
 
@@ -69,7 +118,7 @@ public class ScanAnomalyDetectionServiceImpl
         }
 
         // QTN-10: đánh dấu các lượt quét bất thường để báo cáo thống kê đọc được.
-        markScanLogsAbnormal(scanLogs);
+        markScanLogsAbnormal(scanLogs, windowMinutes);
 
         boolean existed = alertRepository
                 .existsByRelatedEntityIdAndTypeAndStatus(
@@ -81,7 +130,7 @@ public class ScanAnomalyDetectionServiceImpl
             return;
         }
 
-        Organization organization = getOrganizationFromTraceCode(traceCodeId);
+        Organization organization = getOrganizationFromTraceCode(traceCode);
 
         Alert alert = createAlert(
                 traceCodeId,
@@ -91,11 +140,21 @@ public class ScanAnomalyDetectionServiceImpl
         sendNotification(alert);
     }
 
-    /** Lấy các lượt quét gần nhất. */
-    private List<TraceCodeScanLog> getRecentScanLogs(UUID traceCodeId) {
+    private AnomalyThresholdResponse getEffectiveThreshold(TraceCode traceCode) {
+        if (anomalyThresholdService == null || traceCode == null) {
+            return null;
+        }
+        UUID categoryId = null;
+        if (traceCode.getShipment() != null && traceCode.getShipment().getProductionLot() != null
+                && traceCode.getShipment().getProductionLot().getProductCategory() != null) {
+            categoryId = traceCode.getShipment().getProductionLot().getProductCategory().getId();
+        }
+        return anomalyThresholdService.getEffectiveThreshold(categoryId);
+    }
 
-        LocalDateTime fromTime = LocalDateTime.now()
-                .minusMinutes(DETECTION_WINDOW_MINUTES);
+    /** Lấy các lượt quét gần nhất. */
+    private List<TraceCodeScanLog> getRecentScanLogs(UUID traceCodeId, int windowMinutes) {
+        LocalDateTime fromTime = LocalDateTime.now().minusMinutes(windowMinutes);
 
         return traceCodeScanLogRepository
                 .findByTraceCodeIdAndScannedAtGreaterThanEqualOrderByScannedAtDesc(
@@ -111,7 +170,7 @@ public class ScanAnomalyDetectionServiceImpl
      * không tạo cột/bảng mới.
      * </p>
      */
-    private void markScanLogsAbnormal(List<TraceCodeScanLog> scanLogs) {
+    private void markScanLogsAbnormal(List<TraceCodeScanLog> scanLogs, int windowMinutes) {
         int distinctLocations = countDistinctLocations(scanLogs);
 
         for (TraceCodeScanLog scanLog : scanLogs) {
@@ -119,7 +178,7 @@ public class ScanAnomalyDetectionServiceImpl
             scanLog.setAbnormalReason("Phát hiện quét bất thường: "
                     + scanLogs.size() + " lượt quét tại "
                     + distinctLocations + " vị trí khác nhau trong "
-                    + DETECTION_WINDOW_MINUTES + " phút.");
+                    + windowMinutes + " phút.");
         }
 
         traceCodeScanLogRepository.saveAll(scanLogs);
@@ -237,10 +296,11 @@ public class ScanAnomalyDetectionServiceImpl
     }
 
     /** Lấy tổ chức từ trace code. */
-    private Organization getOrganizationFromTraceCode(UUID traceCodeId) {
-        TraceCode traceCode = traceCodeRepository.findById(traceCodeId)
-                .orElseThrow(() -> new BusinessException("Không tìm thấy mã truy xuất."));
-        return traceCode.getShipment().getOrganization();
+    private Organization getOrganizationFromTraceCode(TraceCode traceCode) {
+        if (traceCode != null && traceCode.getShipment() != null) {
+            return traceCode.getShipment().getOrganization();
+        }
+        return null;
     }
 
     /** Tạo cảnh báo. */
