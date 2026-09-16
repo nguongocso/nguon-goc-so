@@ -187,3 +187,10 @@ Tiến trình `InspectionExpiryScheduler` quét định kỳ (mặc định 00:0
 - `backend/src/main/java/vn/nguongocso/alert/enums/AlertType.java`
 - `backend/src/main/java/vn/nguongocso/certification/service/InspectionEligibilityService.java`
 
+## 11. Nguồn nhập kết quả và cổng đơn vị kiểm nghiệm (NCL-11-CN-007)
+
+- `InspectionCriterionResultResponse` bổ sung `entrySource`: `COOPERATIVE_MANUAL` hoặc `TESTING_UNIT_PORTAL`.
+- `createdByName` có thể null đối với kết quả do public actor nhập qua portal.
+- Mutation qua API manual hiện hữu gắn nguồn `COOPERATIVE_MANUAL` và thu hồi link portal đang `ACTIVE` của cùng request.
+- Public submit dùng chung validation batch, chốt trạng thái và quét cảnh báo hiệu lực với luồng manual; không tạo nhánh QTN-21 riêng.
+- Contract đầy đủ: [inspection-result-entry-portal.md](inspection-result-entry-portal.md).

@@ -158,3 +158,10 @@ Tao request va ghi/cap nhat/xoa ket qua deu phat hanh activity log voi actor, or
 - `backend/src/main/java/vn/nguongocso/certification/dto/request/CreateInspectionRequest.java`
 - `backend/src/main/java/vn/nguongocso/certification/dto/response/ProductionLotTestCriteriaResponse.java`
 - `backend/src/test/java/vn/nguongocso/certification/service/InspectionRequestServiceImplTest.java`
+
+## 7. Cổng nhập kết quả của đơn vị kiểm nghiệm (NCL-11-CN-007)
+
+- Chỉ `VT-02` được cấp/cấp lại link cho request thuộc organization hiện tại.
+- Request phải ở `PENDING_RESULT` và có `testingUnitId`; request legacy chỉ có tên đơn vị tự do không được cấp link.
+- Link mới thu hồi link `ACTIVE` cũ nhưng không bổ sung trạng thái mới vào `InspectionRequestStatus`.
+- Contract chi tiết: [inspection-result-entry-portal.md](inspection-result-entry-portal.md).
