@@ -46,8 +46,11 @@ import vn.nguongocso.certification.repository.CategoryCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
+import vn.nguongocso.certification.repository.InspectionResultEntryLinkRepository;
 import vn.nguongocso.certification.service.InspectionCriterionResultService;
 import vn.nguongocso.certification.service.InspectionExpiryService;
+import vn.nguongocso.certification.service.InspectionResultEntryLinkService;
+import vn.nguongocso.certification.service.InspectionResultPortalFileStorageService;
 import vn.nguongocso.certification.service.impl.InspectionCriterionResultServiceImpl;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.ProductCategory;
@@ -99,6 +102,15 @@ class InspectionCriterionResultServiceImplTest {
 
     @Mock
     private InspectionExpiryService inspectionExpiryService;
+
+    @Mock
+    private InspectionResultEntryLinkService linkService;
+
+    @Mock
+    private InspectionResultEntryLinkRepository linkRepository;
+
+    @Mock
+    private InspectionResultPortalFileStorageService portalFileStorageService;
 
     @InjectMocks
     private InspectionCriterionResultServiceImpl service;
