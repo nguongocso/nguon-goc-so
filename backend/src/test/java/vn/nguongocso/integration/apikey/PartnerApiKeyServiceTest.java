@@ -324,7 +324,7 @@ class PartnerApiKeyServiceTest {
     }
 
     @Test
-    @DisplayName("NCL-12-CN-005-TC-09: Nâng hạn mức từ 100 lên 200 thành công")
+    @DisplayName("NCL-12-CN-005-TC-09: Nâng hạn mức cộng thêm 100 vào 100 thành 200")
     void testUpdateQuota_Success() {
         setupSecurityContext();
         UUID keyId = UUID.randomUUID();
@@ -339,17 +339,17 @@ class PartnerApiKeyServiceTest {
                 .status(PartnerApiKeyStatus.ACTIVE)
                 .build();
 
-        when(partnerApiKeyRepository.findByIdAndOrganizationId(keyId, orgId)).thenReturn(Optional.of(existingKey));
+        when(partnerApiKeyRepository.findByIdAndOrganizationIdForUpdate(keyId, orgId)).thenReturn(Optional.of(existingKey));
         when(partnerApiKeyRepository.save(any(PartnerApiKey.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        UpdateApiKeyQuotaRequest request = UpdateApiKeyQuotaRequest.builder().rateLimitPerHour(200).build();
+        UpdateApiKeyQuotaRequest request = UpdateApiKeyQuotaRequest.builder().incrementBy(100).build();
         PartnerApiKeyResponse response = partnerApiKeyService.updateApiKeyQuota(keyId, request);
         assertEquals(200, response.getRateLimitPerHour());
     }
 
     @Test
-    @DisplayName("NCL-12-CN-005-TC-10: Nâng hạn mức giữ nguyên bị từ chối")
-    void testUpdateQuota_SameValue_ThrowsException() {
+    @DisplayName("NCL-12-CN-005-TC-10: Số lượt cộng thêm bằng 0 bị từ chối")
+    void testUpdateQuota_ZeroIncrement_ThrowsException() {
         setupSecurityContext();
         UUID keyId = UUID.randomUUID();
         PartnerApiKey existingKey = PartnerApiKey.builder()
@@ -363,8 +363,8 @@ class PartnerApiKeyServiceTest {
                 .status(PartnerApiKeyStatus.ACTIVE)
                 .build();
 
-        when(partnerApiKeyRepository.findByIdAndOrganizationId(keyId, orgId)).thenReturn(Optional.of(existingKey));
-        UpdateApiKeyQuotaRequest request = UpdateApiKeyQuotaRequest.builder().rateLimitPerHour(100).build();
+        when(partnerApiKeyRepository.findByIdAndOrganizationIdForUpdate(keyId, orgId)).thenReturn(Optional.of(existingKey));
+        UpdateApiKeyQuotaRequest request = UpdateApiKeyQuotaRequest.builder().incrementBy(0).build();
         assertThrows(BusinessException.class, () -> partnerApiKeyService.updateApiKeyQuota(keyId, request));
     }
 

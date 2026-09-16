@@ -354,7 +354,9 @@ public class PartnerApiKeyService {
     /**
      * Nâng hạn mức khóa truy cập (NCL-12-CN-005).
      * <p>
-     * Chỉ chấp nhận giá trị mới lớn hơn giá trị hiện tại. REVOKED không thể nâng hạn mức.
+     * Hạn mức mới = hạn mức hiện tại + số lượt cộng thêm ({@code incrementBy}).
+     * Dùng khóa ghi bi quan để nhiều yêu cầu nâng đồng thời không ghi đè lẫn nhau.
+     * REVOKED không thể nâng hạn mức.
      */
     @Transactional
     public PartnerApiKeyResponse updateApiKeyQuota(UUID apiKeyId, UpdateApiKeyQuotaRequest request) {
@@ -362,7 +364,7 @@ public class PartnerApiKeyService {
         UUID organizationId = currentUser.getOrganizationId();
         UUID userId = currentUser.getUserId();
 
-        PartnerApiKey apiKey = partnerApiKeyRepository.findByIdAndOrganizationId(apiKeyId, organizationId)
+        PartnerApiKey apiKey = partnerApiKeyRepository.findByIdAndOrganizationIdForUpdate(apiKeyId, organizationId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy khóa truy cập trong tổ chức"));
 
         if (apiKey.getStatus() == PartnerApiKeyStatus.REVOKED) {
@@ -373,27 +375,25 @@ public class PartnerApiKeyService {
             throw new BusinessException("Khóa truy cập chưa có hạn mức");
         }
 
-        if (request.getRateLimitPerHour() == null || request.getRateLimitPerHour() <= 0) {
-            throw new BusinessException("Hạn mức mới phải lớn hơn 0");
-        }
-
-        if (request.getRateLimitPerHour() <= apiKey.getRateLimitPerHour()) {
-            throw new BusinessException("Hạn mức mới phải lớn hơn hạn mức hiện tại");
+        if (request.getIncrementBy() == null || request.getIncrementBy() <= 0) {
+            throw new BusinessException("Số lượt cộng thêm phải lớn hơn 0");
         }
 
         Integer previousRateLimit = apiKey.getRateLimitPerHour();
-        apiKey.setRateLimitPerHour(request.getRateLimitPerHour());
+        Integer newRateLimit = previousRateLimit + request.getIncrementBy();
+        apiKey.setRateLimitPerHour(newRateLimit);
 
         PartnerApiKey updatedKey = partnerApiKeyRepository.save(apiKey);
-        log.info("Đã nâng hạn mức khóa truy cập id={}, partnerName={}, orgId={}, oldLimit={}, newLimit={}",
+        log.info("Đã nâng hạn mức khóa truy cập id={}, partnerName={}, orgId={}, oldLimit={}, incrementBy={}, newLimit={}",
                 apiKeyId, updatedKey.getPartnerName(), organizationId, previousRateLimit,
-                request.getRateLimitPerHour());
+                request.getIncrementBy(), newRateLimit);
 
         // Ghi nhật ký hoạt động (TASK-27)
         publishActivityLog(currentUser, "UPDATE_API_KEY_QUOTA",
                 "Nâng hạn mức khóa truy cập của đối tác '" + updatedKey.getPartnerName()
                         + "' (mã khóa " + updatedKey.getKeyPrefix() + "...), từ "
-                        + previousRateLimit + " lên " + request.getRateLimitPerHour(),
+                        + previousRateLimit + " lên " + newRateLimit
+                        + " (cộng thêm " + request.getIncrementBy() + ")",
                 "PARTNER_API_KEY", updatedKey.getId().toString());
 
         return mapToResponse(updatedKey);

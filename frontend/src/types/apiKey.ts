@@ -50,8 +50,11 @@ export interface RenewApiKeyRequest {
   expiresAt: string;
 }
 
+/**
+ * Nâng hạn mức: hạn mức mới = hạn mức hiện tại + incrementBy (số lượt cộng thêm).
+ */
 export interface UpdateApiKeyQuotaRequest {
-  rateLimitPerHour: number;
+  incrementBy: number;
 }
 
 export interface ApiKeyPageResponse {

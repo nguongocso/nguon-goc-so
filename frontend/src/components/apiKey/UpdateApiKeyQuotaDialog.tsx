@@ -28,24 +28,24 @@ export const UpdateApiKeyQuotaDialog: React.FC<UpdateApiKeyQuotaDialogProps> = (
   onSuccess,
 }) => {
   const [loading, setLoading] = useState(false);
-  const [newQuota, setNewQuota] = useState<number | string>('');
+  const [incrementBy, setIncrementBy] = useState<number | string>('');
 
   if (!apiKeyData) return null;
 
+  const currentQuota = apiKeyData.rateLimitPerHour || 0;
+  const incrementValue = Number(incrementBy);
+  const hasValidIncrement = incrementBy !== '' && !isNaN(incrementValue) && incrementValue > 0;
+  const previewQuota = hasValidIncrement ? currentQuota + incrementValue : currentQuota;
+
   const handleUpdate = async () => {
     try {
-      const value = Number(newQuota);
-      if (!newQuota || isNaN(value) || value <= 0) {
-        toast.error('Hạn mức mới phải lớn hơn 0');
-        return;
-      }
-      if (value <= (apiKeyData.rateLimitPerHour || 0)) {
-        toast.error('Hạn mức mới phải lớn hơn hạn mức hiện tại');
+      if (!hasValidIncrement) {
+        toast.error('Số lượt cộng thêm phải lớn hơn 0');
         return;
       }
       setLoading(true);
-      const updatedKey = await updateApiKeyQuota(apiKeyData.id, { rateLimitPerHour: value } as UpdateApiKeyQuotaRequest);
-      toast.success(`Đã nâng hạn mức cho khóa của "${apiKeyData.partnerName}" thành công!`);
+      const updatedKey = await updateApiKeyQuota(apiKeyData.id, { incrementBy: incrementValue } as UpdateApiKeyQuotaRequest);
+      toast.success(`Đã nâng hạn mức cho khóa của "${apiKeyData.partnerName}" lên ${updatedKey.rateLimitPerHour} lượt/giờ!`);
       onSuccess(updatedKey);
       onClose();
     } catch (error: any) {
@@ -73,17 +73,23 @@ export const UpdateApiKeyQuotaDialog: React.FC<UpdateApiKeyQuotaDialogProps> = (
 
         <div className="mt-3">
           <label htmlFor="update-quota" className="block text-sm font-medium mb-1">
-            Hạn mức mới (lượt/giờ)
+            Số lượt cộng thêm (lượt/giờ)
           </label>
           <input
             id="update-quota"
             type="number"
             min={1}
             className="w-full border rounded-md px-3 py-2 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-            value={newQuota}
-            onChange={(e) => setNewQuota(e.target.value)}
-            placeholder={`${(apiKeyData.rateLimitPerHour || 0) + 1}`}
+            value={incrementBy}
+            onChange={(e) => setIncrementBy(e.target.value)}
+            placeholder="Ví dụ: 50"
           />
+          <p className="mt-2 text-sm text-muted-foreground">
+            Hạn mức sau nâng: <strong className="text-foreground">{previewQuota} lượt/giờ</strong>
+            {hasValidIncrement && (
+              <span> ({currentQuota} + {incrementValue})</span>
+            )}
+          </p>
         </div>
 
         <AlertDialogFooter className="mt-4">

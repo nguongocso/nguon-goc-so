@@ -186,6 +186,8 @@ Ví dụ item cảnh báo hạn mức:
 
 ### PATCH /api/v1/organization/api-keys/{id}/quota
 
-- Body: `{"rateLimitPerHour":200}`
-- `rateLimitPerHour` phải `> 0` và `> current`
+- Body: `{"incrementBy":100}` (số lượt cộng thêm)
+- Hạn mức mới = hạn mức hiện tại + `incrementBy` (ví dụ: đang 100, cộng thêm 100 → 200)
+- `incrementBy` phải `> 0`
+- Cộng dồn trong transaction kèm khóa ghi bi quan nên nhiều yêu cầu nâng đồng thời không ghi đè lẫn nhau
 - Revoked → từ chối

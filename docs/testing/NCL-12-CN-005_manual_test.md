@@ -72,8 +72,8 @@ RAW KEY (gửi header `X-API-KEY` khi gọi cổng đối tác):
 | TC-13 | Gia hạn khóa ACTIVE thành công | `managerA` → `/integration/api-keys` → bấm **Gia hạn** trên TC-01 → nhập ngày mới +30 ngày → Xác nhận | Status vẫn `ACTIVE`; `expiresAt` cập nhật; `/alerts` không còn mục `API_KEY_EXPIRING` cho khóa đó |
 | TC-14 | Gia hạn khóa EXPIRED thành ACTIVE | Cập nhật TC-01 về `EXPIRED` (qua DB hoặc chờ hết hạn) → bấm **Gia hạn** → nhập ngày mới | Status chuyển từ `EXPIRED` → `ACTIVE`; `/alerts` không còn mục hết hạn |
 | TC-15 | Gia hạn khóa REVOKED bị từ chối | Bấm **Gia hạn** trên TC-03 (`REVOKED`) | Hiển thị lỗi; status không đổi; không tạo hành động |
-| TC-16 | Nâng hạn mức từ 100 → 200 | Bấm **Nâng hạn mức** trên TC-01 → nhập `200` → Xác nhận | `rateLimitPerHour` = 200; `/alerts` không còn mục `API_KEY_QUOTA_WARNING` nếu trước đó có |
-| TC-17 | Nâng hạn mức giữ nguyên (100 → 100) bị từ chối | Nhập `100` khi current = 100 | Hiển thị lỗi "phải lớn hơn hạn mức hiện tại" |
+| TC-16 | Nâng hạn mức cộng thêm 100 (100 → 200) | Bấm **Nâng hạn mức** trên TC-01 → nhập `100` → Xác nhận (xem trước "Hạn mức sau nâng: 200") | `rateLimitPerHour` = 200; `/alerts` không còn mục `API_KEY_QUOTA_WARNING` nếu trước đó có |
+| TC-17 | Số cộng thêm bằng 0 bị từ chối | Nhập `0` | Hiển thị lỗi "Số lượt cộng thêm phải lớn hơn 0" |
 | TC-18 | Cảnh báo hạn mức tính theo giờ | Gọi TC-02 đúng 8 lượt thành công trong cùng giờ đồng hồ (`14:xx`) | Badge "Sắp chạm hạn mức" hiển thị với `currentHourCalls`; `/alerts` có `API_KEY_QUOTA_WARNING` |
 | TC-19 | 429 không tính vào usage giờ | Gọi TC-02 11 lượt (vượt rateLimit 10) → 11 = 429 | `currentHourCalls` vẫn = 10; không tạo thêm cảnh báo; HTTP 429 đúng |
 | TC-20 | Notification → mở đúng khóa + đúng hành động | Bấm thông báo `API_KEY_EXPIRING` hoặc `API_KEY_QUOTA_WARNING` từ chuông | Chuyển tới `/integration/api-keys?keyId=<id>&action=renew` hoặc `...action=quota`; không mở danh sách chung |

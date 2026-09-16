@@ -126,6 +126,8 @@ public class PartnerApiKeyController {
     /**
      * Nâng hạn mức (NCL-12-CN-005).
      * <p>
+     * Hạn mức mới = hạn mức hiện tại + {@code incrementBy} (số lượt cộng thêm, phải lớn hơn 0).
+     * <p>
      * PATCH /api/v1/organization/api-keys/{id}/quota
      */
     @PatchMapping("/{id}/quota")

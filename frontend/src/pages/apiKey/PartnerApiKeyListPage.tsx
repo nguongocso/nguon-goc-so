@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Key, PlusCircle, ShieldCheck, Ban, FlaskConical, BookOpen } from 'lucide-react';
+import { Key, PlusCircle, ShieldCheck, Ban, FlaskConical, BookOpen, CalendarPlus, TrendingUp } from 'lucide-react';
 import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -258,115 +258,123 @@ export const PartnerApiKeyListPage: React.FC = () => {
               <TableHead className="text-center">Hạn mức (lượt/h)</TableHead>
               <TableHead className="text-center">Lượt gọi hôm nay</TableHead>
               <TableHead className="text-center">Lượt gọi (Tổng / Lỗi)</TableHead>
-              <TableHead>Thời hạn hết hạn</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              {canManage && <TableHead className="text-center">Thao tác</TableHead>}
+              <TableHead className="whitespace-nowrap">Thời hạn hết hạn</TableHead>
+              <TableHead className="whitespace-nowrap">Trạng thái</TableHead>
+              {canManage && <TableHead className="text-center align-middle whitespace-nowrap min-w-[144px]">Thao tác</TableHead>}
             </>
           }
           body={
             filteredKeys.map((item, index) => (
-                    <TableRow key={item.id} className="hover:bg-muted/40 transition-colors">
-                      <TableCell className="text-center font-medium text-muted-foreground">
+                    <TableRow key={item.id} className="hover:bg-muted/40 transition-colors align-middle">
+                      <TableCell className="text-center align-middle font-medium text-muted-foreground">
                         {page * pageSize + index + 1}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
+                      <TableCell className="align-middle">
+                        <div className="flex items-center gap-2 leading-tight">
                           <span className="font-semibold text-foreground">{item.partnerName}</span>
                           {(item.isTest || item.is_test) && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-200 dark:border-blue-800 whitespace-nowrap">
                               <FlaskConical className="w-3 h-3" />
                               Thử nghiệm
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
+                        <div className="text-xs text-muted-foreground mt-0.5 leading-tight">
                           Tạo bởi: {item.createdByFullName || 'Hệ thống'} • {new Date(item.createdAt).toLocaleDateString('vi-VN')}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <code className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded font-mono text-xs border">
+                      <TableCell className="align-middle">
+                        <code className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded font-mono text-xs border whitespace-nowrap">
                           {item.keyPrefix}
                         </code>
                       </TableCell>
-                      <TableCell className="text-center font-medium">
-                        <span className="px-2 py-0.5 rounded bg-muted text-foreground text-xs font-semibold">
+                      <TableCell className="text-center align-middle font-medium">
+                        <span className="inline-block px-2 py-0.5 rounded bg-muted text-foreground text-xs font-semibold whitespace-nowrap leading-tight">
                           {item.rateLimitPerHour} /h
                         </span>
                       </TableCell>
-                      <TableCell>
-                        <div className="text-sm font-medium text-foreground">{item.currentHourCalls ?? 0} <span className="text-muted-foreground">lượt</span></div>
-                        {/* Badge cảnh báo hạn mức theo giờ (NCL-12-CN-005) */}
-                        {item.quotaWarningThreshold != null && item.quotaWarningThreshold > 0 && (item.currentHourCalls ?? 0) >= item.quotaWarningThreshold && (
-                          <div className="mt-0.5">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                              Sắp chạm hạn mức
-                            </span>
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="text-sm font-medium">{item.usedCallsToday ?? 0}</div>
-                        <div className="text-[10px] text-muted-foreground">hôm nay</div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="text-sm font-medium">
-                          {item.totalCalls} <span className="text-muted-foreground">lượt</span>
+                      <TableCell className="text-center align-middle">
+                        <div className="flex flex-col items-center gap-0.5 leading-tight">
+                          <div className="text-sm font-medium whitespace-nowrap">{item.usedCallsToday ?? 0} <span className="text-muted-foreground">hôm nay</span></div>
+                          <div className="text-[11px] text-muted-foreground whitespace-nowrap">{item.currentHourCalls ?? 0} lượt giờ này</div>
+                          {/* Badge cảnh báo hạn mức theo giờ (NCL-12-CN-005) */}
+                          {item.quotaWarningThreshold != null && item.quotaWarningThreshold > 0 && (item.currentHourCalls ?? 0) >= item.quotaWarningThreshold && (
+                            <div className="mt-0.5 leading-tight">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800 whitespace-nowrap">
+                                Sắp chạm hạn mức
+                              </span>
+                            </div>
+                          )}
                         </div>
-                        {item.failedCalls > 0 && (
-                          <div className="text-xs text-rose-500 font-medium">
-                            {item.failedCalls} lỗi
-                          </div>
-                        )}
                       </TableCell>
-                      <TableCell>
-                        <div className="text-xs space-y-0.5">
-                          <div className="font-medium text-foreground">
+                      <TableCell className="text-center align-middle">
+                        <div className="flex flex-col items-center gap-0.5 leading-tight">
+                          <div className="text-sm font-medium whitespace-nowrap">
+                            {item.totalCalls} <span className="text-muted-foreground">lượt</span>
+                          </div>
+                          {item.failedCalls > 0 && (
+                            <div className="text-xs text-rose-500 font-medium whitespace-nowrap">
+                              {item.failedCalls} lỗi
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        <div className="flex flex-col gap-0.5 text-xs leading-tight">
+                          <div className="font-medium text-foreground whitespace-nowrap">
                             {new Date(item.expiresAt).toLocaleDateString('vi-VN')}
                           </div>
-                          <div className="text-muted-foreground">
+                          <div className="text-muted-foreground whitespace-nowrap">
                             {new Date(item.expiresAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="align-middle">
                         <ApiKeyStatusBadge status={item.status} />
                       </TableCell>
                       {canManage && (
-                        <TableCell className="text-center">
+                        <TableCell className="text-center align-middle">
                           {item.status === 'ACTIVE' || item.status === 'EXPIRED' ? (
-                            <div className="flex items-center justify-center gap-1">
+                            <div className="flex items-center justify-center gap-2">
                               <Button
                                 variant="outline"
-                                size="sm"
+                                size="icon-sm"
                                 onClick={() => setRenewKeyTarget(item)}
                                 title="Gia hạn"
-                                className="h-8 px-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                                aria-label="Gia hạn khóa API"
+                                className="size-8 shrink-0 rounded-full border-amber-300 bg-white text-amber-700 hover:text-amber-700 hover:bg-amber-50 dark:bg-transparent dark:hover:bg-amber-950/30 inline-flex items-center justify-center"
                               >
-                                Gia hạn
+                                <CalendarPlus className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="outline"
-                                size="sm"
+                                size="icon-sm"
                                 onClick={() => setQuotaKeyTarget(item)}
                                 title="Nâng hạn mức"
-                                className="h-8 px-2 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                                aria-label="Nâng hạn mức khóa API"
+                                className="size-8 shrink-0 rounded-full border-emerald-300 bg-white text-emerald-700 hover:text-emerald-700 hover:bg-emerald-50 dark:bg-transparent dark:hover:bg-emerald-950/30 inline-flex items-center justify-center"
                               >
-                                Nâng hạn mức
+                                <TrendingUp className="h-4 w-4" />
                               </Button>
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="icon-sm"
                                 onClick={() => setRevokeKeyTarget(item)}
                                 title="Thu hồi"
-                                className="text-destructive hover:text-destructive hover:bg-muted"
+                                aria-label="Thu hồi khóa API"
+                                className="size-8 shrink-0 rounded-full border-destructive/50 bg-white text-destructive hover:text-destructive hover:bg-destructive/10 dark:bg-transparent inline-flex items-center justify-center"
                               >
                                 <Ban className="h-4 w-4" />
                               </Button>
                             </div>
                           ) : item.status === 'REVOKED' ? (
-                            <span className="text-xs text-muted-foreground italic">Đã thu hồi</span>
+                            <div className="flex min-h-8 items-center justify-center">
+                              <span className="text-xs text-muted-foreground italic whitespace-nowrap">Đã thu hồi</span>
+                            </div>
                           ) : (
-                            <span className="text-xs text-muted-foreground italic">Không có thao tác</span>
+                            <div className="flex min-h-8 items-center justify-center">
+                              <span className="text-xs text-muted-foreground italic whitespace-nowrap">Không có thao tác</span>
+                            </div>
                           )}
                         </TableCell>
                       )}
