@@ -267,7 +267,6 @@ class PartnerApiKeyServiceTest {
 
         when(partnerApiKeyRepository.findByIdAndOrganizationId(keyId, orgId)).thenReturn(Optional.of(existingKey));
         when(partnerApiKeyRepository.save(any(PartnerApiKey.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         RenewApiKeyRequest request = RenewApiKeyRequest.builder().expiresAt(LocalDateTime.now().plusDays(60)).build();
         PartnerApiKeyResponse response = partnerApiKeyService.renewApiKey(keyId, request);
@@ -293,7 +292,6 @@ class PartnerApiKeyServiceTest {
 
         when(partnerApiKeyRepository.findByIdAndOrganizationId(keyId, orgId)).thenReturn(Optional.of(existingKey));
         when(partnerApiKeyRepository.save(any(PartnerApiKey.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         RenewApiKeyRequest request = RenewApiKeyRequest.builder().expiresAt(LocalDateTime.now().plusDays(30)).build();
         PartnerApiKeyResponse response = partnerApiKeyService.renewApiKey(keyId, request);
@@ -337,7 +335,6 @@ class PartnerApiKeyServiceTest {
 
         when(partnerApiKeyRepository.findByIdAndOrganizationId(keyId, orgId)).thenReturn(Optional.of(existingKey));
         when(partnerApiKeyRepository.save(any(PartnerApiKey.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
         UpdateApiKeyQuotaRequest request = UpdateApiKeyQuotaRequest.builder().rateLimitPerHour(200).build();
         PartnerApiKeyResponse response = partnerApiKeyService.updateApiKeyQuota(keyId, request);
