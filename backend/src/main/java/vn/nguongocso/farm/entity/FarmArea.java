@@ -8,6 +8,7 @@ import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -49,8 +50,17 @@ public class FarmArea {
 	@Column(name = "location", columnDefinition = "POINT")
 	private Point location;
 
+	@Column(name = "boundary", columnDefinition = "POLYGON")
+	private Polygon boundary;
+
 	@Column(name = "area", nullable = false)
 	private BigDecimal area;
+
+	@Column(name = "calculated_area", precision = 10, scale = 4)
+	private BigDecimal calculatedArea;
+
+	@Column(name = "boundary_updated_at")
+	private LocalDateTime boundaryUpdatedAt;
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "area_unit", nullable = false)

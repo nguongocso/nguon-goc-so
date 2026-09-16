@@ -67,6 +67,21 @@ public class TraceCode {
     @Column(name = "suspicion_score")
     private Integer suspicionScore;
 
+    @Column(name = "high_frequency_score")
+    private Integer highFrequencyScore;
+
+    @Column(name = "impossible_travel_score")
+    private Integer impossibleTravelScore;
+
+    @Column(name = "multiple_locations_score")
+    private Integer multipleLocationsScore;
+
+    @Column(name = "evaluated_at")
+    private LocalDateTime evaluatedAt;
+
+    @Column(name = "violating_scan_log_ids", columnDefinition = "TEXT")
+    private String violatingScanLogIds;
+
     @Column(name = "suspicion_reason", columnDefinition = "TEXT")
     private String suspicionReason;
 

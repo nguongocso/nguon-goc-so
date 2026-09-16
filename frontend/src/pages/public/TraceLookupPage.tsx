@@ -266,6 +266,8 @@ function TraceLookupContent() {
       event.latitude !== null &&
       event.longitude !== null
   );
+  const hasFarmBoundary = (data.farmAreaBoundary?.points?.length ?? 0) >= 3;
+  const hasMapData = hasLocationData || hasFarmBoundary;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -372,21 +374,21 @@ function TraceLookupContent() {
         <div className="overflow-hidden rounded-xl bg-white shadow-sm">
           <Tabs
             defaultValue={
-              hasLocationData ? 'map' : 'list'
+              hasMapData ? 'map' : 'list'
             }
             className="w-full"
           >
             <TabsList className="h-auto w-full justify-start rounded-none border-b bg-gray-50/50 p-0">
               <TabsTrigger
                 value="map"
-                disabled={!hasLocationData}
+                disabled={!hasMapData}
                 className="flex items-center gap-2 rounded-none px-4 py-3 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:bg-transparent"
               >
                 <MapPin className="h-4 w-4" />
 
                 {t('map_tab')}
 
-                {!hasLocationData && (
+                {!hasMapData && (
                   <span className="text-xs font-normal text-gray-400">
                     {t('no_location_data')}
                   </span>
@@ -409,6 +411,7 @@ function TraceLookupContent() {
             >
               <RouteMap
                 events={data.events}
+                farmAreaBoundary={data.farmAreaBoundary}
               />
             </TabsContent>
 

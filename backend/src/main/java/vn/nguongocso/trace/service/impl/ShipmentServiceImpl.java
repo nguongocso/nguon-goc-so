@@ -702,6 +702,7 @@ public class ShipmentServiceImpl implements ShipmentService {
                     String productionLotName = null;
                     String productCategoryName = null;
                     String organizationName = null;
+                    UUID cooperativeOrganizationId = null;
                     if (shipment.getProductionLot() != null) {
                         productionLotName = shipment.getProductionLot().getName();
                         if (shipment.getProductionLot().getProductCategory() != null) {
@@ -710,9 +711,11 @@ public class ShipmentServiceImpl implements ShipmentService {
                     }
                     if (shipment.getOrganization() != null) {
                         organizationName = shipment.getOrganization().getName();
+                        cooperativeOrganizationId = shipment.getOrganization().getOrganizationId();
                     } else if (shipment.getProductionLot() != null
                             && shipment.getProductionLot().getOrganization() != null) {
                         organizationName = shipment.getProductionLot().getOrganization().getName();
+                        cooperativeOrganizationId = shipment.getProductionLot().getOrganization().getOrganizationId();
                     }
 
                     return ProcurementShipmentResponse.builder()
@@ -722,6 +725,7 @@ public class ShipmentServiceImpl implements ShipmentService {
                             .productionLotName(productionLotName)
                             .productCategoryName(productCategoryName)
                             .organizationName(organizationName)
+                            .cooperativeOrganizationId(cooperativeOrganizationId)
                             .totalQuantity(shipment.getTotalQuantity())
                             .build();
                 })

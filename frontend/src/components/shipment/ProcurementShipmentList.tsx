@@ -18,9 +18,9 @@ import type { ProcurementShipment } from "@/types/shipment";
 import type { HandoverDetailResponse } from "@/types/shipmentHandover";
 import { getEligibleShipments, getShipmentById } from "@/api/shipmentApi";
 import { getReceivedHandovers } from "@/api/handoverApi";
-import { checkDossierEligibility, exportDossier, exportGs1Dossier } from "@/api/dossierApi";
-import { getLocalDateString } from "@/utils/dateTime";
+import { checkDossierEligibility, exportGs1Dossier } from "@/api/dossierApi";
 import { DossierIneligibleDialog } from "@/components/shipment/DossierIneligibleDialog";
+import { ExportDossierDialog } from "@/components/export/ExportDossierDialog";
 
 const PAGE_SIZE = 10;
 
@@ -172,8 +172,16 @@ export function ProcurementShipmentList({
       toast.error("Vui lòng chọn ít nhất 1 lô hàng để xuất bộ hồ sơ.");
       return;
     }
+    const shipmentOrgMap: Record<string, { orgId?: string; orgName?: string }> = {};
+    shipments
+      .filter((s) => selectedShipmentIds.includes(s.id))
+      .forEach((s) => {
+        if (s.cooperativeOrganizationId) {
+          shipmentOrgMap[s.id] = { orgId: s.cooperativeOrganizationId, orgName: s.organizationName ?? undefined };
+        }
+      });
     navigate("/shipments/batch-dossier-export", {
-      state: { shipmentIds: selectedShipmentIds },
+      state: { shipmentIds: selectedShipmentIds, shipmentOrgMap },
     });
   };
 
@@ -227,9 +235,18 @@ export function ProcurementShipmentList({
     shipmentName: "",
   });
 
+  // NCL-07-CN-007: dialog xuất hồ sơ cho phép doanh nghiệp thu mua chọn mẫu hồ sơ
+  const [dossierDialog, setDossierDialog] = useState<{
+    open: boolean;
+    shipment: ProcurementShipment | null;
+  }>({
+    open: false,
+    shipment: null,
+  });
+
   const handleExportDossier = async (shipment: ProcurementShipment) => {
-    let toastId: string | number | undefined;
     try {
+      // Kiểm tra trước điều kiện chứng từ QTN-11 trước khi mở dialog chọn mẫu
       const checkResult = await checkDossierEligibility(shipment.id);
 
       if (!checkResult.eligible) {
@@ -241,44 +258,16 @@ export function ProcurementShipmentList({
         return;
       }
 
-      toastId = toast.loading("Đang tạo hồ sơ...");
-      const blob = await exportDossier(shipment.id);
-      toast.dismiss(toastId);
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-
-      const contentDisposition = (blob as any).headers?.get?.(
-        "content-disposition",
-      );
-
-      let fileName = `Ho_so_truy_xuat_${shipment.name}_${getLocalDateString()}.pdf`;
-
-      if (contentDisposition) {
-        const match = contentDisposition.match(
-          /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/,
-        );
-        if (match && match[1]) {
-          fileName = match[1].replace(/['"]/g, "");
-        }
-      }
-
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast.success("Tải hồ sơ thành công");
+      // NCL-07-CN-007: doanh nghiệp thu mua chọn mẫu hồ sơ trước khi xuất
+      setDossierDialog({ open: true, shipment });
     } catch (error: any) {
-      if (toastId != null) {
-        toast.dismiss(toastId);
-      }
       const msg =
-        error.message ||
-        error.response?.data?.message ||
-        "Có lỗi xảy ra khi xuất hồ sơ.";
+        error?.response?.data?.message ||
+        (error instanceof Error && !error.message.includes("status code")
+          ? error.message
+          : null) ||
+        error?.message ||
+        "Không thể kiểm tra điều kiện xuất hồ sơ.";
       toast.error(msg);
     }
   };
@@ -574,6 +563,16 @@ export function ProcurementShipmentList({
         }
         missingDocs={ineligibleDialog.missingDocs}
         shipmentName={ineligibleDialog.shipmentName}
+      />
+
+      <ExportDossierDialog
+        open={dossierDialog.open && dossierDialog.shipment !== null}
+        onOpenChange={(open) =>
+          setDossierDialog((prev) => ({ open, shipment: open ? prev.shipment : null }))
+        }
+        shipmentId={dossierDialog.shipment?.id ?? ""}
+        shipmentName={dossierDialog.shipment?.name ?? ""}
+        cooperativeOrganizationId={dossierDialog.shipment?.cooperativeOrganizationId ?? undefined}
       />
     </>
   );

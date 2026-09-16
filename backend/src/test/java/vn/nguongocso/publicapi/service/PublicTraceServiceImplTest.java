@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +20,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -33,6 +38,7 @@ import vn.nguongocso.certification.repository.InspectionCriterionResultRepositor
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
 import vn.nguongocso.event.repository.ChainEventRepository;
+import vn.nguongocso.farm.entity.FarmArea;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.publicapi.dto.response.PublicInspectionResponse;
 import vn.nguongocso.publicapi.dto.response.PublicLotCertificationsResponse;
@@ -427,5 +433,66 @@ class PublicTraceServiceImplTest {
         assertEquals("Dư lượng thuốc BVTV", response.getInspections().get(0).getCriterionName());
         assertEquals("Pesticide Residue", response.getInspections().get(0).getCriterionNameEn());
         assertEquals("National Standard QCVN 01-189:2019", response.getInspections().get(0).getStandardValueEn());
+    }
+
+    /**
+     * TC-08: Ánh xạ ranh giới khi lô sản xuất có vùng trồng đã được khoanh.
+     */
+    @Test
+    void getPublicTrace_WhenFarmAreaHasBoundary_ShouldMapFarmAreaBoundary() {
+        GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+        Coordinate[] coordinates = new Coordinate[] {
+                new Coordinate(105.8542, 21.0285),
+                new Coordinate(105.8560, 21.0300),
+                new Coordinate(105.8580, 21.0270),
+                new Coordinate(105.8542, 21.0285)
+        };
+        Polygon polygon = geometryFactory.createPolygon(coordinates);
+
+        FarmArea farmArea = FarmArea.builder()
+                .id(UUID.randomUUID())
+                .name("Vùng chè Tân Cương A")
+                .boundary(polygon)
+                .calculatedArea(new BigDecimal("1.2500"))
+                .build();
+
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setName("Lô chè mẫu");
+        lot.setFarmArea(farmArea);
+        shipment.setProductionLot(lot);
+
+        PublicTraceResponse response = publicTraceService.getPublicTrace(
+                codeValue, null, null, "127.0.0.1", "test-agent");
+
+        assertNotNull(response.getFarmAreaBoundary());
+        assertEquals(farmArea.getId(), response.getFarmAreaBoundary().getId());
+        assertEquals("Vùng chè Tân Cương A", response.getFarmAreaBoundary().getName());
+        assertEquals(new BigDecimal("1.2500"), response.getFarmAreaBoundary().getCalculatedArea());
+        assertEquals(3, response.getFarmAreaBoundary().getPoints().size());
+        assertEquals(21.0285, response.getFarmAreaBoundary().getPoints().get(0).getLatitude(), 0.0001);
+        assertEquals(105.8542, response.getFarmAreaBoundary().getPoints().get(0).getLongitude(), 0.0001);
+    }
+
+    /**
+     * TC-08b: Không công khai ranh giới khi vùng trồng chưa được khoanh.
+     */
+    @Test
+    void getPublicTrace_WhenFarmAreaHasNoBoundary_ShouldReturnNullFarmAreaBoundary() {
+        FarmArea farmArea = FarmArea.builder()
+                .id(UUID.randomUUID())
+                .name("Vùng chè chưa khoanh")
+                .build();
+
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setName("Lô chè mới");
+        lot.setFarmArea(farmArea);
+        shipment.setProductionLot(lot);
+
+        PublicTraceResponse response = publicTraceService.getPublicTrace(
+                codeValue, null, null, "127.0.0.1", "test-agent");
+
+        assertNull(response.getFarmAreaBoundary());
     }
 }
