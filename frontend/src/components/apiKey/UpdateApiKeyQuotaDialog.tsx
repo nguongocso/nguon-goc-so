@@ -40,7 +40,7 @@ export const UpdateApiKeyQuotaDialog: React.FC<UpdateApiKeyQuotaDialogProps> = (
   const handleUpdate = async () => {
     try {
       if (!hasValidIncrement) {
-        toast.error('Số lượt cộng thêm phải lớn hơn 0');
+        toast.error('Số lượt hạn mức bổ sung phải lớn hơn 0');
         return;
       }
       setLoading(true);
@@ -73,7 +73,7 @@ export const UpdateApiKeyQuotaDialog: React.FC<UpdateApiKeyQuotaDialogProps> = (
 
         <div className="mt-3">
           <label htmlFor="update-quota" className="block text-sm font-medium mb-1">
-            Số lượt cộng thêm (lượt/giờ)
+            Số lượt hạn mức bổ sung (lượt/giờ)
           </label>
           <input
             id="update-quota"

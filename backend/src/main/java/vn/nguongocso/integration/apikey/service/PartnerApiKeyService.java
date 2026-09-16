@@ -376,7 +376,7 @@ public class PartnerApiKeyService {
         }
 
         if (request.getIncrementBy() == null || request.getIncrementBy() <= 0) {
-            throw new BusinessException("Số lượt cộng thêm phải lớn hơn 0");
+            throw new BusinessException("Số lượt hạn mức bổ sung phải lớn hơn 0");
         }
 
         Integer previousRateLimit = apiKey.getRateLimitPerHour();

@@ -10,7 +10,7 @@ import lombok.Setter;
 
 /**
  * Request nâng hạn mức khóa truy cập (NCL-12-CN-005).
- * Hạn mức mới = hạn mức hiện tại + số lượt cộng thêm.
+ * Hạn mức mới = hạn mức hiện tại + số lượt hạn mức bổ sung.
  */
 @Getter
 @Setter
@@ -20,9 +20,9 @@ import lombok.Setter;
 public class UpdateApiKeyQuotaRequest {
 
     /**
-     * Số lượt cộng thêm vào hạn mức hiện tại. Phải lớn hơn 0.
+     * Số lượt hạn mức bổ sung vào hạn mức hiện tại. Phải lớn hơn 0.
      */
-    @NotNull(message = "Số lượt cộng thêm không được để trống")
-    @Min(value = 1, message = "Số lượt cộng thêm phải lớn hơn 0")
+    @NotNull(message = "Số lượt hạn mức bổ sung không được để trống")
+    @Min(value = 1, message = "Số lượt hạn mức bổ sung phải lớn hơn 0")
     private Integer incrementBy;
 }

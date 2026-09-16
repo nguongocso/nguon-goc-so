@@ -348,7 +348,7 @@ class PartnerApiKeyServiceTest {
     }
 
     @Test
-    @DisplayName("NCL-12-CN-005-TC-10: Số lượt cộng thêm bằng 0 bị từ chối")
+    @DisplayName("NCL-12-CN-005-TC-10: Số lượt hạn mức bổ sung bằng 0 bị từ chối")
     void testUpdateQuota_ZeroIncrement_ThrowsException() {
         setupSecurityContext();
         UUID keyId = UUID.randomUUID();
