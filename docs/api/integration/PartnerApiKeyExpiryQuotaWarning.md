@@ -55,7 +55,7 @@ Danh sách khóa của tổ chức hiện tại. **Sửa lỗi thiếu `totalEle
       {
         "id": "00000000-0000-0000-0000-001200000001",
         "organizationId": "aaa00001-0000-0000-0000-000000000001",
-        "partnerName": "Đối tác Test Sắp Hết Hạn (TC-01)",
+        "partnerName": "Công ty TNHH Nông sản Bình Minh",
         "keyPrefix": "nks_live_710exp01",
         "rateLimitPerHour": 100,
         "expiresAt": "2026-09-20T23:17:34",
@@ -100,7 +100,7 @@ Bổ sung 2 loại cảnh báo tính realtime từ `partner_api_keys` (tự đó
   "typeName": "Khóa truy cập sắp hết hạn",
   "severity": "MEDIUM",
   "title": "Khóa truy cập sắp hết hạn",
-  "message": "Khóa của đối tác \"Đối tác Test Sắp Hết Hạn (TC-01)\" còn 5 ngày (hết hạn 20/09/2026).",
+  "message": "Khóa của đối tác \"Công ty TNHH Nông sản Bình Minh\" còn 5 ngày (hết hạn 20/09/2026).",
   "relatedEntityType": "PARTNER_API_KEY",
   "relatedEntityId": "00000000-0000-0000-0000-001200000001",
   "relatedEntityName": "nks_live_710exp01",
@@ -117,7 +117,7 @@ Ví dụ item cảnh báo hạn mức:
   "typeName": "Khóa truy cập sắp chạm hạn mức",
   "severity": "MEDIUM",
   "title": "Khóa truy cập sắp chạm hạn mức",
-  "message": "Khóa của đối tác \"Đối tác Test Sắp Chạm Hạn Mức (TC-02)\" đã dùng 8/10 lượt gọi trong ngày hôm nay (đạt 80%, ngưỡng cảnh báo 80%).",
+  "message": "Khóa của đối tác \"Hợp tác xã Cà phê Tân Cương\" đã dùng 8/10 lượt gọi trong ngày hôm nay (đạt 80%, ngưỡng cảnh báo 80%).",
   "relatedEntityType": "PARTNER_API_KEY",
   "relatedEntityId": "00000000-0000-0000-0000-001200000002",
   "relatedEntityName": "nks_test_710qta02",
@@ -131,8 +131,8 @@ Ví dụ item cảnh báo hạn mức:
 - Kênh duy nhất: `GET /api/v1/notifications`, `GET /api/v1/notifications/unread-count`, `PATCH /api/v1/notifications/{id}/read` (giữ nguyên).
 - Payload: `type = ALERT`, `entityId = apiKeyId`, `isRead = false`. FE bấm vào mở popup chi tiết + nút `Xem khóa → /integration/api-keys` (không tạo route/trang mới).
 - Mẫu tiêu đề/nội dung:
-  - Hết hạn: `Khóa truy cập sắp hết hạn` / `Khóa truy cập của đối tác "<partnerName>" sẽ hết hạn vào <dd/MM/yyyy HH:mm>. Vui lòng gia hạn để đối tác không bị gián đoạn kết nối. Xem chi tiết tại Quản trị khóa truy cập.`
-  - Hạn mức: `Khóa truy cập sắp chạm hạn mức` / `Khóa truy cập của đối tác "<partnerName>" đã dùng <used>/<limit> lượt gọi trong ngày hôm nay (đạt <percent>%, ngưỡng cảnh báo <thresholdPercent>%). Vui lòng nâng hạn mức hoặc điều tiết tần suất gọi. Xem chi tiết tại Quản trị khóa truy cập.`
+  - Hết hạn: `Khóa truy cập sắp hết hạn` / `Khóa truy cập của đối tác "<partnerName>" sẽ hết hạn sau <n> ngày (vào <dd/MM/yyyy HH:mm>). Vui lòng gia hạn để đối tác không bị gián đoạn kết nối.`
+  - Hạn mức: `Khóa truy cập sắp chạm hạn mức` / `Khóa truy cập của đối tác "<partnerName>" đã dùng <used>/<limit> lượt gọi trong ngày hôm nay (đạt <percent>%, ngưỡng cảnh báo <thresholdPercent>%). Vui lòng nâng hạn mức hoặc điều tiết tần suất gọi.`
 - Hạn mức gửi **1 lần/ngày/khóa**; nếu lượt chạm ngưỡng xảy ra khi job/hệ thống vừa khởi động lại, job đối soát sẽ gửi bù nhưng vẫn không tạo trùng.
 
 ---

@@ -34,7 +34,7 @@ INSERT IGNORE INTO partner_api_keys
 SELECT
     '00000000-0000-0000-0000-001200000001',
     (SELECT organization_id FROM organizations WHERE code = 'HTXA' LIMIT 1),
-    'Đối tác Test Sắp Hết Hạn (TC-01)',
+    'Công ty TNHH Nông sản Bình Minh',
     'nks_live_710exp01',
     SHA2('nks_live_710exp01aabbccddeeff00112233445566778899aabbccddeeff01', 256),
     100,
@@ -63,7 +63,7 @@ INSERT IGNORE INTO partner_api_keys
 SELECT
     '00000000-0000-0000-0000-001200000002',
     (SELECT organization_id FROM organizations WHERE code = 'HTXA' LIMIT 1),
-    'Đối tác Test Sắp Chạm Hạn Mức (TC-02)',
+    'Hợp tác xã Cà phê Tân Cương',
     'nks_test_710qta02',
     SHA2('nks_test_710qta02aabbccddeeff00112233445566778899aabbccddeeff02', 256),
     10,
@@ -89,7 +89,7 @@ INSERT IGNORE INTO partner_api_keys
 SELECT
     '00000000-0000-0000-0000-001200000003',
     (SELECT organization_id FROM organizations WHERE code = 'HTXA' LIMIT 1),
-    'Đối tác Test Đã Thu Hồi (TC-03)',
+    'Công ty Cổ phần Chế biến Gia vị Đại Việt',
     'nks_live_710rev03',
     SHA2('nks_live_710rev03aabbccddeeff00112233445566778899aabbccddeeff03', 256),
     100,
@@ -117,7 +117,7 @@ INSERT IGNORE INTO partner_api_keys
 SELECT
     '00000000-0000-0000-0000-001200000004',
     (SELECT organization_id FROM organizations WHERE code = 'HTXA' LIMIT 1),
-    'Đối tác Test Bình Thường (đối chứng)',
+    'Hợp tác xã Rau an toàn Sơn La',
     'nks_live_710ok04',
     SHA2('nks_live_710ok04aabbccddeeff00112233445566778899aabbccddeeff04', 256),
     1000,
@@ -144,9 +144,9 @@ SELECT
     (SELECT user_id FROM users WHERE user_name = 'managerA' LIMIT 1),
     'ALERT',
     'Khóa truy cập sắp hết hạn',
-    CONCAT('Khóa truy cập của đối tác "Đối tác Test Sắp Hết Hạn (TC-01)" sẽ hết hạn vào ',
+    CONCAT('Khóa truy cập của đối tác "Công ty TNHH Nông sản Bình Minh" sẽ hết hạn sau 5 ngày (vào ',
            DATE_FORMAT(DATE_ADD(NOW(), INTERVAL 5 DAY), '%d/%m/%Y %H:%i'),
-           '. Vui lòng gia hạn để đối tác không bị gián đoạn kết nối. Xem chi tiết tại Quản trị khóa truy cập.'),
+           '). Vui lòng gia hạn để đối tác không bị gián đoạn kết nối.'),
     '00000000-0000-0000-0000-001200000001',
     FALSE,
     NULL,

@@ -97,8 +97,7 @@ public class ApiKeyWarningService {
                             EXPIRY_SOON_TITLE,
                             "Khóa truy cập của đối tác \"" + key.getPartnerName() + "\" sẽ hết hạn sau "
                                     + daysLeft + " ngày (vào " + key.getExpiresAt().format(VI_DATE_TIME)
-                                    + "). Vui lòng gia hạn để đối tác không bị gián đoạn kết nối. "
-                                    + "Xem chi tiết tại Quản trị khóa truy cập.",
+                                    + "). Vui lòng gia hạn để đối tác không bị gián đoạn kết nối.",
                             key.getId(),
                             key.getOrganization().getOrganizationId());
                     warnedCount++;
@@ -197,12 +196,11 @@ public class ApiKeyWarningService {
         try {
             notificationService.sendHandoverNotification(
                     QUOTA_TITLE,
-                    "Khóa truy cập của đối tác \"" + partnerName + "\" đã dùng "
-                            + usedCalls + "/" + rateLimitPerHour
-                            + " lượt gọi trong ngày hôm nay (đạt " + percent
-                            + "%, ngưỡng cảnh báo " + apiKeyQuotaPolicy.warningThresholdPercent()
-                            + "%). Vui lòng nâng hạn mức hoặc điều tiết tần suất gọi. "
-                            + "Xem chi tiết tại Quản trị khóa truy cập.",
+"Khóa truy cập của đối tác \"" + partnerName + "\" đã dùng "
+                                    + usedCalls + "/" + rateLimitPerHour
+                                    + " lượt gọi trong ngày hôm nay (đạt " + percent
+                                    + "%, ngưỡng cảnh báo " + apiKeyQuotaPolicy.warningThresholdPercent()
+                                    + "%). Vui lòng nâng hạn mức hoặc điều tiết tần suất gọi.",
                     apiKeyId,
                     organizationId);
             return true;
