@@ -207,6 +207,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
               <TableHead>Tên đối tác / Doanh nghiệp</TableHead>
               <TableHead>Mã nhận diện (Prefix)</TableHead>
               <TableHead className="text-center">Hạn mức (lượt/h)</TableHead>
+              <TableHead className="text-center">Lượt gọi hôm nay</TableHead>
               <TableHead className="text-center">Lượt gọi (Tổng / Lỗi)</TableHead>
               <TableHead>Thời hạn hết hạn</TableHead>
               <TableHead>Trạng thái</TableHead>
@@ -242,6 +243,19 @@ export const PartnerApiKeyListPage: React.FC = () => {
                         <span className="px-2 py-0.5 rounded bg-muted text-foreground text-xs font-semibold">
                           {item.rateLimitPerHour} /h
                         </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="text-sm font-medium">{item.usedCallsToday ?? 0}</div>
+                        {/* Cảnh báo sắp chạm hạn mức theo tổng lượt gọi trong ngày (NCL-12-CN-005) */}
+                        {item.quotaWarningThreshold != null &&
+                          item.quotaWarningThreshold > 0 &&
+                          (item.usedCallsToday ?? 0) >= item.quotaWarningThreshold && (
+                            <div className="mt-0.5">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                Sắp chạm hạn mức
+                              </span>
+                            </div>
+                          )}
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="text-sm font-medium">
@@ -288,7 +302,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
             }
             loading={loading}
             empty={!loading && filteredKeys.length === 0}
-            colSpan={canManage ? 8 : 7}
+            colSpan={canManage ? 9 : 8}
             loadingMessage="Đang tải danh sách khóa API..."
             emptyMessage="Không tìm thấy khóa truy cập nào."
           />

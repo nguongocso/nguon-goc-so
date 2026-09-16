@@ -29,6 +29,10 @@ export interface PartnerApiKeyResponse {
   is_test?: boolean;
   totalCalls: number;
   failedCalls: number;
+  /** Số lượt gọi trong ngày hôm nay (chỉ trả ở danh sách khóa - NCL-12-CN-005) */
+  usedCallsToday?: number | null;
+  /** Ngưỡng lượt gọi trong ngày chạm mức cảnh báo hạn mức (chỉ trả ở danh sách khóa - NCL-12-CN-005) */
+  quotaWarningThreshold?: number | null;
   lastCalledAt?: string | null;
   lastCallStatus?: number | null;
   lastCallIp?: string | null;
