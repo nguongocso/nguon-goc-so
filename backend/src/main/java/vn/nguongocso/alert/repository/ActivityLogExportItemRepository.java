@@ -1,9 +1,9 @@
 package vn.nguongocso.alert.repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -14,7 +14,8 @@ import vn.nguongocso.alert.entity.ActivityLogExportItem;
 
 /** Truy cập các dòng snapshot của một export job. */
 public interface ActivityLogExportItemRepository extends JpaRepository<ActivityLogExportItem, Long> {
-    Page<ActivityLogExportItem> findByJobId(UUID jobId, Pageable pageable);
+    List<ActivityLogExportItem> findByJobIdAndSequenceNoGreaterThanOrderBySequenceNoAsc(
+            UUID jobId, Long sequenceNo, Pageable pageable);
 
     /**
      * Đóng snapshot bằng một câu lệnh tại database để request không phải tải toàn

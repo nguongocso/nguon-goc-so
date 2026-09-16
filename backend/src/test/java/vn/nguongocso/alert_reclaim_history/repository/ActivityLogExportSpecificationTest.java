@@ -76,6 +76,43 @@ class ActivityLogExportSpecificationTest {
         assertThat(logs).isEmpty();
     }
 
+    @Test
+    void hasAction_shouldMatchActionFamily_whenGenericActionIsSelected() {
+        UUID organizationId = UUID.randomUUID();
+        activityLogRepository.saveAll(List.of(
+                createLog(organizationId, "manager", "Quản lý", "UPDATE_FARM_AREA", "FARM_AREA",
+                        LocalDateTime.now()),
+                createLog(organizationId, "manager", "Quản lý", "UPDATE_FARM_AREA_BOUNDARY", "FARM_AREA",
+                        LocalDateTime.now()),
+                createLog(organizationId, "manager", "Quản lý", "CREATE_FARM_AREA", "FARM_AREA",
+                        LocalDateTime.now())));
+
+        List<ActivityLog> logs = activityLogRepository.findAll(
+                ActivityLogSpecification.hasOrganizationId(organizationId)
+                        .and(ActivityLogSpecification.hasAction("UPDATE"))
+                        .and(ActivityLogSpecification.hasEntityType("FARM_AREA")));
+
+        assertThat(logs).extracting(ActivityLog::getAction)
+                .containsExactlyInAnyOrder("UPDATE_FARM_AREA", "UPDATE_FARM_AREA_BOUNDARY");
+    }
+
+    @Test
+    void hasAction_shouldKeepExactMatching_whenSpecificActionIsSelected() {
+        UUID organizationId = UUID.randomUUID();
+        activityLogRepository.saveAll(List.of(
+                createLog(organizationId, "manager", "Quản lý", "UPDATE_FARM_AREA", "FARM_AREA",
+                        LocalDateTime.now()),
+                createLog(organizationId, "manager", "Quản lý", "UPDATE_FARM_AREA_BOUNDARY", "FARM_AREA",
+                        LocalDateTime.now())));
+
+        List<ActivityLog> logs = activityLogRepository.findAll(
+                ActivityLogSpecification.hasOrganizationId(organizationId)
+                        .and(ActivityLogSpecification.hasAction("UPDATE_FARM_AREA")));
+
+        assertThat(logs).extracting(ActivityLog::getAction)
+                .containsExactly("UPDATE_FARM_AREA");
+    }
+
     private ActivityLog createLog(
             UUID organizationId,
             String username,

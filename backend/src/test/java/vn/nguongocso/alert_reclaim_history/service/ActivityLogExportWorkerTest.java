@@ -2,6 +2,8 @@ package vn.nguongocso.alert_reclaim_history.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -21,7 +23,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -49,10 +50,12 @@ class ActivityLogExportWorkerTest {
     @Test
     void process_shouldCreateFileCompleteJobAndNotifyRequester() throws Exception {
         UUID jobId = UUID.randomUUID();
+        String token = UUID.randomUUID().toString();
         UUID requesterId = UUID.randomUUID();
         ActivityLogExportJob job = ActivityLogExportJob.builder()
                 .id(jobId).organizationId(UUID.randomUUID()).requestedBy(requesterId)
                 .requestedByUsername("manager").requestedByRole("VT-02")
+                .processingToken(token)
                 .status(ActivityLogExportStatus.IN_PROGRESS).recordCount(1L)
                 .createdAt(LocalDateTime.of(2026, 9, 14, 10, 0)).build();
         ActivityLogExportItem item = ActivityLogExportItem.builder()
@@ -61,17 +64,21 @@ class ActivityLogExportWorkerTest {
                 .actionType("UPDATE_PRODUCTION_LOT").objectType("PRODUCTION_LOT").objectIdentifier("LOT-1")
                 .beforeValue("{\"password\":\"should-not-leak\",\"status\":\"OLD\"}")
                 .afterValue("{\"status\":\"NEW\"}").build();
-        when(jobRepository.findById(jobId)).thenReturn(Optional.of(job));
-        when(itemRepository.findByJobId(any(UUID.class), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(item)));
+        when(jobRepository.findByIdAndProcessingTokenAndStatus(jobId, token, ActivityLogExportStatus.IN_PROGRESS))
+                .thenReturn(Optional.of(job));
+        when(jobRepository.renewLease(eq(jobId), eq(token), any(LocalDateTime.class),
+                eq(ActivityLogExportStatus.IN_PROGRESS))).thenReturn(1);
+        when(itemRepository.findByJobIdAndSequenceNoGreaterThanOrderBySequenceNoAsc(
+                any(UUID.class), eq(-1L), any(Pageable.class))).thenReturn(List.of(item));
 
         ActivityLogCsvWriter csvWriter = new ActivityLogCsvWriter(
                 new ActivityLogExportValueSanitizer(new ObjectMapper()));
         ActivityLogExportWorker worker = new ActivityLogExportWorker(jobRepository, itemRepository, csvWriter,
                 notificationService, Clock.fixed(Instant.parse("2026-09-14T03:30:00Z"), ZoneOffset.UTC));
         ReflectionTestUtils.setField(worker, "storageDirectory", tempDirectory.toString());
+        ReflectionTestUtils.setField(worker, "leaseSeconds", 300L);
 
-        worker.process(jobId);
+        worker.process(jobId, token);
 
         assertThat(job.getStatus()).isEqualTo(ActivityLogExportStatus.SUCCESS);
         assertThat(job.getCompletedAt()).isNotNull();
@@ -88,19 +95,24 @@ class ActivityLogExportWorkerTest {
     @Test
     void process_shouldCompleteJobSuccessfully_evenWhenNotificationFails() throws Exception {
         UUID jobId = UUID.randomUUID();
+        String token = UUID.randomUUID().toString();
         UUID requesterId = UUID.randomUUID();
         ActivityLogExportJob job = ActivityLogExportJob.builder()
                 .id(jobId).organizationId(UUID.randomUUID()).requestedBy(requesterId)
                 .requestedByUsername("manager").requestedByRole("VT-02")
+                .processingToken(token)
                 .status(ActivityLogExportStatus.IN_PROGRESS).recordCount(1L)
                 .createdAt(LocalDateTime.of(2026, 9, 14, 10, 0)).build();
         ActivityLogExportItem item = ActivityLogExportItem.builder()
                 .jobId(jobId).sequenceNo(0L).occurredAt(LocalDateTime.of(2026, 9, 14, 9, 0))
                 .actorName("Nguyễn Văn An").actorUsername("manager").actorRole("VT-02")
                 .actionType("UPDATE_LOT").objectType("LOT").objectIdentifier("LOT-1").build();
-        when(jobRepository.findById(jobId)).thenReturn(Optional.of(job));
-        when(itemRepository.findByJobId(any(UUID.class), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(item)));
+        when(jobRepository.findByIdAndProcessingTokenAndStatus(jobId, token, ActivityLogExportStatus.IN_PROGRESS))
+                .thenReturn(Optional.of(job));
+        when(jobRepository.renewLease(eq(jobId), eq(token), any(LocalDateTime.class),
+                eq(ActivityLogExportStatus.IN_PROGRESS))).thenReturn(1);
+        when(itemRepository.findByJobIdAndSequenceNoGreaterThanOrderBySequenceNoAsc(
+                any(UUID.class), eq(-1L), any(Pageable.class))).thenReturn(List.of(item));
         org.mockito.Mockito.doThrow(new RuntimeException("Notification service down"))
                 .when(notificationService).sendActivityLogExportReadyNotification(jobId, requesterId);
 
@@ -109,8 +121,9 @@ class ActivityLogExportWorkerTest {
         ActivityLogExportWorker worker = new ActivityLogExportWorker(jobRepository, itemRepository, csvWriter,
                 notificationService, Clock.fixed(Instant.parse("2026-09-14T03:30:00Z"), ZoneOffset.UTC));
         ReflectionTestUtils.setField(worker, "storageDirectory", tempDirectory.toString());
+        ReflectionTestUtils.setField(worker, "leaseSeconds", 300L);
 
-        worker.process(jobId);
+        worker.process(jobId, token);
 
         assertThat(job.getStatus()).isEqualTo(ActivityLogExportStatus.SUCCESS);
         assertThat(job.getCompletedAt()).isNotNull();
@@ -120,19 +133,19 @@ class ActivityLogExportWorkerTest {
     }
 
     @Test
-    void markDispatchFailed_shouldCompleteInProgressJobAsFailed() {
+    void process_shouldIgnoreJobWhenWorkerDoesNotOwnLease() {
         UUID jobId = UUID.randomUUID();
-        ActivityLogExportJob job = ActivityLogExportJob.builder()
-                .id(jobId).status(ActivityLogExportStatus.IN_PROGRESS).recordCount(1L).build();
-        when(jobRepository.findById(jobId)).thenReturn(Optional.of(job));
+        String token = UUID.randomUUID().toString();
+        when(jobRepository.findByIdAndProcessingTokenAndStatus(jobId, token, ActivityLogExportStatus.IN_PROGRESS))
+                .thenReturn(Optional.empty());
         ActivityLogExportWorker worker = new ActivityLogExportWorker(jobRepository, itemRepository,
                 new ActivityLogCsvWriter(new ActivityLogExportValueSanitizer(new ObjectMapper())),
                 notificationService, Clock.fixed(Instant.parse("2026-09-14T03:30:00Z"), ZoneOffset.UTC));
 
-        worker.markDispatchFailed(jobId);
+        worker.process(jobId, token);
 
-        assertThat(job.getStatus()).isEqualTo(ActivityLogExportStatus.FAILED);
-        assertThat(job.getErrorMessage()).isEqualTo("Không thể khởi tạo xử lý tệp nhật ký nền.");
-        verify(jobRepository).save(job);
+        verify(itemRepository, never()).findByJobIdAndSequenceNoGreaterThanOrderBySequenceNoAsc(
+                any(), any(), any());
+        verify(jobRepository, never()).save(any());
     }
 }

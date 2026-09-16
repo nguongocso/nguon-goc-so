@@ -20,6 +20,8 @@ public class ProductCategoryResponse {
 
 	private String name;
 
+	private String nameEn;
+
 	private String group;
 
 	private String description;

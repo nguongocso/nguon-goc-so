@@ -36,7 +36,7 @@ const MOCK_GLOBAL: AnomalyThresholdConfig = {
   maxScansPerDay: 10,
   maxDistanceKmPer30Min: 50.0,
   minTimeBetweenScansMinutes: 30,
-  activationAgeDays: 365,
+  activationAgeDays: 3,
   isActive: true,
 };
 
@@ -49,7 +49,7 @@ const MOCK_OVERRIDES: AnomalyThresholdConfig[] = [
     maxScansPerDay: 7,
     maxDistanceKmPer30Min: 35.0,
     minTimeBetweenScansMinutes: 20,
-    activationAgeDays: 180,
+    activationAgeDays: 5,
     isActive: true,
   },
 ];

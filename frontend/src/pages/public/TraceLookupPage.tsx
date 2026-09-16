@@ -20,6 +20,8 @@ import { RouteMap } from '@/components/public/RouteMap';
 import { ProductFeedbackForm } from '@/components/public/ProductFeedbackForm';
 import { PublicCertificationsSection } from '@/components/public/PublicCertificationsSection';
 import { PublicInspectionSection } from '@/components/public/PublicInspectionSection';
+import { LanguageSwitcher } from '@/components/public/LanguageSwitcher';
+import { LanguageProvider, useLanguage } from '@/context/LanguageContext';
 
 import {
   Home,
@@ -42,14 +44,11 @@ interface TraceLookupLocationState {
   scanResult?: PublicTraceResponse;
 }
 
-export default function TraceLookupPage() {
+function TraceLookupContent() {
   const { codeValue } = useParams<{ codeValue: string }>();
   const location = useLocation();
+  const { t } = useLanguage();
 
-  // Luồng quét QR: scanner gọi POST /public/trace/{codeValue}/scan,
-  // sau đó chuyển hướng cùng dữ liệu qua router state. State chỉ tồn tại
-  // trong lần điều hướng đầu tiên — reload/mở lại URL sẽ mất state và
-  // rơi về GET lookup (không tạo ScanLog).
   const scanResult = (location.state as TraceLookupLocationState | null)
     ?.scanResult;
 
@@ -87,19 +86,8 @@ export default function TraceLookupPage() {
       return;
     }
 
-    // Nếu đã có kết quả quét QR (POST /scan đã thực hiện ở trang chủ)
-    // thì không gọi GET tra cứu nữa — tránh tạo thêm ScanLog.
     const alreadyScanned = !!scanResult;
 
-    /**
-     * Tra cứu thông tin sản phẩm (GET lookup — đọc thuần túy).
-     *
-     * Flow:
-     * 1. Lấy GPS từ trình duyệt.
-     * 2. Gửi latitude + longitude lên backend.
-     * 3. Backend gọi LocationIQ để reverse geocoding.
-     * 4. Backend trả thông tin; KHÔNG tạo TraceCodeScanLog.
-     */
     const fetchTrace = async () => {
       setLoading(true);
       setError(null);
@@ -109,11 +97,6 @@ export default function TraceLookupPage() {
           latitude?: number,
           longitude?: number
         ) => {
-          // console.log('Gửi GPS lên BE:', {
-          //   latitude,
-          //   longitude,
-          // });
-
           const result = await getPublicTrace(
             codeValue,
             latitude,
@@ -169,9 +152,6 @@ export default function TraceLookupPage() {
       }
     };
 
-    /**
-     * Lấy chứng nhận công khai.
-     */
     const fetchCertifications = async () => {
       try {
         setCertificationLoading(true);
@@ -200,9 +180,6 @@ export default function TraceLookupPage() {
       }
     };
 
-    /**
-     * Lấy kết quả kiểm nghiệm công khai.
-     */
     const fetchInspections = async () => {
       try {
         setInspectionLoading(true);
@@ -237,26 +214,19 @@ export default function TraceLookupPage() {
     fetchInspections();
   }, [codeValue, scanResult]);
 
-  /**
-   * Đang tra cứu.
-   */
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
           <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-emerald-600" />
-
           <p className="mt-4 text-gray-600">
-            Đang tra cứu thông tin...
+            {t('loading_info')}
           </p>
         </div>
       </div>
     );
   }
 
-  /**
-   * Có lỗi khi tra cứu.
-   */
   if (error) {
     const isCancelledError = error.includes('đã được đánh dấu HỦY') || error.includes('HỦY');
 
@@ -268,7 +238,7 @@ export default function TraceLookupPage() {
           </div>
 
           <h2 className="mt-5 text-xl font-bold text-slate-900">
-            {isCancelledError ? 'Cảnh Báo: Mã Tem Đã Hủy' : 'Mã Không Hợp Lệ'}
+            {isCancelledError ? t('cancelled_code_title') : t('invalid_code_title')}
           </h2>
 
           <p className="mt-3 text-sm leading-relaxed text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-200">
@@ -280,39 +250,37 @@ export default function TraceLookupPage() {
             className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 shadow-sm"
           >
             <Home className="size-4" />
-            Về trang chủ
+            {t('back_to_home')}
           </Link>
         </div>
       </div>
     );
   }
 
-  /**
-   * Không có dữ liệu.
-   */
   if (!data) {
     return null;
   }
 
-  /**
-   * Kiểm tra các event có latitude + longitude.
-   */
   const hasLocationData = data.events.some(
     (event) =>
       event.latitude !== null &&
       event.longitude !== null
   );
+  const hasFarmBoundary = (data.farmAreaBoundary?.points?.length ?? 0) >= 3;
+  const hasMapData = hasLocationData || hasFarmBoundary;
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="border-b border-gray-100 bg-white">
-        <div className="mx-auto max-w-5xl px-4 py-5">
-          <Logo />
-
-          <p className="mt-1 text-sm text-gray-500">
-            Tra cứu hành trình sản phẩm
-          </p>
+        <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
+          <div>
+            <Logo />
+            <p className="mt-1 text-sm text-gray-500">
+              {t('header_subtitle')}
+            </p>
+          </div>
+          <LanguageSwitcher />
         </div>
       </header>
 
@@ -320,7 +288,7 @@ export default function TraceLookupPage() {
         {/* Mã tra cứu */}
         <div className="rounded-xl border border-gray-100 bg-white p-4 text-center shadow-sm">
           <span className="text-xs uppercase tracking-wider text-gray-400">
-            Mã tra cứu
+            {t('code_label')}
           </span>
 
           <p className="break-all font-mono text-lg font-semibold text-gray-800">
@@ -331,6 +299,7 @@ export default function TraceLookupPage() {
         {/* Thông tin sản phẩm */}
         <ProductInfo
           productName={data.productName}
+          productNameEn={data.productNameEn}
           lotName={data.lotName}
           lotCode={data.lotCode}
           shipmentCode={data.shipmentCode}
@@ -354,9 +323,10 @@ export default function TraceLookupPage() {
 
         {/* Cảnh báo thu hồi */}
         {data.recalled &&
-          data.recallMessage && (
+          (data.recallMessage || data.recallMessageEn) && (
             <RecallAlert
-              message={data.recallMessage}
+              message={data.recallMessage || ''}
+              messageEn={data.recallMessageEn}
             />
           )}
 
@@ -389,11 +359,11 @@ export default function TraceLookupPage() {
 
               <div>
                 <h2 className="font-semibold text-gray-900">
-                  Gửi phản ánh sản phẩm
+                  {t('feedback_title')}
                 </h2>
 
                 <p className="mt-1 text-sm leading-5 text-gray-600">
-                  Chức năng gửi phản ánh không khả dụng cho sản phẩm này.
+                  {t('feedback_not_available')}
                 </p>
               </div>
             </div>
@@ -404,23 +374,23 @@ export default function TraceLookupPage() {
         <div className="overflow-hidden rounded-xl bg-white shadow-sm">
           <Tabs
             defaultValue={
-              hasLocationData ? 'map' : 'list'
+              hasMapData ? 'map' : 'list'
             }
             className="w-full"
           >
             <TabsList className="h-auto w-full justify-start rounded-none border-b bg-gray-50/50 p-0">
               <TabsTrigger
                 value="map"
-                disabled={!hasLocationData}
+                disabled={!hasMapData}
                 className="flex items-center gap-2 rounded-none px-4 py-3 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:bg-transparent"
               >
                 <MapPin className="h-4 w-4" />
 
-                Bản đồ
+                {t('map_tab')}
 
-                {!hasLocationData && (
+                {!hasMapData && (
                   <span className="text-xs font-normal text-gray-400">
-                    (không có dữ liệu)
+                    {t('no_location_data')}
                   </span>
                 )}
               </TabsTrigger>
@@ -431,7 +401,7 @@ export default function TraceLookupPage() {
               >
                 <List className="h-4 w-4" />
 
-                Danh sách sự kiện
+                {t('list_tab')}
               </TabsTrigger>
             </TabsList>
 
@@ -441,6 +411,7 @@ export default function TraceLookupPage() {
             >
               <RouteMap
                 events={data.events}
+                farmAreaBoundary={data.farmAreaBoundary}
               />
             </TabsContent>
 
@@ -457,10 +428,17 @@ export default function TraceLookupPage() {
 
         {/* Footer */}
         <div className="border-t border-gray-200 py-4 text-center text-xs text-gray-400">
-          © {new Date().getFullYear()} Nguồn gốc số.
-          Thông tin chỉ mang tính tham khảo.
+          © {new Date().getFullYear()} {t('footer_copyright')}
         </div>
       </main>
     </div>
+  );
+}
+
+export default function TraceLookupPage() {
+  return (
+    <LanguageProvider>
+      <TraceLookupContent />
+    </LanguageProvider>
   );
 }

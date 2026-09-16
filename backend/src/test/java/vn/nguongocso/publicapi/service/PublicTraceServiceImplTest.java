@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +20,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -33,6 +38,7 @@ import vn.nguongocso.certification.repository.InspectionCriterionResultRepositor
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
 import vn.nguongocso.event.repository.ChainEventRepository;
+import vn.nguongocso.farm.entity.FarmArea;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.publicapi.dto.response.PublicInspectionResponse;
 import vn.nguongocso.publicapi.dto.response.PublicLotCertificationsResponse;
@@ -325,5 +331,168 @@ class PublicTraceServiceImplTest {
         assertEquals(1, response.getEvents().size());
         assertEquals("HARVEST", response.getEvents().get(0).getEventType());
         assertEquals(2000.0, response.getEvents().get(0).getEventData().get("quantity"));
+    }
+
+    @Test
+    void getPublicTrace_WhenProductCategoryHasNameEn_ShouldPopulateProductNameEn() {
+        vn.nguongocso.farm.entity.ProductCategory category = new vn.nguongocso.farm.entity.ProductCategory();
+        category.setName("Xoài Cát Chu");
+        category.setNameEn("Cat Chu Mango");
+
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setName("Lô xoài xuất khẩu");
+        lot.setProductCategory(category);
+        shipment.setProductionLot(lot);
+
+        PublicTraceResponse response = publicTraceService.getPublicTrace(codeValue, null, null, "127.0.0.1", "test-agent");
+
+        assertNotNull(response);
+        assertEquals("Xoài Cát Chu", response.getProductName());
+        assertEquals("Cat Chu Mango", response.getProductNameEn());
+    }
+
+    @Test
+    void getPublicTrace_WhenShipmentIsRecalled_ShouldPopulateRecallMessageEn() {
+        shipment.setStatus(ShipmentStatus.RECALLED);
+
+        vn.nguongocso.trace.entity.Recall recall = new vn.nguongocso.trace.entity.Recall();
+        recall.setReason("Phát hiện tồn dư chất cấm");
+        when(recallRepository.findTopByShipmentOrderByRecalledAtDesc(shipment)).thenReturn(Optional.of(recall));
+
+        PublicTraceResponse response = publicTraceService.getPublicTrace(codeValue, null, null, "127.0.0.1", "test-agent");
+
+        assertNotNull(response);
+        assertEquals("Phát hiện tồn dư chất cấm", response.getRecallMessage());
+        assertEquals("WARNING: This shipment has been recalled. Reason: Phát hiện tồn dư chất cấm", response.getRecallMessageEn());
+    }
+
+    @Test
+    void getPublicCertifications_WhenStandardHasNameEn_ShouldPopulateCertificationNameEn() {
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        shipment.setProductionLot(lot);
+
+        vn.nguongocso.certification.entity.Standard standard = new vn.nguongocso.certification.entity.Standard();
+        standard.setName("Tiêu chuẩn GlobalGAP");
+        standard.setNameEn("GlobalGAP Standard");
+
+        Certification cert = certification("GLOBALGAP", CertificationVerificationStatus.VERIFIED, LocalDate.now().plusDays(60));
+        cert.setStandard(standard);
+
+        when(productionLotCertificationRepository.findByProductionLotId(lot.getId())).thenReturn(List.of(
+                ProductionLotCertification.builder().certification(cert).build()));
+
+        PublicLotCertificationsResponse response = publicTraceService.getPublicCertifications(codeValue);
+
+        assertNotNull(response);
+        assertEquals(1, response.getCertifications().size());
+        assertEquals("GlobalGAP Standard", response.getCertifications().get(0).getCertificationNameEn());
+    }
+
+    @Test
+    void getPublicInspections_WhenCriterionHasNameEn_ShouldPopulateCriterionNameEn() {
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setName("Lô nông sản A");
+        shipment.setProductionLot(lot);
+
+        InspectionRequest req = InspectionRequest.builder()
+                .id(UUID.randomUUID())
+                .inspectionUnit("TT Kiểm nghiệm")
+                .productionLot(lot)
+                .build();
+
+        vn.nguongocso.certification.entity.Standard criterionStandard = new vn.nguongocso.certification.entity.Standard();
+        criterionStandard.setName("QCVN 01-189:2019");
+        criterionStandard.setNameEn("National Standard QCVN 01-189:2019");
+
+        InspectionCriterion criterion = InspectionCriterion.builder()
+                .id(UUID.randomUUID())
+                .criterionCode("PESTICIDE_RESIDUE")
+                .criterionName("Dư lượng thuốc BVTV")
+                .nameEn("Pesticide Residue")
+                .standard(criterionStandard)
+                .build();
+
+        InspectionCriterionResult result = InspectionCriterionResult.builder()
+                .id(UUID.randomUUID())
+                .inspectionCriterion(criterion)
+                .passed(true)
+                .build();
+
+        when(inspectionRequestRepository.findByProductionLot_IdOrderByCreatedAtDesc(lot.getId()))
+                .thenReturn(List.of(req));
+        when(inspectionCriterionResultRepository.findByInspectionCriterion_InspectionRequest_Id(req.getId()))
+                .thenReturn(List.of(result));
+
+        PublicInspectionResponse response = publicTraceService.getPublicInspections(codeValue);
+
+        assertNotNull(response);
+        assertEquals(1, response.getInspections().size());
+        assertEquals("Dư lượng thuốc BVTV", response.getInspections().get(0).getCriterionName());
+        assertEquals("Pesticide Residue", response.getInspections().get(0).getCriterionNameEn());
+        assertEquals("National Standard QCVN 01-189:2019", response.getInspections().get(0).getStandardValueEn());
+    }
+
+    /**
+     * TC-08: Ánh xạ ranh giới khi lô sản xuất có vùng trồng đã được khoanh.
+     */
+    @Test
+    void getPublicTrace_WhenFarmAreaHasBoundary_ShouldMapFarmAreaBoundary() {
+        GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+        Coordinate[] coordinates = new Coordinate[] {
+                new Coordinate(105.8542, 21.0285),
+                new Coordinate(105.8560, 21.0300),
+                new Coordinate(105.8580, 21.0270),
+                new Coordinate(105.8542, 21.0285)
+        };
+        Polygon polygon = geometryFactory.createPolygon(coordinates);
+
+        FarmArea farmArea = FarmArea.builder()
+                .id(UUID.randomUUID())
+                .name("Vùng chè Tân Cương A")
+                .boundary(polygon)
+                .calculatedArea(new BigDecimal("1.2500"))
+                .build();
+
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setName("Lô chè mẫu");
+        lot.setFarmArea(farmArea);
+        shipment.setProductionLot(lot);
+
+        PublicTraceResponse response = publicTraceService.getPublicTrace(
+                codeValue, null, null, "127.0.0.1", "test-agent");
+
+        assertNotNull(response.getFarmAreaBoundary());
+        assertEquals(farmArea.getId(), response.getFarmAreaBoundary().getId());
+        assertEquals("Vùng chè Tân Cương A", response.getFarmAreaBoundary().getName());
+        assertEquals(new BigDecimal("1.2500"), response.getFarmAreaBoundary().getCalculatedArea());
+        assertEquals(3, response.getFarmAreaBoundary().getPoints().size());
+        assertEquals(21.0285, response.getFarmAreaBoundary().getPoints().get(0).getLatitude(), 0.0001);
+        assertEquals(105.8542, response.getFarmAreaBoundary().getPoints().get(0).getLongitude(), 0.0001);
+    }
+
+    /**
+     * TC-08b: Không công khai ranh giới khi vùng trồng chưa được khoanh.
+     */
+    @Test
+    void getPublicTrace_WhenFarmAreaHasNoBoundary_ShouldReturnNullFarmAreaBoundary() {
+        FarmArea farmArea = FarmArea.builder()
+                .id(UUID.randomUUID())
+                .name("Vùng chè chưa khoanh")
+                .build();
+
+        ProductionLot lot = new ProductionLot();
+        lot.setId(UUID.randomUUID());
+        lot.setName("Lô chè mới");
+        lot.setFarmArea(farmArea);
+        shipment.setProductionLot(lot);
+
+        PublicTraceResponse response = publicTraceService.getPublicTrace(
+                codeValue, null, null, "127.0.0.1", "test-agent");
+
+        assertNull(response.getFarmAreaBoundary());
     }
 }

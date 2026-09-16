@@ -6,7 +6,9 @@ import {
   ExternalLink,
   CheckCircle2,
   Building2,
+  Eye,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { AggregateAlertItem, AggregateAlertType } from '@/types/aggregateAlert';
@@ -18,14 +20,26 @@ interface AggregateAlertTableProps {
 
 const TYPE_STYLE_MAP: Record<AggregateAlertType, { bg: string; text: string; border: string }> = {
   SCAN_ANOMALY: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
-  CERT_EXPIRING: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
-  CERT_EXPIRED: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
-  INSPECTION_EXPIRING: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200' },
-  INSPECTION_EXPIRED: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+  CERT_EXPIRING: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  CERT_EXPIRED: { bg: 'bg-teal-50', text: 'text-teal-800', border: 'border-teal-200' },
+  INSPECTION_EXPIRING: { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
+  INSPECTION_EXPIRED: { bg: 'bg-cyan-50', text: 'text-cyan-800', border: 'border-cyan-200' },
   UNPROCESSED_FEEDBACK: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-  CODE_RANGE_QUOTA: { bg: 'bg-yellow-50', text: 'text-yellow-800', border: 'border-yellow-200' },
+  CODE_RANGE_QUOTA: { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
   OVERDUE_MILESTONE: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
   OPEN_RECALL_CASE: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' },
+};
+
+const RELATED_ENTITY_TYPE_LABELS: Record<string, string> = {
+  TRACE_CODE: 'Mã tem truy xuất',
+  ProductionLot: 'Lô sản xuất',
+  PRODUCTION_LOT: 'Lô sản xuất',
+  Certification: 'Chứng nhận chất lượng',
+  CERTIFICATION: 'Chứng nhận chất lượng',
+  PRODUCT_FEEDBACK: 'Phản ánh người tiêu dùng',
+  CODE_RANGE: 'Dải mã truy xuất',
+  MILESTONE_REMINDER: 'Mốc canh tác bắt buộc',
+  RECALL_CASE: 'Vụ việc thu hồi',
 };
 
 export const AggregateAlertTable: React.FC<AggregateAlertTableProps> = ({
@@ -146,7 +160,7 @@ export const AggregateAlertTable: React.FC<AggregateAlertTableProps> = ({
                     {item.relatedEntityName || '—'}
                   </div>
                   <div className="text-[11px] text-gray-400 mt-0.5">
-                    {item.relatedEntityType}
+                    {RELATED_ENTITY_TYPE_LABELS[item.relatedEntityType] || item.relatedEntityType}
                   </div>
                 </td>
 
@@ -172,18 +186,46 @@ export const AggregateAlertTable: React.FC<AggregateAlertTableProps> = ({
                       <CheckCircle2 className="h-3.5 w-3.5" />
                       Đã xử lý
                     </span>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleActionClick(item.actionUrl)}
-                      className="h-8 gap-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 border-emerald-300"
-                    >
-                      <span>Xử lý ngay</span>
-                      <ExternalLink className="h-3.5 w-3.5 text-emerald-600" />
-                    </Button>
-                  )}
+                  ) : (() => {
+                    let label = 'Xử lý ngay';
+                    let IconComponent = ExternalLink;
+                    let onClick = () => handleActionClick(item.actionUrl);
+
+                    if (isAdmin) {
+                      if (item.type === 'OVERDUE_MILESTONE') {
+                        label = 'Giám sát lô';
+                        IconComponent = Eye;
+                        onClick = () => {
+                          toast.info('Cảnh báo mốc canh tác thuộc nghiệp vụ sản xuất của Quản lý HTX (VT-02). Bạn đang chuyển tới trang lô sản xuất để giám sát.');
+                          handleActionClick(item.actionUrl);
+                        };
+                      } else if (item.type === 'INSPECTION_EXPIRING' || item.type === 'INSPECTION_EXPIRED') {
+                        label = 'Giám sát lô';
+                        IconComponent = Eye;
+                        onClick = () => {
+                          toast.info('Bạn đang chuyển tới trang lô sản xuất để giám sát kết quả kiểm nghiệm.');
+                          handleActionClick(item.actionUrl);
+                        };
+                      } else if (item.type === 'CODE_RANGE_QUOTA') {
+                        label = 'Duyệt cấp bù';
+                      } else if (item.type === 'CERT_EXPIRING' || item.type === 'CERT_EXPIRED') {
+                        label = 'Thẩm định';
+                      }
+                    }
+
+                    return (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={onClick}
+                        className="h-8 gap-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 border-emerald-300"
+                      >
+                        <span>{label}</span>
+                        <IconComponent className="h-3.5 w-3.5 text-emerald-600" />
+                      </Button>
+                    );
+                  })()}
                 </td>
               </tr>
             );

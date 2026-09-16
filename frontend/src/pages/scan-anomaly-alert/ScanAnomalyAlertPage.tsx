@@ -81,12 +81,12 @@ export default function ScanAnomalyAlertPage() {
   const [resolveAlert, setResolveAlert] = useState<ScanAnomalyAlert | null>(null);
 
   const pendingOnPage = useMemo(
-    () => result.content.filter((alert) => alert.status === 'PENDING').length,
-    [result.content],
+    () => (result?.content || []).filter((alert) => alert.status === 'PENDING').length,
+    [result?.content],
   );
   const highOnPage = useMemo(
-    () => result.content.filter((alert) => alert.severity === 'HIGH').length,
-    [result.content],
+    () => (result?.content || []).filter((alert) => alert.severity === 'HIGH').length,
+    [result?.content],
   );
 
   const fetchAlerts = async () => {
@@ -289,7 +289,7 @@ export default function ScanAnomalyAlertPage() {
             <div className="flex justify-center py-16">
               <RefreshCw className="h-7 w-7 animate-spin text-primary" />
             </div>
-          ) : result.content.length === 0 ? (
+          ) : (!result?.content || result.content.length === 0) ? (
             <div className="flex items-center justify-center py-16 text-center text-muted-foreground">
               <p>Chưa có dữ liệu cảnh báo.</p>
             </div>
@@ -328,10 +328,10 @@ export default function ScanAnomalyAlertPage() {
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">
-                          <p>{alert.details.scanCount} lượt quét</p>
+                          <p>{alert.details?.scanCount ?? 1} lượt quét</p>
                           <p className="flex items-center gap-1 text-xs text-muted-foreground">
                             <MapPin className="h-3 w-3" />
-                            {alert.details.locations.length} vị trí · ngưỡng {alert.details.thresholdConfigured}
+                            {alert.details?.locations?.length ?? 0} vị trí{alert.details?.thresholdConfigured != null ? ` · ngưỡng ${alert.details.thresholdConfigured}` : ''}
                           </p>
                         </div>
                       </TableCell>

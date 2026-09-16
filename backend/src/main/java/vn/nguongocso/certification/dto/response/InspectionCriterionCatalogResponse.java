@@ -20,6 +20,9 @@ public class InspectionCriterionCatalogResponse {
     @JsonProperty("name")
     private String name;
 
+    @JsonProperty("nameEn")
+    private String nameEn;
+
     @JsonProperty("unit")
     private String unit;
 

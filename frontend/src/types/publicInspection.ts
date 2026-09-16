@@ -1,7 +1,9 @@
 export interface PublicInspectionResult {
   id: string;
   criterionName: string;
+  criterionNameEn?: string | null;
   standardValue: string;
+  standardValueEn?: string | null;
   measuredValue: string;
   passed: boolean;
   inspectorName?: string;

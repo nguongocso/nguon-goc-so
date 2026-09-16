@@ -1464,7 +1464,7 @@ const AppRoutes = () => (
             <Route
                 path="certifications"
                 element={
-                    <RoleRoute allowedRoles={["VT-02"]}>
+                    <RoleRoute allowedRoles={["VT-01", "VT-02"]}>
                         <CertificationListPage />
                     </RoleRoute>
                 }

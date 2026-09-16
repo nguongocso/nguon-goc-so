@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -41,7 +42,8 @@ public class CategoryThresholdOverrideRequest {
     @Min(value = 0, message = "Thời gian tối thiểu giữa các lượt quét phải không âm")
     private Integer minTimeBetweenScansMinutes;
 
-    @NotNull(message = "Thời hạn kích hoạt bình thường không được để trống")
-    @Min(value = 0, message = "Thời hạn kích hoạt bình thường phải không âm")
+    @NotNull(message = "Thời gian ân hạn không được để trống")
+    @Min(value = 0, message = "Thời gian ân hạn phải lớn hơn hoặc bằng 0")
+    @Max(value = 7, message = "Thời gian ân hạn khuyến nghị tối đa là 7 ngày")
     private Integer activationAgeDays;
 }

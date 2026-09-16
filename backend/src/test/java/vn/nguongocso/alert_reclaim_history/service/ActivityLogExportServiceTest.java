@@ -25,7 +25,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -44,7 +43,7 @@ import vn.nguongocso.alert.repository.ActivityLogRepository;
 import vn.nguongocso.alert.service.impl.ActivityLogCsvWriter;
 import vn.nguongocso.alert.service.impl.ActivityLogExportValueSanitizer;
 import vn.nguongocso.alert.service.impl.ActivityLogExportServiceImpl;
-import vn.nguongocso.alert.service.impl.ActivityLogExportWorker;
+import vn.nguongocso.alert.service.impl.ActivityLogExportDispatcher;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.exception.BusinessException;
 
@@ -53,8 +52,7 @@ class ActivityLogExportServiceTest {
     @Mock private ActivityLogRepository activityLogRepository;
     @Mock private ActivityLogExportJobRepository jobRepository;
     @Mock private ActivityLogExportItemRepository itemRepository;
-    @Mock private ActivityLogExportWorker worker;
-    @Mock private TaskExecutor taskExecutor;
+    @Mock private ActivityLogExportDispatcher dispatcher;
     @Mock private CustomUserDetails currentUser;
 
     private ActivityLogExportServiceImpl service;
@@ -67,7 +65,7 @@ class ActivityLogExportServiceTest {
     void setUp() {
         Clock clock = Clock.fixed(Instant.parse("2026-09-14T03:00:00Z"), ZoneId.of("Asia/Ho_Chi_Minh"));
         service = new ActivityLogExportServiceImpl(activityLogRepository, jobRepository, itemRepository,
-                csvWriter(), worker, taskExecutor, clock);
+                csvWriter(), dispatcher, clock);
         organizationId = UUID.randomUUID();
         lenient().when(currentUser.getRoleCode()).thenReturn("VT-02");
         lenient().when(currentUser.getOrganizationId()).thenReturn(organizationId);
@@ -131,7 +129,7 @@ class ActivityLogExportServiceTest {
         assertThat(result.getJob().getStatus()).isEqualTo("IN_PROGRESS");
         assertThat(result.getJob().getRecordCount()).isEqualTo(1);
         verify(itemRepository).snapshotFromActivityLogs(any(), any(), any(), any(), any(), any(), any());
-        verify(taskExecutor).execute(any(Runnable.class));
+        verify(dispatcher).dispatch(result.getJob().getExportId());
         verify(activityLogRepository).saveAndFlush(any(ActivityLog.class));
     }
 
@@ -175,7 +173,7 @@ class ActivityLogExportServiceTest {
         assertThat(result.getJob().getStatus()).isEqualTo("IN_PROGRESS");
         assertThat(result.getJob().getRecordCount()).isEqualTo(10_001L);
         verify(itemRepository).snapshotFromActivityLogs(any(), any(), any(), any(), any(), any(), any());
-        verify(taskExecutor).execute(any(Runnable.class));
+        verify(dispatcher).dispatch(generatedJobId);
         verify(activityLogRepository).saveAndFlush(any(ActivityLog.class));
     }
 
@@ -209,7 +207,7 @@ class ActivityLogExportServiceTest {
     }
 
     @Test
-    void requestExport_shouldMarkJobFailed_whenTaskExecutorRejects() {
+    void requestExport_shouldKeepAcceptedJobRecoverable_whenInitialDispatchCannotStart() {
         when(currentUser.getUserId()).thenReturn(UUID.randomUUID());
         when(currentUser.getUsername()).thenReturn("manager");
         when(currentUser.getFullName()).thenReturn("Quản lý HTX");
@@ -221,13 +219,13 @@ class ActivityLogExportServiceTest {
             if (job.getId() == null) job.setId(generatedJobId);
             return job;
         });
-        org.mockito.Mockito.doThrow(new org.springframework.core.task.TaskRejectedException("Queue full"))
-                .when(taskExecutor).execute(any(Runnable.class));
+        when(dispatcher.dispatch(generatedJobId)).thenReturn(false);
 
         ActivityLogExportResult result = service.requestExport(ActivityLogExportFilterRequest.builder().build(), currentUser);
 
         assertThat(result.getMode()).isEqualTo("ASYNC");
-        verify(worker).markDispatchFailed(generatedJobId);
+        assertThat(result.getJob().getStatus()).isEqualTo("IN_PROGRESS");
+        verify(dispatcher).dispatch(generatedJobId);
     }
 
     @Test
