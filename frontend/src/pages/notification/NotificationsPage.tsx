@@ -7,10 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useUnreadCount } from '@/hooks/useUnreadCount';
-import {
-  NotificationDetailDialog,
-  isApiKeyWarningNotification,
-} from '@/components/notification/NotificationDetailDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { hasAnyRole, ROLE_ACCESS } from '@/config/roleAccess';
 import type { NotificationResponse, NotificationType } from '@/types/notification';
@@ -76,8 +72,6 @@ const NotificationsPage = () => {
     isRead,
   });
   const { refresh: refreshUnreadCount } = useUnreadCount();
-  // Thông báo cảnh báo khóa API đang được xem chi tiết trong popup (NCL-12-CN-005)
-  const [selectedNotification, setSelectedNotification] = useState<NotificationResponse | null>(null);
 
   const isMissingEmail = Boolean(
     user &&
@@ -129,14 +123,6 @@ const NotificationsPage = () => {
       (filter === 'READ' && isTerritoryNoticeRead));
 
   const handleItemClick = (notification: NotificationResponse) => {
-    // NCL-12-CN-005: Cảnh báo khóa API mở popup chi tiết, không điều hướng
-    if (isApiKeyWarningNotification(notification)) {
-      if (!notification.isRead) {
-        void markAsRead(notification.id).then(() => refreshUnreadCount());
-      }
-      setSelectedNotification({ ...notification, isRead: true, readAt: notification.readAt ?? new Date().toISOString() });
-      return;
-    }
     if (!notification.isRead) {
       void markAsRead(notification.id).then(() => refreshUnreadCount());
     }
@@ -173,23 +159,7 @@ const NotificationsPage = () => {
     navigate('/organizations/profile');
   };
 
-  // Đóng popup chi tiết cảnh báo khóa API
-  const handleDialogClose = () => {
-    setSelectedNotification(null);
-  };
-
-  // Đánh dấu đã đọc từ trong popup chi tiết và làm mới số lượng chưa đọc
-  const handleDialogMarkAsRead = (id: string) => {
-    void markAsRead(id).then(() => refreshUnreadCount());
-    setSelectedNotification((current) =>
-      current && current.id === id
-        ? { ...current, isRead: true, readAt: current.readAt ?? new Date().toISOString() }
-        : current,
-    );
-  };
-
   return (
-    <>
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -369,13 +339,6 @@ const NotificationsPage = () => {
         </CardContent>
       </Card>
     </div>
-    {/* Popup chi tiết cảnh báo khóa API ở root trang để không bị giới hạn bởi Card */}
-    <NotificationDetailDialog
-      notification={selectedNotification}
-      onClose={handleDialogClose}
-      onMarkAsRead={handleDialogMarkAsRead}
-    />
-    </>
   );
 };
 
