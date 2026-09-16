@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import type { PartnerApiKeyResponse, WebhookTestPingResponse } from '@/types/apiKey';
 import { updatePartnerWebhook, testPingPartnerWebhook } from '@/api/apiKeyApi';
+import { sanitizeResponseBody } from '@/utils/string';
 
 interface WebhookConfigModalProps {
   open: boolean;
@@ -166,8 +167,8 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col gap-0 overflow-hidden">
+        <DialogHeader className="shrink-0">
           <div className="flex items-center gap-2 text-primary font-semibold mb-1">
             <Webhook className="w-5 h-5 text-primary" />
             <span>Khai báo thông tin nhận thông báo thu hồi</span>
@@ -180,10 +181,10 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-3">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 space-y-4 py-3 pr-1">
           {/* Nhập URL */}
-          <div className="space-y-2">
-            <Label htmlFor="webhook-url" className="text-sm font-medium flex items-center justify-between">
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="webhook-url" className="text-sm font-medium flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
               <span>Địa chỉ tiếp nhận thông báo (URL) <span className="text-destructive">*</span></span>
               {apiKey.webhookUrl && (
                 <span className="text-xs text-muted-foreground font-normal">
@@ -191,13 +192,13 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
                 </span>
               )}
             </Label>
-            <div className="relative">
+            <div className="relative min-w-0">
               <Input
                 id="webhook-url"
                 placeholder="https://partner.com/api/v1/webhook-listener"
                 value={webhookUrl}
                 onChange={handleUrlChange}
-                className={`font-mono text-xs sm:text-sm ${urlError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                className={`font-mono text-xs sm:text-sm w-full ${urlError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
               />
             </div>
             {urlError && (
@@ -212,14 +213,15 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
           </div>
 
           {/* Toggle Kích hoạt nhận tin */}
-          <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
-            <div className="space-y-0.5">
+          <div className="flex items-start justify-between gap-3 p-3 rounded-lg border bg-muted/30">
+            <div className="space-y-0.5 min-w-0">
               <Label className="text-sm font-medium">Bật nhận thông báo tự động</Label>
               <p className="text-xs text-muted-foreground">
                 Tạm dừng sẽ không gửi hoặc xếp hàng thông báo khi lô hàng bị thu hồi.
               </p>
             </div>
             <Switch
+              className="shrink-0"
               checked={isActive}
               onCheckedChange={setIsActive}
             />
@@ -227,13 +229,13 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
 
           {/* Khóa bí mật chữ ký số HMAC-SHA256 */}
           {apiKey.webhookSecret && (
-            <div className="space-y-1.5 p-3 rounded-lg border bg-slate-50 dark:bg-slate-900/50">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold flex items-center gap-1 text-slate-700 dark:text-slate-300">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Khóa bí mật xác thực thông báo (Secret Key)</span>
+            <div className="space-y-1.5 p-3 rounded-lg border bg-slate-50 dark:bg-slate-900/50 min-w-0">
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                <Label className="text-xs font-semibold flex items-center gap-1 text-slate-700 dark:text-slate-300 min-w-0">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="truncate">Khóa bí mật xác thực thông báo (Secret Key)</span>
                 </Label>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                   <Button
                     type="button"
                     variant="ghost"
@@ -313,8 +315,13 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
                   </p>
                 )}
                 {pingResult.responseBody && (
-                  <div className="text-[11px] font-mono bg-card/70 p-1.5 rounded border text-muted-foreground truncate max-h-16 overflow-y-auto">
-                    {pingResult.responseBody}
+                  <div className="space-y-1 pt-0.5">
+                    <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                      Phản hồi từ máy chủ đối tác:
+                    </span>
+                    <div className="text-[11px] font-mono bg-card/70 p-2 rounded border text-muted-foreground break-all whitespace-pre-wrap max-h-24 overflow-y-auto">
+                      {sanitizeResponseBody(pingResult.responseBody)}
+                    </div>
                   </div>
                 )}
               </div>
@@ -322,7 +329,7 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="shrink-0 gap-2 sm:gap-0">
           <Button variant="outline" onClick={onClose} disabled={saving}>
             Hủy
           </Button>

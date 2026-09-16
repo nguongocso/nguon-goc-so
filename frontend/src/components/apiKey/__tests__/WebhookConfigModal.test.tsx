@@ -140,4 +140,61 @@ describe('WebhookConfigModal (NCL-12-CN-006)', () => {
       expect(screen.getByText(/145ms/i)).toBeInTheDocument();
     });
   });
+
+  it('hiển thị phản hồi HTML của đối tác dưới dạng văn bản thuần, không lộ thẻ HTML', async () => {
+    const rawBody =
+      'This URL has no default content configured. <a href="https://webhook.site/#!/edit/abc">Change response in Webhook.site</a>.';
+
+    vi.mocked(testPingPartnerWebhook).mockResolvedValueOnce({
+      targetUrl: 'https://webhook.site/abc',
+      httpStatus: 200,
+      durationMs: 1027,
+      isSuccess: true,
+      responseBody: rawBody,
+    });
+
+    const { container } = render(
+      <WebhookConfigModal
+        open={true}
+        apiKey={mockApiKey}
+        onClose={mockOnClose}
+        onSuccess={mockOnSuccess}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Gửi thử nghiệm kết nối/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Kết nối thành công!/i)).toBeInTheDocument();
+    });
+
+    // Không được render thẻ HTML thô từ phản hồi của đối tác
+    expect(container.querySelectorAll('a')).toHaveLength(0);
+
+    // Nội dung phải hiển thị văn bản thuần đã làm sạch thẻ HTML, không bị rò rỉ thẻ <a href...>
+    expect(screen.getByText(/Phản hồi từ máy chủ đối tác:/i)).toBeInTheDocument();
+    const responseBlock = screen.getByText(/This URL has no default content configured. Change response in Webhook.site./i);
+    expect(responseBlock.textContent).not.toContain('<a href=');
+    expect(responseBlock.className).not.toContain('truncate');
+    expect(responseBlock.className).toContain('break-all');
+  });
+
+  it('không làm tràn khung nhìn: nội dung modal có thể cuộn và chân trang luôn hiển thị', () => {
+    render(
+      <WebhookConfigModal
+        open={true}
+        apiKey={mockApiKey}
+        onClose={mockOnClose}
+        onSuccess={mockOnSuccess}
+      />
+    );
+
+    // Vùng nội dung phải có giới hạn chiều cao + cho phép cuộn
+    const scrollable = document.querySelector('[data-slot="dialog-content"] > .overflow-y-auto');
+    expect(scrollable).not.toBeNull();
+    expect(scrollable?.className).toContain('overflow-y-auto');
+
+    // Chân trang (nút Lưu) vẫn phải truy cập được
+    expect(screen.getByRole('button', { name: /Lưu cấu hình/i })).toBeInTheDocument();
+  });
 });

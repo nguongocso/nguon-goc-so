@@ -109,7 +109,7 @@ export const getPartnerWebhookNotifications = async (
 ): Promise<import('@/types/apiKey').WebhookNotificationPageResponse> => {
   const params: Record<string, any> = { page, size };
   if (status) {
-    params.status = status;
+    params.deliveryStatus = status;
   }
   const response = await apiClient.get<ApiResult<import('@/types/apiKey').WebhookNotificationPageResponse>>(
     `/organization/api-keys/${apiKeyId}/notifications`,
