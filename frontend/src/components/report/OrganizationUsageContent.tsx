@@ -289,6 +289,19 @@ export default function OrganizationUsageContent() {
       ? `Kỳ ${toDisplayDate(fromDate)} → ${toDisplayDate(toDate)}`
       : 'Kỳ 30 ngày gần nhất';
 
+  // Mô tả kỳ báo cáo dùng ngày đã chuẩn hóa từ backend (kỳ trước luôn có cùng
+  // độ dài kỳ hiện tại); khi chưa có dữ liệu thì dùng lại ngày đang nhập.
+  const periodDescription = useMemo(() => {
+    const currentFrom = data?.startDate ?? fromDate;
+    const currentTo = data?.endDate ?? toDate;
+    return {
+      currentFrom,
+      currentTo,
+      previousFrom: data?.previousStartDate,
+      previousTo: data?.previousEndDate,
+    };
+  }, [data, fromDate, toDate]);
+
   const displayedItems = useMemo(() => {
     let items: OrganizationUsageItem[] = data?.items ?? [];
     const kw = searchKeyword.trim().toLowerCase();
@@ -558,6 +571,22 @@ export default function OrganizationUsageContent() {
               }
             />
 
+            {/* Mô tả kỳ báo cáo: kỳ hiện tại và kỳ trước, hiển thị trên bảng */}
+            <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 px-1 text-sm text-muted-foreground">
+              <span>
+                <span className="font-medium text-foreground">Kỳ hiện tại:</span>{' '}
+                Từ {toDisplayDate(periodDescription.currentFrom)} đến{' '}
+                {toDisplayDate(periodDescription.currentTo)}
+              </span>
+              {periodDescription.previousFrom && periodDescription.previousTo && (
+                <span>
+                  <span className="font-medium text-foreground">Kỳ trước:</span>{' '}
+                  Từ {toDisplayDate(periodDescription.previousFrom)} đến{' '}
+                  {toDisplayDate(periodDescription.previousTo)}
+                </span>
+              )}
+            </div>
+
             <DataTableShell
               loading={isLoading}
               loadingMessage="Đang tải dữ liệu mức độ sử dụng..."
@@ -655,7 +684,6 @@ export default function OrganizationUsageContent() {
                           <StatusBadge
                             label="Cần liên hệ hỗ trợ"
                             tone="warning"
-                            icon={PhoneCall}
                           />
                         ) : !item.hasData ? (
                           <StatusBadge label="Chưa có dữ liệu" tone="neutral" />

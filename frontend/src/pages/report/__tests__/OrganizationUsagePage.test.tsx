@@ -200,6 +200,13 @@ describe('NCL-07-CN-008: Bảng điều khiển mức độ sử dụng nền t�
 
     // Cột STT đứng đầu bảng, đánh số theo thứ tự hiển thị
     expect(screen.getByRole('columnheader', { name: 'STT' })).toBeInTheDocument();
+
+    // Mô tả kỳ báo cáo phía trên bảng: kỳ hiện tại và kỳ trước
+    const currentPeriod = screen.getByText('Kỳ hiện tại:').parentElement as HTMLElement;
+    expect(currentPeriod.textContent).toContain('từ 01/09/2026 đến 30/09/2026');
+    const previousPeriod = screen.getByText('Kỳ trước:').parentElement as HTMLElement;
+    expect(previousPeriod.textContent).toContain('từ 02/08/2026 đến 31/08/2026');
+
     const rows = screen.getAllByRole('row');
     expect(within(rows[1]).getAllByRole('cell')[0]).toHaveTextContent('1');
     expect(within(rows[1]).getAllByRole('cell')[1]).toHaveTextContent(
