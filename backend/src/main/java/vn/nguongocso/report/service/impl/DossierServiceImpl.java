@@ -241,14 +241,26 @@ public class DossierServiceImpl implements DossierService {
         // Xác định mẫu hồ sơ áp dụng nếu có
         ProfileTemplate template = null;
         UUID userOrgId = currentUser != null ? currentUser.getOrganizationId() : null;
+        // Tổ chức hiệu dụng: đối với VT-04 là tổ chức HTX sở hữu lô hàng, đối với VT-02 là tổ chức của người dùng
+        UUID effectiveOrgId = userOrgId;
+        if ("VT-04".equals(currentUser.getRoleCode()) && shipment.getOrganization() != null) {
+            effectiveOrgId = shipment.getOrganization().getOrganizationId();
+        }
         if (templateId != null && profileTemplateRepository != null) {
             template = profileTemplateRepository.findById(templateId)
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin mẫu hồ sơ."));
-            if (userOrgId != null && !template.getOrganization().getOrganizationId().equals(userOrgId)) {
-                throw new AccessDeniedException("Mẫu hồ sơ không thuộc tổ chức của bạn.");
+            // VT-04: Kiểm tra template có thuộc tổ chức hiệu dụng (HTX) không
+            if ("VT-04".equals(currentUser.getRoleCode())) {
+                if (effectiveOrgId != null && !template.getOrganization().getOrganizationId().equals(effectiveOrgId)) {
+                    throw new AccessDeniedException("Mẫu hồ sơ không thuộc tổ chức của lô hàng này.");
+                }
+            } else {
+                if (userOrgId != null && !template.getOrganization().getOrganizationId().equals(userOrgId)) {
+                    throw new AccessDeniedException("Mẫu hồ sơ không thuộc tổ chức của bạn.");
+                }
             }
-        } else if (userOrgId != null && profileTemplateRepository != null) {
-            template = profileTemplateRepository.findByOrganization_OrganizationIdAndIsDefaultTrue(userOrgId)
+        } else if (effectiveOrgId != null && profileTemplateRepository != null) {
+            template = profileTemplateRepository.findByOrganization_OrganizationIdAndIsDefaultTrue(effectiveOrgId)
                     .orElse(null);
         }
 
@@ -1419,14 +1431,26 @@ public class DossierServiceImpl implements DossierService {
         // không có mẫu mặc định → dùng bộ trường chuẩn đầy đủ.
         ProfileTemplate batchTemplate = null;
         UUID userOrgId = currentUser != null ? currentUser.getOrganizationId() : null;
+        // Tổ chức hiệu dụng: đối với VT-04 là tổ chức HTX sở hữu lô hàng đầu tiên, đối với VT-02 là tổ chức của người dùng
+        UUID effectiveOrgId = userOrgId;
+        if ("VT-04".equals(currentUser.getRoleCode()) && !eligibleShipments.isEmpty() && eligibleShipments.get(0).getOrganization() != null) {
+            effectiveOrgId = eligibleShipments.get(0).getOrganization().getOrganizationId();
+        }
         if (request.getTemplateId() != null && profileTemplateRepository != null) {
             batchTemplate = profileTemplateRepository.findById(request.getTemplateId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin mẫu hồ sơ."));
-            if (userOrgId != null && !batchTemplate.getOrganization().getOrganizationId().equals(userOrgId)) {
-                throw new AccessDeniedException("Mẫu hồ sơ không thuộc tổ chức của bạn.");
+            // VT-04: Kiểm tra template có thuộc tổ chức hiệu dụng (HTX) không
+            if ("VT-04".equals(currentUser.getRoleCode())) {
+                if (effectiveOrgId != null && !batchTemplate.getOrganization().getOrganizationId().equals(effectiveOrgId)) {
+                    throw new AccessDeniedException("Mẫu hồ sơ không thuộc tổ chức của lô hàng này.");
+                }
+            } else {
+                if (userOrgId != null && !batchTemplate.getOrganization().getOrganizationId().equals(userOrgId)) {
+                    throw new AccessDeniedException("Mẫu hồ sơ không thuộc tổ chức của bạn.");
+                }
             }
-        } else if (userOrgId != null && profileTemplateRepository != null) {
-            batchTemplate = profileTemplateRepository.findByOrganization_OrganizationIdAndIsDefaultTrue(userOrgId)
+        } else if (effectiveOrgId != null && profileTemplateRepository != null) {
+            batchTemplate = profileTemplateRepository.findByOrganization_OrganizationIdAndIsDefaultTrue(effectiveOrgId)
                     .orElse(null);
         }
 

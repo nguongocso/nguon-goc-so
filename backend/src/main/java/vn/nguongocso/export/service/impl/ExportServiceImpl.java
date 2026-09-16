@@ -417,6 +417,12 @@ public class ExportServiceImpl implements ExportService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin lô hàng."));
 
         UUID userOrgId = currentUser.getOrganizationId();
+        // Tổ chức hiệu dụng: đối với VT-04 là tổ chức HTX sở hữu lô hàng, đối với VT-02 là tổ chức của người dùng
+        UUID effectiveOrgId = userOrgId;
+        if ("VT-04".equals(currentUser.getRoleCode()) && shipment.getOrganization() != null) {
+            effectiveOrgId = shipment.getOrganization().getOrganizationId();
+        }
+
         if ("VT-02".equals(currentUser.getRoleCode())) {
             if (shipment.getOrganization() == null || !shipment.getOrganization().getOrganizationId().equals(userOrgId)) {
                 throw new TemplateNotOwnedException("Từ chối thao tác: Lô hàng không thuộc tổ chức của bạn.");
@@ -428,12 +434,20 @@ public class ExportServiceImpl implements ExportService {
         if (templateId != null) {
             template = profileTemplateRepository.findById(templateId)
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin mẫu hồ sơ."));
-            if (!template.getOrganization().getOrganizationId().equals(userOrgId)) {
-                throw new TemplateNotOwnedException("Mẫu hồ sơ không thuộc tổ chức của bạn.");
+
+            // VT-04: Kiểm tra template có thuộc tổ chức hiệu dụng (HTX) không
+            if ("VT-04".equals(currentUser.getRoleCode())) {
+                if (!template.getOrganization().getOrganizationId().equals(effectiveOrgId)) {
+                    throw new TemplateNotOwnedException("Mẫu hồ sơ không thuộc tổ chức của lô hàng này.");
+                }
+            } else {
+                if (!template.getOrganization().getOrganizationId().equals(userOrgId)) {
+                    throw new TemplateNotOwnedException("Mẫu hồ sơ không thuộc tổ chức của bạn.");
+                }
             }
         } else {
-            // TC-03: không chọn mẫu -> dùng mẫu mặc định của tổ chức
-            template = profileTemplateRepository.findByOrganization_OrganizationIdAndIsDefaultTrue(userOrgId).orElse(null);
+            // TC-03: không chọn mẫu -> dùng mẫu mặc định của tổ chức hiệu dụng
+            template = profileTemplateRepository.findByOrganization_OrganizationIdAndIsDefaultTrue(effectiveOrgId).orElse(null);
         }
 
         // 2. Thu thập các trường được chọn

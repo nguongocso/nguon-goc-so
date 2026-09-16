@@ -168,13 +168,23 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
     @Override
     @Transactional(readOnly = true)
     public ProfileTemplateResponse getTemplate(UUID orgId, UUID templateId, CustomUserDetails currentUser) {
-        validateOrganizationOwnership(orgId, currentUser);
+        // VT-04: được xem chi tiết mẫu của bất kỳ tổ chức nào (mẫu không chứa dữ liệu nhạy cảm)
+        if (!"VT-04".equals(currentUser.getRoleCode())) {
+            validateOrganizationOwnership(orgId, currentUser);
+        }
 
         ProfileTemplate template = profileTemplateRepository.findById(templateId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin mẫu hồ sơ."));
 
-        if (template.getOrganization() == null || !template.getOrganization().getOrganizationId().equals(orgId)) {
-            throw new TemplateNotOwnedException("Mẫu hồ sơ không thuộc tổ chức của bạn.");
+        // Đối với VT-04: kiểm tra template có thuộc orgId được yêu cầu không
+        if ("VT-04".equals(currentUser.getRoleCode())) {
+            if (template.getOrganization() == null || !template.getOrganization().getOrganizationId().equals(orgId)) {
+                throw new TemplateNotOwnedException("Mẫu hồ sơ không thuộc tổ chức được yêu cầu.");
+            }
+        } else {
+            if (template.getOrganization() == null || !template.getOrganization().getOrganizationId().equals(orgId)) {
+                throw new TemplateNotOwnedException("Mẫu hồ sơ không thuộc tổ chức của bạn.");
+            }
         }
 
         return mapToResponse(template);
@@ -302,7 +312,10 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
     @Override
     @Transactional(readOnly = true)
     public ProfileTemplateResponse getDefaultTemplateResponse(UUID orgId, CustomUserDetails currentUser) {
-        validateOrganizationOwnership(orgId, currentUser);
+        // VT-04: được xem mẫu mặc định của bất kỳ tổ chức nào (mẫu không chứa dữ liệu nhạy cảm)
+        if (!"VT-04".equals(currentUser.getRoleCode())) {
+            validateOrganizationOwnership(orgId, currentUser);
+        }
         ProfileTemplate template = getDefaultTemplate(orgId);
         return mapToResponse(template);
     }
@@ -327,18 +340,31 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
         validateShipmentAccess(shipment, currentUser);
 
         UUID userOrgId = currentUser.getOrganizationId();
+        // Tổ chức hiệu dụng: đối với VT-04 là tổ chức HTX sở hữu lô hàng, đối với VT-02 là tổ chức của người dùng
+        UUID effectiveOrgId = userOrgId;
+        if ("VT-04".equals(currentUser.getRoleCode()) && shipment.getOrganization() != null) {
+            effectiveOrgId = shipment.getOrganization().getOrganizationId();
+        }
 
         // 1. Xác định template áp dụng
         ProfileTemplate template = null;
         if (templateId != null) {
             template = profileTemplateRepository.findById(templateId)
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin mẫu hồ sơ."));
-            if (!template.getOrganization().getOrganizationId().equals(userOrgId)) {
-                throw new TemplateNotOwnedException("Mẫu hồ sơ không thuộc tổ chức của bạn.");
+
+            // VT-04: Kiểm tra template có thuộc tổ chức hiệu dụng (HTX) không
+            if ("VT-04".equals(currentUser.getRoleCode())) {
+                if (!template.getOrganization().getOrganizationId().equals(effectiveOrgId)) {
+                    throw new TemplateNotOwnedException("Mẫu hồ sơ không thuộc tổ chức của lô hàng này.");
+                }
+            } else {
+                if (!template.getOrganization().getOrganizationId().equals(userOrgId)) {
+                    throw new TemplateNotOwnedException("Mẫu hồ sơ không thuộc tổ chức của bạn.");
+                }
             }
         } else {
-            // Không truyền templateId -> tìm mẫu mặc định của tổ chức nếu có (TC-03), nếu không có thì dùng mặc định hệ thống
-            template = profileTemplateRepository.findByOrganization_OrganizationIdAndIsDefaultTrue(userOrgId)
+            // Không chọn mẫu -> lấy mẫu mặc định của tổ chức hiệu dụng (TC-03)
+            template = profileTemplateRepository.findByOrganization_OrganizationIdAndIsDefaultTrue(effectiveOrgId)
                     .orElse(null);
         }
 

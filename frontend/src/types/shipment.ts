@@ -95,3 +95,10 @@ export interface PageResponse<T> {
   first: boolean;
   last: boolean;
 }
+export interface CreateShipmentPayload {
+  productionLotId: string;
+  name: string;
+  totalQuantity: number;
+  packagingInfo?: string;
+}
+
