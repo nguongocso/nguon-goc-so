@@ -19,8 +19,12 @@ import vn.nguongocso.event.repository.OfflineSyncLogRepository;
 import vn.nguongocso.event.service.ChainEventService;
 import vn.nguongocso.event.service.EventValidationService;
 import vn.nguongocso.exception.BusinessException;
+import vn.nguongocso.farm.dto.request.CreateFarmLogRequest;
+import vn.nguongocso.farm.dto.response.FarmLogResponse;
 import vn.nguongocso.farm.entity.ProductionLot;
+import vn.nguongocso.farm.enums.FarmActivityType;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
+import vn.nguongocso.farm.service.FarmLogService;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.repository.ShipmentRepository;
@@ -36,10 +40,10 @@ import java.util.UUID;
  * <p>
  * Đảm bảo logic xử lý offline nhất quán với online:
  * - Sử dụng cùng các service method (recordHarvestEvent, recordPackagingEvent,
- * recordTransportEvent).
+ * recordTransportEvent, FarmLogService.create).
  * - Log thất bại vào cả failed_event_logs (qua EventValidationService) và
  * offline_sync_logs.
- * - Hỗ trợ HARVEST, PACKAGING, TRANSPORT.
+ * - Hỗ trợ HARVEST, PACKAGING, TRANSPORT, FARM_LOG (NCL-10-CN-012).
  */
 @Slf4j
 @Service
@@ -53,6 +57,7 @@ public class OfflineSyncEventProcessor {
     private final ProductionLotRepository productionLotRepository;
     private final ShipmentRepository shipmentRepository;
     private final TraceCodeRepository traceCodeRepository;
+    private final FarmLogService farmLogService;
 
     /**
      * Xử lý một event trong transaction riêng (REQUIRES_NEW).
@@ -76,6 +81,7 @@ public class OfflineSyncEventProcessor {
             }
 
             // Xử lý theo loại sự kiện
+            UUID createdEventId = null;
             switch (eventDto.getEventType()) {
                 case HARVEST:
                     processHarvestOffline(eventDto, currentUser);
@@ -85,6 +91,9 @@ public class OfflineSyncEventProcessor {
                     break;
                 case TRANSPORT:
                     processTransportOffline(eventDto, currentUser);
+                    break;
+                case FARM_LOG:
+                    createdEventId = processFarmLogOffline(eventDto);
                     break;
                 default:
                     throw new BusinessException(
@@ -97,6 +106,7 @@ public class OfflineSyncEventProcessor {
             return OfflineEventSyncResultDto.builder()
                     .offlineEventId(eventDto.getOfflineEventId())
                     .status("SUCCESS")
+                    .eventId(createdEventId)
                     .build();
 
         } catch (BusinessException e) {
@@ -205,6 +215,85 @@ public class OfflineSyncEventProcessor {
 
         // Delegate to the same online service method
         chainEventService.recordTransportEvent(transportRequest, currentUser);
+    }
+
+    /**
+     * Xử lý nhật ký canh tác ghi khi ngoại tuyến (NCL-10-CN-012).
+     * <p>
+     * Ánh xạ {@code eventData} sang {@code CreateFarmLogRequest} rồi delegate về
+     * cùng service method với ghi trực tuyến, nên mọi kiểm tra quyền (QTN-07),
+     * tổ chức (QTN-01) và trạng thái lô được giữ nguyên.
+     *
+     * @param eventDto sự kiện ngoại tuyến loại FARM_LOG
+     * @return ID bản ghi farm_logs vừa tạo
+     */
+    private UUID processFarmLogOffline(RecordOfflineEventDto eventDto) {
+        if (eventDto.getProductionLotId() == null) {
+            throw new BusinessException("Vui lòng chọn lô sản xuất");
+        }
+        if (eventDto.getEventData() == null) {
+            throw new BusinessException("Thiếu dữ liệu nhật ký canh tác.");
+        }
+
+        Object activityTypeObj = eventDto.getEventData().get("activityType");
+        if (activityTypeObj == null || activityTypeObj.toString().isBlank()) {
+            throw new BusinessException("Vui lòng chọn loại hoạt động");
+        }
+        FarmActivityType activityType;
+        try {
+            activityType = FarmActivityType.valueOf(activityTypeObj.toString().trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("Loại hoạt động không hợp lệ: " + activityTypeObj);
+        }
+
+        Object executedDateObj = eventDto.getEventData().get("executedDate");
+        if (executedDateObj == null || executedDateObj.toString().isBlank()) {
+            throw new BusinessException("Vui lòng chọn ngày thực hiện");
+        }
+        LocalDate executedDate;
+        try {
+            executedDate = LocalDate.parse(executedDateObj.toString().trim());
+        } catch (Exception e) {
+            throw new BusinessException("Ngày thực hiện không hợp lệ: " + executedDateObj);
+        }
+
+        CreateFarmLogRequest farmLogRequest = new CreateFarmLogRequest();
+        farmLogRequest.setProductionLotId(eventDto.getProductionLotId());
+        farmLogRequest.setActivityType(activityType);
+        farmLogRequest.setExecutedDate(executedDate);
+
+        Object materialObj = eventDto.getEventData().get("material");
+        if (materialObj != null && !materialObj.toString().isBlank()) {
+            farmLogRequest.setMaterial(materialObj.toString());
+        }
+        Object quantityObj = eventDto.getEventData().get("quantity");
+        if (quantityObj != null && !quantityObj.toString().isBlank()) {
+            try {
+                farmLogRequest.setQuantity(Double.valueOf(quantityObj.toString()));
+            } catch (NumberFormatException e) {
+                throw new BusinessException("Số lượng phải là số.");
+            }
+        }
+        Object unitObj = eventDto.getEventData().get("unit");
+        if (unitObj != null && !unitObj.toString().isBlank()) {
+            farmLogRequest.setUnit(unitObj.toString());
+        }
+        Object notesObj = eventDto.getEventData().get("notes");
+        if (notesObj != null && !notesObj.toString().isBlank()) {
+            farmLogRequest.setNotes(notesObj.toString());
+        }
+        Object milestoneObj = eventDto.getEventData().get("milestoneId");
+        if (milestoneObj != null && !milestoneObj.toString().isBlank()) {
+            try {
+                farmLogRequest.setMilestoneId(Long.valueOf(milestoneObj.toString()));
+            } catch (NumberFormatException e) {
+                throw new BusinessException("ID mốc canh tác không hợp lệ.");
+            }
+        }
+
+        // Delegate về cùng service method với ghi trực tuyến.
+        FarmLogResponse created = farmLogService.create(farmLogRequest);
+        return created != null ? created.getId() : null;
     }
 
     /**

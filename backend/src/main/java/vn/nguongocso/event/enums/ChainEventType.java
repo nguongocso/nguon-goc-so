@@ -40,5 +40,9 @@ public enum ChainEventType {
     WAREHOUSE_EXIT, // Xuất kho HTX
 
     // Sự kiện đánh dấu điểm bắt đầu hành trình riêng của lô con
-    SPLIT // Tách lô
+    SPLIT, // Tách lô
+
+    // Sự kiện nhật ký canh tác ghi khi ngoại tuyến (NCL-10-CN-012).
+    // Đồng bộ qua POST /chain-events/sync rồi delegate về FarmLogService.
+    FARM_LOG // Nhật ký canh tác ngoại tuyến
 }

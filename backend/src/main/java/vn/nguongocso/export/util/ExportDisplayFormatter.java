@@ -130,6 +130,7 @@ public final class ExportDisplayFormatter {
             case WAREHOUSE_ENTRY -> "Nhập kho HTX";
             case WAREHOUSE_EXIT -> "Xuất kho HTX";
             case SPLIT -> "Tách lô";
+            case FARM_LOG -> "Nhật ký canh tác";
         };
     }
 
