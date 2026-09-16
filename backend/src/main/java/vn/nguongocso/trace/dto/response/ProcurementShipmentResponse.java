@@ -26,5 +26,12 @@ public class ProcurementShipmentResponse {
 
     private String organizationName;
 
+    /**
+     * UUID của tổ chức HTX sở hữu lô hàng.
+     * Doanh nghiệp thu mua (VT-04) dùng trường này để lấy danh sách mẫu hồ sơ
+     * của HTX khi xuất hồ sơ truy xuất nguồn gốc.
+     */
+    private UUID cooperativeOrganizationId;
+
     private Long totalQuantity;
 }

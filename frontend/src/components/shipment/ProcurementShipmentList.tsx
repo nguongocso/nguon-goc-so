@@ -557,6 +557,7 @@ export function ProcurementShipmentList({
         }
         shipmentId={dossierDialog.shipment?.id ?? ""}
         shipmentName={dossierDialog.shipment?.name ?? ""}
+        cooperativeOrganizationId={dossierDialog.shipment?.cooperativeOrganizationId ?? undefined}
       />
     </>
   );

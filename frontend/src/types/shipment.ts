@@ -74,14 +74,9 @@ export interface ProcurementShipment {
   productionLotName: string | null;
   productCategoryName: string | null;
   organizationName?: string | null;
+  /** UUID của tổ chức HTX sở hữu lô hàng — dùng để lấy mẫu hồ sơ khi VT-04 xuất */
+  cooperativeOrganizationId?: string | null;
   totalQuantity: number | null;
-}
-
-export interface CreateShipmentPayload {
-  productionLotId: string;
-  name: string;
-  totalQuantity: number;
-  packagingInfo?: string;
 }
 
 export interface ShipmentResponse {

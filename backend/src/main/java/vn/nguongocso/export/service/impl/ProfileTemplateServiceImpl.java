@@ -133,12 +133,28 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
     }
 
     /**
-     * Lấy danh sách các mẫu hồ sơ thuộc tổ chức của người dùng (TC-04).
+     * Lấy danh sách các mẫu hồ sơ thuộc tổ chức chỉ định (TC-04).
+     * <p>
+     * Phân quyền:
+     * <ul>
+     *   <li>VT-02 (Quản lý HTX): chỉ được đọc mẫu của tổ chức mình.</li>
+     *   <li>VT-04 (Doanh nghiệp thu mua): được đọc mẫu của bất kỳ tổ chức nào
+     *       để chọn khi xuất hồ sơ lô hàng nhận từ HTX đó. Mẫu hồ sơ không
+     *       chứa dữ liệu nhạy cảm, chỉ là cấu hình trường hiển thị.</li>
+     * </ul>
+     * </p>
      */
     @Override
     @Transactional(readOnly = true)
     public List<ProfileTemplateResponse> listTemplates(UUID orgId, CustomUserDetails currentUser) {
-        validateOrganizationOwnership(orgId, currentUser);
+        if (currentUser == null || currentUser.getOrganizationId() == null) {
+            throw new TemplateNotOwnedException("Từ chối thao tác: Phiên đăng nhập không hợp lệ.");
+        }
+        // VT-02: chỉ được đọc mẫu của tổ chức mình
+        if (!"VT-04".equals(currentUser.getRoleCode())) {
+            validateOrganizationOwnership(orgId, currentUser);
+        }
+        // VT-04: được đọc mẫu của bất kỳ tổ chức nào (mẫu không nhạy cảm)
 
         List<ProfileTemplate> templates = profileTemplateRepository.findAllByOrganization_OrganizationIdOrderByNameAsc(orgId);
         return templates.stream()

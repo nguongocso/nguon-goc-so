@@ -18,8 +18,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
-import { usePermission } from '@/hooks/usePermission';
-import { ROLE_ACCESS } from '@/config/roleAccess';
 import { exportDossier } from '@/api/dossierApi';
 import { exportShipmentWithTemplate } from '@/api/exportApi';
 import { DossierPreviewDialog } from './DossierPreviewDialog';
@@ -33,6 +31,12 @@ interface ExportDossierDialogProps {
   shipmentId: string;
   shipmentName: string;
   shipmentCode?: string;
+  /**
+   * UUID của tổ chức HTX sở hữu lô hàng.
+   * Truyền vào khi VT-04 mở dialog — ProfileTemplateSelector sẽ dùng
+   * orgId này thay vì orgId của người dùng để lấy mẫu của HTX.
+   */
+  cooperativeOrganizationId?: string;
 }
 
 export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
@@ -41,15 +45,17 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
   shipmentId,
   shipmentName,
   shipmentCode,
+  cooperativeOrganizationId,
 }) => {
   const { user } = useAuth();
   const organizationId = user?.organizationId || '';
 
   /**
-   * Chỉ vai trò có quyền quản lý mẫu hồ sơ (VT-02) mới được chọn mẫu khi xuất.
-   * VT-04 luôn dùng mẫu mặc định hệ thống (activeTemplateId = undefined).
+   * orgId dùng để lấy mẫu hồ sơ:
+   * - VT-02: dùng org của chính mình
+   * - VT-04: dùng cooperativeOrganizationId (org của HTX sở hữu lô)
    */
-  const canSelectTemplate = usePermission(ROLE_ACCESS.profileTemplateManage);
+  const templateOrgId = cooperativeOrganizationId ?? organizationId;
 
   const [activeTemplateId, setActiveTemplateId] = useState<string | undefined>(undefined);
   const [activeTemplate, setActiveTemplate] = useState<ProfileTemplate | null>(null);
@@ -128,10 +134,10 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
           </DialogHeader>
 
           <div className="space-y-5 py-3">
-                        {/* Lựa chọn Mẫu hồ sơ — chỉ hiển thị cho VT-02 (có quyền profileTemplateManage) */}
-            {canSelectTemplate && (
+                        {/* Lựa chọn Mẫu hồ sơ — hiển thị cho cả VT-02 (mẫu của tổ chức mình) và VT-04 (mẫu của HTX sở hữu lô) */}
+            {templateOrgId && (
               <ProfileTemplateSelector
-                organizationId={organizationId}
+                organizationId={templateOrgId}
                 open={open}
                 onTemplateChange={(templateId, template) => {
                   setActiveTemplateId(templateId === 'default' ? undefined : templateId);
