@@ -1,202 +1,311 @@
-# NCL-11-CN-007 – Cổng nhập kết quả dành cho đơn vị kiểm nghiệm
+# API Docs — Cổng nhập kết quả dành cho đơn vị kiểm nghiệm (NCL-11-CN-007)
 
-> **Epic:** `NCL-11` – Sơ chế và kiểm nghiệm chất lượng
-> **Tài liệu:** API Contract / Contract-first
-> **Trạng thái:** Approved for implementation
-> **Phạm vi:** `NCL-11-CN-007-CV-01` đến `NCL-11-CN-007-CV-05`
+> **Story:** NCL-11-CN-007 — Cổng nhập kết quả dành cho đơn vị kiểm nghiệm<br>
+> **Epic:** NCL-11 — Sơ chế và kiểm nghiệm chất lượng<br>
+> **Vai trò:** Quản lý hợp tác xã (`VT-02`) và Đơn vị kiểm nghiệm bên ngoài (Public Token)<br>
+> **Trạng thái:** Implemented / Approved Contract<br>
+> **Quy tắc nghiệp vụ:** QTN-14, QTN-20, QTN-21<br>
+> **Tiêu chí chấp nhận:** NCL-11-CN-007-TC-01, TC-02, TC-03, TC-04
 
-## 1. Mục tiêu và nguồn yêu cầu
+---
 
-Cho phép đơn vị kiểm nghiệm nhập kết quả cho đúng một yêu cầu qua liên kết có thời hạn, dùng một lần và không cần tài khoản. Hệ thống phân biệt kết quả do đơn vị kiểm nghiệm khai với kết quả do HTX nhập, nhưng giữ nguyên toàn bộ logic đạt/không đạt và hiệu lực hiện hành.
+## 1. Mục tiêu và phạm vi nghiệp vụ
 
-| Nguồn | Hành vi |
-|---|---|
-| `TC-01` | Submit hợp lệ, lưu nguồn đơn vị kiểm nghiệm |
-| `TC-02` | Link hết hạn bị từ chối và hướng dẫn cấp lại |
-| `TC-03` | Link đã dùng không được replay |
-| `TC-04` | Luồng HTX nhập tay lưu nguồn HTX |
-| `QTN-14` | Token có thời hạn, dùng một lần |
-| `QTN-20` | Token hẹp theo tenant/request, hash-only và có hạn mức |
-| `QTN-21` | Dùng chung logic trạng thái và hiệu lực |
+Tài liệu này định nghĩa API phục vụ cổng nhập kết quả kiểm nghiệm độc lập dành cho đơn vị kiểm nghiệm bên ngoài thông qua liên kết dùng một lần có thời hạn, nhằm đảm bảo:
+1. Đơn vị kiểm nghiệm tự nhập kết quả trực tiếp mà không cần tài khoản hay vai trò người dùng trong hệ thống (`TC-01`).
+2. Phân biệt rõ nguồn nhập của từng kết quả kiểm nghiệm: `TESTING_UNIT_PORTAL` (đơn vị kiểm nghiệm tự khai) và `COOPERATIVE_MANUAL` (HTX nhập thủ công) (`TC-01`, `TC-04`).
+3. Liên kết có thời hạn (1–30 ngày, mặc định 7 ngày). Khi quá hạn (`now >= expiresAt`), liên kết bị từ chối truy cập với mã lỗi `410 GONE` kèm hướng dẫn liên hệ HTX để cấp lại (`TC-02`, `QTN-14`).
+4. Liên kết chỉ dùng được một lần: ngay khi gửi kết quả thành công, liên kết chuyển sang trạng thái `USED`. Các lần truy cập lại hoặc gửi lại đều bị từ chối với mã `410 GONE` (`TC-03`, `QTN-14`).
+5. Bảo mật theo `QTN-20`: Token 32-byte ngẫu nhiên an toàn, chỉ lưu hàm băm SHA-256 trong cơ sở dữ liệu, không ghi log token thô hoặc URL hoàn chỉnh; phạm vi truy cập bị giới hạn nghiêm ngặt ở đúng một yêu cầu kiểm nghiệm và các chỉ tiêu của nó; áp dụng rate-limiting.
+6. Tính nhất quán theo `QTN-21`: Tái sử dụng toàn bộ logic kiểm tra hợp lệ, chốt trạng thái yêu cầu (`PASSED`/`FAILED`), quét cảnh báo hạn hiệu lực và điều kiện kích hoạt tem như luồng HTX nhập tay.
 
-## 2. Quyết định nghiệp vụ
+---
 
-- Chỉ `VT-02` được cấp/cấp lại link cho request `PENDING_RESULT` thuộc tổ chức hiện tại và có `testingUnitId`.
-- Link mặc định 7 ngày; cho phép chọn 1–30 ngày. Link mới thu hồi link `ACTIVE` cũ.
-- Public submit phải bao phủ toàn bộ chỉ tiêu và dùng chung validation/status/expiry với luồng nội bộ.
-- Nguồn kết quả là `COOPERATIVE_MANUAL` hoặc `TESTING_UNIT_PORTAL`.
-- Mọi mutation thủ công ghi nguồn manual và thu hồi link active.
-- `USED`, `REVOKED`, `EXPIRED` là trạng thái cuối; không bổ sung trạng thái vào `InspectionRequestStatus`.
+## 2. Ma trận ánh xạ yêu cầu (Traceability Matrix)
+
+| Mã yêu cầu / Quy tắc | Mục tiêu nghiệp vụ | Endpoint phụ trách | Trạng thái / Mã lỗi |
+|---|---|---|---|
+| `TC-01` | Cấp link, đơn vị mở link, nhập đủ kết quả và gửi thành công | `POST /api/v1/inspection-requests/{id}/result-entry-links`<br>`GET /api/v1/public/inspection-result-entry/{token}`<br>`PUT /api/v1/public/inspection-result-entry/{token}/results` | `201 CREATED`<br>`200 OK`<br>`200 OK` (`entrySource = TESTING_UNIT_PORTAL`) |
+| `TC-02` | Link quá hạn bị từ chối và hướng dẫn liên hệ HTX | `GET /api/v1/public/inspection-result-entry/{token}`<br>`POST .../file`, `PUT .../results` | `410 GONE` ("Liên kết đã hết hạn...") |
+| `TC-03` | Link đã dùng chỉ dùng một lần, chống gửi trùng / replay | `PUT /api/v1/public/inspection-result-entry/{token}/results` | `410 GONE` (lần 2 trở đi bị từ chối) |
+| `TC-04` | Đơn vị gửi bản giấy, HTX tự nhập | `PUT /api/v1/inspection-requests/{id}/results` (API hiện hữu) | `200 OK` (`entrySource = COOPERATIVE_MANUAL`, thu hồi link active cũ) |
+| `QTN-14` | Vòng đời token có hạn, dùng một lần, cấp lại tạo token mới | `POST /api/v1/inspection-requests/{id}/result-entry-links` | Thu hồi link `ACTIVE` cũ, sinh token mới |
+| `QTN-20` | Băm SHA-256, không log secret, scope hẹp, rate limiting | Bộ lọc / Service / Controller Public | Generic error, 429 nếu vượt hạn mức |
+| `QTN-21` | Dùng chung kiểm tra đạt/không đạt, cảnh báo hết hạn, kích hoạt tem | `InspectionCriterionResultServiceImpl` | Cập nhật `PASSED`/`FAILED`, quét expiry |
+
+---
+
+## 3. Vòng đời liên kết (State Machine)
 
 ```text
-Không có --VT-02 cấp--> ACTIVE
-ACTIVE --public submit thành công--> USED
-ACTIVE --cấp lại/manual mutation--> REVOKED
-ACTIVE --now >= expiresAt--> EXPIRED
+[Chưa có link]
+      │
+      │ (VT-02 cấp link: request PENDING_RESULT, có testingUnitId)
+      ▼
+   ACTIVE ──(Quá hạn: now >= expires_at)──► EXPIRED (410 GONE)
+      │
+      ├──(VT-02 cấp lại link mới HOẶC HTX tự nhập tay)──► REVOKED (410 GONE)
+      │
+      └──(Đơn vị kiểm nghiệm submit batch thành công)──► USED (410 GONE)
 ```
 
-## 3. API dành cho VT-02
+- **ACTIVE:** Liên kết hợp lệ, cho phép xem chi tiết chỉ tiêu, tải lên tệp và gửi kết quả.
+- **USED:** Kết quả đã được ghi nhận vào hệ thống. Không thể tái sử dụng.
+- **REVOKED:** Đã bị thu hồi do Quản lý HTX cấp lại link mới hoặc đã tự ghi nhận kết quả thủ công.
+- **EXPIRED:** Đã quá hạn thời gian hiệu lực được cấp.
 
-### 3.1 Cấp hoặc cấp lại link
+---
 
-`POST /api/v1/inspection-requests/{requestId}/result-entry-links`
+## 4. Chi tiết các Endpoint
 
-- Access JWT; role `VT-02`; request phải thuộc organization hiện tại.
-- Thành công: `201 Created`.
+### 4.1. Cấp hoặc cấp lại liên kết nhập kết quả (Authenticated VT-02)
 
+- **Phương thức:** `POST`
+- **Đường dẫn:** `/api/v1/inspection-requests/{requestId}/result-entry-links`
+- **Xác thực:** Bắt buộc JWT Access Token, vai trò `VT-02`.
+- **Tenant Isolation:** Yêu cầu kiểm nghiệm phải thuộc tổ chức của người dùng hiện tại; nếu không thuộc hoặc không tồn tại thì trả về `404 NOT FOUND`.
+- **Điều kiện tiên quyết:**
+  - Yêu cầu kiểm nghiệm phải ở trạng thái `PENDING_RESULT` (nếu không trả về `409 CONFLICT`).
+  - Yêu cầu phải có `testingUnitId` hợp lệ được chọn từ trước (nếu chưa có trả về `400 BAD REQUEST`).
+- **Hành vi:**
+  - Nếu đã có liên kết `ACTIVE` cho yêu cầu này, chuyển trạng thái liên kết cũ thành `REVOKED` kèm thông tin `revokedBy`, `revokedAt`.
+  - Tạo liên kết mới với 32-byte SecureRandom, lưu SHA-256 vào database.
+  - Gửi email thông báo bất đồng bộ tới `recipientEmail` chứa URL cổng nhập kết quả.
+  - Trả về URL thô **đúng một lần duy nhất** trong response `201 CREATED`. Tuyệt đối không ghi log URL này.
+
+#### Request Body
 ```json
 {
-  "recipientEmail": "lab@example.vn",
+  "recipientEmail": "kiemnghiem@trungtam-a.vn",
   "expiryDays": 7
 }
 ```
+- `recipientEmail`: Chuỗi email bắt buộc, đúng định dạng RFC, độ dài tối đa 255 ký tự.
+- `expiryDays`: Số nguyên từ 1 đến 30 (mặc định 7 nếu không truyền).
 
-`recipientEmail` bắt buộc, đúng định dạng và tối đa 255 ký tự. `expiryDays` mặc định 7, tối thiểu 1, tối đa 30.
-
+#### Response `201 CREATED`
 ```json
 {
-  "id": "0f336c71-38bb-4c17-a9aa-6c49373d9131",
-  "status": "ACTIVE",
-  "recipientEmail": "lab@example.vn",
-  "expiresAt": "2026-09-23T10:00:00",
-  "usedAt": null,
-  "createdAt": "2026-09-16T10:00:00",
-  "entryUrl": "https://frontend.example/inspection-result-entry/<raw-token>"
+  "success": true,
+  "status": 201,
+  "message": "Cấp liên kết nhập kết quả kiểm nghiệm thành công.",
+  "data": {
+    "id": "c1f7a052-64e8-466d-9be2-e8d9c22880b1",
+    "status": "ACTIVE",
+    "recipientEmail": "kiemnghiem@trungtam-a.vn",
+    "expiresAt": "2026-09-23T14:30:00",
+    "entryUrl": "https://nguongocso.vn/inspection-result-entry/d41d8cd98f00b204e9800998ecf8427e..."
+  },
+  "timestamp": "2026-09-16T14:30:00"
 }
 ```
 
-`entryUrl` chỉ xuất hiện trong response cấp link và email. API không trả `tokenHash` và không ghi raw token/full URL vào log.
+---
 
-### 3.2 Xem link mới nhất
+### 4.2. Xem trạng thái liên kết mới nhất (Authenticated VT-02)
 
-`GET /api/v1/inspection-requests/{requestId}/result-entry-links/latest`
+- **Phương thức:** `GET`
+- **Đường dẫn:** `/api/v1/inspection-requests/{requestId}/result-entry-links/latest`
+- **Xác thực:** Bắt buộc JWT Access Token, vai trò `VT-02`.
+- **Tenant Isolation:** Kiểm tra quyền sở hữu theo tổ chức.
+- **Bảo mật:** Không bao giờ trả về token thô, mã băm token, hay đường dẫn đầy đủ chứa token bí mật.
 
-- Auth/tenant giống endpoint cấp link; thành công `200 OK`.
-- Response gồm `id`, `status`, `recipientEmail`, `expiresAt`, `usedAt`, `createdAt`.
-- Không trả `entryUrl`, raw token hoặc token hash; `404` nếu chưa từng cấp.
-
-## 4. API public
-
-Không yêu cầu JWT. Token quyết định toàn bộ request/tenant scope; client không truyền organization/request ID để chọn phạm vi. Mọi response có `Cache-Control: no-store`, `Pragma: no-cache`, `Referrer-Policy: no-referrer`.
-
-### 4.1 Mở cổng nhập kết quả
-
-`GET /api/v1/public/inspection-result-entry/{token}`
-
+#### Response `200 OK`
 ```json
 {
-  "testingUnit": "Trung tâm kiểm nghiệm A",
-  "lotCode": "LOT-2026-00123",
-  "lotName": "Lô xoài tháng 9",
-  "sampleSentDate": "2026-09-15",
-  "expiresAt": "2026-09-23T10:00:00",
-  "criteria": [
-    {
-      "criterionId": "b83685c9-f6c0-42f4-852c-263450a760d2",
-      "code": "RESIDUE_PESTICIDE",
-      "name": "Dư lượng thuốc bảo vệ thực vật",
-      "standardName": "VietGAP"
-    }
-  ]
+  "success": true,
+  "status": 200,
+  "message": "Lấy thông tin liên kết mới nhất thành công.",
+  "data": {
+    "id": "c1f7a052-64e8-466d-9be2-e8d9c22880b1",
+    "status": "ACTIVE",
+    "recipientEmail": "kiemnghiem@trungtam-a.vn",
+    "tokenPrefix": "d41d8cd9",
+    "expiresAt": "2026-09-23T14:30:00",
+    "usedAt": null,
+    "createdAt": "2026-09-16T14:30:00"
+  },
+  "timestamp": "2026-09-16T14:35:00"
+}
+```
+*(Nếu yêu cầu chưa từng được cấp liên kết nào, trả về `404 NOT FOUND`).*
+
+---
+
+### 4.3. Đọc dữ liệu yêu cầu kiểm nghiệm công khai qua Token (Public)
+
+- **Phương thức:** `GET`
+- **Đường dẫn:** `/api/v1/public/inspection-result-entry/{token}`
+- **Xác thực:** Không yêu cầu JWT đăng nhập.
+- **Bảo mật:**
+  - Token thô được băm SHA-256 để tìm kiếm liên kết.
+  - Phản hồi có header `Cache-Control: no-store, no-cache, must-revalidate`.
+  - Không tiết lộ `organizationId`, mã UUID nội bộ của lô hay yêu cầu, thông tin người tạo hay đường dẫn tệp trên server.
+  - Nếu token không tồn tại, trả về `404 NOT FOUND` với thông báo chung: `"Liên kết không hợp lệ hoặc không tồn tại."`.
+  - Nếu token hết hạn (`now >= expiresAt`), trả về `410 GONE`: `"Liên kết đã hết hạn. Vui lòng liên hệ hợp tác xã để được cấp lại."`.
+  - Nếu token đã dùng (`status = USED`) hoặc đã thu hồi (`status = REVOKED`), trả về `410 GONE`: `"Liên kết đã được sử dụng hoặc đã được thay thế."`.
+
+#### Response `200 OK`
+```json
+{
+  "success": true,
+  "status": 200,
+  "message": "Lấy thông tin yêu cầu kiểm nghiệm thành công.",
+  "data": {
+    "testingUnitName": "Trung tâm Kiểm nghiệm Chất lượng Nông sản Quốc gia",
+    "lotCode": "LO-XOAI-2026-001",
+    "lotName": "Lô Xoài Cát Chu xuất khẩu",
+    "sampleSentDate": "2026-09-15",
+    "expiresAt": "2026-09-23T14:30:00",
+    "criteria": [
+      {
+        "criterionId": "a90ef599-270f-4889-b883-938b8eb3065a",
+        "code": "RESIDUE_PESTICIDE",
+        "name": "Dư lượng thuốc bảo vệ thực vật",
+        "standardName": "TCVN 11892-1:2017"
+      },
+      {
+        "criterionId": "b11ef599-270f-4889-b883-938b8eb3065b",
+        "code": "HEAVY_METAL_LEAD",
+        "name": "Hàm lượng Chì (Pb)",
+        "standardName": "QCVN 8-2:2011/BYT"
+      }
+    ]
+  },
+  "timestamp": "2026-09-16T14:40:00"
 }
 ```
 
-Không trả organization ID, request/lot UUID, testing unit ID, user/creator ID, email người nhận hoặc đường dẫn file nội bộ.
+---
 
-### 4.2 Upload phiếu
+### 4.4. Tải lên tệp phiếu kết quả kiểm nghiệm qua Token (Public)
 
-`POST /api/v1/public/inspection-result-entry/{token}/criteria/{criterionId}/file`
+- **Phương thức:** `POST`
+- **Đường dẫn:** `/api/v1/public/inspection-result-entry/{token}/criteria/{criterionId}/file`
+- **Content-Type:** `multipart/form-data`
+- **Tham số form:** `file` (MultipartFile)
+- **Quy tắc kiểm tra:**
+  - Token phải ở trạng thái `ACTIVE` và chưa hết hạn (`expiresAt > now`).
+  - `criterionId` phải thuộc đúng yêu cầu kiểm nghiệm mà liên kết được cấp (kiểm soát phạm vi đối tượng / chống ghi đè trái phép).
+  - Tệp cho phép: Định dạng JPG, PNG, PDF; dung lượng tối đa 5 MB.
+  - Tên tệp được sinh ngẫu nhiên trên máy chủ để chống path traversal.
+- **Phản hồi `200 OK`:**
+```json
+{
+  "success": true,
+  "status": 200,
+  "message": "Tải lên phiếu kết quả kiểm nghiệm thành công.",
+  "data": {
+    "fileHandle": "pfh_8a3f9e4210d742b6a90ef599270f4889",
+    "filePath": "pfh_8a3f9e4210d742b6a90ef599270f4889"
+  },
+  "timestamp": "2026-09-16T14:45:00"
+}
+```
+> **Lưu ý bảo mật (BLOCKER 1 & QTN-20):** Server không trả về đường dẫn tệp tin thực tế trên máy chủ (`/uploads/...`), mà trả về mã định danh che giấu **Opaque File Handle** (`pfh_...`) được gán chặt với bộ ba `(tokenHash, requestId, criterionId)`. Client sử dụng mã `fileHandle` này để truyền vào trường `filePath` trong payload gửi kết quả. Mọi hành vi dùng file handle của yêu cầu/chỉ tiêu khác sẽ bị từ chối `403 FORBIDDEN`.
 
-- `multipart/form-data`, field `file`.
-- JPG/PNG/PDF, tối đa 5 MB; tên file do server sinh.
-- Token phải active/chưa hết hạn; criterion phải thuộc đúng request.
-- Response trả opaque `filePath` chỉ dùng được khi submit cùng token và criterion.
+---
 
-### 4.3 Submit toàn bộ kết quả
+### 4.5. Gửi toàn bộ kết quả kiểm nghiệm qua Token (Public Submit)
 
-`PUT /api/v1/public/inspection-result-entry/{token}/results`
+- **Phương thức:** `PUT`
+- **Đường dẫn:** `/api/v1/public/inspection-result-entry/{token}/results`
+- **Xác thực:** Không yêu cầu JWT đăng nhập; quyền hạn được xác lập qua Token hợp lệ.
+- **Bảo đảm giao dịch và chống gửi đồng thời (Atomic One-time Consumption):**
+  1. Băm SHA-256 token thô, tìm kiếm liên kết kèm kiểm tra trạng thái `ACTIVE` và `expiresAt > now`.
+  2. Xác minh yêu cầu kiểm nghiệm vẫn đang ở trạng thái `PENDING_RESULT`.
+  3. Kiểm tra toàn bộ danh sách kết quả (all-or-nothing): phải chứa đầy đủ và không trùng lặp tất cả các chỉ tiêu thuộc yêu cầu kiểm nghiệm.
+  4. Thực hiện câu lệnh cập nhật nguyên tử có điều kiện:
+     ```sql
+     UPDATE inspection_result_entry_links
+        SET status = 'USED', used_at = :now, used_ip = :ip, used_user_agent = :ua
+      WHERE id = :id AND status = 'ACTIVE' AND expires_at > :now
+     ```
+     Nếu số dòng bị ảnh hưởng = 0 (do race condition hoặc đã bị dùng trước đó), lập tức dừng và báo lỗi `410 GONE`.
+  5. Lưu toàn bộ kết quả kiểm nghiệm với:
+     - `entry_source = 'TESTING_UNIT_PORTAL'`
+     - `portal_link_id = link.id`
+     - `created_by = null`
+  6. Chốt trạng thái yêu cầu kiểm nghiệm (`PASSED` nếu tất cả chỉ tiêu đạt và còn hạn, `FAILED` nếu có chỉ tiêu không đạt).
+  7. Kích hoạt quét và cảnh báo hiệu lực kiểm nghiệm (`checkAndAlertLotExpiry`) theo `QTN-21`.
 
+#### Request Body
 ```json
 {
   "results": [
     {
-      "criterionId": "b83685c9-f6c0-42f4-852c-263450a760d2",
+      "criterionId": "a90ef599-270f-4889-b883-938b8eb3065a",
       "resultDate": "2026-09-16",
       "expiryDate": "2027-09-16",
       "passed": true,
-      "filePath": "inspection-results/opaque-handle.pdf"
+      "filePath": "inspection-results/3fa85f64-5717-4562-b3fc-2c963f66afa6/8a3f9e42...pdf"
+    },
+    {
+      "criterionId": "b11ef599-270f-4889-b883-938b8eb3065b",
+      "resultDate": "2026-09-16",
+      "expiryDate": "2027-09-16",
+      "passed": true,
+      "filePath": null
     }
   ]
 }
 ```
 
-Transaction phải: validate token/request/tenant/testing unit; validate đủ toàn bộ criterion, ngày và file; consume atomically `ACTIVE → USED`; lưu `entrySource=TESTING_UNIT_PORTAL`, `createdBy=null`, `portalLinkId`; chốt status và quét cảnh báo bằng logic hiện hành; lưu usedAt/IP/user-agent. Nếu bất kỳ bước nào lỗi thì rollback và token vẫn active.
+#### Response `200 OK`
+```json
+{
+  "success": true,
+  "status": 200,
+  "message": "Ghi nhận kết quả kiểm nghiệm từ đơn vị kiểm nghiệm thành công.",
+  "data": [
+    {
+      "resultId": "7d9b23b1-4f9e-4c7b-99f2-00b848c08123",
+      "criterionId": "a90ef599-270f-4889-b883-938b8eb3065a",
+      "criterionCode": "RESIDUE_PESTICIDE",
+      "criterionName": "Dư lượng thuốc bảo vệ thực vật",
+      "resultDate": "2026-09-16",
+      "expiryDate": "2027-09-16",
+      "passed": true,
+      "filePath": "inspection-results/3fa85f64-5717-4562-b3fc-2c963f66afa6/8a3f9e42...pdf",
+      "entrySource": "TESTING_UNIT_PORTAL",
+      "createdByName": null,
+      "createdAt": "2026-09-16T14:50:00",
+      "updatedAt": "2026-09-16T14:50:00"
+    }
+  ],
+  "timestamp": "2026-09-16T14:50:00"
+}
+```
 
-Response `200 OK` là `InspectionCriterionResultResponse[]`, bổ sung additive `entrySource`; `createdByName` có thể null.
+---
 
-## 5. Error contract
+## 5. Cập nhật bổ sung cho các API hiện hữu (Additive Changes)
 
-| HTTP | Trường hợp |
-|---:|---|
-| `400` | Email, expiry, payload, ngày hoặc file không hợp lệ |
-| `403` | Actor authenticated không phải `VT-02` |
-| `404` | Request không tồn tại/khác tenant; token không hợp lệ dùng thông điệp generic |
-| `409` | Request không còn `PENDING_RESULT` hoặc xung đột manual/public |
-| `410` | Link hết hạn, đã dùng hoặc đã bị thay thế |
-| `413` | File vượt 5 MB |
-| `415` | MIME không thuộc JPG/PNG/PDF |
-| `429` | Vượt hạn mức portal |
+### 5.1. DTO `InspectionCriterionResultResponse`
+Bổ sung trường mới:
+- `entrySource` (String enum: `"COOPERATIVE_MANUAL"` | `"TESTING_UNIT_PORTAL"`).
+- `createdByName` (String, nullable khi kết quả được ghi qua cổng của đơn vị kiểm nghiệm).
 
-Thông điệp hết hạn hướng dẫn liên hệ HTX để cấp lại. Token không hợp lệ không làm lộ tenant hoặc tài nguyên nội bộ.
+### 5.2. Luồng HTX nhập tay (`PUT /api/v1/inspection-requests/{requestId}/results`)
+- Gán `entry_source = 'COOPERATIVE_MANUAL'`.
+- `created_by = currentUser.getUser()`.
+- Tự động thu hồi (`status = REVOKED`) bất kỳ liên kết `ACTIVE` nào đang tồn tại của yêu cầu kiểm nghiệm này để chống ghi đè song song giữa hai bên.
 
-## 6. Bảo mật và tenant isolation
+### 5.3. Cổng tra cứu công khai (`PublicInspectionCriterionResultDto`)
+- Bổ sung trường `entrySource` để hiển thị huy hiệu nguồn gốc ("Đơn vị kiểm nghiệm khai" hoặc "Hợp tác xã nhập").
 
-- Token 32 byte từ `SecureRandom`, URL-safe; DB chỉ lưu SHA-256 và prefix audit.
-- Authenticated query scope bằng `requestId + currentOrganizationId`.
-- Link lưu snapshot organization/testing unit và service kiểm chéo với request.
-- Criterion/file handle phải thuộc đúng request của token.
-- Conditional update bảo vệ replay/double-submit.
-- Hạn mức: 60 request/giờ/valid token, 30 invalid-token request/giờ/IP. Rate limit in-memory không đồng bộ đa instance; đây là giới hạn vận hành đã biết.
-- Không log raw token, full URL hoặc request body chứa secret.
+---
 
-## 7. Database/migration
+## 6. Bảng mã lỗi chi tiết
 
-Tạo `inspection_result_entry_links` với request, organization, testing unit, email snapshot, token prefix/hash, status, expiry/use/revoke và actor cấp link.
-
-Mở rộng `inspection_criterion_results`:
-
-- `entry_source VARCHAR(32) NOT NULL DEFAULT 'COOPERATIVE_MANUAL'`;
-- `portal_link_id CHAR(36) NULL`;
-- `created_by` nullable cho public actor.
-
-Dữ liệu cũ backfill `COOPERATIVE_MANUAL`; migration additive, không sửa migration đã áp dụng.
-
-## 8. Tác động frontend
-
-- VT-02 có dialog cấp/cấp lại link, nhập email/thời hạn và xem metadata link mới nhất.
-- Route `/inspection-result-entry/:token` nằm ngoài `PrivateRoute`.
-- Public page có loading, active, invalid, expired, used/revoked, submitting và success terminal.
-- Axios không gửi access token hoặc kích hoạt logout redirect cho portal public.
-- Map source: `TESTING_UNIT_PORTAL` → “Đơn vị kiểm nghiệm khai”; `COOPERATIVE_MANUAL` → “Hợp tác xã nhập”.
-
-## 9. Kiểm thử bắt buộc
-
-- [ ] Role/tenant issue-reissue; raw token chỉ trả một lần và DB chỉ chứa hash.
-- [ ] Public GET/upload/submit happy path ghi source portal và consume link.
-- [ ] Expired/used/revoked/invalid token không trả dữ liệu request.
-- [ ] Hai submit đồng thời chỉ một lần thành công.
-- [ ] Criterion/file khác request bị từ chối.
-- [ ] Payload thiếu/trùng criterion rollback toàn bộ và giữ token active.
-- [ ] Manual mutation ghi source manual và revoke link active.
-- [ ] `createdBy=null` không gây NPE ở API/public trace.
-- [ ] QTN-21/cảnh báo hiệu lực giống manual; rate limit và no-store hoạt động.
-- [ ] UI states, test/lint/build và browser runtime pass.
-
-## 10. Không hồi quy và contract cuối
-
-- Giữ nguyên manual API, request statuses, QTN-21, expiry warning, seal gate và reinspection.
-- Public trace chỉ bổ sung `entrySource`, không rename/remove field.
-- Activity log manual vẫn có user/organization; public submit không tạo anonymous activity log.
-- Không thay đổi testing unit CRUD, partner API key, invitation hoặc password reset.
-
-Contract khóa expiry 7 ngày (1–30), email xác nhận lúc cấp, per-result provenance, public actor không có user, upload tùy chọn và rate limit in-memory giai đoạn đầu. Thay đổi API/DB/quyền/tenant/state ngoài phạm vi phải quay lại Planning Gate.
+| Mã HTTP | Tình huống | Thông báo phản hồi mẫu |
+|---:|---|---|
+| `400 BAD REQUEST` | Email không đúng cú pháp, thời hạn ngoài 1–30 ngày, thiếu chỉ tiêu | `"Email người nhận không hợp lệ."` / `"Phải ghi kết quả cho tất cả chỉ tiêu của yêu cầu kiểm nghiệm."` |
+| `403 FORBIDDEN` | Người dùng không có vai trò `VT-02` khi cấp link | `"Bạn không có quyền thực hiện chức năng này."` |
+| `404 NOT FOUND` | Request không thuộc tổ chức (bảo vệ tenant) hoặc token không tồn tại | `"Yêu cầu kiểm nghiệm không tồn tại."` / `"Liên kết không hợp lệ hoặc không tồn tại."` |
+| `409 CONFLICT` | Cấp link hoặc submit khi yêu cầu không còn `PENDING_RESULT` | `"Yêu cầu kiểm nghiệm phải ở trạng thái chờ kết quả."` |
+| `410 GONE` | Token đã hết hạn | `"Liên kết đã hết hạn. Vui lòng liên hệ hợp tác xã để được cấp lại."` |
+| `410 GONE` | Token đã dùng hoặc đã bị thu hồi | `"Liên kết đã được sử dụng hoặc đã được thay thế."` |
+| `413 PAYLOAD TOO LARGE` | Tệp đính kèm vượt quá 5 MB | `"File vượt quá dung lượng cho phép (5MB)"` |
+| `415 UNSUPPORTED MEDIA TYPE` | Tệp đính kèm không phải JPG, PNG, PDF | `"Loại file không hỗ trợ. Chỉ chấp nhận JPG, PNG, PDF"` |
+| `429 TOO MANY REQUESTS` | Vượt quá tần suất truy cập cổng công khai | `"Bạn thao tác quá nhanh. Vui lòng thử lại sau."` |
