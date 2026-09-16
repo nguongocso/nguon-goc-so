@@ -51,6 +51,7 @@ public class ApiKeyWarningService {
     private final NotificationService notificationService;
     private final PartnerApiKeyUsageService partnerApiKeyUsageService;
     private final ApiKeyQuotaPolicy apiKeyQuotaPolicy;
+    private final PartnerApiKeyService partnerApiKeyService;
 
     @Value("${app.apikey.expiry-warning-days:7}")
     private int expiryWarningDays;
@@ -163,7 +164,10 @@ public class ApiKeyWarningService {
             if (key == null || key.getStatus() != PartnerApiKeyStatus.ACTIVE) {
                 continue;
             }
-            int usedCalls = usage.getCallCount() == null ? 0 : usage.getCallCount();
+            // P0: Quota warning tính theo giờ hiện tại (hourly), không dùng daily usage để trigger.
+            // Dùng `getCurrentHourCalls()` từ bộ đếm giờ để kiểm tra điều kiện; vẫn giữ claim trên DB (`usage.getId()`)
+            // để chống gửi trùng trong ngày.
+            int usedCalls = partnerApiKeyService.getCurrentHourCalls(key.getId());
             if (!apiKeyQuotaPolicy.isReached(usedCalls, key.getRateLimitPerHour())) {
                 continue;
             }

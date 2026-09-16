@@ -211,8 +211,18 @@ export const AggregateAlertTable: React.FC<AggregateAlertTableProps> = ({
                         };
                       } else if (item.type === 'CODE_RANGE_QUOTA') {
                         label = 'Duyệt cấp bù';
-                      } else if (item.type === 'API_KEY_EXPIRING' || item.type === 'API_KEY_QUOTA_WARNING') {
-                        label = 'Xem khóa';
+                      } else if (item.type === 'API_KEY_EXPIRING') {
+                        label = 'Gia hạn';
+                        onClick = () => {
+                          const url = item.actionUrl ? `${item.actionUrl}${item.actionUrl.includes('?') ? '&' : '?'}keyId=${item.relatedEntityId}&action=renew` : `/integration/api-keys?keyId=${item.relatedEntityId}&action=renew`;
+                          navigate(url);
+                        };
+                      } else if (item.type === 'API_KEY_QUOTA_WARNING') {
+                        label = 'Nâng hạn mức';
+                        onClick = () => {
+                          const url = item.actionUrl ? `${item.actionUrl}${item.actionUrl.includes('?') ? '&' : '?'}keyId=${item.relatedEntityId}&action=quota` : `/integration/api-keys?keyId=${item.relatedEntityId}&action=quota`;
+                          navigate(url);
+                        };
                       } else if (item.type === 'CERT_EXPIRING' || item.type === 'CERT_EXPIRED') {
                         label = 'Thẩm định';
                       }

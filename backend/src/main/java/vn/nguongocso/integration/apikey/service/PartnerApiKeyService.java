@@ -443,12 +443,15 @@ public class PartnerApiKeyService {
         String hourlyKey = buildHourlyKey(apiKey.getId(), now);
 
         AtomicInteger currentCallCount = hourlyRateLimitMap.computeIfAbsent(hourlyKey, k -> new AtomicInteger(0));
-        int callsInCurrentHour = currentCallCount.incrementAndGet();
+        int currentCount = currentCallCount.get(); // đếm số lượt thành công trước khi cho phép thêm
 
-        if (callsInCurrentHour > apiKey.getRateLimitPerHour()) {
+        // Nếu đã đạt hoặc vượt rateLimit, từ chối ngay và KHÔNG tăng bộ đếm giờ (P0 — 429 không tính vào usage thành công)
+        if (currentCount >= apiKey.getRateLimitPerHour()) {
             recordCallStats(apiKey, false, 429, clientIp);
             throw new BusinessException("Khóa truy cập đã vượt quá hạn mức " + apiKey.getRateLimitPerHour() + " lượt gọi/giờ");
         }
+
+        int callsInCurrentHour = currentCallCount.incrementAndGet();
 
         // 4. Chạm ngưỡng cảnh báo hạn mức (NCL-12-CN-005): QTN-20 là hạn mức THEO GIỜ
         // nên cảnh báo tính trên số lượt gọi THÀNH CÔNG trong giờ hiện tại

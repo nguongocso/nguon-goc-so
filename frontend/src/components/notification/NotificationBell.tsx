@@ -83,6 +83,12 @@ export const NotificationBell = () => {
         void markAsRead(notification.id).then(() => refreshUnreadCount());
       }
       setOpen(false);
+      const action = notification.title.toLowerCase().includes('hạn mức') ? 'quota' : 'renew';
+      if (notification.entityId) {
+        navigate(`/integration/api-keys?keyId=${notification.entityId}&action=${action}`);
+      } else {
+        navigate('/integration/api-keys');
+      }
       return;
     }
     if (!notification.isRead) {
