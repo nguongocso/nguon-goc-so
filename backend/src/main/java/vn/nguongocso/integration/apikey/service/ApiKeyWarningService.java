@@ -110,7 +110,11 @@ public class ApiKeyWarningService {
     }
 
     /**
-     * Nhận sự kiện chạm ngưỡng hạn mức và gửi cảnh báo một lần mỗi ngày cho mỗi khóa.
+     * Nhận sự kiện chạm ngưỡng hạn mức THEO GIỜ (QTN-20) và gửi cảnh báo.
+     * <p>
+     * Sự kiện được phát khi số lượt gọi THÀNH CÔNG trong giờ hiện tại chạm ngưỡng;
+     * cờ {@code warning_sent_at} trên dòng usage NGÀY vẫn đảm bảo mỗi khóa chỉ nhận
+     * tối đa một cảnh báo trong ngày (không đổi so với trước).
      * <p>
      * Không bao giờ ném lỗi ra ngoài để tránh chặn request của đối tác.
      */
@@ -198,7 +202,7 @@ public class ApiKeyWarningService {
                     QUOTA_TITLE,
 "Khóa truy cập của đối tác \"" + partnerName + "\" đã dùng "
                                     + usedCalls + "/" + rateLimitPerHour
-                                    + " lượt gọi trong ngày hôm nay (đạt " + percent
+                                    + " lượt gọi trong giờ hiện tại (đạt " + percent
                                     + "%, ngưỡng cảnh báo " + apiKeyQuotaPolicy.warningThresholdPercent()
                                     + "%). Vui lòng nâng hạn mức hoặc điều tiết tần suất gọi.",
                     apiKeyId,

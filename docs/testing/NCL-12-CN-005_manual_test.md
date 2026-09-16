@@ -69,6 +69,14 @@ RAW KEY (gửi header `X-API-KEY` khi gọi cổng đối tác):
 | TC-10 | Badge "Tổng số khóa" đúng | Đăng nhập `managerA` → `/integration/api-keys` | Thẻ "Tổng số khóa API" = 4 (không còn là 0); bảng có 4 khóa; key TC-02 có cột **số lượt gọi hôm nay** = 10 (khi đã test TC-07→09) |
 | TC-11 | VT-01 toàn nền tảng | Đăng nhập `admin` → `/alerts` | Có thể thấy các nguồn `API_KEY_EXPIRING`/`API_KEY_QUOTA_WARNING` của mọi tổ chức (orgId null = toàn nền tảng) |
 | TC-12 | Nội dung không lộ dữ liệu test | Soi nội dung message trên `/alerts` + chuông + DB | Không xuất hiện chuỗi `TC-0`, `Đối tác Test` hay raw key; chỉ có tên đối tác thật |
+| TC-13 | Gia hạn khóa ACTIVE thành công | `managerA` → `/integration/api-keys` → bấm **Gia hạn** trên TC-01 → nhập ngày mới +30 ngày → Xác nhận | Status vẫn `ACTIVE`; `expiresAt` cập nhật; `/alerts` không còn mục `API_KEY_EXPIRING` cho khóa đó |
+| TC-14 | Gia hạn khóa EXPIRED thành ACTIVE | Cập nhật TC-01 về `EXPIRED` (qua DB hoặc chờ hết hạn) → bấm **Gia hạn** → nhập ngày mới | Status chuyển từ `EXPIRED` → `ACTIVE`; `/alerts` không còn mục hết hạn |
+| TC-15 | Gia hạn khóa REVOKED bị từ chối | Bấm **Gia hạn** trên TC-03 (`REVOKED`) | Hiển thị lỗi; status không đổi; không tạo hành động |
+| TC-16 | Nâng hạn mức từ 100 → 200 | Bấm **Nâng hạn mức** trên TC-01 → nhập `200` → Xác nhận | `rateLimitPerHour` = 200; `/alerts` không còn mục `API_KEY_QUOTA_WARNING` nếu trước đó có |
+| TC-17 | Nâng hạn mức giữ nguyên (100 → 100) bị từ chối | Nhập `100` khi current = 100 | Hiển thị lỗi "phải lớn hơn hạn mức hiện tại" |
+| TC-18 | Cảnh báo hạn mức tính theo giờ | Gọi TC-02 đúng 8 lượt thành công trong cùng giờ đồng hồ (`14:xx`) | Badge "Sắp chạm hạn mức" hiển thị với `currentHourCalls`; `/alerts` có `API_KEY_QUOTA_WARNING` |
+| TC-19 | 429 không tính vào usage giờ | Gọi TC-02 11 lượt (vượt rateLimit 10) → 11 = 429 | `currentHourCalls` vẫn = 10; không tạo thêm cảnh báo; HTTP 429 đúng |
+| TC-20 | Notification → mở đúng khóa + đúng hành động | Bấm thông báo `API_KEY_EXPIRING` hoặc `API_KEY_QUOTA_WARNING` từ chuông | Chuyển tới `/integration/api-keys?keyId=<id>&action=renew` hoặc `...action=quota`; không mở danh sách chung |
 | TC-13 | Restart + đối soát hạn mức | (Tùy chọn) reset cờ `warning_sent_at` của usage TC-02 hôm nay về NULL → khởi động lại BE → chờ job đối soát | Job gửi bù đúng **1** thông báo cho khóa đã vượt ngưỡng, không trùng (TC-05 của doc API) |
 
 ---

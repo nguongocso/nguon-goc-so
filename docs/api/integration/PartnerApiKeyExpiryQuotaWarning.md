@@ -171,3 +171,21 @@ Ví dụ item cảnh báo hạn mức:
 | Ràng buộc | — | `UNIQUE (api_key_id, usage_date)` + index `(usage_date, warning_sent_at)` |
 
 - Bảng này **không** expose qua endpoint nào; chỉ phục vụ tính ngưỡng cảnh báo, hiển thị "lượt gọi hôm nay" và job đối soát.
+
+---
+
+## 6. Endpoint gia hạn và nâng hạn mức (NCL-12-CN-005)
+
+### PATCH /api/v1/organization/api-keys/{id}/expiry
+
+- Body: `{"expiresAt":"2026-12-31T23:59:59"}`
+- Active → cập nhật thời hạn
+- Expired → cập nhật thời hạn + `status=ACTIVE`
+- Revoked → từ chối
+- `expiresAt` phải `> now` (`@Future`)
+
+### PATCH /api/v1/organization/api-keys/{id}/quota
+
+- Body: `{"rateLimitPerHour":200}`
+- `rateLimitPerHour` phải `> 0` và `> current`
+- Revoked → từ chối

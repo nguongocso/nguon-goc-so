@@ -30,6 +30,8 @@ import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.integration.apikey.dto.request.CreateApiKeyRequest;
 import vn.nguongocso.integration.apikey.dto.request.CreateTestApiKeyRequest;
+import vn.nguongocso.integration.apikey.dto.request.RenewApiKeyRequest;
+import vn.nguongocso.integration.apikey.dto.request.UpdateApiKeyQuotaRequest;
 import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyPageResponse;
 import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyResponse;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
@@ -251,6 +253,9 @@ public class PartnerApiKeyService {
         Map<UUID, Integer> usedCallsToday = partnerApiKeyUsageService.getDailyCallCounts(keyIds);
         for (PartnerApiKeyResponse item : content) {
             item.setUsedCallsToday(usedCallsToday.getOrDefault(item.getId(), 0));
+            // Số lượt gọi THÀNH CÔNG trong giờ hiện tại — cơ sở kích hoạt cảnh báo
+            // hạn mức theo QTN-20 (hạn mức là theo giờ, không phải theo ngày).
+            item.setCurrentHourCalls(getCurrentHourCalls(item.getId()));
             item.setQuotaWarningThreshold(item.getRateLimitPerHour() == null
                     ? null
                     : apiKeyQuotaPolicy.warningThreshold(item.getRateLimitPerHour()));
@@ -296,6 +301,99 @@ public class PartnerApiKeyService {
         publishActivityLog(currentUser, "REVOKE_API_KEY",
                 "Thu hồi khóa truy cập của đối tác '" + updatedKey.getPartnerName()
                         + "' (mã khóa " + updatedKey.getKeyPrefix() + "...)",
+                "PARTNER_API_KEY", updatedKey.getId().toString());
+
+        return mapToResponse(updatedKey);
+    }
+
+    /**
+     * Gia hạn khóa truy cập (NCL-12-CN-005).
+     * <p>
+     * Cho phép gia hạn khóa ACTIVE và EXPIRED. REVOKED không được gia hạn.
+     * Sau khi gia hạn EXPIRED, khóa trở lại ACTIVE.
+     */
+    @Transactional
+    public PartnerApiKeyResponse renewApiKey(UUID apiKeyId, RenewApiKeyRequest request) {
+        CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
+        UUID organizationId = currentUser.getOrganizationId();
+        UUID userId = currentUser.getUserId();
+
+        PartnerApiKey apiKey = partnerApiKeyRepository.findByIdAndOrganizationId(apiKeyId, organizationId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy khóa truy cập trong tổ chức"));
+
+        if (apiKey.getStatus() == PartnerApiKeyStatus.REVOKED) {
+            throw new BusinessException("Khóa truy cập đã bị thu hồi, không thể gia hạn");
+        }
+
+        if (request.getExpiresAt() == null || !request.getExpiresAt().isAfter(LocalDateTime.now())) {
+            throw new BusinessException("Ngày hết hạn mới của khóa truy cập phải ở thời điểm tương lai");
+        }
+
+        PartnerApiKeyStatus previousStatus = apiKey.getStatus();
+        apiKey.setExpiresAt(request.getExpiresAt());
+        if (previousStatus == PartnerApiKeyStatus.EXPIRED) {
+            apiKey.setStatus(PartnerApiKeyStatus.ACTIVE);
+        }
+
+        PartnerApiKey updatedKey = partnerApiKeyRepository.save(apiKey);
+        log.info("Đã gia hạn khóa truy cập id={}, partnerName={}, orgId={}, oldExpiry={}, newExpiry={}",
+                apiKeyId, updatedKey.getPartnerName(), organizationId,
+                previousStatus == PartnerApiKeyStatus.EXPIRED ? "EXPIRED" : previousStatus,
+                request.getExpiresAt());
+
+        // Ghi nhật ký hoạt động (TASK-27)
+        publishActivityLog(currentUser, "RENEW_API_KEY",
+                "Gia hạn khóa truy cập của đối tác '" + updatedKey.getPartnerName()
+                        + "' (mã khóa " + updatedKey.getKeyPrefix() + "...), hết hạn mới: "
+                        + request.getExpiresAt(),
+                "PARTNER_API_KEY", updatedKey.getId().toString());
+
+        return mapToResponse(updatedKey);
+    }
+
+    /**
+     * Nâng hạn mức khóa truy cập (NCL-12-CN-005).
+     * <p>
+     * Chỉ chấp nhận giá trị mới lớn hơn giá trị hiện tại. REVOKED không thể nâng hạn mức.
+     */
+    @Transactional
+    public PartnerApiKeyResponse updateApiKeyQuota(UUID apiKeyId, UpdateApiKeyQuotaRequest request) {
+        CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
+        UUID organizationId = currentUser.getOrganizationId();
+        UUID userId = currentUser.getUserId();
+
+        PartnerApiKey apiKey = partnerApiKeyRepository.findByIdAndOrganizationId(apiKeyId, organizationId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy khóa truy cập trong tổ chức"));
+
+        if (apiKey.getStatus() == PartnerApiKeyStatus.REVOKED) {
+            throw new BusinessException("Khóa truy cập đã bị thu hồi, không thể nâng hạn mức");
+        }
+
+        if (apiKey.getRateLimitPerHour() == null) {
+            throw new BusinessException("Khóa truy cập chưa có hạn mức");
+        }
+
+        if (request.getRateLimitPerHour() == null || request.getRateLimitPerHour() <= 0) {
+            throw new BusinessException("Hạn mức mới phải lớn hơn 0");
+        }
+
+        if (request.getRateLimitPerHour() <= apiKey.getRateLimitPerHour()) {
+            throw new BusinessException("Hạn mức mới phải lớn hơn hạn mức hiện tại");
+        }
+
+        Integer previousRateLimit = apiKey.getRateLimitPerHour();
+        apiKey.setRateLimitPerHour(request.getRateLimitPerHour());
+
+        PartnerApiKey updatedKey = partnerApiKeyRepository.save(apiKey);
+        log.info("Đã nâng hạn mức khóa truy cập id={}, partnerName={}, orgId={}, oldLimit={}, newLimit={}",
+                apiKeyId, updatedKey.getPartnerName(), organizationId, previousRateLimit,
+                request.getRateLimitPerHour());
+
+        // Ghi nhật ký hoạt động (TASK-27)
+        publishActivityLog(currentUser, "UPDATE_API_KEY_QUOTA",
+                "Nâng hạn mức khóa truy cập của đối tác '" + updatedKey.getPartnerName()
+                        + "' (mã khóa " + updatedKey.getKeyPrefix() + "...), từ "
+                        + previousRateLimit + " lên " + request.getRateLimitPerHour(),
                 "PARTNER_API_KEY", updatedKey.getId().toString());
 
         return mapToResponse(updatedKey);
@@ -352,14 +450,16 @@ public class PartnerApiKeyService {
             throw new BusinessException("Khóa truy cập đã vượt quá hạn mức " + apiKey.getRateLimitPerHour() + " lượt gọi/giờ");
         }
 
-        // 4. Chạm ngưỡng cảnh báo hạn mức (NCL-12-CN-005): đếm lượt gọi trong NGÀY ở
-        // DB (không còn dùng bộ nhớ tạm) để số liệu bền vững qua restart và đúng khi
-        // chạy nhiều instance. Dùng ">=" để tự chữa khi bộ đếm đã vượt ngưỡng;
-        // listener chống trùng bằng cờ warning_sent_at. Chặn 429 vẫn theo cửa sổ giờ.
-        int callsInCurrentDay = partnerApiKeyUsageService.recordCallAndGetDailyCount(apiKey.getId());
+        // 4. Chạm ngưỡng cảnh báo hạn mức (NCL-12-CN-005): QTN-20 là hạn mức THEO GIỜ
+        // nên cảnh báo tính trên số lượt gọi THÀNH CÔNG trong giờ hiện tại
+        // (callsInCurrentHour). Request bị 429 đã bị chặn ở bước 3 nên không lọt vào
+        // đây, vì vậy bộ đếm giờ hiện tại chính là số lượt thành công.
+        // Vẫn ghi nhận bộ đếm NGÀY ở DB (dùng cho hiển thị usedCallsToday) và cờ
+        // warning_sent_at trên dòng usage ngày giữ vai trò chống gửi trùng trong ngày.
+        partnerApiKeyUsageService.recordCallAndGetDailyCount(apiKey.getId());
         int warningThreshold = apiKeyQuotaPolicy.warningThreshold(apiKey.getRateLimitPerHour());
-        if (warningThreshold > 0 && callsInCurrentDay >= warningThreshold) {
-            publishQuotaThresholdEvent(apiKey, callsInCurrentDay, warningThreshold);
+        if (warningThreshold > 0 && callsInCurrentHour >= warningThreshold) {
+            publishQuotaThresholdEvent(apiKey, callsInCurrentHour, warningThreshold);
         }
 
         // Gọi thành công -> Ghi nhận thống kê
@@ -373,6 +473,16 @@ public class PartnerApiKeyService {
     private String buildHourlyKey(UUID apiKeyId, LocalDateTime time) {
         return apiKeyId.toString() + ":" + String.format("%04d%02d%02d%02d",
                 time.getYear(), time.getMonthValue(), time.getDayOfMonth(), time.getHour());
+    }
+
+    /**
+     * Lấy số lượt gọi THÀNH CÔNG trong giờ hiện tại cho khóa (NCL-12-CN-005, QTN-20).
+     * Dùng bộ đếm bộ nhớ tạm {@code hourlyRateLimitMap}.
+     */
+    public int getCurrentHourCalls(UUID apiKeyId) {
+        String hourlyKey = buildHourlyKey(apiKeyId, LocalDateTime.now());
+        AtomicInteger count = hourlyRateLimitMap.get(hourlyKey);
+        return count != null ? count.get() : 0;
     }
 
     /**

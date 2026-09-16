@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,6 +22,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.integration.apikey.dto.request.CreateApiKeyRequest;
+import vn.nguongocso.integration.apikey.dto.request.RenewApiKeyRequest;
+import vn.nguongocso.integration.apikey.dto.request.UpdateApiKeyQuotaRequest;
 import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyPageResponse;
 import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyResponse;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
@@ -104,5 +107,33 @@ public class PartnerApiKeyController {
         log.info("Nhận yêu cầu thu hồi khóa truy cập id={}", id);
         PartnerApiKeyResponse response = partnerApiKeyService.revokeApiKey(id);
         return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Gia hạn khóa truy cập (NCL-12-CN-005).
+     * <p>
+     * PATCH /api/v1/organization/api-keys/{id}/expiry
+     */
+    @PatchMapping("/{id}/expiry")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<PartnerApiKeyResponse>> renewApiKey(
+            @PathVariable UUID id,
+            @RequestBody @Valid RenewApiKeyRequest request) {
+        PartnerApiKeyResponse response = partnerApiKeyService.renewApiKey(id, request);
+        return ResponseEntity.ok(ApiResult.success(200, response));
+    }
+
+    /**
+     * Nâng hạn mức (NCL-12-CN-005).
+     * <p>
+     * PATCH /api/v1/organization/api-keys/{id}/quota
+     */
+    @PatchMapping("/{id}/quota")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<PartnerApiKeyResponse>> updateApiKeyQuota(
+            @PathVariable UUID id,
+            @RequestBody @Valid UpdateApiKeyQuotaRequest request) {
+        PartnerApiKeyResponse response = partnerApiKeyService.updateApiKeyQuota(id, request);
+        return ResponseEntity.ok(ApiResult.success(200, response));
     }
 }

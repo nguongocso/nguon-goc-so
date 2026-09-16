@@ -31,7 +31,9 @@ export interface PartnerApiKeyResponse {
   failedCalls: number;
   /** Số lượt gọi trong ngày hôm nay (chỉ trả ở danh sách khóa - NCL-12-CN-005) */
   usedCallsToday?: number | null;
-  /** Ngưỡng lượt gọi trong ngày chạm mức cảnh báo hạn mức (chỉ trả ở danh sách khóa - NCL-12-CN-005) */
+  /** Số lượt gọi trong giờ hiện tại (NCL-12-CN-005, QTN-20) */
+  currentHourCalls?: number | null;
+  /** Ngưỡng lượt gọi trong giờ chạm mức cảnh báo hạn mức */
   quotaWarningThreshold?: number | null;
   lastCalledAt?: string | null;
   lastCallStatus?: number | null;
@@ -42,6 +44,14 @@ export interface PartnerApiKeyResponse {
   revokedByUserId?: string | null;
   revokedByFullName?: string | null;
   revokedAt?: string | null;
+}
+
+export interface RenewApiKeyRequest {
+  expiresAt: string;
+}
+
+export interface UpdateApiKeyQuotaRequest {
+  rateLimitPerHour: number;
 }
 
 export interface ApiKeyPageResponse {

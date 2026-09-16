@@ -33,6 +33,8 @@ import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.integration.apikey.dto.request.CreateApiKeyRequest;
+import vn.nguongocso.integration.apikey.dto.request.RenewApiKeyRequest;
+import vn.nguongocso.integration.apikey.dto.request.UpdateApiKeyQuotaRequest;
 import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyResponse;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
@@ -244,5 +246,122 @@ class PartnerApiKeyServiceTest {
                 () -> partnerApiKeyService.validateApiKeyAndCheckRateLimit(rawApiKey, "127.0.0.1"));
 
         assertTrue(ex.getMessage().contains("vượt quá hạn mức"));
+    }
+
+    @Test
+    @DisplayName("NCL-12-CN-005-TC-06: Gia hạn khóa ACTIVE thành công")
+    void testRenewApiKey_Active_Success() {
+        setupSecurityContext();
+        UUID keyId = UUID.randomUUID();
+        PartnerApiKey existingKey = PartnerApiKey.builder()
+                .id(keyId)
+                .organization(organization)
+                .partnerName("Đối Tác Test")
+                .keyPrefix("nks_live_test")
+                .keyHash("hash")
+                .rateLimitPerHour(50)
+                .expiresAt(LocalDateTime.now().plusDays(30))
+                .status(PartnerApiKeyStatus.ACTIVE)
+                .createdBy(user)
+                .build();
+
+        when(partnerApiKeyRepository.findByIdAndOrganizationId(keyId, orgId)).thenReturn(Optional.of(existingKey));
+        when(partnerApiKeyRepository.save(any(PartnerApiKey.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        RenewApiKeyRequest request = RenewApiKeyRequest.builder().expiresAt(LocalDateTime.now().plusDays(60)).build();
+        PartnerApiKeyResponse response = partnerApiKeyService.renewApiKey(keyId, request);
+        assertEquals(PartnerApiKeyStatus.ACTIVE, response.getStatus());
+    }
+
+    @Test
+    @DisplayName("NCL-12-CN-005-TC-07: Gia hạn khóa EXPIRED thành công và trở lại ACTIVE")
+    void testRenewApiKey_Expired_ReturnsActive() {
+        setupSecurityContext();
+        UUID keyId = UUID.randomUUID();
+        PartnerApiKey existingKey = PartnerApiKey.builder()
+                .id(keyId)
+                .organization(organization)
+                .partnerName("Đối Tác")
+                .keyPrefix("nks_live_exp")
+                .keyHash("hash")
+                .rateLimitPerHour(50)
+                .expiresAt(LocalDateTime.now().minusDays(1))
+                .status(PartnerApiKeyStatus.EXPIRED)
+                .createdBy(user)
+                .build();
+
+        when(partnerApiKeyRepository.findByIdAndOrganizationId(keyId, orgId)).thenReturn(Optional.of(existingKey));
+        when(partnerApiKeyRepository.save(any(PartnerApiKey.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        RenewApiKeyRequest request = RenewApiKeyRequest.builder().expiresAt(LocalDateTime.now().plusDays(30)).build();
+        PartnerApiKeyResponse response = partnerApiKeyService.renewApiKey(keyId, request);
+        assertEquals(PartnerApiKeyStatus.ACTIVE, response.getStatus());
+    }
+
+    @Test
+    @DisplayName("NCL-12-CN-005-TC-08: Gia hạn khóa REVOKED bị từ chối")
+    void testRenewApiKey_Revoked_ThrowsException() {
+        setupSecurityContext();
+        UUID keyId = UUID.randomUUID();
+        PartnerApiKey existingKey = PartnerApiKey.builder()
+                .id(keyId)
+                .organization(organization)
+                .partnerName("Đối Tác")
+                .keyPrefix("nks_revoked")
+                .keyHash("hash")
+                .status(PartnerApiKeyStatus.REVOKED)
+                .build();
+
+        when(partnerApiKeyRepository.findByIdAndOrganizationId(keyId, orgId)).thenReturn(Optional.of(existingKey));
+        RenewApiKeyRequest request = RenewApiKeyRequest.builder().expiresAt(LocalDateTime.now().plusDays(10)).build();
+        assertThrows(BusinessException.class, () -> partnerApiKeyService.renewApiKey(keyId, request));
+    }
+
+    @Test
+    @DisplayName("NCL-12-CN-005-TC-09: Nâng hạn mức từ 100 lên 200 thành công")
+    void testUpdateQuota_Success() {
+        setupSecurityContext();
+        UUID keyId = UUID.randomUUID();
+        PartnerApiKey existingKey = PartnerApiKey.builder()
+                .id(keyId)
+                .organization(organization)
+                .partnerName("Đối Tác")
+                .keyPrefix("nks_live_quota")
+                .keyHash("hash")
+                .rateLimitPerHour(100)
+                .expiresAt(LocalDateTime.now().plusDays(30))
+                .status(PartnerApiKeyStatus.ACTIVE)
+                .build();
+
+        when(partnerApiKeyRepository.findByIdAndOrganizationId(keyId, orgId)).thenReturn(Optional.of(existingKey));
+        when(partnerApiKeyRepository.save(any(PartnerApiKey.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        UpdateApiKeyQuotaRequest request = UpdateApiKeyQuotaRequest.builder().rateLimitPerHour(200).build();
+        PartnerApiKeyResponse response = partnerApiKeyService.updateApiKeyQuota(keyId, request);
+        assertEquals(200, response.getRateLimitPerHour());
+    }
+
+    @Test
+    @DisplayName("NCL-12-CN-005-TC-10: Nâng hạn mức giữ nguyên bị từ chối")
+    void testUpdateQuota_SameValue_ThrowsException() {
+        setupSecurityContext();
+        UUID keyId = UUID.randomUUID();
+        PartnerApiKey existingKey = PartnerApiKey.builder()
+                .id(keyId)
+                .organization(organization)
+                .partnerName("Đối Tác")
+                .keyPrefix("nks_same")
+                .keyHash("hash")
+                .rateLimitPerHour(100)
+                .expiresAt(LocalDateTime.now().plusDays(30))
+                .status(PartnerApiKeyStatus.ACTIVE)
+                .build();
+
+        when(partnerApiKeyRepository.findByIdAndOrganizationId(keyId, orgId)).thenReturn(Optional.of(existingKey));
+        UpdateApiKeyQuotaRequest request = UpdateApiKeyQuotaRequest.builder().rateLimitPerHour(100).build();
+        assertThrows(BusinessException.class, () -> partnerApiKeyService.updateApiKeyQuota(keyId, request));
     }
 }

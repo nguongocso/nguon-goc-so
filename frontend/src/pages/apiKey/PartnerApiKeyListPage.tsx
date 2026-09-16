@@ -10,6 +10,8 @@ import type { PartnerApiKeyResponse, PartnerApiKeyStatus } from '@/types/apiKey'
 import { ApiKeyStatusBadge } from '@/components/apiKey/ApiKeyStatusBadge';
 import { RawApiKeyModal } from '@/components/apiKey/RawApiKeyModal';
 import { RevokeApiKeyDialog } from '@/components/apiKey/RevokeApiKeyDialog';
+import { RenewApiKeyDialog } from '@/components/apiKey/RenewApiKeyDialog';
+import { UpdateApiKeyQuotaDialog } from '@/components/apiKey/UpdateApiKeyQuotaDialog';
 
 import { usePermission } from '@/hooks/usePermission';
 import { HelpButton } from '@/components/help/HelpButton';
@@ -54,6 +56,8 @@ export const PartnerApiKeyListPage: React.FC = () => {
   // States quản lý Modal
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<PartnerApiKeyResponse | null>(null);
   const [revokeKeyTarget, setRevokeKeyTarget] = useState<PartnerApiKeyResponse | null>(null);
+  const [renewKeyTarget, setRenewKeyTarget] = useState<PartnerApiKeyResponse | null>(null);
+  const [quotaKeyTarget, setQuotaKeyTarget] = useState<PartnerApiKeyResponse | null>(null);
 
 
   const fetchApiKeys = async () => {
@@ -244,18 +248,20 @@ export const PartnerApiKeyListPage: React.FC = () => {
                           {item.rateLimitPerHour} /h
                         </span>
                       </TableCell>
+                      <TableCell>
+                        <div className="text-sm font-medium text-foreground">{item.currentHourCalls ?? 0} <span className="text-muted-foreground">lượt</span></div>
+                        {/* Badge cảnh báo hạn mức theo giờ (NCL-12-CN-005) */}
+                        {item.quotaWarningThreshold != null && item.quotaWarningThreshold > 0 && (item.currentHourCalls ?? 0) >= item.quotaWarningThreshold && (
+                          <div className="mt-0.5">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                              Sắp chạm hạn mức
+                            </span>
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-center">
                         <div className="text-sm font-medium">{item.usedCallsToday ?? 0}</div>
-                        {/* Cảnh báo sắp chạm hạn mức theo tổng lượt gọi trong ngày (NCL-12-CN-005) */}
-                        {item.quotaWarningThreshold != null &&
-                          item.quotaWarningThreshold > 0 &&
-                          (item.usedCallsToday ?? 0) >= item.quotaWarningThreshold && (
-                            <div className="mt-0.5">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                                Sắp chạm hạn mức
-                              </span>
-                            </div>
-                          )}
+                        <div className="text-[10px] text-muted-foreground">hôm nay</div>
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="text-sm font-medium">
@@ -282,16 +288,38 @@ export const PartnerApiKeyListPage: React.FC = () => {
                       </TableCell>
                       {canManage && (
                         <TableCell className="text-center">
-                          {item.status === 'ACTIVE' ? (
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              onClick={() => setRevokeKeyTarget(item)}
-                              title="Thu hồi"
-                              className="text-destructive hover:text-destructive hover:bg-muted"
-                            >
-                              <Ban className="h-4 w-4" />
-                            </Button>
+                          {item.status === 'ACTIVE' || item.status === 'EXPIRED' ? (
+                            <div className="flex items-center justify-center gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setRenewKeyTarget(item)}
+                                title="Gia hạn"
+                                className="h-8 px-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                              >
+                                Gia hạn
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setQuotaKeyTarget(item)}
+                                title="Nâng hạn mức"
+                                className="h-8 px-2 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                              >
+                                Nâng hạn mức
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={() => setRevokeKeyTarget(item)}
+                                title="Thu hồi"
+                                className="text-destructive hover:text-destructive hover:bg-muted"
+                              >
+                                <Ban className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : item.status === 'REVOKED' ? (
+                            <span className="text-xs text-muted-foreground italic">Đã thu hồi</span>
                           ) : (
                             <span className="text-xs text-muted-foreground italic">Không có thao tác</span>
                           )}
@@ -331,6 +359,24 @@ export const PartnerApiKeyListPage: React.FC = () => {
         apiKeyData={revokeKeyTarget}
         onClose={() => setRevokeKeyTarget(null)}
         onSuccess={handleRevokeSuccess}
+      />
+
+      <RenewApiKeyDialog
+        open={!!renewKeyTarget}
+        apiKeyData={renewKeyTarget}
+        onClose={() => setRenewKeyTarget(null)}
+        onSuccess={(updatedKey) => {
+          fetchApiKeys();
+        }}
+      />
+
+      <UpdateApiKeyQuotaDialog
+        open={!!quotaKeyTarget}
+        apiKeyData={quotaKeyTarget}
+        onClose={() => setQuotaKeyTarget(null)}
+        onSuccess={(updatedKey) => {
+          fetchApiKeys();
+        }}
       />
     </div>
   );

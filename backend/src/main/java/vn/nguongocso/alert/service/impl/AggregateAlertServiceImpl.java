@@ -36,6 +36,7 @@ import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
 import vn.nguongocso.integration.apikey.service.ApiKeyQuotaPolicy;
+import vn.nguongocso.integration.apikey.service.PartnerApiKeyService;
 import vn.nguongocso.integration.apikey.service.PartnerApiKeyUsageService;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
@@ -72,6 +73,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
     private final PartnerApiKeyRepository partnerApiKeyRepository;
     private final PartnerApiKeyUsageService partnerApiKeyUsageService;
     private final ApiKeyQuotaPolicy apiKeyQuotaPolicy;
+    private final PartnerApiKeyService partnerApiKeyService;
     private final ObjectMapper objectMapper;
 
     @Value("${app.apikey.expiry-warning-days:7}")
@@ -593,7 +595,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
             }
 
             if (key.getRateLimitPerHour() != null && key.getRateLimitPerHour() > 0) {
-                int used = usedCallsToday.getOrDefault(key.getId(), 0);
+                int used = partnerApiKeyService.getCurrentHourCalls(key.getId());
                 if (apiKeyQuotaPolicy.isReached(used, key.getRateLimitPerHour())) {
                     result.add(AggregateAlertItemResponse.builder()
                             .id(key.getId())
@@ -603,7 +605,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                             .title("Khóa truy cập sắp chạm hạn mức")
                             .message("Khóa của đối tác \"" + key.getPartnerName() + "\" đã dùng "
                                     + used + "/" + key.getRateLimitPerHour()
-                                    + " lượt gọi trong ngày hôm nay (ngưỡng cảnh báo "
+                                    + " lượt gọi trong giờ hiện tại (ngưỡng cảnh báo "
                                     + apiKeyQuotaPolicy.warningThresholdPercent() + "%).")
                             .relatedEntityType("PARTNER_API_KEY")
                             .relatedEntityId(key.getId())
