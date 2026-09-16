@@ -25,12 +25,15 @@ import vn.nguongocso.event.service.EventValidationService;
 import vn.nguongocso.event.service.ProcurementEventService;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.trace.entity.Shipment;
+import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 import vn.nguongocso.trace.enums.ShipmentStatus;
+import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +41,7 @@ import java.util.Map;
 public class ProcurementEventServiceImpl implements ProcurementEventService {
 
     private final ShipmentRepository shipmentRepository;
+    private final ShipmentHandoverRepository shipmentHandoverRepository;
     private final ChainEventRepository chainEventRepository;
     private final ChainEventService chainEventService;
     private final UserRepository userRepository;
@@ -62,8 +66,20 @@ public class ProcurementEventServiceImpl implements ProcurementEventService {
                 .orElseThrow(() -> new BusinessException("Không tìm thấy lô hàng."));
 
 
-        if (shipment.getRecipientOrganization() == null || !currentUser.getOrganizationId()
-                .equals(shipment.getRecipientOrganization().getOrganizationId())) {
+        UUID userOrgId = currentUser.getOrganizationId();
+        boolean isRecipient = shipment.getRecipientOrganization() != null
+                && userOrgId != null
+                && userOrgId.equals(shipment.getRecipientOrganization().getOrganizationId());
+
+        boolean hasAcceptedHandover = userOrgId != null
+                && shipmentHandoverRepository.existsByShipmentIdAndToOrganizationOrganizationIdAndStatus(
+                        shipment.getId(), userOrgId, ShipmentHandoverStatus.ACCEPTED);
+
+        boolean hasRecordedEvent = userOrgId != null
+                && chainEventRepository.existsByShipmentIdAndRecordedOrganizationIdAndEventType(
+                        shipment.getId(), userOrgId, ChainEventType.PROCUREMENT);
+
+        if (!isRecipient && !hasAcceptedHandover && !hasRecordedEvent) {
             throw new BusinessException(org.springframework.http.HttpStatus.FORBIDDEN,
                     "Lô hàng không được giao cho tổ chức của bạn.", Map.of("code", "RECIPIENT_MISMATCH"));
         }

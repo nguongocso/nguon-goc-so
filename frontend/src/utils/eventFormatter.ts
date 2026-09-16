@@ -16,7 +16,7 @@ export const EVENT_TYPE_VN_LABELS: Record<ChainEventType, string> = {
   WAREHOUSE_ENTRY: 'Nhập kho HTX',
   WAREHOUSE_EXIT: 'Xuất kho HTX',
   SPLIT: 'Đã tách lô',
-  HANDOVER: 'Bàn giao lô hàng',
+  HANDOVER: 'Bàn giao',
 };
 
 export const EVENT_TYPE_EN_LABELS: Record<ChainEventType, string> = {
@@ -114,7 +114,7 @@ const KNOWN_FIELD_LABELS: Record<string, string> = {
   sourceShipmentName: 'Tên lô hàng nguồn',
   recipientOrganizationId: 'Mã tổ chức nhận',
   recipientOrganizationName: 'Đối tác nhận hàng',
-  allocatedQuantity: 'Số lượng phân bổ (kg)',
+  allocatedQuantity: 'Số lượng phân bổ',
   fromCode: 'Mã bắt đầu',
   toCode: 'Mã kết thúc',
   sourceLastEventHash: 'Mã băm sự kiện nguồn',

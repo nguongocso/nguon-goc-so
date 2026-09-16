@@ -121,6 +121,20 @@ public class NotificationServiceImpl implements NotificationService {
 
         private final PermissionChecker permissionChecker;
 
+        /** Gửi thông báo tệp nhật ký nền đã sẵn sàng cho đúng người yêu cầu. */
+        @Override
+        public void sendActivityLogExportReadyNotification(UUID exportJobId, UUID recipientId) {
+                User recipient = userRepository.findById(recipientId)
+                                .orElseThrow(() -> new BusinessException("Người nhận thông báo không tồn tại."));
+                Notification notification = new Notification();
+                notification.setUser(recipient);
+                notification.setType(NotificationType.ACTIVITY_LOG_EXPORT_READY);
+                notification.setTitle("Tệp nhật ký hoạt động đã sẵn sàng");
+                notification.setContent("Yêu cầu xuất nhật ký hoạt động đã hoàn tất. Bấm để tải tệp CSV.");
+                notification.setEntityId(exportJobId);
+                notificationRepository.save(notification);
+        }
+
         // =========================================================
         // 1. TẠO THÔNG BÁO CẢNH BÁO TEM QUÉT BẤT THƯỜNG
         // =========================================================

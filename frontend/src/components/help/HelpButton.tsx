@@ -11,9 +11,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+export interface HelpCustomContent {
+  title: string;
+  steps: string[];
+}
+
 interface HelpButtonProps {
   /** Mã định danh màn hình (ví dụ: "farm-log-create"). */
   screenKey: string;
+  /** Nội dung hướng dẫn tuỳ biến (nếu có sẽ ưu tiên hiển thị trước). */
+  customContent?: HelpCustomContent;
   /** Nhãn nút — mặc định "Hướng dẫn". */
   label?: string;
   /** Chỉ hiển thị icon, không hiện nhãn. */
@@ -28,6 +35,7 @@ interface HelpButtonProps {
  */
 export function HelpButton({
   screenKey,
+  customContent,
   label = "Hướng dẫn",
   iconOnly = false,
   className,
@@ -46,7 +54,7 @@ export function HelpButton({
           </Button>
         }
       />
-      <HelpDrawer screenKey={screenKey} />
+      <HelpDrawer screenKey={screenKey} customContent={customContent} />
     </Sheet>
   );
 }
@@ -209,6 +217,49 @@ const LOCAL_HELP_CONTENT: Record<
       'Kiểm tra lại danh sách lô đã chọn và nhấn "Tạo yêu cầu thu hồi" để gửi yêu cầu phê duyệt',
     ],
   },
+  'admin-anomaly-thresholds': {
+    title: 'Hướng dẫn cấu hình ngưỡng quét bất thường',
+    steps: [
+      'Cấu hình Ngưỡng toàn cục: Thiết lập các thông số quét áp dụng mặc định cho toàn bộ mã tem trong hệ thống gồm: Quét / giờ, Quét / ngày (24h), Khoảng cách tối đa (km), Thời gian di chuyển (phút) và Thời gian ân hạn (ngày).',
+      'Thời gian ân hạn (0 - 7 ngày, mặc định 3 ngày): Số ngày miễn đánh giá quét bất thường kể từ thời điểm kích hoạt tem. Trong thời gian này, các lượt quét thử nghiệm/nội bộ được bỏ qua để tránh báo động giả.',
+      'Ước lượng tác động (30 ngày): Nhấn nút "Ước lượng tác động" trên thẻ toàn cục để chạy thử nghiệm mô phỏng (Dry-run), kiểm tra trước số lượng tem và tỷ lệ quét bị ảnh hưởng trước khi áp dụng cấu hình mới.',
+      'Lưu cấu hình toàn cục: Nhấn nút "Lưu cấu hình toàn cục" để áp dụng ngay ngưỡng mới vào bộ máy phát hiện thời gian thực.',
+      'Bảng Ghi đè theo danh mục nông sản: Theo dõi danh sách gồm 7 cột: Loại nông sản, Quét / giờ, Quét / ngày (24h), Khoảng cách tối đa, Thời gian di chuyển, Thời gian ân hạn và Thao tác.',
+      'Thêm ghi đè danh mục: Nhấn "Thêm ghi đè danh mục" để thiết lập bộ ngưỡng riêng cho loại nông sản có đặc thù phân phối riêng biệt (ưu tiên cao hơn ngưỡng toàn cục).',
+      'Chỉnh sửa hoặc Xóa ghi đè: Tại cột "Thao tác", chọn biểu tượng Sửa (cây bút) để điều chỉnh ngưỡng danh mục, hoặc chọn Xóa (thùng rác) để đưa danh mục trở lại dùng ngưỡng toàn cục mặc định.',
+    ],
+  },
+  'admin-suspect-trace-codes': {
+    title: 'Hướng dẫn xử lý mã tem nghi vấn',
+    steps: [
+      'Theo dõi danh sách các mã tem bị hệ thống cảnh báo nghi vấn gian lận hoặc sao chép mã (điểm nghi vấn ≥ 50/100).',
+      'Xem chi tiết bằng chứng: Nhấn "Chi tiết" tại từng dòng để xem Snapshot phân tích điểm vi phạm và lịch sử quét thực tế.',
+      'Khóa mã tem (SUSPECT): Nếu mã tem đang nghi vấn, nhấn "Khóa mã tem", nhập lý do vi phạm để ngừng lưu hành và cảnh báo người tiêu dùng khi quét.',
+      'Mở khóa mã tem (LOCKED): Nếu tem đã khóa và có kết quả đối soát thực tế hợp lệ, nhấn "Mở khóa mã tem", nhập kết luận xác minh (≥ 10 ký tự) và bằng chứng đối chiếu để kích hoạt lại tem.',
+    ],
+  },
+  'admin-suspect-trace-code-suspect': {
+    title: 'Hướng dẫn khóa mã tem nghi vấn (Trạng thái Nghi vấn)',
+    steps: [
+      'Kiểm tra Thông tin nghi vấn: Đối chiếu thông tin Lô hàng, Mã tem, Loại nông sản và Nguồn cấu hình ngưỡng áp dụng.',
+      'Phân tích Chi tiết điểm nghi vấn: Kiểm tra Snapshot bằng chứng vi phạm cố định (+35 Tần suất cao, +45 Di chuyển phi lý, +20 Nhiều địa điểm).',
+      'Đối soát Lịch sử quét 24h: Xem lại bảng lịch sử quét gồm thời gian, vị trí, tọa độ GPS và thiết bị để xác định bất thường phân phối.',
+      'Mở biểu mẫu khóa: Nhấn nút màu đỏ "Khóa mã tem" ở góc trên bên phải màn hình.',
+      'Nhập lý do khóa: Điền cụ thể lý do khóa (ví dụ: phát hiện quét tem đồng thời ở 2 tỉnh cách nhau > 500km, quét lặp bất thường từ thiết bị lạ).',
+      'Xác nhận khóa: Nhấn "Xác nhận khóa" để đưa tem về trạng thái ĐÃ KHÓA (LOCKED), lập tức hiển thị cảnh báo đỏ trên trang quét công khai của người tiêu dùng.',
+    ],
+  },
+  'admin-suspect-trace-code-locked': {
+    title: 'Hướng dẫn mở khóa mã tem (Trạng thái Đã khóa)',
+    steps: [
+      'Kiểm tra Lịch sử khóa: Xem kỹ Thời điểm khóa, Người thực hiện khóa và Lý do khóa tem ở phần Thông tin nghi vấn.',
+      'Thu thập & Xác minh thực tế: Thu thập biên bản giải trình, hóa đơn chứng từ, lịch trình xe vận chuyển hoặc ảnh chụp thực tế từ chủ cơ sở/hợp tác xã.',
+      'Mở biểu mẫu mở khóa: Nhấn nút màu xanh lá "Mở khóa mã tem" ở góc trên bên phải màn hình.',
+      'Nhập kết luận xác minh: Điền nội dung kết luận xử lý vào ô "Kết luận xác minh" (tối thiểu 10 ký tự, nêu rõ kết quả kiểm tra thực địa).',
+      'Cung cấp bằng chứng: Điền thông tin vào ô "Bằng chứng xác minh" (ví dụ: số vận đơn giao nhận, số biên bản làm việc, hình ảnh tem chính hãng).',
+      'Xác nhận mở khóa: Nhấn "Xác nhận mở khóa" để đưa tem về trạng thái HOẠT ĐỘNG (ACTIVE), gỡ bỏ cảnh báo khóa trên cổng thông tin công khai.',
+    ],
+  },
 };
 
 function formatHelpStep(step: string): string {
@@ -219,9 +270,15 @@ function formatHelpStep(step: string): string {
   return formatted;
 }
 
-function HelpDrawer({ screenKey }: { screenKey: string }) {
+function HelpDrawer({
+  screenKey,
+  customContent,
+}: {
+  screenKey: string;
+  customContent?: HelpCustomContent;
+}) {
   const { data, isLoading, error } = useHelp(screenKey);
-  const helpData = data || LOCAL_HELP_CONTENT[screenKey] || null;
+  const helpData = customContent || data || LOCAL_HELP_CONTENT[screenKey] || null;
 
   return (
     <SheetContent side="right">

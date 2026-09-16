@@ -4,7 +4,6 @@ CREATE TABLE inspection_criteria (
     standard_id CHAR(36),
     criterion_code VARCHAR(100) NOT NULL,
     criterion_name VARCHAR(255) NOT NULL,
-    name_en VARCHAR(255),
 
     PRIMARY KEY (id),
 

@@ -341,7 +341,19 @@ const assetUrl = toHandoverAssetUrl(handover.attachmentPath);
         </Button>
         <Button
           variant="outline"
-          onClick={() => navigate(`/shipments/${handover.shipmentId}`)}
+          onClick={() =>
+            navigate(`/shipments/${handover.shipmentId}?handoverId=${handover.id}`, {
+              state: {
+                fromHandover: true,
+                handoverId: handover.id,
+                handoverRoute: isHandoverRoute
+                  ? `/handover/${handover.id}`
+                  : `/shipment-handovers/${handover.id}`,
+                handoverListHref,
+                handoverListLabel,
+              },
+            })
+          }
         >
           Xem lô hàng
         </Button>

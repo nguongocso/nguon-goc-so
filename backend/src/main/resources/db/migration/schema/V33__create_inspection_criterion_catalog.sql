@@ -8,7 +8,6 @@
 CREATE TABLE inspection_criterion_catalog (
     id BIGINT NOT NULL AUTO_INCREMENT,
     name VARCHAR(150) NOT NULL,
-    name_en VARCHAR(150),
     unit VARCHAR(30) NOT NULL,
     max_threshold DECIMAL(12,4) NOT NULL,
     reference_standard VARCHAR(150),

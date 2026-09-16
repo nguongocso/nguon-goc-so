@@ -90,6 +90,9 @@ public class DossierServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private vn.nguongocso.trace.repository.ShipmentHandoverRepository shipmentHandoverRepository;
+
     @InjectMocks
     private DossierServiceImpl dossierService;
 
