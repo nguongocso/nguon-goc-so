@@ -1,0 +1,24 @@
+-- ============================================================
+-- V20260916130000: Seed Help Content for Anomaly Thresholds and Suspect Trace Code Detail (Frontend-centric guidance)
+-- ============================================================
+
+INSERT INTO help_content
+    (id, screen_key, role_code, title, steps, example_data, sort_order, created_at, updated_at)
+VALUES
+-- 1. Cấu hình ngưỡng quét bất thường
+(UUID(), 'admin-anomaly-thresholds', 'GENERAL',
+ 'Hướng dẫn cấu hình ngưỡng quét bất thường',
+ '["Cấu hình Ngưỡng toàn cục: Thiết lập các thông số quét áp dụng mặc định cho toàn bộ mã tem trong hệ thống gồm: Quét / giờ, Quét / ngày (24h), Khoảng cách tối đa (km), Thời gian di chuyển (phút) và Thời gian ân hạn (ngày).", "Thời gian ân hạn (0 - 7 ngày, mặc định 3 ngày): Số ngày miễn đánh giá quét bất thường kể từ thời điểm kích hoạt tem. Trong thời gian này, các lượt quét thử nghiệm hoặc nội bộ được bỏ qua để tránh báo động giả.", "Ước lượng tác động (30 ngày): Nhấn nút Ước lượng tác động trên thẻ toàn cục để chạy thử nghiệm mô phỏng (Dry-run), kiểm tra trước số lượng tem và tỷ lệ quét bị ảnh hưởng trước khi áp dụng cấu hình mới.", "Lưu cấu hình toàn cục: Nhấn nút Lưu cấu hình toàn cục để áp dụng ngay ngưỡng mới vào bộ máy phát hiện thời gian thực.", "Bảng Ghi đè theo danh mục nông sản: Theo dõi danh sách gồm 7 cột: Loại nông sản, Quét / giờ, Quét / ngày (24h), Khoảng cách tối đa, Thời gian di chuyển, Thời gian ân hạn và Thao tác.", "Thêm ghi đè danh mục: Nhấn Thêm ghi đè danh mục để thiết lập bộ ngưỡng riêng cho loại nông sản có đặc thù phân phối riêng biệt (ưu tiên cao hơn ngưỡng toàn cục).", "Chỉnh sửa hoặc Xóa ghi đè: Tại cột Thao tác, chọn biểu tượng Sửa (cây bút) để điều chỉnh ngưỡng danh mục, hoặc chọn Xóa (thùng rác) để đưa danh mục trở lại dùng ngưỡng toàn cục mặc định."]',
+ NULL, 0, NOW(), NOW()),
+
+-- 2. Chi tiết mã tem nghi vấn - Trạng thái Nghi vấn (SUSPECT)
+(UUID(), 'admin-suspect-trace-code-suspect', 'GENERAL',
+ 'Hướng dẫn khóa mã tem nghi vấn (Trạng thái Nghi vấn)',
+ '["Kiểm tra Thông tin nghi vấn: Đối chiếu thông tin Lô hàng, Mã tem, Loại nông sản và Nguồn cấu hình ngưỡng áp dụng.", "Phân tích Chi tiết điểm nghi vấn: Kiểm tra Snapshot bằng chứng vi phạm cố định (+35 Tần suất cao, +45 Di chuyển phi lý, +20 Nhiều địa điểm).", "Đối soát Lịch sử quét 24h: Xem lại bảng lịch sử quét gồm thời gian, vị trí, tọa độ GPS và thiết bị để xác định bất thường phân phối.", "Mở biểu mẫu khóa: Nhấn nút màu đỏ Khóa mã tem ở góc trên bên phải màn hình.", "Nhập lý do khóa: Điền cụ thể lý do khóa (ví dụ: phát hiện quét tem đồng thời ở 2 tỉnh cách nhau > 500km, quét lặp bất thường từ thiết bị lạ).", "Xác nhận khóa: Nhấn Xác nhận khóa để đưa tem về trạng thái ĐÃ KHÓA (LOCKED), lập tức hiển thị cảnh báo đỏ trên trang quét công khai của người tiêu dùng."]',
+ NULL, 0, NOW(), NOW()),
+
+-- 3. Chi tiết mã tem nghi vấn - Trạng thái Đã khóa (LOCKED)
+(UUID(), 'admin-suspect-trace-code-locked', 'GENERAL',
+ 'Hướng dẫn mở khóa mã tem (Trạng thái Đã khóa)',
+ '["Kiểm tra Lịch sử khóa: Xem kỹ Thời điểm khóa, Người thực hiện khóa và Lý do khóa tem ở phần Thông tin nghi vấn.", "Thu thập & Xác minh thực tế: Thu thập biên bản giải trình, hóa đơn chứng từ, lịch trình xe vận chuyển hoặc ảnh chụp thực tế từ chủ cơ sở hoặc hợp tác xã.", "Mở biểu mẫu mở khóa: Nhấn nút màu xanh lá Mở khóa mã tem ở góc trên bên phải màn hình.", "Nhập kết luận xác minh: Điền nội dung kết luận xử lý vào ô Kết luận xác minh (tối thiểu 10 ký tự, nêu rõ kết quả kiểm tra thực địa).", "Cung cấp bằng chứng: Điền thông tin vào ô Bằng chứng xác minh (ví dụ: số vận đơn giao nhận, số biên bản làm việc, hình ảnh tem chính hãng).", "Xác nhận mở khóa: Nhấn Xác nhận mở khóa để đưa tem về trạng thái HOẠT ĐỘNG (ACTIVE), gỡ bỏ cảnh báo khóa trên cổng thông tin công khai."]',
+ NULL, 0, NOW(), NOW());

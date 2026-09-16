@@ -26,7 +26,7 @@ export const GlobalThresholdCard: React.FC<GlobalThresholdCardProps> = ({
   const [maxScansPerDay, setMaxScansPerDay] = useState<number>(10);
   const [maxDistanceKmPer30Min, setMaxDistanceKmPer30Min] = useState<number>(50.0);
   const [minTimeBetweenScansMinutes, setMinTimeBetweenScansMinutes] = useState<number>(30);
-  const [activationAgeDays, setActivationAgeDays] = useState<number>(365);
+  const [activationAgeDays, setActivationAgeDays] = useState<number>(3);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -36,7 +36,7 @@ export const GlobalThresholdCard: React.FC<GlobalThresholdCardProps> = ({
       setMaxScansPerDay(initialData.maxScansPerDay ?? 10);
       setMaxDistanceKmPer30Min(initialData.maxDistanceKmPer30Min ?? 50.0);
       setMinTimeBetweenScansMinutes(initialData.minTimeBetweenScansMinutes ?? 30);
-      setActivationAgeDays(initialData.activationAgeDays ?? 365);
+      setActivationAgeDays(initialData.activationAgeDays ?? 3);
     }
   }, [initialData]);
 
@@ -46,7 +46,9 @@ export const GlobalThresholdCard: React.FC<GlobalThresholdCardProps> = ({
     if (isNaN(maxScansPerDay) || maxScansPerDay < 1) errs.maxScansPerDay = 'Phải lớn hơn hoặc bằng 1';
     if (isNaN(maxDistanceKmPer30Min) || maxDistanceKmPer30Min < 0) errs.maxDistanceKmPer30Min = 'Khoảng cách phải không âm';
     if (isNaN(minTimeBetweenScansMinutes) || minTimeBetweenScansMinutes < 0) errs.minTimeBetweenScansMinutes = 'Thời gian phải không âm';
-    if (isNaN(activationAgeDays) || activationAgeDays < 0) errs.activationAgeDays = 'Thời hạn phải không âm';
+    if (isNaN(activationAgeDays) || activationAgeDays < 0 || activationAgeDays > 7) {
+      errs.activationAgeDays = 'Thời gian ân hạn phải từ 0 đến 7 ngày';
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -175,15 +177,19 @@ export const GlobalThresholdCard: React.FC<GlobalThresholdCardProps> = ({
 
             <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
               <Label htmlFor="global-act-age" className="text-sm font-medium">
-                Thời hạn kích hoạt bình thường (ngày) <span className="text-destructive">*</span>
+                Thời gian ân hạn miễn kiểm tra sau kích hoạt (ngày) <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="global-act-age"
                 type="number"
                 min={0}
+                max={7}
                 value={activationAgeDays}
                 onChange={(e) => setActivationAgeDays(parseInt(e.target.value, 10))}
               />
+              <p className="text-xs text-muted-foreground">
+                Trong khoảng thời gian này kể từ khi tem được kích hoạt, các lượt quét sẽ KHÔNG được đánh giá nghi vấn (khuyến nghị 0–7 ngày).
+              </p>
               {errors.activationAgeDays && (
                 <p className="text-xs text-destructive">{errors.activationAgeDays}</p>
               )}
