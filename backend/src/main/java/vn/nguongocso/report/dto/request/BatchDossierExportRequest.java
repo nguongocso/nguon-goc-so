@@ -19,4 +19,7 @@ public class BatchDossierExportRequest {
     private String title;
 
     private String note;
+
+    /** ID mẫu hồ sơ áp dụng (tùy chọn - NCL-07-CN-007). Bỏ trống sẽ dùng mẫu mặc định của tổ chức hoặc bộ trường chuẩn. */
+    private UUID templateId;
 }

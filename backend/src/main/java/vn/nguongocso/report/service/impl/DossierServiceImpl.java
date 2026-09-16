@@ -36,6 +36,7 @@ import vn.nguongocso.event.repository.ChainEventRepository;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.report.exception.DossierValidationException;
 import vn.nguongocso.exception.ResourceNotFoundException;
+import vn.nguongocso.farm.entity.FarmArea;
 import vn.nguongocso.farm.entity.FarmLog;
 import vn.nguongocso.farm.entity.FarmLogAttachment;
 import vn.nguongocso.farm.entity.ProductionLot;
@@ -61,8 +62,15 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
+import vn.nguongocso.export.entity.ProfileTemplate;
+import vn.nguongocso.export.entity.ProfileTemplateField;
+import vn.nguongocso.export.repository.ProfileTemplateRepository;
+import vn.nguongocso.export.util.ExportDisplayFormatter;
 
 import java.awt.Color;
+import vn.nguongocso.certification.entity.ProductionLotCertification;
+import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
@@ -71,9 +79,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -96,7 +106,9 @@ public class DossierServiceImpl implements DossierService {
     private final TraceCodeRepository traceCodeRepository;
     private final InspectionRequestRepository inspectionRequestRepository;
     private final InspectionCriterionResultRepository inspectionCriterionResultRepository;
+    private final ProductionLotCertificationRepository productionLotCertificationRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final ProfileTemplateRepository profileTemplateRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
@@ -197,6 +209,21 @@ public class DossierServiceImpl implements DossierService {
     @Override
     @Transactional
     public byte[] exportDossierPdf(UUID shipmentId, CustomUserDetails currentUser, String ipAddress) {
+        return exportDossierPdf(shipmentId, null, currentUser, ipAddress);
+    }
+
+    /**
+     * Xuất hồ sơ truy xuất dạng PDF áp dụng mẫu cấu hình trường đối tác (NCL-07-CN-007).
+     *
+     * @param shipmentId  ID lô hàng
+     * @param templateId  ID mẫu hồ sơ (tùy chọn)
+     * @param currentUser Thông tin người dùng hiện tại
+     * @param ipAddress   Địa chỉ IP của người dùng
+     * @return Mảng byte đại diện cho tệp PDF đã tạo
+     */
+    @Override
+    @Transactional
+    public byte[] exportDossierPdf(UUID shipmentId, UUID templateId, CustomUserDetails currentUser, String ipAddress) {
         Shipment shipment = shipmentRepository.findById(shipmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin lô hàng."));
 
@@ -212,6 +239,39 @@ public class DossierServiceImpl implements DossierService {
                     checkResult.getMissingDocuments());
         }
 
+        // Xác định mẫu hồ sơ áp dụng nếu có
+        ProfileTemplate template = null;
+        UUID userOrgId = currentUser != null ? currentUser.getOrganizationId() : null;
+        // Tổ chức hiệu dụng: đối với VT-04 là tổ chức HTX sở hữu lô hàng, đối với VT-02 là tổ chức của người dùng
+        UUID effectiveOrgId = userOrgId;
+        if ("VT-04".equals(currentUser.getRoleCode()) && shipment.getOrganization() != null) {
+            effectiveOrgId = shipment.getOrganization().getOrganizationId();
+        }
+        if (templateId != null && profileTemplateRepository != null) {
+            template = profileTemplateRepository.findById(templateId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin mẫu hồ sơ."));
+            // VT-04: Kiểm tra template có thuộc tổ chức hiệu dụng (HTX) không
+            if ("VT-04".equals(currentUser.getRoleCode())) {
+                if (effectiveOrgId != null && !template.getOrganization().getOrganizationId().equals(effectiveOrgId)) {
+                    throw new AccessDeniedException("Mẫu hồ sơ không thuộc tổ chức của lô hàng này.");
+                }
+            } else {
+                if (userOrgId != null && !template.getOrganization().getOrganizationId().equals(userOrgId)) {
+                    throw new AccessDeniedException("Mẫu hồ sơ không thuộc tổ chức của bạn.");
+                }
+            }
+        } else if (effectiveOrgId != null && profileTemplateRepository != null) {
+            template = profileTemplateRepository.findByOrganization_OrganizationIdAndIsDefaultTrue(effectiveOrgId)
+                    .orElse(null);
+        }
+
+        Set<String> selectedFieldKeys = null;
+        if (template != null && template.getFields() != null && !template.getFields().isEmpty()) {
+            selectedFieldKeys = template.getFields().stream()
+                    .map(ProfileTemplateField::getFieldKey)
+                    .collect(Collectors.toSet());
+        }
+
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Document document = new Document(PageSize.A4, 36, 36, 36, 36);
             PdfWriter.getInstance(document, out);
@@ -222,20 +282,22 @@ public class DossierServiceImpl implements DossierService {
             Font boldFont = loadFont("fonts/Roboto-Bold.ttf", 10, Font.BOLD);
             Font normalFont = loadFont("fonts/Roboto-Regular.ttf", 10, Font.NORMAL);
 
-            renderShipmentDossierPdf(document, shipment, titleFont, headerFont, boldFont, normalFont);
+            renderShipmentDossierPdf(document, shipment, template, selectedFieldKeys, titleFont, headerFont, boldFont, normalFont);
 
             document.close();
 
             byte[] pdfData = out.toByteArray();
             long fileSize = pdfData.length;
 
-            // Ghi nhận nhật ký thành công
-            logDossierExport(shipment, currentUser, "SUCCESS", ipAddress, fileSize);
+            // Ghi nhận nhật ký thành công (kèm mẫu hồ sơ đã áp dụng - NCL-07-CN-007)
+            logDossierExport(shipment, currentUser, "SUCCESS", ipAddress, fileSize,
+                    template != null ? template.getId() : null);
 
             publishActivityLog(
                     currentUser,
                     "EXPORT",
-                    "Xuất hồ sơ truy xuất cho lô hàng " + (shipment.getName() != null ? shipment.getName() : ""),
+                    "Xuất hồ sơ truy xuất cho lô hàng " + (shipment.getName() != null ? shipment.getName() : "")
+                            + (template != null ? " theo mẫu: " + template.getName() : ""),
                     "Shipment",
                     shipment.getId() != null ? shipment.getId().toString() : "");
 
@@ -399,23 +461,7 @@ public class DossierServiceImpl implements DossierService {
     }
 
     private String getEventTypeLabel(ChainEventType type) {
-        if (type == null) {
-            return null;
-        }
-        return switch (type) {
-            case HARVEST -> "Thu hoạch";
-            case PREPROCESSING -> "Sơ chế và phân loại";
-            case PACKAGING -> "Đóng gói";
-            case TRANSPORT -> "Vận chuyển";
-            case PROCUREMENT -> "Thu mua";
-            case CORRECTION -> "Điều chỉnh";
-            case WAREHOUSE_RECEIPT -> "Nhập kho";
-            case STORAGE_CONDITION -> "Theo dõi bảo quản";
-            case WAREHOUSE_ENTRY -> "Nhập kho HTX";
-            case WAREHOUSE_EXIT -> "Xuất kho HTX";
-            case HANDOVER -> "Bàn giao";
-            default -> type.name();
-        };
+        return ExportDisplayFormatter.formatChainEventType(type);
     }
 
     @SuppressWarnings("unchecked")
@@ -618,100 +664,40 @@ public class DossierServiceImpl implements DossierService {
     }
 
     private String formatShipmentStatus(vn.nguongocso.trace.enums.ShipmentStatus status) {
-        if (status == null) {
-            return "N/A";
-        }
-        return switch (status) {
-            case DRAFT -> "Bản nháp";
-            case CODE_PRINTED -> "Đã in mã";
-            case ACTIVATED -> "Đã kích hoạt";
-            case RECALLED -> "Đã thu hồi";
-            default -> status.name();
-        };
+        String res = ExportDisplayFormatter.formatShipmentStatus(status);
+        return res != null ? res : "N/A";
     }
 
     private String formatFarmActivityType(vn.nguongocso.farm.enums.FarmActivityType type) {
-        if (type == null) {
-            return "N/A";
-        }
-        return switch (type) {
-            case PLANTING -> "Gieo giống / Xuống giống";
-            case WATERING -> "Tưới nước";
-            case FERTILIZING -> "Bón phân";
-            case PESTICIDE -> "Phun thuốc BVTV";
-            case WEEDING -> "Làm cỏ";
-            case HARVESTING -> "Thu hoạch";
-            case OTHER -> "Hoạt động khác";
-            default -> type.name();
-        };
-    }
-
-    private String formatEventKey(String key) {
-        if (key == null) return "";
-        return switch (key.trim().toLowerCase()) {
-            case "notes", "note" -> "Ghi chú";
-            case "shipmentid" -> "Mã lô hàng";
-            case "shipmentname" -> "Tên lô hàng";
-            case "receivedquantity", "quantity" -> "Số lượng";
-            case "tolocation", "destination" -> "Nơi đến";
-            case "fromlocation", "origin" -> "Nơi đi";
-            case "devicesource" -> "Nguồn thiết bị";
-            case "licenseplate", "vehiclenumber" -> "Biển số xe";
-            case "drivername", "driver" -> "Tài xế";
-            case "storagetemp", "temperature" -> "Nhiệt độ";
-            case "humidity" -> "Độ ẩm";
-            default -> key;
-        };
+        String res = ExportDisplayFormatter.formatFarmActivityType(type);
+        return res != null ? res : "N/A";
     }
 
     private String formatEventDataForPdf(String rawJson) {
-        if (rawJson == null || rawJson.isBlank()) {
-            return "";
-        }
-        try {
-            Map<String, Object> map = objectMapper.readValue(rawJson, new TypeReference<Map<String, Object>>() {});
-            List<String> formattedEntries = new ArrayList<>();
-            for (Map.Entry<String, Object> entry : map.entrySet()) {
-                String key = entry.getKey();
-                Object value = entry.getValue();
-                String displayKey = formatEventKey(key);
-
-                if ("images".equalsIgnoreCase(key) || "photos".equalsIgnoreCase(key) || "attachments".equalsIgnoreCase(key)) {
-                    if (value instanceof List) {
-                        List<?> list = (List<?>) value;
-                        formattedEntries.add("Hình ảnh: " + list.size() + " tệp đính kèm");
-                    } else if (value instanceof String) {
-                        String strVal = (String) value;
-                        if (strVal.startsWith("data:image/")) {
-                            formattedEntries.add("Hình ảnh: 1 tệp đính kèm");
-                        } else {
-                            formattedEntries.add(displayKey + ": " + strVal);
-                        }
-                    }
-                } else if (value instanceof String) {
-                    String strVal = (String) value;
-                    if (strVal.startsWith("data:image/")) {
-                        formattedEntries.add(displayKey + ": [Tệp hình ảnh]");
-                    } else {
-                        formattedEntries.add(displayKey + ": " + strVal);
-                    }
-                } else {
-                    formattedEntries.add(displayKey + ": " + (value != null ? value.toString() : ""));
-                }
-            }
-            return String.join("\n", formattedEntries);
-        } catch (Exception e) {
-            String cleaned = rawJson.replaceAll("data:image/[^;\"]+;base64,[^\"]+", "[Tệp hình ảnh]");
-            return cleaned.trim();
-        }
+        String res = ExportDisplayFormatter.formatEventData(rawJson, "\n");
+        return (res != null && !res.isBlank()) ? res : "N/A";
     }
 
     private void renderShipmentDossierPdf(Document document, Shipment shipment, Font titleFont, Font headerFont, Font boldFont, Font normalFont) throws Exception {
+        renderShipmentDossierPdf(document, shipment, null, null, titleFont, headerFont, boldFont, normalFont);
+    }
+
+    private void renderShipmentDossierPdf(Document document, Shipment shipment, ProfileTemplate template, Set<String> selectedFieldKeys, Font titleFont, Font headerFont, Font boldFont, Font normalFont) throws Exception {
         // 1. Tiêu đề tài liệu
         Paragraph title = new Paragraph("HỒ SƠ TRUY XUẤT NGUỒN GỐC SẢN PHẨM", titleFont);
         title.setAlignment(Element.ALIGN_CENTER);
-        title.setSpacingAfter(15);
+        title.setSpacingAfter(6);
         document.add(title);
+
+        if (template != null) {
+            String tplText = "Mẫu hồ sơ áp dụng: " + template.getName()
+                    + (template.getPartnerName() != null && !template.getPartnerName().isBlank()
+                    ? " (Đối tác: " + template.getPartnerName() + ")" : "");
+            Paragraph tplPara = new Paragraph(tplText, boldFont);
+            tplPara.setAlignment(Element.ALIGN_CENTER);
+            tplPara.setSpacingAfter(4);
+            document.add(tplPara);
+        }
 
         Paragraph subtitle = new Paragraph("Mã lô hàng: " + (shipment.getId() != null ? shipment.getId().toString() : "N/A"), normalFont);
         subtitle.setAlignment(Element.ALIGN_CENTER);
@@ -720,176 +706,464 @@ public class DossierServiceImpl implements DossierService {
 
         document.add(new Paragraph(" "));
 
-        // 2. Thông tin chung về Lô sản xuất
-        document.add(new Paragraph("I. THÔNG TIN LÔ SẢN XUẤT", headerFont));
-        document.add(new Paragraph(" "));
-        PdfPTable lotTable = new PdfPTable(2);
-        lotTable.setWidthPercentage(100);
-        lotTable.setSpacingAfter(15);
-
+        // 2. Thông tin chung về Đơn vị sản xuất & Lô sản xuất
         ProductionLot lot = shipment.getProductionLot();
-        addTableCell(lotTable, "Tên lô sản xuất:", boldFont);
-        addTableCell(lotTable, lot != null && lot.getName() != null ? lot.getName() : "N/A", normalFont);
-        addTableCell(lotTable, "Danh mục sản phẩm:", boldFont);
-        addTableCell(lotTable, (lot != null && lot.getProductCategory() != null && lot.getProductCategory().getName() != null)
-                ? lot.getProductCategory().getName() : "N/A", normalFont);
-        addTableCell(lotTable, "Đơn vị sản xuất (HTX):", boldFont);
-        addTableCell(lotTable, (lot != null && lot.getOrganization() != null && lot.getOrganization().getName() != null)
-                ? lot.getOrganization().getName() : "N/A", normalFont);
-        addTableCell(lotTable, "Ngày xuống giống:", boldFont);
-        addTableCell(lotTable,
-                (lot != null && lot.getPlantingDate() != null)
-                        ? lot.getPlantingDate().toString()
-                        : "N/A",
-                normalFont);
-        addTableCell(lotTable, "Ngày thu hoạch:", boldFont);
-        addTableCell(lotTable,
-                (lot != null && lot.getHarvestDate() != null)
-                        ? lot.getHarvestDate().toString()
-                        : "N/A",
-                normalFont);
-        addTableCell(lotTable, "Sản lượng dự kiến:", boldFont);
-        addTableCell(lotTable, (lot != null && lot.getExpectedQuantity() != null)
-                ? lot.getExpectedQuantity() + " " + (lot.getExpectedQuantityUnit() != null ? lot.getExpectedQuantityUnit() : "kg")
-                : "N/A", normalFont);
-        addTableCell(lotTable, "Sản lượng thực tế:", boldFont);
-        addTableCell(lotTable,
-                (lot != null && lot.getActualQuantity() != null)
-                        ? lot.getActualQuantity() + " kg"
-                        : "N/A",
-                normalFont);
+        Organization org = shipment.getOrganization() != null
+                ? shipment.getOrganization()
+                : (lot != null ? lot.getOrganization() : null);
+        FarmArea farmArea = lot != null ? lot.getFarmArea() : null;
 
-        document.add(lotTable);
+        boolean hasLotInfo = selectedFieldKeys == null || selectedFieldKeys.stream().anyMatch(k -> k.startsWith("productionLot.") || k.startsWith("organization.") || k.startsWith("farmArea."));
+        if (hasLotInfo) {
+            document.add(new Paragraph("I. THÔNG TIN ĐƠN VỊ & LÔ SẢN XUẤT", headerFont));
+            document.add(new Paragraph(" "));
+            PdfPTable lotTable = new PdfPTable(2);
+            lotTable.setWidthPercentage(100);
+            lotTable.setSpacingAfter(15);
+
+            // Thông tin tổ chức / HTX
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("organization.name")) {
+                addTableCell(lotTable, "Đơn vị sản xuất (HTX):", boldFont);
+                addTableCell(lotTable, (org != null && org.getName() != null) ? org.getName() : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("organization.code")) {
+                addTableCell(lotTable, "Mã định danh HTX:", boldFont);
+                addTableCell(lotTable, (org != null && org.getCode() != null) ? org.getCode() : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("organization.type")) {
+                addTableCell(lotTable, "Loại hình tổ chức:", boldFont);
+                addTableCell(lotTable, (org != null && org.getType() != null) ? ExportDisplayFormatter.formatOrganizationType(org.getType()) : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("organization.status")) {
+                addTableCell(lotTable, "Trạng thái tổ chức:", boldFont);
+                addTableCell(lotTable, (org != null && org.getStatus() != null) ? ExportDisplayFormatter.formatOrganizationStatus(org.getStatus()) : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("organization.address")) {
+                addTableCell(lotTable, "Địa chỉ trụ sở:", boldFont);
+                addTableCell(lotTable, (org != null && org.getAddress() != null) ? org.getAddress() : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("organization.province")) {
+                addTableCell(lotTable, "Tỉnh / Thành phố:", boldFont);
+                addTableCell(lotTable, (org != null && org.getProvince() != null && org.getProvince().getName() != null) ? org.getProvince().getName() : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("organization.phone")) {
+                addTableCell(lotTable, "Số điện thoại liên hệ:", boldFont);
+                addTableCell(lotTable, (org != null && org.getPhone() != null) ? org.getPhone() : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("organization.email")) {
+                addTableCell(lotTable, "Email liên hệ:", boldFont);
+                addTableCell(lotTable, (org != null && org.getEmail() != null) ? org.getEmail() : "N/A", normalFont);
+            }
+
+            // Thông tin vùng trồng
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("farmArea.name")) {
+                addTableCell(lotTable, "Vùng chuyên canh / Vùng trồng:", boldFont);
+                addTableCell(lotTable, (farmArea != null && farmArea.getName() != null) ? farmArea.getName() : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("farmArea.location")) {
+                addTableCell(lotTable, "Tọa độ địa lý vùng trồng:", boldFont);
+                String locStr = (farmArea != null && farmArea.getLocation() != null)
+                        ? farmArea.getLocation().getY() + ", " + farmArea.getLocation().getX() : "N/A";
+                addTableCell(lotTable, locStr, normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("farmArea.area")) {
+                addTableCell(lotTable, "Diện tích canh tác:", boldFont);
+                String areaStr = (farmArea != null && farmArea.getArea() != null)
+                        ? farmArea.getArea() + " " + (farmArea.getAreaUnit() != null ? ExportDisplayFormatter.formatAreaUnit(farmArea.getAreaUnit()) : "ha")
+                        : "N/A";
+                addTableCell(lotTable, areaStr, normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("farmArea.cropType")) {
+                addTableCell(lotTable, "Chủng loại cây trồng:", boldFont);
+                addTableCell(lotTable, (farmArea != null && farmArea.getCropType() != null && farmArea.getCropType().getName() != null)
+                        ? farmArea.getCropType().getName() : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("farmArea.isActive")) {
+                addTableCell(lotTable, "Trạng thái vùng trồng:", boldFont);
+                addTableCell(lotTable, farmArea != null ? (Boolean.TRUE.equals(farmArea.getIsActive()) ? "Đang hoạt động" : "Tạm ngưng") : "N/A", normalFont);
+            }
+
+            // Thông tin lô sản xuất
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("productionLot.name")) {
+                addTableCell(lotTable, "Tên lô sản xuất:", boldFont);
+                addTableCell(lotTable, lot != null && lot.getName() != null ? lot.getName() : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("productionLot.productCategory")) {
+                addTableCell(lotTable, "Danh mục sản phẩm:", boldFont);
+                addTableCell(lotTable, (lot != null && lot.getProductCategory() != null && lot.getProductCategory().getName() != null)
+                        ? lot.getProductCategory().getName() : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("productionLot.plantingDate")) {
+                addTableCell(lotTable, "Ngày xuống giống:", boldFont);
+                addTableCell(lotTable,
+                        (lot != null && lot.getPlantingDate() != null)
+                                ? lot.getPlantingDate().toString()
+                                : "N/A",
+                        normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("productionLot.harvestDate")) {
+                addTableCell(lotTable, "Ngày thu hoạch:", boldFont);
+                addTableCell(lotTable,
+                        (lot != null && lot.getHarvestDate() != null)
+                                ? lot.getHarvestDate().toString()
+                                : "N/A",
+                        normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("productionLot.expectedQuantity")) {
+                addTableCell(lotTable, "Sản lượng dự kiến:", boldFont);
+                addTableCell(lotTable, (lot != null && lot.getExpectedQuantity() != null)
+                        ? lot.getExpectedQuantity() + " " + (lot.getExpectedQuantityUnit() != null ? lot.getExpectedQuantityUnit() : "kg")
+                        : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("productionLot.expectedQuantityUnit")) {
+                addTableCell(lotTable, "Đơn vị tính sản lượng:", boldFont);
+                addTableCell(lotTable, (lot != null && lot.getExpectedQuantityUnit() != null) ? lot.getExpectedQuantityUnit() : "kg", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("productionLot.actualQuantity")) {
+                addTableCell(lotTable, "Sản lượng thực tế:", boldFont);
+                addTableCell(lotTable,
+                        (lot != null && lot.getActualQuantity() != null)
+                                ? lot.getActualQuantity() + " kg"
+                                : "N/A",
+                        normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("productionLot.status")) {
+                addTableCell(lotTable, "Trạng thái lô sản xuất:", boldFont);
+                addTableCell(lotTable, (lot != null && lot.getStatus() != null) ? ExportDisplayFormatter.formatProductionLotStatus(lot.getStatus()) : "N/A", normalFont);
+            }
+
+            if (lotTable.getRows().size() > 0) {
+                document.add(lotTable);
+            }
+        }
 
         // 3. Thông tin lô hàng vận chuyển
-        document.add(new Paragraph("II. THÔNG TIN LÔ HÀNG", headerFont));
-        document.add(new Paragraph(" "));
-        PdfPTable shipmentTable = new PdfPTable(2);
-        shipmentTable.setWidthPercentage(100);
-        shipmentTable.setSpacingAfter(15);
+        boolean hasShipmentInfo = selectedFieldKeys == null || selectedFieldKeys.stream().anyMatch(k -> k.startsWith("shipment."));
+        if (hasShipmentInfo) {
+            document.add(new Paragraph("II. THÔNG TIN LÔ HÀNG", headerFont));
+            document.add(new Paragraph(" "));
+            PdfPTable shipmentTable = new PdfPTable(2);
+            shipmentTable.setWidthPercentage(100);
+            shipmentTable.setSpacingAfter(15);
 
-        addTableCell(shipmentTable, "Tên lô hàng vận chuyển:", boldFont);
-        addTableCell(shipmentTable, shipment.getName() != null ? shipment.getName() : "N/A", normalFont);
-        addTableCell(shipmentTable, "Số lượng lô hàng:", boldFont);
-        addTableCell(shipmentTable, shipment.getTotalQuantity() + " sản phẩm", normalFont);
-        addTableCell(shipmentTable, "Thông tin đóng gói:", boldFont);
-        addTableCell(shipmentTable, shipment.getPackagingInfo() != null ? shipment.getPackagingInfo() : "N/A",
-                normalFont);
-        addTableCell(shipmentTable, "Trạng thái vận hành:", boldFont);
-        addTableCell(shipmentTable, shipment.getStatus() != null ? formatShipmentStatus(shipment.getStatus()) : "N/A", normalFont);
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("shipment.name")) {
+                addTableCell(shipmentTable, "Tên lô hàng vận chuyển:", boldFont);
+                addTableCell(shipmentTable, shipment.getName() != null ? shipment.getName() : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("shipment.totalQuantity")) {
+                addTableCell(shipmentTable, "Số lượng lô hàng:", boldFont);
+                addTableCell(shipmentTable, shipment.getTotalQuantity() + " sản phẩm", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("shipment.packagingInfo")) {
+                addTableCell(shipmentTable, "Thông tin đóng gói:", boldFont);
+                addTableCell(shipmentTable, shipment.getPackagingInfo() != null ? shipment.getPackagingInfo() : "N/A",
+                        normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("shipment.status")) {
+                addTableCell(shipmentTable, "Trạng thái vận hành:", boldFont);
+                addTableCell(shipmentTable, shipment.getStatus() != null ? formatShipmentStatus(shipment.getStatus()) : "N/A", normalFont);
+            }
+            if (selectedFieldKeys == null || selectedFieldKeys.contains("shipment.createdAt")) {
+                addTableCell(shipmentTable, "Thời điểm tạo lô hàng:", boldFont);
+                String createdStr = shipment.getCreatedAt() != null
+                        ? shipment.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : "N/A";
+                addTableCell(shipmentTable, createdStr, normalFont);
+            }
 
-        document.add(shipmentTable);
+            if (shipmentTable.getRows().size() > 0) {
+                document.add(shipmentTable);
+            }
+        }
+
+        // 3. Chứng nhận tiêu chuẩn
+        boolean hasCertifications = selectedFieldKeys == null || selectedFieldKeys.stream().anyMatch(k -> k.startsWith("certification."));
+        if (hasCertifications) {
+            document.add(new Paragraph("III. CHỨNG NHẬN TIÊU CHUẨN", headerFont));
+            document.add(new Paragraph(" "));
+
+            boolean colName = selectedFieldKeys == null || selectedFieldKeys.contains("certification.name");
+            boolean colStd = selectedFieldKeys == null || selectedFieldKeys.contains("certification.standardName");
+            boolean colCode = selectedFieldKeys == null || selectedFieldKeys.contains("certification.certificationCode");
+            boolean colIssue = selectedFieldKeys == null || selectedFieldKeys.contains("certification.issueDate");
+            boolean colExpiry = selectedFieldKeys == null || selectedFieldKeys.contains("certification.expiryDate");
+            boolean colCertifier = selectedFieldKeys == null || selectedFieldKeys.contains("certification.certifier");
+
+            List<String> headers = new ArrayList<>();
+            List<Float> widths = new ArrayList<>();
+            if (colName) { headers.add("Tên chứng nhận"); widths.add(25f); }
+            if (colStd) { headers.add("Tiêu chuẩn"); widths.add(15f); }
+            if (colCode) { headers.add("Số hiệu"); widths.add(15f); }
+            if (colIssue) { headers.add("Ngày cấp"); widths.add(15f); }
+            if (colExpiry) { headers.add("Hạn hiệu lực"); widths.add(15f); }
+            if (colCertifier) { headers.add("Tổ chức chứng nhận"); widths.add(15f); }
+
+            if (!headers.isEmpty()) {
+                PdfPTable certTable = new PdfPTable(headers.size());
+                certTable.setWidthPercentage(100);
+                float[] widthArr = new float[widths.size()];
+                for (int i = 0; i < widths.size(); i++) widthArr[i] = widths.get(i);
+                certTable.setWidths(widthArr);
+                certTable.setSpacingAfter(15);
+
+                for (String h : headers) {
+                    addTableHeaderCell(certTable, h, boldFont);
+                }
+
+                List<ProductionLotCertification> certs = (lot != null && lot.getId() != null)
+                        ? productionLotCertificationRepository.findByProductionLotIdIn(List.of(lot.getId()))
+                        : Collections.emptyList();
+
+                if (certs != null && !certs.isEmpty()) {
+                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                    for (ProductionLotCertification plc : certs) {
+                        var c = plc.getCertification();
+                        if (c == null) continue;
+                        if (colName) addTableCell(certTable, c.getName() != null ? c.getName() : "N/A", normalFont);
+                        if (colStd) addTableCell(certTable, (c.getStandard() != null && c.getStandard().getName() != null) ? c.getStandard().getName() : "N/A", normalFont);
+                        if (colCode) addTableCell(certTable, c.getCode() != null ? c.getCode() : "N/A", normalFont);
+                        if (colIssue) addTableCell(certTable, c.getIssueDate() != null ? c.getIssueDate().format(dtf) : "N/A", normalFont);
+                        if (colExpiry) addTableCell(certTable, c.getExpiryDate() != null ? c.getExpiryDate().format(dtf) : "N/A", normalFont);
+                        if (colCertifier) addTableCell(certTable, c.getIssuedBy() != null ? c.getIssuedBy() : "N/A", normalFont);
+                    }
+                } else {
+                    PdfPCell emptyCell = new PdfPCell(new Phrase("Chưa có chứng nhận tiêu chuẩn cho lô sản xuất này.", normalFont));
+                    emptyCell.setColspan(headers.size());
+                    emptyCell.setPadding(6);
+                    certTable.addCell(emptyCell);
+                }
+                document.add(certTable);
+            }
+        }
 
         // 4. Nhật ký canh tác
-        document.add(new Paragraph("III. LỊCH TRÌNH CANH TÁC & CHỨNG TỪ", headerFont));
-        document.add(new Paragraph(" "));
-        PdfPTable logTable = new PdfPTable(5);
-        logTable.setWidthPercentage(100);
-        logTable.setWidths(new float[] { 15f, 20f, 15f, 25f, 25f });
-        logTable.setSpacingAfter(15);
+        boolean hasFarmLogs = selectedFieldKeys == null || selectedFieldKeys.stream().anyMatch(k -> k.startsWith("farmLog."));
+        if (hasFarmLogs) {
+            document.add(new Paragraph("IV. LỊCH TRÌNH CANH TÁC & CHỨNG TỪ", headerFont));
+            document.add(new Paragraph(" "));
 
-        addTableHeaderCell(logTable, "Ngày thực hiện", boldFont);
-        addTableHeaderCell(logTable, "Hoạt động", boldFont);
-        addTableHeaderCell(logTable, "Vật tư / Số lượng", boldFont);
-        addTableHeaderCell(logTable, "Ghi chú", boldFont);
-        addTableHeaderCell(logTable, "Chứng từ đính kèm", boldFont);
+            boolean colDate = selectedFieldKeys == null || selectedFieldKeys.contains("farmLog.executedDate");
+            boolean colAct = selectedFieldKeys == null || selectedFieldKeys.contains("farmLog.activityType");
+            boolean colMat = selectedFieldKeys == null || selectedFieldKeys.contains("farmLog.material") || selectedFieldKeys.contains("farmLog.quantity") || selectedFieldKeys.contains("farmLog.unit");
+            boolean colNotes = selectedFieldKeys == null || selectedFieldKeys.contains("farmLog.notes");
+            boolean colAtt = selectedFieldKeys == null || selectedFieldKeys.contains("farmLog.attachments");
 
-        List<FarmLog> logs = (lot != null && lot.getId() != null)
-                ? farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lot.getId())
-                : Collections.emptyList();
-        if (logs != null) {
-            for (FarmLog logItem : logs) {
-                if (logItem == null) continue;
-                addTableCell(logTable, logItem.getExecutedDate() != null ? logItem.getExecutedDate().toString() : "N/A", normalFont);
-                addTableCell(logTable, logItem.getActivityType() != null ? formatFarmActivityType(logItem.getActivityType()) : "N/A", normalFont);
-                String materialInfo = (logItem.getMaterial() != null ? logItem.getMaterial() : "") +
-                        (logItem.getQuantity() != null ? " (" + logItem.getQuantity() + " " + (logItem.getUnit() != null ? logItem.getUnit() : "") + ")"
-                                : "");
-                addTableCell(logTable, materialInfo.trim().isEmpty() ? "Không có" : materialInfo.trim(), normalFont);
-                addTableCell(logTable, logItem.getNotes() != null ? logItem.getNotes() : "", normalFont);
+            List<String> headers = new ArrayList<>();
+            List<Float> widths = new ArrayList<>();
+            if (colDate) { headers.add("Ngày thực hiện"); widths.add(15f); }
+            if (colAct) { headers.add("Hoạt động"); widths.add(20f); }
+            if (colMat) { headers.add("Vật tư / Số lượng"); widths.add(20f); }
+            if (colNotes) { headers.add("Ghi chú"); widths.add(25f); }
+            if (colAtt) { headers.add("Chứng từ đính kèm"); widths.add(20f); }
 
-                List<FarmLogAttachment> attachments = logItem.getId() != null
-                        ? farmLogAttachmentRepository.findByFarmLogId(logItem.getId())
+            if (!headers.isEmpty()) {
+                PdfPTable logTable = new PdfPTable(headers.size());
+                logTable.setWidthPercentage(100);
+                float[] widthArr = new float[widths.size()];
+                for (int i = 0; i < widths.size(); i++) widthArr[i] = widths.get(i);
+                logTable.setWidths(widthArr);
+                logTable.setSpacingAfter(15);
+
+                for (String h : headers) {
+                    addTableHeaderCell(logTable, h, boldFont);
+                }
+
+                List<FarmLog> logs = (lot != null && lot.getId() != null)
+                        ? farmLogRepository.findByProductionLotId_IdOrderByExecutedDateAsc(lot.getId())
                         : Collections.emptyList();
-                StringBuilder filesStr = new StringBuilder();
-                if (attachments != null) {
-                    for (FarmLogAttachment att : attachments) {
-                        if (att != null && att.getFileName() != null) {
-                            if (filesStr.length() > 0)
-                                filesStr.append("\n");
-                            filesStr.append(att.getFileName());
+                if (logs != null && !logs.isEmpty()) {
+                    for (FarmLog logItem : logs) {
+                        if (logItem == null) continue;
+                        if (colDate) addTableCell(logTable, logItem.getExecutedDate() != null ? logItem.getExecutedDate().toString() : "N/A", normalFont);
+                        if (colAct) addTableCell(logTable, logItem.getActivityType() != null ? formatFarmActivityType(logItem.getActivityType()) : "N/A", normalFont);
+                        if (colMat) {
+                            String materialInfo = (logItem.getMaterial() != null ? logItem.getMaterial() : "") +
+                                    (logItem.getQuantity() != null ? " (" + logItem.getQuantity() + " " + (logItem.getUnit() != null ? logItem.getUnit() : "") + ")"
+                                            : "");
+                            addTableCell(logTable, materialInfo.trim().isEmpty() ? "Không có" : materialInfo.trim(), normalFont);
+                        }
+                        if (colNotes) addTableCell(logTable, logItem.getNotes() != null ? logItem.getNotes() : "", normalFont);
+                        if (colAtt) {
+                            List<FarmLogAttachment> attachments = logItem.getId() != null
+                                    ? farmLogAttachmentRepository.findByFarmLogId(logItem.getId())
+                                    : Collections.emptyList();
+                            StringBuilder filesStr = new StringBuilder();
+                            if (attachments != null) {
+                                for (FarmLogAttachment att : attachments) {
+                                    if (att != null && att.getFileName() != null) {
+                                        if (filesStr.length() > 0)
+                                            filesStr.append("\n");
+                                        filesStr.append(att.getFileName());
+                                    }
+                                }
+                            }
+                            addTableCell(logTable, filesStr.toString().isEmpty() ? "Không có" : filesStr.toString(), normalFont);
+                        }
+                    }
+                } else {
+                    PdfPCell emptyLogCell = new PdfPCell(new Phrase("Chưa có nhật ký canh tác cho lô này.", normalFont));
+                    emptyLogCell.setColspan(headers.size());
+                    emptyLogCell.setPadding(6);
+                    logTable.addCell(emptyLogCell);
+                }
+                document.add(logTable);
+            }
+        }
+
+        // 5. Lịch sử kiểm nghiệm của lô sản xuất
+        boolean hasInspections = selectedFieldKeys == null || selectedFieldKeys.stream().anyMatch(k -> k.startsWith("inspection."));
+        if (hasInspections) {
+            document.add(new Paragraph("V. LỊCH SỬ KIỂM NGHIỆM", headerFont));
+            document.add(new Paragraph(" "));
+
+            boolean colDate = selectedFieldKeys == null || selectedFieldKeys.contains("inspection.sampleSentDate");
+            boolean colUnit = selectedFieldKeys == null || selectedFieldKeys.contains("inspection.inspectionUnit");
+            boolean colCrit = selectedFieldKeys == null || selectedFieldKeys.contains("inspection.criterionName");
+            boolean colPass = selectedFieldKeys == null || selectedFieldKeys.contains("inspection.passed");
+            boolean colResDate = selectedFieldKeys == null || selectedFieldKeys.contains("inspection.resultDate");
+            boolean colExpDate = selectedFieldKeys == null || selectedFieldKeys.contains("inspection.expiryDate");
+
+            List<String> headers = new ArrayList<>();
+            List<Float> widths = new ArrayList<>();
+            if (colDate) { headers.add("Ngày gửi mẫu"); widths.add(15f); }
+            if (colUnit) { headers.add("Đơn vị kiểm nghiệm"); widths.add(20f); }
+            if (colCrit) { headers.add("Chỉ tiêu / Tiêu chuẩn"); widths.add(25f); }
+            if (colPass) { headers.add("Kết quả"); widths.add(12f); }
+            if (colResDate) { headers.add("Ngày cấp kết quả"); widths.add(14f); }
+            if (colExpDate) { headers.add("Hạn hiệu lực"); widths.add(14f); }
+
+            if (!headers.isEmpty()) {
+                PdfPTable inspectionTable = new PdfPTable(headers.size());
+                inspectionTable.setWidthPercentage(100);
+                float[] widthArr = new float[widths.size()];
+                for (int i = 0; i < widths.size(); i++) widthArr[i] = widths.get(i);
+                inspectionTable.setWidths(widthArr);
+                inspectionTable.setSpacingAfter(15);
+
+                for (String h : headers) {
+                    addTableHeaderCell(inspectionTable, h, boldFont);
+                }
+
+                List<Gs1Inspection> inspections = buildGs1Inspections(shipment);
+                DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                boolean hasAnyData = false;
+
+                if (inspections != null && !inspections.isEmpty()) {
+                    for (Gs1Inspection inspection : inspections) {
+                        String sampleSentDate = inspection.getSampleSentDate() != null
+                                ? inspection.getSampleSentDate().format(dateFormatter) : "N/A";
+                        String inspectionUnit = inspection.getInspectionUnit() != null
+                                ? inspection.getInspectionUnit() : "N/A";
+
+                        if (inspection.getCriteria() == null || inspection.getCriteria().isEmpty()) {
+                            hasAnyData = true;
+                            if (colDate) addTableCell(inspectionTable, sampleSentDate, normalFont);
+                            if (colUnit) addTableCell(inspectionTable, inspectionUnit, normalFont);
+                            if (colCrit) addTableCell(inspectionTable, "Yêu cầu kiểm nghiệm chưa có chỉ tiêu.", normalFont);
+                            if (colPass) addTableCell(inspectionTable, inspection.getStatus() != null ? inspection.getStatus() : "N/A", normalFont);
+                            if (colResDate) addTableCell(inspectionTable, "N/A", normalFont);
+                            if (colExpDate) addTableCell(inspectionTable, "N/A", normalFont);
+                        } else {
+                            for (Gs1InspectionCriterion criterion : inspection.getCriteria()) {
+                                if (criterion == null) continue;
+                                hasAnyData = true;
+                                String criterionLabel = criterion.getCriterionName() != null
+                                        ? criterion.getCriterionName()
+                                        : (criterion.getCriterionCode() != null ? criterion.getCriterionCode() : "N/A");
+                                if (criterion.getStandardName() != null) {
+                                    criterionLabel = criterionLabel + " (" + criterion.getStandardName() + ")";
+                                }
+                                String outcome = criterion.getPassed() == null ? "Chưa có kết quả"
+                                        : (Boolean.TRUE.equals(criterion.getPassed()) ? "Đạt" : "Không đạt");
+                                String resultDate = criterion.getResultDate() != null ? criterion.getResultDate().format(dateFormatter) : "N/A";
+                                String expiryDate = criterion.getExpiryDate() != null ? criterion.getExpiryDate().format(dateFormatter) : "N/A";
+
+                                if (colDate) addTableCell(inspectionTable, sampleSentDate, normalFont);
+                                if (colUnit) addTableCell(inspectionTable, inspectionUnit, normalFont);
+                                if (colCrit) addTableCell(inspectionTable, criterionLabel, normalFont);
+                                if (colPass) addTableCell(inspectionTable, outcome, normalFont);
+                                if (colResDate) addTableCell(inspectionTable, resultDate, normalFont);
+                                if (colExpDate) addTableCell(inspectionTable, expiryDate, normalFont);
+                            }
                         }
                     }
                 }
-                addTableCell(logTable, filesStr.toString().isEmpty() ? "Không có" : filesStr.toString(), normalFont);
-            }
-        }
-        document.add(logTable);
 
-        // 5. Lịch sử kiểm nghiệm của lô sản xuất
-        document.add(new Paragraph("IV. LỊCH SỬ KIỂM NGHIỆM", headerFont));
-        document.add(new Paragraph(" "));
-        PdfPTable inspectionTable = new PdfPTable(6);
-        inspectionTable.setWidthPercentage(100);
-        inspectionTable.setWidths(new float[] { 13f, 19f, 26f, 12f, 15f, 15f });
-        inspectionTable.setSpacingAfter(15);
-
-        addTableHeaderCell(inspectionTable, "Ngày gửi mẫu", boldFont);
-        addTableHeaderCell(inspectionTable, "Đơn vị kiểm nghiệm", boldFont);
-        addTableHeaderCell(inspectionTable, "Chỉ tiêu / Tiêu chuẩn", boldFont);
-        addTableHeaderCell(inspectionTable, "Kết quả", boldFont);
-        addTableHeaderCell(inspectionTable, "Ngày cấp kết quả", boldFont);
-        addTableHeaderCell(inspectionTable, "Hạn hiệu lực", boldFont);
-
-        List<String[]> inspectionRows = toInspectionPdfRows(buildGs1Inspections(shipment));
-        if (inspectionRows.isEmpty()) {
-            PdfPCell emptyCell = new PdfPCell(new Phrase(
-                    "Chưa có dữ liệu kiểm nghiệm cho lô sản xuất này.", normalFont));
-            emptyCell.setColspan(6);
-            emptyCell.setPadding(6);
-            inspectionTable.addCell(emptyCell);
-        } else {
-            for (String[] row : inspectionRows) {
-                for (String cellText : row) {
-                    addTableCell(inspectionTable, cellText != null ? cellText : "N/A", normalFont);
+                if (!hasAnyData) {
+                    PdfPCell emptyCell = new PdfPCell(new Phrase("Chưa có dữ liệu kiểm nghiệm cho lô sản xuất này.", normalFont));
+                    emptyCell.setColspan(headers.size());
+                    emptyCell.setPadding(6);
+                    inspectionTable.addCell(emptyCell);
                 }
+                document.add(inspectionTable);
             }
         }
-        document.add(inspectionTable);
 
         // 6. Chuỗi sự kiện luân chuyển
-        document.add(new Paragraph("V. DÒNG SỰ KIỆN CHUỖI CUNG ỨNG (TIMELINE)", headerFont));
-        document.add(new Paragraph(" "));
-        PdfPTable eventTable = new PdfPTable(4);
-        eventTable.setWidthPercentage(100);
-        eventTable.setWidths(new float[] { 20f, 20f, 35f, 25f });
-        eventTable.setSpacingAfter(15);
+        boolean hasTimeline = selectedFieldKeys == null || selectedFieldKeys.stream().anyMatch(k -> k.startsWith("chainEvent."));
+        if (hasTimeline) {
+            document.add(new Paragraph("VI. DÒNG SỰ KIỆN CHUỖI CUNG ỨNG (TIMELINE)", headerFont));
+            document.add(new Paragraph(" "));
 
-        addTableHeaderCell(eventTable, "Thời điểm ghi nhận", boldFont);
-        addTableHeaderCell(eventTable, "Loại sự kiện", boldFont);
-        addTableHeaderCell(eventTable, "Chi tiết dữ liệu", boldFont);
-        addTableHeaderCell(eventTable, "Người ghi nhận", boldFont);
+            boolean colTime = selectedFieldKeys == null || selectedFieldKeys.contains("chainEvent.recordedAt");
+            boolean colType = selectedFieldKeys == null || selectedFieldKeys.contains("chainEvent.eventType");
+            boolean colLoc = selectedFieldKeys == null || selectedFieldKeys.contains("chainEvent.location");
+            boolean colData = selectedFieldKeys == null || selectedFieldKeys.contains("chainEvent.eventData");
+            boolean colUser = selectedFieldKeys == null || selectedFieldKeys.contains("chainEvent.recordedBy");
 
-        List<ChainEvent> events = getShipmentEventsWithLineage(shipment);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        if (events != null) {
-            for (ChainEvent ev : events) {
-                if (ev == null) continue;
-                addTableCell(eventTable, ev.getRecordedAt() != null ? ev.getRecordedAt().format(formatter) : "N/A", normalFont);
-                String eventTypeStr = ev.getEventType() != null ? getEventTypeLabel(ev.getEventType()) : "N/A";
-                addTableCell(eventTable, eventTypeStr + (ev.isCorrection() ? " (Đã điều chỉnh)" : ""),
-                        normalFont);
-                addTableCell(eventTable, formatEventDataForPdf(ev.getEventData()), normalFont);
-                String recordedByName = "Hệ thống";
-                if (ev.getRecordedBy() != null) {
-                    recordedByName = ev.getRecordedBy().getFullName() != null
-                            ? ev.getRecordedBy().getFullName()
-                            : (ev.getRecordedBy().getUserName() != null ? ev.getRecordedBy().getUserName() : "Hệ thống");
+            List<String> headers = new ArrayList<>();
+            List<Float> widths = new ArrayList<>();
+            if (colTime) { headers.add("Thời điểm ghi nhận"); widths.add(18f); }
+            if (colType) { headers.add("Loại sự kiện"); widths.add(18f); }
+            if (colLoc) { headers.add("Tọa độ địa điểm"); widths.add(16f); }
+            if (colData) { headers.add("Chi tiết dữ liệu"); widths.add(28f); }
+            if (colUser) { headers.add("Người ghi nhận"); widths.add(20f); }
+
+            if (!headers.isEmpty()) {
+                PdfPTable eventTable = new PdfPTable(headers.size());
+                eventTable.setWidthPercentage(100);
+                float[] widthArr = new float[widths.size()];
+                for (int i = 0; i < widths.size(); i++) widthArr[i] = widths.get(i);
+                eventTable.setWidths(widthArr);
+                eventTable.setSpacingAfter(15);
+
+                for (String h : headers) {
+                    addTableHeaderCell(eventTable, h, boldFont);
                 }
-                addTableCell(eventTable, recordedByName, normalFont);
+
+                List<ChainEvent> events = getShipmentEventsWithLineage(shipment);
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                if (events != null && !events.isEmpty()) {
+                    for (ChainEvent ev : events) {
+                        if (ev == null) continue;
+                        if (colTime) addTableCell(eventTable, ev.getRecordedAt() != null ? ev.getRecordedAt().format(formatter) : "N/A", normalFont);
+                        if (colType) {
+                            String eventTypeStr = ev.getEventType() != null ? getEventTypeLabel(ev.getEventType()) : "N/A";
+                            addTableCell(eventTable, eventTypeStr + (ev.isCorrection() ? " (Đã điều chỉnh)" : ""), normalFont);
+                        }
+                        if (colLoc) {
+                            String locStr = ev.getLocation() != null ? (ev.getLocation().getY() + ", " + ev.getLocation().getX()) : "N/A";
+                            addTableCell(eventTable, locStr, normalFont);
+                        }
+                        if (colData) addTableCell(eventTable, formatEventDataForPdf(ev.getEventData()), normalFont);
+                        if (colUser) {
+                            String recordedByName = "Hệ thống";
+                            if (ev.getRecordedBy() != null) {
+                                recordedByName = ev.getRecordedBy().getFullName() != null
+                                        ? ev.getRecordedBy().getFullName()
+                                        : (ev.getRecordedBy().getUserName() != null ? ev.getRecordedBy().getUserName() : "Hệ thống");
+                            }
+                            addTableCell(eventTable, recordedByName, normalFont);
+                        }
+                    }
+                } else {
+                    PdfPCell emptyEventCell = new PdfPCell(new Phrase("Chưa ghi nhận sự kiện luân chuyển nào.", normalFont));
+                    emptyEventCell.setColspan(headers.size());
+                    emptyEventCell.setPadding(6);
+                    eventTable.addCell(emptyEventCell);
+                }
+                document.add(eventTable);
             }
         }
-        document.add(eventTable);
     }
 
     private void validateDossierAccess(Shipment shipment, CustomUserDetails currentUser) {
@@ -960,6 +1234,12 @@ public class DossierServiceImpl implements DossierService {
 
     private void logDossierExport(Shipment shipment, CustomUserDetails currentUser, String status, String ipAddress,
             Long fileSize) {
+        logDossierExport(shipment, currentUser, status, ipAddress, fileSize, null);
+    }
+
+    // NCL-07-CN-007: ghi nhận thêm mẫu hồ sơ đã áp dụng vào lịch sử xuất
+    private void logDossierExport(Shipment shipment, CustomUserDetails currentUser, String status, String ipAddress,
+            Long fileSize, UUID templateId) {
         try {
             User user = userRepository.findById(currentUser.getUserId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin tài khoản người xuất."));
@@ -980,6 +1260,7 @@ public class DossierServiceImpl implements DossierService {
                     .fileSize(fileSize)
                     .status(status)
                     .ipAddress(ipAddress)
+                    .templateId(templateId)
                     .build();
 
             exportHistoryRepository.save(history);
@@ -1036,6 +1317,14 @@ public class DossierServiceImpl implements DossierService {
                 continue;
             }
 
+            // Tổ chức sở hữu lô hàng — VT-04 dùng để tổng hợp mẫu hồ sơ của các HTX trong batch.
+            UUID shipmentOrgId = shipment.getOrganization() != null
+                    ? shipment.getOrganization().getOrganizationId()
+                    : null;
+            String shipmentOrgName = shipment.getOrganization() != null
+                    ? shipment.getOrganization().getName()
+                    : null;
+
             // 1. Kiểm tra QTN-01 (Cách ly dữ liệu)
             try {
                 validateDossierAccess(shipment, currentUser);
@@ -1045,6 +1334,8 @@ public class DossierServiceImpl implements DossierService {
                         .shipmentName(shipment.getName())
                         .eligible(false)
                         .missingDocuments(List.of("Lô ngoài phạm vi quản lý của tổ chức (QTN-01)"))
+                        .organizationId(shipmentOrgId)
+                        .organizationName(shipmentOrgName)
                         .build());
                 continue;
             }
@@ -1098,6 +1389,8 @@ public class DossierServiceImpl implements DossierService {
                         .shipmentName(shipment.getName())
                         .eligible(false)
                         .missingDocuments(missingDocs)
+                        .organizationId(shipmentOrgId)
+                        .organizationName(shipmentOrgName)
                         .build());
             } else {
                 eligibleList.add(vn.nguongocso.report.dto.response.BatchDossierCheckResponse.ShipmentEligibilityItem.builder()
@@ -1105,6 +1398,8 @@ public class DossierServiceImpl implements DossierService {
                         .shipmentName(shipment.getName())
                         .eligible(true)
                         .missingDocuments(Collections.emptyList())
+                        .organizationId(shipmentOrgId)
+                        .organizationName(shipmentOrgName)
                         .build());
             }
         }
@@ -1146,6 +1441,61 @@ public class DossierServiceImpl implements DossierService {
             throw new BusinessException("Không có lô hàng nào đủ điều kiện hoặc thuộc quyền truy cập để xuất bộ hồ sơ.");
         }
 
+        // NCL-07-CN-007: Xác định mẫu hồ sơ áp dụng cho toàn bộ bộ hồ sơ.
+        // Đối với VT-04: Cho phép chọn mẫu từ bất kỳ HTX nào có trong danh sách lô hàng.
+        // Nếu không chọn mẫu, hệ thống sẽ thử lấy mẫu mặc định của tổ chức đầu tiên.
+        // Nếu các lô hàng thuộc khác nhau HTX, người dùng nên chọn mẫu cụ thể.
+        ProfileTemplate batchTemplate = null;
+        UUID userOrgId = currentUser != null ? currentUser.getOrganizationId() : null;
+
+        // Thu thập tất cả organizationId từ các lô hàng thuộc quyền truy cập của VT04
+        Set<UUID> involvedOrgIds = new HashSet<>();
+        if ("VT-04".equals(currentUser.getRoleCode())) {
+            for (Shipment ship : eligibleShipments) {
+                if (ship.getOrganization() != null) {
+                    involvedOrgIds.add(ship.getOrganization().getOrganizationId());
+                }
+            }
+        }
+
+        // Tổ chức hiệu dụng dùng để lấy mẫu mặc định khi không chọn mẫu:
+        // - VT-02: tổ chức của người dùng
+        // - VT-04: lấy organizationId đầu tiên (hoặc organizationId đa số)
+        UUID effectiveOrgIdForDefault = userOrgId;
+        if ("VT-04".equals(currentUser.getRoleCode()) && !involvedOrgIds.isEmpty()) {
+            effectiveOrgIdForDefault = eligibleShipments.get(0).getOrganization() != null
+                    ? eligibleShipments.get(0).getOrganization().getOrganizationId()
+                    : null;
+        }
+
+        if (request.getTemplateId() != null && profileTemplateRepository != null) {
+            batchTemplate = profileTemplateRepository.findById(request.getTemplateId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin mẫu hồ sơ."));
+
+            // VT-04: Kiểm tra template có thuộc một trong các tổ chức có trong danh sách lô không
+            if ("VT-04".equals(currentUser.getRoleCode())) {
+                if (batchTemplate.getOrganization() == null
+                        || !involvedOrgIds.contains(batchTemplate.getOrganization().getOrganizationId())) {
+                    throw new AccessDeniedException("Mẫu hồ sơ không thuộc tổ chức của bất kỳ lô hàng nào trong danh sách.");
+                }
+            } else {
+                if (userOrgId != null && !batchTemplate.getOrganization().getOrganizationId().equals(userOrgId)) {
+                    throw new AccessDeniedException("Mẫu hồ sơ không thuộc tổ chức của bạn.");
+                }
+            }
+        } else if (effectiveOrgIdForDefault != null && profileTemplateRepository != null) {
+            // Nếu không chọn mẫu, lấy mẫu mặc định của tổ chức hiệu dụng
+            batchTemplate = profileTemplateRepository.findByOrganization_OrganizationIdAndIsDefaultTrue(effectiveOrgIdForDefault)
+                    .orElse(null);
+        }
+
+        Set<String> batchSelectedFieldKeys = null;
+        if (batchTemplate != null && batchTemplate.getFields() != null && !batchTemplate.getFields().isEmpty()) {
+            batchSelectedFieldKeys = batchTemplate.getFields().stream()
+                    .map(ProfileTemplateField::getFieldKey)
+                    .collect(Collectors.toSet());
+        }
+
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Document document = new Document(PageSize.A4, 36, 36, 36, 36);
             PdfWriter.getInstance(document, out);
@@ -1177,6 +1527,23 @@ public class DossierServiceImpl implements DossierService {
 
             Paragraph pCount = new Paragraph("Tổng số lô hàng xuất hồ sơ: " + eligibleShipments.size() + " lô", normalFont);
             document.add(pCount);
+
+            if (batchTemplate != null) {
+                String templateOrgName = batchTemplate.getOrganization() != null
+                        ? batchTemplate.getOrganization().getName()
+                        : "N/A";
+                StringBuilder templateInfo = new StringBuilder("Mẫu hồ sơ áp dụng: ")
+                        .append(batchTemplate.getName());
+                if ("VT-04".equals(currentUser.getRoleCode())
+                        && userOrgId != null
+                        && batchTemplate.getOrganization() != null
+                        && batchTemplate.getOrganization().getOrganizationId() != null
+                        && !batchTemplate.getOrganization().getOrganizationId().equals(userOrgId)) {
+                    templateInfo.append(" (thuộc HTX: ").append(templateOrgName).append(")");
+                }
+                Paragraph pTemplate = new Paragraph(templateInfo.toString(), normalFont);
+                document.add(pTemplate);
+            }
 
             if (request.getNote() != null && !request.getNote().trim().isEmpty()) {
                 Paragraph pNote = new Paragraph("Ghi chú: " + request.getNote().trim(), normalFont);
@@ -1216,7 +1583,8 @@ public class DossierServiceImpl implements DossierService {
             // =========================================================================
             for (Shipment ship : eligibleShipments) {
                 document.newPage();
-                renderShipmentDossierPdf(document, ship, titleFont, headerFont, boldFont, normalFont);
+                // NCL-07-CN-007: render hồ sơ từng lô theo bộ trường của mẫu hồ sơ được chọn
+                renderShipmentDossierPdf(document, ship, batchTemplate, batchSelectedFieldKeys, titleFont, headerFont, boldFont, normalFont);
             }
 
             document.close();
@@ -1225,11 +1593,13 @@ public class DossierServiceImpl implements DossierService {
 
             // Ghi log xuất bộ hồ sơ cho từng lô hàng trong batch
             for (Shipment ship : eligibleShipments) {
-                logDossierExport(ship, currentUser, "SUCCESS", ipAddress, (long) pdfBytes.length);
+                logDossierExport(ship, currentUser, "SUCCESS", ipAddress, (long) pdfBytes.length,
+                        batchTemplate != null ? batchTemplate.getId() : null);
             }
 
             publishActivityLog(currentUser, "EXPORT_BATCH_DOSSIER",
-                    "Xuất bộ hồ sơ hợp nhất cho " + eligibleShipments.size() + " lô hàng",
+                    "Xuất bộ hồ sơ hợp nhất cho " + eligibleShipments.size() + " lô hàng"
+                            + (batchTemplate != null ? " theo mẫu: " + batchTemplate.getName() : ""),
                     "BATCH_DOSSIER", request.getTitle() != null ? request.getTitle() : "ALL");
 
             return pdfBytes;
@@ -1288,6 +1658,7 @@ public class DossierServiceImpl implements DossierService {
                     .fileSize(h.getFileSize())
                     .status(h.getStatus())
                     .ipAddress(h.getIpAddress())
+                    .templateId(h.getTemplateId())
                     .build());
         }
         return result;
