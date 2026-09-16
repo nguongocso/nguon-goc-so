@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useUnreadCount } from '@/hooks/useUnreadCount';
+import { isApiKeyWarningNotification } from '@/lib/notificationHelpers';
 import { useAuth } from '@/hooks/useAuth';
 import { hasAnyRole, ROLE_ACCESS } from '@/config/roleAccess';
 import type { NotificationResponse, NotificationType } from '@/types/notification';
@@ -123,6 +124,12 @@ const NotificationsPage = () => {
       (filter === 'READ' && isTerritoryNoticeRead));
 
   const handleItemClick = (notification: NotificationResponse) => {
+    if (isApiKeyWarningNotification(notification)) {
+      if (!notification.isRead) {
+        void markAsRead(notification.id).then(() => refreshUnreadCount());
+      }
+      return;
+    }
     if (!notification.isRead) {
       void markAsRead(notification.id).then(() => refreshUnreadCount());
     }

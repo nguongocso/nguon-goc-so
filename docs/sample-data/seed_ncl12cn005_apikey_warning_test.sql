@@ -24,6 +24,21 @@
 -- ============================================================
 
 -- ============================================================
+-- Dọn thông báo cũ của các khóa test trước khi gieo lại dữ liệu.
+-- Lý do: nội dung thông báo là ảnh chụp (snapshot) tại thời điểm gửi —
+-- tên đối tác, số lượt gọi, ngày hết hạn được ghép sẵn vào chuỗi content.
+-- Chạy lại seed (đổi tên đối tác, reset ngày hết hạn) mà giữ lại các
+-- thông báo cũ sẽ khiến chuông hiển thị dữ liệu test/stale, lệch với trang
+-- Cảnh báo tổng hợp (/alerts) vốn tính real-time từ dữ liệu hiện tại.
+-- ============================================================
+DELETE FROM notifications
+WHERE entity_id IN ('00000000-0000-0000-0000-001200000001',
+                    '00000000-0000-0000-0000-001200000002',
+                    '00000000-0000-0000-0000-001200000003',
+                    '00000000-0000-0000-0000-001200000004');
+
+
+-- ============================================================
 -- TC-01: Khóa sắp hết hạn (còn 5 ngày, trong ngưỡng 7 ngày)
 -- RAW KEY (gửi header X-API-KEY khi gọi cổng đối tác):
 --   nks_live_710exp01aabbccddeeff00112233445566778899aabbccddeeff01
