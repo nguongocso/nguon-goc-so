@@ -1,0 +1,64 @@
+/**
+ * Định nghĩa kiểu dữ liệu cho Mẫu hồ sơ truy xuất theo đối tác (NCL-07-CN-007)
+ */
+
+export interface ProfileTemplateField {
+  id?: string;
+  fieldKey: string;
+  fieldGroup: string;
+  isMandatory: boolean;
+  sortOrder?: number;
+}
+
+export interface ProfileTemplate {
+  id: string;
+  organizationId: string;
+  name: string;
+  partnerName?: string | null;
+  isDefault: boolean;
+  default?: boolean;
+  fields: ProfileTemplateField[];
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+}
+
+export interface FieldSelectionItem {
+  fieldKey: string;
+  fieldGroup: string;
+  isMandatory?: boolean;
+  sortOrder?: number;
+}
+
+export interface CreateProfileTemplateRequest {
+  name: string;
+  partnerName?: string;
+  isDefault: boolean;
+  selectedFields: FieldSelectionItem[];
+}
+
+export interface UpdateProfileTemplateRequest {
+  name: string;
+  partnerName?: string;
+  isDefault: boolean;
+  selectedFields: FieldSelectionItem[];
+}
+
+export interface AvailableFieldItem {
+  fieldKey: string;
+  displayName: string;
+  mandatory: boolean;
+  description?: string;
+  // Aliases phục vụ tương thích
+  key: string;
+  label: string;
+  isMandatory: boolean;
+}
+
+export interface FieldGroupDefinition {
+  fieldGroup: string;
+  groupLabel: string;
+  fields: AvailableFieldItem[];
+  // Alias phục vụ tương thích
+  group: string;
+}

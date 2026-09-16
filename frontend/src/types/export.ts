@@ -7,6 +7,8 @@ export interface ExportOpenDataRequest {
   /** NCL-742 §8 — lọc theo địa bàn quản lý. */
   unitIds?: string[];
   format?: 'JSON' | 'CSV' | 'XML';
+  /** NCL-07-CN-007 — Mã mẫu hồ sơ truy xuất áp dụng (tùy chọn) */
+  templateId?: string;
 }
 
 export interface ExportOpenDataResponse {

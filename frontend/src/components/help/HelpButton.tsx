@@ -217,6 +217,16 @@ const LOCAL_HELP_CONTENT: Record<
       'Kiểm tra lại danh sách lô đã chọn và nhấn "Tạo yêu cầu thu hồi" để gửi yêu cầu phê duyệt',
     ],
   },
+'report-organization-usage': {
+    title: 'Hướng dẫn bảng điều khiển mức độ sử dụng nền tảng',
+    steps: [
+      'Chọn khoảng "Từ ngày" và "Đến ngày", bảng tự tải lại theo kỳ mới mà không cần nhấn thêm nút nào, kỳ trước được tính tự động với độ dài tương đương',
+      'Theo dõi 6 chỉ số của từng tổ chức gồm lô sản xuất, nhật ký, sự kiện chuỗi, tem kích hoạt, tra cứu công khai và người dùng hoạt động kèm phần trăm thay đổi so với kỳ trước',
+      'Nhấn tiêu đề cột để sắp xếp theo từng chỉ số, dùng ô tìm kiếm và bộ lọc trạng thái để tra cứu tổ chức cụ thể',
+      'Tổ chức không có hoạt động trong 30 ngày được gắn nhãn "Cần liên hệ hỗ trợ", tổ chức chưa có dữ liệu trong kỳ hiển thị "Chưa có dữ liệu"',
+      'Nhấn "Xuất báo cáo" và chọn "Xuất CSV" hoặc "Xuất PDF" để tải báo cáo tổng hợp theo kỳ đang chọn',
+    ],
+  },
   'admin-anomaly-thresholds': {
     title: 'Hướng dẫn cấu hình ngưỡng quét bất thường',
     steps: [
@@ -257,7 +267,7 @@ const LOCAL_HELP_CONTENT: Record<
       'Mở biểu mẫu mở khóa: Nhấn nút màu xanh lá "Mở khóa mã tem" ở góc trên bên phải màn hình.',
       'Nhập kết luận xác minh: Điền nội dung kết luận xử lý vào ô "Kết luận xác minh" (tối thiểu 10 ký tự, nêu rõ kết quả kiểm tra thực địa).',
       'Cung cấp bằng chứng: Điền thông tin vào ô "Bằng chứng xác minh" (ví dụ: số vận đơn giao nhận, số biên bản làm việc, hình ảnh tem chính hãng).',
-      'Xác nhận mở khóa: Nhấn "Xác nhận mở khóa" để đưa tem về trạng thái HOẠT ĐỘNG (ACTIVE), gỡ bỏ cảnh báo khóa trên cổng thông tin công khai.',
+'Xác nhận mở khóa: Nhấn "Xác nhận mở khóa" để đưa tem về trạng thái HOẠT ĐỘNG (ACTIVE), gỡ bỏ cảnh báo khóa trên cổng thông tin công khai.',
     ],
   },
 };

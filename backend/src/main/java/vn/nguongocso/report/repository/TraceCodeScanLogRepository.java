@@ -163,4 +163,32 @@ public interface TraceCodeScanLogRepository extends JpaRepository<TraceCodeScanL
          */
         List<TraceCodeScanLog> findByScannedAtGreaterThanEqualOrderByScannedAtAsc(LocalDateTime scannedAt);
 
+        /**
+         * Đếm số lượt tra cứu công khai theo từng tổ chức sở hữu tem trong
+         * khoảng thời gian (NCL-07-CN-008). Tổ chức được suy ra qua
+         * tem được quét → lô hàng → tổ chức.
+         *
+         * @param from mốc bắt đầu khoảng thời gian
+         * @param to   mốc kết thúc khoảng thời gian
+         * @return danh sách [organizationId, số lượng]
+         */
+        @Query("SELECT s.organization.organizationId, COUNT(l) FROM TraceCodeScanLog l " +
+                        "JOIN l.traceCode tc JOIN tc.shipment s " +
+                        "WHERE l.scannedAt BETWEEN :from AND :to " +
+                        "GROUP BY s.organization.organizationId")
+        List<Object[]> countScansGroupedByOrg(
+                        @Param("from") LocalDateTime from,
+                        @Param("to") LocalDateTime to);
+
+        /**
+         * Lấy thời điểm tra cứu công khai mới nhất của từng tổ chức
+         * (NCL-07-CN-008, phục vụ tính lastActivityAt).
+         *
+         * @return danh sách [organizationId, scannedAt lớn nhất]
+         */
+        @Query("SELECT s.organization.organizationId, MAX(l.scannedAt) FROM TraceCodeScanLog l " +
+                        "JOIN l.traceCode tc JOIN tc.shipment s " +
+                        "GROUP BY s.organization.organizationId")
+        List<Object[]> maxScannedAtGroupedByOrg();
+
 }
