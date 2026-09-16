@@ -17,6 +17,8 @@ export interface UserProfile {
   organizationCode: string;
   organizationName: string;
   organizationType: OrganizationType;
+  organizationProvinceId?: string | null;
+  organizationCommuneId?: string | null;
   permissions?: string[];
   createdAt?: string;
   updatedAt?: string;

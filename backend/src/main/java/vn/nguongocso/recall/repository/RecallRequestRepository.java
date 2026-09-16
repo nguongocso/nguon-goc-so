@@ -43,4 +43,13 @@ public interface RecallRequestRepository extends JpaRepository<RecallRequest, UU
     Optional<RecallRequest> findTopByShipment_IdAndStatusOrderByApprovedAtDesc(
             UUID shipmentId,
             RecallRequestStatus status);
+
+    /**
+     * Tìm danh sách yêu cầu thu hồi theo danh sách lô sản xuất và trạng thái (NCL-07-CN-006).
+     */
+    @org.springframework.data.jpa.repository.Query("SELECT rr FROM RecallRequest rr WHERE rr.productionLot.id IN :lotIds AND rr.status IN :statuses")
+    java.util.List<RecallRequest> findByProductionLotIdInAndStatusIn(
+            @org.springframework.data.repository.query.Param("lotIds") java.util.Collection<UUID> lotIds,
+            @org.springframework.data.repository.query.Param("statuses") java.util.Collection<RecallRequestStatus> statuses);
 }
+

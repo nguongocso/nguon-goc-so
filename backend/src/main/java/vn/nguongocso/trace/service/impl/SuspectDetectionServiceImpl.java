@@ -63,14 +63,14 @@ import vn.nguongocso.farm.repository.ProductFeedbackRepository;
 @Service
 public class SuspectDetectionServiceImpl implements SuspectDetectionService {
 
-    // --- Thresholds per API doc ---
-    private static final int HIGH_FREQUENCY_THRESHOLD = 10; // ≥ 10 scans in 24h → +30 points
-    private static final int HIGH_FREQUENCY_SCORE = 30;
+    // --- Thresholds per API doc (P1.3 chuẩn hóa thang điểm 100) ---
+    private static final int HIGH_FREQUENCY_THRESHOLD = 10; // ≥ 10 scans in 24h → +35 points
+    private static final int HIGH_FREQUENCY_SCORE = 35;
     private static final double IMPOSSIBLE_TRAVEL_DISTANCE_KM = 50.0; // > 50km
-    private static final int IMPOSSIBLE_TRAVEL_MINUTES = 30; // < 30 min → +40 points
-    private static final int IMPOSSIBLE_TRAVEL_SCORE = 40;
-    private static final int MULTIPLE_LOCATIONS_THRESHOLD = 5; // ≥ 5 unique locations in 24h → +15 points
-    private static final int MULTIPLE_LOCATIONS_SCORE = 15;
+    private static final int IMPOSSIBLE_TRAVEL_MINUTES = 30; // < 30 min → +45 points
+    private static final int IMPOSSIBLE_TRAVEL_SCORE = 45;
+    private static final int MULTIPLE_LOCATIONS_THRESHOLD = 5; // ≥ 5 unique locations in 24h → +20 points
+    private static final int MULTIPLE_LOCATIONS_SCORE = 20;
     private static final int SUSPECT_THRESHOLD = 50; // ≥ 50 → SUSPECT
     private static final int MAX_SCORE = 100;
     private static final double LOCATION_EPSILON_KM = 0.5; // Coi là cùng vị trí nếu khoảng cách < 0.5km
@@ -201,8 +201,13 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                 ? reasonBuilder.substring(0, reasonBuilder.length() - 2) // remove trailing "; "
                 : null;
 
-        // Update trace code
+        // Update trace code with score and snapshot breakdown (P1.2)
         traceCode.setSuspicionScore(evaluation.totalScore());
+        traceCode.setHighFrequencyScore(evaluation.highFreqScore());
+        traceCode.setImpossibleTravelScore(evaluation.impossibleTravelScore());
+        traceCode.setMultipleLocationsScore(evaluation.multipleLocationsScore());
+        traceCode.setEvaluatedAt(now);
+        traceCode.setViolatingScanLogIds(evaluation.violatingScanLogIds());
         traceCode.setSuspicionReason(reason);
 
         if (evaluation.totalScore() >= SUSPECT_THRESHOLD) {
@@ -258,7 +263,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public SuspectTraceCodeDetailResponse getSuspectDetail(UUID traceCodeId) {
         TraceCode traceCode = traceCodeRepository.findById(traceCodeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy mã tem."));
@@ -285,18 +290,65 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
         // Reuse the exact same scoring engine as evaluateSuspicion so the
         // breakdown always matches the persisted suspicionScore.
         AnomalyThresholdResponse threshold = getEffectiveThreshold(traceCode);
-        SuspicionEvaluation evaluation = evaluate(sortedScans, threshold, traceCode);
+
+        // P1.2: Sử dụng Snapshot đã lưu nếu mã tem đã được đánh giá nghi vấn,
+        // tránh trường hợp các lượt quét cũ (>24h) bị mất khiến breakdown trả về 0.
+        ScoreBreakdown scoreBreakdown;
+        int uniqueLocations;
+        int impossibleTravelCount;
+
+        boolean hasSavedSnapshot = traceCode.getEvaluatedAt() != null
+                && ((traceCode.getHighFrequencyScore() != null && traceCode.getHighFrequencyScore() > 0)
+                    || (traceCode.getImpossibleTravelScore() != null && traceCode.getImpossibleTravelScore() > 0)
+                    || (traceCode.getMultipleLocationsScore() != null && traceCode.getMultipleLocationsScore() > 0));
+
+        if (hasSavedSnapshot) {
+            int highFreq = traceCode.getHighFrequencyScore() != null ? traceCode.getHighFrequencyScore() : 0;
+            int impTravel = traceCode.getImpossibleTravelScore() != null ? traceCode.getImpossibleTravelScore() : 0;
+            int multiLoc = traceCode.getMultipleLocationsScore() != null ? traceCode.getMultipleLocationsScore() : 0;
+            scoreBreakdown = ScoreBreakdown.builder()
+                    .highFrequency(highFreq)
+                    .impossibleTravel(impTravel)
+                    .multipleLocations(multiLoc)
+                    .build();
+            uniqueLocations = countUniqueLocations(sortedScans);
+            impossibleTravelCount = impTravel > 0 ? 1 : 0;
+        } else if (sortedScans.size() >= 2) {
+            SuspicionEvaluation evaluation = evaluate(sortedScans, threshold, traceCode);
+            scoreBreakdown = ScoreBreakdown.builder()
+                    .highFrequency(evaluation.highFreqScore())
+                    .impossibleTravel(evaluation.impossibleTravelScore())
+                    .multipleLocations(evaluation.multipleLocationsScore())
+                    .build();
+            uniqueLocations = evaluation.uniqueLocations();
+            impossibleTravelCount = evaluation.impossibleTravelCount();
+        } else if (traceCode.getSuspicionScore() != null && traceCode.getSuspicionScore() > 0) {
+            // Trường hợp dữ liệu lịch sử chưa có snapshot (hoặc snapshot bằng 0 do bản ghi cũ)
+            scoreBreakdown = inferAndPersistLegacyBreakdown(traceCode);
+            uniqueLocations = countUniqueLocations(sortedScans);
+            impossibleTravelCount = scoreBreakdown.getImpossibleTravel() > 0 ? 1 : 0;
+        } else {
+            scoreBreakdown = ScoreBreakdown.builder()
+                    .highFrequency(0)
+                    .impossibleTravel(0)
+                    .multipleLocations(0)
+                    .build();
+            uniqueLocations = 0;
+            impossibleTravelCount = 0;
+        }
 
         AnomalyDetails anomalyDetails = AnomalyDetails.builder()
                 .totalScans(recentScans.size())
-                .uniqueLocations(evaluation.uniqueLocations())
-                .impossibleTravelCount(evaluation.impossibleTravelCount())
-                .scoreBreakdown(ScoreBreakdown.builder()
-                        .highFrequency(evaluation.highFreqScore())
-                        .impossibleTravel(evaluation.impossibleTravelScore())
-                        .multipleLocations(evaluation.multipleLocationsScore())
-                        .build())
+                .uniqueLocations(uniqueLocations)
+                .impossibleTravelCount(impossibleTravelCount)
+                .scoreBreakdown(scoreBreakdown)
                 .build();
+
+        String productCategoryName = null;
+        if (traceCode.getShipment() != null && traceCode.getShipment().getProductionLot() != null
+                && traceCode.getShipment().getProductionLot().getProductCategory() != null) {
+            productCategoryName = traceCode.getShipment().getProductionLot().getProductCategory().getName();
+        }
 
         return SuspectTraceCodeDetailResponse.builder()
                 .id(traceCode.getId())
@@ -306,7 +358,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                 .suspicionScore(traceCode.getSuspicionScore())
                 .suspicionReason(traceCode.getSuspicionReason())
                 .scanCount(recentScans.size())
-                .uniqueLocations(evaluation.uniqueLocations())
+                .uniqueLocations(uniqueLocations)
                 .firstScannedAt(sortedScans.isEmpty() ? null : sortedScans.get(0).getScannedAt())
                 .lastScannedAt(sortedScans.isEmpty() ? null : sortedScans.get(sortedScans.size() - 1).getScannedAt())
                 .lockedAt(traceCode.getLockedAt())
@@ -321,6 +373,9 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                 .verificationNote(traceCode.getVerificationNote())
                 .scanLogs(scanLogDetails)
                 .anomalyDetails(anomalyDetails)
+                .evaluatedAt(traceCode.getEvaluatedAt())
+                .effectiveThreshold(threshold)
+                .productCategoryName(productCategoryName)
                 .build();
     }
 
@@ -564,7 +619,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                     ? threshold.getActivationAgeDays()
                     : AnomalyThresholdServiceImpl.DEFAULT_ACTIVATION_AGE_DAYS;
             if (ScanAnomalyUtils.isWithinGracePeriod(traceCode.getActivatedAt(), LocalDateTime.now(), gracePeriodDays)) {
-                return new SuspicionEvaluation(0, 0, 0, 0, 0, 0, null, null);
+                return new SuspicionEvaluation(0, 0, 0, 0, 0, 0, null, null, null);
             }
         }
 
@@ -579,10 +634,14 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
         int impossibleTravelCount = 0;
         Double firstImpossibleDistanceKm = null;
         Long firstImpossibleMinutes = null;
+        java.util.Set<UUID> violatingIds = new java.util.LinkedHashSet<>();
 
         // 1. High frequency: cửa sổ trượt chuẩn qua ScanAnomalyUtils
         if (ScanAnomalyUtils.isHighFrequency(sortedScans, maxPerHour, maxPerDay)) {
             highFreqScore = HIGH_FREQUENCY_SCORE;
+            for (TraceCodeScanLog s : sortedScans) {
+                if (s.getId() != null) violatingIds.add(s.getId());
+            }
         }
 
         // 2. Impossible travel: > maxDistanceKm within < minTimeMinutes between consecutive scans with coordinates
@@ -605,6 +664,8 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
 
             if (distance > maxDistanceKm && minutesBetween <= minTimeMinutes) {
                 impossibleTravelCount++;
+                if (scan1.getId() != null) violatingIds.add(scan1.getId());
+                if (scan2.getId() != null) violatingIds.add(scan2.getId());
                 if (firstImpossibleDistanceKm == null) {
                     firstImpossibleDistanceKm = distance;
                     firstImpossibleMinutes = minutesBetween;
@@ -612,16 +673,21 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
             }
         }
 
-        // Rule contributes at most +40 for the category, regardless of how many pairs match.
+        // Rule contributes at most +45 for the category, regardless of how many pairs match.
         impossibleTravelScore = impossibleTravelCount > 0 ? IMPOSSIBLE_TRAVEL_SCORE : 0;
 
         // 3. Multiple locations: count unique locations (by distance epsilon)
         int uniqueLocations = countUniqueLocations(sortedScans);
         if (uniqueLocations >= MULTIPLE_LOCATIONS_THRESHOLD) {
             multipleLocationsScore = MULTIPLE_LOCATIONS_SCORE;
+            for (TraceCodeScanLog s : sortedScans) {
+                if (s.getId() != null) violatingIds.add(s.getId());
+            }
         }
 
         int totalScore = Math.min(MAX_SCORE, highFreqScore + impossibleTravelScore + multipleLocationsScore);
+        String violatingIdsStr = violatingIds.isEmpty() ? null
+                : violatingIds.stream().map(UUID::toString).collect(Collectors.joining(","));
 
         return new SuspicionEvaluation(
                 highFreqScore,
@@ -631,7 +697,8 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
                 uniqueLocations,
                 totalScore,
                 firstImpossibleDistanceKm,
-                firstImpossibleMinutes);
+                firstImpossibleMinutes,
+                violatingIdsStr);
     }
 
     private AnomalyThresholdResponse getEffectiveThreshold(TraceCode traceCode) {
@@ -717,6 +784,50 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
     }
 
     /**
+     * Suy diễn điểm thành phần cho các bản ghi nghi vấn cũ chưa có snapshot
+     * và lưu lại snapshot vào DB để đảm bảo tính toàn vẹn dữ liệu hiển thị.
+     */
+    private ScoreBreakdown inferAndPersistLegacyBreakdown(TraceCode traceCode) {
+        int score = traceCode.getSuspicionScore() != null ? traceCode.getSuspicionScore() : 0;
+        int highFreq = 0;
+        int impTravel = 0;
+        int multiLoc = 0;
+
+        if (score >= 80) {
+            highFreq = HIGH_FREQUENCY_SCORE; // 35
+            impTravel = IMPOSSIBLE_TRAVEL_SCORE; // 45
+            multiLoc = Math.min(MULTIPLE_LOCATIONS_SCORE, Math.max(0, score - 80));
+        } else if (score >= 50) {
+            String reason = traceCode.getSuspicionReason();
+            if (reason != null && (reason.toLowerCase().contains("khoảng cách") || reason.toLowerCase().contains("di chuyển"))) {
+                impTravel = IMPOSSIBLE_TRAVEL_SCORE; // 45
+                highFreq = Math.min(HIGH_FREQUENCY_SCORE, Math.max(0, score - 45));
+            } else {
+                highFreq = HIGH_FREQUENCY_SCORE; // 35
+                multiLoc = Math.min(MULTIPLE_LOCATIONS_SCORE, Math.max(0, score - 35));
+            }
+        } else {
+            highFreq = Math.min(HIGH_FREQUENCY_SCORE, score);
+        }
+
+        traceCode.setHighFrequencyScore(highFreq);
+        traceCode.setImpossibleTravelScore(impTravel);
+        traceCode.setMultipleLocationsScore(multiLoc);
+        if (traceCode.getEvaluatedAt() == null) {
+            traceCode.setEvaluatedAt(traceCode.getLockedAt() != null
+                    ? traceCode.getLockedAt()
+                    : (traceCode.getCreatedAt() != null ? traceCode.getCreatedAt() : LocalDateTime.now()));
+        }
+        traceCodeRepository.save(traceCode);
+
+        return ScoreBreakdown.builder()
+                .highFrequency(highFreq)
+                .impossibleTravel(impTravel)
+                .multipleLocations(multiLoc)
+                .build();
+    }
+
+    /**
      * Kết quả đánh giá nghi vấn bất biến (không được sửa đổi bởi người gọi).
      */
     private record SuspicionEvaluation(
@@ -727,6 +838,7 @@ public class SuspectDetectionServiceImpl implements SuspectDetectionService {
             int uniqueLocations,
             int totalScore,
             Double firstImpossibleDistanceKm,
-            Long firstImpossibleMinutes) {
+            Long firstImpossibleMinutes,
+            String violatingScanLogIds) {
     }
 }

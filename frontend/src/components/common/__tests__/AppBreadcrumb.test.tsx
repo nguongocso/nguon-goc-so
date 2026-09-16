@@ -60,6 +60,10 @@ describe("AppBreadcrumb - isRouteAccessible", () => {
 
     // /profile cho tất cả các vai trò
     expect(isRouteAccessible("/profile", "VT-03")).toBe(true);
+
+    // /activity-logs chỉ dành cho Quản lý HTX VT-02
+    expect(isRouteAccessible("/activity-logs", "VT-02")).toBe(true);
+    expect(isRouteAccessible("/activity-logs", "VT-01")).toBe(false);
   });
 
   it("khớp chính xác các route động có tham số (:id, :lotId)", () => {

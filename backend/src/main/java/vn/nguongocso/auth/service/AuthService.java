@@ -558,6 +558,16 @@ public class AuthService {
                                                     .getOrganizationType()
                                                     .name())
 
+                                    .organizationProvinceId(
+                                            userDetails.getOrganizationProvinceId() != null
+                                                    ? userDetails.getOrganizationProvinceId().toString()
+                                                    : null)
+
+                                    .organizationCommuneId(
+                                            userDetails.getOrganizationCommuneId() != null
+                                                    ? userDetails.getOrganizationCommuneId().toString()
+                                                    : null)
+
                                     .roleCode(
                                             userDetails.getRoleCode())
 
@@ -615,6 +625,12 @@ public class AuthService {
                         .organizationCode(userDetails.getOrganizationCode())
                         .organizationName(userDetails.getOrganizationName())
                         .organizationType(userDetails.getOrganizationType().name())
+                        .organizationProvinceId(userDetails.getOrganizationProvinceId() != null
+                                ? userDetails.getOrganizationProvinceId().toString()
+                                : null)
+                        .organizationCommuneId(userDetails.getOrganizationCommuneId() != null
+                                ? userDetails.getOrganizationCommuneId().toString()
+                                : null)
                         .roleCode(userDetails.getRoleCode())
                         .roleName(userDetails.getRoleName())
                         .build())

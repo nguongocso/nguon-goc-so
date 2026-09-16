@@ -253,4 +253,42 @@ public interface ProductionLotRepository extends JpaRepository<ProductionLot, UU
     Optional<ProductionLot> findDossierByIdAndOrganizationId(
             @Param("lotId") UUID lotId,
             @Param("organizationId") UUID organizationId);
+
+    /**
+     * Tìm tất cả lô sản xuất theo danh sách tổ chức, nạp trước Organization, FarmArea, ProductCategory (NCL-07-CN-006).
+     */
+    @Query("""
+        SELECT DISTINCT pl
+        FROM ProductionLot pl
+        JOIN FETCH pl.organization org
+        LEFT JOIN FETCH pl.farmArea fa
+        JOIN FETCH pl.productCategory pc
+        WHERE org.organizationId IN :orgIds
+        """)
+    List<ProductionLot> findAllInOrganizationsWithDetails(@Param("orgIds") Collection<UUID> orgIds);
+
+    /**
+     * Tìm tất cả lô sản xuất trên toàn hệ thống (dành cho VT-01), nạp trước các quan hệ liên quan.
+     */
+    @Query("""
+        SELECT DISTINCT pl
+        FROM ProductionLot pl
+        JOIN FETCH pl.organization org
+        LEFT JOIN FETCH pl.farmArea fa
+        JOIN FETCH pl.productCategory pc
+        """)
+    List<ProductionLot> findAllWithDetails();
+
+    /**
+     * Tìm chi tiết một lô sản xuất kèm Organization, FarmArea, ProductCategory (NCL-07-CN-006).
+     */
+    @Query("""
+        SELECT pl
+        FROM ProductionLot pl
+        JOIN FETCH pl.organization org
+        LEFT JOIN FETCH pl.farmArea fa
+        JOIN FETCH pl.productCategory pc
+        WHERE pl.id = :id
+        """)
+    Optional<ProductionLot> findByIdWithDetails(@Param("id") UUID id);
 }

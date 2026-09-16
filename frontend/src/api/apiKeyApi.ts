@@ -2,6 +2,7 @@ import apiClient from '@/api/axiosConfig';
 import type { ApiResult } from '@/types/auth';
 import type {
   CreateApiKeyRequest,
+  CreateTestApiKeyRequest,
   PartnerApiKeyResponse,
   ApiKeyPageResponse,
   PartnerApiKeyStatus,
@@ -36,6 +37,20 @@ export const createApiKey = async (
 ): Promise<PartnerApiKeyResponse> => {
   const response = await apiClient.post<ApiResult<PartnerApiKeyResponse>>(
     '/organization/api-keys',
+    data,
+  );
+  return response.data.data;
+};
+
+/**
+ * Cấp khóa truy cập API thử nghiệm (Sandbox) cho bên thứ ba (NCL-12-CN-004)
+ * POST /api/v1/organization/api-keys/test
+ */
+export const createTestApiKey = async (
+  data: CreateTestApiKeyRequest,
+): Promise<PartnerApiKeyResponse> => {
+  const response = await apiClient.post<ApiResult<PartnerApiKeyResponse>>(
+    '/organization/api-keys/test',
     data,
   );
   return response.data.data;

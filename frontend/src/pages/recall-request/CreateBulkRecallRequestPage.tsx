@@ -130,7 +130,9 @@ export const CreateBulkRecallRequestPage: React.FC = () => {
         );
     }
 
-    const hasValidShipments = traceData.shipments.some(s => s.status !== 'RECALLED');
+    const hasValidShipments = traceData.shipments.some(
+        shipment => shipment.status !== 'RECALLED' && shipment.status !== 'SPLIT',
+    );
     if (!hasValidShipments) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
@@ -141,7 +143,7 @@ export const CreateBulkRecallRequestPage: React.FC = () => {
                             Không còn lô hàng hợp lệ
                         </h2>
                         <p className="text-sm text-amber-600">
-                            Tất cả lô hàng đã được thu hồi. Không thể tạo yêu cầu thu hồi mới.
+                            Không còn lô hàng lưu hành phù hợp để tạo yêu cầu thu hồi mới.
                         </p>
                         <Button variant="outline" onClick={() => navigate(-1)}>
                             Quay lại

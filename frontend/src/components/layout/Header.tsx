@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { NotificationBell } from '@/components/notification/NotificationBell';
+import { AlertIndicatorBadge } from '@/components/layout/AlertIndicatorBadge';
 import { SyncBadge } from '@/components/layout/SyncBadge';
 import { ROLE_ACCESS, hasAnyRole } from '@/config/roleAccess';
 import { useAuth } from '@/hooks/useAuth';
@@ -218,7 +219,7 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
         )}
         {canOpenOrganizationProfile && (
           <DropdownMenuItem onClick={() => navigate('/organizations/profile')}>
-            Hồ sơ tổ chức hiện tại
+            <span className="flex-1">Hồ sơ tổ chức hiện tại</span>
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>
@@ -279,6 +280,7 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
           <div className="flex min-w-0 items-center gap-1 sm:gap-2 md:gap-3">
             {accountControl}
 
+            <AlertIndicatorBadge />
             <NotificationBell />
             <SyncBadge />
 

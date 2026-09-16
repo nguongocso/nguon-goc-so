@@ -21,6 +21,7 @@ public interface ActivityLogService {
             String actorName,
             LocalDate startDate,
             LocalDate endDate,
+            String objectType,
             CustomUserDetails currentUser
     );
 

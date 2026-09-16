@@ -9,6 +9,7 @@ import { createProductFeedback } from "@/api/productFeedbackApi";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useLanguage } from "@/context/LanguageContext";
 import type { PublicProductFeedbackCreated } from "@/types/productFeedback";
 
 interface ProductFeedbackFormProps {
@@ -26,6 +27,7 @@ export function ProductFeedbackForm({
   productName,
   traceCodeValue,
 }: ProductFeedbackFormProps) {
+  const { t } = useLanguage();
   const [submittedFeedback, setSubmittedFeedback] =
     useState<PublicProductFeedbackCreated | null>(null);
   const {
@@ -49,14 +51,14 @@ export function ProductFeedbackForm({
 
       reset();
       setSubmittedFeedback(createdFeedback);
-      toast.success("Đã gửi phản ánh. Vui lòng lưu mã tra cứu.");
+      toast.success(t("feedback_toast_success"));
     } catch (error: unknown) {
       const message = isAxiosError<{ message?: string }>(error)
         ? error.response?.data?.message ??
           (error.response
-            ? "Không thể gửi phản ánh. Vui lòng thử lại."
-            : "Không thể kết nối đến máy chủ. Vui lòng thử lại sau.")
-        : "Đã xảy ra lỗi khi gửi phản ánh.";
+            ? t("feedback_error_submit")
+            : t("feedback_error_network"))
+        : t("feedback_error_generic");
 
       toast.error(message);
     }
@@ -64,15 +66,15 @@ export function ProductFeedbackForm({
 
   const copyLookupCode = async () => {
     if (!submittedFeedback?.lookupCode || !navigator.clipboard) {
-      toast.error("Không thể sao chép tự động. Vui lòng chọn và sao chép mã.");
+      toast.error(t("feedback_toast_copy_error"));
       return;
     }
 
     try {
       await navigator.clipboard.writeText(submittedFeedback.lookupCode);
-      toast.success("Đã sao chép mã tra cứu.");
+      toast.success(t("feedback_toast_copy_success"));
     } catch {
-      toast.error("Không thể sao chép tự động. Vui lòng chọn và sao chép mã.");
+      toast.error(t("feedback_toast_copy_error"));
     }
   };
 
@@ -82,34 +84,34 @@ export function ProductFeedbackForm({
         <div className="flex gap-3">
           <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-emerald-700" />
           <div>
-            <h2 className="font-semibold text-gray-900">Đã gửi phản ánh</h2>
+            <h2 className="font-semibold text-gray-900">{t("feedback_success_title")}</h2>
             <p className="mt-1 text-sm leading-5 text-gray-600">
-              Hợp tác xã sẽ tiếp nhận và cập nhật tiến độ xử lý trên hệ thống.
+              {t("feedback_success_desc")}
             </p>
           </div>
         </div>
 
         <div className="mt-5 rounded-xl border border-emerald-200 bg-white p-4 text-center">
-          <p className="text-sm font-medium text-gray-600">Mã tra cứu phản ánh của bạn</p>
+          <p className="text-sm font-medium text-gray-600">{t("feedback_lookup_code_label")}</p>
           <p className="mt-2 select-all break-all font-mono text-xl font-bold tracking-wide text-emerald-800">
             {submittedFeedback.lookupCode}
           </p>
           <p className="mt-2 text-xs leading-5 text-amber-700">
-            Hãy lưu mã này ngay. Vì lý do bảo mật, hệ thống không thể hiển thị lại mã sau khi bạn rời trang.
+            {t("feedback_save_code_warning")}
           </p>
         </div>
 
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <Button type="button" onClick={() => void copyLookupCode()} className="gap-2">
             <Copy className="h-4 w-4" />
-            Sao chép mã
+            {t("feedback_copy_code_btn")}
           </Button>
           <Link
             to="/public/product-feedbacks/lookup"
             className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-white px-3 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50"
           >
             <Search className="h-4 w-4" />
-            Tra cứu trạng thái
+            {t("feedback_lookup_status_btn")}
           </Link>
         </div>
 
@@ -118,11 +120,13 @@ export function ProductFeedbackForm({
           onClick={() => setSubmittedFeedback(null)}
           className="mt-4 text-sm font-medium text-emerald-700 underline-offset-4 hover:underline"
         >
-          Gửi phản ánh khác
+          {t("feedback_submit_another")}
         </button>
       </section>
     );
   }
+
+  const feedbackDesc = t("feedback_desc").replace("{productName}", productName);
 
   return (
     <section className="rounded-xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm">
@@ -131,12 +135,11 @@ export function ProductFeedbackForm({
 
         <div>
           <h2 className="font-semibold text-gray-900">
-            Gửi phản ánh sản phẩm
+            {t("feedback_title")}
           </h2>
 
           <p className="mt-1 text-sm leading-5 text-gray-600">
-            Nếu bạn nghi ngờ tem giả hoặc thấy thông tin của {productName} chưa
-            chính xác, hãy gửi phản ánh để hợp tác xã kiểm tra.
+            {feedbackDesc}
           </p>
         </div>
       </div>
@@ -144,7 +147,7 @@ export function ProductFeedbackForm({
       <form className="mt-4 space-y-3" onSubmit={handleSubmit(onSubmit)}>
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-4">
-            <Label htmlFor="feedback-content">Nội dung phản ánh *</Label>
+            <Label htmlFor="feedback-content">{t("feedback_content_label")}</Label>
 
             <span className="text-xs text-gray-500">
               {contentLength}/1000
@@ -154,16 +157,16 @@ export function ProductFeedbackForm({
           <Textarea
             id="feedback-content"
             className="min-h-28 resize-y bg-white"
-            placeholder="Ví dụ: Thông tin ngày thu hoạch trên hệ thống không khớp với bao bì sản phẩm."
+            placeholder={t("feedback_placeholder")}
             maxLength={1000}
             aria-invalid={Boolean(errors.content)}
             {...register("content", {
               validate: (value) =>
                 value.trim().length > 0 ||
-                "Vui lòng nhập nội dung phản ánh.",
+                t("feedback_validation_required"),
               maxLength: {
                 value: 1000,
-                message: "Nội dung phản ánh không được vượt quá 1000 ký tự.",
+                message: t("feedback_validation_max"),
               },
             })}
           />
@@ -178,7 +181,7 @@ export function ProductFeedbackForm({
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting} variant="create">
             <Send className="h-4 w-4" />
-            {isSubmitting ? "Đang gửi..." : "Gửi phản ánh"}
+            {isSubmitting ? t("feedback_submitting") : t("feedback_submit_btn")}
           </Button>
         </div>
       </form>

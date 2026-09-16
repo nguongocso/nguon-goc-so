@@ -127,6 +127,10 @@ export const organizationProfileSchema = z.object({
 
     address: z.string().optional(),
 
+    provinceId: z.string().optional().nullable(),
+
+    communeId: z.string().optional().nullable(),
+
     phone: z
         .string()
         .optional()

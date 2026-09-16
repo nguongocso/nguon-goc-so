@@ -207,6 +207,11 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
                 @Param("shipmentId") UUID shipmentId,
                 @Param("eventType") ChainEventType eventType);
 
+        boolean existsByShipmentIdAndRecordedOrganizationId(UUID shipmentId, UUID recordedOrganizationId);
+
+        boolean existsByShipmentIdAndRecordedOrganizationIdAndEventType(
+                UUID shipmentId, UUID recordedOrganizationId, ChainEventType eventType);
+
         /**
         /**
          * Lấy danh sách ID lô hàng đã được tổ chức chỉ định ghi nhận các loại
@@ -250,4 +255,26 @@ public interface ChainEventRepository extends JpaRepository<ChainEvent, UUID> {
                 @Param("productionLotId") UUID productionLotId,
                 @Param("productionLotIdText") String productionLotIdText,
                 @Param("eventType") ChainEventType eventType);
+
+        /**
+         * Lấy danh sách sự kiện thu hoạch theo danh sách lô sản xuất (NCL-07-CN-006).
+         */
+        @Query("""
+                SELECT ce FROM ChainEvent ce
+                LEFT JOIN ce.shipment s
+                LEFT JOIN s.productionLot pl
+                WHERE ce.eventType = vn.nguongocso.event.enums.ChainEventType.HARVEST
+                  AND ce.isCorrection = false
+                  AND (
+                      pl.id IN :lotIds
+                      OR (
+                          ce.shipment IS NULL
+                          AND ce.eventData IS NOT NULL
+                      )
+                  )
+                ORDER BY ce.recordedAt DESC, ce.createdAt DESC
+                """)
+        List<ChainEvent> findHarvestEventsByLotIds(
+                @Param("lotIds") java.util.Collection<UUID> lotIds);
 }
+

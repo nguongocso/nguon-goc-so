@@ -263,6 +263,8 @@ public class UserServiceImpl implements UserService {
                 .organizationCode(currentUser.getOrganizationCode())
                 .organizationName(currentUser.getOrganizationName())
                 .organizationType(currentUser.getOrganizationType())
+                .organizationProvinceId(currentUser.getOrganizationProvinceId())
+                .organizationCommuneId(currentUser.getOrganizationCommuneId())
                 .permissions(permissions)
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())

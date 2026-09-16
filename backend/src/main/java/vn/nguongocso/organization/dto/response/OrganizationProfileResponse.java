@@ -26,6 +26,18 @@ public class OrganizationProfileResponse {
 
     private String address;
 
+    /** ID đơn vị hành chính cấp tỉnh/thành phố. */
+    private UUID provinceId;
+
+    /** Tên đơn vị hành chính cấp tỉnh/thành phố. */
+    private String provinceName;
+
+    /** ID đơn vị hành chính cấp xã/phường. */
+    private UUID communeId;
+
+    /** Tên đơn vị hành chính cấp xã/phường. */
+    private String communeName;
+
     private String phone;
 
     private String email;

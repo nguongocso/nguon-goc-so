@@ -1,6 +1,7 @@
 export interface ProductCategory {
   id: string;
   name: string;
+  nameEn?: string | null;
   group: string;
   description: string | null;
   isActive: boolean;
@@ -14,6 +15,7 @@ export interface ProductCategory {
 
 export interface ProductCategoryCreateRequest {
   name: string;
+  nameEn?: string;
   group: string;
   description?: string;
   tempMin?: number;
@@ -24,6 +26,7 @@ export interface ProductCategoryCreateRequest {
 
 export interface ProductCategoryUpdateRequest {
   name: string;
+  nameEn?: string;
   group: string;
   description?: string;
   isActive: boolean;

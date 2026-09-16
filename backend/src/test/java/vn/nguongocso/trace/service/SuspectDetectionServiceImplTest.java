@@ -118,7 +118,7 @@ class SuspectDetectionServiceImplTest {
 
     @Test
     void shouldApplyImpossibleTravelScore_whenTwoScansFarApartWithinShortTime() {
-        // Scan 1: Hà Nội, scan 2: Đà Nẵng ~2 phút sau -> +40 (không đạt SUSPECT).
+        // Scan 1: Hà Nội, scan 2: Đà Nẵng ~2 phút sau -> +45 (không đạt SUSPECT >= 50).
         List<TraceCodeScanLog> scans = new ArrayList<>();
         scans.add(scan(10, 21.0285, 105.8542)); // Hà Nội
         scans.add(scan(8, 16.0544, 108.2022)); // Đà Nẵng
@@ -126,7 +126,7 @@ class SuspectDetectionServiceImplTest {
 
         service.evaluateSuspicion(traceCodeId);
 
-        assertEquals(40, traceCode.getSuspicionScore());
+        assertEquals(45, traceCode.getSuspicionScore());
         assertEquals(TraceCodeStatus.ACTIVE, traceCode.getStatus());
         verify(notificationService, never()).sendSuspectTraceCodeNotification(any(TraceCode.class));
         verify(traceCodeRepository).save(traceCode);
@@ -134,7 +134,7 @@ class SuspectDetectionServiceImplTest {
 
     @Test
     void shouldTransitionToSuspect_whenScoreReachesOrExceedsThreshold() {
-        // 10 lượt quét +30; đi xa +40; >= 5 địa điểm +15 => tổng 85 (SUSPECT).
+        // 10 lượt quét +35; đi xa +45; >= 5 địa điểm +20 => tổng 100 (SUSPECT).
         List<TraceCodeScanLog> scans = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
 
@@ -165,7 +165,7 @@ class SuspectDetectionServiceImplTest {
 
         service.evaluateSuspicion(traceCodeId);
 
-        assertEquals(85, traceCode.getSuspicionScore());
+        assertEquals(100, traceCode.getSuspicionScore());
         assertEquals(TraceCodeStatus.SUSPECT, traceCode.getStatus());
         // Không tự động khóa.
         assertNotEquals(TraceCodeStatus.LOCKED, traceCode.getStatus());
@@ -213,12 +213,12 @@ class SuspectDetectionServiceImplTest {
 
         service.evaluateSuspicion(traceCodeId);
 
-        assertEquals(40, traceCode.getSuspicionScore(),
-                "impossible travel category phải bị giới hạn ở +40 dù có 2 cặp hợp lệ");
+        assertEquals(45, traceCode.getSuspicionScore(),
+                "impossible travel category phải bị giới hạn ở +45 dù có 2 cặp hợp lệ");
 
-        // Bảng phân tích (getSuspectDetail) phải khớp: impossibleTravel = 40, tổng = 40.
+        // Bảng phân tích (getSuspectDetail) phải khớp: impossibleTravel = 45, tổng = 45.
         SuspectTraceCodeDetailResponse detail = service.getSuspectDetail(traceCodeId);
-        assertEquals(40, detail.getAnomalyDetails().getScoreBreakdown().getImpossibleTravel());
+        assertEquals(45, detail.getAnomalyDetails().getScoreBreakdown().getImpossibleTravel());
         assertEquals(traceCode.getSuspicionScore(), sumBreakdown(detail),
                 "Bảng phân tích phải khớp với điểm đã lưu");
     }
@@ -237,7 +237,7 @@ class SuspectDetectionServiceImplTest {
 
     @Test
     void shouldProduceConsistentBreakdown_betweenEvaluateAndDetail() {
-        // 2 lượt quét bất hợp lý về khoảng cách -> impossibleTravel = +40.
+        // 2 lượt quét bất hợp lý về khoảng cách -> impossibleTravel = +45.
         List<TraceCodeScanLog> scans = new ArrayList<>();
         scans.add(scan(10, 21.0285, 105.8542));
         scans.add(scan(8, 16.0544, 108.2022));
@@ -253,7 +253,7 @@ class SuspectDetectionServiceImplTest {
         Integer breakdownTotal = sumBreakdown(detail);
         assertEquals(traceCode.getSuspicionScore(), breakdownTotal,
                 "Bảng phân tích phải khớp với điểm đã lưu");
-        assertEquals(40, detail.getAnomalyDetails().getScoreBreakdown().getImpossibleTravel());
+        assertEquals(45, detail.getAnomalyDetails().getScoreBreakdown().getImpossibleTravel());
     }
 
     private Integer sumBreakdown(SuspectTraceCodeDetailResponse detail) {
@@ -280,7 +280,7 @@ class SuspectDetectionServiceImplTest {
 
         when(anomalyThresholdService.getEffectiveThreshold(categoryId)).thenReturn(categoryThreshold);
 
-        // 4 lượt quét trong 24h kích hoạt maxScansPerDay (4) -> +30 điểm
+        // 4 lượt quét trong 24h kích hoạt maxScansPerDay (4) -> +35 điểm
         List<TraceCodeScanLog> scans = new ArrayList<>();
         for (int i = 0; i < 4; i++) {
             scans.add(scan(100 + i * 10, 21.0285, 105.8542));
@@ -289,8 +289,37 @@ class SuspectDetectionServiceImplTest {
 
         service.evaluateSuspicion(traceCodeId);
 
-        assertEquals(30, traceCode.getSuspicionScore(),
+        assertEquals(35, traceCode.getSuspicionScore(),
                 "Ngưỡng ghi đè theo danh mục (maxScansPerDay = 4) phải được áp dụng");
+    }
+
+    @Test
+    @DisplayName("P1.2: Bảo toàn bảng phân tích điểm từ Snapshot khi các lượt quét trong 24h đã hết hạn")
+    void shouldPreserveHistoricalSnapshotBreakdown_whenRecentScansExpire() {
+        // Giả lập tình huống trong screenshot: Mã tem đã được đánh giá trong quá khứ
+        // suspicionScore = 80 (highFrequency = 35, impossibleTravel = 45, multipleLocations = 0)
+        // Hiện tại cửa sổ 24h đã trôi qua, recentScans = 0 lượt quét
+        traceCode.setSuspicionScore(80);
+        traceCode.setHighFrequencyScore(35);
+        traceCode.setImpossibleTravelScore(45);
+        traceCode.setMultipleLocationsScore(0);
+        traceCode.setEvaluatedAt(LocalDateTime.now().minusDays(2));
+        traceCode.setSuspicionReason("Số lượt quét cao; Khoảng cách di chuyển không hợp lý");
+        traceCode.setStatus(TraceCodeStatus.SUSPECT);
+
+        // 0 lượt quét trong 24h gần nhất
+        stubRecentScans(new ArrayList<>());
+
+        SuspectTraceCodeDetailResponse detail = service.getSuspectDetail(traceCodeId);
+
+        // Bảng phân tích chi tiết PHẢI đọc từ snapshot (35, 45, 0), KHÔNG được trả về 0 do thiếu scan logs
+        assertNotNull(detail.getAnomalyDetails());
+        assertEquals(80, detail.getSuspicionScore());
+        assertEquals(35, detail.getAnomalyDetails().getScoreBreakdown().getHighFrequency());
+        assertEquals(45, detail.getAnomalyDetails().getScoreBreakdown().getImpossibleTravel());
+        assertEquals(0, detail.getAnomalyDetails().getScoreBreakdown().getMultipleLocations());
+        assertEquals(80, sumBreakdown(detail));
+        assertEquals(0, detail.getScanCount()); // scanCount trong 24h là 0
     }
 
     @Test

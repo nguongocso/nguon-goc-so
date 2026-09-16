@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Package, Truck, Sprout, Clipboard, Pencil, Wheat, AlertTriangle, FileSignature } from 'lucide-react';
+import { Calendar, MapPin, Package, Truck, Sprout, Clipboard, Pencil, Wheat, AlertTriangle, FileSignature, GitFork } from 'lucide-react';
 import type { ChainEventResponse } from '@/types/packaging';
 import type { PreprocessingEventResponse } from '@/types/preprocessing';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import {
   formatEventValue,
   isEventValueEmpty,
   formatDisplayDateTime,
+  getDisplayEventDataEntries,
 } from '@/utils/eventFormatter';
 import type { ComponentType } from 'react';
 import { maskId } from '@/lib/utils';
@@ -22,6 +23,7 @@ const EVENT_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   TRANSPORT: Truck,
   PROCUREMENT: Clipboard,
   CORRECTION: Pencil,
+  SPLIT: GitFork,
   HANDOVER: FileSignature,
 };
 
@@ -61,19 +63,8 @@ export const ShipmentTimelineItem = ({ event, index, total }: Props) => {
     event.eventType === 'HARVEST' &&
     (event.eventData?.['earlyHarvest'] === true || event.eventData?.['earlyHarvest'] === 'true');
 
-  // Extract and sort event data entries; hide internal fields
   const dataEntries = event.eventData
-    ? Object.entries(event.eventData).filter(
-        ([key, value]) =>
-          key !== 'productionLotId' &&
-          key !== 'shipmentId' &&
-          key !== 'deviceSource' &&
-          key !== 'images' &&
-          key !== 'fromOrgId' &&
-          key !== 'toOrgId' &&
-          !(key === 'earlyHarvest' && (value === false || value === 'false')) &&
-          !(key === 'unmatchedMaterials' && Array.isArray(value) && value.length === 0),
-      )
+    ? getDisplayEventDataEntries(event.eventType, event.eventData)
     : [];
 
   const productionLotId = event.eventData?.['productionLotId'] as string | undefined;
@@ -118,6 +109,17 @@ export const ShipmentTimelineItem = ({ event, index, total }: Props) => {
           <div className="mt-1 text-xs text-gray-400">
             Người ghi nhận:{' '}
             <span className="font-medium text-gray-600">{event.recordedByName}</span>
+          </div>
+        )}
+
+        {event.inherited && (
+          <div className="mt-2 rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-800">
+            {event.lineageLevel === 'PRODUCTION_LOT'
+              ? 'Sự kiện được kế thừa từ lô sản xuất'
+              : 'Sự kiện được kế thừa từ lô cha'}
+            {event.sourceShipmentId && (
+              <span className="ml-1 text-sky-700">({maskId(event.sourceShipmentId)})</span>
+            )}.
           </div>
         )}
 
