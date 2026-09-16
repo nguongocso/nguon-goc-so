@@ -21,27 +21,25 @@ import vn.nguongocso.certification.entity.CategoryCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterionResult;
 import vn.nguongocso.certification.entity.InspectionRequest;
+import vn.nguongocso.certification.entity.InspectionResultEntryLink;
 import vn.nguongocso.certification.enums.InspectionRequestStatus;
+import vn.nguongocso.certification.enums.InspectionResultEntryLinkStatus;
+import vn.nguongocso.certification.enums.InspectionResultEntrySource;
 import vn.nguongocso.certification.repository.CategoryCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
+import vn.nguongocso.certification.repository.InspectionResultEntryLinkRepository;
 import vn.nguongocso.certification.service.InspectionCriterionResultService;
 import vn.nguongocso.certification.service.InspectionExpiryService;
+import vn.nguongocso.certification.service.InspectionResultEntryLinkService;
+import vn.nguongocso.certification.service.InspectionResultPortalFileStorageService;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.ProductCategory;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.time.Clock;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -152,6 +150,9 @@ public class InspectionCriterionResultServiceImpl
     private final ApplicationEventPublisher eventPublisher;
     private final vn.nguongocso.notification.service.NotificationService notificationService;
     private final InspectionExpiryService inspectionExpiryService;
+    private final InspectionResultEntryLinkService linkService;
+    private final InspectionResultEntryLinkRepository linkRepository;
+    private final InspectionResultPortalFileStorageService portalFileStorageService;
 
     @Value("${app.upload.base-dir}")
     private String baseDir;
@@ -214,6 +215,12 @@ public class InspectionCriterionResultServiceImpl
         result.setExpiryDate(request.getExpiryDate());
         result.setPassed(request.getPassed());
         result.setFilePath(request.getFilePath());
+        result.setEntrySource(InspectionResultEntrySource.COOPERATIVE_MANUAL);
+        result.setCreatedBy(currentUser.getUser());
+        result.setPortalLink(null);
+
+        // Thu hồi bất kỳ liên kết ACTIVE nào của yêu cầu khi HTX ghi kết quả thủ công (QTN-14 / NCL-11-CN-007)
+        linkService.revokeActiveLinksForRequest(inspectionRequest.getId(), currentUser.getUser());
 
         // Lưu kết quả
         result = resultRepository.save(result);
@@ -247,19 +254,28 @@ public class InspectionCriterionResultServiceImpl
     }
 
     @Override
+    @Transactional
     public List<InspectionCriterionResultResponse> recordResults(
             UUID inspectionRequestId,
             List<InspectionCriterionResultRequest> requests,
             CustomUserDetails currentUser) {
 
-        // Org boundary + tồn tại yêu cầu
-        InspectionRequest inspectionRequest =
-                requireRequestAccess(inspectionRequestId, currentUser);
+        // Khóa bi quan InspectionRequest kết hợp kiểm tra tổ chức sở hữu để tuần tự hóa và ngăn chặn race condition
+        InspectionRequest inspectionRequest = requestRepository
+                .findByIdAndOrganizationIdForUpdate(inspectionRequestId, currentUser.getOrganizationId())
+                .or(() -> requestRepository.findById(inspectionRequestId))
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Yêu cầu kiểm nghiệm không tồn tại."));
+
+        if (inspectionRequest.getProductionLot() != null
+                && inspectionRequest.getProductionLot().getOrganization() != null
+                && !inspectionRequest.getProductionLot().getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "Yêu cầu kiểm nghiệm không tồn tại.");
+        }
 
         InspectionRequestStatus requestStatus = inspectionRequest.getStatus();
         if (requestStatus != InspectionRequestStatus.PENDING_RESULT
                 && requestStatus != InspectionRequestStatus.FAILED) {
-            throw new BusinessException(MSG_REQUEST_STATUS_INVALID);
+            throw new BusinessException(HttpStatus.CONFLICT, MSG_REQUEST_STATUS_INVALID);
         }
 
         if (requests == null || requests.isEmpty()) {
@@ -305,6 +321,9 @@ public class InspectionCriterionResultServiceImpl
             throw new BusinessException(MSG_RESULTS_MUST_COVER_ALL);
         }
 
+        // Thu hồi bất kỳ liên kết ACTIVE nào của yêu cầu khi HTX ghi kết quả thủ công (QTN-14 / NCL-11-CN-007)
+        linkService.revokeActiveLinksForRequest(inspectionRequestId, currentUser.getUser());
+
         // ============================================================
         // 2. Lưu toàn bộ kết quả
         // ============================================================
@@ -323,6 +342,9 @@ public class InspectionCriterionResultServiceImpl
             result.setExpiryDate(item.getExpiryDate());
             result.setPassed(item.getPassed());
             result.setFilePath(item.getFilePath());
+            result.setEntrySource(InspectionResultEntrySource.COOPERATIVE_MANUAL);
+            result.setCreatedBy(currentUser.getUser());
+            result.setPortalLink(null);
 
             results.add(result);
         }
@@ -957,6 +979,204 @@ public class InspectionCriterionResultServiceImpl
         }
     }
 
+    @Override
+    public String uploadPortalResultFile(
+            String token,
+            String criterionId,
+            MultipartFile file,
+            String clientIp) {
+
+        InspectionResultEntryLink link = linkService.validateAndGetActiveLink(token, clientIp);
+
+        UUID criterionUUID = parseUuid(criterionId, MSG_CRITERION_NOT_FOUND);
+        InspectionCriterion criterion = criterionRepository
+                .findById(criterionUUID)
+                .orElseThrow(() -> new BusinessException(MSG_CRITERION_NOT_FOUND));
+
+        if (!criterion.getInspectionRequest().getId().equals(link.getInspectionRequest().getId())) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, MSG_CRITERION_NOT_IN_REQUEST);
+        }
+
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(MSG_FILE_EMPTY);
+        }
+
+        if (file.getSize() > maxFileSize) {
+            throw new BusinessException(
+                    HttpStatus.PAYLOAD_TOO_LARGE,
+                    MSG_FILE_TOO_LARGE + " (" + maxFileSize / 1024 / 1024 + "MB)");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_FILE_TYPES.contains(contentType)) {
+            throw new BusinessException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, MSG_FILE_TYPE_NOT_SUPPORTED);
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename
+                    .substring(originalFilename.lastIndexOf("."));
+        }
+
+        String newFileName =
+                UUID.randomUUID().toString().replace("-", "") + extension;
+        String uploadDir = Paths.get(
+                        baseDir,
+                        inspectionResultRelativePath,
+                        criterion.getInspectionRequest().getId().toString())
+                .toString();
+        String filePath = Paths.get(uploadDir, newFileName).toString();
+
+        try {
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+            Files.copy(
+                    file.getInputStream(),
+                    Paths.get(filePath),
+                    StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new BusinessException(MSG_FILE_SAVE_ERROR);
+        }
+
+        // Đăng ký tệp và trả về mã định danh che giấu (Opaque Handle) thay vì raw filesystem path (BLOCKER 1 & QTN-20)
+        return portalFileStorageService.registerUploadedFile(
+                link.getTokenHash(),
+                link.getInspectionRequest().getId(),
+                criterion.getId(),
+                filePath,
+                originalFilename);
+    }
+
+    @Override
+    @Transactional
+    public List<InspectionCriterionResultResponse> recordPortalResults(
+            String token,
+            List<InspectionCriterionResultRequest> requests,
+            String clientIp,
+            String userAgent) {
+
+        InspectionResultEntryLink link = linkService.validateAndGetActiveLink(token, clientIp);
+        InspectionRequest originalRequest = link.getInspectionRequest();
+
+        // Khóa bi quan InspectionRequest để tuần tự hóa và ngăn chặn race condition với luồng manual (BLOCKER 2, MAJOR 2)
+        InspectionRequest inspectionRequest = requestRepository
+                .findByIdForUpdate(originalRequest.getId())
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Yêu cầu kiểm nghiệm không tồn tại."));
+
+        if (inspectionRequest.getStatus() != InspectionRequestStatus.PENDING_RESULT) {
+            throw new BusinessException(HttpStatus.CONFLICT, MSG_REQUEST_STATUS_INVALID);
+        }
+
+        if (requests == null || requests.isEmpty()) {
+            throw new BusinessException(MSG_RESULTS_NOT_EMPTY);
+        }
+
+        List<InspectionCriterion> criteria = inspectionRequest.getCriteria();
+        if (criteria == null || criteria.isEmpty()) {
+            throw new BusinessException("Yêu cầu kiểm nghiệm không có chỉ tiêu nào.");
+        }
+
+        Map<UUID, InspectionCriterion> criterionById = criteria.stream()
+                .collect(Collectors.toMap(InspectionCriterion::getId, c -> c));
+
+        LocalDate today = LocalDate.now(clock);
+        Set<UUID> seenCriterionIds = new HashSet<>();
+
+        for (InspectionCriterionResultRequest item : requests) {
+            UUID criterionId = parseUuid(item.getCriterionId(), MSG_CRITERION_NOT_FOUND);
+
+            if (!criterionById.containsKey(criterionId)) {
+                throw new BusinessException(MSG_CRITERION_NOT_IN_REQUEST);
+            }
+
+            if (!seenCriterionIds.add(criterionId)) {
+                throw new BusinessException(MSG_DUPLICATE_CRITERIA_IN_PAYLOAD);
+            }
+
+            validateResultDates(item, today);
+        }
+
+        if (seenCriterionIds.size() != criteria.size()) {
+            throw new BusinessException(MSG_RESULTS_MUST_COVER_ALL);
+        }
+
+        // Xác thực quyền sở hữu và giải mã Opaque File Handle TRƯỚC KHI tiêu thụ link (BLOCKER 1 & QTN-20)
+        Map<UUID, String> resolvedRealFilePaths = new HashMap<>();
+        for (InspectionCriterionResultRequest item : requests) {
+            UUID criterionId = parseUuid(item.getCriterionId(), MSG_CRITERION_NOT_FOUND);
+            if (item.getFilePath() != null && !item.getFilePath().isBlank()) {
+                String realPath = portalFileStorageService.validateAndConsumeHandle(
+                        item.getFilePath(),
+                        link.getTokenHash(),
+                        inspectionRequest.getId(),
+                        criterionId);
+                resolvedRealFilePaths.put(criterionId, realPath);
+            }
+        }
+
+        // Cập nhật nguyên tử ACTIVE -> USED đảm bảo dùng đúng một lần và chống race condition / double-submit
+        LocalDateTime now = LocalDateTime.now();
+        String truncatedUserAgent = userAgent != null && userAgent.length() > 500
+                ? userAgent.substring(0, 500)
+                : userAgent;
+
+        int consumed = linkRepository.consumeActiveLink(
+                link.getId(),
+                InspectionResultEntryLinkStatus.ACTIVE,
+                InspectionResultEntryLinkStatus.USED,
+                now,
+                clientIp,
+                truncatedUserAgent);
+
+        if (consumed == 0) {
+            throw new BusinessException(HttpStatus.GONE, "Liên kết đã được sử dụng hoặc đã hết hạn.");
+        }
+
+        List<InspectionCriterionResult> results = new ArrayList<>();
+        for (InspectionCriterionResultRequest item : requests) {
+            UUID criterionId = parseUuid(item.getCriterionId(), MSG_CRITERION_NOT_FOUND);
+
+            InspectionCriterionResult result = resultRepository
+                    .findByInspectionCriterion_Id(criterionId)
+                    .orElseGet(() -> InspectionCriterionResult.builder()
+                            .inspectionCriterion(criterionById.get(criterionId))
+                            .build());
+
+            result.setResultDate(item.getResultDate());
+            result.setExpiryDate(item.getExpiryDate());
+            result.setPassed(item.getPassed());
+            result.setFilePath(resolvedRealFilePaths.get(criterionId));
+            result.setEntrySource(InspectionResultEntrySource.TESTING_UNIT_PORTAL);
+            result.setPortalLink(link);
+            result.setCreatedBy(null);
+
+            results.add(result);
+        }
+
+        resultRepository.saveAll(results);
+
+        // Chốt trạng thái yêu cầu kiểm nghiệm dùng chung logic
+        checkAndUpdateRequestStatus(inspectionRequest);
+
+        // Quét và cảnh báo hiệu lực kiểm nghiệm ngay tại thời điểm ghi nhận kết quả (QTN-21)
+        if (inspectionRequest.getProductionLot() != null) {
+            try {
+                inspectionExpiryService.checkAndAlertLotExpiry(
+                        inspectionRequest.getProductionLot(),
+                        LocalDate.now(clock));
+            } catch (Exception e) {
+                log.error("Lỗi khi quét và cảnh báo hiệu lực kiểm nghiệm sau khi đơn vị kiểm nghiệm ghi nhận kết quả: ", e);
+            }
+        }
+
+        return results.stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
     /**
      * Ghi nhật ký hoạt động theo convention của hệ thống (TASK-27).
      * <p>
@@ -1032,7 +1252,10 @@ public class InspectionCriterionResultServiceImpl
                 .expiryDate(result.getExpiryDate())
                 .passed(result.getPassed())
                 .filePath(result.getFilePath())
-                .createdByName(result.getCreatedBy().getFullName())
+                .entrySource(result.getEntrySource())
+                .createdByName(result.getCreatedBy() != null
+                        ? result.getCreatedBy().getFullName()
+                        : null)
                 .createdAt(result.getCreatedAt())
                 .updatedAt(result.getUpdatedAt())
                 .build();

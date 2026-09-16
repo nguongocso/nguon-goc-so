@@ -58,6 +58,62 @@ public interface InspectionRequestRepository
             @Param("id") UUID id);
 
     /**
+     * Tìm yêu cầu kiểm nghiệm theo ID và ID tổ chức sở hữu lô để đảm bảo cách ly dữ liệu giữa các tổ chức.
+     *
+     * @param id             ID của yêu cầu kiểm nghiệm.
+     * @param organizationId ID của tổ chức.
+     * @return Optional chứa yêu cầu kiểm nghiệm nếu tìm thấy.
+     */
+    @Query("""
+            SELECT ir
+            FROM InspectionRequest ir
+            JOIN FETCH ir.productionLot pl
+            JOIN FETCH pl.organization
+            LEFT JOIN FETCH pl.productCategory
+            WHERE ir.id = :id AND pl.organization.organizationId = :organizationId
+            """)
+    java.util.Optional<InspectionRequest> findByIdAndProductionLot_Organization_OrganizationId(
+            @Param("id") UUID id,
+            @Param("organizationId") UUID organizationId);
+
+    /**
+     * Khóa bi quan (PESSIMISTIC_WRITE) yêu cầu kiểm nghiệm kết hợp kiểm tra tổ chức sở hữu để tuần tự hóa an toàn.
+     *
+     * @param id             ID của yêu cầu kiểm nghiệm.
+     * @param organizationId ID tổ chức.
+     * @return Optional chứa yêu cầu kiểm nghiệm đã khóa.
+     */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT ir
+            FROM InspectionRequest ir
+            JOIN FETCH ir.productionLot pl
+            JOIN FETCH pl.organization
+            LEFT JOIN FETCH pl.productCategory
+            WHERE ir.id = :id AND pl.organization.organizationId = :organizationId
+            """)
+    java.util.Optional<InspectionRequest> findByIdAndOrganizationIdForUpdate(
+            @Param("id") UUID id,
+            @Param("organizationId") UUID organizationId);
+
+    /**
+     * Khóa bi quan (PESSIMISTIC_WRITE) yêu cầu kiểm nghiệm theo ID.
+     *
+     * @param id ID của yêu cầu kiểm nghiệm.
+     * @return Optional chứa yêu cầu kiểm nghiệm đã khóa.
+     */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT ir
+            FROM InspectionRequest ir
+            JOIN FETCH ir.productionLot pl
+            JOIN FETCH pl.organization
+            LEFT JOIN FETCH pl.productCategory
+            WHERE ir.id = :id
+            """)
+    java.util.Optional<InspectionRequest> findByIdForUpdate(@Param("id") UUID id);
+
+    /**
      * Lấy danh sách yêu cầu kiểm nghiệm theo ID lô sản xuất và trạng thái.
      * @param productionLotId
      * @param status

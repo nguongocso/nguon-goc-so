@@ -36,4 +36,23 @@ public interface EmailService {
             String resetUrl,
             int expiryMinutes
     );
+
+    /**
+     * Gửi email liên kết cổng nhập kết quả cho đơn vị kiểm nghiệm bất đồng bộ (NCL-11-CN-007).
+     *
+     * @param toEmail          địa chỉ email đơn vị kiểm nghiệm nhận liên kết
+     * @param organizationName tên hợp tác xã yêu cầu
+     * @param testingUnitName  tên đơn vị kiểm nghiệm
+     * @param lotCode          mã lô sản xuất
+     * @param entryUrl         đường dẫn cổng nhập kết quả chứa token bí mật
+     * @param expiryDays       thời hạn hiệu lực (ngày)
+     */
+    void sendInspectionResultEntryEmail(
+            String toEmail,
+            String organizationName,
+            String testingUnitName,
+            String lotCode,
+            String entryUrl,
+            int expiryDays
+    );
 }
