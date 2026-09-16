@@ -122,6 +122,7 @@ import IndustryReportPage from "@/pages/report/IndustryReportPage";
 import SeasonYieldComparisonPage from "@/pages/report/SeasonYieldComparisonPage";
 import TerritoryAlertLotListPage from "@/pages/report/TerritoryAlertLotListPage";
 import TerritoryAlertLotDetailPage from "@/pages/report/TerritoryAlertLotDetailPage";
+import OrganizationUsagePage from "@/pages/report/OrganizationUsagePage";
 
 // ===== Alerts =====
 import AggregateAlertPage from "@/pages/alert/AggregateAlertPage";
@@ -1400,6 +1401,16 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={ROLE_ACCESS.territoryAlertLots}>
                         <TerritoryAlertLotDetailPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* NCL-07-CN-008: Mức độ sử dụng nền tảng theo tổ chức cho VT-01 */}
+            <Route
+                path="reports/organization-usage"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.organizationUsage}>
+                        <OrganizationUsagePage />
                     </RoleRoute>
                 }
             />

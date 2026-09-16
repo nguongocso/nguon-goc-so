@@ -397,6 +397,13 @@ const MENU_GROUPS: MenuGroup[] = [
         activePaths: ["/reports/alert-lots"],
       },
       {
+        icon: <Activity className="h-5 w-5" />,
+        label: "Mức độ sử dụng nền tảng",
+        href: "/reports/organization-usage",
+        allowedRoles: ROLE_ACCESS.organizationUsage,
+        activePaths: ["/reports/organization-usage"],
+      },
+      {
         icon: <FileText className="h-5 w-5" />,
         label: "Mẫu hồ sơ truy xuất",
         href: "/export/profile-templates",

@@ -123,6 +123,9 @@ export const ROLE_ACCESS = {
   // ✅ NCL-08-CN-012 - Kết thúc vụ việc thu hồi
   recallCaseManage: ['VT-02'] as const,
 
+  // ✅ NCL-07-CN-008 - Bảng điều khiển mức độ sử dụng nền tảng theo tổ chức
+  organizationUsage: ['VT-01'] as const,
+
   // ✅ Hồ sơ người dùng (NCL-01-CN-010: Tất cả vai trò VT-01 -> VT-05)
   userProfile: AUTHENTICATED_ROLE_CODES,
 } as const satisfies Record<string, readonly AuthenticatedRoleCode[]>;
