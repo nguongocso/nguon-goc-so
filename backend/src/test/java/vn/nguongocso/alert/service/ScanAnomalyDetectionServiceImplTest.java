@@ -101,7 +101,9 @@ class ScanAnomalyDetectionServiceImplTest {
         traceCode.setCodeValue("NCL0001");
         traceCode.setStatus(TraceCodeStatus.ACTIVE);
         traceCode.setShipment(shipment);
+        traceCode.setActivatedAt(LocalDateTime.now().minusDays(10));
 
+        lenient().when(traceCodeRepository.findById(traceCodeId)).thenReturn(Optional.of(traceCode));
         lenient().when(alertRepository.save(any(Alert.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -134,7 +136,6 @@ class ScanAnomalyDetectionServiceImplTest {
         stubRecentScans(scans);
         when(alertRepository.existsByRelatedEntityIdAndTypeAndStatus(
                 traceCodeId, AlertType.SCAN_ANOMALY, AlertStatus.PENDING)).thenReturn(false);
-        when(traceCodeRepository.findById(traceCodeId)).thenReturn(Optional.of(traceCode));
 
         service.onScanRecorded(traceCodeId);
 
@@ -169,7 +170,6 @@ class ScanAnomalyDetectionServiceImplTest {
         stubRecentScans(scans);
         when(alertRepository.existsByRelatedEntityIdAndTypeAndStatus(
                 traceCodeId, AlertType.SCAN_ANOMALY, AlertStatus.PENDING)).thenReturn(false);
-        when(traceCodeRepository.findById(traceCodeId)).thenReturn(Optional.of(traceCode));
 
         service.onScanRecorded(traceCodeId);
 
@@ -212,5 +212,17 @@ class ScanAnomalyDetectionServiceImplTest {
 
         verify(alertRepository, never()).save(any(Alert.class));
         verify(traceCodeScanLogRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    void shouldNotCreateAlert_whenWithinGracePeriod() {
+        LocalDateTime now = LocalDateTime.now();
+        traceCode.setActivatedAt(now.minusDays(1)); // Vẫn trong thời gian ân hạn 3 ngày
+
+        service.onScanRecorded(traceCodeId);
+
+        verify(alertRepository, never()).save(any(Alert.class));
+        verify(traceCodeScanLogRepository, never()).saveAll(anyList());
+        verify(notificationService, never()).sendScanAnomalyNotification(any(Alert.class));
     }
 }
