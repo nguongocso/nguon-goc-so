@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermission } from '@/hooks/usePermission';
+import { ROLE_ACCESS } from '@/config/roleAccess';
 import { exportDossier } from '@/api/dossierApi';
 import { exportShipmentWithTemplate } from '@/api/exportApi';
 import { DossierPreviewDialog } from './DossierPreviewDialog';
@@ -43,6 +45,12 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
   const { user } = useAuth();
   const organizationId = user?.organizationId || '';
 
+  /**
+   * Chỉ vai trò có quyền quản lý mẫu hồ sơ (VT-02) mới được chọn mẫu khi xuất.
+   * VT-04 luôn dùng mẫu mặc định hệ thống (activeTemplateId = undefined).
+   */
+  const canSelectTemplate = usePermission(ROLE_ACCESS.profileTemplateManage);
+
   const [activeTemplateId, setActiveTemplateId] = useState<string | undefined>(undefined);
   const [activeTemplate, setActiveTemplate] = useState<ProfileTemplate | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<'pdf' | 'json' | 'csv'>('pdf');
@@ -54,6 +62,9 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
     if (open) {
       setSelectedFormat('pdf');
       setIsExporting(false);
+      // Reset lựa chọn mẫu mỗi lần mở để tránh giữ state cũ giữa các lô
+      setActiveTemplateId(undefined);
+      setActiveTemplate(null);
     }
   }, [open]);
 
@@ -117,17 +128,19 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
           </DialogHeader>
 
           <div className="space-y-5 py-3">
-                        {/* Lựa chọn Mẫu hồ sơ — dùng component shared dùng chung với BatchDossierExportPage */}
-            <ProfileTemplateSelector
-              organizationId={organizationId}
-              open={open}
-              onTemplateChange={(templateId, template) => {
-                setActiveTemplateId(templateId === 'default' ? undefined : templateId);
-                setActiveTemplate(template);
-              }}
-              disabled={isExporting}
-              showInfoText
-            />
+                        {/* Lựa chọn Mẫu hồ sơ — chỉ hiển thị cho VT-02 (có quyền profileTemplateManage) */}
+            {canSelectTemplate && (
+              <ProfileTemplateSelector
+                organizationId={organizationId}
+                open={open}
+                onTemplateChange={(templateId, template) => {
+                  setActiveTemplateId(templateId === 'default' ? undefined : templateId);
+                  setActiveTemplate(template);
+                }}
+                disabled={isExporting}
+                showInfoText
+              />
+            )}
 
             {/* Lựa chọn Định dạng tệp */}
             <div className="space-y-2">
