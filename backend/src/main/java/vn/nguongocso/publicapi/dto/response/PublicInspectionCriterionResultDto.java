@@ -29,9 +29,19 @@ public class PublicInspectionCriterionResultDto {
     private String criterionName;
 
     /**
+     * Tên chỉ tiêu kiểm nghiệm tiếng Anh.
+     */
+    private String criterionNameEn;
+
+    /**
      * Ngưỡng quy định / Tiêu chuẩn áp dụng.
      */
     private String standardValue;
+
+    /**
+     * Ngưỡng quy định / Tiêu chuẩn áp dụng tiếng Anh.
+     */
+    private String standardValueEn;
 
     /**
      * Giá trị đo được / kết quả đánh giá thực tế.

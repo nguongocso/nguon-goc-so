@@ -102,7 +102,7 @@ export const CategoryOverridesTable: React.FC<CategoryOverridesTableProps> = ({
               <TableHead className="font-semibold text-xs text-center">Quét / ngày (24h)</TableHead>
               <TableHead className="font-semibold text-xs text-center">Khoảng cách tối đa</TableHead>
               <TableHead className="font-semibold text-xs text-center">Thời gian di chuyển</TableHead>
-              <TableHead className="font-semibold text-xs text-center">Hạn kích hoạt</TableHead>
+              <TableHead className="font-semibold text-xs text-center">Thời gian ân hạn</TableHead>
               <TableHead className="font-semibold text-xs text-right pr-4">Thao tác</TableHead>
             </TableRow>
           </TableHeader>

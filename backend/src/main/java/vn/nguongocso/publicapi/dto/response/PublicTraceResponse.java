@@ -25,6 +25,8 @@ public class PublicTraceResponse {
 
     private String productName;
 
+    private String productNameEn;
+
     private String shipmentCode;
 
     private String shipmentStatus;
@@ -32,6 +34,8 @@ public class PublicTraceResponse {
     private Boolean recalled;
 
     private String recallMessage;
+
+    private String recallMessageEn;
 
     private Boolean locked;
 
@@ -46,4 +50,10 @@ public class PublicTraceResponse {
     private List<PublicChainEventItem> events;
 
     private List<PublicInspectionCriterionResultDto> inspections;
+
+    /** Đánh dấu dữ liệu thử nghiệm (Sandbox). */
+    private Boolean isTest;
+
+    /** Thông điệp thông báo dữ liệu thử nghiệm. */
+    private String testNotice;
 }

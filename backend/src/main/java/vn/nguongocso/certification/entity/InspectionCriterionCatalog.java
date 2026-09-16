@@ -33,6 +33,9 @@ public class InspectionCriterionCatalog {
     @Column(name = "name", nullable = false, length = 150)
     private String name;
 
+    @Column(name = "name_en", length = 150)
+    private String nameEn;
+
     @Column(name = "unit", nullable = false, length = 30)
     private String unit;
 

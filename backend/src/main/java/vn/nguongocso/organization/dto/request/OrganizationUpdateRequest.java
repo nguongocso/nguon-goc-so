@@ -1,5 +1,8 @@
 package vn.nguongocso.organization.dto.request;
 
+import java.util.UUID;
+
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -15,9 +18,16 @@ public class OrganizationUpdateRequest {
 
     private String address;
 
+    /** ID đơn vị hành chính cấp tỉnh/thành phố. */
+    private UUID provinceId;
+
+    /** ID đơn vị hành chính cấp xã/phường. */
+    private UUID communeId;
+
     @Pattern(regexp = "^(\\d{10,11})?$", message = "Số điện thoại phải có 10-11 chữ số")
     private String phone;
 
     @Email(message = "Email không hợp lệ")
     private String email;
 }
+

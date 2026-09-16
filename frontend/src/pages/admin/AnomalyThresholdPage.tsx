@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { SlidersHorizontal, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { HelpButton } from '@/components/help/HelpButton';
 import { ListPageHeader } from '@/components/common/ListPageHeader';
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
 import { toast } from 'sonner';
@@ -70,16 +71,19 @@ export const AnomalyThresholdPage: React.FC = () => {
         title="Cấu hình ngưỡng quét bất thường"
         description="Điều chỉnh độ nhạy của bộ máy phát hiện quét bất thường cho toàn hệ thống và theo từng loại nông sản"
         actions={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={loadData}
-            disabled={loading}
-            className="flex items-center gap-1.5"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Làm mới
-          </Button>
+          <div className="flex items-center gap-2">
+            <HelpButton screenKey="admin-anomaly-thresholds" />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadData}
+              disabled={loading}
+              className="flex items-center gap-1.5"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Làm mới
+            </Button>
+          </div>
         }
       />
 

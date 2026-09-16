@@ -73,7 +73,7 @@ class AnomalyThresholdControllerTest {
                 .maxScansPerDay(10)
                 .maxDistanceKmPer30Min(BigDecimal.valueOf(50.0))
                 .minTimeBetweenScansMinutes(30)
-                .activationAgeDays(365)
+                .activationAgeDays(3)
                 .isActive(true)
                 .build();
 
@@ -100,7 +100,7 @@ class AnomalyThresholdControllerTest {
                 .maxScansPerDay(12)
                 .maxDistanceKmPer30Min(BigDecimal.valueOf(60.0))
                 .minTimeBetweenScansMinutes(30)
-                .activationAgeDays(365)
+                .activationAgeDays(3)
                 .build();
 
         AnomalyThresholdResponse response = AnomalyThresholdResponse.builder()
@@ -109,7 +109,7 @@ class AnomalyThresholdControllerTest {
                 .maxScansPerDay(12)
                 .maxDistanceKmPer30Min(BigDecimal.valueOf(60.0))
                 .minTimeBetweenScansMinutes(30)
-                .activationAgeDays(365)
+                .activationAgeDays(3)
                 .isActive(true)
                 .build();
 
@@ -146,6 +146,26 @@ class AnomalyThresholdControllerTest {
 
     @Test
     @WithMockUser(roles = "VT-01")
+    @DisplayName("PUT /api/v1/admin/anomaly-thresholds/global - Trả về 400 Bad Request khi activationAgeDays > 7")
+    void updateGlobalThreshold_shouldReturnBadRequest_whenActivationAgeDaysExceeds7() throws Exception {
+        UpdateGlobalThresholdRequest invalidRequest = UpdateGlobalThresholdRequest.builder()
+                .maxScansPerHour(5)
+                .maxScansPerDay(10)
+                .maxDistanceKmPer30Min(BigDecimal.valueOf(50.0))
+                .minTimeBetweenScansMinutes(30)
+                .activationAgeDays(14)
+                .build();
+
+        mockMvc.perform(put("/api/v1/admin/anomaly-thresholds/global")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.activationAgeDays").exists());
+    }
+
+    @Test
+    @WithMockUser(roles = "VT-01")
     @DisplayName("POST /api/v1/admin/anomaly-thresholds/categories - VT-01 lưu cấu hình ghi đè danh mục thành công")
     void saveCategoryOverride_shouldReturnOk_whenValid() throws Exception {
         UUID catId = UUID.randomUUID();
@@ -155,7 +175,7 @@ class AnomalyThresholdControllerTest {
                 .maxScansPerDay(8)
                 .maxDistanceKmPer30Min(BigDecimal.valueOf(40.0))
                 .minTimeBetweenScansMinutes(20)
-                .activationAgeDays(180)
+                .activationAgeDays(5)
                 .build();
 
         AnomalyThresholdResponse response = AnomalyThresholdResponse.builder()
@@ -166,7 +186,7 @@ class AnomalyThresholdControllerTest {
                 .maxScansPerDay(8)
                 .maxDistanceKmPer30Min(BigDecimal.valueOf(40.0))
                 .minTimeBetweenScansMinutes(20)
-                .activationAgeDays(180)
+                .activationAgeDays(5)
                 .isActive(true)
                 .build();
 
@@ -204,7 +224,7 @@ class AnomalyThresholdControllerTest {
                 .maxScansPerDay(10)
                 .maxDistanceKmPer30Min(BigDecimal.valueOf(50.0))
                 .minTimeBetweenScansMinutes(30)
-                .activationAgeDays(365)
+                .activationAgeDays(3)
                 .build();
 
         ImpactEstimationResponse response = ImpactEstimationResponse.builder()
@@ -247,7 +267,7 @@ class AnomalyThresholdControllerTest {
                 .maxScansPerDay(10)
                 .maxDistanceKmPer30Min(BigDecimal.valueOf(50.0))
                 .minTimeBetweenScansMinutes(30)
-                .activationAgeDays(365)
+                .activationAgeDays(3)
                 .build();
 
         mockMvc.perform(put("/api/v1/admin/anomaly-thresholds/global")

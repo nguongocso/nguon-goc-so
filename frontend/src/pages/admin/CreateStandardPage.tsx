@@ -15,6 +15,7 @@ import { createStandard } from '@/api/standardApi';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Tên tiêu chuẩn không được để trống').max(255),
+  nameEn: z.string().max(255).optional(),
   issuingBody: z.string().max(255).optional(),
   description: z.string().optional(),
 });
@@ -31,6 +32,7 @@ export const CreateStandardPage: React.FC = () => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
+      nameEn: '',
       issuingBody: '',
       description: '',
     },
@@ -40,6 +42,7 @@ export const CreateStandardPage: React.FC = () => {
     try {
       await createStandard({
         name: data.name,
+        nameEn: data.nameEn || undefined,
         description: data.description || undefined,
         issuingBody: data.issuingBody || undefined,
       });
@@ -76,18 +79,34 @@ export const CreateStandardPage: React.FC = () => {
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-5 pt-6">
-            <div className="space-y-1.5">
-              <Label htmlFor="name" className="text-sm font-medium">
-                Tên tiêu chuẩn <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="name"
-                {...register('name')}
-                placeholder="VD: TCVN 11892-1:2017 (VietGAP Trồng trọt)"
-              />
-              {errors.name && (
-                <p className="text-sm text-red-500">{errors.name.message}</p>
-              )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-sm font-medium">
+                  Tên tiêu chuẩn <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="name"
+                  {...register('name')}
+                  placeholder="VD: TCVN 11892-1:2017 (VietGAP Trồng trọt)"
+                />
+                {errors.name && (
+                  <p className="text-sm text-red-500">{errors.name.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="nameEn" className="text-sm font-medium">
+                  Tên tiếng Anh (English Name)
+                </Label>
+                <Input
+                  id="nameEn"
+                  {...register('nameEn')}
+                  placeholder="VD: VietGAP Cultivation Standard"
+                />
+                {errors.nameEn && (
+                  <p className="text-sm text-red-500">{errors.nameEn.message}</p>
+                )}
+              </div>
             </div>
 
             <div className="space-y-1.5">

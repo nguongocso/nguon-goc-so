@@ -70,6 +70,15 @@ public class PartnerApiKey {
     @Column(name = "status", nullable = false, length = 20)
     private PartnerApiKeyStatus status;
 
+    /**
+     * Cờ đánh dấu khóa thử nghiệm (Sandbox/Test Key).
+     * <p>
+     * Khóa thử nghiệm chỉ trả về dữ liệu mẫu và không chạm vào dữ liệu thực tế (NCL-12-CN-004).
+     */
+    @Builder.Default
+    @Column(name = "is_test", nullable = false)
+    private Boolean isTest = false;
+
     @Builder.Default
     @Column(name = "total_calls", nullable = false)
     private Long totalCalls = 0L;
@@ -114,6 +123,9 @@ public class PartnerApiKey {
         }
         if (failedCalls == null) {
             failedCalls = 0L;
+        }
+        if (isTest == null) {
+            isTest = false;
         }
     }
 }

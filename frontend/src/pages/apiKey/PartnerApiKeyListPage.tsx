@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Key, PlusCircle, ShieldCheck, Ban } from 'lucide-react';
+import { Key, PlusCircle, ShieldCheck, Ban, FlaskConical, BookOpen } from 'lucide-react';
 import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import type { PartnerApiKeyResponse, PartnerApiKeyStatus } from '@/types/apiKey'
 import { ApiKeyStatusBadge } from '@/components/apiKey/ApiKeyStatusBadge';
 import { RawApiKeyModal } from '@/components/apiKey/RawApiKeyModal';
 import { RevokeApiKeyDialog } from '@/components/apiKey/RevokeApiKeyDialog';
+
 import { usePermission } from '@/hooks/usePermission';
 import { HelpButton } from '@/components/help/HelpButton';
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
@@ -31,6 +32,7 @@ const STATUS_OPTIONS = [
 
 export const PartnerApiKeyListPage: React.FC = () => {
   const navigate = useNavigate();
+  // Chỉ Quản lý HTX (VT-02) và Quản trị viên (VT-01) mới có quyền quản lý và cấp khóa (TC-04)
   const canManage = usePermission(['VT-01', 'VT-02']);
 
   useSetBreadcrumb([
@@ -52,6 +54,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
   // States quản lý Modal
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<PartnerApiKeyResponse | null>(null);
   const [revokeKeyTarget, setRevokeKeyTarget] = useState<PartnerApiKeyResponse | null>(null);
+
 
   const fetchApiKeys = async () => {
     try {
@@ -99,15 +102,35 @@ export const PartnerApiKeyListPage: React.FC = () => {
         actions={
           <>
             <HelpButton screenKey="admin-api-keys" />
+            <Button
+              variant="outline"
+              onClick={() => window.open('/portal', '_blank')}
+              className="shrink-0 gap-2"
+              title="Mở trang tài liệu Cổng dữ liệu Nguồn Gốc Số dành cho bên thứ ba"
+            >
+              <BookOpen className="w-4 h-4 text-primary" />
+              <span className="hidden sm:inline">Tài liệu cổng dữ liệu</span>
+            </Button>
             {canManage && (
-              <Button
-                variant="create"
-                onClick={() => navigate('/integration/api-keys/create')}
-                className="shrink-0 gap-2 shadow-sm"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>Cấp khóa mới</span>
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/integration/api-keys/create-test')}
+                  className="shrink-0 gap-2 border-primary/40 text-primary hover:bg-primary/10"
+                >
+                  <FlaskConical className="w-4 h-4 text-primary" />
+                  <span>Cấp khóa thử nghiệm</span>
+                </Button>
+
+                <Button
+                  variant="create"
+                  onClick={() => navigate('/integration/api-keys/create')}
+                  className="shrink-0 gap-2 shadow-sm"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>Cấp khóa mới</span>
+                </Button>
+              </>
             )}
           </>
         }
@@ -197,7 +220,15 @@ export const PartnerApiKeyListPage: React.FC = () => {
                         {page * pageSize + index + 1}
                       </TableCell>
                       <TableCell>
-                        <div className="font-semibold text-foreground">{item.partnerName}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-foreground">{item.partnerName}</span>
+                          {(item.isTest || item.is_test) && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                              <FlaskConical className="w-3 h-3" />
+                              Thử nghiệm
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
                           Tạo bởi: {item.createdByFullName || 'Hệ thống'} • {new Date(item.createdAt).toLocaleDateString('vi-VN')}
                         </div>
@@ -292,3 +323,4 @@ export const PartnerApiKeyListPage: React.FC = () => {
 };
 
 export default PartnerApiKeyListPage;
+

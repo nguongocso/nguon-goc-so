@@ -31,7 +31,9 @@ import vn.nguongocso.organization.constant.RoleCode;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
+import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 import vn.nguongocso.trace.enums.ShipmentStatus;
+import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
@@ -53,6 +55,7 @@ public class WarehouseReceiptServiceImpl implements WarehouseReceiptService {
 
     private final TraceCodeRepository traceCodeRepository;
     private final ShipmentRepository shipmentRepository;
+    private final ShipmentHandoverRepository shipmentHandoverRepository;
     private final ChainEventRepository chainEventRepository;
     private final ChainEventService chainEventService;
     private final UserRepository userRepository;
@@ -81,6 +84,24 @@ public class WarehouseReceiptServiceImpl implements WarehouseReceiptService {
         Shipment shipment = traceCode.getShipment();
         if (shipment == null) {
             throw new BusinessException("Mã truy xuất chưa được gắn với lô hàng.");
+        }
+
+        UUID userOrgId = currentUser.getOrganizationId();
+        boolean isRecipient = shipment.getRecipientOrganization() != null
+                && userOrgId != null
+                && userOrgId.equals(shipment.getRecipientOrganization().getOrganizationId());
+
+        boolean hasAcceptedHandover = userOrgId != null
+                && shipmentHandoverRepository.existsByShipmentIdAndToOrganizationOrganizationIdAndStatus(
+                        shipment.getId(), userOrgId, ShipmentHandoverStatus.ACCEPTED);
+
+        boolean hasRecordedEvent = userOrgId != null
+                && chainEventRepository.existsByShipmentIdAndRecordedOrganizationIdAndEventType(
+                        shipment.getId(), userOrgId, ChainEventType.PROCUREMENT);
+
+        if (!isRecipient && !hasAcceptedHandover && !hasRecordedEvent) {
+            throw new BusinessException(HttpStatus.FORBIDDEN,
+                    "Lô hàng không được giao cho tổ chức của bạn.", Map.of("code", "RECIPIENT_MISMATCH"));
         }
 
         // 4. Validate shipment status (QTN-05)

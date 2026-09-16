@@ -61,4 +61,9 @@ public interface CodeRangeRepository extends JpaRepository<CodeRange, UUID> {
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.data.jpa.repository.Query("UPDATE CodeRange cr SET cr.usedCount = cr.usedCount - :count, cr.updatedAt = CURRENT_TIMESTAMP WHERE cr.id = :id AND cr.usedCount >= :count")
     int refundQuota(@Param("id") UUID id, @Param("count") Long count);
+
+    /**
+     * Tìm tất cả dải mã của một tổ chức (NCL-08-CN-016).
+     */
+    java.util.List<CodeRange> findByOrganizationOrganizationId(UUID organizationId);
 }

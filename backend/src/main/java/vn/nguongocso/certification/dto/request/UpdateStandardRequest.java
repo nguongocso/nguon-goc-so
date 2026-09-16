@@ -16,6 +16,9 @@ public class UpdateStandardRequest {
     @Size(max = 255, message = "Tên tiêu chuẩn không được vượt quá 255 ký tự.")
     private String name;
 
+    @Size(max = 255, message = "Tên tiếng Anh không được vượt quá 255 ký tự.")
+    private String nameEn;
+
     @Size(max = 1000, message = "Mô tả không được vượt quá 1000 ký tự.")
     private String description;
 

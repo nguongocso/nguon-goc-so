@@ -257,7 +257,7 @@ public class ImpactScopeTraceServiceImpl implements ImpactScopeTraceService {
         }
 
         ImpactScopeSummaryDto summary = ImpactScopeSummaryDto.builder()
-                .totalShipments(shipmentDtos.size())
+                .totalShipments(shipments.stream().filter(shipment -> shipment.getStatus() != ShipmentStatus.SPLIT).count())
                 .totalActivatedStamps(totalActivatedStampsAll)
                 .totalReceivingOrganizations(receivingOrgIds.size())
                 .totalRecalledShipments(recalledShipmentsCount)

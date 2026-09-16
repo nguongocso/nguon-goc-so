@@ -57,6 +57,25 @@ public class PartnerApiKeyController {
     }
 
     /**
+     * Cấp mới khóa thử nghiệm (Sandbox) cho đối tác bên thứ ba (NCL-12-CN-004, TC-01, TC-04).
+     * <p>
+     * Phân quyền nghiêm ngặt: Chỉ Quản lý Hợp tác xã (VT-02) hoặc Quản trị viên nền tảng (VT-01).
+     * Người dùng có vai trò Người ghi sự kiện (VT-03) hoặc vai trò khác sẽ bị từ chối 403 Forbidden (TC-04).
+     */
+    @PostMapping("/test")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<PartnerApiKeyResponse>> createTestApiKey(
+            @Valid @RequestBody vn.nguongocso.integration.apikey.dto.request.CreateTestApiKeyRequest request) {
+
+        log.info("Nhận yêu cầu cấp khóa thử nghiệm cho đối tác '{}', limit={}/h",
+                request.getPartnerName(), request.getRateLimitPerHour());
+
+        PartnerApiKeyResponse response = partnerApiKeyService.createTestApiKey(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResult.success(201, response));
+    }
+
+    /**
      * Lấy danh sách khóa truy cập thuộc Hợp tác xã hiện tại.
      */
     @GetMapping

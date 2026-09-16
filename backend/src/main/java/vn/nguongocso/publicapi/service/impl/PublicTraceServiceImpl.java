@@ -173,14 +173,25 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 || shipment.getStatus() == ShipmentStatus.RECALLING;
 
         String recallMessage = null;
+        String recallMessageEn = null;
         if (isRecalled) {
             recallMessage = resolveRecallMessage(shipment);
+            recallMessageEn = resolveRecallMessageEn(shipment);
         }
 
         boolean isLocked = traceCode.getStatus() == TraceCodeStatus.LOCKED;
 
         // Lấy dòng sự kiện của Shipment
         List<ChainEvent> shipmentEvents = chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(shipment.getId());
+
+        List<ChainEvent> sourceShipmentEvents = Collections.emptyList();
+        if (shipment.getParentShipment() != null) {
+            Shipment parentShipment = shipment.getParentShipment();
+            LocalDateTime splitAt = shipment.getSplitAt();
+            sourceShipmentEvents = chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(parentShipment.getId())
+                    .stream().filter(event -> splitAt == null || event.getRecordedAt() == null
+                            || !event.getRecordedAt().isAfter(splitAt)).toList();
+        }
 
         // Lấy dòng sự kiện của ProductionLot
         List<ChainEvent> productionLotEvents = Collections.emptyList();
@@ -203,6 +214,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
 
         // Gộp timeline
         List<ChainEvent> allEvents = new ArrayList<>();
+        allEvents.addAll(sourceShipmentEvents);
         allEvents.addAll(shipmentEvents);
         allEvents.addAll(productionLotEvents);
         allEvents.sort(Comparator.comparing(ChainEvent::getRecordedAt, Comparator.nullsLast(Comparator.naturalOrder())));
@@ -219,6 +231,9 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         String productName = (productionLot != null && productionLot.getProductCategory() != null)
                 ? productionLot.getProductCategory().getName()
                 : (productionLot != null ? productionLot.getName() : "Sản phẩm");
+        String productNameEn = (productionLot != null && productionLot.getProductCategory() != null)
+                ? productionLot.getProductCategory().getNameEn()
+                : null;
         String shipmentCode = (shipment.getName() != null && !shipment.getName().isBlank())
                 ? shipment.getName()
                 : shipment.getId().toString();
@@ -235,10 +250,12 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .lotName(lotName)
                 .lotCode(lotCode)
                 .productName(productName)
+                .productNameEn(productNameEn)
                 .shipmentCode(shipmentCode)
                 .shipmentStatus(shipment.getStatus() != null ? shipment.getStatus().name() : "UNKNOWN")
                 .recalled(isRecalled)
                 .recallMessage(recallMessage)
+                .recallMessageEn(recallMessageEn)
                 .locked(isLocked)
                 .lockReason(traceCode.getLockReason())
                 .lockedAt(traceCode.getLockedAt())
@@ -304,6 +321,55 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .orElse(shipment.getStatus() == ShipmentStatus.RECALLING
                         ? "CẢNH BÁO: Lô hàng đang trong quá trình thu hồi."
                         : "Lô hàng này đã bị thu hồi.");
+    }
+
+    /**
+     * Xác định thông điệp thu hồi hiển thị công khai bằng tiếng Anh (NCL-06-CN-004 TC-03).
+     *
+     * @param shipment lô hàng đang bị thu hồi
+     * @return thông điệp thu hồi tiếng Anh
+     */
+    private String resolveRecallMessageEn(Shipment shipment) {
+        List<RecallCase> closedCases = recallCaseRepository.findClosedByShipmentId(
+                shipment.getId(), RecallCaseStatus.CLOSED);
+        if (!closedCases.isEmpty()) {
+            RecallCase closedCase = closedCases.get(0);
+            String dateStr = (closedCase.getClosedAt() != null)
+                    ? closedCase.getClosedAt().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    : "";
+            return "SHIPMENT RESOLVED. Recall case closed on " + dateStr + ".";
+        }
+
+        Optional<BulkRecallShipment> bulkRecallShipment = bulkRecallShipmentRepository
+                .findTopByShipment_IdAndIncludedAndBulkRecallRequest_StatusOrderByCreatedAtDesc(
+                        shipment.getId(), true, BulkRecallRequestStatus.APPROVED);
+        if (bulkRecallShipment.isPresent()) {
+            String reason = bulkRecallShipment.get().getBulkRecallRequest().getReason();
+            if (shipment.getStatus() == ShipmentStatus.RECALLING) {
+                return "WARNING: Shipment is currently being recalled. Reason: " + reason;
+            }
+            return "WARNING: This shipment has been recalled. Reason: " + reason;
+        }
+
+        Optional<RecallRequest> approvedRequest = recallRequestRepository
+                .findTopByShipment_IdAndStatusOrderByApprovedAtDesc(
+                        shipment.getId(), RecallRequestStatus.APPROVED);
+        if (approvedRequest.isPresent()) {
+            String reason = approvedRequest.get().getReason();
+            if (shipment.getStatus() == ShipmentStatus.RECALLING) {
+                return "WARNING: Shipment is currently being recalled. Reason: " + reason;
+            }
+            return "WARNING: This shipment has been recalled. Reason: " + reason;
+        }
+
+        return recallRepository
+                .findTopByShipmentOrderByRecalledAtDesc(shipment)
+                .map(r -> shipment.getStatus() == ShipmentStatus.RECALLING
+                        ? "WARNING: Shipment is currently being recalled. Reason: " + r.getReason()
+                        : "WARNING: This shipment has been recalled. Reason: " + r.getReason())
+                .orElse(shipment.getStatus() == ShipmentStatus.RECALLING
+                        ? "WARNING: Shipment is currently being recalled."
+                        : "WARNING: This shipment has been recalled.");
     }
 
     /**
@@ -469,9 +535,14 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                         }
                     }
 
+                    String certNameEn = (cert.getStandard() != null && cert.getStandard().getNameEn() != null)
+                            ? cert.getStandard().getNameEn()
+                            : null;
+
                     return PublicCertificationResponse.builder()
                             .certificationId(cert.getId())
                             .certificationName(cert.getName())
+                            .certificationNameEn(certNameEn)
                             .certificationCode(cert.getCode())
                             .issuedBy(cert.getIssuedBy())
                             .issueDate(cert.getIssueDate())
@@ -681,10 +752,13 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         String criterionName = (criterion != null && criterion.getCriterionName() != null)
                 ? criterion.getCriterionName()
                 : "Chỉ tiêu kiểm nghiệm";
+        String criterionNameEn = (criterion != null) ? criterion.getNameEn() : null;
 
         String standardValue = "QCVN / TCCS";
+        String standardValueEn = null;
         if (criterion != null && criterion.getStandard() != null && criterion.getStandard().getName() != null) {
             standardValue = criterion.getStandard().getName();
+            standardValueEn = criterion.getStandard().getNameEn();
         }
 
         String measuredValue = Boolean.TRUE.equals(result.getPassed())
@@ -698,7 +772,9 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         return PublicInspectionCriterionResultDto.builder()
                 .id(result.getId() != null ? result.getId().toString() : UUID.randomUUID().toString())
                 .criterionName(criterionName)
+                .criterionNameEn(criterionNameEn)
                 .standardValue(standardValue)
+                .standardValueEn(standardValueEn)
                 .measuredValue(measuredValue)
                 .passed(result.getPassed())
                 .inspectorName(inspectorName)

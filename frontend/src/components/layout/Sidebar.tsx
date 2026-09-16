@@ -24,6 +24,7 @@ import {
   PackageX,
   ScanLine,
   ShieldCheck,
+  ShieldAlert,
   Truck,
   User,
   UserCheck,
@@ -287,6 +288,13 @@ const MENU_GROUPS: MenuGroup[] = [
         allowedRoles: ROLE_ACCESS.storageCondition,
       },
       {
+        icon: <ShieldAlert className="h-5 w-5" />,
+        label: "Tổng hợp cảnh báo",
+        href: "/alerts",
+        allowedRoles: ROLE_ACCESS.aggregateAlerts,
+        activePaths: ["/alerts"],
+      }, 
+      {
         icon: <AlertTriangle className="h-5 w-5" />,
         label: "Cảnh báo tem bất thường",
         href: "/alerts/scan-anomaly",
@@ -380,6 +388,13 @@ const MENU_GROUPS: MenuGroup[] = [
         label: "Báo cáo ngành",
         href: "/reports/industry",
         allowedRoles: ["VT-05"] as const,
+      },
+      {
+        icon: <AlertTriangle className="h-5 w-5" />,
+        label: "Theo dõi lô có cảnh báo",
+        href: "/reports/alert-lots",
+        allowedRoles: ROLE_ACCESS.territoryAlertLots,
+        activePaths: ["/reports/alert-lots"],
       },
       {
         icon: <FileText className="h-5 w-5" />,
@@ -575,7 +590,7 @@ function MenuLink({
         {collapsed && showWarningDot && (
           <span
             className="absolute -top-1 -right-1 size-2 rounded-full bg-red-500 ring-2 ring-white"
-            title="Chưa cập nhật email"
+            title={item.href === "/organizations/profile" ? "Chưa thiết lập địa bàn hành chính" : "Chưa cập nhật email"}
           />
         )}
       </span>
@@ -585,7 +600,7 @@ function MenuLink({
           {showWarningDot && (
             <span
               className="size-2 rounded-full bg-red-500 ring-2 ring-white"
-              title="Chưa cập nhật email"
+              title={item.href === "/organizations/profile" ? "Chưa thiết lập địa bàn hành chính" : "Chưa cập nhật email"}
             />
           )}
         </span>
@@ -701,6 +716,7 @@ function AccordionGroup({
   onNavigate,
   defaultExpanded = false,
   isMissingEmail = false,
+  isMissingTerritory = false,
 }: {
   group: MenuGroup;
   isActive: (item: MenuItem) => boolean;
@@ -708,10 +724,14 @@ function AccordionGroup({
   onNavigate?: () => void;
   defaultExpanded?: boolean;
   isMissingEmail?: boolean;
+  isMissingTerritory?: boolean;
 }) {
   const [expanded, setExpanded] = React.useState(defaultExpanded);
   const hasMissingEmailChild =
     isMissingEmail && group.items.some((it) => it.href === "/profile");
+  const hasMissingTerritoryChild =
+    isMissingTerritory && group.items.some((it) => it.href === "/organizations/profile");
+  const hasWarningChild = hasMissingEmailChild || hasMissingTerritoryChild;
 
   // Auto-expand when a child becomes active
   React.useEffect(() => {
@@ -736,10 +756,10 @@ function AccordionGroup({
       >
         <span className="flex-shrink-0 text-emerald-500">{group.icon}</span>
         <span className="flex-1 text-left">{group.label}</span>
-        {!expanded && hasMissingEmailChild && (
+        {!expanded && hasWarningChild && (
           <span
             className="size-2 rounded-full bg-red-500 ring-2 ring-white"
-            title="Chưa cập nhật email"
+            title={hasMissingTerritoryChild ? "Chưa thiết lập địa bàn hành chính" : "Chưa cập nhật email"}
           />
         )}
         <span
@@ -779,7 +799,10 @@ function AccordionGroup({
                   collapsed={false}
                   isActive={isActive(item)}
                   onNavigate={onNavigate}
-                  showWarningDot={item.href === "/profile" && isMissingEmail}
+                  showWarningDot={
+                    (item.href === "/profile" && isMissingEmail) ||
+                    (item.href === "/organizations/profile" && isMissingTerritory)
+                  }
                 />
               ),
             )}
@@ -815,6 +838,12 @@ export function Sidebar({
     (!user.email || user.email.trim() === "")
   );
 
+  const isMissingTerritory = Boolean(
+    user &&
+    user.roleCode === "VT-02" &&
+    (!user.organizationProvinceId || !user.organizationCommuneId)
+  );
+
   const visibleGroups = filterVisibleGroups(MENU_GROUPS, user?.roleCode);
   const dashboardVisible = hasAnyRole(
     user?.roleCode,
@@ -841,7 +870,7 @@ export function Sidebar({
       }
     }
 
-    // Phiếu bàn giao nhận (VT-04): giữ active khi ở /handover hoặc xem chi tiết
+    // Phiếu bàn giao nhận (VT-04): giữ active khi ở /handover hoặc xem chi tiết phiếu / lô hàng bàn giao
     if (item.href === "/handover") {
       if (
         location.pathname === "/handover" ||
@@ -850,6 +879,9 @@ export function Sidebar({
           user?.roleCode === "VT-04") ||
         (location.pathname.startsWith("/shipment-handovers/") &&
           !location.pathname.startsWith("/shipment-handovers/sent") &&
+          user?.roleCode === "VT-04") ||
+        ((location.pathname.startsWith("/shipments/") ||
+          location.pathname.includes("/shipments/")) &&
           user?.roleCode === "VT-04")
       ) {
         return true;
@@ -1010,7 +1042,10 @@ export function Sidebar({
                     collapsed={collapsed}
                     isActive={isActive(item)}
                     onNavigate={onNavigate}
-                    showWarningDot={item.href === "/profile" && isMissingEmail}
+                    showWarningDot={
+                      (item.href === "/profile" && isMissingEmail) ||
+                      (item.href === "/organizations/profile" && isMissingTerritory)
+                    }
                   />
                 ))}
               </div>
@@ -1027,6 +1062,7 @@ export function Sidebar({
                 onNavigate={onNavigate}
                 defaultExpanded={groupActive}
                 isMissingEmail={isMissingEmail}
+                isMissingTerritory={isMissingTerritory}
               />
             </div>
           );

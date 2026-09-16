@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
   LoaderCircle,
   MoreVertical,
   Package,
+  PackagePlus,
   QrCode,
   ScrollText,
   Trash2,
@@ -42,7 +43,7 @@ import { QrCodeGrid } from "@/components/shipment/QrCodeGrid";
 import { ExportLabelsDialog } from "@/components/shipment/ExportLabelsDialog";
 import { CreateHandoverDialog } from "@/components/shipment/CreateHandoverDialog";
 import { HandoverPendingBadge } from "@/components/shipment/HandoverPendingBadge";
-import { hasPendingHandover } from "@/api/handoverApi";
+import { getReceivedHandovers, hasPendingHandover } from "@/api/handoverApi";
 import { ShipmentTimelineItem } from "@/components/shipment/ShipmentTimelineItem";
 import { ActivateShipmentDialog } from "@/components/shipment/ActivateShipmentDialog";
 import { RecallShipmentDialog } from "@/components/shipment/RecallShipmentDialog";
@@ -70,7 +71,60 @@ export const ShipmentDetailPage = () => {
   }>();
   const effectiveShipmentId = shipmentId || id;
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
+
+  // ── Handover context (NCL-05-CN-008/009 & VT-04 breadcrumb) ────────────────
+  const stateHandoverId = (location.state as { handoverId?: string } | undefined)?.handoverId;
+  const queryHandoverId = searchParams.get("handoverId");
+  const initialHandoverId = stateHandoverId || queryHandoverId || null;
+
+  const [handoverContext, setHandoverContext] = useState<{
+    handoverId: string | null;
+    handoverRoute: string | null;
+    handoverListHref: string;
+    handoverListLabel: string;
+  }>(() => ({
+    handoverId: initialHandoverId,
+    handoverRoute:
+      (location.state as { handoverRoute?: string } | undefined)?.handoverRoute ||
+      (initialHandoverId ? `/shipment-handovers/${initialHandoverId}` : null),
+    handoverListHref:
+      (location.state as { handoverListHref?: string } | undefined)?.handoverListHref ||
+      (user?.roleCode === "VT-04" ? "/handover" : "/shipment-handovers/received"),
+    handoverListLabel:
+      (location.state as { handoverListLabel?: string } | undefined)?.handoverListLabel ||
+      "Phiếu bàn giao nhận",
+  }));
+
+  useEffect(() => {
+    if (handoverContext.handoverId || user?.roleCode !== "VT-04" || !effectiveShipmentId) {
+      return;
+    }
+    let isCancelled = false;
+    getReceivedHandovers()
+      .then((handovers) => {
+        if (isCancelled) return;
+        const matched = handovers.find(
+          (h) => h.shipmentId === effectiveShipmentId,
+        );
+        if (matched) {
+          setHandoverContext({
+            handoverId: matched.id,
+            handoverRoute: `/shipment-handovers/${matched.id}`,
+            handoverListHref: "/handover",
+            handoverListLabel: "Phiếu bàn giao nhận",
+          });
+        }
+      })
+      .catch(() => {
+        // Bỏ qua nếu không tải được danh sách phiếu bàn giao
+      });
+    return () => {
+      isCancelled = true;
+    };
+  }, [handoverContext.handoverId, user?.roleCode, effectiveShipmentId]);
 
   // ── Shipment data ──────────────────────────────────────────────────────────
   const [shipment, setShipment] = useState<Shipment | null>(null);
@@ -217,28 +271,60 @@ export const ShipmentDetailPage = () => {
   const canActivateThis =
     canActivate && shipment?.status === "CODE_PRINTED";
   const canRecallThis =
-    canRecall && shipment?.status !== "RECALLED";
+    canRecall && shipment?.status !== "RECALLED" && shipment?.status !== "SPLIT";
   const canDeleteDraft =
-    shipment?.status === "DRAFT" || shipment?.status === "CODE_PRINTED";
+    !shipment?.parentShipmentId &&
+    (shipment?.status === "DRAFT" || shipment?.status === "CODE_PRINTED");
   const canCancelLabels =
-    user?.roleCode === "VT-02" && shipment?.status !== "RECALLED";
+    user?.roleCode === "VT-02" &&
+    shipment?.status !== "RECALLED" &&
+    shipment?.status !== "SPLIT";
+  const canSplitShipment =
+    usePermission(ROLE_ACCESS.shipmentSplit) &&
+    shipment?.status === "CODE_PRINTED" &&
+    !shipment.parentShipmentId &&
+    (shipment.traceCodes?.length ?? 0) >= 2 &&
+    shipment.traceCodes?.length === shipment.totalQuantity &&
+    (shipment.traceCodes ?? []).every((code) => code.status === "INACTIVE");
 
   // ── Breadcrumb điều hướng thống nhất (thay nút "Quay lại") ────────────────
+  const isFromHandover =
+    Boolean(handoverContext.handoverId) ||
+    Boolean((location.state as { fromHandover?: boolean } | undefined)?.fromHandover) ||
+    user?.roleCode === "VT-04";
+
   useSetBreadcrumb(
     shipment
-      ? [
-          { label: "Tổng quan", href: "/dashboard" },
-          { label: "Lô sản xuất", href: "/production-lots" },
-          ...(lotId
-            ? [
-                {
-                  label: shipment.productionLotName || "Chi tiết lô",
-                  href: `/production-lots/${lotId}`,
-                },
-              ]
-            : []),
-          { label: shipment.name || "Chi tiết lô hàng" },
-        ]
+      ? isFromHandover
+        ? [
+            { label: "Tổng quan", href: "/dashboard" },
+            {
+              label: handoverContext.handoverListLabel,
+              href: handoverContext.handoverListHref,
+            },
+            {
+              label: "Chi tiết phiếu bàn giao",
+              href:
+                handoverContext.handoverRoute ||
+                (handoverContext.handoverId
+                  ? `/shipment-handovers/${handoverContext.handoverId}`
+                  : undefined),
+            },
+            { label: shipment.name || "Chi tiết lô hàng" },
+          ]
+        : [
+            { label: "Tổng quan", href: "/dashboard" },
+            { label: "Lô sản xuất", href: "/production-lots" },
+            ...(lotId
+              ? [
+                  {
+                    label: shipment.productionLotName || "Chi tiết lô",
+                    href: `/production-lots/${lotId}`,
+                  },
+                ]
+              : []),
+            { label: shipment.name || "Chi tiết lô hàng" },
+          ]
       : null,
   );
 
@@ -276,9 +362,9 @@ export const ShipmentDetailPage = () => {
       {/* ── Header card ── */}
       <Card className="border-slate-200 bg-white shadow-sm rounded-xl">
         <CardContent className="pt-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             {/* Title + meta */}
-            <div className="space-y-1">
+            <div className="min-w-0 space-y-1">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                   {shipment.name}
@@ -353,6 +439,15 @@ export const ShipmentDetailPage = () => {
                     >
                       <QrCode className="mr-2 h-4 w-4 text-emerald-600" />
                       Trạng thái mã tem
+                    </DropdownMenuItem>
+                  )}
+                  {canSplitShipment && (
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/shipments/${shipment.id}/split`)}
+                    >
+                      <PackagePlus className="mr-2 h-4 w-4 text-emerald-600" />
+                      Tách lô hàng
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onClick={handleExportDossier} className="cursor-pointer">

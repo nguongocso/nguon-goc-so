@@ -36,10 +36,13 @@ public class ActivityLogListener {
                     .userId(event.getUserId())
                     .username(event.getUsername())
                     .fullName(event.getFullName())
+                    .actorRole(event.getActorRole())
                     .action(event.getAction())
                     .description(event.getDescription())
                     .entityType(event.getEntityType())
                     .entityId(event.getEntityId())
+                    .beforeValue(event.getBeforeValue())
+                    .afterValue(event.getAfterValue())
                     .ipAddress(event.getIpAddress())
                     .createdAt(event.getTimestamp())
                     .build();

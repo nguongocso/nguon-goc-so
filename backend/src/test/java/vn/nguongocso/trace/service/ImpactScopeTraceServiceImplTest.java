@@ -223,6 +223,23 @@ class ImpactScopeTraceServiceImplTest {
     }
 
     @Test
+    @DisplayName("TC-03B: Giữ lô cha SPLIT trong cây nhưng không tính vào tổng lô lưu hành")
+    void splitParent_isRetainedForLineageButExcludedFromOperationalSummary() {
+        String lotCode = "LOT-2026-001";
+        when(productionLotRepository.findAll()).thenReturn(List.of(productionLot));
+        Shipment parent = createShipment(productionLot, organization, "SHIP-PARENT", ShipmentStatus.SPLIT, 1000L);
+        Shipment child = createShipment(productionLot, organization, "SHIP-CHILD", ShipmentStatus.CODE_PRINTED, 1000L);
+        child.setParentShipment(parent);
+        when(shipmentRepository.findByProductionLotId(productionLot.getId())).thenReturn(List.of(parent, child));
+
+        ImpactScopeTraceResponse response = impactScopeTraceService.getImpactScopeTrace(lotCode, userDetails);
+
+        assertThat(response.getShipments()).extracting("status")
+                .containsExactly(ShipmentStatus.SPLIT, ShipmentStatus.CODE_PRINTED);
+        assertThat(response.getSummary().getTotalShipments()).isEqualTo(1);
+    }
+
+    @Test
     @DisplayName("TC-04 & QTN-01: Ranh giới bảo mật - Chỉ hiển thị Tên tổ chức nhận và Thời điểm")
     void testTC04_DataIsolation_OnlyExposesReceivingOrgNameAndTimestamp() {
         // Given

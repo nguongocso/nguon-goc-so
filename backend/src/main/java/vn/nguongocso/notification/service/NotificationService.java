@@ -179,4 +179,12 @@ public interface NotificationService {
                         vn.nguongocso.alert.entity.Alert alert,
                         vn.nguongocso.farm.entity.ProductionLot lot,
                         vn.nguongocso.certification.dto.response.InspectionValidityResponse validity);
+
+        /**
+         * Gửi thông báo cho người yêu cầu khi tệp nhật ký nền đã sẵn sàng.
+         *
+         * @param exportJobId ID yêu cầu export dùng làm liên kết tải
+         * @param recipientId ID người dùng đã tạo yêu cầu
+         */
+        void sendActivityLogExportReadyNotification(UUID exportJobId, UUID recipientId);
 }

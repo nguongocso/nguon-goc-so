@@ -8,7 +8,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
@@ -65,7 +67,8 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 			Integer suspicionScore, TraceCodeStatus status, Pageable pageable);
 
 	/**
-	 * Tìm TraceCode theo suspicionScore >= minScore và status nằm trong danh sách (phân trang).
+	 * Tìm TraceCode theo suspicionScore >= minScore và status nằm trong danh sách
+	 * (phân trang).
 	 */
 	Page<TraceCode> findBySuspicionScoreGreaterThanEqualAndStatusIn(
 			Integer suspicionScore, List<TraceCodeStatus> statuses, Pageable pageable);
@@ -98,7 +101,8 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 	boolean existsActivatedByProductionLotId(@Param("productionLotId") UUID productionLotId);
 
 	/**
-	 * NCL-11-CN-004: Đếm số tem chưa kích hoạt (INACTIVE) thuộc các lô hàng chưa thu hồi của lô sản xuất.
+	 * NCL-11-CN-004: Đếm số tem chưa kích hoạt (INACTIVE) thuộc các lô hàng chưa
+	 * thu hồi của lô sản xuất.
 	 *
 	 * @param productionLotId ID của lô sản xuất
 	 * @return số tem INACTIVE
@@ -110,7 +114,8 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 	long countInactiveByProductionLotId(@Param("productionLotId") UUID productionLotId);
 
 	/**
-	 * NCL-11-CN-004: Đếm tổng số tem đã in thuộc các lô hàng chưa thu hồi của lô sản xuất.
+	 * NCL-11-CN-004: Đếm tổng số tem đã in thuộc các lô hàng chưa thu hồi của lô
+	 * sản xuất.
 	 *
 	 * @param productionLotId ID của lô sản xuất
 	 * @return tổng số tem
@@ -130,13 +135,19 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 	 */
 	List<TraceCode> findByShipmentIdAndCodeValueBetween(UUID shipmentId, String fromCode, String toCode);
 
+	/** Khóa tập mã của lô theo thứ tự ổn định trước khi phân bổ sang các lô con. */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("SELECT tc FROM TraceCode tc WHERE tc.shipment.id = :shipmentId ORDER BY tc.codeValue ASC, tc.id ASC")
+	List<TraceCode> findAllByShipmentIdForSplitUpdate(@Param("shipmentId") UUID shipmentId);
+
 	/**
 	 * Lấy danh sách mã theo lô hàng và danh sách codeValue.
 	 */
 	List<TraceCode> findByShipmentIdAndCodeValueIn(UUID shipmentId, List<String> codeValues);
 
 	/**
-	 * Lấy danh sách mã tem theo lô hàng và tổ chức, hỗ trợ lọc theo trạng thái và tìm kiếm (phân trang) (NCL-04-CN-008).
+	 * Lấy danh sách mã tem theo lô hàng và tổ chức, hỗ trợ lọc theo trạng thái và
+	 * tìm kiếm (phân trang) (NCL-04-CN-008).
 	 */
 	@Query("SELECT tc FROM TraceCode tc WHERE tc.shipment.id = :shipmentId "
 			+ "AND tc.shipment.organization.organizationId = :orgId "
@@ -151,7 +162,8 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 			Pageable pageable);
 
 	/**
-	 * Lấy tất cả mã tem theo lô hàng và tổ chức, hỗ trợ lọc theo trạng thái và tìm kiếm để xuất file (NCL-04-CN-008).
+	 * Lấy tất cả mã tem theo lô hàng và tổ chức, hỗ trợ lọc theo trạng thái và tìm
+	 * kiếm để xuất file (NCL-04-CN-008).
 	 */
 	@Query("SELECT tc FROM TraceCode tc WHERE tc.shipment.id = :shipmentId "
 			+ "AND tc.shipment.organization.organizationId = :orgId "
@@ -163,6 +175,15 @@ public interface TraceCodeRepository extends JpaRepository<TraceCode, UUID> {
 			@Param("orgId") UUID orgId,
 			@Param("status") TraceCodeStatus status,
 			@Param("search") String search);
+
+	/**
+	 * Tìm danh sách mã tem theo danh sách lô sản xuất và trạng thái
+	 * (NCL-07-CN-006).
+	 */
+	@Query("SELECT tc FROM TraceCode tc WHERE tc.shipment.productionLot.id IN :lotIds AND tc.status = :status")
+	List<TraceCode> findByProductionLotIdsAndStatus(
+			@Param("lotIds") java.util.Collection<UUID> lotIds,
+			@Param("status") TraceCodeStatus status);
 
 	boolean existsByShipmentIdAndStatus(UUID shipmentId, TraceCodeStatus status);
 }

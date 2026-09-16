@@ -17,4 +17,10 @@ public @interface Auditable {
     String entityType() default "";
 
     String description();
+
+    /** Biểu thức SpEL lấy giá trị trước thay đổi; để trống khi không áp dụng. */
+    String beforeValue() default "";
+
+    /** Biểu thức SpEL lấy giá trị sau thay đổi; để trống khi không áp dụng. */
+    String afterValue() default "";
 }

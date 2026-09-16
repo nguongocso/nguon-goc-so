@@ -28,6 +28,7 @@ import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.util.IpUtils;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.integration.apikey.dto.request.CreateApiKeyRequest;
+import vn.nguongocso.integration.apikey.dto.request.CreateTestApiKeyRequest;
 import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyResponse;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
@@ -36,10 +37,10 @@ import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
 
 /**
- * Service quản lý vòng đời khóa truy cập của bên thứ ba (NCL-12-CN-001).
+ * Service quản lý vòng đời khóa truy cập của bên thứ ba (NCL-12-CN-001, NCL-12-CN-004).
  * <p>
- * Quản lý sinh khóa, băm SHA-256, hiển thị duy nhất 1 lần khi tạo mới,
- * thu hồi khóa và theo dõi kiểm soát hạn mức gọi API (Rate Limit per Hour).
+ * Quản lý sinh khóa thật (Live Key) và khóa thử nghiệm (Test Key), băm SHA-256, hiển thị duy nhất 1 lần khi tạo mới,
+ * thu hồi khóa và theo dõi kiểm soát hạn mức gọi API (Rate Limit per Hour - QTN-20).
  */
 @Service
 @RequiredArgsConstructor
@@ -47,6 +48,9 @@ public class PartnerApiKeyService {
 
     private static final Logger log = LoggerFactory.getLogger(PartnerApiKeyService.class);
     private static final String KEY_PREFIX_CONSTANT = "nks_live_";
+    private static final String TEST_KEY_PREFIX_CONSTANT = "nks_test_";
+    private static final int MAX_TEST_RATE_LIMIT = 100;
+    private static final int MAX_TEST_EXPIRE_DAYS = 30;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final PartnerApiKeyRepository partnerApiKeyRepository;
@@ -115,6 +119,90 @@ public class PartnerApiKeyService {
 
         PartnerApiKeyResponse response = mapToResponse(savedKey);
         // Gán rawApiKey DUY NHẤT LẦN NÀY
+        response.setRawApiKey(rawApiKey);
+        return response;
+    }
+
+    /**
+     * Tạo mới khóa thử nghiệm (Sandbox) cho đối tác (TC-01, TC-04).
+     * <p>
+     * Khóa thử nghiệm có tiền tố {@code nks_test_}, gắn cờ {@code isTest = true},
+     * giới hạn thời hạn tối đa 30 ngày và hạn mức tối đa 100 lượt/giờ.
+     * Trả về DTO chứa {@code rawApiKey} duy nhất một lần.
+     */
+    @Transactional
+    public PartnerApiKeyResponse createTestApiKey(CreateTestApiKeyRequest request) {
+        CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
+        UUID organizationId = currentUser.getOrganizationId();
+        UUID userId = currentUser.getUserId();
+
+        if (request.getPartnerName() == null || request.getPartnerName().isBlank()) {
+            throw new BusinessException("Tên đối tác hoặc tên khóa thử nghiệm không được để trống");
+        }
+        if (request.getRateLimitPerHour() == null) {
+            request.setRateLimitPerHour(60);
+        }
+        if (request.getExpiresAt() == null) {
+            request.setExpiresAt(LocalDateTime.now().plusDays(7));
+        }
+
+        // 1. Kiểm tra ngày hết hạn phải ở tương lai
+        if (!request.getExpiresAt().isAfter(LocalDateTime.now())) {
+            throw new BusinessException("Ngày hết hạn của khóa truy cập phải ở thời điểm tương lai");
+        }
+
+        // 2. Ràng buộc thời hạn ngắn cho khóa thử nghiệm: tối đa 30 ngày
+        if (request.getExpiresAt().isAfter(LocalDateTime.now().plusDays(MAX_TEST_EXPIRE_DAYS))) {
+            throw new BusinessException("Thời hạn khóa thử nghiệm không được vượt quá " + MAX_TEST_EXPIRE_DAYS + " ngày");
+        }
+
+        // 3. Ràng buộc hạn mức thấp cho khóa thử nghiệm: tối đa 100 lượt/giờ
+        if (request.getRateLimitPerHour() != null && request.getRateLimitPerHour() > MAX_TEST_RATE_LIMIT) {
+            throw new BusinessException("Hạn mức số lượt gọi thử nghiệm không vượt quá " + MAX_TEST_RATE_LIMIT + " lượt/giờ");
+        }
+
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy tổ chức"));
+        User creator = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin người dùng"));
+
+        // 4. Sinh chuỗi ngẫu nhiên 32-byte an toàn -> Hex string
+        byte[] randomBytes = new byte[32];
+        SECURE_RANDOM.nextBytes(randomBytes);
+        String randomHex = bytesToHex(randomBytes);
+
+        // 5. Tạo rawApiKey với tiền tố nks_test_
+        String rawApiKey = TEST_KEY_PREFIX_CONSTANT + randomHex;
+        String keyPrefix = TEST_KEY_PREFIX_CONSTANT + randomHex.substring(0, 8);
+        String keyHash = hashSha256(rawApiKey);
+
+        // 6. Khởi tạo Entity với isTest = true
+        PartnerApiKey apiKey = PartnerApiKey.builder()
+                .organization(organization)
+                .partnerName(request.getPartnerName().trim())
+                .keyPrefix(keyPrefix)
+                .keyHash(keyHash)
+                .rateLimitPerHour(request.getRateLimitPerHour())
+                .expiresAt(request.getExpiresAt())
+                .status(PartnerApiKeyStatus.ACTIVE)
+                .isTest(true)
+                .totalCalls(0L)
+                .failedCalls(0L)
+                .createdBy(creator)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        PartnerApiKey savedKey = partnerApiKeyRepository.save(apiKey);
+        log.info("Đã cấp khóa thử nghiệm (Sandbox) cho đối tác '{}', orgId={}, keyPrefix={}",
+                savedKey.getPartnerName(), organizationId, keyPrefix);
+
+        // Ghi nhật ký hoạt động
+        publishActivityLog(currentUser, "CREATE_TEST_API_KEY",
+                "Cấp khóa thử nghiệm cho đối tác '" + savedKey.getPartnerName()
+                        + "' (mã khóa " + savedKey.getKeyPrefix() + "...)",
+                "PARTNER_API_KEY", savedKey.getId().toString());
+
+        PartnerApiKeyResponse response = mapToResponse(savedKey);
         response.setRawApiKey(rawApiKey);
         return response;
     }
@@ -206,6 +294,9 @@ public class PartnerApiKeyService {
                 partnerApiKeyRepository.save(apiKey);
             }
             recordCallStats(apiKey, false, 401, clientIp);
+            if (Boolean.TRUE.equals(apiKey.getIsTest())) {
+                throw new BusinessException("Khóa thử nghiệm đã hết hạn");
+            }
             throw new BusinessException("Khóa truy cập đã hết thời gian hiệu lực");
         }
 
@@ -305,6 +396,7 @@ public class PartnerApiKeyService {
                 .rateLimitPerHour(key.getRateLimitPerHour())
                 .expiresAt(key.getExpiresAt())
                 .status(status)
+                .isTest(key.getIsTest())
                 .totalCalls(key.getTotalCalls())
                 .failedCalls(key.getFailedCalls())
                 .lastCalledAt(key.getLastCalledAt())

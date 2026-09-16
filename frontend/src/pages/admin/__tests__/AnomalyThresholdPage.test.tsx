@@ -22,6 +22,13 @@ const productCategoryApi = vi.hoisted(() => ({
 
 vi.mock('@/api/anomalyThresholdApi', () => thresholdApi);
 vi.mock('@/api/productCategoryApi', () => productCategoryApi);
+vi.mock('@/components/help/HelpButton', () => ({
+  HelpButton: ({ screenKey }: { screenKey: string }) => (
+    <button data-testid="help-button" data-screenkey={screenKey}>
+      Hướng dẫn
+    </button>
+  ),
+}));
 
 const MOCK_DATA: AllThresholdsResponse = {
   global: {
@@ -32,7 +39,7 @@ const MOCK_DATA: AllThresholdsResponse = {
     maxScansPerDay: 10,
     maxDistanceKmPer30Min: 50.0,
     minTimeBetweenScansMinutes: 30,
-    activationAgeDays: 365,
+    activationAgeDays: 3,
     isActive: true,
   },
   categoryOverrides: [
@@ -44,7 +51,7 @@ const MOCK_DATA: AllThresholdsResponse = {
       maxScansPerDay: 7,
       maxDistanceKmPer30Min: 35.0,
       minTimeBetweenScansMinutes: 20,
-      activationAgeDays: 180,
+      activationAgeDays: 5,
       isActive: true,
     },
   ],
@@ -132,6 +139,20 @@ describe('AnomalyThresholdPage (NCL-08-CN-014)', () => {
 
     await waitFor(() => {
       expect(thresholdApi.updateGlobalThreshold).toHaveBeenCalled();
+    });
+  });
+
+  it('hiển thị nút Hướng dẫn tại góc trên bên phải trang với screenKey admin-anomaly-thresholds', async () => {
+    render(
+      <MemoryRouter>
+        <AnomalyThresholdPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      const helpBtn = screen.getByTestId('help-button');
+      expect(helpBtn).toBeInTheDocument();
+      expect(helpBtn).toHaveAttribute('data-screenkey', 'admin-anomaly-thresholds');
     });
   });
 });

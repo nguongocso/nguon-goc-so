@@ -100,7 +100,7 @@ function SelectContent({
           data-align-trigger={alignItemWithTrigger}
           className={cn(
             // Card-like panel: white bg, 12px radius, strong shadow, border
-            "relative isolate z-50 max-h-[min(var(--available-height),220px)] w-(--anchor-width) min-w-36 origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-[12px] border border-border bg-popover text-popover-foreground shadow-xl duration-150",
+            "relative isolate z-50 max-h-[min(var(--available-height),260px)] min-w-[var(--anchor-width)] w-auto max-w-[min(var(--available-width),480px)] origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-[12px] border border-border bg-popover text-popover-foreground shadow-xl duration-150",
             // Animation: fade + slide
             "data-[align-trigger=true]:animate-none",
             "data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
@@ -157,7 +157,7 @@ function SelectItem({
       )}
       {...props}
     >
-      <SelectPrimitive.ItemText className="flex flex-1 shrink-0 gap-2 pr-7 truncate">
+      <SelectPrimitive.ItemText className="flex flex-1 shrink-0 gap-2 pr-7 whitespace-nowrap">
         {children}
       </SelectPrimitive.ItemText>
       <SelectPrimitive.ItemIndicator

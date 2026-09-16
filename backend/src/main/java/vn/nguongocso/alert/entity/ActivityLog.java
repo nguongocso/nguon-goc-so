@@ -38,6 +38,9 @@ public class ActivityLog {
     @Column(name = "full_name", nullable = false, length = 255)
     private String fullName;
 
+    @Column(name = "actor_role", length = 50)
+    private String actorRole;
+
     @Column(name = "action", nullable = false, length = 100)
     private String action;
 
@@ -50,6 +53,12 @@ public class ActivityLog {
     @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "entity_id", length = 36)
     private String entityId;
+
+    @Column(name = "before_value", columnDefinition = "TEXT")
+    private String beforeValue;
+
+    @Column(name = "after_value", columnDefinition = "TEXT")
+    private String afterValue;
 
     @Column(name = "ip_address", length = 45)
     private String ipAddress;

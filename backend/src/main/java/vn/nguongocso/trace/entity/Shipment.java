@@ -49,6 +49,30 @@ public class Shipment {
     @JoinColumn(name = "code_range_id")
     private CodeRange codeRange;
 
+    /**
+     * Lô nguồn đã được tách để tạo ra lô hiện tại.
+     *
+     * <p>Giá trị {@code null} biểu thị lô gốc; Story hiện tại chỉ hỗ trợ một cấp
+     * cha - con.</p>
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_shipment_id")
+    private Shipment parentShipment;
+
+    /** Tổ chức đối tác nhận lô con sau khi tách. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "recipient_organization_id")
+    private Organization recipientOrganization;
+
+    /** Thời điểm hoàn tất thao tác tách lô. */
+    @Column(name = "split_at")
+    private LocalDateTime splitAt;
+
+    /** Người thực hiện thao tác tách lô. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "split_by")
+    private User splitBy;
+
     @Column(nullable = false)
     private String name;
 
