@@ -6,12 +6,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -360,5 +366,145 @@ class PartnerApiKeyServiceTest {
         when(partnerApiKeyRepository.findByIdAndOrganizationId(keyId, orgId)).thenReturn(Optional.of(existingKey));
         UpdateApiKeyQuotaRequest request = UpdateApiKeyQuotaRequest.builder().rateLimitPerHour(100).build();
         assertThrows(BusinessException.class, () -> partnerApiKeyService.updateApiKeyQuota(keyId, request));
+    }
+
+    @Test
+    @DisplayName("QTN-20 concurrency (Case A): 20 request đồng thời cùng 1 key, limit=2 — không bao giờ vượt hạn mức")
+    void testRateLimit_ConcurrentBurst_NeverExceedsLimit() throws InterruptedException {
+        String rawApiKey = "nks_live_concurrent_aaaaaaaaaaaaaaaaaaaaaa";
+        String keyHash = PartnerApiKeyService.hashSha256(rawApiKey);
+        PartnerApiKey key = buildActiveRateLimitedKey(keyHash, 2);
+        when(partnerApiKeyRepository.findByKeyHash(keyHash)).thenReturn(Optional.of(key));
+        when(partnerApiKeyUsageService.recordCallAndGetDailyCount(key.getId())).thenReturn(0);
+        when(apiKeyQuotaPolicy.warningThreshold(2)).thenReturn(0);
+
+        int totalThreads = 20;
+        AtomicInteger success = new AtomicInteger();
+        AtomicInteger rateLimited = new AtomicInteger();
+        AtomicInteger otherError = new AtomicInteger();
+        runConcurrentRequests(rawApiKey, totalThreads, success, rateLimited, otherError);
+
+        assertEquals(0, otherError.get(), "Không được phát sinh lỗi ngoài phạm vi hạn mức");
+        assertEquals(totalThreads, success.get() + rateLimited.get(), "Toàn bộ request phải được xử lý");
+        assertEquals(2, success.get(),
+                "limit=2: chỉ đúng 2 request được phép thành công dù 20 request đồng thời, thực tế: " + success.get());
+        assertTrue(success.get() <= 2, "Số request thành công không được vượt rateLimitPerHour=2");
+        assertEquals(totalThreads - 2, rateLimited.get(), "Các request còn lại phải nhận 429");
+        assertEquals(2, partnerApiKeyService.getCurrentHourCalls(key.getId()),
+                "Counter giờ cuối phải đúng bằng limit (2) — 429 không được làm tăng counter");
+    }
+
+    @Test
+    @DisplayName("QTN-20 concurrency (Case B): limit=2, counter sẵn có=1, 10 request đồng thời — chỉ 1 request được phép thêm")
+    void testRateLimit_ConcurrentRaceNearThreshold_OnlyOneMoreAllowed() throws InterruptedException {
+        String rawApiKey = "nks_live_race_bbbbbbbbbbbbbbbbbbbbbbbb";
+        String keyHash = PartnerApiKeyService.hashSha256(rawApiKey);
+        PartnerApiKey key = buildActiveRateLimitedKey(keyHash, 2);
+        when(partnerApiKeyRepository.findByKeyHash(keyHash)).thenReturn(Optional.of(key));
+        when(partnerApiKeyUsageService.recordCallAndGetDailyCount(key.getId())).thenReturn(0);
+        when(apiKeyQuotaPolicy.warningThreshold(2)).thenReturn(0);
+
+        // Warmup đúng 1 lượt -> counter giờ = 1 (sát ngưỡng limit = 2)
+        partnerApiKeyService.validateApiKeyAndCheckRateLimit(rawApiKey, "127.0.0.1");
+        assertEquals(1, partnerApiKeyService.getCurrentHourCalls(key.getId()));
+
+        int totalThreads = 10;
+        AtomicInteger success = new AtomicInteger();
+        AtomicInteger rateLimited = new AtomicInteger();
+        AtomicInteger otherError = new AtomicInteger();
+        runConcurrentRequests(rawApiKey, totalThreads, success, rateLimited, otherError);
+
+        assertEquals(0, otherError.get(), "Không được phát sinh lỗi ngoài phạm vi hạn mức");
+        assertEquals(totalThreads, success.get() + rateLimited.get(), "Toàn bộ request phải được xử lý");
+        assertEquals(1, success.get(),
+                "counter sẵn có=1, limit=2: chỉ được thêm đúng 1 request thành công dù 10 request đồng thời, thực tế: "
+                        + success.get());
+        assertEquals(totalThreads - 1, rateLimited.get());
+        assertEquals(2, partnerApiKeyService.getCurrentHourCalls(key.getId()),
+                "Counter giờ cuối phải đúng bằng limit (2) — không vượt hạn mức dưới concurrency");
+    }
+
+    @Test
+    @DisplayName("QTN-20 sequential (Case C): limit=2, lượt 1-2 thành công, lượt 3-4 nhận 429, counter giữ nguyên = 2")
+    void testRateLimit_SequentialRegression_CounterStopsAtLimit() {
+        String rawApiKey = "nks_live_seq_cccccccccccccccccccccccc";
+        String keyHash = PartnerApiKeyService.hashSha256(rawApiKey);
+        PartnerApiKey key = buildActiveRateLimitedKey(keyHash, 2);
+        when(partnerApiKeyRepository.findByKeyHash(keyHash)).thenReturn(Optional.of(key));
+        when(partnerApiKeyUsageService.recordCallAndGetDailyCount(key.getId())).thenReturn(0);
+        when(apiKeyQuotaPolicy.warningThreshold(2)).thenReturn(0);
+
+        // Lượt 1, 2 thành công
+        partnerApiKeyService.validateApiKeyAndCheckRateLimit(rawApiKey, "127.0.0.1");
+        partnerApiKeyService.validateApiKeyAndCheckRateLimit(rawApiKey, "127.0.0.1");
+        assertEquals(2, partnerApiKeyService.getCurrentHourCalls(key.getId()));
+
+        // Lượt 3, 4 nhận 429 (BusinessException vượt hạn mức)
+        assertThrows(BusinessException.class,
+                () -> partnerApiKeyService.validateApiKeyAndCheckRateLimit(rawApiKey, "127.0.0.1"));
+        assertThrows(BusinessException.class,
+                () -> partnerApiKeyService.validateApiKeyAndCheckRateLimit(rawApiKey, "127.0.0.1"));
+
+        // Counter không đổi sau 429
+        assertEquals(2, partnerApiKeyService.getCurrentHourCalls(key.getId()),
+                "429 không được làm tăng counter theo giờ; counter cuối phải bằng 2");
+        // Số lượt gọi trong ngày (DB) chỉ được ghi cho request thành công
+        verify(partnerApiKeyUsageService, times(2)).recordCallAndGetDailyCount(key.getId());
+    }
+
+    private PartnerApiKey buildActiveRateLimitedKey(String keyHash, int rateLimit) {
+        return PartnerApiKey.builder()
+                .id(UUID.randomUUID())
+                .organization(organization)
+                .partnerName("Đối Tác Concurrency")
+                .keyPrefix("nks_live_con")
+                .keyHash(keyHash)
+                .rateLimitPerHour(rateLimit)
+                .expiresAt(LocalDateTime.now().plusDays(10))
+                .status(PartnerApiKeyStatus.ACTIVE)
+                .totalCalls(0L)
+                .failedCalls(0L)
+                .build();
+    }
+
+    private void runConcurrentRequests(String rawApiKey, int threadCount, AtomicInteger success,
+            AtomicInteger rateLimited, AtomicInteger otherError) throws InterruptedException {
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch ready = new CountDownLatch(threadCount);
+        CountDownLatch start = new CountDownLatch(1);
+        CountDownLatch done = new CountDownLatch(threadCount);
+        try {
+            for (int i = 0; i < threadCount; i++) {
+                executor.submit(() -> {
+                    try {
+                        ready.countDown();
+                        start.await();
+                        try {
+                            partnerApiKeyService.validateApiKeyAndCheckRateLimit(rawApiKey, "127.0.0.1");
+                            success.incrementAndGet();
+                        } catch (BusinessException e) {
+                            if (e.getMessage().contains("vượt quá hạn mức")) {
+                                rateLimited.incrementAndGet();
+                            } else {
+                                otherError.incrementAndGet();
+                            }
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    } finally {
+                        done.countDown();
+                    }
+                });
+            }
+            if (!ready.await(10, TimeUnit.SECONDS)) {
+                throw new AssertionError("Không đủ thread sẵn sàng trước khi bắn start");
+            }
+            start.countDown();
+            if (!done.await(30, TimeUnit.SECONDS)) {
+                throw new AssertionError("Một số request concurrency không hoàn tất trong 30 giây");
+            }
+        } finally {
+            executor.shutdownNow();
+        }
     }
 }

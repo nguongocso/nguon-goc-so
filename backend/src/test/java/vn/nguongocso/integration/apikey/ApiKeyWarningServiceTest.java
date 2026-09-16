@@ -32,6 +32,7 @@ import vn.nguongocso.integration.apikey.event.ApiKeyQuotaThresholdEvent;
 import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
 import vn.nguongocso.integration.apikey.service.ApiKeyQuotaPolicy;
 import vn.nguongocso.integration.apikey.service.ApiKeyWarningService;
+import vn.nguongocso.integration.apikey.service.PartnerApiKeyService;
 import vn.nguongocso.integration.apikey.service.PartnerApiKeyUsageService;
 import vn.nguongocso.notification.repository.NotificationRepository;
 import vn.nguongocso.notification.service.NotificationService;
@@ -57,6 +58,9 @@ class ApiKeyWarningServiceTest {
 
     @Mock
     private ApiKeyQuotaPolicy apiKeyQuotaPolicy;
+
+    @Mock
+    private PartnerApiKeyService partnerApiKeyService;
 
     @InjectMocks
     private ApiKeyWarningService apiKeyWarningService;
@@ -220,6 +224,7 @@ class ApiKeyWarningServiceTest {
 
         when(partnerApiKeyUsageService.findTodayUnwarnedUsages()).thenReturn(List.of(usage));
         when(partnerApiKeyRepository.findAllById(List.of(key.getId()))).thenReturn(List.of(key));
+        when(partnerApiKeyService.getCurrentHourCalls(key.getId())).thenReturn(85);
         when(apiKeyQuotaPolicy.isReached(85, key.getRateLimitPerHour())).thenReturn(true);
         when(partnerApiKeyUsageService.claimQuotaWarning(usage.getId())).thenReturn(true);
         when(apiKeyQuotaPolicy.warningThresholdPercent()).thenReturn(80);
@@ -253,6 +258,7 @@ class ApiKeyWarningServiceTest {
         when(partnerApiKeyUsageService.findTodayUnwarnedUsages()).thenReturn(List.of(revokedUsage, healthyUsage));
         when(partnerApiKeyRepository.findAllById(List.of(revoked.getId(), healthy.getId())))
                 .thenReturn(List.of(revoked, healthy));
+        when(partnerApiKeyService.getCurrentHourCalls(healthy.getId())).thenReturn(10);
         when(apiKeyQuotaPolicy.isReached(10, healthy.getRateLimitPerHour())).thenReturn(false);
 
         apiKeyWarningService.reconcileQuotaWarnings();

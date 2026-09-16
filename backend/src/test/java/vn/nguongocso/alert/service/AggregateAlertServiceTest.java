@@ -54,6 +54,7 @@ import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
 import vn.nguongocso.integration.apikey.service.ApiKeyQuotaPolicy;
+import vn.nguongocso.integration.apikey.service.PartnerApiKeyService;
 import vn.nguongocso.integration.apikey.service.PartnerApiKeyUsageService;
 
 import java.time.LocalDate;
@@ -106,6 +107,9 @@ class AggregateAlertServiceTest {
 
     @Mock
     private ApiKeyQuotaPolicy apiKeyQuotaPolicy;
+
+    @Mock
+    private PartnerApiKeyService partnerApiKeyService;
 
     @InjectMocks
     private AggregateAlertServiceImpl aggregateAlertService;
@@ -386,6 +390,7 @@ class AggregateAlertServiceTest {
                 .build();
         when(partnerApiKeyRepository.findByOrganizationOrganizationId(eq(orgIdA), any()))
                 .thenReturn(new PageImpl<>(List.of(expiring, revoked)));
+        when(partnerApiKeyService.getCurrentHourCalls(expiring.getId())).thenReturn(0);
 
         Pageable pageable = PageRequest.of(0, 10);
         AggregateAlertPageResponse response = aggregateAlertService.getAggregateAlerts(
@@ -431,6 +436,7 @@ class AggregateAlertServiceTest {
                 .thenReturn(new PageImpl<>(List.of(quotaKey)));
         when(partnerApiKeyUsageService.getDailyCallCounts(any()))
                 .thenReturn(Collections.singletonMap(quotaKey.getId(), 8));
+        when(partnerApiKeyService.getCurrentHourCalls(quotaKey.getId())).thenReturn(8);
         when(apiKeyQuotaPolicy.isReached(8, 10)).thenReturn(true);
         when(apiKeyQuotaPolicy.warningThresholdPercent()).thenReturn(80);
 

@@ -443,15 +443,29 @@ public class PartnerApiKeyService {
         String hourlyKey = buildHourlyKey(apiKey.getId(), now);
 
         AtomicInteger currentCallCount = hourlyRateLimitMap.computeIfAbsent(hourlyKey, k -> new AtomicInteger(0));
-        int currentCount = currentCallCount.get(); // đếm số lượt thành công trước khi cho phép thêm
+        int rateLimit = apiKey.getRateLimitPerHour();
 
-        // Nếu đã đạt hoặc vượt rateLimit, từ chối ngay và KHÔNG tăng bộ đếm giờ (P0 — 429 không tính vào usage thành công)
-        if (currentCount >= apiKey.getRateLimitPerHour()) {
-            recordCallStats(apiKey, false, 429, clientIp);
-            throw new BusinessException("Khóa truy cập đã vượt quá hạn mức " + apiKey.getRateLimitPerHour() + " lượt gọi/giờ");
+        // Vòng lặp compare-and-set: thao tác "kiểm tra hạn mức + tăng bộ đếm" được thực hiện nguyên tử
+        // (NCL-12-CN-005 P0). Cách viết get() rồi incrementAndGet() trước đây KHÔNG nguyên tử: hai thao tác
+        // đó nguyên tử riêng lẻ nhưng ghép thành critical section thì nhiều request đồng thời có thể cùng
+        // vượt qua bước kiểm tra rồi cùng tăng bộ đếm, làm vượt rateLimitPerHour.
+        // Với CAS loop, chỉ thread thắng compareAndSet mới được tăng; khi counter đã đạt rateLimit thì
+        // không thể tăng thêm và mọi request dư đều nhận 429 (không làm tăng counter).
+        int callsInCurrentHour;
+        while (true) {
+            int currentCount = currentCallCount.get(); // đếm số lượt thành công trước khi cho phép thêm
+
+            // Nếu đã đạt hoặc vượt rateLimit, từ chối ngay và KHÔNG tăng bộ đếm giờ (429 không tính vào usage thành công)
+            if (currentCount >= rateLimit) {
+                recordCallStats(apiKey, false, 429, clientIp);
+                throw new BusinessException("Khóa truy cập đã vượt quá hạn mức " + rateLimit + " lượt gọi/giờ");
+            }
+
+            if (currentCallCount.compareAndSet(currentCount, currentCount + 1)) {
+                callsInCurrentHour = currentCount + 1;
+                break;
+            }
         }
-
-        int callsInCurrentHour = currentCallCount.incrementAndGet();
 
         // 4. Chạm ngưỡng cảnh báo hạn mức (NCL-12-CN-005): QTN-20 là hạn mức THEO GIỜ
         // nên cảnh báo tính trên số lượt gọi THÀNH CÔNG trong giờ hiện tại

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Key, PlusCircle, ShieldCheck, Ban, FlaskConical, BookOpen } from 'lucide-react';
 import { TableCell, TableHead, TableRow } from '@/components/ui/table';
@@ -34,6 +34,7 @@ const STATUS_OPTIONS = [
 
 export const PartnerApiKeyListPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   // Chỉ Quản lý HTX (VT-02) và Quản trị viên (VT-01) mới có quyền quản lý và cấp khóa (TC-04)
   const canManage = usePermission(['VT-01', 'VT-02']);
 
@@ -78,6 +79,50 @@ export const PartnerApiKeyListPage: React.FC = () => {
   useEffect(() => {
     fetchApiKeys();
   }, [statusFilter, page]);
+
+  // NCL-12-CN-005: lối tắt từ thông báo/cảnh báo tổng hợp dạng
+  // /integration/api-keys?keyId=...&action=renew|quota → tự mở đúng dialog cho key theo keyId.
+  // Nếu key chưa nằm trong trang đang hiển thị, tra cứu thêm trên toàn bộ khóa của tổ chức.
+  // Xử lý xong xoá params để tránh effect chạy lại (refresh/back không mở trùng dialog).
+  useEffect(() => {
+    const keyId = searchParams.get('keyId');
+    const action = searchParams.get('action');
+    if (!keyId) return;
+    if (!canManage || (action !== 'renew' && action !== 'quota')) {
+      setSearchParams({}, { replace: true });
+      return;
+    }
+
+    let cancelled = false;
+    const openFor = (target: PartnerApiKeyResponse | null) => {
+      if (cancelled) return;
+      if (target) {
+        if (action === 'renew') setRenewKeyTarget(target);
+        else setQuotaKeyTarget(target);
+      }
+      setSearchParams({}, { replace: true });
+    };
+
+    const target = keys.find((k) => k.id === keyId);
+    if (target) {
+      openFor(target);
+      return;
+    }
+
+    // Key chưa nằm trong trang hiện tại → tra cứu toàn bộ khóa của tổ chức (giới hạn 500) rồi tìm đúng keyId
+    (async () => {
+      try {
+        const data = await getApiKeys(undefined, 0, 500);
+        openFor(data.content?.find((k) => k.id === keyId) ?? null);
+      } catch {
+        openFor(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [keys, canManage, searchParams, setSearchParams]);
 
   // Lọc dữ liệu client side theo từ khóa tìm kiếm (partnerName hoặc keyPrefix)
   const filteredKeys = useMemo(() => {
@@ -365,7 +410,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
         open={!!renewKeyTarget}
         apiKeyData={renewKeyTarget}
         onClose={() => setRenewKeyTarget(null)}
-        onSuccess={(updatedKey) => {
+        onSuccess={() => {
           fetchApiKeys();
         }}
       />
@@ -374,7 +419,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
         open={!!quotaKeyTarget}
         apiKeyData={quotaKeyTarget}
         onClose={() => setQuotaKeyTarget(null)}
-        onSuccess={(updatedKey) => {
+        onSuccess={() => {
           fetchApiKeys();
         }}
       />
