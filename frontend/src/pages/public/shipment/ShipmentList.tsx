@@ -240,10 +240,12 @@ export const ShipmentList = ({
       setExportDossierShipment(shipment);
     } catch (error: any) {
       const msg =
-        error.message ||
         error.response?.data?.message ||
+        (error instanceof Error && !error.message.includes("status code")
+          ? error.message
+          : null) ||
+        error.message ||
         "Có lỗi xảy ra khi kiểm tra hồ sơ.";
-
       toast.error(msg);
     }
   };

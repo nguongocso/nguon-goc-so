@@ -140,4 +140,5 @@ public class ProfileTemplateController {
         log.info("Xóa mẫu hồ sơ thành công: orgId={}, templateId={}", orgId, templateId);
         return ResponseEntity.ok(ApiResult.success(null));
     }
+
 }

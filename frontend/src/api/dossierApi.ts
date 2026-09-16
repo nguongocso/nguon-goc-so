@@ -10,10 +10,30 @@ export interface DossierCheckResponse {
  * Kiểm tra điều kiện xuất hồ sơ
  */
 export const checkDossierEligibility = async (shipmentId: string): Promise<DossierCheckResponse> => {
-  const response = await apiClient.get<{ data: DossierCheckResponse }>(
-    `/shipments/${shipmentId}/dossier/check`
-  );
-  return response.data.data;
+  try {
+    const response = await apiClient.get<{ data: DossierCheckResponse }>(
+      `/shipments/${shipmentId}/dossier/check`
+    );
+    return response.data.data;
+  } catch (error: any) {
+    // Khi lô hàng chưa đủ chứng từ (QTN-11), backend ném DossierValidationException (HTTP 400)
+    // kèm danh sách chứng từ thiếu trong trường 'errors' hoặc 'message'.
+    if (error.response?.status === 400 && error.response?.data) {
+      const data = error.response.data;
+      const missingDocs: string[] = Array.isArray(data.errors)
+        ? data.errors
+        : Array.isArray(data.data?.missingDocuments)
+        ? data.data.missingDocuments
+        : [data.message || 'Chưa đủ chứng từ bắt buộc để xuất hồ sơ'];
+
+      return {
+        shipmentId,
+        eligible: false,
+        missingDocuments: missingDocs,
+      };
+    }
+    throw error;
+  }
 };
 
 /**
@@ -157,6 +177,8 @@ export interface BatchShipmentEligibilityItem {
   shipmentName: string;
   eligible: boolean;
   missingDocuments: string[];
+  organizationId?: string;
+  organizationName?: string;
 }
 
 export interface BatchDossierCheckResponse {

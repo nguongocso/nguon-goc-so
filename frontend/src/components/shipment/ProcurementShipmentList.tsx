@@ -172,8 +172,16 @@ export function ProcurementShipmentList({
       toast.error("Vui lòng chọn ít nhất 1 lô hàng để xuất bộ hồ sơ.");
       return;
     }
+    const shipmentOrgMap: Record<string, { orgId?: string; orgName?: string }> = {};
+    shipments
+      .filter((s) => selectedShipmentIds.includes(s.id))
+      .forEach((s) => {
+        if (s.cooperativeOrganizationId) {
+          shipmentOrgMap[s.id] = { orgId: s.cooperativeOrganizationId, orgName: s.organizationName ?? undefined };
+        }
+      });
     navigate("/shipments/batch-dossier-export", {
-      state: { shipmentIds: selectedShipmentIds },
+      state: { shipmentIds: selectedShipmentIds, shipmentOrgMap },
     });
   };
 
@@ -253,7 +261,14 @@ export function ProcurementShipmentList({
       // NCL-07-CN-007: doanh nghiệp thu mua chọn mẫu hồ sơ trước khi xuất
       setDossierDialog({ open: true, shipment });
     } catch (error: any) {
-      toast.error(error.message || "Không thể kiểm tra điều kiện xuất hồ sơ.");
+      const msg =
+        error?.response?.data?.message ||
+        (error instanceof Error && !error.message.includes("status code")
+          ? error.message
+          : null) ||
+        error?.message ||
+        "Không thể kiểm tra điều kiện xuất hồ sơ.";
+      toast.error(msg);
     }
   };
 

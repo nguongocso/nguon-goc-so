@@ -163,6 +163,38 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
     }
 
     /**
+     * Lấy danh sách mẫu hồ sơ từ nhiều tổ chức (dành cho VT-04 xuất batch).
+     * Chỉ VT-04 mới có thể gọi phương thức này.
+     * Các tổ chức khác không thể truy cập.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProfileTemplateResponse> listTemplatesForMultipleOrganizations(List<UUID> organizationIds, CustomUserDetails currentUser) {
+        if (currentUser == null || currentUser.getOrganizationId() == null) {
+            throw new TemplateNotOwnedException("Từ chối thao tác: Phiên đăng nhập không hợp lệ.");
+        }
+        // Chỉ VT-04 mới được phép gọi method này
+        if (!"VT-04".equals(currentUser.getRoleCode())) {
+            throw new TemplateNotOwnedException("Chỉ doanh nghiệp thu mua (VT-04) mới có thể xem mẫu của nhiều tổ chức.");
+        }
+
+        if (organizationIds == null || organizationIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // Lấy tất cả template từ các organizationId được yêu cầu
+        List<ProfileTemplate> allTemplates = new ArrayList<>();
+        for (UUID orgId : organizationIds) {
+            List<ProfileTemplate> templates = profileTemplateRepository.findAllByOrganization_OrganizationIdOrderByNameAsc(orgId);
+            allTemplates.addAll(templates);
+        }
+
+        return allTemplates.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Lấy chi tiết mẫu hồ sơ theo ID (TC-04).
      */
     @Override

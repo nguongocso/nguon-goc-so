@@ -108,9 +108,13 @@ export const ExportDossierDialog: React.FC<ExportDossierDialogProps> = ({
       onOpenChange(false);
     } catch (err: unknown) {
       toast.dismiss(toastId);
-      const errorMsg =
-        (err as { message?: string; response?: { data?: { message?: string } } })?.message ||
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+      const errObj = err as any;
+      let errorMsg =
+        errObj?.response?.data?.message ||
+        (err instanceof Error && err.message && !err.message.includes('status code')
+          ? err.message
+          : null) ||
+        errObj?.message ||
         'Có lỗi xảy ra khi tạo hồ sơ xuất.';
       toast.error(errorMsg);
     } finally {

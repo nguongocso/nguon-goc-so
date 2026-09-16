@@ -71,10 +71,27 @@ export const exportShipmentWithTemplate = async (
   if (templateId && templateId !== 'default') {
     params.templateId = templateId;
   }
-  const response = await apiClient.get(`/export/shipments/${shipmentId}`, {
-    params,
-    responseType: 'blob',
-    timeout: 30000,
-  });
-  return response.data;
+  try {
+    const response = await apiClient.get(`/export/shipments/${shipmentId}`, {
+      params,
+      responseType: 'blob',
+      timeout: 30000,
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data instanceof Blob && error.response.data.type?.includes('application/json')) {
+      const text = await error.response.data.text();
+      let message = text || 'Có lỗi xảy ra khi tạo hồ sơ xuất';
+      try {
+        const errJson = JSON.parse(text);
+        if (errJson?.message) {
+          message = errJson.message;
+        }
+      } catch {
+        // Không phải JSON hợp lệ → giữ nguyên text
+      }
+      throw new Error(message);
+    }
+    throw error;
+  }
 };

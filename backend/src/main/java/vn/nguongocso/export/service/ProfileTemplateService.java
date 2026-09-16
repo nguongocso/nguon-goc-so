@@ -27,6 +27,12 @@ public interface ProfileTemplateService {
     List<ProfileTemplateResponse> listTemplates(UUID orgId, CustomUserDetails currentUser);
 
     /**
+     * Lấy danh sách mẫu hồ sơ từ nhiều tổ chức (dành cho VT-04 xuất batch).
+     * Chỉ VT-04 mới có thể gọi phương thức này.
+     */
+    List<ProfileTemplateResponse> listTemplatesForMultipleOrganizations(List<UUID> organizationIds, CustomUserDetails currentUser);
+
+    /**
      * Lấy chi tiết mẫu hồ sơ theo ID (TC-04).
      */
     ProfileTemplateResponse getTemplate(UUID orgId, UUID templateId, CustomUserDetails currentUser);

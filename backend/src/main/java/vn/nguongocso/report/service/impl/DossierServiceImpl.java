@@ -66,7 +66,6 @@ import vn.nguongocso.export.entity.ProfileTemplate;
 import vn.nguongocso.export.entity.ProfileTemplateField;
 import vn.nguongocso.export.repository.ProfileTemplateRepository;
 import vn.nguongocso.export.util.ExportDisplayFormatter;
-import java.util.Set;
 
 import java.awt.Color;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
@@ -80,9 +79,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -1316,6 +1317,14 @@ public class DossierServiceImpl implements DossierService {
                 continue;
             }
 
+            // Tổ chức sở hữu lô hàng — VT-04 dùng để tổng hợp mẫu hồ sơ của các HTX trong batch.
+            UUID shipmentOrgId = shipment.getOrganization() != null
+                    ? shipment.getOrganization().getOrganizationId()
+                    : null;
+            String shipmentOrgName = shipment.getOrganization() != null
+                    ? shipment.getOrganization().getName()
+                    : null;
+
             // 1. Kiểm tra QTN-01 (Cách ly dữ liệu)
             try {
                 validateDossierAccess(shipment, currentUser);
@@ -1325,6 +1334,8 @@ public class DossierServiceImpl implements DossierService {
                         .shipmentName(shipment.getName())
                         .eligible(false)
                         .missingDocuments(List.of("Lô ngoài phạm vi quản lý của tổ chức (QTN-01)"))
+                        .organizationId(shipmentOrgId)
+                        .organizationName(shipmentOrgName)
                         .build());
                 continue;
             }
@@ -1378,6 +1389,8 @@ public class DossierServiceImpl implements DossierService {
                         .shipmentName(shipment.getName())
                         .eligible(false)
                         .missingDocuments(missingDocs)
+                        .organizationId(shipmentOrgId)
+                        .organizationName(shipmentOrgName)
                         .build());
             } else {
                 eligibleList.add(vn.nguongocso.report.dto.response.BatchDossierCheckResponse.ShipmentEligibilityItem.builder()
@@ -1385,6 +1398,8 @@ public class DossierServiceImpl implements DossierService {
                         .shipmentName(shipment.getName())
                         .eligible(true)
                         .missingDocuments(Collections.emptyList())
+                        .organizationId(shipmentOrgId)
+                        .organizationName(shipmentOrgName)
                         .build());
             }
         }
@@ -1426,31 +1441,51 @@ public class DossierServiceImpl implements DossierService {
             throw new BusinessException("Không có lô hàng nào đủ điều kiện hoặc thuộc quyền truy cập để xuất bộ hồ sơ.");
         }
 
-        // NCL-07-CN-007: Xác định mẫu hồ sơ áp dụng cho toàn bộ bộ hồ sơ (giống luồng xuất đơn lô).
-        // Ưu tiên mẫu được chọn trong request; nếu không chọn thì dùng mẫu mặc định của tổ chức;
-        // không có mẫu mặc định → dùng bộ trường chuẩn đầy đủ.
+        // NCL-07-CN-007: Xác định mẫu hồ sơ áp dụng cho toàn bộ bộ hồ sơ.
+        // Đối với VT-04: Cho phép chọn mẫu từ bất kỳ HTX nào có trong danh sách lô hàng.
+        // Nếu không chọn mẫu, hệ thống sẽ thử lấy mẫu mặc định của tổ chức đầu tiên.
+        // Nếu các lô hàng thuộc khác nhau HTX, người dùng nên chọn mẫu cụ thể.
         ProfileTemplate batchTemplate = null;
         UUID userOrgId = currentUser != null ? currentUser.getOrganizationId() : null;
-        // Tổ chức hiệu dụng: đối với VT-04 là tổ chức HTX sở hữu lô hàng đầu tiên, đối với VT-02 là tổ chức của người dùng
-        UUID effectiveOrgId = userOrgId;
-        if ("VT-04".equals(currentUser.getRoleCode()) && !eligibleShipments.isEmpty() && eligibleShipments.get(0).getOrganization() != null) {
-            effectiveOrgId = eligibleShipments.get(0).getOrganization().getOrganizationId();
+
+        // Thu thập tất cả organizationId từ các lô hàng thuộc quyền truy cập của VT04
+        Set<UUID> involvedOrgIds = new HashSet<>();
+        if ("VT-04".equals(currentUser.getRoleCode())) {
+            for (Shipment ship : eligibleShipments) {
+                if (ship.getOrganization() != null) {
+                    involvedOrgIds.add(ship.getOrganization().getOrganizationId());
+                }
+            }
         }
+
+        // Tổ chức hiệu dụng dùng để lấy mẫu mặc định khi không chọn mẫu:
+        // - VT-02: tổ chức của người dùng
+        // - VT-04: lấy organizationId đầu tiên (hoặc organizationId đa số)
+        UUID effectiveOrgIdForDefault = userOrgId;
+        if ("VT-04".equals(currentUser.getRoleCode()) && !involvedOrgIds.isEmpty()) {
+            effectiveOrgIdForDefault = eligibleShipments.get(0).getOrganization() != null
+                    ? eligibleShipments.get(0).getOrganization().getOrganizationId()
+                    : null;
+        }
+
         if (request.getTemplateId() != null && profileTemplateRepository != null) {
             batchTemplate = profileTemplateRepository.findById(request.getTemplateId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin mẫu hồ sơ."));
-            // VT-04: Kiểm tra template có thuộc tổ chức hiệu dụng (HTX) không
+
+            // VT-04: Kiểm tra template có thuộc một trong các tổ chức có trong danh sách lô không
             if ("VT-04".equals(currentUser.getRoleCode())) {
-                if (effectiveOrgId != null && !batchTemplate.getOrganization().getOrganizationId().equals(effectiveOrgId)) {
-                    throw new AccessDeniedException("Mẫu hồ sơ không thuộc tổ chức của lô hàng này.");
+                if (batchTemplate.getOrganization() == null
+                        || !involvedOrgIds.contains(batchTemplate.getOrganization().getOrganizationId())) {
+                    throw new AccessDeniedException("Mẫu hồ sơ không thuộc tổ chức của bất kỳ lô hàng nào trong danh sách.");
                 }
             } else {
                 if (userOrgId != null && !batchTemplate.getOrganization().getOrganizationId().equals(userOrgId)) {
                     throw new AccessDeniedException("Mẫu hồ sơ không thuộc tổ chức của bạn.");
                 }
             }
-        } else if (effectiveOrgId != null && profileTemplateRepository != null) {
-            batchTemplate = profileTemplateRepository.findByOrganization_OrganizationIdAndIsDefaultTrue(effectiveOrgId)
+        } else if (effectiveOrgIdForDefault != null && profileTemplateRepository != null) {
+            // Nếu không chọn mẫu, lấy mẫu mặc định của tổ chức hiệu dụng
+            batchTemplate = profileTemplateRepository.findByOrganization_OrganizationIdAndIsDefaultTrue(effectiveOrgIdForDefault)
                     .orElse(null);
         }
 
@@ -1494,7 +1529,19 @@ public class DossierServiceImpl implements DossierService {
             document.add(pCount);
 
             if (batchTemplate != null) {
-                Paragraph pTemplate = new Paragraph("Mẫu hồ sơ áp dụng: " + batchTemplate.getName(), normalFont);
+                String templateOrgName = batchTemplate.getOrganization() != null
+                        ? batchTemplate.getOrganization().getName()
+                        : "N/A";
+                StringBuilder templateInfo = new StringBuilder("Mẫu hồ sơ áp dụng: ")
+                        .append(batchTemplate.getName());
+                if ("VT-04".equals(currentUser.getRoleCode())
+                        && userOrgId != null
+                        && batchTemplate.getOrganization() != null
+                        && batchTemplate.getOrganization().getOrganizationId() != null
+                        && !batchTemplate.getOrganization().getOrganizationId().equals(userOrgId)) {
+                    templateInfo.append(" (thuộc HTX: ").append(templateOrgName).append(")");
+                }
+                Paragraph pTemplate = new Paragraph(templateInfo.toString(), normalFont);
                 document.add(pTemplate);
             }
 

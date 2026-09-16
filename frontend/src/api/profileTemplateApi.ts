@@ -7,6 +7,8 @@ import type {
   AvailableFieldItem,
 } from '@/types/profileTemplate';
 
+export type { ProfileTemplate };
+
 /**
  * Cấu trúc bọc chuẩn ApiResult từ backend Spring Boot
  */
@@ -249,6 +251,32 @@ export const getOpenDataPreview = async (
     return data;
   } catch (err) {
     console.error('[profileTemplateApi] getOpenDataPreview - Thất bại:', err);
+    throw err;
+  }
+};
+
+/**
+ * Lấy danh sách mẫu hồ sơ từ nhiều tổ chức (dành cho VT-04 xuất batch).
+ * GET /api/v1/organizations/batch/templates?organizationIds={orgId1}&organizationIds={orgId2}
+ */
+export const getBatchProfileTemplates = async (
+  organizationIds: string[]
+): Promise<ProfileTemplate[]> => {
+  console.log('[profileTemplateApi] getBatchProfileTemplates:', { organizationIds });
+  try {
+    const params = new URLSearchParams();
+    organizationIds.forEach((id) => {
+      if (id) params.append('organizationIds', id);
+    });
+    const response = await apiClient.get<ApiResult<ProfileTemplate[]> | ProfileTemplate[]>(
+      `/organizations/batch/templates?${params.toString()}`
+    );
+    const data = extractData(response.data);
+    const list = Array.isArray(data) ? data.map(normalizeProfileTemplate) : [];
+    console.log('[profileTemplateApi] getBatchProfileTemplates - Thành công, số lượng:', list.length, list);
+    return list;
+  } catch (err) {
+    console.error('[profileTemplateApi] getBatchProfileTemplates - Thất bại:', err);
     throw err;
   }
 };

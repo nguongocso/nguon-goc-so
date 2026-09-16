@@ -8,6 +8,17 @@ import { Label } from "@/components/ui/label";
 import { ListCard } from "@/components/common/ListCard";
 import { DataTableShell } from "@/components/common/DataTableShell";
 import { TableCell, TableHead, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { LoaderCircle, Sparkles, CheckCircle2 } from "lucide-react";
+import { TemplateOptionContent } from "@/components/export/TemplateOptionContent";
 import { useAuth } from "@/hooks/useAuth";
 import { ProfileTemplateSelector } from "@/components/export/ProfileTemplateSelector";
 import {
@@ -17,6 +28,10 @@ import {
   type BatchDossierCheckResponse,
   type BatchDossierHistoryDto,
 } from "@/api/dossierApi";
+import {
+  getBatchProfileTemplates,
+  type ProfileTemplate,
+} from "@/api/profileTemplateApi";
 import { useSetBreadcrumb } from "@/components/common/AppBreadcrumb";
 
 export default function BatchDossierExportPage() {
@@ -53,7 +68,15 @@ export default function BatchDossierExportPage() {
 
   // NCL-07-CN-007: chọn mẫu hồ sơ truy xuất theo yêu cầu đối tác khi xuất nhiều lô
   const { user } = useAuth();
-  const organizationId = user?.organizationId || "";
+  const userOrganizationId = user?.organizationId || "";
+
+  // Thông tin các tổ chức có trong danh sách lô hàng (dành cho VT-04 tổng hợp mẫu của các HTX)
+  const [involvedOrgIds, setInvolvedOrgIds] = useState<string[]>([]);
+  const [involvedOrgNames, setInvolvedOrgNames] = useState<Record<string, string>>({});
+  const [templates, setTemplates] = useState<ProfileTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [showInfoText] = useState(true);
+  const isBuyerRole = user?.roleCode === 'VT-04';
 
   /**
    * ID mẫu hồ sơ sẽ truyền vào API khi xuất:
@@ -86,10 +109,63 @@ export default function BatchDossierExportPage() {
     }
     let isMounted = true;
     setIsLoadingCheck(true);
+
+    // Gọi API kiểm tra điều kiện
     checkBatchDossierEligibility(shipmentIdsKey.split(","))
       .then((result) => {
         if (isMounted) {
           setCheckResult(result);
+
+          // NCL-07-CN-007: Nếu là VT-04, tổng hợp organizationId từ KẾT QUẢ batch-check
+          // (backend đã kèm organizationId/organizationName cho từng lô) rồi fetch
+          // mẫu hồ sơ của các HTX sở hữu lô hàng.
+          if (user?.roleCode === "VT-04") {
+            const orgMap = new Map<string, string>();
+            const collectOrg = (item: unknown) => {
+              const rawOrgId = (item as { organizationId?: unknown })?.organizationId;
+              const orgId = typeof rawOrgId === "string" ? rawOrgId : rawOrgId != null ? String(rawOrgId) : "";
+              const orgName = (item as { organizationName?: string })?.organizationName;
+              if (orgId && !orgMap.has(orgId)) {
+                orgMap.set(orgId, orgName || orgId);
+              }
+            };
+            [...(result.eligibleShipments || []), ...(result.ineligibleShipments || [])].forEach(collectOrg);
+            // Dự phòng: batch-check từ backend cũ chưa có organizationId -> suy ra từ
+            // cooperativeOrganizationId đã truyền qua navigation state (ProcurementShipmentList).
+            if (orgMap.size === 0 && location.state?.shipmentOrgMap) {
+              const passed = location.state.shipmentOrgMap as Record<string, { orgId?: string; orgName?: string }>;
+              shipmentIdsKey.split(",").forEach((sid) => {
+                const entry = passed[sid];
+                if (entry?.orgId && !orgMap.has(entry.orgId)) {
+                  orgMap.set(entry.orgId, entry.orgName || entry.orgId);
+                }
+              });
+            }
+            if (orgMap.size > 0) {
+              const orgIdList = Array.from(orgMap.keys());
+              setInvolvedOrgIds(orgIdList);
+              setInvolvedOrgNames(Object.fromEntries(orgMap));
+
+              // Gọi API lấy templates từ nhiều tổ chức
+              setTemplatesLoading(true);
+              getBatchProfileTemplates(orgIdList)
+                .then((templates) => {
+                  if (isMounted) {
+                    setTemplates(templates);
+                  }
+                })
+                .catch(() => {
+                  if (isMounted) {
+                    toast.error("Không thể tải danh sách mẫu hồ sơ.");
+                  }
+                })
+                .finally(() => {
+                  if (isMounted) {
+                    setTemplatesLoading(false);
+                  }
+                });
+            }
+          }
         }
       })
       .catch((err: any) => {
@@ -268,17 +344,104 @@ export default function BatchDossierExportPage() {
                 />
               </div>
 
-              {/* NCL-07-CN-007: chọn mẫu hồ sơ áp dụng — dùng component dùng chung với ExportDossierDialog */}
-              <ProfileTemplateSelector
-                organizationId={organizationId}
-                onTemplateChange={(id) => {
-                  setActiveTemplateId(id === "default" ? undefined : id);
-                }}
-                disabled={isExporting}
-                showInfoText
-                triggerClassName="w-full md:w-1/2"
-                triggerId="batch-template"
-              />
+              {/* NCL-07-CN-007: chọn mẫu hồ sơ áp dụng */}
+              {isBuyerRole && involvedOrgIds.length > 1 ? (
+                /* VT-04 xuất batch với nhiều tổ chức: tổng hợp mẫu của các HTX sở hữu lô hàng */
+                <div className="space-y-2">
+                  <Label htmlFor="batch-template" className="text-sm font-semibold flex items-center gap-1.5">
+                    <Sparkles className="size-4 text-emerald-600" />
+                    Mẫu hồ sơ áp dụng
+                    {involvedOrgIds.length > 1 && (
+                      <span className="text-xs text-muted-foreground font-normal">
+                        (tổng hợp mẫu từ {involvedOrgIds.length} tổ chức: {involvedOrgIds.map((id) => involvedOrgNames[id] || id).join(", ")})
+                      </span>
+                    )}
+                  </Label>
+                  {templatesLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <LoaderCircle className="animate-spin size-4" />
+                      Đang tải mẫu...
+                    </div>
+                  ) : (
+                    <Select
+                      value={activeTemplateId || "default"}
+                      onValueChange={(value) => setActiveTemplateId(value === "default" || value == null ? undefined : value)}
+                      disabled={isExporting}
+                    >
+                      <SelectTrigger id="batch-template" className="w-full md:w-1/2">
+                        <SelectValue placeholder="Chọn mẫu hồ sơ">
+                          {activeTemplateId ? (
+                            templates.find((t) => t.id === activeTemplateId)?.name || "Mẫu đã chọn"
+                          ) : (
+                            <span className="text-muted-foreground">Chọn mẫu mặc định</span>
+                          )}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="default" label="Mẫu mặc định hệ thống">
+                          <span className="font-medium">Mẫu mặc định hệ thống</span>
+                        </SelectItem>
+                        {involvedOrgIds.map((orgId) => {
+                          const orgTemplates = templates.filter((t) => t.organizationId === orgId);
+                          if (orgTemplates.length === 0) return null;
+                          const orgLabel = involvedOrgNames[orgId] || orgId;
+                          return (
+                            <SelectGroup key={orgId}>
+                              <SelectLabel>{orgLabel}</SelectLabel>
+                              {orgTemplates.map((tpl) => (
+                                <SelectItem
+                                  key={tpl.id}
+                                  value={tpl.id}
+                                  label={`${tpl.name}${tpl.partnerName ? ` (${tpl.partnerName})` : ""}${tpl.isDefault ? " — Mặc định" : ""}`}
+                                >
+                                  <TemplateOptionContent
+                                    name={tpl.name}
+                                    partnerName={tpl.partnerName}
+                                    isDefault={tpl.isDefault}
+                                  />
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {showInfoText && (
+                    <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border text-xs text-muted-foreground flex items-start gap-2">
+                      <CheckCircle2 className="size-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <div>
+                        {activeTemplateId === "default" || !activeTemplateId ? (
+                          <span>
+                            Áp dụng biểu mẫu mặc định của hệ thống gồm đầy đủ các trường bắt buộc và
+                            toàn bộ thông tin sản xuất, canh tác, kiểm nghiệm.
+                          </span>
+                        ) : (
+                          <span>
+                            Áp dụng mẫu <strong className="text-foreground">
+                              {templates.find((t) => t.id === activeTemplateId)?.name}
+                            </strong>
+                            . Hồ sơ xuất ra sẽ được lọc chính xác theo cấu hình
+                            {templates.find((t) => t.id === activeTemplateId)?.fields?.length || 0} trường đã chọn.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* VT-02 hoặc VT-04 xuất batch với 1 tổ chức: dùng ProfileTemplateSelector mặc định */
+                <ProfileTemplateSelector
+                  organizationId={isBuyerRole && involvedOrgIds.length > 0 ? involvedOrgIds[0] : userOrganizationId}
+                  onTemplateChange={(id) => {
+                    setActiveTemplateId(id === "default" ? undefined : id);
+                  }}
+                  disabled={isExporting}
+                  showInfoText
+                  triggerClassName="w-full md:w-1/2"
+                  triggerId="batch-template"
+                />
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="batch-note">Ghi chú bổ sung (Hiển thị trên trang bìa)</Label>

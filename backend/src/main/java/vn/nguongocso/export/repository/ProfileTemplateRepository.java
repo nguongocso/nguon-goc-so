@@ -19,10 +19,7 @@ public interface ProfileTemplateRepository extends JpaRepository<ProfileTemplate
      */
     List<ProfileTemplate> findAllByOrganization_OrganizationIdOrderByNameAsc(UUID organizationId);
 
-    /**
-     * Tìm mẫu hồ sơ theo ID và tổ chức sở hữu (QTN-01).
-     */
-    Optional<ProfileTemplate> findByIdAndOrganization_OrganizationId(UUID id, UUID organizationId);
+    Optional<ProfileTemplate> findById(UUID id);
 
     /**
      * Tìm mẫu hồ sơ mặc định của một tổ chức.

@@ -76,7 +76,15 @@ export const ProfileTemplateSelector: React.FC<ProfileTemplateSelectorProps> = (
 
   // Tự động chọn mẫu mặc định của tổ chức sau khi danh sách mẫu đã tải
   useEffect(() => {
-    if (!open || templates.length === 0) return;
+    if (!open || loadingTemplates) return;
+
+    if (templates.length === 0) {
+      if (selectedTemplateId !== 'default') {
+        setSelectedTemplateId('default');
+      }
+      onTemplateChangeRef.current?.('default', null);
+      return;
+    }
 
     const defaultTpl = templates.find((t) => t.isDefault);
     const newId = defaultTpl?.id || 'default';
@@ -87,7 +95,7 @@ export const ProfileTemplateSelector: React.FC<ProfileTemplateSelectorProps> = (
       onTemplateChangeRef.current?.(newId, defaultTpl || null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, templates]);
+  }, [open, templates, loadingTemplates]);
 
   const activeTemplate = templates.find((t) => t.id === selectedTemplateId);
 
