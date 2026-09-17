@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Loader2, ShieldAlert } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { ListPageHeader } from '@/components/common/ListPageHeader';
+import { ListCard } from '@/components/common/ListCard';
 import { Pagination } from '@/components/common/Pagination';
 import { getAggregateAlerts } from '@/api/aggregateAlertApi';
 import { AggregateAlertSummaryCards } from './components/AggregateAlertSummaryCards';
 import { AggregateAlertFilters } from './components/AggregateAlertFilters';
 import { AggregateAlertTable } from './components/AggregateAlertTable';
-import { EmptyAlertState } from './components/EmptyAlertState';
 import type {
   AggregateAlertFilterParams,
   AggregateAlertPageResponse,
@@ -92,48 +92,44 @@ export default function AggregateAlertPage() {
         onSelectSeverity={(sev) => handleFilterChange({ severity: sev || undefined, page: 0 })}
       />
 
-      {/* Thanh công cụ lọc dữ liệu */}
-      <AggregateAlertFilters
-        filters={filters}
-        onFilterChange={handleFilterChange}
-        onReset={handleResetFilters}
-        isAdmin={isAdmin}
-      />
+      {/* Khung danh sách cảnh báo chuẩn ListCard giống trang Lô sản xuất */}
+      <ListCard>
+        {/* Bộ lọc dữ liệu */}
+        <AggregateAlertFilters
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onReset={handleResetFilters}
+          onRefresh={fetchData}
+          loading={loading}
+          hasActiveFilters={hasActiveFilters}
+          isAdmin={isAdmin}
+        />
 
-      {/* Vùng hiển thị danh sách cảnh báo */}
-      {loading ? (
-        <div className="flex h-64 items-center justify-center rounded-lg border border-gray-200 bg-white">
-          <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-7 w-7 animate-spin text-emerald-600" />
-            <span>Đang tổng hợp cảnh báo từ các nguồn...</span>
-          </div>
-        </div>
-      ) : !data || data.items.length === 0 ? (
-        <EmptyAlertState
-          hasFilters={hasActiveFilters}
+        {/* Bảng danh sách cảnh báo qua DataTableShell */}
+        <AggregateAlertTable
+          items={data?.items || []}
+          isAdmin={isAdmin}
+          page={filters.page || 0}
+          pageSize={filters.size || 10}
+          loading={loading}
+          hasActiveFilters={hasActiveFilters}
           onResetFilters={handleResetFilters}
         />
-      ) : (
-        <div className="space-y-4">
-          <AggregateAlertTable
-            items={data.items}
-            isAdmin={isAdmin}
-          />
 
-          {/* Phân trang */}
-          {data.totalElements > 0 && (
-            <Pagination
-              currentPage={filters.page || 0}
-              totalPages={data.totalPages}
-              totalElements={data.totalElements}
-              pageSize={filters.size || 10}
-              loading={loading}
-              itemLabel="cảnh báo"
-              onPageChange={handlePageChange}
-            />
-          )}
-        </div>
-      )}
+        {/* Phân trang */}
+        {data && data.totalElements > 0 && (
+          <Pagination
+            currentPage={filters.page || 0}
+            totalPages={data.totalPages}
+            totalElements={data.totalElements}
+            pageSize={filters.size || 10}
+            loading={loading}
+            itemLabel="cảnh báo"
+            onPageChange={handlePageChange}
+          />
+        )}
+      </ListCard>
     </div>
   );
 }
+

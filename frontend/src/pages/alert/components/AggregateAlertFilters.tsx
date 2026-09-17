@@ -1,20 +1,24 @@
 import React from 'react';
-import { Search, RotateCcw } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import type { AggregateAlertFilterParams } from '@/types/aggregateAlert';
+import { ListToolbar } from '@/components/common/ListToolbar';
+import { SearchInput } from '@/components/common/SearchInput';
+import { FilterSelect } from '@/components/common/FilterSelect';
+import { RefreshButton } from '@/components/common/RefreshButton';
+import type {
+  AggregateAlertFilterParams,
+  AggregateAlertType,
+  AggregateAlertSeverity,
+  AggregateAlertStatus,
+} from '@/types/aggregateAlert';
 
 interface AggregateAlertFiltersProps {
   filters: AggregateAlertFilterParams;
   onFilterChange: (newFilters: Partial<AggregateAlertFilterParams>) => void;
   onReset: () => void;
+  onRefresh?: () => void;
+  loading?: boolean;
+  hasActiveFilters?: boolean;
   isAdmin?: boolean;
 }
 
@@ -43,129 +47,85 @@ const STATUSES = [
   { value: 'ALL', label: 'Tất cả trạng thái' },
 ];
 
-const ALERT_TYPE_LABELS: Record<string, string> = {
-  ALL: 'Tất cả nguồn cảnh báo',
-  SCAN_ANOMALY: 'Tem quét bất thường',
-  CERT_EXPIRING: 'Chứng nhận sắp hết hạn',
-  CERT_EXPIRED: 'Chứng nhận đã hết hạn',
-  INSPECTION_EXPIRING: 'Kiểm nghiệm sắp hết hiệu lực',
-  INSPECTION_EXPIRED: 'Kiểm nghiệm đã hết hiệu lực',
-  UNPROCESSED_FEEDBACK: 'Phản ánh chưa xử lý',
-  CODE_RANGE_QUOTA: 'Hạn mức dải mã sắp hết',
-  OVERDUE_MILESTONE: 'Mốc canh tác quá hạn',
-  OPEN_RECALL_CASE: 'Vụ việc thu hồi đang mở',
-};
-
-const SEVERITY_LABELS: Record<string, string> = {
-  ALL: 'Tất cả mức độ',
-  HIGH: 'Mức cao / Khẩn cấp',
-  MEDIUM: 'Mức trung bình',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  OPEN: 'Đang mở (Cần xử lý)',
-  RESOLVED: 'Đã giải quyết / Đóng',
-  ALL: 'Tất cả trạng thái',
-};
-
 export const AggregateAlertFilters: React.FC<AggregateAlertFiltersProps> = ({
   filters,
   onFilterChange,
   onReset,
+  onRefresh,
+  loading = false,
+  hasActiveFilters = false,
 }) => {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm xl:flex-row xl:items-center">
-      {/* Tìm kiếm từ khóa */}
-      <div className="relative flex-1 min-w-[240px]">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <Input
-          placeholder="Tìm kiếm nội dung, đối tượng liên quan..."
-          value={filters.keyword || ''}
-          onChange={(e) => onFilterChange({ keyword: e.target.value, page: 0 })}
-          className="h-10 pl-9 text-sm"
-        />
-      </div>
+    <ListToolbar
+      left={
+        <>
+          {/* Tìm kiếm từ khóa */}
+          <SearchInput
+            placeholder="Tìm kiếm nội dung, đối tượng liên quan..."
+            value={filters.keyword || ''}
+            onChange={(e) => onFilterChange({ keyword: e.target.value, page: 0 })}
+            className="w-full sm:w-auto flex-1 min-w-[240px]"
+          />
 
-      {/* Lọc loại cảnh báo */}
-      <div className="w-full sm:w-[250px] shrink-0">
-        <Select
-          value={filters.type || 'ALL'}
-          onValueChange={(val: string | null) =>
-            onFilterChange({ type: !val || val === 'ALL' ? undefined : val, page: 0 })
-          }
-        >
-          <SelectTrigger className="h-10 w-full justify-between text-sm">
-            <SelectValue>
-              {ALERT_TYPE_LABELS[filters.type || 'ALL'] || 'Tất cả nguồn cảnh báo'}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent align="start" className="min-w-[250px] max-w-sm">
-            {ALERT_TYPES.map((t) => (
-              <SelectItem key={t.value} value={t.value}>
-                {t.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          {/* Lọc nguồn cảnh báo */}
+          <FilterSelect
+            value={filters.type || 'ALL'}
+            onValueChange={(val) =>
+              onFilterChange({
+                type: !val || val === 'ALL' ? undefined : (val as AggregateAlertType),
+                page: 0,
+              })
+            }
+            options={ALERT_TYPES}
+            className="w-full sm:w-auto min-w-[200px]"
+          />
 
-      {/* Lọc mức khẩn cấp */}
-      <div className="w-full sm:w-[190px] shrink-0">
-        <Select
-          value={filters.severity || 'ALL'}
-          onValueChange={(val: string | null) =>
-            onFilterChange({ severity: !val || val === 'ALL' ? undefined : val, page: 0 })
-          }
-        >
-          <SelectTrigger className="h-10 w-full justify-between text-sm">
-            <SelectValue>
-              {SEVERITY_LABELS[filters.severity || 'ALL'] || 'Tất cả mức độ'}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent align="start" className="min-w-[190px]">
-            {SEVERITIES.map((s) => (
-              <SelectItem key={s.value} value={s.value}>
-                {s.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          {/* Lọc mức khẩn cấp */}
+          <FilterSelect
+            value={filters.severity || 'ALL'}
+            onValueChange={(val) =>
+              onFilterChange({
+                severity: !val || val === 'ALL' ? undefined : (val as AggregateAlertSeverity),
+                page: 0,
+              })
+            }
+            options={SEVERITIES}
+            className="w-full sm:w-auto min-w-[170px]"
+          />
 
-      {/* Lọc trạng thái */}
-      <div className="w-full sm:w-[210px] shrink-0">
-        <Select
-          value={filters.status || 'OPEN'}
-          onValueChange={(val: string | null) =>
-            onFilterChange({ status: !val || val === 'ALL' ? undefined : val, page: 0 })
-          }
-        >
-          <SelectTrigger className="h-10 w-full justify-between text-sm">
-            <SelectValue>
-              {STATUS_LABELS[filters.status || 'OPEN'] || 'Đang mở (Cần xử lý)'}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent align="start" className="min-w-[210px]">
-            {STATUSES.map((st) => (
-              <SelectItem key={st.value} value={st.value}>
-                {st.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Nút đặt lại bộ lọc */}
-      <Button
-        type="button"
-        variant="outline"
-        onClick={onReset}
-        className="h-10 shrink-0 whitespace-nowrap text-gray-600 hover:text-gray-900 px-3"
-        title="Đặt lại toàn bộ bộ lọc"
-      >
-        <RotateCcw className="mr-1.5 h-4 w-4" />
-        Đặt lại
-      </Button>
-    </div>
+          {/* Lọc trạng thái */}
+          <FilterSelect
+            value={filters.status || 'OPEN'}
+            onValueChange={(val) =>
+              onFilterChange({
+                status: !val || val === 'ALL' ? undefined : (val as AggregateAlertStatus),
+                page: 0,
+              })
+            }
+            options={STATUSES}
+            className="w-full sm:w-auto min-w-[190px]"
+          />
+        </>
+      }
+      right={
+        <div className="flex items-center gap-2">
+          {hasActiveFilters && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onReset}
+              className="h-9 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <RotateCcw className="size-3.5" />
+              Đặt lại
+            </Button>
+          )}
+          {onRefresh && (
+            <RefreshButton onClick={onRefresh} loading={loading} />
+          )}
+        </div>
+      }
+    />
   );
 };

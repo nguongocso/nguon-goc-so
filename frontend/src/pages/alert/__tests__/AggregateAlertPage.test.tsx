@@ -141,9 +141,9 @@ describe('NCL-08-CN-016: Trang cảnh báo tổng hợp', () => {
     });
 
     // Thẻ thống kê
-    expect(screen.getByText('4')).toBeInTheDocument(); // Tổng cảnh báo mở
-    expect(screen.getByText('3')).toBeInTheDocument(); // Mức cao
-    expect(screen.getByText('1')).toBeInTheDocument(); // Trung bình
+    expect(screen.getByRole('heading', { name: '4' })).toBeInTheDocument(); // Tổng cảnh báo mở
+    expect(screen.getByRole('heading', { name: '3' })).toBeInTheDocument(); // Mức cao
+    expect(screen.getByRole('heading', { name: '1' })).toBeInTheDocument(); // Trung bình
 
     // Danh sách các loại cảnh báo
     expect(screen.getAllByText('Tem quét bất thường').length).toBeGreaterThan(0);
