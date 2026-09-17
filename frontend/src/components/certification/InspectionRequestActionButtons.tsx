@@ -50,10 +50,11 @@ export const InspectionRequestActionButtons: React.FC<InspectionRequestActionBut
   if (status === "PASSED" || status === "FAILED") {
     return (
       <Button
-        size="sm"
-        variant="outline"
-        className="h-8 w-8 p-0 text-slate-600 hover:bg-emerald-50 hover:text-emerald-800"
+        size="icon-sm"
+        variant="ghost"
+        aria-label="Xem chi tiết"
         title="Xem chi tiết"
+        className="text-muted-foreground hover:text-primary hover:bg-primary/10"
         onClick={handleNavigate}
       >
         <Eye className="h-4 w-4" />
@@ -79,11 +80,11 @@ export const InspectionRequestActionButtons: React.FC<InspectionRequestActionBut
           <Button
             size="sm"
             variant="outline"
-            className="h-8 px-2.5 text-xs text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 border-emerald-200"
+            className="h-8 px-2.5 text-xs text-primary hover:bg-primary/10 border-primary/30"
             title="Cấp liên kết nhập kết quả cho đơn vị kiểm nghiệm"
             onClick={() => setIsIssueLinkOpen(true)}
           >
-            <LinkIcon className="h-3.5 w-3.5 mr-1 text-emerald-600" />
+            <LinkIcon className="h-3.5 w-3.5 mr-1 text-primary" />
             Cấp link
           </Button>
         </div>

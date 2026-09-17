@@ -102,6 +102,9 @@ public class InspectionCriterionResultServiceImpl
     private static final String MSG_EXPIRY_BEFORE_RESULT_DATE =
             "Ngày hết hiệu lực phải sau ngày cấp";
 
+    private static final String MSG_RESULT_DATE_BEFORE_SAMPLE_SENT =
+            "Ngày cấp kết quả không được trước ngày gửi mẫu.";
+
     private static final String MSG_EXPIRY_IN_PAST =
             "Ngày hết hiệu lực phải >= ngày hiện tại";
 
@@ -189,6 +192,12 @@ public class InspectionCriterionResultServiceImpl
         // Validate ngày cấp và ngày hết hạn — chỉ bắt buộc khi chỉ tiêu ĐẠT
         // Khi Không đạt (passed = false), resultDate / expiryDate được phép null
         if (Boolean.TRUE.equals(request.getPassed())) {
+            if (inspectionRequest.getSampleSentDate() != null
+                    && request.getResultDate() != null
+                    && request.getResultDate().isBefore(inspectionRequest.getSampleSentDate())) {
+                throw new IllegalArgumentException(MSG_RESULT_DATE_BEFORE_SAMPLE_SENT);
+            }
+
             if (request.getExpiryDate().isBefore(request.getResultDate())) {
                 throw new IllegalArgumentException(MSG_EXPIRY_BEFORE_RESULT_DATE);
             }
@@ -313,7 +322,7 @@ public class InspectionCriterionResultServiceImpl
                 throw new BusinessException(MSG_DUPLICATE_CRITERIA_IN_PAYLOAD);
             }
 
-            validateResultDates(item, today);
+            validateResultDates(item, today, inspectionRequest.getSampleSentDate());
         }
 
         // Phải ghi đủ kết quả cho toàn bộ chỉ tiêu của yêu cầu
@@ -954,7 +963,8 @@ public class InspectionCriterionResultServiceImpl
      */
     private void validateResultDates(
             InspectionCriterionResultRequest item,
-            LocalDate today) {
+            LocalDate today,
+            LocalDate sampleSentDate) {
 
         // Khi "Không đạt" (passed = false), resultDate / expiryDate được phép
         // null — chỉ tiêu không đạt không có hiệu lực thời gian.
@@ -968,6 +978,10 @@ public class InspectionCriterionResultServiceImpl
                 || item.getPassed() == null) {
             throw new BusinessException(
                     "Kết quả kiểm nghiệm phải đầy đủ ngày cấp, ngày hết hiệu lực và kết luận.");
+        }
+
+        if (sampleSentDate != null && item.getResultDate() != null && item.getResultDate().isBefore(sampleSentDate)) {
+            throw new BusinessException(MSG_RESULT_DATE_BEFORE_SAMPLE_SENT);
         }
 
         if (item.getExpiryDate().isBefore(item.getResultDate())) {
@@ -1096,7 +1110,7 @@ public class InspectionCriterionResultServiceImpl
                 throw new BusinessException(MSG_DUPLICATE_CRITERIA_IN_PAYLOAD);
             }
 
-            validateResultDates(item, today);
+            validateResultDates(item, today, inspectionRequest.getSampleSentDate());
         }
 
         if (seenCriterionIds.size() != criteria.size()) {

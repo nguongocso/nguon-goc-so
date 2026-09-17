@@ -106,4 +106,34 @@ describe('InspectionResultEntryForm', () => {
       );
     });
   });
+
+  it('báo lỗi khi ngày cấp kết quả trước ngày gửi mẫu', async () => {
+    const { toast } = await import('sonner');
+    const { container } = render(
+      <InspectionResultEntryForm
+        {...defaultProps}
+        sampleSentDate="2026-09-15"
+      />
+    );
+
+    // Đánh dấu tất cả Đạt
+    fireEvent.click(screen.getByRole('button', { name: /tất cả đạt/i }));
+
+    // Sửa ngày cấp của chỉ tiêu đầu tiên thành ngày trước ngày gửi mẫu (2026-09-10 < 2026-09-15)
+    const dateInputs = container.querySelectorAll<HTMLInputElement>('input[type="date"]');
+    expect(dateInputs.length).toBeGreaterThan(0);
+    // dateInputs[0] là ngày cấp của chỉ tiêu 1
+    fireEvent.change(dateInputs[0], { target: { value: '2026-09-10' } });
+
+    // Click submit button
+    const submitBtn = screen.getByRole('button', {
+      name: /xác nhận và gửi kết quả kiểm nghiệm/i,
+    });
+    fireEvent.click(submitBtn);
+
+    expect(toast.error).toHaveBeenCalledWith(
+      expect.stringContaining('không thể trước Ngày gửi mẫu')
+    );
+    expect(screen.queryByText(/xác nhận nộp kết quả kiểm nghiệm/i)).not.toBeInTheDocument();
+  });
 });

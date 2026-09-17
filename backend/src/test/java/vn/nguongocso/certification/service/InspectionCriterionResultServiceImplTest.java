@@ -1650,5 +1650,44 @@ class InspectionCriterionResultServiceImplTest {
         service.recordResults(inspectionRequestId, List.of(item), currentUser);
 
         verify(inspectionExpiryService).checkAndAlertLotExpiry(eq(lot), any());
+    }@Test
+    @DisplayName("Ghi nhận kết quả: Từ chối khi ngày cấp kết quả trước ngày gửi mẫu (hàng loạt)")
+    void testRecordResultsBatch_shouldThrow_whenResultDateBeforeSampleSentDate() {
+        inspectionRequest.setSampleSentDate(LocalDate.now().minusDays(3));
+        LocalDate resultDate = LocalDate.now().minusDays(5); // Trước ngày gửi mẫu 3 ngày trước
+        LocalDate expiryDate = LocalDate.now().plusMonths(6);
+        InspectionCriterionResultRequest item =
+                InspectionCriterionResultRequest.builder()
+                        .criterionId(criterionId.toString())
+                        .resultDate(resultDate)
+                        .expiryDate(expiryDate)
+                        .passed(true)
+                        .build();
+
+        when(requestRepository.findById(inspectionRequestId)).thenReturn(Optional.of(inspectionRequest));
+
+        assertThatThrownBy(() -> service.recordResults(inspectionRequestId, List.of(item), currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Ngày cấp kết quả không được trước ngày gửi mẫu");
+    }
+
+    @Test
+    @DisplayName("Ghi nhận kết quả: Từ chối khi ngày cấp kết quả trước ngày gửi mẫu (đơn lẻ)")
+    void testRecordSingleResult_shouldThrow_whenResultDateBeforeSampleSentDate() {
+        inspectionRequest.setSampleSentDate(LocalDate.now().minusDays(3));
+        LocalDate resultDate = LocalDate.now().minusDays(5); // Trước ngày gửi mẫu
+        LocalDate expiryDate = LocalDate.now().plusMonths(6);
+        InspectionCriterionResultRequest request =
+                InspectionCriterionResultRequest.builder()
+                        .resultDate(resultDate)
+                        .expiryDate(expiryDate)
+                        .passed(true)
+                        .build();
+
+        when(criterionRepository.findById(criterionId)).thenReturn(Optional.of(criterion));
+
+        assertThatThrownBy(() -> service.recordOrUpdateResult(criterionId.toString(), request, currentUser))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Ngày cấp kết quả không được trước ngày gửi mẫu");
     }
 }

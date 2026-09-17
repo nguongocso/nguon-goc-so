@@ -226,6 +226,9 @@ export const PublicInspectionSection: React.FC<PublicInspectionSectionProps> = (
                 <table className="min-w-full divide-y divide-gray-200 text-sm">
                   <thead className="bg-gray-50/80">
                     <tr>
+                      <th className="px-3 py-3 text-center font-semibold text-gray-700 w-12">
+                        {isEn ? "No." : "STT"}
+                      </th>
                       <th className="px-4 py-3 text-left font-semibold text-gray-700">
                         {isEn ? "Inspection Criterion" : "Chỉ tiêu kiểm nghiệm"}
                       </th>
@@ -241,7 +244,7 @@ export const PublicInspectionSection: React.FC<PublicInspectionSectionProps> = (
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 bg-white">
-                    {items.map((item) => {
+                    {items.map((item, index) => {
                       const expired = isExpired(item.expiryDate);
                       // TC-04 Fallback: nếu criterionNameEn rỗng thì fallback sang criterionName
                       const criterionNameDisplay = isEn
@@ -266,6 +269,9 @@ export const PublicInspectionSection: React.FC<PublicInspectionSectionProps> = (
                           key={item.id}
                           className="hover:bg-slate-50/70 transition-colors"
                         >
+                          <td className="px-3 py-3 text-center text-xs font-medium text-gray-500">
+                            {index + 1}
+                          </td>
                           <td className="px-4 py-3">
                             <div className="font-medium text-gray-900">
                               {criterionNameDisplay}
@@ -278,10 +284,10 @@ export const PublicInspectionSection: React.FC<PublicInspectionSectionProps> = (
                               )}
                               {item.entrySource === 'TESTING_UNIT_PORTAL' && (
                                 <span
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-cyan-50 text-cyan-700 border border-cyan-200"
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-teal-50 text-teal-700 border border-teal-200"
                                   title="Kết quả do chính đơn vị kiểm nghiệm nhập trực tiếp qua cổng liên kết số"
                                 >
-                                  <ShieldCheck className="h-3 w-3 text-cyan-600" />
+                                  <ShieldCheck className="h-3 w-3 text-teal-600" />
                                   Đơn vị kiểm nghiệm khai
                                 </span>
                               )}

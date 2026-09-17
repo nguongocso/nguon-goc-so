@@ -68,6 +68,7 @@ type FilterTab = 'ALL' | 'UNSET' | 'PASSED' | 'FAILED';
 
 export interface InspectionResultEntryFormProps {
   criteria: PublicInspectionResultEntryCriterion[];
+  sampleSentDate?: string;
   onSubmit: (results: InspectionCriterionResultItemInput[]) => Promise<void>;
   onUploadFile: (criterionId: string, file: File) => Promise<string>;
   isSubmitting?: boolean;
@@ -77,6 +78,7 @@ export interface InspectionResultEntryFormProps {
 
 export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps> = ({
   criteria,
+  sampleSentDate,
   onSubmit,
   onUploadFile,
   isSubmitting = false,
@@ -214,6 +216,12 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
           toast.error(`Chỉ tiêu "${r.name}" chưa có Ngày cấp kết quả.`);
           return;
         }
+        if (sampleSentDate && r.resultDate < sampleSentDate) {
+          toast.error(
+            `Chỉ tiêu "${r.name}": Ngày cấp kết quả (${r.resultDate}) không thể trước Ngày gửi mẫu (${sampleSentDate}).`
+          );
+          return;
+        }
         if (!r.expiryDate) {
           toast.error(`Chỉ tiêu "${r.name}" chưa có Ngày hết hiệu lực.`);
           return;
@@ -251,12 +259,12 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
   return (
     <div className="space-y-6">
       {/* Thanh tiến độ và công cụ hàng loạt */}
-      <Card className="border-border/80 shadow-sm">
+      <Card className="border-border bg-card shadow-card">
         <CardHeader className="pb-3">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-emerald-600" />
+                <Sparkles className="h-5 w-5 text-primary" />
                 Danh sách chỉ tiêu kiểm nghiệm ({stats.total})
               </CardTitle>
               <CardDescription>
@@ -271,20 +279,20 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
               </Badge>
               <Badge
                 variant="outline"
-                className="px-3 py-1 bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 font-medium"
+                className="px-3 py-1 bg-primary/10 text-primary border-primary/20 font-medium"
               >
                 {`Đạt: ${stats.passedCount}`}
               </Badge>
               <Badge
                 variant="outline"
-                className="px-3 py-1 bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 font-medium"
+                className="px-3 py-1 bg-destructive/10 text-destructive border-destructive/20 font-medium"
               >
                 {`Không đạt: ${stats.failedCount}`}
               </Badge>
               {stats.unsetCount > 0 && (
                 <Badge
                   variant="outline"
-                  className="px-3 py-1 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 font-medium"
+                  className="px-3 py-1 bg-warning/10 text-warning border-warning/20 font-medium"
                 >
                   {`Chưa nhập: ${stats.unsetCount}`}
                 </Badge>
@@ -322,7 +330,7 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
                   variant={filterTab === 'UNSET' ? 'secondary' : 'ghost'}
                   size="sm"
                   onClick={() => setFilterTab('UNSET')}
-                  className="h-8 text-xs font-medium text-amber-700 dark:text-amber-400"
+                  className="h-8 text-xs font-medium text-warning"
                 >
                   Chưa nhập ({stats.unsetCount})
                 </Button>
@@ -331,7 +339,7 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
                   variant={filterTab === 'PASSED' ? 'secondary' : 'ghost'}
                   size="sm"
                   onClick={() => setFilterTab('PASSED')}
-                  className="h-8 text-xs font-medium text-emerald-700 dark:text-emerald-400"
+                  className="h-8 text-xs font-medium text-primary"
                 >
                   Đạt ({stats.passedCount})
                 </Button>
@@ -340,7 +348,7 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
                   variant={filterTab === 'FAILED' ? 'secondary' : 'ghost'}
                   size="sm"
                   onClick={() => setFilterTab('FAILED')}
-                  className="h-8 text-xs font-medium text-rose-700 dark:text-rose-400"
+                  className="h-8 text-xs font-medium text-destructive"
                 >
                   Không đạt ({stats.failedCount})
                 </Button>
@@ -353,9 +361,9 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
                     variant="outline"
                     size="sm"
                     onClick={handleMarkAllPassed}
-                    className="h-8 text-xs text-emerald-700 hover:text-emerald-800 border-emerald-200"
+                    className="h-8 text-xs text-primary hover:bg-primary/10 border-primary/30"
                   >
-                    <Check className="h-3.5 w-3.5 mr-1" />
+                    <Check className="h-3.5 w-3.5 mr-1 text-primary" />
                     Tất cả Đạt
                   </Button>
                   <Button
@@ -400,12 +408,12 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
                 return (
                   <div
                     key={row.criterionId}
-                    className={`p-4 rounded-lg border transition-all ${
+                    className={`p-4 rounded-xl border transition-all ${
                       isUnset
-                        ? 'border-amber-200/80 bg-amber-50/20 dark:bg-amber-950/10'
+                        ? 'border-warning/30 bg-warning/5'
                         : isPassed
-                        ? 'border-emerald-200/80 bg-emerald-50/20 dark:bg-emerald-950/10'
-                        : 'border-rose-200/80 bg-rose-50/20 dark:bg-rose-950/10'
+                        ? 'border-primary/30 bg-primary/5'
+                        : 'border-destructive/30 bg-destructive/5'
                     }`}
                   >
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -431,20 +439,20 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
                         {/* Thông báo trạng thái dòng */}
                         <div className="text-xs text-muted-foreground flex items-center gap-1.5 pt-0.5">
                           {isUnset && (
-                            <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1 font-medium">
-                              <AlertTriangle className="h-3.5 w-3.5" />
+                            <span className="text-warning flex items-center gap-1 font-medium">
+                              <AlertTriangle className="h-3.5 w-3.5 text-warning" />
                               Vui lòng chọn kết quả đánh giá (Đạt / Không đạt)
                             </span>
                           )}
                           {isPassed && (
-                            <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium">
-                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            <span className="text-primary flex items-center gap-1 font-medium">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
                               Đạt yêu cầu kiểm nghiệm
                             </span>
                           )}
                           {isFailed && (
-                            <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1 font-medium">
-                              <XCircle className="h-3.5 w-3.5" />
+                            <span className="text-destructive flex items-center gap-1 font-medium">
+                              <XCircle className="h-3.5 w-3.5 text-destructive" />
                               Không đạt (không yêu cầu thời hạn hiệu lực)
                             </span>
                           )}
@@ -467,8 +475,8 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
                           }
                           className={
                             isPassed
-                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white font-medium h-9'
-                              : 'h-9 border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                              ? 'font-medium h-9'
+                              : 'h-9 border-primary/30 text-primary hover:bg-primary/10'
                           }
                         >
                           <Check className="h-4 w-4 mr-1.5" />
@@ -487,8 +495,8 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
                           }
                           className={
                             isFailed
-                              ? 'bg-rose-600 hover:bg-rose-700 text-white font-medium h-9'
-                              : 'h-9 border-rose-200 text-rose-700 hover:bg-rose-50'
+                              ? 'font-medium h-9'
+                              : 'h-9 border-destructive/30 text-destructive hover:bg-destructive/10'
                           }
                         >
                           <X className="h-4 w-4 mr-1.5" />
@@ -502,11 +510,12 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
                       <div className="mt-4 pt-3 border-t border-border/60 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                         <div>
                           <Label className="text-xs font-medium text-foreground mb-1 block">
-                            Ngày cấp kết quả <span className="text-rose-500">*</span>
+                            Ngày cấp kết quả <span className="text-destructive">*</span>
                           </Label>
                           <Input
                             type="date"
                             disabled={readOnly}
+                            min={sampleSentDate || undefined}
                             value={row.resultDate}
                             onChange={(e) =>
                               updateRow(row.criterionId, { resultDate: e.target.value })
@@ -517,11 +526,12 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
 
                         <div>
                           <Label className="text-xs font-medium text-foreground mb-1 block">
-                            Ngày hết hiệu lực <span className="text-rose-500">*</span>
+                            Ngày hết hiệu lực <span className="text-destructive">*</span>
                           </Label>
                           <Input
                             type="date"
                             disabled={readOnly}
+                            min={row.resultDate || sampleSentDate || undefined}
                             value={row.expiryDate}
                             onChange={(e) =>
                               updateRow(row.criterionId, { expiryDate: e.target.value })
@@ -538,12 +548,12 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
                             <label className="cursor-pointer flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-input bg-background hover:bg-accent text-xs font-medium transition-colors h-8 flex-1 truncate">
                               {row.uploading ? (
                                 <>
-                                  <LoaderCircle className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                                  <LoaderCircle className="h-3.5 w-3.5 animate-spin text-primary" />
                                   <span>Đang tải...</span>
                                 </>
                               ) : row.filePath ? (
                                 <>
-                                  <FileCheck2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                                  <FileCheck2 className="h-3.5 w-3.5 text-primary shrink-0" />
                                   <span className="truncate">
                                     {row.selectedFileName || 'Đã có phiếu kết quả'}
                                   </span>
@@ -571,7 +581,7 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
                                 onClick={() =>
                                   updateRow(row.criterionId, { filePath: '', selectedFileName: '' })
                                 }
-                                className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-600"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
                                 title="Gỡ tệp"
                               >
                                 <X className="h-3.5 w-3.5" />
@@ -589,8 +599,8 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
 
           {/* Cảnh báo toàn bộ chỉ tiêu */}
           {!stats.isAllSet && (
-            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-lg flex items-start gap-2 text-xs text-amber-800 dark:text-amber-300">
-              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+            <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg flex items-start gap-2 text-xs text-warning">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-warning mt-0.5" />
               <span>
                 Bạn cần hoàn tất đánh giá cho <strong>toàn bộ {stats.total} chỉ tiêu</strong> trước khi có
                 thể gửi kết quả kiểm nghiệm. Hiện còn <strong>{stats.unsetCount} chỉ tiêu</strong> chưa
@@ -607,7 +617,7 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
                 size="lg"
                 disabled={!stats.isAllSet || isSubmitting}
                 onClick={handleValidateAndOpenConfirm}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-6 shadow-sm"
+                className="font-medium px-6 shadow-sm"
               >
                 {isSubmitting ? (
                   <>
@@ -629,10 +639,10 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
       {/* Modal xác nhận trước khi gửi */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <Card className="w-full max-w-lg border shadow-xl bg-card">
+          <Card className="w-full max-w-lg border border-border shadow-xl bg-card">
             <CardHeader>
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <Info className="h-5 w-5 text-emerald-600" />
+                <Info className="h-5 w-5 text-primary" />
                 Xác nhận nộp kết quả kiểm nghiệm
               </CardTitle>
               <CardDescription>
@@ -646,19 +656,19 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
                   <span className="text-muted-foreground">Tổng số chỉ tiêu:</span>
                   <span className="font-semibold">{stats.total}</span>
                 </div>
-                <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
+                <div className="flex justify-between text-primary font-medium">
                   <span>Chỉ tiêu ĐẠT:</span>
                   <span className="font-semibold">{stats.passedCount}</span>
                 </div>
-                <div className="flex justify-between text-rose-700 dark:text-rose-400">
+                <div className="flex justify-between text-destructive font-medium">
                   <span>Chỉ tiêu KHÔNG ĐẠT:</span>
                   <span className="font-semibold">{stats.failedCount}</span>
                 </div>
               </div>
 
               {stats.failedCount > 0 && (
-                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 rounded-lg flex items-start gap-2 text-xs text-rose-800 dark:text-rose-300">
-                  <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
+                <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg flex items-start gap-2 text-xs text-destructive">
+                  <AlertTriangle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
                   <span>
                     Lưu ý: Yêu cầu kiểm nghiệm có <strong>{stats.failedCount} chỉ tiêu không đạt</strong>.
                     Toàn bộ yêu cầu kiểm nghiệm sẽ được kết luận là <strong>KHÔNG ĐẠT</strong> theo quy
@@ -680,7 +690,6 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
                   type="button"
                   disabled={isSubmitting}
                   onClick={handleConfirmSubmit}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
                   {isSubmitting ? (
                     <>

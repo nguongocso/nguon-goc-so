@@ -107,7 +107,7 @@ export const IssueInspectionResultLinkDialog: React.FC<IssueInspectionResultLink
           <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-lg">
-                <LinkIcon className="h-5 w-5 text-emerald-600" />
+                <LinkIcon className="h-5 w-5 text-primary" />
                 Cấp liên kết nhập kết quả cho đơn vị kiểm nghiệm
               </DialogTitle>
               <DialogDescription>
@@ -119,7 +119,7 @@ export const IssueInspectionResultLinkDialog: React.FC<IssueInspectionResultLink
             <div className="space-y-4 py-4 text-sm">
               <div className="space-y-1.5">
                 <Label htmlFor="recipientEmail" className="font-medium text-foreground">
-                  Email đại diện đơn vị kiểm nghiệm <span className="text-rose-500">*</span>
+                  Email đại diện đơn vị kiểm nghiệm <span className="text-destructive">*</span>
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -140,7 +140,7 @@ export const IssueInspectionResultLinkDialog: React.FC<IssueInspectionResultLink
 
               <div className="space-y-1.5">
                 <Label htmlFor="expiryDays" className="font-medium text-foreground">
-                  Thời hạn hiệu lực của liên kết (ngày) <span className="text-rose-500">*</span>
+                  Thời hạn hiệu lực của liên kết (ngày) <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="expiryDays"
@@ -156,8 +156,8 @@ export const IssueInspectionResultLinkDialog: React.FC<IssueInspectionResultLink
                 </p>
               </div>
 
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-lg flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-300">
-                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+              <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg flex items-start gap-2.5 text-xs text-warning">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-warning mt-0.5" />
                 <span>
                   Nếu trước đó đã có liên kết đang hoạt động, việc cấp liên kết mới sẽ{' '}
                   <strong>tự động thu hồi liên kết cũ</strong>. Mỗi yêu cầu chỉ có duy nhất 1 liên kết
@@ -178,7 +178,6 @@ export const IssueInspectionResultLinkDialog: React.FC<IssueInspectionResultLink
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 {isSubmitting ? (
                   <>
@@ -197,7 +196,7 @@ export const IssueInspectionResultLinkDialog: React.FC<IssueInspectionResultLink
         ) : (
           <div>
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-lg text-emerald-700 dark:text-emerald-400">
+              <DialogTitle className="flex items-center gap-2 text-lg text-primary">
                 <Check className="h-5 w-5" />
                 Cấp liên kết thành công!
               </DialogTitle>
@@ -221,7 +220,7 @@ export const IssueInspectionResultLinkDialog: React.FC<IssueInspectionResultLink
                     variant={copied ? 'default' : 'outline'}
                     size="sm"
                     onClick={handleCopyLink}
-                    className={copied ? 'bg-emerald-600 text-white shrink-0' : 'shrink-0'}
+                    className="shrink-0"
                   >
                     {copied ? (
                       <>
@@ -238,8 +237,8 @@ export const IssueInspectionResultLinkDialog: React.FC<IssueInspectionResultLink
                 </div>
               </div>
 
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-lg flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-300">
-                <ShieldAlert className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+              <div className="p-3 bg-warning/10 border border-warning/30 rounded-lg flex items-start gap-2.5 text-xs text-warning">
+                <ShieldAlert className="h-4 w-4 shrink-0 text-warning mt-0.5" />
                 <span>
                   <strong>Lưu ý bảo mật:</strong> Đường dẫn chứa mã bảo mật này chỉ hiển thị duy nhất
                   một lần tại màn hình này và sẽ không thể xem lại sau khi đóng cửa sổ.
@@ -250,7 +249,7 @@ export const IssueInspectionResultLinkDialog: React.FC<IssueInspectionResultLink
             <DialogFooter>
               <Button
                 type="button"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto"
+                className="w-full sm:w-auto"
                 onClick={() => handleOpenChange(false)}
               >
                 Hoàn tất

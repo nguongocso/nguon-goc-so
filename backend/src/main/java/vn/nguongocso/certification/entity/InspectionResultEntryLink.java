@@ -61,7 +61,12 @@ public class InspectionResultEntryLink {
     @Column(name = "token_prefix", nullable = false, length = 16)
     private String tokenPrefix;
 
-    @Column(name = "token_hash", nullable = false, unique = true, length = 64)
+    @Column(
+            name = "token_hash",
+            nullable = false,
+            unique = true,
+            length = 64,
+            columnDefinition = "CHAR(64)")
     private String tokenHash;
 
     @Enumerated(EnumType.STRING)
