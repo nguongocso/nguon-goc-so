@@ -3,7 +3,7 @@
  * 
  * Tự động phân tích Git Diff của Pull Request, phân loại tầng kiến trúc,
  * đối chiếu với bộ tiêu chuẩn tại docs/standards/, và gửi kết quả review
- * trực tiếp lên GitHub PR (Approve hoặc Request Changes kèm inline comments).
+ * trực tiếp lên GitHub PR.
  */
 
 import { execSync } from 'child_process';
@@ -16,48 +16,64 @@ const GITHUB_REPOSITORY = process.env.GITHUB_REPOSITORY; // format: owner/repo
 const PR_NUMBER = process.env.PR_NUMBER;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.AI_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const RAW_BASE_REF = process.env.GITHUB_BASE_REF || 'develop';
 
-// Kiểm tra môi trường tối thiểu
-if (!GITHUB_TOKEN || !GITHUB_REPOSITORY || !PR_NUMBER) {
-  console.log('⚠️ Không tìm thấy biến môi trường GITHUB_TOKEN, GITHUB_REPOSITORY hoặc PR_NUMBER.');
-  console.log('Chạy ở chế độ mô phỏng kiểm thử cục bộ (Local Dry-run Mode)...');
+/**
+ * Thực thi lệnh git an toàn có fallback
+ */
+function runGit(command) {
+  try {
+    return execSync(command, { maxBuffer: 15 * 1024 * 1024, encoding: 'utf-8' }).trim();
+  } catch (error) {
+    return null;
+  }
 }
 
 /**
- * Lấy danh sách diff của PR
+ * Lấy danh sách diff của PR bằng nhiều chiến lược
  */
 function getGitDiff() {
-  try {
-    // So sánh nhánh hiện tại với target base branch (thường là develop hoặc main)
-    const baseRef = process.env.GITHUB_BASE_REF || 'origin/develop';
-    try {
-      return execSync(`git diff ${baseRef}...HEAD`, { maxBuffer: 10 * 1024 * 1024, encoding: 'utf-8' });
-    } catch {
-      return execSync(`git diff HEAD~1...HEAD`, { maxBuffer: 10 * 1024 * 1024, encoding: 'utf-8' });
+  const strategies = [
+    `git diff origin/${RAW_BASE_REF}...HEAD`,
+    `git diff ${RAW_BASE_REF}...HEAD`,
+    `git diff origin/${RAW_BASE_REF} HEAD`,
+    `git diff HEAD~1...HEAD`,
+    `git diff HEAD`
+  ];
+
+  for (const cmd of strategies) {
+    const output = runGit(cmd);
+    if (output !== null && output.length > 0) {
+      console.log(`✅ Lấy git diff thành công với lệnh: "${cmd}" (${output.length} ký tự)`);
+      return output;
     }
-  } catch (error) {
-    console.error('Lỗi khi lấy git diff:', error.message);
-    return '';
   }
+
+  console.warn('⚠️ Không thể lấy diff qua các lệnh thông thường. Trả về rỗng.');
+  return '';
 }
 
 /**
  * Lấy danh sách các file thay đổi
  */
 function getChangedFiles() {
-  try {
-    const baseRef = process.env.GITHUB_BASE_REF || 'origin/develop';
-    let output;
-    try {
-      output = execSync(`git diff --name-only ${baseRef}...HEAD`, { encoding: 'utf-8' });
-    } catch {
-      output = execSync(`git diff --name-only HEAD~1...HEAD`, { encoding: 'utf-8' });
+  const strategies = [
+    `git diff --name-only origin/${RAW_BASE_REF}...HEAD`,
+    `git diff --name-only ${RAW_BASE_REF}...HEAD`,
+    `git diff --name-only HEAD~1...HEAD`
+  ];
+
+  for (const cmd of strategies) {
+    const output = runGit(cmd);
+    if (output !== null) {
+      const files = output.split('\n').map(f => f.trim()).filter(Boolean);
+      if (files.length > 0) {
+        return files;
+      }
     }
-    return output.split('\n').map(f => f.trim()).filter(Boolean);
-  } catch (error) {
-    console.error('Lỗi khi lấy danh sách file:', error.message);
-    return [];
   }
+
+  return [];
 }
 
 /**
@@ -111,7 +127,7 @@ function buildPrompt(files, diff, standards) {
     relevantStandards += `\n### TIÊU CHUẨN FRONTEND BẮT BUỘC:\n${standards.feConvention.slice(0, 3500)}\n\n### CHECKLIST FRONTEND (54 Tiêu chí):\n${standards.feChecklist.slice(0, 4500)}\n`;
   }
 
-  const prompt = `
+  return `
 Bạn là Lead Software Architect & Clean Code Gatekeeper của dự án "Nguồn Gốc Số".
 Nhiệm vụ của bạn là đánh giá nghiêm ngặt đoạn Git Diff dưới đây của một Pull Request dựa trên đúng các quy chuẩn của dự án:
 
@@ -159,35 +175,86 @@ Hãy phân tích kỹ từng dòng code thêm mới (bắt đầu bằng dấu +
   ]
 }
 `;
-  return prompt;
 }
 
 /**
- * Gọi AI Model (ưu tiên Gemini, dự phòng OpenAI)
+ * Gọi AI Model với danh sách model dự phòng
  */
 async function callAI(prompt) {
   if (GEMINI_API_KEY) {
-    try {
-      console.log('🤖 Đang gọi Google Gemini Flash Model để phân tích...');
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: 'application/json'
-          }
-        })
-      });
-      const data = await res.json();
-      if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-        return JSON.parse(data.candidates[0].content.parts[0].text);
+    // Danh sách các model Gemini ưu tiên (gemini-3.6-flash theo đề xuất trực tiếp từ Google API)
+    const candidateModels = [
+      'gemini-3.6-flash',
+      'gemini-3.5-flash',
+      'gemini-2.5-flash',
+      'gemini-flash'
+    ];
+
+    // Thử các model trong danh sách ưu tiên
+    for (const model of candidateModels) {
+      try {
+        console.log(`🤖 Đang thử gọi Google Gemini Model: ${model}...`);
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.1,
+              responseMimeType: 'application/json'
+            }
+          })
+        });
+
+        const data = await res.json();
+        if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+          console.log(`✅ Gọi thành công model ${model}!`);
+          return JSON.parse(data.candidates[0].content.parts[0].text);
+        }
+
+        if (data.error) {
+          console.warn(`Model ${model} báo lỗi (${data.error.code}): ${data.error.message}`);
+        }
+      } catch (e) {
+        console.warn(`Thất bại khi gọi model ${model}:`, e.message);
       }
-      console.error('Phản hồi từ Gemini không đúng mong đợi:', JSON.stringify(data));
-    } catch (e) {
-      console.error('Lỗi khi gọi Gemini API:', e.message);
+    }
+
+    // Tự động dò danh sách model khả dụng của API key nếu danh sách trên bị 404
+    try {
+      console.log('🔍 Đang tự động dò danh sách model khả dụng của API key...');
+      const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`);
+      const listData = await listRes.json();
+      if (listData.models && Array.isArray(listData.models)) {
+        const available = listData.models
+          .filter(m => m.supportedGenerationMethods?.includes('generateContent') && m.name?.includes('flash'))
+          .map(m => m.name.replace('models/', ''));
+        
+        console.log('Các model Flash tìm thấy:', available.join(', '));
+        for (const discoveredModel of available) {
+          console.log(`🤖 Thử gọi model tự động dò: ${discoveredModel}...`);
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${discoveredModel}:generateContent?key=${GEMINI_API_KEY}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                temperature: 0.1,
+                responseMimeType: 'application/json'
+              }
+            })
+          });
+          const data = await res.json();
+          if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+            console.log(`✅ Gọi thành công model tự dò: ${discoveredModel}!`);
+            return JSON.parse(data.candidates[0].content.parts[0].text);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Lỗi khi tự động dò model:', err.message);
     }
   }
 
@@ -219,8 +286,7 @@ async function callAI(prompt) {
     }
   }
 
-  // Fallback giả lập kiểm tra regex cục bộ nếu không có API key
-  console.log('ℹ️ Không có AI API Key hoặc gọi API thất bại. Chạy bộ lọc tĩnh (Static Rule Checker) cục bộ...');
+  console.log('ℹ️ Sử dụng bộ lọc tĩnh (Static Rule Checker) cục bộ...');
   return runStaticChecks();
 }
 
@@ -368,7 +434,9 @@ function buildMarkdownComment(reviewResult) {
 }
 
 /**
- * Gửi nhận xét lên GitHub PR API
+ * Gửi nhận xét lên GitHub PR
+ * Sử dụng event COMMENT để tránh lỗi 422 (GitHub Actions không được cấp quyền APPROVE trực tiếp).
+ * Việc khóa hoặc mở merge được thực hiện qua exit code của GitHub Actions check.
  */
 async function postGitHubReview(reviewResult) {
   if (!GITHUB_TOKEN || !GITHUB_REPOSITORY || !PR_NUMBER) {
@@ -378,13 +446,13 @@ async function postGitHubReview(reviewResult) {
   }
 
   const [owner, repo] = GITHUB_REPOSITORY.split('/');
-  const event = reviewResult.passed ? 'APPROVE' : 'REQUEST_CHANGES';
   const body = buildMarkdownComment(reviewResult);
 
-  const url = `https://api.github.com/repos/${owner}/${repo}/pulls/${PR_NUMBER}/reviews`;
+  // Gửi qua Pull Request Review API với event = 'COMMENT'
+  const reviewUrl = `https://api.github.com/repos/${owner}/${repo}/pulls/${PR_NUMBER}/reviews`;
   try {
-    console.log(`📡 Đang gửi đánh giá lên GitHub PR #${PR_NUMBER} với trạng thái: ${event}...`);
-    const res = await fetch(url, {
+    console.log(`📡 Đang gửi đánh giá lên GitHub PR #${PR_NUMBER}...`);
+    const res = await fetch(reviewUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${GITHUB_TOKEN}`,
@@ -392,19 +460,38 @@ async function postGitHubReview(reviewResult) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        event: event,
+        event: 'COMMENT',
         body: body
       })
     });
 
     if (res.ok) {
       console.log('✅ Đã đăng kết quả review lên GitHub PR thành công!');
+      return;
     } else {
-      const errText = await res.text();
-      console.error('Lỗi khi gọi GitHub Review API:', errText);
+      console.warn('Review API trả về mã lỗi, thử gửi qua Issue Comment API...');
     }
   } catch (error) {
-    console.error('Lỗi kết nối GitHub API:', error.message);
+    console.warn('Lỗi kết nối Review API:', error.message);
+  }
+
+  // Fallback: Gửi qua Issue Comment API nếu Review API gặp vấn đề
+  const commentUrl = `https://api.github.com/repos/${owner}/${repo}/issues/${PR_NUMBER}/comments`;
+  try {
+    const res = await fetch(commentUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ body })
+    });
+    if (res.ok) {
+      console.log('✅ Đã đăng comment đánh giá lên GitHub PR thành công qua Comment API!');
+    }
+  } catch (error) {
+    console.error('Lỗi khi đăng comment fallback:', error.message);
   }
 }
 
@@ -430,12 +517,12 @@ async function main() {
 
   await postGitHubReview(reviewResult);
 
-  // Nếu có lỗi Blocker, làm fail process để GitHub Action gắn check red
+  // Nếu có lỗi Blocker/Major, kết thúc với mã lỗi 1 để Status Check bị đỏ (khóa nút merge)
   if (!reviewResult.passed) {
     console.log('🔴 Phát hiện lỗi Blocker/Major. Workflow kết thúc với mã lỗi để khóa nút Merge.');
     process.exit(1);
   } else {
-    console.log('🟢 Mọi tiêu chí đã vượt qua! Cho phép merge.');
+    console.log('🟢 Mọi tiêu chí đã vượt qua! Status Check màu xanh (cho phép merge).');
     process.exit(0);
   }
 }
