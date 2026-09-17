@@ -397,27 +397,27 @@ public class FarmLogServiceImpl implements FarmLogService {
 				.build();
 	}
 
-	private void validateOrganizationAccess(
-			CustomUserDetails currentUser,
-			ProductionLot productionLot) {
+    private void validateOrganizationAccess(
+            CustomUserDetails currentUser,
+            ProductionLot productionLot) {
 
-		// QTN-01: ưu tiên tổ chức sở hữu trực tiếp của lô; chỉ dùng tổ chức
-		// của vùng trồng khi lô chưa gắn tổ chức (tương thích dữ liệu cũ).
-		// Lô không có cả hai đều bị từ chối thay vì NullPointerException.
-		UUID organizationId = null;
-		if (productionLot.getOrganization() != null) {
-			organizationId = productionLot.getOrganization().getOrganizationId();
-		} else if (productionLot.getFarmArea() != null
-				&& productionLot.getFarmArea().getOrganization() != null) {
-			organizationId = productionLot.getFarmArea().getOrganization().getOrganizationId();
-		}
+        // QTN-01: ưu tiên tổ chức sở hữu trực tiếp của lô; chỉ dùng tổ chức
+        // của vùng trồng khi lô chưa gắn tổ chức (tương thích dữ liệu cũ).
+        // Lô không có cả hai đều bị từ chối thay vì NullPointerException.
+        UUID organizationId = null;
+        if (productionLot.getOrganization() != null) {
+            organizationId = productionLot.getOrganization().getOrganizationId();
+        } else if (productionLot.getFarmArea() != null
+                && productionLot.getFarmArea().getOrganization() != null) {
+            organizationId = productionLot.getFarmArea().getOrganization().getOrganizationId();
+        }
 
-		if (organizationId == null
-				|| !organizationId.equals(currentUser.getOrganizationId())) {
+        if (organizationId == null
+                || !organizationId.equals(currentUser.getOrganizationId())) {
 
-			throw new BusinessException(ORGANIZATION_ACCESS_MESSAGE);
-		}
-	}
+            throw new BusinessException(ORGANIZATION_ACCESS_MESSAGE);
+        }
+    }
 
 	private void validateRole(
 			CustomUserDetails currentUser,

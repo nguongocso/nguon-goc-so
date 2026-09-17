@@ -32,6 +32,8 @@ import vn.nguongocso.trace.repository.TraceCodeRepository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -228,72 +230,158 @@ public class OfflineSyncEventProcessor {
      * @return ID bản ghi farm_logs vừa tạo
      */
     private UUID processFarmLogOffline(RecordOfflineEventDto eventDto) {
+        validateFarmLogBasics(eventDto);
+        FarmActivityType activityType = extractAndValidateActivityType(eventDto.getEventData());
+        LocalDate executedDate = extractAndValidateExecutedDate(eventDto.getEventData());
+        CreateFarmLogRequest farmLogRequest = buildCreateFarmLogRequest(eventDto, activityType, executedDate);
+        // Delegate về cùng service method với ghi trực tuyến.
+        FarmLogResponse created = farmLogService.create(farmLogRequest);
+        return created != null ? created.getId() : null;
+    }
+
+    /**
+     * Kiểm tra điều kiện tiên quyết cho nhật ký canh tác ngoại tuyến.
+     *
+     * @param eventDto sự kiện ngoại tuyến loại FARM_LOG
+     */
+    private void validateFarmLogBasics(RecordOfflineEventDto eventDto) {
         if (eventDto.getProductionLotId() == null) {
             throw new BusinessException("Vui lòng chọn lô sản xuất");
         }
         if (eventDto.getEventData() == null) {
             throw new BusinessException("Thiếu dữ liệu nhật ký canh tác.");
         }
+    }
 
-        Object activityTypeObj = eventDto.getEventData().get("activityType");
+    /**
+     * Trích xuất và kiểm tra loại hoạt động canh tác.
+     *
+     * @param eventData dữ liệu sự kiện ngoại tuyến
+     * @return loại hoạt động hợp lệ
+     */
+    private FarmActivityType extractAndValidateActivityType(Map<String, Object> eventData) {
+        Object activityTypeObj = eventData.get("activityType");
         if (activityTypeObj == null || activityTypeObj.toString().isBlank()) {
             throw new BusinessException("Vui lòng chọn loại hoạt động");
         }
-        FarmActivityType activityType;
         try {
-            activityType = FarmActivityType.valueOf(activityTypeObj.toString().trim().toUpperCase());
+            return FarmActivityType.valueOf(activityTypeObj.toString().trim().toUpperCase());
         } catch (IllegalArgumentException e) {
             throw new BusinessException("Loại hoạt động không hợp lệ: " + activityTypeObj);
         }
+    }
 
-        Object executedDateObj = eventDto.getEventData().get("executedDate");
+    /**
+     * Trích xuất và kiểm tra ngày thực hiện.
+     *
+     * @param eventData dữ liệu sự kiện ngoại tuyến
+     * @return ngày thực hiện hợp lệ
+     */
+    private LocalDate extractAndValidateExecutedDate(Map<String, Object> eventData) {
+        Object executedDateObj = eventData.get("executedDate");
         if (executedDateObj == null || executedDateObj.toString().isBlank()) {
             throw new BusinessException("Vui lòng chọn ngày thực hiện");
         }
-        LocalDate executedDate;
         try {
-            executedDate = LocalDate.parse(executedDateObj.toString().trim());
-        } catch (Exception e) {
+            return LocalDate.parse(executedDateObj.toString().trim());
+        } catch (DateTimeParseException e) {
             throw new BusinessException("Ngày thực hiện không hợp lệ: " + executedDateObj);
         }
+    }
 
+    /**
+     * Dựng request tạo nhật ký từ dữ liệu ngoại tuyến đã kiểm tra.
+     *
+     * @param eventDto sự kiện ngoại tuyến loại FARM_LOG
+     * @param activityType loại hoạt động đã kiểm tra
+     * @param executedDate ngày thực hiện đã kiểm tra
+     * @return request tạo nhật ký canh tác
+     */
+    private CreateFarmLogRequest buildCreateFarmLogRequest(RecordOfflineEventDto eventDto,
+            FarmActivityType activityType, LocalDate executedDate) {
         CreateFarmLogRequest farmLogRequest = new CreateFarmLogRequest();
         farmLogRequest.setProductionLotId(eventDto.getProductionLotId());
         farmLogRequest.setActivityType(activityType);
         farmLogRequest.setExecutedDate(executedDate);
+        applyOptionalFarmLogFields(eventDto.getEventData(), farmLogRequest);
+        return farmLogRequest;
+    }
 
-        Object materialObj = eventDto.getEventData().get("material");
-        if (materialObj != null && !materialObj.toString().isBlank()) {
-            farmLogRequest.setMaterial(materialObj.toString());
+    /**
+     * Bổ sung các trường tùy chọn (vật tư, số lượng, đơn vị, ghi chú, mốc canh tác).
+     *
+     * @param eventData dữ liệu sự kiện ngoại tuyến
+     * @param farmLogRequest request đang dựng
+     */
+    private void applyOptionalFarmLogFields(Map<String, Object> eventData,
+            CreateFarmLogRequest farmLogRequest) {
+        String material = getOptionalText(eventData, "material");
+        if (material != null) {
+            farmLogRequest.setMaterial(material);
         }
-        Object quantityObj = eventDto.getEventData().get("quantity");
-        if (quantityObj != null && !quantityObj.toString().isBlank()) {
-            try {
-                farmLogRequest.setQuantity(Double.valueOf(quantityObj.toString()));
-            } catch (NumberFormatException e) {
-                throw new BusinessException("Số lượng phải là số.");
-            }
+        applyQuantityField(eventData, farmLogRequest);
+        String unit = getOptionalText(eventData, "unit");
+        if (unit != null) {
+            farmLogRequest.setUnit(unit);
         }
-        Object unitObj = eventDto.getEventData().get("unit");
-        if (unitObj != null && !unitObj.toString().isBlank()) {
-            farmLogRequest.setUnit(unitObj.toString());
+        String notes = getOptionalText(eventData, "notes");
+        if (notes != null) {
+            farmLogRequest.setNotes(notes);
         }
-        Object notesObj = eventDto.getEventData().get("notes");
-        if (notesObj != null && !notesObj.toString().isBlank()) {
-            farmLogRequest.setNotes(notesObj.toString());
-        }
-        Object milestoneObj = eventDto.getEventData().get("milestoneId");
-        if (milestoneObj != null && !milestoneObj.toString().isBlank()) {
-            try {
-                farmLogRequest.setMilestoneId(Long.valueOf(milestoneObj.toString()));
-            } catch (NumberFormatException e) {
-                throw new BusinessException("ID mốc canh tác không hợp lệ.");
-            }
-        }
+        applyMilestoneField(eventData, farmLogRequest);
+    }
 
-        // Delegate về cùng service method với ghi trực tuyến.
-        FarmLogResponse created = farmLogService.create(farmLogRequest);
-        return created != null ? created.getId() : null;
+    /**
+     * Phân tích số lượng tùy chọn, báo lỗi nghiệp vụ khi không phải số.
+     *
+     * @param eventData dữ liệu sự kiện ngoại tuyến
+     * @param farmLogRequest request đang dựng
+     */
+    private void applyQuantityField(Map<String, Object> eventData,
+            CreateFarmLogRequest farmLogRequest) {
+        Object quantityObj = eventData.get("quantity");
+        if (quantityObj == null || quantityObj.toString().isBlank()) {
+            return;
+        }
+        try {
+            farmLogRequest.setQuantity(Double.valueOf(quantityObj.toString()));
+        } catch (NumberFormatException e) {
+            throw new BusinessException("Số lượng phải là số.");
+        }
+    }
+
+    /**
+     * Phân tích ID mốc canh tác tùy chọn, báo lỗi nghiệp vụ khi không hợp lệ.
+     *
+     * @param eventData dữ liệu sự kiện ngoại tuyến
+     * @param farmLogRequest request đang dựng
+     */
+    private void applyMilestoneField(Map<String, Object> eventData,
+            CreateFarmLogRequest farmLogRequest) {
+        Object milestoneObj = eventData.get("milestoneId");
+        if (milestoneObj == null || milestoneObj.toString().isBlank()) {
+            return;
+        }
+        try {
+            farmLogRequest.setMilestoneId(Long.valueOf(milestoneObj.toString()));
+        } catch (NumberFormatException e) {
+            throw new BusinessException("ID mốc canh tác không hợp lệ.");
+        }
+    }
+
+    /**
+     * Lấy chuỗi tùy chọn đã cắt khoảng trắng, trả về null khi trống.
+     *
+     * @param eventData dữ liệu sự kiện ngoại tuyến
+     * @param key khóa cần lấy
+     * @return chuỗi đã chuẩn hóa hoặc null
+     */
+    private String getOptionalText(Map<String, Object> eventData, String key) {
+        Object value = eventData.get(key);
+        if (value == null || value.toString().isBlank()) {
+            return null;
+        }
+        return value.toString();
     }
 
     /**
