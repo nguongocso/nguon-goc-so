@@ -858,6 +858,8 @@ public class InspectionRequestServiceImpl
                         result.getPassed())
                 .filePath(
                         result.getFilePath())
+                .entrySource(
+                        result.getEntrySource())
                 .createdByName(
                         result.getCreatedBy() != null
                                 && result.getCreatedBy()

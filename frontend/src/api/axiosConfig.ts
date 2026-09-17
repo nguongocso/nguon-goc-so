@@ -38,6 +38,7 @@ const apiClient = axios.create({
  */
 const NO_ACCESS_TOKEN_ENDPOINTS = [
   "/auth/login",
+  "/public/inspection-result-entry",
 ];
 
 /**
@@ -53,6 +54,16 @@ const SELECTION_TOKEN_ENDPOINTS = [
 ];
 
 /**
+ * Kiểm tra URL có phải endpoint công khai (public) không cần xác thực người dùng.
+ */
+const isPublicEndpoint = (url?: string): boolean => {
+  if (!url) {
+    return false;
+  }
+  return url.includes("/public/inspection-result-entry") || url.includes("/public/trace");
+};
+
+/**
  * Kiểm tra URL có phải endpoint không sử dụng
  * ACCESS TOKEN hay không.
  */
@@ -61,6 +72,10 @@ const isNoAccessTokenRequest = (
 ): boolean => {
   if (!url) {
     return false;
+  }
+
+  if (isPublicEndpoint(url)) {
+    return true;
   }
 
   return NO_ACCESS_TOKEN_ENDPOINTS.some(
@@ -276,6 +291,9 @@ apiClient.interceptors.response.use(
      * Xử lý như phiên đăng nhập đã mất.
      */
     if (status === 403 && !isApiResultBody(error.response?.data)) {
+      if (isNoAccessTokenRequest(url)) {
+        return Promise.reject(error);
+      }
       handleSessionExpiry();
 
       return Promise.reject(error);

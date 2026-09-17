@@ -16,6 +16,7 @@ import {
     FileText,
     FileUp,
     Info,
+    Link as LinkIcon,
     LoaderCircle,
     RotateCw,
     Search,
@@ -51,6 +52,9 @@ import {
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {HelpButton} from "@/components/help/HelpButton";
+import {IssueInspectionResultLinkDialog} from "@/components/certification/IssueInspectionResultLinkDialog";
+import {getLatestInspectionResultEntryLink} from "@/api/inspectionResultPortalApi";
+import type {InspectionResultEntryLinkResponse} from "@/types/inspectionResultPortal";
 
 const toISODate = (date: Date): string => {
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -79,6 +83,8 @@ interface CriterionRowState {
     filePath: string;
     selectedFileName: string;
     uploading: boolean;
+    entrySource?: 'TESTING_UNIT_PORTAL' | 'COOPERATIVE_MANUAL' | null;
+    createdByName?: string | null;
 }
 
 type FilterTab = "ALL" | "UNSET" | "PASSED" | "FAILED";
@@ -95,6 +101,8 @@ export const RecordInspectionResultPage: React.FC = () => {
 
     const [detail, setDetail] = useState<InspectionRequestDetailResponse | null>(null);
     const [lot, setLot] = useState<ProductionLot | null>(null);
+    const [latestLink, setLatestLink] = useState<InspectionResultEntryLinkResponse | null>(null);
+    const [isIssueLinkOpen, setIsIssueLinkOpen] = useState(false);
 
     // ── Breadcrumb điều hướng thống nhất (thay nút "Quay lại") ────────────────
     useSetBreadcrumb([
@@ -149,8 +157,18 @@ export const RecordInspectionResultPage: React.FC = () => {
                 filePath: c.result?.filePath ?? "",
                 selectedFileName: c.result?.filePath ? c.result.filePath.split("/").pop() || "phiếu-kết-quả" : "",
                 uploading: false,
+                entrySource: c.result?.entrySource ?? null,
+                createdByName: c.result?.createdByName ?? null,
             }));
             setRows(initialRows);
+
+            // Tải thông tin liên kết kiểm nghiệm mới nhất (nếu đã từng cấp)
+            try {
+                const linkData = await getLatestInspectionResultEntryLink(requestId);
+                setLatestLink(linkData);
+            } catch {
+                setLatestLink(null);
+            }
 
             // Fetch lot info
             const effectiveLotId = routeLotId || requestData.lotId;
@@ -192,10 +210,14 @@ export const RecordInspectionResultPage: React.FC = () => {
             if (r.passed === false) {
                 if (!r.resultDate) {
                     err.resultDate = "Vui lòng chọn ngày cấp.";
+                } else if (detail?.sampleSentDate && r.resultDate < detail.sampleSentDate) {
+                    err.resultDate = `Ngày cấp không được trước ngày gửi mẫu (${detail.sampleSentDate}).`;
                 }
             } else if (r.passed === true) {
                 if (!r.resultDate) {
                     err.resultDate = "Vui lòng chọn ngày cấp.";
+                } else if (detail?.sampleSentDate && r.resultDate < detail.sampleSentDate) {
+                    err.resultDate = `Ngày cấp không được trước ngày gửi mẫu (${detail.sampleSentDate}).`;
                 }
 
                 if (!r.expiryDate) {
@@ -263,6 +285,13 @@ export const RecordInspectionResultPage: React.FC = () => {
 
     const handleFileUpload = async (criterionId: string, file: File | null) => {
         if (!file) return;
+
+        // Giới hạn 5MB và định dạng PDF/JPG/PNG theo đúng hợp đồng API
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error("Dung lượng tệp không được vượt quá 5MB.");
+            return;
+        }
+
         setRows((prev) =>
             prev.map((r) =>
                 r.criterionId === criterionId
@@ -317,6 +346,10 @@ export const RecordInspectionResultPage: React.FC = () => {
     const handleApplyBatchDates = () => {
         if (!batchResultDate || !batchExpiryDate) {
             toast.error("Vui lòng chọn ngày cấp và ngày hết hạn hợp lệ để áp dụng.");
+            return;
+        }
+        if (detail?.sampleSentDate && batchResultDate < detail.sampleSentDate) {
+            toast.error(`Ngày cấp chung không được trước ngày gửi mẫu (${detail.sampleSentDate}).`);
             return;
         }
         if (batchExpiryDate < batchResultDate) {
@@ -431,21 +464,21 @@ export const RecordInspectionResultPage: React.FC = () => {
             case "PASSED":
                 return (
                     <Badge
-                        className="border-emerald-300 bg-emerald-100 text-emerald-800 font-semibold px-3 py-1 rounded-full text-xs">
-                        <CheckCircle2 className="mr-1.5 h-3.5 w-3.5 text-[#2E7D32]"/> Đạt chuẩn
+                        className="border-primary/30 bg-primary/10 text-primary font-semibold px-3 py-1 rounded-full text-xs">
+                        <CheckCircle2 className="mr-1.5 h-3.5 w-3.5 text-primary"/> Đạt chuẩn
                     </Badge>
                 );
             case "FAILED":
                 return (
                     <Badge
-                        className="border-red-300 bg-red-100 text-red-800 font-semibold px-3 py-1 rounded-full text-xs">
-                        <XCircle className="mr-1.5 h-3.5 w-3.5 text-red-600"/> Không đạt
+                        className="border-destructive/30 bg-destructive/10 text-destructive font-semibold px-3 py-1 rounded-full text-xs">
+                        <XCircle className="mr-1.5 h-3.5 w-3.5 text-destructive"/> Không đạt
                     </Badge>
                 );
             case "CANCELLED":
                 return (
                     <Badge
-                        className="border-gray-300 bg-gray-100 text-gray-800 font-semibold px-3 py-1 rounded-full text-xs">
+                        className="border-border bg-muted text-muted-foreground font-semibold px-3 py-1 rounded-full text-xs">
                         Đã hủy
                     </Badge>
                 );
@@ -454,8 +487,8 @@ export const RecordInspectionResultPage: React.FC = () => {
             default:
                 return (
                     <Badge
-                        className="border-amber-300 bg-amber-100 text-amber-900 font-semibold px-3 py-1 rounded-full text-xs">
-                        <LoaderCircle className="mr-1.5 h-3.5 w-3.5 animate-spin text-amber-700"/> Chờ kết quả
+                        className="border-warning/30 bg-warning/10 text-warning font-semibold px-3 py-1 rounded-full text-xs">
+                        <LoaderCircle className="mr-1.5 h-3.5 w-3.5 animate-spin text-warning"/> Chờ kết quả
                     </Badge>
                 );
         }
@@ -465,8 +498,8 @@ export const RecordInspectionResultPage: React.FC = () => {
         return (
             <div
                 className="container mx-auto flex min-h-[60vh] flex-col items-center justify-center space-y-4 px-4 py-12">
-                <LoaderCircle className="h-10 w-10 animate-spin text-[#2E7D32]"/>
-                <p className="text-base font-medium text-slate-600">Đang tải thông tin yêu cầu kiểm nghiệm...</p>
+                <LoaderCircle className="h-10 w-10 animate-spin text-primary"/>
+                <p className="text-base font-medium text-muted-foreground">Đang tải thông tin yêu cầu kiểm nghiệm...</p>
             </div>
         );
     }
@@ -474,18 +507,18 @@ export const RecordInspectionResultPage: React.FC = () => {
     if (loadError || !detail) {
         return (
             <div className="container mx-auto max-w-2xl px-4 py-12">
-                <Card className="rounded-2xl border-red-200 bg-red-50/50 shadow-sm p-6">
+                <Card className="rounded-xl border-destructive/30 bg-destructive/10 shadow-card p-6">
                     <CardHeader className="p-0 pb-4">
                         <div className="flex items-center gap-3">
-                            <ShieldAlert className="h-6 w-6 text-red-600"/>
-                            <CardTitle className="text-red-900 text-lg">Không thể tải dữ liệu</CardTitle>
+                            <ShieldAlert className="h-6 w-6 text-destructive"/>
+                            <CardTitle className="text-destructive text-lg">Không thể tải dữ liệu</CardTitle>
                         </div>
-                        <CardDescription className="text-red-700 mt-1">
+                        <CardDescription className="text-destructive/80 mt-1">
                             {loadError || "Không tìm thấy thông tin yêu cầu kiểm nghiệm tương ứng."}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="p-0 flex gap-3">
-                        <Button variant="create" className="rounded-xl" onClick={() => void loadData()}>
+                        <Button variant="outline" className="rounded-md" onClick={() => void loadData()}>
                             <RotateCw className="mr-1.5 h-4 w-4"/> Thử lại
                         </Button>
                     </CardContent>
@@ -500,12 +533,12 @@ export const RecordInspectionResultPage: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-3.5">
                     <div
-                        className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 shadow-sm shrink-0">
+                        className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm shrink-0">
                         <ShieldCheck className="h-6 w-6"/>
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
-                            <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+                            <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
                                 {isReadOnly
                                     ? "Xem kết quả kiểm nghiệm"
                                     : "Ghi nhận kết quả kiểm nghiệm"}
@@ -514,23 +547,37 @@ export const RecordInspectionResultPage: React.FC = () => {
                         </div>
                         <p className="text-xs text-muted-foreground sm:text-sm mt-0.5">
                             Yêu cầu: <span
-                            className="font-mono font-semibold text-slate-700">#{detail.testRequestId.slice(0, 8)}</span>
+                            className="font-mono font-semibold text-foreground">#{detail.testRequestId.slice(0, 8)}</span>
                             {" • "}Lô sản xuất: <span
-                            className="font-semibold text-slate-800">{lot?.name || detail.lotCode}</span>
+                            className="font-semibold text-foreground">{lot?.name || detail.lotCode}</span>
                         </p>
                     </div>
                 </div>
 
-                <HelpButton screenKey="inspection-result-record"/>
+                <div className="flex items-center gap-2">
+                    {!isReadOnly && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="border-primary/30 text-primary hover:bg-primary/10 font-medium"
+                            onClick={() => setIsIssueLinkOpen(true)}
+                        >
+                            <LinkIcon className="h-4 w-4 mr-1.5 text-primary" />
+                            Cấp link cho đơn vị kiểm nghiệm
+                        </Button>
+                    )}
+                    <HelpButton screenKey="inspection-result-record"/>
+                </div>
             </div>
 
             {isReadOnly && (
                 <div
-                    className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-slate-100/80 px-4 py-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                    className="flex flex-col gap-2 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2.5">
-                        <Eye className="h-4.5 w-4.5 text-slate-500"/>
+                        <Eye className="h-4.5 w-4.5 text-muted-foreground"/>
                         <span>
-              <strong className="font-semibold text-slate-700">
+              <strong className="font-semibold text-foreground">
                 Chế độ xem:
               </strong>{" "}
                             Kết quả cho yêu cầu này đã được ghi nhận và đóng băng. Không thể
@@ -544,16 +591,16 @@ export const RecordInspectionResultPage: React.FC = () => {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {/* Card 1: Lô sản xuất */}
                 <Card
-                    className="rounded-2xl border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow">
+                    className="rounded-xl border-border bg-card shadow-card hover:shadow-md transition-shadow">
                     <CardContent className="p-5">
                         <div className="flex items-center gap-3.5">
                             <div
-                                className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-[#2E7D32] shrink-0">
+                                className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
                                 <FileText className="h-5 w-5"/>
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-slate-500">Lô sản xuất</p>
-                                <p className="truncate text-sm font-bold text-[#1F2937] mt-0.5"
+                                <p className="text-xs font-medium text-muted-foreground">Lô sản xuất</p>
+                                <p className="truncate text-sm font-bold text-foreground mt-0.5"
                                    title={lot?.name || detail.lotCode}>
                                     {lot?.name || detail.lotCode}
                                 </p>
@@ -564,20 +611,20 @@ export const RecordInspectionResultPage: React.FC = () => {
 
                 {/* Card 2: Đơn vị kiểm nghiệm */}
                 <Card
-                    className="rounded-2xl border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow">
+                    className="rounded-xl border-border bg-card shadow-card hover:shadow-md transition-shadow">
                     <CardContent className="p-5">
                         <div className="flex items-center gap-3.5">
                             <div
-                                className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 shrink-0">
+                                className="flex h-10 w-10 items-center justify-center rounded-xl bg-info/10 text-info shrink-0">
                                 <ClipboardCheck className="h-5 w-5"/>
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-slate-500">Đơn vị kiểm nghiệm</p>
-                                <p className="truncate text-sm font-bold text-[#1F2937] mt-0.5"
+                                <p className="text-xs font-medium text-muted-foreground">Đơn vị kiểm nghiệm</p>
+                                <p className="truncate text-sm font-bold text-foreground mt-0.5"
                                    title={detail.testingUnit}>
                                     {detail.testingUnit}
                                 </p>
-                                <p className="text-xs text-slate-400 mt-0.5">Gửi mẫu: {detail.sampleSentDate}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">Gửi mẫu: {detail.sampleSentDate}</p>
                             </div>
                         </div>
                     </CardContent>
@@ -585,19 +632,19 @@ export const RecordInspectionResultPage: React.FC = () => {
 
                 {/* Card 3: Số lượng chỉ tiêu */}
                 <Card
-                    className="rounded-2xl border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow">
+                    className="rounded-xl border-border bg-card shadow-card hover:shadow-md transition-shadow">
                     <CardContent className="p-5">
                         <div className="flex items-center gap-3.5">
                             <div
-                                className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 text-purple-600 shrink-0">
+                                className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
                                 <FileCheck2 className="h-5 w-5"/>
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-slate-500">Tổng số chỉ tiêu</p>
-                                <p className="text-sm font-bold text-[#1F2937] mt-0.5">
+                                <p className="text-xs font-medium text-muted-foreground">Tổng số chỉ tiêu</p>
+                                <p className="text-sm font-bold text-foreground mt-0.5">
                                     {totalCriteria} chỉ tiêu
                                 </p>
-                                <p className="text-xs text-slate-400 mt-0.5 truncate"
+                                <p className="text-xs text-muted-foreground mt-0.5 truncate"
                                    title={detail.criteria[0]?.standardName || "Tiêu chuẩn áp dụng"}>
                                     {detail.criteria[0]?.standardName || "Tiêu chuẩn áp dụng"}
                                 </p>
@@ -608,98 +655,126 @@ export const RecordInspectionResultPage: React.FC = () => {
 
                 {/* Card 4: Tiến độ nhập liệu */}
                 <Card
-                    className="rounded-2xl border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md transition-shadow">
+                    className="rounded-xl border-border bg-card shadow-card hover:shadow-md transition-shadow">
                     <CardContent className="p-5">
                         <div className="space-y-2">
                             <div className="flex items-center justify-between text-xs">
-                                <span className="font-medium text-slate-600">Tiến độ nhập</span>
+                                <span className="font-medium text-muted-foreground">Tiến độ nhập</span>
                                 <span
-                                    className="font-bold text-[#2E7D32]">{filledCount}/{totalCriteria} ({progressPercent}%)</span>
+                                    className="font-bold text-primary">{filledCount}/{totalCriteria} ({progressPercent}%)</span>
                             </div>
                             {/* Progress bar */}
-                            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                                 <div
-                                    className="h-full bg-[#2E7D32] transition-all duration-300 ease-out rounded-full"
+                                    className="h-full bg-primary transition-all duration-300 ease-out rounded-full"
                                     style={{width: `${progressPercent}%`}}
                                 />
                             </div>
-                            <div className="flex justify-between text-[11px] text-slate-500 pt-0.5">
-                                <span className="text-emerald-700 font-medium">✓ Đạt: {passedCount}</span>
-                                <span className="text-red-600 font-medium">✗ Không đạt: {failedCount}</span>
-                                <span className="text-amber-600 font-medium">Chưa: {unsetCount}</span>
+                            <div className="flex justify-between text-[11px] text-muted-foreground pt-0.5">
+                                <span className="text-primary font-medium">✓ Đạt: {passedCount}</span>
+                                <span className="text-destructive font-medium">✗ Không đạt: {failedCount}</span>
+                                <span className="text-warning font-medium">Chưa: {unsetCount}</span>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
+            {/* Banner hiển thị trạng thái liên kết nhập kết quả của đơn vị kiểm nghiệm (MAJOR 4) */}
+            {latestLink && (
+                <div className="rounded-xl border border-info/30 bg-info/10 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2.5">
+                        <LinkIcon className="h-4 w-4 text-info shrink-0" />
+                        <div>
+                            <span className="font-semibold text-foreground">Liên kết cổng kiểm nghiệm: </span>
+                            <span className="text-muted-foreground">
+                                Đã gửi tới <strong className="text-foreground">{latestLink.recipientEmail}</strong> — Hết hạn: {new Date(latestLink.expiresAt).toLocaleString("vi-VN")}
+                            </span>
+                        </div>
+                    </div>
+                    <Badge variant="outline" className={
+                        latestLink.status === 'ACTIVE'
+                            ? 'bg-warning/10 text-warning border-warning/20 font-medium'
+                            : latestLink.status === 'USED'
+                                ? 'bg-primary/10 text-primary border-primary/20 font-medium'
+                                : 'bg-muted text-muted-foreground border-border font-medium'
+                    }>
+                        {latestLink.status === 'ACTIVE' && 'Đang mở cổng (chưa nộp)'}
+                        {latestLink.status === 'USED' && 'Đã nộp kết quả qua cổng'}
+                        {latestLink.status === 'EXPIRED' && 'Đã hết hạn'}
+                        {latestLink.status === 'REVOKED' && 'Đã thu hồi'}
+                    </Badge>
+                </div>
+            )}
+
             {/* SECTION 2: Batch Actions Toolbar */}
             {!isReadOnly && (
-                <Card className="rounded-2xl border-[#E5E7EB] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-5">
+                <Card className="rounded-xl border-border bg-card shadow-card p-5">
                     <div className="flex flex-wrap items-center justify-between gap-3 pb-3">
                         <div className="flex items-center gap-2">
-                            <Sparkles className="h-5 w-5 text-amber-500"/>
-                            <h3 className="text-base font-semibold text-[#1F2937]">
+                            <Sparkles className="h-5 w-5 text-warning"/>
+                            <h3 className="text-base font-semibold text-foreground">
                                 Thao tác nhanh cho hàng loạt chỉ tiêu
                             </h3>
                         </div>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-muted-foreground">
                             Tiết kiệm thời gian khi toàn bộ chỉ tiêu có chung ngày cấp/hạn hoặc đồng loạt đạt chuẩn
                         </p>
                     </div>
 
                     <div
-                        className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                        className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-muted/30 p-4">
                         {/* Left: Quick Decision Buttons */}
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs font-medium text-slate-700">Đánh dấu nhanh:</span>
+                            <span className="text-xs font-medium text-foreground">Đánh dấu nhanh:</span>
                             <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
                                 onClick={handleSetAllPassed}
-                                className="rounded-xl border-emerald-600 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 text-xs h-9 px-3.5 font-medium"
+                                className="rounded-md border-primary/30 text-primary hover:bg-primary/10 text-xs h-9 px-3.5 font-medium"
                             >
-                                <Check className="mr-1.5 h-3.5 w-3.5 text-emerald-600"/> Đặt tất cả là ĐẠT
+                                <Check className="mr-1.5 h-3.5 w-3.5 text-primary"/> Đặt tất cả là ĐẠT
                             </Button>
                             <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
                                 onClick={handleSetAllFailed}
-                                className="rounded-xl border-red-400 text-red-700 hover:bg-red-50 hover:text-red-800 text-xs h-9 px-3.5 font-medium"
+                                className="rounded-md border-destructive/30 text-destructive hover:bg-destructive/10 text-xs h-9 px-3.5 font-medium"
                             >
-                                <X className="mr-1.5 h-3.5 w-3.5 text-red-600"/> Đặt tất cả KHÔNG ĐẠT
+                                <X className="mr-1.5 h-3.5 w-3.5 text-destructive"/> Đặt tất cả KHÔNG ĐẠT
                             </Button>
                         </div>
 
                         {/* Right: Batch Date Application */}
                         <div className="flex flex-wrap items-center gap-2.5">
                             <div className="flex items-center gap-1.5">
-                                <Label className="text-xs text-slate-600">Ngày cấp chung:</Label>
+                                <Label className="text-xs text-muted-foreground">Ngày cấp chung:</Label>
                                 <Input
                                     type="date"
                                     value={batchResultDate}
+                                    min={detail?.sampleSentDate || undefined}
                                     onChange={(e) => setBatchResultDate(e.target.value)}
-                                    className="h-9 w-36 rounded-xl text-xs border-slate-300"
+                                    className="h-9 w-36 rounded-lg text-xs border-input"
                                 />
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <Label className="text-xs text-slate-600">Ngày hết hạn chung:</Label>
+                                <Label className="text-xs text-muted-foreground">Ngày hết hạn chung:</Label>
                                 <Input
                                     type="date"
                                     value={batchExpiryDate}
                                     min={batchResultDate || today}
                                     onChange={(e) => setBatchExpiryDate(e.target.value)}
-                                    className="h-9 w-36 rounded-xl text-xs border-slate-300"
+                                    className="h-9 w-36 rounded-lg text-xs border-input"
                                 />
                             </div>
                             <Button
                                 type="button"
-                                variant="create"
+                                variant="default"
                                 size="sm"
                                 onClick={handleApplyBatchDates}
-                                className="h-9 px-4 rounded-xl text-xs font-semibold"
+                                className="h-9 px-4 rounded-md text-xs font-semibold"
                             >
                                 <Calendar className="mr-1.5 h-3.5 w-3.5"/> Áp dụng ngày
                             </Button>
@@ -712,10 +787,10 @@ export const RecordInspectionResultPage: React.FC = () => {
             <div className="space-y-3.5">
                 {/* Header */}
                 <div>
-                    <h2 className="text-lg font-bold text-slate-900">
+                    <h2 className="text-lg font-bold text-foreground">
                         Danh sách chỉ tiêu kiểm nghiệm
                     </h2>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                         Chọn kết luận Đạt/Không đạt và thiết lập ngày hiệu lực cho từng chỉ tiêu
                     </p>
                 </div>
@@ -730,18 +805,18 @@ export const RecordInspectionResultPage: React.FC = () => {
                                 placeholder="Tìm theo tên chỉ tiêu, mã hoặc tiêu chuẩn..."
                                 value={searchText}
                                 onChange={(e) => setSearchText(e.target.value)}
-                                className="pl-9 h-10 rounded-xl text-xs"
+                                className="pl-9 h-10 rounded-lg text-xs"
                             />
                         </div>
                         <div
-                            className="inline-flex max-w-full overflow-x-auto items-center gap-1 rounded-2xl border border-emerald-100 bg-white/80 p-1 shadow-2xs backdrop-blur-sm">
+                            className="inline-flex max-w-full overflow-x-auto items-center gap-1 rounded-xl border border-border bg-card p-1 shadow-xs">
                             <button
                                 type="button"
                                 onClick={() => setFilterTab("ALL")}
-                                className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
                                     filterTab === "ALL"
-                                        ? "border border-emerald-700 bg-white text-emerald-800 shadow-2xs"
-                                        : "border border-transparent text-slate-600 hover:text-slate-900"
+                                        ? "border border-primary bg-primary/10 text-primary font-semibold shadow-xs"
+                                        : "border border-transparent text-muted-foreground hover:text-foreground"
                                 }`}
                             >
                                 Tất cả ({totalCriteria})
@@ -749,10 +824,10 @@ export const RecordInspectionResultPage: React.FC = () => {
                             <button
                                 type="button"
                                 onClick={() => setFilterTab("UNSET")}
-                                className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
                                     filterTab === "UNSET"
-                                        ? "border border-emerald-700 bg-white text-emerald-800 shadow-2xs"
-                                        : "border border-transparent text-slate-600 hover:text-slate-900"
+                                        ? "border border-warning bg-warning/10 text-warning font-semibold shadow-xs"
+                                        : "border border-transparent text-muted-foreground hover:text-foreground"
                                 }`}
                             >
                                 Chưa nhập ({unsetCount})
@@ -760,10 +835,10 @@ export const RecordInspectionResultPage: React.FC = () => {
                             <button
                                 type="button"
                                 onClick={() => setFilterTab("PASSED")}
-                                className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
                                     filterTab === "PASSED"
-                                        ? "border border-emerald-700 bg-white text-emerald-800 shadow-2xs"
-                                        : "border border-transparent text-slate-600 hover:text-slate-900"
+                                        ? "border border-primary bg-primary/10 text-primary font-semibold shadow-xs"
+                                        : "border border-transparent text-muted-foreground hover:text-foreground"
                                 }`}
                             >
                                 Đạt ({passedCount})
@@ -771,10 +846,10 @@ export const RecordInspectionResultPage: React.FC = () => {
                             <button
                                 type="button"
                                 onClick={() => setFilterTab("FAILED")}
-                                className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                                className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
                                     filterTab === "FAILED"
-                                        ? "border border-emerald-700 bg-white text-emerald-800 shadow-2xs"
-                                        : "border border-transparent text-slate-600 hover:text-slate-900"
+                                        ? "border border-destructive bg-destructive/10 text-destructive font-semibold shadow-xs"
+                                        : "border border-transparent text-muted-foreground hover:text-foreground"
                                 }`}
                             >
                                 Không đạt ({failedCount})
@@ -785,18 +860,18 @@ export const RecordInspectionResultPage: React.FC = () => {
                 </div>
 
                 {/* Table Container Card */}
-                <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <Card className="rounded-xl border border-border bg-card shadow-card overflow-hidden">
                     <CardContent className="p-0">
                         {filteredRows.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-12 text-center text-slate-400">
-                                <Info className="h-8 w-8 mb-2 text-slate-300"/>
+                            <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                                <Info className="h-8 w-8 mb-2 text-muted-foreground/60"/>
                                 <p className="text-sm font-medium">Không có chỉ tiêu nào phù hợp với bộ lọc hiện
                                     tại.</p>
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => setFilterTab("ALL")}
-                                    className="mt-2 text-xs text-[#2E7D32] rounded-xl"
+                                    className="mt-2 text-xs text-primary rounded-md"
                                 >
                                     Xem tất cả chỉ tiêu
                                 </Button>
@@ -805,7 +880,7 @@ export const RecordInspectionResultPage: React.FC = () => {
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm border-collapse">
                                     <thead>
-                                    <tr className="border-b border-slate-200 bg-slate-50/90 text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                                    <tr className="border-b border-border bg-table-header text-xs font-semibold text-label uppercase tracking-wider">
                                         <th className="py-3.5 pl-5 pr-2 w-12 text-center">STT</th>
                                         <th className="py-3.5 px-4 min-w-[200px]">Chỉ tiêu kiểm nghiệm</th>
                                         <th className="py-3.5 px-4 min-w-[180px] text-center">
@@ -821,7 +896,7 @@ export const RecordInspectionResultPage: React.FC = () => {
                                         <th className="py-3.5 pr-5 pl-2 w-16 text-center">Trạng thái</th>
                                     </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100">
+                                    <tbody className="divide-y divide-border/60">
                                     {paginatedRows.map((r, index) => {
                                         const err = rowErrors[r.criterionId];
                                         const isRowValid = r.passed !== null && !err?.resultDate && !err?.expiryDate;
@@ -829,34 +904,44 @@ export const RecordInspectionResultPage: React.FC = () => {
                                         return (
                                             <tr
                                                 key={r.criterionId}
-                                                className={`transition-colors hover:bg-slate-50/80 ${
+                                                className={`transition-colors hover:bg-table-hover ${
                                                     r.passed === false
-                                                        ? "bg-red-50/25"
+                                                        ? "bg-destructive/5"
                                                         : r.passed === true
-                                                            ? "bg-emerald-50/20"
+                                                            ? "bg-primary/5"
                                                             : index % 2 === 1
-                                                                ? "bg-[#F9FAFB]/60"
-                                                                : "bg-white"
+                                                                ? "bg-table-alternate/60"
+                                                                : "bg-card"
                                                 }`}
                                             >
                                                 {/* STT */}
-                                                <td className="py-4 pl-5 pr-2 text-center text-xs font-medium text-slate-500 align-top">
+                                                <td className="py-4 pl-5 pr-2 text-center text-xs font-medium text-muted-foreground align-top">
                                                     {page * pageSize + index + 1}
                                                 </td>
 
                                                 {/* Criterion Info */}
                                                 <td className="py-4 px-4 align-top">
                                                     <div className="space-y-1">
-                                                        <p className="font-semibold text-slate-900 text-sm leading-snug">
+                                                        <p className="font-semibold text-foreground text-sm leading-snug">
                                                             {r.name}
                                                         </p>
                                                         <div
-                                                            className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                                            className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                                             {r.standardName && (
-                                                                <span className="truncate max-w-[180px] text-slate-500"
+                                                                <span className="truncate max-w-[180px] text-muted-foreground"
                                                                       title={r.standardName}>
                                     {r.standardName}
                                   </span>
+                                                            )}
+                                                            {r.entrySource === 'TESTING_UNIT_PORTAL' && (
+                                                                <Badge variant="outline" className="text-[10px] bg-teal-50 text-teal-700 border-teal-200 font-medium">
+                                                                    Đơn vị kiểm nghiệm khai
+                                                                </Badge>
+                                                            )}
+                                                            {r.entrySource === 'COOPERATIVE_MANUAL' && (
+                                                                <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-700 border-slate-200 font-medium">
+                                                                    HTX nhập{r.createdByName ? `: ${r.createdByName}` : ''}
+                                                                </Badge>
                                                             )}
                                                         </div>
                                                     </div>
@@ -865,17 +950,17 @@ export const RecordInspectionResultPage: React.FC = () => {
                                                 {/* Conclusion (Pass/Fail Toggle) */}
                                                 <td className="py-4 px-4 text-center align-top">
                                                     <div
-                                                        className="inline-flex rounded-xl border border-slate-200 bg-slate-100/90 p-1 shadow-inner">
+                                                        className="inline-flex rounded-lg border border-border bg-muted/60 p-1 shadow-inner">
                                                         <button
                                                             type="button"
                                                             onClick={() => handleSetPassed(r.criterionId, true)}
                                                             disabled={isReadOnly}
-                                                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                                                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                                                                 r.passed === true && !isReadOnly
-                                                                    ? "bg-[#2E7D32] text-white shadow-sm"
+                                                                    ? "bg-primary text-primary-foreground shadow-sm"
                                                                     : r.passed === true
-                                                                        ? "bg-slate-200 text-slate-600"
-                                                                        : "text-slate-500 hover:text-emerald-700 hover:bg-white/80"
+                                                                        ? "bg-muted text-muted-foreground"
+                                                                        : "text-muted-foreground hover:text-primary hover:bg-card"
                                                             } disabled:cursor-not-allowed`}
                                                         >
                                                             <Check className="h-3.5 w-3.5 stroke-[2.5]"/>
@@ -885,12 +970,12 @@ export const RecordInspectionResultPage: React.FC = () => {
                                                             type="button"
                                                             disabled={isReadOnly}
                                                             onClick={() => handleSetPassed(r.criterionId, false)}
-                                                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                                                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
                                                                 r.passed === false && !isReadOnly
-                                                                    ? "bg-[#D32F2F] text-white shadow-sm"
+                                                                    ? "bg-destructive text-destructive-foreground shadow-sm"
                                                                     : r.passed === false
-                                                                        ? "bg-slate-200 text-slate-600"
-                                                                        : "text-slate-500 hover:text-red-700 hover:bg-white/80"
+                                                                        ? "bg-muted text-muted-foreground"
+                                                                        : "text-muted-foreground hover:text-destructive hover:bg-card"
                                                             } disabled:cursor-not-allowed`}
                                                         >
                                                             <X className="h-3.5 w-3.5 stroke-[2.5]"/>
@@ -899,7 +984,7 @@ export const RecordInspectionResultPage: React.FC = () => {
                                                     </div>
                                                     {/* Vùng thông báo cố định để không đẩy chiều cao dòng/hàng */}
                                                     <div
-                                                        className="mt-1 min-h-4 text-center text-[11px] leading-4 text-red-600 font-medium">
+                                                        className="mt-1 min-h-4 text-center text-[11px] leading-4 text-destructive font-medium">
                                                         {err?.passed || ""}
                                                     </div>
                                                 </td>
@@ -910,18 +995,19 @@ export const RecordInspectionResultPage: React.FC = () => {
                                                         <Input
                                                             type="date"
                                                             value={r.resultDate}
+                                                            min={detail?.sampleSentDate || undefined}
                                                             max={r.expiryDate || undefined}
                                                             disabled={isReadOnly}
                                                             onChange={(e) =>
                                                                 handleFieldChange(r.criterionId, "resultDate", e.target.value)
                                                             }
-                                                            className={`h-9 text-xs rounded-xl disabled:opacity-60 disabled:cursor-not-allowed ${
-                                                                err?.resultDate ? "border-red-500 bg-red-50/50" : "border-slate-300"
+                                                            className={`h-9 text-xs rounded-lg disabled:opacity-60 disabled:cursor-not-allowed ${
+                                                                err?.resultDate ? "border-destructive bg-destructive/10" : "border-input"
                                                             }`}
                                                         />
                                                         {/* Vùng thông báo cố định: không làm nâng layout input khi xuất hiện lỗi */}
                                                         <div
-                                                            className="mt-1 min-h-4 text-[11px] leading-4 text-red-600 font-medium">
+                                                            className="mt-1 min-h-4 text-[11px] leading-4 text-destructive font-medium">
                                                             {err?.resultDate || ""}
                                                         </div>
                                                     </div>
@@ -939,12 +1025,12 @@ export const RecordInspectionResultPage: React.FC = () => {
                                                                 handleFieldChange(r.criterionId, "expiryDate", e.target.value)
                                                             }
                                                             className={`h-9 text-xs rounded-lg disabled:opacity-60 disabled:cursor-not-allowed ${
-                                                                err?.expiryDate ? "border-red-500 bg-red-50/50" : "border-slate-300"
+                                                                err?.expiryDate ? "border-destructive bg-destructive/10" : "border-input"
                                                             }`}
                                                         />
                                                         {/* Vùng thông báo cố định chiều cao để không làm đẩy layout input */}
                                                         <div
-                                                            className="mt-1 min-h-4 text-[11px] leading-4 text-red-600 font-medium">
+                                                            className="mt-1 min-h-4 text-[11px] leading-4 text-destructive font-medium">
                                                             {err?.expiryDate || ""}
                                                         </div>
                                                     </div>
@@ -955,27 +1041,27 @@ export const RecordInspectionResultPage: React.FC = () => {
                                                     <div className="space-y-1">
                                                         {r.uploading ? (
                                                             <div
-                                                                className="flex items-center gap-2 text-xs text-slate-500 py-1">
+                                                                className="flex items-center gap-2 text-xs text-muted-foreground py-1">
                                                                 <LoaderCircle
-                                                                    className="h-4 w-4 animate-spin text-[#2E7D32]"/>
+                                                                    className="h-4 w-4 animate-spin text-primary"/>
                                                                 <span>Đang tải lên...</span>
                                                             </div>
                                                         ) : r.filePath && r.passed !== false ? (
                                                             <div
-                                                                className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-1.5 text-xs shadow-xs">
+                                                                className="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs shadow-xs">
                                                                 <FileCheck2
-                                                                    className="h-4 w-4 text-[#2E7D32] shrink-0"/>
-                                                                <span className="truncate text-slate-800 font-medium"
+                                                                    className="h-4 w-4 text-primary shrink-0"/>
+                                                                <span className="truncate text-foreground font-medium"
                                                                       title={r.selectedFileName || r.filePath}>
                                     {r.selectedFileName || "phiếu-kết-quả.pdf"}
                                   </span>
                                                             </div>
                                                         ) : isReadOnly || r.passed === false ? (
-                                                            <span className="text-xs text-slate-400">—</span>
+                                                            <span className="text-xs text-muted-foreground">—</span>
                                                         ) : (
                                                             <label
-                                                                className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-slate-50/80 px-3 py-2 text-xs text-slate-600 cursor-pointer hover:border-[#2E7D32] hover:bg-emerald-50/30 transition-all">
-                                                                <FileUp className="h-3.5 w-3.5 text-slate-400"/>
+                                                                className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-input bg-muted/30 px-3 py-2 text-xs text-muted-foreground cursor-pointer hover:border-primary hover:bg-primary/10 transition-all">
+                                                                <FileUp className="h-3.5 w-3.5 text-muted-foreground"/>
                                                                 <span>Tải phiếu kết quả</span>
                                                                 <input
                                                                     type="file"
@@ -997,14 +1083,14 @@ export const RecordInspectionResultPage: React.FC = () => {
                                                 <td className="py-4 pr-5 pl-2 text-center align-top">
                                                     {isRowValid ? (
                                                         <span
-                                                            className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-[#2E7D32] shadow-xs"
+                                                            className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary shadow-xs"
                                                             title="Chỉ tiêu đã hợp lệ"
                                                         >
                                 <Check className="h-4 w-4 stroke-[3]"/>
                               </span>
                                                     ) : (
                                                         <span
-                                                            className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 text-amber-700 shadow-xs"
+                                                            className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-warning/10 text-warning shadow-xs"
                                                             title="Chưa hoàn thiện hoặc có lỗi"
                                                         >
                                 <AlertTriangle className="h-4 w-4"/>
@@ -1021,7 +1107,7 @@ export const RecordInspectionResultPage: React.FC = () => {
 
                         {/* Phân trang — kiểu InspectionRequestHistoryModal */}
                         {filteredRows.length > 0 && (
-                            <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-t border-[#E5E7EB] text-xs text-muted-foreground sm:text-sm">
+                            <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-t border-border text-xs text-muted-foreground sm:text-sm">
                                 <div>
                                     Hiển thị {page * pageSize + 1} –{" "}
                                     {Math.min((page + 1) * pageSize, filteredRows.length)} trên tổng
@@ -1060,20 +1146,20 @@ export const RecordInspectionResultPage: React.FC = () => {
             <div className="space-y-4">
                 {willPassAll && (
                     <div
-                        className="flex items-start gap-3.5 rounded-2xl border border-emerald-300 bg-[#E8F5E9] p-5 text-emerald-950 shadow-sm">
-                        <CheckCircle2 className="h-6 w-6 text-[#2E7D32] shrink-0 mt-0.5"/>
+                        className="flex items-start gap-3.5 rounded-xl border border-primary/30 bg-primary/10 p-5 text-foreground shadow-card">
+                        <CheckCircle2 className="h-6 w-6 text-primary shrink-0 mt-0.5"/>
                         <div className="space-y-1">
-                            <h4 className="font-bold text-sm text-[#2E7D32]">
+                            <h4 className="font-bold text-sm text-primary">
                                 {isReadOnly ? "Kết quả:" : "Dự báo:"}{" "}
                                 Yêu cầu kiểm nghiệm ĐẠT TIÊU CHUẨN
                             </h4>
-                            <p className="text-xs text-emerald-900 leading-relaxed">
+                            <p className="text-xs text-muted-foreground leading-relaxed">
                                 Tất cả {totalCriteria} chỉ tiêu của lượt yêu cầu này đều được đánh giá ĐẠT và còn
                                 hiệu lực.
                                 {!isReadOnly &&
                                     ` Sau khi lưu, yêu cầu kiểm nghiệm này sẽ chuyển sang trạng thái `}
                                 {!isReadOnly && (
-                                    <strong className="text-[#2E7D32]">Đạt.</strong>
+                                    <strong className="text-primary font-semibold">Đạt.</strong>
                                 )}
                             </p>
                         </div>
@@ -1082,18 +1168,18 @@ export const RecordInspectionResultPage: React.FC = () => {
 
                 {willFail && (
                     <div
-                        className="flex items-start gap-3.5 rounded-2xl border border-red-300 bg-[#FFEBEE] p-5 text-red-950 shadow-sm">
-                        <AlertTriangle className="h-6 w-6 text-[#D32F2F] shrink-0 mt-0.5"/>
+                        className="flex items-start gap-3.5 rounded-xl border border-destructive/30 bg-destructive/10 p-5 text-foreground shadow-card">
+                        <AlertTriangle className="h-6 w-6 text-destructive shrink-0 mt-0.5"/>
                         <div className="space-y-1">
-                            <h4 className="font-bold text-sm text-[#D32F2F]">
+                            <h4 className="font-bold text-sm text-destructive">
                                 {isReadOnly ? "Kết quả:" : "Dự báo:"} Yêu cầu kiểm nghiệm
                                 KHÔNG ĐẠT ({failedCount} chỉ tiêu không đạt)
                             </h4>
-                            <p className="text-xs text-red-900 leading-relaxed">
+                            <p className="text-xs text-muted-foreground leading-relaxed">
                                 Có {failedCount} chỉ tiêu bị đánh dấu Không đạt. Theo quy định
                                 quản lý chất lượng, khi có bất kỳ chỉ tiêu nào không đạt, lô
                                 sản xuất này sẽ{" "}
-                                <strong>KHÔNG đủ điều kiện</strong> tạo lô hàng và kích hoạt tem truy xuất
+                                <strong className="text-foreground">KHÔNG đủ điều kiện</strong> tạo lô hàng và kích hoạt tem truy xuất
                                 nguồn gốc đến khi có kết quả kiểm nghiệm mới đạt chuẩn.
                             </p>
                         </div>
@@ -1102,13 +1188,13 @@ export const RecordInspectionResultPage: React.FC = () => {
 
                 {!isAllAnswered && touched && (
                     <div
-                        className="flex items-start gap-3.5 rounded-2xl border border-amber-300 bg-[#FFF8E1] p-5 text-amber-950 shadow-sm">
-                        <Info className="h-6 w-6 text-[#F9A825] shrink-0 mt-0.5"/>
+                        className="flex items-start gap-3.5 rounded-xl border border-warning/30 bg-warning/10 p-5 text-foreground shadow-card">
+                        <Info className="h-6 w-6 text-warning shrink-0 mt-0.5"/>
                         <div className="space-y-1">
-                            <h4 className="font-bold text-sm text-amber-900">
+                            <h4 className="font-bold text-sm text-warning">
                                 Còn {unsetCount} chỉ tiêu chưa được nhập kết quả
                             </h4>
-                            <p className="text-xs text-amber-800 leading-relaxed">
+                            <p className="text-xs text-muted-foreground leading-relaxed">
                                 Yêu cầu nhập kết quả cho tất cả chỉ tiêu của yêu cầu trong một lần ghi nhận. Vui lòng hoàn tất trước khi bấm Lưu.
                             </p>
                         </div>
@@ -1118,10 +1204,10 @@ export const RecordInspectionResultPage: React.FC = () => {
 
             {/* SECTION 5: Sticky Action Footer */}
             <div
-                className="sticky bottom-4 z-20 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
+                className="sticky bottom-4 z-20 flex flex-col gap-3 rounded-xl border border-border bg-card/95 p-4 shadow-lg backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                     <div
-                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 font-bold text-xs">
+                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-xs">
                         {filledCount}/{totalCriteria}
                     </div>
                     <div>
@@ -1144,9 +1230,9 @@ export const RecordInspectionResultPage: React.FC = () => {
                                 else navigate("/production-lots");
                             }}
                             disabled={submitting}
-                            className="rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            className="rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         >
-                            Hủy bỏ
+                            Hủy
                         </Button>
                     )}
 
@@ -1156,19 +1242,19 @@ export const RecordInspectionResultPage: React.FC = () => {
                             variant="outline"
                             onClick={() => void loadData()}
                             disabled={submitting}
-                            className="rounded-xl border-emerald-200 text-xs font-medium text-emerald-800 bg-emerald-50/50 hover:bg-emerald-100/60"
+                            className="rounded-md border-primary/30 text-xs font-medium text-primary bg-primary/5 hover:bg-primary/10"
                         >
-                            <RotateCw className="mr-1.5 h-3.5 w-3.5 text-emerald-700"/> Khôi phục ban đầu
+                            <RotateCw className="mr-1.5 h-3.5 w-3.5 text-primary"/> Khôi phục ban đầu
                         </Button>
                     )}
 
                     {!isReadOnly && (
                         <Button
                             type="button"
-                            variant="create"
+                            variant="default"
                             onClick={() => void handleSubmit()}
                             disabled={!canSubmit || submitting}
-                            className="rounded-xl text-xs font-semibold px-5 shadow-xs"
+                            className="rounded-md text-xs font-semibold px-5 shadow-sm"
                         >
                             {submitting ? (
                                 <>
@@ -1185,6 +1271,14 @@ export const RecordInspectionResultPage: React.FC = () => {
                     )}
                 </div>
             </div>
+            {detail && (
+                <IssueInspectionResultLinkDialog
+                    requestId={detail.testRequestId}
+                    testingUnitName={detail.testingUnit}
+                    isOpen={isIssueLinkOpen}
+                    onClose={() => setIsIssueLinkOpen(false)}
+                />
+            )}
         </div>
     );
 };

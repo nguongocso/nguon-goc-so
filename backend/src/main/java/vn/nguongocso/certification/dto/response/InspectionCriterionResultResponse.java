@@ -7,6 +7,8 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import vn.nguongocso.certification.enums.InspectionResultEntrySource;
+
 /**
  * DTO phản hồi kết quả kiểm nghiệm cho một chỉ tiêu.
  */
@@ -65,6 +67,11 @@ public class InspectionCriterionResultResponse {
      * Tên người nhập kết quả.
      */
     private String createdByName;
+
+    /**
+     * Nguồn ghi nhận kết quả kiểm nghiệm (đơn vị kiểm nghiệm khai hoặc HTX tự nhập).
+     */
+    private InspectionResultEntrySource entrySource;
 
     /**
      * Thời gian tạo kết quả.

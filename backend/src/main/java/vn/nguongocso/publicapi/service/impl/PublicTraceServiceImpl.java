@@ -822,6 +822,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .inspectionDate(result.getResultDate())
                 .expiryDate(result.getExpiryDate())
                 .laboratoryName(resolveLaboratoryName(request))
+                .entrySource(result.getEntrySource())
                 .build();
     }
 

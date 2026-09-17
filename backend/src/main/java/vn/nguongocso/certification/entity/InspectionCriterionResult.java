@@ -8,6 +8,8 @@ import org.hibernate.type.SqlTypes;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -22,6 +24,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.nguongocso.auth.entity.User;
+import vn.nguongocso.certification.enums.InspectionResultEntrySource;
 
 /**
  * Thực thể kết quả kiểm nghiệm cho từng chỉ tiêu.
@@ -87,10 +90,25 @@ public class InspectionCriterionResult {
     private String filePath;
 
     /**
+     * Nguồn ghi nhận kết quả kiểm nghiệm.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "entry_source", nullable = false, length = 32)
+    @Builder.Default
+    private InspectionResultEntrySource entrySource = InspectionResultEntrySource.COOPERATIVE_MANUAL;
+
+    /**
+     * Liên kết portal đã được dùng để ghi kết quả, chỉ có với nguồn đơn vị kiểm nghiệm.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "portal_link_id")
+    private InspectionResultEntryLink portalLink;
+
+    /**
      * Người nhập/tạo kết quả kiểm nghiệm.
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by", nullable = false)
+    @JoinColumn(name = "created_by")
     private User createdBy;
 
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -576,6 +576,8 @@ export const InspectionRequestHistoryModal = ({
                                                             status={request.status}
                                                             testRequestId={request.testRequestId}
                                                             lotId={lotId}
+                                                            testingUnitName={request.testingUnit}
+                                                            onLinkIssued={() => void load(status, page)}
                                                         />
                                                     </TableCell>
                                                 )}

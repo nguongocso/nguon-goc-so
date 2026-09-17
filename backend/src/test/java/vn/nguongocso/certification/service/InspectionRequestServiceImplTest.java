@@ -40,6 +40,7 @@ import vn.nguongocso.certification.entity.InspectionCriterionResult;
 import vn.nguongocso.certification.entity.InspectionRequest;
 import vn.nguongocso.certification.entity.Standard;
 import vn.nguongocso.certification.enums.InspectionRequestStatus;
+import vn.nguongocso.certification.enums.InspectionResultEntrySource;
 import vn.nguongocso.certification.repository.AccreditationScopeRepository;
 import vn.nguongocso.certification.repository.CategoryCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionCatalogRepository;
@@ -1101,6 +1102,9 @@ class InspectionRequestServiceImplTest {
                         .expiryDate(
                                 LocalDate.now().plusMonths(6))
                         .passed(true)
+                        .entrySource(
+                                InspectionResultEntrySource
+                                        .COOPERATIVE_MANUAL)
                         .createdBy(user)
                         .build();
 
@@ -1167,6 +1171,15 @@ class InspectionRequestServiceImplTest {
                         .getResult()
                         .getPassed())
                 .isTrue();
+
+        assertThat(
+                response.getCriteria()
+                        .get(0)
+                        .getResult()
+                        .getEntrySource())
+                .isEqualTo(
+                        InspectionResultEntrySource
+                                .COOPERATIVE_MANUAL);
     }
 
     /**

@@ -10,7 +10,7 @@
 >
 > **Tài liệu:** API Contract / Contract-first
 >
-> **Trạng thái:** Proposed
+> **Trạng thái:** Implemented – đã đồng bộ với implementation trên `develop` ngày 16/09/2026
 >
 > **Quyết định CV-01:** Đã chốt ngày 15/09/2026
 >
@@ -267,7 +267,7 @@ Snapshot audit dùng cùng một cấu trúc cho `beforeValue` và `afterValue`:
     ],
     "areaDeviationPercentage": 2.39,
     "thresholdPercentage": 30.0,
-    "updatedAt": "2026-09-15T10:00:00Z"
+    "updatedAt": "2026-09-15T10:00:00"
   },
   "timestamp": "2026-09-15T10:00:00.123Z"
 }
@@ -289,6 +289,7 @@ Snapshot audit dùng cùng một cấu trúc cho `beforeValue` và `afterValue`:
   "data": {
     "id": "19001664-577e-4b3b-beda-7218066e2f23",
     "name": "Vùng chè Tân Cương",
+    "organizationId": "11111111-1111-1111-1111-111111111111",
     "declaredArea": 6.69,
     "declaredAreaUnit": "HA",
     "calculatedArea": 6.85,
@@ -298,9 +299,11 @@ Snapshot audit dùng cùng một cấu trúc cho `beforeValue` và `afterValue`:
       { "latitude": 21.588200, "longitude": 105.828000 },
       { "latitude": 21.587000, "longitude": 105.827800 }
     ],
+    "areaDeviationPercentage": 2.39,
     "thresholdPercentage": 30.0,
-    "updatedAt": "2026-09-15T10:00:00Z"
-  }
+    "updatedAt": "2026-09-15T10:00:00"
+  },
+  "timestamp": "2026-09-15T10:00:00.123Z"
 }
 ```
 
@@ -316,6 +319,7 @@ Snapshot audit dùng cùng một cấu trúc cho `beforeValue` và `afterValue`:
 ```json
 {
   "success": true,
+  "status": 200,
   "data": {
     "codeValue": "TC-2026-001234",
     "lotName": "Lô chè búp Tân Cương",
@@ -331,7 +335,8 @@ Snapshot audit dùng cùng một cấu trúc cho `beforeValue` và `afterValue`:
       ]
     },
     "...": "các trường hiện có giữ nguyên"
-  }
+  },
+  "timestamp": "2026-09-15T10:00:00.123Z"
 }
 ```
 
@@ -525,7 +530,7 @@ private LocalDateTime boundaryUpdatedAt;
 - [ ] **TC-13 (Migration tương thích):** Sau migration, vùng trồng cũ có ba cột mới bằng `NULL` vẫn được đọc/cập nhật bằng các API hiện hành.
 - [x] **TC-14 (SRID và thứ tự đỉnh):** Geometry do service tạo có SRID 4326, vòng ngoài được khép kín và response không lặp đỉnh đầu ở cuối `points`; kiểm tra `ST_SRID` trực tiếp trên MySQL thuộc bước runtime môi trường tích hợp.
 - [ ] **TC-15 (Phiên bản đầu tiên):** Thiết lập ranh giới lần đầu tạo ActivityLog với `beforeValue = null` và `afterValue` là snapshot schema version 1.
-- [ ] **TC-16 (Phiên bản cập nhật):** Chỉnh sửa thành công tạo ActivityLog chứa đúng snapshot cũ/mới; request bị từ chối không tạo bản ghi phiên bản.
+- [x] **TC-16 (Phiên bản cập nhật):** Chỉnh sửa thành công tạo ActivityLog chứa đúng snapshot cũ/mới; request bị từ chối không tạo bản ghi phiên bản (`updateBoundary_shouldSaveOldAndNewSnapshots`, `updateBoundary_shouldRejectSelfIntersectingPolygonFromEditorRegression`).
 - [x] **TC-17 (UI vẽ/kéo):** Chấm đủ đỉnh tạo polygon; kéo một marker cập nhật đúng tọa độ, polygon và diện tích preview (`BoundaryMapEditor`).
 - [x] **TC-18 (UI paste):** Danh sách hợp lệ thay toàn bộ draft; dòng sai định dạng/ngoài miền hiển thị đúng số dòng và không áp dụng một phần (`BoundaryPastePanel`).
 - [x] **TC-19 (UI trạng thái lưu):** Nút lưu bị khóa khi dưới 3 đỉnh, draft chưa thay đổi hoặc đang gửi; draft hợp lệ gửi lần đầu với `confirmed=false` (`FarmAreaBoundaryEditor`).
@@ -534,6 +539,8 @@ private LocalDateTime boundaryUpdatedAt;
 - [x] **TC-22 (UI responsive/accessibility):** Bố cục dùng được trên desktop/mobile; nhập bằng textarea và danh sách đỉnh không phụ thuộc hoàn toàn vào thao tác chuột; nút icon có accessible name theo chuẩn `AI_DESIGN_SYSTEM.md`.
 - [x] **TC-23 (Giới hạn dữ liệu):** API và UI từ chối danh sách trên 500 đỉnh; snapshot audit luôn nằm trong giới hạn lưu trữ đã thiết kế.
 - [x] **TC-24 (Cập nhật đồng thời):** Backend khóa vùng trồng trong transaction cập nhật để không ghi đè ranh giới hoặc tạo snapshot `beforeValue` lỗi thời.
+
+> Các mục còn để `[ ]` là khoảng trống **bằng chứng kiểm thử chuyên biệt hoặc runtime tích hợp**, không phải hợp đồng nghiệp vụ chưa được chốt. Không chuyển các mục này sang PASS chỉ dựa trên code inspection.
 
 ---
 
@@ -566,4 +573,4 @@ private LocalDateTime boundaryUpdatedAt;
   - Đã chốt đầy đủ trạng thái loading, empty, invalid, dirty, saving, conflict, success, forbidden/not-found, server error, responsive và cảnh báo mất draft.
   - CV-04 hoàn tất: đã triển khai migration, entity, cấu hình, API nội bộ, validation polygon, tính diện tích WGS84, xác nhận vượt ngưỡng và audit trong cùng transaction.
   - CV-05 hoàn tất: tích hợp ranh giới vùng trồng vào `PublicTraceResponse` (`PublicFarmAreaBoundaryDto`) và hiển thị trực quan dạng polygon trên `RouteMap` ở trang tra cứu công khai `TraceLookupPage` (chế độ chỉ xem, `QTN-12`).
-  - Toàn bộ backend test (PublicTraceControllerTest, PublicTraceServiceImplTest) và frontend typecheck / build đều PASS.
+  - Các test backend liên quan (`FarmAreaBoundaryControllerTest`, `FarmAreaBoundaryServiceImplTest`, `PublicTraceControllerTest`, `PublicTraceServiceImplTest`) và frontend test/typecheck/build đã được thực thi trong PR; các khoảng trống bằng chứng còn lại được liệt kê bằng checkbox `[ ]` tại mục 12.
