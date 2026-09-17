@@ -51,9 +51,13 @@ export const IssueInspectionResultLinkDialog: React.FC<IssueInspectionResultLink
   // Reset form khi mở lại
   const handleOpenChange = (open: boolean) => {
     if (!open) {
+      const completedLink = issuedLink;
       setIssuedLink(null);
       setCopied(false);
       onClose();
+      if (completedLink && onSuccess) {
+        onSuccess(completedLink);
+      }
     }
   };
 
@@ -73,9 +77,6 @@ export const IssueInspectionResultLinkDialog: React.FC<IssueInspectionResultLink
 
       setIssuedLink(res);
       toast.success('Cấp liên kết nhập kết quả thành công và đã gửi email.');
-      if (onSuccess) {
-        onSuccess(res);
-      }
     } catch (err: unknown) {
       const msg =
         err instanceof Error

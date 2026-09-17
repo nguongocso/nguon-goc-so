@@ -39,7 +39,7 @@ describe('IssueInspectionResultLinkDialog', () => {
     expect(screen.getByRole('button', { name: /cấp và gửi liên kết/i })).toBeInTheDocument();
   });
 
-  it('calls issueInspectionResultEntryLink on form submit and shows success screen', async () => {
+  it('keeps the success screen open and refreshes the parent only after completion', async () => {
     const mockResponse = {
       id: 'link-123',
       status: 'ACTIVE' as const,
@@ -67,5 +67,11 @@ describe('IssueInspectionResultLinkDialog', () => {
       screen.getByDisplayValue('https://nguongocso.vn/inspection-result-entry/secret-token-xyz')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /sao chép/i })).toBeInTheDocument();
+    expect(defaultProps.onSuccess).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /hoàn tất/i }));
+
+    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+    expect(defaultProps.onSuccess).toHaveBeenCalledWith(mockResponse);
   });
 });
