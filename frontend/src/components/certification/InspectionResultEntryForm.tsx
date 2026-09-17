@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   Calendar,
@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Pagination } from '@/components/common/Pagination';
 import type {
   PublicInspectionResultEntryCriterion,
   InspectionCriterionResultItemInput,
@@ -66,6 +67,8 @@ export interface CriterionRowState {
 
 type FilterTab = 'ALL' | 'UNSET' | 'PASSED' | 'FAILED';
 
+const PAGE_SIZE = 10;
+
 export interface InspectionResultEntryFormProps {
   criteria: PublicInspectionResultEntryCriterion[];
   sampleSentDate?: string;
@@ -102,6 +105,7 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
 
   const [filterTab, setFilterTab] = useState<FilterTab>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Thống kê tiến độ
@@ -132,6 +136,20 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
       return true;
     });
   }, [rows, filterTab, searchTerm]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const paginatedRows = useMemo(
+    () => filteredRows.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE),
+    [currentPage, filteredRows]
+  );
+
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [filterTab, searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages - 1));
+  }, [totalPages]);
 
   // Cập nhật trạng thái từng hàng
   const updateRow = (criterionId: string, patch: Partial<CriterionRowState>) => {
@@ -400,7 +418,7 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
                 Không tìm thấy chỉ tiêu nào phù hợp với bộ lọc hiện tại.
               </div>
             ) : (
-              filteredRows.map((row, index) => {
+              paginatedRows.map((row, index) => {
                 const isUnset = row.passed === null;
                 const isPassed = row.passed === true;
                 const isFailed = row.passed === false;
@@ -421,7 +439,7 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
                       <div className="flex-1 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-semibold text-muted-foreground">
-                            #{index + 1}
+                            #{currentPage * PAGE_SIZE + index + 1}
                           </span>
                           <span className="font-semibold text-foreground text-sm md:text-base">
                             {row.name}
@@ -596,6 +614,16 @@ export const InspectionResultEntryForm: React.FC<InspectionResultEntryFormProps>
               })
             )}
           </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalElements={filteredRows.length}
+            pageSize={PAGE_SIZE}
+            itemLabel="chỉ tiêu"
+            alwaysShow
+            onPageChange={setCurrentPage}
+          />
 
           {/* Cảnh báo toàn bộ chỉ tiêu */}
           {!stats.isAllSet && (

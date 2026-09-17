@@ -41,11 +41,45 @@ describe('InspectionResultEntryForm', () => {
     expect(screen.getByText('Dư lượng chì')).toBeInTheDocument();
     expect(screen.getByText('Dư lượng thuốc trừ sâu')).toBeInTheDocument();
     expect(screen.getByText(/chưa nhập: 2/i)).toBeInTheDocument();
+    expect(screen.getByText('Hiển thị 1 - 2 trên tổng số 2 chỉ tiêu')).toBeInTheDocument();
+    expect(screen.getByText('1 / 1')).toBeInTheDocument();
 
     const submitBtn = screen.getByRole('button', {
       name: /xác nhận và gửi kết quả kiểm nghiệm/i,
     });
     expect(submitBtn).toBeDisabled();
+  });
+
+  it('phân trang 10 chỉ tiêu và giữ dữ liệu đã nhập khi chuyển trang', () => {
+    const criteria = Array.from({ length: 11 }, (_, index) => ({
+      criterionId: `crit-${index + 1}`,
+      code: `CODE-${index + 1}`,
+      name: `Chỉ tiêu ${index + 1}`,
+    }));
+
+    render(
+      <InspectionResultEntryForm
+        {...defaultProps}
+        criteria={criteria}
+      />
+    );
+
+    expect(screen.getByText('Chỉ tiêu 1')).toBeInTheDocument();
+    expect(screen.queryByText('Chỉ tiêu 11')).not.toBeInTheDocument();
+    expect(screen.getByText('Hiển thị 1 - 10 trên tổng số 11 chỉ tiêu')).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^đạt$/i })[0]);
+    fireEvent.click(screen.getByRole('button', { name: /trang sau/i }));
+
+    expect(screen.queryByText('Chỉ tiêu 1')).not.toBeInTheDocument();
+    expect(screen.getByText('Chỉ tiêu 11')).toBeInTheDocument();
+    expect(screen.getByText('Hiển thị 11 - 11 trên tổng số 11 chỉ tiêu')).toBeInTheDocument();
+    expect(screen.getByText('2 / 2')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /trang trước/i }));
+
+    expect(screen.getByText('Chỉ tiêu 1')).toBeInTheDocument();
+    expect(screen.getByText('Đạt: 1')).toBeInTheDocument();
   });
 
   it('marks all as passed when clicking "Tất cả Đạt"', () => {
