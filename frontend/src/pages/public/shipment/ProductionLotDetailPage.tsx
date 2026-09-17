@@ -2576,6 +2576,8 @@ export const ProductionLotDetailPage = () => {
                                     status={request.status}
                                     testRequestId={request.testRequestId}
                                     lotId={id!}
+                                    testingUnitName={request.testingUnit}
+                                    onLinkIssued={() => void loadInspectionRequests(inspectionStatus, inspectionPage)}
                                   />
                                 </div>
                               )}

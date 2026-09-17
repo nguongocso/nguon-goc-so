@@ -813,7 +813,7 @@ public class InspectionCriterionResultServiceImpl
                             : null)
                     .createdByName(result.getCreatedBy() != null
                             ? result.getCreatedBy().getFullName()
-                            : null)
+                            : (request != null ? request.getInspectionUnit() : "Đơn vị kiểm nghiệm"))
                     .createdAt(result.getCreatedAt())
                     .build();
 
@@ -1252,6 +1252,10 @@ public class InspectionCriterionResultServiceImpl
     private InspectionCriterionResultResponse toResponse(
             InspectionCriterionResult result) {
 
+        String createdByName = result.getCreatedBy() != null
+                ? result.getCreatedBy().getFullName()
+                : "Đơn vị kiểm nghiệm";
+
         return InspectionCriterionResultResponse.builder()
                 .resultId(result.getId().toString())
                 .criterionId(
@@ -1267,9 +1271,7 @@ public class InspectionCriterionResultServiceImpl
                 .passed(result.getPassed())
                 .filePath(result.getFilePath())
                 .entrySource(result.getEntrySource())
-                .createdByName(result.getCreatedBy() != null
-                        ? result.getCreatedBy().getFullName()
-                        : null)
+                .createdByName(createdByName)
                 .createdAt(result.getCreatedAt())
                 .updatedAt(result.getUpdatedAt())
                 .build();
