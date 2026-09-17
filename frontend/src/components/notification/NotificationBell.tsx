@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { NotificationPanel } from '@/components/notification/NotificationPanel';
+import { isApiKeyWarningNotification } from '@/lib/notificationHelpers';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useUnreadCount } from '@/hooks/useUnreadCount';
 import { useAuth } from '@/hooks/useAuth';
@@ -70,13 +71,26 @@ export const NotificationBell = () => {
 
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
-    if (nextOpen) {     
+    if (nextOpen) {
       void load(0);
       void refreshUnreadCount();
     }
   };
 
   const handleItemClick = (notification: NotificationResponse) => {
+    if (isApiKeyWarningNotification(notification)) {
+      if (!notification.isRead) {
+        void markAsRead(notification.id).then(() => refreshUnreadCount());
+      }
+      setOpen(false);
+      const action = notification.title.toLowerCase().includes('hạn mức') ? 'quota' : 'renew';
+      if (notification.entityId) {
+        navigate(`/integration/api-keys?keyId=${notification.entityId}&action=${action}`);
+      } else {
+        navigate('/integration/api-keys');
+      }
+      return;
+    }
     if (!notification.isRead) {
       void markAsRead(notification.id).then(() => refreshUnreadCount());
     }

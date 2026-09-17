@@ -8,6 +8,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -47,6 +50,12 @@ import vn.nguongocso.trace.repository.CodeRangeRepository;
 import vn.nguongocso.certification.entity.Certification;
 import vn.nguongocso.certification.enums.CertificationVerificationStatus;
 import vn.nguongocso.certification.repository.CertificationRepository;
+import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
+import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
+import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
+import vn.nguongocso.integration.apikey.service.ApiKeyQuotaPolicy;
+import vn.nguongocso.integration.apikey.service.PartnerApiKeyService;
+import vn.nguongocso.integration.apikey.service.PartnerApiKeyUsageService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -90,6 +99,18 @@ class AggregateAlertServiceTest {
     @Mock
     private ObjectMapper objectMapper;
 
+    @Mock
+    private PartnerApiKeyRepository partnerApiKeyRepository;
+
+    @Mock
+    private PartnerApiKeyUsageService partnerApiKeyUsageService;
+
+    @Mock
+    private ApiKeyQuotaPolicy apiKeyQuotaPolicy;
+
+    @Mock
+    private PartnerApiKeyService partnerApiKeyService;
+
     @InjectMocks
     private AggregateAlertServiceImpl aggregateAlertService;
 
@@ -120,6 +141,12 @@ class AggregateAlertServiceTest {
 
         lenient().when(certificationRepository.findByOrganizationId(any())).thenReturn(Collections.emptyList());
         lenient().when(certificationRepository.findAll()).thenReturn(Collections.emptyList());
+        lenient().when(partnerApiKeyRepository.findByStatus(any())).thenReturn(Collections.emptyList());
+        lenient().when(partnerApiKeyRepository.findByOrganizationOrganizationId(any(), any()))
+                .thenReturn(Page.empty());
+        // NCL-12-CN-005: số lượt gọi trong ngày lấy từ DB (mặc định chưa có dữ liệu).
+        lenient().when(partnerApiKeyUsageService.getDailyCallCounts(any()))
+                .thenReturn(Collections.emptyMap());
     }
 
     @AfterEach
@@ -319,6 +346,112 @@ class AggregateAlertServiceTest {
         assertEquals(0, response.getSummaryCounts().getTotalOpen());
         assertEquals(0, response.getSummaryCounts().getHighSeverityCount());
         assertEquals(0, response.getSummaryCounts().getMediumSeverityCount());
+    }
+
+    /**
+     * NCL-12-CN-005: Khóa sắp hết hạn hiện trên cảnh báo tổng hợp kèm lối tắt,
+     * khóa đã thu hồi không hiện.
+     */
+    @Test
+    void testApiKeyAlerts_expiringKeyAppearsAndRevokedExcluded() {
+        mockSecurityContext(userDetailsCoopA);
+        ReflectionTestUtils.setField(aggregateAlertService, "apiKeyExpiryWarningDays", 7);
+
+        when(alertRepository.findByOrganizationOrganizationIdAndStatus(orgIdA, AlertStatus.PENDING))
+                .thenReturn(Collections.emptyList());
+        when(productFeedbackRepository.findByProductionLot_Organization_OrganizationIdAndStatusIn(eq(orgIdA), any()))
+                .thenReturn(Collections.emptyList());
+        when(codeRangeRepository.findByOrganizationOrganizationId(orgIdA))
+                .thenReturn(Collections.emptyList());
+        when(milestoneReminderRepository.findByProductionLot_Organization_OrganizationIdAndStatusOrderByOverdueDaysDesc(orgIdA, MilestoneReminderStatus.OPEN))
+                .thenReturn(Collections.emptyList());
+        when(recallCaseRepository.findByOrganizationIdAndStatusOrderByCreatedAtDesc(orgIdA, RecallCaseStatus.OPEN))
+                .thenReturn(Collections.emptyList());
+
+        PartnerApiKey expiring = PartnerApiKey.builder()
+                .id(UUID.randomUUID())
+                .organization(orgA)
+                .partnerName("Doi tac TC-01")
+                .keyPrefix("nks_live_abc")
+                .keyHash("hash")
+                .rateLimitPerHour(100)
+                .expiresAt(LocalDateTime.now().plusDays(5))
+                .status(PartnerApiKeyStatus.ACTIVE)
+                .build();
+        PartnerApiKey revoked = PartnerApiKey.builder()
+                .id(UUID.randomUUID())
+                .organization(orgA)
+                .partnerName("Doi tac TC-03")
+                .keyPrefix("nks_live_rev")
+                .keyHash("hash2")
+                .rateLimitPerHour(100)
+                .expiresAt(LocalDateTime.now().plusDays(20))
+                .status(PartnerApiKeyStatus.REVOKED)
+                .build();
+        when(partnerApiKeyRepository.findByOrganizationOrganizationId(eq(orgIdA), any()))
+                .thenReturn(new PageImpl<>(List.of(expiring, revoked)));
+        when(partnerApiKeyService.getCurrentHourCalls(expiring.getId())).thenReturn(0);
+
+        Pageable pageable = PageRequest.of(0, 10);
+        AggregateAlertPageResponse response = aggregateAlertService.getAggregateAlerts(
+                null, null, "OPEN", null, null, null, null, pageable);
+
+        assertEquals(1, response.getTotalElements());
+        assertEquals(AggregateAlertType.API_KEY_EXPIRING, response.getItems().get(0).getType());
+        assertEquals(expiring.getId(), response.getItems().get(0).getRelatedEntityId());
+        assertEquals("/integration/api-keys", response.getItems().get(0).getActionUrl());
+    }
+
+    /**
+     * NCL-12-CN-005: Khóa đã dùng tới ngưỡng trong ngày hiện cảnh báo "sắp chạm hạn mức"
+     * với số liệu lấy từ DB (nguồn sự thật theo ngày), kèm lối tắt tới trang quản trị khóa.
+     */
+    @Test
+    void testApiKeyAlerts_quotaWarningWhenDailyUsageReached() {
+        mockSecurityContext(userDetailsCoopA);
+        ReflectionTestUtils.setField(aggregateAlertService, "apiKeyExpiryWarningDays", 7);
+
+        when(alertRepository.findByOrganizationOrganizationIdAndStatus(orgIdA, AlertStatus.PENDING))
+                .thenReturn(Collections.emptyList());
+        when(productFeedbackRepository.findByProductionLot_Organization_OrganizationIdAndStatusIn(eq(orgIdA), any()))
+                .thenReturn(Collections.emptyList());
+        when(codeRangeRepository.findByOrganizationOrganizationId(orgIdA))
+                .thenReturn(Collections.emptyList());
+        when(milestoneReminderRepository.findByProductionLot_Organization_OrganizationIdAndStatusOrderByOverdueDaysDesc(orgIdA, MilestoneReminderStatus.OPEN))
+                .thenReturn(Collections.emptyList());
+        when(recallCaseRepository.findByOrganizationIdAndStatusOrderByCreatedAtDesc(orgIdA, RecallCaseStatus.OPEN))
+                .thenReturn(Collections.emptyList());
+
+        PartnerApiKey quotaKey = PartnerApiKey.builder()
+                .id(UUID.randomUUID())
+                .organization(orgA)
+                .partnerName("Doi tac TC-02")
+                .keyPrefix("nks_test_qta")
+                .keyHash("hash3")
+                .rateLimitPerHour(10)
+                .expiresAt(LocalDateTime.now().plusDays(25))
+                .status(PartnerApiKeyStatus.ACTIVE)
+                .build();
+        when(partnerApiKeyRepository.findByOrganizationOrganizationId(eq(orgIdA), any()))
+                .thenReturn(new PageImpl<>(List.of(quotaKey)));
+        when(partnerApiKeyUsageService.getDailyCallCounts(any()))
+                .thenReturn(Collections.singletonMap(quotaKey.getId(), 8));
+        when(partnerApiKeyService.getCurrentHourCalls(quotaKey.getId())).thenReturn(8);
+        when(apiKeyQuotaPolicy.isReached(8, 10)).thenReturn(true);
+        when(apiKeyQuotaPolicy.warningThresholdPercent()).thenReturn(80);
+
+        Pageable pageable = PageRequest.of(0, 10);
+        AggregateAlertPageResponse response = aggregateAlertService.getAggregateAlerts(
+                null, null, "OPEN", null, null, null, null, pageable);
+
+        AggregateAlertItemResponse quotaAlert = response.getItems().stream()
+                .filter(item -> item.getType() == AggregateAlertType.API_KEY_QUOTA_WARNING)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(quotaKey.getId(), quotaAlert.getRelatedEntityId());
+        assertEquals(AlertSeverity.MEDIUM, quotaAlert.getSeverity());
+        assertEquals("/integration/api-keys", quotaAlert.getActionUrl());
+        assertTrue(quotaAlert.getMessage().contains("8/10"));
     }
 
     /**
