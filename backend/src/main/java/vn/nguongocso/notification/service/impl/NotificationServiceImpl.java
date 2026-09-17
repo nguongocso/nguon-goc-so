@@ -91,6 +91,12 @@ public class NotificationServiceImpl implements NotificationService {
 
         private static final String UNLOCK_NOTIFICATION_CONTENT_FORMAT = "Mã tem %s đã được Quản trị viên mở khóa sau khi xác minh vào lúc %s. Kết luận: %s";
 
+        private static final String INSPECTION_PASSED_TITLE = "Kết quả kiểm nghiệm đạt";
+
+        private static final String INSPECTION_PASSED_CONTENT_FORMAT =
+                        "Lô sản xuất \"%s\" đã hoàn tất kiểm nghiệm và ĐẠT yêu cầu. "
+                                        + "Quản lý hợp tác xã có thể tiếp tục các bước xử lý tiếp theo.";
+
         private static final String INSPECTION_FAILED_TITLE = "Kết quả kiểm nghiệm không đạt";
 
         private static final String INSPECTION_FAILED_CONTENT_FORMAT =
@@ -959,6 +965,27 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         /**
+         * Gửi thông báo cho Quản lý hợp tác xã khi lô sản xuất có kết quả
+         * kiểm nghiệm ĐẠT.
+         *
+         * @param lotName        tên lô sản xuất
+         * @param organizationId tổ chức sở hữu lô sản xuất
+         */
+        @Override
+        public void sendInspectionPassedNotification(
+                        String lotName,
+                        UUID organizationId) {
+
+                sendInspectionResultNotification(
+                                lotName,
+                                organizationId,
+                                NotificationType.INFO,
+                                INSPECTION_PASSED_TITLE,
+                                INSPECTION_PASSED_CONTENT_FORMAT,
+                                "đạt");
+        }
+
+        /**
          * Gửi cảnh báo cho Quản lý hợp tác xã khi lô sản xuất có kết quả
          * kiểm nghiệm KHÔNG ĐẠT (NCL-11-CN-005, QTN-30).
          *
@@ -970,9 +997,31 @@ public class NotificationServiceImpl implements NotificationService {
                         String lotName,
                         UUID organizationId) {
 
+                sendInspectionResultNotification(
+                                lotName,
+                                organizationId,
+                                NotificationType.ALERT,
+                                INSPECTION_FAILED_TITLE,
+                                INSPECTION_FAILED_CONTENT_FORMAT,
+                                "không đạt");
+        }
+
+        /**
+         * Tạo thông báo kết quả kiểm nghiệm cho các tài khoản được phép nhận
+         * thông báo trong tổ chức sở hữu lô.
+         */
+        private void sendInspectionResultNotification(
+                        String lotName,
+                        UUID organizationId,
+                        NotificationType notificationType,
+                        String title,
+                        String contentFormat,
+                        String resultLabel) {
+
                 if (organizationId == null) {
                         log.warn(
-                                        "Không thể gửi thông báo kiểm nghiệm không đạt: organizationId null");
+                                        "Không thể gửi thông báo kiểm nghiệm {}: organizationId null",
+                                        resultLabel);
                         return;
                 }
 
@@ -982,25 +1031,24 @@ public class NotificationServiceImpl implements NotificationService {
                 if (recipients.isEmpty()) {
                         log.warn(
                                         "Không có người dùng có permission {}:{} để nhận "
-                                                        + "thông báo kiểm nghiệm không đạt. organizationId={}",
+                                                        + "thông báo kiểm nghiệm {}. organizationId={}",
                                         NOTIFICATION_RESOURCE,
                                         NOTIFICATION_READ_ACTION,
+                                        resultLabel,
                                         organizationId);
                         return;
                 }
 
                 String content = String.format(
-                                INSPECTION_FAILED_CONTENT_FORMAT,
+                                contentFormat,
                                 lotName);
 
                 List<Notification> notifications = recipients.stream()
                                 .map(user -> {
                                         Notification notification = new Notification();
                                         notification.setUser(user);
-                                        notification.setType(
-                                                        NotificationType.ALERT);
-                                        notification.setTitle(
-                                                        INSPECTION_FAILED_TITLE);
+                                        notification.setType(notificationType);
+                                        notification.setTitle(title);
                                         notification.setContent(content);
                                         notification.setIsRead(false);
                                         notification.setReadAt(null);
@@ -1011,9 +1059,10 @@ public class NotificationServiceImpl implements NotificationService {
                 notificationRepository.saveAll(notifications);
 
                 log.info(
-                                "Đã tạo {} notification kiểm nghiệm không đạt. "
+                                "Đã tạo {} notification kiểm nghiệm {}. "
                                                 + "organizationId={}, lotName={}",
                                 notifications.size(),
+                                resultLabel,
                                 organizationId,
                                 lotName);
         }

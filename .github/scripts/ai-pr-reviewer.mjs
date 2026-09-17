@@ -113,6 +113,24 @@ function loadStandards() {
 }
 
 /**
+ * Giới hạn diff tại ranh giới file để không gửi một file bị cắt cụt cho AI.
+ */
+function prepareDiffForPrompt(diff, maxLength = 25000) {
+  if (diff.length <= maxLength) {
+    return { content: diff, truncated: false };
+  }
+
+  const candidate = diff.slice(0, maxLength);
+  const lastFileBoundary = candidate.lastIndexOf('\ndiff --git ');
+  const safeEnd = lastFileBoundary > 0 ? lastFileBoundary : 0;
+
+  return {
+    content: candidate.slice(0, safeEnd),
+    truncated: true
+  };
+}
+
+/**
  * Xây dựng prompt phân tích cho AI
  */
 function buildPrompt(files, diff, standards) {
@@ -126,6 +144,17 @@ function buildPrompt(files, diff, standards) {
   if (hasFrontend) {
     relevantStandards += `\n### TIÊU CHUẨN FRONTEND BẮT BUỘC:\n${standards.feConvention.slice(0, 3500)}\n\n### CHECKLIST FRONTEND (54 Tiêu chí):\n${standards.feChecklist.slice(0, 4500)}\n`;
   }
+
+  const preparedDiff = prepareDiffForPrompt(diff);
+  const truncationNotice = preparedDiff.truncated
+    ? [
+        '\n### LƯU Ý VỀ PHẠM VI DIFF:',
+        'Git diff đã được rút gọn tại ranh giới file để phù hợp giới hạn ngữ cảnh.',
+        'Chỉ đánh giá mã nguồn thực sự xuất hiện trong phần diff bên dưới.',
+        'Không được suy luận file thiếu nội dung, thiếu dấu đóng ngoặc hoặc bị cắt cụt',
+        'chỉ vì file đó không xuất hiện trong phần diff đã rút gọn.\n'
+      ].join('\n')
+    : '';
 
   return `
 Bạn là Lead Software Architect & Clean Code Gatekeeper của dự án "Nguồn Gốc Số".
@@ -151,9 +180,11 @@ ${relevantStandards}
 ### DANH SÁCH FILE THAY ĐỔI:
 ${files.map(f => `- ${f} (Tầng: ${detectLayer(f)})`).join('\n')}
 
+${truncationNotice}
+
 ### GIT DIFF:
 \`\`\`diff
-${diff.slice(0, 25000)}
+${preparedDiff.content}
 \`\`\`
 
 ### YÊU CẦU ĐẦU RA (BẮT BUỘC ĐÚNG ĐỊNH DẠNG JSON):

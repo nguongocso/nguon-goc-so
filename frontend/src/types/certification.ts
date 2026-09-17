@@ -278,7 +278,8 @@ export interface InspectionCriterionResult {
   /** true = đạt, false = không đạt. */
   passed: boolean;
   filePath: string | null;
-  createdByName: string;
+  createdByName: string | null;
+  entrySource?: 'TESTING_UNIT_PORTAL' | 'COOPERATIVE_MANUAL';
   createdAt: string;
   updatedAt: string;
 }

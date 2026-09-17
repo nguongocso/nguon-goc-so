@@ -41,13 +41,18 @@ import vn.nguongocso.certification.entity.InspectionCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterionCatalog;
 import vn.nguongocso.certification.entity.InspectionCriterionResult;
 import vn.nguongocso.certification.entity.InspectionRequest;
+import vn.nguongocso.certification.entity.InspectionResultEntryLink;
 import vn.nguongocso.certification.enums.InspectionRequestStatus;
+import vn.nguongocso.certification.enums.InspectionResultEntryLinkStatus;
 import vn.nguongocso.certification.repository.CategoryCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionRepository;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
+import vn.nguongocso.certification.repository.InspectionResultEntryLinkRepository;
 import vn.nguongocso.certification.service.InspectionCriterionResultService;
 import vn.nguongocso.certification.service.InspectionExpiryService;
+import vn.nguongocso.certification.service.InspectionResultEntryLinkService;
+import vn.nguongocso.certification.service.InspectionResultPortalFileStorageService;
 import vn.nguongocso.certification.service.impl.InspectionCriterionResultServiceImpl;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.entity.ProductCategory;
@@ -99,6 +104,15 @@ class InspectionCriterionResultServiceImplTest {
 
     @Mock
     private InspectionExpiryService inspectionExpiryService;
+
+    @Mock
+    private InspectionResultEntryLinkService linkService;
+
+    @Mock
+    private InspectionResultEntryLinkRepository linkRepository;
+
+    @Mock
+    private InspectionResultPortalFileStorageService portalFileStorageService;
 
     @InjectMocks
     private InspectionCriterionResultServiceImpl service;
@@ -192,6 +206,12 @@ class InspectionCriterionResultServiceImplTest {
                 .build();
 
         inspectionRequest.setCriteria(List.of(criterion));
+
+        lenient()
+                .when(requestRepository.findByCriterionIdAndOrganizationIdForUpdate(
+                        criterionId,
+                        orgId))
+                .thenReturn(Optional.of(inspectionRequest));
 
         // =========================
         // Mock result
@@ -289,7 +309,14 @@ class InspectionCriterionResultServiceImplTest {
                 .save(any(InspectionCriterionResult.class));
 
         verify(requestRepository)
+                .findByCriterionIdAndOrganizationIdForUpdate(criterionId, orgId);
+
+        verify(requestRepository)
                 .save(inspectionRequest);
+        verify(notificationService)
+                .sendInspectionPassedNotification("Lô 01", orgId);
+        verify(notificationService, never())
+                .sendInspectionFailedNotification(any(), any());
 
         // TASK-27: ghi kết quả kiểm nghiệm phải ghi nhật ký hoạt động
         ArgumentCaptor<ActivityLogEvent> logCaptor =
@@ -635,6 +662,10 @@ class InspectionCriterionResultServiceImplTest {
 
         verify(requestRepository)
                 .save(inspectionRequest);
+        verify(notificationService)
+                .sendInspectionFailedNotification("Lô 01", orgId);
+        verify(notificationService, never())
+                .sendInspectionPassedNotification(any(), any());
     }
 
 
@@ -754,6 +785,10 @@ class InspectionCriterionResultServiceImplTest {
 
         verify(requestRepository)
                 .save(inspectionRequest);
+        verify(notificationService)
+                .sendInspectionPassedNotification("Lô 01", orgId);
+        verify(notificationService, never())
+                .sendInspectionFailedNotification(any(), any());
     }
 
     // ============================================================
@@ -780,9 +815,6 @@ class InspectionCriterionResultServiceImplTest {
                         .passed(true)
                         .build();
 
-        when(criterionRepository.findById(criterionId))
-                .thenReturn(Optional.of(criterion));
-
         // Act & Assert
         assertThatThrownBy(() ->
                 service.recordOrUpdateResult(
@@ -790,6 +822,9 @@ class InspectionCriterionResultServiceImplTest {
                         request,
                         currentUser))
                 .isInstanceOf(BusinessException.class);
+
+        verify(requestRepository)
+                .findByCriterionIdAndOrganizationIdForUpdate(criterionId, otherOrgId);
 
         // Không có thay đổi nào được ghi
         verify(resultRepository, never())
@@ -1638,5 +1673,149 @@ class InspectionCriterionResultServiceImplTest {
         service.recordResults(inspectionRequestId, List.of(item), currentUser);
 
         verify(inspectionExpiryService).checkAndAlertLotExpiry(eq(lot), any());
+    }@Test
+    @DisplayName("Ghi nhận kết quả: Từ chối khi ngày cấp kết quả trước ngày gửi mẫu (hàng loạt)")
+    void testRecordResultsBatch_shouldThrow_whenResultDateBeforeSampleSentDate() {
+        inspectionRequest.setSampleSentDate(LocalDate.now().minusDays(3));
+        LocalDate resultDate = LocalDate.now().minusDays(5); // Trước ngày gửi mẫu 3 ngày trước
+        LocalDate expiryDate = LocalDate.now().plusMonths(6);
+        InspectionCriterionResultRequest item =
+                InspectionCriterionResultRequest.builder()
+                        .criterionId(criterionId.toString())
+                        .resultDate(resultDate)
+                        .expiryDate(expiryDate)
+                        .passed(true)
+                        .build();
+
+        when(requestRepository.findById(inspectionRequestId)).thenReturn(Optional.of(inspectionRequest));
+
+        assertThatThrownBy(() -> service.recordResults(inspectionRequestId, List.of(item), currentUser))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("Ngày cấp kết quả không được trước ngày gửi mẫu");
+    }
+
+    @Test
+    @DisplayName("Ghi nhận kết quả: Từ chối khi ngày cấp kết quả trước ngày gửi mẫu (đơn lẻ)")
+    void testRecordSingleResult_shouldThrow_whenResultDateBeforeSampleSentDate() {
+        inspectionRequest.setSampleSentDate(LocalDate.now().minusDays(3));
+        LocalDate resultDate = LocalDate.now().minusDays(5); // Trước ngày gửi mẫu
+        LocalDate expiryDate = LocalDate.now().plusMonths(6);
+        InspectionCriterionResultRequest request =
+                InspectionCriterionResultRequest.builder()
+                        .resultDate(resultDate)
+                        .expiryDate(expiryDate)
+                        .passed(true)
+                        .build();
+
+        when(criterionRepository.findById(criterionId)).thenReturn(Optional.of(criterion));
+
+        assertThatThrownBy(() -> service.recordOrUpdateResult(criterionId.toString(), request, currentUser))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Ngày cấp kết quả không được trước ngày gửi mẫu");
+    }
+
+    // ============================================================
+    // Portal submit notification tests (QTN-14 / NCL-11-CN-007)
+    // ============================================================
+
+    @Test
+    @DisplayName("Portal: Đơn vị kiểm nghiệm nộp kết quả toàn bộ ĐẠT -> chuyển status PASSED và gửi thông báo đạt cho HTX")
+    void testRecordPortalResults_whenAllPassed_shouldSetRequestPassedAndSendPassedNotification() {
+        // Arrange
+        String rawToken = "valid-token-32-chars-long-12345";
+        InspectionResultEntryLink link = InspectionResultEntryLink.builder()
+                .id(UUID.randomUUID())
+                .inspectionRequest(inspectionRequest)
+                .organization(lot.getOrganization())
+                .tokenHash("hash-value")
+                .status(InspectionResultEntryLinkStatus.ACTIVE)
+                .build();
+
+        LocalDate resultDate = LocalDate.now().minusDays(1);
+        LocalDate expiryDate = LocalDate.now().plusMonths(6);
+
+        InspectionCriterionResultRequest item = InspectionCriterionResultRequest.builder()
+                .criterionId(criterionId.toString())
+                .resultDate(resultDate)
+                .expiryDate(expiryDate)
+                .passed(true)
+                .build();
+
+        when(linkService.validateAndGetActiveLink(rawToken, "127.0.0.1")).thenReturn(link);
+        when(requestRepository.findByIdForUpdate(inspectionRequestId)).thenReturn(Optional.of(inspectionRequest));
+        when(linkRepository.consumeActiveLink(
+                eq(link.getId()),
+                eq(InspectionResultEntryLinkStatus.ACTIVE),
+                eq(InspectionResultEntryLinkStatus.USED),
+                any(),
+                eq("127.0.0.1"),
+                any()))
+                .thenReturn(1);
+
+        when(resultRepository.findByInspectionCriterion_Id(criterionId)).thenReturn(Optional.empty());
+        when(resultRepository.saveAll(anyList())).thenReturn(List.of(result));
+        when(resultRepository.countTotalCriteria(inspectionRequestId)).thenReturn(1);
+        when(resultRepository.findByInspectionCriterion_InspectionRequest_Id(inspectionRequestId))
+                .thenReturn(List.of(result));
+
+        // Act
+        service.recordPortalResults(rawToken, List.of(item), "127.0.0.1", "Test-Agent");
+
+        // Assert
+        assertThat(inspectionRequest.getStatus()).isEqualTo(InspectionRequestStatus.PASSED);
+        verify(requestRepository).save(inspectionRequest);
+        verify(notificationService).sendInspectionPassedNotification("Lô 01", orgId);
+        verify(notificationService, never()).sendInspectionFailedNotification(any(), any());
+    }
+
+    @Test
+    @DisplayName("Portal: Đơn vị kiểm nghiệm nộp kết quả có chỉ tiêu KHÔNG ĐẠT -> chuyển status FAILED và gửi cảnh báo không đạt cho HTX")
+    void testRecordPortalResults_whenAnyFailed_shouldSetRequestFailedAndSendFailedNotification() {
+        // Arrange
+        String rawToken = "valid-token-32-chars-long-12345";
+        InspectionResultEntryLink link = InspectionResultEntryLink.builder()
+                .id(UUID.randomUUID())
+                .inspectionRequest(inspectionRequest)
+                .organization(lot.getOrganization())
+                .tokenHash("hash-value")
+                .status(InspectionResultEntryLinkStatus.ACTIVE)
+                .build();
+
+        InspectionCriterionResultRequest item = InspectionCriterionResultRequest.builder()
+                .criterionId(criterionId.toString())
+                .passed(false)
+                .build();
+
+        InspectionCriterionResult failedResult = InspectionCriterionResult.builder()
+                .id(UUID.randomUUID())
+                .inspectionCriterion(criterion)
+                .passed(false)
+                .build();
+
+        when(linkService.validateAndGetActiveLink(rawToken, "127.0.0.1")).thenReturn(link);
+        when(requestRepository.findByIdForUpdate(inspectionRequestId)).thenReturn(Optional.of(inspectionRequest));
+        when(linkRepository.consumeActiveLink(
+                eq(link.getId()),
+                eq(InspectionResultEntryLinkStatus.ACTIVE),
+                eq(InspectionResultEntryLinkStatus.USED),
+                any(),
+                eq("127.0.0.1"),
+                any()))
+                .thenReturn(1);
+
+        when(resultRepository.findByInspectionCriterion_Id(criterionId)).thenReturn(Optional.empty());
+        when(resultRepository.saveAll(anyList())).thenReturn(List.of(failedResult));
+        when(resultRepository.countTotalCriteria(inspectionRequestId)).thenReturn(1);
+        when(resultRepository.findByInspectionCriterion_InspectionRequest_Id(inspectionRequestId))
+                .thenReturn(List.of(failedResult));
+
+        // Act
+        service.recordPortalResults(rawToken, List.of(item), "127.0.0.1", "Test-Agent");
+
+        // Assert
+        assertThat(inspectionRequest.getStatus()).isEqualTo(InspectionRequestStatus.FAILED);
+        verify(requestRepository).save(inspectionRequest);
+        verify(notificationService).sendInspectionFailedNotification("Lô 01", orgId);
+        verify(notificationService, never()).sendInspectionPassedNotification(any(), any());
     }
 }

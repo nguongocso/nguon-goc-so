@@ -72,4 +72,9 @@ public class PublicInspectionCriterionResultDto {
      * Đơn vị / phòng kiểm nghiệm.
      */
     private String laboratoryName;
+
+    /**
+     * Nguồn ghi nhận kết quả kiểm nghiệm (COOPERATIVE_MANUAL hoặc TESTING_UNIT_PORTAL).
+     */
+    private vn.nguongocso.certification.enums.InspectionResultEntrySource entrySource;
 }
