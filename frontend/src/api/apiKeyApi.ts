@@ -6,6 +6,8 @@ import type {
   PartnerApiKeyResponse,
   ApiKeyPageResponse,
   PartnerApiKeyStatus,
+  RenewApiKeyRequest,
+  UpdateApiKeyQuotaRequest,
 } from '@/types/apiKey';
 
 /**
@@ -65,6 +67,34 @@ export const revokeApiKey = async (
 ): Promise<PartnerApiKeyResponse> => {
   const response = await apiClient.post<ApiResult<PartnerApiKeyResponse>>(
     `/organization/api-keys/${id}/revoke`,
+  );
+  return response.data.data;
+};
+
+/**
+ * Gia hạn khóa truy cập (NCL-12-CN-005)
+ */
+export const renewApiKey = async (
+  id: string,
+  data: RenewApiKeyRequest,
+): Promise<PartnerApiKeyResponse> => {
+  const response = await apiClient.patch<ApiResult<PartnerApiKeyResponse>>(
+    `/organization/api-keys/${id}/expiry`,
+    data,
+  );
+  return response.data.data;
+};
+
+/**
+ * Nâng hạn mức khóa truy cập (NCL-12-CN-005)
+ */
+export const updateApiKeyQuota = async (
+  id: string,
+  data: UpdateApiKeyQuotaRequest,
+): Promise<PartnerApiKeyResponse> => {
+  const response = await apiClient.patch<ApiResult<PartnerApiKeyResponse>>(
+    `/organization/api-keys/${id}/quota`,
+    data,
   );
   return response.data.data;
 };
@@ -130,4 +160,3 @@ export const getPartnerWebhookNotifications = async (
   );
   return response.data.data;
 };
-
