@@ -13,7 +13,7 @@ Hệ thống chủ động cảnh báo cho Quản lý HTX (`VT-02`, `VT-01` xem 
 
 | Kích hoạt | Điều kiện (mặc định, cấu hình được) | Hành động |
 |---|---|---|
-| Sắp hết hạn | `0 < expiresAt - now <= 7 ngày`, `status = ACTIVE` | 1 thông báo/ngày/khóa + mục trên `/alerts` |
+| Sắp hết hạn | `0 < expiresAt - now <= 7 ngày`, `status = ACTIVE` | 1 thông báo/ngày/khóa + mục trên `/alerts`; kích hoạt kép: job quét 00:00 **và** ngay khi cấp/gia hạn (`ApiKeyLifecycleEvent`) |
 | Đã hết hạn | `expiresAt <= now`, `status = ACTIVE` | Persist `status = EXPIRED` (sửa dứt điểm việc key quá hạn vẫn `ACTIVE`) + 1 thông báo |
 | Sắp chạm hạn mức | `call_count` trong ngày hôm nay (bảng `partner_api_key_daily_usage`) `>= ceil(rateLimitPerHour × 0.8)` | 1 thông báo/ngày/khóa, gửi ngay tại lượt gọi chạm ngưỡng |
 | Đối soát hạn mức (job) | Mỗi giờ quét usage hôm nay **chưa** gửi cảnh báo mà đã vượt ngưỡng | Gửi bù đúng 1 thông báo/ngày/khóa (bù khi restart / nhiều instance / bộ đếm vượt ngưỡng) |
@@ -24,15 +24,22 @@ Cấu hình (`application.properties`):
 
 ```properties
 app.apikey.expiry-warning-days=7
+app.apikey.expiry-scan-cron=0 0 0 * * ?
 app.apikey.quota-warning-ratio=0.8
 app.apikey.quota-scan-cron=0 30 * * * ?
 ```
+
+Job quét hết hạn chạy lúc **00:00 (nửa đêm) theo múi giờ `app.timezone`** (`zone = "${app.timezone}"`).
+Cảnh báo sắp hết hạn còn được gửi **ngay khi cấp/gia hạn khóa** (`createApiKey`, `createTestApiKey`,
+`renewApiKey` phát `ApiKeyLifecycleEvent`; `ApiKeyWarningService` lắng nghe và gửi ngay nếu khóa `ACTIVE`
+mà `0 < expiresAt − now ≤ expiryWarningDays`), tái dùng khử trùng 1 thông báo/ngày/khóa nên lần quét
+00:00 cùng ngày không gửi trùng.
 
 Ghi chú vận hành:
 
 - **Usage theo ngày được lưu ở DB**, không còn ở bộ nhớ tạm (JVM) ⇒ cảnh báo hạn mức và mục tương ứng trên `/alerts` **không mất khi khởi động lại backend**; nhiều instance dùng chung một nguồn đếm nên không gửi trùng (TC-06).
 - **Rate limit theo giờ (QTN-20) không đổi**: vẫn đếm theo cửa sổ giờ và trả `429` khi vượt `rateLimitPerHour`. Lượt bị `429` **không** tính vào usage ngày (giữ nguyên cơ chế "chặn trước – đếm sau" hiện hành).
-- Job đối soát mặc định **mỗi giờ** (phút 30) vì `01:00` là thời điểm **sang ngày mới** (usage hôm nay = 0): nếu chỉ quét hằng ngày đúng `01:00` sẽ không phát hiện được usage của chính ngày hôm đó.
+- Job đối soát mặc định **mỗi giờ** (phút 30) vì `00:00` là thời điểm **sang ngày mới** (usage hôm nay = 0): nếu chỉ quét hằng ngày đúng `00:00` sẽ không phát hiện được usage của chính ngày hôm đó.
 
 ---
 
@@ -139,7 +146,7 @@ Ví dụ item cảnh báo hạn mức:
 
 ## 3. Ánh xạ Acceptance Criteria
 
-- **TC-01:** key còn 5 ngày → sau lần quét → VT-02 có notification + mục `API_KEY_EXPIRING` trên `/alerts` kèm lối tắt.
+- **TC-01:** key còn 5 ngày → sau lần quét 00:00 **hoặc ngay khi cấp/gia hạn** → VT-02 có notification + mục `API_KEY_EXPIRING` trên `/alerts` kèm lối tắt.
 - **TC-02:** key 10 lượt/giờ, gọi 8 lượt (tổng ngày chạm `ceil(10 × 0.8) = 8`) → notification `API_KEY_QUOTA_WARNING` gửi ngay tại lượt thứ 8; lượt 11 trong cùng giờ → `429` như cũ (QTN-20 không đổi). Kịch bản gốc trong tài liệu nghiệp vụ ghi "85% hạn mức trong giờ": khi tổng lượt trong ngày đã vượt ngưỡng 80% thì cảnh báo đã được gửi (tại mốc 80%), nên kết quả quan sát được vẫn đúng.
 - **TC-03:** key `REVOKED` → quét bỏ qua, không notification, không item aggregate.
 - **TC-04:** quét/gọi lại trong cùng ngày → không trùng (hạn mức: cờ `warning_sent_at`; hết hạn: `entityId` + khoảng thời gian trong ngày).
