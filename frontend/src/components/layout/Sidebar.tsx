@@ -249,6 +249,7 @@ const MENU_GROUPS: MenuGroup[] = [
         label: "Vùng trồng",
         href: "/farm-areas",
         allowedRoles: ["VT-02"] as const,
+        activePaths: ["/farm-areas", "/chinhsuavungtrong"],
       },
       {
         icon: <Package className="h-5 w-5" />,
