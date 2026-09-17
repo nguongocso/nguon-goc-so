@@ -182,13 +182,15 @@ Hãy phân tích kỹ từng dòng code thêm mới (bắt đầu bằng dấu +
  */
 async function callAI(prompt) {
   if (GEMINI_API_KEY) {
-    // Danh sách các model Gemini hỗ trợ
+    // Danh sách các model Gemini ưu tiên (gemini-3.6-flash theo đề xuất trực tiếp từ Google API)
     const candidateModels = [
+      'gemini-3.6-flash',
+      'gemini-3.5-flash',
       'gemini-2.5-flash',
-      'gemini-1.5-flash',
-      'gemini-1.5-pro'
+      'gemini-flash'
     ];
 
+    // Thử các model trong danh sách ưu tiên
     for (const model of candidateModels) {
       try {
         console.log(`🤖 Đang thử gọi Google Gemini Model: ${model}...`);
@@ -217,6 +219,42 @@ async function callAI(prompt) {
       } catch (e) {
         console.warn(`Thất bại khi gọi model ${model}:`, e.message);
       }
+    }
+
+    // Tự động dò danh sách model khả dụng của API key nếu danh sách trên bị 404
+    try {
+      console.log('🔍 Đang tự động dò danh sách model khả dụng của API key...');
+      const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`);
+      const listData = await listRes.json();
+      if (listData.models && Array.isArray(listData.models)) {
+        const available = listData.models
+          .filter(m => m.supportedGenerationMethods?.includes('generateContent') && m.name?.includes('flash'))
+          .map(m => m.name.replace('models/', ''));
+        
+        console.log('Các model Flash tìm thấy:', available.join(', '));
+        for (const discoveredModel of available) {
+          console.log(`🤖 Thử gọi model tự động dò: ${discoveredModel}...`);
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${discoveredModel}:generateContent?key=${GEMINI_API_KEY}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                temperature: 0.1,
+                responseMimeType: 'application/json'
+              }
+            })
+          });
+          const data = await res.json();
+          if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+            console.log(`✅ Gọi thành công model tự dò: ${discoveredModel}!`);
+            return JSON.parse(data.candidates[0].content.parts[0].text);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Lỗi khi tự động dò model:', err.message);
     }
   }
 
