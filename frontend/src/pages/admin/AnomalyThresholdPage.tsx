@@ -18,7 +18,7 @@ import type {
 
 export const AnomalyThresholdPage: React.FC = () => {
   useSetBreadcrumb([
-    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Tổng quan', href: '/dashboard' },
     { label: 'Cấu hình ngưỡng quét bất thường' },
   ]);
 
@@ -65,7 +65,7 @@ export const AnomalyThresholdPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 p-4 md:p-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       <ListPageHeader
         icon={SlidersHorizontal}
         title="Cấu hình ngưỡng quét bất thường"

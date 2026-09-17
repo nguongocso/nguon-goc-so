@@ -39,7 +39,7 @@ export const CategoryOverridePage: React.FC = () => {
   const isEditing = Boolean(id);
 
   useSetBreadcrumb([
-    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Tổng quan', href: '/dashboard' },
     { label: 'Cấu hình ngưỡng quét bất thường', href: '/admin/anomaly-thresholds' },
     { label: isEditing ? 'Chỉnh sửa cấu hình theo loại nông sản' : 'Thêm mới cấu hình theo loại nông sản' },
   ]);
