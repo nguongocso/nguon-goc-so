@@ -25,6 +25,7 @@ import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.FarmActivityType;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.farm.service.FarmLogService;
+import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.repository.ShipmentRepository;
@@ -60,6 +61,7 @@ public class OfflineSyncEventProcessor {
     private final ShipmentRepository shipmentRepository;
     private final TraceCodeRepository traceCodeRepository;
     private final FarmLogService farmLogService;
+    private final PermissionChecker permissionChecker;
 
     /**
      * Xử lý một event trong transaction riêng (REQUIRES_NEW).
@@ -231,6 +233,10 @@ public class OfflineSyncEventProcessor {
      */
     private UUID processFarmLogOffline(RecordOfflineEventDto eventDto) {
         validateFarmLogBasics(eventDto);
+        // Kiểm tra quyền chi tiết như ghi trực tuyến (QTN-07): cùng ma trận
+        // FARM_LOG/CREATE với POST /api/v1/farm-logs. Thiếu quyền -> BusinessException
+        // -> bản ghi FAILED kèm lý do, được giữ lại phía client (dead-letter).
+        permissionChecker.check("FARM_LOG", "CREATE");
         FarmActivityType activityType = extractAndValidateActivityType(eventDto.getEventData());
         LocalDate executedDate = extractAndValidateExecutedDate(eventDto.getEventData());
         CreateFarmLogRequest farmLogRequest = buildCreateFarmLogRequest(eventDto, activityType, executedDate);

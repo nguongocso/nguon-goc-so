@@ -32,6 +32,7 @@ import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.farm.dto.response.FarmLogResponse;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.farm.service.FarmLogService;
+import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
 
@@ -64,6 +65,9 @@ class OfflineSyncEventProcessorFarmLogTest {
 
     @Mock
     private FarmLogService farmLogService;
+
+    @Mock
+    private PermissionChecker permissionChecker;
 
     @InjectMocks
     private OfflineSyncEventProcessor eventProcessor;
@@ -116,6 +120,7 @@ class OfflineSyncEventProcessorFarmLogTest {
         // Then
         assertThat(result.getStatus()).isEqualTo("SUCCESS");
         assertThat(result.getEventId()).isEqualTo(createdId);
+        verify(permissionChecker).check("FARM_LOG", "CREATE");
         verify(farmLogService).create(any());
         verify(offlineSyncLogRepository).save(any(OfflineSyncLog.class));
         verifyNoInteractions(chainEventService);
@@ -170,6 +175,24 @@ class OfflineSyncEventProcessorFarmLogTest {
         // Then
         assertThat(result.getStatus()).isEqualTo("FAILED");
         assertThat(result.getMessage()).contains("đã bị hủy");
+        verify(eventValidationService).logFailedAttempt(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void processEvent_FarmLogMissingCreatePermission_ReturnsFailed() {
+        // Given: ma trận quyền tổ chức tắt FARM_LOG/CREATE — parity với ghi trực tuyến (QTN-07)
+        when(offlineSyncLogRepository.findByOfflineEventId(offlineEventDto.getOfflineEventId()))
+                .thenReturn(Optional.empty());
+        doThrow(new BusinessException("Bạn không có quyền thực hiện chức năng này."))
+                .when(permissionChecker).check("FARM_LOG", "CREATE");
+
+        // When
+        OfflineEventSyncResultDto result = eventProcessor.processEvent(offlineEventDto, syncId, currentUser);
+
+        // Then
+        assertThat(result.getStatus()).isEqualTo("FAILED");
+        assertThat(result.getMessage()).contains("Bạn không có quyền thực hiện chức năng này.");
+        verifyNoInteractions(farmLogService);
         verify(eventValidationService).logFailedAttempt(any(), any(), any(), any(), any());
     }
 }
