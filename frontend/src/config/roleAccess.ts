@@ -54,6 +54,9 @@ export const ROLE_ACCESS = {
   // ✅ Từ file 2
   exportOpenData: ['VT-05'] as const,
 
+  // ✅ NCL-07-CN-007 - Cấu hình trường dữ liệu trong hồ sơ truy xuất theo yêu cầu đối tác
+  profileTemplateManage: ['VT-02'] as const,
+
   // ✅ Từ file 1
   seasonYieldComparison: ['VT-01', 'VT-05'] as const,
 
@@ -67,7 +70,7 @@ export const ROLE_ACCESS = {
 
   // ✅ NCL-08-CN-008 - Yêu cầu thu hồi lô sản xuất (2 bước)
   recallRequestCreate: ['VT-03'] as const,
-  recallRequestManage: ['VT-01', 'VT-02'] as const,
+  recallRequestManage: ['VT-02'] as const,
 
   // ✅ NCL-04-CN-007 - Yêu cầu cấp bổ sung dải mã truy xuất
   supplementCreate: ['VT-02'] as const,
@@ -119,6 +122,9 @@ export const ROLE_ACCESS = {
 
   // ✅ NCL-08-CN-012 - Kết thúc vụ việc thu hồi
   recallCaseManage: ['VT-02'] as const,
+
+  // ✅ NCL-07-CN-008 - Bảng điều khiển mức độ sử dụng nền tảng theo tổ chức
+  organizationUsage: ['VT-01'] as const,
 
   // ✅ Hồ sơ người dùng (NCL-01-CN-010: Tất cả vai trò VT-01 -> VT-05)
   userProfile: AUTHENTICATED_ROLE_CODES,

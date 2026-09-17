@@ -96,6 +96,16 @@ public class PartnerApiKey {
     @Column(name = "last_call_ip", length = 45)
     private String lastCallIp;
 
+    @Column(name = "webhook_url", length = 500)
+    private String webhookUrl;
+
+    @Column(name = "webhook_secret", length = 64)
+    private String webhookSecret;
+
+    @Builder.Default
+    @Column(name = "is_webhook_active", nullable = false)
+    private Boolean isWebhookActive = true;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
@@ -126,6 +136,9 @@ public class PartnerApiKey {
         }
         if (isTest == null) {
             isTest = false;
+        }
+        if (isWebhookActive == null) {
+            isWebhookActive = true;
         }
     }
 }

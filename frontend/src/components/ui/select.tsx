@@ -135,11 +135,13 @@ function SelectLabel({
 function SelectItem({
   className,
   children,
+  label,
   ...props
 }: SelectPrimitive.Item.Props) {
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
+      label={label}
       className={cn(
         // 40px height, 14px horizontal padding, 8px rounded, 14px font, 400 weight
         "relative flex w-full cursor-pointer items-center gap-2 rounded-md h-10 px-3.5 text-sm font-normal outline-none select-none transition-colors duration-100",

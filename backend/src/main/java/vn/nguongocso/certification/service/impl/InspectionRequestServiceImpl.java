@@ -578,6 +578,8 @@ public class InspectionRequestServiceImpl
                                                         catalogCriterion.getName())
                                                 .name(
                                                         catalogCriterion.getName())
+                                                .referenceStandard(
+                                                        catalogCriterion.getReferenceStandard())
                                                 .build())
                                 .toList())
                 .build();

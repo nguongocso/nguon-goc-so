@@ -38,11 +38,11 @@ export const Qtn11ErrorModal = ({
           <div className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-6 w-6 text-red-600" />
             <DialogTitle className="text-xl font-bold text-red-600">
-              Không đủ điều kiện xuất dữ liệu (Quy tắc QTN-11)
+              Không đủ điều kiện xuất dữ liệu
             </DialogTitle>
           </div>
           <DialogDescription className="text-sm text-muted-foreground">
-            Danh sách các lô hàng/shipment trong phạm vi chọn chưa thể kết xuất do bị thiếu sự kiện chuỗi cung ứng hoặc chứng từ đính kèm theo quy định QTN-11:
+            Danh sách các lô hàng/shipment trong phạm vi chọn chưa thể kết xuất do bị thiếu sự kiện chuỗi cung ứng hoặc chứng từ đính kèm theo quy định:
           </DialogDescription>
         </DialogHeader>
 
@@ -63,7 +63,7 @@ export const Qtn11ErrorModal = ({
                     )}
                   </div>
                   <Badge variant="destructive" className="text-xs">
-                    Không đạt QTN-11
+                    Không đạt
                   </Badge>
                 </div>
 

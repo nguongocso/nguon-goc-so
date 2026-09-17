@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,6 +58,9 @@ class PartnerApiKeyServiceTest {
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    private vn.nguongocso.integration.partner.repository.PartnerWebhookNotificationRepository partnerWebhookNotificationRepository;
 
     @InjectMocks
     private PartnerApiKeyService partnerApiKeyService;
@@ -188,6 +193,12 @@ class PartnerApiKeyServiceTest {
         assertNotNull(response);
         assertEquals(PartnerApiKeyStatus.REVOKED, response.getStatus());
         assertNotNull(response.getRevokedAt());
+
+        // TC-04 (NCL-12-CN-006): kiểm tra đã hủy các thông báo chờ thử lại
+        verify(partnerWebhookNotificationRepository).cancelPendingNotificationsForApiKey(
+                eq(keyId),
+                anyString(),
+                any(LocalDateTime.class));
 
         // TASK-27: kiểm tra audit log của thao tác thu hồi khóa truy cập
         ArgumentCaptor<ActivityLogEvent> captor = ArgumentCaptor.forClass(ActivityLogEvent.class);

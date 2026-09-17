@@ -130,6 +130,7 @@ interface CriterionRow {
   name: string;
   unit: string | null;
   maxThreshold: number | null;
+  referenceStandard: string | null;
   isCreated: boolean;
   isExpired: boolean;
 }
@@ -506,6 +507,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
         name: item.name,
         unit: catalogEntry?.unit ?? null,
         maxThreshold: catalogEntry?.maxThreshold ?? null,
+        referenceStandard: catalogEntry?.referenceStandard ?? item.referenceStandard ?? null,
         isCreated: createdCriterionKeys.has(key),
         isExpired: expiredCriterionKeys.has(key),
       };
@@ -523,7 +525,8 @@ export const CreateInspectionRequestPage: React.FC = () => {
       const matchSearch =
         keyword === "" ||
         item.name.toLowerCase().includes(keyword) ||
-        item.code.toLowerCase().includes(keyword);
+        item.code.toLowerCase().includes(keyword) ||
+        (item.referenceStandard?.toLowerCase().includes(keyword) ?? false);
 
       if (criteriaFilter === "EXPIRED") return matchSearch && item.isExpired;
       if (criteriaFilter === "CREATED") return matchSearch && item.isCreated;
@@ -1061,6 +1064,7 @@ export const CreateInspectionRequestPage: React.FC = () => {
                         <TableRow className="bg-muted/50">
                           <TableHead className="w-12 text-center">STT</TableHead>
                           <TableHead>Tên chỉ tiêu</TableHead>
+                          <TableHead>Tiêu chuẩn tham chiếu</TableHead>
                           <TableHead>Ngưỡng tối đa</TableHead>
                           <TableHead>Đơn vị</TableHead>
                           <TableHead>Trạng thái</TableHead>
@@ -1099,6 +1103,9 @@ export const CreateInspectionRequestPage: React.FC = () => {
                                   {criterion.name}
                                 </p>
                               </div>
+                            </TableCell>
+                            <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground" title={criterion.referenceStandard ?? undefined}>
+                              {criterion.referenceStandard || "—"}
                             </TableCell>
                             <TableCell className="whitespace-nowrap text-xs">
                               {criterion.maxThreshold !== null

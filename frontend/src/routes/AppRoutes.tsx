@@ -107,7 +107,6 @@ import { ShipmentHandoverSentListPage } from "@/pages/shipment-handover/Shipment
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
 import TraceLookupPage from "@/pages/public/TraceLookupPage";
-import ProductFeedbackLookupPage from "@/pages/public/ProductFeedbackLookupPage";
 import JoinOrganizationPage from "@/pages/public/JoinOrganizationPage";
 import DataPortalDocsPage from "@/pages/public/DataPortalDocsPage";
 
@@ -122,6 +121,7 @@ import IndustryReportPage from "@/pages/report/IndustryReportPage";
 import SeasonYieldComparisonPage from "@/pages/report/SeasonYieldComparisonPage";
 import TerritoryAlertLotListPage from "@/pages/report/TerritoryAlertLotListPage";
 import TerritoryAlertLotDetailPage from "@/pages/report/TerritoryAlertLotDetailPage";
+import OrganizationUsagePage from "@/pages/report/OrganizationUsagePage";
 
 // ===== Alerts =====
 import AggregateAlertPage from "@/pages/alert/AggregateAlertPage";
@@ -152,6 +152,8 @@ import NotificationsPage from "@/pages/notification/NotificationsPage";
 
 // ===== Export Open Data =====
 import ExportOpenDataPage from "@/pages/export/ExportOpenDataPage";
+import ProfileTemplateListPage from "@/pages/export/ProfileTemplateListPage";
+import ProfileTemplateFormPage from "@/pages/export/ProfileTemplateFormPage";
 
 // ===== Import Production Lot =====
 import ImportProductionLotPage from "@/pages/production-lot/ImportProductionLotPage";
@@ -172,6 +174,7 @@ import OrganizationDetailPage from "@/pages/organization/OrganizationDetailPage"
 import PartnerApiKeyListPage from "@/pages/apiKey/PartnerApiKeyListPage";
 import CreatePartnerApiKeyPage from "@/pages/apiKey/CreatePartnerApiKeyPage";
 import CreateTestPartnerApiKeyPage from "@/pages/apiKey/CreateTestPartnerApiKeyPage";
+import PartnerWebhookNotificationHistoryPage from "@/pages/apiKey/PartnerWebhookNotificationHistoryPage";
 
 
 // ===== Product Feedback =====
@@ -366,7 +369,7 @@ const AppRoutes = () => (
 
         <Route
             path="/public/product-feedbacks/lookup"
-            element={<ProductFeedbackLookupPage />}
+            element={<Navigate to="/" replace />}
         />
 
         <Route
@@ -604,7 +607,7 @@ const AppRoutes = () => (
                 path="production-lots/:id/create-bulk-recall-request"
                 element={
                     <RoleRoute
-                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                        allowedRoles={["VT-02", "VT-03"]}
                     >
                         <CreateBulkRecallRequestPage />
                     </RoleRoute>
@@ -1402,6 +1405,16 @@ const AppRoutes = () => (
                 }
             />
 
+            {/* NCL-07-CN-008: Mức độ sử dụng nền tảng theo tổ chức cho VT-01 */}
+            <Route
+                path="reports/organization-usage"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.organizationUsage}>
+                        <OrganizationUsagePage />
+                    </RoleRoute>
+                }
+            />
+
 
             {/* =================================================
           NOTIFICATIONS
@@ -1536,6 +1549,15 @@ const AppRoutes = () => (
                 }
             />
 
+            <Route
+                path="integration/api-keys/:id/notifications"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.apiKeyManagement}>
+                        <PartnerWebhookNotificationHistoryPage />
+                    </RoleRoute>
+                }
+            />
+
 
 
             {/* =================================================
@@ -1549,6 +1571,43 @@ const AppRoutes = () => (
                         allowedRoles={ROLE_ACCESS.exportOpenData}
                     >
                         <ExportOpenDataPage />
+                    </RoleRoute>
+                }
+            />
+
+            {/* =================================================
+          PROFILE TEMPLATES (NCL-07-CN-007)
+      ================================================= */}
+
+            <Route
+                path="export/profile-templates"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.profileTemplateManage}
+                    >
+                        <ProfileTemplateListPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="export/profile-templates/new"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.profileTemplateManage}
+                    >
+                        <ProfileTemplateFormPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="export/profile-templates/:id/edit"
+                element={
+                    <RoleRoute
+                        allowedRoles={ROLE_ACCESS.profileTemplateManage}
+                    >
+                        <ProfileTemplateFormPage />
                     </RoleRoute>
                 }
             />

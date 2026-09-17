@@ -20,7 +20,7 @@
 |---|---|---|---|---|---|
 | Query | page | int | No | >= 0, default = 0 | 0 |
 | Query | size | int | No | > 0, default = 10 | 10 |
-| Query | action | String | No | Tên mã hóa của thao tác | "CREATE_PRODUCTION_LOT" |
+| Query | action | String | No | Mã thao tác cụ thể (ví dụ `UPDATE_FARM_AREA_BOUNDARY`) hoặc nhóm thao tác gốc không chứa dấu gạch dưới (ví dụ `UPDATE` khớp cả `UPDATE` và `UPDATE_*`) | "CREATE_PRODUCTION_LOT" |
 | Query | actorName | String | No | Tìm kiếm tương đối theo tên hoặc username | "Nguyễn Văn" |
 | Query | startDate | String | No | Định dạng `yyyy-MM-dd` | "2026-07-01" |
 | Query | endDate | String | No | Định dạng `yyyy-MM-dd` | "2026-07-30" |

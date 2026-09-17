@@ -751,6 +751,9 @@ export const exportOpenDataSchema = z
                     'Vui lòng chọn định dạng',
             },
         ),
+
+        /** NCL-07-CN-007 — Mã mẫu hồ sơ truy xuất áp dụng (tùy chọn) */
+        templateId: z.string().uuid('Mã mẫu hồ sơ không hợp lệ').optional(),
     })
     .superRefine((data, ctx) => {
         if (

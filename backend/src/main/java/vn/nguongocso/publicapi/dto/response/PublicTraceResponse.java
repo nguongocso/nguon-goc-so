@@ -17,6 +17,8 @@ import java.util.UUID;
 public class PublicTraceResponse {
     private String codeValue;
 
+    private UUID shipmentId;
+
     private UUID productionLotId;
 
     private String lotName;
@@ -56,4 +58,11 @@ public class PublicTraceResponse {
 
     /** Thông điệp thông báo dữ liệu thử nghiệm. */
     private String testNotice;
+
+    /**
+     * Ranh giới vùng trồng hiển thị công khai (QTN-12).
+     * Null khi lô sản xuất chưa gắn vùng trồng hoặc vùng trồng chưa được
+     * khoanh ranh giới.
+     */
+    private PublicFarmAreaBoundaryDto farmAreaBoundary;
 }

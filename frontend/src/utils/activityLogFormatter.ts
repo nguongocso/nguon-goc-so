@@ -87,6 +87,7 @@ export const formatActionType = (action: string): string => {
     // Farm Area
     CREATE_FARM_AREA: 'Tạo vùng trồng',
     UPDATE_FARM_AREA: 'Cập nhật vùng trồng',
+    UPDATE_FARM_AREA_BOUNDARY: 'Cập nhật ranh giới vùng trồng',
     DELETE_FARM_AREA: 'Xóa vùng trồng',
 
     // Input Material
