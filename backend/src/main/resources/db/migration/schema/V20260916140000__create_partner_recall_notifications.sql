@@ -1,5 +1,5 @@
 -- ============================================================
--- V20260915101500: Tạo bảng theo dõi truy xuất lô đối tác và lịch sử thông báo thu hồi webhook
+-- V20260916140000: Tạo bảng theo dõi truy xuất lô đối tác và lịch sử thông báo thu hồi webhook
 -- User Story: NCL-12-CN-006 - Thông báo tự động tới bên thứ ba khi lô bị thu hồi
 -- ============================================================
 
@@ -41,7 +41,8 @@ CREATE TABLE IF NOT EXISTS partner_webhook_notifications (
     completed_at DATETIME NULL,
     PRIMARY KEY (id),
     CONSTRAINT fk_pwn_partner_key FOREIGN KEY (partner_api_key_id) REFERENCES partner_api_keys(id) ON DELETE CASCADE,
-    CONSTRAINT fk_pwn_shipment FOREIGN KEY (shipment_id) REFERENCES shipments(id) ON DELETE CASCADE
+    CONSTRAINT fk_pwn_shipment FOREIGN KEY (shipment_id) REFERENCES shipments(id) ON DELETE CASCADE,
+    CONSTRAINT uq_pwn_key_shipment_status UNIQUE (partner_api_key_id, shipment_id, new_status)
 ) ENGINE=InnoDB;
 
 CREATE INDEX idx_pwn_retry ON partner_webhook_notifications (delivery_status, next_retry_at);

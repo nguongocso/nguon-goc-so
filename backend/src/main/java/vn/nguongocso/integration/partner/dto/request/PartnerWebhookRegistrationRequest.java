@@ -18,8 +18,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class PartnerWebhookRegistrationRequest {
 
-    /** Địa chỉ URL nhận webhook, bắt buộc kết nối bảo mật HTTPS. */
-    @NotBlank(message = "Địa chỉ nhận thông báo không được để trống")
+    /** Địa chỉ URL nhận webhook, bắt buộc kết nối bảo mật HTTPS (để trống khi muốn hủy nhận webhook). */
     @Size(max = 500, message = "Địa chỉ nhận thông báo không được vượt quá 500 ký tự")
     private String webhookUrl;
 

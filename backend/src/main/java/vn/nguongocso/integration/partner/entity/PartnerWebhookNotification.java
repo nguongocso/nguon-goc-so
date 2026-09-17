@@ -34,7 +34,15 @@ import vn.nguongocso.trace.entity.Shipment;
  * trường {@code attemptsLog} định dạng JSON.
  */
 @Entity
-@Table(name = "partner_webhook_notifications")
+@Table(
+    name = "partner_webhook_notifications",
+    uniqueConstraints = {
+        @jakarta.persistence.UniqueConstraint(
+            name = "uq_pwn_key_shipment_status",
+            columnNames = {"partner_api_key_id", "shipment_id", "new_status"}
+        )
+    }
+)
 @Getter
 @Setter
 @Builder

@@ -41,4 +41,28 @@ public interface PartnerWebhookNotificationRepository extends JpaRepository<Part
      * Đếm tổng số thông báo theo trạng thái gửi của một khóa API.
      */
     long countByPartnerApiKey_IdAndDeliveryStatus(UUID partnerApiKeyId, WebhookDeliveryStatus deliveryStatus);
+
+    /**
+     * Kiểm tra xem thông báo thu hồi với cùng lô hàng và trạng thái mới đã được phát cho đối tác hay chưa (Idempotency).
+     */
+    boolean existsByPartnerApiKey_IdAndShipment_IdAndNewStatus(
+            UUID partnerApiKeyId, UUID shipmentId, String newStatus);
+
+    /**
+     * Hủy bỏ toàn bộ các thông báo đang chờ thử lại của một khóa API khi khóa bị thu hồi (TC-04).
+     */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("""
+            UPDATE PartnerWebhookNotification n
+            SET n.deliveryStatus = vn.nguongocso.integration.partner.enums.WebhookDeliveryStatus.CANCELLED,
+                n.nextRetryAt = null,
+                n.completedAt = :now,
+                n.lastErrorMessage = :reason
+            WHERE n.partnerApiKey.id = :partnerApiKeyId
+              AND n.deliveryStatus = vn.nguongocso.integration.partner.enums.WebhookDeliveryStatus.PENDING_RETRY
+            """)
+    int cancelPendingNotificationsForApiKey(
+            @Param("partnerApiKeyId") UUID partnerApiKeyId,
+            @Param("reason") String reason,
+            @Param("now") LocalDateTime now);
 }

@@ -10,6 +10,33 @@ export const normalizeVietnamese = (str: string): string => {
   return str
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đĐ]/g, "d")
     .toLowerCase()
     .trim();
+};
+
+/**
+ * Làm sạch chuỗi phản hồi từ máy chủ đối tác hoặc bên thứ ba.
+ * Loại bỏ các thẻ HTML rác (như thẻ <a>, <div>, <p>...) nếu máy chủ trả về dạng trang web,
+ * chỉ giữ lại văn bản thuần túy để tránh rò rỉ mã HTML thô ra giao diện người dùng.
+ *
+ * @param raw Chuỗi phản hồi thô nhận từ máy chủ
+ * @returns Chuỗi văn bản thuần sạch đẹp
+ */
+export const sanitizeResponseBody = (raw?: string | null): string => {
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  // Kiểm tra chuỗi có chứa thẻ HTML hay không
+  if (/<[a-z][\s\S]*>/i.test(trimmed)) {
+    try {
+      if (typeof DOMParser !== "undefined") {
+        const doc = new DOMParser().parseFromString(trimmed, "text/html");
+        return doc.body.textContent?.trim() || trimmed.replace(/<[^>]+>/g, "").trim();
+      }
+    } catch {
+      // Fallback regex nếu môi trường không có DOMParser
+    }
+    return trimmed.replace(/<[^>]+>/g, "").trim();
+  }
+  return trimmed;
 };

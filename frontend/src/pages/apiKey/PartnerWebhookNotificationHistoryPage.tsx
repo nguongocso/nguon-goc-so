@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { HelpButton } from '@/components/help/HelpButton';
+import { sanitizeResponseBody } from '@/utils/string';
 
 const STATUS_FILTER_OPTIONS = [
   { value: 'ALL', label: 'Tất cả trạng thái' },
@@ -392,8 +393,8 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
                               )}
 
                               {att.responseBody && (
-                                <div className="text-[11px] text-muted-foreground bg-background p-1.5 rounded border truncate max-w-full">
-                                  Phản hồi máy chủ: {att.responseBody}
+                                <div className="text-[11px] text-muted-foreground bg-background p-1.5 rounded border break-all whitespace-pre-wrap max-h-24 overflow-y-auto">
+                                  Phản hồi máy chủ: {sanitizeResponseBody(att.responseBody)}
                                 </div>
                               )}
                             </div>

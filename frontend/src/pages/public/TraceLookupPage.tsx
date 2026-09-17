@@ -272,15 +272,20 @@ function TraceLookupContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="border-b border-gray-100 bg-white">
-        <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
-          <div>
-            <Logo />
-            <p className="mt-1 text-sm text-gray-500">
+      <header className="border-b border-gray-100 bg-white/95 backdrop-blur-sm sticky top-0 z-30 shadow-xs">
+        <div className="relative mx-auto max-w-5xl px-4 py-3 sm:py-4 flex items-center justify-center">
+          <div className="flex flex-col items-center justify-center text-center">
+            <Link to="/" aria-label="Về trang chủ" className="inline-block transition-transform hover:scale-105">
+              <Logo height={64} />
+            </Link>
+            <p className="mt-1 text-sm font-medium text-gray-500">
               {t('header_subtitle')}
             </p>
           </div>
-          <LanguageSwitcher />
+
+          <div className="absolute right-4 top-1/2 -translate-y-1/2">
+            <LanguageSwitcher />
+          </div>
         </div>
       </header>
 
@@ -378,11 +383,11 @@ function TraceLookupContent() {
             }
             className="w-full"
           >
-            <TabsList className="h-auto w-full justify-start rounded-none border-b bg-gray-50/50 p-0">
+            <TabsList className="h-auto w-full justify-start rounded-none rounded-t-xl border-b bg-gray-50/50 p-0">
               <TabsTrigger
                 value="map"
                 disabled={!hasMapData}
-                className="flex items-center gap-2 rounded-none px-4 py-3 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:bg-transparent"
+                className="flex items-center gap-2 rounded-t-xl rounded-b-none first:rounded-tl-xl px-4 py-3 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:bg-transparent"
               >
                 <MapPin className="h-4 w-4" />
 
@@ -397,7 +402,7 @@ function TraceLookupContent() {
 
               <TabsTrigger
                 value="list"
-                className="flex items-center gap-2 rounded-none px-4 py-3 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:bg-transparent"
+                className="flex items-center gap-2 rounded-t-xl rounded-b-none first:rounded-tl-xl px-4 py-3 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:bg-transparent"
               >
                 <List className="h-4 w-4" />
 

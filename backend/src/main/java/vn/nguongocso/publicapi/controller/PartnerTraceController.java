@@ -65,8 +65,11 @@ public class PartnerTraceController {
         response.setIsTest(false);
 
         // Ghi nhận nhật ký truy xuất lô của đối tác (NCL-12-CN-006 / TC-03)
-        if (partnerApiKey != null && response.getProductionLotId() != null) {
-            partnerLotAccessService.recordLotAccess(partnerApiKey, null, response.getProductionLotId());
+        if (partnerApiKey != null) {
+            partnerLotAccessService.recordLotAccess(
+                    partnerApiKey,
+                    response.getShipmentId(),
+                    response.getProductionLotId());
         }
 
         return ResponseEntity.ok(ApiResult.success(response));

@@ -97,6 +97,33 @@ class PartnerWebhookControllerTest {
     }
 
     @Test
+    @DisplayName("Đối tác gửi PUT /api/v1/partner/webhook với webhookUrl rỗng để hủy đăng ký -> Trả về 200 OK")
+    void testPartnerUnregisterWebhook_Success() throws Exception {
+        PartnerWebhookRegistrationRequest request = PartnerWebhookRegistrationRequest.builder()
+                .webhookUrl("")
+                .isActive(false)
+                .build();
+
+        PartnerWebhookResponse mockResponse = PartnerWebhookResponse.builder()
+                .id(partnerApiKey.getId())
+                .partnerName(partnerApiKey.getPartnerName())
+                .keyPrefix(partnerApiKey.getKeyPrefix())
+                .webhookUrl(null)
+                .isWebhookActive(false)
+                .build();
+
+        when(partnerWebhookService.registerWebhookForPartnerKey(any(), any())).thenReturn(mockResponse);
+
+        mockMvc.perform(put("/api/v1/partner/webhook")
+                        .requestAttr("partnerApiKey", partnerApiKey)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.isWebhookActive").value(false));
+    }
+
+    @Test
     @DisplayName("Đối tác gửi GET /api/v1/partner/notifications xem lịch sử thông báo -> Trả về 200 OK")
     void testPartnerGetNotifications_Success() throws Exception {
         var mockPage = new PageImpl<>(List.of(

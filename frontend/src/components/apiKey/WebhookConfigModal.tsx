@@ -27,7 +27,8 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import type { PartnerApiKeyResponse, WebhookTestPingResponse } from '@/types/apiKey';
-import { updatePartnerWebhook, testPingPartnerWebhook } from '@/api/apiKeyApi';
+import { updatePartnerWebhook, testPingPartnerWebhook, getPartnerWebhook } from '@/api/apiKeyApi';
+import { sanitizeResponseBody } from '@/utils/string';
 
 interface WebhookConfigModalProps {
   open: boolean;
@@ -44,20 +45,37 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
 }) => {
   const [webhookUrl, setWebhookUrl] = useState('');
   const [isActive, setIsActive] = useState(true);
+  const [webhookSecret, setWebhookSecret] = useState<string | null>(null);
   const [showSecret, setShowSecret] = useState(false);
   const [copiedSecret, setCopiedSecret] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pinging, setPinging] = useState(false);
   const [pingResult, setPingResult] = useState<WebhookTestPingResponse | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
 
   useEffect(() => {
-    if (apiKey) {
+    if (apiKey && open) {
       setWebhookUrl(apiKey.webhookUrl || '');
       setIsActive(apiKey.isWebhookActive !== false);
       setPingResult(null);
       setUrlError(null);
       setShowSecret(false);
+      setJustSaved(false);
+
+      if (apiKey.webhookUrl) {
+        getPartnerWebhook(apiKey.id)
+          .then((res) => {
+            if (res?.webhookSecret) {
+              setWebhookSecret(res.webhookSecret);
+            }
+          })
+          .catch(() => {
+            setWebhookSecret(apiKey.webhookSecret || null);
+          });
+      } else {
+        setWebhookSecret(null);
+      }
     }
   }, [apiKey, open]);
 
@@ -92,6 +110,7 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setWebhookUrl(val);
+    setJustSaved(false);
     if (val.trim()) {
       validateUrl(val);
     } else {
@@ -104,16 +123,30 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
       return;
     }
 
+    const trimmedUrl = webhookUrl.trim();
     setSaving(true);
     try {
-      await updatePartnerWebhook(apiKey.id, {
-        webhookUrl: webhookUrl.trim(),
+      const savedResponse = await updatePartnerWebhook(apiKey.id, {
+        webhookUrl: trimmedUrl,
         isActive,
       });
 
-      toast.success('Lưu thông tin nhận thông báo thành công!');
       onSuccess();
-      onClose();
+
+      // Nếu xóa trống để hủy nhận Webhook -> đóng modal
+      if (!trimmedUrl) {
+        setWebhookSecret(null);
+        toast.success('Đã hủy đăng ký nhận Webhook thành công!');
+        onClose();
+        return;
+      }
+
+      // Lưu thành công URL -> giữ modal mở để người dùng sao chép secret key
+      if (savedResponse?.webhookSecret) {
+        setWebhookSecret(savedResponse.webhookSecret);
+      }
+      setJustSaved(true);
+      toast.success('Lưu cấu hình Webhook thành công! Vui lòng sao chép Khóa bí mật (Secret Key).');
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Không thể lưu thông tin nhận thông báo. Vui lòng thử lại.';
       toast.error(msg);
@@ -153,9 +186,9 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
   };
 
   const handleCopySecret = async () => {
-    if (!apiKey.webhookSecret) return;
+    if (!webhookSecret) return;
     try {
-      await navigator.clipboard.writeText(apiKey.webhookSecret);
+      await navigator.clipboard.writeText(webhookSecret);
       setCopiedSecret(true);
       toast.success('Đã sao chép khóa bí mật xác thực!');
       setTimeout(() => setCopiedSecret(false), 3000);
@@ -166,8 +199,8 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col gap-0 overflow-hidden">
+        <DialogHeader className="shrink-0">
           <div className="flex items-center gap-2 text-primary font-semibold mb-1">
             <Webhook className="w-5 h-5 text-primary" />
             <span>Khai báo thông tin nhận thông báo thu hồi</span>
@@ -180,10 +213,10 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-3">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 space-y-4 py-3 pr-1">
           {/* Nhập URL */}
-          <div className="space-y-2">
-            <Label htmlFor="webhook-url" className="text-sm font-medium flex items-center justify-between">
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="webhook-url" className="text-sm font-medium flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
               <span>Địa chỉ tiếp nhận thông báo (URL) <span className="text-destructive">*</span></span>
               {apiKey.webhookUrl && (
                 <span className="text-xs text-muted-foreground font-normal">
@@ -191,13 +224,13 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
                 </span>
               )}
             </Label>
-            <div className="relative">
+            <div className="relative min-w-0">
               <Input
                 id="webhook-url"
                 placeholder="https://partner.com/api/v1/webhook-listener"
                 value={webhookUrl}
                 onChange={handleUrlChange}
-                className={`font-mono text-xs sm:text-sm ${urlError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                className={`font-mono text-xs sm:text-sm w-full ${urlError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
               />
             </div>
             {urlError && (
@@ -212,28 +245,42 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
           </div>
 
           {/* Toggle Kích hoạt nhận tin */}
-          <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
-            <div className="space-y-0.5">
+          <div className="flex items-start justify-between gap-3 p-3 rounded-lg border bg-muted/30">
+            <div className="space-y-0.5 min-w-0">
               <Label className="text-sm font-medium">Bật nhận thông báo tự động</Label>
               <p className="text-xs text-muted-foreground">
                 Tạm dừng sẽ không gửi hoặc xếp hàng thông báo khi lô hàng bị thu hồi.
               </p>
             </div>
             <Switch
+              className="shrink-0"
               checked={isActive}
               onCheckedChange={setIsActive}
             />
           </div>
 
+          {/* Thông báo đã lưu cấu hình thành công */}
+          {justSaved && (
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg text-emerald-800 dark:text-emerald-200 text-xs flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+              <div className="space-y-0.5 min-w-0">
+                <p className="font-semibold">Đã lưu cấu hình Webhook thành công!</p>
+                <p className="text-[11px] text-emerald-700 dark:text-emerald-300">
+                  Dưới đây là Khóa bí mật (Secret Key) để đối tác xác thực chữ ký HMAC-SHA256 của các thông báo thu hồi. Vui lòng sao chép và gửi an toàn cho đối tác.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Khóa bí mật chữ ký số HMAC-SHA256 */}
-          {apiKey.webhookSecret && (
-            <div className="space-y-1.5 p-3 rounded-lg border bg-slate-50 dark:bg-slate-900/50">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold flex items-center gap-1 text-slate-700 dark:text-slate-300">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Khóa bí mật xác thực thông báo (Secret Key)</span>
+          {webhookSecret && (
+            <div className="space-y-1.5 p-3 rounded-lg border bg-slate-50 dark:bg-slate-900/50 min-w-0">
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                <Label className="text-xs font-semibold flex items-center gap-1 text-slate-700 dark:text-slate-300 min-w-0">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="truncate">Khóa bí mật xác thực thông báo (Secret Key)</span>
                 </Label>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                   <Button
                     type="button"
                     variant="ghost"
@@ -257,7 +304,7 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
                 </div>
               </div>
               <div className="font-mono text-xs bg-card p-2 rounded border break-all text-slate-800 dark:text-slate-200">
-                {showSecret ? apiKey.webhookSecret : apiKey.webhookSecret.replace(/^(.{8})(.*)(.{4})$/, '$1••••••••••••••••$3')}
+                {showSecret ? webhookSecret : webhookSecret.replace(/^(.{8})(.*)(.{4})$/, '$1••••••••••••••••$3')}
               </div>
               <p className="text-[11px] text-muted-foreground">
                 Mỗi gói tin gửi đi có kèm mã xác thực <code className="text-[11px] font-mono">X-Webhook-Signature</code> để đối tác kiểm tra tính toàn vẹn và nguồn gốc dữ liệu.
@@ -313,8 +360,13 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
                   </p>
                 )}
                 {pingResult.responseBody && (
-                  <div className="text-[11px] font-mono bg-card/70 p-1.5 rounded border text-muted-foreground truncate max-h-16 overflow-y-auto">
-                    {pingResult.responseBody}
+                  <div className="space-y-1 pt-0.5">
+                    <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                      Phản hồi từ máy chủ đối tác:
+                    </span>
+                    <div className="text-[11px] font-mono bg-card/70 p-2 rounded border text-muted-foreground break-all whitespace-pre-wrap max-h-24 overflow-y-auto">
+                      {sanitizeResponseBody(pingResult.responseBody)}
+                    </div>
                   </div>
                 )}
               </div>
@@ -322,9 +374,9 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="shrink-0 gap-2 sm:gap-0">
           <Button variant="outline" onClick={onClose} disabled={saving}>
-            Hủy
+            {justSaved ? 'Đóng' : 'Hủy'}
           </Button>
           <Button onClick={handleSave} disabled={saving || !!urlError}>
             {saving ? (
@@ -332,6 +384,8 @@ export const WebhookConfigModal: React.FC<WebhookConfigModalProps> = ({
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 <span>Đang lưu...</span>
               </>
+            ) : justSaved ? (
+              'Cập nhật lại'
             ) : (
               'Lưu cấu hình'
             )}

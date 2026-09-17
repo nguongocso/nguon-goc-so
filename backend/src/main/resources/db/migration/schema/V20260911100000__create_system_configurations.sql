@@ -16,8 +16,3 @@ CREATE TABLE IF NOT EXISTS system_configurations (
 -- Seed cấu hình ngưỡng cảnh báo hết hiệu lực kiểm nghiệm mặc định 15 ngày
 INSERT IGNORE INTO system_configurations (config_key, config_value, description)
 VALUES ('INSPECTION_EXPIRY_WARNING_THRESHOLD_DAYS', '15', 'Ngưỡng số ngày cảnh báo kết quả kiểm nghiệm sắp hết hiệu lực (mặc định 15 ngày)');
-
--- Seed cấu hình khoảng thời gian lọc đối tác đã từng lấy dữ liệu lô bị thu hồi mặc định 30 ngày (NCL-12-CN-006)
-INSERT IGNORE INTO system_configurations (config_key, config_value, description)
-VALUES ('PARTNER_RECALL_NOTIFICATION_WINDOW_DAYS', '30', 'Khoảng thời gian (ngày) để lọc đối tác đã từng lấy dữ liệu của lô bị thu hồi');
-

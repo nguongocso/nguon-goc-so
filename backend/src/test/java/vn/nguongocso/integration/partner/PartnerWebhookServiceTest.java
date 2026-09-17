@@ -115,6 +115,23 @@ class PartnerWebhookServiceTest {
     }
 
     @Test
+    @DisplayName("Lấy thông tin cấu hình webhook của khóa API bao gồm webhookSecret")
+    void testGetWebhookForOrganizationKey_Success() {
+        apiKey.setWebhookUrl("https://partner.com/webhook");
+        apiKey.setWebhookSecret("sec_wh_currentsecret123");
+        apiKey.setIsWebhookActive(true);
+
+        when(partnerApiKeyRepository.findById(apiKeyId)).thenReturn(Optional.of(apiKey));
+
+        PartnerWebhookResponse response = partnerWebhookService.getWebhookForOrganizationKey(apiKeyId, userDetails);
+
+        assertNotNull(response);
+        assertEquals("https://partner.com/webhook", response.getWebhookUrl());
+        assertEquals("sec_wh_currentsecret123", response.getWebhookSecret());
+        assertTrue(response.getIsWebhookActive());
+    }
+
+    @Test
     @DisplayName("Từ chối Webhook URL không phải giao thức HTTPS (TC-02 an toàn)")
     void testRegisterWebhook_RejectNonHttps() {
         PartnerWebhookRegistrationRequest request = PartnerWebhookRegistrationRequest.builder()
