@@ -97,6 +97,7 @@ export const CategoryOverridesTable: React.FC<CategoryOverridesTableProps> = ({
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40">
+              <TableHead className="font-semibold text-xs w-12 text-center">STT</TableHead>
               <TableHead className="font-semibold text-xs">Loại nông sản</TableHead>
               <TableHead className="font-semibold text-xs text-center">Quét / giờ</TableHead>
               <TableHead className="font-semibold text-xs text-center">Quét / ngày (24h)</TableHead>
@@ -110,7 +111,7 @@ export const CategoryOverridesTable: React.FC<CategoryOverridesTableProps> = ({
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-28 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-28 text-center text-muted-foreground">
                   <div className="flex items-center justify-center gap-2">
                     <Loader2 className="h-5 w-5 animate-spin text-emerald-600" />
                     <span>Đang tải danh sách...</span>
@@ -119,7 +120,7 @@ export const CategoryOverridesTable: React.FC<CategoryOverridesTableProps> = ({
               </TableRow>
             ) : overrides.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-28 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-28 text-center text-muted-foreground">
                   <div className="flex flex-col items-center justify-center space-y-1">
                     <Layers className="h-7 w-7 text-muted-foreground/40 mb-1" />
                     <p className="font-medium text-sm">Chưa có cấu hình ghi đè nào</p>
@@ -128,8 +129,11 @@ export const CategoryOverridesTable: React.FC<CategoryOverridesTableProps> = ({
                 </TableCell>
               </TableRow>
             ) : (
-              overrides.map((item) => (
-                <TableRow key={item.id || item.productCategoryId} className="hover:bg-muted/20">
+              overrides.map((item, index) => (
+                <TableRow key={item.id || item.productCategoryId} className="hover:bg-muted/20 transition-colors">
+                  <TableCell className="text-center font-medium text-muted-foreground w-12">
+                    {index + 1}
+                  </TableCell>
                   <TableCell className="font-medium text-emerald-950">
                     {item.productCategoryName || 'Danh mục nông sản'}
                   </TableCell>
