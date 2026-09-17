@@ -65,6 +65,7 @@ public class PartnerApiKeyService {
     private final ApplicationEventPublisher eventPublisher;
     private final PartnerApiKeyUsageService partnerApiKeyUsageService;
     private final ApiKeyQuotaPolicy apiKeyQuotaPolicy;
+    private final vn.nguongocso.integration.partner.repository.PartnerWebhookNotificationRepository partnerWebhookNotificationRepository;
 
     // Bộ nhớ tạm đếm số lượt gọi trong 1 giờ: Key = apiKeyId + ":" + yyyyMMddHH
     private final Map<String, AtomicInteger> hourlyRateLimitMap = new ConcurrentHashMap<>();
@@ -304,6 +305,19 @@ public class PartnerApiKeyService {
         PartnerApiKey updatedKey = partnerApiKeyRepository.save(apiKey);
         log.info("Đã thu hồi khóa truy cập id={}, partnerName={}, orgId={}",
                 apiKeyId, updatedKey.getPartnerName(), organizationId);
+
+        // TC-04 (NCL-12-CN-006): Hủy bỏ toàn bộ các thông báo Webhook đang xếp hàng chờ thử lại
+        try {
+            int cancelledCount = partnerWebhookNotificationRepository.cancelPendingNotificationsForApiKey(
+                    apiKeyId,
+                    "Đã hủy phát thông báo: Khóa truy cập đối tác đã bị thu hồi (TC-04).",
+                    LocalDateTime.now());
+            if (cancelledCount > 0) {
+                log.info("Đã hủy {} thông báo Webhook đang chờ thử lại của khóa apiKeyId={}", cancelledCount, apiKeyId);
+            }
+        } catch (Exception e) {
+            log.error("Lỗi khi hủy hàng đợi Webhook của khóa apiKeyId={}: {}", apiKeyId, e.getMessage());
+        }
 
         // Ghi nhật ký hoạt động (TASK-27)
         publishActivityLog(currentUser, "REVOKE_API_KEY",
@@ -641,6 +655,8 @@ public class PartnerApiKeyService {
                 .createdAt(key.getCreatedAt())
                 .revokedByName(key.getRevokedBy() != null ? key.getRevokedBy().getFullName() : null)
                 .revokedAt(key.getRevokedAt())
+                .webhookUrl(key.getWebhookUrl())
+                .isWebhookActive(key.getIsWebhookActive())
                 .build();
     }
 }

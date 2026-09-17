@@ -37,6 +37,8 @@ public class PartnerShipmentController {
 
     private static final Logger log = LoggerFactory.getLogger(PartnerShipmentController.class);
 
+    private final vn.nguongocso.integration.partner.service.PartnerLotAccessService partnerLotAccessService;
+
     /**
      * Xuất hồ sơ GS1 mô phỏng cho bên thứ ba (hỗ trợ định dạng JSON và XML).
      */
@@ -51,6 +53,9 @@ public class PartnerShipmentController {
         if (partnerApiKey == null) {
             throw new BusinessException("Thiếu hoặc không xác thực được khóa truy cập Header X-API-KEY");
         }
+
+        // Ghi nhận nhật ký truy xuất lô hàng của đối tác (NCL-12-CN-006 / TC-03)
+        partnerLotAccessService.recordLotAccess(partnerApiKey, shipmentId, null);
 
         // TC-01, TC-02: Nếu là khóa thử nghiệm -> LUÔN trả về dữ liệu mẫu Sandbox chuẩn
         if (Boolean.TRUE.equals(partnerApiKey.getIsTest())) {

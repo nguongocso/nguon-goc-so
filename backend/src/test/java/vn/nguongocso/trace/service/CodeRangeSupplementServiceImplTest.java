@@ -162,6 +162,40 @@ class CodeRangeSupplementServiceImplTest {
         assertThat(response.getEvidenceEventIds()).containsExactly(harvestEvent.getId());
     }
 
+    // Gửi thông báo tới tài khoản admin (VT-01) khi tạo yêu cầu cấp bổ sung mã thành công
+    @Test
+    void create_notifiesPlatformAdmins_success() {
+        stubCreateHappyPath(harvestEvent);
+
+        User adminEntity = new User();
+        adminEntity.setUserId(adminId);
+        adminEntity.setFullName("Quản trị viên hệ thống");
+
+        OrganizationUser adminOu = new OrganizationUser();
+        adminOu.setUser(adminEntity);
+        adminOu.setStatus(vn.nguongocso.organization.enums.OrganizationUserStatus.ACTIVE);
+
+        when(organizationUserRepository.findAllByRole_Code("VT-01"))
+                .thenReturn(List.of(adminOu));
+        when(notificationService.sendCodeRangeSupplementNotification(anyString(), anyString(), anyList()))
+                .thenReturn(1);
+
+        CreateSupplementRequest request = new CreateSupplementRequest();
+        request.setRequestedQuantity(500L);
+        request.setReason("Vu thu dong san luong cao, can them tem.");
+        request.setEvidenceEventIds(List.of(harvestEvent.getId()));
+
+        CodeRangeSupplementResponse response = supplementService.create(request, managerUser);
+
+        assertThat(response.getStatus()).isEqualTo("PENDING");
+        assertThat(response.getNotifiedCount()).isEqualTo(1);
+        verify(notificationService).sendCodeRangeSupplementNotification(
+                org.mockito.ArgumentMatchers.contains("Yêu cầu cấp bổ sung mã mới"),
+                org.mockito.ArgumentMatchers.contains("500 mã truy xuất"),
+                org.mockito.ArgumentMatchers.eq(List.of(adminId))
+        );
+    }
+
     // TC-03: đã có yêu cầu PENDING thì chặn tạo mới
     @Test
     void create_tc03_blockedWhenPendingExists() {

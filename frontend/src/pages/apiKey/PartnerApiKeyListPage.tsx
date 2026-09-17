@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Key, PlusCircle, ShieldCheck, Ban, FlaskConical, BookOpen, CalendarPlus, TrendingUp } from 'lucide-react';
+import { Key, PlusCircle, ShieldCheck, Ban, FlaskConical, BookOpen, CalendarPlus, TrendingUp, Webhook, History } from 'lucide-react';
 import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { RawApiKeyModal } from '@/components/apiKey/RawApiKeyModal';
 import { RevokeApiKeyDialog } from '@/components/apiKey/RevokeApiKeyDialog';
 import { RenewApiKeyDialog } from '@/components/apiKey/RenewApiKeyDialog';
 import { UpdateApiKeyQuotaDialog } from '@/components/apiKey/UpdateApiKeyQuotaDialog';
+import { WebhookConfigModal } from '@/components/apiKey/WebhookConfigModal';
 
 import { usePermission } from '@/hooks/usePermission';
 import { HelpButton } from '@/components/help/HelpButton';
@@ -59,6 +60,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
   const [revokeKeyTarget, setRevokeKeyTarget] = useState<PartnerApiKeyResponse | null>(null);
   const [renewKeyTarget, setRenewKeyTarget] = useState<PartnerApiKeyResponse | null>(null);
   const [quotaKeyTarget, setQuotaKeyTarget] = useState<PartnerApiKeyResponse | null>(null);
+  const [webhookConfigTarget, setWebhookConfigTarget] = useState<PartnerApiKeyResponse | null>(null);
 
 
   const fetchApiKeys = async () => {
@@ -260,7 +262,8 @@ export const PartnerApiKeyListPage: React.FC = () => {
               <TableHead className="text-center">Lượt gọi (Tổng / Lỗi)</TableHead>
               <TableHead className="whitespace-nowrap">Thời hạn hết hạn</TableHead>
               <TableHead className="whitespace-nowrap">Trạng thái</TableHead>
-              {canManage && <TableHead className="text-center align-middle whitespace-nowrap min-w-[144px]">Thao tác</TableHead>}
+              <TableHead className="text-center align-middle whitespace-nowrap min-w-[144px]">Thao tác</TableHead>
+              <TableHead className="whitespace-nowrap">Kênh nhận tin thu hồi</TableHead>
             </>
           }
           body={
@@ -280,7 +283,7 @@ export const PartnerApiKeyListPage: React.FC = () => {
                           )}
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5 leading-tight">
-                          Tạo bởi: {item.createdByFullName || 'Hệ thống'} • {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+                          Tạo bởi: {item.createdByFullName || item.createdByName || 'Hệ thống'} • {new Date(item.createdAt).toLocaleDateString('vi-VN')}
                         </div>
                       </TableCell>
                       <TableCell className="align-middle">
@@ -332,30 +335,52 @@ export const PartnerApiKeyListPage: React.FC = () => {
                       <TableCell className="align-middle">
                         <ApiKeyStatusBadge status={item.status} />
                       </TableCell>
-                      {canManage && (
-                        <TableCell className="text-center align-middle">
-                          {item.status === 'ACTIVE' || item.status === 'EXPIRED' ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="icon-sm"
-                                onClick={() => setRenewKeyTarget(item)}
-                                title="Gia hạn"
-                                aria-label="Gia hạn khóa API"
-                                className="size-8 shrink-0 rounded-full border-amber-300 bg-white text-amber-700 hover:text-amber-700 hover:bg-amber-50 dark:bg-transparent dark:hover:bg-amber-950/30 inline-flex items-center justify-center"
-                              >
-                                <CalendarPlus className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon-sm"
-                                onClick={() => setQuotaKeyTarget(item)}
-                                title="Nâng hạn mức"
-                                aria-label="Nâng hạn mức khóa API"
-                                className="size-8 shrink-0 rounded-full border-emerald-300 bg-white text-emerald-700 hover:text-emerald-700 hover:bg-emerald-50 dark:bg-transparent dark:hover:bg-emerald-950/30 inline-flex items-center justify-center"
-                              >
-                                <TrendingUp className="h-4 w-4" />
-                              </Button>
+                      <TableCell className="text-center align-middle">
+                        {(item.status === 'ACTIVE' || item.status === 'EXPIRED') ? (
+                          <div className="flex items-center justify-center gap-1">
+                            {canManage && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="icon-sm"
+                                  onClick={() => setRenewKeyTarget(item)}
+                                  title="Gia hạn"
+                                  aria-label="Gia hạn khóa API"
+                                  className="size-8 shrink-0 rounded-full border-amber-300 bg-white text-amber-700 hover:text-amber-700 hover:bg-amber-50 dark:bg-transparent dark:hover:bg-amber-950/30 inline-flex items-center justify-center"
+                                >
+                                  <CalendarPlus className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon-sm"
+                                  onClick={() => setQuotaKeyTarget(item)}
+                                  title="Nâng hạn mức"
+                                  aria-label="Nâng hạn mức khóa API"
+                                  className="size-8 shrink-0 rounded-full border-emerald-300 bg-white text-emerald-700 hover:text-emerald-700 hover:bg-emerald-50 dark:bg-transparent dark:hover:bg-emerald-950/30 inline-flex items-center justify-center"
+                                >
+                                  <TrendingUp className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => setWebhookConfigTarget(item)}
+                                  title="Khai báo thông tin nhận thông báo thu hồi"
+                                  className="text-primary hover:text-primary hover:bg-primary/10"
+                                >
+                                  <Webhook className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => navigate(`/integration/api-keys/${item.id}/notifications`, { state: { apiKey: item } })}
+                              title="Lịch sử gửi thông báo thu hồi"
+                              className="text-muted-foreground hover:text-foreground hover:bg-muted"
+                            >
+                              <History className="h-4 w-4" />
+                            </Button>
+                            {canManage && item.status === 'ACTIVE' && (
                               <Button
                                 variant="outline"
                                 size="icon-sm"
@@ -366,24 +391,52 @@ export const PartnerApiKeyListPage: React.FC = () => {
                               >
                                 <Ban className="h-4 w-4" />
                               </Button>
+                            )}
+                          </div>
+                        ) : item.status === 'REVOKED' ? (
+                          <div className="flex min-h-8 items-center justify-center">
+                            <span className="text-xs text-muted-foreground italic whitespace-nowrap">Đã thu hồi</span>
+                          </div>
+                        ) : (
+                          <div className="flex min-h-8 items-center justify-center">
+                            <span className="text-xs text-muted-foreground italic whitespace-nowrap">Không có thao tác</span>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        {item.webhookUrl ? (
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`inline-block w-2 h-2 rounded-full shrink-0 ${
+                                  item.isWebhookActive !== false ? 'bg-emerald-500' : 'bg-amber-500'
+                                }`}
+                              />
+                              <span
+                                className="font-mono text-xs text-foreground truncate max-w-[130px]"
+                                title={item.webhookUrl}
+                              >
+                                {item.webhookUrl.replace(/^https?:\/\//, '')}
+                              </span>
                             </div>
-                          ) : item.status === 'REVOKED' ? (
-                            <div className="flex min-h-8 items-center justify-center">
-                              <span className="text-xs text-muted-foreground italic whitespace-nowrap">Đã thu hồi</span>
+                            <div className="text-[11px]">
+                              {item.isWebhookActive !== false ? (
+                                <span className="text-emerald-600 dark:text-emerald-400 font-medium">Đang nhận tin</span>
+                              ) : (
+                                <span className="text-amber-600 dark:text-amber-400 font-medium">Tạm dừng</span>
+                              )}
                             </div>
-                          ) : (
-                            <div className="flex min-h-8 items-center justify-center">
-                              <span className="text-xs text-muted-foreground italic whitespace-nowrap">Không có thao tác</span>
-                            </div>
-                          )}
-                        </TableCell>
-                      )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">Chưa cấu hình</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))
             }
             loading={loading}
             empty={!loading && filteredKeys.length === 0}
-            colSpan={canManage ? 9 : 8}
+            colSpan={10}
             loadingMessage="Đang tải danh sách khóa API..."
             emptyMessage="Không tìm thấy khóa truy cập nào."
           />
@@ -430,6 +483,13 @@ export const PartnerApiKeyListPage: React.FC = () => {
         onSuccess={() => {
           fetchApiKeys();
         }}
+      />
+
+      <WebhookConfigModal
+        open={!!webhookConfigTarget}
+        apiKey={webhookConfigTarget}
+        onClose={() => setWebhookConfigTarget(null)}
+        onSuccess={fetchApiKeys}
       />
     </div>
   );

@@ -40,4 +40,21 @@ public interface PartnerApiKeyRepository extends JpaRepository<PartnerApiKey, UU
      * Quét toàn bộ khóa theo trạng thái (phục vụ scheduler cảnh báo NCL-12-CN-005).
      */
     List<PartnerApiKey> findByStatus(PartnerApiKeyStatus status);
+
+    /**
+     * Tìm các khóa đối tác đủ điều kiện nhận thông báo Webhook thu hồi (NCL-12-CN-006).
+     */
+    @Query("""
+            SELECT k FROM PartnerApiKey k
+            WHERE k.id IN :ids
+              AND k.status = vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus.ACTIVE
+              AND k.expiresAt > :now
+              AND k.webhookUrl IS NOT NULL
+              AND k.webhookUrl <> ''
+              AND k.isWebhookActive = true
+              AND (k.isTest IS NULL OR k.isTest = false)
+            """)
+    java.util.List<PartnerApiKey> findEligibleWebhookKeys(
+            @Param("ids") java.util.List<UUID> ids,
+            @Param("now") java.time.LocalDateTime now);
 }
