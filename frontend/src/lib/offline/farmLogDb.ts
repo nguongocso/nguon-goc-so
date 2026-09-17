@@ -5,16 +5,15 @@ import type { OfflineEvent } from '@/types/offlineEvent';
 /**
  * Lớp lưu trữ IndexedDB cho nhật ký canh tác ngoại tuyến (NCL-10-CN-012, MVP).
  *
- * - DB `nong-san-offline`, version 1.
- * - Chỉ lưu dữ liệu văn bản; ảnh/đính kèm để phase 2.
- * - Hàng chờ tối đa 100 bản ghi; cache lô hết hạn sau 7 ngày.
+ * - DB `nong-san-offline`.
+ * - Từ v2.4.0, hàng chờ nội dung dùng chung localStorage (`services/offlineQueue`);
+ *   IndexedDB chỉ giữ danh mục tải sẵn và ảnh/đính kèm chờ tải (pha 2).
+ * - Cửa hàng `nhat-ky-cho` còn lại chỉ để đọc di chuyển dữ liệu cũ một lần,
+ *   không ghi mới.
  */
 
 export const DB_NAME = 'nong-san-offline';
 export const DB_VERSION = 2;
-
-/** Số bản ghi chờ tối đa trong hàng chờ ngoại tuyến. */
-export const MAX_BAN_GHI_CHO = 100;
 
 /**
  * Thời hạn hiệu lực của danh mục tải sẵn về thiết bị (ngày).
@@ -27,9 +26,6 @@ export const TTL_LO_NGAY = TTL_DANH_MUC_NGAY;
 
 /** Số ảnh tối đa lưu cho một nhật ký ghi ngoại tuyến. */
 export const MAX_ANH_MOI_NHAT_KY = 5;
-
-/** Bản ghi ở trạng thái `syncing` lâu hơn mốc này được coi là bị treo (đóng tab giữa lúc gửi). */
-export const SYNCHING_TREO_MS = 2 * 60 * 1000;
 
 const STORE_NHAT_KY_CHO = 'nhat-ky-cho';
 const STORE_LO_CACHE = 'lo-cache';
@@ -48,11 +44,6 @@ export interface LoDuocPhanCong {
   ten: string;
   trangThai: string;
 }
-
-/** Dữ liệu đầu vào khi ghi nhật ký chờ (chưa có id/trạng thái). */
-export type NhatKyChoMoi = Omit<OfflineEvent, 'offlineEventId' | 'status' | 'retryCount'> & {
-  offlineEventId?: string;
-};
 
 /** Kết quả kiểm tra hạn hiệu lực của cache lô. */
 export interface HanDanhMuc {
@@ -102,6 +93,10 @@ interface CauHinh {
 }
 
 export interface FarmLogDbSchema {
+  /**
+   * @deprecated Từ v2.4.0 không ghi mới. Giữ lại để đọc di chuyển dữ liệu cũ
+   * sang hàng chờ chung một lần (xem `migrateLegacyFarmLogQueue`).
+   */
   'nhat-ky-cho': {
     key: string;
     value: OfflineEvent;
@@ -189,61 +184,11 @@ function laLoiHetDungLuong(error: unknown): boolean {
 }
 
 /**
- * Thêm một nhật ký vào hàng chờ đồng bộ.
+ * Lấy danh sách bản ghi chờ cũ trong IndexedDB, mới nhất trước.
  *
- * @returns offlineEventId của bản ghi vừa tạo.
- * @throws Lỗi khi hàng chờ đã đầy 100 bản ghi hoặc hết dung lượng lưu trữ.
- */
-export async function themNhatKyCho(nhatKy: NhatKyChoMoi): Promise<string> {
-  const db = await moDb();
-  const soBanGhi = await db.count(STORE_NHAT_KY_CHO);
-  if (soBanGhi >= MAX_BAN_GHI_CHO) {
-    throw new Error(
-      `Hàng chờ đã đầy (${MAX_BAN_GHI_CHO} bản ghi). Vui lòng kết nối mạng để đồng bộ trước khi ghi tiếp.`,
-    );
-  }
-  const banGhi: OfflineEvent = {
-    ...nhatKy,
-    offlineEventId: nhatKy.offlineEventId ?? uuidv4(),
-    status: 'pending',
-    retryCount: 0,
-  };
-  try {
-    await db.add(STORE_NHAT_KY_CHO, banGhi);
-  } catch (error) {
-    if (laLoiHetDungLuong(error)) {
-      throw new Error('Bộ nhớ thiết bị đã đầy. Vui lòng đồng bộ để giải phóng dung lượng.');
-    }
-    throw error;
-  }
-  return banGhi.offlineEventId;
-}
-
-/** Lưu nguyên tử nội dung và tệp; không để đồng bộ nhìn thấy bản ghi chưa đủ ảnh. */
-export async function luuNhatKyVaTepNguyenTu(
-  nhatKy: NhatKyChoMoi & { offlineEventId: string },
-  danhSachTep: TepDinhKem[],
-): Promise<void> {
-  const db = await moDb();
-  const tx = db.transaction([STORE_NHAT_KY_CHO, STORE_TEP_DINH_KEM], 'readwrite');
-  try {
-    const store = tx.objectStore(STORE_NHAT_KY_CHO);
-    if (await store.count() >= MAX_BAN_GHI_CHO) {
-      throw new Error(`Hàng chờ đã đầy (${MAX_BAN_GHI_CHO} bản ghi). Vui lòng đồng bộ trước khi ghi tiếp.`);
-    }
-    await store.add({ ...nhatKy, status: 'pending', retryCount: 0 });
-    for (const tep of danhSachTep) await tx.objectStore(STORE_TEP_DINH_KEM).add(tep);
-    await tx.done;
-  } catch (error) {
-    try { tx.abort(); } catch { /* Giao dịch có thể đã tự hủy khi hết dung lượng. */ }
-    await tx.done.catch(() => undefined);
-    if (laLoiHetDungLuong(error)) throw new Error('Bộ nhớ thiết bị đã đầy. Nhật ký chưa được lưu, vui lòng giữ lại nội dung trên form.');
-    throw error;
-  }
-}
-
-/**
- * Lấy danh sách bản ghi chờ, mới nhất trước.
+ * @deprecated Từ v2.4.0 chỉ dùng để di chuyển dữ liệu cũ sang hàng chờ chung
+ * một lần (xem `migrateLegacyFarmLogQueue`). Bản ghi mới ghi vào
+ * `services/offlineQueue`.
  */
 export async function layDanhSachCho(
   trangThai?: OfflineEvent['status'],
@@ -255,39 +200,10 @@ export async function layDanhSachCho(
 }
 
 /**
- * Lấy một bản ghi chờ theo offlineEventId.
- */
-export async function layMotNhatKyCho(offlineEventId: string): Promise<OfflineEvent | undefined> {
-  const db = await moDb();
-  return db.get(STORE_NHAT_KY_CHO, offlineEventId);
-}
-
-/**
- * Cập nhật trạng thái (và lý do lỗi, số lần thử) của một bản ghi chờ.
- */
-export async function capNhatTrangThai(
-  offlineEventId: string,
-  trangThai: NonNullable<OfflineEvent['status']>,
-  lyDo?: string,
-  lanThuLai?: number,
-): Promise<void> {
-  const db = await moDb();
-  const tx = db.transaction(STORE_NHAT_KY_CHO, 'readwrite');
-  const banGhi = await tx.store.get(offlineEventId);
-  if (!banGhi) return;
-  banGhi.status = trangThai;
-  if (lyDo !== undefined) banGhi.errorMessage = lyDo;
-  if (lanThuLai !== undefined) banGhi.retryCount = lanThuLai;
-  if (trangThai === 'pending') banGhi.lastSyncAttempt = undefined;
-  if (trangThai === 'syncing' || trangThai === 'failed') {
-    banGhi.lastSyncAttempt = Date.now();
-  }
-  await tx.store.put(banGhi);
-  await tx.done;
-}
-
-/**
- * Xóa một bản ghi chờ khỏi hàng chờ.
+ * Xóa một bản ghi chờ cũ khỏi IndexedDB (kèm ảnh/đính kèm của nó).
+ *
+ * @deprecated Từ v2.4.0 chỉ dùng khi di chuyển dữ liệu cũ sang hàng chờ chung.
+ * Bản ghi mới xóa bằng `removeOfflineEvent` + `xoaTepTheoNhatKy`.
  */
 export async function xoaNhatKyCho(offlineEventId: string): Promise<void> {
   const db = await moDb();
@@ -296,35 +212,6 @@ export async function xoaNhatKyCho(offlineEventId: string): Promise<void> {
   for (const id of teps) await tx.objectStore(STORE_TEP_DINH_KEM).delete(id);
   await tx.objectStore(STORE_NHAT_KY_CHO).delete(offlineEventId);
   await tx.done;
-}
-
-/**
- * Đếm số bản ghi trong hàng chờ.
- */
-export async function demSoBanGhiCho(): Promise<number> {
-  const db = await moDb();
-  return db.count(STORE_NHAT_KY_CHO);
-}
-
-/**
- * Xóa toàn bộ bản ghi lỗi (`failed`) và bản ghi không hợp lệ (`invalid`) khỏi hàng chờ.
- *
- * Bản ghi lỗi **không** bao giờ bị tự xoá trong luồng đồng bộ; chỉ xoá khi người dùng
- * chủ động bấm nút này (QTN-16: giữ lại kèm lý do không gửi được).
- *
- * @returns Số bản ghi đã xóa.
- */
-export async function xoaBanGhiLoi(): Promise<number> {
-  const db = await moDb();
-  const tx = db.transaction(STORE_NHAT_KY_CHO, 'readwrite');
-  const banLoi = (await tx.store.getAll()).filter(
-    (b) => b.status === 'failed' || b.status === 'invalid',
-  );
-  for (const banGhi of banLoi) {
-    await tx.store.delete(banGhi.offlineEventId);
-  }
-  await tx.done;
-  return banLoi.length;
 }
 
 /**
@@ -470,49 +357,6 @@ export async function kiemTraHanTatCaDanhMuc(): Promise<HanTatCaDanhMuc> {
     ),
     thieu,
   };
-}
-
-/**
- * Ghi nhận nội dung nhật ký đã lên máy chủ nhưng ảnh chưa tải xong.
- *
- * Bản ghi giữ trạng thái `da-ghi` kèm `farmLogId` để lần đồng bộ sau chỉ tải ảnh,
- * không gửi lại nội dung (tránh mất ảnh đã chụp ngoài đồng).
- */
-export async function luuKetQuaDaGhi(
-  offlineEventId: string,
-  farmLogId: string,
-): Promise<void> {
-  const db = await moDb();
-  const banGhi = await db.get(STORE_NHAT_KY_CHO, offlineEventId);
-  if (!banGhi) return;
-  banGhi.status = 'da-ghi';
-  banGhi.farmLogId = farmLogId;
-  banGhi.errorMessage = undefined;
-  await db.put(STORE_NHAT_KY_CHO, banGhi);
-}
-
-/**
- * Thu hồi các bản ghi bị kẹt ở trạng thái `syncing` (đóng tab giữa lúc gửi).
- *
- * @returns Số bản ghi đã đưa về `pending`.
- */
-export async function thuHoiBanGhiTreoSyncing(): Promise<number> {
-  const db = await moDb();
-  const tx = db.transaction(STORE_NHAT_KY_CHO, 'readwrite');
-  const tatCa = await tx.store.getAll();
-  const bayGio = Date.now();
-  let soThuHoi = 0;
-
-  for (const banGhi of tatCa) {
-    if (banGhi.status !== 'syncing') continue;
-    if (bayGio - (banGhi.lastSyncAttempt ?? 0) < SYNCHING_TREO_MS) continue;
-    banGhi.status = 'pending';
-    await tx.store.put(banGhi);
-    soThuHoi += 1;
-  }
-
-  await tx.done;
-  return soThuHoi;
 }
 
 /**

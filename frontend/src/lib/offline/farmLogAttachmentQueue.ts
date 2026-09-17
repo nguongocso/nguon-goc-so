@@ -1,6 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
 import { nenAnh } from '@/utils/anhNen';
-import { luuNhatKyVaTepNguyenTu, type NhatKyChoMoi } from '@/lib/offline/farmLogDb';
 import {
   MAX_ANH_MOI_NHAT_KY,
   capNhatTrangThaiTep,
@@ -15,9 +14,11 @@ import {
 /**
  * Hàng chờ ảnh/đính kèm của nhật ký ghi ngoại tuyến (NCL-10-CN-012).
  *
- * Ảnh được nén ngay khi người dùng chụp/chọn rồi lưu dạng Blob trong IndexedDB;
- * phần dữ liệu văn bản luôn được gửi lên trước, ảnh gửi sau bằng endpoint đính kèm
- * (đúng task `NCL-10-CN-012-CV-03`).
+ * Từ v2.4.0, nội dung nhật ký đi qua hàng chờ chung (`services/offlineQueue`)
+ * nên module này chỉ quản lý ảnh/đính kèm (dạng Blob trong IndexedDB):
+ * ảnh được nén ngay khi người dùng chụp/chọn, rồi tải lên endpoint đính kèm
+ * sau khi nội dung đã được ghi (đúng task `NCL-10-CN-012-CV-03`).
+ * Ảnh và bản ghi chờ liên kết với nhau qua `offlineEventId`.
  */
 
 export {
@@ -30,26 +31,8 @@ export {
   type TepDinhKem,
 };
 
-/** Nén trước, sau đó lưu nội dung và toàn bộ tệp trong cùng một giao dịch. */
-export async function luuNhatKyKemTep(nhatKy: NhatKyChoMoi, files: File[]): Promise<string> {
-  if (files.length > MAX_ANH_MOI_NHAT_KY) {
-    throw new Error(`Chỉ được chọn tối đa ${MAX_ANH_MOI_NHAT_KY} chứng từ.`);
-  }
-  const offlineEventId = nhatKy.offlineEventId ?? uuidv4();
-  const danhSach: TepDinhKem[] = [];
-  for (const file of files) {
-    const daNen = await nenAnh(file);
-    if (!['image/jpeg', 'image/png', 'application/pdf'].includes(daNen.type) || daNen.size > 5 * 1024 * 1024) {
-      throw new Error(`Tệp "${file.name}" không hợp lệ hoặc vượt quá 5MB sau khi nén.`);
-    }
-    danhSach.push({
-      id: uuidv4(), offlineEventId, ten: doiTenSauNen(file.name, daNen.type),
-      loai: daNen.type, kichThuoc: daNen.size, blob: daNen, trangThai: 'cho',
-    });
-  }
-  await luuNhatKyVaTepNguyenTu({ ...nhatKy, offlineEventId }, danhSach);
-  return offlineEventId;
-}
+const DINH_DANG_CHO_PHEP = ['image/jpeg', 'image/png', 'application/pdf'];
+const DUNG_LUONG_TOI_DA = 5 * 1024 * 1024;
 
 /** Đổi tên tệp sang đuôi `.jpg` khi ảnh đã được nén về JPEG. */
 function doiTenSauNen(ten: string, loai: string): string {
@@ -60,25 +43,32 @@ function doiTenSauNen(ten: string, loai: string): string {
 }
 
 /**
- * Nén và lưu danh sách ảnh cho một nhật ký chờ.
+ * Nén và lưu danh sách ảnh cho một nhật ký chờ trong hàng chung.
  *
- * @param offlineEventId ID bản ghi chờ (khoá chống trùng của nhật ký)
+ * @param offlineEventId ID bản ghi chờ trong hàng chung (khóa liên kết với ảnh)
  * @param files          ảnh người dùng chụp/chọn
  * @returns số ảnh đã lưu
+ * @throws Lỗi khi vượt quá số lượng/dung lượng cho phép hoặc hết bộ nhớ thiết bị.
  */
 export async function luuAnhChoNhatKy(
   offlineEventId: string,
   files: File[],
 ): Promise<number> {
-  const soLuong = Math.min(files.length, MAX_ANH_MOI_NHAT_KY);
-  let soLuu = 0;
+  const daLuu = (await layTepTheoNhatKy(offlineEventId)).length;
+  if (daLuu + files.length > MAX_ANH_MOI_NHAT_KY) {
+    throw new Error(`Chỉ được chọn tối đa ${MAX_ANH_MOI_NHAT_KY} chứng từ.`);
+  }
 
-  for (let i = 0; i < soLuong; i += 1) {
-    const goc = files[i];
+  let soLuu = 0;
+  for (const goc of files) {
     const daNen = await nenAnh(goc);
+    if (!DINH_DANG_CHO_PHEP.includes(daNen.type) || daNen.size > DUNG_LUONG_TOI_DA) {
+      throw new Error(`Tệp "${goc.name}" không hợp lệ hoặc vượt quá 5MB sau khi nén.`);
+    }
     await luuTepDinhKem({
+      id: uuidv4(),
       offlineEventId,
-      ten: doiTenSauNen(daNen.name, daNen.type),
+      ten: doiTenSauNen(goc.name, daNen.type),
       loai: daNen.type,
       kichThuoc: daNen.size,
       blob: daNen,

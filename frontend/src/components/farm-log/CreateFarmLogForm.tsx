@@ -21,9 +21,9 @@ import { ChainEventType } from '@/enums/chainEventType';
 import { getLocalDateTimeString } from '@/utils/dateTime';
 import { HOAT_DONG_CANH_TAC_OPTIONS } from '@/utils/farmLogActivity';
 import { farmLogOfflineSchema } from '@/utils/validators';
-import { luuNhatKyKemTep } from '@/lib/offline/farmLogAttachmentQueue';
+import { addOfflineEvent, removeOfflineEvent } from '@/services/offlineQueue';
+import { luuAnhChoNhatKy } from '@/lib/offline/farmLogAttachmentQueue';
 import type { VatTuCache } from '@/lib/offline/farmLogDb';
-import { FarmLogChoList } from '@/components/farm-log/FarmLogChoList';
 import { uploadAttachment } from '@/api/attachmentApi';
 import { AttachmentManager } from './AttachmentManager';
 import { InputMaterialSelect } from '@/components/input-material/InputMaterialSelect';
@@ -272,8 +272,12 @@ export function CreateFarmLogForm({
 
     try {
       if (!isOnline) {
-        await luuNhatKyKemTep({
-          offlineEventId: uuidv4(),
+        // Ngoại tuyến: xếp vào HÀNG CHỜ CHUNG để hiện ở "Quản lý sự kiện chờ
+        // đồng bộ" và tự đồng bộ qua `POST /chain-events/sync` như mọi sự kiện
+        // khác; ảnh lưu riêng trong IndexedDB theo cùng `offlineEventId` (pha 2).
+        const offlineEventId = uuidv4();
+        const loiHangCho = addOfflineEvent({
+          offlineEventId,
           productionLotId: payload.productionLotId,
           eventType: ChainEventType.FARM_LOG,
           recordedAt: getLocalDateTimeString(),
@@ -282,7 +286,21 @@ export function CreateFarmLogForm({
           images: [],
           deviceSource: 'WEB',
           eventData: { ...payload },
-        }, attachmentFiles);
+        });
+        if (loiHangCho) {
+          setSubmitError(loiHangCho);
+          return;
+        }
+        try {
+          if (attachmentFiles.length > 0) {
+            await luuAnhChoNhatKy(offlineEventId, attachmentFiles);
+          }
+        } catch (err) {
+          // Lưu ảnh lỗi: gỡ bản ghi vừa xếp để tránh bản ghi thiếu ảnh.
+          removeOfflineEvent(offlineEventId);
+          setSubmitError(err instanceof Error ? err.message : 'Không thể lưu ảnh đính kèm.');
+          return;
+        }
         toast.success('Đã lưu nhật ký trên thiết bị. Sẽ đồng bộ khi có kết nối.');
         filePreviews.forEach((url) => { if (url) URL.revokeObjectURL(url); });
         resetFormToCreateAnother();
@@ -746,7 +764,6 @@ export function CreateFarmLogForm({
       </div>
 
       <aside className="space-y-6 lg:col-span-4">
-        <FarmLogChoList danhSachLo={productionLots.map((lot) => ({ id: lot.id, ten: lot.name }))} />
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
             <CardTitle className="text-base font-bold text-slate-800">
@@ -842,9 +859,9 @@ export function CreateFarmLogForm({
               Điều kiện ghi nhật ký
             </p>
             <ul className="mt-2 space-y-2 text-sm leading-6 text-emerald-800">
-              <li>Chỉ áp dụng cho lô đã duyệt hoặc đã thu hoạch.</li>
-              <li>Nhật ký được ghi theo tài khoản VT-03 hiện tại.</li>
-              <li>Chứng từ có thể chọn đính kèm trực tiếp khi tạo nhật ký hoặc bổ sung sau.</li>
+              <li>Chỉ ghi nhật ký cho lô đã được duyệt hoặc đã thu hoạch.</li>
+              <li>Nhật ký được ghi theo tài khoản của bạn đang đăng nhập.</li>
+              <li>Bạn có thể đính kèm chứng từ ngay khi tạo nhật ký, hoặc bổ sung sau.</li>
             </ul>
           </div>
         </div>

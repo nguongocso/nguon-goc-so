@@ -25,10 +25,6 @@ vi.mock("@/components/notification/NotificationBell", () => ({
   NotificationBell: () => <div data-testid="notification-bell">Bell</div>,
 }));
 
-vi.mock("@/components/layout/SyncBadge", () => ({
-  SyncBadge: () => <div data-testid="sync-badge">Sync</div>,
-}));
-
 vi.mock("@/components/common/Logo", () => ({
   Logo: () => <div data-testid="logo">Logo</div>,
 }));

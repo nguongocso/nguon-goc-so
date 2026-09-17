@@ -35,6 +35,14 @@ Vẫn dùng IndexedDB (`nong-san-offline`) cho nhật ký canh tác vì cần l�
 (cửa hàng `tep-dinh-kem`); hàng chờ chain-event cũ giữ localStorage;
 `useOfflineSync().sync()` gọi cả hai.
 
+> v2.4.0 (hợp nhất hàng chờ): quyết định hai hàng chờ trên gây lỗi kiến trúc —
+> bản ghi canh tác không hiện ở "Quản lý sự kiện chờ đồng bộ". Từ v2.4.0, nội
+> dung nhật ký xếp vào hàng chờ chung `services/offlineQueue` (localStorage,
+> tối đa 100, sync batch qua `POST /chain-events/sync`); IndexedDB chỉ giữ danh
+> mục tải sẵn + ảnh pha 2 (`tep-dinh-kem`); module `farmLogSync.ts` (vòng sync
+> riêng) bị xóa, logic dead-letter/pha-2-ảnh chuyển vào `useOfflineSync`;
+> dữ liệu cũ trong `nhat-ky-cho` được di chuyển một lần, giữ nguyên trạng thái.
+
 ## 4. Phạm vi dữ liệu tải sẵn và ảnh ngoại tuyến (chốt Q3 = a, CV-01)
 
 - Danh mục tải sẵn (TTL **7 ngày** cho cả ba): **danh sách lô** (APPROVED/HARVESTED) +
@@ -59,7 +67,8 @@ Spec (mô tả story, điều kiện sau hoàn thành của `NCL-10-CN-006`, QTN
 - Lỗi nghiệp vụ (sai quyền, lô đã hủy/thu hồi...) ⇒ trạng thái `invalid`: giữ nguyên bản
   ghi + lý do tiếng Việt, **không** tăng lượt thử, **không** tự xoá.
 - Lỗi mạng ⇒ `failed` + tăng lượt thử + backoff.
-- Người dùng chủ động "Thử lại" / "Xuất CSV đối soát" / "Xoá bản ghi lỗi".
+- Người dùng chủ động "Xuất CSV đối soát" / "Xoá bản ghi lỗi". Việc gửi lại
+  hoàn toàn tự động (backoff 5s/15s/30s, hết 3 lượt giãn 60s, không nút bấm tay).
 - Bản ghi kẹt `syncing` (đóng tab giữa lúc gửi) được thu hồi về `pending` sau 2 phút.
 - Sau khi nội dung đã lên máy chủ nhưng ảnh chưa xong, bản ghi giữ trạng thái `da-ghi`
   kèm `farmLogId` để lần sau chỉ tải ảnh, không gửi lại nội dung (tránh mất ảnh).

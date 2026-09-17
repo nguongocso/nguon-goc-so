@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { getOfflineEvents, removeOfflineEvent, clearOfflineQueue } from '@/services/offlineQueue';
+import { layLoDuocPhanCong } from '@/lib/offline/farmLogDb';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,12 +18,10 @@ const EventItem: React.FC<{
   onDelete: (id: string) => void;
   onRetry: (id: string) => void;
   isSyncing: boolean;
-}> = ({ event, onDelete, onRetry, isSyncing }) => {
-  const lotName = 'Không xác định';
-
-  useEffect(() => {
-    // ... lấy tên lô (giữ nguyên)
-  }, [event.productionLotId]);
+  /** Tra tên lô từ cache tải sẵn; không có thì "Không xác định". */
+  tenLo: (id?: string) => string;
+}> = ({ event, onDelete, onRetry, isSyncing, tenLo }) => {
+  const lotName = tenLo(event.productionLotId);
 
   // ✅ Map trạng thái sang Badge
   const statusConfig: Record<string, { label: string; variant: 'secondary' | 'default' | 'destructive' | 'outline' }> = {
@@ -105,11 +104,26 @@ const EventItem: React.FC<{
 
 export const OfflineEventList: React.FC = () => {
   const [events, setEvents] = useState<OfflineEvent[]>(getOfflineEvents());
+  const [loCache, setLoCache] = useState<Array<{ id: string; ten: string }>>([]);
   const { sync, isSyncing } = useOfflineSync();
 
   const refreshList = () => {
     setEvents(getOfflineEvents());
   };
+
+  // Tên lô tải sẵn trong IndexedDB khi còn mạng (dùng chung với form ghi nhật ký).
+  useEffect(() => {
+    layLoDuocPhanCong()
+      .then((ds) => setLoCache(ds.map((lo) => ({ id: lo.id, ten: lo.ten }))))
+      .catch(() => {
+        // Cache lỗi: giữ rỗng, tên hiển thị "Không xác định"
+      });
+  }, []);
+
+  const tenLo = useCallback(
+    (id?: string) => loCache.find((lo) => lo.id === id)?.ten ?? 'Không xác định',
+    [loCache],
+  );
 
   // Tự động refresh mỗi 3 giây (có thể dùng event listener)
   useEffect(() => {
@@ -184,6 +198,7 @@ export const OfflineEventList: React.FC = () => {
               onDelete={handleDelete}
               onRetry={handleRetry}
               isSyncing={isSyncing}
+              tenLo={tenLo}
             />
           ))}
         </div>

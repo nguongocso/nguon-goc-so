@@ -3,7 +3,6 @@ import {
   CloudOff,
   LoaderCircle,
   RefreshCw,
-  ShieldCheck,
   Sprout,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -19,8 +18,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 import {
-  MAX_BAN_GHI_CHO,
-  demSoBanGhiCho,
+  MAX_OFFLINE_EVENTS,
+  getOfflineQueueCount,
+} from "@/services/offlineQueue";
+import {
   layDanhMucVatTu,
   layLoDuocPhanCong,
   luuDanhMucHoatDong,
@@ -51,7 +52,7 @@ const CreateFarmLogPage = () => {
   const [danhMucVatTu, setDanhMucVatTu] = useState<VatTuCache[]>([]);
   const [hanDanhMuc, setHanDanhMuc] = useState<HanTatCaDanhMuc | null>(null);
   const [soBanGhiCho, setSoBanGhiCho] = useState(0);
-  const { isOnline, farmLogPendingCount, isSyncing, sync } = useOfflineSync();
+  const { isOnline, farmLogPendingCount, isSyncing } = useOfflineSync();
 
   /**
    * Tải danh sách lô và danh mục vật tư/hoạt động để dùng ngoại tuyến
@@ -89,9 +90,14 @@ const CreateFarmLogPage = () => {
   const taiDanhSachCho = useCallback(async () => {
     try {
       setHanDanhMuc(await kiemTraHanTatCaDanhMuc());
-      setSoBanGhiCho(await demSoBanGhiCho());
     } catch {
       // IndexedDB lỗi: vẫn hiển thị form, form sẽ báo khi lưu tạm
+    }
+    try {
+      // Hàng chờ chung (localStorage): đếm đồng bộ, không phụ thuộc IndexedDB.
+      setSoBanGhiCho(getOfflineQueueCount());
+    } catch {
+      // localStorage lỗi: giữ số cũ
     }
   }, []);
 
@@ -172,7 +178,7 @@ const CreateFarmLogPage = () => {
   // Ngoại tuyến mà danh mục hết hạn hoặc không có lô nào: chặn ghi mới
   // (đúng Precondition spec: "đã đồng bộ danh mục khi còn mạng").
   const hetHanDanhMuc = !isOnline && hanDanhMuc !== null && !hanDanhMuc.conHan;
-  const hangChoDay = soBanGhiCho >= MAX_BAN_GHI_CHO;
+  const hangChoDay = soBanGhiCho >= MAX_OFFLINE_EVENTS;
   const chanForm =
     hetHanDanhMuc || (!isOnline && eligibleProductionLots.length === 0);
 
@@ -219,10 +225,6 @@ const CreateFarmLogPage = () => {
 
         <div className="flex items-center gap-2">
           <HelpButton screenKey="farm-log-create" />
-          <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-800">
-            <ShieldCheck className="size-4 text-blue-600" />
-            <span>Người ghi sự kiện · VT-03</span>
-          </div>
         </div>
       </header>
 
@@ -233,13 +235,14 @@ const CreateFarmLogPage = () => {
         </div>
       )}
 
-      {farmLogPendingCount > 0 && isOnline && (
-        <div className="flex items-center justify-between gap-2 rounded-lg border border-sky-300 bg-sky-50 p-3 text-sm text-sky-800">
-          <span>Có {farmLogPendingCount} nhật ký chờ đồng bộ.</span>
-          <Button size="sm" variant="outline" onClick={() => void sync()} disabled={isSyncing}>
-            <RefreshCw className={`h-4 w-4 mr-1 ${isSyncing ? 'animate-spin' : ''}`} />
-            Đồng bộ ngay
-          </Button>
+      {farmLogPendingCount > 0 && (
+        <div className="flex items-center gap-2 rounded-lg border border-sky-300 bg-sky-50 p-3 text-sm text-sky-800">
+          <RefreshCw className={`h-4 w-4 shrink-0 ${isSyncing ? 'animate-spin' : ''}`} />
+          <span>
+            {isSyncing
+              ? 'Đang tự động đồng bộ nhật ký...'
+              : `Có ${farmLogPendingCount} nhật ký chờ đồng bộ. Hệ thống sẽ tự động đồng bộ khi có mạng, bạn không cần thao tác gì thêm.`}
+          </span>
         </div>
       )}
 
@@ -258,7 +261,7 @@ const CreateFarmLogPage = () => {
         <div className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>
-            Hàng chờ đã đầy ({MAX_BAN_GHI_CHO} bản ghi). Vui lòng kết nối mạng để
+            Hàng chờ đã đầy ({MAX_OFFLINE_EVENTS} bản ghi). Vui lòng kết nối mạng để
             đồng bộ trước khi lưu tạm thêm.
           </span>
         </div>

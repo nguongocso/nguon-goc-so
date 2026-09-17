@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { NotificationBell } from '@/components/notification/NotificationBell';
 import { AlertIndicatorBadge } from '@/components/layout/AlertIndicatorBadge';
-import { SyncBadge } from '@/components/layout/SyncBadge';
 import { ROLE_ACCESS, hasAnyRole } from '@/config/roleAccess';
 import { useAuth } from '@/hooks/useAuth';
 import { Check, LogOut, Menu, User } from 'lucide-react';
@@ -276,13 +275,12 @@ export function Header({ onMenuClick, isMobile = false, isTablet = false }: Head
             )}
           </div>
 
-          {/* Right side: account, notifications, sync, logout */}
+          {/* Right side: account, notifications, logout (đồng bộ ngoại tuyến hoàn toàn tự động, không nút bấm tay) */}
           <div className="flex min-w-0 items-center gap-1 sm:gap-2 md:gap-3">
             {accountControl}
 
             <AlertIndicatorBadge />
             <NotificationBell />
-            <SyncBadge />
 
             {/* Logout button - opens confirmation dialog */}
             <Button

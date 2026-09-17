@@ -10,13 +10,18 @@
 | :--- | :--- | :--- | :--- |
 | 2026-09-16 | v1.0.0 | Mở rộng `POST /chain-events/sync` với `eventType=FARM_LOG`, tái dùng `offline_sync_logs` chống trùng | Agent |
 | 2026-09-17 | v2.0.0 | Offline trở thành chế độ của màn hình ghi nhật ký hiện có; gửi lần lượt từng bản ghi; ảnh nén gửi sau dữ liệu qua endpoint đính kèm; bản ghi lỗi giữ lại (dead-letter); kiểm tra quyền như ghi trực tuyến | Agent |
+| 2026-09-17 | v2.1.0 | Mỗi kết quả đồng bộ `FARM_LOG` (SUCCESS/FAILED, trừ DUPLICATE) tạo thông báo trên trang `/notifications` qua `NotificationService.sendFarmLogSyncNotification` | Agent |
+| 2026-09-17 | v2.2.0 | Nhánh nghiệp vụ chạy trong transaction riêng (REQUIRES_NEW): lỗi nghiệp vụ (lô đã hủy, mất quyền) trả per-event `FAILED` + thông báo FAILED, không còn HTTP 500 gây thử lại vô hạn | Agent |
+| 2026-09-17 | v2.3.0 | Thông báo nào cũng xem được nhật ký: SUCCESS về tab nhật ký của lô kèm highlight dòng mới; FAILED mở modal xem nội dung + nguyên nhân (fallback nội dung thông báo khi bản ghi chờ không còn) | Agent |
+| 2026-09-17 | v2.3.1 | Chuẩn hóa tiếng Việt `activitySummary` trong thông báo (dùng nhãn ngắn `Gieo trồng/Tưới nước/Bón phân/Phun thuốc/Làm cỏ/Thu hoạch/Khác` như FE `HOAT_DONG_CANH_TAC_OPTIONS`); `failureReason` strip dấu `.` cuối để không `..`; `/offline-events` quản lý tất cả hàng chờ (chain-event localStorage + nhật ký IndexedDB) | Agent |
+| 2026-09-17 | v2.4.0 | Hợp nhất một hàng chờ chung: bản ghi `FARM_LOG` ngoại tuyến xếp vào `services/offlineQueue` (localStorage, tối đa 100) nên hiện ngay ở "Quản lý sự kiện chờ đồng bộ" và đồng bộ batch qua `POST /chain-events/sync`; IndexedDB chỉ giữ danh mục tải sẵn + ảnh pha 2; bản ghi lỗi giữ lại kèm lý do (dead-letter), không tự xóa | Agent |
 
 ---
 
 ## 1. Thông tin chung
 
 **Mục tiêu**
-Cho phép Người ghi sự kiện ghi nhật ký canh tác khi không có mạng, lưu tạm trong IndexedDB ở trình duyệt, sau đó đồng bộ lên máy chủ khi có mạng trở lại.
+Cho phép Người ghi sự kiện ghi nhật ký canh tác khi không có mạng, lưu tạm trong hàng chờ chung ở trình duyệt, sau đó đồng bộ lên máy chủ khi có mạng trở lại.
 
 **Nguyên tắc thiết kế (không tạo endpoint mới)**
 - Tái dùng endpoint đồng bộ chung `POST /api/v1/chain-events/sync` (đã có từ NCL-10-CN-005).
@@ -211,22 +216,26 @@ Quy tắc:
 
 ## 5. Giới hạn và trạng thái phía client
 
-**Trạng thái bản ghi chờ** (cửa hàng IndexedDB `nhat-ky-cho`):
+**Trạng thái bản ghi chờ** (hàng chờ chung `services/offlineQueue`, localStorage):
 
 | Trạng thái | Khi nào | Hành vi tiếp theo |
 | :--- | :--- | :--- |
 | `pending` | Vừa lưu tạm | Chờ mạng/backoff để gửi |
-| `syncing` | Đang gửi | Quá 2 phút vẫn `syncing` (đóng tab) ⇒ tự thu hồi về `pending` |
+| `syncing` | Đang gửi | Lỗi giữa chừng ⇒ đánh lại `failed`/`invalid` ở lượt sau |
 | `da-ghi` | Nội dung đã lên máy chủ, còn ảnh chờ tải | Chỉ tải ảnh còn lại rồi xoá bản ghi |
-| `failed` | Lỗi mạng | Tăng lượt thử, thử lại theo backoff 5s/15s/30s |
-| `invalid` | Lỗi nghiệp vụ (sai quyền, lô đã hủy...) | **Giữ nguyên** kèm lý do; người dùng tự thử lại / xuất CSV / xoá |
+| `failed` | Lỗi mạng | Tự thử lại theo backoff 5s/15s/30s, hết 3 lượt giãn 60s/lần, **không** tự xóa |
+| `invalid` | Lỗi nghiệp vụ (sai quyền, lô đã hủy...) | **Giữ nguyên** kèm lý do; lượt tự động thử lại khi hết giãn cách (phòng trạng thái máy chủ đã đổi); người dùng xuất CSV / xoá |
 
 **Giới hạn tải sẵn và hàng chờ:**
-- Danh mục tải sẵn gồm: **danh sách lô** (APPROVED/HARVESTED), **danh mục vật tư đang hoạt động**,
+- Danh mục tải sẵn (IndexedDB) gồm: **danh sách lô** (APPROVED/HARVESTED), **danh mục vật tư đang hoạt động**,
   **loại hoạt động** — chi tiết `docs/NCL-10-CN-012/data-scope.md`.
 - TTL **7 ngày** cho cả ba danh mục; chưa tải/hết hạn ⇒ chặn ghi ngoại tuyến mới (banner đỏ).
-- Hàng chờ tối đa **100** bản ghi/thiết bị (bản ghi 101 bị chặn + cảnh báo, **không** xoá bản ghi cũ).
-- Tự động thử lại tối đa **3 lần** cho lỗi mạng; hết lượt **không** xoá bản ghi.
+- Hàng chờ chung tối đa **100** bản ghi/thiết bị (bản ghi 101 bị chặn + cảnh báo, **không** xoá bản ghi cũ).
+- Dữ liệu cũ còn sót trong kho IndexedDB `nhat-ky-cho` được di chuyển một lần
+  sang hàng chờ chung khi đồng bộ (giữ nguyên trạng thái và lý do lỗi).
+- Đồng bộ hoàn toàn tự động khi có mạng (poll 10s, giãn cách tối thiểu 15s):
+  không có nút "Đồng bộ"/"Thử lại" thủ công cho nhật ký (danh sách chain-event
+  vẫn giữ nút bấm tay). Bản ghi canh tác lỗi mạng **không** bao giờ tự xoá.
 - Không chống trùng theo nội dung: chỉ chống trùng theo `offlineEventId` (QTN-16).
 
 ---
@@ -240,3 +249,55 @@ Quy tắc:
 - `GET /api/v1/input-materials?isActive=true` — Nguồn danh mục vật tư tải sẵn.
 - `GET /api/v1/farm-logs?productionLotId=&page=&size=` — Kiểm tra kết quả sau sync.
 - Màn hình ghi nhật ký (kiêm chế độ ngoại tuyến): `/farm-logs/create`.
+
+---
+
+## 7. Thông báo kết quả đồng bộ trên trang `/notifications` (v2.1.0)
+
+**Mục tiêu**
+Sau khi lượt tự động đồng bộ xử lý xong một bản ghi `FARM_LOG` (thành công hoặc thất bại),
+người dùng thấy ngay kết quả trên trang Thông báo (`/notifications`), không chỉ toast.
+
+**Nguyên tắc thiết kế (không tạo endpoint mới)**
+- Tái dùng bảng `notifications` và API inbox sẵn có (`GET /api/v1/notifications`,
+  `GET /api/v1/notifications/unread-count`, `PATCH /api/v1/notifications/{id}/read`).
+- Chỉ thêm 2 giá trị `NotificationType`: `FARM_LOG_SYNC_SUCCESS` / `FARM_LOG_SYNC_FAILED`
+  (cột `type` lưu chuỗi nên không cần migration).
+- Người nhận = mọi user thuộc tổ chức của lô có quyền `notification:READ`
+  (cùng cơ chế `getNotificationRecipients` với bàn giao/kiểm nghiệm; `VT-03` có quyền này
+  nên `ghisuA` luôn nhận được).
+- `DUPLICATE` (gửi lại cùng `offlineEventId`) **không** tạo thông báo để tránh spam.
+- Lỗi khi tạo thông báo không làm hỏng kết quả sync (bọc try-catch, chỉ ghi log).
+
+**Hợp đồng thông báo** (`NotificationService.sendFarmLogSyncNotification`)
+
+| Trường hợp | `type` | `title` | `content` | `entityId` |
+| :--- | :--- | :--- | :--- | :--- |
+| Sync thành công | `FARM_LOG_SYNC_SUCCESS` | `"Đồng bộ nhật ký canh tác thành công"` | `"Lô sản xuất \"<tên lô>\" đã ghi nhận nhật ký <hoạt động> ngày <executedDate> từ thiết bị."` (`<hoạt động>` là nhãn tiếng Việt ngắn: `Gieo trồng/Tưới nước/Bón phân/Phun thuốc/Làm cỏ/Thu hoạch/Khác`, trùng `HOAT_DONG_CANH_TAC_OPTIONS` ở FE; khác nhãn dài của `ExportDisplayFormatter` dùng cho PDF dossier) | ID bản ghi `farm_logs` vừa tạo → bấm về tab nhật ký của lô (`/production-lots/{lotId}?tab=farmlogs&highlightLogId={farmLogId}`), dòng mới nhấp nháy 5 giây; nhật ký đã bị xóa thì mở modal xem nội dung thông báo |
+| Sync thất bại | `FARM_LOG_SYNC_FAILED` | `"Đồng bộ nhật ký canh tác thất bại"` | `"Lô sản xuất \"<tên lô>\" chưa đồng bộ được nhật ký <hoạt động>: <lý do>. Bản ghi được giữ lại trong hàng chờ."` (`<lý do>` đã strip dấu `.` cuối nên không bao giờ `..`; FE dịch ngược các bản ghi cũ còn mã thô `PESTICIDE/FERTILIZING` lúc hiển thị) | ID lô sản xuất → bấm mở modal `FailedFarmLogModal` xem nội dung nhật ký chờ + nguyên nhân (Ghi lại / Xóa / Xuất CSV); không còn bản ghi trên thiết bị thì modal hiện nội dung thông báo |
+
+**Ví dụ đọc trên trang Thông báo** (`GET /api/v1/notifications`, Bearer Token, quyền `notification:READ`)
+
+```json
+{
+  "success": true,
+  "status": 200,
+  "data": {
+    "items": [
+      {
+        "id": "c9f1b2a4-1111-4222-8333-444455556666",
+        "type": "FARM_LOG_SYNC_SUCCESS",
+        "title": "Đồng bộ nhật ký canh tác thành công",
+        "content": "Lô sản xuất \"Lô chè A1\" đã ghi nhận nhật ký Bón phân ngày 2026-09-16 từ thiết bị.",
+        "entityId": "a9fcbbac-fe01-4ecf-a97e-2d2c7b4ba5f1",
+        "isRead": false,
+        "readAt": null,
+        "createdAt": "2026-09-17T10:30:00"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 1
+  }
+}
+```
