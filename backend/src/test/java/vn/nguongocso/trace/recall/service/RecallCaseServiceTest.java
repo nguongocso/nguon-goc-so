@@ -55,6 +55,9 @@ public class RecallCaseServiceTest {
     @Mock
     private vn.nguongocso.trace.repository.CodeRangeRepository codeRangeRepository;
 
+    @Mock
+    private vn.nguongocso.integration.partner.service.PartnerRecallWebhookDispatcher partnerRecallWebhookDispatcher;
+
     @InjectMocks
     private RecallCaseServiceImpl recallCaseService;
 

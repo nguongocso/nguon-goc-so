@@ -47,6 +47,7 @@ import vn.nguongocso.recall.entity.BulkRecallRequest;
 import vn.nguongocso.recall.entity.BulkRecallShipment;
 import vn.nguongocso.recall.enums.BulkRecallRequestStatus;
 import vn.nguongocso.recall.repository.BulkRecallRequestRepository;
+import vn.nguongocso.integration.partner.service.PartnerRecallWebhookDispatcher;
 import vn.nguongocso.recall.repository.BulkRecallShipmentRepository;
 import vn.nguongocso.recall.service.BulkRecallNotificationService;
 import vn.nguongocso.recall.service.impl.BulkRecallRequestServiceImpl;
@@ -77,6 +78,7 @@ class BulkRecallRequestServiceImplTest {
     private vn.nguongocso.trace.repository.TraceCodeRepository traceCodeRepository;
     private vn.nguongocso.trace.repository.CodeRangeRepository codeRangeRepository;
     private vn.nguongocso.recall.repository.RecallEvidenceFileRepository recallEvidenceFileRepository;
+    private PartnerRecallWebhookDispatcher partnerRecallWebhookDispatcher;
     private BulkRecallRequestServiceImpl service;
 
     private UUID organizationId;
@@ -114,6 +116,7 @@ class BulkRecallRequestServiceImplTest {
         traceCodeRepository = mock(vn.nguongocso.trace.repository.TraceCodeRepository.class);
         codeRangeRepository = mock(vn.nguongocso.trace.repository.CodeRangeRepository.class);
         recallEvidenceFileRepository = mock(vn.nguongocso.recall.repository.RecallEvidenceFileRepository.class);
+        partnerRecallWebhookDispatcher = mock(PartnerRecallWebhookDispatcher.class);
 
         service = new BulkRecallRequestServiceImpl(
                 bulkRecallRequestRepository,
@@ -131,7 +134,8 @@ class BulkRecallRequestServiceImplTest {
                 recallLotResultRepository,
                 traceCodeRepository,
                 codeRangeRepository,
-                recallEvidenceFileRepository);
+                recallEvidenceFileRepository,
+                partnerRecallWebhookDispatcher);
 
         organizationId = UUID.randomUUID();
         userId = UUID.randomUUID();

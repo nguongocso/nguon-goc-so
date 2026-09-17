@@ -174,6 +174,7 @@ import OrganizationDetailPage from "@/pages/organization/OrganizationDetailPage"
 import PartnerApiKeyListPage from "@/pages/apiKey/PartnerApiKeyListPage";
 import CreatePartnerApiKeyPage from "@/pages/apiKey/CreatePartnerApiKeyPage";
 import CreateTestPartnerApiKeyPage from "@/pages/apiKey/CreateTestPartnerApiKeyPage";
+import PartnerWebhookNotificationHistoryPage from "@/pages/apiKey/PartnerWebhookNotificationHistoryPage";
 
 
 // ===== Product Feedback =====
@@ -1544,6 +1545,15 @@ const AppRoutes = () => (
                 element={
                     <RoleRoute allowedRoles={ROLE_ACCESS.apiKeyManagement}>
                         <CreateTestPartnerApiKeyPage />
+                    </RoleRoute>
+                }
+            />
+
+            <Route
+                path="integration/api-keys/:id/notifications"
+                element={
+                    <RoleRoute allowedRoles={ROLE_ACCESS.apiKeyManagement}>
+                        <PartnerWebhookNotificationHistoryPage />
                     </RoleRoute>
                 }
             />
