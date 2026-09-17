@@ -69,16 +69,24 @@ public class PartnerApiKeyResponse {
      * (chỉ trả ở danh sách khóa - NCL-12-CN-005).
      */
     private Integer quotaWarningThreshold;
+
     private LocalDateTime lastCalledAt;
+
     private Integer lastCallStatus;
+
     private String lastCallIp;
 
     private String createdByName;
+
     private LocalDateTime createdAt;
+
     private String revokedByName;
+
     private LocalDateTime revokedAt;
 
     private String webhookUrl;
+
     private String webhookSecret;
+
     private Boolean isWebhookActive;
 }

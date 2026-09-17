@@ -73,9 +73,11 @@ public class PartnerApiKeyDailyUsage {
     @Column(name = "warning_sent_at")
     private LocalDateTime warningSentAt;
 
+    /** Thời điểm tạo dòng usage trong ngày. */
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    /** Thời điểm cập nhật dòng usage trong ngày gần nhất. */
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
