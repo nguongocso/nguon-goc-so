@@ -33,13 +33,13 @@ FARM_LOG/SUCCESS. Sau mỗi TC đối chiếu số này.
 - Chrome + device emulation iPhone/Android; DevTools mở sẵn tab
   Application → IndexedDB → `nong-san-offline` và tab Network (filter `sync`).
 
-## TC-01: Desktop bị chặn ở route mobile
+## TC-01: Offline là chế độ của màn hình ghi chung (không còn route mobile riêng)
 
-1. Chrome thường (tắt emulation), mở `http://localhost:3001/mobile/farm-log`.
-2. Kỳ vọng: trang "Chỉ khả dụng trên thiết bị di động" + nút "Quay lại",
-   không thấy form.
-3. Bật emulation mobile, tải lại → thấy form; dropdown có **7 lô Tân Cương**,
-   **không có Lô rau B1**.
+1. Chrome thường (tắt emulation), mở `http://localhost:3001/farm-logs/create`.
+2. Kỳ vọng: thấy form "Ghi nhật ký canh tác" (không còn trang "Chỉ khả dụng
+   trên thiết bị di động"; route cũ `/mobile/farm-log` redirect về đây).
+3. Bật emulation mobile + responsive: layout co về 1 cột, vẫn đầy đủ
+   trường, nút "Lưu tạm trên thiết bị" và vùng "Nhật ký chờ đồng bộ".
 
 ## TC-02: Ghi offline (Lô chè A1)
 
@@ -80,8 +80,9 @@ ghi chú `Kiem thu 17/09 T9` → phải SUCCESS (`COUNT farm_logs` = **10**).
 
 1. Offline ghi cho **"Lô chè sẽ hủy (TC-05)"** (ghi chú `Kiem thu 17/09 huy`).
 2. Online, đăng nhập `managerA`, **hủy lô này** → quay lại `ghisuA`, sync.
-3. Kỳ vọng: bản ghi `failed` + lý do "đã bị hủy"; `farm_logs` **không tăng**;
-   bấm "Xóa bản ghi lỗi" để dọn.
+3. Kỳ vọng: bản ghi chuyển trạng thái "Cần xử lý" + lý do "đã bị hủy";
+   `farm_logs` **không tăng**; sync lại vẫn còn (dead-letter, không tự xóa).
+   Dùng "Xuất CSV" để đối soát rồi "Xóa bản ghi lỗi" để dọn.
 4. Khôi phục lô để dùng lại:
    ```sql
    UPDATE production_lot SET status = 'APPROVED'

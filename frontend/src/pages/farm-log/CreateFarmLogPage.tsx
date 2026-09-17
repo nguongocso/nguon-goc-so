@@ -1,20 +1,36 @@
 import {
   AlertCircle,
+  CloudOff,
   LoaderCircle,
   RefreshCw,
   ShieldCheck,
   Sprout,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { createFarmLog } from "@/api/farmLogApi";
+import { getInputMaterials } from "@/api/inputMaterialApi";
 import { HelpButton } from "@/components/help/HelpButton";
 import { getProductionLots } from "@/api/productionLotApi";
 import { CreateFarmLogForm } from "@/components/farm-log/CreateFarmLogForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
+import {
+  MAX_BAN_GHI_CHO,
+  demSoBanGhiCho,
+  layDanhMucVatTu,
+  layLoDuocPhanCong,
+  luuDanhMucHoatDong,
+  luuDanhMucVatTu,
+  luuLoDuocPhanCong,
+  kiemTraHanTatCaDanhMuc,
+  type HanTatCaDanhMuc,
+  type VatTuCache,
+} from "@/lib/offline/farmLogDb";
+import { HOAT_DONG_CANH_TAC_OPTIONS } from "@/utils/farmLogActivity";
 import type { CreateFarmLogRequest, FarmActivityType } from "@/types/farmLog";
 import type { ProductionLot } from "@/types/productionLot";
 
@@ -32,23 +48,108 @@ const CreateFarmLogPage = () => {
   const [productionLots, setProductionLots] = useState<ProductionLot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [danhMucVatTu, setDanhMucVatTu] = useState<VatTuCache[]>([]);
+  const [hanDanhMuc, setHanDanhMuc] = useState<HanTatCaDanhMuc | null>(null);
+  const [soBanGhiCho, setSoBanGhiCho] = useState(0);
+  const { isOnline, farmLogPendingCount, isSyncing, sync } = useOfflineSync();
+
+  /**
+   * Tải danh sách lô và danh mục vật tư/hoạt động để dùng ngoại tuyến
+   * (NCL-10-CN-012 CV-01: tải sẵn khi còn mạng, TTL 7 ngày).
+   */
+  const lamMoiDanhMucNgoaiTuyen = useCallback(async (lots: ProductionLot[]) => {
+    try {
+      const hopLe = lots.filter((lot) => ALLOWED_STATUSES.includes(lot.status));
+      await luuLoDuocPhanCong(
+        hopLe.map((lot) => ({ id: lot.id, ten: lot.name, trangThai: lot.status })),
+      );
+      const vatTu = await getInputMaterials({ isActive: true, size: 1000 });
+      const danhSachVatTu: VatTuCache[] = (vatTu.content ?? []).map((v) => ({
+        id: v.id,
+        ten: v.name,
+        donVi: v.unit ?? "",
+        nhomVatTu: v.materialGroup,
+        soNgayCachLy: v.quarantineDays ?? 0,
+      }));
+      await luuDanhMucVatTu(danhSachVatTu);
+      setDanhMucVatTu(danhSachVatTu);
+      await luuDanhMucHoatDong(
+        HOAT_DONG_CANH_TAC_OPTIONS.map((o) => ({ ma: o.value, nhan: o.label })),
+      );
+    } catch {
+      // Danh mục tải sẵn là tiện ích bổ sung: lỗi thì dùng cache cũ.
+      try {
+        setDanhMucVatTu(await layDanhMucVatTu());
+      } catch {
+        // Bỏ qua
+      }
+    }
+  }, []);
+
+  const taiDanhSachCho = useCallback(async () => {
+    try {
+      setHanDanhMuc(await kiemTraHanTatCaDanhMuc());
+      setSoBanGhiCho(await demSoBanGhiCho());
+    } catch {
+      // IndexedDB lỗi: vẫn hiển thị form, form sẽ báo khi lưu tạm
+    }
+  }, []);
 
   const loadProductionLots = useCallback(async () => {
     setIsLoading(true);
     setLoadError("");
 
     try {
-      setProductionLots(await getProductionLots());
+      const data = await getProductionLots();
+      setProductionLots(data);
+      await lamMoiDanhMucNgoaiTuyen(data);
     } catch {
-      setLoadError("Không thể tải danh sách lô sản xuất. Vui lòng thử lại.");
+      // Mất mạng hoặc lỗi tải: dùng lô đã lưu trên thiết bị.
+      try {
+        const cache = await layLoDuocPhanCong();
+        if (cache.length > 0) {
+          setProductionLots(
+            cache.map(
+              (lo) =>
+                ({
+                  id: lo.id,
+                  name: lo.ten,
+                  status: lo.trangThai,
+                }) as ProductionLot,
+            ),
+          );
+          setLoadError("");
+        } else {
+          setLoadError("Không thể tải danh sách lô sản xuất. Vui lòng thử lại.");
+        }
+      } catch {
+        setLoadError("Không thể tải danh sách lô sản xuất. Vui lòng thử lại.");
+      }
+      try {
+        setDanhMucVatTu(await layDanhMucVatTu());
+      } catch {
+        // Bỏ qua
+      }
     } finally {
+      await taiDanhSachCho();
       setIsLoading(false);
     }
-  }, []);
+  }, [lamMoiDanhMucNgoaiTuyen, taiDanhSachCho]);
 
   useEffect(() => {
     void loadProductionLots();
   }, [loadProductionLots]);
+
+  // Khi có mạng trở lại: làm mới danh mục để gia hạn TTL 7 ngày.
+  // Bỏ qua lần render đầu vì đã tải ở effect trên.
+  const daTaiLanDau = useRef(false);
+  useEffect(() => {
+    if (!daTaiLanDau.current) {
+      daTaiLanDau.current = true;
+      return;
+    }
+    if (isOnline) void loadProductionLots();
+  }, [isOnline, loadProductionLots]);
 
   const eligibleProductionLots = useMemo(
     () => productionLots.filter((lot) => ALLOWED_STATUSES.includes(lot.status)),
@@ -67,6 +168,13 @@ const CreateFarmLogPage = () => {
 
   const requestedLotIsInvalid =
     Boolean(requestedProductionLotId) && !isLoading && !initialProductionLotId;
+
+  // Ngoại tuyến mà danh mục hết hạn hoặc không có lô nào: chặn ghi mới
+  // (đúng Precondition spec: "đã đồng bộ danh mục khi còn mạng").
+  const hetHanDanhMuc = !isOnline && hanDanhMuc !== null && !hanDanhMuc.conHan;
+  const hangChoDay = soBanGhiCho >= MAX_BAN_GHI_CHO;
+  const chanForm =
+    hetHanDanhMuc || (!isOnline && eligibleProductionLots.length === 0);
 
   const handleSubmit = async (payload: CreateFarmLogRequest) => {
     const result = await createFarmLog(payload);
@@ -118,6 +226,44 @@ const CreateFarmLogPage = () => {
         </div>
       </header>
 
+      {!isOnline && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+          <CloudOff className="h-4 w-4 shrink-0" />
+          <span>Đang ngoại tuyến — bản ghi sẽ được lưu tạm trên thiết bị và đồng bộ khi có mạng.</span>
+        </div>
+      )}
+
+      {farmLogPendingCount > 0 && isOnline && (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-sky-300 bg-sky-50 p-3 text-sm text-sky-800">
+          <span>Có {farmLogPendingCount} nhật ký chờ đồng bộ.</span>
+          <Button size="sm" variant="outline" onClick={() => void sync()} disabled={isSyncing}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${isSyncing ? 'animate-spin' : ''}`} />
+            Đồng bộ ngay
+          </Button>
+        </div>
+      )}
+
+      {hetHanDanhMuc && (
+        <div className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>
+            Danh mục tải sẵn đã hết hạn (quá 7 ngày
+            {hanDanhMuc && hanDanhMuc.thieu.length > 0 ? `: ${hanDanhMuc.thieu.join(', ')}` : ''}).
+            Vui lòng kết nối mạng để tải lại trước khi ghi.
+          </span>
+        </div>
+      )}
+
+      {hangChoDay && (
+        <div className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>
+            Hàng chờ đã đầy ({MAX_BAN_GHI_CHO} bản ghi). Vui lòng kết nối mạng để
+            đồng bộ trước khi lưu tạm thêm.
+          </span>
+        </div>
+      )}
+
       {isLoading ? (
         <Card className="border-slate-200 bg-white shadow-sm">
           <CardContent className="grid min-h-80 place-items-center p-8 text-center">
@@ -161,6 +307,20 @@ const CreateFarmLogPage = () => {
             </div>
           </CardContent>
         </Card>
+      ) : chanForm ? (
+        <Card className="border-slate-200 bg-white shadow-sm">
+          <CardContent className="grid min-h-80 place-items-center p-8 text-center">
+            <div className="max-w-md">
+              <CloudOff className="mx-auto size-10 text-slate-300" />
+              <h2 className="mt-4 text-lg font-bold">
+                Chưa thể ghi nhật ký lúc này
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Vui lòng kết nối mạng để tải danh mục mới nhất rồi tiếp tục.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
         <CreateFarmLogForm
           productionLots={eligibleProductionLots}
@@ -172,6 +332,8 @@ const CreateFarmLogPage = () => {
           onSuccess={(log) => {
             navigate(`/production-lots/${log.productionLotId}?tab=farmlogs`);
           }}
+          isOnline={isOnline}
+          danhSachVatTuNgoaiTuyen={danhMucVatTu}
         />
       )}
     </div>

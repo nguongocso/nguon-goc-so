@@ -16,6 +16,14 @@ import {
 } from 'react';
 import { toast } from 'sonner';
 
+import { v4 as uuidv4 } from 'uuid';
+import { ChainEventType } from '@/enums/chainEventType';
+import { getLocalDateTimeString } from '@/utils/dateTime';
+import { HOAT_DONG_CANH_TAC_OPTIONS } from '@/utils/farmLogActivity';
+import { farmLogOfflineSchema } from '@/utils/validators';
+import { luuNhatKyKemTep } from '@/lib/offline/farmLogAttachmentQueue';
+import type { VatTuCache } from '@/lib/offline/farmLogDb';
+import { FarmLogChoList } from '@/components/farm-log/FarmLogChoList';
 import { uploadAttachment } from '@/api/attachmentApi';
 import { AttachmentManager } from './AttachmentManager';
 import { InputMaterialSelect } from '@/components/input-material/InputMaterialSelect';
@@ -49,6 +57,13 @@ interface CreateFarmLogFormProps {
     payload: CreateFarmLogRequest,
   ) => Promise<FarmLogResponse>;
   onSuccess?: (log: FarmLogResponse) => void;
+  /**
+   * `false` khi thiết bị đang ngoại tuyến: form chuyển sang chế độ lưu tạm
+   * (NCL-10-CN-012). Mặc định lấy từ `navigator.onLine`.
+   */
+  isOnline?: boolean;
+  /** Danh mục vật tư tải sẵn trong IndexedDB, dùng khi ngoại tuyến. */
+  danhSachVatTuNgoaiTuyen?: VatTuCache[];
 }
 
 interface FormState {
@@ -75,19 +90,6 @@ interface ApiErrorResponse {
   message?: string;
   errors?: Record<string, string>;
 }
-
-const ACTIVITY_OPTIONS: Array<{
-  value: FarmActivityType;
-  label: string;
-}> = [
-  { value: 'PLANTING', label: 'Gieo trồng' },
-  { value: 'WATERING', label: 'Tưới nước' },
-  { value: 'FERTILIZING', label: 'Bón phân' },
-  { value: 'PESTICIDE', label: 'Phun thuốc' },
-  { value: 'WEEDING', label: 'Làm cỏ' },
-  { value: 'HARVESTING', label: 'Thu hoạch' },
-  { value: 'OTHER', label: 'Khác' },
-];
 
 const getToday = () => {
   const now = new Date();
@@ -135,6 +137,8 @@ export function CreateFarmLogForm({
   onCancel,
   onSubmit,
   onSuccess,
+  isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true,
+  danhSachVatTuNgoaiTuyen,
 }: CreateFarmLogFormProps) {
   const [form, setForm] = useState<FormState>(() =>
     createInitialForm(initialProductionLotId, initialActivityType),
@@ -210,39 +214,40 @@ export function CreateFarmLogForm({
     setSubmitError('');
   };
 
+  /**
+   * Kiểm tra form bằng `farmLogOfflineSchema` — nguồn luật duy nhất dùng chung
+   * cho cả chế độ trực tuyến và ngoại tuyến (NCL-10-CN-012).
+   * Lỗi zod được ánh xạ về `FormErrors` để hiển thị như trước.
+   */
   const validate = (): boolean => {
+    const ketQua = farmLogOfflineSchema.safeParse({
+      productionLotId: form.productionLotId || undefined,
+      activityType: form.activityType || undefined,
+      material: form.material.trim() || undefined,
+      quantity: form.quantity,
+      unit: form.unit.trim() || undefined,
+      executedDate: form.executedDate || undefined,
+      notes: form.notes.trim() || undefined,
+    });
+
+    if (ketQua.success) {
+      setErrors({});
+      return true;
+    }
+
     const nextErrors: FormErrors = {};
-
-    if (!form.productionLotId) {
-      nextErrors.productionLotId = 'Vui lòng chọn lô sản xuất.';
-    }
-
-    if (!form.activityType) {
-      nextErrors.activityType = 'Vui lòng chọn loại hoạt động.';
-    }
-
-    if (!form.executedDate) {
-      nextErrors.executedDate = 'Vui lòng chọn ngày thực hiện.';
-    } else if (
-      new Date(`${form.executedDate}T00:00:00`) > new Date()
-    ) {
-      nextErrors.executedDate =
-        'Ngày thực hiện không được vượt quá ngày hiện tại.';
-    }
-
-    if (form.quantity) {
-      const parsed = Number.parseFloat(form.quantity);
-      if (Number.isNaN(parsed) || parsed < 0) {
-        nextErrors.quantity = 'Số lượng phải là số lớn hơn hoặc bằng 0.';
+    for (const vanDe of ketQua.error.issues) {
+      const truong = String(vanDe.path[0] ?? '') as keyof FormErrors;
+      if (truong && nextErrors[truong] === undefined) {
+        nextErrors[truong] = vanDe.message;
       }
     }
-
     setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
+    return false;
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async (event?: FormEvent<HTMLFormElement>, luuTam = false) => {
+    event?.preventDefault();
     if (!validate()) return;
 
     setIsSubmitting(true);
@@ -262,6 +267,24 @@ export function CreateFarmLogForm({
     };
 
     try {
+      if (luuTam || !isOnline) {
+        await luuNhatKyKemTep({
+          offlineEventId: uuidv4(),
+          productionLotId: payload.productionLotId,
+          eventType: ChainEventType.FARM_LOG,
+          recordedAt: getLocalDateTimeString(),
+          latitude: 0,
+          longitude: 0,
+          images: [],
+          deviceSource: 'WEB',
+          eventData: { ...payload },
+        }, attachmentFiles);
+        toast.success('Đã lưu nhật ký trên thiết bị. Sẽ đồng bộ khi có kết nối.');
+        filePreviews.forEach((url) => { if (url) URL.revokeObjectURL(url); });
+        resetFormToCreateAnother();
+        window.dispatchEvent(new Event('farm-log-queue-changed'));
+        return;
+      }
       const created = await onSubmit(payload);
 
       if (attachmentFiles.length > 0) {
@@ -297,7 +320,7 @@ export function CreateFarmLogForm({
           setSubmitError('Có lỗi xảy ra khi tạo nhật ký. Vui lòng thử lại.');
         }
       } else {
-        setSubmitError('Có lỗi không xác định xảy ra.');
+        setSubmitError(error instanceof Error ? error.message : 'Có lỗi không xác định xảy ra.');
       }
     } finally {
       setIsSubmitting(false);
@@ -340,7 +363,7 @@ export function CreateFarmLogForm({
                   Hoạt động
                 </p>
                 <p className="text-lg font-bold text-slate-900">
-                  {ACTIVITY_OPTIONS.find((a) => a.value === createdLog.activityType)?.label ?? createdLog.activityType}
+                  {HOAT_DONG_CANH_TAC_OPTIONS.find((a) => a.value === createdLog.activityType)?.label ?? createdLog.activityType}
                 </p>
               </div>
               <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
@@ -437,6 +460,15 @@ export function CreateFarmLogForm({
 
           <form onSubmit={handleSubmit} noValidate>
             <CardContent className="space-y-6 pt-6">
+              {!isOnline && (
+                <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
+                  <p className="font-bold">Đang ngoại tuyến</p>
+                  <p className="mt-1">
+                    Bản ghi sẽ được lưu tạm trên thiết bị (kèm ảnh đã nén) và
+                    tự động đồng bộ khi có mạng trở lại.
+                  </p>
+                </div>
+              )}
               {submitError && (
                 <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
                   <p className="font-bold">Không thể lưu nhật ký</p>
@@ -495,7 +527,7 @@ export function CreateFarmLogForm({
                     aria-invalid={Boolean(errors.activityType)}
                   >
                     <option value="">-- Chọn hoạt động --</option>
-                    {ACTIVITY_OPTIONS.map((opt) => (
+                    {HOAT_DONG_CANH_TAC_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
                       </option>
@@ -553,6 +585,8 @@ export function CreateFarmLogForm({
                   activityType={form.activityType as string}
                   placeholder="Tìm kiếm vật tư, phân bón, thuốc BVTV..."
                   disabled={isSubmitting}
+                  isOnline={isOnline}
+                  danhSachVatTuNgoaiTuyen={danhSachVatTuNgoaiTuyen}
                 />
               </div>
 
@@ -704,6 +738,14 @@ export function CreateFarmLogForm({
                 Hủy bỏ
               </Button>
               <Button
+                type="button"
+                variant="outline"
+                disabled={isSubmitting}
+                onClick={() => void handleSubmit(undefined, true)}
+              >
+                Lưu tạm trên thiết bị
+              </Button>
+              <Button
                 type="submit"
                 variant="create"
                 disabled={isSubmitting}
@@ -717,6 +759,7 @@ export function CreateFarmLogForm({
       </div>
 
       <aside className="space-y-6 lg:col-span-4">
+        <FarmLogChoList danhSachLo={productionLots.map((lot) => ({ id: lot.id, ten: lot.name }))} />
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
             <CardTitle className="text-base font-bold text-slate-800">

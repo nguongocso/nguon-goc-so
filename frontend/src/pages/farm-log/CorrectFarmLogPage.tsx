@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 
 import { correctFarmLog, getFarmLogById } from '@/api/farmLogApi';
 import { useSetBreadcrumb } from '@/components/common/AppBreadcrumb';
+import { HOAT_DONG_CANH_TAC_OPTIONS } from '@/utils/farmLogActivity';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -43,15 +44,8 @@ interface ApiErrorResponse {
   message?: string;
 }
 
-const ACTIVITY_OPTIONS: Array<{ value: FarmActivityType; label: string }> = [
-  { value: 'PLANTING', label: 'Gieo trồng' },
-  { value: 'WATERING', label: 'Tưới nước' },
-  { value: 'FERTILIZING', label: 'Bón phân' },
-  { value: 'PESTICIDE', label: 'Phun thuốc' },
-  { value: 'WEEDING', label: 'Làm cỏ' },
-  { value: 'HARVESTING', label: 'Thu hoạch' },
-  { value: 'OTHER', label: 'Khác' },
-];
+/** Dùng chung nhãn loại hoạt động với form ghi và hàng chờ ngoại tuyến. */
+const ACTIVITY_OPTIONS = HOAT_DONG_CANH_TAC_OPTIONS;
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
   if (axios.isAxiosError(error)) {

@@ -3,6 +3,7 @@ import { isAxiosError } from 'axios';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import {
+  getBackoffDelay,
   getOfflineEvents,
   removeOfflineEvent,
   updateOfflineEventStatus,
@@ -36,12 +37,14 @@ export const useOfflineSync = () => {
     setPendingCount(count);
   }, []);
 
-  // Đếm nhật ký canh tác chờ trong IndexedDB (NCL-10-CN-012)
+  // Đếm nhật ký canh tác chờ trong IndexedDB (NCL-10-CN-012).
+  // Bao gồm cả bản ghi `invalid` (giữ lại kèm lý do) và `da-ghi` (còn ảnh chờ tải lên)
+  // để người dùng luôn thấy đúng số việc còn tồn.
   const refreshFarmLogCount = useCallback(() => {
     layDanhSachCho()
       .then((danhSach) => {
         setFarmLogPendingCount(
-          danhSach.filter((e) => e.status === 'pending' || e.status === 'failed').length,
+          danhSach.filter((e) => e.status !== 'success').length,
         );
       })
       .catch(() => {
@@ -270,11 +273,6 @@ export const useOfflineSync = () => {
     sync: forceSync,
   };
 };
-
-function getBackoffDelay(retryCount: number): number {
-  const delays = [5_000, 15_000, 30_000];
-  return delays[Math.min(retryCount, delays.length - 1)] ?? 30_000;
-}
 
 function getEventLabel(event: OfflineEvent): string {
   const typeLabels: Record<string, string> = {

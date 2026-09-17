@@ -183,8 +183,6 @@ import ProductFeedbackDetailPage from "@/pages/product-feedback/ProductFeedbackD
 
 // ===== Mobile =====
 import RecordMobileEventPage from "@/pages/mobile/RecordMobileEventPage";
-import RecordFarmLogPage from "@/pages/mobile/RecordFarmLogPage";
-import { MobileOnlyRoute } from "@/components/common/MobileOnlyRoute";
 
 // ===== Invitation =====
 import CreateInvitationPage from "@/pages/invitation/CreateInvitationPage";
@@ -1710,16 +1708,11 @@ const AppRoutes = () => (
                 }
             />
 
-            {/* NCL-10-CN-012: Ghi nhật ký canh tác ngoại tuyến (chỉ mobile) */}
+            {/* NCL-10-CN-012: offline là chế độ của /farm-logs/create —
+               giữ redirect để bookmark cũ không gãy */}
             <Route
                 path="mobile/farm-log"
-                element={
-                    <RoleRoute allowedRoles={["VT-02", "VT-03"]}>
-                        <MobileOnlyRoute>
-                            <RecordFarmLogPage />
-                        </MobileOnlyRoute>
-                    </RoleRoute>
-                }
+                element={<Navigate to="/farm-logs/create" replace />}
             />
 
 

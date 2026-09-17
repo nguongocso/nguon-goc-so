@@ -60,7 +60,7 @@ describe('dongBoNhatKyCho', () => {
 
     const ketQua = await dongBoNhatKyCho();
 
-    expect(ketQua).toEqual({ thanhCong: 1, trung: 0, thatBai: 0 });
+    expect(ketQua).toEqual({ thanhCong: 1, trung: 0, thatBai: 0, choXuLy: 0, anhDaGui: 0, anhCho: 0 });
     expect(await demSoBanGhiCho()).toBe(0);
   });
 
@@ -94,11 +94,11 @@ describe('dongBoNhatKyCho', () => {
 
     const ketQua = await dongBoNhatKyCho();
 
-    expect(ketQua.thatBai).toBe(1);
+    expect(ketQua.choXuLy).toBe(1);
     const banGhi: OfflineEvent | undefined = await layMotNhatKyCho(id);
-    expect(banGhi?.status).toBe('failed');
+    expect(banGhi?.status).toBe('invalid');
     expect(banGhi?.errorMessage).toBe('Lô đã hủy');
-    expect(banGhi?.retryCount).toBe(1);
+    expect(banGhi?.retryCount).toBe(0);
   });
 
   it('tăng lượt thử và giữ hàng chờ khi lỗi mạng', async () => {
@@ -119,7 +119,7 @@ describe('dongBoNhatKyCho', () => {
     const ketQua = await dongBoNhatKyCho();
 
     expect(mockSyncOfflineEvents).not.toHaveBeenCalled();
-    expect(ketQua).toEqual({ thanhCong: 0, trung: 0, thatBai: 0 });
+    expect(ketQua).toEqual({ thanhCong: 0, trung: 0, thatBai: 0, choXuLy: 0, anhDaGui: 0, anhCho: 0 });
     expect(await demSoBanGhiCho()).toBe(1);
   });
 
@@ -127,6 +127,6 @@ describe('dongBoNhatKyCho', () => {
     const ketQua = await dongBoNhatKyCho();
 
     expect(mockSyncOfflineEvents).not.toHaveBeenCalled();
-    expect(ketQua).toEqual({ thanhCong: 0, trung: 0, thatBai: 0 });
+    expect(ketQua).toEqual({ thanhCong: 0, trung: 0, thatBai: 0, choXuLy: 0, anhDaGui: 0, anhCho: 0 });
   });
 });

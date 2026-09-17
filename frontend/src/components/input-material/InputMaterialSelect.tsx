@@ -3,6 +3,7 @@ import { Search, Loader2, Check, Plus, ShieldAlert, ChevronDown, X } from 'lucid
 import { getInputMaterials } from '@/api/inputMaterialApi';
 import { MaterialGroup, MATERIAL_GROUP_LABELS } from '@/enums/materialGroup';
 import type { InputMaterial } from '@/types/inputMaterial';
+import type { VatTuCache } from '@/lib/offline/farmLogDb';
 import { cn } from '@/lib/utils';
 
 export interface InputMaterialSelectProps {
@@ -14,7 +15,32 @@ export interface InputMaterialSelectProps {
   className?: string;
   id?: string;
   activityType?: string;
+  /**
+   * `false` khi thiết bị đang ngoại tuyến: chỉ tìm trong danh mục vật tư đã tải sẵn
+   * trên thiết bị thay vì gọi API (NCL-10-CN-012).
+   */
+  isOnline?: boolean;
+  /** Danh mục vật tư tải sẵn trong IndexedDB, dùng khi ngoại tuyến. */
+  danhSachVatTuNgoaiTuyen?: VatTuCache[];
 }
+
+/**
+ * Chuyển một bản ghi danh mục tải sẵn thành dạng hiển thị của `InputMaterial`
+ * để dùng chung phần render danh sách lựa chọn.
+ */
+const tuVatTuCache = (vatTu: VatTuCache): InputMaterial => ({
+  id: vatTu.id,
+  name: vatTu.ten,
+  materialGroup: vatTu.nhomVatTu as MaterialGroup,
+  materialGroupDisplayName: '',
+  activeIngredient: null,
+  unit: vatTu.donVi,
+  quarantineDays: vatTu.soNgayCachLy,
+  applyToAllCrops: true,
+  applicableCropTypes: [],
+  referenceSource: null,
+  isActive: true,
+});
 
 const GROUP_BADGE_STYLES: Record<string, string> = {
   [MaterialGroup.PESTICIDE]: 'bg-rose-50 text-rose-700 border-rose-200',
@@ -32,6 +58,8 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
   className,
   id,
   activityType,
+  isOnline = true,
+  danhSachVatTuNgoaiTuyen,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState(value || '');
@@ -43,8 +71,26 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
     setQuery(value || '');
   }, [value]);
 
+  const locVatTuNgoaiTuyen = useCallback(
+    (searchTerm: string): InputMaterial[] => {
+      const tuKhoa = searchTerm.trim().toLowerCase();
+      const danhSach = danhSachVatTuNgoaiTuyen ?? [];
+      const daLoc = tuKhoa
+        ? danhSach.filter((v) => v.ten.toLowerCase().includes(tuKhoa))
+        : danhSach;
+      return daLoc.slice(0, 20).map(tuVatTuCache);
+    },
+    [danhSachVatTuNgoaiTuyen],
+  );
+
   const fetchMaterials = useCallback(async (searchTerm: string) => {
     setLoading(true);
+    // Ngoại tuyến: chỉ dùng danh mục vật tư đã tải sẵn trên thiết bị.
+    if (!isOnline) {
+      setOptions(locVatTuNgoaiTuyen(searchTerm));
+      setLoading(false);
+      return;
+    }
     try {
       const response = await getInputMaterials({
         keyword: searchTerm.trim() || undefined,
@@ -54,11 +100,12 @@ export const InputMaterialSelect: React.FC<InputMaterialSelectProps> = ({
       });
       setOptions(response.content || []);
     } catch {
-      setOptions([]);
+      // Lỗi mạng dù đang báo online: vẫn cho chọn từ danh mục tải sẵn.
+      setOptions(locVatTuNgoaiTuyen(searchTerm));
     } finally {
       setLoading(false);
     }
-  }, [activityType]);
+  }, [activityType, isOnline, locVatTuNgoaiTuyen]);
 
   useEffect(() => {
     if (!isOpen) return;
