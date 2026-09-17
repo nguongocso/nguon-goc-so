@@ -70,6 +70,19 @@ export const revokeApiKey = async (
 };
 
 /**
+ * Lấy thông tin cấu hình Webhook (bao gồm webhookSecret) của một khóa API
+ * GET /api/v1/organization/api-keys/{id}/webhook
+ */
+export const getPartnerWebhook = async (
+  apiKeyId: string,
+): Promise<import('@/types/apiKey').PartnerWebhookResponse> => {
+  const response = await apiClient.get<ApiResult<import('@/types/apiKey').PartnerWebhookResponse>>(
+    `/organization/api-keys/${apiKeyId}/webhook`,
+  );
+  return response.data.data;
+};
+
+/**
  * Đăng ký hoặc cập nhật địa chỉ Webhook nhận thông báo thu hồi
  * PUT /api/v1/organization/api-keys/{id}/webhook
  */

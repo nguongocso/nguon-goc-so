@@ -57,15 +57,9 @@ public class PartnerRecallWebhookDispatcher {
     private static final int DEFAULT_WINDOW_DAYS = 30;
     private static final int[] RETRY_INTERVAL_MINUTES = {1, 5, 15, 30, 60};
 
-    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(5))
-            .build();
-
-    private final PartnerLotAccessLogRepository partnerLotAccessLogRepository;
-    private final PartnerApiKeyRepository partnerApiKeyRepository;
+    private final PartnerWebhookDeliveryService webhookDeliveryService;
     private final PartnerWebhookNotificationRepository partnerWebhookNotificationRepository;
     private final SystemConfigurationRepository systemConfigurationRepository;
-    private final ObjectMapper objectMapper;
 
     /**
      * Điều phối gửi thông báo thu hồi cho danh sách các lô hàng.
@@ -91,7 +85,8 @@ public class PartnerRecallWebhookDispatcher {
 
         for (Shipment shipment : shipments) {
             try {
-                processShipmentRecallNotification(shipment, newStatus, publicReason, remediationSummary, since);
+                webhookDeliveryService.processShipmentRecall(
+                        shipment, newStatus, publicReason, remediationSummary, since);
             } catch (Exception e) {
                 log.error("Lỗi khi điều phối thông báo thu hồi cho lô hàng shipmentId={}: {}",
                         shipment.getId(), e.getMessage(), e);
@@ -100,234 +95,23 @@ public class PartnerRecallWebhookDispatcher {
     }
 
     /**
-     * Xử lý xác định đối tác và tạo thông báo cho một lô hàng.
+     * Xử lý xác định đối tác và tạo thông báo cho một lô hàng (ủy quyền sang DeliveryService).
      */
-    @Transactional
     public void processShipmentRecallNotification(
             Shipment shipment,
             String newStatus,
             String publicReason,
             String remediationSummary,
             LocalDateTime since) {
-
-        UUID productionLotId = (shipment.getProductionLot() != null)
-                ? shipment.getProductionLot().getId()
-                : null;
-
-        // 1. Tìm các ID khóa đối tác đã từng lấy dữ liệu lô này trong T ngày qua (TC-03)
-        List<UUID> candidateApiKeyIds = partnerLotAccessLogRepository
-                .findDistinctPartnerApiKeyIdsByShipmentOrProductionLot(shipment.getId(), productionLotId, since);
-
-        if (candidateApiKeyIds.isEmpty()) {
-            log.info("Không có đối tác bên thứ ba nào truy xuất dữ liệu của lô {} trong {} ngày qua - bỏ qua (TC-03).",
-                    shipment.getName(), DEFAULT_WINDOW_DAYS);
-            return;
-        }
-
-        // 2. Lọc các khóa đủ điều kiện: ACTIVE, chưa hết hạn, có webhookUrl HTTPS, bật nhận tin, không phải test (TC-04)
-        List<PartnerApiKey> eligibleKeys = partnerApiKeyRepository
-                .findEligibleWebhookKeys(candidateApiKeyIds, LocalDateTime.now());
-
-        if (eligibleKeys.isEmpty()) {
-            log.info("Lô {}: Tìm thấy {} đối tác đã truy xuất nhưng không có khóa nào đủ điều kiện nhận webhook.",
-                    shipment.getName(), candidateApiKeyIds.size());
-            return;
-        }
-
-        log.info("Phát hiện {} đối tác đủ điều kiện nhận thông báo thu hồi cho lô {}",
-                eligibleKeys.size(), shipment.getName());
-
-        for (PartnerApiKey apiKey : eligibleKeys) {
-            // Kiểm tra trạng thái khóa: nếu đã bị thu hồi thì ngừng gửi (TC-04)
-            if (apiKey.getStatus() == PartnerApiKeyStatus.REVOKED) {
-                log.warn("Khóa của đối tác '{}' đã bị thu hồi - không gửi thông báo (TC-04).", apiKey.getPartnerName());
-                continue;
-            }
-
-            createAndSendNotification(apiKey, shipment, newStatus, publicReason, remediationSummary);
-        }
+        webhookDeliveryService.processShipmentRecall(
+                shipment, newStatus, publicReason, remediationSummary, since);
     }
 
     /**
-     * Khởi tạo bản ghi thông báo và thực hiện lượt gửi đầu tiên.
+     * Thực thi một lượt gửi HTTP Webhook POST (ủy quyền sang DeliveryService).
      */
-    private void createAndSendNotification(
-            PartnerApiKey apiKey,
-            Shipment shipment,
-            String newStatus,
-            String publicReason,
-            String remediationSummary) {
-
-        String shipmentCode = (shipment.getName() != null && !shipment.getName().isBlank())
-                ? shipment.getName()
-                : shipment.getId().toString();
-
-        String lotCode = (shipment.getProductionLot() != null && shipment.getProductionLot().getName() != null)
-                ? shipment.getProductionLot().getName()
-                : null;
-
-        UUID productionLotId = (shipment.getProductionLot() != null)
-                ? shipment.getProductionLot().getId()
-                : null;
-
-        String productName = (shipment.getProductionLot() != null && shipment.getProductionLot().getProductCategory() != null)
-                ? shipment.getProductionLot().getProductCategory().getName()
-                : (shipment.getProductionLot() != null ? shipment.getProductionLot().getName() : "Sản phẩm");
-
-        UUID eventId = UUID.randomUUID();
-        PartnerRecallPayloadDto payloadDto = PartnerRecallPayloadDto.builder()
-                .eventId(eventId)
-                .eventType("RECALL_STATUS_CHANGED")
-                .shipmentId(shipment.getId())
-                .shipmentCode(shipmentCode)
-                .productionLotId(productionLotId)
-                .productionLotCode(lotCode)
-                .productName(productName)
-                .previousStatus("ACTIVATED")
-                .newStatus(newStatus)
-                .timestamp(LocalDateTime.now())
-                .publicReason(publicReason)
-                .remediationSummary(remediationSummary)
-                .build();
-
-        String payloadJson = serializePayload(payloadDto);
-
-        PartnerWebhookNotification notification = PartnerWebhookNotification.builder()
-                .partnerApiKey(apiKey)
-                .shipment(shipment)
-                .lotCode(shipmentCode)
-                .newStatus(newStatus)
-                .targetUrl(apiKey.getWebhookUrl())
-                .publicReason(publicReason)
-                .payload(payloadJson)
-                .deliveryStatus(WebhookDeliveryStatus.PENDING_RETRY)
-                .attemptCount(0)
-                .maxAttempts(5)
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        PartnerWebhookNotification saved = partnerWebhookNotificationRepository.save(notification);
-
-        // Bắn HTTP POST ngay lần 1
-        executeWebhookDelivery(saved, apiKey.getWebhookSecret());
-    }
-
-    /**
-     * Thực thi một lượt gửi HTTP Webhook POST kèm chữ ký số và cập nhật kết quả.
-     */
-    @Transactional
     public void executeWebhookDelivery(PartnerWebhookNotification notification, String webhookSecret) {
-        // Kiểm tra điều kiện ngắt: Khóa đã bị thu hồi -> Hủy bỏ gửi ngay lập tức (TC-04)
-        PartnerApiKey apiKey = notification.getPartnerApiKey();
-        if (apiKey.getStatus() == PartnerApiKeyStatus.REVOKED) {
-            notification.setDeliveryStatus(WebhookDeliveryStatus.CANCELLED);
-            notification.setLastErrorMessage("Đã hủy gửi thông báo: Khóa truy cập đối tác đã bị thu hồi (TC-04).");
-            notification.setCompletedAt(LocalDateTime.now());
-            partnerWebhookNotificationRepository.save(notification);
-            log.info("Đã hủy lượt gửi webhook deliveryId={} do khóa apiKeyId={} đã bị REVOKED (TC-04)",
-                    notification.getId(), apiKey.getId());
-            return;
-        }
-
-        int currentAttempt = notification.getAttemptCount() + 1;
-        long startTime = System.currentTimeMillis();
-        long epochTimestamp = Instant.now().getEpochSecond();
-        String payloadJson = notification.getPayload();
-
-        String signatureHeader = "";
-        if (webhookSecret != null && !webhookSecret.isBlank()) {
-            String signedData = epochTimestamp + "." + payloadJson;
-            String signature = computeHmacSha256(signedData, webhookSecret);
-            signatureHeader = "t=" + epochTimestamp + ",v1=" + signature;
-        }
-
-        try {
-            HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
-                    .uri(URI.create(notification.getTargetUrl()))
-                    .timeout(Duration.ofSeconds(10))
-                    .header("Content-Type", "application/json; charset=UTF-8")
-                    .header("User-Agent", "NguonGocSo-Webhook/1.0")
-                    .header("X-Webhook-Event", "RECALL_STATUS_CHANGED")
-                    .header("X-Webhook-Delivery-Id", notification.getId().toString())
-                    .header("X-Webhook-Timestamp", String.valueOf(epochTimestamp))
-                    .POST(HttpRequest.BodyPublishers.ofString(payloadJson, StandardCharsets.UTF_8));
-
-            if (!signatureHeader.isBlank()) {
-                reqBuilder.header("X-Webhook-Signature", signatureHeader);
-            }
-
-            HttpResponse<String> response = HTTP_CLIENT.send(reqBuilder.build(), HttpResponse.BodyHandlers.ofString());
-            long duration = System.currentTimeMillis() - startTime;
-            int statusCode = response.statusCode();
-            boolean success = (statusCode >= 200 && statusCode < 300);
-
-            String body = response.body();
-            if (body != null && body.length() > 500) {
-                body = body.substring(0, 500) + "...";
-            }
-
-            recordAttemptResult(notification, currentAttempt, statusCode, body, null, duration, success);
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            log.warn("Gửi webhook thất bại tới {} (lần thử {}): {}",
-                    notification.getTargetUrl(), currentAttempt, e.getMessage());
-
-            recordAttemptResult(notification, currentAttempt, null, null,
-                    "Không thể kết nối tới đối tác: " + e.getMessage(), duration, false);
-        }
-    }
-
-    /**
-     * Ghi nhận kết quả của một lần thử gửi, tính toán lịch giãn dần nếu thất bại.
-     */
-    private void recordAttemptResult(
-            PartnerWebhookNotification notification,
-            int attemptNumber,
-            Integer httpStatus,
-            String responseBody,
-            String errorMessage,
-            long durationMs,
-            boolean success) {
-
-        List<PartnerWebhookAttemptDto> attempts = parseAttemptsLog(notification.getAttemptsLog());
-        attempts.add(PartnerWebhookAttemptDto.builder()
-                .attemptNumber(attemptNumber)
-                .attemptedAt(LocalDateTime.now())
-                .httpStatus(httpStatus)
-                .responseBody(responseBody)
-                .errorMessage(errorMessage)
-                .durationMs(durationMs)
-                .build());
-
-        notification.setAttemptsLog(serializeAttemptsLog(attempts));
-        notification.setAttemptCount(attemptNumber);
-        notification.setLastHttpStatus(httpStatus);
-        notification.setLastErrorMessage(errorMessage);
-
-        if (success) {
-            // Thành công (TC-01)
-            notification.setDeliveryStatus(WebhookDeliveryStatus.SUCCESS);
-            notification.setNextRetryAt(null);
-            notification.setCompletedAt(LocalDateTime.now());
-            log.info("Bắn webhook thành công tới {} (lần thử {})", notification.getTargetUrl(), attemptNumber);
-        } else {
-            // Thất bại -> Lập lịch thử lại giãn dần (TC-02)
-            if (attemptNumber >= notification.getMaxAttempts()) {
-                notification.setDeliveryStatus(WebhookDeliveryStatus.FAILED);
-                notification.setNextRetryAt(null);
-                notification.setCompletedAt(LocalDateTime.now());
-                log.warn("Bắn webhook thất bại vĩnh viễn tới {} sau {} lần thử",
-                        notification.getTargetUrl(), attemptNumber);
-            } else {
-                int delayMinutes = RETRY_INTERVAL_MINUTES[Math.min(attemptNumber - 1, RETRY_INTERVAL_MINUTES.length - 1)];
-                notification.setDeliveryStatus(WebhookDeliveryStatus.PENDING_RETRY);
-                notification.setNextRetryAt(LocalDateTime.now().plusMinutes(delayMinutes));
-                log.info("Lên lịch thử lại lần {} tới {} sau {} phút",
-                        attemptNumber + 1, notification.getTargetUrl(), delayMinutes);
-            }
-        }
-
-        partnerWebhookNotificationRepository.save(notification);
+        webhookDeliveryService.executeWebhookDelivery(notification, webhookSecret);
     }
 
     /**
@@ -347,8 +131,10 @@ public class PartnerRecallWebhookDispatcher {
         log.info("Tìm thấy {} thông báo Webhook đang chờ thử lại giãn dần", pendingList.size());
         for (PartnerWebhookNotification notification : pendingList) {
             try {
-                String secret = notification.getPartnerApiKey().getWebhookSecret();
-                executeWebhookDelivery(notification, secret);
+                String secret = notification.getPartnerApiKey() != null
+                        ? notification.getPartnerApiKey().getWebhookSecret()
+                        : null;
+                webhookDeliveryService.executeWebhookDelivery(notification, secret);
             } catch (Exception e) {
                 log.error("Lỗi khi thử lại gửi webhook deliveryId={}: {}", notification.getId(), e.getMessage());
             }
@@ -368,45 +154,6 @@ public class PartnerRecallWebhookDispatcher {
     }
 
     public static String computeHmacSha256(String data, String secret) {
-        try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec keySpec = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-            mac.init(keySpec);
-            byte[] rawHmac = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            StringBuilder sb = new StringBuilder();
-            for (byte b : rawHmac) {
-                sb.append(String.format("%02x", b));
-            }
-            return sb.toString();
-        } catch (Exception e) {
-            return "";
-        }
-    }
-
-    private String serializePayload(PartnerRecallPayloadDto dto) {
-        try {
-            return objectMapper.writeValueAsString(dto);
-        } catch (Exception e) {
-            return "{}";
-        }
-    }
-
-    private String serializeAttemptsLog(List<PartnerWebhookAttemptDto> attempts) {
-        try {
-            return objectMapper.writeValueAsString(attempts);
-        } catch (Exception e) {
-            return "[]";
-        }
-    }
-
-    private List<PartnerWebhookAttemptDto> parseAttemptsLog(String json) {
-        if (json == null || json.isBlank()) {
-            return new ArrayList<>();
-        }
-        try {
-            return objectMapper.readValue(json, new TypeReference<List<PartnerWebhookAttemptDto>>() {});
-        } catch (Exception e) {
-            return new ArrayList<>();
-        }
+        return PartnerWebhookDeliveryService.computeHmacSha256(data, secret);
     }
 }

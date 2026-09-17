@@ -80,7 +80,7 @@ Hệ thống chỉ gửi thông báo tới các đối tác thỏa mãn toàn b�
 ```
 
 #### Ràng buộc dữ liệu (Validation Rules)
-- `webhookUrl`: Không được để trống, độ dài tối đa 500 ký tự. Bắt buộc bắt đầu bằng `https://` (cho phép `http://localhost` hoặc `http://127.0.0.1` khi chạy môi trường dev/test). Nếu không đúng định dạng an toàn -> Phản hồi lỗi `400 Bad Request`.
+- `webhookUrl`: Độ dài tối đa 500 ký tự. Bắt buộc bắt đầu bằng `https://` (cho phép `http://localhost` hoặc `http://127.0.0.1` khi chạy môi trường dev/test). Có thể gửi chuỗi rỗng `""` hoặc `null` để hủy đăng ký nhận webhook. Nếu không đúng định dạng an toàn -> Phản hồi lỗi `400 Bad Request`.
 - `isActive`: Boolean (tùy chọn, mặc định `true`).
 
 #### Phản hồi thành công (HTTP 200 OK)

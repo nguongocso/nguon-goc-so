@@ -105,6 +105,20 @@ public class PartnerApiKeyController {
     }
 
     /**
+     * Lấy thông tin cấu hình Webhook (bao gồm webhookSecret) của một khóa API (NCL-12-CN-006).
+     */
+    @GetMapping("/{id}/webhook")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<vn.nguongocso.integration.partner.dto.response.PartnerWebhookResponse>> getWebhookConfig(
+            @PathVariable UUID id,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal vn.nguongocso.auth.service.CustomUserDetails currentUser) {
+
+        log.info("Lấy thông tin cấu hình webhook cho apiKeyId={}", id);
+        var response = partnerWebhookService.getWebhookForOrganizationKey(id, currentUser);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
      * Đăng ký hoặc cập nhật địa chỉ nhận thông báo Webhook cho khóa API (NCL-12-CN-006).
      */
     @org.springframework.web.bind.annotation.PutMapping("/{id}/webhook")

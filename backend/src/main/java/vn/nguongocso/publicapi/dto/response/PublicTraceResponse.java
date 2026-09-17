@@ -17,6 +17,8 @@ import java.util.UUID;
 public class PublicTraceResponse {
     private String codeValue;
 
+    private UUID shipmentId;
+
     private UUID productionLotId;
 
     private String lotName;

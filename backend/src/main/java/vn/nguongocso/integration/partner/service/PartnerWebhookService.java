@@ -101,6 +101,21 @@ public class PartnerWebhookService {
     }
 
     /**
+     * Lấy thông tin cấu hình webhook chi tiết của một khóa API (bao gồm webhookSecret).
+     */
+    public PartnerWebhookResponse getWebhookForOrganizationKey(UUID apiKeyId, CustomUserDetails currentUser) {
+        PartnerApiKey apiKey = partnerApiKeyRepository.findById(apiKeyId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin khóa truy cập đối tác."));
+
+        if (!"VT-01".equals(currentUser.getRoleCode()) &&
+                !apiKey.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId())) {
+            throw new BusinessException("Bạn không có quyền truy cập khóa của tổ chức khác.");
+        }
+
+        return mapToWebhookResponse(apiKey);
+    }
+
+    /**
      * Đăng ký hoặc cập nhật địa chỉ nhận thông báo webhook trực tiếp qua API đối tác (Header X-API-KEY).
      */
     @Transactional

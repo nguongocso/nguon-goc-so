@@ -8,6 +8,14 @@ import type { PartnerApiKeyResponse } from '@/types/apiKey';
 vi.mock('@/api/apiKeyApi', () => ({
   updatePartnerWebhook: vi.fn(),
   testPingPartnerWebhook: vi.fn(),
+  getPartnerWebhook: vi.fn().mockResolvedValue({
+    id: 'test-key-uuid-1',
+    partnerName: 'Doanh Nghiệp Thu Mua Lúa Gạo',
+    keyPrefix: 'nks_live_abc123',
+    webhookUrl: 'https://partner.com/webhook',
+    isWebhookActive: true,
+    webhookSecret: 'sec_wh_1234567890abcdef',
+  }),
 }));
 
 vi.mock('sonner', () => ({
@@ -107,9 +115,13 @@ describe('WebhookConfigModal (NCL-12-CN-006)', () => {
         isActive: true,
       });
       expect(mockOnSuccess).toHaveBeenCalled();
-      expect(mockOnClose).toHaveBeenCalled();
-      expect(toast.success).toHaveBeenCalledWith('Lưu thông tin nhận thông báo thành công!');
+      expect(mockOnClose).not.toHaveBeenCalled();
+      expect(screen.getByText(/Đã lưu cấu hình Webhook thành công!/i)).toBeInTheDocument();
     });
+
+    const closeBtn = screen.getByRole('button', { name: /Đóng/i });
+    fireEvent.click(closeBtn);
+    expect(mockOnClose).toHaveBeenCalled();
   });
 
   it('performs test ping and displays response details', async () => {
@@ -196,5 +208,43 @@ describe('WebhookConfigModal (NCL-12-CN-006)', () => {
 
     // Chân trang (nút Lưu) vẫn phải truy cập được
     expect(screen.getByRole('button', { name: /Lưu cấu hình/i })).toBeInTheDocument();
+  });
+
+  it('cho phép để trống URL để hủy nhận Webhook mà không báo lỗi validation', async () => {
+    vi.mocked(updatePartnerWebhook).mockResolvedValueOnce({
+      id: 'test-key-uuid-1',
+      partnerName: 'Doanh Nghiệp Thu Mua Lúa Gạo',
+      keyPrefix: 'nks_live_abc123',
+      webhookUrl: '',
+      isWebhookActive: false,
+      webhookSecret: '',
+    });
+
+    render(
+      <WebhookConfigModal
+        open={true}
+        apiKey={mockApiKey}
+        onClose={mockOnClose}
+        onSuccess={mockOnSuccess}
+      />
+    );
+
+    const urlInput = screen.getByLabelText(/Địa chỉ tiếp nhận thông báo/i);
+    fireEvent.change(urlInput, { target: { value: '' } });
+
+    // Không được xuất hiện thông báo lỗi
+    expect(screen.queryByText(/Địa chỉ Webhook bắt buộc phải sử dụng giao thức bảo mật HTTPS/i)).toBeNull();
+
+    const saveButton = screen.getByRole('button', { name: /Lưu cấu hình/i });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(updatePartnerWebhook).toHaveBeenCalledWith('test-key-uuid-1', {
+        webhookUrl: '',
+        isActive: true,
+      });
+      expect(mockOnSuccess).toHaveBeenCalled();
+      expect(mockOnClose).toHaveBeenCalled();
+    });
   });
 });

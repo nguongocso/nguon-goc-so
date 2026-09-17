@@ -99,6 +99,26 @@ class PartnerApiKeyControllerTest {
     }
 
     @Test
+    @DisplayName("NCL-12-CN-006: Lấy thông tin cấu hình Webhook bao gồm webhookSecret -> Trả về 200 OK")
+    void testGetWebhookConfig_Success() throws Exception {
+        UUID apiKeyId = UUID.randomUUID();
+        var mockResponse = vn.nguongocso.integration.partner.dto.response.PartnerWebhookResponse.builder()
+                .id(apiKeyId)
+                .partnerName("Công ty Thu Mua ABC")
+                .webhookUrl("https://partner.com/webhook")
+                .isWebhookActive(true)
+                .webhookSecret("sec_wh_12345")
+                .build();
+
+        when(partnerWebhookService.getWebhookForOrganizationKey(any(), any())).thenReturn(mockResponse);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/organization/api-keys/" + apiKeyId + "/webhook"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.webhookSecret").value("sec_wh_12345"));
+    }
+
+    @Test
     @DisplayName("NCL-12-CN-006: Đăng ký địa chỉ Webhook HTTPS thành công -> Trả về 200 OK")
     void testRegisterWebhook_Success() throws Exception {
         UUID apiKeyId = UUID.randomUUID();

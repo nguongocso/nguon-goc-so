@@ -40,6 +40,7 @@ import vn.nguongocso.integration.partner.enums.WebhookDeliveryStatus;
 import vn.nguongocso.integration.partner.repository.PartnerLotAccessLogRepository;
 import vn.nguongocso.integration.partner.repository.PartnerWebhookNotificationRepository;
 import vn.nguongocso.integration.partner.service.PartnerRecallWebhookDispatcher;
+import vn.nguongocso.integration.partner.service.PartnerWebhookDeliveryService;
 import vn.nguongocso.trace.entity.Shipment;
 
 /**
@@ -64,7 +65,7 @@ class PartnerRecallWebhookDispatcherTest {
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
-    @InjectMocks
+    private PartnerWebhookDeliveryService webhookDeliveryService;
     private PartnerRecallWebhookDispatcher dispatcher;
 
     private Shipment shipment;
@@ -74,6 +75,17 @@ class PartnerRecallWebhookDispatcherTest {
 
     @BeforeEach
     void setUp() {
+        webhookDeliveryService = new PartnerWebhookDeliveryService(
+                partnerLotAccessLogRepository,
+                partnerApiKeyRepository,
+                partnerWebhookNotificationRepository,
+                objectMapper);
+
+        dispatcher = new PartnerRecallWebhookDispatcher(
+                webhookDeliveryService,
+                partnerWebhookNotificationRepository,
+                systemConfigurationRepository);
+
         productionLot = ProductionLot.builder()
                 .id(UUID.randomUUID())
                 .name("LOT-LUA-2026-001")
@@ -242,5 +254,32 @@ class PartnerRecallWebhookDispatcherTest {
 
         // Xác nhận đã lưu lại kết quả thử lại
         verify(partnerWebhookNotificationRepository, org.mockito.Mockito.atLeastOnce()).save(pendingNotif);
+    }
+
+    @Test
+    @DisplayName("Idempotency: Đã phát thông báo thu hồi với cùng lô hàng và trạng thái mới -> Bỏ qua không gửi trùng")
+    void testDispatch_Idempotency_SkipsDuplicateNotification() {
+        when(systemConfigurationRepository.findById("PARTNER_RECALL_NOTIFICATION_WINDOW_DAYS"))
+                .thenReturn(Optional.of(SystemConfiguration.builder()
+                        .configKey("PARTNER_RECALL_NOTIFICATION_WINDOW_DAYS")
+                        .configValue("30")
+                        .build()));
+
+        when(partnerLotAccessLogRepository.findDistinctPartnerApiKeyIdsByShipmentOrProductionLot(
+                eq(shipment.getId()), eq(productionLot.getId()), any(LocalDateTime.class)))
+                .thenReturn(List.of(activeApiKey.getId()));
+
+        when(partnerApiKeyRepository.findEligibleWebhookKeys(anyList(), any()))
+                .thenReturn(List.of(activeApiKey));
+
+        when(partnerWebhookNotificationRepository.existsByPartnerApiKey_IdAndShipment_IdAndNewStatus(
+                activeApiKey.getId(), shipment.getId(), "RECALLING"))
+                .thenReturn(true);
+
+        dispatcher.dispatchRecallNotifications(
+                List.of(shipment), "RECALLING", "Thu hồi do kiểm tra định kỳ", null);
+
+        // Xác nhận không tạo bản ghi mới vì đã tồn tại thông báo với trạng thái này
+        verify(partnerWebhookNotificationRepository, never()).save(any(PartnerWebhookNotification.class));
     }
 }
