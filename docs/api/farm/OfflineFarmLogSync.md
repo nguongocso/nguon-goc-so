@@ -9,6 +9,7 @@
 | Ngày | Phiên bản | Nội dung thay đổi | Người thực hiện |
 | :--- | :--- | :--- | :--- |
 | 2026-09-16 | v1.0.0 | Mở rộng `POST /chain-events/sync` với `eventType=FARM_LOG`, tái dùng `offline_sync_logs` chống trùng | Agent |
+| 2026-09-17 | v2.0.0 | Offline trở thành chế độ của màn hình ghi nhật ký hiện có; gửi lần lượt từng bản ghi; ảnh nén gửi sau dữ liệu qua endpoint đính kèm; bản ghi lỗi giữ lại (dead-letter); kiểm tra quyền như ghi trực tuyến | Agent |
 
 ---
 
@@ -17,13 +18,20 @@
 **Mục tiêu**
 Cho phép Người ghi sự kiện ghi nhật ký canh tác khi không có mạng, lưu tạm trong IndexedDB ở trình duyệt, sau đó đồng bộ lên máy chủ khi có mạng trở lại.
 
-**Nguyên tắc thiết kế (không tạo endpoint mới ở MVP)**
+**Nguyên tắc thiết kế (không tạo endpoint mới)**
 - Tái dùng endpoint đồng bộ chung `POST /api/v1/chain-events/sync` (đã có từ NCL-10-CN-005).
 - Chỉ mở rộng `ChainEventType` thêm giá trị `FARM_LOG` và nhánh xử lý trong `OfflineSyncEventProcessor`.
-- Logic nghiệp vụ khi sync delegate về `FarmLogService.create()` nên kiểm tra quyền, trạng thái lô, tổ chức hoàn toàn giống ghi trực tuyến (`POST /api/v1/farm-logs`).
+- Logic nghiệp vụ khi sync delegate về `FarmLogService.create()` nên kiểm tra quyền, trạng thái lô,
+  tổ chức hoàn toàn giống ghi trực tuyến (`POST /api/v1/farm-logs`).
+- **Kiểm tra quyền chi tiết**: trước khi tạo nhật ký, nhánh `FARM_LOG` gọi
+  `PermissionChecker.check("FARM_LOG", "CREATE")` — cùng ma trận quyền với đường trực tuyến (QTN-07).
 - Chống trùng bằng `offlineEventId` tra trong bảng `offline_sync_logs` (QTN-16).
-- Mỗi sự kiện xử lý trong transaction riêng `REQUIRES_NEW` (partial commit): một bản ghi lỗi không làm hỏng cả batch.
-- MVP chỉ đồng bộ dữ liệu văn bản; tệp ảnh/đính kèm để phase 2.
+- Mỗi sự kiện xử lý trong transaction riêng `REQUIRES_NEW` (partial commit): một bản ghi lỗi không
+  làm hỏng cả batch. Client **gửi lần lượt từng bản ghi** nên mỗi request thường chỉ có 1 phần tử.
+- Không lưu giờ tạo bản ghi trên thiết bị: `farm_logs.created_at` là giờ máy chủ tại thời điểm đồng
+  bộ; ngày nghiệp vụ (`executed_date`) giữ đúng giá trị người dùng đã nhập.
+- Ảnh không đi trong `images` của payload sync: client lưu blob trên thiết bị, **nén** rồi tải lên
+  endpoint đính kèm (`POST /api/v1/farm-logs/{logId}/attachments`) **sau** khi nội dung đã được ghi.
 
 ---
 
@@ -60,10 +68,10 @@ Content-Type: application/json
 | `offlineEventId` | UUID | Yes | Khóa chống trùng do client sinh (`crypto.randomUUID()`). | `"9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"` |
 | `productionLotId` | UUID | Yes | Lô sản xuất ghi nhật ký. | `"85d91b0c-c3b8-4c1f-bcb0-2b86737d1406"` |
 | `eventType` | String | Yes | Phải là `"FARM_LOG"`. | `"FARM_LOG"` |
-| `recordedAt` | String (ISO LocalDateTime) | Yes | Thời điểm ghi trên thiết bị, không ở tương lai. | `"2026-09-16T08:30:00"` |
+| `recordedAt` | String (ISO LocalDateTime) | Yes | Thời điểm ghi trên thiết bị (giờ local dạng `YYYY-MM-DDTHH:mm:ss`). Máy chủ chỉ lưu giờ đồng bộ, không lưu giá trị này cho nhật ký. | `"2026-09-16T08:30:00"` |
 | `latitude` | Double | No | Vĩ độ GPS (nếu có). | `20.985412` |
 | `longitude` | Double | No | Kinh độ GPS (nếu có). | `105.798541` |
-| `images` | List\<String\> | No | MVP: để trống `[]` (ảnh phase 2). | `[]` |
+| `images` | List\<String\> | No | Với `FARM_LOG`: luôn để trống `[]`; ảnh gửi qua endpoint đính kèm sau khi ghi. | `[]` |
 | `deviceSource` | String | No | Mặc định `"MOBILE"` / `"WEB"`. | `"WEB"` |
 | `eventData` | Map\<String, Object\> | Yes | Khớp `CreateFarmLogRequest` (xem dưới). | (xem ví dụ) |
 
@@ -179,19 +187,56 @@ Cấu trúc giống API sync chung (`OfflineEventSyncResponse` bọc trong `ApiR
 | QTN-16 Chống trùng | Tra `offline_sync_logs.offline_event_id`. | `"Sự kiện đã được đồng bộ trước đó."` (`DUPLICATE`) |
 | Audit | Mỗi bản ghi thành công publish `ActivityLogEvent` như ghi trực tuyến. | — |
 | Nhắc mốc (NCL-03-CN-007) | Nếu `eventData.milestoneId` có hoặc khớp `activityType`, tự đóng nhắc việc. | — |
+| Quyền chi tiết (QTN-07) | `PermissionChecker.check("FARM_LOG", "CREATE")` — giống `POST /farm-logs`. | `"Bạn không có quyền thực hiện chức năng này."` |
+| Ngày thực hiện ở tương lai | `executedDate` > ngày hiện tại bị chặn (đồng bộ với validate client). | `"Ngày thực hiện không được ở tương lai."` |
+| Lô không tồn tại | Trả lỗi nghiệp vụ, không tạo bản ghi. | `"Không tìm thấy lô sản xuất"` |
 
 ---
 
-## 4. Giới hạn client (MVP, thực thi ở IndexedDB)
+## 4. Ảnh đính kèm khi ngoại tuyến (2 pha)
 
-- Số bản ghi chờ tối đa: **100** (bản ghi 101 bị chặn + banner đỏ).
-- Cache lô (`lo-cache`): TTL **7 ngày** kể từ lần lưu; quá hạn hiện banner đỏ và chặn ghi offline mới đến khi online tải lại.
-- Ảnh: MVP chưa đồng bộ ảnh (`images: []`); form offline ẩn input ảnh.
+1. **Pha 1 — dữ liệu**: client lưu ảnh dạng `Blob` trong IndexedDB (`tep-dinh-kem`), **nén
+   client-side** (cạnh dài ≤ 1280 px, JPEG chất lượng giảm dần tới khi ≤ 5 MB) rồi gửi nội dung
+   nhật ký qua `POST /chain-events/sync`.
+2. **Pha 2 — ảnh**: sau khi nội dung đã ghi thành công (`SUCCESS`, có `eventId` = ID `farm_logs`),
+   client tải từng ảnh lên `POST /api/v1/farm-logs/{logId}/attachments` (multipart, `file`).
+
+Quy tắc:
+- Ảnh lỗi **không** làm mất nhật ký: bản ghi chờ ở trạng thái `da-ghi` kèm `farmLogId` để lần sau chỉ
+  tải ảnh, không gửi lại nội dung.
+- Giới hạn: tối đa 5 tệp/nhật ký, mỗi tệp ≤ 5 MB, định dạng JPG/PNG/PDF (theo `AttachmentService`).
+- Endpoint đính kèm yêu cầu quyền `FARM_LOG/UPDATE` (VT-02, VT-03 có mặc định).
 
 ---
 
-## 5. Các Endpoint liên quan
+## 5. Giới hạn và trạng thái phía client
+
+**Trạng thái bản ghi chờ** (cửa hàng IndexedDB `nhat-ky-cho`):
+
+| Trạng thái | Khi nào | Hành vi tiếp theo |
+| :--- | :--- | :--- |
+| `pending` | Vừa lưu tạm | Chờ mạng/backoff để gửi |
+| `syncing` | Đang gửi | Quá 2 phút vẫn `syncing` (đóng tab) ⇒ tự thu hồi về `pending` |
+| `da-ghi` | Nội dung đã lên máy chủ, còn ảnh chờ tải | Chỉ tải ảnh còn lại rồi xoá bản ghi |
+| `failed` | Lỗi mạng | Tăng lượt thử, thử lại theo backoff 5s/15s/30s |
+| `invalid` | Lỗi nghiệp vụ (sai quyền, lô đã hủy...) | **Giữ nguyên** kèm lý do; người dùng tự thử lại / xuất CSV / xoá |
+
+**Giới hạn tải sẵn và hàng chờ:**
+- Danh mục tải sẵn gồm: **danh sách lô** (APPROVED/HARVESTED), **danh mục vật tư đang hoạt động**,
+  **loại hoạt động** — chi tiết `docs/NCL-10-CN-012/data-scope.md`.
+- TTL **7 ngày** cho cả ba danh mục; chưa tải/hết hạn ⇒ chặn ghi ngoại tuyến mới (banner đỏ).
+- Hàng chờ tối đa **100** bản ghi/thiết bị (bản ghi 101 bị chặn + cảnh báo, **không** xoá bản ghi cũ).
+- Tự động thử lại tối đa **3 lần** cho lỗi mạng; hết lượt **không** xoá bản ghi.
+- Không chống trùng theo nội dung: chỉ chống trùng theo `offlineEventId` (QTN-16).
+
+---
+
+## 6. Các Endpoint liên quan
 
 - `POST /api/v1/farm-logs` — Ghi nhật ký trực tuyến (logic gốc được tái dùng).
 - `POST /api/v1/chain-events/sync` — Endpoint sync chung (tài liệu này mở rộng thêm `FARM_LOG`).
+- `POST /api/v1/farm-logs/{logId}/attachments` — Tải ảnh/đính kèm của nhật ký (pha 2 khi ngoại tuyến).
+- `GET /api/v1/production-lots` — Nguồn danh sách lô tải sẵn.
+- `GET /api/v1/input-materials?isActive=true` — Nguồn danh mục vật tư tải sẵn.
 - `GET /api/v1/farm-logs?productionLotId=&page=&size=` — Kiểm tra kết quả sau sync.
+- Màn hình ghi nhật ký (kiêm chế độ ngoại tuyến): `/farm-logs/create`.

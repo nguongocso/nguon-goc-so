@@ -4,41 +4,65 @@ Nhánh: `feature/NCL-10-CN-012-offline-farm-log` (tạo từ `develop` mới nh�
 
 ## 1. Không tạo endpoint sync riêng — mở rộng `POST /chain-events/sync`
 
-Spec gốc đề xuất `POST /api/v1/nhat-ky-canh-tac/sync` cùng migration `offline_id`.
+Kiểm tra lại spec gốc (`Bản sao của Nguồn Gốc Số.xlsx`, sheet "Product Backlog",
+dòng `NCL-10-CN-012`): spec **không** quy định endpoint riêng hay migration `offline_id`.
+Điều kiện sau hoàn thành chỉ yêu cầu "đồng bộ đúng một lần vào lô tương ứng kèm ngày
+thực hiện đúng thực tế", quy tắc áp dụng là `QTN-16` + `QTN-07`.
 Quyết định: tái dùng endpoint sync chung (đã có dedup `offline_sync_logs`,
 partial commit `REQUIRES_NEW`, audit), chỉ thêm `ChainEventType.FARM_LOG` và
 nhánh `processFarmLogOffline()` delegate về `FarmLogService.create()`.
 Lý do: đúng quy tắc "Do Not Blindly Implement" (`docs/agent/03`), QTN-01/07/25
-được giữ nguyên không duplicate logic, không migration DB ở MVP.
+được giữ nguyên không duplicate logic, không migration DB.
 
 ## 2. Không migration `farm_logs`
 
 Idempotency đã có qua `offline_sync_logs.offline_event_id UNIQUE` + khóa bi
 quan. Không thêm cột `offline_id/danh_muc_cu/thiet_bi_id` ở MVP.
 
-## 3. IndexedDB mới thay vì localStorage (theo chốt với Product)
+## 3. Offline là một chế độ của màn hình ghi nhật ký hiện có (chốt Q1 = a)
 
-Hàng chờ chain-event cũ vẫn dùng localStorage; riêng nhật ký canh tác dùng
-IndexedDB (`nong-san-offline` v1: `nhat-ky-cho`, `lo-cache`, `cau-hinh`).
-Quy ước chống 2 nguồn sự thật: `FARM_LOG` chỉ đi IndexedDB, các loại cũ giữ
-localStorage; `useOfflineSync().sync()` gọi cả hai.
+Bỏ màn hình song song `mobile/farm-log` + `RecordFarmLogForm` + cổng `MobileOnlyRoute`:
+chế độ ngoại tuyến nằm **trong** `pages/farm-log/CreateFarmLogPage` và
+`components/farm-log/CreateFarmLogForm` — đúng ý tưởng "offline chỉ là một phần nhỏ của
+chức năng ghi nhật ký". Một form, một bộ luật (`farmLogOfflineSchema`), một nguồn nhãn
+hoạt động (`utils/farmLogActivity.ts`).
 
-## 4. MVP cắt phạm vi ảnh và danh mục vật tư
+Cổng `MobileOnlyRoute` + `useIsMobileDevice` bị xoá (chốt Q2 = cho mọi thiết bị): spec
+chỉ yêu cầu "giao diện di động cho phép mở biểu mẫu nhật ký khi mất mạng", không yêu cầu
+chặn desktop.
 
-- Ảnh/đính kèm: form offline chưa nhập ảnh, `images: []` khi sync (phase 2).
-- Vật tư: nhập tay text (đúng `CreateFarmLogRequest.material`), chưa cache
-  `input_materials` offline.
-- Cache offline chỉ gồm lô APPROVED/HARVESTED + TTL 7 ngày; hết hạn chặn ghi mới.
-- Retry giữ 3 lần/backoff 5s-15s-30s như hàng chờ cũ (spec gốc đòi 10 lần —
-  defer phase 2).
+Vẫn dùng IndexedDB (`nong-san-offline`) cho nhật ký canh tác vì cần lưu ảnh dạng blob
+(cửa hàng `tep-dinh-kem`); hàng chờ chain-event cũ giữ localStorage;
+`useOfflineSync().sync()` gọi cả hai.
 
-## 5. Mobile-only theo User-Agent thật + route guard (theo chốt với Product)
+## 4. Phạm vi dữ liệu tải sẵn và ảnh ngoại tuyến (chốt Q3 = a, CV-01)
 
-- Không dùng viewport (`useMediaQuery`): desktop thu nhỏ cửa sổ vẫn bị chặn.
-- `useIsMobileDevice()`: `userAgentData.mobile` → regex UA → `false`
-  (desktop cảm ứng vẫn `false`). Tablet/iPad qua cổng (chấp nhận ở MVP).
-- `MobileOnlyRoute` hiển thị trang báo, không redirect (tránh vòng lặp).
-- Route `mobile/farm-log` bọc `RoleRoute(VT-02, VT-03)` + `MobileOnlyRoute`.
+- Danh mục tải sẵn (TTL **7 ngày** cho cả ba): **danh sách lô** (APPROVED/HARVESTED) +
+  **danh mục vật tư đang hoạt động** + **loại hoạt động**. Đúng Expected Result của
+  `NCL-10-CN-012-CV-01` và mô tả story: "danh mục vật tư và loại hoạt động được tải về
+  thiết bị khi còn mạng và có ngày hết hạn". Chưa tải/hết hạn ⇒ banner đỏ + chặn ghi
+  ngoại tuyến mới (đúng Precondition "đã đồng bộ danh mục khi còn mạng").
+  Chi tiết: `docs/NCL-10-CN-012/data-scope.md`.
+- Ảnh: lưu blob trong cửa hàng `tep-dinh-kem`, **nén client-side** trước khi lưu và gửi
+  **sau** phần dữ liệu qua `POST /api/v1/farm-logs/{logId}/attachments` (đúng
+  `NCL-10-CN-012-CV-03` "nén ảnh gửi sau phần dữ liệu").
+- Gửi **lần lượt từng bản ghi** (đúng mô tả story "gửi lần lượt các bản ghi chờ"), không
+  gộp một batch lớn.
+- Retry tự động **3 lần** (backoff 5s/15s/30s) như hàng chờ cũ. Spec gốc không quy định số
+  lần thử; hết lượt **không** xoá bản ghi (xem mục 5).
+
+## 5. Bản ghi lỗi không bị xoá — dead-letter (chốt Q4 = a, TC-04)
+
+Spec (mô tả story, điều kiện sau hoàn thành của `NCL-10-CN-006`, QTN-16 Else) yêu cầu
+"bản ghi không gửi được thì giữ trong danh sách chờ kèm lý do". Vì vậy:
+
+- Lỗi nghiệp vụ (sai quyền, lô đã hủy/thu hồi...) ⇒ trạng thái `invalid`: giữ nguyên bản
+  ghi + lý do tiếng Việt, **không** tăng lượt thử, **không** tự xoá.
+- Lỗi mạng ⇒ `failed` + tăng lượt thử + backoff.
+- Người dùng chủ động "Thử lại" / "Xuất CSV đối soát" / "Xoá bản ghi lỗi".
+- Bản ghi kẹt `syncing` (đóng tab giữa lúc gửi) được thu hồi về `pending` sau 2 phút.
+- Sau khi nội dung đã lên máy chủ nhưng ảnh chưa xong, bản ghi giữ trạng thái `da-ghi`
+  kèm `farmLogId` để lần sau chỉ tải ảnh, không gửi lại nội dung (tránh mất ảnh).
 
 ## 6. Enum `FARM_LOG` lan sang 2 switch exhaustive
 
@@ -49,18 +73,24 @@ hai. Các switch còn lại (`TerritoryLotAlertServiceImpl`,
 
 ## 7. Test strategy
 
-- BE: `OfflineSyncEventProcessorFarmLogTest` (success/duplicate/thiếu
-  field/lỗi nghiệp vụ) + chạy lại toàn vùng ảnh hưởng (39 tests xanh).
-- FE: unit cho `farmLogDb` (fake-indexeddb), `farmLogSync` (mock API),
-  schema Zod, mobile gate. Không viết RTL test cho form (shadcn Select +
-  jsdom dễ flaky, tiền lệ `RecordMobileEventForm` cũng không có test) —
-  bù bằng manual test.
-- Full suite FE: 415/418. 3 fail gồm 1 fail có sẵn (`OrganizationUsagePage`
-  TC-06, phụ thuộc ngày hệ thống, fail cả khi stash thay đổi) và 2 flaky
-  (pass khi chạy lẻ cả trước và sau thay đổi) — kết luận không regression.
+- BE: `OfflineSyncEventProcessorFarmLogTest` (success / duplicate / thiếu field / lỗi nghiệp
+  vụ / **thiếu quyền `FARM_LOG/CREATE`** / **ngày thực hiện ở tương lai**) + chạy lại toàn
+  vùng ảnh hưởng.
+- FE: unit cho `farmLogDb` (fake-indexeddb: hàng chờ, danh mục lô/vật tư, hạn 7 ngày,
+  ảnh blob), `farmLogSync` (mock API: gửi lần lượt, chống trùng, giữ bản ghi lỗi,
+  thu hồi bản kẹt `syncing`, tải ảnh 2 pha), `farmLogOfflineSchema`, `anhNen` (phần
+  thuần không cần canvas).
+- Không viết RTL test cho form (shadcn Select + jsdom dễ flaky, tiền lệ
+  `RecordMobileEventForm`) — bù bằng manual test
+  (`docs/testing/NCL-10-CN-012_manual_test.md`).
 
-## 8. Còn tồn đọng (phase 2)
+## 8. Ghi chú kỹ thuật còn lại
 
-- Đồng bộ ảnh/đính kèm + nén client-side.
-- Cache danh mục vật tư/hoạt động, retry 10 lần theo spec gốc.
-- `useOfflineSync`: tách `getEventLabel` dùng chung với `OfflineEventList`.
+- Không lưu giờ thiết bị (chốt Q6 = b): `farm_logs.created_at` vẫn là giờ máy chủ, không
+  thêm cột/migration. Giới hạn này ghi rõ trong `docs/api/farm/OfflineFarmLogSync.md`.
+- Quyền khi đồng bộ được kiểm tra như khi ghi trực tuyến (chốt Q7): nhánh `FARM_LOG` gọi
+  `PermissionChecker.check("FARM_LOG", "CREATE")`.
+- Không chống trùng theo nội dung: QTN-16 chỉ yêu cầu chống trùng theo **mã định danh**.
+- `useOfflineSync`: `getEventLabel` vẫn cục bộ, tách dùng chung với `OfflineEventList` là
+  việc dọn dẹp sau.
+- Hàng chờ tối đa 100 bản ghi (chặn ghi mới khi đầy, không xoá bản ghi cũ).
