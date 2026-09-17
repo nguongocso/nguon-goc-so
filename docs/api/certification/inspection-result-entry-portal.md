@@ -294,6 +294,13 @@ Bổ sung trường mới:
 ### 5.3. Cổng tra cứu công khai (`PublicInspectionCriterionResultDto`)
 - Bổ sung trường `entrySource` để hiển thị huy hiệu nguồn gốc ("Đơn vị kiểm nghiệm khai" hoặc "Hợp tác xã nhập").
 
+### 5.4. Thông báo kết quả cho Hợp tác xã
+- Khi toàn bộ chỉ tiêu đã được ghi nhận và yêu cầu chuyển sang `PASSED`, hệ thống gửi thông báo
+  "Kết quả kiểm nghiệm đạt" cho người dùng thuộc tổ chức sở hữu lô có quyền `notification:READ`.
+- Khi toàn bộ chỉ tiêu đã được ghi nhận và yêu cầu chuyển sang `FAILED`, hệ thống gửi cảnh báo
+  "Kết quả kiểm nghiệm không đạt" cho cùng nhóm người nhận để quản lý HTX xử lý lô.
+- Mỗi thông báo chỉ được tạo khi trạng thái yêu cầu thực sự thay đổi, tránh gửi lặp khi tải lại hoặc xem kết quả.
+
 ---
 
 ## 6. Bảng mã lỗi chi tiết

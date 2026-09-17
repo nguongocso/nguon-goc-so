@@ -887,19 +887,21 @@ public class InspectionCriterionResultServiceImpl
             inspectionRequest.setStatus(newStatus);
             requestRepository.save(inspectionRequest);
 
-            /*
-             * NCL-11-CN-005 (QTN-30): cảnh báo cho Quản lý hợp tác xã khi
-             * lô có kết quả kiểm nghiệm KHÔNG ĐẠT — sử dụng cơ chế
-             * notification hiện có, chỉ gửi khi chuyển sang FAILED.
-             */
-            if (newStatus == InspectionRequestStatus.FAILED
+            if ((newStatus == InspectionRequestStatus.PASSED
+                    || newStatus == InspectionRequestStatus.FAILED)
                     && inspectionRequest.getProductionLot() != null) {
-
                 ProductionLot lot = inspectionRequest.getProductionLot();
                 if (lot.getOrganization() != null) {
-                    notificationService.sendInspectionFailedNotification(
-                            lot.getName(),
-                            lot.getOrganization().getOrganizationId());
+                    UUID organizationId = lot.getOrganization().getOrganizationId();
+                    if (newStatus == InspectionRequestStatus.PASSED) {
+                        notificationService.sendInspectionPassedNotification(
+                                lot.getName(),
+                                organizationId);
+                    } else {
+                        notificationService.sendInspectionFailedNotification(
+                                lot.getName(),
+                                organizationId);
+                    }
                 }
             }
         }
