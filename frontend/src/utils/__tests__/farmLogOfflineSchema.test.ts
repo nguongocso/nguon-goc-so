@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { farmLogOfflineSchema } from '@/utils/validators';
+import { getLocalDateString } from '@/utils/dateTime';
 
 const hopLe = {
   productionLotId: '85d91b0c-c3b8-4c1f-bcb0-2b86737d1406',
@@ -47,6 +48,24 @@ describe('farmLogOfflineSchema', () => {
     if (!ketQua.success) {
       expect(ketQua.error.issues[0]?.message).toContain('tương lai');
     }
+  });
+
+  it('chấp nhận ngày hôm nay theo giờ local (không phụ thuộc múi giờ)', () => {
+    const ketQua = farmLogOfflineSchema.safeParse({
+      ...hopLe,
+      executedDate: getLocalDateString(),
+    });
+    expect(ketQua.success).toBe(true);
+  });
+
+  it('báo lỗi khi ngày thực hiện là ngày mai', () => {
+    const ngayMai = new Date();
+    ngayMai.setDate(ngayMai.getDate() + 1);
+    const ketQua = farmLogOfflineSchema.safeParse({
+      ...hopLe,
+      executedDate: getLocalDateString(ngayMai),
+    });
+    expect(ketQua.success).toBe(false);
   });
 
   it('báo lỗi khi ghi chú vượt 1000 ký tự', () => {

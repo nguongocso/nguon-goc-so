@@ -4,6 +4,7 @@ import {
     ORGANIZATION_CODE_REGEX,
 } from './constants';
 import { ChainEventType } from '@/enums/chainEventType';
+import { getLocalDateString } from '@/utils/dateTime';
 
 // ============================================================
 // Login
@@ -567,12 +568,6 @@ export const HOAT_DONG_CANH_TAC = [
     'OTHER',
 ] as const;
 
-const homNay = () => {
-    const bayGio = new Date();
-    bayGio.setHours(0, 0, 0, 0);
-    return bayGio;
-};
-
 export const farmLogOfflineSchema = z.object({
     productionLotId: z
         .string()
@@ -628,7 +623,10 @@ export const farmLogOfflineSchema = z.object({
             'Ngày thực hiện không hợp lệ',
         )
         .refine(
-            (ngay) => new Date(ngay) <= homNay(),
+            // So sánh chuỗi YYYY-MM-DD theo giờ local (miễn nhiễm múi giờ):
+            // `new Date('YYYY-MM-DD')` là nửa đêm UTC, ở UTC+7 sẽ lớn hơn
+            // nửa đêm local và làm ngày hôm nay bị báo "tương lai".
+            (ngay) => ngay <= getLocalDateString(),
             'Ngày thực hiện không được ở tương lai',
         ),
 

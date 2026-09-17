@@ -246,7 +246,11 @@ export function CreateFarmLogForm({
     return false;
   };
 
-  const handleSubmit = async (event?: FormEvent<HTMLFormElement>, luuTam = false) => {
+  /**
+   * Một nút "Lưu nhật ký" duy nhất: online thì ghi trực tiếp, ngoại tuyến
+   * thì tự lưu tạm trên thiết bị và đồng bộ sau (NCL-10-CN-012).
+   */
+  const handleSubmit = async (event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     if (!validate()) return;
 
@@ -267,7 +271,7 @@ export function CreateFarmLogForm({
     };
 
     try {
-      if (luuTam || !isOnline) {
+      if (!isOnline) {
         await luuNhatKyKemTep({
           offlineEventId: uuidv4(),
           productionLotId: payload.productionLotId,
@@ -460,15 +464,6 @@ export function CreateFarmLogForm({
 
           <form onSubmit={handleSubmit} noValidate>
             <CardContent className="space-y-6 pt-6">
-              {!isOnline && (
-                <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
-                  <p className="font-bold">Đang ngoại tuyến</p>
-                  <p className="mt-1">
-                    Bản ghi sẽ được lưu tạm trên thiết bị (kèm ảnh đã nén) và
-                    tự động đồng bộ khi có mạng trở lại.
-                  </p>
-                </div>
-              )}
               {submitError && (
                 <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
                   <p className="font-bold">Không thể lưu nhật ký</p>
@@ -736,14 +731,6 @@ export function CreateFarmLogForm({
                 className="w-full border-slate-300 text-slate-700 hover:bg-slate-50 sm:w-auto"
               >
                 Hủy bỏ
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isSubmitting}
-                onClick={() => void handleSubmit(undefined, true)}
-              >
-                Lưu tạm trên thiết bị
               </Button>
               <Button
                 type="submit"
