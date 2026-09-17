@@ -44,14 +44,12 @@ public class PublicInspectionResultEntryController {
     /**
      * Lấy thông tin yêu cầu kiểm nghiệm và danh sách chỉ tiêu cần nhập.
      *
-     * @param token   Mã token bí mật từ URL.
-     * @param request HttpServletRequest để lấy địa chỉ IP của client.
+     * @param token Mã token bí mật từ URL.
      * @return DTO thông tin tối thiểu của yêu cầu kiểm nghiệm.
      */
     @GetMapping("/{token}")
     public ResponseEntity<ApiResult<PublicInspectionResultEntryResponse>> getPortalData(
-            @PathVariable String token,
-            HttpServletRequest request) {
+            @PathVariable String token) {
 
         String clientIp = IpUtils.getClientIp();
         PublicInspectionResultEntryResponse response = linkService.getPublicPortalData(token, clientIp);
@@ -67,15 +65,13 @@ public class PublicInspectionResultEntryController {
      * @param token       Mã token bí mật.
      * @param criterionId ID của chỉ tiêu kiểm nghiệm thuộc yêu cầu.
      * @param file        Tệp phiếu kết quả (JPG/PNG/PDF).
-     * @param request     HttpServletRequest.
      * @return Đường dẫn tệp đã lưu để đưa vào payload submit.
      */
     @PostMapping("/{token}/criteria/{criterionId}/file")
     public ResponseEntity<ApiResult<Map<String, String>>> uploadFile(
             @PathVariable String token,
             @PathVariable String criterionId,
-            @RequestParam("file") MultipartFile file,
-            HttpServletRequest request) {
+            @RequestParam("file") MultipartFile file) {
 
         String clientIp = IpUtils.getClientIp();
         String fileHandle = criterionResultService.uploadPortalResultFile(token, criterionId, file, clientIp);
