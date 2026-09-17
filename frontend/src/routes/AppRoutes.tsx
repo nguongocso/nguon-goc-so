@@ -107,7 +107,6 @@ import { ShipmentHandoverSentListPage } from "@/pages/shipment-handover/Shipment
 // ===== Public =====
 import PublicHomePage from "@/pages/public/PublicHomePage";
 import TraceLookupPage from "@/pages/public/TraceLookupPage";
-import ProductFeedbackLookupPage from "@/pages/public/ProductFeedbackLookupPage";
 import JoinOrganizationPage from "@/pages/public/JoinOrganizationPage";
 import DataPortalDocsPage from "@/pages/public/DataPortalDocsPage";
 
@@ -370,7 +369,7 @@ const AppRoutes = () => (
 
         <Route
             path="/public/product-feedbacks/lookup"
-            element={<ProductFeedbackLookupPage />}
+            element={<Navigate to="/" replace />}
         />
 
         <Route
@@ -608,7 +607,7 @@ const AppRoutes = () => (
                 path="production-lots/:id/create-bulk-recall-request"
                 element={
                     <RoleRoute
-                        allowedRoles={["VT-01", "VT-02", "VT-03"]}
+                        allowedRoles={["VT-02", "VT-03"]}
                     >
                         <CreateBulkRecallRequestPage />
                     </RoleRoute>

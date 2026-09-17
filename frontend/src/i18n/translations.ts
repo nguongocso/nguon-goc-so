@@ -86,6 +86,14 @@ export const translations = {
     feedback_save_code_warning: 'Hãy lưu mã này ngay. Vì lý do bảo mật, hệ thống không thể hiển thị lại mã sau khi bạn rời trang.',
     feedback_copy_code_btn: 'Sao chép mã',
     feedback_lookup_status_btn: 'Tra cứu trạng thái',
+    feedback_lookup_btn: 'Tra cứu phản ánh',
+    feedback_lookup_dialog_title: 'Tra cứu trạng thái phản ánh',
+    feedback_lookup_dialog_desc: 'Nhập mã tra cứu để xem tiến độ xử lý và phản hồi công khai từ đơn vị phụ trách.',
+    feedback_lookup_input_label: 'Mã tra cứu phản ánh',
+    feedback_lookup_input_placeholder: 'PA-XXXX-XXXX-XXXX-XXXX',
+    feedback_lookup_submit_btn: 'Tra cứu',
+    feedback_lookup_searching: 'Đang tra cứu...',
+    feedback_lookup_empty_error: 'Vui lòng nhập mã tra cứu phản ánh.',
     feedback_submit_another: 'Gửi phản ánh khác',
     feedback_toast_success: 'Đã gửi phản ánh. Vui lòng lưu mã tra cứu.',
     feedback_toast_copy_success: 'Đã sao chép mã tra cứu.',
@@ -94,6 +102,35 @@ export const translations = {
     feedback_error_submit: 'Không thể gửi phản ánh. Vui lòng thử lại.',
     feedback_error_network: 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.',
     feedback_error_generic: 'Đã xảy ra lỗi khi gửi phản ánh.',
+
+    // Feedback Result
+    feedback_result_title: 'Kết quả tra cứu phản ánh',
+    feedback_result_close: 'Đóng kết quả',
+    feedback_result_status_label: 'Trạng thái phản ánh',
+    feedback_result_public_response: 'Phản hồi công khai',
+    feedback_result_no_response: 'Chưa có phản hồi công khai',
+    feedback_result_search_another: 'Tra cứu mã khác',
+    feedback_result_searching: 'Đang tra cứu trạng thái phản ánh {code}...',
+    feedback_result_retry: 'Thử lại',
+    feedback_result_close_btn: 'Đóng',
+
+    // Feedback Status Labels & Descriptions
+    feedback_status_NEW_label: 'Đã tiếp nhận',
+    feedback_status_NEW_desc: 'Phản ánh đã được hệ thống ghi nhận và đang chờ tiếp nhận xử lý.',
+    feedback_status_IN_PROGRESS_label: 'Đang xử lý',
+    feedback_status_IN_PROGRESS_desc: 'Đơn vị phụ trách đang kiểm tra và xử lý phản ánh.',
+    feedback_status_ESCALATED_TO_RECALL_label: 'Đã chuyển thu hồi',
+    feedback_status_ESCALATED_TO_RECALL_desc: 'Phản ánh đã được chuyển sang quy trình xem xét thu hồi.',
+    feedback_status_CLOSED_label: 'Đã đóng',
+    feedback_status_CLOSED_desc: 'Phản ánh đã hoàn tất xử lý.',
+
+    // Feedback Lookup Errors
+    feedback_error_not_found_title: 'Không tìm thấy phản ánh',
+    feedback_error_not_found_desc: 'Vui lòng kiểm tra lại mã tra cứu và thử lại.',
+    feedback_error_rate_limit_title: 'Bạn đã tra cứu quá nhiều lần',
+    feedback_error_rate_limit_desc: 'Vui lòng chờ một lúc rồi thực hiện lại.',
+    feedback_error_system_title: 'Chưa thể tra cứu lúc này',
+    feedback_error_system_desc: 'Hệ thống đang gián đoạn. Vui lòng thử lại sau.',
 
     // Event Types
     event_HARVEST: 'Thu hoạch',
@@ -201,6 +238,14 @@ export const translations = {
     feedback_save_code_warning: 'Please save this code now. For security reasons, the system cannot display it again after you leave this page.',
     feedback_copy_code_btn: 'Copy Code',
     feedback_lookup_status_btn: 'Check Status',
+    feedback_lookup_btn: 'Lookup Feedback',
+    feedback_lookup_dialog_title: 'Product Feedback Status Lookup',
+    feedback_lookup_dialog_desc: 'Enter your lookup code to view handling progress and public responses.',
+    feedback_lookup_input_label: 'Feedback lookup code',
+    feedback_lookup_input_placeholder: 'PA-XXXX-XXXX-XXXX-XXXX',
+    feedback_lookup_submit_btn: 'Lookup',
+    feedback_lookup_searching: 'Searching...',
+    feedback_lookup_empty_error: 'Please enter a feedback lookup code.',
     feedback_submit_another: 'Submit Another Feedback',
     feedback_toast_success: 'Feedback submitted successfully. Please save your lookup code.',
     feedback_toast_copy_success: 'Lookup code copied to clipboard.',
@@ -209,6 +254,35 @@ export const translations = {
     feedback_error_submit: 'Failed to submit feedback. Please try again.',
     feedback_error_network: 'Cannot connect to server. Please try again later.',
     feedback_error_generic: 'An error occurred while submitting feedback.',
+
+    // Feedback Result
+    feedback_result_title: 'Feedback Lookup Result',
+    feedback_result_close: 'Close result',
+    feedback_result_status_label: 'Feedback Status',
+    feedback_result_public_response: 'Public Response',
+    feedback_result_no_response: 'No public response yet',
+    feedback_result_search_another: 'Search Another Code',
+    feedback_result_searching: 'Looking up feedback status {code}...',
+    feedback_result_retry: 'Retry',
+    feedback_result_close_btn: 'Close',
+
+    // Feedback Status Labels & Descriptions
+    feedback_status_NEW_label: 'Received',
+    feedback_status_NEW_desc: 'Feedback has been recorded and is pending review.',
+    feedback_status_IN_PROGRESS_label: 'In Progress',
+    feedback_status_IN_PROGRESS_desc: 'The responsible unit is reviewing and handling this feedback.',
+    feedback_status_ESCALATED_TO_RECALL_label: 'Escalated to Recall',
+    feedback_status_ESCALATED_TO_RECALL_desc: 'Feedback has been escalated to the product recall review process.',
+    feedback_status_CLOSED_label: 'Closed',
+    feedback_status_CLOSED_desc: 'Feedback processing has been completed.',
+
+    // Feedback Lookup Errors
+    feedback_error_not_found_title: 'Feedback Not Found',
+    feedback_error_not_found_desc: 'Please check your lookup code and try again.',
+    feedback_error_rate_limit_title: 'Rate Limit Exceeded',
+    feedback_error_rate_limit_desc: 'Please wait a moment before trying again.',
+    feedback_error_system_title: 'Lookup Currently Unavailable',
+    feedback_error_system_desc: 'The system is temporarily unavailable. Please try again later.',
 
     // Event Types
     event_HARVEST: 'Harvest',

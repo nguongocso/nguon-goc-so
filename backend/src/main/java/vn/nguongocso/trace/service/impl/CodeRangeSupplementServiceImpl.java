@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -41,6 +42,7 @@ import vn.nguongocso.farm.repository.ProductionLotRepository;
 import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.entity.OrganizationUser;
+import vn.nguongocso.organization.enums.OrganizationUserStatus;
 import vn.nguongocso.organization.repository.OrganizationRepository;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.trace.dto.request.ApproveSupplementRequest;
@@ -62,6 +64,7 @@ import vn.nguongocso.trace.service.CodeRangeSupplementService;
  * Bổ sung hạn mức = tăng {@code totalLimit} của dải mã hiện có của tổ chức
  * (không tạo dải mã mới vì {@code prefix} UNIQUE toàn hệ thống).
  */
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -138,7 +141,11 @@ public class CodeRangeSupplementServiceImpl implements CodeRangeSupplementServic
         supplement.setStatus(CodeRangeSupplementStatus.PENDING);
 
         CodeRangeSupplementRequest saved = supplementRepository.save(supplement);
-        return toResponse(saved);
+        int notifiedCount = notifyAdmins(saved);
+
+        CodeRangeSupplementResponse response = toResponse(saved);
+        response.setNotifiedCount(notifiedCount);
+        return response;
     }
 
     @Override
@@ -554,6 +561,39 @@ public class CodeRangeSupplementServiceImpl implements CodeRangeSupplementServic
                 recipientIds.add(userId);
             }
         }
+
+        return notificationService.sendCodeRangeSupplementNotification(title, content, recipientIds);
+    }
+
+    /**
+     * Gửi thông báo cho Quản trị viên nền tảng (VT-01) khi có yêu cầu
+     * cấp bổ sung dải mã mới được gửi.
+     *
+     * @param supplement yêu cầu cấp bổ sung dải mã vừa được lưu
+     * @return số lượng thông báo đã tạo
+     */
+    private int notifyAdmins(CodeRangeSupplementRequest supplement) {
+        List<OrganizationUser> admins = organizationUserRepository
+                .findAllByRole_Code(ROLE_PLATFORM_ADMIN);
+        List<UUID> recipientIds = new ArrayList<>();
+        for (OrganizationUser admin : admins) {
+            if (admin.getUser() != null && admin.getStatus() == OrganizationUserStatus.ACTIVE) {
+                UUID userId = admin.getUser().getUserId();
+                if (!recipientIds.contains(userId)) {
+                    recipientIds.add(userId);
+                }
+            }
+        }
+
+        if (recipientIds.isEmpty()) {
+            log.warn("Không tìm thấy tài khoản Quản trị viên nền tảng (VT-01) để gửi thông báo yêu cầu cấp bổ sung mã mới.");
+            return 0;
+        }
+
+        String title = "Yêu cầu cấp bổ sung mã mới";
+        String content = "Tổ chức \"" + supplement.getOrganization().getName()
+                + "\" đã gửi một yêu cầu cấp bổ sung " + supplement.getRequestedQuantity()
+                + " mã truy xuất. Vui lòng xem xét và phê duyệt.";
 
         return notificationService.sendCodeRangeSupplementNotification(title, content, recipientIds);
     }
