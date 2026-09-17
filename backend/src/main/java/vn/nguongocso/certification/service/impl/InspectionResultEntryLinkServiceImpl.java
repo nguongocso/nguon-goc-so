@@ -195,9 +195,15 @@ public class InspectionResultEntryLinkServiceImpl implements InspectionResultEnt
                 .findFirstByInspectionRequest_IdOrderByCreatedAtDesc(requestId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, MSG_NO_LINK_ISSUED));
 
+        InspectionResultEntryLinkStatus effectiveStatus = link.getStatus();
+        if (effectiveStatus == InspectionResultEntryLinkStatus.ACTIVE
+                && LocalDateTime.now().isAfter(link.getExpiresAt())) {
+            effectiveStatus = InspectionResultEntryLinkStatus.EXPIRED;
+        }
+
         return InspectionResultEntryLinkResponse.builder()
                 .id(link.getId())
-                .status(link.getStatus())
+                .status(effectiveStatus)
                 .recipientEmail(link.getRecipientEmail())
                 .tokenPrefix(link.getTokenPrefix())
                 .expiresAt(link.getExpiresAt())

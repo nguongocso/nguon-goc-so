@@ -172,17 +172,19 @@ public class InspectionCriterionResultServiceImpl
             InspectionCriterionResultRequest request,
             CustomUserDetails currentUser) {
 
-        // Kiểm tra tồn tại chỉ tiêu
+        // Khóa yêu cầu trước khi đọc trạng thái để tuần tự hóa với luồng cổng công khai
         UUID criterionUUID = parseUuid(criterionId, MSG_CRITERION_NOT_FOUND);
+        InspectionRequest inspectionRequest = requestRepository
+                .findByCriterionIdAndOrganizationIdForUpdate(
+                        criterionUUID,
+                        currentUser.getOrganizationId())
+                .orElseThrow(() -> new BusinessException(MSG_CRITERION_NOT_FOUND));
+
         InspectionCriterion criterion = criterionRepository
                 .findById(criterionUUID)
                 .orElseThrow(() -> new BusinessException(MSG_CRITERION_NOT_FOUND));
 
-        // Org boundary: chỉ tiêu phải thuộc yêu cầu của lô thuộc tổ chức hiện tại
-        requireCriterionAccess(criterion, currentUser);
-
         // Kiểm tra yêu cầu kiểm nghiệm ở trạng thái chờ kết quả hoặc không đạt
-        InspectionRequest inspectionRequest = criterion.getInspectionRequest();
         InspectionRequestStatus requestStatus = inspectionRequest.getStatus();
         if (requestStatus != InspectionRequestStatus.PENDING_RESULT
                 && requestStatus != InspectionRequestStatus.FAILED) {

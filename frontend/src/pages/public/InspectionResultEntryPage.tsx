@@ -29,6 +29,15 @@ import { Badge } from '@/components/ui/badge';
 
 type PageStatus = 'LOADING' | 'ACTIVE' | 'EXPIRED' | 'USED' | 'NOT_FOUND' | 'SUBMITTED' | 'ERROR';
 
+const resolveGonePageStatus = (message: string): 'EXPIRED' | 'USED' => {
+  const normalizedMessage = message.toLowerCase();
+  return normalizedMessage.includes('đã được sử dụng') ||
+    normalizedMessage.includes('đã được thay thế') ||
+    normalizedMessage.includes('used')
+    ? 'USED'
+    : 'EXPIRED';
+};
+
 export const InspectionResultEntryPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
 
@@ -57,7 +66,7 @@ export const InspectionResultEntryPage: React.FC = () => {
           (err instanceof Error ? err.message : '');
 
         if (status === 410) {
-          if (msg.toLowerCase().includes('đã được sử dụng') || msg.toLowerCase().includes('used')) {
+          if (resolveGonePageStatus(msg) === 'USED') {
             setPageStatus('USED');
             setErrorMessage(msg || 'Liên kết này đã được sử dụng để nhập kết quả trước đó.');
           } else {
@@ -100,8 +109,14 @@ export const InspectionResultEntryPage: React.FC = () => {
         (err instanceof Error ? err.message : 'Có lỗi khi gửi kết quả.');
 
       if (status === 410) {
-        setPageStatus('USED');
-        setErrorMessage(msg);
+        const goneStatus = resolveGonePageStatus(msg);
+        setPageStatus(goneStatus);
+        setErrorMessage(
+          msg ||
+            (goneStatus === 'USED'
+              ? 'Liên kết này đã được sử dụng để nhập kết quả trước đó.'
+              : 'Liên kết nhập kết quả đã hết hạn. Vui lòng liên hệ hợp tác xã để được cấp liên kết mới.')
+        );
       } else {
         toast.error(msg);
       }

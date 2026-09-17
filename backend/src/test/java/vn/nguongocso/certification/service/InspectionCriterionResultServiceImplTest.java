@@ -205,6 +205,12 @@ class InspectionCriterionResultServiceImplTest {
 
         inspectionRequest.setCriteria(List.of(criterion));
 
+        lenient()
+                .when(requestRepository.findByCriterionIdAndOrganizationIdForUpdate(
+                        criterionId,
+                        orgId))
+                .thenReturn(Optional.of(inspectionRequest));
+
         // =========================
         // Mock result
         // =========================
@@ -299,6 +305,9 @@ class InspectionCriterionResultServiceImplTest {
 
         verify(resultRepository)
                 .save(any(InspectionCriterionResult.class));
+
+        verify(requestRepository)
+                .findByCriterionIdAndOrganizationIdForUpdate(criterionId, orgId);
 
         verify(requestRepository)
                 .save(inspectionRequest);
@@ -792,9 +801,6 @@ class InspectionCriterionResultServiceImplTest {
                         .passed(true)
                         .build();
 
-        when(criterionRepository.findById(criterionId))
-                .thenReturn(Optional.of(criterion));
-
         // Act & Assert
         assertThatThrownBy(() ->
                 service.recordOrUpdateResult(
@@ -802,6 +808,9 @@ class InspectionCriterionResultServiceImplTest {
                         request,
                         currentUser))
                 .isInstanceOf(BusinessException.class);
+
+        verify(requestRepository)
+                .findByCriterionIdAndOrganizationIdForUpdate(criterionId, otherOrgId);
 
         // Không có thay đổi nào được ghi
         verify(resultRepository, never())

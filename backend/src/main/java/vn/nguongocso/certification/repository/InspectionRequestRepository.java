@@ -97,6 +97,30 @@ public interface InspectionRequestRepository
             @Param("organizationId") UUID organizationId);
 
     /**
+     * Khóa bi quan yêu cầu kiểm nghiệm chứa chỉ tiêu được chọn, đồng thời kiểm tra
+     * tổ chức sở hữu. Truy vấn này giúp tuần tự hóa luồng HTX nhập từng chỉ tiêu với
+     * luồng cổng công khai nộp toàn bộ kết quả.
+     *
+     * @param criterionId   ID chỉ tiêu kiểm nghiệm.
+     * @param organizationId ID tổ chức.
+     * @return Optional chứa yêu cầu kiểm nghiệm đã khóa.
+     */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT ir
+            FROM InspectionRequest ir
+            JOIN ir.criteria criterion
+            JOIN FETCH ir.productionLot pl
+            JOIN FETCH pl.organization
+            LEFT JOIN FETCH pl.productCategory
+            WHERE criterion.id = :criterionId
+              AND pl.organization.organizationId = :organizationId
+            """)
+    java.util.Optional<InspectionRequest> findByCriterionIdAndOrganizationIdForUpdate(
+            @Param("criterionId") UUID criterionId,
+            @Param("organizationId") UUID organizationId);
+
+    /**
      * Khóa bi quan (PESSIMISTIC_WRITE) yêu cầu kiểm nghiệm theo ID.
      *
      * @param id ID của yêu cầu kiểm nghiệm.
@@ -168,4 +192,4 @@ public interface InspectionRequestRepository
     List<InspectionRequest> findByProductionLotIdInAndStatus(
             @Param("lotIds") java.util.Collection<UUID> lotIds,
             @Param("status") InspectionRequestStatus status);
-}
+}

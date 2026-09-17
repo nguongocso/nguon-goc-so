@@ -292,6 +292,35 @@ class InspectionResultEntryLinkServiceImplTest {
     }
 
     @Test
+    @DisplayName("Lấy liên kết mới nhất đã quá hạn: trả trạng thái EXPIRED dù bản ghi vẫn ACTIVE")
+    void testGetLatestLink_ExpiredActiveLink_ReturnsEffectiveExpiredStatus() {
+        InspectionResultEntryLink link = InspectionResultEntryLink.builder()
+                .id(UUID.randomUUID())
+                .inspectionRequest(inspectionRequest)
+                .organization(organization)
+                .testingUnit(testingUnit)
+                .recipientEmail("lab@example.vn")
+                .tokenPrefix("expired1")
+                .tokenHash("expired-hash")
+                .status(InspectionResultEntryLinkStatus.ACTIVE)
+                .expiresAt(LocalDateTime.now().minusMinutes(1))
+                .createdAt(LocalDateTime.now().minusDays(7))
+                .build();
+
+        when(requestRepository.findByIdAndProductionLot_Organization_OrganizationId(
+                requestId,
+                currentUser.getOrganizationId()))
+                .thenReturn(Optional.of(inspectionRequest));
+        when(linkRepository.findFirstByInspectionRequest_IdOrderByCreatedAtDesc(requestId))
+                .thenReturn(Optional.of(link));
+
+        InspectionResultEntryLinkResponse response = service.getLatestLink(requestId, currentUser);
+
+        assertThat(response.getStatus()).isEqualTo(InspectionResultEntryLinkStatus.EXPIRED);
+        assertThat(link.getStatus()).isEqualTo(InspectionResultEntryLinkStatus.ACTIVE);
+    }
+
+    @Test
     @DisplayName("Lấy dữ liệu cổng public thành công (TC-01): chỉ trả dữ liệu tối thiểu, không lộ ID nội bộ")
     void testGetPublicPortalData_Success() {
         String rawToken = "my_secret_token_123456789012345678";
