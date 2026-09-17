@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.certification.dto.request.IssueInspectionResultEntryLinkRequest;
 import vn.nguongocso.certification.dto.response.InspectionResultEntryLinkResponse;
