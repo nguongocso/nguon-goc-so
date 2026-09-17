@@ -58,6 +58,7 @@ export interface TestCriterionItem {
   criteriaId: number;
   code: string;
   name: string;
+  referenceStandard?: string | null;
 }
 
 /**

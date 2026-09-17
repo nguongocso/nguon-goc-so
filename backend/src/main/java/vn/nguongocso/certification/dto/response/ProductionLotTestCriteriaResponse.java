@@ -34,5 +34,9 @@ public class ProductionLotTestCriteriaResponse {
 
         @JsonProperty("name")
         private String name;
+
+        /** Tiêu chuẩn kỹ thuật mà chỉ tiêu tham chiếu đến (nếu có). */
+        @JsonProperty("referenceStandard")
+        private String referenceStandard;
     }
 }

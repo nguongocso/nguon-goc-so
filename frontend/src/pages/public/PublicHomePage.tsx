@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { isAxiosError } from "axios";
 import { BrowserQRCodeReader } from "@zxing/browser";
 import { recordPublicScan } from "@/api/publicApi";
+import { lookupPublicProductFeedback } from "@/api/productFeedbackApi";
+import type { PublicProductFeedbackLookupResult } from "@/types/productFeedback";
+import {
+  ProductFeedbackInlineResult,
+  type LookupErrorKind,
+} from "@/components/public/ProductFeedbackInlineResult";
 import {
   LogIn,
   ScanLine,
@@ -9,7 +16,6 @@ import {
   ShieldCheck,
   Truck,
   BadgeCheck,
-  MessageCircleMore,
 } from "lucide-react";
 import { Logo } from "@/components/common/Logo";
 import { toast } from "sonner";
@@ -18,12 +24,32 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 
+/**
+ * Nhận diện mã tra cứu phản ánh (có tiền tố PA- hoặc dạng PA+16 ký tự Base32).
+ */
+export function isProductFeedbackLookupCode(rawCode: string): boolean {
+  const trimmed = rawCode.trim();
+  if (!trimmed) return false;
+  const upper = trimmed.toUpperCase();
+  if (upper.startsWith("PA-")) return true;
+  const compact = upper.replace(/-/g, "");
+  return compact.startsWith("PA") && compact.length === 18;
+}
+
 export default function PublicHomePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, isLoading: isAuthLoading } = useAuth();
 
   const [code, setCode] = useState("");
   const [isScanning, setIsScanning] = useState(false);
+
+  const [feedbackResult, setFeedbackResult] =
+    useState<PublicProductFeedbackLookupResult | null>(null);
+  const [feedbackErrorKind, setFeedbackErrorKind] =
+    useState<LookupErrorKind | null>(null);
+  const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
+  const [searchedFeedbackCode, setSearchedFeedbackCode] = useState("");
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -34,6 +60,47 @@ export default function PublicHomePage() {
       navigate("/dashboard", { replace: true });
     }
   }, [user, isAuthLoading, navigate]);
+
+  const executeFeedbackLookup = async (rawLookupCode: string) => {
+    const normalized = rawLookupCode.trim().toUpperCase();
+    if (!normalized) return;
+
+    setFeedbackErrorKind(null);
+    setFeedbackResult(null);
+    setSearchedFeedbackCode(normalized);
+    setIsFeedbackLoading(true);
+
+    try {
+      const data = await lookupPublicProductFeedback({ lookupCode: normalized });
+      setFeedbackResult(data);
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response?.status === 404) {
+        setFeedbackErrorKind("not-found");
+      } else if (isAxiosError(error) && error.response?.status === 429) {
+        setFeedbackErrorKind("rate-limit");
+      } else {
+        setFeedbackErrorKind("system");
+      }
+    } finally {
+      setIsFeedbackLoading(false);
+    }
+  };
+
+  const handleResetFeedback = () => {
+    setFeedbackResult(null);
+    setFeedbackErrorKind(null);
+    setSearchedFeedbackCode("");
+  };
+
+  // Tự động kích hoạt tra cứu phản ánh nếu có query param ?feedbackCode=...
+  useEffect(() => {
+    const feedbackCodeParam = searchParams.get("feedbackCode");
+    if (feedbackCodeParam && feedbackCodeParam.trim()) {
+      const cleanCode = feedbackCodeParam.trim();
+      setCode(cleanCode);
+      void executeFeedbackLookup(cleanCode);
+    }
+  }, [searchParams]);
 
   const stopScanner = () => {
     controlsRef.current?.stop();
@@ -103,7 +170,6 @@ export default function PublicHomePage() {
             // Luồng quét QR thực tế: gọi POST /public/trace/{codeValue}/scan
             // để tạo TraceCodeScanLog và kích hoạt đánh giá nghi vấn,
             // sau đó chuyển kết quả sang trang tra cứu qua router state.
-            // (Không dùng GET lookup ở luồng quét.)
             const submitScan = async () => {
               try {
                 let latitude: number | undefined;
@@ -180,11 +246,18 @@ export default function PublicHomePage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code.trim()) {
+    const trimmed = code.trim();
+    if (!trimmed) {
       toast.error("Vui lòng nhập mã tra cứu");
       return;
     }
-    navigate(`/public/trace/${code.trim()}`);
+
+    if (isProductFeedbackLookupCode(trimmed)) {
+      void executeFeedbackLookup(trimmed);
+      return;
+    }
+
+    navigate(`/public/trace/${trimmed}`);
   };
 
   const features = [
@@ -203,20 +276,20 @@ export default function PublicHomePage() {
       </div>
 
       {/* Header */}
-<header className="w-full h-25 px-6 flex justify-between items-center relative z-10">
-  <Logo height={100} />
+      <header className="w-full h-25 px-6 flex justify-between items-center relative z-10">
+        <Logo height={100} />
 
-  {!isAuthLoading && !user && (
-    <Button
-      variant="outline"
-      className="gap-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
-      onClick={() => navigate("/login")}
-    >
-      <LogIn className="h-4 w-4" />
-      Đăng nhập
-    </Button>
-  )}
-</header>
+        {!isAuthLoading && !user && (
+          <Button
+            variant="outline"
+            className="gap-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+            onClick={() => navigate("/login")}
+          >
+            <LogIn className="h-4 w-4" />
+            Đăng nhập
+          </Button>
+        )}
+      </header>
 
       {/* Hero Section */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-8 md:py-16 relative z-10 flex flex-col lg:flex-row items-center gap-12">
@@ -251,7 +324,7 @@ export default function PublicHomePage() {
           </div>
         </div>
 
-        {/* Right: QR Scanner Card */}
+        {/* Right: QR Scanner / Search Card */}
         <div className="flex-1 w-full max-w-md">
           <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl border border-emerald-100 p-6 md:p-8 space-y-5">
             {isScanning ? (
@@ -300,9 +373,15 @@ export default function PublicHomePage() {
                 <form onSubmit={handleSubmit} className="flex gap-2">
                   <Input
                     type="text"
-                    placeholder="Nhập mã tra cứu"
+                    placeholder="Nhập mã tra cứu hoặc mã phản ánh (PA-...)"
                     value={code}
-                    onChange={(e) => setCode(e.target.value)}
+                    onChange={(e) => {
+                      setCode(e.target.value);
+                      if (feedbackErrorKind || feedbackResult) {
+                        setFeedbackErrorKind(null);
+                        setFeedbackResult(null);
+                      }
+                    }}
                     className="flex-1 border-emerald-200 focus-visible:ring-emerald-300"
                   />
                   <Button type="submit" variant="search">
@@ -311,15 +390,15 @@ export default function PublicHomePage() {
                   </Button>
                 </form>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => navigate("/public/product-feedbacks/lookup")}
-                  className="w-full gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
-                >
-                  <MessageCircleMore className="h-4 w-4" />
-                  Tra cứu trạng thái phản ánh
-                </Button>
+                {/* Kết quả tra cứu phản ánh hiển thị trực tiếp inline dưới ô nhập */}
+                <ProductFeedbackInlineResult
+                  isLoading={isFeedbackLoading}
+                  lookupCode={searchedFeedbackCode}
+                  result={feedbackResult}
+                  errorKind={feedbackErrorKind}
+                  onReset={handleResetFeedback}
+                  onRetry={() => void executeFeedbackLookup(searchedFeedbackCode)}
+                />
               </div>
             )}
           </div>

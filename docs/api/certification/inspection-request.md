@@ -37,7 +37,8 @@ Response data thuc te:
     {
       "criteriaId": 101,
       "code": "RESIDUE_PESTICIDE",
-      "name": "Du luong thuoc tru sau"
+      "name": "Du luong thuoc tru sau",
+      "referenceStandard": "TCVN 5142:2008"
     }
   ]
 }

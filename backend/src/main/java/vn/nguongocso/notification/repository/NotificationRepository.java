@@ -1,5 +1,6 @@
 package vn.nguongocso.notification.repository;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -32,4 +33,14 @@ public interface NotificationRepository
          * Đếm số thông báo chưa đọc.
          */
         long countByUser_UserIdAndIsReadFalse(UUID userId);
+
+        /**
+         * Kiểm tra đã tồn tại thông báo cùng thực thể + tiêu đề kể từ mốc thời gian
+         * hay chưa. Dùng để chống tạo trùng cảnh báo (NCL-12-CN-005: 1 lần/ngày
+         * cho hết hạn, 1 lần/giờ cho hạn mức).
+         */
+        boolean existsByEntityIdAndTitleAndCreatedAtAfter(
+                        UUID entityId,
+                        String title,
+                        LocalDateTime after);
 }

@@ -15,7 +15,9 @@ public enum AggregateAlertType {
     UNPROCESSED_FEEDBACK("Phản ánh chưa xử lý"),
     CODE_RANGE_QUOTA("Hạn mức dải mã sắp hết"),
     OVERDUE_MILESTONE("Mốc canh tác quá hạn"),
-    OPEN_RECALL_CASE("Vụ việc thu hồi đang mở");
+    OPEN_RECALL_CASE("Vụ việc thu hồi đang mở"),
+    API_KEY_EXPIRING("Khóa truy cập sắp hết hạn"),
+    API_KEY_QUOTA_WARNING("Khóa truy cập sắp chạm hạn mức");
 
     private final String displayName;
 
