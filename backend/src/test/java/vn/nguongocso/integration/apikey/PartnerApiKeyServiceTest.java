@@ -39,11 +39,13 @@ import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.integration.apikey.dto.request.CreateApiKeyRequest;
+import vn.nguongocso.integration.apikey.dto.request.CreateTestApiKeyRequest;
 import vn.nguongocso.integration.apikey.dto.request.RenewApiKeyRequest;
 import vn.nguongocso.integration.apikey.dto.request.UpdateApiKeyQuotaRequest;
 import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyResponse;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
+import vn.nguongocso.integration.apikey.event.ApiKeyLifecycleEvent;
 import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
 import vn.nguongocso.integration.apikey.service.ApiKeyQuotaPolicy;
 import vn.nguongocso.integration.apikey.service.PartnerApiKeyService;
@@ -144,9 +146,15 @@ class PartnerApiKeyServiceTest {
         assertEquals(100, response.getRateLimitPerHour());
 
         // TASK-27: kiểm tra audit log của thao tác cấp khóa truy cập
-        ArgumentCaptor<ActivityLogEvent> captor = ArgumentCaptor.forClass(ActivityLogEvent.class);
-        verify(eventPublisher).publishEvent(captor.capture());
-        ActivityLogEvent logEvent = captor.getValue();
+        // (NCL-12-CN-005: createApiKey còn phát ApiKeyLifecycleEvent để cảnh báo ngay,
+        // nên bắt tất cả sự kiện rồi lọc ActivityLogEvent thay vì đòi đúng 1 lần phát).
+        ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(eventPublisher, times(2)).publishEvent(eventCaptor.capture());
+        ActivityLogEvent logEvent = eventCaptor.getAllValues().stream()
+                .filter(ActivityLogEvent.class::isInstance)
+                .map(ActivityLogEvent.class::cast)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Thiếu sự kiện ActivityLogEvent khi cấp khóa"));
         assertEquals("CREATE_API_KEY", logEvent.getAction());
         assertEquals("PARTNER_API_KEY", logEvent.getEntityType());
         assertNotNull(logEvent.getEntityId());
@@ -450,6 +458,129 @@ class PartnerApiKeyServiceTest {
                 "429 không được làm tăng counter theo giờ; counter cuối phải bằng 2");
         // Số lượt gọi trong ngày (DB) chỉ được ghi cho request thành công
         verify(partnerApiKeyUsageService, times(2)).recordCallAndGetDailyCount(key.getId());
+    }
+
+    @Test
+    @DisplayName("NCL-12-CN-005: Cấp khóa hạn +5 ngày phát sự kiện vòng đời để cảnh báo ngay")
+    void testCreateApiKey_ShortExpiry_PublishesLifecycleEvent() {
+        setupSecurityContext();
+
+        LocalDateTime expiresAt = LocalDateTime.now().plusDays(5);
+        CreateApiKeyRequest request = CreateApiKeyRequest.builder()
+                .partnerName("Đối Tác Sắp Hết Hạn")
+                .rateLimitPerHour(100)
+                .expiresAt(expiresAt)
+                .build();
+
+        when(organizationRepository.findById(orgId)).thenReturn(Optional.of(organization));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(partnerApiKeyRepository.save(any(PartnerApiKey.class))).thenAnswer(invocation -> {
+            PartnerApiKey entity = invocation.getArgument(0);
+            entity.setId(UUID.randomUUID());
+            return entity;
+        });
+
+        PartnerApiKeyResponse response = partnerApiKeyService.createApiKey(request);
+        assertNotNull(response);
+
+        ApiKeyLifecycleEvent lifecycleEvent = captureLifecycleEvent();
+        assertEquals(response.getId(), lifecycleEvent.getApiKeyId());
+        assertEquals(orgId, lifecycleEvent.getOrganizationId());
+        assertEquals(PartnerApiKeyStatus.ACTIVE, lifecycleEvent.getStatus());
+    }
+
+    @Test
+    @DisplayName("NCL-12-CN-005: Cấp khóa hạn +30 ngày vẫn phát sự kiện (listener tự bỏ qua, không cảnh báo)")
+    void testCreateApiKey_LongExpiry_PublishesEventButNoWarningNeeded() {
+        setupSecurityContext();
+
+        CreateApiKeyRequest request = CreateApiKeyRequest.builder()
+                .partnerName("Đối Tác Dài Hạn")
+                .rateLimitPerHour(100)
+                .expiresAt(LocalDateTime.now().plusDays(30))
+                .build();
+
+        when(organizationRepository.findById(orgId)).thenReturn(Optional.of(organization));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(partnerApiKeyRepository.save(any(PartnerApiKey.class))).thenAnswer(invocation -> {
+            PartnerApiKey entity = invocation.getArgument(0);
+            entity.setId(UUID.randomUUID());
+            return entity;
+        });
+
+        PartnerApiKeyResponse response = partnerApiKeyService.createApiKey(request);
+        assertNotNull(response);
+
+        // Thiết kế: luôn phát sự kiện để tránh nhân bản ngưỡng 7 ngày ở tầng quản lý khóa;
+        // ApiKeyWarningService quyết định không gửi thông báo khi hạn còn xa.
+        ApiKeyLifecycleEvent lifecycleEvent = captureLifecycleEvent();
+        assertEquals(response.getId(), lifecycleEvent.getApiKeyId());
+    }
+
+    @Test
+    @DisplayName("NCL-12-CN-005: Cấp khóa thử nghiệm hạn ngắn phát sự kiện vòng đời")
+    void testCreateTestApiKey_ShortExpiry_PublishesLifecycleEvent() {
+        setupSecurityContext();
+
+        CreateTestApiKeyRequest request = CreateTestApiKeyRequest.builder()
+                .partnerName("Đối Tác Thử Nghiệm")
+                .rateLimitPerHour(60)
+                .expiresAt(LocalDateTime.now().plusDays(5))
+                .build();
+
+        when(organizationRepository.findById(orgId)).thenReturn(Optional.of(organization));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(partnerApiKeyRepository.save(any(PartnerApiKey.class))).thenAnswer(invocation -> {
+            PartnerApiKey entity = invocation.getArgument(0);
+            entity.setId(UUID.randomUUID());
+            return entity;
+        });
+
+        PartnerApiKeyResponse response = partnerApiKeyService.createTestApiKey(request);
+        assertNotNull(response);
+
+        ApiKeyLifecycleEvent lifecycleEvent = captureLifecycleEvent();
+        assertEquals(response.getId(), lifecycleEvent.getApiKeyId());
+        assertEquals(PartnerApiKeyStatus.ACTIVE, lifecycleEvent.getStatus());
+    }
+
+    @Test
+    @DisplayName("NCL-12-CN-005: Gia hạn về hạn ngắn phát sự kiện vòng đời để cảnh báo ngay")
+    void testRenewApiKey_ShortExpiry_PublishesLifecycleEvent() {
+        setupSecurityContext();
+        UUID keyId = UUID.randomUUID();
+        PartnerApiKey existingKey = PartnerApiKey.builder()
+                .id(keyId)
+                .organization(organization)
+                .partnerName("Đối Tác Gia Hạn")
+                .keyPrefix("nks_live_renew")
+                .keyHash("hash")
+                .rateLimitPerHour(50)
+                .expiresAt(LocalDateTime.now().plusDays(30))
+                .status(PartnerApiKeyStatus.ACTIVE)
+                .createdBy(user)
+                .build();
+
+        when(partnerApiKeyRepository.findByIdAndOrganizationId(keyId, orgId)).thenReturn(Optional.of(existingKey));
+        when(partnerApiKeyRepository.save(any(PartnerApiKey.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        RenewApiKeyRequest request = RenewApiKeyRequest.builder().expiresAt(LocalDateTime.now().plusDays(5)).build();
+        PartnerApiKeyResponse response = partnerApiKeyService.renewApiKey(keyId, request);
+        assertNotNull(response);
+
+        ApiKeyLifecycleEvent lifecycleEvent = captureLifecycleEvent();
+        assertEquals(keyId, lifecycleEvent.getApiKeyId());
+        assertEquals(PartnerApiKeyStatus.ACTIVE, lifecycleEvent.getStatus());
+    }
+
+    private ApiKeyLifecycleEvent captureLifecycleEvent() {
+        ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(eventPublisher, org.mockito.Mockito.atLeastOnce()).publishEvent(eventCaptor.capture());
+        return eventCaptor.getAllValues().stream()
+                .filter(ApiKeyLifecycleEvent.class::isInstance)
+                .map(ApiKeyLifecycleEvent.class::cast)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Thiếu sự kiện ApiKeyLifecycleEvent"));
     }
 
     private PartnerApiKey buildActiveRateLimitedKey(String keyHash, int rateLimit) {

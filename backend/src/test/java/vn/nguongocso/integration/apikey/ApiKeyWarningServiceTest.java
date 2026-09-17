@@ -28,6 +28,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKeyDailyUsage;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
+import vn.nguongocso.integration.apikey.event.ApiKeyLifecycleEvent;
 import vn.nguongocso.integration.apikey.event.ApiKeyQuotaThresholdEvent;
 import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
 import vn.nguongocso.integration.apikey.service.ApiKeyQuotaPolicy;
@@ -266,6 +267,77 @@ class ApiKeyWarningServiceTest {
         verify(notificationService, never()).sendHandoverNotification(
                 anyString(), anyString(), any(UUID.class), any(UUID.class));
         verify(partnerApiKeyUsageService, never()).claimQuotaWarning(any(UUID.class));
+    }
+
+    @Test
+    @DisplayName("NCL-12-CN-005: Cấp khóa hạn +5 ngày gửi cảnh báo ngay, quét cùng ngày không trùng")
+    void handleApiKeyLifecycle_sendsImmediatelyAndScanDoesNotDuplicate() {
+        PartnerApiKey key = buildKey("Doi tac cap moi", LocalDateTime.now().plusDays(5), PartnerApiKeyStatus.ACTIVE);
+        when(notificationRepository.existsByEntityIdAndTitleAndCreatedAtAfter(
+                eq(key.getId()), eq("Khóa truy cập sắp hết hạn"), any(LocalDateTime.class)))
+                .thenReturn(false);
+
+        apiKeyWarningService.handleApiKeyLifecycle(buildLifecycleEvent(key));
+
+        verify(notificationService, times(1)).sendHandoverNotification(
+                eq("Khóa truy cập sắp hết hạn"), anyString(), eq(key.getId()), eq(organization.getOrganizationId()));
+
+        // Lần quét 00:00 cùng ngày thấy đã có thông báo thì không gửi trùng.
+        when(partnerApiKeyRepository.findByStatus(PartnerApiKeyStatus.ACTIVE)).thenReturn(List.of(key));
+        when(notificationRepository.existsByEntityIdAndTitleAndCreatedAtAfter(
+                eq(key.getId()), eq("Khóa truy cập sắp hết hạn"), any(LocalDateTime.class)))
+                .thenReturn(true);
+
+        apiKeyWarningService.scanExpiringKeys();
+
+        verify(notificationService, times(1)).sendHandoverNotification(
+                eq("Khóa truy cập sắp hết hạn"), anyString(), eq(key.getId()), eq(organization.getOrganizationId()));
+    }
+
+    @Test
+    @DisplayName("NCL-12-CN-005: Cấp khóa hạn +30 ngày không gửi cảnh báo ngay")
+    void handleApiKeyLifecycle_skipsFarExpiry() {
+        PartnerApiKey key = buildKey("Doi tac dai han", LocalDateTime.now().plusDays(30), PartnerApiKeyStatus.ACTIVE);
+
+        apiKeyWarningService.handleApiKeyLifecycle(buildLifecycleEvent(key));
+
+        verify(notificationService, never()).sendHandoverNotification(
+                anyString(), anyString(), any(UUID.class), any(UUID.class));
+    }
+
+    @Test
+    @DisplayName("NCL-12-CN-005: Khóa REVOKED gia hạn không gửi cảnh báo ngay")
+    void handleApiKeyLifecycle_skipsNonActive() {
+        PartnerApiKey key = buildKey("Doi tac thu hoi", LocalDateTime.now().plusDays(5), PartnerApiKeyStatus.REVOKED);
+
+        apiKeyWarningService.handleApiKeyLifecycle(buildLifecycleEvent(key));
+
+        verify(notificationService, never()).sendHandoverNotification(
+                anyString(), anyString(), any(UUID.class), any(UUID.class));
+    }
+
+    @Test
+    @DisplayName("NCL-12-CN-005: Đã cảnh báo trong ngày thì cấp lại cùng khóa không gửi trùng")
+    void handleApiKeyLifecycle_skipsAlreadyWarnedToday() {
+        PartnerApiKey key = buildKey("Doi tac trung", LocalDateTime.now().plusDays(5), PartnerApiKeyStatus.ACTIVE);
+        when(notificationRepository.existsByEntityIdAndTitleAndCreatedAtAfter(
+                eq(key.getId()), eq("Khóa truy cập sắp hết hạn"), any(LocalDateTime.class)))
+                .thenReturn(true);
+
+        apiKeyWarningService.handleApiKeyLifecycle(buildLifecycleEvent(key));
+
+        verify(notificationService, never()).sendHandoverNotification(
+                anyString(), anyString(), any(UUID.class), any(UUID.class));
+    }
+
+    private ApiKeyLifecycleEvent buildLifecycleEvent(PartnerApiKey key) {
+        return ApiKeyLifecycleEvent.builder()
+                .apiKeyId(key.getId())
+                .organizationId(organization.getOrganizationId())
+                .partnerName(key.getPartnerName())
+                .expiresAt(key.getExpiresAt())
+                .status(key.getStatus())
+                .build();
     }
 
     private ApiKeyQuotaThresholdEvent buildQuotaEvent(UUID keyId, int usedCalls) {

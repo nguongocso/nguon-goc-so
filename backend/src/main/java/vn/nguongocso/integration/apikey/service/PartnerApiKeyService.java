@@ -37,6 +37,7 @@ import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyResponse;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 import vn.nguongocso.integration.apikey.event.ApiKeyQuotaThresholdEvent;
+import vn.nguongocso.integration.apikey.event.ApiKeyLifecycleEvent;
 import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
@@ -123,6 +124,10 @@ public class PartnerApiKeyService {
         log.info("Đã cấp khóa truy cập cho đối tác '{}', orgId={}, keyPrefix={}",
                 savedKey.getPartnerName(), organizationId, keyPrefix);
 
+        // Gửi cảnh báo ngay nếu khóa mới đã nằm trong ngưỡng sắp hết hạn (NCL-12-CN-005):
+        // listener tự bỏ qua khi hạn còn xa, nên luôn phát sự kiện để tránh lệch cấu hình ngưỡng.
+        publishLifecycleEvent(savedKey);
+
         // Ghi nhật ký hoạt động (TASK-27): không ghi rawApiKey/keyHash vì là dữ liệu nhạy cảm
         publishActivityLog(currentUser, "CREATE_API_KEY",
                 "Cấp khóa truy cập cho đối tác '" + savedKey.getPartnerName()
@@ -207,6 +212,9 @@ public class PartnerApiKeyService {
         PartnerApiKey savedKey = partnerApiKeyRepository.save(apiKey);
         log.info("Đã cấp khóa thử nghiệm (Sandbox) cho đối tác '{}', orgId={}, keyPrefix={}",
                 savedKey.getPartnerName(), organizationId, keyPrefix);
+
+        // Gửi cảnh báo ngay nếu khóa thử nghiệm mới đã nằm trong ngưỡng sắp hết hạn (NCL-12-CN-005).
+        publishLifecycleEvent(savedKey);
 
         // Ghi nhật ký hoạt động
         publishActivityLog(currentUser, "CREATE_TEST_API_KEY",
@@ -340,6 +348,9 @@ public class PartnerApiKeyService {
                 apiKeyId, updatedKey.getPartnerName(), organizationId,
                 previousStatus == PartnerApiKeyStatus.EXPIRED ? "EXPIRED" : previousStatus,
                 request.getExpiresAt());
+
+        // Gửi cảnh báo ngay nếu hạn mới vẫn nằm trong ngưỡng sắp hết hạn (NCL-12-CN-005).
+        publishLifecycleEvent(updatedKey);
 
         // Ghi nhật ký hoạt động (TASK-27)
         publishActivityLog(currentUser, "RENEW_API_KEY",
@@ -500,6 +511,28 @@ public class PartnerApiKeyService {
         String hourlyKey = buildHourlyKey(apiKeyId, LocalDateTime.now());
         AtomicInteger count = hourlyRateLimitMap.get(hourlyKey);
         return count != null ? count.get() : 0;
+    }
+
+    /**
+     * Phát sự kiện vòng đời khóa vừa được cấp hoặc gia hạn (NCL-12-CN-005).
+     * <p>
+     * Luôn phát sự kiện và để phía lắng nghe tự quyết định có gửi cảnh báo hay
+     * không dựa trên ngưỡng {@code expiryWarningDays}, tránh nhân bản cấu hình
+     * ngưỡng ở tầng quản lý khóa. Không bao giờ ném lỗi để tránh chặn nghiệp vụ
+     * cấp hoặc gia hạn khóa.
+     */
+    private void publishLifecycleEvent(PartnerApiKey key) {
+        try {
+            eventPublisher.publishEvent(ApiKeyLifecycleEvent.builder()
+                    .apiKeyId(key.getId())
+                    .organizationId(key.getOrganization().getOrganizationId())
+                    .partnerName(key.getPartnerName())
+                    .expiresAt(key.getExpiresAt())
+                    .status(key.getStatus())
+                    .build());
+        } catch (Exception e) {
+            log.warn("Bỏ qua lỗi phát sự kiện vòng đời cho khóa {}", key.getId(), e);
+        }
     }
 
     /**

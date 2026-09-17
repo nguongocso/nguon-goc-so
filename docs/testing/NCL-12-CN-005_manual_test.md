@@ -3,7 +3,7 @@
 > Nguyên tắc triển khai (đã chốt với nghiệp vụ):
 > - **Không tạo trang/route mới.** Cảnh báo hiển thị trên trang **Cảnh báo tổng hợp** (`/alerts`,
 >   nút khiên trên header, NCL-08-CN-016) và **thông báo trên chuông** (NCL-08-CN-005).
-> - Kịch bản hết hạn: quét **theo ngày** (01:00 sáng), mỗi khóa tối đa **1 thông báo/ngày**.
+> - Kịch bản hết hạn: quét **theo ngày** (00:00, múi giờ `app.timezone`) **và** cảnh báo ngay khi cấp/gia hạn khóa (chuông có thông báo ngay, không đợi 00:00), mỗi khóa tối đa **1 thông báo/ngày**.
 > - Kịch bản hạn mức: **chạm mốc 80% là báo ngay**, mỗi khóa tối đa **1 thông báo/ngày**
 >   (cờ `warning_sent_at` ở DB, chống trùng cả khi nhiều instance / restart).
 > - Nội dung cảnh báo chỉ chứa **tên đối tác + số liệu thật**, không lộ dữ liệu test/thông tin thừa.

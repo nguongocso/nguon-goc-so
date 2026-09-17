@@ -16,8 +16,8 @@ import vn.nguongocso.integration.apikey.service.ApiKeyWarningService;
  * chạy nhiều instance, hoặc lượt gọi vượt ngưỡng mà không trúng mốc bắn của luồng
  * realtime. Logic chi tiết nằm ở {@link ApiKeyWarningService#reconcileQuotaWarnings()}.
  * <p>
- * Chọn nhịp mỗi giờ thay vì 01:00 hằng ngày vì mốc 01:00 là lúc sang ngày mới
- * (usage của ngày hôm đó bằng 0) nên quét đúng 01:00 sẽ không phát hiện được gì.
+ * Chọn nhịp mỗi giờ thay vì quét hằng ngày lúc 00:00 vì mốc 00:00 là lúc sang
+ * ngày mới (usage của ngày hôm đó bằng 0) nên quét đúng 00:00 sẽ không phát hiện được gì.
  */
 @Component
 @RequiredArgsConstructor

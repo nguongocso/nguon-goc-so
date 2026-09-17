@@ -11,7 +11,8 @@ import vn.nguongocso.integration.apikey.service.ApiKeyWarningService;
 /**
  * Scheduler quét hằng ngày khóa truy cập sắp hết hạn (NCL-12-CN-005).
  * <p>
- * Mặc định chạy lúc 01:00 sáng. Logic chi tiết nằm ở {@link ApiKeyWarningService}.
+ * Mặc định chạy lúc 00:00 (nửa đêm) theo múi giờ {@code app.timezone}.
+ * Logic chi tiết nằm ở {@link ApiKeyWarningService}.
  */
 @Component
 @RequiredArgsConstructor
@@ -24,7 +25,7 @@ public class ApiKeyWarningScheduler {
     /**
      * Quét khóa sắp hết hạn, persist khóa đã quá hạn và gửi cảnh báo.
      */
-    @Scheduled(cron = "${app.apikey.expiry-scan-cron:0 0 1 * * ?}")
+    @Scheduled(cron = "${app.apikey.expiry-scan-cron:0 0 0 * * ?}", zone = "${app.timezone}")
     public void scheduleExpiryScan() {
         log.info("Bắt đầu chạy Scheduled Job: Quét cảnh báo khóa truy cập sắp hết hạn.");
         try {

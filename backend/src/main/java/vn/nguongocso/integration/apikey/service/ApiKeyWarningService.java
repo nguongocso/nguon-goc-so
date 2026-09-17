@@ -21,6 +21,7 @@ import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKeyDailyUsage;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 import vn.nguongocso.integration.apikey.event.ApiKeyQuotaThresholdEvent;
+import vn.nguongocso.integration.apikey.event.ApiKeyLifecycleEvent;
 import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
 import vn.nguongocso.notification.repository.NotificationRepository;
 import vn.nguongocso.notification.service.NotificationService;
@@ -28,10 +29,12 @@ import vn.nguongocso.notification.service.NotificationService;
 /**
  * Dịch vụ cảnh báo khóa truy cập sắp hết hạn và sắp chạm hạn mức (NCL-12-CN-005, QTN-20).
  * <p>
- * Nguyên tắc: quét hằng ngày các khóa {@code ACTIVE} để cảnh báo sắp hết hạn; cảnh
- * báo hạn mức bắn ngay khi lượt gọi trong ngày chạm ngưỡng và được gửi bù bởi job
- * đối soát. Mỗi khóa chỉ nhận một cảnh báo hạn mức trong ngày nhờ cờ claim
- * {@code warning_sent_at} ở DB; khóa đã thu hồi/hết hạn bị bỏ qua (TC-03, TC-04).
+ * Nguyên tắc: quét hằng ngày lúc 00:00 các khóa {@code ACTIVE} để cảnh báo sắp hết
+ * hạn, đồng thời gửi ngay khi vừa cấp hoặc gia hạn khóa đã nằm trong ngưỡng
+ * ({@code ApiKeyLifecycleEvent}); cảnh báo hạn mức bắn ngay khi lượt gọi trong
+ * giờ hiện tại chạm ngưỡng và được gửi bù bởi job đối soát. Mỗi khóa chỉ nhận một
+ * cảnh báo hết hạn trong ngày nhờ khử trùng theo {@code entityId} + tiêu đề;
+ * khóa đã thu hồi/hết hạn bị bỏ qua (TC-03, TC-04).
  * Thông báo tái dùng hạ tầng hộp thư NCL-08-CN-005 (không tạo endpoint mới).
  */
 @Service
@@ -108,6 +111,44 @@ public class ApiKeyWarningService {
 
         log.info("Quét cảnh báo khóa truy cập: {} khóa ACTIVE, {} khóa chuyển EXPIRED, {} cảnh báo đã gửi",
                 activeKeys.size(), expiredCount, warnedCount);
+    }
+
+    /**
+     * Nhận sự kiện cấp hoặc gia hạn khóa và gửi ngay cảnh báo sắp hết hạn (NCL-12-CN-005).
+     * <p>
+     * Chỉ gửi khi khóa ở trạng thái {@code ACTIVE} và thời hạn mới nằm trong ngưỡng
+     * {@code 0 < expiresAt - now <= expiryWarningDays}. Tái dùng khử trùng theo ngày
+     * của job quét 00:00 nên lần quét cùng ngày không gửi trùng. Không bao giờ ném
+     * lỗi ra ngoài để tránh chặn nghiệp vụ cấp hoặc gia hạn khóa.
+     */
+    @EventListener
+    @Transactional
+    public void handleApiKeyLifecycle(ApiKeyLifecycleEvent event) {
+        try {
+            if (event.getStatus() != PartnerApiKeyStatus.ACTIVE || event.getExpiresAt() == null) {
+                return;
+            }
+            LocalDateTime now = LocalDateTime.now();
+            if (!now.isBefore(event.getExpiresAt())
+                    || event.getExpiresAt().isAfter(now.plusDays(expiryWarningDays))) {
+                return;
+            }
+            LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+            if (notificationRepository.existsByEntityIdAndTitleAndCreatedAtAfter(
+                    event.getApiKeyId(), EXPIRY_SOON_TITLE, startOfDay)) {
+                return;
+            }
+            long daysLeft = ChronoUnit.DAYS.between(LocalDate.now(), event.getExpiresAt().toLocalDate());
+            notificationService.sendHandoverNotification(
+                    EXPIRY_SOON_TITLE,
+                    "Khóa truy cập của đối tác \"" + event.getPartnerName() + "\" sẽ hết hạn sau "
+                            + daysLeft + " ngày (vào " + event.getExpiresAt().format(VI_DATE_TIME)
+                            + "). Vui lòng gia hạn để đối tác không bị gián đoạn kết nối.",
+                    event.getApiKeyId(),
+                    event.getOrganizationId());
+        } catch (Exception e) {
+            log.warn("Bỏ qua lỗi gửi cảnh báo sắp hết hạn cho khóa {}", event.getApiKeyId(), e);
+        }
     }
 
     /**
