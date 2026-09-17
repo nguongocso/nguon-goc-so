@@ -47,8 +47,8 @@ public class InspectionResultEntryLinkController {
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
         InspectionResultEntryLinkResponse response = linkService.issueLink(requestId, request, currentUser);
-        return ResponseEntity.status(HttpStatus.CREATED).body(
-                ApiResult.success(HttpStatus.CREATED.value(), response));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
     /**
