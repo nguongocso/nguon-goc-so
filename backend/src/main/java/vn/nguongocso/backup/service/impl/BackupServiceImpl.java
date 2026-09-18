@@ -351,21 +351,25 @@ public class BackupServiceImpl implements BackupService {
             return backupRestoreHistoryRepository.findById(history.getId()).orElse(history);
         }
 
+        // Build mysqldump command
+        StringBuilder cmdBuilder = new StringBuilder();
+        cmdBuilder.append(resolvedExecutable).append(" ");
+        cmdBuilder.append("-h ").append(dbHost).append(" ");
+        cmdBuilder.append("-P ").append(dbPort).append(" ");
+        cmdBuilder.append("-u ").append(dbUsername).append(" ");
+        cmdBuilder.append("--single-transaction ");
+        cmdBuilder.append("--skip-lock-tables ");
+        cmdBuilder.append("--no-tablespaces ");
+        cmdBuilder.append("--set-gtid-purged=OFF ");
+        cmdBuilder.append("--ignore-table=").append(dbName).append(".backup_restore_history ");
+        cmdBuilder.append("--ignore-table=").append(dbName).append(".backup_schedules ");
+        cmdBuilder.append(dbName);
+
+        // Use shell to resolve binary path properly
         List<String> command = new ArrayList<>();
-        command.add(resolvedExecutable);
-        command.add("-h");
-        command.add(dbHost);
-        command.add("-P");
-        command.add(dbPort);
-        command.add("-u");
-        command.add(dbUsername);
-        command.add("--single-transaction");
-        command.add("--skip-lock-tables");
-        command.add("--no-tablespaces");
-        command.add("--set-gtid-purged=OFF");
-        command.add("--ignore-table=" + dbName + ".backup_restore_history");
-        command.add("--ignore-table=" + dbName + ".backup_schedules"); // nếu có bảng lịch trình cũng nên loại trừ
-        command.add(dbName);
+        command.add("/bin/sh");
+        command.add("-c");
+        command.add(cmdBuilder.toString());
 
         ProcessBuilder pb = new ProcessBuilder(command);
         // Securely pass MySQL password via environment variable
