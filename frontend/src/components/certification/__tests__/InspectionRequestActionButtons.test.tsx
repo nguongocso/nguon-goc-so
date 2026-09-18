@@ -47,6 +47,22 @@ describe("InspectionRequestActionButtons", () => {
         "/production-lots/lot-xyz789/inspection-requests/req-abc123/results",
       );
     });
+
+    it("renders 'Cấp link' button and opens dialog on click", () => {
+      render(
+        <InspectionRequestActionButtons
+          {...defaultProps}
+          status="PENDING"
+          testingUnitName="Trung tâm QUATEST 3"
+        />,
+      );
+
+      const issueButton = screen.getByRole("button", { name: /cấp link/i });
+      expect(issueButton).toBeInTheDocument();
+
+      fireEvent.click(issueButton);
+      expect(screen.getByText(/cấp liên kết nhập kết quả cho đơn vị kiểm nghiệm/i)).toBeInTheDocument();
+    });
   });
 
   describe("PASSED status", () => {

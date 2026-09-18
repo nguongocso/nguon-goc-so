@@ -52,6 +52,8 @@ class ShipmentRecallServiceImplTest {
     private NotificationService notificationService;
     @Mock
     private ActivityLogService activityLogService;
+    @Mock
+    private vn.nguongocso.integration.partner.service.PartnerRecallWebhookDispatcher partnerRecallWebhookDispatcher;
 
     @InjectMocks
     private ShipmentRecallServiceImpl service;

@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,6 +23,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.integration.apikey.dto.request.CreateApiKeyRequest;
+import vn.nguongocso.integration.apikey.dto.request.RenewApiKeyRequest;
+import vn.nguongocso.integration.apikey.dto.request.UpdateApiKeyQuotaRequest;
+import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyPageResponse;
 import vn.nguongocso.integration.apikey.dto.response.PartnerApiKeyResponse;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 import vn.nguongocso.integration.apikey.service.PartnerApiKeyService;
@@ -39,6 +43,7 @@ public class PartnerApiKeyController {
     private static final Logger log = LoggerFactory.getLogger(PartnerApiKeyController.class);
 
     private final PartnerApiKeyService partnerApiKeyService;
+    private final vn.nguongocso.integration.partner.service.PartnerWebhookService partnerWebhookService;
 
     /**
      * Cấp mới khóa truy cập cho bên thứ ba (TC-01, TC-03).
@@ -77,16 +82,19 @@ public class PartnerApiKeyController {
 
     /**
      * Lấy danh sách khóa truy cập thuộc Hợp tác xã hiện tại.
+     * <p>
+     * Trả DTO phân trang tường minh {@code {content, page, size, totalElements, totalPages}}
+     * (NCL-12-CN-005: sửa lỗi FE đọc {@code totalElements = 0}).
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
-    public ResponseEntity<ApiResult<Page<PartnerApiKeyResponse>>> getOrganizationApiKeys(
+    public ResponseEntity<ApiResult<PartnerApiKeyPageResponse>> getOrganizationApiKeys(
             @RequestParam(required = false) PartnerApiKeyStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<PartnerApiKeyResponse> responses = partnerApiKeyService.getOrganizationApiKeys(status, pageable);
+        PartnerApiKeyPageResponse responses = partnerApiKeyService.getOrganizationApiKeys(status, pageable);
         return ResponseEntity.ok(ApiResult.success(responses));
     }
 
@@ -100,6 +108,96 @@ public class PartnerApiKeyController {
 
         log.info("Nhận yêu cầu thu hồi khóa truy cập id={}", id);
         PartnerApiKeyResponse response = partnerApiKeyService.revokeApiKey(id);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Gia hạn khóa truy cập (NCL-12-CN-005).
+     * <p>
+     * PATCH /api/v1/organization/api-keys/{id}/expiry
+     */
+    @PatchMapping("/{id}/expiry")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<PartnerApiKeyResponse>> renewApiKey(
+            @PathVariable UUID id,
+            @RequestBody @Valid RenewApiKeyRequest request) {
+        PartnerApiKeyResponse response = partnerApiKeyService.renewApiKey(id, request);
+        return ResponseEntity.ok(ApiResult.success(200, response));
+    }
+
+    /**
+     * Nâng hạn mức (NCL-12-CN-005).
+     * <p>
+     * Hạn mức mới = hạn mức hiện tại + {@code incrementBy} (số lượt hạn mức bổ sung, phải lớn hơn 0).
+     * <p>
+     * PATCH /api/v1/organization/api-keys/{id}/quota
+     */
+    @PatchMapping("/{id}/quota")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<PartnerApiKeyResponse>> updateApiKeyQuota(
+            @PathVariable UUID id,
+            @RequestBody @Valid UpdateApiKeyQuotaRequest request) {
+        PartnerApiKeyResponse response = partnerApiKeyService.updateApiKeyQuota(id, request);
+        return ResponseEntity.ok(ApiResult.success(200, response));
+    }
+
+    /**
+     * Lấy thông tin cấu hình Webhook (bao gồm webhookSecret) của một khóa API (NCL-12-CN-006).
+     */
+    @GetMapping("/{id}/webhook")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<vn.nguongocso.integration.partner.dto.response.PartnerWebhookResponse>> getWebhookConfig(
+            @PathVariable UUID id,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal vn.nguongocso.auth.service.CustomUserDetails currentUser) {
+
+        log.info("Lấy thông tin cấu hình webhook cho apiKeyId={}", id);
+        var response = partnerWebhookService.getWebhookForOrganizationKey(id, currentUser);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Đăng ký hoặc cập nhật địa chỉ nhận thông báo Webhook cho khóa API (NCL-12-CN-006).
+     */
+    @org.springframework.web.bind.annotation.PutMapping("/{id}/webhook")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<vn.nguongocso.integration.partner.dto.response.PartnerWebhookResponse>> registerWebhook(
+            @PathVariable UUID id,
+            @Valid @RequestBody vn.nguongocso.integration.partner.dto.request.PartnerWebhookRegistrationRequest request,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal vn.nguongocso.auth.service.CustomUserDetails currentUser) {
+
+        log.info("Cập nhật địa chỉ nhận thông báo webhook cho apiKeyId={}", id);
+        var response = partnerWebhookService.registerWebhookForOrganizationKey(id, request, currentUser);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Bắn thử nghiệm webhook kiểm tra kết nối tới máy chủ đối tác (NCL-12-CN-006).
+     */
+    @PostMapping("/{id}/webhook/test-ping")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<vn.nguongocso.integration.partner.dto.response.WebhookTestPingResponse>> testPingWebhook(
+            @PathVariable UUID id,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal vn.nguongocso.auth.service.CustomUserDetails currentUser) {
+
+        log.info("Bắn thử nghiệm webhook cho apiKeyId={}", id);
+        var response = partnerWebhookService.sendTestPing(id, currentUser);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Xem lịch sử thông báo thu hồi đã gửi cho khóa API đối tác (NCL-12-CN-006).
+     */
+    @GetMapping("/{id}/notifications")
+    @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")
+    public ResponseEntity<ApiResult<Page<vn.nguongocso.integration.partner.dto.response.PartnerWebhookNotificationResponse>>> getNotifications(
+            @PathVariable UUID id,
+            @RequestParam(required = false) vn.nguongocso.integration.partner.enums.WebhookDeliveryStatus deliveryStatus,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal vn.nguongocso.auth.service.CustomUserDetails currentUser) {
+
+        PageRequest pageable = PageRequest.of(page, size);
+        var response = partnerWebhookService.getNotificationsForOrganizationKey(id, deliveryStatus, pageable, currentUser);
         return ResponseEntity.ok(ApiResult.success(response));
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
@@ -33,6 +34,7 @@ import vn.nguongocso.trace.recall.dto.request.CloseRecallCaseRequest;
 @RestController
 @RequestMapping("/api/v1/recall-requests/bulk")
 @RequiredArgsConstructor
+@PreAuthorize("!hasRole('VT-01')")
 public class BulkRecallRequestController {
 
     private final BulkRecallRequestService bulkRecallRequestService;

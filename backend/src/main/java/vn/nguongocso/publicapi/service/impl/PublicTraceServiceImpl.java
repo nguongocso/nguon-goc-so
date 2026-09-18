@@ -251,6 +251,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
 
         return PublicTraceResponse.builder()
                 .codeValue(traceCode.getCodeValue())
+                .shipmentId(shipment.getId())
                 .productionLotId(
                         productionLot != null
                                 ? productionLot.getId()
@@ -821,6 +822,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .inspectionDate(result.getResultDate())
                 .expiryDate(result.getExpiryDate())
                 .laboratoryName(resolveLaboratoryName(request))
+                .entrySource(result.getEntrySource())
                 .build();
     }
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Key, PlusCircle, ShieldCheck, Ban, FlaskConical, BookOpen } from 'lucide-react';
+import { Key, PlusCircle, ShieldCheck, Ban, FlaskConical, BookOpen, CalendarPlus, TrendingUp, Webhook, History } from 'lucide-react';
 import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,6 +10,9 @@ import type { PartnerApiKeyResponse, PartnerApiKeyStatus } from '@/types/apiKey'
 import { ApiKeyStatusBadge } from '@/components/apiKey/ApiKeyStatusBadge';
 import { RawApiKeyModal } from '@/components/apiKey/RawApiKeyModal';
 import { RevokeApiKeyDialog } from '@/components/apiKey/RevokeApiKeyDialog';
+import { RenewApiKeyDialog } from '@/components/apiKey/RenewApiKeyDialog';
+import { UpdateApiKeyQuotaDialog } from '@/components/apiKey/UpdateApiKeyQuotaDialog';
+import { WebhookConfigModal } from '@/components/apiKey/WebhookConfigModal';
 
 import { usePermission } from '@/hooks/usePermission';
 import { HelpButton } from '@/components/help/HelpButton';
@@ -32,6 +35,7 @@ const STATUS_OPTIONS = [
 
 export const PartnerApiKeyListPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   // Chỉ Quản lý HTX (VT-02) và Quản trị viên (VT-01) mới có quyền quản lý và cấp khóa (TC-04)
   const canManage = usePermission(['VT-01', 'VT-02']);
 
@@ -54,6 +58,9 @@ export const PartnerApiKeyListPage: React.FC = () => {
   // States quản lý Modal
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<PartnerApiKeyResponse | null>(null);
   const [revokeKeyTarget, setRevokeKeyTarget] = useState<PartnerApiKeyResponse | null>(null);
+  const [renewKeyTarget, setRenewKeyTarget] = useState<PartnerApiKeyResponse | null>(null);
+  const [quotaKeyTarget, setQuotaKeyTarget] = useState<PartnerApiKeyResponse | null>(null);
+  const [webhookConfigTarget, setWebhookConfigTarget] = useState<PartnerApiKeyResponse | null>(null);
 
 
   const fetchApiKeys = async () => {
@@ -74,6 +81,50 @@ export const PartnerApiKeyListPage: React.FC = () => {
   useEffect(() => {
     fetchApiKeys();
   }, [statusFilter, page]);
+
+  // NCL-12-CN-005: lối tắt từ thông báo/cảnh báo tổng hợp dạng
+  // /integration/api-keys?keyId=...&action=renew|quota → tự mở đúng dialog cho key theo keyId.
+  // Nếu key chưa nằm trong trang đang hiển thị, tra cứu thêm trên toàn bộ khóa của tổ chức.
+  // Xử lý xong xoá params để tránh effect chạy lại (refresh/back không mở trùng dialog).
+  useEffect(() => {
+    const keyId = searchParams.get('keyId');
+    const action = searchParams.get('action');
+    if (!keyId) return;
+    if (!canManage || (action !== 'renew' && action !== 'quota')) {
+      setSearchParams({}, { replace: true });
+      return;
+    }
+
+    let cancelled = false;
+    const openFor = (target: PartnerApiKeyResponse | null) => {
+      if (cancelled) return;
+      if (target) {
+        if (action === 'renew') setRenewKeyTarget(target);
+        else setQuotaKeyTarget(target);
+      }
+      setSearchParams({}, { replace: true });
+    };
+
+    const target = keys.find((k) => k.id === keyId);
+    if (target) {
+      openFor(target);
+      return;
+    }
+
+    // Key chưa nằm trong trang hiện tại → tra cứu toàn bộ khóa của tổ chức (giới hạn 500) rồi tìm đúng keyId
+    (async () => {
+      try {
+        const data = await getApiKeys(undefined, 0, 500);
+        openFor(data.content?.find((k) => k.id === keyId) ?? null);
+      } catch {
+        openFor(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [keys, canManage, searchParams, setSearchParams]);
 
   // Lọc dữ liệu client side theo từ khóa tìm kiếm (partnerName hoặc keyPrefix)
   const filteredKeys = useMemo(() => {
@@ -207,88 +258,185 @@ export const PartnerApiKeyListPage: React.FC = () => {
               <TableHead>Tên đối tác / Doanh nghiệp</TableHead>
               <TableHead>Mã nhận diện (Prefix)</TableHead>
               <TableHead className="text-center">Hạn mức (lượt/h)</TableHead>
+              <TableHead className="text-center">Lượt gọi hôm nay</TableHead>
               <TableHead className="text-center">Lượt gọi (Tổng / Lỗi)</TableHead>
-              <TableHead>Thời hạn hết hạn</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              {canManage && <TableHead className="text-center">Thao tác</TableHead>}
+              <TableHead className="whitespace-nowrap">Thời hạn hết hạn</TableHead>
+              <TableHead className="whitespace-nowrap">Trạng thái</TableHead>
+              <TableHead className="text-center align-middle whitespace-nowrap min-w-[144px]">Thao tác</TableHead>
+              <TableHead className="whitespace-nowrap">Kênh nhận tin thu hồi</TableHead>
             </>
           }
           body={
             filteredKeys.map((item, index) => (
-                    <TableRow key={item.id} className="hover:bg-muted/40 transition-colors">
-                      <TableCell className="text-center font-medium text-muted-foreground">
+                    <TableRow key={item.id} className="hover:bg-muted/40 transition-colors align-middle">
+                      <TableCell className="text-center align-middle font-medium text-muted-foreground">
                         {page * pageSize + index + 1}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
+                      <TableCell className="align-middle">
+                        <div className="flex items-center gap-2 leading-tight">
                           <span className="font-semibold text-foreground">{item.partnerName}</span>
                           {(item.isTest || item.is_test) && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-200 dark:border-blue-800 whitespace-nowrap">
                               <FlaskConical className="w-3 h-3" />
                               Thử nghiệm
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          Tạo bởi: {item.createdByFullName || 'Hệ thống'} • {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+                        <div className="text-xs text-muted-foreground mt-0.5 leading-tight">
+                          Tạo bởi: {item.createdByFullName || item.createdByName || 'Hệ thống'} • {new Date(item.createdAt).toLocaleDateString('vi-VN')}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <code className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded font-mono text-xs border">
+                      <TableCell className="align-middle">
+                        <code className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded font-mono text-xs border whitespace-nowrap">
                           {item.keyPrefix}
                         </code>
                       </TableCell>
-                      <TableCell className="text-center font-medium">
-                        <span className="px-2 py-0.5 rounded bg-muted text-foreground text-xs font-semibold">
+                      <TableCell className="text-center align-middle font-medium">
+                        <span className="inline-block px-2 py-0.5 rounded bg-muted text-foreground text-xs font-semibold whitespace-nowrap leading-tight">
                           {item.rateLimitPerHour} /h
                         </span>
                       </TableCell>
-                      <TableCell className="text-center">
-                        <div className="text-sm font-medium">
-                          {item.totalCalls} <span className="text-muted-foreground">lượt</span>
+                      <TableCell className="text-center align-middle">
+                        <div className="flex flex-col items-center gap-0.5 leading-tight">
+                          <div className="text-sm font-medium whitespace-nowrap">{item.usedCallsToday ?? 0} <span className="text-muted-foreground">hôm nay</span></div>
+                          <div className="text-[11px] text-muted-foreground whitespace-nowrap">{item.currentHourCalls ?? 0} lượt giờ này</div>
+                          {/* Badge cảnh báo hạn mức theo giờ (NCL-12-CN-005) */}
+                          {item.quotaWarningThreshold != null && item.quotaWarningThreshold > 0 && (item.currentHourCalls ?? 0) >= item.quotaWarningThreshold && (
+                            <div className="mt-0.5 leading-tight">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800 whitespace-nowrap">
+                                Sắp chạm hạn mức
+                              </span>
+                            </div>
+                          )}
                         </div>
-                        {item.failedCalls > 0 && (
-                          <div className="text-xs text-rose-500 font-medium">
-                            {item.failedCalls} lỗi
-                          </div>
-                        )}
                       </TableCell>
-                      <TableCell>
-                        <div className="text-xs space-y-0.5">
-                          <div className="font-medium text-foreground">
+                      <TableCell className="text-center align-middle">
+                        <div className="flex flex-col items-center gap-0.5 leading-tight">
+                          <div className="text-sm font-medium whitespace-nowrap">
+                            {item.totalCalls} <span className="text-muted-foreground">lượt</span>
+                          </div>
+                          {item.failedCalls > 0 && (
+                            <div className="text-xs text-rose-500 font-medium whitespace-nowrap">
+                              {item.failedCalls} lỗi
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        <div className="flex flex-col gap-0.5 text-xs leading-tight">
+                          <div className="font-medium text-foreground whitespace-nowrap">
                             {new Date(item.expiresAt).toLocaleDateString('vi-VN')}
                           </div>
-                          <div className="text-muted-foreground">
+                          <div className="text-muted-foreground whitespace-nowrap">
                             {new Date(item.expiresAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="align-middle">
                         <ApiKeyStatusBadge status={item.status} />
                       </TableCell>
-                      {canManage && (
-                        <TableCell className="text-center">
-                          {item.status === 'ACTIVE' ? (
+                      <TableCell className="text-center align-middle">
+                        {(item.status === 'ACTIVE' || item.status === 'EXPIRED') ? (
+                          <div className="flex items-center justify-center gap-1">
+                            {canManage && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="icon-sm"
+                                  onClick={() => setRenewKeyTarget(item)}
+                                  title="Gia hạn"
+                                  aria-label="Gia hạn khóa API"
+                                  className="size-8 shrink-0 rounded-full border-amber-300 bg-white text-amber-700 hover:text-amber-700 hover:bg-amber-50 dark:bg-transparent dark:hover:bg-amber-950/30 inline-flex items-center justify-center"
+                                >
+                                  <CalendarPlus className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon-sm"
+                                  onClick={() => setQuotaKeyTarget(item)}
+                                  title="Nâng hạn mức"
+                                  aria-label="Nâng hạn mức khóa API"
+                                  className="size-8 shrink-0 rounded-full border-emerald-300 bg-white text-emerald-700 hover:text-emerald-700 hover:bg-emerald-50 dark:bg-transparent dark:hover:bg-emerald-950/30 inline-flex items-center justify-center"
+                                >
+                                  <TrendingUp className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => setWebhookConfigTarget(item)}
+                                  title="Khai báo thông tin nhận thông báo thu hồi"
+                                  className="text-primary hover:text-primary hover:bg-primary/10"
+                                >
+                                  <Webhook className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
                             <Button
                               variant="ghost"
                               size="icon-sm"
-                              onClick={() => setRevokeKeyTarget(item)}
-                              title="Thu hồi"
-                              className="text-destructive hover:text-destructive hover:bg-muted"
+                              onClick={() => navigate(`/integration/api-keys/${item.id}/notifications`, { state: { apiKey: item } })}
+                              title="Lịch sử gửi thông báo thu hồi"
+                              className="text-muted-foreground hover:text-foreground hover:bg-muted"
                             >
-                              <Ban className="h-4 w-4" />
+                              <History className="h-4 w-4" />
                             </Button>
-                          ) : (
-                            <span className="text-xs text-muted-foreground italic">Không có thao tác</span>
-                          )}
-                        </TableCell>
-                      )}
+                            {canManage && item.status === 'ACTIVE' && (
+                              <Button
+                                variant="outline"
+                                size="icon-sm"
+                                onClick={() => setRevokeKeyTarget(item)}
+                                title="Thu hồi"
+                                aria-label="Thu hồi khóa API"
+                                className="size-8 shrink-0 rounded-full border-destructive/50 bg-white text-destructive hover:text-destructive hover:bg-destructive/10 dark:bg-transparent inline-flex items-center justify-center"
+                              >
+                                <Ban className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ) : item.status === 'REVOKED' ? (
+                          <div className="flex min-h-8 items-center justify-center">
+                            <span className="text-xs text-muted-foreground italic whitespace-nowrap">Đã thu hồi</span>
+                          </div>
+                        ) : (
+                          <div className="flex min-h-8 items-center justify-center">
+                            <span className="text-xs text-muted-foreground italic whitespace-nowrap">Không có thao tác</span>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        {item.webhookUrl ? (
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`inline-block w-2 h-2 rounded-full shrink-0 ${
+                                  item.isWebhookActive !== false ? 'bg-emerald-500' : 'bg-amber-500'
+                                }`}
+                              />
+                              <span
+                                className="font-mono text-xs text-foreground truncate max-w-[130px]"
+                                title={item.webhookUrl}
+                              >
+                                {item.webhookUrl.replace(/^https?:\/\//, '')}
+                              </span>
+                            </div>
+                            <div className="text-[11px]">
+                              {item.isWebhookActive !== false ? (
+                                <span className="text-emerald-600 dark:text-emerald-400 font-medium">Đang nhận tin</span>
+                              ) : (
+                                <span className="text-amber-600 dark:text-amber-400 font-medium">Tạm dừng</span>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">Chưa cấu hình</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))
             }
             loading={loading}
             empty={!loading && filteredKeys.length === 0}
-            colSpan={canManage ? 8 : 7}
+            colSpan={10}
             loadingMessage="Đang tải danh sách khóa API..."
             emptyMessage="Không tìm thấy khóa truy cập nào."
           />
@@ -317,6 +465,31 @@ export const PartnerApiKeyListPage: React.FC = () => {
         apiKeyData={revokeKeyTarget}
         onClose={() => setRevokeKeyTarget(null)}
         onSuccess={handleRevokeSuccess}
+      />
+
+      <RenewApiKeyDialog
+        open={!!renewKeyTarget}
+        apiKeyData={renewKeyTarget}
+        onClose={() => setRenewKeyTarget(null)}
+        onSuccess={() => {
+          fetchApiKeys();
+        }}
+      />
+
+      <UpdateApiKeyQuotaDialog
+        open={!!quotaKeyTarget}
+        apiKeyData={quotaKeyTarget}
+        onClose={() => setQuotaKeyTarget(null)}
+        onSuccess={() => {
+          fetchApiKeys();
+        }}
+      />
+
+      <WebhookConfigModal
+        open={!!webhookConfigTarget}
+        apiKey={webhookConfigTarget}
+        onClose={() => setWebhookConfigTarget(null)}
+        onSuccess={fetchApiKeys}
       />
     </div>
   );

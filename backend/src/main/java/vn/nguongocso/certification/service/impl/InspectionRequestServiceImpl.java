@@ -578,6 +578,8 @@ public class InspectionRequestServiceImpl
                                                         catalogCriterion.getName())
                                                 .name(
                                                         catalogCriterion.getName())
+                                                .referenceStandard(
+                                                        catalogCriterion.getReferenceStandard())
                                                 .build())
                                 .toList())
                 .build();
@@ -856,6 +858,8 @@ public class InspectionRequestServiceImpl
                         result.getPassed())
                 .filePath(
                         result.getFilePath())
+                .entrySource(
+                        result.getEntrySource())
                 .createdByName(
                         result.getCreatedBy() != null
                                 && result.getCreatedBy()

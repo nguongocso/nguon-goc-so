@@ -133,6 +133,36 @@ public interface InspectionCriterionResultService {
             CustomUserDetails currentUser);
 
     /**
+     * Tải lên phiếu kết quả kiểm nghiệm qua token bí mật cho cổng đơn vị kiểm nghiệm (NCL-11-CN-007).
+     *
+     * @param token       Token bí mật.
+     * @param criterionId ID chỉ tiêu kiểm nghiệm thuộc yêu cầu.
+     * @param file        Tệp phiếu kết quả (JPG/PNG/PDF).
+     * @param clientIp    Địa chỉ IP của client.
+     * @return Đường dẫn tệp đã lưu (filePath).
+     */
+    String uploadPortalResultFile(
+            String token,
+            String criterionId,
+            MultipartFile file,
+            String clientIp);
+
+    /**
+     * Ghi nhận toàn bộ kết quả kiểm nghiệm qua cổng của đơn vị kiểm nghiệm (dùng một lần, atomic consume, NCL-11-CN-007).
+     *
+     * @param token     Token bí mật.
+     * @param requests  Danh sách kết quả cho tất cả chỉ tiêu của yêu cầu.
+     * @param clientIp  Địa chỉ IP của client.
+     * @param userAgent Chuỗi User-Agent của trình duyệt.
+     * @return Danh sách kết quả kiểm nghiệm đã lưu.
+     */
+    List<InspectionCriterionResultResponse> recordPortalResults(
+            String token,
+            List<InspectionCriterionResultRequest> requests,
+            String clientIp,
+            String userAgent);
+
+    /**
      * Tệp phiếu kết quả kiểm nghiệm kèm thông tin phục vụ response.
      */
     record ResultFileResource(

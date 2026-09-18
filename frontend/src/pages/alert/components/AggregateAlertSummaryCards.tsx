@@ -19,6 +19,8 @@ const TYPE_NAME_MAP: Record<string, string> = {
   CODE_RANGE_QUOTA: 'Hạn mức dải mã',
   OVERDUE_MILESTONE: 'Mốc canh tác quá hạn',
   OPEN_RECALL_CASE: 'Vụ việc thu hồi',
+  API_KEY_EXPIRING: 'Khóa sắp hết hạn',
+  API_KEY_QUOTA_WARNING: 'Khóa sắp chạm hạn mức',
 };
 
 export const AggregateAlertSummaryCards: React.FC<AggregateAlertSummaryCardsProps> = ({

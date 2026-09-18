@@ -41,6 +41,7 @@ import vn.nguongocso.notification.service.NotificationService;
 import vn.nguongocso.organization.entity.OrganizationUser;
 import vn.nguongocso.organization.enums.OrganizationUserStatus;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
+import vn.nguongocso.integration.partner.service.PartnerRecallWebhookDispatcher;
 import vn.nguongocso.recall.dto.request.ApproveBulkRecallRequest;
 import vn.nguongocso.recall.dto.request.CreateBulkRecallRequest;
 import vn.nguongocso.recall.dto.request.RejectBulkRecallRequest;
@@ -131,6 +132,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
     private final TraceCodeRepository traceCodeRepository;
     private final CodeRangeRepository codeRangeRepository;
     private final RecallEvidenceFileRepository recallEvidenceFileRepository;
+    private final PartnerRecallWebhookDispatcher partnerRecallWebhookDispatcher;
 
     @Value("${app.upload.base-dir}")
     private String baseDir;
@@ -371,6 +373,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         bulkRecallRequestRepository.save(bulkRequest);
 
         // 8. Chuyển trạng thái từng lô hàng sang RECALLING (Đang thu hồi)
+        List<Shipment> recallingShipments = new ArrayList<>();
         Set<UUID> notifiedUserIds = new HashSet<>();
         for (BulkRecallShipment shipmentRecord : includedShipments) {
             Shipment shipment = shipmentRecord.getShipment();
@@ -390,6 +393,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
             freshShipment.setStatus(ShipmentStatus.RECALLING);
             shipmentRepository.save(freshShipment);
             shipmentRecord.setShipment(freshShipment);
+            recallingShipments.add(freshShipment);
 
             // Thu thập user nhận notification (từ các tổ chức thu mua)
             collectBuyerUserIds(freshShipment, notifiedUserIds);
@@ -416,6 +420,13 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
 
         // 11. Gửi thông báo cho doanh nghiệp thu mua
         bulkRecallNotificationService.sendBulkRecallNotificationToPurchasingBusiness(bulkRequest);
+
+        // 11b. Gửi thông báo webhook tự động tới các bên thứ ba đủ điều kiện (NCL-12-CN-006)
+        partnerRecallWebhookDispatcher.dispatchRecallNotifications(
+                recallingShipments,
+                "RECALLING",
+                bulkRequest.getReason(),
+                null);
 
         // 12. Ghi ActivityLog
         logActivity(approvedBy, "APPROVE_BULK_RECALL_REQUEST",
@@ -770,6 +781,13 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
         // 13. Gửi thông báo kết thúc thu hồi tới doanh nghiệp thu mua liên quan
         notifyProcurementOrganizations(recallCase, shipments);
 
+        // 13b. Gửi thông báo webhook tự động tới các bên thứ ba khi kết thúc thu hồi RECALLED (NCL-12-CN-006)
+        partnerRecallWebhookDispatcher.dispatchRecallNotifications(
+                shipments,
+                "RECALLED",
+                bulkRequest.getReason(),
+                remediation);
+
         // 14. Ghi lịch sử hoạt động ActivityLog
         logActivity(currentUserEntity, "CLOSE_BULK_RECALL_REQUEST",
                 String.format("Kết thúc vụ việc thu hồi lô sản xuất: %s. Mã vụ việc: %s. Số lô xử lý: %d",
@@ -786,7 +804,7 @@ public class BulkRecallRequestServiceImpl implements BulkRecallRequestService {
     @Transactional
     public RecallEvidenceResponse uploadEvidenceFile(MultipartFile file, CustomUserDetails currentUser) {
         // 1. Kiểm tra vai trò quản lý
-        if (!"VT-02".equals(currentUser.getRoleCode()) && !"VT-01".equals(currentUser.getRoleCode())) {
+        if (!"VT-02".equals(currentUser.getRoleCode())) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "Bạn không có quyền tải lên tệp biên bản thu hồi.");
         }
 

@@ -152,7 +152,7 @@ public class EmailServiceImpl implements EmailService {
                             <h2>Lời mời tham gia tổ chức</h2>
                             <p>Xin chào,</p>
                             <p>Bạn đã nhận được lời mời tham gia vào tổ chức trên Hệ thống Truy xuất Nguồn Gốc Số Quốc gia.</p>
-                            
+
                             <div class="info-box">
                                 <div class="info-item">🏛️ <strong>Tổ chức mời:</strong> {{organizationName}}</div>
                                 <div class="info-item">👤 <strong>Vai trò được gán:</strong> {{roleName}}</div>
@@ -160,7 +160,7 @@ public class EmailServiceImpl implements EmailService {
                             </div>
 
                             <p>Vui lòng bấm vào nút bên dưới để hoàn tất xác nhận và thiết lập tài khoản của bạn:</p>
-                            
+
                             <div class="btn-container">
                                 <a href="{{joinUrl}}" target="_blank" class="btn">Xác nhận & Tham gia tổ chức</a>
                             </div>
@@ -206,13 +206,13 @@ public class EmailServiceImpl implements EmailService {
                             <h2>Yêu cầu đặt lại mật khẩu</h2>
                             <p>Xin chào <strong>{{fullName}}</strong>,</p>
                             <p>Hệ thống Nguồn Gốc Số vừa nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
-                            
+
                             <div class="info-box">
                                 <div class="info-item">⏳ <strong>Thời hạn liên kết:</strong> {{expiryMinutes}} phút (dùng một lần)</div>
                             </div>
 
                             <p>Vui lòng bấm vào nút bên dưới để tiến hành tạo mật khẩu mới:</p>
-                            
+
                             <div class="btn-container">
                                 <a href="{{resetUrl}}" target="_blank" class="btn">Đặt lại mật khẩu ngay</a>
                             </div>
@@ -234,5 +234,120 @@ public class EmailServiceImpl implements EmailService {
                 .replace("{{fullName}}", greetingName)
                 .replace("{{expiryMinutes}}", String.valueOf(expiryMinutes))
                 .replace("{{resetUrl}}", resetUrl);
+    }
+
+    /**
+     * Gửi email liên kết cổng nhập kết quả cho đơn vị kiểm nghiệm bất đồng bộ (NCL-11-CN-007).
+     *
+     * @param toEmail          địa chỉ email đơn vị kiểm nghiệm nhận liên kết
+     * @param organizationName tên hợp tác xã yêu cầu
+     * @param testingUnitName  tên đơn vị kiểm nghiệm
+     * @param lotCode          mã lô sản xuất
+     * @param entryUrl         đường dẫn cổng nhập kết quả chứa token bí mật
+     * @param expiryDays       thời hạn hiệu lực (ngày)
+     */
+    @Async
+    @Override
+    public void sendInspectionResultEntryEmail(
+            String toEmail,
+            String organizationName,
+            String testingUnitName,
+            String lotCode,
+            String entryUrl,
+            int expiryDays
+    ) {
+        log.info("Đang xử lý gửi email liên kết cổng kiểm nghiệm bất đồng bộ tới: {}", toEmail);
+
+        if (fromEmail == null || fromEmail.isBlank()) {
+            log.warn("[MAIL FALLBACK] Chưa cấu hình spring.mail.username. Bỏ qua gửi email thực tế tới: {}", toEmail);
+            return;
+        }
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, DEFAULT_CHARSET);
+
+            helper.setFrom(fromEmail, SYSTEM_SENDER_NAME);
+            helper.setTo(toEmail);
+            helper.setSubject("Liên kết nhập kết quả kiểm nghiệm lô " + lotCode + " - Nguồn Gốc Số");
+
+            String htmlContent = buildInspectionResultEntryHtmlTemplate(
+                    organizationName, testingUnitName, lotCode, entryUrl, expiryDays);
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+            log.info("Đã gửi email liên kết cổng kiểm nghiệm thành công tới {}", toEmail);
+        } catch (MessagingException | UnsupportedEncodingException | MailException e) {
+            log.error("Gửi email liên kết cổng kiểm nghiệm tới {} thất bại: {}", toEmail, e.getMessage());
+        }
+    }
+
+    private String buildInspectionResultEntryHtmlTemplate(
+            String organizationName,
+            String testingUnitName,
+            String lotCode,
+            String entryUrl,
+            int expiryDays
+    ) {
+        return """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f7f6; }
+                        .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+                        .header { background: #059669; color: #ffffff; padding: 24px; text-align: center; }
+                        .header h1 { margin: 0; font-size: 24px; }
+                        .content { padding: 32px 24px; }
+                        .info-box { background: #f0fdf4; border-left: 4px solid #059669; padding: 16px; margin: 20px 0; border-radius: 4px; }
+                        .info-item { margin-bottom: 8px; }
+                        .btn-container { text-align: center; margin: 32px 0; }
+                        .btn { background: #059669; color: #ffffff !important; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: bold; display: inline-block; }
+                        .warning-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 20px 0; border-radius: 4px; font-size: 13px; color: #92400e; }
+                        .footer { background: #f9fafb; padding: 16px; text-align: center; font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>🌱 Nguồn Gốc Số</h1>
+                        </div>
+                        <div class="content">
+                            <h2>Cổng nhập kết quả kiểm nghiệm</h2>
+                            <p>Kính gửi <strong>{{testingUnitName}}</strong>,</p>
+                            <p>Hợp tác xã <strong>{{organizationName}}</strong> đã gửi mẫu và yêu cầu đơn vị của bạn thực hiện kiểm nghiệm chất lượng cho lô sản phẩm <strong>{{lotCode}}</strong> trên Hệ thống Truy xuất Nguồn Gốc Số.</p>
+
+                            <div class="info-box">
+                                <div class="info-item">🏛️ <strong>Đơn vị yêu cầu:</strong> {{organizationName}}</div>
+                                <div class="info-item">📦 <strong>Mã lô sản phẩm:</strong> {{lotCode}}</div>
+                                <div class="info-item">⏳ <strong>Thời hạn liên kết:</strong> {{expiryDays}} ngày (liên kết dùng một lần)</div>
+                            </div>
+
+                            <p>Vui lòng bấm vào nút bên dưới để mở cổng nhập kết quả, đính kèm phiếu kiểm nghiệm và gửi xác nhận trực tiếp vào hệ thống mà không cần đăng nhập tài khoản:</p>
+
+                            <div class="btn-container">
+                                <a href="{{entryUrl}}" target="_blank" class="btn">Nhập kết quả kiểm nghiệm</a>
+                            </div>
+
+                            <div class="warning-box">
+                                ⚠️ <strong>Lưu ý quan trọng:</strong> Đường dẫn này chỉ có hiệu lực một lần duy nhất. Sau khi gửi kết quả thành công hoặc khi hết hạn, liên kết sẽ tự động bị vô hiệu hóa.
+                            </div>
+
+                            <p style="font-size: 13px; color: #6b7280;">Nếu nút bấm không hoạt động, bạn có thể sao chép liên kết này vào trình duyệt:<br>
+                            <a href="{{entryUrl}}" style="color: #059669; word-break: break-all;">{{entryUrl}}</a></p>
+                        </div>
+                        <div class="footer">
+                            <p>© 2026 Nguồn Gốc Số. Mọi quyền được bảo lưu.<br>Email này được gửi tự động, vui lòng không trả lời.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """
+                .replace("{{organizationName}}", organizationName)
+                .replace("{{testingUnitName}}", testingUnitName != null ? testingUnitName : "Đơn vị kiểm nghiệm")
+                .replace("{{lotCode}}", lotCode)
+                .replace("{{expiryDays}}", String.valueOf(expiryDays))
+                .replace("{{entryUrl}}", entryUrl);
     }
 }

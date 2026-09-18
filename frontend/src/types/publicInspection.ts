@@ -10,6 +10,7 @@ export interface PublicInspectionResult {
   inspectionDate: string;
   expiryDate: string;
   laboratoryName?: string;
+  entrySource?: 'TESTING_UNIT_PORTAL' | 'COOPERATIVE_MANUAL';
 }
 
 export interface PublicInspectionResponse {
