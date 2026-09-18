@@ -1,11 +1,26 @@
+/**
+ * Kiểm thử component Sidebar: xác minh menu "Vùng trồng"
+ * được highlight (active) đúng khi điều hướng đến các route canh tác.
+ * Liên quan: fix/sidebar-active-farming-zone
+ */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import "@testing-library/jest-dom/vitest";
 import { Sidebar } from "../Sidebar";
 
+interface MockUser {
+  userId: string;
+  username: string;
+  fullName: string;
+  email: string;
+  roleCode: string;
+  organizationProvinceId: string;
+  organizationCommuneId: string;
+}
+
 const mockLogout = vi.fn();
-let mockUser: any = null;
+let mockUser: MockUser | null = null;
 
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({
