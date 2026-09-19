@@ -439,6 +439,9 @@ public class PartnerApiKeyService {
         Optional<PartnerApiKey> apiKeyOpt = partnerApiKeyRepository.findByKeyHash(keyHash);
 
         if (apiKeyOpt.isEmpty()) {
+            if (rawApiKey.trim().startsWith(TEST_KEY_PREFIX_CONSTANT) || rawApiKey.trim().contains("test")) {
+                throw new BusinessException("Khóa thử nghiệm không đúng. Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa.");
+            }
             throw new BusinessException("Khóa truy cập không hợp lệ");
         }
 

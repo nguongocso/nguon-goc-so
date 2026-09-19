@@ -59,12 +59,14 @@ describe('DataPortalDocsPage (NCL-12-CN-004)', () => {
     expect(screen.getByText(/1\. Tổng quan & Cơ chế Xác thực/i)).toBeInTheDocument();
   });
 
-  it('displays authentication details, Base URL, and Sandbox mode highlights', () => {
+  it('displays authentication details, Base URL, usage guide, and rate limit highlights', () => {
     renderPage();
 
+    expect(screen.getByText(/Hướng dẫn sử dụng Cổng dữ liệu Nguồn Gốc Số/i)).toBeInTheDocument();
+    expect(screen.getByText(/Lấy Khóa API \(API Key\)/i)).toBeInTheDocument();
     expect(screen.getByText('https://agri-trace.online')).toBeInTheDocument();
     expect(screen.getByText(/X-API-KEY: <chuỗi_khóa>/i)).toBeInTheDocument();
-    expect(screen.getByText(/Chế độ Thử nghiệm \(Sandbox Mode - is_test: true\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Tối đa 100 lượt \/ giờ/i)).toBeInTheDocument();
   });
 
   it('renders endpoint list including public lots and GS1 endpoints', () => {
@@ -79,38 +81,131 @@ describe('DataPortalDocsPage (NCL-12-CN-004)', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders sandbox sample payload with is_test: true highlighted', () => {
+  it('sets default API key value to "Ví dụ", reveals snippets by default, and hides them when cleared', () => {
     renderPage();
 
-    expect(screen.getByText(/4\. Dữ liệu Phản hồi Mẫu \(Sandbox Response Payload\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/★ Chú ý trường nhận diện: "is_test": true/i)).toBeInTheDocument();
+    const inputKey = screen.getByPlaceholderText(/Nhập khóa API/i) as HTMLInputElement;
+    expect(inputKey.value).toBe('Ví dụ');
+
+    // Mặc định hiển thị ví dụ lệnh gọi với key 'Ví dụ'
+    expect(screen.getAllByText(/X-API-KEY: Ví dụ/i).length).toBe(3);
+    expect(screen.getAllByText(/Ví dụ dữ liệu phản hồi mẫu/i).length).toBe(3);
+
+    // Người dùng bấm nút "Xóa" để xóa giá trị mặc định
+    const clearBtn = screen.getByRole('button', { name: /Xóa/i });
+    fireEvent.click(clearBtn);
+
+    expect(inputKey.value).toBe('');
+    expect(screen.queryByText(/curl -s -X GET/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Ví dụ dữ liệu phản hồi mẫu/i)).not.toBeInTheDocument();
   });
 
-  it('allows switching code snippet tabs between cURL, JavaScript, and Python', () => {
+  it('reveals request snippet and response payload sample for each endpoint when user types API key', () => {
     renderPage();
 
-    const fetchTabBtn = screen.getByRole('button', { name: 'JavaScript' });
-    fireEvent.click(fetchTabBtn);
+    // Nhập key mới vào input
+    const inputKey = screen.getByPlaceholderText(/Nhập khóa API/i);
+    fireEvent.change(inputKey, { target: { value: 'nks_test_custom_key_999' } });
 
-    expect(screen.getByText(/fetch\("https:\/\/agri-trace\.online/i)).toBeInTheDocument();
+    // Hiển thị code snippet với key đã nhập cho cả 3 endpoints
+    expect(screen.getAllByText(/X-API-KEY: nks_test_custom_key_999/i).length).toBe(3);
+    expect(
+      screen.getByText(/curl -s -X GET "https:\/\/agri-trace\.online\/api\/publicapi\/v1\/lots\/sample-lot-001"/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/curl -s -X GET "https:\/\/agri-trace\.online\/api\/v1\/partner\/production-lots\/sample-lot-001\/dossier"/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/curl -s -X GET "https:\/\/agri-trace\.online\/api\/v1\/partner\/shipments\/sample-lot-001\/dossier\/gs1"/i)
+    ).toBeInTheDocument();
 
-    const pythonTabBtn = screen.getByRole('button', { name: 'Python' });
-    fireEvent.click(pythonTabBtn);
-
-    expect(screen.getByText(/import requests/i)).toBeInTheDocument();
+    // Hiển thị khối Dữ liệu phản hồi mẫu cho cả 3 endpoints
+    expect(screen.getAllByText(/Ví dụ dữ liệu phản hồi mẫu/i).length).toBe(3);
+    expect(screen.getAllByText(/Lô Xoài Cát Chu Thử Nghiệm/i).length).toBe(2);
+    expect(screen.getByText(/Lô Hàng Xoài Cát Xuất Khẩu Thử Nghiệm/i)).toBeInTheDocument();
+    expect(screen.getByText(/GS1_SIMULATED_V1/i)).toBeInTheDocument();
   });
 
-  it('supports copying code sample to clipboard with toast feedback', async () => {
+  it('allows independent snippet tab switching between cURL, JavaScript, and Python for each endpoint', () => {
     renderPage();
 
-    const copyBtns = screen.getAllByRole('button', { name: /Sao chép/i });
-    expect(copyBtns.length).toBeGreaterThan(0);
+    const inputKey = screen.getByPlaceholderText(/Nhập khóa API/i);
+    fireEvent.change(inputKey, { target: { value: 'nks_test_my_key' } });
+
+    // Ban đầu cả 3 đều là cURL
+    expect(screen.getAllByText(/curl -s -X GET/i).length).toBe(3);
+
+    // Chuyển endpoint 1 sang JavaScript
+    const jsBtns = screen.getAllByRole('button', { name: 'JavaScript' });
+    fireEvent.click(jsBtns[0]);
+
+    // Chỉ endpoint 1 chuyển sang fetch, 2 endpoint còn lại vẫn là cURL
+    expect(screen.getAllByText(/fetch\("https:\/\/agri-trace\.online/i).length).toBe(1);
+    expect(screen.getAllByText(/curl -s -X GET/i).length).toBe(2);
+
+    // Chuyển endpoint 2 sang Python
+    const pythonBtns = screen.getAllByRole('button', { name: 'Python' });
+    fireEvent.click(pythonBtns[1]);
+
+    // Endpoint 1 là fetch, endpoint 2 là requests, endpoint 3 vẫn là cURL
+    expect(screen.getAllByText(/fetch\("https:\/\/agri-trace\.online/i).length).toBe(1);
+    expect(screen.getAllByText(/import requests/i).length).toBe(1);
+    expect(screen.getAllByText(/curl -s -X GET/i).length).toBe(1);
+  });
+
+  it('allows independent environment switching between Production, Staging, and Localhost for each endpoint', () => {
+    renderPage();
+
+    const inputKey = screen.getByPlaceholderText(/Nhập khóa API/i);
+    fireEvent.change(inputKey, { target: { value: 'nks_test_my_key' } });
+
+    // Mặc định cả 3 đều là Production curl
+    expect(screen.queryByText(/curl -s -X GET "https:\/\/staging\.agri-trace\.online/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/curl -s -X GET "http:\/\/localhost:8080/i)).not.toBeInTheDocument();
+
+    // Chuyển endpoint 1 sang Staging
+    const stagingBtns = screen.getAllByRole('button', { name: 'Staging' });
+    fireEvent.click(stagingBtns[0]);
+
+    // Chỉ endpoint 1 có URL staging
+    expect(screen.getByText(/curl -s -X GET "https:\/\/staging\.agri-trace\.online\/api\/publicapi\/v1\/lots\/sample-lot-001"/i)).toBeInTheDocument();
+    // Endpoint 2 & 3 vẫn là Production
+    expect(screen.getByText(/curl -s -X GET "https:\/\/agri-trace\.online\/api\/v1\/partner\/production-lots\/sample-lot-001\/dossier"/i)).toBeInTheDocument();
+    expect(screen.getByText(/curl -s -X GET "https:\/\/agri-trace\.online\/api\/v1\/partner\/shipments\/sample-lot-001\/dossier\/gs1"/i)).toBeInTheDocument();
+
+    // Chuyển endpoint 2 sang Localhost
+    const localBtns = screen.getAllByRole('button', { name: 'Localhost' });
+    fireEvent.click(localBtns[1]);
+
+    // Endpoint 2 đổi sang localhost:8080, endpoint 1 vẫn staging, endpoint 3 vẫn production
+    expect(screen.getByText(/curl -s -X GET "https:\/\/staging\.agri-trace\.online\/api\/publicapi\/v1\/lots\/sample-lot-001"/i)).toBeInTheDocument();
+    expect(screen.getByText(/curl -s -X GET "http:\/\/localhost:8080\/api\/v1\/partner\/production-lots\/sample-lot-001\/dossier"/i)).toBeInTheDocument();
+    expect(screen.getByText(/curl -s -X GET "https:\/\/agri-trace\.online\/api\/v1\/partner\/shipments\/sample-lot-001\/dossier\/gs1"/i)).toBeInTheDocument();
+  });
+
+  it('supports copying code sample and response JSON to clipboard with toast feedback when key is entered', async () => {
+    renderPage();
+
+    const inputKey = screen.getByPlaceholderText(/Nhập khóa API/i);
+    fireEvent.change(inputKey, { target: { value: 'nks_test_my_key' } });
+
+    const copyBtns = screen.getAllByRole('button', { name: /^Sao chép$/i });
+    expect(copyBtns.length).toBe(3);
 
     fireEvent.click(copyBtns[0]);
 
     await waitFor(() => {
       expect(writeTextMock).toHaveBeenCalled();
       expect(toast.success).toHaveBeenCalledWith('Đã sao chép vào khay nhớ tạm!');
+    });
+
+    const copyJsonBtns = screen.getAllByRole('button', { name: /Sao chép JSON/i });
+    expect(copyJsonBtns.length).toBe(3);
+
+    fireEvent.click(copyJsonBtns[0]);
+
+    await waitFor(() => {
+      expect(writeTextMock).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -126,9 +221,9 @@ describe('DataPortalDocsPage (NCL-12-CN-004)', () => {
   it('renders GS1 EPCIS mapping table and HTTP error codes reference', () => {
     renderPage();
 
-    expect(screen.getByText('5. Bảng Ánh xạ Thuộc tính theo Chuẩn GS1 EPCIS')).toBeInTheDocument();
+    expect(screen.getByText('3. Bảng Ánh xạ Thuộc tính theo Chuẩn GS1 EPCIS')).toBeInTheDocument();
     expect(screen.getByText('Mã lô sản xuất (GTIN)')).toBeInTheDocument();
-    expect(screen.getByText('6. Bảng Mã Lỗi Tổng hợp (HTTP Error Codes)')).toBeInTheDocument();
+    expect(screen.getByText('4. Bảng Mã Lỗi Tổng hợp (HTTP Error Codes)')).toBeInTheDocument();
     expect(screen.getByText('401')).toBeInTheDocument();
     expect(screen.getByText(/API Key đã hết hạn/i)).toBeInTheDocument();
   });

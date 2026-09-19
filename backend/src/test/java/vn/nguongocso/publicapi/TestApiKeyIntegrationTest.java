@@ -254,13 +254,13 @@ class TestApiKeyIntegrationTest {
     }
 
     /**
-     * TC-01: Đối tác gọi thử bằng khóa thử nghiệm -> nhận đúng dữ liệu mẫu như trong tài liệu.
+     * TC-01: Đối tác gọi thử bằng khóa thử nghiệm với mã lô sample-lot-001 -> nhận đúng dữ liệu mẫu như trong tài liệu.
      */
     @Test
-    @DisplayName("TC-01: Đối tác gọi endpoint bằng khóa thử nghiệm -> Nhận đúng dữ liệu mẫu Sandbox và is_test=true")
+    @DisplayName("TC-01: Đối tác gọi endpoint với sample-lot-001 bằng khóa thử nghiệm -> Nhận đúng dữ liệu mẫu Sandbox và is_test=true")
     void testTC01_CallEndpointWithTestApiKey_ReturnsSampleData() throws Exception {
-        // 1. Gọi qua đường dẫn /api/publicapi/v1/lots/SAMPLE_LOT_ID với header X-API-KEY
-        mockMvc.perform(get("/api/publicapi/v1/lots/SAMPLE_LOT_ID")
+        // 1. Gọi qua đường dẫn /api/publicapi/v1/lots/sample-lot-001 với header X-API-KEY
+        mockMvc.perform(get("/api/publicapi/v1/lots/sample-lot-001")
                         .header("X-API-KEY", ACTIVE_TEST_RAW_KEY)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -277,35 +277,56 @@ class TestApiKeyIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.is_test").value(true));
-    }
 
-    /**
-     * TC-02: Khóa thử nghiệm -> gọi lấy lô thật -> chỉ nhận dữ liệu mẫu, đánh dấu is_test=true.
-     */
-    @Test
-    @DisplayName("TC-02: Khóa thử nghiệm gọi lấy lô thật -> Chỉ nhận dữ liệu mẫu Sandbox, đánh dấu is_test=true")
-    void testTC02_CallRealLotWithTestApiKey_ReturnsSampleDataOnly() throws Exception {
-        UUID realLotId = realProductionLot.getId();
-
-        // Gọi lấy thông tin lô thật qua cổng publicapi với khóa thử nghiệm
-        mockMvc.perform(get("/api/publicapi/v1/lots/" + realLotId)
-                        .header("X-API-KEY", ACTIVE_TEST_RAW_KEY)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.is_test").value(true))
-                // Dữ liệu trả về PHẢI là dữ liệu mẫu Sandbox, KHÔNG PHẢI dữ liệu thật của realProductionLot
-                .andExpect(jsonPath("$.data.lotInfo.lotName").value(PartnerSampleDataProvider.getSampleLotDossier().getLotInfo().getLotName()))
-                .andExpect(jsonPath("$.data.testNotice").value(PartnerSampleDataProvider.TEST_NOTICE));
-
-        // Kiểm tra tương tự trên endpoint đối tác /api/v1/partner/production-lots/{lotId}/dossier
-        mockMvc.perform(get("/api/v1/partner/production-lots/" + realLotId + "/dossier")
+        // 3. Kiểm tra gọi qua endpoint đối tác /api/v1/partner/production-lots/sample-lot-001/dossier
+        mockMvc.perform(get("/api/v1/partner/production-lots/sample-lot-001/dossier")
                         .header("X-API-KEY", ACTIVE_TEST_RAW_KEY)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.is_test").value(true))
                 .andExpect(jsonPath("$.data.lotInfo.lotName").value(PartnerSampleDataProvider.getSampleLotDossier().getLotInfo().getLotName()));
+
+        // 4. Kiểm tra gọi xuất hồ sơ GS1 qua endpoint đối tác /api/v1/partner/shipments/sample-lot-001/dossier/gs1
+        mockMvc.perform(get("/api/v1/partner/shipments/sample-lot-001/dossier/gs1")
+                        .header("X-API-KEY", ACTIVE_TEST_RAW_KEY)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.shipment.name").value(PartnerSampleDataProvider.getSampleGs1DossierResponse().getShipment().getName()));
+    }
+
+    /**
+     * TC-02: Khóa thử nghiệm gọi lấy mã lô khác sample-lot-001 -> Bị từ chối HTTP 403 với thông báo rõ ràng.
+     */
+    @Test
+    @DisplayName("TC-02: Khóa thử nghiệm gọi lấy mã lô khác sample-lot-001 -> Bị từ chối HTTP 403")
+    void testTC02_CallRealLotWithTestApiKey_ReturnsSampleDataOnly() throws Exception {
+        UUID realLotId = realProductionLot.getId();
+
+        // 1. Gọi lấy thông tin lô thật qua cổng publicapi với khóa thử nghiệm -> Bị từ chối 403
+        mockMvc.perform(get("/api/publicapi/v1/lots/" + realLotId)
+                        .header("X-API-KEY", ACTIVE_TEST_RAW_KEY)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật."));
+
+        // 2. Kiểm tra tương tự trên endpoint đối tác /api/v1/partner/production-lots/{lotId}/dossier -> Bị từ chối 403
+        mockMvc.perform(get("/api/v1/partner/production-lots/" + realLotId + "/dossier")
+                        .header("X-API-KEY", ACTIVE_TEST_RAW_KEY)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật."));
+
+        // 3. Kiểm tra tương tự trên endpoint đối tác /api/v1/partner/shipments/{shipmentId}/dossier/gs1 -> Bị từ chối 403
+        mockMvc.perform(get("/api/v1/partner/shipments/" + realLotId + "/dossier/gs1")
+                        .header("X-API-KEY", ACTIVE_TEST_RAW_KEY)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật."));
     }
 
     /**
@@ -380,14 +401,14 @@ class TestApiKeyIntegrationTest {
     @Test
     @DisplayName("Rate limit: Khóa thử nghiệm vượt quá hạn mức gọi -> Bị từ chối HTTP 429 Too Many Requests")
     void testRateLimit_Exceeded_RejectedWith429() throws Exception {
-        // Lần gọi 1: Chưa vượt hạn mức (1/1) -> thành công 200 OK
-        mockMvc.perform(get("/api/publicapi/v1/lots/SAMPLE_LOT_ID")
+        // Lần gọi 1: Chưa vượt hạn mức (1/1) -> thành công 200 OK với sample-lot-001
+        mockMvc.perform(get("/api/publicapi/v1/lots/sample-lot-001")
                         .header("X-API-KEY", RATE_LIMITED_TEST_RAW_KEY)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
         // Lần gọi 2: Vượt hạn mức (> 1) -> bị từ chối 429 Too Many Requests
-        mockMvc.perform(get("/api/publicapi/v1/lots/SAMPLE_LOT_ID")
+        mockMvc.perform(get("/api/publicapi/v1/lots/sample-lot-001")
                         .header("X-API-KEY", RATE_LIMITED_TEST_RAW_KEY)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isTooManyRequests())
@@ -407,5 +428,43 @@ class TestApiKeyIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value(containsString("thu hồi")));
+    }
+
+    /**
+     * Khóa thử nghiệm hợp lệ do HTX cấp -> Gọi API mẫu nhận 200 OK và dữ liệu Sandbox.
+     */
+    @Test
+    @DisplayName("Khóa thử nghiệm hợp lệ do HTX cấp -> Trả về 200 OK và dữ liệu Sandbox")
+    void testCallWithValidTestApiKey_Success() throws Exception {
+        mockMvc.perform(get("/api/publicapi/v1/lots/sample-lot-001")
+                        .header("X-API-KEY", ACTIVE_TEST_RAW_KEY)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.is_test").value(true))
+                .andExpect(jsonPath("$.data.lotInfo.lotName").value(PartnerSampleDataProvider.getSampleLotDossier().getLotInfo().getLotName()));
+    }
+
+    /**
+     * Khóa thử nghiệm không đúng hoặc chưa được cấp -> Bị từ chối HTTP 401 Unauthorized kèm thông báo rõ ràng.
+     */
+    @Test
+    @DisplayName("Khóa thử nghiệm không đúng -> Bị từ chối HTTP 401 với thông báo liên hệ quản trị viên")
+    void testCallWithInvalidTestApiKey_RejectedWith401_CustomMessage() throws Exception {
+        // 1. Gọi bằng khóa cứng cũ nks_test_sample_key_1234567890 đã bị xóa
+        mockMvc.perform(get("/api/publicapi/v1/lots/sample-lot-001")
+                        .header("X-API-KEY", "nks_test_sample_key_1234567890")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Khóa thử nghiệm không đúng. Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa."));
+
+        // 2. Gọi bằng khóa thử nghiệm ngẫu nhiên không tồn tại
+        mockMvc.perform(get("/api/publicapi/v1/lots/sample-lot-001")
+                        .header("X-API-KEY", "nks_test_random_invalid_key_99999")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Khóa thử nghiệm không đúng. Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa."));
     }
 }

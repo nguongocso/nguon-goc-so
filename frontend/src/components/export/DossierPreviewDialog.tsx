@@ -577,7 +577,7 @@ export const DossierPreviewDialog: React.FC<DossierPreviewDialogProps> = ({
                 className="gap-1.5 text-xs"
               >
                 {copied ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
-                <span>{copied ? 'Đã sao chép' : 'Sao chép JSON'}</span>
+                <span>{copied ? 'Đã sao chép' : 'Sao chép'}</span>
               </Button>
             )}
 
