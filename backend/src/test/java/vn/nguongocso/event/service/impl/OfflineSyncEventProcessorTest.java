@@ -28,6 +28,7 @@ import vn.nguongocso.event.repository.OfflineSyncLogRepository;
 import vn.nguongocso.event.service.ChainEventService;
 import vn.nguongocso.event.service.EventValidationService;
 import vn.nguongocso.exception.BusinessException;
+import vn.nguongocso.farm.service.FarmLogService;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.enums.ShipmentStatus;
@@ -50,6 +51,9 @@ class OfflineSyncEventProcessorTest {
 
     @Mock
     private EventValidationService eventValidationService;
+
+    @Mock
+    private FarmLogService farmLogService;
 
     @InjectMocks
     private OfflineSyncEventProcessor eventProcessor;

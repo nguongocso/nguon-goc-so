@@ -4,6 +4,7 @@ import {
     ORGANIZATION_CODE_REGEX,
 } from './constants';
 import { ChainEventType } from '@/enums/chainEventType';
+import { getLocalDateString } from '@/utils/dateTime';
 
 // ============================================================
 // Login
@@ -551,6 +552,95 @@ export const mobileEventSchema = z
 
 export type MobileEventFormValues =
     z.infer<typeof mobileEventSchema>;
+
+
+// ============================================================
+// Nhật ký canh tác ngoại tuyến (NCL-10-CN-012, MVP)
+// ============================================================
+
+export const HOAT_DONG_CANH_TAC = [
+    'PLANTING',
+    'WATERING',
+    'FERTILIZING',
+    'PESTICIDE',
+    'WEEDING',
+    'HARVESTING',
+    'OTHER',
+] as const;
+
+export const farmLogOfflineSchema = z.object({
+    productionLotId: z
+        .string()
+        .uuid(
+            'Vui lòng chọn lô sản xuất',
+        ),
+
+    activityType: z.enum(
+        HOAT_DONG_CANH_TAC,
+        {
+            required_error:
+                'Vui lòng chọn loại hoạt động',
+        },
+    ),
+
+    material: z
+        .string()
+        .max(
+            255,
+            'Tên vật tư không được vượt quá 255 ký tự',
+        )
+        .optional(),
+
+    quantity: z.preprocess(
+        (giaTri) =>
+            giaTri === '' ||
+            giaTri === null ||
+            giaTri === undefined
+                ? undefined
+                : giaTri,
+        z.coerce
+            .number({
+                invalid_type_error:
+                    'Số lượng phải là số',
+            })
+            .positive(
+                'Số lượng phải lớn hơn 0',
+            )
+            .optional(),
+    ),
+
+    unit: z
+        .string()
+        .max(
+            50,
+            'Đơn vị không được vượt quá 50 ký tự',
+        )
+        .optional(),
+
+    executedDate: z
+        .string()
+        .date(
+            'Ngày thực hiện không hợp lệ',
+        )
+        .refine(
+            // So sánh chuỗi YYYY-MM-DD theo giờ local (miễn nhiễm múi giờ):
+            // `new Date('YYYY-MM-DD')` là nửa đêm UTC, ở UTC+7 sẽ lớn hơn
+            // nửa đêm local và làm ngày hôm nay bị báo "tương lai".
+            (ngay) => ngay <= getLocalDateString(),
+            'Ngày thực hiện không được ở tương lai',
+        ),
+
+    notes: z
+        .string()
+        .max(
+            1000,
+            'Ghi chú không được vượt quá 1000 ký tự',
+        )
+        .optional(),
+});
+
+export type FarmLogOfflineFormValues =
+    z.infer<typeof farmLogOfflineSchema>;
 
 
 // ============================================================

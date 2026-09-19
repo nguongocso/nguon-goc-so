@@ -17,6 +17,7 @@ export const EVENT_TYPE_VN_LABELS: Record<ChainEventType, string> = {
   WAREHOUSE_EXIT: 'Xuất kho HTX',
   SPLIT: 'Đã tách lô',
   HANDOVER: 'Bàn giao',
+  FARM_LOG: 'Nhật ký canh tác',
 };
 
 export const EVENT_TYPE_EN_LABELS: Record<ChainEventType, string> = {
@@ -32,6 +33,7 @@ export const EVENT_TYPE_EN_LABELS: Record<ChainEventType, string> = {
   WAREHOUSE_EXIT: 'HTX Warehouse Outbound',
   SPLIT: 'Shipment Split',
   HANDOVER: 'Shipment Handover',
+  FARM_LOG: 'Farm Log',
 };
 
 export function getEventTypeLabel(eventType: string, lang: 'vi' | 'en' = 'vi'): string {
@@ -79,6 +81,9 @@ const KNOWN_FIELD_LABELS: Record<string, string> = {
   productionLotId: 'Mã lô sản xuất',
   // Correction
   correctionReason: 'Lý do điều chỉnh',
+  // Nhật ký canh tác ngoại tuyến (NCL-10-CN-012)
+  activityType: 'Loại hoạt động',
+  executedDate: 'Ngày thực hiện',
   // Common
   seedType: 'Loại giống',
   plantingDate: 'Ngày trồng',
@@ -160,6 +165,9 @@ const KNOWN_FIELD_LABELS_EN: Record<string, string> = {
   productionLotId: 'Production Lot ID',
   // Correction
   correctionReason: 'Correction Reason',
+  // Offline farm log (NCL-10-CN-012)
+  activityType: 'Activity Type',
+  executedDate: 'Execution Date',
   // Common
   seedType: 'Seed Type',
   plantingDate: 'Planting Date',

@@ -1726,6 +1726,13 @@ const AppRoutes = () => (
                 }
             />
 
+            {/* NCL-10-CN-012: offline là chế độ của /farm-logs/create —
+               giữ redirect để bookmark cũ không gãy */}
+            <Route
+                path="mobile/farm-log"
+                element={<Navigate to="/farm-logs/create" replace />}
+            />
+
 
             {/* =================================================
           INVITATION

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { getOfflineEvents, removeOfflineEvent, clearOfflineQueue } from '@/services/offlineQueue';
+import { layLoDuocPhanCong } from '@/lib/offline/farmLogDb';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +8,8 @@ import { toast } from 'sonner';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { RefreshCw, Trash2, X } from 'lucide-react';
 import type { OfflineEvent } from '@/types/offlineEvent';
+import { ChainEventTypeLabel } from '@/enums/chainEventType';
+import { layNhanHoatDong } from '@/utils/farmLogActivity';
 import { maskId } from '@/lib/utils';
 
 // Component hiển thị một event
@@ -15,12 +18,10 @@ const EventItem: React.FC<{
   onDelete: (id: string) => void;
   onRetry: (id: string) => void;
   isSyncing: boolean;
-}> = ({ event, onDelete, onRetry, isSyncing }) => {
-  const lotName = 'Không xác định';
-
-  useEffect(() => {
-    // ... lấy tên lô (giữ nguyên)
-  }, [event.productionLotId]);
+  /** Tra tên lô từ cache tải sẵn; không có thì "Không xác định". */
+  tenLo: (id?: string) => string;
+}> = ({ event, onDelete, onRetry, isSyncing, tenLo }) => {
+  const lotName = tenLo(event.productionLotId);
 
   // ✅ Map trạng thái sang Badge
   const statusConfig: Record<string, { label: string; variant: 'secondary' | 'default' | 'destructive' | 'outline' }> = {
@@ -32,12 +33,16 @@ const EventItem: React.FC<{
   };
   const currentStatus = event.status || 'pending';
   const config = statusConfig[currentStatus];
+  const tenLoai = ChainEventTypeLabel[event.eventType] ?? event.eventType;
+  const laNhatKy = event.eventType === 'FARM_LOG';
+  const hoatDong = laNhatKy ? layNhanHoatDong(event.eventData?.activityType) : null;
+  const ngayThucHien = laNhatKy ? String(event.eventData?.executedDate ?? '') : '';
 
   return (
     <div className="flex items-start justify-between border-b pb-2 pt-2">
       <div className="flex-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium">{event.eventType}</span>
+          <span className="font-medium">{tenLoai}</span>
           <Badge variant="outline" className="text-xs">
             {event.deviceSource || 'MOBILE'}
           </Badge>
@@ -49,6 +54,12 @@ const EventItem: React.FC<{
         <div className="text-sm text-muted-foreground">
           Lô: {lotName} (ID: {maskId(event.productionLotId) || 'N/A'})
         </div>
+        {laNhatKy && (
+          <div className="text-sm text-muted-foreground">
+            Hoạt động: {hoatDong}
+            {ngayThucHien && <> • Ngày: {ngayThucHien}</>}
+          </div>
+        )}
         <div className="text-xs text-muted-foreground">
           Ghi lúc: {new Date(event.recordedAt).toLocaleString()}
         </div>
@@ -93,11 +104,26 @@ const EventItem: React.FC<{
 
 export const OfflineEventList: React.FC = () => {
   const [events, setEvents] = useState<OfflineEvent[]>(getOfflineEvents());
+  const [loCache, setLoCache] = useState<Array<{ id: string; ten: string }>>([]);
   const { sync, isSyncing } = useOfflineSync();
 
   const refreshList = () => {
     setEvents(getOfflineEvents());
   };
+
+  // Tên lô tải sẵn trong IndexedDB khi còn mạng (dùng chung với form ghi nhật ký).
+  useEffect(() => {
+    layLoDuocPhanCong()
+      .then((ds) => setLoCache(ds.map((lo) => ({ id: lo.id, ten: lo.ten }))))
+      .catch(() => {
+        // Cache lỗi: giữ rỗng, tên hiển thị "Không xác định"
+      });
+  }, []);
+
+  const tenLo = useCallback(
+    (id?: string) => loCache.find((lo) => lo.id === id)?.ten ?? 'Không xác định',
+    [loCache],
+  );
 
   // Tự động refresh mỗi 3 giây (có thể dùng event listener)
   useEffect(() => {
@@ -172,6 +198,7 @@ export const OfflineEventList: React.FC = () => {
               onDelete={handleDelete}
               onRetry={handleRetry}
               isSyncing={isSyncing}
+              tenLo={tenLo}
             />
           ))}
         </div>
