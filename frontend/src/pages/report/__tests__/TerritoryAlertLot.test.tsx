@@ -1,3 +1,4 @@
+import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -5,12 +6,12 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import TerritoryAlertLotListPage from '../TerritoryAlertLotListPage';
 import TerritoryAlertLotDetailPage from '../TerritoryAlertLotDetailPage';
-import * as territoryAlertLotApi from '@/api/territoryAlertLotApi';
-import { NO_ASSIGNED_AREA_MESSAGE } from '@/constants/reportMessages';
+import * as territoryAlertLotApi from '../../../api/territoryAlertLotApi';
+import { NO_ASSIGNED_AREA_MESSAGE } from '../../../constants/reportMessages';
 import type {
   AlertLotDetailResponse,
   AlertLotSummaryResponse,
-} from '@/types/territoryAlertLot';
+} from '../../../types/territoryAlertLot';
 
 // Mock sonner toast
 vi.mock('sonner', () => ({
@@ -469,9 +470,10 @@ describe('NCL-07-CN-006: Danh sách và chi tiết lô có cảnh báo theo đ�
       fileName: 'Danh_sach_lo_canh_bao_20260911.pdf',
     });
 
-    // Mock URL.createObjectURL và revokeObjectURL
+    // Mock URL.createObjectURL, revokeObjectURL và link.click để tránh lỗi jsdom navigation
     window.URL.createObjectURL = vi.fn().mockReturnValue('blob:http://localhost/test');
     window.URL.revokeObjectURL = vi.fn();
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
     const user = userEvent.setup();
 
@@ -491,6 +493,7 @@ describe('NCL-07-CN-006: Danh sách và chi tiết lô có cảnh báo theo đ�
 
     await waitFor(() => {
       expect(exportSpy).toHaveBeenCalledTimes(1);
+      expect(clickSpy).toHaveBeenCalled();
     });
   });
 
@@ -509,8 +512,11 @@ describe('NCL-07-CN-006: Danh sách và chi tiết lô có cảnh báo theo đ�
         organizationName: 'HTX Nông Nghiệp Đào Xá',
         communeName: 'Đào Xá',
         provinceName: 'Phú Thọ',
-        latestAlertTriggeredAt: '2026-09-12T08:00:00',
+        lotStatus: 'IN_TRANSIT',
         alertTypes: ['RECALLING'],
+        primaryAlertType: 'RECALLING',
+        alertCount: 1,
+        latestAlertTriggeredAt: '2026-09-12T08:00:00',
         alertSummaries: [
           {
             alertType: 'RECALLING',

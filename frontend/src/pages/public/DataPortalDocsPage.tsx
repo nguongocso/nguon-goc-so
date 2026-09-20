@@ -12,60 +12,54 @@ import {
   Home,
   LogIn,
   AlertTriangle,
+  Key,
+  SlidersHorizontal,
   FileCode,
+  BookOpen,
 } from 'lucide-react';
 import { Logo } from '@/components/common/Logo';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 
-export const DataPortalDocsPage: React.FC = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+type TargetEnvironment = 'production' | 'staging' | 'localhost';
+type SnippetTab = 'curl' | 'fetch' | 'python';
 
-  const [copiedSection, setCopiedSection] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'curl' | 'fetch' | 'python'>('curl');
+const ENV_URLS: Record<TargetEnvironment, string> = {
+  production: 'https://agri-trace.online',
+  staging: 'https://staging.agri-trace.online',
+  localhost: 'http://localhost:8080',
+};
 
-  const copyToClipboard = async (text: string, sectionId: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedSection(sectionId);
-      toast.success('Đã sao chép vào khay nhớ tạm!');
-      setTimeout(() => setCopiedSection(null), 2500);
-    } catch {
-      toast.error('Không thể sao chép tự động. Vui lòng chọn và sao chép thủ công.');
-    }
-  };
-
-  const sampleCurl = `curl -X GET "https://agri-trace.online/api/publicapi/v1/lots/sample-lot-001" \\
+const getSampleCurl = (env: TargetEnvironment, key: string, path: string) => `curl -s -X GET "${ENV_URLS[env]}${path}" \\
   -H "Accept: application/json" \\
-  -H "X-API-KEY: nks_test_sample_key_1234567890"`;
+  -H "X-API-KEY: ${key}" | jq .`;
 
-  const sampleFetch = `fetch("https://agri-trace.online/api/publicapi/v1/lots/sample-lot-001", {
+const getSampleFetch = (env: TargetEnvironment, key: string, path: string) => `fetch("${ENV_URLS[env]}${path}", {
   method: "GET",
   headers: {
     "Accept": "application/json",
-    "X-API-KEY": "nks_test_sample_key_1234567890"
+    "X-API-KEY": "${key}"
   }
 })
   .then(response => response.json())
   .then(data => console.log(data))
   .catch(error => console.error("Lỗi:", error));`;
 
-  const samplePython = `import requests
+const getSamplePython = (env: TargetEnvironment, key: string, path: string) => `import requests
 
-url = "https://agri-trace.online/api/publicapi/v1/lots/sample-lot-001"
+url = "${ENV_URLS[env]}${path}"
 headers = {
     "Accept": "application/json",
-    "X-API-KEY": "nks_test_sample_key_1234567890"
+    "X-API-KEY": "${key}"
 }
 
 response = requests.get(url, headers=headers)
 data = response.json()
 print("Kết quả:", data)`;
 
-
-  const sampleJsonResponse = `{
+const SAMPLE_LOT_DOSSIER_JSON = `{
   "success": true,
   "status": 200,
   "data": {
@@ -109,10 +103,288 @@ print("Kết quả:", data)`;
       "lastActivityAt": "2026-07-15T10:00:00"
     },
     "is_test": true,
-    "testNotice": "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế"
+    "test_notice": "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế"
   },
-  "timestamp": "2026-09-14T10:00:00.000Z"
+  "timestamp": "2026-09-18T08:08:18.022Z"
 }`;
+
+const SAMPLE_GS1_DOSSIER_JSON = `{
+  "success": true,
+  "status": 200,
+  "data": {
+    "shipment": {
+      "id": "00000000-0000-0000-0000-000000000010",
+      "name": "[DỮ LIỆU MẪU] Lô Hàng Xoài Cát Xuất Khẩu Thử Nghiệm",
+      "codeValues": [
+        "TEST-TRACE-001"
+      ],
+      "productCategory": "Xoài Cát Chu",
+      "totalQuantity": 5000,
+      "unit": "KG",
+      "status": "ACTIVATED",
+      "organization": {
+        "id": "00000000-0000-0000-0000-000000000002",
+        "name": "[DỮ LIỆU MẪU] Hợp Tác Xã Trái Cây Mẫu Nguồn Gốc Số",
+        "code": "HTX-TEST-DEMO"
+      }
+    },
+    "events": [
+      {
+        "eventId": "00000000-0000-0000-0000-000000000021",
+        "eventType": "HARVESTING",
+        "eventTypeLabel": "Thu hoạch",
+        "recordedAt": "2026-07-20T08:00:00",
+        "recordedBy": "Kỹ thuật viên Thử nghiệm",
+        "location": {
+          "latitude": 10.352,
+          "longitude": 105.987
+        },
+        "details": {
+          "yield": "5000 KG"
+        }
+      }
+    ],
+    "inspections": [
+      {
+        "requestId": "00000000-0000-0000-0000-000000000031",
+        "inspectionUnit": "Trung Tâm Kiểm Nghiệm Thực Nghiệm",
+        "sampleSentDate": "2026-07-18",
+        "status": "PASSED",
+        "criteria": [
+          {
+            "criterionCode": "CT-TEST-01",
+            "criterionName": "Dư lượng kim loại nặng",
+            "standardName": "VietGAP",
+            "passed": true,
+            "resultDate": "2026-07-19",
+            "expiryDate": "2027-07-19"
+          }
+        ]
+      }
+    ],
+    "mapping": {
+      "standard": "GS1_SIMULATED_V1",
+      "complianceNote": "Mô phỏng lược đồ GS1, không phải chứng nhận tuân thủ chính thức GS1"
+    },
+    "warnings": [],
+    "exportedAt": "2026-09-18T15:08:50",
+    "exportedBy": "Hệ Thống Thử Nghiệm Nguồn Gốc Số"
+  },
+  "timestamp": "2026-09-18T08:08:50.348Z"
+}`;
+
+interface EndpointCodeSnippetProps {
+  endpointPath: string;
+  copyId: string;
+  responseCopyId: string;
+  sampleResponseJson: string;
+  responseBadge?: string;
+  activeApiKey: string;
+  copiedSection: string | null;
+  onCopy: (text: string, id: string) => void;
+  defaultEnv?: TargetEnvironment;
+  defaultTab?: SnippetTab;
+}
+
+const EndpointCodeSnippet: React.FC<EndpointCodeSnippetProps> = ({
+  endpointPath,
+  copyId,
+  responseCopyId,
+  sampleResponseJson,
+  responseBadge,
+  activeApiKey,
+  copiedSection,
+  onCopy,
+  defaultEnv = 'production',
+  defaultTab = 'curl',
+}) => {
+  const [activeEnv, setActiveEnv] = useState<TargetEnvironment>(defaultEnv);
+  const [activeTab, setActiveTab] = useState<SnippetTab>(defaultTab);
+
+  const textToCopy =
+    activeTab === 'curl'
+      ? getSampleCurl(activeEnv, activeApiKey, endpointPath)
+      : activeTab === 'fetch'
+        ? getSampleFetch(activeEnv, activeApiKey, endpointPath)
+        : getSamplePython(activeEnv, activeApiKey, endpointPath);
+
+  return (
+    <div className="space-y-4 pt-3 border-t border-border/60">
+      {/* 1. Khối Lệnh gọi mẫu */}
+      <div className="space-y-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex items-center gap-1.5 font-semibold text-xs text-foreground">
+            <Code2 className="w-3.5 h-3.5 text-primary" />
+            <span>Ví dụ lệnh gọi mẫu</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Tabs chọn môi trường độc lập */}
+            <div className="flex items-center gap-0.5 p-0.5 bg-muted rounded-md border border-border text-xs">
+              <button
+                type="button"
+                onClick={() => setActiveEnv('production')}
+                className={`px-2 py-0.5 rounded text-xs font-semibold transition-colors ${activeEnv === 'production'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+                  }`}
+              >
+                Production
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveEnv('staging')}
+                className={`px-2 py-0.5 rounded text-xs font-semibold transition-colors ${activeEnv === 'staging'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+                  }`}
+              >
+                Staging
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveEnv('localhost')}
+                className={`px-2 py-0.5 rounded text-xs font-semibold transition-colors ${activeEnv === 'localhost'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+                  }`}
+              >
+                Localhost
+              </button>
+            </div>
+
+            {/* Tabs chọn ngôn ngữ độc lập */}
+            <div className="flex items-center gap-0.5 p-0.5 bg-muted rounded-md border border-border text-xs">
+              <button
+                type="button"
+                onClick={() => setActiveTab('curl')}
+                className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-colors ${activeTab === 'curl'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+                  }`}
+              >
+                cURL
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('fetch')}
+                className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-colors ${activeTab === 'fetch'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+                  }`}
+              >
+                JavaScript
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('python')}
+                className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-colors ${activeTab === 'python'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+                  }`}
+              >
+                Python
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative rounded-xl bg-slate-950 p-4 font-mono text-xs sm:text-sm text-slate-100 overflow-x-auto leading-relaxed border border-slate-800">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="absolute top-3 right-3 bg-slate-900/80 hover:bg-slate-800 text-slate-200 border-slate-700 gap-1 text-xs"
+            onClick={() => onCopy(textToCopy, copyId)}
+          >
+            {copiedSection === copyId ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Đã chép</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5" />
+                <span>Sao chép</span>
+              </>
+            )}
+          </Button>
+          <pre className="select-all">
+            {textToCopy}
+          </pre>
+        </div>
+      </div>
+
+      {/* 2. Khối Ví dụ dữ liệu phản hồi mẫu */}
+      <div className="space-y-2 pt-2 border-t border-border/40">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <FileCode className="w-3.5 h-3.5 text-primary" />
+            <span className="text-xs font-semibold text-foreground">
+              Ví dụ dữ liệu phản hồi mẫu
+            </span>
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              Status: 200 OK
+            </span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-muted text-muted-foreground border border-border">
+              application/json
+            </span>
+          </div>
+          {responseBadge && (
+            <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400">
+              {responseBadge}
+            </span>
+          )}
+        </div>
+
+        <div className="relative rounded-xl bg-slate-950 p-4 font-mono text-xs text-slate-100 overflow-x-auto leading-relaxed border border-slate-800">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="absolute top-3 right-3 bg-slate-900/80 hover:bg-slate-800 text-slate-200 border-slate-700 gap-1 text-xs"
+            onClick={() => onCopy(sampleResponseJson, responseCopyId)}
+          >
+            {copiedSection === responseCopyId ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Đã chép JSON</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5" />
+                <span>Sao chép JSON</span>
+              </>
+            )}
+          </Button>
+          <pre className="select-all">
+            {sampleResponseJson}
+          </pre>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const DataPortalDocsPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const [copiedSection, setCopiedSection] = useState<string | null>(null);
+  const [customApiKey, setCustomApiKey] = useState<string>('Ví dụ');
+
+  const copyToClipboard = async (text: string, sectionId: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedSection(sectionId);
+      toast.success('Đã sao chép vào khay nhớ tạm!');
+      setTimeout(() => setCopiedSection(null), 2500);
+    } catch {
+      toast.error('Không thể sao chép tự động. Vui lòng chọn và sao chép thủ công.');
+    }
+  };
+
+  const activeApiKey = customApiKey.trim() || '<YOUR_API_KEY>';
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/20">
@@ -201,6 +473,46 @@ print("Kết quả:", data)`;
             </h2>
           </div>
 
+          {/* Hướng dẫn sử dụng Cổng dữ liệu */}
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 sm:p-5 text-sm space-y-3">
+            <div className="flex items-center gap-2 font-semibold text-primary">
+              <BookOpen className="w-4 h-4" />
+              <span>Hướng dẫn sử dụng Cổng dữ liệu Nguồn Gốc Số</span>
+            </div>
+            <p className="text-muted-foreground leading-relaxed text-xs sm:text-sm">
+              Cổng dữ liệu Nguồn Gốc Số cung cấp chuẩn giao diện lập trình ứng dụng (RESTful API) mở, cho phép các bên liên quan (doanh nghiệp thu mua, sàn thương mại điện tử, đơn vị logistics và đối tác quốc tế) tự động tích hợp và truy xuất hồ sơ chuỗi giá trị nông sản theo thời gian thực.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
+              <div className="bg-background/80 rounded-md border border-border p-3 space-y-1">
+                <div className="font-semibold text-foreground flex items-center gap-1.5">
+                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[11px] font-bold">1</span>
+                  Lấy Khóa API (API Key)
+                </div>
+                <p className="text-muted-foreground leading-normal">
+                  Liên hệ Quản trị viên Hợp tác xã (HTX) để được cấp mã khóa tích hợp (khóa thử nghiệm để kiểm thử hoặc khóa chính thức).
+                </p>
+              </div>
+              <div className="bg-background/80 rounded-md border border-border p-3 space-y-1">
+                <div className="font-semibold text-foreground flex items-center gap-1.5">
+                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[11px] font-bold">2</span>
+                  Cấu hình HTTP Request
+                </div>
+                <p className="text-muted-foreground leading-normal">
+                  Lựa chọn môi trường Base URL phù hợp và đính kèm khóa vào HTTP Request Header <code className="font-mono text-primary bg-primary/10 px-1 py-0.5 rounded text-[11px]">X-API-KEY: &lt;khóa&gt;</code>.
+                </p>
+              </div>
+              <div className="bg-background/80 rounded-md border border-border p-3 space-y-1">
+                <div className="font-semibold text-foreground flex items-center gap-1.5">
+                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[11px] font-bold">3</span>
+                  Truy xuất & Nhận Dữ liệu
+                </div>
+                <p className="text-muted-foreground leading-normal">
+                  Gọi các endpoint tại Mục 2 để nhận dữ liệu hồ sơ lô nông sản chi tiết hoặc xuất chuẩn hóa theo lược đồ quốc tế GS1 EPCIS 2.0.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="bg-card">
               <CardHeader className="pb-2">
@@ -208,13 +520,25 @@ print("Kết quả:", data)`;
                   Base URL API
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-1.5 text-xs">
-                <div className="font-mono bg-muted p-2 rounded border border-border break-all select-all font-semibold text-foreground">
-                  https://agri-trace.online
+              <CardContent className="space-y-2 text-xs">
+                <div className="space-y-1">
+                  <span className="text-[11px] font-semibold text-primary">● Production:</span>
+                  <div className="font-mono bg-muted p-1.5 rounded border border-border break-all select-all font-semibold text-foreground">
+                    https://agri-trace.online
+                  </div>
                 </div>
-                <p className="text-muted-foreground">
-                  Hỗ trợ cả môi trường kiểm thử cục bộ: <code className="font-mono">http://localhost:8080</code>
-                </p>
+                <div className="space-y-1">
+                  <span className="text-[11px] font-semibold text-amber-500">● Staging:</span>
+                  <div className="font-mono bg-muted p-1.5 rounded border border-border break-all select-all text-foreground">
+                    https://staging.agri-trace.online
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[11px] font-semibold text-sky-500">● Localhost:</span>
+                  <div className="font-mono bg-muted p-1.5 rounded border border-border break-all select-all text-foreground">
+                    http://localhost:8080
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -242,29 +566,13 @@ print("Kết quả:", data)`;
               </CardHeader>
               <CardContent className="space-y-1.5 text-xs">
                 <div className="font-mono bg-muted p-2 rounded border border-border font-semibold text-foreground">
-                  Tối đa 100 lượt / giờ (Sandbox)
+                  Tối đa 100 lượt / giờ
                 </div>
                 <p className="text-muted-foreground">
                   Nếu vượt quá hạn mức, hệ thống trả về mã lỗi HTTP <code className="font-mono text-destructive">429 Too Many Requests</code>.
                 </p>
               </CardContent>
             </Card>
-          </div>
-
-          {/* Sandbox Explanations */}
-          <div className="p-4 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 text-xs sm:text-sm leading-relaxed space-y-2">
-            <div className="flex items-center gap-2 font-semibold text-blue-900 dark:text-blue-200">
-              <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span>Chế độ Thử nghiệm (Sandbox Mode - is_test: true)</span>
-            </div>
-            <p className="text-blue-800 dark:text-blue-300">
-              Khi đối tác sử dụng khóa thử nghiệm (tiền tố <code className="font-mono font-bold">nks_test_</code>), hệ thống kích hoạt cơ chế <strong>Sandbox</strong>:
-            </p>
-            <ul className="list-disc list-inside space-y-1 text-blue-800 dark:text-blue-300 pl-2">
-              <li>Mọi yêu cầu lấy thông tin lô (kể cả khi truyền mã lô thật) đều nhận về <strong>dữ liệu mẫu mô phỏng chuẩn GS1</strong>.</li>
-              <li>Mọi phản hồi JSON luôn đính kèm cờ nhận diện <code className="font-mono font-semibold bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">&quot;is_test&quot;: true</code>.</li>
-              <li>Bảo vệ toàn vẹn và tuyệt đối bí mật dữ liệu canh tác và khách hàng thật của HTX trong suốt quá trình đối tác kết nối tích hợp.</li>
-            </ul>
           </div>
         </section>
 
@@ -278,6 +586,57 @@ print("Kết quả:", data)`;
           </div>
 
           <div className="space-y-6">
+            {/* Khung cấu hình Khóa API */}
+            <Card className="bg-card border-border overflow-hidden">
+              <CardHeader className="bg-muted/30 pb-3">
+                <div className="flex items-center gap-2">
+                  <Code2 className="w-4 h-4 text-primary" />
+                  <CardTitle className="text-sm font-semibold">
+                    Ví dụ Gọi Thử nghiệm (Quickstart Code Samples)
+                  </CardTitle>
+                </div>
+                <CardDescription className="text-xs mt-1">
+                  Nhập khóa API thử nghiệm do HTX cấp để sinh và hiển thị tự động các ví dụ lệnh gọi tại từng endpoint bên dưới.
+                </CardDescription>
+              </CardHeader>
+
+              {/* Ô nhập API Key thử nghiệm */}
+              <div className="p-4 bg-muted/20 space-y-2 border-t border-border">
+                <label
+                  htmlFor="portal-api-key-input"
+                  className="text-xs font-medium text-foreground flex items-center gap-1.5"
+                >
+                  <Key className="w-3.5 h-3.5 text-primary" />
+                  <span>Khóa API thử nghiệm của bạn (do HTX cấp):</span>
+                </label>
+                <div className="flex items-center gap-2 max-w-xl">
+                  <Input
+                    id="portal-api-key-input"
+                    type="text"
+                    placeholder="Nhập khóa API (ví dụ: nks_test_...)"
+                    value={customApiKey}
+                    onChange={(e) => setCustomApiKey(e.target.value)}
+                    className="font-mono text-xs sm:text-sm bg-background"
+                  />
+                  {customApiKey && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCustomApiKey('')}
+                      className="text-xs text-muted-foreground hover:text-foreground h-11 px-3"
+                    >
+                      Xóa
+                    </Button>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Lưu ý: Nếu chưa có khóa, vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa thử nghiệm.
+                </p>
+              </div>
+            </Card>
+
+
             {/* Endpoint 1 */}
             <Card className="bg-card border-border overflow-hidden">
               <div className="p-4 sm:p-5 border-b border-border bg-muted/30 flex flex-wrap items-center justify-between gap-3">
@@ -290,68 +649,24 @@ print("Kết quả:", data)`;
                   </code>
                 </div>
                 <span className="text-xs font-medium text-muted-foreground">
-                  Tra cứu hồ sơ lô sản xuất (Công khai & Sandbox)
+                  Tra cứu hồ sơ lô sản xuất
                 </span>
               </div>
               <CardContent className="p-4 sm:p-6 space-y-4 text-xs sm:text-sm">
                 <p className="text-muted-foreground">
-                  Cho phép đối tác lấy thông tin cơ bản của lô sản xuất theo mã định danh. Với khóa thử nghiệm, API luôn trả về lô mẫu kèm cờ <code className="font-mono text-primary font-bold">is_test: true</code>.
+                  Cho phép đối tác lấy thông tin cơ bản của lô sản xuất theo mã định danh. Với khóa thử nghiệm.
                 </p>
-
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-foreground text-xs uppercase tracking-wider">
-                    Tham số đường dẫn (Path Parameters)
-                  </h4>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border border-border rounded-lg overflow-hidden">
-                      <thead className="bg-muted text-muted-foreground font-semibold">
-                        <tr>
-                          <th className="p-2.5 border-b border-border">Tham số</th>
-                          <th className="p-2.5 border-b border-border">Kiểu</th>
-                          <th className="p-2.5 border-b border-border">Bắt buộc</th>
-                          <th className="p-2.5 border-b border-border">Mô tả</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b border-border/50">
-                          <td className="p-2.5 font-mono text-primary font-semibold">lotId</td>
-                          <td className="p-2.5 font-mono">string / UUID</td>
-                          <td className="p-2.5 text-destructive font-semibold">Có</td>
-                          <td className="p-2.5 text-muted-foreground">Mã UUID hoặc chuỗi định danh của lô sản xuất</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-foreground text-xs uppercase tracking-wider">
-                    HTTP Request Headers
-                  </h4>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border border-border rounded-lg overflow-hidden">
-                      <thead className="bg-muted text-muted-foreground font-semibold">
-                        <tr>
-                          <th className="p-2.5 border-b border-border">Header</th>
-                          <th className="p-2.5 border-b border-border">Bắt buộc</th>
-                          <th className="p-2.5 border-b border-border">Giá trị ví dụ</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b border-border/50">
-                          <td className="p-2.5 font-mono font-semibold">X-API-KEY</td>
-                          <td className="p-2.5 text-destructive font-semibold">Có</td>
-                          <td className="p-2.5 font-mono text-muted-foreground">nks_test_a1b2c3d4e5f6g7h8i9j0</td>
-                        </tr>
-                        <tr>
-                          <td className="p-2.5 font-mono font-semibold">Accept</td>
-                          <td className="p-2.5 text-muted-foreground">Không</td>
-                          <td className="p-2.5 font-mono text-muted-foreground">application/json</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                {customApiKey.trim() && (
+                  <EndpointCodeSnippet
+                    endpointPath="/api/publicapi/v1/lots/sample-lot-001"
+                    copyId="code-sample-ep1"
+                    responseCopyId="json-sample-ep1"
+                    sampleResponseJson={SAMPLE_LOT_DOSSIER_JSON}
+                    activeApiKey={activeApiKey}
+                    copiedSection={copiedSection}
+                    onCopy={copyToClipboard}
+                  />
+                )}
               </CardContent>
             </Card>
 
@@ -374,6 +689,17 @@ print("Kết quả:", data)`;
                 <p className="text-muted-foreground">
                   Truy xuất đầy đủ hồ sơ của lô sản xuất bao gồm: thông tin vùng trồng, giống cây trồng, nhật ký canh tác theo mốc, danh sách vật tư nông nghiệp đã sử dụng và kết quả kiểm nghiệm đạt chuẩn.
                 </p>
+                {customApiKey.trim() && (
+                  <EndpointCodeSnippet
+                    endpointPath="/api/v1/partner/production-lots/sample-lot-001/dossier"
+                    copyId="code-sample-ep2"
+                    responseCopyId="json-sample-ep2"
+                    sampleResponseJson={SAMPLE_LOT_DOSSIER_JSON}
+                    activeApiKey={activeApiKey}
+                    copiedSection={copiedSection}
+                    onCopy={copyToClipboard}
+                  />
+                )}
               </CardContent>
             </Card>
 
@@ -394,270 +720,235 @@ print("Kết quả:", data)`;
               </div>
               <CardContent className="p-4 sm:p-6 space-y-4 text-xs sm:text-sm">
                 <p className="text-muted-foreground">
-                  Xuất dữ liệu theo định dạng JSON-LD tuân thủ tiêu chuẩn GS1 EPCIS 2.0 (Electronic Product Code Information Services), phục vụ tích hợp tự động với phần mềm ERP quốc tế và hải quan kiểm dịch.
+                  Xuất dữ liệu theo định dạng JSON-LD tuân thủ tiêu chuẩn GS1 EPCIS 2.0 (Electronic Product Code Information Services).
                 </p>
+                {customApiKey.trim() && (
+                  <EndpointCodeSnippet
+                    endpointPath="/api/v1/partner/shipments/sample-lot-001/dossier/gs1"
+                    copyId="code-sample-ep3"
+                    responseCopyId="json-sample-ep3"
+                    sampleResponseJson={SAMPLE_GS1_DOSSIER_JSON}
+                    responseBadge='★ Chuẩn hóa: GS1 EPCIS 2.0'
+                    activeApiKey={activeApiKey}
+                    copiedSection={copiedSection}
+                    onCopy={copyToClipboard}
+                  />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Khung Thông số chung: Tham số đường dẫn & HTTP Request Headers */}
+            <Card className="bg-card border-border overflow-hidden">
+              <div className="p-4 sm:p-5 border-b border-border bg-muted/30 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <SlidersHorizontal className="w-4 h-4 text-primary" />
+                  <span className="font-semibold text-sm sm:text-base text-foreground">
+                    Tham số Đường dẫn (Path Parameters) & HTTP Request Headers
+                  </span>
+                </div>
+                <span className="text-xs font-medium text-muted-foreground">
+                  Quy chuẩn dữ liệu đầu vào áp dụng cho các Endpoint tích hợp
+                </span>
+              </div>
+              <CardContent className="p-4 sm:p-6 space-y-6 text-xs sm:text-sm">
+                {/* Tham số đường dẫn */}
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-foreground text-xs uppercase tracking-wider">
+                    Tham số đường dẫn (Path Parameters)
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border border-border rounded-lg overflow-hidden">
+                      <thead className="bg-muted text-muted-foreground font-semibold">
+                        <tr>
+                          <th className="p-2.5 border-b border-border">Tham số</th>
+                          <th className="p-2.5 border-b border-border">Kiểu</th>
+                          <th className="p-2.5 border-b border-border">Bắt buộc</th>
+                          <th className="p-2.5 border-b border-border">Mô tả</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-border/50">
+                          <td className="p-2.5 font-mono text-primary font-semibold">lotId</td>
+                          <td className="p-2.5 font-mono">string / UUID</td>
+                          <td className="p-2.5 text-destructive font-semibold">Có</td>
+                          <td className="p-2.5 text-muted-foreground">Mã UUID hoặc chuỗi định danh của lô sản xuất (Ví dụ: <code className="font-mono text-foreground font-semibold">sample-lot-001</code> với khóa thử nghiệm)</td>
+                        </tr>
+                        <tr>
+                          <td className="p-2.5 font-mono text-primary font-semibold">shipmentId</td>
+                          <td className="p-2.5 font-mono">string / UUID</td>
+                          <td className="p-2.5 text-destructive font-semibold">Có</td>
+                          <td className="p-2.5 text-muted-foreground">Mã UUID hoặc chuỗi định danh của lô hàng xuất (Ví dụ: <code className="font-mono text-foreground font-semibold">sample-lot-001</code> / <code className="font-mono text-foreground font-semibold">sample-shipment-001</code> với khóa thử nghiệm)</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* HTTP Request Headers */}
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-foreground text-xs uppercase tracking-wider">
+                    HTTP Request Headers
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border border-border rounded-lg overflow-hidden">
+                      <thead className="bg-muted text-muted-foreground font-semibold">
+                        <tr>
+                          <th className="p-2.5 border-b border-border">Header</th>
+                          <th className="p-2.5 border-b border-border">Bắt buộc</th>
+                          <th className="p-2.5 border-b border-border">Giá trị ví dụ</th>
+                          <th className="p-2.5 border-b border-border">Mô tả</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-border/50">
+                          <td className="p-2.5 font-mono font-semibold">X-API-KEY</td>
+                          <td className="p-2.5 text-destructive font-semibold">Có</td>
+                          <td className="p-2.5 font-mono text-muted-foreground">nks_test_a1b2c3d4e5f6g7h8i9j0</td>
+                          <td className="p-2.5 text-muted-foreground">Khóa API xác thực được cấp bởi Hợp tác xã hoặc quản trị viên</td>
+                        </tr>
+                        <tr>
+                          <td className="p-2.5 font-mono font-semibold">Accept</td>
+                          <td className="p-2.5 text-muted-foreground">Không</td>
+                          <td className="p-2.5 font-mono text-muted-foreground">application/json</td>
+                          <td className="p-2.5 text-muted-foreground">Định dạng nội dung phản hồi mong muốn (<code className="font-mono text-foreground">application/json</code> hoặc <code className="font-mono text-foreground">application/xml</code>)</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
         </section>
 
-        {/* Section 3: Ví dụ gọi thử nghiệm (cURL & Code Samples) */}
-        <section id="examples" className="space-y-6">
-          <div className="flex items-center gap-2 border-b border-border pb-3">
-            <Code2 className="w-5 h-5 text-primary" />
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-              3. Ví dụ Gọi Thử nghiệm (Quickstart Code Samples)
-            </h2>
-          </div>
-
-          <Card className="bg-card border-border overflow-hidden">
-            <CardHeader className="bg-muted/30 pb-3 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-semibold">Lệnh gọi API mẫu với khóa Sandbox</CardTitle>
-                <CardDescription className="text-xs">
-                  Sử dụng lệnh bên dưới trong terminal hoặc chèn vào mã nguồn của bạn để thử nghiệm kết nối ngay.
-                </CardDescription>
-              </div>
-
-              {/* Tabs chọn ngôn ngữ */}
-              <div className="flex items-center gap-1 p-1 bg-muted rounded-lg border border-border">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('curl')}
-                  className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${activeTab === 'curl'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                >
-                  cURL
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('fetch')}
-                  className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${activeTab === 'fetch'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                >
-                  JavaScript
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('python')}
-                  className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${activeTab === 'python'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                >
-                  Python
-                </button>
-              </div>
-            </CardHeader>
-
-            <CardContent className="p-0 relative">
-              <div className="p-4 bg-slate-950 text-slate-100 font-mono text-xs sm:text-sm overflow-x-auto leading-relaxed">
-                <pre>
-                  {activeTab === 'curl' && sampleCurl}
-                  {activeTab === 'fetch' && sampleFetch}
-                  {activeTab === 'python' && samplePython}
-                </pre>
-              </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="absolute top-3 right-3 bg-slate-900/80 hover:bg-slate-800 text-slate-200 border-slate-700 gap-1 text-xs"
-                onClick={() => {
-                  const textToCopy =
-                    activeTab === 'curl'
-                      ? sampleCurl
-                      : activeTab === 'fetch'
-                        ? sampleFetch
-                        : samplePython;
-                  copyToClipboard(textToCopy, 'code-sample');
-                }}
-              >
-                {copiedSection === 'code-sample' ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Đã chép</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Sao chép</span>
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Section 4: Ví dụ Response mẫu (Sandbox JSON with is_test: true) */}
-        <section id="sample-response" className="space-y-6">
-          <div className="flex items-center gap-2 border-b border-border pb-3">
-            <FileCode className="w-5 h-5 text-primary" />
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-              4. Dữ liệu Phản hồi Mẫu (Sandbox Response Payload)
-            </h2>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Định dạng phản hồi: <code className="font-mono text-foreground">application/json</code> (Status: 200 OK)</span>
-              <span className="font-medium text-blue-600 dark:text-blue-400">
-                ★ Chú ý trường nhận diện: &quot;is_test&quot;: true
-              </span>
-            </div>
-
-            <div className="relative rounded-xl border border-slate-800 bg-slate-950 p-4 font-mono text-xs sm:text-sm text-slate-200 overflow-x-auto leading-relaxed">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="absolute top-3 right-3 bg-slate-900/80 hover:bg-slate-800 text-slate-200 border-slate-700 gap-1 text-xs"
-                onClick={() => copyToClipboard(sampleJsonResponse, 'json-sample')}
-              >
-                {copiedSection === 'json-sample' ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Đã chép JSON</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Sao chép JSON</span>
-                  </>
-                )}
-              </Button>
-
-              <pre className="select-all">
-                {sampleJsonResponse}
-              </pre>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 5: Bảng ánh xạ trường GS1 */}
+        {/* Section 3: Bảng ánh xạ trường GS1 */}
         <section id="gs1-mapping" className="space-y-6">
           <div className="flex items-center gap-2 border-b border-border pb-3">
             <Layers className="w-5 h-5 text-primary" />
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-              5. Bảng Ánh xạ Thuộc tính theo Chuẩn GS1 EPCIS
+              3. Bảng Ánh xạ Thuộc tính theo Chuẩn GS1 EPCIS
             </h2>
           </div>
 
-          <div className="overflow-x-auto border border-border rounded-xl">
-            <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="bg-muted text-foreground font-semibold border-b border-border">
-                <tr>
-                  <th className="p-3">Thuộc tính Nguồn Gốc Số</th>
-                  <th className="p-3">Thuộc tính GS1 EPCIS 2.0</th>
-                  <th className="p-3">Định dạng / Mã chuẩn</th>
-                  <th className="p-3">Mục đích & Ý nghĩa</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                <tr className="hover:bg-muted/30">
-                  <td className="p-3 font-semibold text-foreground">Mã lô sản xuất (GTIN)</td>
-                  <td className="p-3 font-mono text-primary font-semibold">epcList / itemGtin</td>
-                  <td className="p-3 font-mono text-xs">urn:epc:id:sgtin:8938501...</td>
-                  <td className="p-3 text-muted-foreground">Mã định danh sản phẩm theo GS1 toàn cầu</td>
-                </tr>
-                <tr className="hover:bg-muted/30">
-                  <td className="p-3 font-semibold text-foreground">Mã vùng trồng / Cơ sở</td>
-                  <td className="p-3 font-mono text-primary font-semibold">bizLocation / GLN</td>
-                  <td className="p-3 font-mono text-xs">urn:epc:id:sgln:8938501...</td>
-                  <td className="p-3 text-muted-foreground">Mã địa điểm toàn cầu xác định tọa độ nông trại, nhà kho</td>
-                </tr>
-                <tr className="hover:bg-muted/30">
-                  <td className="p-3 font-semibold text-foreground">Bước nghiệp vụ (Công đoạn)</td>
-                  <td className="p-3 font-mono text-primary font-semibold">bizStep</td>
-                  <td className="p-3 font-mono text-xs">urn:epcglobal:cbv:bizstep:...</td>
-                  <td className="p-3 text-muted-foreground">Thu hoạch (harvesting), Đóng gói (packing), Vận chuyển (shipping)</td>
-                </tr>
-                <tr className="hover:bg-muted/30">
-                  <td className="p-3 font-semibold text-foreground">Trạng thái chất lượng</td>
-                  <td className="p-3 font-mono text-primary font-semibold">disposition</td>
-                  <td className="p-3 font-mono text-xs">urn:epcglobal:cbv:disp:...</td>
-                  <td className="p-3 text-muted-foreground">Đạt chuẩn (active/passed), Đang kiểm nghiệm (in_progress)</td>
-                </tr>
-                <tr className="hover:bg-muted/30">
-                  <td className="p-3 font-semibold text-foreground">Thời điểm ghi nhận</td>
-                  <td className="p-3 font-mono text-primary font-semibold">eventTime</td>
-                  <td className="p-3 font-mono text-xs">ISO 8601 (UTC)</td>
-                  <td className="p-3 text-muted-foreground">Thời gian chính xác khi sự kiện diễn ra tại nông hộ</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <Card className="bg-card border-border overflow-hidden">
+            <CardContent className="p-4 sm:p-6">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs sm:text-sm border border-border rounded-lg overflow-hidden">
+                  <thead className="bg-muted text-muted-foreground font-semibold">
+                    <tr>
+                      <th className="p-2.5 sm:p-3 border-b border-border">Thuộc tính Nguồn Gốc Số</th>
+                      <th className="p-2.5 sm:p-3 border-b border-border">Thuộc tính GS1 EPCIS 2.0</th>
+                      <th className="p-2.5 sm:p-3 border-b border-border">Định dạng / Mã chuẩn</th>
+                      <th className="p-2.5 sm:p-3 border-b border-border">Mục đích & Ý nghĩa</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="p-2.5 sm:p-3 font-semibold text-foreground">Mã lô sản xuất (GTIN)</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-primary font-semibold">epcList / itemGtin</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs">urn:epc:id:sgtin:8938501...</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Mã định danh sản phẩm theo GS1 toàn cầu</td>
+                    </tr>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="p-2.5 sm:p-3 font-semibold text-foreground">Mã vùng trồng / Cơ sở</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-primary font-semibold">bizLocation / GLN</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs">urn:epc:id:sgln:8938501...</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Mã địa điểm toàn cầu xác định tọa độ nông trại, nhà kho</td>
+                    </tr>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="p-2.5 sm:p-3 font-semibold text-foreground">Bước nghiệp vụ (Công đoạn)</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-primary font-semibold">bizStep</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs">urn:epcglobal:cbv:bizstep:...</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Thu hoạch (harvesting), Đóng gói (packing), Vận chuyển (shipping)</td>
+                    </tr>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="p-2.5 sm:p-3 font-semibold text-foreground">Trạng thái chất lượng</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-primary font-semibold">disposition</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs">urn:epcglobal:cbv:disp:...</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Đạt chuẩn (active/passed), Đang kiểm nghiệm (in_progress)</td>
+                    </tr>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="p-2.5 sm:p-3 font-semibold text-foreground">Thời điểm ghi nhận</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-primary font-semibold">eventTime</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs">ISO 8601 (UTC)</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Thời gian chính xác khi sự kiện diễn ra tại nông hộ</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
         </section>
 
-        {/* Section 6: Bảng mã lỗi tổng hợp */}
+        {/* Section 4: Bảng mã lỗi tổng hợp */}
         <section id="error-codes" className="space-y-6">
           <div className="flex items-center gap-2 border-b border-border pb-3">
             <AlertTriangle className="w-5 h-5 text-primary" />
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-              6. Bảng Mã Lỗi Tổng hợp (HTTP Error Codes)
+              4. Bảng Mã Lỗi Tổng hợp (HTTP Error Codes)
             </h2>
           </div>
 
-          <div className="overflow-x-auto border border-border rounded-xl">
-            <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="bg-muted text-foreground font-semibold border-b border-border">
-                <tr>
-                  <th className="p-3">Mã HTTP</th>
-                  <th className="p-3">Tên lỗi</th>
-                  <th className="p-3">Nguyên nhân</th>
-                  <th className="p-3">Thông điệp phản hồi gợi ý</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                <tr className="hover:bg-muted/30">
-                  <td className="p-3 font-mono font-bold text-emerald-600">200</td>
-                  <td className="p-3 font-semibold text-foreground">OK</td>
-                  <td className="p-3 text-muted-foreground">Yêu cầu thành công, dữ liệu được trả về.</td>
-                  <td className="p-3 font-mono text-xs text-muted-foreground">&quot;success&quot;: true</td>
-                </tr>
-                <tr className="hover:bg-muted/30">
-                  <td className="p-3 font-mono font-bold text-amber-600">400</td>
-                  <td className="p-3 font-semibold text-foreground">Bad Request</td>
-                  <td className="p-3 text-muted-foreground">Thiếu tham số hoặc định dạng dữ liệu không hợp lệ.</td>
-                  <td className="p-3 font-mono text-xs text-muted-foreground">&quot;Tham số không hợp lệ&quot;</td>
-                </tr>
-                <tr className="hover:bg-muted/30">
-                  <td className="p-3 font-mono font-bold text-rose-600">401</td>
-                  <td className="p-3 font-semibold text-foreground">Unauthorized</td>
-                  <td className="p-3 text-muted-foreground">Khóa API không hợp lệ, đã bị thu hồi hoặc đã hết hạn.</td>
-                  <td className="p-3 font-mono text-xs text-muted-foreground">&quot;API Key đã hết hạn hoặc không tồn tại&quot;</td>
-                </tr>
-                <tr className="hover:bg-muted/30">
-                  <td className="p-3 font-mono font-bold text-rose-600">403</td>
-                  <td className="p-3 font-semibold text-foreground">Forbidden</td>
-                  <td className="p-3 text-muted-foreground">Khóa API không có quyền truy cập tài nguyên được yêu cầu.</td>
-                  <td className="p-3 font-mono text-xs text-muted-foreground">&quot;Bạn không có quyền truy cập dữ liệu này&quot;</td>
-                </tr>
-                <tr className="hover:bg-muted/30">
-                  <td className="p-3 font-mono font-bold text-amber-600">404</td>
-                  <td className="p-3 font-semibold text-foreground">Not Found</td>
-                  <td className="p-3 text-muted-foreground">Không tìm thấy lô sản xuất với mã đã chỉ định.</td>
-                  <td className="p-3 font-mono text-xs text-muted-foreground">&quot;Không tìm thấy lô sản xuất yêu cầu&quot;</td>
-                </tr>
-                <tr className="hover:bg-muted/30">
-                  <td className="p-3 font-mono font-bold text-purple-600">429</td>
-                  <td className="p-3 font-semibold text-foreground">Too Many Requests</td>
-                  <td className="p-3 text-muted-foreground">Vượt quá hạn mức số lượt gọi trong 1 giờ quy định.</td>
-                  <td className="p-3 font-mono text-xs text-muted-foreground">&quot;Vượt quá hạn mức yêu cầu API&quot;</td>
-                </tr>
-                <tr className="hover:bg-muted/30">
-                  <td className="p-3 font-mono font-bold text-destructive">500</td>
-                  <td className="p-3 font-semibold text-foreground">Internal Server Error</td>
-                  <td className="p-3 text-muted-foreground">Lỗi hệ thống máy chủ nội bộ.</td>
-                  <td className="p-3 font-mono text-xs text-muted-foreground">&quot;Lỗi máy chủ nội bộ. Vui lòng liên hệ quản trị.&quot;</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <Card className="bg-card border-border overflow-hidden">
+            <CardContent className="p-4 sm:p-6">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs sm:text-sm border border-border rounded-lg overflow-hidden">
+                  <thead className="bg-muted text-muted-foreground font-semibold">
+                    <tr>
+                      <th className="p-2.5 sm:p-3 border-b border-border">Mã HTTP</th>
+                      <th className="p-2.5 sm:p-3 border-b border-border">Tên lỗi</th>
+                      <th className="p-2.5 sm:p-3 border-b border-border">Nguyên nhân</th>
+                      <th className="p-2.5 sm:p-3 border-b border-border">Thông điệp phản hồi gợi ý</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="p-2.5 sm:p-3 font-mono font-bold text-emerald-600">200</td>
+                      <td className="p-2.5 sm:p-3 font-semibold text-foreground">OK</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Yêu cầu thành công, dữ liệu được trả về.</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;success&quot;: true</td>
+                    </tr>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="p-2.5 sm:p-3 font-mono font-bold text-amber-600">400</td>
+                      <td className="p-2.5 sm:p-3 font-semibold text-foreground">Bad Request</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Thiếu tham số hoặc định dạng dữ liệu không hợp lệ.</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;Tham số không hợp lệ&quot;</td>
+                    </tr>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="p-2.5 sm:p-3 font-mono font-bold text-rose-600">401</td>
+                      <td className="p-2.5 sm:p-3 font-semibold text-foreground">Unauthorized</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Khóa API không hợp lệ, đã bị thu hồi hoặc đã hết hạn.</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;API Key đã hết hạn hoặc không tồn tại&quot;</td>
+                    </tr>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="p-2.5 sm:p-3 font-mono font-bold text-rose-600">403</td>
+                      <td className="p-2.5 sm:p-3 font-semibold text-foreground">Forbidden</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Khóa API không có quyền truy cập tài nguyên được yêu cầu.</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;Bạn không có quyền truy cập dữ liệu này&quot;</td>
+                    </tr>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="p-2.5 sm:p-3 font-mono font-bold text-amber-600">404</td>
+                      <td className="p-2.5 sm:p-3 font-semibold text-foreground">Not Found</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Không tìm thấy lô sản xuất với mã đã chỉ định.</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;Không tìm thấy lô sản xuất yêu cầu&quot;</td>
+                    </tr>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="p-2.5 sm:p-3 font-mono font-bold text-purple-600">429</td>
+                      <td className="p-2.5 sm:p-3 font-semibold text-foreground">Too Many Requests</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Vượt quá hạn mức số lượt gọi trong 1 giờ quy định.</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;Vượt quá hạn mức yêu cầu API&quot;</td>
+                    </tr>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="p-2.5 sm:p-3 font-mono font-bold text-destructive">500</td>
+                      <td className="p-2.5 sm:p-3 font-semibold text-foreground">Internal Server Error</td>
+                      <td className="p-2.5 sm:p-3 text-muted-foreground">Lỗi hệ thống máy chủ nội bộ.</td>
+                      <td className="p-2.5 sm:p-3 font-mono text-xs text-muted-foreground">&quot;Lỗi máy chủ nội bộ. Vui lòng liên hệ quản trị.&quot;</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
         </section>
       </main>
 

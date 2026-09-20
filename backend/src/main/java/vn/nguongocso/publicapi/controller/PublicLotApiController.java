@@ -20,7 +20,8 @@ import vn.nguongocso.integration.partner.service.PartnerLotService;
 import vn.nguongocso.integration.partner.util.PartnerSampleDataProvider;
 
 /**
- * REST Controller cổng dữ liệu công khai dành cho đối tác tích hợp (NCL-12-CN-004).
+ * REST Controller cổng dữ liệu công khai dành cho đối tác tích hợp
+ * (NCL-12-CN-004).
  * <p>
  * Phục vụ endpoint {@code /api/publicapi/v1/lots/{lotId}} hỗ trợ cả môi trường
  * thử nghiệm (Sandbox) với khóa thử nghiệm và môi trường thực tế.
@@ -39,9 +40,10 @@ public class PublicLotApiController {
      *
      * @param lotId   Mã định danh lô (UUID hoặc mã lô mẫu)
      * @param request HttpServletRequest chứa thông tin partnerApiKey đã xác thực
-     * @return Dữ liệu hồ sơ lô (mẫu nếu là khóa thử nghiệm, thực tế nếu là khóa thật)
+     * @return Dữ liệu hồ sơ lô (mẫu nếu là khóa thử nghiệm, thực tế nếu là khóa
+     *         thật)
      */
-    @GetMapping({"/{lotId}", "/{lotId}/dossier"})
+    @GetMapping({ "/{lotId}", "/{lotId}/dossier" })
     public ResponseEntity<ApiResult<PartnerLotDossierResponse>> getLotDossier(
             @PathVariable String lotId,
             HttpServletRequest request) {
@@ -51,11 +53,21 @@ public class PublicLotApiController {
             throw new BusinessException("Thiếu hoặc không xác thực được khóa truy cập Header X-API-KEY");
         }
 
-        // Trường hợp sử dụng khóa thử nghiệm: luôn trả dữ liệu mẫu chuẩn Sandbox (TC-01, TC-02)
-        if (Boolean.TRUE.equals(partnerApiKey.getIsTest())) {
-            log.info("Đối tác '{}' sử dụng khóa thử nghiệm truy vấn lô '{}' -> trả dữ liệu mẫu Sandbox",
+        // Khóa thử nghiệm: chỉ cho phép truy cập với Lot ID là 'sample-lot-001' (TC-01, TC-02)
+        boolean isTestKey = Boolean.TRUE.equals(partnerApiKey.getIsTest())
+                || (partnerApiKey.getKeyPrefix() != null && partnerApiKey.getKeyPrefix().startsWith("nks_test_"));
+
+        if (isTestKey) {
+            if ("sample-lot-001".equalsIgnoreCase(lotId.trim())) {
+                log.info("Đối tác '{}' sử dụng khóa thử nghiệm truy vấn lô 'sample-lot-001' -> trả dữ liệu mẫu Sandbox",
+                        partnerApiKey.getPartnerName());
+                return ResponseEntity.ok(ApiResult.success(PartnerSampleDataProvider.getSampleLotDossier()));
+            }
+
+            log.warn("Đối tác '{}' dùng khóa thử nghiệm cố truy cập mã lô '{}' -> từ chối",
                     partnerApiKey.getPartnerName(), lotId);
-            return ResponseEntity.ok(ApiResult.success(PartnerSampleDataProvider.getSampleLotDossier()));
+            throw new BusinessException(org.springframework.http.HttpStatus.FORBIDDEN,
+                    "Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật.");
         }
 
         // Khóa thực tế: yêu cầu lotId là UUID hợp lệ của lô thuộc tổ chức

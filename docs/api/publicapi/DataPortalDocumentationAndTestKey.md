@@ -13,9 +13,9 @@
 Cổng dữ liệu đối tác (**Partner Data Portal**) của hệ thống Nguồn Gốc Số cung cấp giao diện lập trình ứng dụng (RESTful API) mở nhưng có kiểm soát, cho phép các bên thứ ba — đặc biệt là **Doanh nghiệp thu mua**, hệ thống siêu thị, đối tác logistics và sàn thương mại điện tử — kết nối tự động, tích hợp dữ liệu truy xuất nguồn gốc nông sản và hồ sơ lô hàng vào hệ thống quản lý nội bộ (ERP, WMS, SCM) mà không cần thao tác thủ công.
 
 ### 1.2. Base URL
-- Môi trường phát triển / thử nghiệm (Local / Dev): `http://localhost:8080`
-- Môi trường Staging: `https://staging.agri-trace.online`
-- Môi trường Production: `https://agri-trace.online`
+- **Môi trường Production (Chính thức):** `https://agri-trace.online`
+- **Môi trường Staging (Kiểm thử):** `https://staging.agri-trace.online`
+- **Môi trường phát triển / thử nghiệm (Local / Dev):** `http://localhost` (hoặc `http://localhost:8080` khi gọi trực tiếp backend)
 
 
 ### 1.3. Cơ chế xác thực (Authentication Mechanism)
@@ -84,7 +84,7 @@ Cổng dữ liệu đối tác hiện bao gồm 3 điểm truy xuất chính dà
 - **Xác thực:** Bắt buộc Header `X-API-KEY`.
 - **Phân quyền & Cách ly dữ liệu (Tenant Isolation):**
   - Khóa thật (Live Key): Chỉ truy xuất được các lô sản xuất thuộc sở hữu của Hợp tác xã đã cấp khóa đó. Truy xuất lô ngoài phạm vi sẽ bị từ chối `400 Bad Request`.
-  - Khóa thử nghiệm (Test Key / Sandbox): **Luôn trả về bộ dữ liệu mẫu** (Sample Lot Dossier), bỏ qua kiểm tra sở hữu lô, và đánh dấu cờ `isTest: true` trong kết quả trả về.
+  - Khóa thử nghiệm (Test Key / Sandbox - tiền tố `nks_test_`): **Chỉ cho phép truy cập với mã lô `sample-lot-001`** (cổng `/api/publicapi/v1/lots/sample-lot-001`). Nếu gọi với bất kỳ mã lô nào khác, hệ thống sẽ trả về lỗi `403 Forbidden` kèm thông điệp: `"Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật."`. Khi gọi đúng `sample-lot-001`, hệ thống trả về bộ dữ liệu mẫu Sandbox với cờ `is_test: true`.
 
 #### Tham số (Parameters)
 | Tên tham số | Vị trí | Kiểu | Bắt buộc | Mô tả |
@@ -422,37 +422,73 @@ Khi đối tác gửi request có Header `X-API-KEY` chứa khóa thử nghiệm
      "message": "Khóa thử nghiệm đã hết hạn"
    }
    ```
+5. **Khóa thử nghiệm không hợp lệ hoặc chưa được cấp:** Khi đối tác gửi Header `X-API-KEY` chứa khóa thử nghiệm không tồn tại hoặc không đúng, hệ thống từ chối truy cập với mã lỗi `HTTP 401 Unauthorized` kèm hướng dẫn:
+   ```json
+   {
+     "success": false,
+     "status": 401,
+     "message": "Khóa thử nghiệm không đúng. Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa."
+   }
+   ```
 
 ---
 
 ## 5. Ví dụ gọi thử nghiệm bằng cURL (Sandbox cURL Examples)
 
-Dưới đây là các ví dụ cURL hoàn chỉnh sử dụng khóa thử nghiệm mẫu để đội kỹ thuật đối tác có thể chạy thử trực tiếp từ terminal:
+Dưới đây là các ví dụ cURL hoàn chỉnh. Đối tác thay thế `<YOUR_TEST_API_KEY>` bằng khóa thử nghiệm do Hợp tác xã cấp (tiền tố `nks_test_...`) để chạy thử trực tiếp từ terminal.
 
-### 5.1. Gọi lấy hồ sơ lô thử nghiệm
+> **💡 Mẹo hiển thị dễ nhìn trên terminal:** Thêm cờ `-s` (silent - tắt thanh tiến trình tải) và nối ống dẫn `| jq .` ở cuối lệnh để terminal tự động thụt lề định dạng JSON và tô màu cú pháp trực quan (yêu cầu máy đã cài sẵn `jq`).
+
+### 5.1. Gọi lấy dữ liệu hồ sơ lô mẫu Sandbox (`/api/publicapi/v1/lots/sample-lot-001`)
+
+#### a) Môi trường Production (Chính thức):
 ```bash
-curl -X GET "http://localhost:8080/api/v1/partner/production-lots/00000000-0000-0000-0000-000000000001/dossier" \
+curl -s -X GET "https://agri-trace.online/api/publicapi/v1/lots/sample-lot-001" \
   -H "Accept: application/json" \
-  -H "X-API-KEY: nks_test_e8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
+  -H "X-API-KEY: <YOUR_TEST_API_KEY>" | jq .
 ```
 
-### 5.2. Gọi tra cứu hành trình mã tem thử nghiệm
+#### b) Môi trường Staging (Kiểm thử trước phát hành):
 ```bash
-curl -X GET "http://localhost:8080/api/v1/partner/trace/TEST-TRACE-001" \
+curl -s -X GET "https://staging.agri-trace.online/api/publicapi/v1/lots/sample-lot-001" \
   -H "Accept: application/json" \
-  -H "X-API-KEY: nks_test_e8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
+  -H "X-API-KEY: <YOUR_TEST_API_KEY>" | jq .
 ```
 
-### 5.3. Gọi xuất hồ sơ GS1 mô phỏng (JSON)
+#### c) Môi trường Localhost (Phát triển cục bộ):
 ```bash
-curl -X GET "http://localhost:8080/api/v1/partner/shipments/00000000-0000-0000-0000-000000000010/dossier/gs1?format=json" \
+curl -s -X GET "http://localhost:8080/api/publicapi/v1/lots/sample-lot-001" \
   -H "Accept: application/json" \
-  -H "X-API-KEY: nks_test_e8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
+  -H "X-API-KEY: <YOUR_TEST_API_KEY>" | jq .
+```
+*(Nếu gọi qua Nginx reverse proxy của frontend local: dùng `http://localhost:3000`)*.
+*(Nếu gọi trực tiếp tới cổng backend Spring Boot: dùng `http://localhost:8080`)*.
+
+---
+
+### 5.2. Gọi lấy hồ sơ lô đối tác (`/api/v1/partner/production-lots/{lotId}/dossier`)
+```bash
+curl -s -X GET "https://agri-trace.online/api/v1/partner/production-lots/00000000-0000-0000-0000-000000000001/dossier" \
+  -H "Accept: application/json" \
+  -H "X-API-KEY: nks_test_e8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1" | jq .
 ```
 
-### 5.4. Gọi xuất hồ sơ GS1 mô phỏng (XML)
+### 5.3. Gọi tra cứu hành trình mã tem thử nghiệm (`/api/v1/partner/trace/{codeValue}`)
 ```bash
-curl -X GET "http://localhost:8080/api/v1/partner/shipments/00000000-0000-0000-0000-000000000010/dossier/gs1?format=xml" \
+curl -s -X GET "https://agri-trace.online/api/v1/partner/trace/TEST-TRACE-001" \
+  -H "Accept: application/json" \
+  -H "X-API-KEY: nks_test_e8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1" | jq .
+```
+
+### 5.4. Gọi xuất hồ sơ GS1 mô phỏng (JSON & XML)
+```bash
+# Định dạng JSON
+curl -s -X GET "https://agri-trace.online/api/v1/partner/shipments/00000000-0000-0000-0000-000000000010/dossier/gs1?format=json" \
+  -H "Accept: application/json" \
+  -H "X-API-KEY: nks_test_e8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1" | jq .
+
+# Định dạng XML
+curl -s -X GET "https://agri-trace.online/api/v1/partner/shipments/00000000-0000-0000-0000-000000000010/dossier/gs1?format=xml" \
   -H "Accept: application/xml" \
   -H "X-API-KEY: nks_test_e8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1"
 ```

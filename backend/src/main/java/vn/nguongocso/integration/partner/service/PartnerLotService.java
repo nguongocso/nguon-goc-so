@@ -28,10 +28,13 @@ import vn.nguongocso.integration.partner.util.PartnerSampleDataProvider;
 import vn.nguongocso.organization.entity.Organization;
 
 /**
- * Service xử lý lấy hồ sơ truy xuất lô sản xuất cho bên thứ ba (NCL-12-CN-002, NCL-12-CN-004).
+ * Service xử lý lấy hồ sơ truy xuất lô sản xuất cho bên thứ ba (NCL-12-CN-002,
+ * NCL-12-CN-004).
  * <p>
- * Đảm bảo quy tắc bảo mật Cách ly Dữ liệu Tổ chức (Tenant Isolation - TC-04) đối với khóa thật,
- * và điều hướng trả dữ liệu mẫu chuẩn Sandbox đối với khóa thử nghiệm (TC-01, TC-02).
+ * Đảm bảo quy tắc bảo mật Cách ly Dữ liệu Tổ chức (Tenant Isolation - TC-04)
+ * đối với khóa thật,
+ * và điều hướng trả dữ liệu mẫu chuẩn Sandbox đối với khóa thử nghiệm (TC-01,
+ * TC-02).
  */
 @Service
 @RequiredArgsConstructor
@@ -45,9 +48,12 @@ public class PartnerLotService {
     /**
      * Lấy hồ sơ truy xuất đầy đủ của lô sản xuất cho bên thứ ba.
      * <p>
-     * - Đối với khóa thử nghiệm (isTest = true): LUÔN trả về dữ liệu mẫu Sandbox kèm đánh dấu isTest = true (TC-01, TC-02).
-     * - Đối với khóa thật: Thực thi quy tắc Cách ly Dữ liệu Tổ chức (Tenant Isolation - TC-04):
-     *   Chỉ cho phép truy xuất lô thuộc sở hữu của Hợp tác xã tương ứng với PartnerApiKey.
+     * - Đối với khóa thử nghiệm (isTest = true): LUÔN trả về dữ liệu mẫu Sandbox
+     * kèm đánh dấu isTest = true (TC-01, TC-02).
+     * - Đối với khóa thật: Thực thi quy tắc Cách ly Dữ liệu Tổ chức (Tenant
+     * Isolation - TC-04):
+     * Chỉ cho phép truy xuất lô thuộc sở hữu của Hợp tác xã tương ứng với
+     * PartnerApiKey.
      */
     @Transactional(readOnly = true)
     public PartnerLotDossierResponse getLotDossierForPartner(UUID lotId, PartnerApiKey partnerApiKey) {
@@ -55,11 +61,14 @@ public class PartnerLotService {
             throw new BusinessException("Khóa truy cập không hợp lệ hoặc thiếu thông tin tổ chức");
         }
 
-        // TC-01, TC-02: Nếu là khóa thử nghiệm -> Trả dữ liệu mẫu Sandbox chuẩn
-        if (Boolean.TRUE.equals(partnerApiKey.getIsTest())) {
-            log.info("Bên thứ ba '{}' gọi lấy hồ sơ lô bằng khóa thử nghiệm (lotId={}) -> Trả dữ liệu mẫu Sandbox (NCL-12-CN-004)",
+        // TC-01, TC-02: Khóa thử nghiệm chỉ được phép truy cập mã lô 'sample-lot-001' qua cổng publicapi
+        if (Boolean.TRUE.equals(partnerApiKey.getIsTest())
+                || (partnerApiKey.getKeyPrefix() != null && partnerApiKey.getKeyPrefix().startsWith("nks_test_"))) {
+            log.warn(
+                    "Bên thứ ba '{}' dùng khóa thử nghiệm gọi lấy hồ sơ lô thực tế (lotId={}) -> Từ chối",
                     partnerApiKey.getPartnerName(), lotId);
-            return PartnerSampleDataProvider.getSampleLotDossier();
+            throw new BusinessException(org.springframework.http.HttpStatus.FORBIDDEN,
+                    "Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật.");
         }
 
         UUID organizationId = partnerApiKey.getOrganization().getOrganizationId();
@@ -68,7 +77,8 @@ public class PartnerLotService {
         ProductionLot lot = productionLotRepository.findById(lotId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin lô sản xuất"));
 
-        // 2. Kiểm tra Cách ly dữ liệu Tổ chức (TC-04): Lô có thuộc HTX của API Key hay không
+        // 2. Kiểm tra Cách ly dữ liệu Tổ chức (TC-04): Lô có thuộc HTX của API Key hay
+        // không
         if (!lot.getOrganization().getOrganizationId().equals(organizationId)) {
             log.warn("Bên thứ ba '{}' (orgId={}) cố tình truy cập lô {} thuộc orgId khác={}",
                     partnerApiKey.getPartnerName(), organizationId, lotId, lot.getOrganization().getOrganizationId());

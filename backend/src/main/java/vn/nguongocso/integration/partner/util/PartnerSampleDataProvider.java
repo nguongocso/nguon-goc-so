@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import vn.nguongocso.farm.enums.ProductionLotStatus;
+import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.partner.dto.response.PartnerCertificationResponse;
 import vn.nguongocso.integration.partner.dto.response.PartnerFarmAreaResponse;
 import vn.nguongocso.integration.partner.dto.response.PartnerFarmLogSummaryResponse;
@@ -34,6 +35,9 @@ import vn.nguongocso.report.dto.response.Gs1ShipmentInfo;
 public final class PartnerSampleDataProvider {
 
     public static final String TEST_NOTICE = "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế";
+
+    /** Mã lô mẫu chuẩn Sandbox được dùng trong tài liệu và ví dụ tích hợp. */
+    public static final String SAMPLE_LOT_ID = "sample-lot-001";
 
     private PartnerSampleDataProvider() {
         // Utility class
