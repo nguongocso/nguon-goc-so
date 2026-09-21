@@ -34,6 +34,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.*;
 
+import vn.nguongocso.event.service.resolver.ProcurementShipmentResolver;
+
 @ExtendWith(MockitoExtension.class)
 public class ProcurementEventServiceTest {
 
@@ -46,8 +48,8 @@ public class ProcurementEventServiceTest {
     @Mock private EventValidationService eventValidationService;
     @Mock private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
-    @InjectMocks
     private ProcurementEventServiceImpl service;
+    private ProcurementShipmentResolver procurementShipmentResolver;
 
     private final UUID orgId = UUID.randomUUID();
     private final UUID userId = UUID.randomUUID();
@@ -60,6 +62,10 @@ public class ProcurementEventServiceTest {
 
     @BeforeEach
     void setUp() {
+        procurementShipmentResolver = new ProcurementShipmentResolver(
+                shipmentRepository, shipmentHandoverRepository, chainEventRepository, eventValidationService);
+        service = new ProcurementEventServiceImpl(
+                procurementShipmentResolver, chainEventService, userRepository, objectMapper, eventPublisher);
         org = new Organization();
         org.setOrganizationId(orgId);
 

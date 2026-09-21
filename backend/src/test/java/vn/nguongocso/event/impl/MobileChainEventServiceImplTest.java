@@ -63,7 +63,9 @@ class MobileChainEventServiceImplTest {
     @Mock
     private vn.nguongocso.farm.service.HarvestEligibilityService harvestEligibilityService;
 
-    @InjectMocks
+    @Mock
+    private vn.nguongocso.certification.service.MilestoneValidationService milestoneValidationService;
+
     private ChainEventServiceImpl chainEventService;
 
     private CustomUserDetails validUser;
@@ -91,6 +93,17 @@ class MobileChainEventServiceImplTest {
         actor = new User();
         actor.setUserId(userId);
         actor.setFullName("Lê Văn Đồng");
+
+        vn.nguongocso.event.service.processor.HarvestEventProcessor harvestEventProcessor =
+                new vn.nguongocso.event.service.processor.HarvestEventProcessor(
+                        productionLotRepository, chainEventRepository, userRepository,
+                        harvestEligibilityService, eventValidationService, eventPublisher,
+                        objectMapper, java.time.Clock.systemDefaultZone()
+                );
+        chainEventService = new ChainEventServiceImpl(
+                chainEventRepository, null, harvestEventProcessor,
+                null, null, null, null
+        );
     }
 
     @Test

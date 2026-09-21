@@ -69,6 +69,9 @@ class OfflineSyncEventProcessorFarmLogTest {
     @Mock
     private PermissionChecker permissionChecker;
 
+    @org.mockito.Spy
+    private vn.nguongocso.event.service.mapper.OfflineFarmLogPayloadMapper offlineFarmLogPayloadMapper = new vn.nguongocso.event.service.mapper.OfflineFarmLogPayloadMapper();
+
     @InjectMocks
     private OfflineSyncEventProcessor eventProcessor;
 

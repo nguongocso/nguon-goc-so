@@ -67,7 +67,7 @@ class ShipmentSplitServiceTest {
                 mock(ProductionLotRepository.class), mock(QRCodeService.class), users,
                 mock(ApplicationEventPublisher.class), mock(NotificationService.class), permissions,
                 mock(InspectionEligibilityService.class), organizations, mock(ShipmentHandoverRepository.class), events,
-                new EventHashService(new ObjectMapper()), new ObjectMapper());
+                new vn.nguongocso.event.service.impl.EventHashServiceImpl(new ObjectMapper()), new ObjectMapper());
         actor = mock(CustomUserDetails.class);
         when(actor.getRoleCode()).thenReturn("VT-02"); when(actor.getOrganizationId()).thenReturn(sourceOrgId);
         when(actor.getUserId()).thenReturn(UUID.randomUUID()); when(actor.getFullName()).thenReturn("Quản lý HTX");

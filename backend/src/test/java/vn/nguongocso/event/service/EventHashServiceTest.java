@@ -14,6 +14,8 @@ import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.trace.entity.Shipment;
 
+import vn.nguongocso.event.service.impl.EventHashServiceImpl;
+
 class EventHashServiceTest {
 
     private EventHashService service;
@@ -23,7 +25,7 @@ class EventHashServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new EventHashService(new ObjectMapper());
+        service = new EventHashServiceImpl(new ObjectMapper());
         shipment = new Shipment();
         shipment.setId(UUID.fromString("9c8b7a6f-2222-4a2a-9f3d-1a2b3c4d5e6f"));
 
