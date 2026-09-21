@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+
 import {
   getNotifications,
   markNotificationAsRead,
@@ -12,15 +13,28 @@ import type {
 interface UseNotificationsOptions {
   size?: number;
   isRead?: boolean;
-  // false: không tự tải khi mount (dùng cho dropdown, chỉ tải lúc mở)
+  /** false: không tự tải khi mount (dùng cho dropdown, chỉ tải lúc mở) */
   autoLoad?: boolean;
 }
 
-export const useNotifications = ({
+export interface UseNotificationsResult {
+  items: NotificationResponse[];
+  page: number;
+  totalPages: number;
+  totalElements: number;
+  isLoading: boolean;
+  load: (targetPage?: number) => Promise<void>;
+  markAsRead: (notificationId: string) => Promise<void>;
+}
+
+/**
+ * Hook quản lý danh sách thông báo và phân trang.
+ */
+export function useNotifications({
   size = 20,
   isRead,
   autoLoad = true,
-}: UseNotificationsOptions = {}) => {
+}: UseNotificationsOptions = {}): UseNotificationsResult {
   const [items, setItems] = useState<NotificationResponse[]>([]);
   const [page, setPage] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
@@ -33,15 +47,18 @@ export const useNotifications = ({
       setIsLoading(true);
       try {
         const params: GetNotificationsParams = { page: targetPage, size };
-        if (isRead !== undefined) params.isRead = isRead;
+        if (isRead !== undefined) {
+          params.isRead = isRead;
+        }
 
         const data = await getNotifications(params);
         setItems(data.items);
         setPage(data.page);
         setTotalElements(data.totalElements);
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const axiosError = error as { response?: { data?: { message?: string } } };
         const message =
-          error.response?.data?.message || 'Không thể tải danh sách thông báo.';
+          axiosError.response?.data?.message || 'Không thể tải danh sách thông báo.';
         toast.error(message);
       } finally {
         setIsLoading(false);
@@ -51,31 +68,36 @@ export const useNotifications = ({
   );
 
   useEffect(() => {
-    if (autoLoad) void load(0);
+    if (autoLoad) {
+      void load(0);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRead]);
 
-  const markAsRead = useCallback(async (notificationId: string) => {
-    // Cập nhật lạc quan trước, đồng bộ lại nếu API thất bại
-    setItems((current) =>
-      current.map((item) =>
-        item.id === notificationId
-          ? { ...item, isRead: true, readAt: item.readAt ?? new Date().toISOString() }
-          : item,
-      ),
-    );
+  const markAsRead = useCallback(
+    async (notificationId: string) => {
+      // Cập nhật lạc quan trước, đồng bộ lại nếu API thất bại
+      setItems((current) =>
+        current.map((item) =>
+          item.id === notificationId
+            ? { ...item, isRead: true, readAt: item.readAt ?? new Date().toISOString() }
+            : item,
+        ),
+      );
 
-    try {
-      await markNotificationAsRead(notificationId);
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message ||
-        'Không thể đánh dấu thông báo đã đọc.';
-      toast.error(message);
-      // Rollback nếu thất bại
-      void load(page);
-    }
-  }, [load, page]);
+      try {
+        await markNotificationAsRead(notificationId);
+      } catch (error: unknown) {
+        const axiosError = error as { response?: { data?: { message?: string } } };
+        const message =
+          axiosError.response?.data?.message || 'Không thể đánh dấu thông báo đã đọc.';
+        toast.error(message);
+        // Rollback nếu thất bại
+        void load(page);
+      }
+    },
+    [load, page],
+  );
 
   return {
     items,
@@ -86,4 +108,4 @@ export const useNotifications = ({
     load,
     markAsRead,
   };
-};
+}

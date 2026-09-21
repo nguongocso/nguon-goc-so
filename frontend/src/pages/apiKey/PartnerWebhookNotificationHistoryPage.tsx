@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
-  History,
-  CheckCircle2,
-  Clock,
   AlertTriangle,
   Ban,
+  CheckCircle2,
+  Clock,
+  History,
   Key,
   Send,
 } from 'lucide-react';
@@ -24,7 +24,7 @@ import { FilterSelect } from '@/components/common/FilterSelect';
 import { RefreshButton } from '@/components/common/RefreshButton';
 import { Pagination } from '@/components/common/Pagination';
 import { DataTableShell } from '@/components/common/DataTableShell';
-import { TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,7 +39,10 @@ const STATUS_FILTER_OPTIONS = [
   { value: 'CANCELLED', label: 'Đã hủy (Khóa thu hồi)' },
 ];
 
-export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
+/**
+ * Trang xem lịch sử gửi webhook thông báo thu hồi cho khóa API của đối tác.
+ */
+export function PartnerWebhookNotificationHistoryPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -62,7 +65,9 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
   ]);
 
   const fetchHistory = async () => {
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     setLoading(true);
     try {
       const filter = statusFilter === 'ALL' ? undefined : (statusFilter as WebhookDeliveryStatus);
@@ -79,18 +84,21 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchHistory();
+    void fetchHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, page, statusFilter]);
 
   // Bộ lọc tìm kiếm trên máy khách
   const filteredNotifications = useMemo(() => {
-    if (!search.trim()) return notifications;
+    if (!search.trim()) {
+      return notifications;
+    }
     const q = search.toLowerCase().trim();
     return notifications.filter(
       (n) =>
         n.lotCode.toLowerCase().includes(q) ||
         (n.publicReason && n.publicReason.toLowerCase().includes(q)) ||
-        (n.targetUrl && n.targetUrl.toLowerCase().includes(q))
+        (n.targetUrl && n.targetUrl.toLowerCase().includes(q)),
     );
   }, [notifications, search]);
 
@@ -134,7 +142,9 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
   // Thống kê nhanh trong trang
   const successCount = notifications.filter((n) => n.deliveryStatus === 'SUCCESS').length;
   const retryingCount = notifications.filter((n) => n.deliveryStatus === 'PENDING_RETRY').length;
-  const failedCount = notifications.filter((n) => n.deliveryStatus === 'FAILED' || n.deliveryStatus === 'CANCELLED').length;
+  const failedCount = notifications.filter(
+    (n) => n.deliveryStatus === 'FAILED' || n.deliveryStatus === 'CANCELLED',
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -233,7 +243,7 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
               />
             </>
           }
-          right={<RefreshButton onClick={fetchHistory} loading={loading} />}
+          right={<RefreshButton onClick={() => void fetchHistory()} loading={loading} />}
         />
 
         <DataTableShell
@@ -252,7 +262,7 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
           body={filteredNotifications.map((item, index) => {
             const isExpanded = expandedId === item.id;
             return (
-              <React.Fragment key={item.id}>
+              <Fragment key={item.id}>
                 <TableRow className="hover:bg-muted/40 transition-colors">
                   <TableCell className="text-center font-medium text-muted-foreground">
                     {page * pageSize + index + 1}
@@ -261,7 +271,10 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
                   <TableCell>
                     <div className="font-semibold text-foreground text-sm">{item.lotCode}</div>
                     {item.publicReason && (
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 max-w-xs" title={item.publicReason}>
+                      <p
+                        className="text-xs text-muted-foreground mt-0.5 line-clamp-1 max-w-xs"
+                        title={item.publicReason}
+                      >
                         Lý do: {item.publicReason}
                       </p>
                     )}
@@ -279,7 +292,9 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
                       {item.nextRetryAt && item.deliveryStatus === 'PENDING_RETRY' && (
                         <div className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
                           <Clock className="w-3 h-3 shrink-0" />
-                          <span>Thử lại lúc: {new Date(item.nextRetryAt).toLocaleTimeString('vi-VN')}</span>
+                          <span>
+                            Thử lại lúc: {new Date(item.nextRetryAt).toLocaleTimeString('vi-VN')}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -306,7 +321,10 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
                       <span className="text-xs text-muted-foreground italic">Chưa có</span>
                     )}
                     {item.lastErrorMessage && item.deliveryStatus !== 'SUCCESS' && (
-                      <p className="text-[11px] text-rose-500 font-mono mt-0.5 truncate max-w-[200px]" title={item.lastErrorMessage}>
+                      <p
+                        className="text-[11px] text-rose-500 font-mono mt-0.5 truncate max-w-[200px]"
+                        title={item.lastErrorMessage}
+                      >
                         {item.lastErrorMessage}
                       </p>
                     )}
@@ -382,7 +400,9 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
                                       HTTP {att.httpStatus}
                                     </span>
                                   )}
-                                  <span className="text-muted-foreground">{att.durationMs} ms</span>
+                                  <span className="text-muted-foreground">
+                                    {att.durationMs} ms
+                                  </span>
                                 </div>
                               </div>
 
@@ -404,7 +424,7 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
                     </TableCell>
                   </TableRow>
                 )}
-              </React.Fragment>
+              </Fragment>
             );
           })}
           loading={loading}
@@ -427,6 +447,6 @@ export const PartnerWebhookNotificationHistoryPage: React.FC = () => {
       </ListCard>
     </div>
   );
-};
+}
 
 export default PartnerWebhookNotificationHistoryPage;

@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Bell, CheckCircle2, ChevronLeft, ChevronRight, Info, MailWarning, MapPinOff } from 'lucide-react';
+import {
+  AlertTriangle,
+  Bell,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Info,
+  MailWarning,
+  MapPinOff,
+} from 'lucide-react';
+
 import { HelpButton } from '@/components/help/HelpButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,7 +48,7 @@ const TYPE_STYLE: Record<NotificationType, string> = {
   ACTIVITY_LOG_EXPORT_READY: 'bg-success-bg text-success',
 };
 
-const formatNotificationReason = (content: string) => {
+function formatNotificationReason(content: string): string {
   return content
     .replace(/REPEATED_FAILED_LOGIN/g, 'Đăng nhập thất bại nhiều lần')
     .replace(/UNUSUAL_COUNTRY/g, 'Đăng nhập từ quốc gia bất thường')
@@ -46,9 +56,9 @@ const formatNotificationReason = (content: string) => {
     .replace(/ACCOUNT_LOCKED/g, 'Tài khoản bị khóa')
     .replace(/DISMISSED/g, 'Bất thường đã được bỏ qua')
     .replace(/LOGIN_ANOMALY_DETECTED/g, 'Phát hiện đăng nhập bất thường');
-};
+}
 
-const formatDateTime = (iso: string) => {
+function formatDateTime(iso: string): string {
   try {
     return new Date(iso).toLocaleString('vi-VN', {
       day: '2-digit',
@@ -60,9 +70,12 @@ const formatDateTime = (iso: string) => {
   } catch {
     return iso;
   }
-};
+}
 
-const NotificationsPage = () => {
+/**
+ * Trang danh sách thông báo và cảnh báo của người dùng.
+ */
+export function NotificationsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<ReadFilter>('ALL');
@@ -76,8 +89,8 @@ const NotificationsPage = () => {
 
   const isMissingEmail = Boolean(
     user &&
-    hasAnyRole(user.roleCode, ROLE_ACCESS.userProfile) &&
-    (!user.email || user.email.trim() === '')
+      hasAnyRole(user.roleCode, ROLE_ACCESS.userProfile) &&
+      (!user.email || user.email.trim() === ''),
   );
 
   const emailNoticeKey = user ? `session_read_email_notice_${user.userId}` : '';
@@ -100,8 +113,8 @@ const NotificationsPage = () => {
   // Cảnh báo thiếu địa bàn hành chính đối với vai trò Quản lý HTX (VT-02)
   const isMissingTerritory = Boolean(
     user &&
-    user.roleCode === 'VT-02' &&
-    (!user.organizationProvinceId || !user.organizationCommuneId)
+      user.roleCode === 'VT-02' &&
+      (!user.organizationProvinceId || !user.organizationCommuneId),
   );
 
   const territoryNoticeKey = user?.organizationId
@@ -130,21 +143,25 @@ const NotificationsPage = () => {
       }
       return;
     }
+
     if (!notification.isRead) {
       void markAsRead(notification.id).then(() => refreshUnreadCount());
     }
+
     if (notification.type === 'ACTIVITY_LOG_EXPORT_READY' && notification.entityId) {
       navigate(`/activity-logs?exportJobId=${notification.entityId}`);
       return;
     }
+
     if (notification.entityId) {
       navigate(`/shipment-handovers/${notification.entityId}`);
       return;
     }
+
     // NCL-11-CN-004: Điều hướng tới danh sách lô sản xuất khi thông báo liên quan đến kiểm nghiệm
     const text = `${notification.title} ${notification.content}`.toLowerCase();
-    if (text.includes("kiểm nghiệm") || text.includes("lô sản xuất")) {
-      navigate("/production-lots");
+    if (text.includes('kiểm nghiệm') || text.includes('lô sản xuất')) {
+      navigate('/production-lots');
     }
   };
 
@@ -246,6 +263,7 @@ const NotificationsPage = () => {
                   </button>
                 </li>
               )}
+
               {showTerritoryNotice && (
                 <li>
                   <button
@@ -278,6 +296,7 @@ const NotificationsPage = () => {
                   </button>
                 </li>
               )}
+
               {items.map((item) => {
                 const Icon = TYPE_ICON[item.type] || Bell;
                 return (
@@ -347,6 +366,6 @@ const NotificationsPage = () => {
       </Card>
     </div>
   );
-};
+}
 
 export default NotificationsPage;

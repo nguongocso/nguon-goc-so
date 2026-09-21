@@ -1,5 +1,13 @@
 import { Link } from 'react-router-dom';
-import { AlertTriangle, Bell, CheckCircle2, Info, MailWarning, MapPinOff } from 'lucide-react';
+import {
+  AlertTriangle,
+  Bell,
+  CheckCircle2,
+  Info,
+  MailWarning,
+  MapPinOff,
+} from 'lucide-react';
+
 import type { NotificationResponse, NotificationType } from '@/types/notification';
 import { cn } from '@/lib/utils';
 
@@ -39,7 +47,7 @@ const TYPE_STYLE: Record<NotificationType, string> = {
   ACTIVITY_LOG_EXPORT_READY: 'bg-success-bg text-success',
 };
 
-const formatNotificationReason = (content: string) => {
+function formatNotificationReason(content: string): string {
   return content
     .replace(/REPEATED_FAILED_LOGIN/g, 'Đăng nhập thất bại nhiều lần')
     .replace(/UNUSUAL_COUNTRY/g, 'Đăng nhập từ quốc gia bất thường')
@@ -47,24 +55,35 @@ const formatNotificationReason = (content: string) => {
     .replace(/ACCOUNT_LOCKED/g, 'Tài khoản bị khóa')
     .replace(/DISMISSED/g, 'Bất thường đã được bỏ qua')
     .replace(/LOGIN_ANOMALY_DETECTED/g, 'Phát hiện đăng nhập bất thường');
-};
+}
 
-const formatRelativeTime = (iso: string) => {
+function formatRelativeTime(iso: string): string {
   const date = new Date(iso);
   const diffMs = Date.now() - date.getTime();
   const diffMin = Math.floor(diffMs / 60_000);
 
-  if (diffMin < 1) return 'Vừa xong';
-  if (diffMin < 60) return `${diffMin} phút trước`;
+  if (diffMin < 1) {
+    return 'Vừa xong';
+  }
+  if (diffMin < 60) {
+    return `${diffMin} phút trước`;
+  }
   const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour} giờ trước`;
+  if (diffHour < 24) {
+    return `${diffHour} giờ trước`;
+  }
   const diffDay = Math.floor(diffHour / 24);
-  if (diffDay < 7) return `${diffDay} ngày trước`;
+  if (diffDay < 7) {
+    return `${diffDay} ngày trước`;
+  }
 
   return date.toLocaleDateString('vi-VN');
-};
+}
 
-export const NotificationPanel = ({
+/**
+ * Panel hiển thị danh sách rút gọn các thông báo gần đây trong dropdown.
+ */
+export function NotificationPanel({
   items,
   isLoading,
   onItemClick,
@@ -74,7 +93,7 @@ export const NotificationPanel = ({
   isMissingTerritory = false,
   isTerritoryNoticeRead = false,
   onTerritoryNoticeClick,
-}: NotificationPanelProps) => {
+}: NotificationPanelProps) {
   return (
     <div className="w-80 max-w-[90vw]">
       <div className="flex items-center justify-between border-b px-3 py-2.5">
@@ -209,4 +228,4 @@ export const NotificationPanel = ({
       </div>
     </div>
   );
-};
+}

@@ -1,20 +1,30 @@
 import { useCallback, useEffect, useState } from 'react';
+
 import { getUnreadCount } from '@/api/notificationApi';
 import { useAuth } from '@/hooks/useAuth';
 
 const POLL_INTERVAL_MS = 30_000;
 
-export const useUnreadCount = () => {
+/**
+ * Hook quản lý và tự động cập nhật số lượng thông báo chưa đọc.
+ */
+export function useUnreadCount(): {
+  unreadCount: number;
+  refresh: () => Promise<void>;
+} {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
   const refresh = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      return;
+    }
+
     try {
       const data = await getUnreadCount();
       setUnreadCount(data.unreadCount);
     } catch {
-      // best-effort — không chặn UI nếu đếm chưa đọc thất bại
+      // Best-effort: không chặn UI nếu lấy số thông báo thất bại
     }
   }, [user]);
 
@@ -29,8 +39,10 @@ export const useUnreadCount = () => {
       void refresh();
     }, POLL_INTERVAL_MS);
 
-    return () => window.clearInterval(intervalId);
+    return () => {
+      window.clearInterval(intervalId);
+    };
   }, [user, refresh]);
 
   return { unreadCount, refresh };
-};
+}

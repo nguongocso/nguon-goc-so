@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,7 +16,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { hasAnyRole, ROLE_ACCESS } from '@/config/roleAccess';
 import type { NotificationResponse } from '@/types/notification';
 
-export const NotificationBell = () => {
+/**
+ * Biểu tượng chuông thông báo trên Header, hiển thị badge số chưa đọc và dropdown.
+ */
+export function NotificationBell() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -27,15 +31,15 @@ export const NotificationBell = () => {
 
   const isMissingEmail = Boolean(
     user &&
-    hasAnyRole(user.roleCode, ROLE_ACCESS.userProfile) &&
-    (!user.email || user.email.trim() === '')
+      hasAnyRole(user.roleCode, ROLE_ACCESS.userProfile) &&
+      (!user.email || user.email.trim() === ''),
   );
 
   const isMissingTerritory = Boolean(
     user &&
-    hasAnyRole(user.roleCode, ROLE_ACCESS.organizationProfile) &&
-    user.roleCode === 'VT-02' &&
-    (!user.organizationProvinceId || !user.organizationCommuneId)
+      hasAnyRole(user.roleCode, ROLE_ACCESS.organizationProfile) &&
+      user.roleCode === 'VT-02' &&
+      (!user.organizationProvinceId || !user.organizationCommuneId),
   );
 
   const emailNoticeKey = user ? `session_read_email_notice_${user.userId}` : '';
@@ -91,22 +95,26 @@ export const NotificationBell = () => {
       }
       return;
     }
+
     if (!notification.isRead) {
       void markAsRead(notification.id).then(() => refreshUnreadCount());
     }
     setOpen(false);
+
     if (notification.type === 'ACTIVITY_LOG_EXPORT_READY' && notification.entityId) {
       navigate(`/activity-logs?exportJobId=${notification.entityId}`);
       return;
     }
+
     if (notification.entityId) {
       navigate(`/shipment-handovers/${notification.entityId}`);
       return;
     }
+
     // NCL-11-CN-004: Điều hướng tới danh sách lô sản xuất khi thông báo liên quan đến kiểm nghiệm
     const text = `${notification.title} ${notification.content}`.toLowerCase();
-    if (text.includes("kiểm nghiệm") || text.includes("lô sản xuất")) {
-      navigate("/production-lots");
+    if (text.includes('kiểm nghiệm') || text.includes('lô sản xuất')) {
+      navigate('/production-lots');
     }
   };
 
@@ -164,4 +172,4 @@ export const NotificationBell = () => {
       </DropdownMenuContent>
     </DropdownMenu>
   );
-};
+}
