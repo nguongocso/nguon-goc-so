@@ -1,6 +1,6 @@
 package vn.nguongocso.help.controller;
 
-import org.springframework.http.HttpStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import lombok.RequiredArgsConstructor;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.help.dto.response.HelpContentResponse;
 import vn.nguongocso.help.service.HelpService;
@@ -38,15 +37,15 @@ public class HelpController {
      * GET /api/v1/help?screenKey=farm-log-create
      * </p>
      *
-     * @param screenKey mã định danh màn hình
-     * @return nội dung hướng dẫn hoặc {@code data = null} nếu chưa có
+     * @param screenKey mã định danh màn hình, phân biệt hoa-thường; null hoặc rỗng
+     *     thì service trả về {@code null}, tối đa 100 ký tự
+     * @return nội dung hướng dẫn, hoặc {@code data = null} nếu chưa có nội dung nào
      */
     @GetMapping
     public ResponseEntity<ApiResult<HelpContentResponse>> getHelp(
             @RequestParam("screenKey") String screenKey) {
-
         HelpContentResponse response = helpService.getHelp(screenKey);
 
-        return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
+        return ResponseEntity.ok(ApiResult.success(response));
     }
 }

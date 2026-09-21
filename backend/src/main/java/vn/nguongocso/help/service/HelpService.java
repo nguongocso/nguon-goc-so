@@ -4,6 +4,12 @@ import vn.nguongocso.help.dto.response.HelpContentResponse;
 
 /**
  * Dịch vụ quản lý nội dung hướng dẫn sử dụng trong ứng dụng (NCL-01-CN-006).
+ *
+ * <p>
+ * Vai trò người dùng được lấy từ token xác thực nên người dùng chỉ nhận được
+ * nội dung hướng dẫn của chính vai trò mình (hoặc nội dung chung
+ * {@code GENERAL}).
+ * </p>
  */
 public interface HelpService {
 
@@ -19,8 +25,10 @@ public interface HelpService {
      * </ol>
      * </p>
      *
-     * @param screenKey mã định danh màn hình
-     * @return nội dung hướng dẫn, hoặc {@code null} nếu không có
+     * @param screenKey mã định danh màn hình, phân biệt hoa-thường; null hoặc rỗng
+     *     thì trả về {@code null}, tối đa 100 ký tự
+     * @return nội dung hướng dẫn, hoặc {@code null} nếu không có nội dung nào
+     *     (frontend hiển thị thông báo mặc định); không ném exception
      */
     HelpContentResponse getHelp(String screenKey);
 }
