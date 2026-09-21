@@ -10,25 +10,16 @@ import type {
 
 const BASE_PREFIX = '/admin/anomaly-thresholds';
 
-/**
- * Lấy toàn bộ cấu hình ngưỡng (Global + Overrides).
- */
 export const getAllThresholds = async (): Promise<AllThresholdsResponse> => {
   const response = await apiClient.get<{ data: AllThresholdsResponse }>(BASE_PREFIX);
   return response.data.data;
 };
 
-/**
- * Lấy cấu hình ngưỡng mặc định toàn cục.
- */
 export const getGlobalThreshold = async (): Promise<AnomalyThresholdConfig> => {
   const response = await apiClient.get<{ data: AnomalyThresholdConfig }>(`${BASE_PREFIX}/global`);
   return response.data.data;
 };
 
-/**
- * Cập nhật cấu hình ngưỡng mặc định toàn cục.
- */
 export const updateGlobalThreshold = async (
   payload: UpdateGlobalThresholdRequest,
 ): Promise<AnomalyThresholdConfig> => {
@@ -39,9 +30,6 @@ export const updateGlobalThreshold = async (
   return response.data.data;
 };
 
-/**
- * Lấy danh sách cấu hình ghi đè theo danh mục nông sản.
- */
 export const getCategoryOverrides = async (): Promise<AnomalyThresholdConfig[]> => {
   const response = await apiClient.get<{ data: AnomalyThresholdConfig[] }>(
     `${BASE_PREFIX}/categories`,
@@ -49,9 +37,6 @@ export const getCategoryOverrides = async (): Promise<AnomalyThresholdConfig[]> 
   return response.data.data;
 };
 
-/**
- * Tạo mới hoặc cập nhật cấu hình ghi đè theo danh mục nông sản.
- */
 export const saveCategoryOverride = async (
   payload: CategoryThresholdOverrideRequest,
 ): Promise<AnomalyThresholdConfig> => {
@@ -62,16 +47,10 @@ export const saveCategoryOverride = async (
   return response.data.data;
 };
 
-/**
- * Xóa cấu hình ghi đè danh mục nông sản (quay về dùng ngưỡng toàn cục).
- */
 export const deleteCategoryOverride = async (id: string): Promise<void> => {
   await apiClient.delete(`${BASE_PREFIX}/categories/${id}`);
 };
 
-/**
- * Ước lượng tác động của bộ ngưỡng dự thảo trên dữ liệu 30 ngày gần nhất (dry-run).
- */
 export const estimateImpact = async (
   payload: ImpactEstimationRequest,
 ): Promise<ImpactEstimationResult> => {

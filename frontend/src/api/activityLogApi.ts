@@ -74,7 +74,6 @@ export const downloadActivityLogExportJob = async (exportId: string): Promise<vo
   triggerBlobDownload(response.data, response.headers['content-disposition']);
 };
 
-/** Đọc message ApiResult kể cả khi Axios trả lỗi dưới dạng Blob. */
 export const getActivityLogApiError = async (error: unknown, fallback: string): Promise<string> => {
   const responseData = (error as { response?: { data?: unknown } })?.response?.data;
   if (responseData instanceof Blob) {
@@ -91,7 +90,6 @@ export const getActivityLogApiError = async (error: unknown, fallback: string): 
   return error instanceof Error && error.message ? error.message : fallback;
 };
 
-/** Giữ tương thích cho các nơi đang gọi tên hàm cũ. */
 export const downloadActivityLogsCsv = async (filter: ActivityLogExportFilterRequest): Promise<void> => {
   await requestActivityLogExport(filter);
 };
