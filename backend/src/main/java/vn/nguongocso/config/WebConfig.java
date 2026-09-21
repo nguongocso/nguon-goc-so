@@ -1,6 +1,7 @@
 package vn.nguongocso.config;
 
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -10,12 +11,12 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * Trong trường hợp này, cấu hình để phục vụ các tệp QR từ thư mục lưu trữ.
  */
 @Configuration
-public class WebConfig implements WebMvcConfigurer{
-    @Value("${qr.image.storage.path:./files/qr}")
-    private String qrStoragePath;
+@RequiredArgsConstructor
+@EnableConfigurationProperties({QrImageStorageProperties.class, UploadProperties.class})
+public class WebConfig implements WebMvcConfigurer {
 
-    @Value("${app.upload.base-dir:./uploads}")
-    private String uploadBaseDir;
+    private final QrImageStorageProperties qrProperties;
+    private final UploadProperties uploadProperties;
 
     /**
      * Thêm các bộ xử lý tài nguyên để phục vụ các tệp QR và tệp tải lên (ảnh đại diện, v.v.).
@@ -25,9 +26,9 @@ public class WebConfig implements WebMvcConfigurer{
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/files/qr/**")
-                .addResourceLocations("file:" + qrStoragePath + "/");
+                .addResourceLocations("file:" + qrProperties.getPath() + "/");
 
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:" + uploadBaseDir + "/");
+                .addResourceLocations("file:" + uploadProperties.getBaseDir() + "/");
     }
 }

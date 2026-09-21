@@ -1,15 +1,16 @@
 package vn.nguongocso.config;
 
+import java.io.IOException;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import vn.nguongocso.report.service.MetricsBufferService;
-
-import java.io.IOException;
 
 /**
  * Filter thu thập số liệu tự động từ các request HTTP phục vụ giám sát hệ thống.
@@ -19,7 +20,7 @@ public class MetricsCollectorFilter extends OncePerRequestFilter {
 
     private final MetricsBufferService metricsBufferService;
 
-    public MetricsCollectorFilter(@org.springframework.beans.factory.annotation.Autowired(required = false) MetricsBufferService metricsBufferService) {
+    public MetricsCollectorFilter(@Autowired(required = false) MetricsBufferService metricsBufferService) {
         this.metricsBufferService = metricsBufferService;
     }
 

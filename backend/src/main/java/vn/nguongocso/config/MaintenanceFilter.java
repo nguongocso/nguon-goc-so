@@ -1,11 +1,15 @@
 package vn.nguongocso.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,8 +17,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import vn.nguongocso.backup.service.RestoreService;
 import vn.nguongocso.common.ApiResult;
-
-import java.io.IOException;
 
 /**
  * Lớp MaintenanceFilter là một bộ lọc (filter) trong ứng dụng Spring Boot, chịu
@@ -26,7 +28,7 @@ import java.io.IOException;
  */
 @Component
 public class MaintenanceFilter extends OncePerRequestFilter {
-    private final org.springframework.context.ApplicationContext applicationContext;
+    private final ApplicationContext applicationContext;
     private final ObjectMapper objectMapper;
 
     /**
@@ -37,7 +39,7 @@ public class MaintenanceFilter extends OncePerRequestFilter {
      * @param objectMapper       Dùng để chuyển đổi đối tượng thành JSON khi trả về
      *                           phản hồi lỗi.
      */
-    public MaintenanceFilter(org.springframework.context.ApplicationContext applicationContext,
+    public MaintenanceFilter(ApplicationContext applicationContext,
             ObjectMapper objectMapper) {
         this.applicationContext = applicationContext;
         this.objectMapper = objectMapper;
@@ -46,7 +48,7 @@ public class MaintenanceFilter extends OncePerRequestFilter {
     private RestoreService getRestoreService() {
         try {
             return applicationContext.getBean(RestoreService.class);
-        } catch (org.springframework.beans.factory.NoSuchBeanDefinitionException e) {
+        } catch (NoSuchBeanDefinitionException e) {
             return null;
         }
     }
