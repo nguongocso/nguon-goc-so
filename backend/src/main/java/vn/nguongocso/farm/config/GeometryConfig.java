@@ -14,7 +14,7 @@ public class GeometryConfig {
     /**
      * Khởi tạo GeometryFactory với SRID 4326.
      *
-     * @return GeometryFactory
+     * @return GeometryFactory dùng hệ tọa độ WGS84 (SRID 4326), luôn khác null
      */
     @Bean
     public GeometryFactory geometryFactory() {
