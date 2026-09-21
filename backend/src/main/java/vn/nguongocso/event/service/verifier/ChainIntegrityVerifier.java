@@ -46,15 +46,7 @@ public class ChainIntegrityVerifier {
         Shipment shipment = shipmentRepository.findById(shipmentId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Không tìm thấy lô hàng."));
 
-        String role = currentUser.getRoleCode();
-        if ("VT-01".equals(role) || "VT-05".equals(role)) {
-            // Platform admin & industry regulator may verify any shipment
-        } else if ("VT-04".equals(role)) {
-            validateStorageProcurementRelationship(shipment, currentUser);
-        } else {
-            throw new BusinessException(HttpStatus.FORBIDDEN,
-                    "Bạn không có quyền kiểm chứng dòng sự kiện của lô này.");
-        }
+        validateVerificationRole(shipment, currentUser);
 
         List<ChainEvent> events = chainEventRepository
                 .findByShipmentIdOrderByRecordedAtAsc(shipmentId)
@@ -68,73 +60,112 @@ public class ChainIntegrityVerifier {
         }
 
         LocalDateTime verifiedAt = LocalDateTime.now();
+        VerificationChainState chainState = executeChainVerification(events);
+
+        publishVerificationActivityLog(shipment, verifiedAt, currentUser);
+
+        return buildVerificationResponse(shipment, events.size(), verifiedAt, chainState);
+    }
+
+    private void validateVerificationRole(Shipment shipment, CustomUserDetails currentUser) {
+        String role = currentUser.getRoleCode();
+        if ("VT-01".equals(role) || "VT-05".equals(role)) {
+            return;
+        }
+        if ("VT-04".equals(role)) {
+            validateStorageProcurementRelationship(shipment, currentUser);
+            return;
+        }
+        throw new BusinessException(HttpStatus.FORBIDDEN,
+                "Bạn không có quyền kiểm chứng dòng sự kiện của lô này.");
+    }
+
+    private VerificationChainState executeChainVerification(List<ChainEvent> events) {
         String previousHash = "";
         boolean verified = true;
         Integer failedIndex = null;
         UUID failedEventId = null;
         String failureReason = null;
-
         List<EventVerificationItem> verificationItems = new ArrayList<>();
 
         for (int i = 0; i < events.size(); i++) {
             ChainEvent event = events.get(i);
             int index = i + 1;
+            SingleEventVerification single = verifySingleEvent(event, i, previousHash);
 
-            String expectedHash = eventHashService.calculateHash(event, previousHash);
-            String storedHash = event.getHash();
-            String storedPrevious = event.getPreviousHash();
-
-            boolean isPreviousValid = (i == 0)
-                    ? (storedPrevious == null || storedPrevious.isEmpty())
-                    : previousHash.equals(storedPrevious != null ? storedPrevious : "");
-
-            boolean isHashValid = expectedHash.equals(storedHash != null ? storedHash : "");
-
-            boolean isValid = isPreviousValid && isHashValid;
-
-            EventVerificationItem.EventVerificationItemBuilder itemBuilder = EventVerificationItem.builder()
-                    .index(index)
-                    .eventId(event.getId())
-                    .eventType(event.getEventType() != null ? event.getEventType().name() : null)
-                    .recordedAt(event.getRecordedAt())
-                    .hash(storedHash)
-                    .previousHash(event.getPreviousHash())
-                    .isValid(isValid);
-
-            if (!isValid && verified) {
+            if (!single.isValid() && verified) {
                 verified = false;
                 failedIndex = index;
                 failedEventId = event.getId();
-                if (!isPreviousValid) {
-                    failureReason = "Previous hash mismatch: expected " + previousHash + ", got "
-                            + (storedPrevious != null ? storedPrevious : "") + ".";
-                } else if (!isHashValid) {
-                    failureReason = "Hash mismatch: expected " + expectedHash + ", got "
-                            + (storedHash != null ? storedHash : "") + ".";
-                }
-                itemBuilder.expectedHash(expectedHash);
-            } else if (!isValid) {
-                itemBuilder.expectedHash(expectedHash);
+                failureReason = single.failureReason();
             }
 
-            verificationItems.add(itemBuilder.build());
-            previousHash = expectedHash;
+            verificationItems.add(single.item());
+            previousHash = single.expectedHash();
         }
 
-        ChainVerificationResponse response = ChainVerificationResponse.builder()
+        return new VerificationChainState(verified, failedIndex, failedEventId, failureReason, verificationItems);
+    }
+
+    private SingleEventVerification verifySingleEvent(ChainEvent event, int indexZeroBased, String previousHash) {
+        int index = indexZeroBased + 1;
+        String expectedHash = eventHashService.calculateHash(event, previousHash);
+        String storedHash = event.getHash();
+        String storedPrevious = event.getPreviousHash();
+
+        boolean isPreviousValid = (indexZeroBased == 0)
+                ? (storedPrevious == null || storedPrevious.isEmpty())
+                : previousHash.equals(storedPrevious != null ? storedPrevious : "");
+
+        boolean isHashValid = expectedHash.equals(storedHash != null ? storedHash : "");
+        boolean isValid = isPreviousValid && isHashValid;
+
+        String failureReason = null;
+        if (!isValid) {
+            if (!isPreviousValid) {
+                failureReason = "Previous hash mismatch: expected " + previousHash + ", got "
+                        + (storedPrevious != null ? storedPrevious : "") + ".";
+            } else {
+                failureReason = "Hash mismatch: expected " + expectedHash + ", got "
+                        + (storedHash != null ? storedHash : "") + ".";
+            }
+        }
+
+        EventVerificationItem.EventVerificationItemBuilder itemBuilder = EventVerificationItem.builder()
+                .index(index)
+                .eventId(event.getId())
+                .eventType(event.getEventType() != null ? event.getEventType().name() : null)
+                .recordedAt(event.getRecordedAt())
+                .hash(storedHash)
+                .previousHash(event.getPreviousHash())
+                .isValid(isValid);
+
+        if (!isValid) {
+            itemBuilder.expectedHash(expectedHash);
+        }
+
+        return new SingleEventVerification(isValid, expectedHash, failureReason, itemBuilder.build());
+    }
+
+    private ChainVerificationResponse buildVerificationResponse(
+            Shipment shipment, int totalEvents, LocalDateTime verifiedAt, VerificationChainState state) {
+        return ChainVerificationResponse.builder()
                 .shipmentId(shipment.getId())
                 .shipmentName(shipment.getName())
-                .totalEvents(events.size())
-                .isIntegrityVerified(verified)
-                .verificationStatus(verified ? "INTACT" : "BROKEN")
-                .failedEventIndex(failedIndex)
-                .failedEventId(failedEventId)
-                .failureReason(failureReason)
+                .totalEvents(totalEvents)
+                .isIntegrityVerified(state.verified())
+                .verificationStatus(state.verified() ? "INTACT" : "BROKEN")
+                .failedEventIndex(state.failedIndex())
+                .failedEventId(state.failedEventId())
+                .failureReason(state.failureReason())
                 .verifiedAt(verifiedAt)
                 .hashAlgorithm(EventHashService.HASH_ALGORITHM)
-                .events(verificationItems)
+                .events(state.verificationItems())
                 .build();
+    }
 
+    private void publishVerificationActivityLog(
+            Shipment shipment, LocalDateTime verifiedAt, CustomUserDetails currentUser) {
         eventPublisher.publishEvent(ActivityLogEvent.builder()
                 .userId(currentUser.getUserId())
                 .username(currentUser.getUsername())
@@ -147,9 +178,14 @@ public class ChainIntegrityVerifier {
                 .ipAddress(IpUtils.getClientIp())
                 .timestamp(verifiedAt)
                 .build());
-
-        return response;
     }
+
+    private record SingleEventVerification(
+            boolean isValid, String expectedHash, String failureReason, EventVerificationItem item) {}
+
+    private record VerificationChainState(
+            boolean verified, Integer failedIndex, UUID failedEventId,
+            String failureReason, List<EventVerificationItem> verificationItems) {}
 
     private void validateStorageProcurementRelationship(Shipment shipment, CustomUserDetails currentUser) {
         UUID currentOrgId = currentUser.getOrganizationId();

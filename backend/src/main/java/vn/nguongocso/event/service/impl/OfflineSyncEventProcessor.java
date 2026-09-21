@@ -1,10 +1,16 @@
 package vn.nguongocso.event.service.impl;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -18,33 +24,16 @@ import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.OfflineSyncLogRepository;
 import vn.nguongocso.event.service.ChainEventService;
 import vn.nguongocso.event.service.EventValidationService;
-import vn.nguongocso.event.service.mapper.OfflineFarmLogPayloadMapper;
+import vn.nguongocso.event.service.processor.OfflineFarmLogSyncHandler;
+import vn.nguongocso.event.service.resolver.OfflineSyncTargetResolver;
 import vn.nguongocso.exception.BusinessException;
-import vn.nguongocso.farm.dto.request.CreateFarmLogRequest;
-import vn.nguongocso.farm.dto.response.FarmLogResponse;
-import vn.nguongocso.farm.entity.ProductionLot;
-import vn.nguongocso.farm.enums.FarmActivityType;
-import vn.nguongocso.farm.repository.ProductionLotRepository;
-import vn.nguongocso.farm.service.FarmLogService;
-import vn.nguongocso.permission.service.PermissionChecker;
-import vn.nguongocso.trace.entity.Shipment;
-import vn.nguongocso.trace.entity.TraceCode;
-import vn.nguongocso.trace.repository.ShipmentRepository;
-import vn.nguongocso.trace.repository.TraceCodeRepository;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeParseException;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Xử lý một sự kiện ngoại tuyến trong transaction riêng.
  * <p>
  * Đảm bảo logic xử lý offline nhất quán với online:
  * - Sử dụng cùng các service method (recordHarvestEvent, recordPackagingEvent,
- * recordTransportEvent, FarmLogService.create).
+ * recordTransportEvent, FarmLogService.create qua OfflineFarmLogSyncHandler).
  * - Log thất bại vào cả failed_event_logs (qua EventValidationService) và
  * offline_sync_logs.
  * - Hỗ trợ HARVEST, PACKAGING, TRANSPORT, FARM_LOG (NCL-10-CN-012).
@@ -58,12 +47,8 @@ public class OfflineSyncEventProcessor {
     private final UserRepository userRepository;
     private final ChainEventService chainEventService;
     private final EventValidationService eventValidationService;
-    private final ProductionLotRepository productionLotRepository;
-    private final ShipmentRepository shipmentRepository;
-    private final TraceCodeRepository traceCodeRepository;
-    private final FarmLogService farmLogService;
-    private final PermissionChecker permissionChecker;
-    private final OfflineFarmLogPayloadMapper offlineFarmLogPayloadMapper;
+    private final OfflineFarmLogSyncHandler offlineFarmLogSyncHandler;
+    private final OfflineSyncTargetResolver offlineSyncTargetResolver;
 
     /**
      * Xử lý một event trong transaction riêng (REQUIRES_NEW).
@@ -99,7 +84,7 @@ public class OfflineSyncEventProcessor {
                     processTransportOffline(eventDto, currentUser);
                     break;
                 case FARM_LOG:
-                    createdEventId = processFarmLogOffline(eventDto);
+                    createdEventId = offlineFarmLogSyncHandler.processFarmLogOffline(eventDto);
                     break;
                 default:
                     throw new BusinessException(
@@ -224,60 +209,15 @@ public class OfflineSyncEventProcessor {
     }
 
     /**
-     * Xử lý nhật ký canh tác ghi khi ngoại tuyến (NCL-10-CN-012).
-     * <p>
-     * Ánh xạ {@code eventData} sang {@code CreateFarmLogRequest} qua {@code OfflineFarmLogPayloadMapper}
-     * rồi delegate về cùng service method với ghi trực tuyến.
-     *
-     * @param eventDto sự kiện ngoại tuyến loại FARM_LOG
-     * @return ID bản ghi farm_logs vừa tạo
-     */
-    private UUID processFarmLogOffline(RecordOfflineEventDto eventDto) {
-        permissionChecker.check("FARM_LOG", "CREATE");
-        CreateFarmLogRequest farmLogRequest = offlineFarmLogPayloadMapper.toCreateFarmLogRequest(eventDto);
-        FarmLogResponse created = farmLogService.create(farmLogRequest);
-        return created != null ? created.getId() : null;
-    }
-
-    /**
      * Ghi log thất bại vào failed_event_logs (cùng bảng với online).
      * Sử dụng REQUIRES_NEW để không bị ảnh hưởng bởi transaction chính.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void logFailedAttempts(RecordOfflineEventDto eventDto, CustomUserDetails currentUser, String reason) {
         try {
-            UUID lotId = null;
-            String lotCode = null;
-            ChainEventType eventType = eventDto.getEventType();
-
-            if (eventType == ChainEventType.TRANSPORT) {
-                // Với TRANSPORT, lotId là shipmentId (giống online)
-                UUID shipmentId = resolveShipmentId(eventDto);
-                if (shipmentId != null) {
-                    lotId = shipmentId;
-                    Shipment shipment = shipmentRepository.findById(shipmentId).orElse(null);
-                    if (shipment != null) {
-                        lotCode = shipment.getName();
-                    }
-                }
-            } else if (eventDto.getProductionLotId() != null) {
-                lotId = eventDto.getProductionLotId();
-                ProductionLot lot = productionLotRepository.findById(lotId).orElse(null);
-                if (lot != null) {
-                    lotCode = lot.getName();
-                }
-            }
-
-            // Nếu không xác định được lotId/lotCode, vẫn log với thông tin có sẵn
-            if (lotId == null) {
-                lotId = eventDto.getProductionLotId() != null ? eventDto.getProductionLotId()
-                        : eventDto.getShipmentId();
-            }
-            if (lotCode == null) {
-                lotCode = lotId != null ? lotId.toString() : "UNKNOWN";
-            }
-
-            eventValidationService.logFailedAttempt(lotId, lotCode, eventType, reason, currentUser);
+            OfflineSyncTargetResolver.SyncTargetInfo targetInfo = offlineSyncTargetResolver.resolveTargetInfo(eventDto);
+            eventValidationService.logFailedAttempt(
+                    targetInfo.lotId(), targetInfo.lotCode(), eventDto.getEventType(), reason, currentUser);
         } catch (Exception ex) {
             log.error("Không thể ghi log thất bại vào failed_event_logs cho event {}: {}",
                     eventDto.getOfflineEventId(), ex.getMessage(), ex);
@@ -292,17 +232,17 @@ public class OfflineSyncEventProcessor {
             CustomUserDetails currentUser) {
         try {
             User actor = userRepository.findById(currentUser.getUserId()).orElse(null);
-            if (actor == null)
+            if (actor == null) {
                 return;
+            }
 
-            UUID lotId = null;
+            UUID lotId = eventDto.getProductionLotId();
             UUID shipmentId = null;
             if (eventDto.getEventType() == ChainEventType.TRANSPORT
                     || eventDto.getEventType() == ChainEventType.PROCUREMENT) {
-                shipmentId = eventDto.getShipmentId() != null ? eventDto.getShipmentId() : resolveShipmentId(eventDto);
-                lotId = eventDto.getProductionLotId();
-            } else {
-                lotId = eventDto.getProductionLotId();
+                shipmentId = eventDto.getShipmentId() != null
+                        ? eventDto.getShipmentId()
+                        : offlineSyncTargetResolver.resolveShipmentId(eventDto);
             }
 
             // Tìm và khóa bản ghi hiện có
@@ -342,17 +282,17 @@ public class OfflineSyncEventProcessor {
     public void saveSuccessSyncLog(RecordOfflineEventDto eventDto, UUID syncId, CustomUserDetails currentUser) {
         try {
             User actor = userRepository.findById(currentUser.getUserId()).orElse(null);
-            if (actor == null)
+            if (actor == null) {
                 return;
+            }
 
-            UUID lotId = null;
+            UUID lotId = eventDto.getProductionLotId();
             UUID shipmentId = null;
             if (eventDto.getEventType() == ChainEventType.TRANSPORT
                     || eventDto.getEventType() == ChainEventType.PROCUREMENT) {
-                shipmentId = eventDto.getShipmentId() != null ? eventDto.getShipmentId() : resolveShipmentId(eventDto);
-                lotId = eventDto.getProductionLotId();
-            } else {
-                lotId = eventDto.getProductionLotId();
+                shipmentId = eventDto.getShipmentId() != null
+                        ? eventDto.getShipmentId()
+                        : offlineSyncTargetResolver.resolveShipmentId(eventDto);
             }
 
             Optional<OfflineSyncLog> existing = offlineSyncLogRepository
@@ -380,21 +320,5 @@ public class OfflineSyncEventProcessor {
         } catch (Exception ex) {
             log.error("Không thể lưu log thành công cho offlineEventId: {}", eventDto.getOfflineEventId(), ex);
         }
-    }
-
-    /**
-     * Resolve shipmentId từ codeValue hoặc shipmentId trong DTO.
-     */
-    private UUID resolveShipmentId(RecordOfflineEventDto eventDto) {
-        if (eventDto.getShipmentId() != null) {
-            return eventDto.getShipmentId();
-        }
-        if (eventDto.getCodeValue() != null && !eventDto.getCodeValue().isBlank()) {
-            Optional<TraceCode> traceCode = traceCodeRepository.findByCodeValue(eventDto.getCodeValue());
-            if (traceCode.isPresent() && traceCode.get().getShipment() != null) {
-                return traceCode.get().getShipment().getId();
-            }
-        }
-        return null;
     }
 }

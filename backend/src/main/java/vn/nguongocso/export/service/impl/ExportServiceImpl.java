@@ -3,6 +3,7 @@ package vn.nguongocso.export.service.impl;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -122,7 +123,7 @@ public class ExportServiceImpl implements ExportService {
         try {
             String jsonContent = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(previewData);
             return jsonContent.getBytes(StandardCharsets.UTF_8);
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             log.error("Lỗi khi chuyển đổi dữ liệu hồ sơ sang JSON: {}", e.getMessage(), e);
             throw new BusinessException("Lỗi khi tạo file xuất JSON: " + e.getMessage());
         }

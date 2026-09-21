@@ -63,36 +63,46 @@ public class ChainScanLookupResolver {
             throw new BusinessException("Mã truy xuất chưa được gắn với lô hàng.");
         }
 
-        if (!"VT-04".equals(currentUser.getRoleCode())) {
-            validateOrganization(shipment, currentUser);
-        }
-
-        if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
-            throw new BusinessException(HttpStatus.CONFLICT, "Lô hàng đang hoặc đã bị thu hồi.");
-        }
-
-        if (shipment.getStatus() != ShipmentStatus.ACTIVATED) {
-            throw new BusinessException("Lô hàng chưa được kích hoạt.");
-        }
+        validateScanLookupShipment(shipment, currentUser);
 
         Optional<ChainEvent> latestEvent = chainEventRepository
                 .findTopByShipmentIdOrderByRecordedAtDesc(shipment.getId());
-
         List<String> allowedEventTypes = determineAllowedEventTypes(latestEvent);
+        Boolean storageEligible = determineStorageEligibility(shipment, currentUser);
 
-        Boolean storageEligible = null;
-        String role = currentUser.getRoleCode();
-        if ("VT-03".equals(role) || "VT-04".equals(role)) {
-            storageEligible = "VT-04".equals(role)
-                    ? isProcurementRelated(shipment, currentUser)
-                    : chainEventRepository
-                            .findByShipmentIdOrderByRecordedAtAsc(shipment.getId())
-                            .stream()
-                            .anyMatch(e -> e.getEventType() == ChainEventType.TRANSPORT);
+        return buildScanLookupResponse(traceCode, shipment, latestEvent, allowedEventTypes, storageEligible);
+    }
+
+    private void validateScanLookupShipment(Shipment shipment, CustomUserDetails currentUser) {
+        if (!"VT-04".equals(currentUser.getRoleCode())) {
+            validateOrganization(shipment, currentUser);
         }
+        if (shipment.getStatus() == ShipmentStatus.RECALLED || shipment.getStatus() == ShipmentStatus.RECALLING) {
+            throw new BusinessException(HttpStatus.CONFLICT, "Lô hàng đang hoặc đã bị thu hồi.");
+        }
+        if (shipment.getStatus() != ShipmentStatus.ACTIVATED) {
+            throw new BusinessException("Lô hàng chưa được kích hoạt.");
+        }
+    }
 
+    private Boolean determineStorageEligibility(Shipment shipment, CustomUserDetails currentUser) {
+        String role = currentUser.getRoleCode();
+        if (!"VT-03".equals(role) && !"VT-04".equals(role)) {
+            return null;
+        }
+        if ("VT-04".equals(role)) {
+            return isProcurementRelated(shipment, currentUser);
+        }
+        return chainEventRepository
+                .findByShipmentIdOrderByRecordedAtAsc(shipment.getId())
+                .stream()
+                .anyMatch(e -> e.getEventType() == ChainEventType.TRANSPORT);
+    }
+
+    private ScanLookupResponse buildScanLookupResponse(
+            TraceCode traceCode, Shipment shipment, Optional<ChainEvent> latestEvent,
+            List<String> allowedEventTypes, Boolean storageEligible) {
         ProductionLot productionLot = shipment.getProductionLot();
-
         return ScanLookupResponse.builder()
                 .valid(true)
                 .message(null)
@@ -174,29 +184,42 @@ public class ChainScanLookupResolver {
 
         UUID organizationId = currentUser.getOrganizationId();
         if ("VT-04".equals(currentUser.getRoleCode())) {
-            boolean isRecipient = shipment.getRecipientOrganization() != null
-                    && organizationId != null
-                    && organizationId.equals(shipment.getRecipientOrganization().getOrganizationId());
-
-            boolean hasHandover = organizationId != null
-                    && shipmentHandoverRepository.existsByShipmentIdAndToOrganizationOrganizationId(
-                            shipment.getId(), organizationId);
-
-            boolean hasRecordedEvent = organizationId != null
-                    && chainEventRepository.existsByShipmentIdAndRecordedOrganizationId(
-                            shipment.getId(), organizationId);
-
-            boolean isOwner = organizationId != null && shipment.getOrganization() != null
-                    && organizationId.equals(shipment.getOrganization().getOrganizationId());
-
-            if (!isRecipient && !hasHandover && !hasRecordedEvent && !isOwner) {
-                throw new BusinessException(HttpStatus.FORBIDDEN,
-                        "Lô hàng không được giao cho tổ chức của bạn.",
-                        Map.of("code", "RECIPIENT_MISMATCH"));
-            }
+            validateVt04TimelineScope(shipment, organizationId);
             return;
         }
 
+        validateStandardTimelineScope(shipment, organizationId);
+    }
+
+    private void validateVt04TimelineScope(Shipment shipment, UUID organizationId) {
+        if (!isVt04Authorized(shipment, organizationId)) {
+            throw new BusinessException(HttpStatus.FORBIDDEN,
+                    "Lô hàng không được giao cho tổ chức của bạn.",
+                    Map.of("code", "RECIPIENT_MISMATCH"));
+        }
+    }
+
+    private boolean isVt04Authorized(Shipment shipment, UUID organizationId) {
+        if (organizationId == null) {
+            return false;
+        }
+        if (shipment.getRecipientOrganization() != null
+                && organizationId.equals(shipment.getRecipientOrganization().getOrganizationId())) {
+            return true;
+        }
+        if (shipmentHandoverRepository.existsByShipmentIdAndToOrganizationOrganizationId(
+                shipment.getId(), organizationId)) {
+            return true;
+        }
+        if (chainEventRepository.existsByShipmentIdAndRecordedOrganizationId(
+                shipment.getId(), organizationId)) {
+            return true;
+        }
+        return shipment.getOrganization() != null
+                && organizationId.equals(shipment.getOrganization().getOrganizationId());
+    }
+
+    private void validateStandardTimelineScope(Shipment shipment, UUID organizationId) {
         if (organizationId == null || shipment.getOrganization() == null
                 || !organizationId.equals(shipment.getOrganization().getOrganizationId())) {
             throw new BusinessException(HttpStatus.FORBIDDEN,

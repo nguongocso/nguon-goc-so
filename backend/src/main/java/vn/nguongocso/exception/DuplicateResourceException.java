@@ -9,4 +9,3 @@ public class DuplicateResourceException extends BusinessException {
         super(HttpStatus.CONFLICT, message);
     }
 }
-

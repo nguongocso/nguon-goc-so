@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -155,7 +156,7 @@ public class WarehouseReceiptServiceImpl implements WarehouseReceiptService {
         }
         try {
             return objectMapper.readValue(eventDataJson, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             log.warn("Không thể parse eventData: {}", eventDataJson);
             return Collections.emptyMap();
         }

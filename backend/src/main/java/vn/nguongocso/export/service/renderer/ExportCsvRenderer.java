@@ -133,53 +133,63 @@ public class ExportCsvRenderer {
     }
 
     private void appendFarmLogsSection(StringBuilder sb, Map<String, Object> preview) {
-        if (preview.get("farmLogs") instanceof List<?> logs && !logs.isEmpty()) {
-            sb.append("\n# LỊCH TRÌNH CANH TÁC & CHỨNG TỪ\n");
-            sb.append("STT,Ngày thực hiện,Hoạt động,Vật tư / Số lượng,Ghi chú,Chứng từ đính kèm\n");
-            int idx = 1;
-            for (Object item : logs) {
-                if (item instanceof Map<?, ?> logItem) {
-                    sb.append(idx++).append(",");
-                    sb.append(escapeCsv(getMapValue(logItem, "executedDate"))).append(",");
-                    sb.append(escapeCsv(getMapValue(logItem, "activityType"))).append(",");
-                    String mat = getMapValue(logItem, "material");
-                    Object qty = logItem.get("quantity");
-                    String unit = getMapValue(logItem, "unit");
-                    String matInfo = mat + (qty != null ? " (" + qty + (!unit.isBlank() ? " " + unit : "") + ")" : "");
-                    sb.append(escapeCsv(matInfo.trim())).append(",");
-                    sb.append(escapeCsv(getMapValue(logItem, "notes"))).append(",");
-
-                    String attStr = "";
-                    if (logItem.get("attachments") instanceof List<?> attList) {
-                        attStr = attList.stream().map(Object::toString).collect(Collectors.joining("; "));
-                    }
-                    sb.append(escapeCsv(attStr)).append("\n");
-                }
+        if (!(preview.get("farmLogs") instanceof List<?> logs) || logs.isEmpty()) {
+            return;
+        }
+        sb.append("\n# LỊCH TRÌNH CANH TÁC & CHỨNG TỪ\n");
+        sb.append("STT,Ngày thực hiện,Hoạt động,Vật tư / Số lượng,Ghi chú,Chứng từ đính kèm\n");
+        int idx = 1;
+        for (Object item : logs) {
+            if (item instanceof Map<?, ?> logItem) {
+                appendFarmLogRow(sb, idx++, logItem);
             }
         }
     }
 
+    private void appendFarmLogRow(StringBuilder sb, int idx, Map<?, ?> logItem) {
+        sb.append(idx).append(",");
+        sb.append(escapeCsv(getMapValue(logItem, "executedDate"))).append(",");
+        sb.append(escapeCsv(getMapValue(logItem, "activityType"))).append(",");
+        String mat = getMapValue(logItem, "material");
+        Object qty = logItem.get("quantity");
+        String unit = getMapValue(logItem, "unit");
+        String matInfo = mat + (qty != null ? " (" + qty + (!unit.isBlank() ? " " + unit : "") + ")" : "");
+        sb.append(escapeCsv(matInfo.trim())).append(",");
+        sb.append(escapeCsv(getMapValue(logItem, "notes"))).append(",");
+
+        String attStr = "";
+        if (logItem.get("attachments") instanceof List<?> attList) {
+            attStr = attList.stream().map(Object::toString).collect(Collectors.joining("; "));
+        }
+        sb.append(escapeCsv(attStr)).append("\n");
+    }
+
     private void appendInspectionsSection(StringBuilder sb, Map<String, Object> preview) {
-        if (preview.get("inspections") instanceof List<?> insps && !insps.isEmpty()) {
-            sb.append("\n# LỊCH SỬ KIỂM NGHIỆM\n");
-            sb.append("STT,Ngày gửi mẫu,Đơn vị kiểm nghiệm,Chỉ tiêu / Tiêu chuẩn,Kết quả,Ngày cấp kết quả,Hạn hiệu lực\n");
-            int idx = 1;
-            for (Object item : insps) {
-                if (item instanceof Map<?, ?> inspItem) {
-                    sb.append(idx++).append(",");
-                    sb.append(escapeCsv(getMapValue(inspItem, "sampleSentDate"))).append(",");
-                    sb.append(escapeCsv(getMapValue(inspItem, "inspectionUnit"))).append(",");
-                    sb.append(escapeCsv(getMapValue(inspItem, "criterionName"))).append(",");
-                    String res = getMapValue(inspItem, "passed");
-                    if (res.isBlank()) {
-                        res = getMapValue(inspItem, "status");
-                    }
-                    sb.append(escapeCsv(res)).append(",");
-                    sb.append(escapeCsv(getMapValue(inspItem, "resultDate"))).append(",");
-                    sb.append(escapeCsv(getMapValue(inspItem, "expiryDate"))).append("\n");
-                }
+        if (!(preview.get("inspections") instanceof List<?> insps) || insps.isEmpty()) {
+            return;
+        }
+        sb.append("\n# LỊCH SỬ KIỂM NGHIỆM\n");
+        sb.append("STT,Ngày gửi mẫu,Đơn vị kiểm nghiệm,Chỉ tiêu / Tiêu chuẩn,Kết quả,Ngày cấp kết quả,Hạn hiệu lực\n");
+        int idx = 1;
+        for (Object item : insps) {
+            if (item instanceof Map<?, ?> inspItem) {
+                appendInspectionRow(sb, idx++, inspItem);
             }
         }
+    }
+
+    private void appendInspectionRow(StringBuilder sb, int idx, Map<?, ?> inspItem) {
+        sb.append(idx).append(",");
+        sb.append(escapeCsv(getMapValue(inspItem, "sampleSentDate"))).append(",");
+        sb.append(escapeCsv(getMapValue(inspItem, "inspectionUnit"))).append(",");
+        sb.append(escapeCsv(getMapValue(inspItem, "criterionName"))).append(",");
+        String res = getMapValue(inspItem, "passed");
+        if (res.isBlank()) {
+            res = getMapValue(inspItem, "status");
+        }
+        sb.append(escapeCsv(res)).append(",");
+        sb.append(escapeCsv(getMapValue(inspItem, "resultDate"))).append(",");
+        sb.append(escapeCsv(getMapValue(inspItem, "expiryDate"))).append("\n");
     }
 
     private void appendTimelineSection(StringBuilder sb, Map<String, Object> preview) {

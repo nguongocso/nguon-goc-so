@@ -58,7 +58,7 @@ public class EventHashServiceImpl implements EventHashService {
             canonical.append(previousHash != null ? previousHash : "");
 
             return sha256Hex(canonical.toString());
-        } catch (Exception e) {
+        } catch (IllegalStateException | IllegalArgumentException e) {
             log.error("Lỗi tính hash cho sự kiện: {}", e.getMessage(), e);
             throw new BusinessException("Lỗi tính mã băm sự kiện: " + e.getMessage());
         }
