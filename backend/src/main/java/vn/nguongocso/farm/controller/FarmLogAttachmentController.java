@@ -1,5 +1,8 @@
 package vn.nguongocso.farm.controller;
 
+import java.util.List;
+import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -23,17 +26,15 @@ import vn.nguongocso.farm.dto.response.AttachmentResponse;
 import vn.nguongocso.farm.service.AttachmentService;
 import vn.nguongocso.permission.service.PermissionChecker;
 
-import java.util.List;
-import java.util.UUID;
-
+/** Quản lý tệp đính kèm của nhật ký canh tác. */
 @RestController
 @RequestMapping("/api/v1/farm-logs")
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
-/** Quản lý tệp đính kèm của nhật ký canh tác. */
 public class FarmLogAttachmentController {
 
     private final AttachmentService attachmentService;
+
     private final PermissionChecker permissionChecker;
 
     /** Tải lên tệp đính kèm cho nhật ký. */
@@ -43,7 +44,6 @@ public class FarmLogAttachmentController {
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "description", required = false) String description,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-
         permissionChecker.check("FARM_LOG", "UPDATE");
         AttachmentResponse response = attachmentService.uploadAttachment(logId, file, description, userDetails);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(response));
