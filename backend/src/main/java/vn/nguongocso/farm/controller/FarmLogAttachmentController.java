@@ -1,6 +1,7 @@
 package vn.nguongocso.farm.controller;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
@@ -76,7 +77,8 @@ public class FarmLogAttachmentController {
         permissionChecker.check("FARM_LOG", "READ");
         var pair = attachmentService.getAttachmentForView(attachmentId, userDetails);
         Resource resource = pair.getKey();
-        MediaType contentType = pair.getValue();
+        MediaType contentType = Objects.requireNonNull(pair.getValue(),
+                "Loại nội dung của tệp đính kèm không được null");
         return ResponseEntity.ok()
                 .contentType(contentType)
                 .body(resource);
