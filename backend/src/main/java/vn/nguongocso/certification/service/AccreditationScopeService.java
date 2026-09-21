@@ -11,19 +11,19 @@ import java.util.UUID;
  * (NCL-11-CN-006 Phase 2).
  */
 public interface AccreditationScopeService {
+        /**
+         * Lấy phạm vi công nhận hiện tại của một đơn vị kiểm nghiệm.
+         * Mọi vai trò đã xác thực đều đọc được để hiển thị cảnh báo khi tạo yêu cầu.
+         */
+        AccreditationScopeSummaryResponse getAccreditationScope(
+                        UUID testingUnitId);
 
-    /**
-     * Lấy phạm vi công nhận hiện tại của một đơn vị kiểm nghiệm.
-     * Mọi vai trò đã xác thực đều đọc được (để hiển thị cảnh báo khi tạo yêu cầu).
-     */
-    AccreditationScopeSummaryResponse getAccreditationScope(UUID testingUnitId);
-
-    /**
-     * Cập nhật (REPLACE-ALL) phạm vi công nhận của một đơn vị kiểm nghiệm.
-     * Chỉ Quản trị viên nền tảng (VT-01) được thực hiện.
-     */
-    AccreditationScopeSummaryResponse updateAccreditationScope(
-            UUID testingUnitId,
-            List<Long> criterionDefinitionIds,
-            CustomUserDetails currentUser);
+        /**
+         * Cập nhật (REPLACE-ALL) phạm vi công nhận của một đơn vị kiểm nghiệm.
+         * Chỉ Quản trị viên nền tảng (VT-01) được thực hiện.
+         */
+        AccreditationScopeSummaryResponse updateAccreditationScope(
+                        UUID testingUnitId,
+                        List<Long> criterionDefinitionIds,
+                        CustomUserDetails currentUser);
 }

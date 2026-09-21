@@ -14,7 +14,6 @@ import java.util.UUID;
 @Getter
 @Builder
 public class AccreditationScopeResponse {
-
     @JsonProperty("id")
     private UUID id;
 
@@ -24,7 +23,6 @@ public class AccreditationScopeResponse {
     @JsonProperty("testingUnitName")
     private String testingUnitName;
 
-    /** Id chỉ tiêu trong danh mục dùng chung (inspection_criterion_catalog.id). */
     @JsonProperty("criterionDefinitionId")
     private Long criterionDefinitionId;
 

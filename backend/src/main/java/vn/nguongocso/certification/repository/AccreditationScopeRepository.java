@@ -15,40 +15,39 @@ import java.util.UUID;
  * (NCL-11-CN-006 Phase 2).
  */
 public interface AccreditationScopeRepository
-        extends JpaRepository<AccreditationScope, UUID> {
+                extends JpaRepository<AccreditationScope, UUID> {
+        /**
+         * Lấy toàn bộ phạm vi công nhận của một đơn vị kiểm nghiệm
+         * (kèm chỉ tiêu danh mục, tránh N+1), sắp theo tên chỉ tiêu.
+         */
+        @Query("""
+                        SELECT s FROM AccreditationScope s
+                        JOIN FETCH s.criterion
+                        WHERE s.testingUnit.id = :testingUnitId
+                        ORDER BY s.criterion.name ASC
+                        """)
+        List<AccreditationScope> findByTestingUnitIdWithCriterion(
+                        @Param("testingUnitId") UUID testingUnitId);
 
-    /**
-     * Lấy toàn bộ phạm vi công nhận của một đơn vị kiểm nghiệm
-     * (kèm chỉ tiêu danh mục, tránh N+1), sắp theo tên chỉ tiêu.
-     */
-    @Query("""
-            SELECT s FROM AccreditationScope s
-            JOIN FETCH s.criterion
-            WHERE s.testingUnit.id = :testingUnitId
-            ORDER BY s.criterion.name ASC
-            """)
-    List<AccreditationScope> findByTestingUnitIdWithCriterion(
-            @Param("testingUnitId") UUID testingUnitId);
+        /**
+         * Lấy các phạm vi công nhận khớp một tập chỉ tiêu cho trước.
+         * Dùng để kiểm tra chỉ tiêu nào thuộc phạm vi khi tạo yêu cầu.
+         */
+        @Query("""
+                        SELECT s FROM AccreditationScope s
+                        JOIN FETCH s.criterion
+                        WHERE s.testingUnit.id = :testingUnitId
+                        AND s.criterion.id IN :criterionIds
+                        """)
+        List<AccreditationScope> findByTestingUnitIdAndCriterionIdIn(
+                        @Param("testingUnitId") UUID testingUnitId,
+                        @Param("criterionIds") Collection<Long> criterionIds);
 
-    /**
-     * Lấy các phạm vi công nhận khớp một tập chỉ tiêu cho trước.
-     * Dùng để kiểm tra chỉ tiêu nào thuộc phạm vi khi tạo yêu cầu.
-     */
-    @Query("""
-            SELECT s FROM AccreditationScope s
-            JOIN FETCH s.criterion
-            WHERE s.testingUnit.id = :testingUnitId
-            AND s.criterion.id IN :criterionIds
-            """)
-    List<AccreditationScope> findByTestingUnitIdAndCriterionIdIn(
-            @Param("testingUnitId") UUID testingUnitId,
-            @Param("criterionIds") Collection<Long> criterionIds);
-
-    /**
-     * Xoá toàn bộ phạm vi công nhận của một đơn vị kiểm nghiệm.
-     * Dùng khi cập nhật theo ngữ nghĩa REPLACE-ALL.
-     */
-    @Modifying
-    @Query("DELETE FROM AccreditationScope s WHERE s.testingUnit.id = :testingUnitId")
-    void deleteByTestingUnitId(@Param("testingUnitId") UUID testingUnitId);
+        /**
+         * Xoá toàn bộ phạm vi công nhận của một đơn vị kiểm nghiệm.
+         * Dùng khi cập nhật theo ngữ nghĩa REPLACE-ALL.
+         */
+        @Modifying
+        @Query("DELETE FROM AccreditationScope s WHERE s.testingUnit.id = :testingUnitId")
+        void deleteByTestingUnitId(@Param("testingUnitId") UUID testingUnitId);
 }

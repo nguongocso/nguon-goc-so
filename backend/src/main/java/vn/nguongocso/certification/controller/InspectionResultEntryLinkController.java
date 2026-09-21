@@ -23,7 +23,8 @@ import vn.nguongocso.certification.service.InspectionResultEntryLinkService;
 import vn.nguongocso.common.ApiResult;
 
 /**
- * Controller quản lý liên kết nhập kết quả kiểm nghiệm dành cho Quản lý HTX (VT-02).
+ * Controller quản lý liên kết nhập kết quả kiểm nghiệm dành cho Quản lý HTX
+ * (VT-02).
  */
 @RestController
 @RequestMapping("/api/v1/inspection-requests/{requestId}/result-entry-links")
@@ -34,11 +35,6 @@ public class InspectionResultEntryLinkController {
 
     /**
      * Cấp hoặc cấp lại liên kết nhập kết quả kiểm nghiệm cho đơn vị kiểm nghiệm.
-     *
-     * @param requestId   ID yêu cầu kiểm nghiệm.
-     * @param request     DTO chứa thông tin email và số ngày hiệu lực.
-     * @param currentUser Người dùng Quản lý HTX.
-     * @return Phản hồi chứa liên kết và đường dẫn bí mật trả về một lần duy nhất.
      */
     @PostMapping
     @PreAuthorize("hasRole('VT-02')")
@@ -53,11 +49,8 @@ public class InspectionResultEntryLinkController {
     }
 
     /**
-     * Xem thông tin trạng thái liên kết mới nhất của yêu cầu kiểm nghiệm (không trả token bí mật hay URL).
-     *
-     * @param requestId   ID yêu cầu kiểm nghiệm.
-     * @param currentUser Người dùng Quản lý HTX.
-     * @return Phản hồi chứa thông tin liên kết mới nhất.
+     * Xem thông tin trạng thái liên kết mới nhất của yêu cầu kiểm nghiệm (không trả
+     * token bí mật hay URL).
      */
     @GetMapping("/latest")
     @PreAuthorize("hasRole('VT-02')")

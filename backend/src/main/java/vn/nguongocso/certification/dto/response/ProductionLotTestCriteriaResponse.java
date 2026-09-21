@@ -7,10 +7,12 @@ import lombok.Getter;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Response DTO cho danh sách chỉ tiêu kiểm nghiệm áp dụng cho lô sản xuất.
+ */
 @Getter
 @Builder
 public class ProductionLotTestCriteriaResponse {
-
     @JsonProperty("lotId")
     private UUID lotId;
 
@@ -35,7 +37,6 @@ public class ProductionLotTestCriteriaResponse {
         @JsonProperty("name")
         private String name;
 
-        /** Tiêu chuẩn kỹ thuật mà chỉ tiêu tham chiếu đến (nếu có). */
         @JsonProperty("referenceStandard")
         private String referenceStandard;
     }

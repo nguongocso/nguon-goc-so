@@ -10,7 +10,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * DTO yêu cầu cập nhật ngưỡng cảnh báo hết hiệu lực kiểm nghiệm (NCL-11-CN-004).
+ * DTO yêu cầu cập nhật ngưỡng cảnh báo hết hiệu lực kiểm nghiệm
+ * (NCL-11-CN-004).
  */
 @Getter
 @Setter
@@ -18,7 +19,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class InspectionExpiryThresholdRequest {
-
     @NotNull(message = "Ngưỡng cảnh báo không được để trống")
     @Min(value = 1, message = "Ngưỡng cảnh báo phải lớn hơn hoặc bằng 1 ngày")
     @Max(value = 365, message = "Ngưỡng cảnh báo không được vượt quá 365 ngày")

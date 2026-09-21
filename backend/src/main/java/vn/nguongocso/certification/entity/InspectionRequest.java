@@ -33,99 +33,63 @@ import java.util.UUID;
 
 /**
  * Thực thể yêu cầu kiểm nghiệm.
- * Một lô sản xuất có thể có nhiều yêu cầu kiểm nghiệm.
  */
 @Entity
-@Table(
-    name = "inspection_requests"
-)
+@Table(name = "inspection_requests")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class InspectionRequest {
-
     @Id
     @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "id", nullable = false, updatable = false)
     @Builder.Default
     private UUID id = UUID.randomUUID();
 
-    /**
-     * Lô sản xuất cần kiểm nghiệm.
-     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "production_lot_id", nullable = false)
     private ProductionLot productionLot;
 
-    /**
-     * Đơn vị/phòng kiểm nghiệm được gửi mẫu.
-     */
     @Column(name = "inspection_unit", nullable = false, length = 255)
     private String inspectionUnit;
 
-    /**
-     * ID đơn vị kiểm nghiệm trong danh mục dùng chung (NCL-11-CN-006 Phase 1).
-     * <p>
-     * Nullable để tương thích ngược với các yêu cầu cũ nhập tự do.
-     * Khi có giá trị, {@link #inspectionUnit} lưu tên snapshot tại thời điểm tạo.
-     */
     @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "testing_unit_id")
     private UUID testingUnitId;
 
-    /**
-     * Ngày gửi mẫu.
-     */
     @Column(name = "sample_sent_date", nullable = false)
     private LocalDate sampleSentDate;
 
-    /**
-     * Trạng thái yêu cầu kiểm nghiệm.
-     */
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
     private InspectionRequestStatus status;
 
-    /**
-     * Người tạo yêu cầu.
-     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
+
+    @Column(name = "scope_warning", nullable = false)
+    @Builder.Default
+    private Boolean scopeWarning = Boolean.FALSE;
+
+    @Column(name = "scope_warning_details", length = 2000)
+    private String scopeWarningDetails;
+
+    @OneToMany(
+            mappedBy = "inspectionRequest",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    @Builder.Default
+    private List<InspectionCriterion> criteria = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    /**
-     * Cờ cảnh báo phạm vi công nhận (NCL-11-CN-006 Phase 2).
-     * <p>
-     * = true khi yêu cầu chọn đơn vị kiểm nghiệm từ danh mục NHƯNG
-     * bộ chỉ tiêu gửi đi có ít nhất một chỉ tiêu nằm NGOÀI phạm vi
-     * công nhận của đơn vị. Chỉ mang tính cảnh báo, không chặn tạo.
-     */
-    @Column(name = "scope_warning", nullable = false)
-    @Builder.Default
-    private Boolean scopeWarning = Boolean.FALSE;
-
-    /**
-     * Chi tiết các chỉ tiêu ngoài phạm vi công nhận
-     * (snapshot tên, ngăn cách bởi dấu phẩy) để phục vụ hiển thị lịch sử.
-     */
-    @Column(name = "scope_warning_details", length = 2000)
-    private String scopeWarningDetails;
-
-    @OneToMany(
-        mappedBy = "inspectionRequest",
-        cascade = CascadeType.ALL,
-        orphanRemoval = true
-    )
-    @Builder.Default
-    private List<InspectionCriterion> criteria = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

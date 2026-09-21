@@ -7,13 +7,12 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Response DTO for inspection criterion catalog entries.
- * Story: NCL-09-CN-009
+ * Thông tin danh mục chỉ tiêu kiểm nghiệm dùng cho việc xuất dữ liệu
+ * (NCL-09-CN-009).
  */
 @Getter
 @Builder
 public class InspectionCriterionCatalogResponse {
-
     @JsonProperty("id")
     private Long id;
 
