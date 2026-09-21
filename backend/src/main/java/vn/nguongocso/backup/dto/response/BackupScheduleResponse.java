@@ -32,9 +32,6 @@ public class BackupScheduleResponse {
 
     /**
      * Chuyển đổi từ thực thể BackupSchedule sang BackupScheduleResponse.
-     *
-     * @param schedule Thực thể BackupSchedule cần chuyển đổi.
-     * @return Đối tượng BackupScheduleResponse tương ứng.
      */
     public static BackupScheduleResponse fromEntity(BackupSchedule schedule) {
         if (schedule == null)

@@ -18,8 +18,10 @@ import java.util.concurrent.ScheduledFuture;
 import org.springframework.beans.factory.annotation.Value;
 
 /**
- * Lớp BackupScheduler chịu trách nhiệm quản lý lịch trình sao lưu dựa trên cấu hình trong cơ sở dữ liệu.
- * Nó lắng nghe sự kiện thay đổi lịch trình và cập nhật lịch trình sao lưu một cách động.
+ * Lớp BackupScheduler chịu trách nhiệm quản lý lịch trình sao lưu dựa trên cấu
+ * hình trong cơ sở dữ liệu.
+ * Nó lắng nghe sự kiện thay đổi lịch trình và cập nhật lịch trình sao lưu một
+ * cách động.
  */
 @Component
 @RequiredArgsConstructor
@@ -33,8 +35,9 @@ public class BackupScheduler {
 
     @Value("${app.backup.scheduler.enabled:true}")
     private boolean schedulerEnabled;
+
     /**
-     * Initializes the scheduler immediately after bean creation.
+     * Khởi tạo scheduler ngay sau khi bean được tạo.
      */
     @PostConstruct
     public void init() {
@@ -48,17 +51,16 @@ public class BackupScheduler {
     }
 
     /**
-     * Schedules the next execution. This method is synchronized to prevent race conditions.
+     * Lập lịch công việc sao lưu tiếp theo. Phương thức này được đồng bộ để ngăn
+     * chặn xung đột.
      */
     public synchronized void scheduleNext() {
-        // Cancel existing task if it exists
         if (scheduledTask != null) {
             log.info("Canceling existing backup schedule task...");
             scheduledTask.cancel(false);
             scheduledTask = null;
         }
 
-        // Load active schedule from database
         Optional<BackupSchedule> activeScheduleOpt = backupScheduleRepository.findFirstByIsActiveTrue();
         if (activeScheduleOpt.isPresent() && activeScheduleOpt.get().isActive()) {
             BackupSchedule schedule = activeScheduleOpt.get();
@@ -75,8 +77,7 @@ public class BackupScheduler {
                                 log.error("Error executing scheduled backup", e);
                             }
                         },
-                        new CronTrigger(cron)
-                );
+                        new CronTrigger(cron));
             } catch (Exception e) {
                 log.error("Failed to schedule task with cron expression '{}'", cron, e);
             }
@@ -86,7 +87,7 @@ public class BackupScheduler {
     }
 
     /**
-     * Listens to BackupScheduleChangedEvent and reloads configuration dynamically.
+     * Lắng nghe sự kiện BackupScheduleChangedEvent và tải lại cấu hình động.
      */
     @EventListener
     public void handleScheduleChanged(BackupScheduleChangedEvent event) {
