@@ -1,4 +1,4 @@
-// Mapping action sang tiếng Việt
+/** Mapping action sang tiếng Việt */
 export const actionLabels: Record<string, string> = {
   CREATE: 'Tạo / Thêm mới',
   READ: 'Xem danh sách & chi tiết',
@@ -17,7 +17,7 @@ export const actionLabels: Record<string, string> = {
   EVENT_TRANSPORT: 'Ghi sự kiện vận chuyển',
 };
 
-// Mapping resource sang tiếng Việt (dùng nếu backend chưa trả về label tiếng Việt)
+/** Mapping resource sang tiếng Việt (dùng nếu backend chưa trả về label tiếng Việt) */
 export const resourceLabels: Record<string, string> = {
   event_chain: 'Quyền ghi nhận sự kiện chuỗi',
   organization: 'Tổ chức',
@@ -50,15 +50,15 @@ export const resourceLabels: Record<string, string> = {
 };
 
 /**
- * Lấy tên hiển thị của resource, fallback về resource nếu không có mapping
+ * Lấy tên hiển thị của resource, fallback về resource nếu không có mapping.
  */
-export const getResourceLabel = (resource: string): string => {
+export function getResourceLabel(resource: string): string {
   return resourceLabels[resource] || resource;
-};
+}
 
 /**
- * Lấy tên hiển thị của action, fallback về action nếu không có mapping
+ * Lấy tên hiển thị của action, fallback về action nếu không có mapping.
  */
-export const getActionLabel = (action: string): string => {
+export function getActionLabel(action: string): string {
   return actionLabels[action] || action;
-};
+}

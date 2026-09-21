@@ -1,15 +1,15 @@
-import { useAuth } from './useAuth';
 import { hasAnyRole, type AuthenticatedRoleCode } from '@/config/roleAccess';
+import { useAuth } from './useAuth';
 
 /**
- * Custom hook for permission checking at the UI level.
- * Returns a boolean indicating whether the current user has any of the allowed roles.
- * 
- * Usage:
+ * Custom hook kiểm tra quyền hạn người dùng theo danh sách vai trò cho phép.
+ * Trả về boolean xác định xem người dùng hiện tại có vai trò hợp lệ hay không.
+ *
+ * @example
  *   const canCreate = usePermission(['VT-02']);
  *   {canCreate && <Button>Thêm thành viên</Button>}
  */
-export const usePermission = (allowedRoles: readonly AuthenticatedRoleCode[]): boolean => {
+export function usePermission(allowedRoles: readonly AuthenticatedRoleCode[]): boolean {
   const { user } = useAuth();
   return hasAnyRole(user?.roleCode, allowedRoles);
-};
+}

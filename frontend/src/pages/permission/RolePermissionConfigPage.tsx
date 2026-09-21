@@ -1,8 +1,10 @@
-import React from 'react';
-import { RolePermissionConfig } from '@/components/permission/RolePermissionConfig';
 import { HelpButton } from '@/components/help/HelpButton';
+import { RolePermissionConfig } from '@/components/permission/RolePermissionConfig';
 
-const RolePermissionConfigPage: React.FC = () => {
+/**
+ * Trang cấu hình phân quyền cho vai trò Người ghi sự kiện (VT-03).
+ */
+export function RolePermissionConfigPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -21,6 +23,6 @@ const RolePermissionConfigPage: React.FC = () => {
       <RolePermissionConfig />
     </div>
   );
-};
+}
 
 export default RolePermissionConfigPage;

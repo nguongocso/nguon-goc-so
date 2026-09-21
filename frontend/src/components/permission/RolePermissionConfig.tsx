@@ -1,17 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { useEffect, useState } from 'react';
 import { Loader2, Save, ShieldCheck } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+
 import {
   getOrganizationRoles,
   getRolePermissions,
   updateRolePermissions,
 } from '@/api/permissionApi';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
+import type { PermissionGroup as PermissionGroupType, RoleInfo } from '@/types/permission';
 import { PermissionGroup } from './PermissionGroup';
-import type { RoleInfo, PermissionGroup as PermissionGroupType } from '@/types/permission';
 
-export const RolePermissionConfig: React.FC = () => {
+/**
+ * Component cấu hình phân quyền cho vai trò Người ghi sự kiện (VT-03) trong tổ chức.
+ */
+export function RolePermissionConfig() {
   const { user } = useAuth();
   const organizationId = user?.organizationId;
 
@@ -23,7 +27,9 @@ export const RolePermissionConfig: React.FC = () => {
   // Tự động tải vai trò Người ghi sự kiện (VT-03) và danh sách quyền
   useEffect(() => {
     const fetchRoleAndPermissions = async () => {
-      if (!organizationId) return;
+      if (!organizationId) {
+        return;
+      }
       try {
         setLoading(true);
         const rolesData = await getOrganizationRoles(organizationId);
@@ -37,13 +43,17 @@ export const RolePermissionConfig: React.FC = () => {
 
         const permData = await getRolePermissions(organizationId, eventRecorderRole.roleId);
         setPermissions(permData.groups);
-      } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Không thể tải cấu hình quyền của Người ghi sự kiện');
+      } catch (error: unknown) {
+        const axiosError = error as { response?: { data?: { message?: string } } };
+        toast.error(
+          axiosError.response?.data?.message ||
+            'Không thể tải cấu hình quyền của Người ghi sự kiện',
+        );
       } finally {
         setLoading(false);
       }
     };
-    fetchRoleAndPermissions();
+    void fetchRoleAndPermissions();
   }, [organizationId]);
 
   const handleToggle = (permissionId: number, enabled: boolean) => {
@@ -51,14 +61,16 @@ export const RolePermissionConfig: React.FC = () => {
       prev.map((group) => ({
         ...group,
         permissions: group.permissions.map((p) =>
-          p.permissionId === permissionId ? { ...p, isEnabled: enabled, isDefault: false } : p
+          p.permissionId === permissionId ? { ...p, isEnabled: enabled, isDefault: false } : p,
         ),
-      }))
+      })),
     );
   };
 
   const handleSave = async () => {
-    if (!organizationId || !roleInfo) return;
+    if (!organizationId || !roleInfo) {
+      return;
+    }
 
     const allPermissions = permissions.flatMap((g) => g.permissions);
     const payload = {
@@ -73,9 +85,12 @@ export const RolePermissionConfig: React.FC = () => {
       const updated = await updateRolePermissions(organizationId, roleInfo.roleId, payload);
       setPermissions(updated.groups);
       toast.success('Cập nhật cấu hình quyền cho Người ghi sự kiện thành công!');
-    } catch (error: any) {
-      const status = error.response?.status;
-      const message = error.response?.data?.message;
+    } catch (error: unknown) {
+      const axiosError = error as {
+        response?: { status?: number; data?: { message?: string } };
+      };
+      const status = axiosError.response?.status;
+      const message = axiosError.response?.data?.message;
       if (status === 403) {
         toast.error('Bạn không có quyền cấu hình phân quyền.');
       } else if (status === 404) {
@@ -89,7 +104,11 @@ export const RolePermissionConfig: React.FC = () => {
   };
 
   if (!organizationId) {
-    return <div className="p-8 text-center text-muted-foreground">Không tìm thấy tổ chức của bạn.</div>;
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        Không tìm thấy tổ chức của bạn.
+      </div>
+    );
   }
 
   return (
@@ -101,7 +120,9 @@ export const RolePermissionConfig: React.FC = () => {
             <ShieldCheck className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-800">Phân quyền Người ghi sự kiện</h3>
+            <h3 className="text-sm font-semibold text-slate-800">
+              Phân quyền Người ghi sự kiện
+            </h3>
             <p className="text-xs text-muted-foreground">
               Tùy biến quyền hạn và các sự kiện chuỗi áp dụng cho vai trò Người ghi sự kiện trong hợp tác xã
             </p>
@@ -158,4 +179,6 @@ export const RolePermissionConfig: React.FC = () => {
       </div>
     </div>
   );
-};
+}
+
+export default RolePermissionConfig;

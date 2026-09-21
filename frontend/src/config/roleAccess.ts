@@ -1,6 +1,12 @@
 export type AuthenticatedRoleCode = 'VT-01' | 'VT-02' | 'VT-03' | 'VT-04' | 'VT-05';
 
-export const AUTHENTICATED_ROLE_CODES: AuthenticatedRoleCode[] = ['VT-01', 'VT-02', 'VT-03', 'VT-04', 'VT-05'];
+export const AUTHENTICATED_ROLE_CODES: AuthenticatedRoleCode[] = [
+  'VT-01',
+  'VT-02',
+  'VT-03',
+  'VT-04',
+  'VT-05',
+];
 
 export const ROLE_ACCESS = {
   dashboard: AUTHENTICATED_ROLE_CODES,
@@ -19,17 +25,15 @@ export const ROLE_ACCESS = {
   preprocessingEventCorrect: ['VT-02', 'VT-03'] as const,
   packagingEventCreate: ['VT-02', 'VT-03'] as const,
   packagingEventCorrect: ['VT-02', 'VT-03'] as const,
-  transportEventRecord: ["VT-03"] as const,
-  scanQuickEvent: ["VT-03"] as const,
+  transportEventRecord: ['VT-03'] as const,
+  scanQuickEvent: ['VT-03'] as const,
 
-  // ✅ NCL-03-CN-007 - Quét mốc canh tác quá hạn và tạo nhắc việc
+  // NCL-03-CN-007 - Quét mốc canh tác quá hạn và tạo nhắc việc
   milestoneReminderScan: ['VT-01', 'VT-02', 'VT-03'] as const,
   milestoneScan: ['VT-01', 'VT-02', 'VT-03'] as const,
 
   codeRangeList: ['VT-01'] as const,
-  
   memberManagement: ['VT-02'] as const,
-
   inspectionRequest: ['VT-02'] as const,
 
   scanAnomalyAlerts: ['VT-01', 'VT-02'] as const,
@@ -37,108 +41,104 @@ export const ROLE_ACCESS = {
   anomalyThresholdConfig: ['VT-01'] as const,
 
   procurementEvent: ['VT-04'] as const,
-
   warehouseReceipt: ['VT-04'] as const,
-
   storageCondition: ['VT-03', 'VT-04'] as const,
 
   eventChainVerification: ['VT-01', 'VT-04', 'VT-05'] as const,
-
   standardManagement: ['VT-01'] as const,
-
   certificateVerification: ['VT-01'] as const,
 
-  // ✅ Từ file 1
   notificationInbox: AUTHENTICATED_ROLE_CODES,
-
-  // ✅ Từ file 2
   exportOpenData: ['VT-05'] as const,
 
-  // ✅ NCL-07-CN-007 - Cấu hình trường dữ liệu trong hồ sơ truy xuất theo yêu cầu đối tác
+  // NCL-07-CN-007 - Cấu hình trường dữ liệu trong hồ sơ truy xuất theo yêu cầu đối tác
   profileTemplateManage: ['VT-02'] as const,
 
-  // ✅ Từ file 1
   seasonYieldComparison: ['VT-01', 'VT-05'] as const,
 
-  // ✅ NCL-07-CN-006 - Danh sách lô có cảnh báo theo địa bàn cho Cán bộ quản lý ngành (VT-05)
+  // NCL-07-CN-006 - Danh sách lô có cảnh báo theo địa bàn cho Cán bộ quản lý ngành (VT-05)
   territoryAlertLots: ['VT-05'] as const,
 
-  // ✅ Từ file 2
   rolePermissionConfig: ['VT-02'] as const,
-
   productFeedbackManagement: ['VT-01', 'VT-02'] as const,
 
-  // ✅ NCL-08-CN-008 - Yêu cầu thu hồi lô sản xuất (2 bước)
+  // NCL-08-CN-008 - Yêu cầu thu hồi lô sản xuất (2 bước)
   recallRequestCreate: ['VT-03'] as const,
   recallRequestManage: ['VT-02'] as const,
 
-  // ✅ NCL-04-CN-007 - Yêu cầu cấp bổ sung dải mã truy xuất
+  // NCL-04-CN-007 - Yêu cầu cấp bổ sung dải mã truy xuất
   supplementCreate: ['VT-02'] as const,
   supplementManage: ['VT-01'] as const,
 
-  // ✅ NCL-12-CN-003 - Xuất hồ sơ truy xuất theo lược đồ GS1 mô phỏng
+  // NCL-12-CN-003 - Xuất hồ sơ truy xuất theo lược đồ GS1 mô phỏng
   gs1DossierExport: ['VT-02', 'VT-04'] as const,
 
-  // ✅ NCL-07-CN-005 - Xuất hồ sơ truy xuất cho nhiều lô trong một lần
+  // NCL-07-CN-005 - Xuất hồ sơ truy xuất cho nhiều lô trong một lần
   batchDossierExport: ['VT-02', 'VT-04'] as const,
 
-  // ✅ NCL-04-CN-005 - Xuất tem QR cho lô hàng để in
+  // NCL-04-CN-005 - Xuất tem QR cho lô hàng để in
   labelExport: ['VT-02'] as const,
 
   // NCL-05-CN-010 - Tách lô hàng khi giao cho nhiều đối tác
   shipmentSplit: ['VT-02'] as const,
 
-  // ✅ NCL-670 - Phân công địa bàn quản lý cho cán bộ quản lý ngành (VT-05)
+  // NCL-670 - Phân công địa bàn quản lý cho cán bộ quản lý ngành (VT-05)
   areaAssignment: ['VT-01'] as const,
 
-
-  // ✅ NCL-12-CN-001 - Quản lý khóa truy cập đối tác bên thứ ba
+  // NCL-12-CN-001 - Quản lý khóa truy cập đối tác bên thứ ba
   apiKeyManagement: ['VT-01', 'VT-02'] as const,
 
-  // ✅ NCL-09-CN-009 - Quản lý danh mục chỉ tiêu kiểm nghiệm
+  // NCL-09-CN-009 - Quản lý danh mục chỉ tiêu kiểm nghiệm
   inspectionCriteriaManagement: ['VT-01'] as const,
 
-  // ✅ NCL-09-CN-011 - Quản lý mốc canh tác bắt buộc
+  // NCL-09-CN-011 - Quản lý mốc canh tác bắt buộc
   cultivationMilestoneManagement: ['VT-01'] as const,
 
-  // ✅ NCL-11-CN-006 Phase 2 - Quản lý phạm vi công nhận của đơn vị kiểm nghiệm
+  // NCL-11-CN-006 Phase 2 - Quản lý phạm vi công nhận của đơn vị kiểm nghiệm
   testingUnitScopeManagement: ['VT-01'] as const,
 
-  // ✅ NCL-08-CN-013 - Mở khóa mã tem sau khi xác minh
+  // NCL-08-CN-013 - Mở khóa mã tem sau khi xác minh
   traceCodeUnlock: ['VT-01'] as const,
 
-  // ✅ NCL-04-CN-008 - Xem và tra cứu trạng thái từng mã tem trong lô hàng
+  // NCL-04-CN-008 - Xem và tra cứu trạng thái từng mã tem trong lô hàng
   traceCodeView: ['VT-02'] as const,
 
-  // ✅ NCL-05-CN-008-009 - Bàn giao lô hàng
+  // NCL-05-CN-008-009 - Bàn giao lô hàng
   handoverCreate: ['VT-02'] as const,
   handoverReceivedView: ['VT-02', 'VT-04'] as const,
   handoverSentView: ['VT-02'] as const,
   handoverList: ['VT-04'] as const,
   sentHandoverList: ['VT-02'] as const,
 
-  // ✅ NCL-08-CN-010 - Truy vết phạm vi ảnh hưởng của lô (Chỉ Quản lý HTX VT-02 thực hiện)
+  // NCL-08-CN-010 - Truy vết phạm vi ảnh hưởng của lô (Chỉ Quản lý HTX VT-02 thực hiện)
   impactScopeTrace: ['VT-02'] as const,
 
-  // ✅ NCL-08-CN-012 - Kết thúc vụ việc thu hồi
+  // NCL-08-CN-012 - Kết thúc vụ việc thu hồi
   recallCaseManage: ['VT-02'] as const,
 
-  // ✅ NCL-07-CN-008 - Bảng điều khiển mức độ sử dụng nền tảng theo tổ chức
+  // NCL-07-CN-008 - Bảng điều khiển mức độ sử dụng nền tảng theo tổ chức
   organizationUsage: ['VT-01'] as const,
 
-  // ✅ Hồ sơ người dùng (NCL-01-CN-010: Tất cả vai trò VT-01 -> VT-05)
+  // Hồ sơ người dùng (NCL-01-CN-010: Tất cả vai trò VT-01 -> VT-05)
   userProfile: AUTHENTICATED_ROLE_CODES,
 } as const satisfies Record<string, readonly AuthenticatedRoleCode[]>;
 
-
+/**
+ * Kiểm tra xem role của người dùng có thuộc danh sách allowedRoles hay không.
+ */
 export function hasAnyRole(
   userRole: string | undefined,
   allowedRoles: readonly AuthenticatedRoleCode[],
 ): boolean {
-  if (!userRole) return false;
+  if (!userRole) {
+    return false;
+  }
   return allowedRoles.includes(userRole as AuthenticatedRoleCode);
 }
 
+/**
+ * Chuyển đổi mã vai trò sang tên hiển thị tiếng Việt.
+ */
 export function getRoleLabel(roleCode?: string): string {
   const map: Record<string, string> = {
     'VT-01': 'Quản trị viên hệ thống',

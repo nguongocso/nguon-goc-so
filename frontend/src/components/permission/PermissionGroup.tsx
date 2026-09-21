@@ -1,16 +1,16 @@
-import React from 'react';
-import { Switch } from '@/components/ui/switch';
+import { CheckSquare, HelpCircle, Layers, Square } from 'lucide-react';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { HelpCircle, Layers, CheckSquare, Square } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { getActionLabel, getResourceLabel } from '@/utils/permissionLables';
 import type { PermissionItem } from '@/types/permission';
+import { getActionLabel, getResourceLabel } from '@/utils/permissionLables';
 
 interface PermissionGroupProps {
   resource: string;
@@ -20,13 +20,16 @@ interface PermissionGroupProps {
   disabled?: boolean;
 }
 
-export const PermissionGroup: React.FC<PermissionGroupProps> = ({
+/**
+ * Nhóm danh sách các quyền hạn theo tài nguyên (resource) hoặc nhóm sự kiện chuỗi.
+ */
+export function PermissionGroup({
   resource,
   resourceLabel,
   permissions,
   onToggle,
   disabled = false,
-}) => {
+}: PermissionGroupProps) {
   const displayLabel = getResourceLabel(resource) || resourceLabel;
   const isEventChain =
     resource === 'chain_event' ||
@@ -125,4 +128,6 @@ export const PermissionGroup: React.FC<PermissionGroupProps> = ({
       </div>
     </div>
   );
-};
+}
+
+export default PermissionGroup;
