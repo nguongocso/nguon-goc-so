@@ -11,11 +11,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletRequest;
+
 import lombok.RequiredArgsConstructor;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.partner.dto.response.PartnerLotDossierResponse;
+import vn.nguongocso.integration.partner.service.PartnerLotAccessService;
 import vn.nguongocso.integration.partner.service.PartnerLotService;
 import vn.nguongocso.integration.partner.util.PartnerSampleDataProvider;
 
@@ -32,7 +34,7 @@ public class PartnerLotController {
     private static final Logger log = LoggerFactory.getLogger(PartnerLotController.class);
 
     private final PartnerLotService partnerLotService;
-    private final vn.nguongocso.integration.partner.service.PartnerLotAccessService partnerLotAccessService;
+    private final PartnerLotAccessService partnerLotAccessService;
 
     /**
      * Lấy hồ sơ truy xuất đầy đủ của lô sản xuất (TC-01, TC-02, TC-03, TC-04).

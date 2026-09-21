@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+
 import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
@@ -39,6 +40,7 @@ import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 import vn.nguongocso.integration.apikey.event.ApiKeyQuotaThresholdEvent;
 import vn.nguongocso.integration.apikey.event.ApiKeyLifecycleEvent;
 import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
+import vn.nguongocso.integration.partner.repository.PartnerWebhookNotificationRepository;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
 
@@ -65,7 +67,7 @@ public class PartnerApiKeyService {
     private final ApplicationEventPublisher eventPublisher;
     private final PartnerApiKeyUsageService partnerApiKeyUsageService;
     private final ApiKeyQuotaPolicy apiKeyQuotaPolicy;
-    private final vn.nguongocso.integration.partner.repository.PartnerWebhookNotificationRepository partnerWebhookNotificationRepository;
+    private final PartnerWebhookNotificationRepository partnerWebhookNotificationRepository;
 
     // Bộ nhớ tạm đếm số lượt gọi trong 1 giờ: Key = apiKeyId + ":" + yyyyMMddHH
     private final Map<String, AtomicInteger> hourlyRateLimitMap = new ConcurrentHashMap<>();
@@ -606,7 +608,9 @@ public class PartnerApiKeyService {
         StringBuilder hexString = new StringBuilder();
         for (byte b : bytes) {
             String hex = Integer.toHexString(0xff & b);
-            if (hex.length() == 1) hexString.append('0');
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
             hexString.append(hex);
         }
         return hexString.toString();
@@ -636,7 +640,8 @@ public class PartnerApiKeyService {
 
     private PartnerApiKeyResponse mapToResponse(PartnerApiKey key) {
         PartnerApiKeyStatus status = key.getStatus();
-        if (status == PartnerApiKeyStatus.ACTIVE && key.getExpiresAt() != null && LocalDateTime.now().isAfter(key.getExpiresAt())) {
+        if (status == PartnerApiKeyStatus.ACTIVE && key.getExpiresAt() != null
+                && LocalDateTime.now().isAfter(key.getExpiresAt())) {
             status = PartnerApiKeyStatus.EXPIRED;
         }
 

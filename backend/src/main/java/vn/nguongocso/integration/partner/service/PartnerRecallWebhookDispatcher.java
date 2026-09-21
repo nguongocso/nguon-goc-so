@@ -1,40 +1,19 @@
 package vn.nguongocso.integration.partner.service;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
-import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
-import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
-import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
-import vn.nguongocso.integration.partner.dto.response.PartnerRecallPayloadDto;
-import vn.nguongocso.integration.partner.dto.response.PartnerWebhookAttemptDto;
+
 import vn.nguongocso.integration.partner.entity.PartnerWebhookNotification;
 import vn.nguongocso.integration.partner.enums.WebhookDeliveryStatus;
-import vn.nguongocso.integration.partner.repository.PartnerLotAccessLogRepository;
 import vn.nguongocso.integration.partner.repository.PartnerWebhookNotificationRepository;
 import vn.nguongocso.certification.entity.SystemConfiguration;
 import vn.nguongocso.certification.repository.SystemConfigurationRepository;

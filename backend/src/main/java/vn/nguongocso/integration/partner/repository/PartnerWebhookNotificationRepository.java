@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -23,7 +24,8 @@ public interface PartnerWebhookNotificationRepository extends JpaRepository<Part
     /**
      * Lấy danh sách thông báo theo khóa API đối tác, sắp xếp giảm dần theo thời gian tạo.
      */
-    Page<PartnerWebhookNotification> findByPartnerApiKey_IdOrderByCreatedAtDesc(UUID partnerApiKeyId, Pageable pageable);
+    Page<PartnerWebhookNotification> findByPartnerApiKey_IdOrderByCreatedAtDesc(UUID partnerApiKeyId,
+            Pageable pageable);
 
     /**
      * Lấy danh sách thông báo theo khóa API đối tác và trạng thái phân phối.
@@ -51,7 +53,7 @@ public interface PartnerWebhookNotificationRepository extends JpaRepository<Part
     /**
      * Hủy bỏ toàn bộ các thông báo đang chờ thử lại của một khóa API khi khóa bị thu hồi (TC-04).
      */
-    @org.springframework.data.jpa.repository.Modifying
+    @Modifying
     @Query("""
             UPDATE PartnerWebhookNotification n
             SET n.deliveryStatus = vn.nguongocso.integration.partner.enums.WebhookDeliveryStatus.CANCELLED,

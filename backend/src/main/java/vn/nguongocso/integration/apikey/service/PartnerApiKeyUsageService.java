@@ -90,7 +90,8 @@ public class PartnerApiKeyUsageService {
         if (apiKeyIds == null || apiKeyIds.isEmpty()) {
             return new HashMap<>();
         }
-        List<PartnerApiKeyDailyUsage> rows = usageRepository.findByApiKeyIdInAndUsageDate(apiKeyIds, currentUsageDate());
+        List<PartnerApiKeyDailyUsage> rows = usageRepository.findByApiKeyIdInAndUsageDate(apiKeyIds,
+                currentUsageDate());
         Map<UUID, Integer> result = new HashMap<>();
         for (PartnerApiKeyDailyUsage row : rows) {
             result.put(row.getApiKeyId(), row.getCallCount() == null ? 0 : row.getCallCount());

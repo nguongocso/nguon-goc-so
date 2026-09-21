@@ -18,10 +18,12 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import jakarta.servlet.http.HttpServletRequest;
+
 import lombok.RequiredArgsConstructor;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
+import vn.nguongocso.integration.partner.service.PartnerLotAccessService;
 import vn.nguongocso.integration.partner.util.PartnerSampleDataProvider;
 import vn.nguongocso.report.dto.response.Gs1DossierExportResponse;
 
@@ -37,7 +39,7 @@ public class PartnerShipmentController {
 
     private static final Logger log = LoggerFactory.getLogger(PartnerShipmentController.class);
 
-    private final vn.nguongocso.integration.partner.service.PartnerLotAccessService partnerLotAccessService;
+    private final PartnerLotAccessService partnerLotAccessService;
 
     /**
      * Xuất hồ sơ GS1 mô phỏng cho bên thứ ba (hỗ trợ định dạng JSON và XML).

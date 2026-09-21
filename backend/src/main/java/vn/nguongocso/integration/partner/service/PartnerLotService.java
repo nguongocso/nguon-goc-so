@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+
 import vn.nguongocso.certification.entity.Certification;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.exception.BusinessException;
@@ -24,7 +25,6 @@ import vn.nguongocso.integration.partner.dto.response.PartnerFarmLogSummaryRespo
 import vn.nguongocso.integration.partner.dto.response.PartnerLotDossierResponse;
 import vn.nguongocso.integration.partner.dto.response.PartnerLotInfoResponse;
 import vn.nguongocso.integration.partner.dto.response.PartnerOrgInfoResponse;
-import vn.nguongocso.integration.partner.util.PartnerSampleDataProvider;
 import vn.nguongocso.organization.entity.Organization;
 
 /**

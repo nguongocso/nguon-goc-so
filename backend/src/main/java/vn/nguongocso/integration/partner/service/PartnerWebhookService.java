@@ -7,7 +7,6 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +23,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
+
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
@@ -246,7 +246,8 @@ public class PartnerWebhookService {
         }
 
         Page<PartnerWebhookNotification> pageData = (status != null)
-                ? partnerWebhookNotificationRepository.findByPartnerApiKey_IdAndDeliveryStatusOrderByCreatedAtDesc(apiKeyId, status, pageable)
+                ? partnerWebhookNotificationRepository
+                        .findByPartnerApiKey_IdAndDeliveryStatusOrderByCreatedAtDesc(apiKeyId, status, pageable)
                 : partnerWebhookNotificationRepository.findByPartnerApiKey_IdOrderByCreatedAtDesc(apiKeyId, pageable);
 
         List<PartnerWebhookNotificationResponse> dtoList = pageData.getContent().stream()
@@ -270,8 +271,11 @@ public class PartnerWebhookService {
         }
 
         Page<PartnerWebhookNotification> pageData = (status != null)
-                ? partnerWebhookNotificationRepository.findByPartnerApiKey_IdAndDeliveryStatusOrderByCreatedAtDesc(apiKey.getId(), status, pageable)
-                : partnerWebhookNotificationRepository.findByPartnerApiKey_IdOrderByCreatedAtDesc(apiKey.getId(), pageable);
+                ? partnerWebhookNotificationRepository
+                        .findByPartnerApiKey_IdAndDeliveryStatusOrderByCreatedAtDesc(apiKey.getId(),
+                                status, pageable)
+                : partnerWebhookNotificationRepository.findByPartnerApiKey_IdOrderByCreatedAtDesc(apiKey.getId(),
+                        pageable);
 
         List<PartnerWebhookNotificationResponse> dtoList = pageData.getContent().stream()
                 .map(this::mapToNotificationResponse)

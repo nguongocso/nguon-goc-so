@@ -3,6 +3,7 @@ package vn.nguongocso.integration.partner.dto.response;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,19 +28,19 @@ public class PartnerLotDossierResponse {
     private PartnerFarmLogSummaryResponse farmLogSummary;
 
     /** Đánh dấu dữ liệu thử nghiệm (Sandbox). */
-    @com.fasterxml.jackson.annotation.JsonProperty("is_test")
+    @JsonProperty("is_test")
     private Boolean isTest;
 
-    @com.fasterxml.jackson.annotation.JsonProperty("isTest")
+    @JsonProperty("isTest")
     public Boolean getIsTestCamel() {
         return isTest;
     }
 
     /** Thông điệp thông báo dữ liệu thử nghiệm. */
-    @com.fasterxml.jackson.annotation.JsonProperty("test_notice")
+    @JsonProperty("test_notice")
     private String testNotice;
 
-    @com.fasterxml.jackson.annotation.JsonProperty("testNotice")
+    @JsonProperty("testNotice")
     public String getTestNoticeCamel() {
         return testNotice;
     }

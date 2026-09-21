@@ -24,6 +24,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
+
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 import vn.nguongocso.integration.apikey.repository.PartnerApiKeyRepository;
@@ -138,7 +139,8 @@ public class PartnerWebhookDeliveryService {
                 ? shipment.getProductionLot().getId()
                 : null;
 
-        String productName = (shipment.getProductionLot() != null && shipment.getProductionLot().getProductCategory() != null)
+        String productName = (shipment.getProductionLot() != null
+                        && shipment.getProductionLot().getProductCategory() != null)
                 ? shipment.getProductionLot().getProductCategory().getName()
                 : (shipment.getProductionLot() != null ? shipment.getProductionLot().getName() : "Sản phẩm");
 
@@ -218,7 +220,8 @@ public class PartnerWebhookDeliveryService {
                     .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8));
 
             HttpRequest httpRequest = reqBuilder.build();
-            HttpResponse<String> response = HTTP_CLIENT.send(httpRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+            HttpResponse<String> response = HTTP_CLIENT.send(httpRequest,
+                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             long durationMs = Duration.ofNanos(System.nanoTime() - startNano).toMillis();
 
             int statusCode = response.statusCode();
@@ -230,7 +233,8 @@ public class PartnerWebhookDeliveryService {
             boolean isSuccess = (statusCode >= 200 && statusCode < 300);
             String errorMsg = isSuccess ? null : ("Máy chủ đối tác phản hồi HTTP " + statusCode);
 
-            recordAttemptResult(notification, currentAttempt, statusCode, responseBody, errorMsg, durationMs, isSuccess);
+            recordAttemptResult(notification, currentAttempt, statusCode, responseBody, errorMsg, durationMs,
+                    isSuccess);
 
         } catch (Exception e) {
             long durationMs = Duration.ofNanos(System.nanoTime() - startNano).toMillis();
@@ -288,7 +292,8 @@ public class PartnerWebhookDeliveryService {
                 log.warn("Bắn webhook thất bại vĩnh viễn tới {} sau {} lần thử",
                         notification.getTargetUrl(), attemptNumber);
             } else {
-                int delayMinutes = RETRY_INTERVAL_MINUTES[Math.min(attemptNumber - 1, RETRY_INTERVAL_MINUTES.length - 1)];
+                int delayMinutes = RETRY_INTERVAL_MINUTES[Math.min(attemptNumber - 1,
+                        RETRY_INTERVAL_MINUTES.length - 1)];
                 notification.setDeliveryStatus(WebhookDeliveryStatus.PENDING_RETRY);
                 notification.setNextRetryAt(LocalDateTime.now().plusMinutes(delayMinutes));
                 log.info("Lên lịch thử lại lần {} tới {} sau {} phút",

@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import vn.nguongocso.farm.enums.ProductionLotStatus;
-import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
 import vn.nguongocso.integration.partner.dto.response.PartnerCertificationResponse;
 import vn.nguongocso.integration.partner.dto.response.PartnerFarmAreaResponse;
 import vn.nguongocso.integration.partner.dto.response.PartnerFarmLogSummaryResponse;

@@ -24,17 +24,20 @@ public interface PartnerApiKeyRepository extends JpaRepository<PartnerApiKey, UU
 
     Page<PartnerApiKey> findByOrganizationOrganizationId(UUID organizationId, Pageable pageable);
 
-    Page<PartnerApiKey> findByOrganizationOrganizationIdAndStatus(UUID organizationId, PartnerApiKeyStatus status, Pageable pageable);
+    Page<PartnerApiKey> findByOrganizationOrganizationIdAndStatus(UUID organizationId, PartnerApiKeyStatus status,
+            Pageable pageable);
 
     @Query("SELECT k FROM PartnerApiKey k WHERE k.id = :id AND k.organization.organizationId = :organizationId")
-    Optional<PartnerApiKey> findByIdAndOrganizationId(@Param("id") UUID id, @Param("organizationId") UUID organizationId);
+    Optional<PartnerApiKey> findByIdAndOrganizationId(@Param("id") UUID id,
+            @Param("organizationId") UUID organizationId);
 
     /**
      * Tìm khóa kèm khóa ghi bi quan để cộng dồn hạn mức an toàn khi nhiều yêu cầu nâng đồng thời.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT k FROM PartnerApiKey k WHERE k.id = :id AND k.organization.organizationId = :organizationId")
-    Optional<PartnerApiKey> findByIdAndOrganizationIdForUpdate(@Param("id") UUID id, @Param("organizationId") UUID organizationId);
+    Optional<PartnerApiKey> findByIdAndOrganizationIdForUpdate(@Param("id") UUID id,
+            @Param("organizationId") UUID organizationId);
 
     /**
      * Quét toàn bộ khóa theo trạng thái (phục vụ scheduler cảnh báo NCL-12-CN-005).
