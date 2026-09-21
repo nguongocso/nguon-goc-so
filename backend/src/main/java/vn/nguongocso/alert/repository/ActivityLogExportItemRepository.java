@@ -14,10 +14,13 @@ import vn.nguongocso.alert.entity.ActivityLogExportItem;
 
 /** Truy cập các dòng snapshot của một export job. */
 public interface ActivityLogExportItemRepository extends JpaRepository<ActivityLogExportItem, Long> {
+    /*
+     * Tìm kiếm và trả về các dòng snapshot của một export job, bắt đầu từ sau
+     */
     List<ActivityLogExportItem> findByJobIdAndSequenceNoGreaterThanOrderBySequenceNoAsc(
             UUID jobId, Long sequenceNo, Pageable pageable);
 
-    /**
+    /*
      * Đóng snapshot bằng một câu lệnh tại database để request không phải tải toàn
      * bộ dữ liệu lớn qua JVM trước khi trả HTTP 202.
      */
@@ -42,12 +45,12 @@ public interface ActivityLogExportItemRepository extends JpaRepository<ActivityL
                 al.after_value
             FROM activity_logs al
             WHERE al.organization_id = :organizationId
-              AND (:startAt IS NULL OR al.created_at >= :startAt)
-              AND (:endAt IS NULL OR al.created_at <= :endAt)
-              AND (:action IS NULL OR al.action = :action)
-              AND (:actorName IS NULL OR LOWER(al.username) LIKE LOWER(CONCAT('%', :actorName, '%'))
+                AND (:startAt IS NULL OR al.created_at >= :startAt)
+                AND (:endAt IS NULL OR al.created_at <= :endAt)
+                AND (:action IS NULL OR al.action = :action)
+                AND (:actorName IS NULL OR LOWER(al.username) LIKE LOWER(CONCAT('%', :actorName, '%'))
                     OR LOWER(al.full_name) LIKE LOWER(CONCAT('%', :actorName, '%')))
-              AND (:objectType IS NULL OR al.entity_type = :objectType)
+                AND (:objectType IS NULL OR al.entity_type = :objectType)
             """, nativeQuery = true)
     int snapshotFromActivityLogs(
             @Param("jobId") String jobId,

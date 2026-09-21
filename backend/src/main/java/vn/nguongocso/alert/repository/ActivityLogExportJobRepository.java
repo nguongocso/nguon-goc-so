@@ -17,59 +17,65 @@ import vn.nguongocso.alert.enums.ActivityLogExportStatus;
 
 /** Truy cập yêu cầu xuất nhật ký hoạt động theo phạm vi tổ chức. */
 public interface ActivityLogExportJobRepository extends JpaRepository<ActivityLogExportJob, UUID> {
-    Optional<ActivityLogExportJob> findByIdAndOrganizationId(UUID id, UUID organizationId);
+        /** Tìm yêu cầu xuất nhật ký theo ID và ID tổ chức. */
+        Optional<ActivityLogExportJob> findByIdAndOrganizationId(UUID id, UUID organizationId);
 
-    Optional<ActivityLogExportJob> findByIdAndProcessingTokenAndStatus(
-            UUID id, String processingToken, ActivityLogExportStatus status);
+        /** Tìm yêu cầu xuất nhật ký theo ID, token xử lý và trạng thái. */
+        Optional<ActivityLogExportJob> findByIdAndProcessingTokenAndStatus(
+                        UUID id, String processingToken, ActivityLogExportStatus status);
 
-    @Query("""
-            SELECT job.id FROM ActivityLogExportJob job
-            WHERE job.status = :status
-              AND (job.processingToken IS NULL OR job.leaseExpiresAt < :now)
-            ORDER BY job.createdAt ASC
-            """)
-    List<UUID> findRecoverableJobIds(
-            @Param("status") ActivityLogExportStatus status,
-            @Param("now") LocalDateTime now,
-            Pageable pageable);
+        /** Tìm danh sách ID các yêu cầu xuất nhật ký có thể phục hồi để xử lý lại. */
+        @Query("""
+                        SELECT job.id FROM ActivityLogExportJob job
+                        WHERE job.status = :status
+                        AND (job.processingToken IS NULL OR job.leaseExpiresAt < :now)
+                        ORDER BY job.createdAt ASC
+                        """)
+        List<UUID> findRecoverableJobIds(
+                        @Param("status") ActivityLogExportStatus status,
+                        @Param("now") LocalDateTime now,
+                        Pageable pageable);
 
-    @Modifying
-    @Transactional
-    @Query("""
-            UPDATE ActivityLogExportJob job
-            SET job.processingToken = :token, job.leaseExpiresAt = :leaseExpiresAt
-            WHERE job.id = :jobId
-              AND job.status = :status
-              AND (job.processingToken IS NULL OR job.leaseExpiresAt < :now)
-            """)
-    int claim(
-            @Param("jobId") UUID jobId,
-            @Param("token") String token,
-            @Param("leaseExpiresAt") LocalDateTime leaseExpiresAt,
-            @Param("now") LocalDateTime now,
-            @Param("status") ActivityLogExportStatus status);
+        /** Nhận quyền xử lý (claim lease) đối với yêu cầu xuất nhật ký. */
+        @Modifying
+        @Transactional
+        @Query("""
+                        UPDATE ActivityLogExportJob job
+                        SET job.processingToken = :token, job.leaseExpiresAt = :leaseExpiresAt
+                        WHERE job.id = :jobId
+                        AND job.status = :status
+                        AND (job.processingToken IS NULL OR job.leaseExpiresAt < :now)
+                        """)
+        int claim(
+                        @Param("jobId") UUID jobId,
+                        @Param("token") String token,
+                        @Param("leaseExpiresAt") LocalDateTime leaseExpiresAt,
+                        @Param("now") LocalDateTime now,
+                        @Param("status") ActivityLogExportStatus status);
 
-    @Modifying
-    @Transactional
-    @Query("""
-            UPDATE ActivityLogExportJob job
-            SET job.leaseExpiresAt = :leaseExpiresAt
-            WHERE job.id = :jobId
-              AND job.processingToken = :token
-              AND job.status = :status
-            """)
-    int renewLease(
-            @Param("jobId") UUID jobId,
-            @Param("token") String token,
-            @Param("leaseExpiresAt") LocalDateTime leaseExpiresAt,
-            @Param("status") ActivityLogExportStatus status);
+        /** Gia hạn thời gian giữ quyền xử lý (renew lease) cho yêu cầu xuất nhật ký. */
+        @Modifying
+        @Transactional
+        @Query("""
+                        UPDATE ActivityLogExportJob job
+                        SET job.leaseExpiresAt = :leaseExpiresAt
+                        WHERE job.id = :jobId
+                        AND job.processingToken = :token
+                        AND job.status = :status
+                        """)
+        int renewLease(
+                        @Param("jobId") UUID jobId,
+                        @Param("token") String token,
+                        @Param("leaseExpiresAt") LocalDateTime leaseExpiresAt,
+                        @Param("status") ActivityLogExportStatus status);
 
-    @Modifying
-    @Transactional
-    @Query("""
-            UPDATE ActivityLogExportJob job
-            SET job.processingToken = NULL, job.leaseExpiresAt = NULL
-            WHERE job.id = :jobId AND job.processingToken = :token
-            """)
-    int releaseClaim(@Param("jobId") UUID jobId, @Param("token") String token);
+        /** Hủy bỏ quyền xử lý (release claim) đối với yêu cầu xuất nhật ký. */
+        @Modifying
+        @Transactional
+        @Query("""
+                        UPDATE ActivityLogExportJob job
+                        SET job.processingToken = NULL, job.leaseExpiresAt = NULL
+                        WHERE job.id = :jobId AND job.processingToken = :token
+                        """)
+        int releaseClaim(@Param("jobId") UUID jobId, @Param("token") String token);
 }

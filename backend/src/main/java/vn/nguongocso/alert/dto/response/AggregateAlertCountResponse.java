@@ -8,7 +8,8 @@ import lombok.NoArgsConstructor;
 import java.util.Map;
 
 /**
- * Thống kê số lượng cảnh báo tổng hợp theo mức độ khẩn cấp và loại (NCL-08-CN-016).
+ * Thống kê số lượng cảnh báo tổng hợp theo mức độ khẩn cấp và loại
+ * (NCL-08-CN-016).
  */
 @Data
 @Builder
@@ -16,7 +17,10 @@ import java.util.Map;
 @AllArgsConstructor
 public class AggregateAlertCountResponse {
     private long totalOpen;
+
     private long highSeverityCount;
+
     private long mediumSeverityCount;
+
     private Map<String, Long> byTypeCounts;
 }

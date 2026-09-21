@@ -23,12 +23,10 @@ public class ActivityLogListener {
 
     /**
      * Xử lý sự kiện ActivityLogEvent và lưu thông tin vào cơ sở dữ liệu.
-     *
-     * @param event sự kiện ghi nhật ký hoạt động
      */
-    @Async // Thực thi bất đồng bộ trên một Thread Pool riêng biệt
+    @Async
     @EventListener
-    @Transactional(propagation = Propagation.REQUIRES_NEW) // Tạo transaction mới hoàn toàn biệt lập
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleActivityLogEvent(ActivityLogEvent event) {
         try {
             ActivityLog activityLog = ActivityLog.builder()
@@ -46,7 +44,6 @@ public class ActivityLogListener {
                     .ipAddress(event.getIpAddress())
                     .createdAt(event.getTimestamp())
                     .build();
-
             activityLogRepository.save(activityLog);
             log.debug("Lưu vết thao tác thành công: {} bởi {}", event.getAction(), event.getUsername());
         } catch (Exception e) {

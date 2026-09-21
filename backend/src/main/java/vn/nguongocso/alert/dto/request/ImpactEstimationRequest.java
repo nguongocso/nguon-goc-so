@@ -15,9 +15,6 @@ import lombok.Setter;
 
 /**
  * Yêu cầu ước lượng tác động của ngưỡng dự thảo (NCL-08-CN-014).
- * <p>
- * Cho phép truyền ID danh mục (nếu muốn ước lượng theo danh mục) hoặc để trống (ước lượng toàn hệ thống).
- * </p>
  */
 @Getter
 @Setter
@@ -25,7 +22,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class ImpactEstimationRequest {
-
     private UUID productCategoryId;
 
     @NotNull(message = "Số lượt quét tối đa mỗi giờ không được để trống")

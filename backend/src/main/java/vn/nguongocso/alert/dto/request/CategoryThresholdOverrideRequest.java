@@ -14,7 +14,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Yêu cầu tạo mới hoặc cập nhật cấu hình ghi đè ngưỡng theo danh mục nông sản (NCL-08-CN-014).
+ * Yêu cầu tạo mới hoặc cập nhật cấu hình ghi đè ngưỡng theo danh mục nông sản
+ * (NCL-08-CN-014).
  */
 @Getter
 @Setter
@@ -22,7 +23,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class CategoryThresholdOverrideRequest {
-
     @NotNull(message = "Danh mục nông sản không được để trống")
     private UUID productCategoryId;
 

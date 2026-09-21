@@ -26,7 +26,6 @@ import java.util.UUID;
 @RequestMapping("/api/v1/alerts")
 @RequiredArgsConstructor
 public class AggregateAlertController {
-
     private final AggregateAlertService aggregateAlertService;
 
     /**
@@ -60,7 +59,8 @@ public class AggregateAlertController {
     }
 
     /**
-     * Lấy số liệu thống kê tổng hợp số lượng cảnh báo đang mở theo mức khẩn cấp và loại.
+     * Lấy số liệu thống kê tổng hợp số lượng cảnh báo đang mở theo mức khẩn cấp và
+     * loại.
      */
     @GetMapping("/aggregate/counts")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02')")

@@ -6,7 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Phản hồi số lượng cảnh báo đang mở phục vụ hiển thị huy hiệu trên thanh điều hướng (NCL-08-CN-016).
+ * Phản hồi số lượng cảnh báo đang mở phục vụ hiển thị huy hiệu trên thanh điều
+ * hướng (NCL-08-CN-016).
  */
 @Data
 @Builder
@@ -14,5 +15,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UnviewedAlertCountResponse {
     private long unviewedCount;
+
     private boolean hasHighSeverity;
 }

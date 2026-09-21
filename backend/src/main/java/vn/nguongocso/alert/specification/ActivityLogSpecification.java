@@ -13,7 +13,8 @@ import java.util.UUID;
 public class ActivityLogSpecification {
     /**
      * Tạo Specification để lọc ActivityLog theo organizationId.
-     * Nếu organizationId là null, trả về disjunction (luôn sai) để đảm bảo cách ly dữ liệu.
+     * Nếu organizationId là null, trả về disjunction (luôn sai) để đảm bảo cách ly
+     * dữ liệu.
      */
     public static Specification<ActivityLog> hasOrganizationId(UUID organizationId) {
         return (root, query, cb) -> organizationId == null
@@ -68,11 +69,6 @@ public class ActivityLogSpecification {
 
     /**
      * Tạo Specification để lọc ActivityLog theo khoảng thời gian tạo.
-     *
-     * <p>
-     * Cột createdAt là LocalDateTime (DATETIME, lưu giờ nghiệp vụ
-     * Asia/Ho_Chi_Minh), nên khoảng lọc cũng dùng LocalDateTime thay vì
-     * Instant quy đổi theo UTC — tránh lệch múi giờ khi so sánh.
      */
     public static Specification<ActivityLog> createdBetween(LocalDate startDate, LocalDate endDate) {
         return (root, query, cb) -> {

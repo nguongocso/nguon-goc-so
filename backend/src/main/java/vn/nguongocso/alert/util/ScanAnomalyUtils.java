@@ -8,33 +8,20 @@ import vn.nguongocso.common.util.GeoDistanceUtils;
 import vn.nguongocso.report.entity.TraceCodeScanLog;
 
 /**
- * Tiện ích dùng chung phục vụ phát hiện quét bất thường và ước lượng tác động (NCL-08-CN-014).
- * <p>
- * Đồng bộ hóa logic kiểm tra giữa luồng quét thực tế (live scan evaluation) và
- * luồng chạy thử nghiệm ước lượng tác động (dry-run impact estimation).
- * </p>
+ * Tiện ích dùng chung phục vụ phát hiện quét bất thường và ước lượng tác động
+ * (NCL-08-CN-014).
  */
 public final class ScanAnomalyUtils {
 
     private ScanAnomalyUtils() {
-        // Tiện ích static không khởi tạo instance
     }
 
     /**
-     * Kiểm tra xem một thời điểm quét có nằm trong thời gian ân hạn (grace period) hay không.
-     * <p>
-     * Trong thời gian ân hạn (từ lúc kích hoạt đến trước {@code gracePeriodDays} ngày),
-     * hệ thống bỏ qua việc đánh giá quét bất thường đối với mã tem.
-     * Chỉ khi số ngày trôi qua kể từ thời điểm kích hoạt lớn hơn hoặc bằng {@code gracePeriodDays}
-     * thì việc đánh giá mới bắt đầu.
-     * </p>
-     *
-     * @param activatedAt thời điểm kích hoạt mã tem
-     * @param eventTime thời điểm diễn ra sự kiện quét
-     * @param gracePeriodDays số ngày ân hạn
-     * @return {@code true} nếu còn trong thời gian ân hạn (cần bỏ qua đánh giá), ngược lại {@code false}
+     * Kiểm tra xem một thời điểm quét có nằm trong thời gian ân hạn (grace period)
+     * hay không.
      */
-    public static boolean isWithinGracePeriod(LocalDateTime activatedAt, LocalDateTime eventTime, Integer gracePeriodDays) {
+    public static boolean isWithinGracePeriod(LocalDateTime activatedAt, LocalDateTime eventTime,
+            Integer gracePeriodDays) {
         if (activatedAt == null || eventTime == null || gracePeriodDays == null || gracePeriodDays <= 0) {
             return false;
         }
@@ -43,16 +30,7 @@ public final class ScanAnomalyUtils {
     }
 
     /**
-     * Kiểm tra vi phạm tần suất quét cao theo cửa sổ trượt (rolling window) chuẩn:
-     * <ul>
-     * <li>Tồn tại cửa sổ trượt 24 giờ bất kỳ có số lượt quét >= maxScansPerDay.</li>
-     * <li>Hoặc tồn tại cửa sổ trượt 1 giờ bất kỳ có số lượt quét >= maxScansPerHour.</li>
-     * </ul>
-     *
-     * @param sortedScans danh sách lượt quét đã sắp xếp tăng dần theo thời gian
-     * @param maxPerHour số lượt quét tối đa cho phép trong 1 giờ
-     * @param maxPerDay số lượt quét tối đa cho phép trong 24 giờ
-     * @return {@code true} nếu vi phạm tần suất quét, ngược lại {@code false}
+     * Kiểm tra vi phạm tần suất quét cao theo cửa sổ trượt (rolling window) chuẩn
      */
     public static boolean isHighFrequency(List<TraceCodeScanLog> sortedScans, int maxPerHour, int maxPerDay) {
         if (sortedScans == null || sortedScans.isEmpty()) {
@@ -102,18 +80,10 @@ public final class ScanAnomalyUtils {
     }
 
     /**
-     * Kiểm tra vi phạm khoảng cách di chuyển bất hợp lý (impossible travel):
-     * <p>
-     * Hai lượt quét liên tiếp có tọa độ GPS hợp lệ cách nhau lớn hơn {@code maxDistanceKm}
-     * trong khoảng thời gian nhỏ hơn hoặc bằng {@code minTimeMinutes}.
-     * </p>
-     *
-     * @param sortedScans danh sách lượt quét đã sắp xếp tăng dần theo thời gian
-     * @param maxDistanceKm khoảng cách tối đa cho phép (km)
-     * @param minTimeMinutes khung thời gian tối thiểu xét di chuyển (phút)
-     * @return {@code true} nếu phát hiện di chuyển bất hợp lý, ngược lại {@code false}
+     * Kiểm tra vi phạm khoảng cách di chuyển bất hợp lý (impossible travel)
      */
-    public static boolean isImpossibleTravel(List<TraceCodeScanLog> sortedScans, double maxDistanceKm, int minTimeMinutes) {
+    public static boolean isImpossibleTravel(List<TraceCodeScanLog> sortedScans, double maxDistanceKm,
+            int minTimeMinutes) {
         if (sortedScans == null || sortedScans.size() < 2) {
             return false;
         }
