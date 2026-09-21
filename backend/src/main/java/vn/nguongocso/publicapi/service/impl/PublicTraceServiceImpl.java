@@ -1,14 +1,29 @@
 package vn.nguongocso.publicapi.service.impl;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Polygon;
 import org.springframework.stereotype.Service;
-import vn.nguongocso.exception.BusinessException;
-import vn.nguongocso.exception.ResourceNotFoundException;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.alert.service.ScanAnomalyDetectionService;
 import vn.nguongocso.certification.entity.Certification;
 import vn.nguongocso.certification.entity.InspectionCriterion;
@@ -24,6 +39,8 @@ import vn.nguongocso.certification.repository.ProductionLotCertificationReposito
 import vn.nguongocso.event.entity.ChainEvent;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
+import vn.nguongocso.exception.BusinessException;
+import vn.nguongocso.exception.ResourceNotFoundException;
 import vn.nguongocso.farm.dto.request.LatLngDto;
 import vn.nguongocso.farm.entity.FarmArea;
 import vn.nguongocso.farm.entity.ProductionLot;
@@ -37,6 +54,12 @@ import vn.nguongocso.publicapi.dto.response.PublicLotCertificationsResponse;
 import vn.nguongocso.publicapi.dto.response.PublicTraceResponse;
 import vn.nguongocso.publicapi.service.PublicTraceService;
 import vn.nguongocso.publicapi.service.ReverseGeocodingService;
+import vn.nguongocso.recall.entity.BulkRecallShipment;
+import vn.nguongocso.recall.entity.RecallRequest;
+import vn.nguongocso.recall.enums.BulkRecallRequestStatus;
+import vn.nguongocso.recall.enums.RecallRequestStatus;
+import vn.nguongocso.recall.repository.BulkRecallShipmentRepository;
+import vn.nguongocso.recall.repository.RecallRequestRepository;
 import vn.nguongocso.report.entity.TraceCodeScanLog;
 import vn.nguongocso.report.repository.TraceCodeScanLogRepository;
 import vn.nguongocso.trace.entity.Recall;
@@ -44,30 +67,21 @@ import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.entity.TraceCode;
 import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.enums.TraceCodeStatus;
-import vn.nguongocso.trace.repository.RecallRepository;
-import vn.nguongocso.trace.repository.TraceCodeRepository;
-import vn.nguongocso.trace.service.SuspectDetectionService;
-import vn.nguongocso.recall.entity.RecallRequest;
-import vn.nguongocso.recall.enums.RecallRequestStatus;
-import vn.nguongocso.recall.repository.RecallRequestRepository;
-import vn.nguongocso.recall.entity.BulkRecallShipment;
-import vn.nguongocso.recall.enums.BulkRecallRequestStatus;
-import vn.nguongocso.recall.repository.BulkRecallShipmentRepository;
 import vn.nguongocso.trace.recall.entity.RecallCase;
 import vn.nguongocso.trace.recall.enums.RecallCaseStatus;
 import vn.nguongocso.trace.recall.repository.RecallCaseRepository;
+import vn.nguongocso.trace.repository.RecallRepository;
+import vn.nguongocso.trace.repository.TraceCodeRepository;
+import vn.nguongocso.trace.service.SuspectDetectionService;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-
+/**
+ * Cung cấp dữ liệu truy xuất công khai cho tem lô hàng.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-/** Cung cấp dữ liệu truy xuất công khai cho tem lô hàng. */
 public class PublicTraceServiceImpl implements PublicTraceService {
+
     private final TraceCodeRepository traceCodeRepository;
     private final ChainEventRepository chainEventRepository;
     private final ObjectMapper objectMapper;
@@ -85,12 +99,15 @@ public class PublicTraceServiceImpl implements PublicTraceService {
 
     /**
      * Lấy thông tin truy xuất công khai (đọc thuần túy).
+     *
      * <p>
      * Không tạo TraceCodeScanLog, không tăng lượt quét và không kích hoạt
      * đánh giá nghi vấn NCL-08-CN-007.
+     * </p>
      */
     @Override
-    public PublicTraceResponse getPublicTrace(String codeValue,
+    public PublicTraceResponse getPublicTrace(
+            String codeValue,
             Double latitude,
             Double longitude,
             String ipAddress,
@@ -101,12 +118,15 @@ public class PublicTraceServiceImpl implements PublicTraceService {
 
     /**
      * Ghi nhận lượt quét mã QR thực tế.
+     *
      * <p>
      * Tạo TraceCodeScanLog, kích hoạt phát hiện bất thường (gồm cả đánh giá
      * nghi vấn NCL-08-CN-007), sau đó trả về thông tin truy xuất công khai.
+     * </p>
      */
     @Override
-    public PublicTraceResponse recordPublicScan(String codeValue,
+    public PublicTraceResponse recordPublicScan(
+            String codeValue,
             Double latitude,
             Double longitude,
             String ipAddress,
@@ -194,8 +214,10 @@ public class PublicTraceServiceImpl implements PublicTraceService {
             Shipment parentShipment = shipment.getParentShipment();
             LocalDateTime splitAt = shipment.getSplitAt();
             sourceShipmentEvents = chainEventRepository.findByShipmentIdOrderByRecordedAtAsc(parentShipment.getId())
-                    .stream().filter(event -> splitAt == null || event.getRecordedAt() == null
-                            || !event.getRecordedAt().isAfter(splitAt)).toList();
+                    .stream()
+                    .filter(event -> splitAt == null || event.getRecordedAt() == null
+                            || !event.getRecordedAt().isAfter(splitAt))
+                    .toList();
         }
 
         // Lấy dòng sự kiện của ProductionLot
@@ -326,7 +348,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         if (!closedCases.isEmpty()) {
             RecallCase closedCase = closedCases.get(0);
             String dateStr = (closedCase.getClosedAt() != null)
-                    ? closedCase.getClosedAt().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    ? closedCase.getClosedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                     : "";
             return "LÔ HÀNG ĐÃ XỬ LÝ XONG. Vụ việc thu hồi đã đóng ngày " + dateStr + ".";
         }
@@ -376,7 +398,7 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         if (!closedCases.isEmpty()) {
             RecallCase closedCase = closedCases.get(0);
             String dateStr = (closedCase.getClosedAt() != null)
-                    ? closedCase.getClosedAt().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    ? closedCase.getClosedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
                     : "";
             return "SHIPMENT RESOLVED. Recall case closed on " + dateStr + ".";
         }
@@ -423,7 +445,8 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         }
 
         if (traceCode.getStatus() == TraceCodeStatus.CANCELLED) {
-            throw new BusinessException("Mã tem này đã được đánh dấu HỦY do sự cố in hỏng/lỗi tem và không có giá trị truy xuất nguồn gốc.");
+            throw new BusinessException(
+                    "Mã tem này đã được đánh dấu HỦY do sự cố in hỏng/lỗi tem và không có giá trị truy xuất nguồn gốc.");
         }
 
         boolean isRecalled = shipment.getStatus() == ShipmentStatus.RECALLED
@@ -436,7 +459,9 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         }
     }
 
-    /** Chuyển một sự kiện nội bộ thành dữ liệu công khai. */
+    /**
+     * Chuyển một sự kiện nội bộ thành dữ liệu công khai.
+     */
     private PublicChainEventItem convertToPublicEvent(ChainEvent event) {
         // Parse eventData JSON sang Map
         Map<String, Object> rawData = parseEventData(event.getEventData());
@@ -460,21 +485,24 @@ public class PublicTraceServiceImpl implements PublicTraceService {
                 .build();
     }
 
-    /** Parse JSON eventData thành map an toàn. */
+    /**
+     * Parse JSON eventData thành map an toàn.
+     */
     private Map<String, Object> parseEventData(String eventDataJson) {
         if (eventDataJson == null || eventDataJson.isBlank()) {
             return new HashMap<>();
         }
         try {
-            return objectMapper.readValue(eventDataJson, new TypeReference<Map<String, Object>>() {
-            });
+            return objectMapper.readValue(eventDataJson, new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
             log.warn("Không thể parse eventData: {}", eventDataJson, e);
             return new HashMap<>();
         }
     }
 
-    /** Lọc trường dữ liệu được phép hiển thị công khai. */
+    /**
+     * Lọc trường dữ liệu được phép hiển thị công khai.
+     */
     private Map<String, Object> filterEventData(Map<String, Object> rawData, ChainEventType eventType) {
         Map<String, Object> result = new HashMap<>();
         if (eventType == null) {
@@ -488,7 +516,8 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         switch (eventType) {
             case HARVEST:
                 // B-03: Public trace chỉ hiển thị cờ earlyHarvest, eligibleHarvestDate, unmatchedMaterials; KHÔNG expose earlyHarvestReason
-                keepFields(rawData, result, "productionLotName", "quantity", "harvestDate", "earlyHarvest", "eligibleHarvestDate", "unmatchedMaterials");
+                keepFields(rawData, result, "productionLotName", "quantity", "harvestDate", "earlyHarvest",
+                        "eligibleHarvestDate", "unmatchedMaterials");
                 break;
             case PACKAGING:
                 keepFields(rawData, result, "productionLotName", "packagingSpecification", "packagingDate");
@@ -510,7 +539,9 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         return result;
     }
 
-    /** Giữ lại một tập trường dữ liệu cụ thể. */
+    /**
+     * Giữ lại một tập trường dữ liệu cụ thể.
+     */
     private void keepFields(Map<String, Object> source, Map<String, Object> target, String... fields) {
         for (String field : fields) {
             if (source.containsKey(field)) {
@@ -519,7 +550,9 @@ public class PublicTraceServiceImpl implements PublicTraceService {
         }
     }
 
-    /** Lấy chứng nhận công khai của lô hàng. */
+    /**
+     * Lấy chứng nhận công khai của lô hàng.
+     */
     @Override
     public PublicLotCertificationsResponse getPublicCertifications(String codeValue) {
         // 1. Tìm trace code
@@ -677,10 +710,10 @@ public class PublicTraceServiceImpl implements PublicTraceService {
      * Tính tỷ lệ phần trăm chỉ tiêu không đạt trên TỔNG số chỉ tiêu,
      * làm tròn 1 chữ số thập phân.
      *
-     * Trả về 0.0 khi tổng số chỉ tiêu là 0 (tránh chia cho 0).
+     * <p>Trả về 0.0 khi tổng số chỉ tiêu là 0 (tránh chia cho 0).</p>
      *
      * @param failedCriteriaCount Số chỉ tiêu không đạt.
-     * @param totalCriteria Tổng số chỉ tiêu.
+     * @param totalCriteria       Tổng số chỉ tiêu.
      * @return Tỷ lệ không đạt theo %, ví dụ 40.0.
      */
     private double computeFailedRatio(

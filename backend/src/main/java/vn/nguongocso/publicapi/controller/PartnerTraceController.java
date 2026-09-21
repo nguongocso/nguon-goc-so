@@ -1,7 +1,5 @@
 package vn.nguongocso.publicapi.controller;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -11,28 +9,38 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
+import vn.nguongocso.integration.partner.service.PartnerLotAccessService;
+import vn.nguongocso.integration.partner.util.PartnerSampleDataProvider;
 import vn.nguongocso.publicapi.dto.response.PublicTraceResponse;
 import vn.nguongocso.publicapi.service.PublicTraceService;
 
 /**
  * Controller truy xuất nguồn gốc dành cho Đối tác bên thứ ba (NCL-12-CN-001 / QTN-20).
+ *
  * <p>
  * Yêu cầu đối tác gửi Header {@code X-API-KEY}. Đã qua xác thực và đếm hạn mức từ {@code ApiKeyAuthenticationFilter}.
+ * </p>
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/partner/trace")
 @RequiredArgsConstructor
 public class PartnerTraceController {
 
-    private static final Logger log = LoggerFactory.getLogger(PartnerTraceController.class);
-
     private final PublicTraceService publicTraceService;
-    private final vn.nguongocso.integration.partner.service.PartnerLotAccessService partnerLotAccessService;
+    private final PartnerLotAccessService partnerLotAccessService;
 
     /**
      * Lấy dữ liệu truy xuất công khai cho bên thứ ba.
+     *
+     * @param codeValue mã tem truy xuất
+     * @param latitude  vĩ độ
+     * @param longitude kinh độ
+     * @param request   HTTP request
+     * @return thông tin truy xuất công khai
      */
     @GetMapping("/{codeValue}")
     public ResponseEntity<ApiResult<PublicTraceResponse>> getPartnerTrace(
@@ -45,14 +53,16 @@ public class PartnerTraceController {
         if (partnerApiKey != null) {
             log.info("Đối tác '{}' (orgId={}) gọi API truy xuất mã={}",
                     partnerApiKey.getPartnerName(),
-                    partnerApiKey.getOrganization() != null ? partnerApiKey.getOrganization().getOrganizationId() : "N/A",
+                    partnerApiKey.getOrganization() != null
+                            ? partnerApiKey.getOrganization().getOrganizationId()
+                            : "N/A",
                     codeValue);
 
             // TC-01, TC-02: Nếu là khóa thử nghiệm -> Trả dữ liệu mẫu Sandbox chuẩn
             if (Boolean.TRUE.equals(partnerApiKey.getIsTest())) {
                 log.info("Đối tác '{}' gọi tra cứu bằng khóa thử nghiệm mã={} -> Trả dữ liệu mẫu Sandbox (NCL-12-CN-004)",
                         partnerApiKey.getPartnerName(), codeValue);
-                return ResponseEntity.ok(ApiResult.success(vn.nguongocso.integration.partner.util.PartnerSampleDataProvider.getSampleTraceResponse()));
+                return ResponseEntity.ok(ApiResult.success(PartnerSampleDataProvider.getSampleTraceResponse()));
             }
         }
 

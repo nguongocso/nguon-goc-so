@@ -1,12 +1,14 @@
-// PublicTraceResponse.java
 package vn.nguongocso.publicapi.dto.response;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Response thông tin tra cứu công khai.
@@ -14,7 +16,10 @@ import java.util.UUID;
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class PublicTraceResponse {
+
     private String codeValue;
 
     private UUID shipmentId;
@@ -61,8 +66,7 @@ public class PublicTraceResponse {
 
     /**
      * Ranh giới vùng trồng hiển thị công khai (QTN-12).
-     * Null khi lô sản xuất chưa gắn vùng trồng hoặc vùng trồng chưa được
-     * khoanh ranh giới.
+     * Null khi lô sản xuất chưa gắn vùng trồng hoặc vùng trồng chưa được khoanh ranh giới.
      */
     private PublicFarmAreaBoundaryDto farmAreaBoundary;
 }

@@ -26,45 +26,27 @@ import lombok.Setter;
 @AllArgsConstructor
 public class PublicInspectionRoundDto {
 
-    /**
-     * Số thứ tự lần kiểm nghiệm, tính từ 1 cho lần cũ nhất.
-     */
+    /** Số thứ tự lần kiểm nghiệm, tính từ 1 cho lần cũ nhất. */
     private int round;
 
-    /**
-     * Tên phòng/đơn vị kiểm nghiệm thực hiện lần này.
-     */
+    /** Tên phòng/đơn vị kiểm nghiệm thực hiện lần này. */
     private String laboratoryName;
 
-    /**
-     * Ngày gửi mẫu đi kiểm nghiệm.
-     */
+    /** Ngày gửi mẫu đi kiểm nghiệm. */
     private LocalDate sampleSentDate;
 
-    /**
-     * Trạng thái lần kiểm nghiệm:
-     * PENDING | PASSED | FAILED | CANCELLED.
-     */
+    /** Trạng thái lần kiểm nghiệm: PENDING | PASSED | FAILED | CANCELLED. */
     private String status;
 
-    /**
-     * Tổng số chỉ tiêu của lần kiểm nghiệm này.
-     */
+    /** Tổng số chỉ tiêu của lần kiểm nghiệm này. */
     private int totalCriteria;
 
-    /**
-     * Số chỉ tiêu đạt của lần này.
-     */
+    /** Số chỉ tiêu đạt của lần này. */
     private int passedCriteria;
 
-    /**
-     * Số chỉ tiêu không đạt của lần này.
-     */
+    /** Số chỉ tiêu không đạt của lần này. */
     private int failedCriteriaCount;
 
-    /**
-     * Danh sách kết quả chi tiết các chỉ tiêu của lần này
-     * (sắp xếp cũ đến mới).
-     */
+    /** Danh sách kết quả chi tiết các chỉ tiêu của lần này (sắp xếp cũ đến mới). */
     private List<PublicInspectionCriterionResultDto> results;
 }

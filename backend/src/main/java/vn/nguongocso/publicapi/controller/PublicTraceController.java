@@ -1,8 +1,4 @@
-// PublicTraceController.java
 package vn.nguongocso.publicapi.controller;
-
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,12 +8,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.publicapi.dto.response.PublicInspectionResponse;
 import vn.nguongocso.publicapi.dto.response.PublicLotCertificationsResponse;
 import vn.nguongocso.publicapi.dto.response.PublicTraceResponse;
 import vn.nguongocso.publicapi.service.PublicTraceService;
 
+/**
+ * Controller truy xuất nguồn gốc công khai.
+ */
 @RestController
 @RequestMapping("/api/v1/public/trace")
 @RequiredArgsConstructor
@@ -27,18 +28,21 @@ public class PublicTraceController {
 
     /**
      * Lấy thông tin truy xuất công khai của một mã (đọc thuần túy).
-     * <p>
-     * Được dùng cho:
+     *
+     * <p>Được dùng cho:</p>
      * <ul>
-     * <li>tra cứu thủ công (người dùng nhập mã và bấm tìm kiếm);</li>
-     * <li>mở / reload đường dẫn công khai / chia sẻ liên kết;</li>
-     * <li>xem thông tin hành trình thông thường.</li>
+     *   <li>Tra cứu thủ công (người dùng nhập mã và bấm tìm kiếm).</li>
+     *   <li>Mở / reload đường dẫn công khai / chia sẻ liên kết.</li>
+     *   <li>Xem thông tin hành trình thông thường.</li>
      * </ul>
      * Endpoint này KHÔNG tạo TraceCodeScanLog, KHÔNG tăng lượt quét và
      * KHÔNG kích hoạt phát hiện nghi vấn NCL-08-CN-007.
      *
-     * FE chỉ gửi latitude và longitude.
-     * Backend tự reverse geocoding để lấy location.
+     * @param codeValue mã tem truy xuất
+     * @param latitude  vĩ độ
+     * @param longitude kinh độ
+     * @param request   HTTP request
+     * @return thông tin truy xuất công khai
      */
     @GetMapping("/{codeValue}")
     public ResponseEntity<ApiResult<PublicTraceResponse>> getPublicTrace(
@@ -59,17 +63,21 @@ public class PublicTraceController {
 
     /**
      * Ghi nhận một lượt quét mã QR thực tế.
-     * <p>
-     * Được gọi bởi luồng quét QR ở frontend sau khi giải mã thành công payload QR.
+     *
+     * <p>Được gọi bởi luồng quét QR ở frontend sau khi giải mã thành công payload QR.</p>
      * Endpoint này:
      * <ul>
-     * <li>kiểm tra mã tem theo đúng quy tắc tra cứu công khai hiện tại;</li>
-     * <li>tạo bản ghi TraceCodeScanLog;</li>
-     * <li>kích hoạt phát hiện quét bất thường (gồm đánh giá nghi vấn NCL-08-CN-007);</li>
-     * <li>trả về thông tin truy xuất công khai.</li>
+     *   <li>Kiểm tra mã tem theo đúng quy tắc tra cứu công khai hiện tại.</li>
+     *   <li>Tạo bản ghi TraceCodeScanLog.</li>
+     *   <li>Kích hoạt phát hiện quét bất thường (gồm đánh giá nghi vấn NCL-08-CN-007).</li>
+     *   <li>Trả về thông tin truy xuất công khai.</li>
      * </ul>
-     * Endpoint này KHÔNG phải bằng chứng mật mã xác thực việc quét mã vật lý;
-     * nó đại diện cho hợp đồng ứng dụng của luồng quét QR.
+     *
+     * @param codeValue mã tem truy xuất
+     * @param latitude  vĩ độ
+     * @param longitude kinh độ
+     * @param request   HTTP request
+     * @return thông tin truy xuất công khai
      */
     @PostMapping("/{codeValue}/scan")
     public ResponseEntity<ApiResult<PublicTraceResponse>> recordPublicScan(
@@ -90,27 +98,29 @@ public class PublicTraceController {
 
     /**
      * Lấy danh sách chứng nhận công khai của lô hàng.
+     *
+     * @param codeValue mã tem truy xuất
+     * @return danh sách chứng nhận công khai
      */
     @GetMapping("/{codeValue}/certifications")
     public ResponseEntity<ApiResult<PublicLotCertificationsResponse>> getPublicCertifications(
             @PathVariable String codeValue) {
 
-        PublicLotCertificationsResponse response =
-                publicTraceService.getPublicCertifications(codeValue);
-
+        PublicLotCertificationsResponse response = publicTraceService.getPublicCertifications(codeValue);
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
     /**
      * Lấy danh sách kết quả kiểm nghiệm công khai của lô hàng (TASK-16 / CV-04).
+     *
+     * @param codeValue mã tem truy xuất
+     * @return danh sách kết quả kiểm nghiệm công khai
      */
     @GetMapping("/{codeValue}/inspections")
     public ResponseEntity<ApiResult<PublicInspectionResponse>> getPublicInspections(
             @PathVariable String codeValue) {
 
-        PublicInspectionResponse response =
-                publicTraceService.getPublicInspections(codeValue);
-
+        PublicInspectionResponse response = publicTraceService.getPublicInspections(codeValue);
         return ResponseEntity.ok(ApiResult.success(response));
     }
 
@@ -118,14 +128,10 @@ public class PublicTraceController {
      * Lấy IP thực của client.
      */
     private String getClientIp(HttpServletRequest request) {
-
-        String xForwardedFor =
-                request.getHeader("X-Forwarded-For");
-
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
             return xForwardedFor.split(",")[0].trim();
         }
-
         return request.getRemoteAddr();
     }
 }

@@ -2,8 +2,7 @@ package vn.nguongocso.publicapi.controller;
 
 import java.util.UUID;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
@@ -20,18 +20,18 @@ import vn.nguongocso.integration.partner.service.PartnerLotService;
 import vn.nguongocso.integration.partner.util.PartnerSampleDataProvider;
 
 /**
- * REST Controller cổng dữ liệu công khai dành cho đối tác tích hợp
- * (NCL-12-CN-004).
+ * REST Controller cổng dữ liệu công khai dành cho đối tác tích hợp (NCL-12-CN-004).
+ *
  * <p>
  * Phục vụ endpoint {@code /api/publicapi/v1/lots/{lotId}} hỗ trợ cả môi trường
  * thử nghiệm (Sandbox) với khóa thử nghiệm và môi trường thực tế.
+ * </p>
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/publicapi/v1/lots")
 @RequiredArgsConstructor
 public class PublicLotApiController {
-
-    private static final Logger log = LoggerFactory.getLogger(PublicLotApiController.class);
 
     private final PartnerLotService partnerLotService;
 
@@ -40,10 +40,9 @@ public class PublicLotApiController {
      *
      * @param lotId   Mã định danh lô (UUID hoặc mã lô mẫu)
      * @param request HttpServletRequest chứa thông tin partnerApiKey đã xác thực
-     * @return Dữ liệu hồ sơ lô (mẫu nếu là khóa thử nghiệm, thực tế nếu là khóa
-     *         thật)
+     * @return Dữ liệu hồ sơ lô (mẫu nếu là khóa thử nghiệm, thực tế nếu là khóa thật)
      */
-    @GetMapping({ "/{lotId}", "/{lotId}/dossier" })
+    @GetMapping({"/{lotId}", "/{lotId}/dossier"})
     public ResponseEntity<ApiResult<PartnerLotDossierResponse>> getLotDossier(
             @PathVariable String lotId,
             HttpServletRequest request) {
@@ -66,8 +65,10 @@ public class PublicLotApiController {
 
             log.warn("Đối tác '{}' dùng khóa thử nghiệm cố truy cập mã lô '{}' -> từ chối",
                     partnerApiKey.getPartnerName(), lotId);
-            throw new BusinessException(org.springframework.http.HttpStatus.FORBIDDEN,
-                    "Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật.");
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN,
+                    "Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". "
+                            + "Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật.");
         }
 
         // Khóa thực tế: yêu cầu lotId là UUID hợp lệ của lô thuộc tổ chức

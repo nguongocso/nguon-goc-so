@@ -13,9 +13,12 @@ import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.publicapi.dto.response.LocationIQResponse;
 import vn.nguongocso.publicapi.service.ReverseGeocodingService;
 
+/**
+ * Service tích hợp LocationIQ để thực hiện reverse geocoding.
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class LocationIQServiceImpl implements ReverseGeocodingService {
 
     private final RestClient.Builder restClientBuilder;
@@ -28,20 +31,11 @@ public class LocationIQServiceImpl implements ReverseGeocodingService {
 
     @Override
     public String reverseGeocode(double latitude, double longitude) {
-
         try {
-            log.info(
-                    ">>> LOCATION IQ - START: lat={}, lon={}",
-                    latitude,
-                    longitude);
+            log.info(">>> LOCATION IQ - START: lat={}, lon={}", latitude, longitude);
 
-            SimpleClientHttpRequestFactory factory =
-                    new SimpleClientHttpRequestFactory();
-
-            // Timeout kết nối
+            SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
             factory.setConnectTimeout(Duration.ofSeconds(5));
-
-            // Timeout chờ response
             factory.setReadTimeout(Duration.ofSeconds(5));
 
             RestClient client = restClientBuilder
@@ -68,32 +62,22 @@ public class LocationIQServiceImpl implements ReverseGeocodingService {
             }
 
             String location = buildLocation(response);
-
-            log.info(
-                    ">>> LOCATION IQ - SUCCESS: {}",
-                    location);
-
+            log.info(">>> LOCATION IQ - SUCCESS: {}", location);
             return location;
 
         } catch (Exception e) {
-
-            // LocationIQ chỉ là chức năng bổ sung.
-            // Không được làm hỏng API tra cứu QR.
-            log.warn(
-                    ">>> LOCATION IQ - FAILED: {}",
-                    e.getMessage());
-
+            // LocationIQ chỉ là chức năng bổ sung, không làm hỏng API tra cứu QR
+            log.warn(">>> LOCATION IQ - FAILED: {}", e.getMessage());
             return null;
         }
     }
 
     private String buildLocation(LocationIQResponse response) {
-
         if (response.getAddress() == null) {
             return response.getDisplayName();
         }
 
-        var address = response.getAddress();
+        LocationIQResponse.Address address = response.getAddress();
 
         String village = firstNonBlank(
                 address.getVillage(),
@@ -106,24 +90,18 @@ public class LocationIQServiceImpl implements ReverseGeocodingService {
         String state = address.getState();
         String country = address.getCountry();
 
-        return Stream.of(
-                    village,
-                    county,
-                    state,
-                    country)
+        return Stream.of(village, county, state, country)
                 .filter(this::isNotBlank)
                 .reduce((a, b) -> a + ", " + b)
                 .orElse(null);
     }
 
     private String firstNonBlank(String... values) {
-
         for (String value : values) {
             if (isNotBlank(value)) {
                 return value;
             }
         }
-
         return null;
     }
 

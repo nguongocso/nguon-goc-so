@@ -1,10 +1,13 @@
 package vn.nguongocso.publicapi.dto.response;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
 import java.time.LocalDateTime;
 import java.util.Map;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Response thông tin sự kiện trên chuỗi công khai.
@@ -12,7 +15,10 @@ import java.util.Map;
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class PublicChainEventItem {
+
     private String eventType;
 
     private Map<String, Object> eventData;

@@ -1,7 +1,10 @@
 package vn.nguongocso.publicapi.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -9,6 +12,8 @@ import lombok.Setter;
  */
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class LocationIQResponse {
 
     @JsonProperty("display_name")
@@ -18,13 +23,20 @@ public class LocationIQResponse {
 
     @Getter
     @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Address {
 
         private String village;
+
         private String town;
+
         private String city;
+
         private String county;
+
         private String state;
+
         private String country;
 
         @JsonProperty("city_district")

@@ -19,29 +19,19 @@ import lombok.Setter;
 @AllArgsConstructor
 public class PublicInspectionResponse {
 
-    /**
-     * ID lô sản xuất.
-     */
+    /** ID lô sản xuất. */
     private UUID productionLotId;
 
-    /**
-     * Tên lô sản xuất.
-     */
+    /** Tên lô sản xuất. */
     private String lotName;
 
-    /**
-     * Đánh dấu lô có kết quả kiểm nghiệm hay chưa.
-     */
+    /** Đánh dấu lô có kết quả kiểm nghiệm hay chưa. */
     private boolean hasInspection;
 
-    /**
-     * Tổng số chỉ tiêu kiểm nghiệm đã công bố của lô.
-     */
+    /** Tổng số chỉ tiêu kiểm nghiệm đã công bố của lô. */
     private int totalCriteria;
 
-    /**
-     * Số chỉ tiêu đạt (passed = true).
-     */
+    /** Số chỉ tiêu đạt (passed = true). */
     private int passedCriteria;
 
     /**
