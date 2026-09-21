@@ -1,10 +1,26 @@
 package vn.nguongocso.export.service.impl;
 
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -30,17 +46,11 @@ import vn.nguongocso.export.repository.ExportLogRepository;
 import vn.nguongocso.export.repository.ProfileTemplateRepository;
 import vn.nguongocso.export.schema.OpenDataSchema;
 import vn.nguongocso.export.service.ExportService;
+import vn.nguongocso.export.service.ProfileTemplateService;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.repository.FarmLogRepository;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.repository.ShipmentRepository;
-import lombok.extern.slf4j.Slf4j;
-
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Triển khai dịch vụ xuất dữ liệu công khai.
@@ -57,7 +67,7 @@ public class ExportServiceImpl implements ExportService {
     private final ProfileTemplateRepository profileTemplateRepository;
     private final ExportLogRepository exportLogRepository;
     private final UserRepository userRepository;
-    private final vn.nguongocso.export.service.ProfileTemplateService profileTemplateService;
+    private final ProfileTemplateService profileTemplateService;
 
     private static final List<ChainEventType> REQUIRED_EVENT_TYPES = List.of(
             ChainEventType.HARVEST,

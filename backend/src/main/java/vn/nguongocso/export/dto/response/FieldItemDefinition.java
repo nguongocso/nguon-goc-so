@@ -1,7 +1,11 @@
 package vn.nguongocso.export.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * DTO mô tả thông tin chi tiết một trường dữ liệu trong danh mục.

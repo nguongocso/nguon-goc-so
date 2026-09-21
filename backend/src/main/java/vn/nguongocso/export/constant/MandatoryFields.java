@@ -1,10 +1,14 @@
 package vn.nguongocso.export.constant;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import vn.nguongocso.export.dto.response.FieldGroupDefinition;
 import vn.nguongocso.export.dto.response.FieldItemDefinition;
 import vn.nguongocso.export.enums.ProfileFieldGroup;
-
-import java.util.*;
 
 /**
  * Định nghĩa danh mục trường và danh sách các trường bắt buộc theo QTN-11.
@@ -12,7 +16,7 @@ import java.util.*;
 public final class MandatoryFields {
 
     private MandatoryFields() {
-        // Utility class
+        throw new UnsupportedOperationException("Utility class");
     }
 
     /**

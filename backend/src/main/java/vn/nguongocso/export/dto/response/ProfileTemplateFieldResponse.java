@@ -1,9 +1,13 @@
 package vn.nguongocso.export.dto.response;
 
-import lombok.*;
-import vn.nguongocso.export.enums.ProfileFieldGroup;
-
 import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import vn.nguongocso.export.enums.ProfileFieldGroup;
 
 /**
  * DTO thông tin trường cấu hình trong mẫu hồ sơ trả về cho client.

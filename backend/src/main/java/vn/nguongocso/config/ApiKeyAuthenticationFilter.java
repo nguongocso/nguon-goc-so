@@ -1,20 +1,21 @@
 package vn.nguongocso.config;
 
 import java.io.IOException;
+import java.util.List;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.integration.apikey.entity.PartnerApiKey;
@@ -33,7 +34,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String API_KEY_HEADER = "X-API-KEY";
     private static final String API_KEY_HEADER_ALT = "X-Api-Key";
-    private static final java.util.List<String> FILTER_PREFIXES = java.util.List.of(
+    private static final List<String> FILTER_PREFIXES = List.of(
             "/api/v1/partner/",
             "/api/publicapi/"
     );

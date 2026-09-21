@@ -1,24 +1,43 @@
 package vn.nguongocso.event.controller;
 
+import java.util.UUID;
+
 import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
-import vn.nguongocso.event.dto.request.*;
+import vn.nguongocso.event.dto.request.CorrectPackagingEventRequest;
+import vn.nguongocso.event.dto.request.CorrectPreprocessingEventRequest;
+import vn.nguongocso.event.dto.request.OfflineEventSyncRequest;
+import vn.nguongocso.event.dto.request.RecordHarvestEventRequest;
+import vn.nguongocso.event.dto.request.RecordMobileEventRequest;
+import vn.nguongocso.event.dto.request.RecordPackagingEventRequest;
+import vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest;
+import vn.nguongocso.event.dto.request.RecordTransportEventRequest;
+import vn.nguongocso.event.dto.request.RecordWarehouseEntryRequest;
+import vn.nguongocso.event.dto.request.RecordWarehouseExitRequest;
+import vn.nguongocso.event.dto.request.StorageConditionRequest;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
+import vn.nguongocso.event.dto.response.CoopWarehouseEventResponse;
 import vn.nguongocso.event.dto.response.OfflineEventSyncResponse;
 import vn.nguongocso.event.dto.response.ScanLookupResponse;
 import vn.nguongocso.event.dto.response.StorageConditionResponse;
 import vn.nguongocso.event.service.ChainEventService;
 import vn.nguongocso.event.service.OfflineSyncService;
 import vn.nguongocso.permission.service.PermissionChecker;
-
-import java.util.UUID;
 
 /**
  * Controller REST quản lý các sự kiện trong chuỗi cung ứng.
@@ -186,11 +205,11 @@ public class ChainEventController {
      */
     @PostMapping("/coop-warehouse/entry")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
-    public ResponseEntity<ApiResult<vn.nguongocso.event.dto.response.CoopWarehouseEventResponse>> recordWarehouseEntry(
+    public ResponseEntity<ApiResult<CoopWarehouseEventResponse>> recordWarehouseEntry(
             @Valid @RequestBody RecordWarehouseEntryRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-        vn.nguongocso.event.dto.response.CoopWarehouseEventResponse response = chainEventService.recordWarehouseEntryEvent(request, currentUser);
+        CoopWarehouseEventResponse response = chainEventService.recordWarehouseEntryEvent(request, currentUser);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
@@ -199,11 +218,11 @@ public class ChainEventController {
      */
     @PostMapping("/coop-warehouse/exit")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
-    public ResponseEntity<ApiResult<vn.nguongocso.event.dto.response.CoopWarehouseEventResponse>> recordWarehouseExit(
+    public ResponseEntity<ApiResult<CoopWarehouseEventResponse>> recordWarehouseExit(
             @Valid @RequestBody RecordWarehouseExitRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-        vn.nguongocso.event.dto.response.CoopWarehouseEventResponse response = chainEventService.recordWarehouseExitEvent(request, currentUser);
+        CoopWarehouseEventResponse response = chainEventService.recordWarehouseExitEvent(request, currentUser);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 

@@ -1,5 +1,19 @@
 package vn.nguongocso.export.service.impl;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -7,9 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
-import vn.nguongocso.certification.entity.InspectionRequest;
 import vn.nguongocso.certification.entity.InspectionCriterion;
 import vn.nguongocso.certification.entity.InspectionCriterionResult;
+import vn.nguongocso.certification.entity.InspectionRequest;
+import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.certification.repository.InspectionCriterionResultRepository;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
@@ -41,10 +56,6 @@ import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.organization.repository.OrganizationRepository;
 import vn.nguongocso.trace.entity.Shipment;
 import vn.nguongocso.trace.repository.ShipmentRepository;
-
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Triển khai dịch vụ cấu hình mẫu hồ sơ truy xuất theo đối tác.
@@ -520,10 +531,10 @@ public class ProfileTemplateServiceImpl implements ProfileTemplateService {
 
         // Certification fields
         if (lot != null && hasAnyPrefixSelected("certification.", selectedFieldKeys)) {
-            List<vn.nguongocso.certification.entity.ProductionLotCertification> certs =
+            List<ProductionLotCertification> certs =
                     productionLotCertificationRepository.findByProductionLotIdIn(List.of(lot.getId()));
             List<Map<String, Object>> certList = new ArrayList<>();
-            for (vn.nguongocso.certification.entity.ProductionLotCertification plc : certs) {
+            for (ProductionLotCertification plc : certs) {
                 if (plc.getCertification() != null) {
                     var c = plc.getCertification();
                     Map<String, Object> item = new LinkedHashMap<>();

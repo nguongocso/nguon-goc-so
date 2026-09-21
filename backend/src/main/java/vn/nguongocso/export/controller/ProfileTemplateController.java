@@ -1,5 +1,8 @@
 package vn.nguongocso.export.controller;
 
+import java.util.List;
+import java.util.UUID;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -7,7 +10,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.export.dto.request.CreateProfileTemplateRequest;
@@ -15,9 +25,6 @@ import vn.nguongocso.export.dto.request.UpdateProfileTemplateRequest;
 import vn.nguongocso.export.dto.response.FieldGroupDefinition;
 import vn.nguongocso.export.dto.response.ProfileTemplateResponse;
 import vn.nguongocso.export.service.ProfileTemplateService;
-
-import java.util.List;
-import java.util.UUID;
 
 /**
  * Controller quản lý cấu hình mẫu hồ sơ truy xuất nguồn gốc theo yêu cầu đối tác.

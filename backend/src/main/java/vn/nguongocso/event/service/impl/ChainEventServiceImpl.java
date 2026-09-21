@@ -1,5 +1,18 @@
 package vn.nguongocso.event.service.impl;
 
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,15 +28,26 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.repository.UserRepository;
 import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.certification.service.MilestoneValidationService;
 import vn.nguongocso.common.util.IpUtils;
-import vn.nguongocso.event.dto.request.*;
+import vn.nguongocso.event.dto.request.CorrectPackagingEventRequest;
+import vn.nguongocso.event.dto.request.CorrectPreprocessingEventRequest;
+import vn.nguongocso.event.dto.request.RecordHarvestEventRequest;
+import vn.nguongocso.event.dto.request.RecordMobileEventRequest;
+import vn.nguongocso.event.dto.request.RecordPackagingEventRequest;
+import vn.nguongocso.event.dto.request.RecordPreprocessingEventRequest;
+import vn.nguongocso.event.dto.request.RecordTransportEventRequest;
+import vn.nguongocso.event.dto.request.RecordWarehouseEntryRequest;
+import vn.nguongocso.event.dto.request.RecordWarehouseExitRequest;
+import vn.nguongocso.event.dto.request.StorageConditionRequest;
 import vn.nguongocso.event.dto.response.ChainEventResponse;
-import vn.nguongocso.event.dto.response.CoopWarehouseEventResponse;
 import vn.nguongocso.event.dto.response.ChainVerificationResponse;
+import vn.nguongocso.event.dto.response.CoopWarehouseEventResponse;
 import vn.nguongocso.event.dto.response.EventVerificationItem;
 import vn.nguongocso.event.dto.response.ScanLookupResponse;
 import vn.nguongocso.event.dto.response.StorageConditionResponse;
@@ -35,9 +59,11 @@ import vn.nguongocso.event.service.ChainEventService;
 import vn.nguongocso.event.service.EventHashService;
 import vn.nguongocso.event.service.EventValidationService;
 import vn.nguongocso.exception.BusinessException;
+import vn.nguongocso.farm.dto.response.HarvestEligibilityResponse;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.farm.repository.ProductionLotRepository;
+import vn.nguongocso.farm.service.HarvestEligibilityService;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import vn.nguongocso.permission.service.PermissionChecker;
 import vn.nguongocso.trace.entity.Shipment;
@@ -46,15 +72,6 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 import vn.nguongocso.trace.repository.ShipmentHandoverRepository;
 import vn.nguongocso.trace.repository.ShipmentRepository;
 import vn.nguongocso.trace.repository.TraceCodeRepository;
-
-import vn.nguongocso.farm.dto.response.HarvestEligibilityResponse;
-import vn.nguongocso.farm.service.HarvestEligibilityService;
-
-import java.time.Clock;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Implementation của dịch vụ sự kiện chuỗi cung ứng.
@@ -77,7 +94,7 @@ public class ChainEventServiceImpl implements ChainEventService {
     private final EventHashService eventHashService;
     private final HarvestEligibilityService harvestEligibilityService;
     private final Clock clock;
-    private final vn.nguongocso.certification.service.MilestoneValidationService milestoneValidationService;
+    private final MilestoneValidationService milestoneValidationService;
 
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 

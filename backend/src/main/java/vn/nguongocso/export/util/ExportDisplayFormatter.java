@@ -1,7 +1,12 @@
 package vn.nguongocso.export.util;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.farm.enums.AreaUnit;
 import vn.nguongocso.farm.enums.FarmActivityType;
@@ -9,10 +14,6 @@ import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.organization.enums.OrganizationStatus;
 import vn.nguongocso.organization.enums.OrganizationType;
 import vn.nguongocso.trace.enums.ShipmentStatus;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Tiện ích Việt hóa các giá trị Enum và dữ liệu hồ sơ xuất (PDF, CSV, JSON).
@@ -22,7 +23,7 @@ public final class ExportDisplayFormatter {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private ExportDisplayFormatter() {
-        // Utility class
+        throw new UnsupportedOperationException("Utility class");
     }
 
     /**

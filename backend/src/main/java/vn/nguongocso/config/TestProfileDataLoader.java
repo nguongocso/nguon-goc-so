@@ -6,14 +6,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import vn.nguongocso.auth.entity.Role;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.enums.UserStatus;
@@ -43,12 +42,11 @@ import vn.nguongocso.organization.repository.OrganizationUserRepository;
  * Nạp người dùng quản lý HTX (VT-02), người ghi sự kiện (VT-03), các khóa thử nghiệm mẫu
  * và xuất token JWT ra file tạm để phục vụ kiểm thử runtime curl tự động.
  */
+@Slf4j
 @Component
 @Profile("runtime-test")
 @RequiredArgsConstructor
 public class TestProfileDataLoader implements CommandLineRunner {
-
-    private static final Logger log = LoggerFactory.getLogger(TestProfileDataLoader.class);
 
     private final OrganizationRepository organizationRepository;
     private final RoleRepository roleRepository;

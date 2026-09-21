@@ -1,18 +1,21 @@
 package vn.nguongocso.export.controller;
 
+import java.util.List;
+import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.export.dto.response.ProfileTemplateResponse;
 import vn.nguongocso.export.service.ProfileTemplateService;
-
-import java.util.List;
-import java.util.UUID;
 
 /**
  * Controller tổng hợp mẫu hồ sơ từ nhiều tổ chức (dành cho VT-04 xuất batch).
