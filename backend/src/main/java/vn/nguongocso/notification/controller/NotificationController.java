@@ -5,7 +5,12 @@ import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 import vn.nguongocso.common.ApiResult;
@@ -21,46 +26,47 @@ import vn.nguongocso.notification.service.NotificationService;
 @RequestMapping("/api/v1/notifications")
 @RequiredArgsConstructor
 public class NotificationController {
-        private final NotificationService alertNotificationService;
 
-        /**
-         * Lấy danh sách thông báo của người dùng.
-         */
-        @GetMapping
-        public ResponseEntity<ApiResult<PageResponse<NotificationResponse>>> getNotifications(
-                        @RequestParam(required = false) Boolean isRead,
-                        @RequestParam(defaultValue = "0") int page,
-                        @RequestParam(defaultValue = "10") int size) {
+    private final NotificationService alertNotificationService;
 
-                Pageable pageable = PageRequest.of(page, size);
+    /**
+     * Lấy danh sách thông báo của người dùng.
+     */
+    @GetMapping
+    public ResponseEntity<ApiResult<PageResponse<NotificationResponse>>> getNotifications(
+            @RequestParam(required = false) Boolean isRead,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
-                return ResponseEntity.ok(
-                                ApiResult.success(
-                                                alertNotificationService.getNotifications(
-                                                                isRead,
-                                                                pageable)));
-        }
+        Pageable pageable = PageRequest.of(page, size);
 
-        /**
-         * Lấy số lượng thông báo chưa đọc.
-         */
-        @GetMapping("/unread-count")
-        public ResponseEntity<ApiResult<UnreadCountResponse>> getUnreadCount() {
+        return ResponseEntity.ok(
+                ApiResult.success(
+                        alertNotificationService.getNotifications(
+                                isRead,
+                                pageable)));
+    }
 
-                return ResponseEntity.ok(
-                                ApiResult.success(
-                                                alertNotificationService.getUnreadCount()));
-        }
+    /**
+     * Lấy số lượng thông báo chưa đọc.
+     */
+    @GetMapping("/unread-count")
+    public ResponseEntity<ApiResult<UnreadCountResponse>> getUnreadCount() {
 
-        /**
-         * Đánh dấu thông báo là đã đọc.
-         */
-        @PatchMapping("/{notificationId}/read")
-        public ResponseEntity<ApiResult<NotificationResponse>> markAsRead(
-                        @PathVariable UUID notificationId) {
+        return ResponseEntity.ok(
+                ApiResult.success(
+                        alertNotificationService.getUnreadCount()));
+    }
 
-                return ResponseEntity.ok(
-                                ApiResult.success(
-                                                alertNotificationService.markAsRead(notificationId)));
-        }
+    /**
+     * Đánh dấu thông báo là đã đọc.
+     */
+    @PatchMapping("/{notificationId}/read")
+    public ResponseEntity<ApiResult<NotificationResponse>> markAsRead(
+            @PathVariable UUID notificationId) {
+
+        return ResponseEntity.ok(
+                ApiResult.success(
+                        alertNotificationService.markAsRead(notificationId)));
+    }
 }

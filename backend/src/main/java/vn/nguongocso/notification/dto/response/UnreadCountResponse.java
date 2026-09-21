@@ -15,5 +15,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UnreadCountResponse {
+
     private long unreadCount;
 }

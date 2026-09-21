@@ -19,6 +19,7 @@ import vn.nguongocso.alert.enums.NotificationType;
 @NoArgsConstructor
 @AllArgsConstructor
 public class NotificationResponse {
+
     private UUID id;
 
     private NotificationType type;
@@ -27,10 +28,7 @@ public class NotificationResponse {
 
     private String content;
 
-    /**
-     * ID thực thể nghiệp vụ liên kết (VD: phiếu bàn giao lô hàng).
-     * Null khi thông báo không có thực thể đính kèm.
-     */
+    /** ID thực thể nghiệp vụ liên kết (VD: phiếu bàn giao lô hàng). Null khi thông báo không có thực thể đính kèm. */
     private UUID entityId;
 
     private Boolean isRead;
