@@ -1,6 +1,13 @@
 package vn.nguongocso.auth.service;
 
-/** Resolves a public client IP to an ISO 3166-1 alpha-2 country code. */
+/**
+ * Interface để giải quyết mã quốc gia từ địa chỉ IP công cộng của client
+ * (NCL-01-
+ * CN-011).
+ */
 public interface IpCountryResolver {
+    /**
+     * Giải quyết mã quốc gia từ địa chỉ IP công cộng của client.
+     */
     String resolveCountryCode(String ipAddress);
 }

@@ -66,7 +66,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class AggregateAlertServiceImpl implements AggregateAlertService {
-
     private static final String ROLE_ADMIN = "VT-01";
     private static final String ROLE_COOP_MANAGER = "VT-02";
 

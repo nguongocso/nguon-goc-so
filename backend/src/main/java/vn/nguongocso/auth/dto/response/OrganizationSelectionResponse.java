@@ -18,34 +18,15 @@ import vn.nguongocso.organization.enums.OrganizationType;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrganizationSelectionResponse {
-
-    /**
-     * ID của organization.
-     */
     private String organizationId;
 
-    /**
-     * Mã organization.
-     */
     private String organizationCode;
 
-    /**
-     * Tên organization.
-     */
     private String organizationName;
 
-    /**
-     * Loại organization.
-     */
     private OrganizationType organizationType;
 
-    /**
-     * Role của user trong organization.
-     */
     private String roleCode;
 
-    /**
-     * Tên role của user trong organization.
-     */
     private String roleName;
 }

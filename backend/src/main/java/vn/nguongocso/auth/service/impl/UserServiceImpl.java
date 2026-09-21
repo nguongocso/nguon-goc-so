@@ -31,19 +31,18 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Cài đặt nghiệp vụ quản lý hồ sơ người dùng và đổi mật khẩu chủ động (NCL-01-CN-010).
+ * Cài đặt nghiệp vụ quản lý hồ sơ người dùng và đổi mật khẩu chủ động
+ * (NCL-01-CN-010).
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class UserServiceImpl implements UserService {
-
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of(
             "image/jpeg",
             "image/png",
             "image/gif",
-            "image/webp"
-    );
+            "image/webp");
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -59,6 +58,9 @@ public class UserServiceImpl implements UserService {
     @Value("${app.upload.avatar.max-size:5242880}")
     private long maxAvatarSize;
 
+    /**
+     * Lấy thông tin hồ sơ người dùng hiện tại (NCL-01-CN-010-01).
+     */
     @Override
     @Transactional(readOnly = true)
     public UserProfileResponse getCurrentUserProfile(CustomUserDetails currentUser) {
@@ -75,6 +77,9 @@ public class UserServiceImpl implements UserService {
         return mapToProfileResponse(user, currentUser, permissions);
     }
 
+    /**
+     * Cập nhật hồ sơ người dùng hiện tại (NCL-01-CN-010-02).
+     */
     @Override
     @Transactional
     public UserProfileResponse updateUserProfile(CustomUserDetails currentUser, UpdateUserProfileRequest request) {
@@ -141,13 +146,15 @@ public class UserServiceImpl implements UserService {
                 currentUser,
                 savedUser,
                 "UPDATE_PROFILE",
-                "Người dùng " + savedUser.getUserName() + " đã cập nhật thông tin hồ sơ cá nhân"
-        );
+                "Người dùng " + savedUser.getUserName() + " đã cập nhật thông tin hồ sơ cá nhân");
 
         List<String> permissions = permissionChecker.getPermissionsForCurrentUser();
         return mapToProfileResponse(savedUser, currentUser, permissions);
     }
 
+    /**
+     * Thay đổi mật khẩu của người dùng hiện tại (NCL-01-CN-010-03).
+     */
     @Override
     @Transactional
     public void changePassword(CustomUserDetails currentUser, ChangePasswordRequest request) {
@@ -180,10 +187,12 @@ public class UserServiceImpl implements UserService {
                 currentUser,
                 user,
                 "CHANGE_PASSWORD",
-                "Người dùng " + user.getUserName() + " đã đổi mật khẩu thành công"
-        );
+                "Người dùng " + user.getUserName() + " đã đổi mật khẩu thành công");
     }
 
+    /**
+     * Tải lên ảnh đại diện cho người dùng hiện tại (NCL-01-CN-010-04).
+     */
     @Override
     @Transactional
     public AvatarUploadResponse uploadAvatar(CustomUserDetails currentUser, MultipartFile file) {
@@ -196,12 +205,14 @@ public class UserServiceImpl implements UserService {
         }
 
         if (file.getSize() > maxAvatarSize) {
-            throw new BusinessException("Dung lượng tệp vượt quá giới hạn cho phép (" + (maxAvatarSize / 1024 / 1024) + "MB)");
+            throw new BusinessException(
+                    "Dung lượng tệp vượt quá giới hạn cho phép (" + (maxAvatarSize / 1024 / 1024) + "MB)");
         }
 
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType.toLowerCase())) {
-            throw new BusinessException("Định dạng tệp không hợp lệ. Chỉ chấp nhận các định dạng ảnh JPG, PNG, GIF, WEBP");
+            throw new BusinessException(
+                    "Định dạng tệp không hợp lệ. Chỉ chấp nhận các định dạng ảnh JPG, PNG, GIF, WEBP");
         }
 
         UUID userId = currentUser.getUserId();
@@ -240,15 +251,18 @@ public class UserServiceImpl implements UserService {
                 currentUser,
                 user,
                 "UPLOAD_AVATAR",
-                "Người dùng " + user.getUserName() + " đã tải lên ảnh đại diện mới"
-        );
+                "Người dùng " + user.getUserName() + " đã tải lên ảnh đại diện mới");
 
         return AvatarUploadResponse.builder()
                 .avatarUrl(avatarUrl)
                 .build();
     }
 
-    private UserProfileResponse mapToProfileResponse(User user, CustomUserDetails currentUser, List<String> permissions) {
+    /**
+     * Ánh xạ User sang UserProfileResponse.
+     */
+    private UserProfileResponse mapToProfileResponse(User user, CustomUserDetails currentUser,
+            List<String> permissions) {
         return UserProfileResponse.builder()
                 .id(user.getUserId())
                 .userId(user.getUserId())
@@ -271,6 +285,9 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
+    /**
+     * Xuất bản sự kiện nhật ký hoạt động.
+     */
     private void publishActivityLog(CustomUserDetails currentUser, User user, String action, String description) {
         try {
             ActivityLogEvent event = ActivityLogEvent.builder()
@@ -290,4 +307,3 @@ public class UserServiceImpl implements UserService {
         }
     }
 }
-

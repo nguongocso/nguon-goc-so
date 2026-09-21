@@ -15,10 +15,6 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 public class SelectOrganizationRequest {
-
-    /**
-     * ID của tổ chức mà người dùng muốn truy cập.
-     */
     @NotNull(message = "Organization ID is required")
     private UUID organizationId;
 }
