@@ -7,34 +7,36 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Một địa bàn đã gán cho tài khoản.
  */
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class AssignedAreaResponse {
 
-	/** ID bản ghi user_area_assignments. */
-	private UUID assignmentId;
+    /** ID bản ghi user_area_assignments. */
+    private UUID assignmentId;
 
-	/** ID đơn vị hành chính. */
-	private UUID unitId;
+    /** ID đơn vị hành chính. */
+    private UUID unitId;
 
-	private String unitCode;
+    private String unitCode;
 
-	private String unitName;
+    private String unitName;
 
-	/** PROVINCE hoặc COMMUNE. */
-	private String unitLevel;
+    /** PROVINCE hoặc COMMUNE. */
+    private String unitLevel;
 
-	/** Đơn vị gốc cấp tỉnh tương ứng (chính nó nếu đơn vị là cấp tỉnh). */
-	private UUID provinceId;
+    /** Đơn vị gốc cấp tỉnh tương ứng (chính nó nếu đơn vị là cấp tỉnh). */
+    private UUID provinceId;
 
-	private String provinceName;
+    private String provinceName;
 
-	/** Thời điểm gán. */
-	private LocalDateTime assignedAt;
+    /** Thời điểm gán. */
+    private LocalDateTime assignedAt;
 }

@@ -40,41 +40,42 @@ import vn.nguongocso.organization.enums.AdministrativeUnitLevel;
 @AllArgsConstructor
 @Builder
 public class AdministrativeUnit {
-	@Id
-	@Column(name = "id")
-	@JdbcTypeCode(SqlTypes.CHAR)
-	private UUID id;
 
-	/** Mã hành chính chính thức (duy nhất toàn quốc). */
-	@Column(nullable = false, unique = true, length = 20)
-	private String code;
+    @Id
+    @Column(name = "id")
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID id;
 
-	/** Tên đơn vị (không kèm tiền tố "Tỉnh"/"Thành phố"/"Phường"/"Xã"). */
-	@Column(nullable = false)
-	private String name;
+    /** Mã hành chính chính thức (duy nhất toàn quốc). */
+    @Column(nullable = false, unique = true, length = 20)
+    private String code;
 
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 20)
-	private AdministrativeUnitLevel level;
+    /** Tên đơn vị (không kèm tiền tố "Tỉnh"/"Thành phố"/"Phường"/"Xã"). */
+    @Column(nullable = false)
+    private String name;
 
-	/** Đơn vị cha (NULL với cấp tỉnh). */
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "parent_id")
-	private AdministrativeUnit parent;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private AdministrativeUnitLevel level;
 
-	/** Đơn vị gốc cấp tỉnh chứa đơn vị này (NULL với chính cấp tỉnh). */
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "province_id")
-	private AdministrativeUnit province;
+    /** Đơn vị cha (NULL với cấp tỉnh). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private AdministrativeUnit parent;
 
-	@Column(nullable = false)
-	@Builder.Default
-	private boolean active = true;
+    /** Đơn vị gốc cấp tỉnh chứa đơn vị này (NULL với chính cấp tỉnh). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "province_id")
+    private AdministrativeUnit province;
 
-	@PrePersist
-	public void prePersist() {
-		if (id == null) {
-			id = UUID.randomUUID();
-		}
-	}
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean active = true;
+
+    @PrePersist
+    public void prePersist() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
+    }
 }

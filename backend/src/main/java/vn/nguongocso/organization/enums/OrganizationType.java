@@ -4,11 +4,12 @@ package vn.nguongocso.organization.enums;
  * Loại tổ chức.
  */
 public enum OrganizationType {
-    COOPERATIVE, // Hợp tác xã(VT02, VT03)
 
-    ENTERPRISE, // Doanh nghiệp(VT04)
+    COOPERATIVE,
 
-    GOVERNMENT, // Cán bộ ngành(VT05)
+    ENTERPRISE,
 
-    SYSTEM // Tổ chức hệ thống (Admin - VT01)
+    GOVERNMENT,
+
+    SYSTEM
 }

@@ -1,5 +1,6 @@
 package vn.nguongocso.organization.service.impl;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -58,299 +59,293 @@ import vn.nguongocso.organization.service.AreaAssignmentService;
 @RequiredArgsConstructor
 public class AreaAssignmentServiceImpl implements AreaAssignmentService {
 
-	private static final String NOT_FOUND_USER_MESSAGE = "Tài khoản không tồn tại.";
-	private static final String FORBIDDEN_MESSAGE = "Bạn không có quyền thực hiện thao tác này.";
-	private static final String NOT_REGULATOR_MESSAGE = "Tài khoản không có vai trò Cán bộ quản lý ngành.";
-	private static final String UNKNOWN_UNIT_MESSAGE = "Địa bàn không nằm trong danh mục hành chính.";
-	private static final String DUPLICATE_ASSIGN_MESSAGE = "Địa bàn đã được gán cho tài khoản này.";
-	private static final String ASSIGNMENT_NOT_FOUND_MESSAGE = "Tài khoản chưa được gán địa bàn này.";
-	private static final String ORGANIZATION_NOT_FOUND_MESSAGE = "Tổ chức không tồn tại.";
+    private static final String NOT_FOUND_USER_MESSAGE = "Tài khoản không tồn tại.";
+    private static final String FORBIDDEN_MESSAGE = "Bạn không có quyền thực hiện thao tác này.";
+    private static final String NOT_REGULATOR_MESSAGE = "Tài khoản không có vai trò Cán bộ quản lý ngành.";
+    private static final String UNKNOWN_UNIT_MESSAGE = "Địa bàn không nằm trong danh mục hành chính.";
+    private static final String DUPLICATE_ASSIGN_MESSAGE = "Địa bàn đã được gán cho tài khoản này.";
+    private static final String ASSIGNMENT_NOT_FOUND_MESSAGE = "Tài khoản chưa được gán địa bàn này.";
+    private static final String ORGANIZATION_NOT_FOUND_MESSAGE = "Tổ chức không tồn tại.";
 
-	private static final String AUDIT_ENTITY_TYPE = "UserAreaAssignment";
+    private static final String AUDIT_ENTITY_TYPE = "UserAreaAssignment";
 
-	private final UserRepository userRepository;
-	private final OrganizationUserRepository organizationUserRepository;
-	private final AdministrativeUnitRepository administrativeUnitRepository;
-	private final UserAreaAssignmentRepository userAreaAssignmentRepository;
-	private final OrganizationRepository organizationRepository;
-	private final ApplicationEventPublisher eventPublisher;
+    private final UserRepository userRepository;
+    private final OrganizationUserRepository organizationUserRepository;
+    private final AdministrativeUnitRepository administrativeUnitRepository;
+    private final UserAreaAssignmentRepository userAreaAssignmentRepository;
+    private final OrganizationRepository organizationRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-	@Override
-	@Transactional(readOnly = true)
-	public PageResponse<RegulatorUserResponse> listRegulators(String keyword, Pageable pageable) {
-		requireOperator(RoleCode.ADMIN);
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<RegulatorUserResponse> listRegulators(String keyword, Pageable pageable) {
+        requireOperator(RoleCode.ADMIN);
 
-		String normalizedKeyword = keyword == null ? "" : keyword.trim();
-		Page<User> page = userRepository.findUsersByActiveRoleCode(
-				RoleCode.REGULATOR, normalizedKeyword, pageable);
+        String normalizedKeyword = keyword == null ? "" : keyword.trim();
+        Page<User> page = userRepository.findUsersByActiveRoleCode(
+                RoleCode.REGULATOR, normalizedKeyword, pageable);
 
-		List<RegulatorUserResponse> items = page.getContent().stream()
-				.map(this::toRegulatorOption)
-				.toList();
+        List<RegulatorUserResponse> items = page.getContent().stream()
+                .map(this::toRegulatorOption)
+                .toList();
 
-		return PageResponse.from(page, items);
-	}
+        return PageResponse.from(page, items);
+    }
 
-	@Override
-	@Transactional(readOnly = true)
-	public List<AssignedAreaResponse> getAssignedAreas(UUID userId) {
-		requireOperator(RoleCode.ADMIN);
-		requireUserExists(userId);
-		return userAreaAssignmentRepository.findAllByUser_UserIdOrderByAssignedAtDesc(userId).stream()
-				.map(this::toAssignedArea)
-				.toList();
-	}
+    @Override
+    @Transactional(readOnly = true)
+    public List<AssignedAreaResponse> getAssignedAreas(UUID userId) {
+        requireOperator(RoleCode.ADMIN);
+        requireUserExists(userId);
 
-	@Override
-	@Transactional(readOnly = true)
-	public List<AssignedAreaResponse> getMyAreas(CustomUserDetails currentUser) {
-		CustomUserDetails user = currentUser != null ? currentUser : SecurityUtils.getCurrentUserDetails();
-		if (user == null || user.getUserId() == null) {
-			throw new BusinessException(HttpStatus.UNAUTHORIZED, "Chưa đăng nhập");
-		}
-		return userAreaAssignmentRepository.findAllByUser_UserIdOrderByAssignedAtDesc(user.getUserId())
-				.stream()
-				.map(this::toAssignedArea)
-				.toList();
-	}
+        return userAreaAssignmentRepository.findAllByUser_UserIdOrderByAssignedAtDesc(userId).stream()
+                .map(this::toAssignedArea)
+                .toList();
+    }
 
-	@Override
-	@Transactional
-	public AssignAreasResult assignAreas(CustomUserDetails operator, UUID userId, AssignAreasRequest request) {
-		// V1: người thao tác phải là VT-01.
-		requireOperator(RoleCode.ADMIN);
+    @Override
+    @Transactional(readOnly = true)
+    public List<AssignedAreaResponse> getMyAreas(CustomUserDetails currentUser) {
+        CustomUserDetails user = currentUser != null ? currentUser : SecurityUtils.getCurrentUserDetails();
+        if (user == null || user.getUserId() == null) {
+            throw new BusinessException(HttpStatus.UNAUTHORIZED, "Chưa đăng nhập");
+        }
 
-		// V2: tài khoản bị gán phải tồn tại.
-		User targetUser = userRepository.findById(userId)
-				.orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, NOT_FOUND_USER_MESSAGE));
+        return userAreaAssignmentRepository.findAllByUser_UserIdOrderByAssignedAtDesc(user.getUserId())
+                .stream()
+                .map(this::toAssignedArea)
+                .toList();
+    }
 
-		List<UUID> requestedIds = request.getUnitIds() == null ? List.of() : request.getUnitIds();
+    @Override
+    @Transactional
+    public AssignAreasResult assignAreas(CustomUserDetails operator, UUID userId, AssignAreasRequest request) {
+        requireOperator(RoleCode.ADMIN);
 
-		// V3: có membership VT-05 ACTIVE.
-		if (!hasActiveRoleMembership(userId, RoleCode.REGULATOR)) {
-			throw new BusinessException(NOT_REGULATOR_MESSAGE);
-		}
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, NOT_FOUND_USER_MESSAGE));
 
-		// V5 (phần service): trùng trong request hoặc đã gán trước đó.
-		Set<UUID> distinctIds = new HashSet<>(requestedIds);
-		if (distinctIds.size() != requestedIds.size()) {
-			throw new BusinessException(DUPLICATE_ASSIGN_MESSAGE);
-		}
-		for (UUID unitId : requestedIds) {
-			if (userAreaAssignmentRepository.existsByUser_UserIdAndUnit_Id(userId, unitId)) {
-				throw new BusinessException(DUPLICATE_ASSIGN_MESSAGE);
-			}
-		}
+        List<UUID> requestedIds = request.getUnitIds() == null ? List.of() : request.getUnitIds();
 
-		// V4: mọi unitId phải tồn tại và đang active trong danh mục hành chính.
-		List<AdministrativeUnit> units = new ArrayList<>(administrativeUnitRepository.findAllById(requestedIds));
-		if (units.size() != requestedIds.size()
-				|| units.stream().anyMatch(unit -> !unit.isActive())) {
-			throw new BusinessException(UNKNOWN_UNIT_MESSAGE);
-		}
+        if (!hasActiveRoleMembership(userId, RoleCode.REGULATOR)) {
+            throw new BusinessException(NOT_REGULATOR_MESSAGE);
+        }
 
-		User assignedBy = operator.getUserId() != null
-				? userRepository.findById(operator.getUserId()).orElse(null)
-				: null;
+        Set<UUID> distinctIds = new HashSet<>(requestedIds);
+        if (distinctIds.size() != requestedIds.size()) {
+            throw new BusinessException(DUPLICATE_ASSIGN_MESSAGE);
+        }
 
-		List<UserAreaAssignment> rows = units.stream()
-				.<UserAreaAssignment>map(unit -> UserAreaAssignment.builder()
-						.user(targetUser)
-						.unit(unit)
-						.assignedBy(assignedBy)
-						.build())
-				.toList();
+        for (UUID unitId : requestedIds) {
+            if (userAreaAssignmentRepository.existsByUser_UserIdAndUnit_Id(userId, unitId)) {
+                throw new BusinessException(DUPLICATE_ASSIGN_MESSAGE);
+            }
+        }
 
-		try {
-			userAreaAssignmentRepository.saveAll(rows);
-			userAreaAssignmentRepository.flush();
-		} catch (DataIntegrityViolationException ex) {
-			// UNIQUE (user_id, unit_id) backstop cho race-condition giữa 2 request song song.
-			log.warn("Gán địa bàn vi phạm ràng buộc UNIQUE (user_id={}, unitIds={}): {}",
-					userId, requestedIds, ex.getMessage());
-			throw new BusinessException(DUPLICATE_ASSIGN_MESSAGE);
-		}
+        List<AdministrativeUnit> units = new ArrayList<>(administrativeUnitRepository.findAllById(requestedIds));
+        if (units.size() != requestedIds.size()
+                || units.stream().anyMatch(unit -> !unit.isActive())) {
+            throw new BusinessException(UNKNOWN_UNIT_MESSAGE);
+        }
 
-		List<AssignedAreaResponse> assigned = rows.stream().map(this::toAssignedArea).toList();
+        User assignedBy = operator.getUserId() != null
+                ? userRepository.findById(operator.getUserId()).orElse(null)
+                : null;
 
-		String unitListText = joinUnits(units);
-		publishAudit(
-				operator,
-				"ASSIGN_AREA",
-				"Gán địa bàn cho tài khoản " + targetUser.getUserName() + ": " + unitListText
-						+ " (tổng " + units.size() + " địa bàn)",
-				targetUser.getUserId());
+        List<UserAreaAssignment> rows = units.stream()
+                .<UserAreaAssignment>map(unit -> UserAreaAssignment.builder()
+                        .user(targetUser)
+                        .unit(unit)
+                        .assignedBy(assignedBy)
+                        .build())
+                .toList();
 
-		return AssignAreasResult.builder()
-				.assignedCount(assigned.size())
-				.assigned(assigned)
-				.message("Đã gán " + assigned.size() + " địa bàn cho tài khoản.")
-				.build();
-	}
+        try {
+            userAreaAssignmentRepository.saveAll(rows);
+            userAreaAssignmentRepository.flush();
+        } catch (DataIntegrityViolationException ex) {
+            log.warn("Gán địa bàn vi phạm ràng buộc UNIQUE (user_id={}, unitIds={}): {}",
+                    userId, requestedIds, ex.getMessage());
+            throw new BusinessException(DUPLICATE_ASSIGN_MESSAGE);
+        }
 
-	@Override
-	@Transactional
-	public UnassignAreaResult unassignArea(CustomUserDetails operator, UUID userId, UUID unitId) {
-		// V1: người thao tác phải là VT-01.
-		requireOperator(RoleCode.ADMIN);
+        List<AssignedAreaResponse> assigned = rows.stream().map(this::toAssignedArea).toList();
 
-		// V2: tài khoản phải tồn tại.
-		User targetUser = userRepository.findById(userId)
-				.orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, NOT_FOUND_USER_MESSAGE));
+        String unitListText = joinUnits(units);
+        publishAudit(
+                operator,
+                "ASSIGN_AREA",
+                "Gán địa bàn cho tài khoản " + targetUser.getUserName() + ": " + unitListText
+                        + " (tổng " + units.size() + " địa bàn)",
+                targetUser.getUserId());
 
-		UserAreaAssignment assignment = userAreaAssignmentRepository
-				.findFirstByUser_UserIdAndUnit_Id(userId, unitId)
-				.orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, ASSIGNMENT_NOT_FOUND_MESSAGE));
+        return AssignAreasResult.builder()
+                .assignedCount(assigned.size())
+                .assigned(assigned)
+                .message("Đã gán " + assigned.size() + " địa bàn cho tài khoản.")
+                .build();
+    }
 
-		AdministrativeUnit unit = assignment.getUnit();
-		String unitName = unit.getName();
+    @Override
+    @Transactional
+    public UnassignAreaResult unassignArea(CustomUserDetails operator, UUID userId, UUID unitId) {
+        requireOperator(RoleCode.ADMIN);
 
-		userAreaAssignmentRepository.delete(assignment);
-		userAreaAssignmentRepository.flush();
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, NOT_FOUND_USER_MESSAGE));
 
-		publishAudit(
-				operator,
-				"UNASSIGN_AREA",
-				"Gỡ địa bàn " + unit.getCode() + " - " + unitName
-						+ " khỏi tài khoản " + targetUser.getUserName(),
-				targetUser.getUserId());
+        UserAreaAssignment assignment = userAreaAssignmentRepository
+                .findFirstByUser_UserIdAndUnit_Id(userId, unitId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, ASSIGNMENT_NOT_FOUND_MESSAGE));
 
-		return new UnassignAreaResult("Đã gỡ địa bàn " + unitName + " khỏi tài khoản.");
-	}
+        AdministrativeUnit unit = assignment.getUnit();
+        String unitName = unit.getName();
 
-	@Override
-	@Transactional
-	public void updateOrganizationDivisions(
-			CustomUserDetails operator,
-			UUID organizationId,
-			UpdateOrganizationDivisionsRequest request) {
+        userAreaAssignmentRepository.delete(assignment);
+        userAreaAssignmentRepository.flush();
 
-		requireOperator(RoleCode.ADMIN);
+        publishAudit(
+                operator,
+                "UNASSIGN_AREA",
+                "Gỡ địa bàn " + unit.getCode() + " - " + unitName
+                        + " khỏi tài khoản " + targetUser.getUserName(),
+                targetUser.getUserId());
 
-		Organization organization = organizationRepository.findById(organizationId)
-				.orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, ORGANIZATION_NOT_FOUND_MESSAGE));
+        return new UnassignAreaResult("Đã gỡ địa bàn " + unitName + " khỏi tài khoản.");
+    }
 
-		AdministrativeUnit province = null;
-		if (request.getProvinceId() != null) {
-			province = administrativeUnitRepository.findById(request.getProvinceId())
-					.filter(unit -> unit.isActive() && unit.getLevel() == AdministrativeUnitLevel.PROVINCE)
-					.orElseThrow(() -> new BusinessException(UNKNOWN_UNIT_MESSAGE));
-		}
+    @Override
+    @Transactional
+    public void updateOrganizationDivisions(
+            CustomUserDetails operator,
+            UUID organizationId,
+            UpdateOrganizationDivisionsRequest request) {
 
-		AdministrativeUnit commune = null;
-		if (request.getCommuneId() != null) {
-			commune = administrativeUnitRepository.findById(request.getCommuneId())
-					.filter(unit -> unit.isActive() && unit.getLevel() == AdministrativeUnitLevel.COMMUNE)
-					.orElseThrow(() -> new BusinessException(UNKNOWN_UNIT_MESSAGE));
-		}
+        requireOperator(RoleCode.ADMIN);
 
-		organization.setProvince(province);
-		organization.setCommune(commune);
-		organizationRepository.save(organization);
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, ORGANIZATION_NOT_FOUND_MESSAGE));
 
-		publishAudit(
-				operator,
-				"UPDATE_ORG_DIVISION",
-				"Cập nhật địa bàn tổ chức " + organization.getName() + ": province="
-						+ (province != null ? province.getCode() + " - " + province.getName() : "(trống)")
-						+ ", commune="
-						+ (commune != null ? commune.getCode() + " - " + commune.getName() : "(trống)"),
-				organization.getOrganizationId());
-	}
+        AdministrativeUnit province = null;
+        if (request.getProvinceId() != null) {
+            province = administrativeUnitRepository.findById(request.getProvinceId())
+                    .filter(unit -> unit.isActive() && unit.getLevel() == AdministrativeUnitLevel.PROVINCE)
+                    .orElseThrow(() -> new BusinessException(UNKNOWN_UNIT_MESSAGE));
+        }
 
-	// ==================== helpers ====================
+        AdministrativeUnit commune = null;
+        if (request.getCommuneId() != null) {
+            commune = administrativeUnitRepository.findById(request.getCommuneId())
+                    .filter(unit -> unit.isActive() && unit.getLevel() == AdministrativeUnitLevel.COMMUNE)
+                    .orElseThrow(() -> new BusinessException(UNKNOWN_UNIT_MESSAGE));
+        }
 
-	/**
-	 * Kiểm tra vai trò của người thao tác (belt-and-suspenders song song với
-	 * {@code @PreAuthorize} trên controller).
-	 */
-	private void requireOperator(String expectedRole) {
-		CustomUserDetails operator;
-		try {
-			operator = SecurityUtils.getCurrentUserDetails();
-		} catch (BusinessException ex) {
-			throw new BusinessException(HttpStatus.FORBIDDEN, FORBIDDEN_MESSAGE);
-		}
-		if (!expectedRole.equals(operator.getRoleCode())) {
-			throw new BusinessException(HttpStatus.FORBIDDEN, FORBIDDEN_MESSAGE);
-		}
-	}
+        organization.setProvince(province);
+        organization.setCommune(commune);
+        organizationRepository.save(organization);
 
-	private void requireUserExists(UUID userId) {
-		if (!userRepository.existsById(userId)) {
-			throw new BusinessException(HttpStatus.NOT_FOUND, NOT_FOUND_USER_MESSAGE);
-		}
-	}
+        publishAudit(
+                operator,
+                "UPDATE_ORG_DIVISION",
+                "Cập nhật địa bàn tổ chức " + organization.getName() + ": province="
+                        + (province != null ? province.getCode() + " - " + province.getName() : "(trống)")
+                        + ", commune="
+                        + (commune != null ? commune.getCode() + " - " + commune.getName() : "(trống)"),
+                organization.getOrganizationId());
+    }
 
-	private boolean hasActiveRoleMembership(UUID userId, String roleCode) {
-		return organizationUserRepository.findAllByUser_UserId(userId).stream()
-				.anyMatch(membership -> membership.getStatus() == OrganizationUserStatus.ACTIVE
-						&& roleCode.equals(membership.getRole().getCode()));
-	}
+    // ===== Helper Methods =====
 
-	private RegulatorUserResponse toRegulatorOption(User user) {
-		String organizationName = organizationUserRepository.findAllByUser_UserId(user.getUserId()).stream()
-				.filter(membership -> membership.getStatus() == OrganizationUserStatus.ACTIVE)
-				.map(OrganizationUser::getOrganization)
-				.findFirst()
-				.map(Organization::getName)
-				.orElse("");
-		return RegulatorUserResponse.builder()
-				.userId(user.getUserId())
-				.username(user.getUserName())
-				.fullName(user.getFullName())
-				.email(user.getEmail())
-				.phone(user.getPhone())
-				.organizationName(organizationName)
-				.build();
-	}
+    private void requireOperator(String expectedRole) {
+        CustomUserDetails operator;
+        try {
+            operator = SecurityUtils.getCurrentUserDetails();
+        } catch (BusinessException ex) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, FORBIDDEN_MESSAGE);
+        }
+        if (!expectedRole.equals(operator.getRoleCode())) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, FORBIDDEN_MESSAGE);
+        }
+    }
 
-	private AssignedAreaResponse toAssignedArea(UserAreaAssignment assignment) {
-		AdministrativeUnit unit = assignment.getUnit();
-		UUID provinceId = null;
-		String provinceName = null;
-		if (unit.getLevel() == AdministrativeUnitLevel.PROVINCE) {
-			provinceId = unit.getId();
-			provinceName = unit.getName();
-		} else if (unit.getProvince() != null) {
-			provinceId = unit.getProvince().getId();
-			provinceName = unit.getProvince().getName();
-		}
-		return AssignedAreaResponse.builder()
-				.assignmentId(assignment.getId())
-				.unitId(unit.getId())
-				.unitCode(unit.getCode())
-				.unitName(unit.getName())
-				.unitLevel(unit.getLevel().name())
-				.provinceId(provinceId)
-				.provinceName(provinceName)
-				.assignedAt(assignment.getAssignedAt())
-				.build();
-	}
+    private void requireUserExists(UUID userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, NOT_FOUND_USER_MESSAGE);
+        }
+    }
 
-	private String joinUnits(List<AdministrativeUnit> units) {
-		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < units.size(); i++) {
-			if (i > 0) {
-				sb.append("; ");
-			}
-			sb.append(units.get(i).getCode()).append(" - ").append(units.get(i).getName());
-		}
-		return sb.toString();
-	}
+    private boolean hasActiveRoleMembership(UUID userId, String roleCode) {
+        return organizationUserRepository.findAllByUser_UserId(userId).stream()
+                .anyMatch(membership -> membership.getStatus() == OrganizationUserStatus.ACTIVE
+                        && roleCode.equals(membership.getRole().getCode()));
+    }
 
-	private void publishAudit(CustomUserDetails operator, String action, String description, UUID entityId) {
-		eventPublisher.publishEvent(ActivityLogEvent.builder()
-				.userId(operator.getUserId())
-				.username(operator.getUsername())
-				.fullName(operator.getFullName())
-				.organizationId(operator.getOrganizationId())
-				.action(action)
-				.description(description)
-				.entityType(AUDIT_ENTITY_TYPE)
-				.entityId(entityId != null ? entityId.toString() : null)
-				.ipAddress(IpUtils.getClientIp())
-				.timestamp(java.time.LocalDateTime.now())
-				.build());
-	}
+    private RegulatorUserResponse toRegulatorOption(User user) {
+        String organizationName = organizationUserRepository.findAllByUser_UserId(user.getUserId()).stream()
+                .filter(membership -> membership.getStatus() == OrganizationUserStatus.ACTIVE)
+                .map(OrganizationUser::getOrganization)
+                .findFirst()
+                .map(Organization::getName)
+                .orElse("");
+
+        return RegulatorUserResponse.builder()
+                .userId(user.getUserId())
+                .username(user.getUserName())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .organizationName(organizationName)
+                .build();
+    }
+
+    private AssignedAreaResponse toAssignedArea(UserAreaAssignment assignment) {
+        AdministrativeUnit unit = assignment.getUnit();
+        UUID provinceId = null;
+        String provinceName = null;
+
+        if (unit.getLevel() == AdministrativeUnitLevel.PROVINCE) {
+            provinceId = unit.getId();
+            provinceName = unit.getName();
+        } else if (unit.getProvince() != null) {
+            provinceId = unit.getProvince().getId();
+            provinceName = unit.getProvince().getName();
+        }
+
+        return AssignedAreaResponse.builder()
+                .assignmentId(assignment.getId())
+                .unitId(unit.getId())
+                .unitCode(unit.getCode())
+                .unitName(unit.getName())
+                .unitLevel(unit.getLevel().name())
+                .provinceId(provinceId)
+                .provinceName(provinceName)
+                .assignedAt(assignment.getAssignedAt())
+                .build();
+    }
+
+    private String joinUnits(List<AdministrativeUnit> units) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < units.size(); i++) {
+            if (i > 0) {
+                sb.append("; ");
+            }
+            sb.append(units.get(i).getCode()).append(" - ").append(units.get(i).getName());
+        }
+        return sb.toString();
+    }
+
+    private void publishAudit(CustomUserDetails operator, String action, String description, UUID entityId) {
+        eventPublisher.publishEvent(ActivityLogEvent.builder()
+                .userId(operator.getUserId())
+                .username(operator.getUsername())
+                .fullName(operator.getFullName())
+                .organizationId(operator.getOrganizationId())
+                .action(action)
+                .description(description)
+                .entityType(AUDIT_ENTITY_TYPE)
+                .entityId(entityId != null ? entityId.toString() : null)
+                .ipAddress(IpUtils.getClientIp())
+                .timestamp(LocalDateTime.now())
+                .build());
+    }
 }

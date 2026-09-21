@@ -12,9 +12,10 @@ package vn.nguongocso.organization.enums;
  * </p>
  */
 public enum AdministrativeUnitLevel {
-	/** Cấp tỉnh / thành phố trực thuộc trung ương. */
-	PROVINCE,
 
-	/** Cấp xã / phường / đặc khu. */
-	COMMUNE
+    /** Cấp tỉnh / thành phố trực thuộc trung ương. */
+    PROVINCE,
+
+    /** Cấp xã / phường / đặc khu. */
+    COMMUNE
 }

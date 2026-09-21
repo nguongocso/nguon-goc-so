@@ -1,4 +1,5 @@
 package vn.nguongocso.organization.dto.response;
+
 import java.util.List;
 
 import lombok.AllArgsConstructor;
@@ -17,6 +18,7 @@ import vn.nguongocso.auth.dto.response.OrganizationUserResponse;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrganizationDetailResponse {
+
     private OrganizationProfileResponse profile;
 
     private List<OrganizationUserResponse> members;

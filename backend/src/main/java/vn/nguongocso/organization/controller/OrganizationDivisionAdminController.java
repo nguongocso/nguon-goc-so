@@ -26,19 +26,19 @@ import vn.nguongocso.organization.service.AreaAssignmentService;
 @RequiredArgsConstructor
 public class OrganizationDivisionAdminController {
 
-	private final AreaAssignmentService areaAssignmentService;
+    private final AreaAssignmentService areaAssignmentService;
 
-	/**
-	 * Cập nhật province_id / commune_id của tổ chức.
-	 */
-	@PutMapping("/{organizationId}/divisions")
-	@PreAuthorize("hasRole('VT-01')")
-	public ResponseEntity<ApiResult<Void>> updateDivisions(
-			@AuthenticationPrincipal CustomUserDetails currentUser,
-			@PathVariable UUID organizationId,
-			@Valid @RequestBody UpdateOrganizationDivisionsRequest request) {
+    /**
+     * Cập nhật province_id / commune_id của tổ chức.
+     */
+    @PutMapping("/{organizationId}/divisions")
+    @PreAuthorize("hasRole('VT-01')")
+    public ResponseEntity<ApiResult<Void>> updateDivisions(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable UUID organizationId,
+            @Valid @RequestBody UpdateOrganizationDivisionsRequest request) {
 
-		areaAssignmentService.updateOrganizationDivisions(currentUser, organizationId, request);
-		return ResponseEntity.ok(ApiResult.success(null));
-	}
+        areaAssignmentService.updateOrganizationDivisions(currentUser, organizationId, request);
+        return ResponseEntity.ok(ApiResult.success(null));
+    }
 }

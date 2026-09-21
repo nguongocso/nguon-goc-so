@@ -24,45 +24,47 @@ import vn.nguongocso.organization.service.AdministrativeUnitService;
 @RequiredArgsConstructor
 public class AdministrativeUnitServiceImpl implements AdministrativeUnitService {
 
-	private final AdministrativeUnitRepository administrativeUnitRepository;
+    private final AdministrativeUnitRepository administrativeUnitRepository;
 
-	@Override
-	@Transactional(readOnly = true)
-	public List<AdministrativeUnitNode> getUnitTree() {
-		List<AdministrativeUnit> provinces = administrativeUnitRepository
-				.findAllByLevelAndActiveTrueOrderByNameAsc(AdministrativeUnitLevel.PROVINCE);
-		List<AdministrativeUnit> communes = administrativeUnitRepository
-				.findAllByLevelAndActiveTrueOrderByNameAsc(AdministrativeUnitLevel.COMMUNE);
+    @Override
+    @Transactional(readOnly = true)
+    public List<AdministrativeUnitNode> getUnitTree() {
+        List<AdministrativeUnit> provinces = administrativeUnitRepository
+                .findAllByLevelAndActiveTrueOrderByNameAsc(AdministrativeUnitLevel.PROVINCE);
+        List<AdministrativeUnit> communes = administrativeUnitRepository
+                .findAllByLevelAndActiveTrueOrderByNameAsc(AdministrativeUnitLevel.COMMUNE);
 
-		Map<UUID, List<AdministrativeUnitNode>> childrenByProvince = new HashMap<>();
-		for (AdministrativeUnit commune : communes) {
-			UUID provinceId = commune.getProvince() != null ? commune.getProvince().getId() : null;
-			if (provinceId == null && commune.getParent() != null) {
-				provinceId = commune.getParent().getId();
-			}
-			if (provinceId == null) {
-				continue;
-			}
-			childrenByProvince
-					.computeIfAbsent(provinceId, key -> new ArrayList<>())
-					.add(toNode(commune, List.of()));
-		}
+        Map<UUID, List<AdministrativeUnitNode>> childrenByProvince = new HashMap<>();
+        for (AdministrativeUnit commune : communes) {
+            UUID provinceId = commune.getProvince() != null ? commune.getProvince().getId() : null;
+            if (provinceId == null && commune.getParent() != null) {
+                provinceId = commune.getParent().getId();
+            }
+            if (provinceId == null) {
+                continue;
+            }
+            childrenByProvince
+                    .computeIfAbsent(provinceId, key -> new ArrayList<>())
+                    .add(toNode(commune, List.of()));
+        }
 
-		List<AdministrativeUnitNode> tree = new ArrayList<>(provinces.size());
-		for (AdministrativeUnit province : provinces) {
-			tree.add(toNode(province,
-					childrenByProvince.getOrDefault(province.getId(), List.of())));
-		}
-		return tree;
-	}
+        List<AdministrativeUnitNode> tree = new ArrayList<>(provinces.size());
+        for (AdministrativeUnit province : provinces) {
+            tree.add(toNode(
+                    province,
+                    childrenByProvince.getOrDefault(province.getId(), List.of())));
+        }
 
-	private AdministrativeUnitNode toNode(AdministrativeUnit unit, List<AdministrativeUnitNode> children) {
-		return AdministrativeUnitNode.builder()
-				.id(unit.getId())
-				.code(unit.getCode())
-				.name(unit.getName())
-				.level(unit.getLevel().name())
-				.children(children)
-				.build();
-	}
+        return tree;
+    }
+
+    private AdministrativeUnitNode toNode(AdministrativeUnit unit, List<AdministrativeUnitNode> children) {
+        return AdministrativeUnitNode.builder()
+                .id(unit.getId())
+                .code(unit.getCode())
+                .name(unit.getName())
+                .level(unit.getLevel().name())
+                .children(children)
+                .build();
+    }
 }

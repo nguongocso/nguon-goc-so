@@ -20,13 +20,15 @@ import vn.nguongocso.organization.service.AdministrativeUnitService;
 @RequiredArgsConstructor
 public class AdministrativeUnitController {
 
-	private final AdministrativeUnitService administrativeUnitService;
+    private final AdministrativeUnitService administrativeUnitService;
 
-	/**
-	 * Cây đơn vị hành chính 2 cấp (tỉnh chứa xã/phường), sắp xếp theo tên.
-	 */
-	@GetMapping("/tree")
-	public ResponseEntity<ApiResult<List<AdministrativeUnitNode>>> getUnitTree() {
-		return ResponseEntity.ok(ApiResult.success(administrativeUnitService.getUnitTree()));
-	}
+    /**
+     * Cây đơn vị hành chính 2 cấp (tỉnh chứa xã/phường), sắp xếp theo tên.
+     *
+     * @return cây đơn vị hành chính
+     */
+    @GetMapping("/tree")
+    public ResponseEntity<ApiResult<List<AdministrativeUnitNode>>> getUnitTree() {
+        return ResponseEntity.ok(ApiResult.success(administrativeUnitService.getUnitTree()));
+    }
 }

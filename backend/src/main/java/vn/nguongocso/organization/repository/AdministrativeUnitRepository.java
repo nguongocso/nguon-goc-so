@@ -16,13 +16,13 @@ import vn.nguongocso.organization.enums.AdministrativeUnitLevel;
 @Repository
 public interface AdministrativeUnitRepository extends JpaRepository<AdministrativeUnit, UUID> {
 
-	Optional<AdministrativeUnit> findByCode(String code);
+    Optional<AdministrativeUnit> findByCode(String code);
 
-	boolean existsByCode(String code);
+    boolean existsByCode(String code);
 
-	List<AdministrativeUnit> findAllByLevelOrderByNameAsc(AdministrativeUnitLevel level);
+    List<AdministrativeUnit> findAllByLevelOrderByNameAsc(AdministrativeUnitLevel level);
 
-	List<AdministrativeUnit> findAllByLevelAndActiveTrueOrderByNameAsc(AdministrativeUnitLevel level);
+    List<AdministrativeUnit> findAllByLevelAndActiveTrueOrderByNameAsc(AdministrativeUnitLevel level);
 
-	List<AdministrativeUnit> findAllByProvinceIdAndLevelOrderByNameAsc(UUID provinceId, AdministrativeUnitLevel level);
+    List<AdministrativeUnit> findAllByProvinceIdAndLevelOrderByNameAsc(UUID provinceId, AdministrativeUnitLevel level);
 }

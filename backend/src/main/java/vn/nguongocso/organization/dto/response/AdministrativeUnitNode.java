@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Node cây đơn vị hành chính trả về cho màn hình gán địa bàn và bộ lọc báo cáo.
@@ -19,21 +20,22 @@ import lombok.NoArgsConstructor;
  * </p>
  */
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public class AdministrativeUnitNode {
 
-	private UUID id;
+    private UUID id;
 
-	private String code;
+    private String code;
 
-	private String name;
+    private String name;
 
-	/** Cấp đơn vị: PROVINCE hoặc COMMUNE. */
-	private String level;
+    /** Cấp đơn vị: PROVINCE hoặc COMMUNE. */
+    private String level;
 
-	@Builder.Default
-	private List<AdministrativeUnitNode> children = List.of();
+    @Builder.Default
+    private List<AdministrativeUnitNode> children = List.of();
 }

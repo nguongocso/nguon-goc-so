@@ -20,6 +20,7 @@ import vn.nguongocso.organization.enums.OrganizationType;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RecipientOrganizationResponse {
+
     private UUID id;
 
     private String name;

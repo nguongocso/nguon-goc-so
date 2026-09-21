@@ -1,19 +1,26 @@
 package vn.nguongocso.organization.dto.response;
 
-import lombok.Builder;
-import lombok.Data;
-import vn.nguongocso.organization.enums.OrganizationStatus;
-import vn.nguongocso.organization.enums.OrganizationType;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import vn.nguongocso.organization.enums.OrganizationStatus;
+import vn.nguongocso.organization.enums.OrganizationType;
 
 /**
  * Phản hồi khi truy vấn thông tin hồ sơ tổ chức.
  */
-@Data
+@Getter
+@Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class OrganizationProfileResponse {
+
     private UUID organizationId;
 
     private String name;

@@ -23,8 +23,7 @@ import lombok.Setter;
 import vn.nguongocso.auth.entity.User;
 
 /**
- * Bản ghi gán địa bàn quản lý cho tài khoản (nhiều-nhiều tài khoản ↔ đơn vị
- * hành chính).
+ * Bản ghi gán địa bàn quản lý cho tài khoản (nhiều-nhiều tài khoản ↔ đơn vị hành chính).
  *
  * <p>
  * Ràng buộc UNIQUE (user_id, unit_id) ở tầng DB chặn gán trùng ngay cả khi có
@@ -34,8 +33,6 @@ import vn.nguongocso.auth.entity.User;
 @Entity
 @Table(
         name = "user_area_assignments",
-        // Trùng khớp ràng buộc UNIQUE trong V35 để schema do Hibernate sinh ra
-        // (profile test, create-drop) cũng chặn gán trùng như production.
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_user_area_assignment",
                 columnNames = { "user_id", "unit_id" }))
@@ -45,37 +42,39 @@ import vn.nguongocso.auth.entity.User;
 @AllArgsConstructor
 @Builder
 public class UserAreaAssignment {
-	@Id
-	@Column(name = "id")
-	@JdbcTypeCode(SqlTypes.CHAR)
-	private UUID id;
 
-	/** Tài khoản được gán địa bàn. */
-	@ManyToOne(optional = false, fetch = FetchType.LAZY)
-	@JoinColumn(name = "user_id", nullable = false)
-	private User user;
+    @Id
+    @Column(name = "id")
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID id;
 
-	/** Đơn vị hành chính được gán. */
-	@ManyToOne(optional = false, fetch = FetchType.LAZY)
-	@JoinColumn(name = "unit_id", nullable = false)
-	private AdministrativeUnit unit;
+    /** Tài khoản được gán địa bàn. */
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-	/** Thời điểm gán. */
-	@Column(nullable = false, name = "assigned_at")
-	private LocalDateTime assignedAt;
+    /** Đơn vị hành chính được gán. */
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "unit_id", nullable = false)
+    private AdministrativeUnit unit;
 
-	/** Người thao tác gán/gỡ (nullable). */
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "assigned_by")
-	private User assignedBy;
+    /** Thời điểm gán. */
+    @Column(nullable = false, name = "assigned_at")
+    private LocalDateTime assignedAt;
 
-	@PrePersist
-	public void prePersist() {
-		if (id == null) {
-			id = UUID.randomUUID();
-		}
-		if (assignedAt == null) {
-			assignedAt = LocalDateTime.now();
-		}
-	}
+    /** Người thao tác gán/gỡ (nullable). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_by")
+    private User assignedBy;
+
+    @PrePersist
+    public void prePersist() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
+
+        if (assignedAt == null) {
+            assignedAt = LocalDateTime.now();
+        }
+    }
 }

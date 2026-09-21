@@ -6,19 +6,21 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Kết quả gán hàng loạt địa bàn.
  */
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class AssignAreasResult {
 
-	private long assignedCount;
+    private long assignedCount;
 
-	private List<AssignedAreaResponse> assigned;
+    private List<AssignedAreaResponse> assigned;
 
-	private String message;
+    private String message;
 }

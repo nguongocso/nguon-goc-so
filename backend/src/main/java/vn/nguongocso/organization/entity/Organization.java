@@ -3,6 +3,9 @@ package vn.nguongocso.organization.entity;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -22,9 +25,6 @@ import lombok.Setter;
 import vn.nguongocso.organization.enums.OrganizationStatus;
 import vn.nguongocso.organization.enums.OrganizationType;
 
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
 /**
  * Đại diện cho một tổ chức trong hệ thống.
  *
@@ -42,68 +42,68 @@ import org.hibernate.type.SqlTypes;
 @AllArgsConstructor
 @Builder
 public class Organization {
-	@Id
-	@Column(name = "organization_id")
-	@JdbcTypeCode(SqlTypes.CHAR)
-	private UUID organizationId;
 
-	@Column(nullable = false)
-	private String name;
+    @Id
+    @Column(name = "organization_id")
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private UUID organizationId;
 
-	@Column(nullable = false, unique = true)
-	private String code;
+    @Column(nullable = false)
+    private String name;
 
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false)
-	private OrganizationType type;
+    @Column(nullable = false, unique = true)
+    private String code;
 
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false)
-	private OrganizationStatus status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OrganizationType type;
 
-	@Column
-	private String address;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OrganizationStatus status;
 
-	@Column
-	private String phone;
+    @Column
+    private String address;
 
-	@Column
-	private String email;
+    @Column
+    private String phone;
 
-	/**
-	 * Tỉnh/thành phố nơi tổ chức hoạt động (nullable — đầu vào cho bộ lọc
-	 * báo cáo địa bàn của VT-05; chưa map thì để NULL).
-	 */
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "province_id")
-	private AdministrativeUnit province;
+    @Column
+    private String email;
 
-	/** Xã/phường nơi tổ chức hoạt động (nullable). */
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "commune_id")
-	private AdministrativeUnit commune;
+    /** Tỉnh/thành phố nơi tổ chức hoạt động (nullable — đầu vào cho bộ lọc báo cáo địa bàn của VT-05; chưa map thì để NULL). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "province_id")
+    private AdministrativeUnit province;
 
-	@Column(nullable = false, updatable = false, name = "created_at")
-	private LocalDateTime createdAt;
+    /** Xã/phường nơi tổ chức hoạt động (nullable). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "commune_id")
+    private AdministrativeUnit commune;
 
-	@Column(nullable = false, name = "updated_at")
-	private LocalDateTime updatedAt;
+    @Column(nullable = false, updatable = false, name = "created_at")
+    private LocalDateTime createdAt;
 
-	@PrePersist
-	public void prePersist() {
-		if (organizationId == null) {
-			organizationId = UUID.randomUUID();
-		}
-		LocalDateTime now = LocalDateTime.now();
-		createdAt = now;
-		updatedAt = now;
-		if (status == null) {
-			status = OrganizationStatus.ACTIVE;
-		}
-	}
+    @Column(nullable = false, name = "updated_at")
+    private LocalDateTime updatedAt;
 
-	@PreUpdate
-	public void preUpdate() {
-		updatedAt = LocalDateTime.now();
-	}
+    @PrePersist
+    public void prePersist() {
+        if (organizationId == null) {
+            organizationId = UUID.randomUUID();
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        createdAt = now;
+        updatedAt = now;
+
+        if (status == null) {
+            status = OrganizationStatus.ACTIVE;
+        }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

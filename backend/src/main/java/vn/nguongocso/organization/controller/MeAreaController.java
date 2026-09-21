@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
-import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.organization.dto.response.AssignedAreaResponse;
 import vn.nguongocso.organization.service.AreaAssignmentService;
@@ -21,13 +20,15 @@ import vn.nguongocso.organization.service.AreaAssignmentService;
 @RequiredArgsConstructor
 public class MeAreaController {
 
-	private final AreaAssignmentService areaAssignmentService;
+    private final AreaAssignmentService areaAssignmentService;
 
-	/**
-	 * Địa bàn đã gán của người dùng hiện tại.
-	 */
-	@GetMapping("/areas")
-	public ResponseEntity<ApiResult<List<AssignedAreaResponse>>> getMyAreas() {
-		return ResponseEntity.ok(ApiResult.success(areaAssignmentService.getMyAreas(null)));
-	}
+    /**
+     * Địa bàn đã gán của người dùng hiện tại.
+     *
+     * @return danh sách địa bàn đã gán
+     */
+    @GetMapping("/areas")
+    public ResponseEntity<ApiResult<List<AssignedAreaResponse>>> getMyAreas() {
+        return ResponseEntity.ok(ApiResult.success(areaAssignmentService.getMyAreas(null)));
+    }
 }

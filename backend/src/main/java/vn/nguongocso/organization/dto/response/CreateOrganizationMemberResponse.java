@@ -19,6 +19,7 @@ import vn.nguongocso.auth.enums.UserStatus;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateOrganizationMemberResponse {
+
     private UUID id;
 
     private String username;

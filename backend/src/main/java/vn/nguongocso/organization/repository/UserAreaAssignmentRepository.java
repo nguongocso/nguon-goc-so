@@ -15,9 +15,9 @@ import vn.nguongocso.organization.entity.UserAreaAssignment;
 @Repository
 public interface UserAreaAssignmentRepository extends JpaRepository<UserAreaAssignment, UUID> {
 
-	boolean existsByUser_UserIdAndUnit_Id(UUID userId, UUID unitId);
+    boolean existsByUser_UserIdAndUnit_Id(UUID userId, UUID unitId);
 
-	List<UserAreaAssignment> findAllByUser_UserIdOrderByAssignedAtDesc(UUID userId);
+    List<UserAreaAssignment> findAllByUser_UserIdOrderByAssignedAtDesc(UUID userId);
 
-	Optional<UserAreaAssignment> findFirstByUser_UserIdAndUnit_Id(UUID userId, UUID unitId);
+    Optional<UserAreaAssignment> findFirstByUser_UserIdAndUnit_Id(UUID userId, UUID unitId);
 }
