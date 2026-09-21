@@ -7,14 +7,14 @@ import lombok.Getter;
  */
 @Getter
 public enum MaterialGroup {
-	FERTILIZER("Phân bón"),
-	PESTICIDE("Thuốc bảo vệ thực vật"),
-	BIOLOGICAL("Chế phẩm sinh học"),
-	OTHER("Khác");
+    FERTILIZER("Phân bón"),
+    PESTICIDE("Thuốc bảo vệ thực vật"),
+    BIOLOGICAL("Chế phẩm sinh học"),
+    OTHER("Khác");
 
-	private final String displayName;
+    private final String displayName;
 
-	MaterialGroup(String displayName) {
-		this.displayName = displayName;
-	}
+    MaterialGroup(String displayName) {
+        this.displayName = displayName;
+    }
 }

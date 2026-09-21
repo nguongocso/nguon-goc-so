@@ -29,7 +29,7 @@ public class ProductionLotImportRow {
     private LocalDate harvestDate;
 
     /*
-     * FarmLog
+     * Nhật ký canh tác
      */
     private FarmActivityType activityType;
 

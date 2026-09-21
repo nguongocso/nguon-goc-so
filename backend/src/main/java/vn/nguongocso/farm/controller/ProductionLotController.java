@@ -11,11 +11,20 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
+
 import vn.nguongocso.auth.security.SecurityUtils;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
@@ -30,6 +39,7 @@ import vn.nguongocso.farm.dto.request.ProductionLotImportRequest;
 import vn.nguongocso.farm.dto.request.UpdateProductionLotRequest;
 import vn.nguongocso.farm.dto.response.CloneProductionLotPreviewResponse;
 import vn.nguongocso.farm.dto.response.CloneProductionLotResponse;
+import vn.nguongocso.farm.dto.response.ChainProgressBoardResponse;
 import vn.nguongocso.farm.dto.response.CreateProductionLotResponse;
 import vn.nguongocso.farm.dto.response.ProductionLotImportHistoryResponse;
 import vn.nguongocso.farm.dto.response.ProductionLotImportResultResponse;
@@ -177,7 +187,7 @@ public class ProductionLotController {
          */
         @GetMapping("/chain-progress")
         @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
-        public ResponseEntity<ApiResult<vn.nguongocso.farm.dto.response.ChainProgressBoardResponse>> getChainProgressBoard(
+        public ResponseEntity<ApiResult<ChainProgressBoardResponse>> getChainProgressBoard(
                         @RequestParam(required = false) UUID organizationId,
 
                         @RequestParam(required = false, defaultValue = "10") Integer stagnantThresholdDays,
@@ -186,7 +196,7 @@ public class ProductionLotController {
 
                         @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-                vn.nguongocso.farm.dto.response.ChainProgressBoardResponse response = productionLotService.getChainProgressBoard(
+                ChainProgressBoardResponse response = productionLotService.getChainProgressBoard(
                                 organizationId,
                                 stagnantThresholdDays,
                                 search,

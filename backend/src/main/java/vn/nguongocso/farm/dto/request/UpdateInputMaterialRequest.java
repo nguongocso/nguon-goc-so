@@ -8,11 +8,13 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import vn.nguongocso.farm.enums.MaterialGroup;
 
 /**
@@ -25,30 +27,30 @@ import vn.nguongocso.farm.enums.MaterialGroup;
 @AllArgsConstructor
 public class UpdateInputMaterialRequest {
 
-	@NotBlank(message = "Tên vật tư không được để trống")
-	@Size(max = 255, message = "Tên vật tư không vượt quá 255 ký tự")
-	private String name;
+    @NotBlank(message = "Tên vật tư không được để trống")
+    @Size(max = 255, message = "Tên vật tư không vượt quá 255 ký tự")
+    private String name;
 
-	@NotNull(message = "Nhóm vật tư không được để trống")
-	private MaterialGroup materialGroup;
+    @NotNull(message = "Nhóm vật tư không được để trống")
+    private MaterialGroup materialGroup;
 
-	@Size(max = 255, message = "Tên hoạt chất không vượt quá 255 ký tự")
-	private String activeIngredient;
+    @Size(max = 255, message = "Tên hoạt chất không vượt quá 255 ký tự")
+    private String activeIngredient;
 
-	@NotBlank(message = "Đơn vị tính không được để trống")
-	@Size(max = 50, message = "Đơn vị tính không vượt quá 50 ký tự")
-	private String unit;
+    @NotBlank(message = "Đơn vị tính không được để trống")
+    @Size(max = 50, message = "Đơn vị tính không vượt quá 50 ký tự")
+    private String unit;
 
-	@Min(value = 0, message = "Thời gian cách ly phải là số nguyên không âm")
-	private Integer quarantineDays;
+    @Min(value = 0, message = "Thời gian cách ly phải là số nguyên không âm")
+    private Integer quarantineDays;
 
-	private Boolean applyToAllCrops;
+    private Boolean applyToAllCrops;
 
-	private Set<UUID> applicableCropTypeIds;
+    private Set<UUID> applicableCropTypeIds;
 
-	private String referenceSource;
+    private String referenceSource;
 
-	private List<String> imageUrls;
+    private List<String> imageUrls;
 
-	private Boolean isActive;
+    private Boolean isActive;
 }

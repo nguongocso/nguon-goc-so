@@ -9,6 +9,7 @@ import vn.nguongocso.farm.dto.request.DisposeProductionLotRequest;
 import vn.nguongocso.farm.dto.request.UpdateProductionLotRequest;
 import vn.nguongocso.farm.dto.response.CloneProductionLotPreviewResponse;
 import vn.nguongocso.farm.dto.response.CloneProductionLotResponse;
+import vn.nguongocso.farm.dto.response.ChainProgressBoardResponse;
 import vn.nguongocso.farm.dto.response.CreateProductionLotResponse;
 import vn.nguongocso.farm.dto.response.UpdateProductionLotResponse;
 import vn.nguongocso.report.dto.response.ProductionLotDashboardResponse;
@@ -78,7 +79,7 @@ public interface ProductionLotService {
             CustomUserDetails userDetails);
 
     /** Lấy bảng theo dõi tiến độ chuỗi của từng lô (NCL-10-CN-013). */
-    vn.nguongocso.farm.dto.response.ChainProgressBoardResponse getChainProgressBoard(
+    ChainProgressBoardResponse getChainProgressBoard(
             UUID targetOrganizationId,
             Integer stagnantThresholdDays,
             String search,

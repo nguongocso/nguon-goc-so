@@ -5,8 +5,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+
 import vn.nguongocso.farm.event.ProductFeedbackSubmittedEvent;
 
+/** Lắng nghe sự kiện phản hồi sản phẩm để phát cảnh báo. */
 @Component
 public class ProductFeedbackListener {
     private static final Logger log = LoggerFactory.getLogger(ProductFeedbackListener.class);

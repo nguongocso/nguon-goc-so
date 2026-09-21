@@ -284,7 +284,7 @@ public class ProductionLotImportExcelGenerator {
                 0,
                 "",
                 sampleStyle);
-        
+
 
         // =====================================================
         // B - ma_loai_nong_san

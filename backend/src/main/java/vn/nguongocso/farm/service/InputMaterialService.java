@@ -16,33 +16,34 @@ import vn.nguongocso.farm.enums.MaterialGroup;
  */
 public interface InputMaterialService {
 
-	/**
-	 * Tạo mới vật tư đầu vào.
-	 */
-	InputMaterialResponse createInputMaterial(CreateInputMaterialRequest request, UUID currentUserId);
+    /**
+     * Tạo mới vật tư đầu vào.
+     */
+    InputMaterialResponse createInputMaterial(CreateInputMaterialRequest request, UUID currentUserId);
 
-	/**
-	 * Cập nhật thông tin vật tư đầu vào.
-	 */
-	InputMaterialResponse updateInputMaterial(UUID id, UpdateInputMaterialRequest request, UUID currentUserId);
+    /**
+     * Cập nhật thông tin vật tư đầu vào.
+     */
+    InputMaterialResponse updateInputMaterial(UUID id, UpdateInputMaterialRequest request, UUID currentUserId);
 
-	/**
-	 * Ngừng sử dụng hoặc kích hoạt lại vật tư đầu vào.
-	 */
-	InputMaterialResponse toggleActiveStatus(UUID id, Boolean isActive);
+    /**
+     * Ngừng sử dụng hoặc kích hoạt lại vật tư đầu vào.
+     */
+    InputMaterialResponse toggleActiveStatus(UUID id, Boolean isActive);
 
-	/**
-	 * Xóa vật tư đầu vào (Chỉ khi chưa xuất hiện trong nhật ký canh tác).
-	 */
-	void deleteInputMaterial(UUID id);
+    /**
+     * Xóa vật tư đầu vào (Chỉ khi chưa xuất hiện trong nhật ký canh tác).
+     */
+    void deleteInputMaterial(UUID id);
 
-	/**
-	 * Lấy chi tiết vật tư đầu vào theo ID.
-	 */
-	InputMaterialResponse getInputMaterialById(UUID id);
+    /**
+     * Lấy chi tiết vật tư đầu vào theo ID.
+     */
+    InputMaterialResponse getInputMaterialById(UUID id);
 
-	/**
-	 * Tìm kiếm và phân trang danh mục vật tư đầu vào.
-	 */
-	Page<InputMaterialResponse> searchMaterials(String keyword, MaterialGroup group, FarmActivityType activityType, Boolean isActive, Pageable pageable);
+    /**
+     * Tìm kiếm và phân trang danh mục vật tư đầu vào.
+     */
+    Page<InputMaterialResponse> searchMaterials(String keyword, MaterialGroup group, FarmActivityType activityType,
+            Boolean isActive, Pageable pageable);
 }

@@ -1,17 +1,18 @@
 package vn.nguongocso.farm.enums;
 
+/** Loại hoạt động canh tác trong nhật ký. */
 public enum FarmActivityType {
-	PLANTING, // Trồng
+    PLANTING, // Trồng
 
-	WATERING, // Tưới nước
+    WATERING, // Tưới nước
 
-	FERTILIZING, // Bón phân
+    FERTILIZING, // Bón phân
 
-	PESTICIDE, // Phun thuốc
+    PESTICIDE, // Phun thuốc
 
-	WEEDING, // Làm cỏ
+    WEEDING, // Làm cỏ
 
-	HARVESTING, // Thu hoạch
+    HARVESTING, // Thu hoạch
 
-	OTHER // Khác
+    OTHER // Khác
 }

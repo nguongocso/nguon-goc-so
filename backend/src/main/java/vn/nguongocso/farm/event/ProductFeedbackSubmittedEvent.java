@@ -13,7 +13,8 @@ public class ProductFeedbackSubmittedEvent extends ApplicationEvent {
     private final UUID organizationId;
     private final String content;
 
-    public ProductFeedbackSubmittedEvent(Object source, UUID feedbackId, UUID productionLotId, String productionLotName, UUID organizationId, String content) {
+    public ProductFeedbackSubmittedEvent(Object source, UUID feedbackId, UUID productionLotId, String productionLotName,
+            UUID organizationId, String content) {
         super(source);
         this.feedbackId = feedbackId;
         this.productionLotId = productionLotId;

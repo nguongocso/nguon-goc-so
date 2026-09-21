@@ -7,6 +7,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.certification.entity.Certification;
 import vn.nguongocso.certification.entity.ProductionLotCertification;
@@ -33,6 +34,7 @@ import vn.nguongocso.farm.repository.FarmAreaRepository;
 import vn.nguongocso.farm.repository.ProductCategoryRepository;
 import vn.nguongocso.farm.service.ProductionLotService;
 import vn.nguongocso.exception.BusinessException;
+import vn.nguongocso.exception.DuplicateResourceException;
 import vn.nguongocso.exception.ResourceNotFoundException;
 import vn.nguongocso.farm.entity.FarmArea;
 import vn.nguongocso.farm.entity.ProductCategory;
@@ -50,7 +52,9 @@ import vn.nguongocso.certification.enums.InspectionRequestStatus;
 import vn.nguongocso.certification.repository.InspectionRequestRepository;
 import vn.nguongocso.event.enums.ChainEventType;
 import vn.nguongocso.event.repository.ChainEventRepository;
-import vn.nguongocso.farm.dto.response.*;
+import vn.nguongocso.farm.dto.response.ChainProgressBoardResponse;
+import vn.nguongocso.farm.dto.response.ChainProgressItemResponse;
+import vn.nguongocso.farm.dto.response.ChainProgressStageGroupResponse;
 import vn.nguongocso.farm.dto.response.HarvestEligibilityResponse;
 import vn.nguongocso.farm.service.HarvestEligibilityService;
 import vn.nguongocso.trace.entity.CodeRange;
@@ -67,7 +71,15 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.WeekFields;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -703,7 +715,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         UUID orgId = userDetails.getOrganizationId();
 
         ProductionLot productionLot = productionLotRepository.findById(id)
-                .orElseThrow(() -> new vn.nguongocso.exception.ResourceNotFoundException("Lô sản xuất không tồn tại"));
+                .orElseThrow(() -> new ResourceNotFoundException("Lô sản xuất không tồn tại"));
 
         if (!productionLot.getOrganization().getOrganizationId().equals(orgId)) {
             throw new org.springframework.security.access.AccessDeniedException(
@@ -711,26 +723,26 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         }
 
         if (productionLot.getStatus() != ProductionLotStatus.DRAFT) {
-            throw new vn.nguongocso.exception.DuplicateResourceException(
+            throw new DuplicateResourceException(
                     "Chỉ có thể cập nhật lô sản xuất khi đang ở trạng thái nháp");
         }
 
         ProductCategory productCategory = productCategoryRepository.findById(request.getProductCategoryId())
                 .orElseThrow(
-                        () -> new vn.nguongocso.exception.BusinessException("Không tìm thấy loại nông sản đã chọn"));
+                        () -> new BusinessException("Không tìm thấy loại nông sản đã chọn"));
         if (Boolean.FALSE.equals(productCategory.getIsActive())) {
-            throw new vn.nguongocso.exception.BusinessException("Loại nông sản này hiện đang ngưng hoạt động");
+            throw new BusinessException("Loại nông sản này hiện đang ngưng hoạt động");
         }
 
         FarmArea farmArea;
         if (request.getFarmAreaId() == null) {
-            throw new vn.nguongocso.exception.BusinessException("Vui lòng chọn vùng trồng");
+            throw new BusinessException("Vui lòng chọn vùng trồng");
         }
         farmArea = farmAreaRepository.findById(request.getFarmAreaId())
-                .orElseThrow(() -> new vn.nguongocso.exception.BusinessException(
+                .orElseThrow(() -> new BusinessException(
                         "Không tìm thấy khu vực canh tác đã chọn"));
         if (!farmArea.getOrganization().getOrganizationId().equals(orgId)) {
-            throw new vn.nguongocso.exception.BusinessException("Khu vực canh tác này không thuộc tổ chức của bạn");
+            throw new BusinessException("Khu vực canh tác này không thuộc tổ chức của bạn");
         }
 
         productionLot.setName(request.getName());

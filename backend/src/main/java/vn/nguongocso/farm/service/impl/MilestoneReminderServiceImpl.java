@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import vn.nguongocso.alert.enums.NotificationType;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -34,7 +35,15 @@ import vn.nguongocso.organization.repository.OrganizationUserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Triển khai dịch vụ nhắc lịch ghi nhật ký theo mốc canh tác bắt buộc (NCL-03-CN-007).

@@ -1,6 +1,7 @@
 package vn.nguongocso.farm.dto.response;
 
 import java.util.UUID;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,25 +17,25 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductCategoryResponse {
-	private UUID id;
+    private UUID id;
 
-	private String name;
+    private String name;
 
-	private String nameEn;
+    private String nameEn;
 
-	private String group;
+    private String group;
 
-	private String description;
+    private String description;
 
-	private Boolean isActive;
+    private Boolean isActive;
 
-	private Double tempMin;
+    private Double tempMin;
 
-	private Double tempMax;
+    private Double tempMax;
 
-	private Double humidityMin;
+    private Double humidityMin;
 
-	private Double humidityMax;
+    private Double humidityMax;
 
-	private Boolean requiresInspection;
+    private Boolean requiresInspection;
 }

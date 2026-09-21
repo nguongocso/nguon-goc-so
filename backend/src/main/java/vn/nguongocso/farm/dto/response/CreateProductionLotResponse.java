@@ -4,6 +4,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
+import vn.nguongocso.certification.dto.response.InspectionValidityResponse;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -72,5 +74,5 @@ public class CreateProductionLotResponse {
         /**
          * Thông tin hiệu lực kết quả kiểm nghiệm của lô (NCL-11-CN-004).
          */
-        private vn.nguongocso.certification.dto.response.InspectionValidityResponse inspectionValidity;
+        private InspectionValidityResponse inspectionValidity;
 }

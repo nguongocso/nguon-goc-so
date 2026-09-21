@@ -7,12 +7,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
+
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.farm.dto.request.PublicProductFeedbackLookupRequest;
 import vn.nguongocso.farm.dto.response.PublicProductFeedbackLookupResponse;
 import vn.nguongocso.farm.service.ProductFeedbackService;
 
+/** Tiếp nhận yêu cầu tra cứu công khai trạng thái phản hồi sản phẩm. */
 @RestController
 @RequestMapping("/api/v1/public/product-feedbacks")
 @RequiredArgsConstructor

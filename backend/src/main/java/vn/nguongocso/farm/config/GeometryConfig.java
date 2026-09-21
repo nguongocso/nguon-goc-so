@@ -11,13 +11,13 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class GeometryConfig {
 
-	/**
-	 * Khởi tạo GeometryFactory với SRID 4326.
-	 *
-	 * @return GeometryFactory
-	 */
-	@Bean
-	public GeometryFactory geometryFactory() {
-		return new GeometryFactory(new PrecisionModel(), 4326);
-	}
+    /**
+     * Khởi tạo GeometryFactory với SRID 4326.
+     *
+     * @return GeometryFactory
+     */
+    @Bean
+    public GeometryFactory geometryFactory() {
+        return new GeometryFactory(new PrecisionModel(), 4326);
+    }
 }
