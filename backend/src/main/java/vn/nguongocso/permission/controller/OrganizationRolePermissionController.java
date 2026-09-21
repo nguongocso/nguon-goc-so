@@ -1,9 +1,17 @@
 package vn.nguongocso.permission.controller;
 
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
-
 import vn.nguongocso.auth.entity.Role;
 import vn.nguongocso.auth.repository.RoleRepository;
 import vn.nguongocso.common.ApiResult;
@@ -12,14 +20,11 @@ import vn.nguongocso.permission.dto.response.RolePermissionGroupResponse;
 import vn.nguongocso.permission.dto.response.RolePermissionResponse;
 import vn.nguongocso.permission.service.OrganizationRolePermissionService;
 
-import java.util.List;
-import java.util.UUID;
-
 /**
  * Controller quản lý vai trò và quyền của tổ chức.
  */
 @RestController
-@RequestMapping("/api/v1/")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class OrganizationRolePermissionController {
 
@@ -28,18 +33,21 @@ public class OrganizationRolePermissionController {
 
     /**
      * Danh sách toàn bộ permission của hệ thống.
+     *
+     * @return danh sách nhóm quyền hệ thống
      */
     @GetMapping("/permissions")
     public ApiResult<List<RolePermissionGroupResponse>> getSystemPermissions() {
-
-        return ApiResult.success(
-                organizationRolePermissionService.getSystemPermissions());
+        return ApiResult.success(organizationRolePermissionService.getSystemPermissions());
     }
 
     /**
      * Lấy danh sách vai trò khả dụng trong tổ chức.
      * Chỉ VT-02 của tổ chức đó mới được gọi.
      * Trả về tất cả các vai trò hệ thống (trừ VT-01 được frontend tự lọc).
+     *
+     * @param organizationId ID tổ chức
+     * @return danh sách vai trò
      */
     @GetMapping("/organizations/{organizationId}/roles")
     public ApiResult<List<Role>> getOrganizationRoles(
@@ -54,6 +62,10 @@ public class OrganizationRolePermissionController {
 
     /**
      * Lấy cấu hình quyền của một vai trò trong tổ chức.
+     *
+     * @param organizationId ID tổ chức
+     * @param roleId         ID vai trò
+     * @return cấu hình quyền của vai trò
      */
     @GetMapping("/organizations/{organizationId}/roles/{roleId}/permissions")
     public ApiResult<RolePermissionResponse> getRolePermissions(
@@ -68,6 +80,11 @@ public class OrganizationRolePermissionController {
 
     /**
      * Cập nhật quyền của một vai trò trong tổ chức.
+     *
+     * @param organizationId ID tổ chức
+     * @param roleId         ID vai trò
+     * @param request        danh sách quyền cần cập nhật
+     * @return cấu hình quyền sau cập nhật
      */
     @PutMapping("/organizations/{organizationId}/roles/{roleId}/permissions")
     public ApiResult<RolePermissionResponse> updateRolePermissions(

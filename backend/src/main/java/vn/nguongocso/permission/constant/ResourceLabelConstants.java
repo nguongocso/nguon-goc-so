@@ -14,9 +14,6 @@ public final class ResourceLabelConstants {
     public static final String EVENT_PACKAGING = "EVENT_PACKAGING";         // Ghi sự kiện đóng gói
     public static final String EVENT_TRANSPORT = "EVENT_TRANSPORT";         // Ghi sự kiện vận chuyển
 
-    private ResourceLabelConstants() {
-    }
-
     private static final Map<String, String> LABELS = Map.ofEntries(
             Map.entry("event_chain", "Quyền ghi nhận sự kiện chuỗi"),
             Map.entry("organization", "Tổ chức"),
@@ -44,12 +41,14 @@ public final class ResourceLabelConstants {
             Map.entry("recall", "Thu hồi lô"),
             Map.entry("product_feedback", "Phản ánh sản phẩm"));
 
+    private ResourceLabelConstants() {
+    }
+
     /**
      * Lấy tên hiển thị của nhóm chức năng dựa trên tên tài nguyên.
      *
      * @param resource tên tài nguyên
-     * @return tên hiển thị của nhóm chức năng, hoặc chính tên tài nguyên nếu không
-     *         tìm thấy
+     * @return tên hiển thị của nhóm chức năng, hoặc chính tên tài nguyên nếu không tìm thấy
      */
     public static String getLabel(String resource) {
         return LABELS.getOrDefault(resource, resource);

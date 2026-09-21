@@ -1,11 +1,19 @@
 package vn.nguongocso.permission.service.impl;
 
-import lombok.RequiredArgsConstructor;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import lombok.RequiredArgsConstructor;
 import vn.nguongocso.auth.entity.Role;
+import vn.nguongocso.auth.repository.RoleRepository;
 import vn.nguongocso.auth.security.SecurityUtils;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.exception.BusinessException;
@@ -16,14 +24,6 @@ import vn.nguongocso.permission.repository.OrganizationRolePermissionRepository;
 import vn.nguongocso.permission.repository.PermissionRepository;
 import vn.nguongocso.permission.repository.RolePermissionRepository;
 import vn.nguongocso.permission.service.PermissionChecker;
-import vn.nguongocso.auth.repository.RoleRepository;
-
-import java.util.Optional;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Collections;
 
 /**
  * Service kiểm tra quyền của người dùng.
@@ -56,7 +56,6 @@ public class PermissionCheckerImpl implements PermissionChecker {
      */
     @Override
     public void check(String resource, String action) {
-
         CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
 
         Permission permission = permissionRepository
@@ -75,12 +74,8 @@ public class PermissionCheckerImpl implements PermissionChecker {
         boolean enabled;
 
         if (organizationPermission.isPresent()) {
-
-            enabled = Boolean.TRUE.equals(
-                    organizationPermission.get().getEnabled());
-
+            enabled = Boolean.TRUE.equals(organizationPermission.get().getEnabled());
         } else {
-
             // Không có ghi đè của tổ chức: vai trò chưa được cấp quyền
             // (không có dòng mapping) xem như không có quyền → 403.
             enabled = rolePermissionRepository
@@ -110,8 +105,7 @@ public class PermissionCheckerImpl implements PermissionChecker {
             return Collections.emptyList();
         }
 
-        Role role = roleRepository.findByCode(currentUser.getRoleCode())
-                .orElse(null);
+        Role role = roleRepository.findByCode(currentUser.getRoleCode()).orElse(null);
         if (role == null) {
             return Collections.emptyList();
         }
@@ -134,7 +128,8 @@ public class PermissionCheckerImpl implements PermissionChecker {
                             role.getRoleId());
             for (OrganizationRolePermission orp : orgPermissions) {
                 if (orp.getPermission() != null) {
-                    permissionStatusMap.put(orp.getPermission().getPermissionId(),
+                    permissionStatusMap.put(
+                            orp.getPermission().getPermissionId(),
                             Boolean.TRUE.equals(orp.getEnabled()));
                 }
             }

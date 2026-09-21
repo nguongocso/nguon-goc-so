@@ -1,18 +1,34 @@
 package vn.nguongocso.permission.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import vn.nguongocso.auth.entity.Role;
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.organization.entity.Organization;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
-
-// Thực thể OrganizationRolePermission đại diện cho mối quan hệ giữa vai trò (Role) và quyền (Permission) trong một tổ chức (Organization). Nó xác định quyền hạn mà một vai trò cụ thể có trong tổ chức đó.
+/**
+ * Thực thể OrganizationRolePermission đại diện cho mối quan hệ giữa vai trò (Role)
+ * và quyền (Permission) trong một tổ chức (Organization). Nó xác định quyền hạn
+ * mà một vai trò cụ thể có trong tổ chức đó.
+ */
 @Entity
 @Table(name = "organization_role_permissions")
 @Getter
@@ -21,6 +37,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class OrganizationRolePermission {
+
     @Id
     @Column(name = "id", nullable = false, updatable = false)
     @JdbcTypeCode(SqlTypes.CHAR)
