@@ -49,8 +49,7 @@ public class BackupServiceImpl implements BackupService {
     private BackupService self;
 
     /*
-     * Thiết lập tự tham chiếu để gọi các phương thức @Transactional trong cùng một
-     * bean.
+     * Thiết lập tự tham chiếu để gọi các phương thức @Transactional trong cùng một bean.
      */
     @org.springframework.beans.factory.annotation.Autowired
     public void setSelf(@org.springframework.context.annotation.Lazy BackupService self) {
@@ -97,8 +96,7 @@ public class BackupServiceImpl implements BackupService {
 
     /**
      * Cấu hình lịch trình sao lưu dựa trên yêu cầu từ người dùng.
-     * Phương thức này sẽ lưu cấu hình vào cơ sở dữ liệu và phát ra sự kiện để cập
-     * nhật lịch trình động.
+     * Phương thức này sẽ lưu cấu hình vào cơ sở dữ liệu và phát ra sự kiện để cập nhật lịch trình động.
      */
     @Override
     @Transactional
@@ -136,10 +134,9 @@ public class BackupServiceImpl implements BackupService {
     }
 
     /**
-     * Kích hoạt sao lưu thủ công. Phương thức này sẽ kiểm tra xem có tiến trình sao
-     * lưu hoặc phục hồi nào đang diễn ra hay không.
-     * Nếu không, nó sẽ tạo một bản ghi lịch sử với trạng thái IN_PROGRESS và thực
-     * hiện sao lưu trong nền.
+     * Kích hoạt sao lưu thủ công. Phương thức này sẽ kiểm tra xem có tiến trình sao lưu hoặc phục hồi nào đang diễn ra
+     * hay không.
+     * Nếu không, nó sẽ tạo một bản ghi lịch sử với trạng thái IN_PROGRESS và thực hiện sao lưu trong nền.
      */
     @Override
     @Transactional
@@ -179,8 +176,8 @@ public class BackupServiceImpl implements BackupService {
     }
 
     /**
-     * Thực hiện sao lưu cơ sở dữ liệu mà không kiểm tra khóa. Phương thức này được
-     * sử dụng nội bộ khi đã đảm bảo rằng không có tiến trình nào đang diễn ra.
+     * Thực hiện sao lưu cơ sở dữ liệu mà không kiểm tra khóa. Phương thức này được sử dụng nội bộ khi đã đảm bảo rằng
+     * không có tiến trình nào đang diễn ra.
      */
     @Override
     @Transactional
@@ -227,9 +224,8 @@ public class BackupServiceImpl implements BackupService {
     }
 
     /*
-     * Lấy tập tin sao lưu dựa trên ID lịch sử. Phương thức này sẽ kiểm tra xem bản
-     * ghi có phải là một bản sao lưu thành công hay không và trả về tập tin vật lý
-     * nếu tồn tại.
+     * Lấy tập tin sao lưu dựa trên ID lịch sử. Phương thức này sẽ kiểm tra xem bản ghi có phải là một bản sao lưu thành
+     * công hay không và trả về tập tin vật lý nếu tồn tại.
      */
     @Override
     @Transactional(readOnly = true)
@@ -427,8 +423,8 @@ public class BackupServiceImpl implements BackupService {
 
     /**
      * Tự động giải quyết đường dẫn công cụ mysqldump.
-     * Thứ tự ưu tiên: Cấu hình app.backup.mysql-dump-path -> System PATH via
-     * `where`/`which` -> Thư mục mặc định -> Gọi trực tiếp mysqldump -> Báo lỗi.
+     * Thứ tự ưu tiên: Cấu hình app.backup.mysql-dump-path -> System PATH via `where`/`which` -> Thư mục mặc định -> Gọi
+     * trực tiếp mysqldump -> Báo lỗi.
      */
     public String resolveMysqldumpPath() throws IOException {
         String configured = mysqlDumpPath != null ? mysqlDumpPath.trim() : "";
@@ -445,8 +441,7 @@ public class BackupServiceImpl implements BackupService {
         boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
         String execName = isWindows ? "mysqldump.exe" : "mysqldump";
 
-        // 2. Tìm kiếm trên System PATH thông qua `where` (Windows) hoặc `which`
-        // (Linux/macOS)
+        // 2. Tìm kiếm trên System PATH thông qua `where` (Windows) hoặc `which` (Linux/macOS)
         String foundByPath = findExecutableOnSystemPath(isWindows ? "where" : "which", execName);
         if (foundByPath != null) {
             log.info("Tìm thấy mysqldump trên System PATH: {}", foundByPath);
@@ -463,8 +458,7 @@ public class BackupServiceImpl implements BackupService {
             }
         }
 
-        // 4. Kiểm tra xem lệnh "mysqldump" hoặc "mysqldump.exe" có thể thực thi trực
-        // tiếp từ PATH không
+        // 4. Kiểm tra xem lệnh "mysqldump" hoặc "mysqldump.exe" có thể thực thi trực tiếp từ PATH không
         if (canExecuteCommand(execName)) {
             log.info("Sử dụng mysqldump trực tiếp từ môi trường hệ thống");
             return execName;

@@ -23,8 +23,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Triển khai các phương thức quản lý danh mục chỉ tiêu kiểm nghiệm
- * (NCL-09-CN-009).
+ * Triển khai các phương thức quản lý danh mục chỉ tiêu kiểm nghiệm (NCL-09-CN-009).
  */
 @Service
 @RequiredArgsConstructor
@@ -64,8 +63,7 @@ public class InspectionCriterionCatalogServiceImpl implements InspectionCriterio
     }
 
     /**
-     * Tải trước danh sách ID chỉ tiêu đang được tham chiếu để tránh lỗi N+1 truy
-     * vấn.
+     * Tải trước danh sách ID chỉ tiêu đang được tham chiếu để tránh lỗi N+1 truy vấn.
      */
     private Set<Long> loadReferencedIds() {
         return new HashSet<>(inspectionCriterionRepository.findReferencedCriterionIds());
@@ -228,8 +226,7 @@ public class InspectionCriterionCatalogServiceImpl implements InspectionCriterio
     }
 
     /**
-     * Chuyển đổi thực thể chỉ tiêu kiểm nghiệm sang DTO phản hồi kèm cờ tham chiếu
-     * đã nạp trước.
+     * Chuyển đổi thực thể chỉ tiêu kiểm nghiệm sang DTO phản hồi kèm cờ tham chiếu đã nạp trước.
      */
     private InspectionCriterionCatalogResponse toResponse(
             InspectionCriterionCatalog entity, Set<Long> referencedIds) {

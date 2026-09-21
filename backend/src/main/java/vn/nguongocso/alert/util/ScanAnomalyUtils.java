@@ -8,17 +8,14 @@ import vn.nguongocso.common.util.GeoDistanceUtils;
 import vn.nguongocso.report.entity.TraceCodeScanLog;
 
 /**
- * Tiện ích dùng chung phục vụ phát hiện quét bất thường và ước lượng tác động
- * (NCL-08-CN-014).
+ * Tiện ích dùng chung phục vụ phát hiện quét bất thường và ước lượng tác động (NCL-08-CN-014).
  */
 public final class ScanAnomalyUtils {
-
     private ScanAnomalyUtils() {
     }
 
     /**
-     * Kiểm tra xem một thời điểm quét có nằm trong thời gian ân hạn (grace period)
-     * hay không.
+     * Kiểm tra xem một thời điểm quét có nằm trong thời gian ân hạn (grace period) hay không.
      */
     public static boolean isWithinGracePeriod(LocalDateTime activatedAt, LocalDateTime eventTime,
             Integer gracePeriodDays) {

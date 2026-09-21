@@ -22,8 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 /**
- * Controller quản trị xác thực và từ chối chứng nhận của tổ chức (NCL-696 /
- * NCL-09-CN-012).
+ * Controller quản trị xác thực và từ chối chứng nhận của tổ chức (NCL-696 / NCL-09-CN-012).
  * Chỉ dành riêng cho vai trò Quản trị viên nền tảng (VT-01).
  */
 @RestController
@@ -116,8 +115,7 @@ public class AdminCertificationController {
         }
 
         /**
-         * Từ chối xác thực chứng nhận của tổ chức (chuyển trạng thái PENDING ->
-         * REJECTED, gửi thông báo kèm lý do).
+         * Từ chối xác thực chứng nhận của tổ chức (chuyển trạng thái PENDING -> REJECTED, gửi thông báo kèm lý do).
          */
         @PutMapping("/{certificationId}/reject")
         public ResponseEntity<ApiResult<CertificationVerificationResponse>> rejectCertificate(

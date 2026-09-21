@@ -8,8 +8,7 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * Phản hồi danh sách cảnh báo tổng hợp có phân trang và khối thống kê
- * (NCL-08-CN-016).
+ * Phản hồi danh sách cảnh báo tổng hợp có phân trang và khối thống kê (NCL-08-CN-016).
  */
 @Data
 @Builder

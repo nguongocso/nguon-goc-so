@@ -8,8 +8,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Response một dòng phạm vi công nhận của đơn vị kiểm nghiệm
- * (NCL-11-CN-006 Phase 2).
+ * Response một dòng phạm vi công nhận của đơn vị kiểm nghiệm (NCL-11-CN-006 Phase 2).
  */
 @Getter
 @Builder

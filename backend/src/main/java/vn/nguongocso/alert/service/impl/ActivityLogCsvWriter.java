@@ -76,6 +76,7 @@ public class ActivityLogCsvWriter {
                 valueSanitizer.sanitize(item.getAfterValue()));
     }
 
+    /** Ghi một dòng vào CSV. */
     private void print(CSVPrinter printer, Object... values) throws IOException {
         Object[] protectedValues = new Object[values.length];
         for (int i = 0; i < values.length; i++) {
@@ -84,6 +85,7 @@ public class ActivityLogCsvWriter {
         printer.printRecord(protectedValues);
     }
 
+    /** Định dạng CSV. */
     private CSVFormat csvFormat() {
         return CSVFormat.DEFAULT.builder()
                 .setDelimiter(CSV_DELIMITER)
@@ -92,19 +94,23 @@ public class ActivityLogCsvWriter {
                 .get();
     }
 
+    /** Lấy tên của người thực hiện. */
     private String actorName(ActivityLog log) {
         return log.getFullName() != null && !log.getFullName().isBlank() ? log.getFullName() : log.getUsername();
     }
 
+    /** Định dạng thời gian. */
     private String formatDateTime(LocalDateTime value) {
         return value == null ? null : DATE_TIME_FORMATTER.format(value);
     }
 
     /** Bảo vệ giá trị khỏi bị bảng tính diễn giải thành công thức. */
     public String protectFormula(String value) {
-        if (value == null || value.isEmpty()) return value;
+        if (value == null || value.isEmpty())
+            return value;
         String stripped = value.stripLeading();
-        if (stripped.isEmpty()) return value;
+        if (stripped.isEmpty())
+            return value;
         char first = stripped.charAt(0);
         return first == '=' || first == '+' || first == '-' || first == '@' ? "'" + value : value;
     }

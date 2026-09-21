@@ -10,8 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * DTO yêu cầu cập nhật ngưỡng cảnh báo hết hiệu lực kiểm nghiệm
- * (NCL-11-CN-004).
+ * DTO yêu cầu cập nhật ngưỡng cảnh báo hết hiệu lực kiểm nghiệm (NCL-11-CN-004).
  */
 @Getter
 @Setter

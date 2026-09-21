@@ -18,10 +18,8 @@ import java.util.concurrent.ScheduledFuture;
 import org.springframework.beans.factory.annotation.Value;
 
 /**
- * Lớp BackupScheduler chịu trách nhiệm quản lý lịch trình sao lưu dựa trên cấu
- * hình trong cơ sở dữ liệu.
- * Nó lắng nghe sự kiện thay đổi lịch trình và cập nhật lịch trình sao lưu một
- * cách động.
+ * Lớp BackupScheduler chịu trách nhiệm quản lý lịch trình sao lưu dựa trên cấu hình trong cơ sở dữ liệu.
+ * Nó lắng nghe sự kiện thay đổi lịch trình và cập nhật lịch trình sao lưu một cách động.
  */
 @Component
 @RequiredArgsConstructor
@@ -51,8 +49,7 @@ public class BackupScheduler {
     }
 
     /**
-     * Lập lịch công việc sao lưu tiếp theo. Phương thức này được đồng bộ để ngăn
-     * chặn xung đột.
+     * Lập lịch công việc sao lưu tiếp theo. Phương thức này được đồng bộ để ngăn chặn xung đột.
      */
     public synchronized void scheduleNext() {
         if (scheduledTask != null) {

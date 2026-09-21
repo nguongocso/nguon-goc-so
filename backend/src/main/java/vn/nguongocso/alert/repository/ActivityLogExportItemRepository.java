@@ -21,8 +21,8 @@ public interface ActivityLogExportItemRepository extends JpaRepository<ActivityL
             UUID jobId, Long sequenceNo, Pageable pageable);
 
     /*
-     * Đóng snapshot bằng một câu lệnh tại database để request không phải tải toàn
-     * bộ dữ liệu lớn qua JVM trước khi trả HTTP 202.
+     * Đóng snapshot bằng một câu lệnh tại database để request không phải tải toàn bộ dữ liệu lớn qua JVM trước khi trả
+     * HTTP 202.
      */
     @Modifying
     @Query(value = """

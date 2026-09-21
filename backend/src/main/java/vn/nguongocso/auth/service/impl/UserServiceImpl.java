@@ -31,8 +31,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Cài đặt nghiệp vụ quản lý hồ sơ người dùng và đổi mật khẩu chủ động
- * (NCL-01-CN-010).
+ * Cài đặt nghiệp vụ quản lý hồ sơ người dùng và đổi mật khẩu chủ động (NCL-01-CN-010).
  */
 @Service
 @RequiredArgsConstructor

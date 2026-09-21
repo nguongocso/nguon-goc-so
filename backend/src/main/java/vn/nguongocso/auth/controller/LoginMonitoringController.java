@@ -21,7 +21,6 @@ import vn.nguongocso.auth.dto.response.AccountLockResponse;
 import vn.nguongocso.auth.dto.response.LoginAnomalyResponse;
 import vn.nguongocso.auth.dto.response.LoginHistoryResponse;
 import vn.nguongocso.auth.dto.response.SuspiciousCaseResponse;
-import vn.nguongocso.auth.service.AccountLockService;
 import vn.nguongocso.auth.service.LoginMonitoringService;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.common.PageResponse;
@@ -35,7 +34,6 @@ import vn.nguongocso.common.PageResponse;
 @PreAuthorize("isAuthenticated()")
 public class LoginMonitoringController {
     private final LoginMonitoringService loginMonitoringService;
-    private final AccountLockService accountLockService;
 
     /**
      * Lấy lịch sử đăng nhập của các tài khoản.

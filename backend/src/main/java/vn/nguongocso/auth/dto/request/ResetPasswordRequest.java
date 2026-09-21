@@ -10,8 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * DTO tiếp nhận yêu cầu đặt lại mật khẩu mới cùng token xác thực
- * (NCL-01-CN-008).
+ * DTO tiếp nhận yêu cầu đặt lại mật khẩu mới cùng token xác thực (NCL-01-CN-008).
  */
 @Getter
 @Setter

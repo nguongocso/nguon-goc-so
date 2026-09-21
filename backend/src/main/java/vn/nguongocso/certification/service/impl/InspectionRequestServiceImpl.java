@@ -484,8 +484,7 @@ public class InspectionRequestServiceImpl implements InspectionRequestService {
     }
 
     /**
-     * Kiểm tra yêu cầu kiểm nghiệm có trùng lặp bộ chỉ tiêu với yêu cầu đang chờ
-     * hay không.
+     * Kiểm tra yêu cầu kiểm nghiệm có trùng lặp bộ chỉ tiêu với yêu cầu đang chờ hay không.
      */
     private boolean isDuplicateCriteria(
             InspectionRequest existingRequest,

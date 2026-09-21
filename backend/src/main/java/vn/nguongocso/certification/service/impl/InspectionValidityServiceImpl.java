@@ -32,8 +32,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Triển khai dịch vụ xác định và suy diễn hiệu lực kết quả kiểm nghiệm
- * (NCL-11-CN-004).
+ * Triển khai dịch vụ xác định và suy diễn hiệu lực kết quả kiểm nghiệm (NCL-11-CN-004).
  */
 @Service
 @Slf4j
@@ -49,8 +48,7 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
     private int warningThresholdDays;
 
     /**
-     * Tính toán thông tin hiệu lực kiểm nghiệm của lô sản xuất theo ngày hiện tại
-     * của hệ thống.
+     * Tính toán thông tin hiệu lực kiểm nghiệm của lô sản xuất theo ngày hiện tại của hệ thống.
      */
     @Override
     public InspectionValidityResponse calculateValidity(ProductionLot lot) {
@@ -327,8 +325,7 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
     }
 
     /**
-     * Đếm số lượng mã tem chưa kích hoạt thuộc các lô hàng chưa thu hồi của lô sản
-     * xuất.
+     * Đếm số lượng mã tem chưa kích hoạt thuộc các lô hàng chưa thu hồi của lô sản xuất.
      */
     private Long calculateInactiveStampCount(UUID lotId) {
         long totalStamps = traceCodeRepository.countTotalByProductionLotId(lotId);

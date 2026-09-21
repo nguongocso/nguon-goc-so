@@ -21,8 +21,7 @@ import vn.nguongocso.organization.enums.OrganizationUserStatus;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
 
 /**
- * Dịch vụ tải thông tin người dùng và phân quyền theo tổ chức cho Spring
- * Security.
+ * Dịch vụ tải thông tin người dùng và phân quyền theo tổ chức cho Spring Security.
  */
 @Slf4j
 @Service

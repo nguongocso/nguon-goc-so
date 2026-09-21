@@ -10,8 +10,7 @@ import vn.nguongocso.auth.dto.response.ValidateResetTokenResponse;
 public interface PasswordResetService {
     /**
      * Tiếp nhận yêu cầu đặt lại mật khẩu, sinh token bảo mật và gửi email.
-     * Bảo vệ chống Account Enumeration (không tiết lộ tài khoản có tồn tại hay
-     * không).
+     * Bảo vệ chống Account Enumeration (không tiết lộ tài khoản có tồn tại hay không).
      */
     void requestPasswordReset(ForgotPasswordRequest request);
 

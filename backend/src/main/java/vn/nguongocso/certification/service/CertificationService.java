@@ -64,8 +64,7 @@ public interface CertificationService {
                         CustomUserDetails currentUser);
 
         /**
-         * Tìm kiếm chứng nhận của tổ chức hiện tại theo từ khoá và trạng thái
-         * hiệu lực, có phân trang và sắp xếp.
+         * Tìm kiếm chứng nhận của tổ chức hiện tại theo từ khoá và trạng thái hiệu lực, có phân trang và sắp xếp.
          */
         PageResponse<CertificationResponse> searchCertifications(
                         String keyword,

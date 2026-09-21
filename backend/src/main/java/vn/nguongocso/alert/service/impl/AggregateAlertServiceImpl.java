@@ -59,8 +59,8 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Triển khai dịch vụ tổng hợp cảnh báo gom từ 7 nguồn dữ liệu (NCL-08-CN-016)
- * và cảnh báo khóa truy cập bên thứ ba (NCL-12-CN-005).
+ * Triển khai dịch vụ tổng hợp cảnh báo gom từ 7 nguồn dữ liệu (NCL-08-CN-016) và cảnh báo khóa truy cập bên thứ ba
+ * (NCL-12-CN-005).
  */
 @Slf4j
 @Service
@@ -85,6 +85,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
     @Value("${app.apikey.expiry-warning-days:7}")
     private int apiKeyExpiryWarningDays;
 
+    /** Lấy danh sách cảnh báo tổng hợp có phân trang, lọc và thống kê tóm tắt. */
     @Override
     @Transactional(readOnly = true)
     public AggregateAlertPageResponse getAggregateAlerts(
@@ -147,6 +148,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                 .build();
     }
 
+    /** Lấy số lượng thống kê cảnh báo tổng hợp đang mở theo mức khẩn cấp và loại. */
     @Override
     @Transactional(readOnly = true)
     public AggregateAlertCountResponse getAggregateAlertCounts(UUID organizationId) {
@@ -157,6 +159,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         return calculateSummaryCounts(openItems);
     }
 
+    /** Lấy số lượng cảnh báo chưa xử lý phục vụ huy hiệu đếm trên thanh điều hướng. */
     @Override
     @Transactional(readOnly = true)
     public UnviewedAlertCountResponse getUnviewedAlertCount() {
@@ -177,9 +180,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                 .build();
     }
 
-    /**
-     * Xác định organizationId hợp lệ dựa theo vai trò của người dùng và quy tắc QTN-01.
-     */
+    /** Xác định organizationId hợp lệ dựa theo vai trò của người dùng và quy tắc QTN-01. */
     private UUID resolveTargetOrganizationId(UUID requestedOrgId) {
         CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
         String roleCode = currentUser.getRoleCode();
@@ -200,9 +201,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         }
     }
 
-    /**
-     * Thu thập cảnh báo từ các nguồn dữ liệu.
-     */
+    /** Thu thập cảnh báo từ các nguồn dữ liệu. */
     private List<AggregateAlertItemResponse> collectAllAlerts(UUID orgId, String statusFilter, boolean isAdmin) {
         List<AggregateAlertItemResponse> result = new ArrayList<>();
 
@@ -212,7 +211,8 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         // Nguồn 1, 2, 3: Bảng alerts (Tem quét bất thường, Chứng nhận, Kiểm nghiệm)
         collectAlertsFromAlertTable(result, orgId, includeOpen, includeResolved, isAdmin);
 
-        // Nguồn 2 & 3: Bổ sung cảnh báo chứng nhận sắp hết hạn/hết hạn trực tiếp từ CertificationRepository thời gian thực
+        // Nguồn 2 & 3: Bổ sung cảnh báo chứng nhận sắp hết hạn/hết hạn trực tiếp từ CertificationRepository thời gian
+        // thực
         collectCertificationAlerts(result, orgId, includeOpen, includeResolved, isAdmin);
 
         // Nguồn 4: Phản ánh của người tiêu dùng chưa xử lý
@@ -237,9 +237,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         return result;
     }
 
-    /**
-     * Gom cảnh báo từ bảng alerts (Nguồn 1, 2, 3).
-     */
+    /** Gom cảnh báo từ bảng alerts (Nguồn 1, 2, 3). */
     private void collectAlertsFromAlertTable(
             List<AggregateAlertItemResponse> result,
             UUID orgId,
@@ -322,10 +320,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         }
     }
 
-    /**
-     * Thu thập cảnh báo chứng nhận sắp hết hạn (Nguồn 2) và đã hết hạn (Nguồn 3)
-     * trực tiếp từ CertificationRepository để đảm bảo hiển thị tức thì theo thời gian thực (TC-01, TC-02).
-     */
+    /** Thu thập cảnh báo chứng nhận sắp hết hạn (Nguồn 2) và đã hết hạn (Nguồn 3) theo thời gian thực. */
     private void collectCertificationAlerts(
             List<AggregateAlertItemResponse> result,
             UUID orgId,
@@ -425,9 +420,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         }
     }
 
-    /**
-     * Gom cảnh báo phản ánh chưa xử lý (Nguồn 4).
-     */
+    /** Gom cảnh báo phản ánh chưa xử lý (Nguồn 4). */
     private void collectProductFeedbackAlerts(
             List<AggregateAlertItemResponse> result,
             UUID orgId,
@@ -483,9 +476,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         }
     }
 
-    /**
-     * Gom cảnh báo hạn mức dải mã truy xuất (Nguồn 5).
-     */
+    /** Gom cảnh báo hạn mức dải mã truy xuất (Nguồn 5). */
     private void collectCodeRangeQuotaAlerts(List<AggregateAlertItemResponse> result, UUID orgId, boolean isAdmin) {
         List<CodeRange> codeRanges = (orgId != null)
                 ? codeRangeRepository.findByOrganizationOrganizationId(orgId)
@@ -528,13 +519,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         }
     }
 
-    /**
-     * Gom cảnh báo khóa truy cập sắp hết hạn và sắp chạm hạn mức (Nguồn 8 & 9, NCL-12-CN-005).
-     * <p>
-     * Tính realtime từ {@code partner_api_keys} nên tự đóng khi khóa được gia hạn,
-     * nâng hạn mức hoặc thu hồi — không cần resolve tay. Chi tiết từng loại cảnh
-     * báo nằm ở các helper bên dưới để mỗi phương thức không quá 30 dòng.
-     */
+    /** Gom cảnh báo khóa truy cập sắp hết hạn và sắp chạm hạn mức (Nguồn 8 & 9, NCL-12-CN-005). */
     private void collectApiKeyAlerts(List<AggregateAlertItemResponse> result, UUID orgId) {
         List<PartnerApiKey> keys;
         if (orgId != null) {
@@ -547,8 +532,8 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime warningLimit = now.plusDays(apiKeyExpiryWarningDays);
 
-        // Số lượt gọi trong ngày hôm nay lấy từ DB bằng một truy vấn duy nhất
-        // (NCL-12-CN-005) thay cho bộ đếm trong bộ nhớ tạm trước đây.
+        // Số lượt gọi trong ngày hôm nay lấy từ DB bằng một truy vấn duy nhất (NCL-12-CN-005) thay cho bộ đếm trong bộ
+        // nhớ tạm trước đây.
         Map<UUID, Integer> usedCallsToday = partnerApiKeyUsageService.getDailyCallCounts(
                 keys.stream().map(PartnerApiKey::getId).toList());
 
@@ -563,14 +548,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         }
     }
 
-    /**
-     * Gom cảnh báo hết hạn hoặc sắp hết hạn của một khóa truy cập.
-     * <p>
-     * Khóa đã quá hạn báo mức {@code HIGH}, khóa còn hiệu lực trong ngưỡng báo mức
-     * {@code MEDIUM}; khóa còn hạn xa không sinh cảnh báo.
-     *
-     * @return {@code true} nếu khóa đã hết hạn (bỏ qua cảnh báo hạn mức phía sau)
-     */
+    /** Gom cảnh báo hết hạn hoặc sắp hết hạn của một khóa truy cập. */
     private boolean collectApiKeyExpiryAlert(List<AggregateAlertItemResponse> result, PartnerApiKey key,
             LocalDateTime now, LocalDateTime warningLimit) {
         Organization org = key.getOrganization();
@@ -585,9 +563,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         return false;
     }
 
-    /**
-     * Thêm mục cảnh báo khóa đã hết hạn (mức {@code HIGH}).
-     */
+    /** Thêm mục cảnh báo khóa đã hết hạn (mức HIGH). */
     private void addExpiredApiKeyAlert(List<AggregateAlertItemResponse> result, PartnerApiKey key,
             Organization org, LocalDateTime now) {
         result.add(AggregateAlertItemResponse.builder()
@@ -609,9 +585,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                 .build());
     }
 
-    /**
-     * Thêm mục cảnh báo khóa sắp hết hạn (mức {@code MEDIUM}).
-     */
+    /** Thêm mục cảnh báo khóa sắp hết hạn (mức MEDIUM). */
     private void addExpiringApiKeyAlert(List<AggregateAlertItemResponse> result, PartnerApiKey key,
             Organization org, LocalDateTime now, long daysLeft) {
         result.add(AggregateAlertItemResponse.builder()
@@ -634,12 +608,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                 .build());
     }
 
-    /**
-     * Gom cảnh báo sắp chạm hạn mức của một khóa truy cập (NCL-12-CN-005, QTN-20).
-     * <p>
-     * Chỉ xét khi khóa có hạn mức theo giờ hợp lệ và số lượt gọi thành công trong
-     * giờ hiện tại đã chạm ngưỡng cấu hình.
-     */
+    /** Gom cảnh báo sắp chạm hạn mức của một khóa truy cập (NCL-12-CN-005, QTN-20). */
     private void collectApiKeyQuotaAlert(List<AggregateAlertItemResponse> result, PartnerApiKey key,
             LocalDateTime now) {
         if (key.getRateLimitPerHour() == null || key.getRateLimitPerHour() <= 0) {
@@ -671,9 +640,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                 .build());
     }
 
-    /**
-     * Gom cảnh báo mốc canh tác quá hạn ghi nhật ký (Nguồn 6).
-     */
+    /** Gom cảnh báo mốc canh tác quá hạn ghi nhật ký (Nguồn 6). */
     private void collectMilestoneReminderAlerts(
             List<AggregateAlertItemResponse> result,
             UUID orgId,
@@ -738,9 +705,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         }
     }
 
-    /**
-     * Gom cảnh báo vụ việc thu hồi đang mở (Nguồn 7).
-     */
+    /** Gom cảnh báo vụ việc thu hồi đang mở (Nguồn 7). */
     private void collectRecallCaseAlerts(
             List<AggregateAlertItemResponse> result,
             UUID orgId,
@@ -799,9 +764,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         }
     }
 
-    /**
-     * Map AlertType từ bảng alerts sang AggregateAlertType.
-     */
+    /** Chuyển đổi AlertType từ bảng alerts sang AggregateAlertType. */
     private AggregateAlertType mapAlertTypeToAggregate(AlertType type) {
         if (type == null) {
             return AggregateAlertType.SCAN_ANOMALY;
@@ -815,9 +778,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         };
     }
 
-    /**
-     * Trích xuất tên thực thể từ chuỗi JSON details của Alert.
-     */
+    /** Trích xuất tên thực thể từ chuỗi JSON details của Alert. */
     private String extractEntityNameFromDetails(String detailsJson) {
         if (detailsJson == null || detailsJson.isBlank()) {
             return null;
@@ -839,9 +800,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         return null;
     }
 
-    /**
-     * Tính toán số lượng thống kê.
-     */
+    /** Tính toán số lượng thống kê theo mức độ khẩn cấp và loại. */
     private AggregateAlertCountResponse calculateSummaryCounts(List<AggregateAlertItemResponse> items) {
         long highCount = 0;
         long mediumCount = 0;
@@ -871,6 +830,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                 .build();
     }
 
+    /** Lọc danh sách cảnh báo theo loại cảnh báo. */
     private boolean filterByType(AggregateAlertItemResponse item, String type) {
         if (type == null || type.isBlank() || "ALL".equalsIgnoreCase(type)) {
             return true;
@@ -878,6 +838,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         return item.getType() != null && item.getType().name().equalsIgnoreCase(type.trim());
     }
 
+    /** Lọc danh sách cảnh báo theo mức độ khẩn cấp. */
     private boolean filterBySeverity(AggregateAlertItemResponse item, String severity) {
         if (severity == null || severity.isBlank() || "ALL".equalsIgnoreCase(severity)) {
             return true;
@@ -885,6 +846,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         return item.getSeverity() != null && item.getSeverity().name().equalsIgnoreCase(severity.trim());
     }
 
+    /** Lọc danh sách cảnh báo theo từ khóa tìm kiếm. */
     private boolean filterByKeyword(AggregateAlertItemResponse item, String keyword) {
         if (keyword == null || keyword.isBlank()) {
             return true;
@@ -896,6 +858,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
                 || (item.getOrganizationName() != null && item.getOrganizationName().toLowerCase().contains(kw));
     }
 
+    /** Lọc danh sách cảnh báo theo khoảng thời gian tạo. */
     private boolean filterByDateRange(AggregateAlertItemResponse item, LocalDate fromDate, LocalDate toDate) {
         if (item.getCreatedAt() == null) {
             return true;
@@ -910,6 +873,7 @@ public class AggregateAlertServiceImpl implements AggregateAlertService {
         return true;
     }
 
+    /** Lấy trọng số ưu tiên theo mức độ khẩn cấp để sắp xếp. */
     private int getSeverityWeight(AlertSeverity severity) {
         if (severity == AlertSeverity.HIGH) {
             return 2;

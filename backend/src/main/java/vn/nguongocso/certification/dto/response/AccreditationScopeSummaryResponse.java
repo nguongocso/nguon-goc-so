@@ -8,8 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Tóm tắt phạm vi công nhận của một đơn vị kiểm nghiệm
- * (NCL-11-CN-006 Phase 2).
+ * Tóm tắt phạm vi công nhận của một đơn vị kiểm nghiệm (NCL-11-CN-006 Phase 2).
  */
 @Getter
 @Builder

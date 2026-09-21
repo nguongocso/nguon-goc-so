@@ -11,14 +11,13 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Repository cho phạm vi công nhận của đơn vị kiểm nghiệm
- * (NCL-11-CN-006 Phase 2).
+ * Repository cho phạm vi công nhận của đơn vị kiểm nghiệm (NCL-11-CN-006 Phase 2).
  */
 public interface AccreditationScopeRepository
                 extends JpaRepository<AccreditationScope, UUID> {
         /**
-         * Lấy toàn bộ phạm vi công nhận của một đơn vị kiểm nghiệm
-         * (kèm chỉ tiêu danh mục, tránh N+1), sắp theo tên chỉ tiêu.
+         * Lấy toàn bộ phạm vi công nhận của một đơn vị kiểm nghiệm (kèm chỉ tiêu danh mục, tránh N+1), sắp theo tên chỉ
+         * tiêu.
          */
         @Query("""
                         SELECT s FROM AccreditationScope s

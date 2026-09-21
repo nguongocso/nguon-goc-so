@@ -23,8 +23,7 @@ import vn.nguongocso.auth.service.UserService;
 import vn.nguongocso.common.ApiResult;
 
 /**
- * Controller quản lý hồ sơ cá nhân và đổi mật khẩu chủ động của người dùng
- * (NCL-01-CN-010).
+ * Controller quản lý hồ sơ cá nhân và đổi mật khẩu chủ động của người dùng (NCL-01-CN-010).
  */
 @RestController
 @RequestMapping("/api/v1/users")

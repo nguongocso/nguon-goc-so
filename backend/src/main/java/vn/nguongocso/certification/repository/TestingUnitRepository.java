@@ -25,8 +25,7 @@ public interface TestingUnitRepository
         Optional<TestingUnit> findByNameIgnoreCaseAndIdNot(String name, UUID id);
 
         /**
-         * Lấy trang danh sách đơn vị kiểm nghiệm lọc theo trạng thái hiệu lực có phân
-         * trang.
+         * Lấy trang danh sách đơn vị kiểm nghiệm lọc theo trạng thái hiệu lực có phân trang.
          */
         Page<TestingUnit> findByIsActive(Boolean isActive, Pageable pageable);
 

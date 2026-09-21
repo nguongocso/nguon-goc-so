@@ -10,8 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Repository cho thực thể chứng nhận gắn lô sản xuất
- * (ProductionLotCertification).
+ * Repository cho thực thể chứng nhận gắn lô sản xuất (ProductionLotCertification).
  */
 public interface ProductionLotCertificationRepository
                 extends JpaRepository<ProductionLotCertification, UUID> {
@@ -28,8 +27,7 @@ public interface ProductionLotCertificationRepository
                         UUID certId);
 
         /**
-         * Kiểm tra sự tồn tại của chứng nhận gắn vào lô sản xuất theo ID lô và ID chứng
-         * nhận.
+         * Kiểm tra sự tồn tại của chứng nhận gắn vào lô sản xuất theo ID lô và ID chứng nhận.
          */
         boolean existsByProductionLotIdAndCertificationId(
                         UUID lotId,

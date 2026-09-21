@@ -59,8 +59,7 @@ public class AccreditationScopeServiceImpl implements AccreditationScopeService 
         }
 
         /**
-         * Cập nhật toàn bộ phạm vi công nhận của đơn vị kiểm nghiệm theo cơ chế
-         * REPLACE-ALL.
+         * Cập nhật toàn bộ phạm vi công nhận của đơn vị kiểm nghiệm theo cơ chế REPLACE-ALL.
          */
         @Override
         public AccreditationScopeSummaryResponse updateAccreditationScope(

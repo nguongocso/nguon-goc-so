@@ -32,8 +32,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Triển khai dịch vụ quét và cảnh báo kết quả kiểm nghiệm sắp hết hạn hoặc đã
- * hết hạn (NCL-11-CN-004).
+ * Triển khai dịch vụ quét và cảnh báo kết quả kiểm nghiệm sắp hết hạn hoặc đã hết hạn (NCL-11-CN-004).
  */
 @Service
 @Slf4j
@@ -314,8 +313,7 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
     }
 
     /**
-     * Tự động giải quyết tất cả cảnh báo kiểm nghiệm đang chờ xử lý của lô sản
-     * xuất.
+     * Tự động giải quyết tất cả cảnh báo kiểm nghiệm đang chờ xử lý của lô sản xuất.
      */
     private void autoResolveAllPendingInspectionAlerts(UUID lotId) {
         if (lotId == null) {
@@ -336,8 +334,7 @@ public class InspectionExpiryServiceImpl implements InspectionExpiryService {
     }
 
     /**
-     * Tự động giải quyết cảnh báo sắp hết hiệu lực của lô sản xuất khi đã có cảnh
-     * báo hết hạn.
+     * Tự động giải quyết cảnh báo sắp hết hiệu lực của lô sản xuất khi đã có cảnh báo hết hạn.
      */
     private void autoResolveExpiringAlert(UUID lotId) {
         if (lotId == null) {

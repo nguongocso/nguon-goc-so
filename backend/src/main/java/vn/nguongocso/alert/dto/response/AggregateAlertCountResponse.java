@@ -8,8 +8,7 @@ import lombok.NoArgsConstructor;
 import java.util.Map;
 
 /**
- * Thống kê số lượng cảnh báo tổng hợp theo mức độ khẩn cấp và loại
- * (NCL-08-CN-016).
+ * Thống kê số lượng cảnh báo tổng hợp theo mức độ khẩn cấp và loại (NCL-08-CN-016).
  */
 @Data
 @Builder

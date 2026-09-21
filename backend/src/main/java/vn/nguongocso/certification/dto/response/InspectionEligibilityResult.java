@@ -8,8 +8,8 @@ import lombok.Setter;
 import vn.nguongocso.certification.enums.InspectionBlockReasonCode;
 
 /**
- * Kết quả đánh giá điều kiện kiểm nghiệm của lô sản xuất theo QTN-30
- * (NCL-11-CN-005): lô chưa đạt kiểm nghiệm không được tạo lô hàng.
+ * Kết quả đánh giá điều kiện kiểm nghiệm của lô sản xuất theo QTN-30 (NCL-11-CN-005): lô chưa đạt kiểm nghiệm không
+ * được tạo lô hàng.
  */
 @Getter
 @Setter

@@ -74,8 +74,7 @@ public class AuthController {
         }
 
         /**
-         * Kiểm tra token đặt lại mật khẩu có hợp lệ và còn thời hạn hay không
-         * (NCL-01-CN-008).
+         * Kiểm tra token đặt lại mật khẩu có hợp lệ và còn thời hạn hay không (NCL-01-CN-008).
          */
         @GetMapping("/reset-password/validate")
         public ResponseEntity<ApiResult<ValidateResetTokenResponse>> validateResetToken(
@@ -183,8 +182,7 @@ public class AuthController {
         }
 
         /**
-         * Lấy danh sách tất cả organization mà user hiện tại
-         * đang có quyền tham gia.
+         * Lấy danh sách tất cả organization mà user hiện tại đang có quyền tham gia.
          */
         @GetMapping("/my-organizations")
         @PreAuthorize("isAuthenticated()")

@@ -7,8 +7,7 @@ import org.springframework.http.HttpStatus;
 import vn.nguongocso.exception.BusinessException;
 
 /**
- * Ngoại lệ khi tạo yêu cầu kiểm nghiệm bị trùng lặp với yêu cầu đang chờ kết
- * quả.
+ * Ngoại lệ khi tạo yêu cầu kiểm nghiệm bị trùng lặp với yêu cầu đang chờ kết quả.
  */
 public class DuplicateInspectionRequestException extends BusinessException {
     /**

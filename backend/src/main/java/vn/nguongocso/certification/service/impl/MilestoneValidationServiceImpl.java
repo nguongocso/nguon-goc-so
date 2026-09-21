@@ -21,8 +21,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Triển khai kiểm tra mốc canh tác bắt buộc của lô sản xuất trước khi đóng gói
- * (NCL-09-CN-011).
+ * Triển khai kiểm tra mốc canh tác bắt buộc của lô sản xuất trước khi đóng gói (NCL-09-CN-011).
  */
 @Service
 @RequiredArgsConstructor
@@ -33,8 +32,7 @@ public class MilestoneValidationServiceImpl implements MilestoneValidationServic
         private final FarmLogRepository farmLogRepository;
 
         /**
-         * Kiểm tra các mốc canh tác bắt buộc đã được ghi nhận trong nhật ký canh tác
-         * của lô hay chưa.
+         * Kiểm tra các mốc canh tác bắt buộc đã được ghi nhận trong nhật ký canh tác của lô hay chưa.
          */
         @Override
         public MilestoneValidationResult validateMilestoneCompletion(ProductionLot lot) {

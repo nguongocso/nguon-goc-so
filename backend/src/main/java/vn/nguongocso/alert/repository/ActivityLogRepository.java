@@ -15,8 +15,7 @@ import java.util.UUID;
 @Repository
 public interface ActivityLogRepository extends JpaRepository<ActivityLog, UUID>, JpaSpecificationExecutor<ActivityLog> {
         /**
-         * Đếm số người dùng hoạt động (userId phân biệt) của từng tổ chức trong
-         * khoảng thời gian (NCL-07-CN-008).
+         * Đếm số người dùng hoạt động (userId phân biệt) của từng tổ chức trong khoảng thời gian (NCL-07-CN-008).
          */
         @Query("""
                         SELECT a.organizationId, COUNT(DISTINCT a.userId)
@@ -29,8 +28,7 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, UUID>,
                         @Param("to") LocalDateTime to);
 
         /**
-         * Lấy thời điểm hoạt động mới nhất của từng tổ chức (NCL-07-CN-008,
-         * phục vụ tính lastActivityAt).
+         * Lấy thời điểm hoạt động mới nhất của từng tổ chức (NCL-07-CN-008, phục vụ tính lastActivityAt).
          */
         @Query("""
                         SELECT a.organizationId, MAX(a.createdAt)

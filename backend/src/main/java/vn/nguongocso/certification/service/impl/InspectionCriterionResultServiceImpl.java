@@ -386,8 +386,7 @@ public class InspectionCriterionResultServiceImpl implements InspectionCriterion
         }
 
         /**
-         * Xóa kết quả kiểm nghiệm của chỉ tiêu khi yêu cầu còn ở trạng thái chờ kết
-         * quả.
+         * Xóa kết quả kiểm nghiệm của chỉ tiêu khi yêu cầu còn ở trạng thái chờ kết quả.
          */
         @Override
         public void deleteResult(
@@ -747,8 +746,7 @@ public class InspectionCriterionResultServiceImpl implements InspectionCriterion
         }
 
         /**
-         * Kiểm tra và cập nhật trạng thái của yêu cầu kiểm nghiệm dựa trên toàn bộ kết
-         * quả chỉ tiêu.
+         * Kiểm tra và cập nhật trạng thái của yêu cầu kiểm nghiệm dựa trên toàn bộ kết quả chỉ tiêu.
          */
         private void checkAndUpdateRequestStatus(
                         InspectionRequest inspectionRequest) {
@@ -882,8 +880,7 @@ public class InspectionCriterionResultServiceImpl implements InspectionCriterion
         }
 
         /**
-         * Tải lên tệp kết quả kiểm nghiệm từ cổng nhập liệu công khai của đơn vị kiểm
-         * nghiệm.
+         * Tải lên tệp kết quả kiểm nghiệm từ cổng nhập liệu công khai của đơn vị kiểm nghiệm.
          */
         @Override
         public String uploadPortalResultFile(
@@ -955,8 +952,7 @@ public class InspectionCriterionResultServiceImpl implements InspectionCriterion
         }
 
         /**
-         * Ghi nhận đồng loạt kết quả kiểm nghiệm từ cổng nhập liệu công khai của đơn vị
-         * kiểm nghiệm.
+         * Ghi nhận đồng loạt kết quả kiểm nghiệm từ cổng nhập liệu công khai của đơn vị kiểm nghiệm.
          */
         @Override
         @Transactional
@@ -1081,8 +1077,7 @@ public class InspectionCriterionResultServiceImpl implements InspectionCriterion
         }
 
         /**
-         * Phát sự kiện ghi nhật ký hoạt động của người dùng khi thao tác với kết quả
-         * kiểm nghiệm.
+         * Phát sự kiện ghi nhật ký hoạt động của người dùng khi thao tác với kết quả kiểm nghiệm.
          */
         private void publishActivityLog(
                         CustomUserDetails currentUser,

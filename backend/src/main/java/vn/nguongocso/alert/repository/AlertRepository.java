@@ -75,8 +75,8 @@ public interface AlertRepository extends JpaRepository<Alert, UUID> {
                         AlertStatus status);
 
         /**
-         * Kiểm tra đã tồn tại cảnh báo cho thực thể cùng loại trong khoảng thời gian
-         * (NCL-11-CN-004: chống duplicate trong ngày).
+         * Kiểm tra đã tồn tại cảnh báo cho thực thể cùng loại trong khoảng thời gian (NCL-11-CN-004: chống duplicate
+         * trong ngày).
          */
         @Query("""
                         SELECT COUNT(a) > 0

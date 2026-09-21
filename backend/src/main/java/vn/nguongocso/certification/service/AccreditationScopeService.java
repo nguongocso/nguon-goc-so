@@ -7,8 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Service quản lý phạm vi công nhận của đơn vị kiểm nghiệm
- * (NCL-11-CN-006 Phase 2).
+ * Service quản lý phạm vi công nhận của đơn vị kiểm nghiệm (NCL-11-CN-006 Phase 2).
  */
 public interface AccreditationScopeService {
         /**

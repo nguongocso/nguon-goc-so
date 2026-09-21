@@ -39,8 +39,7 @@ public class RestoreServiceImpl implements RestoreService {
     private RestoreService self;
 
     /**
-     * Setter để inject chính bản thân bean này, cho phép gọi các phương
-     * thức @Transactional từ bên trong.
+     * Setter để inject chính bản thân bean này, cho phép gọi các phương thức @Transactional từ bên trong.
      */
     @org.springframework.beans.factory.annotation.Autowired
     public void setSelf(@org.springframework.context.annotation.Lazy RestoreService self) {

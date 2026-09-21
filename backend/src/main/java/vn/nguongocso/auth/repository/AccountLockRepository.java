@@ -19,8 +19,7 @@ import vn.nguongocso.auth.enums.AccountLockStatus;
 @Repository
 public interface AccountLockRepository extends JpaRepository<AccountLock, UUID> {
     /**
-     * Lấy bản ghi khoá gần nhất (theo lockedAt DESC) của một tài khoản có status
-     * nhất định.
+     * Lấy bản ghi khoá gần nhất (theo lockedAt DESC) của một tài khoản có status nhất định.
      * Dùng để kiểm tra trạng thái khoá hiện tại của tài khoản.
      */
     Optional<AccountLock> findFirstByUser_UserIdAndStatusOrderByLockedAtDesc(

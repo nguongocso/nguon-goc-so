@@ -35,8 +35,7 @@ public interface SuspiciousCaseRepository extends JpaRepository<SuspiciousCase, 
     List<SuspiciousCase> findByUser_UserIdOrderByLastDetectedAtDesc(UUID userId);
 
     /**
-     * Tìm tất cả các trường hợp nghi vấn theo người dùng và trạng thái và phân
-     * trang
+     * Tìm tất cả các trường hợp nghi vấn theo người dùng và trạng thái và phân trang
      */
     List<SuspiciousCase> findByUser_UserIdAndStatusOrderByLastDetectedAtDesc(
             UUID userId,
@@ -57,8 +56,7 @@ public interface SuspiciousCaseRepository extends JpaRepository<SuspiciousCase, 
             OffsetDateTime threshold);
 
     /**
-     * Kiểm tra xem có tồn tại trường hợp nghi vấn theo người dùng và trạng thái và
-     * thời gian hay không
+     * Kiểm tra xem có tồn tại trường hợp nghi vấn theo người dùng và trạng thái và thời gian hay không
      */
     boolean existsByUser_UserIdAndStatusAndLastDetectedAtAfter(
             UUID userId,

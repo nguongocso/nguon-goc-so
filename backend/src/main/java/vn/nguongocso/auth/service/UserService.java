@@ -7,8 +7,7 @@ import vn.nguongocso.auth.dto.response.AvatarUploadResponse;
 import vn.nguongocso.auth.dto.response.UserProfileResponse;
 
 /**
- * Service quản lý hồ sơ cá nhân và đổi mật khẩu chủ động của người dùng
- * (NCL-01-CN-010).
+ * Service quản lý hồ sơ cá nhân và đổi mật khẩu chủ động của người dùng (NCL-01-CN-010).
  */
 public interface UserService {
     /**
@@ -17,8 +16,7 @@ public interface UserService {
     UserProfileResponse getCurrentUserProfile(CustomUserDetails currentUser);
 
     /**
-     * Cập nhật thông tin hồ sơ cá nhân (họ tên, số điện thoại, email, ảnh đại
-     * diện).
+     * Cập nhật thông tin hồ sơ cá nhân (họ tên, số điện thoại, email, ảnh đại diện).
      */
     UserProfileResponse updateUserProfile(CustomUserDetails currentUser, UpdateUserProfileRequest request);
 

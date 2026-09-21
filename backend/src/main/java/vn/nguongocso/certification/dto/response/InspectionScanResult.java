@@ -9,8 +9,7 @@ import lombok.Setter;
 import java.time.LocalDate;
 
 /**
- * DTO kết quả tiến trình quét kiểm tra hạn hiệu lực kết quả kiểm nghiệm
- * (NCL-11-CN-004).
+ * DTO kết quả tiến trình quét kiểm tra hạn hiệu lực kết quả kiểm nghiệm (NCL-11-CN-004).
  */
 @Getter
 @Setter

@@ -12,8 +12,7 @@ import vn.nguongocso.alert.entity.ActivityLog;
 import vn.nguongocso.alert.repository.ActivityLogRepository;
 
 /**
- * Lắng nghe sự kiện ghi nhật ký hoạt động của người dùng và lưu vào cơ sở dữ
- * liệu.
+ * Lắng nghe sự kiện ghi nhật ký hoạt động của người dùng và lưu vào cơ sở dữ liệu.
  */
 @Component
 @Slf4j

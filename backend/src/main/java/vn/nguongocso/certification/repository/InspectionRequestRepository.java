@@ -21,23 +21,20 @@ import java.util.UUID;
 public interface InspectionRequestRepository
     extends JpaRepository<InspectionRequest, UUID> {
   /**
-   * Lấy danh sách yêu cầu kiểm nghiệm theo ID lô sản xuất, sắp xếp theo ngày tạo
-   * giảm dần.
+   * Lấy danh sách yêu cầu kiểm nghiệm theo ID lô sản xuất, sắp xếp theo ngày tạo giảm dần.
    */
   List<InspectionRequest> findByProductionLot_IdOrderByCreatedAtDesc(
       UUID productionLotId);
 
   /**
-   * Kiểm tra sự tồn tại của yêu cầu kiểm nghiệm theo ID lô sản xuất và trạng
-   * thái.
+   * Kiểm tra sự tồn tại của yêu cầu kiểm nghiệm theo ID lô sản xuất và trạng thái.
    */
   boolean existsByProductionLot_IdAndStatus(
       UUID productionLotId,
       InspectionRequestStatus status);
 
   /**
-   * Lấy chi tiết yêu cầu kiểm nghiệm theo ID, bao gồm danh sách chỉ tiêu và tiêu
-   * chuẩn.
+   * Lấy chi tiết yêu cầu kiểm nghiệm theo ID, bao gồm danh sách chỉ tiêu và tiêu chuẩn.
    */
   @Query("""
       SELECT DISTINCT ir
@@ -50,8 +47,7 @@ public interface InspectionRequestRepository
       @Param("id") UUID id);
 
   /**
-   * Tìm yêu cầu kiểm nghiệm theo ID và ID tổ chức sở hữu lô để đảm bảo cách ly dữ
-   * liệu.
+   * Tìm yêu cầu kiểm nghiệm theo ID và ID tổ chức sở hữu lô để đảm bảo cách ly dữ liệu.
    */
   @Query("""
       SELECT ir
@@ -66,8 +62,7 @@ public interface InspectionRequestRepository
       @Param("organizationId") UUID organizationId);
 
   /**
-   * Khóa bi quan (PESSIMISTIC_WRITE) yêu cầu kiểm nghiệm kết hợp kiểm tra tổ chức
-   * sở hữu.
+   * Khóa bi quan (PESSIMISTIC_WRITE) yêu cầu kiểm nghiệm kết hợp kiểm tra tổ chức sở hữu.
    */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("""
@@ -83,8 +78,7 @@ public interface InspectionRequestRepository
       @Param("organizationId") UUID organizationId);
 
   /**
-   * Khóa bi quan yêu cầu kiểm nghiệm chứa chỉ tiêu được chọn, đồng thời kiểm tra
-   * tổ chức sở hữu.
+   * Khóa bi quan yêu cầu kiểm nghiệm chứa chỉ tiêu được chọn, đồng thời kiểm tra tổ chức sở hữu.
    */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("""
@@ -130,8 +124,7 @@ public interface InspectionRequestRepository
       Pageable pageable);
 
   /**
-   * Lấy danh sách yêu cầu kiểm nghiệm theo ID lô sản xuất và trạng thái có phân
-   * trang.
+   * Lấy danh sách yêu cầu kiểm nghiệm theo ID lô sản xuất và trạng thái có phân trang.
    */
   Page<InspectionRequest> findByProductionLot_IdAndStatus(
       UUID productionLotId,
@@ -151,16 +144,14 @@ public interface InspectionRequestRepository
   Page<InspectionRequest> findAll(Pageable pageable);
 
   /**
-   * Lấy danh sách yêu cầu kiểm nghiệm theo tổ chức sở hữu lô sản xuất có phân
-   * trang.
+   * Lấy danh sách yêu cầu kiểm nghiệm theo tổ chức sở hữu lô sản xuất có phân trang.
    */
   Page<InspectionRequest> findByProductionLot_Organization_OrganizationId(
       UUID organizationId,
       Pageable pageable);
 
   /**
-   * Lấy danh sách yêu cầu kiểm nghiệm theo tổ chức sở hữu lô sản xuất và trạng
-   * thái có phân trang.
+   * Lấy danh sách yêu cầu kiểm nghiệm theo tổ chức sở hữu lô sản xuất và trạng thái có phân trang.
    */
   Page<InspectionRequest> findByProductionLot_Organization_OrganizationIdAndStatus(
       UUID organizationId,
@@ -168,8 +159,7 @@ public interface InspectionRequestRepository
       Pageable pageable);
 
   /**
-   * Tìm danh sách yêu cầu kiểm nghiệm theo danh sách lô sản xuất và trạng thái
-   * (NCL-07-CN-006).
+   * Tìm danh sách yêu cầu kiểm nghiệm theo danh sách lô sản xuất và trạng thái (NCL-07-CN-006).
    */
   @Query("""
       SELECT ir FROM InspectionRequest ir

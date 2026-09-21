@@ -1,8 +1,8 @@
 package vn.nguongocso.certification.enums;
 
 /**
- * Mã nguyên nhân chặn tạo lô hàng / kích hoạt tem theo QTN-30
- * (NCL-11-CN-005): lô chưa đạt kiểm nghiệm không được tạo lô hàng.
+ * Mã nguyên nhân chặn tạo lô hàng / kích hoạt tem theo QTN-30 (NCL-11-CN-005): lô chưa đạt kiểm nghiệm không được tạo
+ * lô hàng.
  */
 public enum InspectionBlockReasonCode {
     INSPECTION_MISSING, // Lô chưa có kết quả kiểm nghiệm đạt cho mọi chỉ tiêu bắt buộc.

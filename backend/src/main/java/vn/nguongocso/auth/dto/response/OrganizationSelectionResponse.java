@@ -9,8 +9,7 @@ import lombok.Setter;
 import vn.nguongocso.organization.enums.OrganizationType;
 
 /**
- * Response chứa thông tin organization mà user
- * có thể lựa chọn sau khi đăng nhập.
+ * Response chứa thông tin organization mà user có thể lựa chọn sau khi đăng nhập.
  */
 @Getter
 @Setter

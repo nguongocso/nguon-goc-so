@@ -190,8 +190,7 @@ public class CategoryCriterionAssignmentServiceImpl implements CategoryCriterion
     }
 
     /**
-     * Chuyển đổi thực thể chỉ tiêu kiểm nghiệm sang DTO phản hồi kèm cờ tham chiếu
-     * đã nạp trước.
+     * Chuyển đổi thực thể chỉ tiêu kiểm nghiệm sang DTO phản hồi kèm cờ tham chiếu đã nạp trước.
      */
     private InspectionCriterionCatalogResponse toResponse(
             InspectionCriterionCatalog entity, Set<Long> referencedIds) {

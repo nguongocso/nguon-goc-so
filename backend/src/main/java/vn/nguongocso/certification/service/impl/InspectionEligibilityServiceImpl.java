@@ -25,8 +25,7 @@ import vn.nguongocso.certification.service.InspectionEligibilityService;
 import vn.nguongocso.farm.entity.ProductionLot;
 
 /**
- * Triển khai đánh giá điều kiện kiểm nghiệm của lô sản xuất theo QTN-30
- * (NCL-11-CN-005).
+ * Triển khai đánh giá điều kiện kiểm nghiệm của lô sản xuất theo QTN-30 (NCL-11-CN-005).
  */
 @Service
 @RequiredArgsConstructor
@@ -43,8 +42,7 @@ public class InspectionEligibilityServiceImpl implements InspectionEligibilitySe
         private static final String MSG_INSPECTION_MISSING = "Lô sản xuất chưa có kết quả kiểm nghiệm đạt cho tất cả chỉ tiêu, không thể tạo lô hàng.";
 
         /**
-         * Đánh giá lô sản xuất có đủ điều kiện kiểm nghiệm để tạo lô hàng hoặc kích
-         * hoạt tem hay không.
+         * Đánh giá lô sản xuất có đủ điều kiện kiểm nghiệm để tạo lô hàng hoặc kích hoạt tem hay không.
          */
         @Override
         public InspectionEligibilityResult evaluateForShipment(ProductionLot lot) {
@@ -168,8 +166,7 @@ public class InspectionEligibilityServiceImpl implements InspectionEligibilitySe
         }
 
         /**
-         * Kiểm tra kết luận kiểm nghiệm hoàn thành mới nhất của lô sản xuất có phải là
-         * Không đạt hay không.
+         * Kiểm tra kết luận kiểm nghiệm hoàn thành mới nhất của lô sản xuất có phải là Không đạt hay không.
          */
         @Override
         public boolean hasLatestFailedConclusion(ProductionLot lot) {

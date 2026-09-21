@@ -30,8 +30,7 @@ import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 
 /**
- * Controller quản lý cấu hình ngưỡng phát hiện quét bất thường dành cho Quản
- * trị viên nền tảng (VT-01) (NCL-08-CN-014).
+ * Controller quản lý cấu hình ngưỡng phát hiện quét bất thường dành cho Quản trị viên nền tảng (VT-01) (NCL-08-CN-014).
  */
 @Slf4j
 @RestController
@@ -42,8 +41,7 @@ public class AnomalyThresholdController {
     private final AnomalyThresholdService anomalyThresholdService;
 
     /**
-     * Lấy toàn bộ cấu hình ngưỡng (gồm cấu hình toàn cục và các cấu hình ghi đè
-     * danh mục).
+     * Lấy toàn bộ cấu hình ngưỡng (gồm cấu hình toàn cục và các cấu hình ghi đè danh mục).
      */
     @GetMapping
     public ResponseEntity<ApiResult<AllThresholdsResponse>> getAllThresholds() {
@@ -92,8 +90,7 @@ public class AnomalyThresholdController {
     }
 
     /**
-     * Xóa cấu hình ghi đè danh mục nông sản (để danh mục quay về dùng ngưỡng toàn
-     * cục).
+     * Xóa cấu hình ghi đè danh mục nông sản (để danh mục quay về dùng ngưỡng toàn cục).
      */
     @DeleteMapping("/categories/{id}")
     public ResponseEntity<ApiResult<Void>> deleteCategoryOverride(
@@ -104,8 +101,7 @@ public class AnomalyThresholdController {
     }
 
     /**
-     * Ước lượng tác động của ngưỡng dự thảo trên dữ liệu quét 30 ngày gần nhất
-     * (dry-run).
+     * Ước lượng tác động của ngưỡng dự thảo trên dữ liệu quét 30 ngày gần nhất (dry-run).
      */
     @PostMapping("/estimate")
     public ResponseEntity<ApiResult<ImpactEstimationResponse>> estimateImpact(

@@ -111,8 +111,7 @@ public class InspectionRequestController {
         }
 
         /**
-         * Lấy chi tiết yêu cầu kiểm nghiệm kèm danh sách chỉ tiêu
-         * và kết quả đã ghi (nếu có).
+         * Lấy chi tiết yêu cầu kiểm nghiệm kèm danh sách chỉ tiêu và kết quả đã ghi (nếu có).
          * GET /api/v1/inspection-requests/{requestId}
          */
         @GetMapping("/inspection-requests/{requestId}")

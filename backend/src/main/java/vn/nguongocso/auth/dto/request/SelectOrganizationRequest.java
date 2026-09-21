@@ -8,8 +8,7 @@ import lombok.Setter;
 import java.util.UUID;
 
 /**
- * Request dùng để lựa chọn tổ chức sau khi
- * người dùng đã đăng nhập bằng username/password.
+ * Request dùng để lựa chọn tổ chức sau khi người dùng đã đăng nhập bằng username/password.
  */
 @Getter
 @Setter

@@ -16,8 +16,7 @@ import vn.nguongocso.auth.service.CustomUserDetails;
  */
 public interface AnomalyThresholdService {
     /**
-     * Lấy toàn bộ cấu hình ngưỡng (gồm cấu hình toàn cục và các cấu hình ghi đè
-     * danh mục).
+     * Lấy toàn bộ cấu hình ngưỡng (gồm cấu hình toàn cục và các cấu hình ghi đè danh mục).
      */
     AllThresholdsResponse getAllThresholds();
 
@@ -32,8 +31,7 @@ public interface AnomalyThresholdService {
     AnomalyThresholdResponse updateGlobalThreshold(UpdateGlobalThresholdRequest request, CustomUserDetails currentUser);
 
     /**
-     * Lấy danh sách tất cả các cấu hình ghi đè theo danh mục nông sản đang hoạt
-     * động.
+     * Lấy danh sách tất cả các cấu hình ghi đè theo danh mục nông sản đang hoạt động.
      */
     List<AnomalyThresholdResponse> getCategoryOverrides();
 
@@ -49,8 +47,7 @@ public interface AnomalyThresholdService {
     void deleteCategoryOverride(UUID idOrCategoryId, CustomUserDetails currentUser);
 
     /**
-     * Ước lượng tác động của ngưỡng dự thảo trên dữ liệu quét 30 ngày gần nhất
-     * (dry-run).
+     * Ước lượng tác động của ngưỡng dự thảo trên dữ liệu quét 30 ngày gần nhất (dry-run).
      */
     ImpactEstimationResponse estimateImpact(ImpactEstimationRequest request);
 

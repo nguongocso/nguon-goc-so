@@ -17,8 +17,7 @@ import vn.nguongocso.auth.enums.AnomalyStatus;
 @Repository
 public interface LoginAnomalyRepository extends JpaRepository<LoginAnomaly, UUID> {
     /**
-     * Lấy danh sách bất thường của một tổ chức, sắp xếp theo thời gian phát hiện
-     * mới nhất trước.
+     * Lấy danh sách bất thường của một tổ chức, sắp xếp theo thời gian phát hiện mới nhất trước.
      */
     Page<LoginAnomaly> findByOrganization_OrganizationIdOrderByDetectedAtDesc(
             UUID organizationId,

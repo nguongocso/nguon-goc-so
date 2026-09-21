@@ -34,7 +34,8 @@ public class ActivityLogExportValueSanitizer {
 
     /** Trả về JSON đã che khóa nhạy cảm hoặc chuỗi đã che theo mẫu key-value phổ biến. */
     public String sanitize(String value) {
-        if (value == null || value.isBlank()) return value;
+        if (value == null || value.isBlank())
+            return value;
         try {
             JsonNode root = objectMapper.readTree(value);
             if (root != null && root.isTextual()) {
@@ -47,33 +48,47 @@ public class ActivityLogExportValueSanitizer {
         }
     }
 
+    /**
+     * Đệ quy che dữ liệu nhạy cảm (NCL-08-CN-016).
+     */
     private void maskRecursively(JsonNode node) {
-        if (node == null) return;
+        if (node == null)
+            return;
         if (node.isObject()) {
             ObjectNode object = (ObjectNode) node;
             Iterator<Map.Entry<String, JsonNode>> fields = object.fields();
             while (fields.hasNext()) {
                 Map.Entry<String, JsonNode> field = fields.next();
-                if (isSensitive(field.getKey())) object.put(field.getKey(), MASK);
+                if (isSensitive(field.getKey()))
+                    object.put(field.getKey(), MASK);
                 else if (field.getValue().isTextual()) {
                     object.put(field.getKey(), maskText(field.getValue().textValue()));
-                } else maskRecursively(field.getValue());
+                } else
+                    maskRecursively(field.getValue());
             }
         } else if (node.isArray()) {
             ArrayNode array = (ArrayNode) node;
             for (int i = 0; i < array.size(); i++) {
                 JsonNode item = array.get(i);
-                if (item.isTextual()) array.set(i, objectMapper.getNodeFactory().textNode(maskText(item.textValue())));
-                else maskRecursively(item);
+                if (item.isTextual())
+                    array.set(i, objectMapper.getNodeFactory().textNode(maskText(item.textValue())));
+                else
+                    maskRecursively(item);
             }
         }
     }
 
+    /**
+     * Kiểm tra xem key có nhạy cảm không (NCL-08-CN-016).
+     */
     private boolean isSensitive(String key) {
         String normalized = key == null ? "" : key.replaceAll("[^A-Za-z0-9]", "").toLowerCase();
         return SENSITIVE_KEYS.stream().anyMatch(normalized::endsWith);
     }
 
+    /**
+     * Che dữ liệu nhạy cảm theo mẫu key-value phổ biến (NCL-08-CN-016).
+     */
     private String maskText(String value) {
         Matcher matcher = TEXT_SECRET.matcher(value);
         return matcher.replaceAll("$1$2" + MASK);

@@ -143,8 +143,7 @@ public class CultivationMilestoneServiceImpl implements CultivationMilestoneServ
         }
 
         /**
-         * Kiểm tra lô sản xuất đã đủ mốc canh tác bắt buộc để ghi sự kiện đóng gói chưa
-         * (NCL-09-CN-011).
+         * Kiểm tra lô sản xuất đã đủ mốc canh tác bắt buộc để ghi sự kiện đóng gói chưa (NCL-09-CN-011).
          */
         @Override
         @Transactional(readOnly = true)

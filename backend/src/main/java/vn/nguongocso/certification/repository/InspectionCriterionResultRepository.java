@@ -12,8 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Repository cho kết quả kiểm nghiệm của từng chỉ tiêu
- * (InspectionCriterionResult).
+ * Repository cho kết quả kiểm nghiệm của từng chỉ tiêu (InspectionCriterionResult).
  */
 public interface InspectionCriterionResultRepository
     extends JpaRepository<InspectionCriterionResult, UUID> {
@@ -24,15 +23,13 @@ public interface InspectionCriterionResultRepository
       UUID criterionId);
 
   /**
-   * Lấy danh sách kết quả kiểm nghiệm cho tất cả chỉ tiêu thuộc một yêu cầu kiểm
-   * nghiệm.
+   * Lấy danh sách kết quả kiểm nghiệm cho tất cả chỉ tiêu thuộc một yêu cầu kiểm nghiệm.
    */
   List<InspectionCriterionResult> findByInspectionCriterion_InspectionRequest_Id(
       UUID inspectionRequestId);
 
   /**
-   * Kiểm tra xem tất cả chỉ tiêu của yêu cầu kiểm nghiệm đều đạt và còn hiệu lực
-   * hay không.
+   * Kiểm tra xem tất cả chỉ tiêu của yêu cầu kiểm nghiệm đều đạt và còn hiệu lực hay không.
    */
   @Query("""
       SELECT COUNT(r) = COUNT(c)
@@ -48,8 +45,7 @@ public interface InspectionCriterionResultRepository
       @Param("today") LocalDate today);
 
   /**
-   * Lấy ngày hết hiệu lực sớm nhất của tất cả kết quả kiểm nghiệm thuộc một yêu
-   * cầu kiểm nghiệm.
+   * Lấy ngày hết hiệu lực sớm nhất của tất cả kết quả kiểm nghiệm thuộc một yêu cầu kiểm nghiệm.
    */
   @Query("""
       SELECT MIN(r.expiryDate)
@@ -85,8 +81,7 @@ public interface InspectionCriterionResultRepository
       @Param("inspectionRequestId") UUID inspectionRequestId);
 
   /**
-   * Đếm số lượng chỉ tiêu không đạt (passed = false) cho từng yêu cầu kiểm nghiệm
-   * trong danh sách.
+   * Đếm số lượng chỉ tiêu không đạt (passed = false) cho từng yêu cầu kiểm nghiệm trong danh sách.
    */
   @Query("""
       SELECT r.inspectionCriterion.inspectionRequest.id, COUNT(r)
@@ -99,8 +94,8 @@ public interface InspectionCriterionResultRepository
       @Param("requestIds") Collection<UUID> requestIds);
 
   /**
-   * Lấy toàn bộ kết quả kiểm nghiệm thuộc mọi yêu cầu của một lô sản xuất
-   * (join sẵn chỉ tiêu để đối soát khi kích hoạt tem QTN-21).
+   * Lấy toàn bộ kết quả kiểm nghiệm thuộc mọi yêu cầu của một lô sản xuất (join sẵn chỉ tiêu để đối soát khi kích hoạt
+   * tem QTN-21).
    */
   @Query("""
       SELECT r

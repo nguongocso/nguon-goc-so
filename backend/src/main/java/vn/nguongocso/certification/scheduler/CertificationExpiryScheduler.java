@@ -7,10 +7,8 @@ import org.springframework.stereotype.Component;
 import vn.nguongocso.certification.service.CertificationService;
 
 /**
- * Lớp CertificationExpiryScheduler chịu trách nhiệm quét và kiểm tra thời hạn
- * chứng nhận.
- * Nó được cấu hình để chạy theo lịch trình định kỳ, mặc định là lúc 01:00 AM
- * hàng ngày.
+ * Lớp CertificationExpiryScheduler chịu trách nhiệm quét và kiểm tra thời hạn chứng nhận.
+ * Nó được cấu hình để chạy theo lịch trình định kỳ, mặc định là lúc 01:00 AM hàng ngày.
  */
 @Component
 @Slf4j

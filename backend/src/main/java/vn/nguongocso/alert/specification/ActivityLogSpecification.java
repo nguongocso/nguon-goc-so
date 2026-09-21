@@ -7,14 +7,12 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * Specification cho thực thể ActivityLog, hỗ trợ tìm kiếm động dựa trên các
- * tiêu chí khác nhau.
+ * Specification cho thực thể ActivityLog, hỗ trợ tìm kiếm động dựa trên các tiêu chí khác nhau.
  */
 public class ActivityLogSpecification {
     /**
      * Tạo Specification để lọc ActivityLog theo organizationId.
-     * Nếu organizationId là null, trả về disjunction (luôn sai) để đảm bảo cách ly
-     * dữ liệu.
+     * Nếu organizationId là null, trả về disjunction (luôn sai) để đảm bảo cách ly dữ liệu.
      */
     public static Specification<ActivityLog> hasOrganizationId(UUID organizationId) {
         return (root, query, cb) -> organizationId == null
@@ -43,8 +41,7 @@ public class ActivityLogSpecification {
     }
 
     /**
-     * Tạo Specification để lọc ActivityLog theo tên người thực hiện (username hoặc
-     * fullName).
+     * Tạo Specification để lọc ActivityLog theo tên người thực hiện (username hoặc fullName).
      */
     public static Specification<ActivityLog> hasActorName(String actorName) {
         return (root, query, cb) -> {

@@ -74,8 +74,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Triển khai dịch vụ quản lý chứng nhận nông nghiệp của tổ chức và xác thực
- * chứng nhận.
+ * Triển khai dịch vụ quản lý chứng nhận nông nghiệp của tổ chức và xác thực chứng nhận.
  */
 @Slf4j
 @Service
@@ -285,8 +284,7 @@ public class CertificationServiceImpl implements CertificationService {
                 "Tạo chứng nhận '" + certification.getCode() + "' cho tiêu chuẩn " + standard.getName(),
                 "CERTIFICATION", certification.getId().toString());
 
-        // Kiểm tra và phát sinh cảnh báo ngay nếu chứng nhận sắp hết hạn hoặc đã hết
-        // hạn
+        // Kiểm tra và phát sinh cảnh báo ngay nếu chứng nhận sắp hết hạn hoặc đã hết hạn
         checkAndCreateAlertForSingleCertification(certification);
 
         // 8. Trả về response
@@ -340,8 +338,7 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     /**
-     * Lấy danh sách chứng nhận trên toàn nền tảng để Quản trị viên kiểm tra, đối
-     * chiếu.
+     * Lấy danh sách chứng nhận trên toàn nền tảng để Quản trị viên kiểm tra, đối chiếu.
      */
     @Override
     @Transactional(readOnly = true)
@@ -750,8 +747,7 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     /**
-     * Lưu nhật ký hoạt động trực tiếp để cùng commit hoặc rollback với nghiệp vụ
-     * chứng nhận.
+     * Lưu nhật ký hoạt động trực tiếp để cùng commit hoặc rollback với nghiệp vụ chứng nhận.
      */
     private void saveActivityLog(
             CustomUserDetails currentUser,

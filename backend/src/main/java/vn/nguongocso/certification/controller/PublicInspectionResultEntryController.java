@@ -29,10 +29,8 @@ import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.common.util.IpUtils;
 
 /**
- * Controller công khai dành cho đơn vị kiểm nghiệm nhập kết quả qua liên kết
- * token có thời hạn (NCL-11-CN-007).
- * Không yêu cầu đăng nhập tài khoản / JWT; bảo mật thông qua token băm SHA-256
- * dùng một lần.
+ * Controller công khai dành cho đơn vị kiểm nghiệm nhập kết quả qua liên kết token có thời hạn (NCL-11-CN-007).
+ * Không yêu cầu đăng nhập tài khoản / JWT; bảo mật thông qua token băm SHA-256 dùng một lần.
  */
 @RestController
 @RequestMapping("/api/v1/public/inspection-result-entry")
@@ -78,8 +76,7 @@ public class PublicInspectionResultEntryController {
         }
 
         /**
-         * Gửi toàn bộ kết quả kiểm nghiệm từ đơn vị kiểm nghiệm (dùng một lần, atomic
-         * consume).
+         * Gửi toàn bộ kết quả kiểm nghiệm từ đơn vị kiểm nghiệm (dùng một lần, atomic consume).
          */
         @PutMapping("/{token}/results")
         public ResponseEntity<ApiResult<List<InspectionCriterionResultResponse>>> recordResults(

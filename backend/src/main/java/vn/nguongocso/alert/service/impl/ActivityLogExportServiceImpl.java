@@ -11,7 +11,6 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
@@ -43,6 +42,7 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
     private static final String ROLE_ORGANIZATION_MANAGER = "VT-02";
     private static final String DIRECT_MODE = "DIRECT";
     private static final String ASYNC_MODE = "ASYNC";
+    public static final int DEFAULT_MAX_RANGE_DAYS = 365;
 
     private final ActivityLogRepository activityLogRepository;
     private final ActivityLogExportJobRepository jobRepository;
@@ -53,15 +53,14 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
 
     @Value("${app.activity-log-export.direct-limit:10000}")
     private int directExportLimit = DEFAULT_DIRECT_EXPORT_LIMIT;
-
-    public static final int DEFAULT_MAX_RANGE_DAYS = 365;
-
     @Value("${app.activity-log-export.max-range-days:365}")
     private int maxRangeDays = DEFAULT_MAX_RANGE_DAYS;
-
     @Value("${app.activity-log-export.storage-dir:./uploads/activity-log-exports}")
     private String storageDirectory;
 
+    /**
+     * Constructor của ActivityLogExportServiceImpl.
+     */
     public ActivityLogExportServiceImpl(
             ActivityLogRepository activityLogRepository,
             ActivityLogExportJobRepository jobRepository,
@@ -77,6 +76,10 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
         this.clock = clock;
     }
 
+    /**
+     * Kiểm tra trước số lượng nhật ký hoạt động cần export để quyết định
+     * phương thức export (trực tiếp hoặc nền) (NCL-08-CN-016).
+     */
     @Override
     @Transactional(readOnly = true)
     public ActivityLogExportPreviewResponse preview(ActivityLogExportFilterRequest request, CustomUserDetails user) {
@@ -88,13 +91,17 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
                 .build();
     }
 
+    /**
+     * Yêu cầu export nhật ký hoạt động (NCL-08-CN-016).
+     */
     @Override
     @Transactional
     public ActivityLogExportResult requestExport(ActivityLogExportFilterRequest request, CustomUserDetails user) {
         validateRequest(request, user);
         Specification<ActivityLog> specification = buildSpecification(request, user);
         long count = activityLogRepository.count(specification);
-        if (count == 0) throw new BusinessException("Không có nhật ký hoạt động trong phạm vi lọc.");
+        if (count == 0)
+            throw new BusinessException("Không có nhật ký hoạt động trong phạm vi lọc.");
 
         if (count <= directExportLimit) {
             Page<ActivityLog> page = activityLogRepository.findAll(specification,
@@ -112,6 +119,9 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
         return ActivityLogExportResult.builder().mode(ASYNC_MODE).job(toResponse(job)).build();
     }
 
+    /**
+     * Lấy thông tin trạng thái của job export (NCL-08-CN-016).
+     */
     @Override
     @Transactional(readOnly = true)
     public ActivityLogExportJobResponse getJob(UUID exportId, CustomUserDetails user) {
@@ -119,6 +129,9 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
         return toResponse(findTenantJob(exportId, user));
     }
 
+    /**
+     * Lấy thông tin trạng thái của job export (NCL-08-CN-016).
+     */
     @Override
     @Transactional(readOnly = true)
     public ActivityLogExportDownload getDownload(UUID exportId, CustomUserDetails user) {
@@ -139,6 +152,9 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
                 .path(path).fileName(job.getFileName()).fileSize(job.getFileSize()).build();
     }
 
+    /**
+     * Tạo một job export mới (NCL-08-CN-016).
+     */
     private ActivityLogExportJob createAsyncJob(ActivityLogExportFilterRequest request, CustomUserDetails user) {
         ActivityLogExportJob job = jobRepository.save(ActivityLogExportJob.builder()
                 .organizationId(user.getOrganizationId()).requestedBy(user.getUserId())
@@ -152,36 +168,55 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
                 job.getId().toString(), user.getOrganizationId().toString(),
                 request.getStartDate() == null ? null : request.getStartDate().atStartOfDay(),
                 request.getEndDate() == null ? null : request.getEndDate().atTime(23, 59, 59, 999_999_999),
-                normalized(request.getAction()), normalized(request.getActorName()), normalized(request.getObjectType()));
+                normalized(request.getAction()), normalized(request.getActorName()),
+                normalized(request.getObjectType()));
         job.setRecordCount((long) snapshotCount);
         return jobRepository.save(job);
     }
 
+    /**
+     * Dispatch một job export sau khi commit (NCL-08-CN-016).
+     */
     private void dispatchAfterCommit(UUID jobId) {
         Runnable dispatch = () -> dispatcher.dispatch(jobId);
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override public void afterCommit() { dispatch.run(); }
+                @Override
+                public void afterCommit() {
+                    dispatch.run();
+                }
             });
-        } else dispatch.run();
+        } else
+            dispatch.run();
     }
 
+    /**
+     * Tìm job export theo ID và organization ID (NCL-08-CN-016).
+     */
     private ActivityLogExportJob findTenantJob(UUID jobId, CustomUserDetails user) {
         return jobRepository.findByIdAndOrganizationId(jobId, user.getOrganizationId())
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Không tìm thấy yêu cầu xuất nhật ký."));
     }
 
+    /**
+     * Chuyển đổi job export sang response (NCL-08-CN-016).
+     */
     private ActivityLogExportJobResponse toResponse(ActivityLogExportJob job) {
         boolean success = job.getStatus() == ActivityLogExportStatus.SUCCESS;
         return ActivityLogExportJobResponse.builder().exportId(job.getId()).mode(ASYNC_MODE)
                 .status(job.getStatus().name()).recordCount(job.getRecordCount())
                 .fileName(job.getFileName()).fileSize(job.getFileSize()).createdAt(job.getCreatedAt())
                 .completedAt(job.getCompletedAt())
-                .downloadUrl(success ? "/api/v1/organizations/activity-logs/exports/" + job.getId() + "/download" : null)
+                .downloadUrl(
+                        success ? "/api/v1/organizations/activity-logs/exports/" + job.getId() + "/download" : null)
                 .build();
     }
 
-    private Specification<ActivityLog> buildSpecification(ActivityLogExportFilterRequest request, CustomUserDetails user) {
+    /**
+     * Xây dựng Specification cho truy vấn nhật ký hoạt động (NCL-08-CN-016).
+     */
+    private Specification<ActivityLog> buildSpecification(ActivityLogExportFilterRequest request,
+            CustomUserDetails user) {
         return ActivityLogSpecification.hasOrganizationId(user.getOrganizationId())
                 .and(ActivityLogSpecification.createdBetween(request.getStartDate(), request.getEndDate()))
                 .and(ActivityLogSpecification.hasAction(request.getAction()))
@@ -189,13 +224,20 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
                 .and(ActivityLogSpecification.hasEntityType(request.getObjectType()));
     }
 
+    /**
+     * Tạo Sort cho snapshot (NCL-08-CN-016).
+     */
     private Sort snapshotSort() {
         return Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("id"));
     }
 
+    /**
+     * Validate yêu cầu export nhật ký hoạt động (NCL-08-CN-016).
+     */
     private void validateRequest(ActivityLogExportFilterRequest request, CustomUserDetails user) {
         validateUser(user);
-        if (request == null) throw new BusinessException("Bộ lọc xuất nhật ký không được để trống.");
+        if (request == null)
+            throw new BusinessException("Bộ lọc xuất nhật ký không được để trống.");
         if (request.getStartDate() != null && request.getEndDate() != null) {
             if (request.getStartDate().isAfter(request.getEndDate())) {
                 throw new BusinessException("Ngày bắt đầu không được sau ngày kết thúc.");
@@ -208,6 +250,9 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
         }
     }
 
+    /**
+     * Validate người dùng (NCL-08-CN-016).
+     */
     private void validateUser(CustomUserDetails user) {
         if (user == null || !ROLE_ORGANIZATION_MANAGER.equals(user.getRoleCode())) {
             throw new BusinessException(HttpStatus.FORBIDDEN,
@@ -218,6 +263,9 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
         }
     }
 
+    /**
+     * Lưu nhật ký audit export (NCL-08-CN-016).
+     */
     private void saveExportAudit(ActivityLogExportFilterRequest request, CustomUserDetails user,
             long recordCount, String status, UUID jobId) {
         ActivityLog exportLog = ActivityLog.builder()
@@ -239,18 +287,30 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
         activityLogRepository.saveAndFlush(exportLog);
     }
 
+    /**
+     * Resolve tên người thực hiện (NCL-08-CN-016).
+     */
     private String resolveActorName(ActivityLog log) {
         return log.getFullName() != null && !log.getFullName().isBlank() ? log.getFullName() : log.getUsername();
     }
 
+    /**
+     * Resolve tên người dùng hiện tại (NCL-08-CN-016).
+     */
     private String resolveCurrentUserName(CustomUserDetails user) {
         return user.getFullName() != null && !user.getFullName().isBlank() ? user.getFullName() : user.getUsername();
     }
 
+    /**
+     * Resolve giá trị mặc định (NCL-08-CN-016).
+     */
     private String valueOrDefault(Object value, String defaultValue) {
         return value == null || value.toString().isBlank() ? defaultValue : value.toString();
     }
 
+    /**
+     * Format trạng thái export (NCL-08-CN-016).
+     */
     private String formatExportStatus(String status) {
         return switch (status) {
             case "SUCCESS" -> "thành công";
@@ -260,6 +320,9 @@ public class ActivityLogExportServiceImpl implements ActivityLogExportService {
         };
     }
 
+    /**
+     * Chuẩn hóa giá trị (NCL-08-CN-016).
+     */
     private String normalized(String value) {
         return value == null || value.isBlank() ? null : value;
     }

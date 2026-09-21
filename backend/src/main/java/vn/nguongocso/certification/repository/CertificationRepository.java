@@ -35,8 +35,8 @@ public interface CertificationRepository
                         @Param("orgId") UUID organizationId);
 
         /**
-         * Tìm tất cả chứng nhận hợp lệ để gắn cho lô thuộc tổ chức
-         * (loại bỏ EXPIRED và REJECTED; cho phép PENDING và VERIFIED).
+         * Tìm tất cả chứng nhận hợp lệ để gắn cho lô thuộc tổ chức (loại bỏ EXPIRED và REJECTED; cho phép PENDING và
+         * VERIFIED).
          */
         @Query("""
                         SELECT c FROM Certification c
@@ -65,8 +65,8 @@ public interface CertificationRepository
                         @NotBlank(message = "Số hiệu chứng nhận không được để trống") @Size(max = 50, message = "Số hiệu chứng nhận tối đa 50 ký tự") String code);
 
         /**
-         * Tìm kiếm chứng nhận của tổ chức theo từ khoá (tên, số hiệu, cơ quan cấp)
-         * và trạng thái hiệu lực, có phân trang.
+         * Tìm kiếm chứng nhận của tổ chức theo từ khoá (tên, số hiệu, cơ quan cấp) và trạng thái hiệu lực, có phân
+         * trang.
          * Trạng thái tính theo ngày hết hạn (valid, expiring, expired).
          */
         @Query("""

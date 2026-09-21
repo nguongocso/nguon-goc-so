@@ -6,8 +6,7 @@ import vn.nguongocso.farm.entity.ProductionLot;
 import java.time.LocalDate;
 
 /**
- * Service quét và cảnh báo các kết quả kiểm nghiệm sắp hết hạn hoặc đã hết hạn của lô sản xuất
- * (NCL-11-CN-004).
+ * Service quét và cảnh báo các kết quả kiểm nghiệm sắp hết hạn hoặc đã hết hạn của lô sản xuất (NCL-11-CN-004).
  */
 public interface InspectionExpiryService {
         /**

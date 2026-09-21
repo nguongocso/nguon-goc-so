@@ -14,8 +14,7 @@ import java.util.UUID;
 public interface InspectionCriterionRepository
                 extends JpaRepository<InspectionCriterion, UUID> {
         /**
-         * Kiểm tra xem chỉ tiêu danh mục có đang được tham chiếu bởi chỉ tiêu kiểm
-         * nghiệm nào không (BR-5).
+         * Kiểm tra xem chỉ tiêu danh mục có đang được tham chiếu bởi chỉ tiêu kiểm nghiệm nào không (BR-5).
          */
         @Query("""
                         SELECT COUNT(ic) > 0 FROM InspectionCriterion ic
@@ -24,8 +23,7 @@ public interface InspectionCriterionRepository
         boolean existsByCriterionId(@Param("criterionId") Long criterionId);
 
         /**
-         * Lấy danh sách ID chỉ tiêu danh mục đang được tham chiếu bởi ít nhất một chỉ
-         * tiêu kiểm nghiệm.
+         * Lấy danh sách ID chỉ tiêu danh mục đang được tham chiếu bởi ít nhất một chỉ tiêu kiểm nghiệm.
          * Dùng để tính cờ tham chiếu tránh lỗi N+1 truy vấn khi ánh xạ danh sách.
          */
         @Query("""

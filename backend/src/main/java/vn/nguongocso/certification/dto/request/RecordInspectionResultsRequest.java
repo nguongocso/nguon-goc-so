@@ -9,8 +9,7 @@ import lombok.Setter;
 import java.util.List;
 
 /**
- * DTO cho yêu cầu ghi nhận toàn bộ kết quả kiểm nghiệm của một yêu cầu kiểm
- * nghiệm.
+ * DTO cho yêu cầu ghi nhận toàn bộ kết quả kiểm nghiệm của một yêu cầu kiểm nghiệm.
  */
 @Getter
 @Setter

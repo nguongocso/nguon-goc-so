@@ -11,14 +11,12 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Repository quản lý quan hệ giữa loại sản phẩm và chỉ tiêu kiểm nghiệm
- * (NCL-09-CN-009).
+ * Repository quản lý quan hệ giữa loại sản phẩm và chỉ tiêu kiểm nghiệm (NCL-09-CN-009).
  */
 public interface CategoryCriterionRepository
                 extends JpaRepository<CategoryCriterion, UUID> {
         /**
-         * Lấy tất cả chỉ tiêu được gán cho một loại sản phẩm (kèm chỉ tiêu danh mục),
-         * sắp xếp theo tên chỉ tiêu.
+         * Lấy tất cả chỉ tiêu được gán cho một loại sản phẩm (kèm chỉ tiêu danh mục), sắp xếp theo tên chỉ tiêu.
          */
         @Query("""
                         SELECT cc FROM CategoryCriterion cc
@@ -30,8 +28,7 @@ public interface CategoryCriterionRepository
                         @Param("categoryId") UUID categoryId);
 
         /**
-         * Lấy tất cả chỉ tiêu được gán cho một loại sản phẩm theo trạng thái chỉ tiêu,
-         * sắp xếp theo tên chỉ tiêu.
+         * Lấy tất cả chỉ tiêu được gán cho một loại sản phẩm theo trạng thái chỉ tiêu, sắp xếp theo tên chỉ tiêu.
          */
         @Query("""
                         SELECT cc FROM CategoryCriterion cc
@@ -58,8 +55,7 @@ public interface CategoryCriterionRepository
 
         /**
          * Xóa các gán chỉ tiêu theo loại sản phẩm và danh sách chỉ tiêu cụ thể.
-         * Dùng khi người dùng bỏ chọn một số chỉ tiêu để tránh xóa toàn bộ gây trùng
-         * lặp.
+         * Dùng khi người dùng bỏ chọn một số chỉ tiêu để tránh xóa toàn bộ gây trùng lặp.
          */
         @Modifying
         @Query("""
@@ -77,16 +73,14 @@ public interface CategoryCriterionRepository
         boolean existsByCriterion_Id(Long criterionId);
 
         /**
-         * Kiểm tra xem chỉ tiêu cụ thể đã được gán cho loại sản phẩm cho trước hay
-         * chưa.
+         * Kiểm tra xem chỉ tiêu cụ thể đã được gán cho loại sản phẩm cho trước hay chưa.
          * Dùng để xác thực chỉ tiêu khi tạo yêu cầu kiểm nghiệm (NCL-11-CN-002).
          */
         boolean existsByCategory_IdAndCriterion_Id(UUID categoryId, Long criterionId);
 
         /**
-         * Kiểm tra xem chỉ tiêu cụ thể có thuộc loại sản phẩm bắt buộc kiểm nghiệm hay
-         * không
-         * (quy tắc BR-3: bắt buộc => có ít nhất 1 chỉ tiêu).
+         * Kiểm tra xem chỉ tiêu cụ thể có thuộc loại sản phẩm bắt buộc kiểm nghiệm hay không (quy tắc BR-3: bắt buộc =>
+         * có ít nhất 1 chỉ tiêu).
          */
         boolean existsByCriterion_IdAndCategory_RequiresInspectionTrue(Long criterionId);
 }

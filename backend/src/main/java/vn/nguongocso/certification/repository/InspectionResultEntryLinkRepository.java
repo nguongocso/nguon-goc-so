@@ -30,8 +30,7 @@ public interface InspectionResultEntryLinkRepository
          UUID inspectionRequestId);
 
    /**
-    * Lấy danh sách liên kết nhập kết quả theo ID yêu cầu kiểm nghiệm và trạng
-    * thái.
+    * Lấy danh sách liên kết nhập kết quả theo ID yêu cầu kiểm nghiệm và trạng thái.
     */
    List<InspectionResultEntryLink> findByInspectionRequest_IdAndStatus(
          UUID inspectionRequestId,

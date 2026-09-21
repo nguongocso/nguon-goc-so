@@ -19,8 +19,7 @@ import vn.nguongocso.certification.service.InspectionExpiryConfigService;
 import vn.nguongocso.exception.BusinessException;
 
 /**
- * Triển khai dịch vụ quản lý cấu hình ngưỡng cảnh báo hết hiệu lực kiểm nghiệm
- * (NCL-11-CN-004).
+ * Triển khai dịch vụ quản lý cấu hình ngưỡng cảnh báo hết hiệu lực kiểm nghiệm (NCL-11-CN-004).
  */
 @Service
 @Slf4j

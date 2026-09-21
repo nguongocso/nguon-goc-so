@@ -41,8 +41,7 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
         long countByUser_UserIdAndCreatedAtAfter(UUID userId, LocalDateTime time);
 
         /**
-         * Tiêu thụ token một cách atomic để chống race condition khi 2 request gửi đồng
-         * thời.
+         * Tiêu thụ token một cách atomic để chống race condition khi 2 request gửi đồng thời.
          */
         @Modifying
         @Query("UPDATE PasswordResetToken p SET p.isUsed = true "

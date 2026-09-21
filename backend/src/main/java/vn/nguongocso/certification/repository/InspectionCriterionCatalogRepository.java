@@ -28,8 +28,7 @@ public interface InspectionCriterionCatalogRepository
                         @Param("referenceStandard") String referenceStandard);
 
         /**
-         * Kiểm tra trùng tên và tiêu chuẩn tham chiếu khi cập nhật, loại trừ ID hiện
-         * tại.
+         * Kiểm tra trùng tên và tiêu chuẩn tham chiếu khi cập nhật, loại trừ ID hiện tại.
          */
         @Query("""
                         SELECT COUNT(c) > 0 FROM InspectionCriterionCatalog c
