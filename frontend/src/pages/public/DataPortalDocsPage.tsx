@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -186,7 +186,7 @@ interface EndpointCodeSnippetProps {
   defaultTab?: SnippetTab;
 }
 
-const EndpointCodeSnippet: React.FC<EndpointCodeSnippetProps> = ({
+function EndpointCodeSnippet({
   endpointPath,
   copyId,
   responseCopyId,
@@ -197,7 +197,7 @@ const EndpointCodeSnippet: React.FC<EndpointCodeSnippetProps> = ({
   onCopy,
   defaultEnv = 'production',
   defaultTab = 'curl',
-}) => {
+}: EndpointCodeSnippetProps) {
   const [activeEnv, setActiveEnv] = useState<TargetEnvironment>(defaultEnv);
   const [activeTab, setActiveTab] = useState<SnippetTab>(defaultTab);
 
@@ -366,7 +366,10 @@ const EndpointCodeSnippet: React.FC<EndpointCodeSnippetProps> = ({
   );
 };
 
-export const DataPortalDocsPage: React.FC = () => {
+/**
+ * Trang tài liệu tích hợp API Cổng Dữ Liệu Nông Sản Quốc Gia (Data Portal Documentation).
+ */
+export function DataPortalDocsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -961,6 +964,6 @@ export const DataPortalDocsPage: React.FC = () => {
       </footer>
     </div>
   );
-};
+}
 
 export default DataPortalDocsPage;

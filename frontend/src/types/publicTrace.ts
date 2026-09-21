@@ -2,7 +2,7 @@ import type { PublicInspectionResult } from './publicInspection';
 
 export interface PublicChainEventItem {
   eventType: string;
-  eventData: Record<string, any>;
+  eventData: Record<string, unknown>;
   recordedAt: string;
   latitude: number | null;
   longitude: number | null;
@@ -56,4 +56,4 @@ export interface ApiError {
   message: string;
   path?: string;
   timestamp?: string;
-}
+}

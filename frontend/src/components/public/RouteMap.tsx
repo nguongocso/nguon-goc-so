@@ -1,16 +1,17 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+import { useLanguage } from '@/context/LanguageContext';
 import type { PublicChainEventItem, PublicFarmAreaBoundary } from '@/types/publicTrace';
 import {
+  formatDisplayDateTime,
   getEventTypeLabel,
   getTranslatedEventData,
-  formatDisplayDateTime,
 } from '@/utils/eventFormatter';
-import { useLanguage } from '@/context/LanguageContext';
 
 // Fix icon mặc định của Leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
@@ -22,11 +23,11 @@ interface RouteMapProps {
   farmAreaBoundary?: PublicFarmAreaBoundary | null;
 }
 
-export const createFarmAreaBoundaryPopupContent = (
+export function createFarmAreaBoundaryPopupContent(
   name: string | null | undefined,
   areaText: string,
-  isEnglish = false
-): HTMLDivElement => {
+  isEnglish = false,
+): HTMLDivElement {
   const container = document.createElement('div');
   container.style.cssText = 'font-family: system-ui; padding: 4px; min-width: 160px;';
 
@@ -57,9 +58,12 @@ export const createFarmAreaBoundaryPopupContent = (
   container.appendChild(note);
 
   return container;
-};
+}
 
-export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
+/**
+ * Bản đồ hành trình chuỗi cung ứng và ranh giới vùng trồng (CV-05, QTN-12).
+ */
+export function RouteMap({ events, farmAreaBoundary }: RouteMapProps) {
   const { lang, t } = useLanguage();
   const isEn = lang === 'en';
 
@@ -67,14 +71,20 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
   const leafletMapRef = useRef<L.Map | null>(null);
 
   // Lọc các sự kiện có tọa độ
-  const locationEvents = events.filter(
-    (e) => e.latitude !== null && e.longitude !== null
+  const locationEvents = useMemo(
+    () => events.filter((e) => e.latitude !== null && e.longitude !== null),
+    [events],
   );
-  const boundaryPoints = farmAreaBoundary?.points ?? [];
+  const boundaryPoints = useMemo(
+    () => farmAreaBoundary?.points ?? [],
+    [farmAreaBoundary],
+  );
   const hasBoundary = boundaryPoints.length >= 3;
 
   useEffect(() => {
-    if (!mapRef.current || (locationEvents.length === 0 && !hasBoundary)) return;
+    if (!mapRef.current || (locationEvents.length === 0 && !hasBoundary)) {
+      return;
+    }
 
     const initialCenter: [number, number] = hasBoundary
       ? [
@@ -103,7 +113,7 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
 
     if (hasBoundary) {
       const latlngs: L.LatLngExpression[] = boundaryPoints.map(
-        (point) => [point.latitude, point.longitude]
+        (point) => [point.latitude, point.longitude],
       );
       const polygon = L.polygon(latlngs, {
         color: '#059669',
@@ -116,7 +126,7 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
         ? `${Number(farmAreaBoundary.calculatedArea).toFixed(4)} ha`
         : isEn ? 'Not calculated' : 'Chưa tính';
       polygon.bindPopup(
-        createFarmAreaBoundaryPopupContent(farmAreaBoundary?.name, areaText, isEn)
+        createFarmAreaBoundaryPopupContent(farmAreaBoundary?.name, areaText, isEn),
       );
     }
 
@@ -127,7 +137,7 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
       const lat = event.latitude!;
       const lng = event.longitude!;
       const rawLabel = getEventTypeLabel(event.eventType, lang);
-      const eventTypeKey = `event_${event.eventType}` as any;
+      const eventTypeKey = `event_${event.eventType}` as Parameters<typeof t>[0];
       const translatedLabel = t(eventTypeKey);
       const label = translatedLabel && !translatedLabel.startsWith('event_') ? translatedLabel : rawLabel;
       const date = formatDisplayDateTime(event.recordedAt, lang);
@@ -212,8 +222,12 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
   if (locationEvents.length === 0 && !hasBoundary) {
     return (
       <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">
-        <p className="text-lg font-semibold">{isEn ? "No location data available" : "Không có dữ liệu vị trí"}</p>
-        <p className="text-sm">{isEn ? "Events in this shipment do not have GPS coordinates to show on map." : "Các sự kiện của lô hàng này chưa có tọa độ để hiển thị trên bản đồ."}</p>
+        <p className="text-lg font-semibold">{isEn ? 'No location data available' : 'Không có dữ liệu vị trí'}</p>
+        <p className="text-sm">
+          {isEn
+            ? 'Events in this shipment do not have GPS coordinates to show on map.'
+            : 'Các sự kiện của lô hàng này chưa có tọa độ để hiển thị trên bản đồ.'}
+        </p>
       </div>
     );
   }
@@ -237,4 +251,6 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
       </div>
     </div>
   );
-};
+}
+
+export default RouteMap;

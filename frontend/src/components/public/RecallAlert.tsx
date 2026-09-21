@@ -1,5 +1,6 @@
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface RecallAlertProps {
@@ -7,10 +8,13 @@ interface RecallAlertProps {
   messageEn?: string | null;
 }
 
-export const RecallAlert = ({ message, messageEn }: RecallAlertProps) => {
+/**
+ * Cảnh báo thu hồi lô hàng công khai cho người tiêu dùng.
+ */
+export function RecallAlert({ message, messageEn }: RecallAlertProps) {
   const { lang, t } = useLanguage();
 
-  const displayMessage = (lang === 'en' && messageEn) ? messageEn : message;
+  const displayMessage = lang === 'en' && messageEn ? messageEn : message;
 
   return (
     <Alert variant="destructive" className="p-4 border-red-300 bg-red-50 text-red-900">
@@ -23,4 +27,6 @@ export const RecallAlert = ({ message, messageEn }: RecallAlertProps) => {
       </AlertDescription>
     </Alert>
   );
-};
+}
+
+export default RecallAlert;

@@ -1,25 +1,25 @@
-import React from 'react';
+import type { ComponentType } from 'react';
 import {
-  Calendar,
-  Package,
-  Truck,
-  Sprout,
   AlertTriangle,
+  Calendar,
   FileSignature,
-  ShoppingCart,
-  PackageCheck,
-  Warehouse,
-  Thermometer,
   GitFork,
+  Package,
+  PackageCheck,
+  ShoppingCart,
+  Sprout,
+  Thermometer,
+  Truck,
+  Warehouse,
 } from 'lucide-react';
+
+import { useLanguage } from '@/context/LanguageContext';
 import type { PublicChainEventItem } from '@/types/publicTrace';
 import {
+  formatDisplayDateTime,
   getEventTypeLabel,
   getTranslatedEventData,
-  formatDisplayDateTime,
 } from '@/utils/eventFormatter';
-import type { ComponentType } from 'react';
-import { useLanguage } from '@/context/LanguageContext';
 
 const EVENT_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   HARVEST: Sprout,
@@ -53,14 +53,21 @@ interface TimelineProps {
   events: PublicChainEventItem[];
 }
 
-export const Timeline: React.FC<TimelineProps> = ({ events }: TimelineProps) => {
+/**
+ * Dòng thời gian hiển thị các sự kiện trong chuỗi cung ứng của lô hàng.
+ */
+export function Timeline({ events }: TimelineProps) {
   const { lang, t } = useLanguage();
   const isEn = lang === 'en';
 
   if (!events || events.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        <p>{isEn ? "No events recorded for this shipment." : "Chưa có sự kiện nào được ghi nhận cho lô hàng này."}</p>
+        <p>
+          {isEn
+            ? 'No events recorded for this shipment.'
+            : 'Chưa có sự kiện nào được ghi nhận cho lô hàng này.'}
+        </p>
       </div>
     );
   }
@@ -70,13 +77,17 @@ export const Timeline: React.FC<TimelineProps> = ({ events }: TimelineProps) => 
       {events.map((event, index) => {
         const Icon = EVENT_ICONS[event.eventType] || Calendar;
         const rawLabel = getEventTypeLabel(event.eventType, lang);
-        const eventTypeKey = `event_${event.eventType}` as any;
+        const eventTypeKey = `event_${event.eventType}` as Parameters<typeof t>[0];
         const translatedLabel = t(eventTypeKey);
-        const label = translatedLabel && !translatedLabel.startsWith('event_') ? translatedLabel : rawLabel;
+        const label =
+          translatedLabel && !translatedLabel.startsWith('event_')
+            ? translatedLabel
+            : rawLabel;
 
         const isEarlyHarvest =
           event.eventType === 'HARVEST' &&
-          (event.eventData?.['earlyHarvest'] === true || event.eventData?.['earlyHarvest'] === 'true');
+          (event.eventData?.['earlyHarvest'] === true ||
+            event.eventData?.['earlyHarvest'] === 'true');
         const translatedData = getTranslatedEventData(
           event.eventType,
           (event.eventData as Record<string, unknown>) || {},
@@ -101,7 +112,7 @@ export const Timeline: React.FC<TimelineProps> = ({ events }: TimelineProps) => 
                       {isEarlyHarvest && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-600 border border-amber-500/20">
                           <AlertTriangle className="h-3 w-3 text-amber-500" />
-                          {isEn ? "Early Harvest" : "Thu hoạch sớm"}
+                          {isEn ? 'Early Harvest' : 'Thu hoạch sớm'}
                         </span>
                       )}
                     </div>
@@ -114,7 +125,7 @@ export const Timeline: React.FC<TimelineProps> = ({ events }: TimelineProps) => 
                     <div className="mt-1 text-sm text-muted-foreground space-y-1">
                       {entries.map(([fieldLabel, value]) => {
                         const rawKeys = Object.keys(event.eventData || {});
-                        const matchingKey = rawKeys.find(k => USER_TEXT_FIELDS.has(k));
+                        const matchingKey = rawKeys.find((k) => USER_TEXT_FIELDS.has(k));
                         const isUserText = Boolean(matchingKey);
 
                         return (
@@ -144,4 +155,6 @@ export const Timeline: React.FC<TimelineProps> = ({ events }: TimelineProps) => 
       })}
     </div>
   );
-};
+}
+
+export default Timeline;

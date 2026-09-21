@@ -1,11 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useForm, Controller } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { isAxiosError } from 'axios';
+import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+
+import {
+  acceptInvitation,
+  getInvitationDetails,
+} from '@/api/invitationApi';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Card,
   CardContent,
@@ -13,24 +18,21 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import type { InvitationPublicResponse } from '@/types/invitation';
 import {
   acceptInvitationSchema,
   type AcceptInvitationFormValues,
 } from '@/utils/validators';
-import {
-  getInvitationDetails,
-  acceptInvitation,
-} from '@/api/invitationApi';
-import type { InvitationPublicResponse } from '@/types/invitation';
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
 // Helper chỉ dùng roleName
 const getRoleDisplay = (roleName?: string): string => {
   const map: Record<string, string> = {
-    'EVENT_RECORDER': 'Người ghi sự kiện',
-    'ORG_MANAGER': 'Quản lý hợp tác xã',
-    'PROCUREMENT': 'Doanh nghiệp thu mua',
-    'GOVERNMENT': 'Cán bộ quản lý ngành',
+    EVENT_RECORDER: 'Người ghi sự kiện',
+    ORG_MANAGER: 'Quản lý hợp tác xã',
+    PROCUREMENT: 'Doanh nghiệp thu mua',
+    GOVERNMENT: 'Cán bộ quản lý ngành',
     'VT-01': 'Quản trị viên nền tảng',
     'VT-02': 'Quản lý hợp tác xã',
     'VT-03': 'Người ghi sự kiện',
@@ -40,13 +42,16 @@ const getRoleDisplay = (roleName?: string): string => {
   return map[roleName || ''] || roleName || 'Vai trò không xác định';
 };
 
-const JoinOrganizationPage: React.FC = () => {
+/**
+ * Trang chấp nhận lời mời tham gia tổ chức qua liên kết thư mời gửi email.
+ */
+export function JoinOrganizationPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
 
   const [invitation, setInvitation] = useState<InvitationPublicResponse | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,16 +91,17 @@ const JoinOrganizationPage: React.FC = () => {
           setValue('userName', 'existing_member');
           setValue('fullName', 'Thành viên hiện có');
         }
-      } catch (err: any) {
-        setError(
-          err.response?.data?.message ||
-          'Thư mời không hợp lệ hoặc đã hết hạn.'
-        );
+      } catch (err: unknown) {
+        const message =
+          isAxiosError<{ message?: string }>(err) && err.response?.data?.message
+            ? err.response.data.message
+            : 'Thư mời không hợp lệ hoặc đã hết hạn.';
+        setError(message);
       } finally {
         setLoading(false);
       }
     };
-    fetchInvitation();
+    void fetchInvitation();
   }, [token, setValue]);
 
   useEffect(() => {
@@ -105,7 +111,9 @@ const JoinOrganizationPage: React.FC = () => {
   }, [watchPassword, invitation?.isExistingUser, setValue]);
 
   const onSubmit = async (data: AcceptInvitationFormValues) => {
-    if (!token) return;
+    if (!token) {
+      return;
+    }
     setSubmitting(true);
     try {
       await acceptInvitation(token, {
@@ -118,22 +126,25 @@ const JoinOrganizationPage: React.FC = () => {
       toast.success(
         invitation?.isExistingUser
           ? 'Xác nhận thành công! Bạn đã tham gia tổ chức.'
-          : 'Đăng ký thành công! Bạn đã tham gia tổ chức.'
+          : 'Đăng ký thành công! Bạn đã tham gia tổ chức.',
       );
       // Chuyển hướng đến trang đăng nhập sau vài giây
       setTimeout(() => {
         navigate('/login');
       }, 3000);
-    } catch (err: any) {
-      const status = err.response?.status;
-      const message = err.response?.data?.message;
+    } catch (err: unknown) {
+      const status = isAxiosError(err) ? err.response?.status : undefined;
+      const message =
+        isAxiosError<{ message?: string }>(err) && err.response?.data?.message
+          ? err.response.data.message
+          : 'Tham gia tổ chức thất bại.';
       if (status === 409) {
         toast.error('Tên đăng nhập đã tồn tại. Vui lòng chọn tên khác.');
       } else if (status === 400 && message?.includes('quá hạn')) {
         toast.error('Thư mời đã hết hạn. Vui lòng yêu cầu mời lại.');
         setError('Thư mời đã hết hạn.');
       } else {
-        toast.error(message || 'Tham gia tổ chức thất bại.');
+        toast.error(message);
       }
     } finally {
       setSubmitting(false);
@@ -360,6 +371,6 @@ const JoinOrganizationPage: React.FC = () => {
       </Card>
     </div>
   );
-};
+}
 
 export default JoinOrganizationPage;

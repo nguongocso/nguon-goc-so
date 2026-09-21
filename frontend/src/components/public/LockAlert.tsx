@@ -1,4 +1,5 @@
-import { Lock, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Lock } from 'lucide-react';
+
 import { useLanguage } from '@/context/LanguageContext';
 
 interface LockAlertProps {
@@ -6,12 +7,17 @@ interface LockAlertProps {
   lockedAt: string | null;
 }
 
-export const LockAlert = ({ lockReason, lockedAt }: LockAlertProps) => {
+/**
+ * Cảnh báo mã tem bị khóa do nghi ngờ bất thường/giả mạo.
+ */
+export function LockAlert({ lockReason, lockedAt }: LockAlertProps) {
   const { lang, t } = useLanguage();
   const isEn = lang === 'en';
 
   const formatDateTime = (value: string | null) => {
-    if (!value) return '';
+    if (!value) {
+      return '';
+    }
     return new Date(value).toLocaleString(isEn ? 'en-US' : 'vi-VN', {
       day: '2-digit',
       month: '2-digit',
@@ -29,12 +35,12 @@ export const LockAlert = ({ lockReason, lockedAt }: LockAlertProps) => {
         </div>
         <div className="space-y-2">
           <h2 className="text-lg font-bold text-red-800">
-            {isEn ? "Warning: Suspected Counterfeit Code Locked" : "Cảnh báo: Mã tem bị nghi ngờ giả mạo"}
+            {isEn ? 'Warning: Suspected Counterfeit Code Locked' : 'Cảnh báo: Mã tem bị nghi ngờ giả mạo'}
           </h2>
           <p className="text-sm text-red-700">
             {isEn
-              ? "This trace code was locked by Platform Administrator due to anomaly detection."
-              : "Mã tem này đã bị khóa bởi Quản trị viên nền tảng do có dấu hiệu bất thường."}
+              ? 'This trace code was locked by Platform Administrator due to anomaly detection.'
+              : 'Mã tem này đã bị khóa bởi Quản trị viên nền tảng do có dấu hiệu bất thường.'}
           </p>
           {lockReason && (
             <div className="rounded-lg border border-red-300 bg-red-100/50 p-3">
@@ -66,4 +72,6 @@ export const LockAlert = ({ lockReason, lockedAt }: LockAlertProps) => {
       </div>
     </section>
   );
-};
+}
+
+export default LockAlert;

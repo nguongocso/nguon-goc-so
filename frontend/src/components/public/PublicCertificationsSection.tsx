@@ -6,15 +6,15 @@ import {
   FileCheck2,
   Landmark,
   LoaderCircle,
-} from "lucide-react";
+} from 'lucide-react';
 
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useLanguage } from '@/context/LanguageContext';
 import type {
   PublicCertification,
   PublicLotCertificationsResponse,
-} from "@/types/publicCertification";
-import { useLanguage } from "@/context/LanguageContext";
+} from '@/types/publicCertification';
 
 interface PublicCertificationsSectionProps {
   data?: PublicLotCertificationsResponse | null;
@@ -25,7 +25,7 @@ interface PublicCertificationsSectionProps {
 const formatDate = (dateValue: string | null, notUpdatedText: string) => {
   if (!dateValue) return notUpdatedText;
 
-  const [year, month, day] = dateValue.split("-");
+  const [year, month, day] = dateValue.split('-');
   if (!year || !month || !day) return dateValue;
 
   return `${day}/${month}/${year}`;
@@ -35,21 +35,25 @@ function CertificationCard({ certification }: { certification: PublicCertificati
   const { lang, t } = useLanguage();
   const isEn = lang === 'en';
 
-  const isValid = certification.status === "VALID";
+  const isValid = certification.status === 'VALID';
 
   // TC-04 Fallback: nếu certificationNameEn null thì fallback về certificationName
-  const displayName = isEn ? (certification.certificationNameEn || certification.certificationName) : certification.certificationName;
+  const displayName = isEn
+    ? certification.certificationNameEn || certification.certificationName
+    : certification.certificationName;
 
   const statusLabel = isEn
-    ? (isValid ? t('cert_status_valid') : t('cert_status_expired'))
+    ? isValid
+      ? t('cert_status_valid')
+      : t('cert_status_expired')
     : certification.statusLabel;
 
   return (
     <article
       className={
         isValid
-          ? "rounded-lg border border-emerald-100 bg-emerald-50/40 p-4"
-          : "rounded-lg border border-slate-200 bg-slate-50 p-4"
+          ? 'rounded-lg border border-emerald-100 bg-emerald-50/40 p-4'
+          : 'rounded-lg border border-slate-200 bg-slate-50 p-4'
       }
     >
       <div className="flex items-start justify-between gap-3">
@@ -65,8 +69,8 @@ function CertificationCard({ certification }: { certification: PublicCertificati
         <Badge
           className={
             isValid
-              ? "shrink-0 border-emerald-200 bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
-              : "shrink-0 border-slate-200 bg-slate-200 text-slate-700 hover:bg-slate-200"
+              ? 'shrink-0 border-emerald-200 bg-emerald-100 text-emerald-800 hover:bg-emerald-100'
+              : 'shrink-0 border-slate-200 bg-slate-200 text-slate-700 hover:bg-slate-200'
           }
           variant="outline"
         >
@@ -91,7 +95,8 @@ function CertificationCard({ certification }: { certification: PublicCertificati
           <div>
             <dt className="text-xs text-gray-500">{t('expiry_date')}</dt>
             <dd className="mt-0.5 text-gray-800">
-              {formatDate(certification.issueDate, t('not_updated'))} - {formatDate(certification.expiryDate, t('not_updated'))}
+              {formatDate(certification.issueDate, t('not_updated'))} -{' '}
+              {formatDate(certification.expiryDate, t('not_updated'))}
             </dd>
           </div>
         </div>
@@ -100,6 +105,9 @@ function CertificationCard({ certification }: { certification: PublicCertificati
   );
 }
 
+/**
+ * Hiển thị danh sách chứng nhận tiêu chuẩn của lô sản xuất trên trang tra cứu công khai.
+ */
 export function PublicCertificationsSection({
   data,
   isLoading = false,
@@ -108,7 +116,7 @@ export function PublicCertificationsSection({
   const { t } = useLanguage();
   const certifications = data?.certifications ?? [];
   const hasCertification = Boolean(
-    data?.hasCertification && certifications.length > 0
+    data?.hasCertification && certifications.length > 0,
   );
 
   return (
@@ -155,3 +163,5 @@ export function PublicCertificationsSection({
     </section>
   );
 }
+
+export default PublicCertificationsSection;

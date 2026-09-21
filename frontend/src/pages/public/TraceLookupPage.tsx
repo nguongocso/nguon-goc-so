@@ -1,28 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-
-import {
-  getPublicCertifications,
-  getPublicInspections,
-  getPublicTrace,
-} from '@/api/publicApi';
-
-import type { PublicTraceResponse } from '@/types/publicTrace';
-import type { PublicLotCertificationsResponse } from '@/types/publicCertification';
-import type { PublicInspectionResponse } from '@/types/publicInspection';
-
-import { ProductInfo } from '@/components/public/ProductInfo';
-import { RecallAlert } from '@/components/public/RecallAlert';
-import { LockAlert } from '@/components/public/LockAlert';
-import { VerifiedAlert } from '@/components/public/VerifiedAlert';
-import { Timeline } from '@/components/public/Timeline';
-import { RouteMap } from '@/components/public/RouteMap';
-import { ProductFeedbackForm } from '@/components/public/ProductFeedbackForm';
-import { PublicCertificationsSection } from '@/components/public/PublicCertificationsSection';
-import { PublicInspectionSection } from '@/components/public/PublicInspectionSection';
-import { LanguageSwitcher } from '@/components/public/LanguageSwitcher';
-import { LanguageProvider, useLanguage } from '@/context/LanguageContext';
-
+import { isAxiosError } from 'axios';
 import {
   Home,
   List,
@@ -31,14 +9,32 @@ import {
   MessageSquareWarning,
 } from 'lucide-react';
 
+import {
+  getPublicCertifications,
+  getPublicInspections,
+  getPublicTrace,
+} from '@/api/publicApi';
 import { Logo } from '@/components/common/Logo';
-
+import { LanguageSwitcher } from '@/components/public/LanguageSwitcher';
+import { LockAlert } from '@/components/public/LockAlert';
+import { ProductFeedbackForm } from '@/components/public/ProductFeedbackForm';
+import { ProductInfo } from '@/components/public/ProductInfo';
+import { PublicCertificationsSection } from '@/components/public/PublicCertificationsSection';
+import { PublicInspectionSection } from '@/components/public/PublicInspectionSection';
+import { RecallAlert } from '@/components/public/RecallAlert';
+import { RouteMap } from '@/components/public/RouteMap';
+import { Timeline } from '@/components/public/Timeline';
+import { VerifiedAlert } from '@/components/public/VerifiedAlert';
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+import { LanguageProvider, useLanguage } from '@/context/LanguageContext';
+import type { PublicLotCertificationsResponse } from '@/types/publicCertification';
+import type { PublicInspectionResponse } from '@/types/publicInspection';
+import type { PublicTraceResponse } from '@/types/publicTrace';
 
 interface TraceLookupLocationState {
   scanResult?: PublicTraceResponse;
@@ -55,27 +51,18 @@ function TraceLookupContent() {
   const [data, setData] = useState<PublicTraceResponse | null>(
     scanResult ?? null,
   );
-
   const [loading, setLoading] = useState(!scanResult);
-
   const [error, setError] = useState<string | null>(null);
 
   const [certificationData, setCertificationData] =
     useState<PublicLotCertificationsResponse | null>(null);
-
-  const [certificationLoading, setCertificationLoading] =
-    useState(true);
-
-  const [certificationError, setCertificationError] =
-    useState<string | null>(null);
+  const [certificationLoading, setCertificationLoading] = useState(true);
+  const [certificationError, setCertificationError] = useState<string | null>(null);
 
   const [inspectionData, setInspectionData] =
     useState<PublicInspectionResponse | null>(null);
-
   const [inspectionLoading, setInspectionLoading] = useState(true);
-
-  const [inspectionError, setInspectionError] =
-    useState<string | null>(null);
+  const [inspectionError, setInspectionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!codeValue) {
@@ -86,23 +73,19 @@ function TraceLookupContent() {
       return;
     }
 
-    const alreadyScanned = !!scanResult;
+    const alreadyScanned = Boolean(scanResult);
 
     const fetchTrace = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const loadTrace = async (
-          latitude?: number,
-          longitude?: number
-        ) => {
+        const loadTrace = async (latitude?: number, longitude?: number) => {
           const result = await getPublicTrace(
             codeValue,
             latitude,
-            longitude
+            longitude,
           );
-
           setData(result);
         };
 
@@ -115,36 +98,33 @@ function TraceLookupContent() {
           navigator.geolocation.getCurrentPosition(
             async (position) => {
               try {
-                const { latitude, longitude } =
-                  position.coords;
-
+                const { latitude, longitude } = position.coords;
                 await loadTrace(latitude, longitude);
                 resolve();
-              } catch (error) {
-                reject(error);
+              } catch (posError) {
+                reject(posError);
               }
             },
-
             async () => {
               try {
                 await loadTrace();
                 resolve();
-              } catch (error) {
-                reject(error);
+              } catch (posError) {
+                reject(posError);
               }
             },
-
             {
               enableHighAccuracy: true,
               timeout: 10000,
               maximumAge: 0,
-            }
+            },
           );
         });
-      } catch (err: any) {
+      } catch (err: unknown) {
         const message =
-          err.response?.data?.message ||
-          'Không thể tra cứu thông tin.';
+          isAxiosError<{ message?: string }>(err) && err.response?.data?.message
+            ? err.response.data.message
+            : 'Không thể tra cứu thông tin.';
 
         setError(message);
       } finally {
@@ -157,20 +137,19 @@ function TraceLookupContent() {
         setCertificationLoading(true);
         setCertificationError(null);
 
-        const result =
-          await getPublicCertifications(codeValue);
-
+        const result = await getPublicCertifications(codeValue);
         setCertificationData(result);
-      } catch (err: any) {
-        const status = err.response?.status;
+      } catch (err: unknown) {
+        const status = isAxiosError(err) ? err.response?.status : undefined;
 
         if (status === 404 || status === 501) {
           setCertificationError(null);
           setCertificationData(null);
         } else {
           const message =
-            err.response?.data?.message ||
-            'Không thể tải thông tin chứng nhận.';
+            isAxiosError<{ message?: string }>(err) && err.response?.data?.message
+              ? err.response.data.message
+              : 'Không thể tải thông tin chứng nhận.';
 
           setCertificationError(message);
           setCertificationData(null);
@@ -186,18 +165,18 @@ function TraceLookupContent() {
         setInspectionError(null);
 
         const result = await getPublicInspections(codeValue);
-
         setInspectionData(result);
-      } catch (err: any) {
-        const status = err.response?.status;
+      } catch (err: unknown) {
+        const status = isAxiosError(err) ? err.response?.status : undefined;
 
         if (status === 404 || status === 501) {
           setInspectionError(null);
           setInspectionData(null);
         } else {
           const message =
-            err.response?.data?.message ||
-            'Không thể tải kết quả kiểm nghiệm.';
+            isAxiosError<{ message?: string }>(err) && err.response?.data?.message
+              ? err.response.data.message
+              : 'Không thể tải kết quả kiểm nghiệm.';
 
           setInspectionError(message);
           setInspectionData(null);
@@ -208,10 +187,10 @@ function TraceLookupContent() {
     };
 
     if (!alreadyScanned) {
-      fetchTrace();
+      void fetchTrace();
     }
-    fetchCertifications();
-    fetchInspections();
+    void fetchCertifications();
+    void fetchInspections();
   }, [codeValue, scanResult]);
 
   if (loading) {
@@ -264,7 +243,7 @@ function TraceLookupContent() {
   const hasLocationData = data.events.some(
     (event) =>
       event.latitude !== null &&
-      event.longitude !== null
+      event.longitude !== null,
   );
   const hasFarmBoundary = (data.farmAreaBoundary?.points?.length ?? 0) >= 3;
   const hasMapData = hasLocationData || hasFarmBoundary;
@@ -378,9 +357,7 @@ function TraceLookupContent() {
         {/* Bản đồ và danh sách sự kiện */}
         <div className="overflow-hidden rounded-xl bg-white shadow-sm">
           <Tabs
-            defaultValue={
-              hasMapData ? 'map' : 'list'
-            }
+            defaultValue={hasMapData ? 'map' : 'list'}
             className="w-full"
           >
             <TabsList className="h-auto w-full justify-start rounded-none rounded-t-xl border-b bg-gray-50/50 p-0">
@@ -440,10 +417,15 @@ function TraceLookupContent() {
   );
 }
 
-export default function TraceLookupPage() {
+/**
+ * Trang tra cứu nguồn gốc sản phẩm chi tiết theo mã công khai.
+ */
+export function TraceLookupPage() {
   return (
     <LanguageProvider>
       <TraceLookupContent />
     </LanguageProvider>
   );
 }
+
+export default TraceLookupPage;

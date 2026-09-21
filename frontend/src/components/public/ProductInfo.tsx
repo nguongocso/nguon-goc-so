@@ -1,5 +1,5 @@
-import React from 'react';
 import { Layers, Package, Sprout, Tag } from 'lucide-react';
+
 import { useLanguage } from '@/context/LanguageContext';
 
 interface ProductInfoProps {
@@ -11,19 +11,22 @@ interface ProductInfoProps {
   status: string;
 }
 
-export const ProductInfo: React.FC<ProductInfoProps> = ({
+/**
+ * Hiển thị thông tin tổng quan sản phẩm và mã truy xuất.
+ */
+export function ProductInfo({
   productName,
   productNameEn,
   lotName,
   shipmentCode,
   status,
-}) => {
+}: ProductInfoProps) {
   const { lang, t } = useLanguage();
-
   const isEn = lang === 'en';
 
-  // TC-04 Fallback: nếu productNameEn không có thì dùng productName
-  const displayName = isEn ? (productNameEn || productName || t('not_updated')) : (productName || t('not_updated'));
+  const displayName = isEn
+    ? productNameEn || productName || t('not_updated')
+    : productName || t('not_updated');
 
   const statusLabelMap: Record<string, string> = {
     ACTIVE: t('status_active'),
@@ -127,4 +130,6 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({
       </div>
     </div>
   );
-};
+}
+
+export default ProductInfo;

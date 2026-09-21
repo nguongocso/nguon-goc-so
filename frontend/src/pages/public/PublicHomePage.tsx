@@ -1,47 +1,55 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { isAxiosError } from "axios";
-import { BrowserQRCodeReader } from "@zxing/browser";
-import { recordPublicScan } from "@/api/publicApi";
-import { lookupPublicProductFeedback } from "@/api/productFeedbackApi";
-import type { PublicProductFeedbackLookupResult } from "@/types/productFeedback";
+import { useEffect, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { BrowserQRCodeReader } from '@zxing/browser';
+import { isAxiosError } from 'axios';
 import {
-  ProductFeedbackInlineResult,
-  type LookupErrorKind,
-} from "@/components/public/ProductFeedbackInlineResult";
-import {
+  BadgeCheck,
   LogIn,
   ScanLine,
   Search,
   ShieldCheck,
   Truck,
-  BadgeCheck,
-} from "lucide-react";
-import { Logo } from "@/components/common/Logo";
-import { toast } from "sonner";
+} from 'lucide-react';
+import { toast } from 'sonner';
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useAuth } from "@/hooks/useAuth";
+import { lookupPublicProductFeedback } from '@/api/productFeedbackApi';
+import { recordPublicScan } from '@/api/publicApi';
+import { Logo } from '@/components/common/Logo';
+import {
+  ProductFeedbackInlineResult,
+  type LookupErrorKind,
+} from '@/components/public/ProductFeedbackInlineResult';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useAuth } from '@/hooks/useAuth';
+import type { PublicProductFeedbackLookupResult } from '@/types/productFeedback';
 
 /**
  * Nhận diện mã tra cứu phản ánh (có tiền tố PA- hoặc dạng PA+16 ký tự Base32).
  */
 export function isProductFeedbackLookupCode(rawCode: string): boolean {
   const trimmed = rawCode.trim();
-  if (!trimmed) return false;
+  if (!trimmed) {
+    return false;
+  }
   const upper = trimmed.toUpperCase();
-  if (upper.startsWith("PA-")) return true;
-  const compact = upper.replace(/-/g, "");
-  return compact.startsWith("PA") && compact.length === 18;
+  if (upper.startsWith('PA-')) {
+    return true;
+  }
+  const compact = upper.replace(/-/g, '');
+  return compact.startsWith('PA') && compact.length === 18;
 }
 
-export default function PublicHomePage() {
+/**
+ * Trang chủ công khai (Public Home) cho phép quét mã QR và tra cứu truy xuất nguồn gốc.
+ */
+export function PublicHomePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, isLoading: isAuthLoading } = useAuth();
 
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState('');
   const [isScanning, setIsScanning] = useState(false);
 
   const [feedbackResult, setFeedbackResult] =
@@ -49,7 +57,7 @@ export default function PublicHomePage() {
   const [feedbackErrorKind, setFeedbackErrorKind] =
     useState<LookupErrorKind | null>(null);
   const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
-  const [searchedFeedbackCode, setSearchedFeedbackCode] = useState("");
+  const [searchedFeedbackCode, setSearchedFeedbackCode] = useState('');
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -57,13 +65,15 @@ export default function PublicHomePage() {
 
   useEffect(() => {
     if (!isAuthLoading && user) {
-      navigate("/dashboard", { replace: true });
+      navigate('/dashboard', { replace: true });
     }
   }, [user, isAuthLoading, navigate]);
 
   const executeFeedbackLookup = async (rawLookupCode: string) => {
     const normalized = rawLookupCode.trim().toUpperCase();
-    if (!normalized) return;
+    if (!normalized) {
+      return;
+    }
 
     setFeedbackErrorKind(null);
     setFeedbackResult(null);
@@ -75,11 +85,11 @@ export default function PublicHomePage() {
       setFeedbackResult(data);
     } catch (error: unknown) {
       if (isAxiosError(error) && error.response?.status === 404) {
-        setFeedbackErrorKind("not-found");
+        setFeedbackErrorKind('not-found');
       } else if (isAxiosError(error) && error.response?.status === 429) {
-        setFeedbackErrorKind("rate-limit");
+        setFeedbackErrorKind('rate-limit');
       } else {
-        setFeedbackErrorKind("system");
+        setFeedbackErrorKind('system');
       }
     } finally {
       setIsFeedbackLoading(false);
@@ -89,12 +99,12 @@ export default function PublicHomePage() {
   const handleResetFeedback = () => {
     setFeedbackResult(null);
     setFeedbackErrorKind(null);
-    setSearchedFeedbackCode("");
+    setSearchedFeedbackCode('');
   };
 
   // Tự động kích hoạt tra cứu phản ánh nếu có query param ?feedbackCode=...
   useEffect(() => {
-    const feedbackCodeParam = searchParams.get("feedbackCode");
+    const feedbackCodeParam = searchParams.get('feedbackCode');
     if (feedbackCodeParam && feedbackCodeParam.trim()) {
       const cleanCode = feedbackCodeParam.trim();
       setCode(cleanCode);
@@ -112,14 +122,16 @@ export default function PublicHomePage() {
 
   const startScanner = () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      toast.error("Trình duyệt không hỗ trợ camera");
+      toast.error('Trình duyệt không hỗ trợ camera');
       return;
     }
     setIsScanning(true);
   };
 
   useEffect(() => {
-    if (!isScanning) return;
+    if (!isScanning) {
+      return;
+    }
 
     let isActive = true;
     const codeReader = new BrowserQRCodeReader();
@@ -129,12 +141,12 @@ export default function PublicHomePage() {
         await new Promise((resolve) => window.setTimeout(resolve, 150));
         const video = videoRef.current;
         if (!video) {
-          throw new Error("Không tìm thấy vùng hiển thị camera.");
+          throw new Error('Không tìm thấy vùng hiển thị camera.');
         }
 
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
-          video: { facingMode: { ideal: "environment" } },
+          video: { facingMode: { ideal: 'environment' } },
         });
 
         if (!isActive) {
@@ -148,19 +160,21 @@ export default function PublicHomePage() {
         const controls = await codeReader.decodeFromVideoElement(
           video,
           (result) => {
-            if (!result || !isActive) return;
-
-            let codeValue = result.getText();
-            if (codeValue.includes("/public/trace/")) {
-              codeValue = codeValue.split("/public/trace/")[1];
-            }
-
-            if (!codeValue) {
-              toast.error("Mã QR không hợp lệ");
+            if (!result || !isActive) {
               return;
             }
 
-            toast.success("Đã quét mã tra cứu.");
+            let codeValue = result.getText();
+            if (codeValue.includes('/public/trace/')) {
+              codeValue = codeValue.split('/public/trace/')[1];
+            }
+
+            if (!codeValue) {
+              toast.error('Mã QR không hợp lệ');
+              return;
+            }
+
+            toast.success('Đã quét mã tra cứu.');
             controls.stop();
             stream.getTracks().forEach((track) => track.stop());
             streamRef.current = null;
@@ -198,10 +212,11 @@ export default function PublicHomePage() {
                 navigate(`/public/trace/${codeValue}`, {
                   state: { scanResult },
                 });
-              } catch (scanError: any) {
+              } catch (scanError: unknown) {
                 const message =
-                  scanError.response?.data?.message ||
-                  "Không thể ghi nhận lượt quét. Vui lòng thử lại.";
+                  isAxiosError<{ message?: string }>(scanError) && scanError.response?.data?.message
+                    ? scanError.response.data.message
+                    : 'Không thể ghi nhận lượt quét. Vui lòng thử lại.';
                 toast.error(message);
               }
             };
@@ -216,16 +231,18 @@ export default function PublicHomePage() {
         }
         controlsRef.current = controls;
       } catch (scanError: unknown) {
-        if (!isActive) return;
-        if (scanError instanceof DOMException && scanError.name === "NotAllowedError") {
-          toast.error("Bạn chưa cho phép dùng camera. Hãy cấp quyền camera rồi thử lại.");
+        if (!isActive) {
           return;
         }
-        if (scanError instanceof DOMException && scanError.name === "NotReadableError") {
-          toast.error("Camera đang được ứng dụng khác sử dụng. Hãy đóng ứng dụng đó rồi thử lại.");
+        if (scanError instanceof DOMException && scanError.name === 'NotAllowedError') {
+          toast.error('Bạn chưa cho phép dùng camera. Hãy cấp quyền camera rồi thử lại.');
           return;
         }
-        toast.error("Không thể mở camera. Hãy kiểm tra camera hoặc nhập mã thủ công.");
+        if (scanError instanceof DOMException && scanError.name === 'NotReadableError') {
+          toast.error('Camera đang được ứng dụng khác sử dụng. Hãy đóng ứng dụng đó rồi thử lại.');
+          return;
+        }
+        toast.error('Không thể mở camera. Hãy kiểm tra camera hoặc nhập mã thủ công.');
       } finally {
         if (isActive && !controlsRef.current) {
           setIsScanning(false);
@@ -244,11 +261,11 @@ export default function PublicHomePage() {
     };
   }, [isScanning, navigate]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmed = code.trim();
     if (!trimmed) {
-      toast.error("Vui lòng nhập mã tra cứu");
+      toast.error('Vui lòng nhập mã tra cứu');
       return;
     }
 
@@ -261,9 +278,9 @@ export default function PublicHomePage() {
   };
 
   const features = [
-    { icon: ShieldCheck, title: "Minh bạch", desc: "Thông tin rõ ràng từ nông trại" },
-    { icon: Truck, title: "Hành trình", desc: "Theo dõi từng công đoạn vận chuyển" },
-    { icon: BadgeCheck, title: "Chứng nhận", desc: "Đạt chuẩn an toàn thực phẩm" },
+    { icon: ShieldCheck, title: 'Minh bạch', desc: 'Thông tin rõ ràng từ nông trại' },
+    { icon: Truck, title: 'Hành trình', desc: 'Theo dõi từng công đoạn vận chuyển' },
+    { icon: BadgeCheck, title: 'Chứng nhận', desc: 'Đạt chuẩn an toàn thực phẩm' },
   ];
 
   return (
@@ -283,7 +300,7 @@ export default function PublicHomePage() {
           <Button
             variant="outline"
             className="gap-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
-            onClick={() => navigate("/login")}
+            onClick={() => navigate('/login')}
           >
             <LogIn className="h-4 w-4" />
             Đăng nhập
@@ -414,3 +431,5 @@ export default function PublicHomePage() {
     </div>
   );
 }
+
+export default PublicHomePage;

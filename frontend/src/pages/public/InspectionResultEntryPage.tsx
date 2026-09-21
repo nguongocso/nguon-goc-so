@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   AlertCircle,
@@ -19,13 +19,19 @@ import {
   submitPortalResults,
   uploadPortalResultFile,
 } from '@/api/inspectionResultPortalApi';
-import type {
-  PublicInspectionResultEntryData,
-  InspectionCriterionResultItemInput,
-} from '@/types/inspectionResultPortal';
 import { InspectionResultEntryForm } from '@/components/certification/InspectionResultEntryForm';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import type {
+  InspectionCriterionResultItemInput,
+  PublicInspectionResultEntryData,
+} from '@/types/inspectionResultPortal';
 
 type PageStatus = 'LOADING' | 'ACTIVE' | 'EXPIRED' | 'USED' | 'NOT_FOUND' | 'SUBMITTED' | 'ERROR';
 
@@ -38,7 +44,10 @@ const resolveGonePageStatus = (message: string): 'EXPIRED' | 'USED' => {
     : 'EXPIRED';
 };
 
-export const InspectionResultEntryPage: React.FC = () => {
+/**
+ * Trang cổng công khai dành cho đơn vị kiểm nghiệm nhập kết quả trực tiếp qua liên kết 1 lần bảo mật.
+ */
+export function InspectionResultEntryPage() {
   const { token } = useParams<{ token: string }>();
 
   const [pageStatus, setPageStatus] = useState<PageStatus>('LOADING');
@@ -72,13 +81,13 @@ export const InspectionResultEntryPage: React.FC = () => {
           } else {
             setPageStatus('EXPIRED');
             setErrorMessage(
-              msg || 'Liên kết nhập kết quả đã hết hạn. Vui lòng liên hệ hợp tác xã để được cấp liên kết mới.'
+              msg || 'Liên kết nhập kết quả đã hết hạn. Vui lòng liên hệ hợp tác xã để được cấp liên kết mới.',
             );
           }
         } else if (status === 404) {
           setPageStatus('NOT_FOUND');
           setErrorMessage(
-            msg || 'Liên kết không tồn tại hoặc đã bị thu hồi do cấp mới liên kết khác.'
+            msg || 'Liên kết không tồn tại hoặc đã bị thu hồi do cấp mới liên kết khác.',
           );
         } else {
           setPageStatus('ERROR');
@@ -87,16 +96,20 @@ export const InspectionResultEntryPage: React.FC = () => {
       }
     };
 
-    fetchPortalData();
+    void fetchPortalData();
   }, [token]);
 
   const handleUploadFile = async (criterionId: string, file: File): Promise<string> => {
-    if (!token) throw new Error('Mã liên kết không hợp lệ');
+    if (!token) {
+      throw new Error('Mã liên kết không hợp lệ');
+    }
     return await uploadPortalResultFile(token, criterionId, file);
   };
 
   const handleSubmit = async (results: InspectionCriterionResultItemInput[]) => {
-    if (!token) return;
+    if (!token) {
+      return;
+    }
     setIsSubmitting(true);
     try {
       await submitPortalResults(token, { results });
@@ -115,7 +128,7 @@ export const InspectionResultEntryPage: React.FC = () => {
           msg ||
             (goneStatus === 'USED'
               ? 'Liên kết này đã được sử dụng để nhập kết quả trước đó.'
-              : 'Liên kết nhập kết quả đã hết hạn. Vui lòng liên hệ hợp tác xã để được cấp liên kết mới.')
+              : 'Liên kết nhập kết quả đã hết hạn. Vui lòng liên hệ hợp tác xã để được cấp liên kết mới.'),
         );
       } else {
         toast.error(msg);
@@ -267,7 +280,7 @@ export const InspectionResultEntryPage: React.FC = () => {
                   Hệ thống Nguồn Gốc Số đã tiếp nhận toàn bộ kết quả kiểm nghiệm từ đơn vị của Quý
                   khách. Nguồn dữ liệu đã được xác nhận với định danh{' '}
                   <strong className="text-primary font-semibold">
-                    "Đơn vị kiểm nghiệm khai"
+                    &quot;Đơn vị kiểm nghiệm khai&quot;
                   </strong>
                   .
                 </p>
@@ -383,4 +396,6 @@ export const InspectionResultEntryPage: React.FC = () => {
       </div>
     </div>
   );
-};
+}
+
+export default InspectionResultEntryPage;

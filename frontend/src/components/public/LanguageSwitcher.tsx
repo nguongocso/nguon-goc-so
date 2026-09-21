@@ -1,8 +1,11 @@
-import React from 'react';
-import { useLanguage } from '@/context/LanguageContext';
 import { Globe } from 'lucide-react';
 
-export const LanguageSwitcher: React.FC = () => {
+import { useLanguage } from '@/context/LanguageContext';
+
+/**
+ * Nút chuyển đổi ngôn ngữ (VI / EN) cho giao diện tra cứu công khai.
+ */
+export function LanguageSwitcher() {
   const { lang, setLang } = useLanguage();
 
   return (
@@ -35,4 +38,6 @@ export const LanguageSwitcher: React.FC = () => {
       </button>
     </div>
   );
-};
+}
+
+export default LanguageSwitcher;
