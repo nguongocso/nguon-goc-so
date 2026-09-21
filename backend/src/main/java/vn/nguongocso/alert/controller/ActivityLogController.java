@@ -44,125 +44,130 @@ import vn.nguongocso.alert.service.ActivityLogService;
 @RequestMapping("/api/v1/organizations/activity-logs")
 @RequiredArgsConstructor
 public class ActivityLogController {
-        private final ActivityLogService activityLogService;
-        private final ActivityLogExportService activityLogExportService;
 
-        /**
-         * API lấy danh sách lịch sử hoạt động của tổ chức hiện tại.
-         */
-        @GetMapping
-        @PreAuthorize("hasRole('VT-02')")
-        public ResponseEntity<ApiResult<PageResponse<ActivityLogResponse>>> getActivityLogs(
-                        @RequestParam(defaultValue = "0") int page,
-                        @RequestParam(defaultValue = "10") int size,
-                        @RequestParam(required = false) String action,
-                        @RequestParam(required = false) String actorName,
-                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-                        @RequestParam(required = false) String objectType,
-                        @AuthenticationPrincipal CustomUserDetails currentUser,
-                        HttpServletRequest request) {
+    private final ActivityLogService activityLogService;
+    private final ActivityLogExportService activityLogExportService;
 
-                String ipAddress = getClientIpAddress(request);
+    /**
+     * API lấy danh sách lịch sử hoạt động của tổ chức hiện tại.
+     */
+    @GetMapping
+    @PreAuthorize("hasRole('VT-02')")
+    public ResponseEntity<ApiResult<PageResponse<ActivityLogResponse>>> getActivityLogs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) String actorName,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate startDate,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate endDate,
+            @RequestParam(required = false) String objectType,
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            HttpServletRequest request) {
 
-                log.info(
-                                "User {} thuộc tổ chức {} yêu cầu xem lịch sử hoạt động từ IP {}",
-                                currentUser.getUsername(),
-                                currentUser.getOrganizationCode(),
-                                ipAddress);
+        String ipAddress = getClientIpAddress(request);
 
-                PageResponse<ActivityLogResponse> response = activityLogService.getActivityLogs(
-                                page,
-                                size,
-                                action,
-                                actorName,
-                                startDate,
-                                endDate,
-                                objectType,
-                                currentUser);
+        log.info(
+                "User {} thuộc tổ chức {} yêu cầu xem lịch sử hoạt động từ IP {}",
+                currentUser.getUsername(),
+                currentUser.getOrganizationCode(),
+                ipAddress);
 
-                return ResponseEntity.ok(ApiResult.success(response));
+        PageResponse<ActivityLogResponse> response = activityLogService.getActivityLogs(
+                page,
+                size,
+                action,
+                actorName,
+                startDate,
+                endDate,
+                objectType,
+                currentUser);
+
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Đếm số bản ghi nhật ký khớp bộ lọc trước khi xuất.
+     */
+    @PostMapping("/exports/preview")
+    @PreAuthorize("hasRole('VT-02')")
+    public ResponseEntity<ApiResult<ActivityLogExportPreviewResponse>> previewExport(
+            @Valid @RequestBody ActivityLogExportFilterRequest filter,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        ActivityLogExportPreviewResponse response = activityLogExportService.preview(filter, currentUser);
+        return ResponseEntity.ok(ApiResult.success(response));
+    }
+
+    /**
+     * Tạo export trực tiếp hoặc job nền cho snapshot nhật ký khớp bộ lọc.
+     */
+    @PostMapping("/exports")
+    @PreAuthorize("hasRole('VT-02')")
+    public ResponseEntity<?> exportActivityLogs(
+            @Valid @RequestBody ActivityLogExportFilterRequest filter,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        ActivityLogExportResult result = activityLogExportService.requestExport(filter, currentUser);
+        if ("ASYNC".equals(result.getMode())) {
+            return ResponseEntity.status(HttpStatus.ACCEPTED)
+                    .body(ApiResult.success(HttpStatus.ACCEPTED.value(), result.getJob()));
         }
 
-        /**
-         * Đếm số bản ghi nhật ký khớp bộ lọc trước khi xuất.
-         */
-        @PostMapping("/exports/preview")
-        @PreAuthorize("hasRole('VT-02')")
-        public ResponseEntity<ApiResult<ActivityLogExportPreviewResponse>> previewExport(
-                        @Valid @RequestBody ActivityLogExportFilterRequest filter,
-                        @AuthenticationPrincipal CustomUserDetails currentUser) {
-                ActivityLogExportPreviewResponse response = activityLogExportService.preview(filter, currentUser);
-                return ResponseEntity.ok(ApiResult.success(response));
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        ContentDisposition disposition = ContentDisposition.attachment()
+                .filename("activity-logs-" + timestamp + ".csv", StandardCharsets.UTF_8)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+                .body(result.getCsvBytes());
+    }
+
+    /** Lấy trạng thái yêu cầu export nền thuộc tổ chức hiện tại. */
+    @GetMapping("/exports/{exportId}")
+    @PreAuthorize("hasRole('VT-02')")
+    public ResponseEntity<ApiResult<ActivityLogExportJobResponse>> getExportJob(
+            @PathVariable UUID exportId,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        return ResponseEntity.ok(ApiResult.success(activityLogExportService.getJob(exportId, currentUser)));
+    }
+
+    /** Tải tệp CSV của export job đã hoàn tất. */
+    @GetMapping("/exports/{exportId}/download")
+    @PreAuthorize("hasRole('VT-02')")
+    public ResponseEntity<Resource> downloadExportJob(
+            @PathVariable UUID exportId,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        ActivityLogExportDownload download = activityLogExportService.getDownload(exportId, currentUser);
+        ContentDisposition disposition = ContentDisposition.attachment()
+                .filename(download.getFileName(), StandardCharsets.UTF_8).build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .contentLength(download.getFileSize())
+                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+                .body(new FileSystemResource(download.getPath()));
+    }
+
+    /**
+     * Lấy địa chỉ IP thực tế của client.
+     */
+    private String getClientIpAddress(HttpServletRequest request) {
+
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+
+        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
+            return xForwardedFor.split(",")[0].trim();
         }
 
-        /**
-         * Tạo export trực tiếp hoặc job nền cho snapshot nhật ký khớp bộ lọc.
-         */
-        @PostMapping("/exports")
-        @PreAuthorize("hasRole('VT-02')")
-        public ResponseEntity<?> exportActivityLogs(
-                        @Valid @RequestBody ActivityLogExportFilterRequest filter,
-                        @AuthenticationPrincipal CustomUserDetails currentUser) {
-                ActivityLogExportResult result = activityLogExportService.requestExport(filter, currentUser);
-                if ("ASYNC".equals(result.getMode())) {
-                        return ResponseEntity.status(HttpStatus.ACCEPTED)
-                                        .body(ApiResult.success(HttpStatus.ACCEPTED.value(), result.getJob()));
-                }
+        String xRealIp = request.getHeader("X-Real-IP");
 
-                String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-                ContentDisposition disposition = ContentDisposition.attachment()
-                                .filename("activity-logs-" + timestamp + ".csv", StandardCharsets.UTF_8)
-                                .build();
-
-                return ResponseEntity.ok()
-                                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
-                                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
-                                .body(result.getCsvBytes());
+        if (xRealIp != null && !xRealIp.isBlank()) {
+            return xRealIp;
         }
 
-        /** Lấy trạng thái yêu cầu export nền thuộc tổ chức hiện tại. */
-        @GetMapping("/exports/{exportId}")
-        @PreAuthorize("hasRole('VT-02')")
-        public ResponseEntity<ApiResult<ActivityLogExportJobResponse>> getExportJob(
-                        @PathVariable UUID exportId,
-                        @AuthenticationPrincipal CustomUserDetails currentUser) {
-                return ResponseEntity.ok(ApiResult.success(activityLogExportService.getJob(exportId, currentUser)));
-        }
-
-        /** Tải tệp CSV của export job đã hoàn tất. */
-        @GetMapping("/exports/{exportId}/download")
-        @PreAuthorize("hasRole('VT-02')")
-        public ResponseEntity<Resource> downloadExportJob(
-                        @PathVariable UUID exportId,
-                        @AuthenticationPrincipal CustomUserDetails currentUser) {
-                ActivityLogExportDownload download = activityLogExportService.getDownload(exportId, currentUser);
-                ContentDisposition disposition = ContentDisposition.attachment()
-                                .filename(download.getFileName(), StandardCharsets.UTF_8).build();
-                return ResponseEntity.ok()
-                                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
-                                .contentLength(download.getFileSize())
-                                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
-                                .body(new FileSystemResource(download.getPath()));
-        }
-
-        /**
-         * Lấy địa chỉ IP thực tế của client.
-         */
-        private String getClientIpAddress(HttpServletRequest request) {
-
-                String xForwardedFor = request.getHeader("X-Forwarded-For");
-
-                if (xForwardedFor != null && !xForwardedFor.isBlank()) {
-                        return xForwardedFor.split(",")[0].trim();
-                }
-
-                String xRealIp = request.getHeader("X-Real-IP");
-
-                if (xRealIp != null && !xRealIp.isBlank()) {
-                        return xRealIp;
-                }
-
-                return request.getRemoteAddr();
-        }
+        return request.getRemoteAddr();
+    }
 }
