@@ -1,5 +1,7 @@
 package vn.nguongocso.export.service;
 
+import java.util.UUID;
+
 import org.springframework.core.io.Resource;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.export.dto.request.ExportOpenDataRequest;
@@ -18,5 +20,5 @@ public interface ExportService {
      * @param currentUser Thông tin người dùng đăng nhập (VT-02)
      * @return Tệp dữ liệu hồ sơ đã được lọc theo cấu hình mẫu
      */
-    Resource exportWithTemplate(java.util.UUID shipmentId, java.util.UUID templateId, String format, CustomUserDetails currentUser);
+    Resource exportWithTemplate(UUID shipmentId, UUID templateId, String format, CustomUserDetails currentUser);
 }
