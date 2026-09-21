@@ -8,21 +8,28 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
-  Inbox,
   Minus,
   PhoneCall,
   ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { ListPageHeader } from '@/components/common/ListPageHeader';
-import { ListCard } from '@/components/common/ListCard';
-import { ListToolbar } from '@/components/common/ListToolbar';
+import {
+  exportOrganizationUsage,
+  getOrganizationUsage,
+  OrganizationUsageApiError,
+  type OrganizationUsageExportFormat,
+} from '@/api/organizationUsageApi';
 import { DataTableShell } from '@/components/common/DataTableShell';
+import { FilterSelect } from '@/components/common/FilterSelect';
+import { ListCard } from '@/components/common/ListCard';
+import { ListPageHeader } from '@/components/common/ListPageHeader';
+import { ListToolbar } from '@/components/common/ListToolbar';
 import { RefreshButton } from '@/components/common/RefreshButton';
 import { SearchInput } from '@/components/common/SearchInput';
-import { FilterSelect } from '@/components/common/FilterSelect';
 import { StatusBadge } from '@/components/common/StatusBadge';
+import { HelpButton } from '@/components/help/HelpButton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   DropdownMenu,
@@ -32,17 +39,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TableCell, TableHead, TableRow } from '@/components/ui/table';
-import { HelpButton } from '@/components/help/HelpButton';
-
-import {
-  exportOrganizationUsage,
-  getOrganizationUsage,
-  OrganizationUsageApiError,
-  type OrganizationUsageExportFormat,
-} from '@/api/organizationUsageApi';
-import { formatDateTime, getLocalDateString } from '@/utils/dateTime';
 import {
   ORGANIZATION_USAGE_METRICS,
   type MetricComparison,
@@ -50,6 +47,7 @@ import {
   type OrganizationUsageItem,
   type OrganizationUsageSortKey,
 } from '@/types/organizationUsage';
+import { formatDateTime, getLocalDateString } from '@/utils/dateTime';
 
 type StatusFilter = 'ALL' | 'NEEDS_SUPPORT' | 'NO_DATA';
 
@@ -78,22 +76,20 @@ function toDisplayDate(iso: string): string {
  * Dùng làm thứ tự sắp xếp mặc định, đếm thẻ tổng hợp và lọc trạng thái.
  */
 function getStatusRank(item: OrganizationUsageItem): number {
-  if (item.needsSupport && item.lastActivityAt != null) return 0;
-  if (item.hasData) return 1;
+  if (item.needsSupport && item.lastActivityAt != null) {
+    return 0;
+  }
+  if (item.hasData) {
+    return 1;
+  }
   return 2;
 }
 
 /**
  * Ô hiển thị một chỉ số trên cùng một hàng: giá trị kỳ hiện tại
  * kèm phần trăm thay đổi so với kỳ trước (mũi tên + ±%).
- * Quy ước hiển thị: previous = 0, current > 0 → "+100.0%" (tăng từ con số 0);
- * không tăng không giảm → "0.0%"; chưa có dữ liệu → "—".
- * Màu dùng token ngữ nghĩa (success/destructive) theo AI_DESIGN_SYSTEM.md,
- * luôn kèm ký hiệu thay vì chỉ tô màu.
  */
 function MetricCell({ metric, hasData }: { metric: MetricComparison; hasData: boolean }) {
-  // Phương án A: một cột dùng một kiểu căn (trái) để không bị ziczac dọc;
-  // cả số liệu lẫn dấu "—" đều bám lề trái, "—" chỉ khác màu muted.
   if (!hasData) {
     return <div className="text-left text-muted-foreground">—</div>;
   }
@@ -167,12 +163,9 @@ function SortButton({
 
 /**
  * Nội dung trang Mức độ sử dụng nền tảng (NCL-07-CN-008):
- * thẻ tổng hợp và bảng dashboard mức độ sử dụng theo tổ chức,
- * kèm thanh bộ lọc đặt ngay phía trên bảng trong cùng một thẻ.
- * Đổi kỳ/từ khóa/trạng thái được áp dụng ngay, không cần nút xác nhận.
- * File page chỉ gọi component này, không chứa nghiệp vụ hiển thị.
+ * Thẻ tổng hợp và bảng dashboard mức độ sử dụng theo tổ chức.
  */
-export default function OrganizationUsageContent() {
+export function OrganizationUsageContent() {
   const initial = useMemo(() => defaultRange(), []);
   const [fromDate, setFromDate] = useState<string>(initial.from);
   const [toDate, setToDate] = useState<string>(initial.to);
@@ -202,7 +195,7 @@ export default function OrganizationUsageContent() {
         setData(null);
       } else {
         toast.error(
-          err instanceof Error ? err.message : 'Không thể tải dữ liệu mức độ sử dụng.'
+          err instanceof Error ? err.message : 'Không thể tải dữ liệu mức độ sử dụng.',
         );
         setData(null);
       }
@@ -214,7 +207,9 @@ export default function OrganizationUsageContent() {
   // Đổi kỳ được áp dụng ngay: chỉ gọi API khi cả hai ô đều rỗng hoặc đủ ngày hợp lệ.
   useEffect(() => {
     const isComplete = (value: string) => value === '' || /^\d{4}-\d{2}-\d{2}$/.test(value);
-    if (!isComplete(fromDate) || !isComplete(toDate)) return;
+    if (!isComplete(fromDate) || !isComplete(toDate)) {
+      return;
+    }
     if (fromDate && toDate && fromDate > toDate) {
       toast.error('Từ ngày phải trước hoặc bằng đến ngày.');
       return;
@@ -239,7 +234,7 @@ export default function OrganizationUsageContent() {
           startDate: fromDate || undefined,
           endDate: toDate || undefined,
         },
-        format
+        format,
       );
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -250,7 +245,7 @@ export default function OrganizationUsageContent() {
       link.remove();
       window.URL.revokeObjectURL(url);
       toast.success(
-        format === 'pdf' ? 'Xuất báo cáo PDF thành công.' : 'Xuất báo cáo CSV thành công.'
+        format === 'pdf' ? 'Xuất báo cáo PDF thành công.' : 'Xuất báo cáo CSV thành công.',
       );
     } catch (err: unknown) {
       if (err instanceof OrganizationUsageApiError && err.status === 403) {
@@ -289,8 +284,6 @@ export default function OrganizationUsageContent() {
       ? `Kỳ ${toDisplayDate(fromDate)} → ${toDisplayDate(toDate)}`
       : 'Kỳ 30 ngày gần nhất';
 
-  // Mô tả kỳ báo cáo dùng ngày đã chuẩn hóa từ backend (kỳ trước luôn có cùng
-  // độ dài kỳ hiện tại); khi chưa có dữ liệu thì dùng lại ngày đang nhập.
   const periodDescription = useMemo(() => {
     const currentFrom = data?.startDate ?? fromDate;
     const currentTo = data?.endDate ?? toDate;
@@ -307,7 +300,7 @@ export default function OrganizationUsageContent() {
     const kw = searchKeyword.trim().toLowerCase();
     if (kw) {
       items = items.filter((item) =>
-        item.organizationName?.toLowerCase().includes(kw)
+        item.organizationName?.toLowerCase().includes(kw),
       );
     }
     if (statusFilter === 'NEEDS_SUPPORT') {
@@ -343,10 +336,9 @@ export default function OrganizationUsageContent() {
         actions={
           <>
             <HelpButton screenKey="report-organization-usage" />
-            {/* Chọn kiểu xuất báo cáo: CSV hoặc PDF */}
             <DropdownMenu>
               <DropdownMenuTrigger
-                className="gap-1.5 rounded-[min(var(--radius-md),12px)] border bg-white h-9 px-3 font-medium hover:bg-primary-light disabled:pointer-events-none disabled:opacity-50"
+                className="gap-1.5 rounded-[min(var(--radius-md),12px)] border bg-white h-9 px-3 font-medium hover:bg-primary-light disabled:pointer-events-none disabled:opacity-50 inline-flex items-center"
                 disabled={isExporting || isLoading || isForbidden}
               >
                 <Download className="size-4" />
@@ -379,15 +371,11 @@ export default function OrganizationUsageContent() {
           <ShieldAlert className="size-4" />
           <AlertTitle>Bạn không có quyền truy cập</AlertTitle>
           <AlertDescription>
-            Mức độ sử dụng nền tảng chỉ dành cho Quản trị viên
-            hệ thống (VT-01).
+            Mức độ sử dụng nền tảng chỉ dành cho Quản trị viên hệ thống (VT-01).
           </AlertDescription>
         </Alert>
       ) : (
         <>
-          {/* Thẻ tổng hợp: dùng Card size="sm" và CardContent mặc định (chỉ padding ngang)
-              để tránh cộng dồn padding dọc; bố cục hàng ngang icon + số liệu lấp đầy
-              khoảng trắng, viền trái màu và thanh tỉ lệ giúp phân biệt nhanh trạng thái. */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Card size="sm" className="border-l-4 border-l-primary">
               <CardContent>
@@ -426,17 +414,16 @@ export default function OrganizationUsageContent() {
                     </div>
                     <div
                       className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
-                      role="presentation"
                       aria-hidden="true"
                     >
                       <div
-                        className="h-full rounded-full bg-success"
+                        className="h-full rounded-full bg-success transition-all duration-300"
                         style={{ width: `${summary.activeShare}%` }}
                       />
                     </div>
-                  </div>
-                  <div className="rounded-full bg-success-bg p-2.5 text-success">
-                    <Activity className="size-5" aria-hidden />
+                    <div className="mt-1 truncate text-xs text-muted-foreground">
+                      Có phát sinh dữ liệu trong kỳ
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -449,7 +436,7 @@ export default function OrganizationUsageContent() {
                       Cần liên hệ hỗ trợ
                     </div>
                     <div className="mt-1 flex items-baseline gap-2">
-                      <span className="text-3xl font-bold tabular-nums text-warning">
+                      <span className="text-3xl font-bold tabular-nums text-warning-dark">
                         {summary.needsSupport}
                       </span>
                       <span className="text-xs font-medium text-muted-foreground tabular-nums">
@@ -458,22 +445,24 @@ export default function OrganizationUsageContent() {
                     </div>
                     <div
                       className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
-                      role="presentation"
                       aria-hidden="true"
                     >
                       <div
-                        className="h-full rounded-full bg-warning"
+                        className="h-full rounded-full bg-warning transition-all duration-300"
                         style={{ width: `${summary.needsSupportShare}%` }}
                       />
                     </div>
+                    <div className="mt-1 truncate text-xs text-muted-foreground">
+                      Không có hoạt động ≥ 30 ngày
+                    </div>
                   </div>
-                  <div className="rounded-full bg-warning-bg p-2.5 text-warning">
+                  <div className="rounded-full bg-warning-light p-2.5 text-warning-dark">
                     <PhoneCall className="size-5" aria-hidden />
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card size="sm" className="border-l-4 border-l-border">
+            <Card size="sm" className="border-l-4 border-l-muted-foreground/40">
               <CardContent>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -481,7 +470,7 @@ export default function OrganizationUsageContent() {
                       Chưa có dữ liệu
                     </div>
                     <div className="mt-1 flex items-baseline gap-2">
-                      <span className="text-3xl font-bold tabular-nums text-muted-foreground">
+                      <span className="text-3xl font-bold tabular-nums text-foreground">
                         {summary.noData}
                       </span>
                       <span className="text-xs font-medium text-muted-foreground tabular-nums">
@@ -490,17 +479,16 @@ export default function OrganizationUsageContent() {
                     </div>
                     <div
                       className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
-                      role="presentation"
                       aria-hidden="true"
                     >
                       <div
-                        className="h-full rounded-full bg-muted-foreground"
+                        className="h-full rounded-full bg-muted-foreground/40 transition-all duration-300"
                         style={{ width: `${summary.noDataShare}%` }}
                       />
                     </div>
-                  </div>
-                  <div className="rounded-full bg-muted p-2.5 text-muted-foreground">
-                    <Inbox className="size-5" aria-hidden />
+                    <div className="mt-1 truncate text-xs text-muted-foreground">
+                      Mới tạo hoặc chưa phát sinh
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -517,7 +505,6 @@ export default function OrganizationUsageContent() {
                       id="usage-from-date"
                       type="date"
                       value={fromDate}
-                      max={toDate || undefined}
                       onChange={(event) => setFromDate(event.target.value)}
                       className="w-44"
                     />
@@ -528,7 +515,6 @@ export default function OrganizationUsageContent() {
                       id="usage-to-date"
                       type="date"
                       value={toDate}
-                      min={fromDate || undefined}
                       onChange={(event) => setToDate(event.target.value)}
                       className="w-44"
                     />
@@ -556,7 +542,6 @@ export default function OrganizationUsageContent() {
               }
               right={
                 <div className="flex shrink-0 flex-col gap-1">
-                  {/* Nhãn ẩn giữ chỗ để nút Làm mới căn giữa theo hàng ô nhập liệu. */}
                   <span
                     aria-hidden="true"
                     className="invisible hidden text-sm leading-none font-medium select-none sm:block"
@@ -571,17 +556,17 @@ export default function OrganizationUsageContent() {
               }
             />
 
-            {/* Mô tả kỳ báo cáo: kỳ hiện tại và kỳ trước, hiển thị trên bảng */}
+            {/* Mô tả kỳ báo cáo: kỳ hiện tại và kỳ trước */}
             <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 px-1 text-sm text-muted-foreground">
               <span>
                 <span className="font-medium text-foreground">Kỳ hiện tại:</span>{' '}
-                Từ {toDisplayDate(periodDescription.currentFrom)} đến{' '}
+                từ {toDisplayDate(periodDescription.currentFrom)} đến{' '}
                 {toDisplayDate(periodDescription.currentTo)}
               </span>
               {periodDescription.previousFrom && periodDescription.previousTo && (
                 <span>
                   <span className="font-medium text-foreground">Kỳ trước:</span>{' '}
-                  Từ {toDisplayDate(periodDescription.previousFrom)} đến{' '}
+                  từ {toDisplayDate(periodDescription.previousFrom)} đến{' '}
                   {toDisplayDate(periodDescription.previousTo)}
                 </span>
               )}
@@ -599,7 +584,6 @@ export default function OrganizationUsageContent() {
               colSpan={10}
               header={
                 <>
-                  {/* Số thứ tự theo thứ tự hiển thị sau sắp xếp/lọc. */}
                   <TableHead className="w-12">STT</TableHead>
                   <TableHead>
                     <SortButton
@@ -671,7 +655,6 @@ export default function OrganizationUsageContent() {
                       <TableCell className="text-left">
                         <MetricCell metric={item.activeUsers} hasData={item.hasData} />
                       </TableCell>
-                      {/* Phương án A: ngày và dấu "—" cùng căn trái để thẳng cột. */}
                       <TableCell className="whitespace-nowrap text-left text-sm">
                         {item.lastActivityAt ? (
                           formatDateTime(item.lastActivityAt)
@@ -702,3 +685,5 @@ export default function OrganizationUsageContent() {
     </div>
   );
 }
+
+export default OrganizationUsageContent;

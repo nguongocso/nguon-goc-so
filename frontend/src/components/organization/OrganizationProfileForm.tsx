@@ -1,21 +1,38 @@
-import { getOrganizationProfile, updateOrganizationProfile } from "@/api/organizationApi";
-import { useAuth } from "@/hooks/useAuth";
-import { useAdministrativeUnits } from "@/hooks/useAdministrativeUnits";
-import type { OrganizationProfile, UpdateOrganizationRequest } from "../../types/organization.ts";
-import { type OrganizationProfileFormValues, organizationProfileSchema } from "@/utils/validators";
-import { AdministrativeUnitSingleSelect } from "@/components/common/AdministrativeUnitSingleSelect";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../ui/card";
-import { Label } from "../ui/label";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { AlertTriangle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 
-export const OrganizationProfileForm: React.FC = () => {
+import {
+  getOrganizationProfile,
+  updateOrganizationProfile,
+} from '@/api/organizationApi';
+import { AdministrativeUnitSingleSelect } from '@/components/common/AdministrativeUnitSingleSelect';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAdministrativeUnits } from '@/hooks/useAdministrativeUnits';
+import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
+import type { OrganizationProfile, UpdateOrganizationRequest } from '@/types/organization';
+import {
+  type OrganizationProfileFormValues,
+  organizationProfileSchema,
+} from '@/utils/validators';
+
+/**
+ * Form hiển thị và cập nhật thông tin hồ sơ tổ chức.
+ */
+export function OrganizationProfileForm() {
   const { user, updateUser } = useAuth();
   const [profile, setProfile] = useState<OrganizationProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -38,14 +55,19 @@ export const OrganizationProfileForm: React.FC = () => {
   const communeId = watch('communeId');
 
   const canEdit = user?.roleCode === 'VT-01' || user?.roleCode === 'VT-02';
-  const isMissingTerritory = user?.roleCode === 'VT-02' && (!profile?.provinceId || !profile?.communeId);
+  const isMissingTerritory =
+    user?.roleCode === 'VT-02' && (!profile?.provinceId || !profile?.communeId);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const data = await getOrganizationProfile();
         setProfile(data);
-        if (user && (user.organizationProvinceId !== data.provinceId || user.organizationCommuneId !== data.communeId)) {
+        if (
+          user &&
+          (user.organizationProvinceId !== data.provinceId ||
+            user.organizationCommuneId !== data.communeId)
+        ) {
           updateUser({
             ...user,
             organizationProvinceId: data.provinceId,
@@ -60,13 +82,13 @@ export const OrganizationProfileForm: React.FC = () => {
           phone: data.phone || '',
           email: data.email || '',
         });
-      } catch (error) {
+      } catch {
         toast.error('Không thể tải thông tin tổ chức');
       } finally {
         setLoading(false);
       }
     };
-    fetchProfile();
+    void fetchProfile();
   }, [reset, user, updateUser]);
 
   const onSubmit = async (data: OrganizationProfileFormValues) => {
@@ -94,8 +116,9 @@ export const OrganizationProfileForm: React.FC = () => {
       }
       setIsEditing(false);
       toast.success('Cập nhật hồ sơ thành công');
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Cập nhật thất bại. Vui lòng thử lại.';
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { message?: string } } };
+      const message = axiosError.response?.data?.message || 'Cập nhật thất bại. Vui lòng thử lại.';
       toast.error(message);
     }
   };
@@ -112,7 +135,8 @@ export const OrganizationProfileForm: React.FC = () => {
             Thông tin chi tiết
           </CardTitle>
           <CardDescription className="mt-1">
-            {profile?.name} — Mã định danh: <span className="font-mono font-medium text-slate-700">{profile?.code}</span>
+            {profile?.name} — Mã định danh:{' '}
+            <span className="font-mono font-medium text-slate-700">{profile?.code}</span>
           </CardDescription>
         </div>
       </CardHeader>
@@ -132,10 +156,10 @@ export const OrganizationProfileForm: React.FC = () => {
           {/* Cụm chọn Địa bàn hành chính (Tỉnh/Thành phố → Xã/Phường) và Địa chỉ chi tiết */}
           <div
             className={cn(
-              "rounded-lg border p-4 space-y-3 transition-colors",
+              'rounded-lg border p-4 space-y-3 transition-colors',
               isMissingTerritory
-                ? "border-amber-300 bg-amber-50/40 dark:border-amber-800/60 dark:bg-amber-950/20"
-                : "border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30"
+                ? 'border-amber-300 bg-amber-50/40 dark:border-amber-800/60 dark:bg-amber-950/20'
+                : 'border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30',
             )}
           >
             <div className="flex items-center justify-between">
@@ -158,7 +182,9 @@ export const OrganizationProfileForm: React.FC = () => {
                     Địa bàn hành chính quản lý chưa được hoàn tất
                   </p>
                   <p className="text-amber-800 dark:text-amber-300">
-                    Vui lòng {!isEditing ? 'bấm "Chỉnh sửa" và ' : ''}chọn đầy đủ <strong>Tỉnh / Thành phố</strong> và <strong>Xã / Phường</strong> để các lô sản xuất của Hợp tác xã được đồng bộ vào phạm vi quản lý của Cán bộ ngành.
+                    Vui lòng {!isEditing ? 'bấm "Chỉnh sửa" và ' : ''}chọn đầy đủ{' '}
+                    <strong>Tỉnh / Thành phố</strong> và <strong>Xã / Phường</strong> để các lô sản
+                    xuất của Hợp tác xã được đồng bộ vào phạm vi quản lý của Cán bộ ngành.
                   </p>
                 </div>
               </div>
@@ -269,4 +295,4 @@ export const OrganizationProfileForm: React.FC = () => {
       </form>
     </Card>
   );
-};
+}

@@ -1,7 +1,11 @@
-import { CreateOrganizationForm } from "@/components/organization/CreateOrganizationForm";
-import { HelpButton } from "@/components/help/HelpButton";
-import { Building2 } from "lucide-react";
+import { Building2 } from 'lucide-react';
 
+import { HelpButton } from '@/components/help/HelpButton';
+import { CreateOrganizationForm } from '@/components/organization/CreateOrganizationForm';
+
+/**
+ * Trang tạo tổ chức mới và tài khoản quản trị đầu tiên.
+ */
 export function CreateOrganizationPage() {
   return (
     <div className="space-y-6">

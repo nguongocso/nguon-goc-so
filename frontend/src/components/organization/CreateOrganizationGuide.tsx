@@ -1,44 +1,48 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Info,
-  ShieldCheck,
-  UserRound,
-  Building2,
-  PenLine,
   AlertTriangle,
+  Building2,
   ChevronDown,
   ChevronUp,
-} from "lucide-react";
+  Info,
+  PenLine,
+  ShieldCheck,
+  UserRound,
+} from 'lucide-react';
 
-const guideSections = [
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+const GUIDE_SECTIONS = [
   {
     icon: Building2,
-    title: "Mã tổ chức",
-    content: "Chỉ dùng A-Z, 0-9, gạch ngang & gạch dưới.",
+    title: 'Mã tổ chức',
+    content: 'Chỉ dùng A-Z, 0-9, gạch ngang & gạch dưới.',
   },
   {
     icon: ShieldCheck,
-    title: "Mật khẩu",
-    content: "Ít nhất 8 ký tự, có chữ hoa, thường, số, ký tự đặc biệt.",
+    title: 'Mật khẩu',
+    content: 'Ít nhất 8 ký tự, có chữ hoa, thường, số, ký tự đặc biệt.',
   },
   {
     icon: UserRound,
-    title: "Quản trị viên",
-    content: "Tài khoản quản trị đầu tiên được tạo cùng tổ chức.",
+    title: 'Quản trị viên',
+    content: 'Tài khoản quản trị đầu tiên được tạo cùng tổ chức.',
   },
   {
     icon: PenLine,
-    title: "Sau khi tạo",
-    content: "Có thể cập nhật địa chỉ, SĐT, email trong Hồ sơ tổ chức.",
+    title: 'Sau khi tạo',
+    content: 'Có thể cập nhật địa chỉ, SĐT, email trong Hồ sơ tổ chức.',
   },
   {
     icon: AlertTriangle,
-    title: "Lưu ý",
-    content: "Mã tổ chức và tên đăng nhập không thể thay đổi.",
+    title: 'Lưu ý',
+    content: 'Mã tổ chức và tên đăng nhập không thể thay đổi.',
   },
 ];
 
+/**
+ * Thẻ hướng dẫn các lưu ý khi tạo tổ chức mới.
+ */
 export function CreateOrganizationGuide() {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -53,7 +57,7 @@ export function CreateOrganizationGuide() {
           </div>
         </CardHeader>
         <CardContent className="px-4 pb-4 space-y-0 divide-y divide-border/50">
-          {guideSections.map((section) => (
+          {GUIDE_SECTIONS.map((section) => (
             <div key={section.title} className="flex gap-2.5 py-2.5 first:pt-0 last:pb-0">
               <section.icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
               <div>
@@ -82,7 +86,7 @@ export function CreateOrganizationGuide() {
         </button>
         {isOpen && (
           <div className="px-4 pb-4 space-y-3 border-t pt-3">
-            {guideSections.map((section) => (
+            {GUIDE_SECTIONS.map((section) => (
               <div key={section.title} className="flex gap-3">
                 <section.icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                 <div>

@@ -1,7 +1,10 @@
-import { OrganizationDetail } from "@/components/organization/OrganizationDetail";
-import { HelpButton } from "@/components/help/HelpButton";
+import { HelpButton } from '@/components/help/HelpButton';
+import { OrganizationDetail } from '@/components/organization/OrganizationDetail';
 
-const OrganizationDetailPage = () => {
+/**
+ * Trang chi tiết thông tin tổ chức.
+ */
+export function OrganizationDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
@@ -10,6 +13,6 @@ const OrganizationDetailPage = () => {
       <OrganizationDetail />
     </div>
   );
-};
+}
 
 export default OrganizationDetailPage;

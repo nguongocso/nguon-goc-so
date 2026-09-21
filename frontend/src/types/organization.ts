@@ -1,11 +1,13 @@
-import type { OrganizationType } from "./auth";
+import type { OrganizationType } from './auth';
+
+export type { OrganizationType };
 
 export interface OrganizationProfile {
   organizationId: string;
   name: string;
   code: string;
   type: OrganizationType;
-  status: "ACTIVE" | "INACTIVE";
+  status: 'ACTIVE' | 'INACTIVE';
   address: string | null;
   provinceId?: string | null;
   provinceName?: string | null;
@@ -26,7 +28,6 @@ export interface UpdateOrganizationRequest {
   email?: string;
 }
 
-
 export interface OrganizationProfileResponse {
   success: boolean;
   data: OrganizationProfile;
@@ -39,7 +40,6 @@ export interface CreateOrganizationRequest {
   address?: string;
   phone?: string;
   email?: string;
-
   userName: string;
   password: string;
   fullName: string;
@@ -55,7 +55,7 @@ export interface CreateOrganizationResponse {
     organizationName: string;
     organizationCode: string;
     organizationType: OrganizationType;
-    status: "ACTIVE" | "INACTIVE";
+    status: 'ACTIVE' | 'INACTIVE';
     createdAt: string;
   };
   timestamp: string;
@@ -66,7 +66,7 @@ export interface Organization {
   name: string;
   code: string;
   type: OrganizationType;
-  status: "ACTIVE" | "INACTIVE";
+  status: 'ACTIVE' | 'INACTIVE';
   createdAt: string;
   updatedAt?: string;
 }
@@ -83,7 +83,7 @@ export interface OrganizationUser {
   roleCode: string;
   roleName: string;
   customPermissions: string | null;
-  status: "ACTIVE" | "INACTIVE";
+  status: 'ACTIVE' | 'INACTIVE';
   joinedAt: string;
 }
 
@@ -139,8 +139,7 @@ export interface AvailableUser {
 }
 
 /**
- * Organization được trả về khi user đăng nhập
- * và cần chọn organization.
+ * Organization được trả về khi user đăng nhập và cần chọn organization.
  */
 export interface OrganizationSelection {
   organizationId: string;

@@ -36,22 +36,15 @@ interface DeactivateMemberDialogProps {
 
 /**
  * Dialog vô hiệu hóa thành viên (NCL-01-CN-009, QTN-32).
- *
- * - Giai đoạn "confirm": hiển thị cảnh báo mất quyền + chấm dứt phiên, bắt
- *   buộc nhập lý do.
- * - Khi người dùng bấm **Tiếp tục**, mở thêm modal cảnh báo rủi ro trước
- *   khi gọi API vô hiệu hóa (không còn logic chuyển giao lô — hệ thống chưa
- *   có phân quyền ghi sự kiện theo lô, D-4).
  */
-export const DeactivateMemberDialog = ({
+export function DeactivateMemberDialog({
   member,
   deactivating,
   onClose,
   onConfirm,
-}: DeactivateMemberDialogProps) => {
+}: DeactivateMemberDialogProps) {
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState<string | null>(null);
-  /** true -> hiện modal cảnh báo rủi ro trước khi gọi API deactivate. */
   const [showWarning, setShowWarning] = useState(false);
 
   const resetState = useCallback(() => {
@@ -66,7 +59,9 @@ export const DeactivateMemberDialog = ({
   }, [member, resetState]);
 
   const handleClose = () => {
-    if (deactivating) return;
+    if (deactivating) {
+      return;
+    }
     resetState();
     onClose();
   };
@@ -85,33 +80,38 @@ export const DeactivateMemberDialog = ({
     return trimmed;
   };
 
-  /** Gọi API vô hiệu hóa thực sự + xử lý outcome trả về. */
   const commitDeactivation = async (trimmedReason: string) => {
-    if (!member || deactivating) return;
+    if (!member || deactivating) {
+      return;
+    }
 
     const outcome = await onConfirm(member.userId, trimmedReason);
 
     if (outcome.ok || outcome.fatal) {
-      // Thành công, hoặc lỗi không thể xử lý tiếp tại chỗ (403/404/409):
-      // toast đã hiển thị → đóng dialog, danh sách sẽ được refresh từ backend.
       handleClose();
     }
   };
 
   const handleConfirm = () => {
     const trimmed = validateReason();
-    if (!trimmed) return;
+    if (!trimmed) {
+      return;
+    }
     setShowWarning(true);
   };
 
-  if (!member) return null;
+  if (!member) {
+    return null;
+  }
 
   return (
     <>
       <AlertDialog
         open={member !== null}
         onOpenChange={(open) => {
-          if (!open) handleClose();
+          if (!open) {
+            handleClose();
+          }
         }}
       >
         <AlertDialogPopup>
@@ -120,7 +120,7 @@ export const DeactivateMemberDialog = ({
               <ShieldOff className="size-5 text-red-600" />
               Vô hiệu hóa thành viên
             </AlertDialogTitle>
-                        <AlertDialogDescription>
+            <AlertDialogDescription>
               <span className="mb-2 block">
                 Thao tác này sẽ thu hồi quyền truy cập và chấm dứt phiên làm
                 việc của thành viên ngay lập tức.
@@ -168,7 +168,9 @@ export const DeactivateMemberDialog = ({
               disabled={deactivating}
               onChange={(event) => {
                 setReason(event.target.value);
-                if (reasonError) setReasonError(null);
+                if (reasonError) {
+                  setReasonError(null);
+                }
               }}
               rows={3}
             />
@@ -203,7 +205,7 @@ export const DeactivateMemberDialog = ({
         </AlertDialogPopup>
       </AlertDialog>
 
-      {/* Modal cảnh báo rủi ro trước khi thực hiện vô hiệu hóa. */}
+      {/* Modal cảnh báo rủi ro trước khi thực hiện vô hiệu hóa */}
       <Dialog open={showWarning} onOpenChange={setShowWarning}>
         <DialogPortal>
           <DialogOverlay className="fixed inset-0 bg-black/60" />
@@ -247,4 +249,6 @@ export const DeactivateMemberDialog = ({
       </Dialog>
     </>
   );
-};
+}
+
+export default DeactivateMemberDialog;

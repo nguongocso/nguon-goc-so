@@ -1,20 +1,48 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import type React from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { createOrganizationSchema, type CreateOrganizationFormValues } from '@/utils/validators';
-import { createOrganization } from '@/api/organizationApi';
-import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Building2, UserRound, ShieldCheck, Plus } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  Building2,
+  Eye,
+  EyeOff,
+  Plus,
+  ShieldCheck,
+  UserRound,
+} from 'lucide-react';
+import { toast } from 'sonner';
+
+import { createOrganization } from '@/api/organizationApi';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { CREATABLE_ORGANIZATION_TYPES } from '@/utils/constants';
+import {
+  createOrganizationSchema,
+  type CreateOrganizationFormValues,
+} from '@/utils/validators';
 import type { CreateOrganizationRequest } from '@/types/organization';
 
-const getPasswordStrength = (password: string): { score: number; label: string; color: string } => {
+function getPasswordStrength(password: string): {
+  score: number;
+  label: string;
+  color: string;
+} {
   let score = 0;
   if (password.length >= 8) score++;
   if (/[A-Z]/.test(password)) score++;
@@ -25,8 +53,26 @@ const getPasswordStrength = (password: string): { score: number; label: string; 
   if (score <= 2) return { score, label: 'Yếu', color: 'bg-red-500' };
   if (score === 3) return { score, label: 'Trung bình', color: 'bg-yellow-500' };
   return { score, label: 'Mạnh', color: 'bg-green-500' };
-};
+}
 
+function InputWithIcon({
+  icon: Icon,
+  className,
+  ...props
+}: React.ComponentProps<typeof Input> & { icon: React.ElementType }) {
+  return (
+    <div className="relative">
+      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-muted-foreground">
+        <Icon className="h-4 w-4" />
+      </div>
+      <Input {...props} className={`pl-9 ${className || ''}`} />
+    </div>
+  );
+}
+
+/**
+ * Form tạo mới tổ chức và tài khoản quản trị đầu tiên.
+ */
 export function CreateOrganizationForm() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -69,8 +115,11 @@ export function CreateOrganizationForm() {
       const result = await createOrganization(submitData);
       toast.success(`Tổ chức "${result.data.organizationName}" đã được tạo thành công!`);
       navigate('/organizations');
-    } catch (error: any) {
-      const response = error.response?.data;
+    } catch (error: unknown) {
+      const axiosError = error as {
+        response?: { data?: { status?: number; message?: string; errors?: Record<string, string> } };
+      };
+      const response = axiosError.response?.data;
       if (response?.status === 400 && response?.errors) {
         Object.entries(response.errors).forEach(([key, message]) => {
           setError(key as keyof CreateOrganizationFormValues, {
@@ -82,15 +131,6 @@ export function CreateOrganizationForm() {
       }
     }
   };
-
-  const InputWithIcon = ({ icon: Icon, ...props }: React.ComponentProps<typeof Input> & { icon: React.ElementType }) => (
-    <div className="relative">
-      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-muted-foreground">
-        <Icon className="h-4 w-4" />
-      </div>
-      <Input {...props} className={`pl-9 ${props.className || ''}`} />
-    </div>
-  );
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -148,7 +188,12 @@ export function CreateOrganizationForm() {
                     label,
                   }))}
                   value={organizationType}
-                  onValueChange={(value) => setValue('organizationType', value as any)}
+                  onValueChange={(value) =>
+                    setValue(
+                      'organizationType',
+                      value as 'COOPERATIVE' | 'ENTERPRISE' | 'GOVERNMENT',
+                    )
+                  }
                 >
                   <SelectTrigger id="organizationType" className="w-full">
                     <SelectValue placeholder="Chọn loại tổ chức" />
@@ -251,11 +296,21 @@ export function CreateOrganizationForm() {
                 {password && (
                   <div className="mt-2">
                     <div className="flex gap-1 h-1.5">
-                      <div className={`flex-1 rounded-full ${passwordStrength.score >= 1 ? passwordStrength.color : 'bg-gray-200'}`} />
-                      <div className={`flex-1 rounded-full ${passwordStrength.score >= 2 ? passwordStrength.color : 'bg-gray-200'}`} />
-                      <div className={`flex-1 rounded-full ${passwordStrength.score >= 3 ? passwordStrength.color : 'bg-gray-200'}`} />
-                      <div className={`flex-1 rounded-full ${passwordStrength.score >= 4 ? passwordStrength.color : 'bg-gray-200'}`} />
-                      <div className={`flex-1 rounded-full ${passwordStrength.score >= 5 ? passwordStrength.color : 'bg-gray-200'}`} />
+                      <div
+                        className={`flex-1 rounded-full ${passwordStrength.score >= 1 ? passwordStrength.color : 'bg-gray-200'}`}
+                      />
+                      <div
+                        className={`flex-1 rounded-full ${passwordStrength.score >= 2 ? passwordStrength.color : 'bg-gray-200'}`}
+                      />
+                      <div
+                        className={`flex-1 rounded-full ${passwordStrength.score >= 3 ? passwordStrength.color : 'bg-gray-200'}`}
+                      />
+                      <div
+                        className={`flex-1 rounded-full ${passwordStrength.score >= 4 ? passwordStrength.color : 'bg-gray-200'}`}
+                      />
+                      <div
+                        className={`flex-1 rounded-full ${passwordStrength.score >= 5 ? passwordStrength.color : 'bg-gray-200'}`}
+                      />
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       Độ mạnh: <span className="font-medium">{passwordStrength.label}</span>
@@ -294,7 +349,7 @@ export function CreateOrganizationForm() {
           </div>
         </CardContent>
 
-        {/* Footer gọn gàng */}
+        {/* Footer */}
         <div className="border-t px-5 py-4 flex justify-end gap-3">
           <Button
             type="button"

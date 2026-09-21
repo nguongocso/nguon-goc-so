@@ -1,17 +1,25 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { toast } from 'sonner';
 import { Eye, EyeOff } from 'lucide-react';
+import { toast } from 'sonner';
+import { z } from 'zod';
+
+import { addMember, getRoles } from '@/api/memberApi';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { addMember, getRoles } from '@/api/memberApi';
-import type { AddMemberRequest, RoleOption } from '@/types/member';
 import { getRoleLabel } from '@/config/roleAccess';
+import type { AddMemberRequest, RoleOption } from '@/types/member';
 
 const createMemberSchema = z
   .object({
@@ -22,7 +30,7 @@ const createMemberSchema = z
       .max(50, 'Mật khẩu tối đa 50 ký tự')
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
-        'Mật khẩu phải chứa ít nhất một chữ hoa, một chữ thường, một số và một ký tự đặc biệt (@$!%*?&)'
+        'Mật khẩu phải chứa ít nhất một chữ hoa, một chữ thường, một số và một ký tự đặc biệt (@$!%*?&)',
       ),
     confirmPassword: z.string().min(1, 'Vui lòng xác nhận mật khẩu'),
     fullName: z.string().min(1, 'Họ tên không được để trống'),
@@ -37,6 +45,9 @@ const createMemberSchema = z
 
 type CreateMemberFormValues = z.infer<typeof createMemberSchema>;
 
+/**
+ * Form tạo mới thành viên hợp tác xã (mặc định VT-03 Người ghi sự kiện).
+ */
 export function CreateMemberForm() {
   const navigate = useNavigate();
   const [roles, setRoles] = useState<RoleOption[]>([]);
@@ -60,7 +71,7 @@ export function CreateMemberForm() {
       fullName: '',
       phone: '',
       email: '',
-      roleId: 0, // placeholder, sẽ được cập nhật sau
+      roleId: 0,
     },
   });
 
@@ -88,7 +99,7 @@ export function CreateMemberForm() {
         setIsLoading(false);
       }
     };
-    loadRoles();
+    void loadRoles();
   }, [setValue]);
 
   const onSubmit = async (values: CreateMemberFormValues) => {
@@ -106,11 +117,14 @@ export function CreateMemberForm() {
       await addMember(submitData);
       toast.success('Thêm thành viên thành công');
       navigate('/members');
-    } catch (error: any) {
-      const msg = error.response?.data?.message || 'Có lỗi xảy ra khi thêm thành viên';
+    } catch (error: unknown) {
+      const axiosError = error as {
+        response?: { data?: { message?: string; errors?: Record<string, string> } };
+      };
+      const msg = axiosError.response?.data?.message || 'Có lỗi xảy ra khi thêm thành viên';
       toast.error(msg);
 
-      const fieldErrors = error.response?.data?.errors as Record<string, string> | undefined;
+      const fieldErrors = axiosError.response?.data?.errors;
       if (fieldErrors) {
         Object.entries(fieldErrors).forEach(([field, fieldMsg]) => {
           if (field in values) {
@@ -123,7 +137,9 @@ export function CreateMemberForm() {
     }
   };
 
-  if (isLoading) return <div className="p-8 text-center">Đang tải...</div>;
+  if (isLoading) {
+    return <div className="p-8 text-center">Đang tải...</div>;
+  }
 
   return (
     <Card className="rounded-xl border-slate-200 bg-white shadow-sm">
@@ -192,7 +208,9 @@ export function CreateMemberForm() {
                 {showConfirmPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
-            {errors.confirmPassword && <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>}
+            {errors.confirmPassword && (
+              <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
+            )}
           </div>
 
           {/* Họ và tên */}
@@ -211,7 +229,12 @@ export function CreateMemberForm() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" {...register('email')} placeholder="email@example.com" />
+              <Input
+                id="email"
+                type="email"
+                {...register('email')}
+                placeholder="email@example.com"
+              />
               {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
             </div>
           </div>
@@ -239,3 +262,5 @@ export function CreateMemberForm() {
     </Card>
   );
 }
+
+export default CreateMemberForm;

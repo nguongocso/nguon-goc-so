@@ -28,16 +28,14 @@ interface ReactivateMemberDialogProps {
 }
 
 /**
- * Dialog kích hoạt lại thành viên đã ngừng hoạt động (NCL-01-CN-009,
- * QTN-32 mục 9): bắt buộc nhập lý do. Vai trò cũ được giữ nguyên theo
- * backend — UI không tự suy đoán quyền mới.
+ * Dialog kích hoạt lại thành viên đã ngừng hoạt động (NCL-01-CN-009, QTN-32).
  */
-export const ReactivateMemberDialog = ({
+export function ReactivateMemberDialog({
   member,
   reactivating,
   onClose,
   onConfirm,
-}: ReactivateMemberDialogProps) => {
+}: ReactivateMemberDialogProps) {
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState<string | null>(null);
 
@@ -51,13 +49,17 @@ export const ReactivateMemberDialog = ({
   }, [member, resetState]);
 
   const handleClose = () => {
-    if (reactivating) return;
+    if (reactivating) {
+      return;
+    }
     resetState();
     onClose();
   };
 
   const handleConfirm = async () => {
-    if (!member || reactivating) return;
+    if (!member || reactivating) {
+      return;
+    }
 
     const trimmed = reason.trim();
     if (!trimmed) {
@@ -73,8 +75,6 @@ export const ReactivateMemberDialog = ({
     const outcome = await onConfirm(member.userId, trimmed);
 
     if (outcome.ok || outcome.fatal) {
-      // Thành công hoặc lỗi không thể xử lý tại chỗ (403/404/409):
-      // toast đã hiển thị, đóng dialog và refresh danh sách từ backend.
       handleClose();
     }
   };
@@ -83,7 +83,9 @@ export const ReactivateMemberDialog = ({
     <AlertDialog
       open={member !== null}
       onOpenChange={(open) => {
-        if (!open) handleClose();
+        if (!open) {
+          handleClose();
+        }
       }}
     >
       <AlertDialogPopup className="max-w-lg">
@@ -133,7 +135,9 @@ export const ReactivateMemberDialog = ({
             disabled={reactivating}
             onChange={(event) => {
               setReason(event.target.value);
-              if (reasonError) setReasonError(null);
+              if (reasonError) {
+                setReasonError(null);
+              }
             }}
             rows={3}
           />
@@ -164,4 +168,6 @@ export const ReactivateMemberDialog = ({
       </AlertDialogPopup>
     </AlertDialog>
   );
-};
+}
+
+export default ReactivateMemberDialog;

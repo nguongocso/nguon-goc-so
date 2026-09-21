@@ -1,9 +1,12 @@
-import React from 'react';
-import { OrganizationProfileForm } from "@/components/organization/OrganizationProfileForm";
-import { HelpButton } from "@/components/help/HelpButton";
-import { Building2 } from "lucide-react";
+import { Building2 } from 'lucide-react';
 
-const OrganizationProfilePage: React.FC = () => {
+import { HelpButton } from '@/components/help/HelpButton';
+import { OrganizationProfileForm } from '@/components/organization/OrganizationProfileForm';
+
+/**
+ * Trang quản lý hồ sơ thông tin của tổ chức hiện tại.
+ */
+export function OrganizationProfilePage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -21,6 +24,6 @@ const OrganizationProfilePage: React.FC = () => {
       <OrganizationProfileForm />
     </div>
   );
-};
+}
 
 export default OrganizationProfilePage;

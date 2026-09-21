@@ -1,20 +1,18 @@
-import React, { useEffect, useState } from "react";
-import { Building2, LoaderCircle, LogOut } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Building2, LoaderCircle, LogOut } from 'lucide-react';
+import { toast } from 'sonner';
 
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
-import {
-  getOrganizations,
-  selectOrganization,
-} from "@/api/authApi";
+import { getOrganizations, selectOrganization } from '@/api/authApi';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
+import type { OrganizationSelection } from '@/types/organization';
+import { removeSelectionToken } from '@/utils/storage';
 
-import type { OrganizationSelection } from "@/types/organization";
-
-import { removeSelectionToken } from "@/utils/storage";
-
-const OrganizationSelectionPage: React.FC = () => {
+/**
+ * Trang chọn tổ chức sau khi đăng nhập thành công với tài khoản thuộc nhiều tổ chức.
+ */
+export function OrganizationSelectionPage() {
   const navigate = useNavigate();
 
   const {
@@ -23,113 +21,99 @@ const OrganizationSelectionPage: React.FC = () => {
     logout,
   } = useAuth();
 
-  const [organizations, setOrganizations] = useState<
-    OrganizationSelection[]
-  >([]);
-
+  const [organizations, setOrganizations] = useState<OrganizationSelection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSelecting, setIsSelecting] = useState(false);
 
   /**
    * Bước 2:
-   * Sau khi username/password đúng,
-   * lấy danh sách organization bằng Selection JWT.
+   * Sau khi username/password đúng, lấy danh sách organization bằng Selection JWT.
    */
   useEffect(() => {
     const loadOrganizations = async () => {
       if (!selectionToken) {
-        navigate("/login", { replace: true });
+        navigate('/login', { replace: true });
         return;
       }
 
       try {
         setIsLoading(true);
-
         const response = await getOrganizations(selectionToken);
 
         if (!response.success) {
           throw new Error(
-            response.message || "Không thể lấy danh sách tổ chức."
+            response.message || 'Không thể lấy danh sách tổ chức.',
           );
         }
 
         setOrganizations(response.data);
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const axiosError = error as {
+          response?: { data?: { message?: string } };
+          message?: string;
+        };
         const message =
-          error.response?.data?.message ||
-          error.message ||
-          "Không thể tải danh sách tổ chức.";
+          axiosError.response?.data?.message ||
+          axiosError.message ||
+          'Không thể tải danh sách tổ chức.';
 
         toast.error(message);
-
         logout();
-        navigate("/login", { replace: true });
+        navigate('/login', { replace: true });
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadOrganizations();
+    void loadOrganizations();
   }, [selectionToken, navigate, logout]);
 
   /**
    * Bước 3:
-   * User chọn organization
-   * → Backend cấp Access JWT.
+   * User chọn organization -> Backend cấp Access JWT.
    */
-  const handleSelectOrganization = async (
-    organizationId: string
-  ) => {
+  const handleSelectOrganization = async (organizationId: string) => {
     if (!selectionToken) {
-      toast.error("Phiên chọn tổ chức đã hết hạn.");
-      navigate("/login", { replace: true });
+      toast.error('Phiên chọn tổ chức đã hết hạn.');
+      navigate('/login', { replace: true });
       return;
     }
 
     try {
       setIsSelecting(true);
-
-      const response = await selectOrganization({
-        organizationId,
-      }, selectionToken);
+      const response = await selectOrganization(
+        { organizationId },
+        selectionToken,
+      );
 
       if (!response.success) {
-        throw new Error(
-          response.message || "Không thể chọn tổ chức."
-        );
+        throw new Error(response.message || 'Không thể chọn tổ chức.');
       }
 
       const { accessToken, user } = response.data;
-
       completeLogin(accessToken, user);
+      toast.success('Đăng nhập thành công!');
+      navigate('/dashboard', { replace: true });
+    } catch (error: unknown) {
+      const axiosError = error as {
+        response?: { status?: number; data?: { message?: string } };
+        message?: string;
+      };
 
-      toast.success("Đăng nhập thành công!");
-
-      navigate("/dashboard", { replace: true });
-    } catch (error: any) {
-      /**
-       * ORG_SELECTION JWT hết hạn / không hợp lệ (401):
-       * gỡ selection token và quay về trang đăng nhập thay vì
-       * để user kẹt lại retry vô ích bằng token đã hết hạn.
-       */
-      if (error?.response?.status === 401) {
+      if (axiosError?.response?.status === 401) {
         removeSelectionToken();
-
         toast.error(
-          error.response?.data?.message ||
-            "Phiên chọn tổ chức đã hết hạn. Vui lòng đăng nhập lại."
+          axiosError.response?.data?.message ||
+            'Phiên chọn tổ chức đã hết hạn. Vui lòng đăng nhập lại.',
         );
-
-        navigate("/login", { replace: true });
-
+        navigate('/login', { replace: true });
         return;
       }
 
       const message =
-        error.response?.data?.message ||
-        error.message ||
-        "Không thể chọn tổ chức.";
-
+        axiosError.response?.data?.message ||
+        axiosError.message ||
+        'Không thể chọn tổ chức.';
       toast.error(message);
     } finally {
       setIsSelecting(false);
@@ -138,7 +122,7 @@ const OrganizationSelectionPage: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate("/login", { replace: true });
+    navigate('/login', { replace: true });
   };
 
   if (isLoading) {
@@ -146,7 +130,6 @@ const OrganizationSelectionPage: React.FC = () => {
       <div className="flex min-h-screen items-center justify-center bg-emerald-50">
         <div className="flex flex-col items-center gap-3">
           <LoaderCircle className="size-8 animate-spin text-emerald-600" />
-
           <p className="text-sm text-stone-600">
             Đang tải danh sách tổ chức...
           </p>
@@ -190,9 +173,7 @@ const OrganizationSelectionPage: React.FC = () => {
                 type="button"
                 disabled={isSelecting}
                 onClick={() =>
-                  handleSelectOrganization(
-                    organization.organizationId
-                  )
+                  void handleSelectOrganization(organization.organizationId)
                 }
                 className="group flex w-full items-center gap-4 rounded-2xl border border-emerald-100 bg-white p-4 text-left transition-all duration-200 hover:border-emerald-400 hover:bg-emerald-50 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -208,7 +189,7 @@ const OrganizationSelectionPage: React.FC = () => {
                   </p>
 
                   <p className="mt-1 text-xs text-stone-500">
-                    Mã tổ chức:{" "}
+                    Mã tổ chức:{' '}
                     <span className="font-medium text-stone-600">
                       {organization.organizationCode}
                     </span>
@@ -246,6 +227,6 @@ const OrganizationSelectionPage: React.FC = () => {
       </section>
     </div>
   );
-};
+}
 
 export default OrganizationSelectionPage;

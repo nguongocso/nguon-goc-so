@@ -1,5 +1,6 @@
 import { isAxiosError } from 'axios';
 import apiClient from './axiosConfig';
+
 import type {
   OrganizationUsageDashboard,
   OrganizationUsageQueryParams,
@@ -39,7 +40,7 @@ function toUsageError(err: unknown, fallback: string): OrganizationUsageApiError
     const data = err.response?.data as { message?: string } | undefined;
     return new OrganizationUsageApiError(
       data?.message || fallback,
-      err.response?.status
+      err.response?.status,
     );
   }
   if (err instanceof Error && err.message) {
@@ -50,9 +51,15 @@ function toUsageError(err: unknown, fallback: string): OrganizationUsageApiError
 
 function buildUsageSearchParams(params: OrganizationUsageQueryParams = {}): URLSearchParams {
   const search = new URLSearchParams();
-  if (params.startDate) search.set('startDate', params.startDate);
-  if (params.endDate) search.set('endDate', params.endDate);
-  if (params.organizationId) search.set('organizationId', params.organizationId);
+  if (params.startDate) {
+    search.set('startDate', params.startDate);
+  }
+  if (params.endDate) {
+    search.set('endDate', params.endDate);
+  }
+  if (params.organizationId) {
+    search.set('organizationId', params.organizationId);
+  }
   return search;
 }
 
@@ -61,13 +68,13 @@ function buildUsageSearchParams(params: OrganizationUsageQueryParams = {}): URLS
  * GET /api/v1/reports/organization-usage
  */
 export async function getOrganizationUsage(
-  params: OrganizationUsageQueryParams = {}
+  params: OrganizationUsageQueryParams = {},
 ): Promise<OrganizationUsageDashboard> {
   try {
     const search = buildUsageSearchParams(params);
     const query = search.toString();
     const response = await apiClient.get<OrganizationUsageResponse>(
-      `/reports/organization-usage${query ? `?${query}` : ''}`
+      `/reports/organization-usage${query ? `?${query}` : ''}`,
     );
     return response.data.data;
   } catch (err) {
@@ -81,11 +88,13 @@ export async function getOrganizationUsage(
  */
 function extractFileName(
   contentDisposition?: string,
-  format: OrganizationUsageExportFormat = 'csv'
+  format: OrganizationUsageExportFormat = 'csv',
 ): string {
   const fallback = `Bao_cao_muc_do_su_dung.${format}`;
 
-  if (!contentDisposition) return fallback;
+  if (!contentDisposition) {
+    return fallback;
+  }
 
   const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
   if (utf8Match?.[1]) {
@@ -106,14 +115,14 @@ function extractFileName(
  */
 export async function exportOrganizationUsage(
   params: OrganizationUsageQueryParams = {},
-  format: OrganizationUsageExportFormat = 'csv'
+  format: OrganizationUsageExportFormat = 'csv',
 ): Promise<DownloadedUsageReport> {
   try {
     const search = buildUsageSearchParams(params);
     search.set('format', format);
     const response = await apiClient.get(
       `/reports/organization-usage/export?${search.toString()}`,
-      { responseType: 'blob' }
+      { responseType: 'blob' },
     );
 
     const blob = response.data as Blob;
