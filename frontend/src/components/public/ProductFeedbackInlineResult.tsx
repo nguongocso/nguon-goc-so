@@ -3,16 +3,16 @@ import {
   RefreshCw,
   TriangleAlert,
   X,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useLanguage } from "@/context/LanguageContext";
-import type { translations } from "@/i18n/translations";
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useLanguage } from '@/context/LanguageContext';
+import type { translations } from '@/i18n/translations';
 import type {
   ProductFeedbackStatus,
   PublicProductFeedbackLookupResult,
-} from "@/types/productFeedback";
+} from '@/types/productFeedback';
 
-export type LookupErrorKind = "not-found" | "rate-limit" | "system";
+export type LookupErrorKind = 'not-found' | 'rate-limit' | 'system';
 
 type TranslationKey = keyof typeof translations.vi;
 
@@ -25,24 +25,24 @@ const STATUS_META: Record<
   }
 > = {
   NEW: {
-    labelKey: "feedback_status_NEW_label",
-    descKey: "feedback_status_NEW_desc",
-    className: "border-sky-200 bg-sky-50 text-sky-700",
+    labelKey: 'feedback_status_NEW_label',
+    descKey: 'feedback_status_NEW_desc',
+    className: 'border-sky-200 bg-sky-50 text-sky-700',
   },
   IN_PROGRESS: {
-    labelKey: "feedback_status_IN_PROGRESS_label",
-    descKey: "feedback_status_IN_PROGRESS_desc",
-    className: "border-amber-200 bg-amber-50 text-amber-700",
+    labelKey: 'feedback_status_IN_PROGRESS_label',
+    descKey: 'feedback_status_IN_PROGRESS_desc',
+    className: 'border-amber-200 bg-amber-50 text-amber-700',
   },
   ESCALATED_TO_RECALL: {
-    labelKey: "feedback_status_ESCALATED_TO_RECALL_label",
-    descKey: "feedback_status_ESCALATED_TO_RECALL_desc",
-    className: "border-orange-200 bg-orange-50 text-orange-700",
+    labelKey: 'feedback_status_ESCALATED_TO_RECALL_label',
+    descKey: 'feedback_status_ESCALATED_TO_RECALL_desc',
+    className: 'border-orange-200 bg-orange-50 text-orange-700',
   },
   CLOSED: {
-    labelKey: "feedback_status_CLOSED_label",
-    descKey: "feedback_status_CLOSED_desc",
-    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    labelKey: 'feedback_status_CLOSED_label',
+    descKey: 'feedback_status_CLOSED_desc',
+    className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   },
 };
 
@@ -53,17 +53,17 @@ const ERROR_META: Record<
     msgKey: TranslationKey;
   }
 > = {
-  "not-found": {
-    titleKey: "feedback_error_not_found_title",
-    msgKey: "feedback_error_not_found_desc",
+  'not-found': {
+    titleKey: 'feedback_error_not_found_title',
+    msgKey: 'feedback_error_not_found_desc',
   },
-  "rate-limit": {
-    titleKey: "feedback_error_rate_limit_title",
-    msgKey: "feedback_error_rate_limit_desc",
+  'rate-limit': {
+    titleKey: 'feedback_error_rate_limit_title',
+    msgKey: 'feedback_error_rate_limit_desc',
   },
   system: {
-    titleKey: "feedback_error_system_title",
-    msgKey: "feedback_error_system_desc",
+    titleKey: 'feedback_error_system_title',
+    msgKey: 'feedback_error_system_desc',
   },
 };
 
@@ -76,10 +76,7 @@ interface ProductFeedbackInlineResultProps {
   onRetry?: () => void;
 }
 
-/**
- * Hiển thị trực tiếp kết quả hoặc lỗi tra cứu phản ánh ngay bên dưới ô tìm kiếm trên trang chủ hoặc trong modal.
- * Tự động chuyển đổi ngôn ngữ Việt / Anh theo LanguageContext.
- */
+/** Hiển thị trực tiếp kết quả hoặc lỗi tra cứu phản ánh. */
 export function ProductFeedbackInlineResult({
   isLoading,
   lookupCode,
@@ -96,9 +93,9 @@ export function ProductFeedbackInlineResult({
         <div className="flex items-center justify-center gap-2 text-emerald-700 font-medium text-sm">
           <LoaderCircle className="h-5 w-5 animate-spin" />
           <span>
-            {t("feedback_result_searching").replace(
-              "{code}",
-              lookupCode ? `(${lookupCode})` : ""
+            {t('feedback_result_searching').replace(
+              '{code}',
+              lookupCode ? `(${lookupCode})` : '',
             )}
           </span>
         </div>
@@ -114,7 +111,7 @@ export function ProductFeedbackInlineResult({
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              {t("feedback_result_title")}
+              {t('feedback_result_title')}
             </p>
             <p className="font-mono text-sm font-bold text-emerald-800 break-all">{lookupCode}</p>
           </div>
@@ -124,15 +121,15 @@ export function ProductFeedbackInlineResult({
             size="sm"
             onClick={onReset}
             className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600 rounded-full"
-            title={t("feedback_result_close")}
+            title={t('feedback_result_close')}
           >
             <X className="h-4 w-4" />
-            <span className="sr-only">{t("feedback_result_close")}</span>
+            <span className="sr-only">{t('feedback_result_close')}</span>
           </Button>
         </div>
 
         <div className="mt-4">
-          <p className="text-xs font-medium text-slate-500">{t("feedback_result_status_label")}</p>
+          <p className="text-xs font-medium text-slate-500">{t('feedback_result_status_label')}</p>
           <div className={`mt-1.5 inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusMeta.className}`}>
             {t(statusMeta.labelKey)}
           </div>
@@ -140,9 +137,9 @@ export function ProductFeedbackInlineResult({
         </div>
 
         <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-3.5">
-          <p className="text-xs font-semibold text-slate-800">{t("feedback_result_public_response")}</p>
+          <p className="text-xs font-semibold text-slate-800">{t('feedback_result_public_response')}</p>
           <p className="mt-1.5 whitespace-pre-wrap text-xs leading-5 text-slate-600">
-            {result.publicResponse?.trim() || t("feedback_result_no_response")}
+            {result.publicResponse?.trim() || t('feedback_result_no_response')}
           </p>
         </div>
 
@@ -155,7 +152,7 @@ export function ProductFeedbackInlineResult({
             className="w-full gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50 text-xs h-9"
           >
             <RefreshCw className="h-3.5 w-3.5" />
-            {t("feedback_result_search_another")}
+            {t('feedback_result_search_another')}
           </Button>
         </div>
       </div>
@@ -176,7 +173,7 @@ export function ProductFeedbackInlineResult({
         </div>
 
         <div className="mt-3 flex gap-2">
-          {errorKind === "system" && onRetry ? (
+          {errorKind === 'system' && onRetry ? (
             <Button
               type="button"
               variant="outline"
@@ -185,7 +182,7 @@ export function ProductFeedbackInlineResult({
               className="flex-1 gap-1.5 border-red-300 text-red-700 hover:bg-red-100 text-xs h-8"
             >
               <RefreshCw className="h-3.5 w-3.5" />
-              {t("feedback_result_retry")}
+              {t('feedback_result_retry')}
             </Button>
           ) : null}
           <Button
@@ -195,7 +192,7 @@ export function ProductFeedbackInlineResult({
             onClick={onReset}
             className="flex-1 gap-1.5 border-slate-200 text-slate-700 hover:bg-white text-xs h-8"
           >
-            {t("feedback_result_close_btn")}
+            {t('feedback_result_close_btn')}
           </Button>
         </div>
       </div>

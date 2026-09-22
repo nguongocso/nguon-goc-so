@@ -1,16 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-
 import {
   getPublicCertifications,
   getPublicInspections,
   getPublicTrace,
 } from '@/api/publicApi';
-
 import type { PublicTraceResponse } from '@/types/publicTrace';
 import type { PublicLotCertificationsResponse } from '@/types/publicCertification';
 import type { PublicInspectionResponse } from '@/types/publicInspection';
-
 import { ProductInfo } from '@/components/public/ProductInfo';
 import { RecallAlert } from '@/components/public/RecallAlert';
 import { LockAlert } from '@/components/public/LockAlert';
@@ -22,7 +19,6 @@ import { PublicCertificationsSection } from '@/components/public/PublicCertifica
 import { PublicInspectionSection } from '@/components/public/PublicInspectionSection';
 import { LanguageSwitcher } from '@/components/public/LanguageSwitcher';
 import { LanguageProvider, useLanguage } from '@/context/LanguageContext';
-
 import {
   Home,
   List,
@@ -30,9 +26,7 @@ import {
   MapPin,
   MessageSquareWarning,
 } from 'lucide-react';
-
 import { Logo } from '@/components/common/Logo';
-
 import {
   Tabs,
   TabsContent,
@@ -49,33 +43,18 @@ function TraceLookupContent() {
   const location = useLocation();
   const { t } = useLanguage();
 
-  const scanResult = (location.state as TraceLookupLocationState | null)
-    ?.scanResult;
-
-  const [data, setData] = useState<PublicTraceResponse | null>(
-    scanResult ?? null,
-  );
-
+  const scanResult = (location.state as TraceLookupLocationState | null)?.scanResult;
+  const [data, setData] = useState<PublicTraceResponse | null>(scanResult ?? null);
   const [loading, setLoading] = useState(!scanResult);
-
   const [error, setError] = useState<string | null>(null);
 
-  const [certificationData, setCertificationData] =
-    useState<PublicLotCertificationsResponse | null>(null);
+  const [certificationData, setCertificationData] = useState<PublicLotCertificationsResponse | null>(null);
+  const [certificationLoading, setCertificationLoading] = useState(true);
+  const [certificationError, setCertificationError] = useState<string | null>(null);
 
-  const [certificationLoading, setCertificationLoading] =
-    useState(true);
-
-  const [certificationError, setCertificationError] =
-    useState<string | null>(null);
-
-  const [inspectionData, setInspectionData] =
-    useState<PublicInspectionResponse | null>(null);
-
+  const [inspectionData, setInspectionData] = useState<PublicInspectionResponse | null>(null);
   const [inspectionLoading, setInspectionLoading] = useState(true);
-
-  const [inspectionError, setInspectionError] =
-    useState<string | null>(null);
+  const [inspectionError, setInspectionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!codeValue) {
@@ -93,16 +72,8 @@ function TraceLookupContent() {
       setError(null);
 
       try {
-        const loadTrace = async (
-          latitude?: number,
-          longitude?: number
-        ) => {
-          const result = await getPublicTrace(
-            codeValue,
-            latitude,
-            longitude
-          );
-
+        const loadTrace = async (latitude?: number, longitude?: number) => {
+          const result = await getPublicTrace(codeValue, latitude, longitude);
           setData(result);
         };
 
@@ -115,16 +86,13 @@ function TraceLookupContent() {
           navigator.geolocation.getCurrentPosition(
             async (position) => {
               try {
-                const { latitude, longitude } =
-                  position.coords;
-
+                const { latitude, longitude } = position.coords;
                 await loadTrace(latitude, longitude);
                 resolve();
               } catch (error) {
                 reject(error);
               }
             },
-
             async () => {
               try {
                 await loadTrace();
@@ -133,19 +101,15 @@ function TraceLookupContent() {
                 reject(error);
               }
             },
-
             {
               enableHighAccuracy: true,
               timeout: 10000,
               maximumAge: 0,
-            }
+            },
           );
         });
       } catch (err: any) {
-        const message =
-          err.response?.data?.message ||
-          'Không thể tra cứu thông tin.';
-
+        const message = err.response?.data?.message || 'Không thể tra cứu thông tin.';
         setError(message);
       } finally {
         setLoading(false);
@@ -156,22 +120,15 @@ function TraceLookupContent() {
       try {
         setCertificationLoading(true);
         setCertificationError(null);
-
-        const result =
-          await getPublicCertifications(codeValue);
-
+        const result = await getPublicCertifications(codeValue);
         setCertificationData(result);
       } catch (err: any) {
         const status = err.response?.status;
-
         if (status === 404 || status === 501) {
           setCertificationError(null);
           setCertificationData(null);
         } else {
-          const message =
-            err.response?.data?.message ||
-            'Không thể tải thông tin chứng nhận.';
-
+          const message = err.response?.data?.message || 'Không thể tải thông tin chứng nhận.';
           setCertificationError(message);
           setCertificationData(null);
         }
@@ -184,21 +141,15 @@ function TraceLookupContent() {
       try {
         setInspectionLoading(true);
         setInspectionError(null);
-
         const result = await getPublicInspections(codeValue);
-
         setInspectionData(result);
       } catch (err: any) {
         const status = err.response?.status;
-
         if (status === 404 || status === 501) {
           setInspectionError(null);
           setInspectionData(null);
         } else {
-          const message =
-            err.response?.data?.message ||
-            'Không thể tải kết quả kiểm nghiệm.';
-
+          const message = err.response?.data?.message || 'Không thể tải kết quả kiểm nghiệm.';
           setInspectionError(message);
           setInspectionData(null);
         }
@@ -219,9 +170,7 @@ function TraceLookupContent() {
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
           <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-emerald-600" />
-          <p className="mt-4 text-gray-600">
-            {t('loading_info')}
-          </p>
+          <p className="mt-4 text-gray-600">{t('loading_info')}</p>
         </div>
       </div>
     );
@@ -262,16 +211,13 @@ function TraceLookupContent() {
   }
 
   const hasLocationData = data.events.some(
-    (event) =>
-      event.latitude !== null &&
-      event.longitude !== null
+    (event) => event.latitude !== null && event.longitude !== null,
   );
   const hasFarmBoundary = (data.farmAreaBoundary?.points?.length ?? 0) >= 3;
   const hasMapData = hasLocationData || hasFarmBoundary;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="border-b border-gray-100 bg-white/95 backdrop-blur-sm sticky top-0 z-30 shadow-xs">
         <div className="relative mx-auto max-w-5xl px-4 py-3 sm:py-4 flex items-center justify-center">
           <div className="flex flex-col items-center justify-center text-center">
@@ -290,18 +236,15 @@ function TraceLookupContent() {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-4 px-4 py-6">
-        {/* Mã tra cứu */}
         <div className="rounded-xl border border-gray-100 bg-white p-4 text-center shadow-sm">
           <span className="text-xs uppercase tracking-wider text-gray-400">
             {t('code_label')}
           </span>
-
           <p className="break-all font-mono text-lg font-semibold text-gray-800">
             {data.codeValue}
           </p>
         </div>
 
-        {/* Thông tin sản phẩm */}
         <ProductInfo
           productName={data.productName}
           productNameEn={data.productNameEn}
@@ -311,7 +254,6 @@ function TraceLookupContent() {
           status={data.shipmentStatus}
         />
 
-        {/* Cảnh báo mã bị khóa hoặc Ghi chú đã xác minh */}
         {data.locked ? (
           <LockAlert
             lockReason={data.lockReason}
@@ -326,23 +268,19 @@ function TraceLookupContent() {
           )
         )}
 
-        {/* Cảnh báo thu hồi */}
-        {data.recalled &&
-          (data.recallMessage || data.recallMessageEn) && (
-            <RecallAlert
-              message={data.recallMessage || ''}
-              messageEn={data.recallMessageEn}
-            />
-          )}
+        {data.recalled && (data.recallMessage || data.recallMessageEn) && (
+          <RecallAlert
+            message={data.recallMessage || ''}
+            messageEn={data.recallMessageEn}
+          />
+        )}
 
-        {/* Chứng nhận công khai */}
         <PublicCertificationsSection
           data={certificationData}
           isLoading={certificationLoading}
           error={certificationError}
         />
 
-        {/* Kết quả kiểm nghiệm công khai */}
         <PublicInspectionSection
           inspections={inspectionData?.inspections ?? data.inspections}
           data={inspectionData}
@@ -350,7 +288,6 @@ function TraceLookupContent() {
           error={inspectionError}
         />
 
-        {/* Gửi phản ánh */}
         {data.productionLotId ? (
           <ProductFeedbackForm
             productionLotId={data.productionLotId}
@@ -361,12 +298,10 @@ function TraceLookupContent() {
           <section className="rounded-xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm">
             <div className="flex gap-3">
               <MessageSquareWarning className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
-
               <div>
                 <h2 className="font-semibold text-gray-900">
                   {t('feedback_title')}
                 </h2>
-
                 <p className="mt-1 text-sm leading-5 text-gray-600">
                   {t('feedback_not_available')}
                 </p>
@@ -375,12 +310,9 @@ function TraceLookupContent() {
           </section>
         )}
 
-        {/* Bản đồ và danh sách sự kiện */}
         <div className="overflow-hidden rounded-xl bg-white shadow-sm">
           <Tabs
-            defaultValue={
-              hasMapData ? 'map' : 'list'
-            }
+            defaultValue={hasMapData ? 'map' : 'list'}
             className="w-full"
           >
             <TabsList className="h-auto w-full justify-start rounded-none rounded-t-xl border-b bg-gray-50/50 p-0">
@@ -390,9 +322,7 @@ function TraceLookupContent() {
                 className="flex items-center gap-2 rounded-t-xl rounded-b-none first:rounded-tl-xl px-4 py-3 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:bg-transparent"
               >
                 <MapPin className="h-4 w-4" />
-
                 {t('map_tab')}
-
                 {!hasMapData && (
                   <span className="text-xs font-normal text-gray-400">
                     {t('no_location_data')}
@@ -405,33 +335,23 @@ function TraceLookupContent() {
                 className="flex items-center gap-2 rounded-t-xl rounded-b-none first:rounded-tl-xl px-4 py-3 data-[state=active]:border-b-2 data-[state=active]:border-emerald-600 data-[state=active]:bg-transparent"
               >
                 <List className="h-4 w-4" />
-
                 {t('list_tab')}
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent
-              value="map"
-              className="p-0"
-            >
+            <TabsContent value="map" className="p-0">
               <RouteMap
                 events={data.events}
                 farmAreaBoundary={data.farmAreaBoundary}
               />
             </TabsContent>
 
-            <TabsContent
-              value="list"
-              className="p-4"
-            >
-              <Timeline
-                events={data.events}
-              />
+            <TabsContent value="list" className="p-4">
+              <Timeline events={data.events} />
             </TabsContent>
           </Tabs>
         </div>
 
-        {/* Footer */}
         <div className="border-t border-gray-200 py-4 text-center text-xs text-gray-400">
           © {new Date().getFullYear()} {t('footer_copyright')}
         </div>

@@ -9,7 +9,6 @@ import {
 } from '@/utils/eventFormatter';
 import { useLanguage } from '@/context/LanguageContext';
 
-// Fix icon mặc định của Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
@@ -25,7 +24,7 @@ interface RouteMapProps {
 export const createFarmAreaBoundaryPopupContent = (
   name: string | null | undefined,
   areaText: string,
-  isEnglish = false
+  isEnglish = false,
 ): HTMLDivElement => {
   const container = document.createElement('div');
   container.style.cssText = 'font-family: system-ui; padding: 4px; min-width: 160px;';
@@ -66,9 +65,8 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
 
-  // Lọc các sự kiện có tọa độ
   const locationEvents = events.filter(
-    (e) => e.latitude !== null && e.longitude !== null
+    (e) => e.latitude !== null && e.longitude !== null,
   );
   const boundaryPoints = farmAreaBoundary?.points ?? [];
   const hasBoundary = boundaryPoints.length >= 3;
@@ -83,7 +81,6 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
         ]
       : [locationEvents[0].latitude!, locationEvents[0].longitude!];
 
-    // Khởi tạo bản đồ nếu chưa có
     if (!leafletMapRef.current) {
       leafletMapRef.current = L.map(mapRef.current).setView(initialCenter, hasBoundary ? 13 : 10);
 
@@ -94,7 +91,6 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
 
     const map = leafletMapRef.current;
 
-    // Xóa marker và polygon cũ.
     map.eachLayer((layer) => {
       if (layer instanceof L.Marker || layer instanceof L.Polygon) {
         map.removeLayer(layer);
@@ -103,7 +99,7 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
 
     if (hasBoundary) {
       const latlngs: L.LatLngExpression[] = boundaryPoints.map(
-        (point) => [point.latitude, point.longitude]
+        (point) => [point.latitude, point.longitude],
       );
       const polygon = L.polygon(latlngs, {
         color: '#059669',
@@ -116,11 +112,10 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
         ? `${Number(farmAreaBoundary.calculatedArea).toFixed(4)} ha`
         : isEn ? 'Not calculated' : 'Chưa tính';
       polygon.bindPopup(
-        createFarmAreaBoundaryPopupContent(farmAreaBoundary?.name, areaText, isEn)
+        createFarmAreaBoundaryPopupContent(farmAreaBoundary?.name, areaText, isEn),
       );
     }
 
-    // Mảng tọa độ để tính bounds
     const coords: [number, number][] = [];
 
     locationEvents.forEach((event, index) => {
@@ -134,7 +129,6 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
 
       coords.push([lat, lng]);
 
-      // Build translated popup content using shared formatter
       const translatedData = getTranslatedEventData(
         event.eventType,
         (event.eventData as Record<string, unknown>) || {},
@@ -148,7 +142,6 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
         )
         .join('');
 
-      // Tạo icon có số thứ tự
       const numberIcon = L.divIcon({
         html: `<div style="
           background: #059669;
@@ -169,7 +162,6 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
         iconAnchor: [12, 12],
       });
 
-      // Thêm marker với số thứ tự
       L.marker([lat, lng], { icon: numberIcon })
         .addTo(map)
         .bindPopup(`
@@ -196,7 +188,6 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
       });
     }
 
-    // Invalidate size khi component mount
     setTimeout(() => {
       map.invalidateSize();
     }, 200);
@@ -212,8 +203,8 @@ export const RouteMap = ({ events, farmAreaBoundary }: RouteMapProps) => {
   if (locationEvents.length === 0 && !hasBoundary) {
     return (
       <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">
-        <p className="text-lg font-semibold">{isEn ? "No location data available" : "Không có dữ liệu vị trí"}</p>
-        <p className="text-sm">{isEn ? "Events in this shipment do not have GPS coordinates to show on map." : "Các sự kiện của lô hàng này chưa có tọa độ để hiển thị trên bản đồ."}</p>
+        <p className="text-lg font-semibold">{isEn ? 'No location data available' : 'Không có dữ liệu vị trí'}</p>
+        <p className="text-sm">{isEn ? 'Events in this shipment do not have GPS coordinates to show on map.' : 'Các sự kiện của lô hàng này chưa có tọa độ để hiển thị trên bản đồ.'}</p>
       </div>
     );
   }
