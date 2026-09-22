@@ -8,13 +8,19 @@ import lombok.Getter;
 
 import vn.nguongocso.farm.enums.ProductFeedbackStatus;
 
+/**
+ * Kết quả tạo phản hồi sản phẩm công khai kèm mã tra cứu.
+*/
 @Getter
 @Builder
-/** Kết quả tạo phản hồi sản phẩm công khai kèm mã tra cứu. */
 public class PublicProductFeedbackCreatedResponse {
     private UUID id;
+
     private UUID productionLotId;
+
     private ProductFeedbackStatus status;
+
     private LocalDateTime createdAt;
+
     private String lookupCode;
 }

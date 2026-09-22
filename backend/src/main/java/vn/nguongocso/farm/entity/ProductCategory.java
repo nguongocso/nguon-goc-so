@@ -2,22 +2,23 @@ package vn.nguongocso.farm.entity;
 
 import java.util.UUID;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 /**
  * Entity đại diện cho danh mục loại cây trồng.
- */
+*/
 @Entity
 @Table(name = "product_categories")
 @Getter
@@ -26,6 +27,7 @@ import jakarta.persistence.Table;
 @AllArgsConstructor
 @Builder
 public class ProductCategory {
+
     @Id
     @Column(name = "id", nullable = false, updatable = false)
     @JdbcTypeCode(SqlTypes.CHAR)
@@ -58,9 +60,6 @@ public class ProductCategory {
     @Column(name = "humidity_max", columnDefinition = "DECIMAL(5,1)")
     private Double humidityMax;
 
-    /**
-     * Thời gian lưu kho tối đa cho phép (tính theo ngày).
-     */
     @Column(name = "max_storage_days")
     private Integer maxStorageDays;
 

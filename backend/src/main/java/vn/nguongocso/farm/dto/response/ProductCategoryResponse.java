@@ -9,8 +9,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * DTO phản hồi thông tin loại nông sản.
- */
+ * Thông tin loại nông sản.
+*/
 @Getter
 @Setter
 @Builder

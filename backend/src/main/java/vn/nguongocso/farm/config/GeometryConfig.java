@@ -7,14 +7,11 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * Cấu hình GeometryFactory cho module vùng trồng.
- */
+*/
 @Configuration
 public class GeometryConfig {
-
     /**
      * Khởi tạo GeometryFactory với SRID 4326.
-     *
-     * @return GeometryFactory dùng hệ tọa độ WGS84 (SRID 4326), luôn khác null
      */
     @Bean
     public GeometryFactory geometryFactory() {

@@ -1,6 +1,8 @@
 package vn.nguongocso.farm.enums;
 
-/** Trạng thái vòng đời xử lý phản ánh của người tiêu dùng. */
+/**
+ * Trạng thái vòng đời xử lý phản ánh của người tiêu dùng.
+*/
 public enum ProductFeedbackStatus {
     NEW,
     IN_PROGRESS,

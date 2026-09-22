@@ -8,12 +8,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import lombok.RequiredArgsConstructor;
 
 import vn.nguongocso.exception.BusinessException;
 import vn.nguongocso.exception.DuplicateResourceException;
@@ -33,16 +33,18 @@ import vn.nguongocso.farm.service.InputMaterialService;
 
 /**
  * Hiện thực Service xử lý nghiệp vụ quản lý danh mục vật tư đầu vào.
- */
+*/
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class InputMaterialServiceImpl implements InputMaterialService {
-
     private final InputMaterialRepository inputMaterialRepository;
+
     private final ProductCategoryRepository productCategoryRepository;
+
     private final FarmLogRepository farmLogRepository;
 
+    /** Tạo vật tư đầu vào mới. */
     @Override
     public InputMaterialResponse createInputMaterial(CreateInputMaterialRequest request, UUID currentUserId) {
         validateQuarantineDays(request.getMaterialGroup(), request.getQuarantineDays());
@@ -81,6 +83,7 @@ public class InputMaterialServiceImpl implements InputMaterialService {
         return mapToResponse(saved);
     }
 
+    /** Cập nhật vật tư đầu vào. */
     @Override
     public InputMaterialResponse updateInputMaterial(UUID id, UpdateInputMaterialRequest request, UUID currentUserId) {
         InputMaterial material = inputMaterialRepository.findByIdWithCropTypes(id)
@@ -121,6 +124,7 @@ public class InputMaterialServiceImpl implements InputMaterialService {
         return mapToResponse(updated);
     }
 
+    /** Đổi trạng thái kích hoạt vật tư đầu vào. */
     @Override
     public InputMaterialResponse toggleActiveStatus(UUID id, Boolean isActive) {
         InputMaterial material = inputMaterialRepository.findByIdWithCropTypes(id)
@@ -131,12 +135,12 @@ public class InputMaterialServiceImpl implements InputMaterialService {
         return mapToResponse(updated);
     }
 
+    /** Xóa vật tư đầu vào. */
     @Override
     public void deleteInputMaterial(UUID id) {
         InputMaterial material = inputMaterialRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vật tư đầu vào với ID: " + id));
 
-        // TC-04: Kiểm tra vật tư đã được dùng trong nhật ký canh tác chưa
         if (farmLogRepository.existsByMaterialIgnoreCase(material.getName())) {
             throw new BusinessException("Vật tư đã được dùng trong nhật ký canh tác. Hệ thống chặn xóa và chỉ cho phép ngừng sử dụng.");
         }
@@ -144,6 +148,7 @@ public class InputMaterialServiceImpl implements InputMaterialService {
         inputMaterialRepository.delete(material);
     }
 
+    /** Lấy chi tiết vật tư đầu vào theo ID. */
     @Override
     @Transactional(readOnly = true)
     public InputMaterialResponse getInputMaterialById(UUID id) {
@@ -152,6 +157,7 @@ public class InputMaterialServiceImpl implements InputMaterialService {
         return mapToResponse(material);
     }
 
+    /** Tìm kiếm vật tư đầu vào theo điều kiện lọc. */
     @Override
     @Transactional(readOnly = true)
     public Page<InputMaterialResponse> searchMaterials(String keyword, MaterialGroup group, FarmActivityType activityType,
@@ -170,6 +176,7 @@ public class InputMaterialServiceImpl implements InputMaterialService {
                 .map(this::mapToResponse);
     }
 
+    /** Lấy nhóm vật tư phù hợp với hoạt động canh tác. */
     public List<MaterialGroup> getMaterialGroupsForActivity(FarmActivityType activityType) {
         if (activityType == null) {
             return null;
@@ -185,9 +192,7 @@ public class InputMaterialServiceImpl implements InputMaterialService {
         };
     }
 
-    /**
-     * Kiểm tra điều kiện bắt buộc của thời gian cách ly theo nhóm vật tư.
-     */
+    /** Kiểm tra điều kiện bắt buộc của thời gian cách ly theo nhóm vật tư. */
     private void validateQuarantineDays(MaterialGroup group, Integer quarantineDays) {
         if (group == MaterialGroup.PESTICIDE) {
             if (quarantineDays == null) {
@@ -200,9 +205,7 @@ public class InputMaterialServiceImpl implements InputMaterialService {
         }
     }
 
-    /**
-     * Tra cứu danh mục loại nông sản từ danh sách ID.
-     */
+    /** Tra cứu danh mục loại nông sản từ danh sách ID. */
     private Set<ProductCategory> resolveCropCategories(Boolean applyToAllCrops, Set<UUID> cropTypeIds) {
         if (Boolean.TRUE.equals(applyToAllCrops) || cropTypeIds == null || cropTypeIds.isEmpty()) {
             return new HashSet<>();
@@ -211,9 +214,7 @@ public class InputMaterialServiceImpl implements InputMaterialService {
         return new HashSet<>(categories);
     }
 
-    /**
-     * Map Entity sang Response DTO.
-     */
+    /** Chuyển entity vật tư sang DTO phản hồi. */
     private InputMaterialResponse mapToResponse(InputMaterial entity) {
         Set<ProductCategoryResponse> cropResponses = entity.getApplicableCropTypes().stream()
                 .map(c -> ProductCategoryResponse.builder()

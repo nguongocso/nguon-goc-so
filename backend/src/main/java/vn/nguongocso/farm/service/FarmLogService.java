@@ -8,47 +8,19 @@ import vn.nguongocso.farm.dto.request.CreateFarmLogRequest;
 import vn.nguongocso.farm.dto.response.FarmLogResponse;
 
 /**
- * Nghiệp vụ quản lý nhật ký canh tác.
- */
+ * Nghiệp vụ nhật ký canh tác.
+*/
 public interface FarmLogService {
-
-    /**
-     * Tạo nhật ký canh tác.
-     *
-     * @param request thông tin nhật ký
-     * @return thông tin nhật ký đã tạo
-     */
+    /** Tạo nhật ký canh tác. */
     FarmLogResponse create(CreateFarmLogRequest request);
 
-    /**
-     * NCL-03-CN-006: đính chính một nhật ký canh tác.
-     *
-     * <p>Bản gốc được giữ nguyên và đánh dấu đã đính chính; hệ thống tạo một
-     * bản ghi mới liên kết tới bản gốc với lý do đính chính bắt buộc.</p>
-     *
-     * @param id      ID của nhật ký cần đính chính
-     * @param request dữ liệu đính chính và lý do
-     * @return thông tin bản ghi đính chính vừa tạo
-     */
+    /** Đính chính nhật ký canh tác. */
     FarmLogResponse correctFarmLog(UUID id, CorrectFarmLogRequest request);
 
-    /**
-     * NCL-03-CN-006: lấy chi tiết một nhật ký canh tác theo ID (người ghi sự
-     * kiện/Quản lý cùng tổ chức). Dùng cho trang đính chính nhật ký.
-     *
-     * @param id ID của nhật ký
-     * @return thông tin nhật ký
-     */
+    /** Lấy chi tiết nhật ký canh tác theo ID. */
     FarmLogResponse getFarmLog(UUID id);
 
-    /**
-     * Lấy danh sách nhật ký canh tác của lô sản xuất theo phân trang.
-     *
-     * @param productionLotId mã lô sản xuất
-     * @param page            số trang, bắt đầu từ 0
-     * @param size            số bản ghi trên mỗi trang
-     * @return dữ liệu nhật ký canh tác theo phân trang
-     */
+    /** Lấy danh sách nhật ký canh tác của lô sản xuất. */
     PageResponse<FarmLogResponse> getFarmLogsByProductionLot(
             UUID productionLotId,
             int page,

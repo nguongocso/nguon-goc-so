@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,14 +23,14 @@ import vn.nguongocso.farm.service.ProductCategoryService;
 
 /**
  * Triển khai nghiệp vụ danh mục loại cây trồng.
- */
+*/
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class ProductCategoryServiceImpl implements ProductCategoryService {
-
     private final ProductCategoryRepository productCategoryRepository;
 
+    /** Lấy toàn bộ loại cây trồng đang hoạt động. */
     @Override
     @Transactional(readOnly = true)
     public List<ProductCategoryResponse> getAll() {
@@ -38,6 +39,7 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
                 .toList();
     }
 
+    /** Tìm kiếm loại cây trồng theo điều kiện lọc. */
     @Override
     @Transactional(readOnly = true)
     public List<ProductCategoryResponse> search(String name, String group, Boolean isActive,
@@ -60,12 +62,7 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
                 .toList();
     }
 
-    /**
-     * Tạo mới loại cây trồng.
-     *
-     * @param request thông tin loại cây trồng cần tạo
-     * @return thông tin loại cây trồng sau khi tạo
-     */
+    /** Tạo mới loại cây trồng. */
     @Override
     @Transactional
     @Auditable(action = "CREATE_PRODUCT_CATEGORY", entityType = "PRODUCT_CATEGORY", description = "'Thêm mới loại nông sản: ' + #request.name + ', thuộc nhóm hàng: ' + #request.group")
@@ -94,13 +91,7 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
         return toResponse(saved);
     }
 
-    /**
-     * Cập nhật thông tin loại cây trồng.
-     *
-     * @param id      ID của loại cây trồng cần cập nhật
-     * @param request thông tin mới của loại cây trồng
-     * @return thông tin loại cây trồng sau khi cập nhật
-     */
+    /** Cập nhật thông tin loại cây trồng. */
     @Override
     @Transactional
     @Auditable(action = "UPDATE_PRODUCT_CATEGORY", entityType = "PRODUCT_CATEGORY", description = "'Cập nhật loại nông sản ID: ' + #id + ', Tên mới: ' + #request.name + ', Trạng thái hoạt động: ' + #request.isActive")
@@ -130,6 +121,7 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
         return toResponse(updated);
     }
 
+    /** Chuyển entity loại cây trồng sang DTO phản hồi. */
     private ProductCategoryResponse toResponse(ProductCategory category) {
         return ProductCategoryResponse.builder()
                 .id(category.getId())

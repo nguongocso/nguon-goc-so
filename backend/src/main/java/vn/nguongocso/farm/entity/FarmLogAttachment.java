@@ -1,5 +1,8 @@
 package vn.nguongocso.farm.entity;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -16,17 +19,15 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import vn.nguongocso.auth.entity.User;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
-
 /**
  * Entity đại diện cho tệp đính kèm của nhật ký hoạt động sản xuất.
- */
+*/
 @Entity
 @Table(name = "farm_log_attachments")
 @Getter
@@ -35,6 +36,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class FarmLogAttachment {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)
@@ -66,6 +68,7 @@ public class FarmLogAttachment {
     @Column(name = "uploaded_at", updatable = false)
     private LocalDateTime uploadedAt;
 
+    /** Khởi tạo ID và thời điểm tải lên trước khi lưu mới. */
     @PrePersist
     void prePersist() {
         if (id == null) {

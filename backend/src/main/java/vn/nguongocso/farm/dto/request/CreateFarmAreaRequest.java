@@ -16,8 +16,8 @@ import lombok.Setter;
 import vn.nguongocso.farm.enums.AreaUnit;
 
 /**
- * DTO yêu cầu tạo mới vùng trồng.
- */
+ * Yêu cầu tạo mới vùng trồng.
+*/
 @Getter
 @Setter
 @NoArgsConstructor

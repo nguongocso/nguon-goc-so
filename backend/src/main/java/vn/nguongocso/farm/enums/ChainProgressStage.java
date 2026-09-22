@@ -3,8 +3,8 @@ package vn.nguongocso.farm.enums;
 import lombok.Getter;
 
 /**
- * Enum đại diện cho 9 giai đoạn tiến độ trong chuỗi sản xuất và lưu thông của lô (NCL-10-CN-013).
- */
+ * Các giai đoạn tiến độ trong chuỗi sản xuất và lưu thông của lô.
+*/
 @Getter
 public enum ChainProgressStage {
     DRAFT("Nháp"),
@@ -19,6 +19,7 @@ public enum ChainProgressStage {
 
     private final String stageName;
 
+    /** Khởi tạo giai đoạn tiến độ chuỗi. */
     ChainProgressStage(String stageName) {
         this.stageName = stageName;
     }

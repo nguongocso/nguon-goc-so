@@ -25,48 +25,23 @@ import org.springframework.stereotype.Component;
 
 import vn.nguongocso.farm.enums.FarmActivityType;
 
+/**
+ * Tạo tệp Excel mẫu nhập lô sản xuất.
+*/
 @Component
 public class ProductionLotImportExcelGenerator {
-
     private static final String SHEET_NAME = "Nhap_lo_san_xuat";
 
-    /**
-     * Sheet chứa danh mục dùng làm nguồn cho dropdown.
-     */
     private static final String ACTIVITY_SHEET_NAME = "DanhMuc";
 
-    /**
-     * Named Range dùng cho dropdown hoạt động canh tác.
-     */
     private static final String ACTIVITY_NAME_RANGE = "FarmActivityTypes";
 
-    /**
-     * Dòng dữ liệu bắt đầu.
-     *
-     * Excel:
-     * dòng 1 = header
-     * dòng 2 = dữ liệu đầu tiên
-     *
-     * POI sử dụng index 0-based:
-     * dòng 2 Excel = index 1
-     */
     private static final int DATA_START_ROW = 1;
 
-    /**
-     * Dòng dữ liệu cuối cùng.
-     *
-     * Excel dòng 1000 = POI index 999.
-     */
     private static final int DATA_END_ROW = 999;
 
-    /**
-     * Format ngày tháng sử dụng trong Excel.
-     */
     private static final String DATE_FORMAT = "dd/MM/yyyy";
 
-    /**
-     * Header của file Excel.
-     */
     private static final String[] HEADERS = {
             "ten_lo",
             "ma_loai_nong_san",
@@ -83,13 +58,7 @@ public class ProductionLotImportExcelGenerator {
             "ghi_chu"
     };
 
-    /**
-     * Tạo file Excel mẫu nhập hàng loạt lô sản xuất.
-     *
-     * @param productCategoryId mã loại nông sản
-     * @param farmAreaId        mã vùng trồng
-     * @return nội dung file Excel
-     */
+    /** Tạo tệp Excel mẫu nhập lô sản xuất. */
     public byte[] generate(
             UUID productCategoryId,
             UUID farmAreaId) {
@@ -103,16 +72,8 @@ public class ProductionLotImportExcelGenerator {
                 ByteArrayOutputStream outputStream =
                         new ByteArrayOutputStream()) {
 
-            // =====================================================
-            // 1. TẠO SHEET CHÍNH
-            // =====================================================
-
             Sheet sheet =
                     workbook.createSheet(SHEET_NAME);
-
-            // =====================================================
-            // 2. TẠO STYLE
-            // =====================================================
 
             CellStyle headerStyle =
                     createHeaderStyle(workbook);
@@ -123,17 +84,9 @@ public class ProductionLotImportExcelGenerator {
             CellStyle dateStyle =
                     createDateStyle(workbook);
 
-            // =====================================================
-            // 3. TẠO HEADER
-            // =====================================================
-
             createHeader(
                     sheet,
                     headerStyle);
-
-            // =====================================================
-            // 4. TẠO DÒNG DỮ LIỆU MẪU
-            // =====================================================
 
             createSampleRow(
                     sheet,
@@ -142,43 +95,19 @@ public class ProductionLotImportExcelGenerator {
                     productCategoryId,
                     farmAreaId);
 
-            // =====================================================
-            // 5. DROPDOWN HOẠT ĐỘNG CANH TÁC
-            // =====================================================
-
             createActivityDropdown(
                     workbook,
                     sheet);
 
-            // =====================================================
-            // 6. VALIDATION CHO CÁC CỘT SỐ
-            // =====================================================
-
             createNumberValidation(sheet);
-
-            // =====================================================
-            // 7. VALIDATION CHO CÁC CỘT NGÀY
-            // =====================================================
 
             createDateValidation(sheet);
 
-            // =====================================================
-            // 8. FORMAT CỘT
-            // =====================================================
-
             configureColumnWidths(sheet);
-
-            // =====================================================
-            // 9. FREEZE HEADER
-            // =====================================================
 
             sheet.createFreezePane(
                     0,
                     1);
-
-            // =====================================================
-            // 10. AUTO FILTER
-            // =====================================================
 
             sheet.setAutoFilter(
                     new CellRangeAddress(
@@ -186,10 +115,6 @@ public class ProductionLotImportExcelGenerator {
                             DATA_END_ROW,
                             0,
                             HEADERS.length - 1));
-
-            // =====================================================
-            // 11. GHI FILE
-            // =====================================================
 
             workbook.write(outputStream);
 
@@ -203,13 +128,7 @@ public class ProductionLotImportExcelGenerator {
         }
     }
 
-    // =============================================================
-    // VALIDATE INPUT
-    // =============================================================
-
-    /**
-     * Kiểm tra tham số đầu vào.
-     */
+    /** Kiểm tra mã loại nông sản và mã vùng trồng. */
     private void validateInput(
             UUID productCategoryId,
             UUID farmAreaId) {
@@ -227,13 +146,7 @@ public class ProductionLotImportExcelGenerator {
         }
     }
 
-    // =============================================================
-    // HEADER
-    // =============================================================
-
-    /**
-     * Tạo dòng header.
-     */
+    /** Tạo dòng tiêu đề cho tệp mẫu nhập lô sản xuất. */
     private void createHeader(
             Sheet sheet,
             CellStyle headerStyle) {
@@ -256,13 +169,7 @@ public class ProductionLotImportExcelGenerator {
         }
     }
 
-    // =============================================================
-    // SAMPLE ROW
-    // =============================================================
-
-    /**
-     * Tạo dòng dữ liệu mẫu.
-     */
+    /** Tạo dòng mẫu mang mã loại nông sản và mã vùng trồng. */
     private void createSampleRow(
             Sheet sheet,
             CellStyle sampleStyle,
@@ -275,20 +182,11 @@ public class ProductionLotImportExcelGenerator {
 
         sampleRow.setHeightInPoints(22);
 
-        // =====================================================
-        // A - ten_lo
-        // =====================================================
-
         createTextCell(
                 sampleRow,
                 0,
                 "",
                 sampleStyle);
-
-
-        // =====================================================
-        // B - ma_loai_nong_san
-        // =====================================================
 
         createTextCell(
                 sampleRow,
@@ -296,19 +194,11 @@ public class ProductionLotImportExcelGenerator {
                 productCategoryId.toString(),
                 sampleStyle);
 
-        // =====================================================
-        // C - ma_vung_trong
-        // =====================================================
-
         createTextCell(
                 sampleRow,
                 2,
                 farmAreaId.toString(),
                 sampleStyle);
-
-        // =====================================================
-        // D - san_luong_du_kien
-        // =====================================================
 
         createTextCell(
                 sampleRow,
@@ -316,37 +206,21 @@ public class ProductionLotImportExcelGenerator {
                 "",
                 sampleStyle);
 
-        // =====================================================
-        // E - san_luong_thuc_thu
-        // =====================================================
-
         createTextCell(
                 sampleRow,
                 4,
                 "",
                 sampleStyle);
 
-        // =====================================================
-        // F - ngay_gieo_trong
-        // =====================================================
-
         createDateCell(
                 sampleRow,
                 5,
                 dateStyle);
 
-        // =====================================================
-        // G - ngay_thu_hoach
-        // =====================================================
-
         createDateCell(
                 sampleRow,
                 6,
                 dateStyle);
-
-        // =====================================================
-        // H - hoat_dong_canh_tac
-        // =====================================================
 
         Cell activityCell =
                 sampleRow.createCell(7);
@@ -357,19 +231,11 @@ public class ProductionLotImportExcelGenerator {
         activityCell.setCellStyle(
                 sampleStyle);
 
-        // =====================================================
-        // I - vat_tu
-        // =====================================================
-
         createTextCell(
                 sampleRow,
                 8,
                 "",
                 sampleStyle);
-
-        // =====================================================
-        // J - so_luong
-        // =====================================================
 
         createTextCell(
                 sampleRow,
@@ -377,28 +243,16 @@ public class ProductionLotImportExcelGenerator {
                 "",
                 sampleStyle);
 
-        // =====================================================
-        // K - don_vi
-        // =====================================================
-
         createTextCell(
                 sampleRow,
                 10,
                 "",
                 sampleStyle);
 
-        // =====================================================
-        // L - ngay_thuc_hien
-        // =====================================================
-
         createDateCell(
                 sampleRow,
                 11,
                 dateStyle);
-
-        // =====================================================
-        // M - ghi_chu
-        // =====================================================
 
         createTextCell(
                 sampleRow,
@@ -407,13 +261,7 @@ public class ProductionLotImportExcelGenerator {
                 sampleStyle);
     }
 
-    // =============================================================
-    // STYLE
-    // =============================================================
-
-    /**
-     * Style cho header.
-     */
+    /** Định dạng chữ trắng nền xanh cho dòng tiêu đề. */
     private CellStyle createHeaderStyle(
             XSSFWorkbook workbook) {
 
@@ -447,9 +295,7 @@ public class ProductionLotImportExcelGenerator {
         return style;
     }
 
-    /**
-     * Style cho dữ liệu.
-     */
+    /** Định dạng căn giữa có viền cho dòng dữ liệu. */
     private CellStyle createSampleStyle(
             XSSFWorkbook workbook) {
 
@@ -464,13 +310,7 @@ public class ProductionLotImportExcelGenerator {
         return style;
     }
 
-    /**
-     * Style cho ngày tháng.
-     *
-     * Hiển thị:
-     *
-     * dd/MM/yyyy
-     */
+    /** Định dạng ô ngày tháng theo dd/MM/yyyy. */
     private CellStyle createDateStyle(
             XSSFWorkbook workbook) {
 
@@ -490,9 +330,7 @@ public class ProductionLotImportExcelGenerator {
         return style;
     }
 
-    /**
-     * Thiết lập border cho cell.
-     */
+    /** Kẻ viền mỏng cho ô Excel. */
     private void applyBorder(
             CellStyle style) {
 
@@ -509,13 +347,7 @@ public class ProductionLotImportExcelGenerator {
                 BorderStyle.THIN);
     }
 
-    // =============================================================
-    // CELL
-    // =============================================================
-
-    /**
-     * Tạo cell dạng text.
-     */
+    /** Tạo ô Excel dạng văn bản. */
     private void createTextCell(
             Row row,
             int columnIndex,
@@ -533,44 +365,22 @@ public class ProductionLotImportExcelGenerator {
         cell.setCellStyle(style);
     }
 
-    /**
-     * Tạo cell ngày tháng.
-     */
+    /** Tạo ô Excel dạng ngày tháng. */
     private void createDateCell(
             Row row,
             int columnIndex,
             CellStyle style) {
 
-        Cell cell =
-                row.createCell(columnIndex);
+        Cell cell = row.createCell(columnIndex);
 
-        /*
-         * Để trống nhưng vẫn áp dụng format
-         * dd/MM/yyyy.
-         */
         cell.setCellValue("");
-
         cell.setCellStyle(style);
     }
 
-    // =============================================================
-    // ACTIVITY DROPDOWN
-    // =============================================================
-
-    /**
-     * Tạo dropdown cho:
-     *
-     * H2:H1000
-     *
-     * Nguồn dữ liệu lấy từ FarmActivityType.
-     */
+    /** Tạo danh sách chọn hoạt động canh tác cho cột H. */
     private void createActivityDropdown(
             XSSFWorkbook workbook,
             Sheet sheet) {
-
-        // =====================================================
-        // 1. TẠO SHEET DANH MỤC
-        // =====================================================
 
         Sheet activitySheet =
                 workbook.createSheet(
@@ -591,10 +401,6 @@ public class ProductionLotImportExcelGenerator {
                     types[i].name());
         }
 
-        // =====================================================
-        // 2. TẠO NAMED RANGE
-        // =====================================================
-
         XSSFName namedRange =
                 workbook.createName();
 
@@ -606,24 +412,12 @@ public class ProductionLotImportExcelGenerator {
                         + "!$A$1:$A$"
                         + types.length);
 
-        // =====================================================
-        // 3. VALIDATION HELPER
-        // =====================================================
-
         DataValidationHelper helper =
                 sheet.getDataValidationHelper();
-
-        // =====================================================
-        // 4. FORMULA LIST CONSTRAINT
-        // =====================================================
 
         DataValidationConstraint constraint =
                 helper.createFormulaListConstraint(
                         ACTIVITY_NAME_RANGE);
-
-        // =====================================================
-        // 5. ÁP DỤNG H2:H1000
-        // =====================================================
 
         CellRangeAddressList addressList =
                 new CellRangeAddressList(
@@ -631,10 +425,6 @@ public class ProductionLotImportExcelGenerator {
                         DATA_END_ROW,
                         7,
                         7);
-
-        // =====================================================
-        // 6. TẠO VALIDATION
-        // =====================================================
 
         DataValidation validation =
                 helper.createValidation(
@@ -655,68 +445,22 @@ public class ProductionLotImportExcelGenerator {
                 "Hoạt động canh tác",
                 "Vui lòng chọn một hoạt động trong danh sách.");
 
-        // =====================================================
-        // 7. THÊM VALIDATION
-        // =====================================================
-
         sheet.addValidationData(
                 validation);
     }
 
-    // =============================================================
-    // NUMBER VALIDATION
-    // =============================================================
-
-    /**
-     * Thiết lập validation số cho:
-     *
-     * D2:D1000 - san_luong_du_kien
-     * E2:E1000 - san_luong_thuc_thu
-     * J2:J1000 - so_luong
-     *
-     * Cho phép:
-     *
-     * 0
-     * 10
-     * 10.5
-     * 100.25
-     *
-     * Không cho phép:
-     *
-     * -1
-     * -10.5
-     * abc
-     *
-     * Các ô vẫn có thể để trống.
-     */
+    /** Giới hạn các cột sản lượng và số lượng không âm. */
     private void createNumberValidation(
             Sheet sheet) {
 
         DataValidationHelper helper =
                 sheet.getDataValidationHelper();
 
-        /*
-         * Apache POI 5.4.1:
-         *
-         * createDecimalConstraint() có dạng:
-         *
-         * createDecimalConstraint(
-         *     operatorType,
-         *     formula1,
-         *     formula2
-         * )
-         *
-         * Không truyền ValidationType.DECIMAL.
-         */
         DataValidationConstraint constraint =
                 helper.createDecimalConstraint(
                         DataValidationConstraint.OperatorType.GREATER_OR_EQUAL,
                         "0",
                         null);
-
-        // =====================================================
-        // D - san_luong_du_kien
-        // =====================================================
 
         addNumberValidation(
                 sheet,
@@ -725,20 +469,12 @@ public class ProductionLotImportExcelGenerator {
                 3,
                 "Sản lượng dự kiến");
 
-        // =====================================================
-        // E - san_luong_thuc_thu
-        // =====================================================
-
         addNumberValidation(
                 sheet,
                 helper,
                 constraint,
                 4,
                 "Sản lượng thực thu");
-
-        // =====================================================
-        // J - so_luong
-        // =====================================================
 
         addNumberValidation(
                 sheet,
@@ -748,9 +484,7 @@ public class ProductionLotImportExcelGenerator {
                 "Số lượng");
     }
 
-    /**
-     * Áp dụng validation số cho một cột.
-     */
+    /** Áp dụng kiểm tra số không âm cho một cột. */
     private void addNumberValidation(
             Sheet sheet,
             DataValidationHelper helper,
@@ -779,7 +513,7 @@ public class ProductionLotImportExcelGenerator {
         validation.createErrorBox(
                 "Giá trị không hợp lệ",
                 fieldName
-                        + " phải là số lớn hơn hoặc bằng 0.");
+                + " phải là số lớn hơn hoặc bằng 0.");
 
         validation.createPromptBox(
                 fieldName,
@@ -789,60 +523,12 @@ public class ProductionLotImportExcelGenerator {
                 validation);
     }
 
-    // =============================================================
-    // DATE VALIDATION
-    // =============================================================
-
-    /**
-     * Thiết lập validation ngày tháng cho:
-     *
-     * F2:F1000 - ngay_gieo_trong
-     * G2:G1000 - ngay_thu_hoach
-     * L2:L1000 - ngay_thuc_hien
-     *
-     * Định dạng hiển thị:
-     *
-     * dd/MM/yyyy
-     *
-     * Ví dụ:
-     *
-     * 08/08/2026
-     * 15/09/2026
-     *
-     * Lưu ý:
-     *
-     * Excel Desktop không tự hiển thị popup lịch
-     * chỉ bằng Data Validation của Apache POI.
-     *
-     * Validation này đảm bảo dữ liệu nhập vào
-     * phải là ngày hợp lệ.
-     */
+    /** Giới hạn các cột ngày trong khoảng năm 1900–9999. */
     private void createDateValidation(
             Sheet sheet) {
 
         DataValidationHelper helper =
                 sheet.getDataValidationHelper();
-
-        /*
-         * Apache POI 5.4.1:
-         *
-         * createDateConstraint() có 4 tham số:
-         *
-         * 1. operatorType
-         * 2. formula1
-         * 3. formula2
-         * 4. dateFormat
-         *
-         * Do đó KHÔNG được gọi:
-         *
-         * createDateConstraint(
-         *     operator,
-         *     formula1,
-         *     formula2
-         * )
-         *
-         * vì sẽ gây lỗi compile.
-         */
 
         DataValidationConstraint constraint =
                 helper.createDateConstraint(
@@ -851,10 +537,6 @@ public class ProductionLotImportExcelGenerator {
                         "DATE(9999,12,31)",
                         DATE_FORMAT);
 
-        // =====================================================
-        // F - ngay_gieo_trong
-        // =====================================================
-
         addDateValidation(
                 sheet,
                 helper,
@@ -862,20 +544,12 @@ public class ProductionLotImportExcelGenerator {
                 5,
                 "Ngày gieo trồng");
 
-        // =====================================================
-        // G - ngay_thu_hoach
-        // =====================================================
-
         addDateValidation(
                 sheet,
                 helper,
                 constraint,
                 6,
                 "Ngày thu hoạch");
-
-        // =====================================================
-        // L - ngay_thuc_hien
-        // =====================================================
 
         addDateValidation(
                 sheet,
@@ -885,9 +559,7 @@ public class ProductionLotImportExcelGenerator {
                 "Ngày thực hiện");
     }
 
-    /**
-     * Áp dụng validation ngày cho một cột.
-     */
+    /** Áp dụng kiểm tra định dạng ngày cho một cột. */
     private void addDateValidation(
             Sheet sheet,
             DataValidationHelper helper,
@@ -925,38 +597,13 @@ public class ProductionLotImportExcelGenerator {
         sheet.addValidationData(
                 validation);
     }
-
-    // =============================================================
-    // COLUMN WIDTH
-    // =============================================================
-
-    /**
-     * Thiết lập độ rộng các cột.
-     */
+    /** Chỉnh độ rộng 13 cột theo nội dung. */
     private void configureColumnWidths(
             Sheet sheet) {
-
-        int[] widths = {
-                25, // A - ten_lo
-                42, // B - ma_loai_nong_san
-                42, // C - ma_vung_trong
-                22, // D - san_luong_du_kien
-                22, // E - san_luong_thuc_thu
-                18, // F - ngay_gieo_trong
-                18, // G - ngay_thu_hoach
-                25, // H - hoat_dong_canh_tac
-                25, // I - vat_tu
-                15, // J - so_luong
-                15, // K - don_vi
-                18, // L - ngay_thuc_hien
-                35  // M - ghi_chu
-        };
+        int[] widths = {25,42,42,22,22,18,18,25,25,15,15,18,35};
 
         for (int i = 0; i < widths.length; i++) {
-
-            sheet.setColumnWidth(
-                    i,
-                    widths[i] * 256);
+            sheet.setColumnWidth(i,widths[i] * 256);
         }
     }
 }

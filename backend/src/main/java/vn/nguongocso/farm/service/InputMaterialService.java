@@ -12,38 +12,25 @@ import vn.nguongocso.farm.enums.FarmActivityType;
 import vn.nguongocso.farm.enums.MaterialGroup;
 
 /**
- * Service quản lý danh mục vật tư đầu vào.
- */
+ * Nghiệp vụ vật tư đầu vào.
+*/
 public interface InputMaterialService {
-
-    /**
-     * Tạo mới vật tư đầu vào.
-     */
+    /** Tạo vật tư đầu vào. */
     InputMaterialResponse createInputMaterial(CreateInputMaterialRequest request, UUID currentUserId);
 
-    /**
-     * Cập nhật thông tin vật tư đầu vào.
-     */
+    /** Cập nhật vật tư đầu vào. */
     InputMaterialResponse updateInputMaterial(UUID id, UpdateInputMaterialRequest request, UUID currentUserId);
 
-    /**
-     * Ngừng sử dụng hoặc kích hoạt lại vật tư đầu vào.
-     */
+    /** Đổi trạng thái kích hoạt vật tư đầu vào. */
     InputMaterialResponse toggleActiveStatus(UUID id, Boolean isActive);
 
-    /**
-     * Xóa vật tư đầu vào (Chỉ khi chưa xuất hiện trong nhật ký canh tác).
-     */
+    /** Xóa vật tư đầu vào. */
     void deleteInputMaterial(UUID id);
 
-    /**
-     * Lấy chi tiết vật tư đầu vào theo ID.
-     */
+    /** Lấy chi tiết vật tư đầu vào theo ID. */
     InputMaterialResponse getInputMaterialById(UUID id);
 
-    /**
-     * Tìm kiếm và phân trang danh mục vật tư đầu vào.
-     */
+    /** Tìm kiếm vật tư đầu vào. */
     Page<InputMaterialResponse> searchMaterials(String keyword, MaterialGroup group, FarmActivityType activityType,
             Boolean isActive, Pageable pageable);
 }

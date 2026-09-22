@@ -1,7 +1,21 @@
 package vn.nguongocso.farm.service.impl;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -32,33 +46,24 @@ import vn.nguongocso.organization.entity.OrganizationUser;
 import vn.nguongocso.organization.enums.OrganizationUserStatus;
 import vn.nguongocso.organization.repository.OrganizationUserRepository;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
 /**
  * Triển khai dịch vụ nhắc lịch ghi nhật ký theo mốc canh tác bắt buộc (NCL-03-CN-007).
- */
+*/
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class MilestoneReminderServiceImpl implements MilestoneReminderService {
-
     private final ProductionLotRepository productionLotRepository;
+
     private final MilestoneReminderRepository milestoneReminderRepository;
+
     private final MilestoneValidationService milestoneValidationService;
+
     private final LotAssignmentRepository lotAssignmentRepository;
+
     private final NotificationRepository notificationRepository;
+
     private final OrganizationUserRepository organizationUserRepository;
 
     private static final List<ProductionLotStatus> SCAN_STATUSES = List.of(
@@ -66,6 +71,7 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
             ProductionLotStatus.HARVESTED
     );
 
+    /** Quét mốc quá hạn trên toàn hệ thống. */
     @Override
     public MilestoneScanResult scanOverdueMilestones() {
         log.info("⏰ Bắt đầu quét mốc canh tác quá hạn trên toàn hệ thống.");
@@ -73,6 +79,7 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
         return doScanLots(cultivatingLots);
     }
 
+    /** Quét mốc quá hạn của một tổ chức. */
     @Override
     public MilestoneScanResult scanOverdueMilestonesForOrganization(UUID organizationId) {
         log.info("⏰ Bắt đầu quét mốc canh tác quá hạn cho tổ chức: {}", organizationId);
@@ -81,13 +88,13 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
         return doScanLots(cultivatingLots);
     }
 
+    /** Quét danh sách lô và tạo nhắc việc quá hạn. */
     private MilestoneScanResult doScanLots(List<ProductionLot> lots) {
         LocalDate today = LocalDate.now();
         int scannedLotsCount = 0;
         int remindersCreatedCount = 0;
 
         for (ProductionLot lot : lots) {
-            // Quy tắc: Không nhắc với lô đã hủy, đã thu hồi hoặc đã đóng gói (TC-03)
             if (lot.getStatus() == ProductionLotStatus.CANCELLED
                     || lot.getStatus() == ProductionLotStatus.RECALLED
                     || lot.getStatus() == ProductionLotStatus.PACKAGED
@@ -96,14 +103,12 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
                 continue;
             }
 
-            // Phải có ngày gieo trồng và loại nông sản để đối chiếu mốc
             if (lot.getPlantingDate() == null || lot.getProductCategory() == null) {
                 continue;
             }
 
             scannedLotsCount++;
 
-            // Tìm các mốc bắt buộc còn thiếu
             List<CultivationMilestone> missingMilestones = milestoneValidationService.findMissingMilestones(lot);
             if (missingMilestones.isEmpty()) {
                 continue;
@@ -116,14 +121,12 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
 
                 LocalDate expectedDate = lot.getPlantingDate().plusDays(milestone.getExpectedDaysFromPlanting());
 
-                // Chỉ nhắc khi mốc quá hạn dự kiến
                 if (!today.isAfter(expectedDate)) {
                     continue;
                 }
 
                 int overdueDays = (int) ChronoUnit.DAYS.between(expectedDate, today);
 
-                // Tìm người nhận nhắc việc: Người được phân công phụ trách lô (LotAssignment) hoặc Người ghi sự kiện (VT-03)
                 Set<User> recipients = findRecipientsForLot(lot);
                 if (recipients.isEmpty()) {
                     log.warn("Không tìm thấy người được phân công hoặc tạo lô {} để gửi nhắc việc.", lot.getId());
@@ -131,7 +134,6 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
                 }
 
                 for (User recipient : recipients) {
-                    // Chống tạo nhắc trùng trong cùng ngày cho cùng một mốc và người dùng (TC-04)
                     boolean alreadyCreatedToday = milestoneReminderRepository
                             .existsByProductionLot_IdAndMilestone_IdAndUser_UserIdAndReminderDate(
                                     lot.getId(), milestone.getId(), recipient.getUserId(), today);
@@ -141,7 +143,6 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
                         continue;
                     }
 
-                    // Tạo thông báo tái sử dụng cơ chế NCL-08-CN-005
                     Notification notification = new Notification();
                     notification.setUser(recipient);
                     notification.setType(NotificationType.TASK);
@@ -152,7 +153,6 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
                     notification.setCreatedAt(LocalDateTime.now());
                     Notification savedNotification = notificationRepository.save(notification);
 
-                    // Tạo bản ghi nhắc việc
                     MilestoneReminder reminder = MilestoneReminder.builder()
                             .productionLot(lot)
                             .milestone(milestone)
@@ -180,12 +180,12 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
                 .build();
     }
 
+    /** Tìm người nhận nhắc việc cho lô sản xuất. */
     private Set<User> findRecipientsForLot(ProductionLot lot) {
         List<LotAssignment> assignments = lotAssignmentRepository.findByProductionLot_IdAndActiveTrue(lot.getId());
         Set<User> recipients = new LinkedHashSet<>();
         Set<UUID> addedUserIds = new HashSet<>();
 
-        // 1. Thành viên được phân công phụ trách lô (LotAssignment active = true)
         if (!assignments.isEmpty()) {
             for (LotAssignment assignment : assignments) {
                 if (assignment.getUser() != null && addedUserIds.add(assignment.getUser().getUserId())) {
@@ -194,7 +194,6 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
             }
         }
 
-        // 2. Nếu lô chưa có phân công cụ thể: tìm tất cả Người ghi sự kiện (VT-03) đang hoạt động của tổ chức
         if (recipients.isEmpty() && lot.getOrganization() != null) {
             List<OrganizationUser> orgUsers = organizationUserRepository.findByOrganization_OrganizationIdAndStatus(
                     lot.getOrganization().getOrganizationId(), OrganizationUserStatus.ACTIVE);
@@ -207,12 +206,10 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
             }
         }
 
-        // 3. Fallback: Nếu vẫn chưa có người nhận, gửi cho người tạo lô (createdBy)
         if (recipients.isEmpty() && lot.getCreatedBy() != null && addedUserIds.add(lot.getCreatedBy().getUserId())) {
             recipients.add(lot.getCreatedBy());
         }
 
-        // 4. Fallback cuối cùng: bất kỳ người dùng active nào trong tổ chức
         if (recipients.isEmpty() && lot.getOrganization() != null) {
             List<OrganizationUser> orgUsers = organizationUserRepository.findByOrganization_OrganizationIdAndStatus(
                     lot.getOrganization().getOrganizationId(), OrganizationUserStatus.ACTIVE);
@@ -227,6 +224,7 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
         return recipients;
     }
 
+    /** Đóng nhắc việc theo mốc canh tác. */
     @Override
     public void completeRemindersForLotAndMilestone(UUID lotId, Long milestoneId) {
         if (lotId == null || milestoneId == null) {
@@ -239,6 +237,7 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
         closeReminders(openReminders);
     }
 
+    /** Đóng nhắc việc theo hoạt động của lô. */
     @Override
     public void completeRemindersForLotAndActivity(UUID lotId, FarmActivityType activityType) {
         if (lotId == null || activityType == null) {
@@ -248,7 +247,6 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
         List<MilestoneReminder> openReminders = milestoneReminderRepository.findByProductionLot_IdAndStatus(
                 lotId, MilestoneReminderStatus.OPEN);
 
-        // Lọc các nhắc việc khớp activityType và sắp xếp theo mốc đến hạn sớm nhất (expectedDaysFromPlanting)
         List<MilestoneReminder> matchingReminders = openReminders.stream()
                 .filter(r -> r.getMilestone() != null && activityType.name().equalsIgnoreCase(r.getMilestone().getActivityType()))
                 .sorted(Comparator.comparing((MilestoneReminder r) ->
@@ -259,7 +257,6 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
             return;
         }
 
-        // Chỉ đóng mốc đầu tiên (mốc đến hạn sớm nhất), các mốc còn lại cùng loại hoạt động vẫn giữ OPEN
         Long targetMilestoneId = matchingReminders.get(0).getMilestone().getId();
         List<MilestoneReminder> targetReminders = matchingReminders.stream()
                 .filter(r -> r.getMilestone() != null && targetMilestoneId.equals(r.getMilestone().getId()))
@@ -268,6 +265,7 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
         closeReminders(targetReminders);
     }
 
+    /** Đóng hàng loạt nhắc việc đã hoàn thành. */
     private void closeReminders(List<MilestoneReminder> reminders) {
         if (reminders == null || reminders.isEmpty()) {
             return;
@@ -277,7 +275,6 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
             reminder.setStatus(MilestoneReminderStatus.COMPLETED);
             reminder.setCompletedAt(now);
 
-            // Đánh dấu đã đọc trên thông báo nếu có
             if (reminder.getNotification() != null) {
                 reminder.getNotification().setIsRead(true);
                 notificationRepository.save(reminder.getNotification());
@@ -291,6 +288,7 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
         }
     }
 
+    /** Lấy danh sách nhắc việc theo bộ lọc và phân trang. */
     @Override
     @Transactional(readOnly = true)
     public PageResponse<MilestoneReminderResponse> getReminders(
@@ -309,7 +307,6 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
                 page = milestoneReminderRepository.findByProductionLot_Id(lotId, pageable);
             }
         } else if (RoleCode.EVENT_RECORDER.equals(roleCode)) {
-            // VT-03: chỉ xem các nhắc việc được phân công cho chính mình
             if (status != null) {
                 page = milestoneReminderRepository.findByUser_UserIdAndStatus(
                         currentUser.getUserId(), status, pageable);
@@ -318,7 +315,6 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
                         currentUser.getUserId(), pageable);
             }
         } else if (RoleCode.ORG_MANAGER.equals(roleCode)) {
-            // VT-02: xem nhắc việc của tổ chức mình
             UUID orgId = currentUser.getOrganizationId();
             if (status != null) {
                 page = milestoneReminderRepository.findByProductionLot_Organization_OrganizationIdAndStatus(orgId, status, pageable);
@@ -326,7 +322,6 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
                 page = milestoneReminderRepository.findByProductionLot_Organization_OrganizationId(orgId, pageable);
             }
         } else {
-            // VT-01 hoặc quản trị: xem toàn bộ
             if (status != null) {
                 page = milestoneReminderRepository.findByStatus(status, pageable);
             } else {
@@ -347,6 +342,7 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
                 .build();
     }
 
+    /** Lấy nhắc việc đang mở của người dùng hiện tại. */
     @Override
     @Transactional(readOnly = true)
     public List<MilestoneReminderResponse> getMyActiveReminders(CustomUserDetails currentUser) {
@@ -361,7 +357,6 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
             UUID orgId = currentUser.getOrganizationId();
             list = milestoneReminderRepository.findByProductionLot_Organization_OrganizationIdAndStatusOrderByOverdueDaysDesc(
                     orgId, MilestoneReminderStatus.OPEN);
-            // Khử trùng lặp theo (lotId, milestoneId) cho quản lý HTX để tránh lặp dòng khi nhiều người nhận được nhắc
             Map<String, MilestoneReminder> uniqueReminders = new LinkedHashMap<>();
             for (MilestoneReminder reminder : list) {
                 if (reminder.getProductionLot() != null && reminder.getMilestone() != null) {
@@ -371,11 +366,9 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
             }
             list = new ArrayList<>(uniqueReminders.values());
         } else if (RoleCode.EVENT_RECORDER.equals(roleCode)) {
-            // VT-03: chỉ xem nhắc việc được phân công cho chính mình
             list = milestoneReminderRepository.findByUser_UserIdAndStatusOrderByOverdueDaysDesc(
                     currentUser.getUserId(), MilestoneReminderStatus.OPEN);
         } else {
-            // VT-01 và các vai trò khác
             list = milestoneReminderRepository.findByUser_UserIdAndStatusOrderByOverdueDaysDesc(
                     currentUser.getUserId(), MilestoneReminderStatus.OPEN);
         }
@@ -385,6 +378,7 @@ public class MilestoneReminderServiceImpl implements MilestoneReminderService {
                 .toList();
     }
 
+    /** Chuyển entity nhắc việc sang DTO phản hồi. */
     private MilestoneReminderResponse toResponse(MilestoneReminder reminder) {
         LocalDate expectedDate = null;
         if (reminder.getProductionLot() != null && reminder.getProductionLot().getPlantingDate() != null

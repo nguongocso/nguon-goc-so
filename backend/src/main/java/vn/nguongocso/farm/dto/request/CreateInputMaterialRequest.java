@@ -18,15 +18,14 @@ import lombok.Setter;
 import vn.nguongocso.farm.enums.MaterialGroup;
 
 /**
- * DTO yêu cầu tạo mới vật tư đầu vào.
- */
+ * Yêu cầu tạo mới vật tư đầu vào.
+*/
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateInputMaterialRequest {
-
     @NotBlank(message = "Tên vật tư không được để trống")
     @Size(max = 255, message = "Tên vật tư không vượt quá 255 ký tự")
     private String name;

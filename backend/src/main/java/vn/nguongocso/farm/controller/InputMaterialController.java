@@ -2,6 +2,10 @@ package vn.nguongocso.farm.controller;
 
 import java.util.UUID;
 
+import jakarta.validation.Valid;
+
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,10 +25,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.validation.Valid;
-
-import lombok.RequiredArgsConstructor;
-
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.farm.dto.request.CreateInputMaterialRequest;
@@ -36,14 +36,14 @@ import vn.nguongocso.farm.service.InputMaterialService;
 import vn.nguongocso.permission.service.PermissionChecker;
 
 /**
- * REST Controller quản lý danh mục vật tư đầu vào kèm thời gian cách ly (US NCL-09-CN-010).
- */
+ * Quản lý danh mục vật tư đầu vào kèm thời gian cách ly (NCL-09-CN-010).
+*/
 @RestController
 @RequestMapping("/api/v1/input-materials")
 @RequiredArgsConstructor
 public class InputMaterialController {
-
     private final InputMaterialService inputMaterialService;
+
     private final PermissionChecker permissionChecker;
 
     /**
@@ -87,7 +87,7 @@ public class InputMaterialController {
     }
 
     /**
-     * Tạo mới vật tư đầu vào (Chỉ Quản trị viên nền tảng theo QTN-17).
+     * Tạo mới vật tư đầu vào.
      */
     @PostMapping
     @PreAuthorize("hasRole('VT-01')")
@@ -103,7 +103,7 @@ public class InputMaterialController {
     }
 
     /**
-     * Cập nhật vật tư đầu vào (Chỉ Quản trị viên nền tảng theo QTN-17).
+     * Cập nhật vật tư đầu vào.
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('VT-01')")
@@ -133,7 +133,7 @@ public class InputMaterialController {
     }
 
     /**
-     * Xóa vật tư đầu vào (Bị chặn nếu vật tư đã được dùng trong nhật ký canh tác theo TC-04).
+     * Xóa vật tư đầu vào.
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('VT-01')")

@@ -10,11 +10,12 @@ import lombok.Setter;
 
 import vn.nguongocso.farm.enums.ProductFeedbackSeverity;
 
+/**
+ * Yêu cầu cập nhật nội dung xử lý phản hồi sản phẩm.
+*/
 @Getter
 @Setter
-/** Yêu cầu cập nhật nội dung xử lý phản hồi sản phẩm. */
 public class UpdateProductFeedbackProcessingRequest {
-
     @NotNull(message = "Mức độ phản ánh không được để trống")
     private ProductFeedbackSeverity severity;
 

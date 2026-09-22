@@ -14,15 +14,14 @@ import lombok.Setter;
 import vn.nguongocso.farm.enums.MaterialGroup;
 
 /**
- * DTO phản hồi thông tin chi tiết vật tư đầu vào.
- */
+ * Thông tin chi tiết vật tư đầu vào.
+*/
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class InputMaterialResponse {
-
     private UUID id;
 
     private String name;

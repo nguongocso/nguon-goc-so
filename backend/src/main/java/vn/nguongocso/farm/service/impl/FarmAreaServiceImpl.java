@@ -1,9 +1,5 @@
 package vn.nguongocso.farm.service.impl;
 
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -11,14 +7,17 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Point;
-import org.springframework.stereotype.Service;
-
 import jakarta.transaction.Transactional;
 
 import lombok.RequiredArgsConstructor;
+
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
 
 import vn.nguongocso.alert.event.ActivityLogEvent;
 import vn.nguongocso.auth.service.CustomUserDetails;
@@ -40,23 +39,30 @@ import vn.nguongocso.farm.repository.ProductionLotRepository;
 
 /**
  * Triển khai các nghiệp vụ quản lý vùng trồng.
- */
+*/
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class FarmAreaServiceImpl implements FarmAreaService {
     private final FarmAreaRepository farmAreaRepository;
+
     private final ProductCategoryRepository productCategoryRepository;
+
     private final OrganizationRepository organizationRepository;
+
     private final ProductionLotRepository productionLotRepository;
+
     private final GeometryFactory geometryFactory;
+
     private final ApplicationEventPublisher eventPublisher;
 
+    /** Lấy toàn bộ vùng trồng của tổ chức hiện tại. */
     @Override
     public List<FarmAreaResponse> getFarmAreas() {
         return getFarmAreas(null);
     }
 
+    /** Lấy vùng trồng của tổ chức hiện tại, lọc theo trạng thái nếu cần. */
     @Override
     public List<FarmAreaResponse> getFarmAreas(Boolean activeOnly) {
         CustomUserDetails currentUser = getCurrentUser();
@@ -75,6 +81,7 @@ public class FarmAreaServiceImpl implements FarmAreaService {
                 .collect(Collectors.toList());
     }
 
+    /** Lấy chi tiết vùng trồng theo ID. */
     @Override
     public FarmAreaResponse getFarmAreaById(UUID id) {
         CustomUserDetails currentUser = getCurrentUser();
@@ -83,12 +90,7 @@ public class FarmAreaServiceImpl implements FarmAreaService {
         return toResponse(farmArea);
     }
 
-    /**
-     * Tạo mới vùng trồng cho tổ chức của người dùng đang đăng nhập.
-     *
-     * @param request thông tin vùng trồng cần tạo
-     * @return thông tin vùng trồng sau khi tạo
-     */
+    /** Tạo mới vùng trồng cho tổ chức của người dùng đang đăng nhập. */
     @Override
     public FarmAreaResponse create(CreateFarmAreaRequest request) {
 
@@ -102,7 +104,6 @@ public class FarmAreaServiceImpl implements FarmAreaService {
 
         FarmArea saved = farmAreaRepository.save(farmArea);
 
-        // Ghi nhật ký hoạt động (TASK-27): tạo vùng trồng
         publishActivityLog(
                 currentUser,
                 "CREATE_FARM_AREA",
@@ -113,9 +114,7 @@ public class FarmAreaServiceImpl implements FarmAreaService {
         return toResponse(saved);
     }
 
-    /**
-     * Cập nhật thông tin vùng trồng (US NCL-02-CN-005).
-     */
+    /** Cập nhật thông tin vùng trồng. */
     @Override
     public FarmAreaResponse update(UUID id, UpdateFarmAreaRequest request) {
         CustomUserDetails currentUser = getCurrentUser();
@@ -166,9 +165,7 @@ public class FarmAreaServiceImpl implements FarmAreaService {
         return toResponse(saved);
     }
 
-    /**
-     * Đổi trạng thái kích hoạt / ngừng sử dụng vùng trồng (US NCL-02-CN-005).
-     */
+    /** Đổi trạng thái kích hoạt / ngừng sử dụng vùng trồng. */
     @Override
     public FarmAreaResponse toggleStatus(UUID id, boolean isActive) {
         CustomUserDetails currentUser = getCurrentUser();
@@ -192,9 +189,7 @@ public class FarmAreaServiceImpl implements FarmAreaService {
         return toResponse(saved);
     }
 
-    /**
-     * Xóa vùng trồng (US NCL-02-CN-005). Chặn xóa nếu có lô sản xuất liên quan.
-     */
+    /** Xóa vùng trồng, chặn nếu có lô sản xuất liên quan. */
     @Override
     public void delete(UUID id) {
         CustomUserDetails currentUser = getCurrentUser();
@@ -217,12 +212,7 @@ public class FarmAreaServiceImpl implements FarmAreaService {
                 id.toString());
     }
 
-    /**
-     * Ghi nhật ký hoạt động theo convention của hệ thống (TASK-27).
-     * <p>
-     * Actor lấy từ người dùng đã xác thực trong security context,
-     * organization lấy từ organization của người thực hiện.
-     */
+    /** Ghi nhật ký hoạt động theo convention của hệ thống. */
     private void publishActivityLog(CustomUserDetails currentUser, String action, String description,
             String entityType, String entityId) {
         eventPublisher.publishEvent(ActivityLogEvent.builder()
@@ -239,22 +229,26 @@ public class FarmAreaServiceImpl implements FarmAreaService {
                 .build());
     }
 
+    /** Lấy danh sách đơn vị diện tích. */
     @Override
     public List<AreaUnit> getAreaUnits() {
         return Arrays.asList(AreaUnit.values());
     }
 
+    /** Lấy thông tin người dùng đang đăng nhập. */
     private CustomUserDetails getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         return (CustomUserDetails) authentication.getPrincipal();
     }
 
+    /** Lấy tổ chức theo ID. */
     private Organization getOrganization(UUID organizationId) {
         return organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy tổ chức"));
     }
 
+    /** Lấy loại cây trồng theo ID và kiểm tra còn hoạt động. */
     private ProductCategory getCropType(UUID cropTypeId) {
         ProductCategory cropType = productCategoryRepository.findById(cropTypeId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy loại cây trồng"));
@@ -265,6 +259,7 @@ public class FarmAreaServiceImpl implements FarmAreaService {
         return cropType;
     }
 
+    /** Xây dựng đối tượng vùng trồng từ dữ liệu yêu cầu. */
     private FarmArea buildFarmArea(CreateFarmAreaRequest request, Organization organization, ProductCategory cropType) {
 
         Point location = geometryFactory.createPoint(new Coordinate(request.getLongitude(), request.getLatitude()));
@@ -283,6 +278,7 @@ public class FarmAreaServiceImpl implements FarmAreaService {
         return farmArea;
     }
 
+    /** Chuyển entity vùng trồng sang DTO phản hồi. */
     private FarmAreaResponse toResponse(FarmArea farmArea) {
 
         Point point = farmArea.getLocation();

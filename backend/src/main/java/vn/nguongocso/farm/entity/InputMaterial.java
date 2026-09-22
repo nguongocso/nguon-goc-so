@@ -23,6 +23,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -30,7 +31,7 @@ import vn.nguongocso.farm.enums.MaterialGroup;
 
 /**
  * Entity đại diện cho danh mục vật tư đầu vào kèm thời gian cách ly.
- */
+*/
 @Entity
 @Table(name = "input_materials")
 @Getter
@@ -39,6 +40,7 @@ import vn.nguongocso.farm.enums.MaterialGroup;
 @AllArgsConstructor
 @Builder
 public class InputMaterial {
+
     @Id
     @Column(name = "id", nullable = false, updatable = false)
     @JdbcTypeCode(SqlTypes.CHAR)
@@ -91,6 +93,7 @@ public class InputMaterial {
     )
     private Set<ProductCategory> applicableCropTypes = new HashSet<>();
 
+    /** Khởi tạo ID, thời điểm tạo và các giá trị mặc định trước khi lưu mới. */
     @PrePersist
     public void prePersist() {
         if (this.id == null) {
@@ -110,6 +113,7 @@ public class InputMaterial {
         }
     }
 
+    /** Cập nhật thời điểm sửa đổi trước khi lưu bản ghi hiện có. */
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();

@@ -4,7 +4,7 @@ import lombok.Getter;
 
 /**
  * Phân loại nhóm vật tư đầu vào.
- */
+*/
 @Getter
 public enum MaterialGroup {
     FERTILIZER("Phân bón"),
@@ -14,6 +14,7 @@ public enum MaterialGroup {
 
     private final String displayName;
 
+    /** Khởi tạo nhóm vật tư đầu vào. */
     MaterialGroup(String displayName) {
         this.displayName = displayName;
     }

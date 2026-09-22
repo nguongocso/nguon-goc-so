@@ -13,8 +13,8 @@ import lombok.Setter;
 import vn.nguongocso.farm.enums.AreaUnit;
 
 /**
- * DTO phản hồi sau khi tạo vùng trồng.
- */
+ * Thông tin vùng trồng.
+*/
 @Getter
 @Setter
 @NoArgsConstructor

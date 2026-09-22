@@ -1,5 +1,11 @@
 package vn.nguongocso.farm.entity;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -21,6 +27,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -29,13 +36,9 @@ import vn.nguongocso.certification.entity.ProductionLotCertification;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
 import vn.nguongocso.organization.entity.Organization;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
-/** Lô sản xuất nông sản trong trang trại. */
+/**
+ * Lô sản xuất nông sản trong trang trại.
+*/
 @Entity
 @Table(name = "production_lot")
 @Getter
@@ -69,7 +72,7 @@ public class ProductionLot {
     private Double expectedQuantity;
 
     @Column(name = "expected_quantity_unit", length = 20)
-    private String expectedQuantityUnit; // ví dụ: "kg", "tấn", "tạ", "gói", ...
+    private String expectedQuantityUnit;
 
     @Column(name = "actual_quantity")
     private Double actualQuantity;
@@ -114,23 +117,12 @@ public class ProductionLot {
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
 
-    /**
-     * Lý do loại bỏ lô (NCL-11-CN-005, QTN-30).
-     * Bắt buộc khi lô bị loại bỏ sau kết luận kiểm nghiệm Không đạt.
-     */
     @Column(name = "disposal_reason", length = 100)
     private String disposalReason;
 
-    /**
-     * Biện pháp xử lý lô bị loại bỏ (NCL-11-CN-005 TC-03).
-     * Bắt buộc khi dispose — không được để trống.
-     */
     @Column(name = "handling_measure", length = 1000)
     private String handlingMeasure;
 
-    /**
-     * Diễn giải chi tiết thêm khi loại bỏ lô (tùy chọn).
-     */
     @Column(name = "disposal_note", length = 1000)
     private String disposalNote;
 
@@ -144,6 +136,7 @@ public class ProductionLot {
     @OneToMany(mappedBy = "productionLot", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ProductionLotCertification> certifications = new ArrayList<>();
 
+    /** Khởi tạo thời điểm tạo, cập nhật và trạng thái mặc định trước khi lưu mới. */
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
@@ -153,6 +146,7 @@ public class ProductionLot {
         }
     }
 
+    /** Cập nhật thời điểm sửa đổi trước khi lưu bản ghi hiện có. */
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();

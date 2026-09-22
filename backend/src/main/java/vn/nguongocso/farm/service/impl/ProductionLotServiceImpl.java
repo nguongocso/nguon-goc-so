@@ -1,75 +1,9 @@
 package vn.nguongocso.farm.service.impl;
 
-import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import vn.nguongocso.alert.event.ActivityLogEvent;
-import vn.nguongocso.certification.entity.Certification;
-import vn.nguongocso.certification.entity.ProductionLotCertification;
-import vn.nguongocso.certification.enums.CertificationVerificationStatus;
-import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
-import vn.nguongocso.certification.service.InspectionEligibilityService;
-import vn.nguongocso.common.util.IpUtils;
-import vn.nguongocso.farm.dto.request.ApproveProductionLotRequest;
-import vn.nguongocso.farm.dto.request.CancelProductionLotRequest;
-import vn.nguongocso.farm.dto.request.CloneProductionLotRequest;
-import vn.nguongocso.farm.dto.request.CreateProductionLotRequest;
-import vn.nguongocso.farm.dto.request.DisposeProductionLotRequest;
-import vn.nguongocso.farm.dto.request.UpdateProductionLotRequest;
-import vn.nguongocso.farm.dto.response.CloneCertificationInfo;
-import vn.nguongocso.farm.dto.response.CloneProductionLotPreviewResponse;
-import vn.nguongocso.farm.dto.response.CloneProductionLotResponse;
-import vn.nguongocso.farm.dto.response.CreateProductionLotResponse;
-import vn.nguongocso.auth.entity.User;
-import vn.nguongocso.farm.dto.response.UpdateProductionLotResponse;
-import vn.nguongocso.farm.enums.ProductionLotStatus;
-import vn.nguongocso.auth.repository.UserRepository;
-import vn.nguongocso.auth.service.CustomUserDetails;
-import vn.nguongocso.farm.repository.FarmAreaRepository;
-import vn.nguongocso.farm.repository.ProductCategoryRepository;
-import vn.nguongocso.farm.service.ProductionLotService;
-import vn.nguongocso.exception.BusinessException;
-import vn.nguongocso.exception.DuplicateResourceException;
-import vn.nguongocso.exception.ResourceNotFoundException;
-import vn.nguongocso.farm.entity.FarmArea;
-import vn.nguongocso.farm.entity.ProductCategory;
-import vn.nguongocso.farm.entity.ProductionLot;
-import vn.nguongocso.farm.repository.ProductionLotRepository;
-import vn.nguongocso.organization.entity.Organization;
-import vn.nguongocso.organization.repository.OrganizationRepository;
-import vn.nguongocso.report.dto.response.ProductionLotDashboardResponse;
-import vn.nguongocso.report.service.ReportAccessLogService;
-import vn.nguongocso.trace.repository.ShipmentRepository;
-
-import vn.nguongocso.certification.dto.response.InspectionValidityResponse;
-import vn.nguongocso.certification.service.InspectionValidityService;
-import vn.nguongocso.certification.enums.InspectionRequestStatus;
-import vn.nguongocso.certification.repository.InspectionRequestRepository;
-import vn.nguongocso.event.enums.ChainEventType;
-import vn.nguongocso.event.repository.ChainEventRepository;
-import vn.nguongocso.farm.dto.response.ChainProgressBoardResponse;
-import vn.nguongocso.farm.dto.response.ChainProgressItemResponse;
-import vn.nguongocso.farm.dto.response.ChainProgressStageGroupResponse;
-import vn.nguongocso.farm.dto.response.HarvestEligibilityResponse;
-import vn.nguongocso.farm.service.HarvestEligibilityService;
-import vn.nguongocso.trace.entity.CodeRange;
-import vn.nguongocso.trace.repository.CodeRangeRepository;
-import vn.nguongocso.farm.enums.ChainProgressStage;
-import vn.nguongocso.trace.entity.Shipment;
-import vn.nguongocso.trace.enums.ShipmentStatus;
-
-import vn.nguongocso.organization.constant.RoleCode;
-import vn.nguongocso.organization.service.AreaScopeResult;
-import vn.nguongocso.organization.service.AreaScopeService;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -82,27 +16,109 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import lombok.RequiredArgsConstructor;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import vn.nguongocso.alert.event.ActivityLogEvent;
+import vn.nguongocso.auth.entity.User;
+import vn.nguongocso.auth.repository.UserRepository;
+import vn.nguongocso.auth.service.CustomUserDetails;
+import vn.nguongocso.certification.dto.response.InspectionValidityResponse;
+import vn.nguongocso.certification.entity.Certification;
+import vn.nguongocso.certification.entity.ProductionLotCertification;
+import vn.nguongocso.certification.enums.CertificationVerificationStatus;
+import vn.nguongocso.certification.enums.InspectionRequestStatus;
+import vn.nguongocso.certification.repository.InspectionRequestRepository;
+import vn.nguongocso.certification.repository.ProductionLotCertificationRepository;
+import vn.nguongocso.certification.service.InspectionEligibilityService;
+import vn.nguongocso.certification.service.InspectionValidityService;
+import vn.nguongocso.common.util.IpUtils;
+import vn.nguongocso.event.enums.ChainEventType;
+import vn.nguongocso.event.repository.ChainEventRepository;
+import vn.nguongocso.exception.BusinessException;
+import vn.nguongocso.exception.DuplicateResourceException;
+import vn.nguongocso.exception.ResourceNotFoundException;
+import vn.nguongocso.farm.dto.request.ApproveProductionLotRequest;
+import vn.nguongocso.farm.dto.request.CancelProductionLotRequest;
+import vn.nguongocso.farm.dto.request.CloneProductionLotRequest;
+import vn.nguongocso.farm.dto.request.CreateProductionLotRequest;
+import vn.nguongocso.farm.dto.request.DisposeProductionLotRequest;
+import vn.nguongocso.farm.dto.request.UpdateProductionLotRequest;
+import vn.nguongocso.farm.dto.response.ChainProgressBoardResponse;
+import vn.nguongocso.farm.dto.response.ChainProgressItemResponse;
+import vn.nguongocso.farm.dto.response.ChainProgressStageGroupResponse;
+import vn.nguongocso.farm.dto.response.CloneCertificationInfo;
+import vn.nguongocso.farm.dto.response.CloneProductionLotPreviewResponse;
+import vn.nguongocso.farm.dto.response.CloneProductionLotResponse;
+import vn.nguongocso.farm.dto.response.CreateProductionLotResponse;
+import vn.nguongocso.farm.dto.response.HarvestEligibilityResponse;
+import vn.nguongocso.farm.dto.response.UpdateProductionLotResponse;
+import vn.nguongocso.farm.entity.FarmArea;
+import vn.nguongocso.farm.entity.ProductCategory;
+import vn.nguongocso.farm.entity.ProductionLot;
+import vn.nguongocso.farm.enums.ChainProgressStage;
+import vn.nguongocso.farm.enums.ProductionLotStatus;
+import vn.nguongocso.farm.repository.FarmAreaRepository;
+import vn.nguongocso.farm.repository.ProductCategoryRepository;
+import vn.nguongocso.farm.repository.ProductionLotRepository;
+import vn.nguongocso.farm.service.HarvestEligibilityService;
+import vn.nguongocso.farm.service.ProductionLotService;
+import vn.nguongocso.organization.constant.RoleCode;
+import vn.nguongocso.organization.entity.Organization;
+import vn.nguongocso.organization.repository.OrganizationRepository;
+import vn.nguongocso.organization.service.AreaScopeResult;
+import vn.nguongocso.organization.service.AreaScopeService;
+import vn.nguongocso.report.dto.response.ProductionLotDashboardResponse;
+import vn.nguongocso.report.service.ReportAccessLogService;
+import vn.nguongocso.trace.entity.CodeRange;
+import vn.nguongocso.trace.entity.Shipment;
+import vn.nguongocso.trace.enums.ShipmentStatus;
+import vn.nguongocso.trace.repository.CodeRangeRepository;
+import vn.nguongocso.trace.repository.ShipmentRepository;
+
+/**
+ * Quản lý vòng đời lô sản xuất và dashboard liên quan.
+*/
 @Service
 @RequiredArgsConstructor
-/** Quản lý vòng đời lô sản xuất và dashboard liên quan. */
 public class ProductionLotServiceImpl implements ProductionLotService {
-
     private static final Logger log = LoggerFactory.getLogger(ProductionLotServiceImpl.class);
 
     private final ProductionLotRepository productionLotRepository;
+
     private final FarmAreaRepository farmAreaRepository;
+
     private final ProductCategoryRepository productCategoryRepository;
+
     private final UserRepository userRepository;
+
     private final OrganizationRepository organizationRepository;
+
     private final ReportAccessLogService reportAccessLogService;
+
     private final ShipmentRepository shipmentRepository;
+
     private final InspectionEligibilityService inspectionEligibilityService;
+
     private final InspectionRequestRepository inspectionRequestRepository;
+
     private final ChainEventRepository chainEventRepository;
+
     private final HarvestEligibilityService harvestEligibilityService;
+
     private final CodeRangeRepository codeRangeRepository;
+
     private final ProductionLotCertificationRepository productionLotCertificationRepository;
+
     private final InspectionValidityService inspectionValidityService;
+
     private final AreaScopeService areaScopeService;
 
     private final ApplicationEventPublisher eventPublisher;
@@ -167,16 +183,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         return mapToResponse(savedLot);
     }
 
-    /**
-     * Lấy dữ liệu xem trước khi tạo lô sản xuất mới từ mẫu vụ trước
-     * (NCL-02-CN-007).
-     *
-     * <p>
-     * Chỉ trả dữ liệu nền cần cho form; không expose lịch sử vận hành của lô
-     * mẫu. Lô mẫu phải thuộc tổ chức hiện tại (QTN-01) và vùng trồng của lô
-     * mẫu phải đang active.
-     * </p>
-     */
+    /** Lấy dữ liệu xem trước khi tạo lô sản xuất mới từ lô mẫu vụ trước. */
     @Override
     @Transactional(readOnly = true)
     public CloneProductionLotPreviewResponse getClonePreview(UUID sourceLotId, CustomUserDetails userDetails) {
@@ -228,17 +235,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .build();
     }
 
-    /**
-     * Tạo lô sản xuất mới từ mẫu vụ trước (NCL-02-CN-007).
-     *
-     * <p>
-     * Lô mới là một nghiệp vụ hoàn toàn mới: chỉ kế thừa vùng trồng, loại
-     * nông sản và các chứng nhận còn hiệu lực; tuyệt đối không sao chép id,
-     * tổ chức / người tạo của lô mẫu, trạng thái, sản lượng thực tế, ngày
-     * thu hoạch, dữ liệu phê duyệt / hủy / loại bỏ, nhật ký canh tác, sự
-     * kiện chuỗi, lô hàng hay mã truy xuất.
-     * </p>
-     */
+    /** Tạo lô sản xuất mới từ lô mẫu, chỉ kế thừa vùng trồng, loại nông sản và chứng nhận còn hiệu lực. */
     @Override
     @Transactional
     public CloneProductionLotResponse cloneProductionLot(UUID sourceLotId, CloneProductionLotRequest request,
@@ -317,9 +314,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .build();
     }
 
-    /**
-     * Lấy vùng trồng kế thừa từ lô mẫu và kiểm tra còn active.
-     */
+    /** Lấy vùng trồng kế thừa từ lô mẫu và kiểm tra còn hoạt động. */
     private FarmArea resolveActiveCloneFarmArea(ProductionLot sourceLot, UUID orgId) {
         FarmArea farmArea = sourceLot.getFarmArea();
         if (farmArea == null) {
@@ -335,9 +330,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         return farmArea;
     }
 
-    /**
-     * Lấy loại nông sản kế thừa từ lô mẫu và kiểm tra còn active.
-     */
+    /** Lấy loại nông sản kế thừa từ lô mẫu và kiểm tra còn hoạt động. */
     private ProductCategory resolveActiveCloneProductCategory(ProductionLot sourceLot) {
         ProductCategory productCategory = sourceLot.getProductCategory();
         if (productCategory == null) {
@@ -349,17 +342,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         return productCategory;
     }
 
-    /**
-     * Kiểm tra chứng nhận có được phép sao chép sang lô mới hay không.
-     *
-     * <p>
-     * Tái sử dụng đúng quy tắc gắn chứng nhận hiện hành (QTN-13 về hạn dùng
-     * và QTN-34 về xác thực, xem
-     * {@code CertificationServiceImpl.attachCertification}): chỉ sao chép
-     * chứng nhận còn hiệu lực ({@code expiryDate >= hôm nay}) và không bị từ
-     * chối xác thực.
-     * </p>
-     */
+    /** Kiểm tra chứng nhận còn hiệu lực và được phép sao chép sang lô mới. */
     private boolean isCertificationUsableForClone(Certification cert) {
         if (cert == null) {
             return false;
@@ -373,9 +356,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         return true;
     }
 
-    /**
-     * Chuyển chứng nhận sang thông tin rút gọn dùng cho clone.
-     */
+    /** Chuyển chứng nhận sang thông tin rút gọn dùng cho nhân bản. */
     private CloneCertificationInfo toCloneCertificationInfo(Certification cert) {
         return CloneCertificationInfo.builder()
                 .id(cert.getId())
@@ -385,9 +366,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .build();
     }
 
-    /**
-     * Dựng cảnh báo hiển thị khi một chứng nhận của lô mẫu bị bỏ qua.
-     */
+    /** Dựng cảnh báo hiển thị khi chứng nhận của lô mẫu bị bỏ qua. */
     private String buildSkippedCertificationWarning(Certification cert) {
         if (cert.getVerificationStatus() == CertificationVerificationStatus.REJECTED) {
             return "Chứng nhận '" + cert.getName() + "' đã bị từ chối xác thực nên không được sao chép sang lô mới.";
@@ -405,11 +384,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         return mapToResponse(lot);
     }
 
-    /**
-     * Lấy danh sách lô sản xuất.
-     * Đối với VT-05 (Cán bộ quản lý ngành): lấy danh sách lô của các tổ chức thuộc địa bàn phân công quản lý.
-     * Đối với các vai trò khác (VT-02, VT-03, VT-04...): lấy danh sách lô thuộc tổ chức hiện tại.
-     */
+    /** Lấy danh sách lô sản xuất theo phạm vi vai trò của người dùng. */
     @Override
     @Transactional(readOnly = true)
     public List<CreateProductionLotResponse> getAllProductionLots(CustomUserDetails userDetails) {
@@ -494,7 +469,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         return mapToResponse(saved);
     }
 
-    /** Hủy lô sản xuất và ghi lý do (NCL-02-CN-006). */
+    /** Hủy lô sản xuất và ghi lại lý do hủy. */
     @Override
     @Transactional
     public CreateProductionLotResponse cancelProductionLot(UUID lotId, CancelProductionLotRequest request,
@@ -522,12 +497,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             throw new BusinessException("Lô đã sinh mã truy xuất, không thể hủy. Vui lòng sử dụng luồng thu hồi lô");
         }
 
-        /*
-         * QTN-30 (NCL-11-CN-005, D-5): lô có kết luận kiểm nghiệm hoàn
-         * thành mới nhất là KHÔNG ĐẠT phải được xử lý theo 1 trong 2
-         * hướng (loại bỏ hoặc kiểm nghiệm lại) — không cho hủy lô để
-         * tránh lối thoát không ghi biện pháp xử lý.
-         */
         if (inspectionEligibilityService.hasLatestFailedConclusion(lot)) {
             throw new BusinessException(
                     HttpStatus.CONFLICT,
@@ -556,17 +525,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         return mapToResponse(saved);
     }
 
-    /**
-     * Loại bỏ lô sản xuất sau kết luận kiểm nghiệm Không đạt
-     * (NCL-11-CN-005, QTN-30).
-     *
-     * <p>
-     * Dispose là hướng xử lý 1 trong 2 hướng bắt buộc khi lô Không đạt
-     * (hướng còn lại là kiểm nghiệm lại). Yêu cầu ghi lý do và biện
-     * pháp xử lý (TC-03); trạng thái {@code DISPOSED} là trạng thái cuối,
-     * tách khỏi {@code CANCELLED} (quyết định thiết kế D-4).
-     * </p>
-     */
+    /** Loại bỏ lô sản xuất sau kết luận kiểm nghiệm không đạt với lý do và biện pháp xử lý. */
     @Override
     @Transactional
     public CreateProductionLotResponse disposeProductionLot(UUID lotId, DisposeProductionLotRequest request,
@@ -718,7 +677,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .orElseThrow(() -> new ResourceNotFoundException("Lô sản xuất không tồn tại"));
 
         if (!productionLot.getOrganization().getOrganizationId().equals(orgId)) {
-            throw new org.springframework.security.access.AccessDeniedException(
+            throw new AccessDeniedException(
                     "Bạn không có quyền chỉnh sửa lô sản xuất này");
         }
 
@@ -806,29 +765,22 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         UUID userOrgId = userDetails.getOrganizationId();
         UUID userId = userDetails.getUserId();
 
-        // 1. Xác định tổ chức đích được yêu cầu
         UUID finalTargetOrgId = (targetOrganizationId != null) ? targetOrganizationId : userOrgId;
 
-        // 2. Kiểm tra phân quyền cách ly dữ liệu (QTN-01)
         boolean isAdmin = userDetails.getRoleCode().equals("VT-01");
         if (!isAdmin && !finalTargetOrgId.equals(userOrgId)) {
-            // Ghi nhật ký truy cập trái phép (success = false)
             reportAccessLogService.logAccess(userId, userOrgId, finalTargetOrgId, "YIELD_AND_LOT_DASHBOARD", false,
                     ipAddress);
-            throw new org.springframework.security.access.AccessDeniedException(
+            throw new AccessDeniedException(
                     "Từ chối truy cập: Bạn không có quyền truy cập dữ liệu của tổ chức này.");
         }
 
-        // Ghi nhật ký truy cập hợp lệ (success = true)
         reportAccessLogService.logAccess(userId, userOrgId, finalTargetOrgId, "YIELD_AND_LOT_DASHBOARD", true,
                 ipAddress);
 
-        // 3. Lấy dữ liệu summary & byStatus
         List<Object[]> summaryAndStatusList = productionLotRepository.getDashboardSummaryAndStatus(finalTargetOrgId,
                 startDate, endDate);
 
-        // Khởi tạo trước tất cả trạng thái về 0L để đảm bảo đầy đủ khóa trong JSON
-        // response
         Map<String, Long> byStatus = new LinkedHashMap<>();
         for (ProductionLotStatus status : ProductionLotStatus.values()) {
             byStatus.put(status.name(), 0L);
@@ -846,10 +798,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
             byStatus.put(status.name(), count);
 
-            // NCL-02-CN-006: lô đã hủy không tính vào tổng sản lượng đang canh tác,
-            // chỉ thống kê riêng ở bucket byStatus["CANCELLED"].
-            // NCL-11-CN-005: lô đã loại bỏ (DISPOSED) cũng không tính sản lượng
-            // dự kiến / thực tế — chỉ thống kê riêng ở bucket byStatus["DISPOSED"].
             if (status == ProductionLotStatus.CANCELLED
                     || status == ProductionLotStatus.DISPOSED) {
                 continue;
@@ -866,8 +814,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .totalActualYield(totalActualYield)
                 .build();
 
-        // 4. Lấy dữ liệu timeSeries và gom nhóm trên Java (để DB-agnostic giữa H2 &
-        // MySQL)
         List<Object[]> timeSeriesList = productionLotRepository.getDashboardTimeSeriesData(finalTargetOrgId, startDate,
                 endDate);
 
@@ -921,7 +867,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         }
     }
 
-    /** Lấy bảng theo dõi tiến độ chuỗi của từng lô (NCL-10-CN-013). */
+    /** Lấy bảng theo dõi tiến độ chuỗi của từng lô. */
     @Override
     @Transactional(readOnly = true)
     public ChainProgressBoardResponse getChainProgressBoard(
@@ -1011,7 +957,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                             || chainEventRepository.existsByShipmentIdAndEventType(s.getId(), ChainEventType.WAREHOUSE_RECEIPT)
                             || chainEventRepository.existsByShipmentIdAndEventType(s.getId(), ChainEventType.STORAGE_CONDITION));
 
-            // Kiểm tra điều kiện cách ly thu hoạch (Quarantine / PHI period)
             boolean isQuarantined = false;
             String formattedQuarantineDate = null;
             try {
@@ -1024,7 +969,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                     }
                 }
             } catch (Exception e) {
-                // Bỏ qua nếu chưa có thông tin nhật ký BVTV
             }
 
             ChainProgressStage stage;
@@ -1049,7 +993,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             }
 
             LocalDateTime lastUpdated = lot.getUpdatedAt() != null ? lot.getUpdatedAt() : lot.getCreatedAt();
-            long daysInStage = java.time.temporal.ChronoUnit.DAYS.between(
+            long daysInStage = ChronoUnit.DAYS.between(
                     lastUpdated.toLocalDate(), LocalDate.now());
             if (daysInStage < 0) daysInStage = 0;
 

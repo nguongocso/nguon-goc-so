@@ -16,8 +16,8 @@ import lombok.Setter;
 import vn.nguongocso.farm.enums.AreaUnit;
 
 /**
- * DTO yêu cầu cập nhật vùng trồng (US NCL-02-CN-005).
- */
+ * Yêu cầu cập nhật vùng trồng.
+*/
 @Getter
 @Setter
 @NoArgsConstructor

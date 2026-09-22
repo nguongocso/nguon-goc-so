@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -27,13 +28,14 @@ import vn.nguongocso.farm.dto.response.AttachmentResponse;
 import vn.nguongocso.farm.service.AttachmentService;
 import vn.nguongocso.permission.service.PermissionChecker;
 
-/** Quản lý tệp đính kèm của nhật ký canh tác. */
+/**
+ * Quản lý tệp đính kèm của nhật ký canh tác.
+*/
 @RestController
 @RequestMapping("/api/v1/farm-logs")
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
 public class FarmLogAttachmentController {
-
     private final AttachmentService attachmentService;
 
     private final PermissionChecker permissionChecker;
@@ -78,7 +80,7 @@ public class FarmLogAttachmentController {
         var pair = attachmentService.getAttachmentForView(attachmentId, userDetails);
         Resource resource = pair.getKey();
         MediaType contentType = Objects.requireNonNull(pair.getValue(),
-                "Loại nội dung của tệp đính kèm không được null");
+                "Loại nội dung của tệp đính kèm không được bỏ trống");
         return ResponseEntity.ok()
                 .contentType(contentType)
                 .body(resource);

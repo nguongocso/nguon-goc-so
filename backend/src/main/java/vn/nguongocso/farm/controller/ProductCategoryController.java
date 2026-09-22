@@ -6,6 +6,7 @@ import java.util.UUID;
 import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,19 +29,18 @@ import vn.nguongocso.farm.service.ProductCategoryService;
 import vn.nguongocso.permission.service.PermissionChecker;
 
 /**
- * REST Controller quản lý các API liên quan đến loại cây trồng.
- */
+ * Quản lý loại cây trồng.
+*/
 @RestController
 @RequestMapping("/api/v1/product-categories")
 @RequiredArgsConstructor
 public class ProductCategoryController {
-
     private final ProductCategoryService productCategoryService;
+
     private final PermissionChecker permissionChecker;
 
     /**
      * Lấy và lọc danh sách loại nông sản.
-     * (THAY THẾ HOÀN TOÀN CHO PHƯƠNG THỨC getAll() CŨ)
      */
     @GetMapping
     @PreAuthorize("isAuthenticated()")
@@ -69,8 +69,7 @@ public class ProductCategoryController {
     }
 
     /**
-     * Cập nhật thông tin/trạng thái ẩn hiện loại nông sản (Chỉ cho phép Admin hệ
-     * thống).
+     * Cập nhật thông tin/trạng thái ẩn hiện loại nông sản.
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('VT-01')")
