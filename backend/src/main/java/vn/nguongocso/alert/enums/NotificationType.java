@@ -16,5 +16,9 @@ public enum NotificationType {
 
     ACCOUNT_UNLOCKED, // Tài khoản được mở khóa
 
-    ACTIVITY_LOG_EXPORT_READY // Tệp nhật ký nền đã sẵn sàng
+    ACTIVITY_LOG_EXPORT_READY, // Tệp nhật ký nền đã sẵn sàng
+
+    FARM_LOG_SYNC_SUCCESS, // Đồng bộ nhật ký canh tác ngoại tuyến thành công
+
+    FARM_LOG_SYNC_FAILED // Đồng bộ nhật ký canh tác ngoại tuyến thất bại
 }

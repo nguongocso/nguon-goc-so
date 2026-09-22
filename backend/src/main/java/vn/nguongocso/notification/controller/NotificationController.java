@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import lombok.RequiredArgsConstructor;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.common.PageResponse;
+import vn.nguongocso.notification.dto.response.MarkAllReadResponse;
 import vn.nguongocso.notification.dto.response.NotificationResponse;
 import vn.nguongocso.notification.dto.response.UnreadCountResponse;
 import vn.nguongocso.notification.service.NotificationService;
@@ -54,6 +55,18 @@ public class NotificationController {
         return ResponseEntity.ok(
                 ApiResult.success(
                         notificationService.getUnreadCount()));
+    }
+
+    /**
+     * Đánh dấu tất cả thông báo chưa đọc của người dùng là đã đọc.
+     */
+    @PatchMapping("/read-all")
+    public ResponseEntity<ApiResult<MarkAllReadResponse>> markAllAsRead() {
+        return ResponseEntity.ok(
+                ApiResult.success(
+                        MarkAllReadResponse.builder()
+                                .markedReadCount(notificationService.markAllAsRead())
+                                .build()));
     }
 
     /**
