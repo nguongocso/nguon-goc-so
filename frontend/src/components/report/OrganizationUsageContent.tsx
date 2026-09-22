@@ -575,13 +575,13 @@ export default function OrganizationUsageContent() {
             <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 px-1 text-sm text-muted-foreground">
               <span>
                 <span className="font-medium text-foreground">Kỳ hiện tại:</span>{' '}
-                Từ {toDisplayDate(periodDescription.currentFrom)} đến{' '}
+                từ {toDisplayDate(periodDescription.currentFrom)} đến{' '}
                 {toDisplayDate(periodDescription.currentTo)}
               </span>
               {periodDescription.previousFrom && periodDescription.previousTo && (
                 <span>
                   <span className="font-medium text-foreground">Kỳ trước:</span>{' '}
-                  Từ {toDisplayDate(periodDescription.previousFrom)} đến{' '}
+                  từ {toDisplayDate(periodDescription.previousFrom)} đến{' '}
                   {toDisplayDate(periodDescription.previousTo)}
                 </span>
               )}
