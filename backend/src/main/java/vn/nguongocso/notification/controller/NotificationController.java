@@ -27,7 +27,7 @@ import vn.nguongocso.notification.service.NotificationService;
 @RequiredArgsConstructor
 public class NotificationController {
 
-    private final NotificationService alertNotificationService;
+    private final NotificationService notificationService;
 
     /**
      * Lấy danh sách thông báo của người dùng.
@@ -37,12 +37,11 @@ public class NotificationController {
             @RequestParam(required = false) Boolean isRead,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-
         Pageable pageable = PageRequest.of(page, size);
 
         return ResponseEntity.ok(
                 ApiResult.success(
-                        alertNotificationService.getNotifications(
+                        notificationService.getNotifications(
                                 isRead,
                                 pageable)));
     }
@@ -52,10 +51,9 @@ public class NotificationController {
      */
     @GetMapping("/unread-count")
     public ResponseEntity<ApiResult<UnreadCountResponse>> getUnreadCount() {
-
         return ResponseEntity.ok(
                 ApiResult.success(
-                        alertNotificationService.getUnreadCount()));
+                        notificationService.getUnreadCount()));
     }
 
     /**
@@ -64,9 +62,8 @@ public class NotificationController {
     @PatchMapping("/{notificationId}/read")
     public ResponseEntity<ApiResult<NotificationResponse>> markAsRead(
             @PathVariable UUID notificationId) {
-
         return ResponseEntity.ok(
                 ApiResult.success(
-                        alertNotificationService.markAsRead(notificationId)));
+                        notificationService.markAsRead(notificationId)));
     }
 }

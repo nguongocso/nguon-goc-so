@@ -8,8 +8,11 @@ import org.springframework.data.domain.Pageable;
 import vn.nguongocso.alert.entity.Alert;
 import vn.nguongocso.auth.entity.AccountLock;
 import vn.nguongocso.auth.entity.LoginAnomaly;
+import vn.nguongocso.auth.entity.User;
+import vn.nguongocso.certification.dto.response.InspectionValidityResponse;
 import vn.nguongocso.certification.entity.Certification;
 import vn.nguongocso.common.PageResponse;
+import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.notification.dto.response.NotificationResponse;
 import vn.nguongocso.notification.dto.response.UnreadCountResponse;
 import vn.nguongocso.trace.entity.Recall;
@@ -174,7 +177,7 @@ public interface NotificationService {
             String content,
             UUID requestId,
             String action,
-            List<vn.nguongocso.auth.entity.User> recipients);
+            List<User> recipients);
 
     /**
      * Gửi thông báo kết thúc vụ việc thu hồi (NCL-08-CN-012) cho các tổ chức thu
@@ -195,9 +198,9 @@ public interface NotificationService {
      * @param validity thông tin hiệu lực kiểm nghiệm
      */
     void sendInspectionExpiryNotification(
-            vn.nguongocso.alert.entity.Alert alert,
-            vn.nguongocso.farm.entity.ProductionLot lot,
-            vn.nguongocso.certification.dto.response.InspectionValidityResponse validity);
+            Alert alert,
+            ProductionLot lot,
+            InspectionValidityResponse validity);
 
     /**
      * Gửi thông báo cho người yêu cầu khi tệp nhật ký nền đã sẵn sàng.
