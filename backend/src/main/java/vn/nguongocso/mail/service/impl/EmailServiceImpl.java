@@ -37,14 +37,12 @@ public class EmailServiceImpl implements EmailService {
 
     @Value("${spring.mail.username:}")
     private String fromEmail;
-
     /**
      * Khởi tạo dịch vụ gửi email.
      */
     public EmailServiceImpl(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
-
     /**
      * Gửi thư mời tham gia tổ chức bất đồng bộ.
      */
@@ -58,11 +56,9 @@ public class EmailServiceImpl implements EmailService {
             int expiryDays
     ) {
         log.info("Đang xử lý gửi email bất đồng bộ tới: {}", toEmail);
-
         if (isEmailConfigMissing(joinUrl)) {
             return;
         }
-
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, DEFAULT_CHARSET);
@@ -80,7 +76,6 @@ public class EmailServiceImpl implements EmailService {
             log.error("Gửi email thư mời tới {} thất bại", toEmail, e);
         }
     }
-
     /**
      * Gửi email hướng dẫn đặt lại mật khẩu bất đồng bộ.
      */
@@ -88,11 +83,9 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public void sendPasswordResetEmail(String toEmail, String fullName, String resetUrl, int expiryMinutes) {
         log.info("Đang xử lý gửi email đặt lại mật khẩu bất đồng bộ tới: {}", toEmail);
-
         if (isEmailConfigMissing(resetUrl)) {
             return;
         }
-
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, DEFAULT_CHARSET);
@@ -110,7 +103,6 @@ public class EmailServiceImpl implements EmailService {
             log.error("Gửi email đặt lại mật khẩu tới {} thất bại", toEmail, e);
         }
     }
-
     /**
      * Kiểm tra cấu hình email gửi có đầy đủ hay không.
      */
@@ -122,7 +114,6 @@ public class EmailServiceImpl implements EmailService {
         }
         return false;
     }
-
     /**
      * Che phần tham số truy vấn của đường dẫn để không ghi token vào log.
      */
@@ -133,7 +124,6 @@ public class EmailServiceImpl implements EmailService {
         int queryIndex = url.indexOf('?');
         return queryIndex >= 0 ? url.substring(0, queryIndex) : url;
     }
-
     /**
      * Dựng nội dung HTML cho email thư mời tham gia tổ chức.
      */
@@ -198,7 +188,6 @@ public class EmailServiceImpl implements EmailService {
                 .replace("{{expiryDays}}", String.valueOf(expiryDays))
                 .replace("{{joinUrl}}", joinUrl);
     }
-
     /**
      * Dựng nội dung HTML cho email đặt lại mật khẩu.
      */
@@ -256,7 +245,6 @@ public class EmailServiceImpl implements EmailService {
                 .replace("{{expiryMinutes}}", String.valueOf(expiryMinutes))
                 .replace("{{resetUrl}}", resetUrl);
     }
-
     /**
      * Gửi email liên kết cổng nhập kết quả cho đơn vị kiểm nghiệm bất đồng bộ.
      */
@@ -271,11 +259,9 @@ public class EmailServiceImpl implements EmailService {
             int expiryDays
     ) {
         log.info("Đang xử lý gửi email liên kết cổng kiểm nghiệm bất đồng bộ tới: {}", toEmail);
-
         if (isEmailConfigMissing(entryUrl)) {
             return;
         }
-
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, DEFAULT_CHARSET);
@@ -294,7 +280,6 @@ public class EmailServiceImpl implements EmailService {
             log.error("Gửi email liên kết cổng kiểm nghiệm lô {} tới {} thất bại", lotCode, toEmail, e);
         }
     }
-
     /**
      * Dựng nội dung HTML cho email liên kết cổng nhập kết quả kiểm nghiệm.
      */

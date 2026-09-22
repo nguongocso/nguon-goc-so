@@ -1,5 +1,4 @@
 package vn.nguongocso.farm.enums;
-
 /**
  * Trạng thái vòng đời của lô sản xuất.
 */

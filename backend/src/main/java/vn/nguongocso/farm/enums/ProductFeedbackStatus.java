@@ -1,5 +1,4 @@
 package vn.nguongocso.farm.enums;
-
 /**
  * Trạng thái vòng đời xử lý phản ánh của người tiêu dùng.
 */

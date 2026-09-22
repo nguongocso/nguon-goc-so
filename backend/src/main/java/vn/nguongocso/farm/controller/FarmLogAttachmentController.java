@@ -51,7 +51,6 @@ public class FarmLogAttachmentController {
         AttachmentResponse response = attachmentService.uploadAttachment(logId, file, description, userDetails);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(response));
     }
-
     /** Lấy danh sách tệp đính kèm của nhật ký. */
     @GetMapping("/{logId}/attachments")
     public ResponseEntity<ApiResult<List<AttachmentResponse>>> getAttachments(
@@ -60,7 +59,6 @@ public class FarmLogAttachmentController {
         permissionChecker.check("FARM_LOG", "READ");
         return ResponseEntity.ok(ApiResult.success(attachmentService.getAttachments(logId, userDetails)));
     }
-
     /** Xóa một tệp đính kèm. */
     @DeleteMapping("/attachments/{attachmentId}")
     public ResponseEntity<ApiResult<Void>> deleteAttachment(
@@ -70,7 +68,6 @@ public class FarmLogAttachmentController {
         attachmentService.deleteAttachment(attachmentId, userDetails);
         return ResponseEntity.noContent().build();
     }
-
     /** Xem / hiển thị tệp đính kèm (ảnh, PDF). */
     @GetMapping("/attachments/{attachmentId}/view")
     public ResponseEntity<Resource> viewAttachment(
@@ -85,7 +82,6 @@ public class FarmLogAttachmentController {
                 .contentType(contentType)
                 .body(resource);
     }
-
     /** Tải xuống tệp đính kèm. */
     @GetMapping("/attachments/{attachmentId}/download")
     public ResponseEntity<Resource> downloadAttachment(

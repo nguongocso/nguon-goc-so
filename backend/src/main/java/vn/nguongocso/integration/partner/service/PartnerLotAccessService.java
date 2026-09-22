@@ -43,28 +43,23 @@ public class PartnerLotAccessService {
         if (partnerApiKey == null) {
             return;
         }
-
         if (Boolean.TRUE.equals(partnerApiKey.getIsTest())) {
             return;
         }
-
         try {
             Shipment shipment = null;
             if (shipmentId != null) {
                 shipment = shipmentRepository.findById(shipmentId).orElse(null);
             }
-
             ProductionLot productionLot = null;
             if (productionLotId != null) {
                 productionLot = productionLotRepository.findById(productionLotId).orElse(null);
             } else if (shipment != null && shipment.getProductionLot() != null) {
                 productionLot = shipment.getProductionLot();
             }
-
             if (shipment == null && productionLot == null) {
                 return;
             }
-
             PartnerLotAccessLog accessLog = PartnerLotAccessLog.builder()
                     .partnerApiKey(partnerApiKey)
                     .shipment(shipment)

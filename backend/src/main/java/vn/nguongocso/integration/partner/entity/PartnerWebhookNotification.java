@@ -49,7 +49,6 @@ import vn.nguongocso.trace.entity.Shipment;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PartnerWebhookNotification {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)

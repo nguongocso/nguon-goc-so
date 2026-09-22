@@ -143,21 +143,18 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         if (Boolean.FALSE.equals(productCategory.getIsActive())) {
             throw new BusinessException("Loại nông sản này hiện đang ngưng hoạt động");
         }
-
         FarmArea farmArea;
         if (request.getFarmAreaId() == null) {
             throw new BusinessException("Vui lòng chọn vùng trồng");
         }
         farmArea = farmAreaRepository.findById(request.getFarmAreaId())
                 .orElseThrow(() -> new BusinessException("Không tìm thấy khu vực canh tác đã sélection"));
-
         if (!farmArea.getOrganization().getOrganizationId().equals(orgId)) {
             throw new BusinessException("Khu vực canh tác này không thuộc tổ chức của bạn");
         }
         if (Boolean.FALSE.equals(farmArea.getIsActive())) {
             throw new BusinessException("Vùng trồng '" + farmArea.getName() + "' hiện đã ngừng sử dụng, không thể chọn để tạo lô sản xuất mới");
         }
-
         ProductionLot productionLot = ProductionLot.builder()
                 .organization(organization)
                 .farmArea(farmArea)
@@ -182,7 +179,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
         return mapToResponse(savedLot);
     }
-
     /** Lấy dữ liệu xem trước khi tạo lô sản xuất mới từ lô mẫu vụ trước. */
     @Override
     @Transactional(readOnly = true)
@@ -193,11 +189,9 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
         ProductionLot sourceLot = productionLotRepository.findById(sourceLotId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lô sản xuất mẫu"));
-
         if (!sourceLot.getOrganization().getOrganizationId().equals(orgId)) {
             throw new BusinessException("Lô sản xuất mẫu không thuộc tổ chức của bạn");
         }
-
         FarmArea farmArea = resolveActiveCloneFarmArea(sourceLot, orgId);
         ProductCategory productCategory = resolveActiveCloneProductCategory(sourceLot);
 
@@ -207,7 +201,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         List<CloneCertificationInfo> activeCertifications = new ArrayList<>();
         List<CloneCertificationInfo> skippedCertifications = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
-
         for (ProductionLotCertification plc : sourceCertifications) {
             Certification cert = plc.getCertification();
             if (isCertificationUsableForClone(cert)) {
@@ -217,7 +210,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 warnings.add(buildSkippedCertificationWarning(cert));
             }
         }
-
         return CloneProductionLotPreviewResponse.builder()
                 .sourceLotId(sourceLot.getId())
                 .sourceLotName(sourceLot.getName())
@@ -234,7 +226,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .warnings(warnings)
                 .build();
     }
-
     /** Tạo lô sản xuất mới từ lô mẫu, chỉ kế thừa vùng trồng, loại nông sản và chứng nhận còn hiệu lực. */
     @Override
     @Transactional
@@ -252,11 +243,9 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
         ProductionLot sourceLot = productionLotRepository.findById(sourceLotId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lô sản xuất mẫu"));
-
         if (!sourceLot.getOrganization().getOrganizationId().equals(orgId)) {
             throw new BusinessException("Lô sản xuất mẫu không thuộc tổ chức của bạn");
         }
-
         FarmArea farmArea = resolveActiveCloneFarmArea(sourceLot, orgId);
         ProductCategory productCategory = resolveActiveCloneProductCategory(sourceLot);
 
@@ -281,7 +270,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         List<CloneCertificationInfo> copiedCertifications = new ArrayList<>();
         List<CloneCertificationInfo> skippedCertifications = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
-
         for (ProductionLotCertification sourceAssociation : sourceCertifications) {
             Certification cert = sourceAssociation.getCertification();
             if (!isCertificationUsableForClone(cert)) {
@@ -298,7 +286,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             productionLotCertificationRepository.save(newAssociation);
             copiedCertifications.add(toCloneCertificationInfo(cert));
         }
-
         publishActivityLog(
                 userDetails,
                 "CREATE",
@@ -313,7 +300,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .warnings(warnings)
                 .build();
     }
-
     /** Lấy vùng trồng kế thừa từ lô mẫu và kiểm tra còn hoạt động. */
     private FarmArea resolveActiveCloneFarmArea(ProductionLot sourceLot, UUID orgId) {
         FarmArea farmArea = sourceLot.getFarmArea();
@@ -329,7 +315,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         }
         return farmArea;
     }
-
     /** Lấy loại nông sản kế thừa từ lô mẫu và kiểm tra còn hoạt động. */
     private ProductCategory resolveActiveCloneProductCategory(ProductionLot sourceLot) {
         ProductCategory productCategory = sourceLot.getProductCategory();
@@ -341,7 +326,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         }
         return productCategory;
     }
-
     /** Kiểm tra chứng nhận còn hiệu lực và được phép sao chép sang lô mới. */
     private boolean isCertificationUsableForClone(Certification cert) {
         if (cert == null) {
@@ -355,7 +339,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         }
         return true;
     }
-
     /** Chuyển chứng nhận sang thông tin rút gọn dùng cho nhân bản. */
     private CloneCertificationInfo toCloneCertificationInfo(Certification cert) {
         return CloneCertificationInfo.builder()
@@ -365,7 +348,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .expiryDate(cert.getExpiryDate())
                 .build();
     }
-
     /** Dựng cảnh báo hiển thị khi chứng nhận của lô mẫu bị bỏ qua. */
     private String buildSkippedCertificationWarning(Certification cert) {
         if (cert.getVerificationStatus() == CertificationVerificationStatus.REJECTED) {
@@ -373,7 +355,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         }
         return "Chứng nhận '" + cert.getName() + "' đã hết hạn nên không được sao chép sang lô mới.";
     }
-
     /** Lấy chi tiết lô sản xuất theo ID. */
     @Override
     @Transactional(readOnly = true)
@@ -383,7 +364,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .orElseThrow(() -> new ResourceNotFoundException("Lô sản xuất không tồn tại"));
         return mapToResponse(lot);
     }
-
     /** Lấy danh sách lô sản xuất theo phạm vi vai trò của người dùng. */
     @Override
     @Transactional(readOnly = true)
@@ -411,12 +391,10 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             log.info("Lấy danh sách lô sản xuất cho tổ chức id={}", orgId);
             lots = productionLotRepository.findByOrganization_OrganizationId(orgId);
         }
-
         return lots.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
-
     /** Phê duyệt hoặc từ chối lô sản xuất. */
     @Override
     @Transactional
@@ -429,18 +407,14 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
         ProductionLot lot = productionLotRepository.findById(lotId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất"));
-
         if (!lot.getOrganization().getOrganizationId().equals(orgId)) {
             throw new BusinessException("Lô sản xuất không thuộc tổ chức của bạn");
         }
-
         if (lot.getStatus() != ProductionLotStatus.PENDING) {
             throw new BusinessException("Chỉ có thể duyệt lô đang ở trạng thái chờ duyệt");
         }
-
         User approver = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin tài khoản "));
-
         if (request.getApproved()) {
             lot.setStatus(ProductionLotStatus.APPROVED);
             lot.setApprovedBy(approver);
@@ -452,7 +426,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             lot.setApprovalNotes(request.getReason());
             log.info("Lô {} bị từ chối bởi {}, lý do: {}", lotId, userId, request.getReason());
         }
-
         ProductionLot saved = productionLotRepository.save(lot);
 
         String action = request.getApproved() ? "APPROVE" : "REJECT";
@@ -468,7 +441,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
         return mapToResponse(saved);
     }
-
     /** Hủy lô sản xuất và ghi lại lý do hủy. */
     @Override
     @Transactional
@@ -481,29 +453,24 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
         ProductionLot lot = productionLotRepository.findById(lotId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất"));
-
         if (!lot.getOrganization().getOrganizationId().equals(orgId)) {
             throw new BusinessException("Lô sản xuất không thuộc tổ chức của bạn");
         }
-
         if (lot.getStatus() == ProductionLotStatus.CANCELLED
                 || lot.getStatus() == ProductionLotStatus.CLOSED
                 || lot.getStatus() == ProductionLotStatus.RECALLED) {
             throw new BusinessException("Lô đã ở trạng thái " + lot.getStatus().name() + ", không thể hủy");
         }
-
         boolean hasTraceCodes = !shipmentRepository.findByProductionLotId(lotId).isEmpty();
         if (hasTraceCodes) {
             throw new BusinessException("Lô đã sinh mã truy xuất, không thể hủy. Vui lòng sử dụng luồng thu hồi lô");
         }
-
         if (inspectionEligibilityService.hasLatestFailedConclusion(lot)) {
             throw new BusinessException(
                     HttpStatus.CONFLICT,
                     "Lô sản xuất chưa đạt kiểm nghiệm, không thể hủy. "
                             + "Vui lòng loại bỏ lô hoặc tạo yêu cầu kiểm nghiệm lại.");
         }
-
         User cancelledBy = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin tài khoản"));
 
@@ -524,7 +491,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
         return mapToResponse(saved);
     }
-
     /** Loại bỏ lô sản xuất sau kết luận kiểm nghiệm không đạt với lý do và biện pháp xử lý. */
     @Override
     @Transactional
@@ -537,11 +503,9 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
         ProductionLot lot = productionLotRepository.findById(lotId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất"));
-
         if (!lot.getOrganization().getOrganizationId().equals(orgId)) {
             throw new BusinessException("Lô sản xuất không thuộc tổ chức của bạn");
         }
-
         if (lot.getStatus() == ProductionLotStatus.CANCELLED
                 || lot.getStatus() == ProductionLotStatus.CLOSED
                 || lot.getStatus() == ProductionLotStatus.RECALLED
@@ -549,20 +513,17 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             throw new BusinessException(
                     "Lô đã ở trạng thái " + lot.getStatus().name() + ", không thể loại bỏ");
         }
-
         if (lot.getStatus() != ProductionLotStatus.HARVESTED
                 && lot.getStatus() != ProductionLotStatus.PREPROCESSED
                 && lot.getStatus() != ProductionLotStatus.PACKAGED) {
             throw new BusinessException(
                     "Chỉ có thể loại bỏ lô ở trạng thái HARVESTED, PREPROCESSED hoặc PACKAGED");
         }
-
         boolean hasShipments = !shipmentRepository.findByProductionLotId(lotId).isEmpty();
         if (hasShipments) {
             throw new BusinessException(
                     "Lô đã sinh mã truy xuất, không thể loại bỏ. Vui lòng sử dụng luồng thu hồi lô");
         }
-
         User disposedBy = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin tài khoản"));
 
@@ -588,7 +549,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
         return mapToResponse(saved);
     }
-
     /** Gửi lô sản xuất sang trạng thái chờ duyệt. */
     @Override
     @Transactional
@@ -597,19 +557,15 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
         ProductionLot lot = productionLotRepository.findById(lotId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy lô sản xuất"));
-
         if (!lot.getOrganization().getOrganizationId().equals(orgId)) {
             throw new BusinessException("Bạn không có quyền với lô này");
         }
-
         if (lot.getStatus() != ProductionLotStatus.DRAFT) {
             throw new BusinessException("Chỉ  có thể gửi duyệt lô ở trạng thái DRAFT");
         }
-
         if (lot.getFarmArea() == null) {
             throw new BusinessException("Vui lòng chọn vùng trồng trước khi gửi duyệt");
         }
-
         lot.setStatus(ProductionLotStatus.PENDING);
         lot.setUpdatedAt(LocalDateTime.now());
         productionLotRepository.save(lot);
@@ -625,7 +581,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
         return mapToResponse(lot);
     }
-
     /** Chuyển entity lô sản xuất sang response. */
     private CreateProductionLotResponse mapToResponse(ProductionLot lot) {
         InspectionValidityResponse inspectionValidity = (inspectionValidityService != null)
@@ -663,7 +618,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .inspectionValidity(inspectionValidity)
                 .build();
     }
-
     /** Cập nhật thông tin lô sản xuất. */
     @Override
     @Transactional
@@ -675,24 +629,20 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
         ProductionLot productionLot = productionLotRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lô sản xuất không tồn tại"));
-
         if (!productionLot.getOrganization().getOrganizationId().equals(orgId)) {
             throw new AccessDeniedException(
                     "Bạn không có quyền chỉnh sửa lô sản xuất này");
         }
-
         if (productionLot.getStatus() != ProductionLotStatus.DRAFT) {
             throw new DuplicateResourceException(
                     "Chỉ có thể cập nhật lô sản xuất khi đang ở trạng thái nháp");
         }
-
         ProductCategory productCategory = productCategoryRepository.findById(request.getProductCategoryId())
                 .orElseThrow(
                         () -> new BusinessException("Không tìm thấy loại nông sản đã chọn"));
         if (Boolean.FALSE.equals(productCategory.getIsActive())) {
             throw new BusinessException("Loại nông sản này hiện đang ngưng hoạt động");
         }
-
         FarmArea farmArea;
         if (request.getFarmAreaId() == null) {
             throw new BusinessException("Vui lòng chọn vùng trồng");
@@ -703,7 +653,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         if (!farmArea.getOrganization().getOrganizationId().equals(orgId)) {
             throw new BusinessException("Khu vực canh tác này không thuộc tổ chức của bạn");
         }
-
         productionLot.setName(request.getName());
         productionLot.setFarmArea(farmArea);
         productionLot.setProductCategory(productCategory);
@@ -733,7 +682,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .updatedAt(savedLot.getUpdatedAt())
                 .build();
     }
-
     /** Gửi sự kiện nhật ký hoạt động. */
     private void publishActivityLog(CustomUserDetails currentUser, String action, String description, String entityType,
             String entityId) {
@@ -750,7 +698,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 .timestamp(LocalDateTime.now())
                 .build());
     }
-
     /** Lấy dashboard thống kê lô sản xuất. */
     @Override
     @Transactional(readOnly = true)
@@ -761,7 +708,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             String groupBy,
             CustomUserDetails userDetails,
             String ipAddress) {
-
         UUID userOrgId = userDetails.getOrganizationId();
         UUID userId = userDetails.getUserId();
 
@@ -774,7 +720,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             throw new AccessDeniedException(
                     "Từ chối truy cập: Bạn không có quyền truy cập dữ liệu của tổ chức này.");
         }
-
         reportAccessLogService.logAccess(userId, userOrgId, finalTargetOrgId, "YIELD_AND_LOT_DASHBOARD", true,
                 ipAddress);
 
@@ -785,11 +730,9 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         for (ProductionLotStatus status : ProductionLotStatus.values()) {
             byStatus.put(status.name(), 0L);
         }
-
         long totalLots = 0L;
         double totalExpectedYield = 0.0;
         double totalActualYield = 0.0;
-
         for (Object[] row : summaryAndStatusList) {
             ProductionLotStatus status = (ProductionLotStatus) row[0];
             Long count = (Long) row[1];
@@ -802,12 +745,10 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                     || status == ProductionLotStatus.DISPOSED) {
                 continue;
             }
-
             totalLots += count;
             totalExpectedYield += expected;
             totalActualYield += actual;
         }
-
         ProductionLotDashboardResponse.SummaryDto summary = ProductionLotDashboardResponse.SummaryDto.builder()
                 .totalLots(totalLots)
                 .totalExpectedYield(totalExpectedYield)
@@ -818,7 +759,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 endDate);
 
         Map<String, ProductionLotDashboardResponse.TimeSeriesDto> timeSeriesMap = new LinkedHashMap<>();
-
         for (Object[] row : timeSeriesList) {
             LocalDate plantingDate = (LocalDate) row[0];
             Double expected = row[1] != null ? (Double) row[1] : 0.0;
@@ -838,14 +778,12 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             tsDto.setExpectedYield(tsDto.getExpectedYield() + expected);
             tsDto.setActualYield(tsDto.getActualYield() + actual);
         }
-
         return ProductionLotDashboardResponse.builder()
                 .summary(summary)
                 .byStatus(byStatus)
                 .timeSeries(new ArrayList<>(timeSeriesMap.values()))
                 .build();
     }
-
     /** Định dạng khoảng thời gian cho biểu đồ dashboard. */
     private String formatPeriod(LocalDate date, String groupBy) {
         if (groupBy == null) {
@@ -866,7 +804,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 return date.format(DateTimeFormatter.ofPattern("yyyy-MM"));
         }
     }
-
     /** Lấy bảng theo dõi tiến độ chuỗi của từng lô. */
     @Override
     @Transactional(readOnly = true)
@@ -875,7 +812,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             Integer stagnantThresholdDays,
             String search,
             CustomUserDetails userDetails) {
-
         UUID userOrgId = userDetails.getOrganizationId();
         boolean isAdmin = userDetails.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_VT-01"));
@@ -891,7 +827,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         } else {
             effectiveOrgId = userOrgId;
         }
-
         Organization org = organizationRepository.findById(effectiveOrgId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy thông tin tổ chức"));
 
@@ -937,9 +872,7 @@ public class ProductionLotServiceImpl implements ProductionLotService {
         for (ChainProgressStage stage : ChainProgressStage.values()) {
             stageItemsMap.put(stage, new ArrayList<>());
         }
-
         long stagnantCount = 0;
-
         for (ProductionLot lot : openLots) {
             List<Shipment> lotShipments = shipmentMap.getOrDefault(lot.getId(), Collections.emptyList());
             boolean hasActivatedShipment = lotShipments.stream()
@@ -970,7 +903,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                 }
             } catch (Exception e) {
             }
-
             ChainProgressStage stage;
             if (hasInCirculationEvents) {
                 stage = ChainProgressStage.IN_CIRCULATION;
@@ -991,7 +923,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             } else {
                 stage = ChainProgressStage.DRAFT;
             }
-
             LocalDateTime lastUpdated = lot.getUpdatedAt() != null ? lot.getUpdatedAt() : lot.getCreatedAt();
             long daysInStage = ChronoUnit.DAYS.between(
                     lastUpdated.toLocalDate(), LocalDate.now());
@@ -1001,10 +932,8 @@ public class ProductionLotServiceImpl implements ProductionLotService {
             if (isStagnant) {
                 stagnantCount++;
             }
-
             String nextAction;
             String targetScreen;
-
             switch (stage) {
                 case DRAFT:
                     nextAction = "Gửi yêu cầu duyệt lô";
@@ -1070,7 +999,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                     targetScreen = "/production-lots/" + lot.getId();
                     break;
             }
-
             ChainProgressItemResponse item = ChainProgressItemResponse.builder()
                     .id(lot.getId())
                     .name(lot.getName())
@@ -1090,7 +1018,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
 
             stageItemsMap.get(stage).add(item);
         }
-
         List<ChainProgressStageGroupResponse> stageGroups = new ArrayList<>();
         for (ChainProgressStage s : ChainProgressStage.values()) {
             List<ChainProgressItemResponse> items = stageItemsMap.get(s);
@@ -1101,7 +1028,6 @@ public class ProductionLotServiceImpl implements ProductionLotService {
                     .items(items)
                     .build());
         }
-
         return ChainProgressBoardResponse.builder()
                 .organizationId(org.getOrganizationId())
                 .organizationName(org.getName())

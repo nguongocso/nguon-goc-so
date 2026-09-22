@@ -49,12 +49,10 @@ public class ProductCategoryController {
             @RequestParam(required = false) String categoryGroup,
             @RequestParam(required = false) Boolean isActive,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
-
         List<ProductCategoryResponse> response = productCategoryService.search(name, categoryGroup, isActive,
                 currentUser);
         return ResponseEntity.ok(ApiResult.success(response));
     }
-
     /**
      * Thêm mới loại nông sản (Chỉ cho phép Admin hệ thống).
      */
@@ -62,12 +60,10 @@ public class ProductCategoryController {
     @PreAuthorize("hasRole('VT-01')")
     public ResponseEntity<ApiResult<ProductCategoryResponse>> create(
             @Valid @RequestBody CreateProductCategoryRequest request) {
-
         permissionChecker.check("PRODUCT_CATEGORY", "CREATE");
         ProductCategoryResponse response = productCategoryService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
-
     /**
      * Cập nhật thông tin/trạng thái ẩn hiện loại nông sản.
      */
@@ -76,7 +72,6 @@ public class ProductCategoryController {
     public ResponseEntity<ApiResult<ProductCategoryResponse>> update(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateProductCategoryRequest request) {
-
         permissionChecker.check("PRODUCT_CATEGORY", "UPDATE");
         ProductCategoryResponse response = productCategoryService.update(id, request);
         return ResponseEntity.ok(ApiResult.success(response));

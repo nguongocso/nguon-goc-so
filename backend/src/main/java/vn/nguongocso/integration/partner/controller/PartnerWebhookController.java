@@ -44,19 +44,16 @@ public class PartnerWebhookController {
     public ResponseEntity<ApiResult<PartnerWebhookResponse>> updatePartnerWebhook(
             @Valid @RequestBody PartnerWebhookRegistrationRequest request,
             HttpServletRequest httpRequest) {
-
         PartnerApiKey partnerApiKey = (PartnerApiKey) httpRequest.getAttribute("partnerApiKey");
         if (partnerApiKey == null) {
             throw new BusinessException("Thiếu hoặc không xác thực được khóa truy cập Header X-API-KEY");
         }
-
         log.info("Đối tác '{}' (keyId={}) tự cấu hình Webhook URL: {}",
                 partnerApiKey.getPartnerName(), partnerApiKey.getId(), request.getWebhookUrl());
 
         PartnerWebhookResponse response = partnerWebhookService.registerWebhookForPartnerKey(partnerApiKey, request);
         return ResponseEntity.ok(ApiResult.success(response));
     }
-
     /**
      * Đối tác tra cứu lịch sử thông báo thu hồi đã gửi tới mình qua Header X-API-KEY.
      */
@@ -66,12 +63,10 @@ public class PartnerWebhookController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             HttpServletRequest httpRequest) {
-
         PartnerApiKey partnerApiKey = (PartnerApiKey) httpRequest.getAttribute("partnerApiKey");
         if (partnerApiKey == null) {
             throw new BusinessException("Thiếu hoặc không xác thực được khóa truy cập Header X-API-KEY");
         }
-
         PageRequest pageable = PageRequest.of(page, size);
         Page<PartnerWebhookNotificationResponse> response = partnerWebhookService
                 .getNotificationsForPartnerKey(partnerApiKey, deliveryStatus, pageable);

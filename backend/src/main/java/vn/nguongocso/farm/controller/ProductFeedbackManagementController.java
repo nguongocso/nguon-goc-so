@@ -56,25 +56,21 @@ public class ProductFeedbackManagementController {
             @RequestParam(required = false) UUID productionLotId,
             @RequestParam(required = false) UUID assignedToUserId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-
         permissionChecker.check("product_feedback", "READ");
         PageResponse<ProductFeedbackResponse> response = productFeedbackService.getFeedbacks(
                 keyword, status, severity, productionLotId, assignedToUserId, pageable);
         return ResponseEntity.ok(ApiResult.success(response));
     }
-
     /**
      * Lấy chi tiết một phản ánh sản phẩm.
      */
     @GetMapping("/{feedbackId}")
     public ResponseEntity<ApiResult<ProductFeedbackResponse>> getFeedbackById(
             @PathVariable UUID feedbackId) {
-
         permissionChecker.check("product_feedback", "READ");
         ProductFeedbackResponse response = productFeedbackService.getFeedbackById(feedbackId);
         return ResponseEntity.ok(ApiResult.success(response));
     }
-
     /**
      * Gán phản ánh sản phẩm cho nhân viên xử lý.
      */
@@ -86,7 +82,6 @@ public class ProductFeedbackManagementController {
         permissionChecker.check("product_feedback", "UPDATE");
         return ResponseEntity.ok(ApiResult.success(productFeedbackService.assign(feedbackId, request)));
     }
-
     /**
      * Cập nhật tiến độ xử lý phản ánh sản phẩm.
      */
@@ -98,7 +93,6 @@ public class ProductFeedbackManagementController {
         permissionChecker.check("product_feedback", "UPDATE");
         return ResponseEntity.ok(ApiResult.success(productFeedbackService.updateProcessing(feedbackId, request)));
     }
-
     /**
      * Đóng phản ánh sản phẩm sau khi hoàn tất xử lý.
      */
@@ -110,7 +104,6 @@ public class ProductFeedbackManagementController {
         permissionChecker.check("product_feedback", "UPDATE");
         return ResponseEntity.ok(ApiResult.success(productFeedbackService.close(feedbackId, request)));
     }
-
     /**
      * Tạo yêu cầu thu hồi sản phẩm từ phản ánh sản phẩm.
      */

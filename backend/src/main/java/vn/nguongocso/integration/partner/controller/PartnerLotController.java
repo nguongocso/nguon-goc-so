@@ -43,36 +43,30 @@ public class PartnerLotController {
     public ResponseEntity<ApiResult<PartnerLotDossierResponse>> getLotDossier(
             @PathVariable String lotId,
             HttpServletRequest request) {
-
         PartnerApiKey partnerApiKey = (PartnerApiKey) request.getAttribute("partnerApiKey");
         if (partnerApiKey == null) {
             throw new BusinessException("Thiếu hoặc không xác thực được khóa truy cập Header X-API-KEY");
         }
-
         log.info("Bên thứ ba '{}' (keyId={}) yêu cầu lấy hồ sơ lô {}",
                 partnerApiKey.getPartnerName(), partnerApiKey.getId(), lotId);
 
         boolean isTestKey = Boolean.TRUE.equals(partnerApiKey.getIsTest())
                 || (partnerApiKey.getKeyPrefix() != null && partnerApiKey.getKeyPrefix().startsWith("nks_test_"));
-
         if (isTestKey) {
             if ("sample-lot-001".equalsIgnoreCase(lotId.trim())) {
                 return ResponseEntity.ok(ApiResult.success(PartnerSampleDataProvider.getSampleLotDossier()));
             }
-
             log.warn("Đối tác '{}' dùng khóa thử nghiệm cố truy cập mã lô '{}' -> từ chối",
                     partnerApiKey.getPartnerName(), lotId);
             throw new BusinessException(HttpStatus.FORBIDDEN,
                     "Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật.");
         }
-
         UUID parsedLotId;
         try {
             parsedLotId = UUID.fromString(lotId);
         } catch (IllegalArgumentException e) {
             throw new BusinessException("Tham số 'lotId' có giá trị không hợp lệ (yêu cầu kiểu UUID)");
         }
-
         PartnerLotDossierResponse response = partnerLotService.getLotDossierForPartner(parsedLotId, partnerApiKey);
 
         partnerLotAccessService.recordLotAccess(partnerApiKey, null, parsedLotId);

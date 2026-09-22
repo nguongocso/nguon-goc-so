@@ -42,7 +42,6 @@ import vn.nguongocso.trace.entity.TraceCode;
 @AllArgsConstructor
 @Builder
 public class ProductFeedback {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)
@@ -114,7 +113,6 @@ public class ProductFeedback {
         createdAt = now;
         updatedAt = now;
     }
-
     /** Cập nhật thời điểm sửa đổi trước khi lưu bản ghi hiện có. */
     @PreUpdate
     public void preUpdate() {

@@ -43,17 +43,14 @@ public class MilestoneReminderController {
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<MilestoneScanResult>> triggerScan(
             @AuthenticationPrincipal CustomUserDetails currentUser) {
-
         MilestoneScanResult result;
         if (currentUser != null && !RoleCode.ADMIN.equals(currentUser.getRoleCode()) && currentUser.getOrganizationId() != null) {
             result = milestoneReminderService.scanOverdueMilestonesForOrganization(currentUser.getOrganizationId());
         } else {
             result = milestoneReminderService.scanOverdueMilestones();
         }
-
         return ResponseEntity.ok(ApiResult.success(result));
     }
-
     /**
      * Lấy danh sách nhắc việc có phân trang.
      */
@@ -64,12 +61,10 @@ public class MilestoneReminderController {
             @RequestParam(required = false) UUID lotId,
             @PageableDefault(size = 20) Pageable pageable,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
-
         PageResponse<MilestoneReminderResponse> response = milestoneReminderService.getReminders(
                 status, lotId, pageable, currentUser);
         return ResponseEntity.ok(ApiResult.success(response));
     }
-
     /**
      * Lấy danh sách nhắc việc đang mở của người dùng hiện tại.
      */
@@ -77,7 +72,6 @@ public class MilestoneReminderController {
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
     public ResponseEntity<ApiResult<List<MilestoneReminderResponse>>> getMyActiveReminders(
             @AuthenticationPrincipal CustomUserDetails currentUser) {
-
         List<MilestoneReminderResponse> response = milestoneReminderService.getMyActiveReminders(currentUser);
         return ResponseEntity.ok(ApiResult.success(response));
     }

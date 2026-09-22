@@ -14,7 +14,6 @@ import vn.nguongocso.farm.entity.FarmLog;
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.FarmActivityType;
 import vn.nguongocso.farm.projection.FarmLogProjection;
-
 /**
  * Repository thao tác dữ liệu nhật ký canh tác.
 */

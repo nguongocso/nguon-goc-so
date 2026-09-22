@@ -49,15 +49,12 @@ public class PartnerShipmentController {
             @RequestParam(name = "format", defaultValue = "json") String format,
             @RequestParam(name = "includeMapping", defaultValue = "true") boolean includeMapping,
             HttpServletRequest request) {
-
         PartnerApiKey partnerApiKey = (PartnerApiKey) request.getAttribute("partnerApiKey");
         if (partnerApiKey == null) {
             throw new BusinessException("Thiếu hoặc không xác thực được khóa truy cập Header X-API-KEY");
         }
-
         boolean isTestKey = Boolean.TRUE.equals(partnerApiKey.getIsTest())
                 || (partnerApiKey.getKeyPrefix() != null && partnerApiKey.getKeyPrefix().startsWith("nks_test_"));
-
         if (isTestKey) {
             String trimmedId = shipmentId.trim();
             if ("sample-lot-001".equalsIgnoreCase(trimmedId) || "sample-shipment-001".equalsIgnoreCase(trimmedId)) {
@@ -66,7 +63,6 @@ public class PartnerShipmentController {
 
                 Gs1DossierExportResponse sampleResponse = PartnerSampleDataProvider.getSampleGs1DossierResponse();
                 String normalizedFormat = format == null ? "json" : format.toLowerCase();
-
                 if ("xml".equals(normalizedFormat)) {
                     try {
                         XmlMapper xmlMapper = new XmlMapper();
@@ -80,23 +76,19 @@ public class PartnerShipmentController {
                         throw new RuntimeException("Lỗi khi sinh XML hồ sơ GS1 mẫu.", ex);
                     }
                 }
-
                 return ResponseEntity.ok(ApiResult.success(sampleResponse));
             }
-
             log.warn("Đối tác '{}' dùng khóa thử nghiệm cố truy cập lô hàng '{}' -> từ chối",
                     partnerApiKey.getPartnerName(), shipmentId);
             throw new BusinessException(HttpStatus.FORBIDDEN,
                     "Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật.");
         }
-
         UUID parsedShipmentId;
         try {
             parsedShipmentId = UUID.fromString(shipmentId);
         } catch (IllegalArgumentException e) {
             throw new BusinessException("Tham số 'shipmentId' có giá trị không hợp lệ (yêu cầu kiểu UUID)");
         }
-
         partnerLotAccessService.recordLotAccess(partnerApiKey, parsedShipmentId, null);
 
         Gs1DossierExportResponse response = PartnerSampleDataProvider.getSampleGs1DossierResponse();

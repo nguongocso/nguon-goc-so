@@ -30,14 +30,12 @@ public class PartnerApiKeyUsageService {
     private final PartnerApiKeyDailyUsageRepository usageRepository;
 
     private final PartnerApiKeyUsageWriter usageWriter;
-
     /**
      * Lấy ngày nghiệp vụ hiện tại dùng làm khóa đếm theo ngày.
      */
     public LocalDate currentUsageDate() {
         return LocalDate.now();
     }
-
     /**
      * Ghi nhận một lượt gọi đã xác thực thành công và trả về tổng lượt gọi trong ngày.
      */
@@ -53,7 +51,6 @@ public class PartnerApiKeyUsageService {
             return getDailyCallCount(apiKeyId);
         }
     }
-
     /**
      * Số lượt gọi trong ngày hôm nay của một khóa (0 nếu chưa có dòng usage).
      */
@@ -64,7 +61,6 @@ public class PartnerApiKeyUsageService {
         }
         return getDailyCallCounts(List.of(apiKeyId)).getOrDefault(apiKeyId, 0);
     }
-
     /**
      * Lấy số lượt gọi trong ngày hôm nay của nhiều khóa bằng một truy vấn duy nhất.
      */
@@ -81,7 +77,6 @@ public class PartnerApiKeyUsageService {
         }
         return result;
     }
-
     /**
      * Lấy dòng usage hôm nay của một khóa.
      */
@@ -89,7 +84,6 @@ public class PartnerApiKeyUsageService {
     public Optional<PartnerApiKeyDailyUsage> findTodayUsage(UUID apiKeyId) {
         return usageRepository.findByApiKeyIdAndUsageDate(apiKeyId, currentUsageDate());
     }
-
     /**
      * Lấy các dòng usage trong ngày hôm nay chưa gửi cảnh báo hạn mức.
      */
@@ -97,14 +91,12 @@ public class PartnerApiKeyUsageService {
     public List<PartnerApiKeyDailyUsage> findTodayUnwarnedUsages() {
         return usageRepository.findByUsageDateAndWarningSentAtIsNull(currentUsageDate());
     }
-
     /**
      * Giành quyền gửi cảnh báo hạn mức cho một dòng usage.
      */
     public boolean claimQuotaWarning(UUID usageId) {
         return usageWriter.claimQuotaWarningInNewTransaction(usageId);
     }
-
     /**
      * Nhả quyền gửi cảnh báo để lần đối soát sau gửi lại.
      */

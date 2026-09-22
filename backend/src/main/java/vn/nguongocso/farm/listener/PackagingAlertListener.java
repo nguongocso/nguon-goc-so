@@ -21,6 +21,5 @@ public class PackagingAlertListener {
     public void handlePackagingValidationFailed(PackagingValidationFailedEvent event) {
         log.warn("CẢNH BÁO THIẾU NHẬT KÝ: Lô sản xuất '{}' (ID: {}) thuộc tổ chức ID {} không đủ điều kiện đóng gói.",
             event.getLotName(), event.getProductionLotId(), event.getOrganizationId());
-
     }
 }

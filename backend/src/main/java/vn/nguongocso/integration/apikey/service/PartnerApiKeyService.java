@@ -86,11 +86,9 @@ public class PartnerApiKeyService {
         CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
         UUID organizationId = currentUser.getOrganizationId();
         UUID userId = currentUser.getUserId();
-
         if (request.getExpiresAt() == null || !request.getExpiresAt().isAfter(LocalDateTime.now())) {
             throw new BusinessException("Ngày hết hạn của khóa truy cập phải ở thời điểm tương lai");
         }
-
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy tổ chức"));
         User creator = userRepository.findById(userId)
@@ -133,7 +131,6 @@ public class PartnerApiKeyService {
         response.setRawApiKey(rawApiKey);
         return response;
     }
-
     /**
      * Tạo mới khóa thử nghiệm cho đối tác.
      */
@@ -142,7 +139,6 @@ public class PartnerApiKeyService {
         CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
         UUID organizationId = currentUser.getOrganizationId();
         UUID userId = currentUser.getUserId();
-
         if (request.getPartnerName() == null || request.getPartnerName().isBlank()) {
             throw new BusinessException("Tên đối tác hoặc tên khóa thử nghiệm không được để trống");
         }
@@ -152,19 +148,15 @@ public class PartnerApiKeyService {
         if (request.getExpiresAt() == null) {
             request.setExpiresAt(LocalDateTime.now().plusDays(7));
         }
-
         if (!request.getExpiresAt().isAfter(LocalDateTime.now())) {
             throw new BusinessException("Ngày hết hạn của khóa truy cập phải ở thời điểm tương lai");
         }
-
         if (request.getExpiresAt().isAfter(LocalDateTime.now().plusDays(MAX_TEST_EXPIRE_DAYS))) {
             throw new BusinessException("Thời hạn khóa thử nghiệm không được vượt quá " + MAX_TEST_EXPIRE_DAYS + " ngày");
         }
-
         if (request.getRateLimitPerHour() != null && request.getRateLimitPerHour() > MAX_TEST_RATE_LIMIT) {
             throw new BusinessException("Hạn mức số lượt gọi thử nghiệm không vượt quá " + MAX_TEST_RATE_LIMIT + " lượt/giờ");
         }
-
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy tổ chức"));
         User creator = userRepository.findById(userId)
@@ -208,7 +200,6 @@ public class PartnerApiKeyService {
         response.setRawApiKey(rawApiKey);
         return response;
     }
-
     /**
      * Lấy danh sách khóa truy cập của Hợp tác xã hiện tại.
      */
@@ -223,10 +214,8 @@ public class PartnerApiKeyService {
         } else {
             page = partnerApiKeyRepository.findByOrganizationOrganizationId(organizationId, pageable);
         }
-
         return toPageResponse(page);
     }
-
     /**
      * Đóng gói kết quả phân trang khóa truy cập thành DTO tường minh.
      */
@@ -242,7 +231,6 @@ public class PartnerApiKeyService {
                     ? null
                     : apiKeyQuotaPolicy.warningThreshold(item.getRateLimitPerHour()));
         }
-
         return PartnerApiKeyPageResponse.builder()
                 .content(content)
                 .page(page.getNumber())
@@ -251,7 +239,6 @@ public class PartnerApiKeyService {
                 .totalPages(page.getTotalPages())
                 .build();
     }
-
     /**
      * Thu hồi khóa truy cập.
      */
@@ -263,11 +250,9 @@ public class PartnerApiKeyService {
 
         PartnerApiKey apiKey = partnerApiKeyRepository.findByIdAndOrganizationId(apiKeyId, organizationId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy khóa truy cập trong tổ chức"));
-
         if (apiKey.getStatus() == PartnerApiKeyStatus.REVOKED) {
             throw new BusinessException("Khóa truy cập này đã bị thu hồi trước đó");
         }
-
         User revoker = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy người thực hiện thu hồi"));
 
@@ -278,7 +263,6 @@ public class PartnerApiKeyService {
         PartnerApiKey updatedKey = partnerApiKeyRepository.save(apiKey);
         log.info("Đã thu hồi khóa truy cập id={}, partnerName={}, orgId={}",
                 apiKeyId, updatedKey.getPartnerName(), organizationId);
-
         try {
             int cancelledCount = partnerWebhookNotificationRepository.cancelPendingNotificationsForApiKey(
                     apiKeyId,
@@ -290,7 +274,6 @@ public class PartnerApiKeyService {
         } catch (Exception e) {
             log.error("Lỗi khi hủy hàng đợi Webhook của khóa apiKeyId={}: {}", apiKeyId, e.getMessage());
         }
-
         publishActivityLog(currentUser, "REVOKE_API_KEY",
                 "Thu hồi khóa truy cập của đối tác '" + updatedKey.getPartnerName()
                         + "' (mã khóa " + updatedKey.getKeyPrefix() + "...)",
@@ -298,7 +281,6 @@ public class PartnerApiKeyService {
 
         return mapToResponse(updatedKey);
     }
-
     /**
      * Gia hạn khóa truy cập.
      */
@@ -310,21 +292,17 @@ public class PartnerApiKeyService {
 
         PartnerApiKey apiKey = partnerApiKeyRepository.findByIdAndOrganizationId(apiKeyId, organizationId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy khóa truy cập trong tổ chức"));
-
         if (apiKey.getStatus() == PartnerApiKeyStatus.REVOKED) {
             throw new BusinessException("Khóa truy cập đã bị thu hồi, không thể gia hạn");
         }
-
         if (request.getExpiresAt() == null || !request.getExpiresAt().isAfter(LocalDateTime.now())) {
             throw new BusinessException("Ngày hết hạn mới của khóa truy cập phải ở thời điểm tương lai");
         }
-
         PartnerApiKeyStatus previousStatus = apiKey.getStatus();
         apiKey.setExpiresAt(request.getExpiresAt());
         if (previousStatus == PartnerApiKeyStatus.EXPIRED) {
             apiKey.setStatus(PartnerApiKeyStatus.ACTIVE);
         }
-
         PartnerApiKey updatedKey = partnerApiKeyRepository.save(apiKey);
         log.info("Đã gia hạn khóa truy cập id={}, partnerName={}, orgId={}, oldExpiry={}, newExpiry={}",
                 apiKeyId, updatedKey.getPartnerName(), organizationId,
@@ -341,7 +319,6 @@ public class PartnerApiKeyService {
 
         return mapToResponse(updatedKey);
     }
-
     /**
      * Nâng hạn mức khóa truy cập.
      */
@@ -353,19 +330,15 @@ public class PartnerApiKeyService {
 
         PartnerApiKey apiKey = partnerApiKeyRepository.findByIdAndOrganizationIdForUpdate(apiKeyId, organizationId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy khóa truy cập trong tổ chức"));
-
         if (apiKey.getStatus() == PartnerApiKeyStatus.REVOKED) {
             throw new BusinessException("Khóa truy cập đã bị thu hồi, không thể nâng hạn mức");
         }
-
         if (apiKey.getRateLimitPerHour() == null) {
             throw new BusinessException("Khóa truy cập chưa có hạn mức");
         }
-
         if (request.getIncrementBy() == null || request.getIncrementBy() <= 0) {
             throw new BusinessException("Số lượt hạn mức bổ sung phải lớn hơn 0");
         }
-
         Integer previousRateLimit = apiKey.getRateLimitPerHour();
         Integer newRateLimit = previousRateLimit + request.getIncrementBy();
         apiKey.setRateLimitPerHour(newRateLimit);
@@ -384,7 +357,6 @@ public class PartnerApiKeyService {
 
         return mapToResponse(updatedKey);
     }
-
     /**
      * Kiểm tra tính hợp lệ và hạn mức của khóa từ đối tác.
      */
@@ -393,24 +365,19 @@ public class PartnerApiKeyService {
         if (rawApiKey == null || rawApiKey.isBlank()) {
             throw new BusinessException("Thiếu Header X-API-KEY");
         }
-
         String keyHash = hashSha256(rawApiKey.trim());
         Optional<PartnerApiKey> apiKeyOpt = partnerApiKeyRepository.findByKeyHash(keyHash);
-
         if (apiKeyOpt.isEmpty()) {
             if (rawApiKey.trim().startsWith(TEST_KEY_PREFIX_CONSTANT) || rawApiKey.trim().contains("test")) {
                 throw new BusinessException("Khóa thử nghiệm không đúng. Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa.");
             }
             throw new BusinessException("Khóa truy cập không hợp lệ");
         }
-
         PartnerApiKey apiKey = apiKeyOpt.get();
-
         if (apiKey.getStatus() == PartnerApiKeyStatus.REVOKED) {
             recordCallStats(apiKey, false, 401, clientIp);
             throw new BusinessException("Khóa truy cập đã bị thu hồi và không còn hiệu lực");
         }
-
         if (LocalDateTime.now().isAfter(apiKey.getExpiresAt())) {
             if (apiKey.getStatus() != PartnerApiKeyStatus.EXPIRED) {
                 apiKey.setStatus(PartnerApiKeyStatus.EXPIRED);
@@ -422,7 +389,6 @@ public class PartnerApiKeyService {
             }
             throw new BusinessException("Khóa truy cập đã hết thời gian hiệu lực");
         }
-
         LocalDateTime now = LocalDateTime.now();
         String hourlyKey = buildHourlyKey(apiKey.getId(), now);
 
@@ -432,28 +398,23 @@ public class PartnerApiKeyService {
         int callsInCurrentHour;
         while (true) {
             int currentCount = currentCallCount.get();
-
             if (currentCount >= rateLimit) {
                 recordCallStats(apiKey, false, 429, clientIp);
                 throw new BusinessException("Khóa truy cập đã vượt quá hạn mức " + rateLimit + " lượt gọi/giờ");
             }
-
             if (currentCallCount.compareAndSet(currentCount, currentCount + 1)) {
                 callsInCurrentHour = currentCount + 1;
                 break;
             }
         }
-
         partnerApiKeyUsageService.recordCallAndGetDailyCount(apiKey.getId());
         int warningThreshold = apiKeyQuotaPolicy.warningThreshold(apiKey.getRateLimitPerHour());
         if (warningThreshold > 0 && callsInCurrentHour >= warningThreshold) {
             publishQuotaThresholdEvent(apiKey, callsInCurrentHour, warningThreshold);
         }
-
         recordCallStats(apiKey, true, 200, clientIp);
         return apiKey;
     }
-
     /**
      * Dựng khóa đếm theo giờ cho bộ nhớ tạm rate-limit.
      */
@@ -461,7 +422,6 @@ public class PartnerApiKeyService {
         return apiKeyId.toString() + ":" + String.format("%04d%02d%02d%02d",
                 time.getYear(), time.getMonthValue(), time.getDayOfMonth(), time.getHour());
     }
-
     /**
      * Lấy số lượt gọi trong giờ hiện tại của khóa.
      */
@@ -470,7 +430,6 @@ public class PartnerApiKeyService {
         AtomicInteger count = hourlyRateLimitMap.get(hourlyKey);
         return count != null ? count.get() : 0;
     }
-
     /**
      * Phát sự kiện vòng đời khóa vừa được cấp hoặc gia hạn.
      */
@@ -487,7 +446,6 @@ public class PartnerApiKeyService {
             log.warn("Bỏ qua lỗi phát sự kiện vòng đời cho khóa {}", key.getId(), e);
         }
     }
-
     /**
      * Phát sự kiện chạm ngưỡng hạn mức.
      */
@@ -504,7 +462,6 @@ public class PartnerApiKeyService {
             log.warn("Bỏ qua lỗi phát sự kiện chạm ngưỡng hạn mức cho khóa {}", apiKey.getId(), e);
         }
     }
-
     /**
      * Ghi nhận chỉ số thống kê lượt gọi của khóa.
      */
@@ -523,7 +480,6 @@ public class PartnerApiKeyService {
             log.error("Lỗi cập nhật thống kê lượt gọi cho apiKeyId={}", apiKey.getId(), e);
         }
     }
-
     /**
      * Băm chuỗi bằng SHA-256.
      */
@@ -536,7 +492,6 @@ public class PartnerApiKeyService {
             throw new RuntimeException("Lỗi thuật toán mã hóa SHA-256", e);
         }
     }
-
     /**
      * Chuyển mảng byte sang chuỗi hex.
      */
@@ -551,7 +506,6 @@ public class PartnerApiKeyService {
         }
         return hexString.toString();
     }
-
     /**
      * Ghi nhật ký hoạt động theo convention của hệ thống.
      */
@@ -570,7 +524,6 @@ public class PartnerApiKeyService {
                 .timestamp(LocalDateTime.now())
                 .build());
     }
-
     /**
      * Chuyển đổi entity sang response DTO.
      */
@@ -580,7 +533,6 @@ public class PartnerApiKeyService {
                 && LocalDateTime.now().isAfter(key.getExpiresAt())) {
             status = PartnerApiKeyStatus.EXPIRED;
         }
-
         return PartnerApiKeyResponse.builder()
                 .id(key.getId())
                 .organizationId(key.getOrganization().getOrganizationId())

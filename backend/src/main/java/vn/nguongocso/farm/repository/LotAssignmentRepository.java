@@ -6,7 +6,6 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import vn.nguongocso.farm.entity.LotAssignment;
-
 /**
  * Repository thao tác dữ liệu phân công thành viên vào lô sản xuất.
 */

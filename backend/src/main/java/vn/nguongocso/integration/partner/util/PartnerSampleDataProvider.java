@@ -24,7 +24,6 @@ import vn.nguongocso.report.dto.response.Gs1EventLocation;
 import vn.nguongocso.report.dto.response.Gs1Inspection;
 import vn.nguongocso.report.dto.response.Gs1InspectionCriterion;
 import vn.nguongocso.report.dto.response.Gs1ShipmentInfo;
-
 /**
  * Lớp tiện ích cung cấp bộ dữ liệu mẫu cho chế độ thử nghiệm.
 */
@@ -32,13 +31,11 @@ public final class PartnerSampleDataProvider {
     public static final String TEST_NOTICE = "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế";
 
     public static final String SAMPLE_LOT_ID = "sample-lot-001";
-
     /**
      * Khởi tạo trình cung cấp dữ liệu mẫu.
      */
     private PartnerSampleDataProvider() {
     }
-
     /**
      * Tạo hồ sơ truy xuất lô sản xuất mẫu.
      */
@@ -97,7 +94,6 @@ public final class PartnerSampleDataProvider {
                 .testNotice(TEST_NOTICE)
                 .build();
     }
-
     /**
      * Tạo dữ liệu tra cứu hành trình theo mã tem mẫu.
      */
@@ -154,7 +150,6 @@ public final class PartnerSampleDataProvider {
                 .testNotice(TEST_NOTICE)
                 .build();
     }
-
     /**
      * Tạo hồ sơ xuất theo lược đồ GS1 mô phỏng mẫu.
      */

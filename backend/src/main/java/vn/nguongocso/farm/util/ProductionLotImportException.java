@@ -1,5 +1,4 @@
 package vn.nguongocso.farm.util;
-
 /**
  * Ngoại lệ khi đọc tệp nhập lô sản xuất.
 */

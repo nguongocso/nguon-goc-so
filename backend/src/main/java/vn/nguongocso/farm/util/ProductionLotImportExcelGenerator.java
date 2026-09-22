@@ -41,7 +41,6 @@ public class ProductionLotImportExcelGenerator {
     private static final int DATA_END_ROW = 999;
 
     private static final String DATE_FORMAT = "dd/MM/yyyy";
-
     private static final String[] HEADERS = {
             "ten_lo",
             "ma_loai_nong_san",
@@ -57,12 +56,10 @@ public class ProductionLotImportExcelGenerator {
             "ngay_thuc_hien",
             "ghi_chu"
     };
-
     /** Tạo tệp Excel mẫu nhập lô sản xuất. */
     public byte[] generate(
             UUID productCategoryId,
             UUID farmAreaId) {
-
         validateInput(
                 productCategoryId,
                 farmAreaId);
@@ -71,7 +68,6 @@ public class ProductionLotImportExcelGenerator {
                 XSSFWorkbook workbook = new XSSFWorkbook();
                 ByteArrayOutputStream outputStream =
                         new ByteArrayOutputStream()) {
-
             Sheet sheet =
                     workbook.createSheet(SHEET_NAME);
 
@@ -119,45 +115,34 @@ public class ProductionLotImportExcelGenerator {
             workbook.write(outputStream);
 
             return outputStream.toByteArray();
-
         } catch (IOException e) {
-
             throw new IllegalStateException(
                     "Không thể tạo file Excel mẫu nhập lô sản xuất.",
                     e);
         }
     }
-
     /** Kiểm tra mã loại nông sản và mã vùng trồng. */
     private void validateInput(
             UUID productCategoryId,
             UUID farmAreaId) {
-
         if (productCategoryId == null) {
-
             throw new IllegalArgumentException(
                     "Mã loại nông sản không được để trống.");
         }
-
         if (farmAreaId == null) {
-
             throw new IllegalArgumentException(
                     "Mã vùng trồng không được để trống.");
         }
     }
-
     /** Tạo dòng tiêu đề cho tệp mẫu nhập lô sản xuất. */
     private void createHeader(
             Sheet sheet,
             CellStyle headerStyle) {
-
         Row headerRow =
                 sheet.createRow(0);
 
         headerRow.setHeightInPoints(25);
-
         for (int i = 0; i < HEADERS.length; i++) {
-
             Cell cell =
                     headerRow.createCell(i);
 
@@ -168,7 +153,6 @@ public class ProductionLotImportExcelGenerator {
                     headerStyle);
         }
     }
-
     /** Tạo dòng mẫu mang mã loại nông sản và mã vùng trồng. */
     private void createSampleRow(
             Sheet sheet,
@@ -176,7 +160,6 @@ public class ProductionLotImportExcelGenerator {
             CellStyle dateStyle,
             UUID productCategoryId,
             UUID farmAreaId) {
-
         Row sampleRow =
                 sheet.createRow(1);
 
@@ -260,11 +243,9 @@ public class ProductionLotImportExcelGenerator {
                 "",
                 sampleStyle);
     }
-
     /** Định dạng chữ trắng nền xanh cho dòng tiêu đề. */
     private CellStyle createHeaderStyle(
             XSSFWorkbook workbook) {
-
         CellStyle style =
                 workbook.createCellStyle();
 
@@ -294,11 +275,9 @@ public class ProductionLotImportExcelGenerator {
 
         return style;
     }
-
     /** Định dạng căn giữa có viền cho dòng dữ liệu. */
     private CellStyle createSampleStyle(
             XSSFWorkbook workbook) {
-
         CellStyle style =
                 workbook.createCellStyle();
 
@@ -309,11 +288,9 @@ public class ProductionLotImportExcelGenerator {
 
         return style;
     }
-
     /** Định dạng ô ngày tháng theo dd/MM/yyyy. */
     private CellStyle createDateStyle(
             XSSFWorkbook workbook) {
-
         CellStyle style =
                 workbook.createCellStyle();
 
@@ -329,11 +306,9 @@ public class ProductionLotImportExcelGenerator {
 
         return style;
     }
-
     /** Kẻ viền mỏng cho ô Excel. */
     private void applyBorder(
             CellStyle style) {
-
         style.setBorderTop(
                 BorderStyle.THIN);
 
@@ -346,14 +321,12 @@ public class ProductionLotImportExcelGenerator {
         style.setBorderRight(
                 BorderStyle.THIN);
     }
-
     /** Tạo ô Excel dạng văn bản. */
     private void createTextCell(
             Row row,
             int columnIndex,
             String value,
             CellStyle style) {
-
         Cell cell =
                 row.createCell(columnIndex);
 
@@ -364,33 +337,27 @@ public class ProductionLotImportExcelGenerator {
 
         cell.setCellStyle(style);
     }
-
     /** Tạo ô Excel dạng ngày tháng. */
     private void createDateCell(
             Row row,
             int columnIndex,
             CellStyle style) {
-
         Cell cell = row.createCell(columnIndex);
 
         cell.setCellValue("");
         cell.setCellStyle(style);
     }
-
     /** Tạo danh sách chọn hoạt động canh tác cho cột H. */
     private void createActivityDropdown(
             XSSFWorkbook workbook,
             Sheet sheet) {
-
         Sheet activitySheet =
                 workbook.createSheet(
                         ACTIVITY_SHEET_NAME);
 
         FarmActivityType[] types =
                 FarmActivityType.values();
-
         for (int i = 0; i < types.length; i++) {
-
             Row row =
                     activitySheet.createRow(i);
 
@@ -400,7 +367,6 @@ public class ProductionLotImportExcelGenerator {
             cell.setCellValue(
                     types[i].name());
         }
-
         XSSFName namedRange =
                 workbook.createName();
 
@@ -448,11 +414,9 @@ public class ProductionLotImportExcelGenerator {
         sheet.addValidationData(
                 validation);
     }
-
     /** Giới hạn các cột sản lượng và số lượng không âm. */
     private void createNumberValidation(
             Sheet sheet) {
-
         DataValidationHelper helper =
                 sheet.getDataValidationHelper();
 
@@ -483,7 +447,6 @@ public class ProductionLotImportExcelGenerator {
                 9,
                 "Số lượng");
     }
-
     /** Áp dụng kiểm tra số không âm cho một cột. */
     private void addNumberValidation(
             Sheet sheet,
@@ -491,7 +454,6 @@ public class ProductionLotImportExcelGenerator {
             DataValidationConstraint constraint,
             int columnIndex,
             String fieldName) {
-
         CellRangeAddressList addressList =
                 new CellRangeAddressList(
                         DATA_START_ROW,
@@ -522,11 +484,9 @@ public class ProductionLotImportExcelGenerator {
         sheet.addValidationData(
                 validation);
     }
-
     /** Giới hạn các cột ngày trong khoảng năm 1900–9999. */
     private void createDateValidation(
             Sheet sheet) {
-
         DataValidationHelper helper =
                 sheet.getDataValidationHelper();
 
@@ -558,7 +518,6 @@ public class ProductionLotImportExcelGenerator {
                 11,
                 "Ngày thực hiện");
     }
-
     /** Áp dụng kiểm tra định dạng ngày cho một cột. */
     private void addDateValidation(
             Sheet sheet,
@@ -566,7 +525,6 @@ public class ProductionLotImportExcelGenerator {
             DataValidationConstraint constraint,
             int columnIndex,
             String fieldName) {
-
         CellRangeAddressList addressList =
                 new CellRangeAddressList(
                         DATA_START_ROW,
@@ -601,7 +559,6 @@ public class ProductionLotImportExcelGenerator {
     private void configureColumnWidths(
             Sheet sheet) {
         int[] widths = {25,42,42,22,22,18,18,25,25,15,15,18,35};
-
         for (int i = 0; i < widths.length; i++) {
             sheet.setColumnWidth(i,widths[i] * 256);
         }

@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import vn.nguongocso.farm.enums.FarmActivityType;
-
 /**
  * Hình chiếu dữ liệu nhật ký canh tác.
 */

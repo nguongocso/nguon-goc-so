@@ -12,7 +12,6 @@ import org.springframework.data.repository.query.Param;
 
 import vn.nguongocso.farm.entity.InputMaterial;
 import vn.nguongocso.farm.enums.MaterialGroup;
-
 /**
  * Repository thao tác dữ liệu danh mục vật tư đầu vào.
 */

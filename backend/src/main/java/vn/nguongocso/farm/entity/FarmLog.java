@@ -40,7 +40,6 @@ import vn.nguongocso.farm.enums.FarmActivityType;
 @AllArgsConstructor
 @Builder
 public class FarmLog {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id")
@@ -87,17 +86,14 @@ public class FarmLog {
     @Builder.Default
     @Column(name = "is_corrected", nullable = false)
     private boolean isCorrected = false;
-
     /** Thiết lập giá trị cờ đính chính. */
     public void setIsCorrection(boolean correction) {
         this.isCorrection = correction;
     }
-
     /** Thiết lập giá trị cờ đã bị đính chính. */
     public void setIsCorrected(boolean corrected) {
         this.isCorrected = corrected;
     }
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
@@ -111,7 +107,6 @@ public class FarmLog {
         if (id == null) {
             id = UUID.randomUUID();
         }
-
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }

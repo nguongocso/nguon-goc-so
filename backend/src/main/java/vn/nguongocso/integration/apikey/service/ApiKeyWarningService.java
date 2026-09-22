@@ -70,7 +70,6 @@ public class ApiKeyWarningService {
         List<PartnerApiKey> activeKeys = partnerApiKeyRepository.findByStatus(PartnerApiKeyStatus.ACTIVE);
         int expiredCount = 0;
         int warnedCount = 0;
-
         for (PartnerApiKey key : activeKeys) {
             if (key.getExpiresAt() == null) {
                 continue;
@@ -105,11 +104,9 @@ public class ApiKeyWarningService {
                 }
             }
         }
-
         log.info("Quét cảnh báo khóa truy cập: {} khóa ACTIVE, {} khóa chuyển EXPIRED, {} cảnh báo đã gửi",
                 activeKeys.size(), expiredCount, warnedCount);
     }
-
     /**
      * Nhận sự kiện cấp hoặc gia hạn khóa và gửi cảnh báo sắp hết hạn.
      */
@@ -142,7 +139,6 @@ public class ApiKeyWarningService {
             log.warn("Bỏ qua lỗi gửi cảnh báo sắp hết hạn cho khóa {}", event.getApiKeyId(), e);
         }
     }
-
     /**
      * Nhận sự kiện chạm ngưỡng hạn mức và gửi cảnh báo.
      */
@@ -162,7 +158,6 @@ public class ApiKeyWarningService {
             log.warn("Bỏ qua lỗi gửi cảnh báo hạn mức cho khóa {}", event.getApiKeyId(), e);
         }
     }
-
     /**
      * Đối soát hạn mức và gửi bù cảnh báo chưa được gửi.
      */
@@ -173,7 +168,6 @@ public class ApiKeyWarningService {
             log.info("Đối soát cảnh báo hạn mức: không có khóa nào cần gửi bù.");
             return;
         }
-
         List<UUID> keyIds = unwarnedUsages.stream()
                 .map(PartnerApiKeyDailyUsage::getApiKeyId)
                 .toList();
@@ -200,11 +194,9 @@ public class ApiKeyWarningService {
                 sentCount++;
             }
         }
-
         log.info("Đối soát cảnh báo hạn mức: {} dòng usage chưa cảnh báo, {} cảnh báo bù đã gửi.",
                 unwarnedUsages.size(), sentCount);
     }
-
     /**
      * Gửi cảnh báo hạn mức nếu giành được quyền gửi cho dòng usage tương ứng.
      */
@@ -213,7 +205,6 @@ public class ApiKeyWarningService {
         if (usageId == null || !partnerApiKeyUsageService.claimQuotaWarning(usageId)) {
             return false;
         }
-
         int percent = rateLimitPerHour > 0 ? (int) Math.round(usedCalls * 100.0 / rateLimitPerHour) : 0;
         try {
             notificationService.sendHandoverNotification(

@@ -62,7 +62,6 @@ public class InputMaterialController {
             @RequestParam(required = false) Integer limit,
             @RequestParam(defaultValue = "name") String sortBy,
             @RequestParam(defaultValue = "ASC") String sortDirection) {
-
         String effectiveKeyword = (keyword != null && !keyword.isBlank()) ? keyword : search;
         int effectiveSize = (limit != null && limit > 0) ? limit : size;
 
@@ -75,7 +74,6 @@ public class InputMaterialController {
                 effectiveKeyword, group, activityType, isActive, pageable);
         return ResponseEntity.ok(ApiResult.success(result));
     }
-
     /**
      * Lấy chi tiết vật tư đầu vào theo ID.
      */
@@ -85,7 +83,6 @@ public class InputMaterialController {
         InputMaterialResponse response = inputMaterialService.getInputMaterialById(id);
         return ResponseEntity.ok(ApiResult.success(response));
     }
-
     /**
      * Tạo mới vật tư đầu vào.
      */
@@ -94,14 +91,12 @@ public class InputMaterialController {
     public ResponseEntity<ApiResult<InputMaterialResponse>> create(
             @Valid @RequestBody CreateInputMaterialRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
-
         permissionChecker.check("input_material", "CREATE");
         UUID currentUserId = currentUser != null ? currentUser.getUserId() : null;
         InputMaterialResponse response = inputMaterialService.createInputMaterial(request, currentUserId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
-
     /**
      * Cập nhật vật tư đầu vào.
      */
@@ -111,13 +106,11 @@ public class InputMaterialController {
             @PathVariable UUID id,
             @Valid @RequestBody UpdateInputMaterialRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
-
         permissionChecker.check("input_material", "UPDATE");
         UUID currentUserId = currentUser != null ? currentUser.getUserId() : null;
         InputMaterialResponse response = inputMaterialService.updateInputMaterial(id, request, currentUserId);
         return ResponseEntity.ok(ApiResult.success(response));
     }
-
     /**
      * Đổi trạng thái kích hoạt/ngừng sử dụng của vật tư đầu vào.
      */
@@ -126,12 +119,10 @@ public class InputMaterialController {
     public ResponseEntity<ApiResult<InputMaterialResponse>> toggleStatus(
             @PathVariable UUID id,
             @RequestParam Boolean isActive) {
-
         permissionChecker.check("input_material", "UPDATE");
         InputMaterialResponse response = inputMaterialService.toggleActiveStatus(id, isActive);
         return ResponseEntity.ok(ApiResult.success(response));
     }
-
     /**
      * Xóa vật tư đầu vào.
      */

@@ -17,7 +17,6 @@ import vn.nguongocso.farm.dto.response.CloneProductionLotResponse;
 import vn.nguongocso.farm.dto.response.CreateProductionLotResponse;
 import vn.nguongocso.farm.dto.response.UpdateProductionLotResponse;
 import vn.nguongocso.report.dto.response.ProductionLotDashboardResponse;
-
 /**
  * Nghiệp vụ lô sản xuất.
 */

@@ -48,14 +48,11 @@ public class PartnerRecallWebhookDispatcher {
             String newStatus,
             String publicReason,
             String remediationSummary) {
-
         if (shipments == null || shipments.isEmpty()) {
             return;
         }
-
         int windowDays = resolveNotificationWindowDays();
         LocalDateTime since = LocalDateTime.now().minusDays(windowDays);
-
         for (Shipment shipment : shipments) {
             try {
                 webhookDeliveryService.processShipmentRecall(
@@ -66,7 +63,6 @@ public class PartnerRecallWebhookDispatcher {
             }
         }
     }
-
     /**
      * Xử lý xác định đối tác và tạo thông báo cho một lô hàng.
      */
@@ -79,14 +75,12 @@ public class PartnerRecallWebhookDispatcher {
         webhookDeliveryService.processShipmentRecall(
                 shipment, newStatus, publicReason, remediationSummary, since);
     }
-
     /**
      * Thực thi một lượt gửi HTTP Webhook.
      */
     public void executeWebhookDelivery(PartnerWebhookNotification notification, String webhookSecret) {
         webhookDeliveryService.executeWebhookDelivery(notification, webhookSecret);
     }
-
     /**
      * Quét định kỳ các thông báo Webhook cần thử lại theo lịch giãn dần.
      */
@@ -96,11 +90,9 @@ public class PartnerRecallWebhookDispatcher {
         List<PartnerWebhookNotification> pendingList = partnerWebhookNotificationRepository
                 .findByDeliveryStatusAndNextRetryAtLessThanEqualOrderByNextRetryAtAsc(
                         WebhookDeliveryStatus.PENDING_RETRY, now);
-
         if (pendingList.isEmpty()) {
             return;
         }
-
         log.info("Tìm thấy {} thông báo Webhook đang chờ thử lại giãn dần", pendingList.size());
         for (PartnerWebhookNotification notification : pendingList) {
             try {
@@ -113,7 +105,6 @@ public class PartnerRecallWebhookDispatcher {
             }
         }
     }
-
     /**
      * Đọc số ngày của cửa sổ thông báo từ cấu hình hệ thống.
      */
@@ -128,7 +119,6 @@ public class PartnerRecallWebhookDispatcher {
         }
         return DEFAULT_WINDOW_DAYS;
     }
-
     /**
      * Tính toán chữ ký của dữ liệu gửi webhook.
      */

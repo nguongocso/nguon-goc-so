@@ -28,7 +28,6 @@ import org.hibernate.type.SqlTypes;
 @Setter
 @NoArgsConstructor
 public class HelpContent {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)
@@ -71,7 +70,6 @@ public class HelpContent {
         createdAt = now;
         updatedAt = now;
     }
-
     /**
      * Cập nhật thời điểm chỉnh sửa trước khi cập nhật bản ghi.
      */

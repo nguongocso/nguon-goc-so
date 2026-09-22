@@ -13,7 +13,6 @@ import org.springframework.data.repository.query.Param;
 
 import vn.nguongocso.farm.entity.ProductionLot;
 import vn.nguongocso.farm.enums.ProductionLotStatus;
-
 /**
  * Repository thao tác dữ liệu lô sản xuất.
 */

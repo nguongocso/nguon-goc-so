@@ -41,7 +41,6 @@ public class PartnerLotDossierResponse {
     public Boolean getIsTestCamel() {
         return isTest;
     }
-
     @JsonProperty("test_notice")
     private String testNotice;
 

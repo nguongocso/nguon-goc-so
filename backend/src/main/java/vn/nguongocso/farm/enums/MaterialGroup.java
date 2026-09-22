@@ -13,7 +13,6 @@ public enum MaterialGroup {
     OTHER("Khác");
 
     private final String displayName;
-
     /** Khởi tạo nhóm vật tư đầu vào. */
     MaterialGroup(String displayName) {
         this.displayName = displayName;

@@ -61,7 +61,6 @@ public class FarmAreaServiceImpl implements FarmAreaService {
     public List<FarmAreaResponse> getFarmAreas() {
         return getFarmAreas(null);
     }
-
     /** Lấy vùng trồng của tổ chức hiện tại, lọc theo trạng thái nếu cần. */
     @Override
     public List<FarmAreaResponse> getFarmAreas(Boolean activeOnly) {
@@ -75,12 +74,10 @@ public class FarmAreaServiceImpl implements FarmAreaService {
             farmAreas = farmAreaRepository
                     .findByOrganization_OrganizationId(currentUser.getOrganizationId());
         }
-
         return farmAreas.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
-
     /** Lấy chi tiết vùng trồng theo ID. */
     @Override
     public FarmAreaResponse getFarmAreaById(UUID id) {
@@ -89,11 +86,9 @@ public class FarmAreaServiceImpl implements FarmAreaService {
                 .orElseThrow(() -> new BusinessException("Không tìm thấy vùng trồng"));
         return toResponse(farmArea);
     }
-
     /** Tạo mới vùng trồng cho tổ chức của người dùng đang đăng nhập. */
     @Override
     public FarmAreaResponse create(CreateFarmAreaRequest request) {
-
         CustomUserDetails currentUser = getCurrentUser();
 
         Organization organization = getOrganization(currentUser.getOrganizationId());
@@ -113,7 +108,6 @@ public class FarmAreaServiceImpl implements FarmAreaService {
 
         return toResponse(saved);
     }
-
     /** Cập nhật thông tin vùng trồng. */
     @Override
     public FarmAreaResponse update(UUID id, UpdateFarmAreaRequest request) {
@@ -121,14 +115,12 @@ public class FarmAreaServiceImpl implements FarmAreaService {
 
         FarmArea farmArea = farmAreaRepository.findByIdAndOrganization_OrganizationId(id, currentUser.getOrganizationId())
                 .orElseThrow(() -> new BusinessException("Không tìm thấy vùng trồng hoặc bạn không có quyền cập nhật"));
-
         if (request.getArea() == null || request.getArea().compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("Diện tích phải là số dương lớn hơn 0");
         }
         if (request.getLatitude() == null || request.getLongitude() == null) {
             throw new BusinessException("Kinh độ và vĩ độ không được để trống");
         }
-
         ProductCategory newCropType = getCropType(request.getCropType());
         AreaUnit newAreaUnit = request.getAreaUnit() != null ? request.getAreaUnit() : AreaUnit.HA;
         Point newLocation = geometryFactory.createPoint(new Coordinate(request.getLongitude(), request.getLatitude()));
@@ -164,7 +156,6 @@ public class FarmAreaServiceImpl implements FarmAreaService {
 
         return toResponse(saved);
     }
-
     /** Đổi trạng thái kích hoạt / ngừng sử dụng vùng trồng. */
     @Override
     public FarmAreaResponse toggleStatus(UUID id, boolean isActive) {
@@ -188,7 +179,6 @@ public class FarmAreaServiceImpl implements FarmAreaService {
 
         return toResponse(saved);
     }
-
     /** Xóa vùng trồng, chặn nếu có lô sản xuất liên quan. */
     @Override
     public void delete(UUID id) {
@@ -201,7 +191,6 @@ public class FarmAreaServiceImpl implements FarmAreaService {
         if (associatedLotsCount > 0) {
             throw new BusinessException("Không thể xóa vùng trồng đã có " + associatedLotsCount + " lô sản xuất liên quan. Bạn chỉ có thể chuyển sang trạng thái Ngừng sử dụng.");
         }
-
         farmAreaRepository.delete(farmArea);
 
         publishActivityLog(
@@ -211,7 +200,6 @@ public class FarmAreaServiceImpl implements FarmAreaService {
                 "FARM_AREA",
                 id.toString());
     }
-
     /** Ghi nhật ký hoạt động theo convention của hệ thống. */
     private void publishActivityLog(CustomUserDetails currentUser, String action, String description,
             String entityType, String entityId) {
@@ -228,26 +216,22 @@ public class FarmAreaServiceImpl implements FarmAreaService {
                 .timestamp(LocalDateTime.now())
                 .build());
     }
-
     /** Lấy danh sách đơn vị diện tích. */
     @Override
     public List<AreaUnit> getAreaUnits() {
         return Arrays.asList(AreaUnit.values());
     }
-
     /** Lấy thông tin người dùng đang đăng nhập. */
     private CustomUserDetails getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         return (CustomUserDetails) authentication.getPrincipal();
     }
-
     /** Lấy tổ chức theo ID. */
     private Organization getOrganization(UUID organizationId) {
         return organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy tổ chức"));
     }
-
     /** Lấy loại cây trồng theo ID và kiểm tra còn hoạt động. */
     private ProductCategory getCropType(UUID cropTypeId) {
         ProductCategory cropType = productCategoryRepository.findById(cropTypeId)
@@ -258,10 +242,8 @@ public class FarmAreaServiceImpl implements FarmAreaService {
         }
         return cropType;
     }
-
     /** Xây dựng đối tượng vùng trồng từ dữ liệu yêu cầu. */
     private FarmArea buildFarmArea(CreateFarmAreaRequest request, Organization organization, ProductCategory cropType) {
-
         Point location = geometryFactory.createPoint(new Coordinate(request.getLongitude(), request.getLatitude()));
 
         AreaUnit areaUnit = request.getAreaUnit() != null ? request.getAreaUnit() : AreaUnit.HA;
@@ -277,10 +259,8 @@ public class FarmAreaServiceImpl implements FarmAreaService {
 
         return farmArea;
     }
-
     /** Chuyển entity vùng trồng sang DTO phản hồi. */
     private FarmAreaResponse toResponse(FarmArea farmArea) {
-
         Point point = farmArea.getLocation();
         long associatedLotsCount = productionLotRepository.countByFarmAreaId(farmArea.getId());
 

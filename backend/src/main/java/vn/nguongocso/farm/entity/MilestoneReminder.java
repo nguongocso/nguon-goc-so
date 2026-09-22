@@ -50,7 +50,6 @@ import vn.nguongocso.notification.entity.Notification;
 @AllArgsConstructor
 @Builder
 public class MilestoneReminder {
-
     @Id
     @Column(name = "id", nullable = false, updatable = false)
     @JdbcTypeCode(SqlTypes.CHAR)
@@ -107,7 +106,6 @@ public class MilestoneReminder {
             this.status = MilestoneReminderStatus.OPEN;
         }
     }
-
     /** Cập nhật thời điểm sửa đổi trước khi lưu bản ghi hiện có. */
     @PreUpdate
     public void preUpdate() {

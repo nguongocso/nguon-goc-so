@@ -16,5 +16,4 @@ public class ProductionLotImportRequest {
     private MultipartFile file;
 
     private UUID organizationId;
-
 }

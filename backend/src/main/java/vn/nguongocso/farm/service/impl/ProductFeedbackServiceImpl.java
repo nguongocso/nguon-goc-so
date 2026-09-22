@@ -108,7 +108,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
                     .findByCodeValueAndShipment_ProductionLot_Id(request.getTraceCodeValue().trim(), productionLotId)
                     .orElseThrow(() -> new BusinessException("Mã tem không thuộc lô sản xuất của phản ánh"));
         }
-
         GeneratedLookupCode lookupCode = generateUniqueLookupCode();
         ProductFeedback feedback = ProductFeedback.builder()
                 .productionLot(productionLot)
@@ -131,7 +130,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
                 .lookupCode(lookupCode.displayValue())
                 .build();
     }
-
     /** Tra cứu trạng thái phản ánh theo mã tra cứu công khai. */
     @Override
     @Transactional(readOnly = true)
@@ -142,7 +140,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
         } catch (IllegalArgumentException exception) {
             throw new ResourceNotFoundException(NOT_FOUND);
         }
-
         ProductFeedback feedback = productFeedbackRepository.findByLookupCodeHash(lookupCodeHash)
                 .orElseThrow(() -> new ResourceNotFoundException(NOT_FOUND));
         return PublicProductFeedbackLookupResponse.builder()
@@ -150,7 +147,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
                 .publicResponse(feedback.getPublicResponse())
                 .build();
     }
-
     /** Lấy danh sách phản ánh theo bộ lọc và phân trang. */
     @Override
     @Transactional(readOnly = true)
@@ -162,7 +158,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
             UUID assignedToUserId,
             Pageable pageable) {
         CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
-
         Specification<ProductFeedback> specification = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (!ADMIN_ROLE.equals(currentUser.getRoleCode())) {
@@ -191,18 +186,15 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
             }
             return cb.and(predicates.toArray(Predicate[]::new));
         };
-
         Page<ProductFeedback> page = productFeedbackRepository.findAll(specification, pageable);
         return PageResponse.from(page, page.getContent().stream().map(this::mapToResponse).toList());
     }
-
     /** Lấy chi tiết phản ánh theo ID. */
     @Override
     @Transactional(readOnly = true)
     public ProductFeedbackResponse getFeedbackById(UUID feedbackId) {
         return mapToResponse(loadVisibleFeedback(feedbackId));
     }
-
     /** Gán người xử lý cho phản ánh. */
     @Override
     @Transactional
@@ -222,7 +214,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
                 || !EVENT_RECORDER_ROLE.equals(membership.getRole().getCode())) {
             throw new BusinessException("Người được chọn không đủ điều kiện xử lý phản ánh");
         }
-
         feedback.setAssignedTo(membership.getUser());
         feedback.setAssignedAt(LocalDateTime.now());
         if (feedback.getStatus() == ProductFeedbackStatus.NEW) {
@@ -230,7 +221,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
         }
         return mapToResponse(productFeedbackRepository.save(feedback));
     }
-
     /** Cập nhật quá trình xử lý phản ánh. */
     @Override
     @Transactional
@@ -249,7 +239,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
                 && feedback.getStatus() != ProductFeedbackStatus.ESCALATED_TO_RECALL) {
             throw new BusinessException(HttpStatus.CONFLICT, "Trạng thái phản ánh không cho phép cập nhật xử lý");
         }
-
         TraceCode traceCode = resolveTraceCode(feedback, request.getSeverity(), request.getTraceCodeId());
         feedback.setSeverity(request.getSeverity());
         feedback.setTraceCode(traceCode);
@@ -257,7 +246,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
         feedback.setPublicResponse(normalize(request.getPublicResponse()));
         return mapToResponse(productFeedbackRepository.save(feedback));
     }
-
     /** Đóng phản ánh sau khi xử lý xong. */
     @Override
     @Transactional
@@ -281,7 +269,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
                     HttpStatus.CONFLICT,
                     "Phải xử lý xong yêu cầu thu hồi trước khi đóng phản ánh");
         }
-
         User currentUser = userRepository.findById(SecurityUtils.getCurrentUserDetails().getUserId())
                 .orElseThrow(() -> new BusinessException("Người dùng không tồn tại"));
         feedback.setProcessingContent(effectiveProcessingContent);
@@ -292,7 +279,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
         feedback.setStatus(ProductFeedbackStatus.CLOSED);
         return mapToResponse(productFeedbackRepository.save(feedback));
     }
-
     /** Chuyển phản ánh thành yêu cầu thu hồi sản phẩm. */
     @Override
     @Transactional
@@ -305,7 +291,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
         ProductFeedback feedback = loadOwnedFeedback(feedbackId);
         ensureNotClosed(feedback);
         ensureAssigned(feedback);
-
         if (feedback.getStatus() != ProductFeedbackStatus.IN_PROGRESS) {
             throw new BusinessException(HttpStatus.CONFLICT, "Phản ánh phải đang được xử lý trước khi yêu cầu thu hồi");
         }
@@ -318,7 +303,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
                     HttpStatus.CONFLICT,
                     "Phản ánh đã có yêu cầu thu hồi đang chờ duyệt");
         }
-
         RecallRequestResponse response = recallRequestService.createFromFeedback(
                 feedback,
                 request.getShipmentId(),
@@ -329,7 +313,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
         productFeedbackRepository.save(feedback);
         return response;
     }
-
     /** Lấy phản ánh mà người dùng có quyền xem. */
     private ProductFeedback loadVisibleFeedback(UUID feedbackId) {
         CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
@@ -341,7 +324,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
                 .findByIdAndProductionLot_Organization_OrganizationId(feedbackId, currentUser.getOrganizationId())
                 .orElseThrow(() -> new ResourceNotFoundException(NOT_FOUND));
     }
-
     /** Lấy phản ánh thuộc tổ chức của người dùng hiện tại. */
     private ProductFeedback loadOwnedFeedback(UUID feedbackId) {
         CustomUserDetails currentUser = SecurityUtils.getCurrentUserDetails();
@@ -349,21 +331,18 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
                 .findByIdAndProductionLot_Organization_OrganizationId(feedbackId, currentUser.getOrganizationId())
                 .orElseThrow(() -> new ResourceNotFoundException(NOT_FOUND));
     }
-
     /** Kiểm tra phản ánh chưa bị đóng. */
     private void ensureNotClosed(ProductFeedback feedback) {
         if (feedback.getStatus() == ProductFeedbackStatus.CLOSED) {
             throw new BusinessException(HttpStatus.CONFLICT, "Phản ánh đã được đóng");
         }
     }
-
     /** Kiểm tra phản ánh đã có người xử lý. */
     private void ensureAssigned(ProductFeedback feedback) {
         if (feedback.getAssignedTo() == null) {
             throw new BusinessException("Phản ánh chưa được gán người xử lý");
         }
     }
-
     /** Xác định mã tem liên kết theo mức độ phản ánh. */
     private TraceCode resolveTraceCode(
             ProductFeedback feedback,
@@ -383,7 +362,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
                 .findByIdAndShipment_ProductionLot_Id(traceCodeId, feedback.getProductionLot().getId())
                 .orElseThrow(() -> new BusinessException("Mã tem không thuộc lô sản xuất của phản ánh"));
     }
-
     /** Chuyển entity phản ánh sang DTO phản hồi. */
     private ProductFeedbackResponse mapToResponse(ProductFeedback feedback) {
         ProductionLot lot = feedback.getProductionLot();
@@ -419,7 +397,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
                 .updatedAt(feedback.getUpdatedAt())
                 .build();
     }
-
     /** Phát sự kiện khi có phản ánh mới được gửi. */
     private void publishSubmittedEvent(ProductFeedback savedFeedback) {
         ProductionLot lot = savedFeedback.getProductionLot();
@@ -432,7 +409,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
                 orgId,
                 savedFeedback.getContent()));
     }
-
     /** Sinh mã tra cứu duy nhất cho phản ánh. */
     private GeneratedLookupCode generateUniqueLookupCode() {
         for (int attempt = 0; attempt < LOOKUP_CODE_GENERATION_ATTEMPTS; attempt++) {
@@ -443,7 +419,6 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
         }
         throw new IllegalStateException("Không thể sinh mã tra cứu phản ánh duy nhất");
     }
-
     /** Gửi thông báo khi có phản ánh mới. */
     private void sendNewFeedbackNotification(ProductFeedback feedback) {
         ProductionLot lot = feedback.getProductionLot();
@@ -456,12 +431,10 @@ public class ProductFeedbackServiceImpl implements ProductFeedbackService {
             log.warn("Không thể gửi thông báo phản ánh sản phẩm: {}", exception.getMessage());
         }
     }
-
     /** Kiểm tra chuỗi có nội dung hay không. */
     private static boolean hasText(String value) {
         return value != null && !value.isBlank();
     }
-
     /** Xóa khoảng trắng đầu cuối, trả null nếu chuỗi rỗng. */
     private static String normalize(String value) {
         return hasText(value) ? value.trim() : null;

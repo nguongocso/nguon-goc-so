@@ -45,11 +45,9 @@ public class FarmLogController {
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ApiResult<FarmLogResponse> create(
             @Valid @RequestBody CreateFarmLogRequest request) {
-
         permissionChecker.check("FARM_LOG", "CREATE");
         return ApiResult.success(farmLogService.create(request));
     }
-
     /**
      * Đính chính một nhật ký canh tác.
      */
@@ -58,11 +56,9 @@ public class FarmLogController {
     public ApiResult<FarmLogResponse> correct(
             @PathVariable UUID id,
             @Valid @RequestBody CorrectFarmLogRequest request) {
-
         permissionChecker.check("FARM_LOG", "UPDATE");
         return ApiResult.success(farmLogService.correctFarmLog(id, request));
     }
-
     /**
      * Lấy danh sách nhật ký canh tác của lô sản xuất theo phân trang.
      */
@@ -72,7 +68,6 @@ public class FarmLogController {
             @RequestParam UUID productionLotId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-
         permissionChecker.check("FARM_LOG", "READ");
         return ApiResult.success(
                 farmLogService.getFarmLogsByProductionLot(
@@ -80,7 +75,6 @@ public class FarmLogController {
                         page,
                         size));
     }
-
     /**
      * Kiểm tra điều kiện thu hoạch của lô sản xuất.
      */
@@ -90,14 +84,12 @@ public class FarmLogController {
             @RequestParam UUID productionLotId) {
         return ApiResult.success(harvestEligibilityService.calculateHarvestEligibility(productionLotId));
     }
-
     /**
      * Lấy chi tiết nhật ký canh tác theo ID.
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('VT-02', 'VT-03')")
     public ApiResult<FarmLogResponse> getFarmLog(@PathVariable UUID id) {
-
         permissionChecker.check("FARM_LOG", "READ");
         return ApiResult.success(farmLogService.getFarmLog(id));
     }

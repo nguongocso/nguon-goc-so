@@ -18,7 +18,6 @@ public enum ChainProgressStage {
     IN_CIRCULATION("Đang lưu thông");
 
     private final String stageName;
-
     /** Khởi tạo giai đoạn tiến độ chuỗi. */
     ChainProgressStage(String stageName) {
         this.stageName = stageName;

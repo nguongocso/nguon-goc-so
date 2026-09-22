@@ -31,7 +31,6 @@ public class CreateTestApiKeyRequest {
 
     @Future(message = "Ngày hết hạn phải ở thời điểm tương lai")
     private LocalDateTime expiresAt;
-
     /**
      * Gán tên đối tác khi chưa có.
      */
@@ -40,7 +39,6 @@ public class CreateTestApiKeyRequest {
             this.partnerName = name;
         }
     }
-
     /**
      * Gán thời hạn theo số ngày khi chưa có.
      */
@@ -49,7 +47,6 @@ public class CreateTestApiKeyRequest {
             this.expiresAt = LocalDateTime.now().plusDays(expireDays);
         }
     }
-
     /**
      * Gán hạn mức khi chưa có.
      */

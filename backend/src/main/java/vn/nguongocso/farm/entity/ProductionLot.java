@@ -47,7 +47,6 @@ import vn.nguongocso.organization.entity.Organization;
 @AllArgsConstructor
 @Builder
 public class ProductionLot {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)
@@ -145,7 +144,6 @@ public class ProductionLot {
             this.status = ProductionLotStatus.DRAFT;
         }
     }
-
     /** Cập nhật thời điểm sửa đổi trước khi lưu bản ghi hiện có. */
     @PreUpdate
     public void preUpdate() {

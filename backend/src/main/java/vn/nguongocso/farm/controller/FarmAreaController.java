@@ -50,13 +50,11 @@ public class FarmAreaController {
             @RequestParam(required = false) Boolean activeOnly) {
         return ResponseEntity.ok(ApiResult.success(farmAreaService.getFarmAreas(activeOnly)));
     }
-
     /** Lấy chi tiết vùng trồng theo ID. */
     @GetMapping("/{id}")
     public ResponseEntity<ApiResult<FarmAreaResponse>> getFarmAreaById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResult.success(farmAreaService.getFarmAreaById(id)));
     }
-
     /** Lấy ranh giới vùng trồng thuộc tổ chức hiện tại. */
     @GetMapping("/{id}/boundary")
     @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
@@ -64,7 +62,6 @@ public class FarmAreaController {
         permissionChecker.check("FARM_AREA", "READ");
         return ResponseEntity.ok(ApiResult.success(farmAreaBoundaryService.getBoundary(id)));
     }
-
     /** Thiết lập hoặc cập nhật ranh giới vùng trồng. */
     @PutMapping("/{id}/boundary")
     @PreAuthorize("hasRole('VT-02')")
@@ -74,13 +71,11 @@ public class FarmAreaController {
         permissionChecker.check("FARM_AREA", "UPDATE");
         return ResponseEntity.ok(ApiResult.success(farmAreaBoundaryService.updateBoundary(id, request)));
     }
-
     /** Lấy các đơn vị diện tích hỗ trợ. */
     @GetMapping("/units")
     public ResponseEntity<ApiResult<List<AreaUnit>>> getAreaUnits() {
         return ResponseEntity.ok(ApiResult.success(farmAreaService.getAreaUnits()));
     }
-
     /** Tạo mới vùng trồng. */
     @PostMapping
     public ResponseEntity<ApiResult<FarmAreaResponse>> createFarmArea(
@@ -88,7 +83,6 @@ public class FarmAreaController {
         permissionChecker.check("FARM_AREA", "CREATE");
         return ResponseEntity.ok(ApiResult.success(farmAreaService.create(request)));
     }
-
     /** Cập nhật thông tin vùng trồng. */
     @PutMapping("/{id}")
     public ResponseEntity<ApiResult<FarmAreaResponse>> updateFarmArea(
@@ -97,7 +91,6 @@ public class FarmAreaController {
         permissionChecker.check("FARM_AREA", "UPDATE");
         return ResponseEntity.ok(ApiResult.success(farmAreaService.update(id, request)));
     }
-
     /** Đổi trạng thái kích hoạt vùng trồng. */
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApiResult<FarmAreaResponse>> toggleFarmAreaStatus(
@@ -106,7 +99,6 @@ public class FarmAreaController {
         permissionChecker.check("FARM_AREA", "UPDATE");
         return ResponseEntity.ok(ApiResult.success(farmAreaService.toggleStatus(id, isActive)));
     }
-
     /** Xóa vùng trồng. */
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResult<Void>> deleteFarmArea(@PathVariable UUID id) {
