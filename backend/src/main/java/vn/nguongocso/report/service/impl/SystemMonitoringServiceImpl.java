@@ -31,6 +31,7 @@ public class SystemMonitoringServiceImpl implements SystemMonitoringService {
     private final DataSource dataSource;
     private final MetricsBufferService metricsBufferService;
 
+    /** Lấy trạng thái tổng thể và danh sách chỉ số giám sát hệ thống. */
     @Override
     public SystemStatusResponse getSystemStatus() {
         boolean hasEnoughData = metricsBufferService.hasSufficientData();
@@ -40,7 +41,6 @@ public class SystemMonitoringServiceImpl implements SystemMonitoringService {
         int breachedCount = 0;
         boolean hasCritical = false;
 
-        // 1. Chỉ số Kết nối CSDL
         boolean isDbHealthy = checkDbConnection();
         MetricStatus dbStatus = isDbHealthy ? MetricStatus.NORMAL : MetricStatus.CRITICAL;
         if (!isDbHealthy) {
@@ -49,17 +49,16 @@ public class SystemMonitoringServiceImpl implements SystemMonitoringService {
         }
 
         metricsMap.put("dbConnection", MetricItemDto.builder()
-                .metricCode("DB_CONNECTION")
-                .metricName("Trạng thái kết nối CSDL")
-                .value(isDbHealthy ? "UP" : "DOWN")
-                .numericValue(isDbHealthy ? 1.0 : 0.0)
-                .threshold("UP")
-                .status(dbStatus)
-                .unit("STATUS")
-                .message(isDbHealthy ? "Kết nối CSDL MySQL ổn định." : "MẤT KẾT NỐI CƠ SỞ DỮ LIỆU MYSQL!")
-                .build());
+            .metricCode("DB_CONNECTION")
+            .metricName("Trạng thái kết nối CSDL")
+            .value(isDbHealthy ? "UP" : "DOWN")
+            .numericValue(isDbHealthy ? 1.0 : 0.0)
+            .threshold("UP")
+            .status(dbStatus)
+            .unit("STATUS")
+            .message(isDbHealthy ? "Kết nối CSDL MySQL ổn định." : "MẤT KẾT NỐI CƠ SỞ DỮ LIỆU MYSQL!")
+            .build());
 
-        // 2. Chỉ số Lỗi máy chủ (5xx)
         long serverErrors = metricsBufferService.getServerErrorCountLastHour();
         MetricStatus serverErrorStatus;
         String serverErrorMessage;
@@ -69,7 +68,7 @@ public class SystemMonitoringServiceImpl implements SystemMonitoringService {
         } else if (serverErrors > SERVER_ERROR_THRESHOLD) {
             serverErrorStatus = MetricStatus.WARNING;
             serverErrorMessage = String.format("Số lỗi máy chủ trong 1 giờ qua (%d lỗi) đã vượt ngưỡng cảnh báo quy định (%.0f lỗi).",
-                    serverErrors, SERVER_ERROR_THRESHOLD);
+                serverErrors, SERVER_ERROR_THRESHOLD);
             breachedCount++;
         } else {
             serverErrorStatus = MetricStatus.NORMAL;
@@ -77,17 +76,16 @@ public class SystemMonitoringServiceImpl implements SystemMonitoringService {
         }
 
         metricsMap.put("serverErrorCount", MetricItemDto.builder()
-                .metricCode("SERVER_ERRORS")
-                .metricName("Số lỗi máy chủ (1 giờ gần nhất)")
-                .value(hasEnoughData ? String.valueOf(serverErrors) : "N/A")
-                .numericValue(hasEnoughData ? (double) serverErrors : null)
-                .threshold(String.valueOf(SERVER_ERROR_THRESHOLD))
-                .status(serverErrorStatus)
-                .unit("lỗi/giờ")
-                .message(serverErrorMessage)
-                .build());
+            .metricCode("SERVER_ERRORS")
+            .metricName("Số lỗi máy chủ (1 giờ gần nhất)")
+            .value(hasEnoughData ? String.valueOf(serverErrors) : "N/A")
+            .numericValue(hasEnoughData ? (double) serverErrors : null)
+            .threshold(String.valueOf(SERVER_ERROR_THRESHOLD))
+            .status(serverErrorStatus)
+            .unit("lỗi/giờ")
+            .message(serverErrorMessage)
+            .build());
 
-        // 3. Chỉ số Latency tra cứu công khai
         double avgLatency = metricsBufferService.getPublicTraceAvgLatencyLastHour();
         MetricStatus latencyStatus;
         String latencyMessage;
@@ -97,7 +95,7 @@ public class SystemMonitoringServiceImpl implements SystemMonitoringService {
         } else if (avgLatency > PUBLIC_TRACE_LATENCY_THRESHOLD_MS) {
             latencyStatus = MetricStatus.WARNING;
             latencyMessage = String.format("Thời gian phản hồi TB (%.0f ms) đã vượt ngưỡng cho phép (%.0f ms).",
-                    avgLatency, PUBLIC_TRACE_LATENCY_THRESHOLD_MS);
+                avgLatency, PUBLIC_TRACE_LATENCY_THRESHOLD_MS);
             breachedCount++;
         } else {
             latencyStatus = MetricStatus.NORMAL;
@@ -105,17 +103,16 @@ public class SystemMonitoringServiceImpl implements SystemMonitoringService {
         }
 
         metricsMap.put("publicTraceAvgResponseTime", MetricItemDto.builder()
-                .metricCode("PUBLIC_TRACE_LATENCY")
-                .metricName("Thời gian phản hồi TB tra cứu công khai")
-                .value(hasEnoughData && avgLatency >= 0 ? String.format("%.0f ms", avgLatency) : "N/A")
-                .numericValue(hasEnoughData && avgLatency >= 0 ? avgLatency : null)
-                .threshold(String.valueOf(PUBLIC_TRACE_LATENCY_THRESHOLD_MS))
-                .status(latencyStatus)
-                .unit("ms")
-                .message(latencyMessage)
-                .build());
+            .metricCode("PUBLIC_TRACE_LATENCY")
+            .metricName("Thời gian phản hồi TB tra cứu công khai")
+            .value(hasEnoughData && avgLatency >= 0 ? String.format("%.0f ms", avgLatency) : "N/A")
+            .numericValue(hasEnoughData && avgLatency >= 0 ? avgLatency : null)
+            .threshold(String.valueOf(PUBLIC_TRACE_LATENCY_THRESHOLD_MS))
+            .status(latencyStatus)
+            .unit("ms")
+            .message(latencyMessage)
+            .build());
 
-        // 4. Chỉ số Lượt gọi Cổng dữ liệu
         long dataGatewayCalls = metricsBufferService.getDataGatewayCallCountLastHour();
         MetricStatus gatewayStatus;
         String gatewayMessage;
@@ -125,7 +122,7 @@ public class SystemMonitoringServiceImpl implements SystemMonitoringService {
         } else if (dataGatewayCalls > DATA_GATEWAY_CALLS_THRESHOLD) {
             gatewayStatus = MetricStatus.WARNING;
             gatewayMessage = String.format("Số lượt gọi Cổng dữ liệu (%d lượt) đã vượt ngưỡng cho phép (%.0f lượt).",
-                    dataGatewayCalls, DATA_GATEWAY_CALLS_THRESHOLD);
+                dataGatewayCalls, DATA_GATEWAY_CALLS_THRESHOLD);
             breachedCount++;
         } else {
             gatewayStatus = MetricStatus.NORMAL;
@@ -133,17 +130,16 @@ public class SystemMonitoringServiceImpl implements SystemMonitoringService {
         }
 
         metricsMap.put("dataGatewayCallCount", MetricItemDto.builder()
-                .metricCode("DATA_GATEWAY_CALLS")
-                .metricName("Số lượt gọi Cổng dữ liệu (1 giờ)")
-                .value(hasEnoughData ? String.valueOf(dataGatewayCalls) : "N/A")
-                .numericValue(hasEnoughData ? (double) dataGatewayCalls : null)
-                .threshold(String.valueOf(DATA_GATEWAY_CALLS_THRESHOLD))
-                .status(gatewayStatus)
-                .unit("lượt/giờ")
-                .message(gatewayMessage)
-                .build());
+            .metricCode("DATA_GATEWAY_CALLS")
+            .metricName("Số lượt gọi Cổng dữ liệu (1 giờ)")
+            .value(hasEnoughData ? String.valueOf(dataGatewayCalls) : "N/A")
+            .numericValue(hasEnoughData ? (double) dataGatewayCalls : null)
+            .threshold(String.valueOf(DATA_GATEWAY_CALLS_THRESHOLD))
+            .status(gatewayStatus)
+            .unit("lượt/giờ")
+            .message(gatewayMessage)
+            .build());
 
-        // Xác định trạng thái tổng thể
         OverallSystemStatus overallStatus;
         String summary;
 
@@ -162,50 +158,52 @@ public class SystemMonitoringServiceImpl implements SystemMonitoringService {
         }
 
         return SystemStatusResponse.builder()
-                .overallStatus(overallStatus)
-                .hasSufficientData(hasEnoughData)
-                .uptimeSeconds(uptime)
-                .lastUpdated(Instant.now())
-                .breachedMetricsCount(breachedCount)
-                .summaryMessage(summary)
-                .metrics(metricsMap)
-                .build();
+            .overallStatus(overallStatus)
+            .hasSufficientData(hasEnoughData)
+            .uptimeSeconds(uptime)
+            .lastUpdated(Instant.now())
+            .breachedMetricsCount(breachedCount)
+            .summaryMessage(summary)
+            .metrics(metricsMap)
+            .build();
     }
 
+    /** Lấy danh sách ngưỡng cảnh báo giám sát hệ thống. */
     @Override
     public List<MetricThresholdDto> getMonitoringThresholds() {
         return List.of(
-                MetricThresholdDto.builder()
-                        .metricCode("DB_CONNECTION")
-                        .metricName("Trạng thái kết nối CSDL")
-                        .thresholdValue("UP")
-                        .unit("STATUS")
-                        .description("Yêu cầu kết nối CSDL phải sẵn sàng (UP)")
-                        .build(),
-                MetricThresholdDto.builder()
-                        .metricCode("SERVER_ERRORS")
-                        .metricName("Số lỗi máy chủ (1 giờ gần nhất)")
-                        .thresholdValue(String.valueOf(SERVER_ERROR_THRESHOLD))
-                        .unit("lỗi/giờ")
-                        .description("Tối đa 20 lỗi 5xx trong 60 phút")
-                        .build(),
-                MetricThresholdDto.builder()
-                        .metricCode("PUBLIC_TRACE_LATENCY")
-                        .metricName("Thời gian phản hồi TB tra cứu công khai")
-                        .thresholdValue(String.valueOf(PUBLIC_TRACE_LATENCY_THRESHOLD_MS))
-                        .unit("ms")
-                        .description("Tối đa 2000ms latency trung bình")
-                        .build(),
-                MetricThresholdDto.builder()
-                        .metricCode("DATA_GATEWAY_CALLS")
-                        .metricName("Số lượt gọi Cổng dữ liệu (1 giờ)")
-                        .thresholdValue(String.valueOf(DATA_GATEWAY_CALLS_THRESHOLD))
-                        .unit("lượt/giờ")
-                        .description("Tối đa 1000 lượt gọi vào Cổng dữ liệu trong 60 phút")
-                        .build()
+            MetricThresholdDto.builder()
+                .metricCode("DB_CONNECTION")
+                .metricName("Trạng thái kết nối CSDL")
+                .thresholdValue("UP")
+                .unit("STATUS")
+                .description("Yêu cầu kết nối CSDL phải sẵn sàng (UP)")
+                .build(),
+            MetricThresholdDto.builder()
+                .metricCode("SERVER_ERRORS")
+                .metricName("Số lỗi máy chủ (1 giờ gần nhất)")
+                .thresholdValue(String.valueOf(SERVER_ERROR_THRESHOLD))
+                .unit("lỗi/giờ")
+                .description("Tối đa 20 lỗi 5xx trong 60 phút")
+                .build(),
+            MetricThresholdDto.builder()
+                .metricCode("PUBLIC_TRACE_LATENCY")
+                .metricName("Thời gian phản hồi TB tra cứu công khai")
+                .thresholdValue(String.valueOf(PUBLIC_TRACE_LATENCY_THRESHOLD_MS))
+                .unit("ms")
+                .description("Tối đa 2000ms latency trung bình")
+                .build(),
+            MetricThresholdDto.builder()
+                .metricCode("DATA_GATEWAY_CALLS")
+                .metricName("Số lượt gọi Cổng dữ liệu (1 giờ)")
+                .thresholdValue(String.valueOf(DATA_GATEWAY_CALLS_THRESHOLD))
+                .unit("lượt/giờ")
+                .description("Tối đa 1000 lượt gọi vào Cổng dữ liệu trong 60 phút")
+                .build()
         );
     }
 
+    /** Kiểm tra kết nối cơ sở dữ liệu. */
     private boolean checkDbConnection() {
         try (Connection connection = dataSource.getConnection()) {
             return connection.isValid(2);

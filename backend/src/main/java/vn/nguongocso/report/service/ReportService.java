@@ -11,23 +11,23 @@ public interface ReportService {
 
     /** Lấy báo cáo tổng hợp theo địa bàn và khoảng thời gian. */
     IndustryReportResponse getIndustrySummary(
-            String region,
-            List<UUID> unitIds,
-            LocalDate fromDate,
-            LocalDate toDate);
+        String region,
+        List<UUID> unitIds,
+        LocalDate fromDate,
+        LocalDate toDate);
 
     /** Xuất báo cáo tổng hợp dạng PDF. */
     byte[] exportIndustrySummary(
-            String region,
-            List<UUID> unitIds,
-            LocalDate fromDate,
-            LocalDate toDate);
+        String region,
+        List<UUID> unitIds,
+        LocalDate fromDate,
+        LocalDate toDate);
 
     /** Xuất báo cáo tổng hợp theo định dạng yêu cầu. */
     byte[] exportIndustrySummary(
-            String region,
-            List<UUID> unitIds,
-            LocalDate fromDate,
-            LocalDate toDate,
-            String format);
+        String region,
+        List<UUID> unitIds,
+        LocalDate fromDate,
+        LocalDate toDate,
+        String format);
 }
