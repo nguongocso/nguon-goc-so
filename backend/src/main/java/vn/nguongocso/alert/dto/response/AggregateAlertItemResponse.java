@@ -19,17 +19,30 @@ import java.util.UUID;
 @AllArgsConstructor
 public class AggregateAlertItemResponse {
     private UUID id;
+
     private AggregateAlertType type;
+
     private String typeName;
+
     private AlertSeverity severity;
+
     private String title;
+
     private String message;
+
     private String relatedEntityType;
+
     private UUID relatedEntityId;
+
     private String relatedEntityName;
+
     private LocalDateTime createdAt;
+
     private String actionUrl;
+
     private UUID organizationId;
+
     private String organizationName;
+
     private String status;
 }

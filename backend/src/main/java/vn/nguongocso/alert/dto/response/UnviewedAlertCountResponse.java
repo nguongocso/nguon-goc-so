@@ -14,5 +14,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UnviewedAlertCountResponse {
     private long unviewedCount;
+
     private boolean hasHighSeverity;
 }

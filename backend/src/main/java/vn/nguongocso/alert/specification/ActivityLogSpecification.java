@@ -7,8 +7,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * Specification cho thực thể ActivityLog, hỗ trợ tìm kiếm động dựa trên các
- * tiêu chí khác nhau.
+ * Specification cho thực thể ActivityLog, hỗ trợ tìm kiếm động dựa trên các tiêu chí khác nhau.
  */
 public class ActivityLogSpecification {
     /**
@@ -42,8 +41,7 @@ public class ActivityLogSpecification {
     }
 
     /**
-     * Tạo Specification để lọc ActivityLog theo tên người thực hiện (username hoặc
-     * fullName).
+     * Tạo Specification để lọc ActivityLog theo tên người thực hiện (username hoặc fullName).
      */
     public static Specification<ActivityLog> hasActorName(String actorName) {
         return (root, query, cb) -> {
@@ -68,11 +66,6 @@ public class ActivityLogSpecification {
 
     /**
      * Tạo Specification để lọc ActivityLog theo khoảng thời gian tạo.
-     *
-     * <p>
-     * Cột createdAt là LocalDateTime (DATETIME, lưu giờ nghiệp vụ
-     * Asia/Ho_Chi_Minh), nên khoảng lọc cũng dùng LocalDateTime thay vì
-     * Instant quy đổi theo UTC — tránh lệch múi giờ khi so sánh.
      */
     public static Specification<ActivityLog> createdBetween(LocalDate startDate, LocalDate endDate) {
         return (root, query, cb) -> {

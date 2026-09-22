@@ -28,62 +28,75 @@ import java.util.UUID;
 @RequestMapping("/api/v1/cultivation-milestones")
 @RequiredArgsConstructor
 public class CultivationMilestoneController {
+        private final CultivationMilestoneService milestoneService;
 
-    private final CultivationMilestoneService milestoneService;
+        /**
+         * Tìm kiếm mốc canh tác.
+         */
+        @GetMapping
+        @PreAuthorize("isAuthenticated()")
+        public ApiResult<PageResponse<CultivationMilestoneResponse>> search(
+                        @RequestParam(required = false) String keyword,
+                        @RequestParam(required = false) String activityType,
+                        @RequestParam(required = false) UUID categoryId,
+                        @RequestParam(required = false) UUID standardId,
+                        @RequestParam(defaultValue = "false") boolean globalOnly,
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "10") int size,
+                        @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-    @GetMapping
-    @PreAuthorize("isAuthenticated()")
-    public ApiResult<PageResponse<CultivationMilestoneResponse>> search(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String activityType,
-            @RequestParam(required = false) UUID categoryId,
-            @RequestParam(required = false) UUID standardId,
-            @RequestParam(defaultValue = "false") boolean globalOnly,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
+                Pageable pageable = PageRequest.of(page, size);
+                Page<CultivationMilestoneResponse> result = milestoneService.searchMilestones(keyword, activityType,
+                                categoryId, standardId,
+                                globalOnly, pageable, currentUser);
+                return ApiResult.success(PageResponse.from(result, result.getContent()));
+        }
 
-        Pageable pageable = PageRequest.of(page, size);
-        Page<CultivationMilestoneResponse> result =
-                milestoneService.searchMilestones(keyword, activityType, categoryId, standardId,
-                        globalOnly, pageable, currentUser);
-        return ApiResult.success(PageResponse.from(result, result.getContent()));
-    }
+        /**
+         * Kiểm tra đủ điều kiện đóng gói.
+         */
+        @GetMapping("/eligibility")
+        @PreAuthorize("hasAnyRole('VT-01','VT-02','VT-03')")
+        public ApiResult<MilestoneEligibilityResponse> eligibility(
+                        @RequestParam UUID productionLotId,
+                        @AuthenticationPrincipal CustomUserDetails currentUser) {
+                return ApiResult.success(
+                                milestoneService.getPackagingEligibility(productionLotId, currentUser));
+        }
 
-    @GetMapping("/eligibility")
-    @PreAuthorize("hasAnyRole('VT-01','VT-02','VT-03')")
-    public ApiResult<MilestoneEligibilityResponse> eligibility(
-            @RequestParam UUID productionLotId,
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
-        return ApiResult.success(
-                milestoneService.getPackagingEligibility(productionLotId, currentUser));
-    }
+        /**
+         * Lấy thông tin chi tiết mốc canh tác.
+         */
+        @GetMapping("/{id}")
+        @PreAuthorize("isAuthenticated()")
+        public ApiResult<CultivationMilestoneResponse> get(
+                        @PathVariable Long id,
+                        @AuthenticationPrincipal CustomUserDetails currentUser) {
+                return ApiResult.success(milestoneService.getMilestone(id, currentUser));
+        }
 
-    @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
-    public ApiResult<CultivationMilestoneResponse> get(
-            @PathVariable Long id,
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
-        return ApiResult.success(milestoneService.getMilestone(id, currentUser));
-    }
+        /**
+         * Tạo mới mốc canh tác.
+         */
+        @PostMapping
+        @PreAuthorize("hasRole('VT-01')")
+        public ResponseEntity<ApiResult<CultivationMilestoneResponse>> create(
+                        @Valid @RequestBody CultivationMilestoneRequest request,
+                        @AuthenticationPrincipal CustomUserDetails currentUser) {
+                CultivationMilestoneResponse response = milestoneService.createMilestone(request, currentUser);
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(ApiResult.success(HttpStatus.CREATED.value(), response));
+        }
 
-    @PostMapping
-    @PreAuthorize("hasRole('VT-01')")
-    public ResponseEntity<ApiResult<CultivationMilestoneResponse>> create(
-            @Valid @RequestBody CultivationMilestoneRequest request,
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
-        CultivationMilestoneResponse response =
-                milestoneService.createMilestone(request, currentUser);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResult.success(HttpStatus.CREATED.value(), response));
-    }
-
-    @PutMapping("/{id}")
-    @PreAuthorize("hasRole('VT-01')")
-    public ApiResult<CultivationMilestoneResponse> update(
-            @PathVariable Long id,
-            @Valid @RequestBody CultivationMilestoneRequest request,
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
-        return ApiResult.success(milestoneService.updateMilestone(id, request, currentUser));
-    }
+        /**
+         * Cập nhật mốc canh tác.
+         */
+        @PutMapping("/{id}")
+        @PreAuthorize("hasRole('VT-01')")
+        public ApiResult<CultivationMilestoneResponse> update(
+                        @PathVariable Long id,
+                        @Valid @RequestBody CultivationMilestoneRequest request,
+                        @AuthenticationPrincipal CustomUserDetails currentUser) {
+                return ApiResult.success(milestoneService.updateMilestone(id, request, currentUser));
+        }
 }

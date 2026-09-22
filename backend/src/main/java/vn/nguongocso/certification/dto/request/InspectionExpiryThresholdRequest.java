@@ -18,7 +18,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class InspectionExpiryThresholdRequest {
-
     @NotNull(message = "Ngưỡng cảnh báo không được để trống")
     @Min(value = 1, message = "Ngưỡng cảnh báo phải lớn hơn hoặc bằng 1 ngày")
     @Max(value = 365, message = "Ngưỡng cảnh báo không được vượt quá 365 ngày")

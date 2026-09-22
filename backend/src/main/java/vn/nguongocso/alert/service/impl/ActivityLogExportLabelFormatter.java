@@ -93,9 +93,11 @@ final class ActivityLogExportLabelFormatter {
             Map.entry("RESOLVE_ALERT", "Xử lý cảnh báo"),
             Map.entry("DEACTIVATE", "Vô hiệu hóa thành viên"),
             Map.entry("REACTIVATE", "Kích hoạt lại thành viên"),
-            Map.entry("DEACTIVATE_BLOCKED", "Từ chối vô hiệu hóa thành viên")
-    );
+            Map.entry("DEACTIVATE_BLOCKED", "Từ chối vô hiệu hóa thành viên"));
 
+    /** 
+     * Danh mục các loại đối tượng được ghi nhật ký hoạt động.
+     */
     private static final Map<String, String> OBJECT_LABELS = Map.ofEntries(
             Map.entry("PRODUCTIONLOT", "Lô sản xuất"),
             Map.entry("FARMLOG", "Nhật ký canh tác"),
@@ -138,37 +140,56 @@ final class ActivityLogExportLabelFormatter {
             Map.entry("SYSTEMMONITORING", "Giám sát hệ thống"),
             Map.entry("ATTACHMENT", "Chứng từ đính kèm"),
             Map.entry("INVITATION", "Thư mời thành viên"),
-            Map.entry("ACTIVITYLOGEXPORT", "Yêu cầu xuất nhật ký hoạt động")
-    );
+            Map.entry("ACTIVITYLOGEXPORT", "Yêu cầu xuất nhật ký hoạt động"));
 
+    /** 
+     * Danh mục các loại vai trò.
+     */
     private static final Map<String, String> ROLE_LABELS = Map.of(
             "VT-01", "Quản trị viên nền tảng (VT-01)",
             "VT-02", "Quản lý hợp tác xã (VT-02)",
             "VT-03", "Người ghi sự kiện (VT-03)",
             "VT-04", "Doanh nghiệp thu mua (VT-04)",
-            "VT-05", "Cán bộ quản lý ngành (VT-05)"
-    );
+            "VT-05", "Cán bộ quản lý ngành (VT-05)");
 
+    /**
+     * Constructor.
+     */
     private ActivityLogExportLabelFormatter() {
     }
 
+    /**
+     * Định dạng hành động.
+     */
     static String formatAction(String value) {
         return format(ACTION_LABELS, value, false);
     }
 
+    /**
+     * Định dạng loại đối tượng.
+     */
     static String formatObjectType(String value) {
         return format(OBJECT_LABELS, value, true);
     }
 
+    /**
+     * Định dạng vai trò.
+     */
     static String formatRole(String value) {
-        if (value == null || value.isBlank()) return value;
+        if (value == null || value.isBlank())
+            return value;
         return ROLE_LABELS.getOrDefault(value.toUpperCase(Locale.ROOT), value);
     }
 
+    /**
+     * Định dạng chuỗi.
+     */
     private static String format(Map<String, String> labels, String value, boolean removeUnderscores) {
-        if (value == null || value.isBlank()) return value;
+        if (value == null || value.isBlank())
+            return value;
         String key = value.toUpperCase(Locale.ROOT);
-        if (removeUnderscores) key = key.replace("_", "");
+        if (removeUnderscores)
+            key = key.replace("_", "");
         return labels.getOrDefault(key, value);
     }
 }

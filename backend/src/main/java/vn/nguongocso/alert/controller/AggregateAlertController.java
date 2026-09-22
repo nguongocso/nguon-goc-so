@@ -26,7 +26,6 @@ import java.util.UUID;
 @RequestMapping("/api/v1/alerts")
 @RequiredArgsConstructor
 public class AggregateAlertController {
-
     private final AggregateAlertService aggregateAlertService;
 
     /**

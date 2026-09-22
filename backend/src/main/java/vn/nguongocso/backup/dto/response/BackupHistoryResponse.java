@@ -36,9 +36,6 @@ public class BackupHistoryResponse {
 
     /**
      * Chuyển đổi từ thực thể BackupRestoreHistory sang BackupHistoryResponse.
-     *
-     * @param history Thực thể BackupRestoreHistory cần chuyển đổi.
-     * @return Đối tượng BackupHistoryResponse tương ứng.
      */
     public static BackupHistoryResponse fromEntity(BackupRestoreHistory history) {
         if (history == null)

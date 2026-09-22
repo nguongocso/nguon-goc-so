@@ -6,9 +6,6 @@ import type {
   UnviewedAlertCountResponse,
 } from '@/types/aggregateAlert';
 
-/**
- * Lấy danh sách cảnh báo tổng hợp gom từ cả 7 nguồn (NCL-08-CN-016).
- */
 export const getAggregateAlerts = async (
   params: AggregateAlertFilterParams = {},
 ): Promise<AggregateAlertPageResponse> => {
@@ -19,9 +16,6 @@ export const getAggregateAlerts = async (
   return response.data.data;
 };
 
-/**
- * Lấy thống kê số lượng cảnh báo theo mức độ khẩn cấp và theo loại.
- */
 export const getAggregateAlertCounts = async (
   organizationId?: string,
 ): Promise<AggregateAlertCountResponse> => {
@@ -34,9 +28,6 @@ export const getAggregateAlertCounts = async (
   return response.data.data;
 };
 
-/**
- * Lấy số lượng cảnh báo chưa xử lý phục vụ huy hiệu đếm trên thanh điều hướng.
- */
 export const getUnviewedAlertCount = async (): Promise<UnviewedAlertCountResponse> => {
   const response = await apiClient.get<{
     success: boolean;

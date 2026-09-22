@@ -16,7 +16,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class ForgotPasswordRequest {
-
     @NotBlank(message = "Vui lòng nhập tên đăng nhập hoặc email")
     private String emailOrUsername;
 }

@@ -16,20 +16,25 @@ import vn.nguongocso.auth.enums.UserStatus;
 import vn.nguongocso.auth.repository.AccountLockRepository;
 import vn.nguongocso.auth.repository.UserRepository;
 
+/**
+ * Component xử lý việc tự động mở khóa tài khoản sau khi hết thời gian khoá.
+ */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class AccountLockExpiryScheduler {
-
     private final AccountLockRepository accountLockRepository;
     private final UserRepository userRepository;
 
+    /**
+     * Xử lý các khoá tạm hết hạn định kỳ 30 giây.
+     */
     @Scheduled(fixedRate = 30000)
     @Transactional
     public void processExpiredLocks() {
         OffsetDateTime now = OffsetDateTime.now();
         List<AccountLock> expiredLocks = accountLockRepository
-            .findByStatusAndPermanentFalseAndLockUntilBefore(AccountLockStatus.LOCKED, now);
+                .findByStatusAndPermanentFalseAndLockUntilBefore(AccountLockStatus.LOCKED, now);
 
         if (expiredLocks.isEmpty()) {
             return;
@@ -51,11 +56,10 @@ public class AccountLockExpiryScheduler {
             accountLockRepository.save(expiredLock);
 
             log.info(
-                "Auto-unlocked temporary lock for userId={}, lockId={}, lockUntil={}",
-                user.getUserId(),
-                expiredLock.getId(),
-                expiredLock.getLockUntil()
-            );
+                    "Auto-unlocked temporary lock for userId={}, lockId={}, lockUntil={}",
+                    user.getUserId(),
+                    expiredLock.getId(),
+                    expiredLock.getLockUntil());
         }
     }
 }

@@ -12,7 +12,6 @@ import java.time.LocalDateTime;
 @Getter
 @Builder
 public class CultivationMilestoneResponse {
-
     @JsonProperty("id")
     private Long id;
 

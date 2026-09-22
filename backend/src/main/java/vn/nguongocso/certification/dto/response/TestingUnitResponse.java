@@ -14,7 +14,6 @@ import java.util.UUID;
 @Getter
 @Builder
 public class TestingUnitResponse {
-
     @JsonProperty("id")
     private UUID id;
 

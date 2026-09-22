@@ -12,15 +12,19 @@ import vn.nguongocso.certification.event.CertificationRejectedEvent;
 import vn.nguongocso.certification.repository.CertificationRepository;
 import vn.nguongocso.notification.service.NotificationService;
 
-/** Gửi thông báo từ chối trong giao dịch độc lập sau khi quyết định đã được lưu. */
+/**
+ * Gửi thông báo từ chối trong giao dịch độc lập sau khi quyết định đã được lưu.
+ */
 @Component
 @Slf4j
 @RequiredArgsConstructor
 public class CertificationRejectionNotificationListener {
-
     private final CertificationRepository certificationRepository;
     private final NotificationService notificationService;
 
+    /**
+     * Xử lý sự kiện từ chối chứng nhận.
+     */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handle(CertificationRejectedEvent event) {

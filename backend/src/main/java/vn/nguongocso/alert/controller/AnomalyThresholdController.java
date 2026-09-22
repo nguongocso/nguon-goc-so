@@ -38,7 +38,6 @@ import vn.nguongocso.common.ApiResult;
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('VT-01')")
 public class AnomalyThresholdController {
-
     private final AnomalyThresholdService anomalyThresholdService;
 
     /**

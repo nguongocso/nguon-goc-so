@@ -8,7 +8,7 @@ import org.hibernate.type.SqlTypes;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/** 
+/**
  * Lịch sử hoạt động của người dùng.
  */
 @Entity
