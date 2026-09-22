@@ -33,14 +33,29 @@ Cổng dữ liệu đối tác (**Partner Data Portal**) của hệ thống Ngu�
 ### 1.4. Kiểm soát hạn mức gọi (Rate Limiting — QTN-20)
 - Nhằm đảm bảo an toàn tài nguyên và tính sẵn sàng của hệ thống, mỗi khóa truy cập được cấu hình hạn mức số lượt gọi tối đa trong 1 giờ (`rate_limit_per_hour`).
 - **Khóa thật (Live Key):** Hạn mức do Quản lý Hợp tác xã thiết lập khi cấp (ví dụ: 500 - 5.000 lượt/giờ tùy thỏa thuận hợp tác).
-- **Khóa thử nghiệm (Test Key):** Luôn áp dụng **hạn mức thấp** (mặc định 60 lượt/giờ, tối đa không quá 100 lượt/giờ) và **thời hạn ngắn** (mặc định 7 ngày, tối đa không quá 30 ngày).
+- **Khóa thử nghiệm (Test Key):** Luôn áp dụng **hạn mức thấp** (mặc định 30 lượt/giờ, tối đa không quá 50 lượt/giờ) và **thời hạn ngắn** (mặc định 7 hoặc 14 ngày, tối đa không quá 15 ngày).
 - Khi vượt quá hạn mức cho phép, hệ thống từ chối xử lý và phản hồi ngay lập tức mã lỗi `429 Too Many Requests` (QTN-20).
 - Hệ thống gửi kèm các HTTP response headers để đối tác theo dõi hạn mức:
   - `X-RateLimit-Limit`: Hạn mức tối đa được phép gọi trong 1 giờ.
   - `X-RateLimit-Remaining`: Số lượt gọi còn lại trong khung giờ hiện tại.
   - `X-RateLimit-Reset`: Thời gian còn lại (tính bằng giây) trước khi bộ đếm hạn mức được đặt lại.
 
-### 1.5. Bảng ánh xạ trường theo lược đồ mô phỏng GS1 (GS1 Simulated Schema Mapping)
+### 1.5. Quy tắc tiền tố khóa và phạm vi truy cập Sandbox (Key Prefix & Scope Rules)
+Hệ thống Nguồn Gốc Số phân định môi trường và dữ liệu thông qua tiền tố khóa API:
+- **Tiền tố `nks_test_` (Khóa thử nghiệm / Sandbox Key):**
+  - Dành cho môi trường tích hợp và thử nghiệm kỹ thuật ban đầu.
+  - **Phạm vi dữ liệu giới hạn nghiêm ngặt:** Khóa thử nghiệm chỉ được phép truy vấn dữ liệu mẫu của hệ thống:
+    + Hồ sơ Lô sản xuất: Chỉ truy cập mã lô `sample-lot-001` (hoặc UUID mẫu tương ứng).
+    + Hồ sơ Lô hàng thương mại / Chuẩn GS1: Chỉ truy cập mã lô hàng `sample-shipment-001` (hoặc `sample-lot-001`).
+    + Tra cứu hành trình tem: Chỉ tra cứu mã mẫu `TEST-TRACE-001`.
+  - Nếu đối tác sử dụng khóa `nks_test_` để gọi các mã lô/lô hàng thực tế khác, hệ thống sẽ từ chối với lỗi `403 Forbidden`.
+  - Mọi phản hồi thành công từ khóa thử nghiệm luôn chứa hai trường chuẩn: `"is_test": true` và `"test_notice": "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế"`.
+- **Tiền tố `nks_live_` (Khóa thật / Live Production Key):**
+  - Dành cho môi trường sản xuất thực tế.
+  - Cho phép truy xuất toàn bộ dữ liệu hồ sơ lô và lô hàng thực tế thuộc thẩm quyền quản lý của Hợp tác xã cấp khóa.
+  - Phản hồi từ khóa thật chứa `"is_test": false` và không có thông báo thử nghiệm.
+
+### 1.6. Bảng ánh xạ trường theo lược đồ mô phỏng GS1 (GS1 Simulated Schema Mapping)
 Hệ thống Nguồn Gốc Số hỗ trợ xuất dữ liệu truy xuất và dòng sự kiện chuỗi cung ứng theo lược đồ mô phỏng hướng chuẩn GS1 (EPCIS / GS1 XML/JSON) nhằm hỗ trợ đối tác chuẩn hóa dữ liệu.
 
 > **Ghi chú quan trọng:** Đây là lược đồ mô phỏng (Simulated Schema) phục vụ mục đích tích hợp kỹ thuật và chuẩn hóa dữ liệu giáo dục/thực nghiệm, không thay thế cho chứng nhận tuân thủ chính thức của tổ chức GS1 toàn cầu.
@@ -137,7 +152,7 @@ Cổng dữ liệu đối tác hiện bao gồm 3 điểm truy xuất chính dà
       "totalLogsRecorded": 42,
       "lastActivityAt": "2026-08-20T16:30:00"
     },
-    "isTest": false
+    "is_test": false
   },
   "timestamp": "2026-09-14T10:00:00.000Z"
 }
@@ -188,8 +203,8 @@ Cổng dữ liệu đối tác hiện bao gồm 3 điểm truy xuất chính dà
       "totalLogsRecorded": 25,
       "lastActivityAt": "2026-07-15T10:00:00"
     },
-    "isTest": true,
-    "testNotice": "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế"
+    "is_test": true,
+    "test_notice": "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế"
   },
   "timestamp": "2026-09-14T10:00:00.000Z"
 }
@@ -260,8 +275,8 @@ Cổng dữ liệu đối tác hiện bao gồm 3 điểm truy xuất chính dà
         "resultDate": "2026-07-19T10:00:00"
       }
     ],
-    "isTest": true,
-    "testNotice": "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế"
+    "is_test": true,
+    "test_notice": "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế"
   },
   "timestamp": "2026-09-14T10:00:00.000Z"
 }
@@ -275,13 +290,13 @@ Cổng dữ liệu đối tác hiện bao gồm 3 điểm truy xuất chính dà
 - **Path:** `/api/v1/partner/shipments/{shipmentId}/dossier/gs1`
 - **Mô tả:** Cho phép đối tác bên thứ ba trích xuất hồ sơ truy xuất lô hàng thương mại dưới dạng JSON hoặc XML theo lược đồ mô phỏng hướng chuẩn GS1 EPCIS.
 - **Xác thực:** Bắt buộc Header `X-API-KEY`.
-- **Hành vi Sandbox:** Nếu gọi bằng khóa thử nghiệm, hệ thống trả về hồ sơ GS1 mẫu với `isTest: true`.
+- **Hành vi Sandbox:** Nếu gọi bằng khóa thử nghiệm (tiền tố `nks_test_`), chỉ cho phép mã lô hàng `sample-shipment-001` (hoặc `sample-lot-001`). Hệ thống trả về hồ sơ GS1 mẫu với `is_test: true` và `test_notice: "..."`. Nếu truyền mã khác, hệ thống sẽ trả về lỗi `403 Forbidden` kèm thông điệp: `"Khóa thử nghiệm chỉ được phép truy cập mã lô hàng \"sample-shipment-001\" hoặc mã lô \"sample-lot-001\"."`.
 
 #### Tham số (Parameters)
 | Tên tham số | Vị trí | Kiểu | Bắt buộc | Mặc định | Mô tả |
 |:---|:---|:---|:---:|:---|:---|
 | `X-API-KEY` | Header | String | Có | - | Khóa truy cập đối tác |
-| `shipmentId` | Path | UUID | Có | - | Định danh lô hàng cần xuất hồ sơ |
+| `shipmentId` | Path | String | Có | - | Định danh lô hàng cần xuất hồ sơ (Sandbox: `sample-shipment-001`) |
 | `format` | Query | String | Không | `json` | Định dạng xuất: `json` hoặc `xml` |
 | `includeMapping` | Query | Boolean | Không | `true` | Có kèm bảng ánh xạ chi tiết từng trường hay không |
 
@@ -292,7 +307,7 @@ Cổng dữ liệu đối tác hiện bao gồm 3 điểm truy xuất chính dà
   "status": 200,
   "data": {
     "shipment": {
-      "shipmentId": "00000000-0000-0000-0000-000000000010",
+      "shipmentId": "sample-shipment-001",
       "shipmentCode": "LH-TEST-GS1",
       "shipmentName": "[DỮ LIỆU MẪU] Lô Hàng Xoài Cát Xuất Khẩu Thử Nghiệm",
       "declaredQuantity": 5000,
@@ -340,8 +355,8 @@ Cổng dữ liệu đối tác hiện bao gồm 3 điểm truy xuất chính dà
       "complianceNote": "Mô phỏng lược đồ GS1, không phải chứng nhận tuân thủ chính thức GS1"
     },
     "warnings": [],
-    "isTest": true,
-    "testNotice": "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế"
+    "is_test": true,
+    "test_notice": "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế"
   },
   "timestamp": "2026-09-14T10:00:00.000Z"
 }
@@ -366,7 +381,7 @@ Chức năng cấp khóa thử nghiệm được tích hợp trong phân hệ qu
 ```json
 {
   "partnerName": "Công ty Cổ phần Nông sản Thực phẩm An Toàn",
-  "rateLimitPerHour": 60,
+  "rateLimitPerHour": 30,
   "expiresAt": "2026-09-28T23:59:59"
 }
 ```
@@ -374,8 +389,8 @@ Chức năng cấp khóa thử nghiệm được tích hợp trong phân hệ qu
 | Trường | Kiểu dữ liệu | Bắt buộc | Ràng buộc nghiệp vụ |
 |:---|:---|:---:|:---|
 | `partnerName` | String | Có | Không để trống, độ dài tối đa 255 ký tự. |
-| `rateLimitPerHour` | Integer | Có | Tối thiểu 1, **tối đa không quá 100 lượt/giờ** (hạn mức thấp để tránh lạm dụng). Mặc định gợi ý: 60. |
-| `expiresAt` | String (ISO-8601) | Có | Phải ở thời điểm tương lai và **không quá 30 ngày** kể từ ngày tạo (thời hạn ngắn). |
+| `rateLimitPerHour` | Integer | Có | Tối thiểu 1, **tối đa không quá 50 lượt/giờ** (hạn mức thấp để tránh lạm dụng). Mặc định gợi ý: 30. |
+| `expiresAt` | String (ISO-8601) | Có | Phải ở thời điểm tương lai và **không quá 15 ngày** kể từ ngày tạo (thời hạn ngắn). |
 
 #### Phản hồi thành công (HTTP 201 Created)
 ```json
@@ -388,10 +403,10 @@ Chức năng cấp khóa thử nghiệm được tích hợp trong phân hệ qu
     "partnerName": "Công ty Cổ phần Nông sản Thực phẩm An Toàn",
     "keyPrefix": "nks_test_e8a1b2c3",
     "rawApiKey": "nks_test_e8a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
-    "rateLimitPerHour": 60,
+    "rateLimitPerHour": 30,
     "expiresAt": "2026-09-28T23:59:59",
     "status": "ACTIVE",
-    "isTest": true,
+    "is_test": true,
     "totalCalls": 0,
     "failedCalls": 0,
     "createdByName": "Nguyễn Văn Quản Lý",
@@ -411,9 +426,9 @@ Khi đối tác gửi request có Header `X-API-KEY` chứa khóa thử nghiệm
 
 1. **Cách ly dữ liệu thật tuyệt đối:** Hệ thống không truy vấn hay trả về dữ liệu nông trại/lô hàng thật của hợp tác xã. Mọi request đều được điều hướng trả về bộ dữ liệu mẫu chuẩn hóa (`SAMPLE_DATASET`).
 2. **Đánh dấu rõ ràng:** Mọi response trả về đều chứa:
-   - Thuộc tính boolean `"isTest": true`.
-   - Thông báo ghi chú `"testNotice": "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế"`.
-3. **Gọi lấy lô thật bằng khóa thử nghiệm (NCL-12-CN-004-TC-02):** Dù đối tác truyền bất kỳ `lotId` hay `codeValue` nào (kể cả ID của một lô sản xuất thật đang có trong cơ sở dữ liệu), hệ thống vẫn **chỉ trả dữ liệu mẫu** và đánh dấu `isTest: true`.
+   - Thuộc tính boolean `"is_test": true`.
+   - Thông báo ghi chú `"test_notice": "Dữ liệu thử nghiệm (Sandbox Mode) - Không phải dữ liệu thực tế"`.
+3. **Giới hạn phạm vi dữ liệu Sandbox (NCL-12-CN-004-TC-02):** Khóa thử nghiệm chỉ được phép gọi vào các định danh mẫu (`sample-lot-001`, `sample-shipment-001`, `TEST-TRACE-001`). Nếu gọi mã định danh khác ngoài phạm vi dữ liệu mẫu, hệ thống sẽ từ chối với lỗi `HTTP 403 Forbidden`.
 4. **Hết hạn khóa thử nghiệm (NCL-12-CN-004-TC-03):** Khi thời điểm gọi vượt quá `expiresAt`, hệ thống từ chối ngay tại tầng filter với mã lỗi `HTTP 401 Unauthorized` và thông báo lỗi rõ ràng:
    ```json
    {
@@ -513,13 +528,13 @@ Hệ thống tuân thủ cấu trúc phản hồi lỗi chuẩn của Nguồn G�
 |:---|:---|:---|:---|
 | **400 Bad Request** | Lô ngoài phạm vi (Live Key) | `Lô sản xuất nằm ngoài phạm vi truy xuất của khóa truy cập` | Chỉ truy xuất các lô hàng thuộc HTX đã cấp khóa. |
 | **400 Bad Request** | Không tìm thấy lô (Live Key) | `Không tìm thấy thông tin lô sản xuất` | Kiểm tra lại tính chính xác của `lotId`. |
-| **400 Bad Request** | Dữ liệu đầu vào sai | `Thời hạn khóa thử nghiệm không được vượt quá 30 ngày` | Điều chỉnh tham số đầu vào đúng quy định. |
+| **400 Bad Request** | Dữ liệu đầu vào sai | `Thời hạn khóa thử nghiệm không được vượt quá 15 ngày` | Điều chỉnh tham số đầu vào đúng quy định. |
 | **401 Unauthorized** | Thiếu header API key | `Thiếu Header X-API-KEY` | Bổ sung header `X-API-KEY` vào request. |
 | **401 Unauthorized** | Khóa không tồn tại | `Khóa truy cập không hợp lệ` | Kiểm tra lại chuỗi API key đã được cấp. |
 | **401 Unauthorized** | Khóa đã bị thu hồi | `Khóa truy cập đã bị thu hồi và không còn hiệu lực` | Liên hệ Quản lý HTX để được cấp lại khóa mới. |
 | **401 Unauthorized** | Khóa thật hết hạn | `Khóa truy cập đã hết thời gian hiệu lực` | Liên hệ Quản lý HTX để gia hạn hoặc cấp khóa mới. |
 | **401 Unauthorized** | **Khóa thử nghiệm hết hạn (TC-03)** | `Khóa thử nghiệm đã hết hạn` | Tạo hoặc yêu cầu cấp lại khóa thử nghiệm mới. |
 | **403 Forbidden** | **Sai vai trò cấp khóa (TC-04)** | `Bạn không có quyền thực hiện thao tác này` | Chỉ Quản lý HTX (`VT-02`) hoặc Admin (`VT-01`) được cấp khóa. |
-| **422 Unprocessable** | Vi phạm validation cấp khóa | `Hạn mức số lượt gọi thử nghiệm không vượt quá 100 lượt/giờ` | Giảm `rateLimitPerHour` xuống dưới hoặc bằng 100. |
+| **422 Unprocessable** | Vi phạm validation cấp khóa | `Hạn mức số lượt gọi thử nghiệm không vượt quá 50 lượt/giờ` | Giảm `rateLimitPerHour` xuống dưới hoặc bằng 50. |
 | **429 Too Many Requests** | **Vượt hạn mức giờ (QTN-20)** | `Khóa truy cập đã vượt quá hạn mức {limit} lượt gọi/giờ` | Chờ sang khung giờ tiếp theo hoặc yêu cầu nâng hạn mức. |
 | **500 Internal Error** | Lỗi máy chủ nội bộ | `Đã xảy ra lỗi hệ thống, vui lòng thử lại sau` | Liên hệ đội ngũ quản trị kỹ thuật Nguồn Gốc Số. |

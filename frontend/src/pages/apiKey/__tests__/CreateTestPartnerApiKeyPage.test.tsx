@@ -48,11 +48,11 @@ describe('CreateTestPartnerApiKeyPage (NCL-12-CN-004)', () => {
       screen.getByRole('heading', { name: /Cấp khóa API thử nghiệm/i })
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/Tên đối tác \/ Đơn vị thử nghiệm/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Hạn mức gọi API/i)).toHaveValue(100);
+    expect(screen.getByLabelText(/Hạn mức gọi API/i)).toHaveValue(30);
     expect(screen.getByLabelText(/Thời gian hết hạn khóa/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /\+3 ngày/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /\+7 ngày/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /\+14 ngày/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /\+30 ngày/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /\+15 ngày/i })).toBeInTheDocument();
   });
 
   it('validates empty partner name and shows toast error', async () => {
@@ -67,27 +67,27 @@ describe('CreateTestPartnerApiKeyPage (NCL-12-CN-004)', () => {
     expect(createTestApiKey).not.toHaveBeenCalled();
   });
 
-  it('validates rate limit exceeding 100 requests per hour', async () => {
+  it('validates rate limit exceeding 50 requests per hour', async () => {
     renderPage();
 
     const partnerInput = screen.getByLabelText(/Tên đối tác \/ Đơn vị thử nghiệm/i);
     const rateLimitInput = screen.getByLabelText(/Hạn mức gọi API/i);
 
     fireEvent.change(partnerInput, { target: { value: 'Công ty Đối tác ERP' } });
-    fireEvent.change(rateLimitInput, { target: { value: '150' } });
+    fireEvent.change(rateLimitInput, { target: { value: '75' } });
 
     const submitBtn = screen.getByRole('button', { name: /Cấp khóa thử nghiệm/i });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
-        'Hạn mức thử nghiệm tối đa là 100 lượt/giờ theo quy định'
+        'Hạn mức thử nghiệm tối đa là 50 lượt/giờ theo quy định'
       );
     });
     expect(createTestApiKey).not.toHaveBeenCalled();
   });
 
-  it('validates expiry date exceeding 30 days', async () => {
+  it('validates expiry date exceeding 15 days', async () => {
     renderPage();
 
     const partnerInput = screen.getByLabelText(/Tên đối tác \/ Đơn vị thử nghiệm/i);
@@ -95,9 +95,9 @@ describe('CreateTestPartnerApiKeyPage (NCL-12-CN-004)', () => {
 
     fireEvent.change(partnerInput, { target: { value: 'Công ty Đối tác ERP' } });
 
-    // Set 45 days in future
+    // Set 20 days in future (exceeds 15 days)
     const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + 45);
+    futureDate.setDate(futureDate.getDate() + 20);
     const isoString = futureDate.toISOString().slice(0, 16);
     fireEvent.change(dateInput, { target: { value: isoString } });
 
@@ -106,17 +106,17 @@ describe('CreateTestPartnerApiKeyPage (NCL-12-CN-004)', () => {
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
-        'Thời hạn thử nghiệm tối đa là 30 ngày theo quy định bảo mật'
+        'Thời hạn thử nghiệm tối đa là 15 ngày theo quy định bảo mật'
       );
     });
     expect(createTestApiKey).not.toHaveBeenCalled();
   });
 
-  it('allows clicking quick select buttons (+7, +14, +30 days)', () => {
+  it('allows clicking quick select buttons (+3, +7, +15 days)', () => {
     renderPage();
 
-    const quick30Btn = screen.getByRole('button', { name: /\+30 ngày/i });
-    fireEvent.click(quick30Btn);
+    const quick15Btn = screen.getByRole('button', { name: /\+15 ngày/i });
+    fireEvent.click(quick15Btn);
 
     const dateInput = screen.getByLabelText(/Thời gian hết hạn khóa/i) as HTMLInputElement;
     expect(dateInput.value).toBeTruthy();
@@ -128,7 +128,7 @@ describe('CreateTestPartnerApiKeyPage (NCL-12-CN-004)', () => {
       keyPrefix: 'nks_test_abcdef',
       partnerName: 'Công ty Big C Test',
       isTest: true,
-      rateLimitPerHour: 100,
+      rateLimitPerHour: 30,
       status: 'ACTIVE',
       createdAt: '2026-09-14T10:00:00Z',
       expiresAt: '2026-09-28T10:00:00Z',
@@ -149,7 +149,7 @@ describe('CreateTestPartnerApiKeyPage (NCL-12-CN-004)', () => {
       expect(createTestApiKey).toHaveBeenCalledWith(
         expect.objectContaining({
           partnerName: 'Công ty Big C Test',
-          rateLimitPerHour: 100,
+          rateLimitPerHour: 30,
         })
       );
     });

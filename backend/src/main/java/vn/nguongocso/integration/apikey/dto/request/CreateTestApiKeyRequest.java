@@ -17,8 +17,8 @@ import lombok.Setter;
 /**
  * Yêu cầu cấp mới khóa thử nghiệm (Sandbox/Test Key) dành cho đối tác bên thứ ba.
  * <p>
- * Khóa thử nghiệm có các ràng buộc nghiêm ngặt: hạn mức thấp (tối đa 100 lượt/giờ)
- * và thời hạn ngắn (tối đa 30 ngày) để đối tác kiểm thử tích hợp mà không chạm vào dữ liệu thật (NCL-12-CN-004).
+ * Khóa thử nghiệm có các ràng buộc nghiêm ngặt: hạn mức thấp (tối đa 50 lượt/giờ)
+ * và thời hạn ngắn (tối đa 15 ngày) để đối tác kiểm thử tích hợp mà không chạm vào dữ liệu thật (NCL-12-CN-004).
  */
 @Getter
 @Setter
@@ -31,7 +31,7 @@ public class CreateTestApiKeyRequest {
     private String partnerName;
 
     @Min(value = 1, message = "Hạn mức số lượt gọi trong 1 giờ phải lớn hơn 0")
-    @Max(value = 100, message = "Hạn mức số lượt gọi thử nghiệm không vượt quá 100 lượt/giờ")
+    @Max(value = 50, message = "Hạn mức số lượt gọi thử nghiệm không vượt quá 50 lượt/giờ")
     private Integer rateLimitPerHour;
 
     @Future(message = "Ngày hết hạn phải ở thời điểm tương lai")

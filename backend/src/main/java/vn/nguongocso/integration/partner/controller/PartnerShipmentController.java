@@ -87,7 +87,7 @@ public class PartnerShipmentController {
             log.warn("Đối tác '{}' dùng khóa thử nghiệm cố truy cập lô hàng '{}' -> từ chối",
                     partnerApiKey.getPartnerName(), shipmentId);
             throw new BusinessException(org.springframework.http.HttpStatus.FORBIDDEN,
-                    "Khóa thử nghiệm chỉ được phép truy cập mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật.");
+                    "Khóa thử nghiệm chỉ được phép truy cập mã lô hàng \"sample-shipment-001\" hoặc mã lô \"sample-lot-001\". Vui lòng liên hệ tới quản trị viên/quản lý hợp tác xã để được cấp khóa API thật.");
         }
 
         UUID parsedShipmentId;

@@ -36,7 +36,7 @@ describe('CreateTestApiKeyModal (NCL-12-CN-004)', () => {
     expect(screen.getByText(/Môi trường Thử nghiệm \(Sandbox\)/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Tên đối tác/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Thời hạn hiệu lực/i)).toHaveValue(14);
-    expect(screen.getByLabelText(/Hạn mức gọi API/i)).toHaveValue(100);
+    expect(screen.getByLabelText(/Hạn mức gọi API/i)).toHaveValue(30);
   });
 
   it('validates empty partnerName on submit', async () => {
@@ -57,7 +57,7 @@ describe('CreateTestApiKeyModal (NCL-12-CN-004)', () => {
     expect(createTestApiKey).not.toHaveBeenCalled();
   });
 
-  it('validates expireDays exceeding maximum 30 days', async () => {
+  it('validates expireDays exceeding maximum 15 days', async () => {
     render(
       <CreateTestApiKeyModal
         open={true}
@@ -70,18 +70,18 @@ describe('CreateTestApiKeyModal (NCL-12-CN-004)', () => {
     const expireInput = screen.getByLabelText(/Thời hạn hiệu lực/i);
 
     fireEvent.change(partnerInput, { target: { value: 'Công ty Đối tác Test' } });
-    fireEvent.change(expireInput, { target: { value: '45', valueAsNumber: 45 } });
+    fireEvent.change(expireInput, { target: { value: '20', valueAsNumber: 20 } });
 
     const submitBtn = screen.getByRole('button', { name: /Cấp khóa thử nghiệm/i });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(screen.getByText('Thời hạn thử nghiệm tối đa là 30 ngày theo quy định')).toBeInTheDocument();
+      expect(screen.getByText('Thời hạn thử nghiệm tối đa là 15 ngày theo quy định')).toBeInTheDocument();
     });
     expect(createTestApiKey).not.toHaveBeenCalled();
   });
 
-  it('validates rateLimitPerHour exceeding maximum 100 requests/hour', async () => {
+  it('validates rateLimitPerHour exceeding maximum 50 requests/hour', async () => {
     render(
       <CreateTestApiKeyModal
         open={true}
@@ -94,13 +94,13 @@ describe('CreateTestApiKeyModal (NCL-12-CN-004)', () => {
     const rateLimitInput = screen.getByLabelText(/Hạn mức gọi API/i);
 
     fireEvent.change(partnerInput, { target: { value: 'Công ty Đối tác Test' } });
-    fireEvent.change(rateLimitInput, { target: { value: '250', valueAsNumber: 250 } });
+    fireEvent.change(rateLimitInput, { target: { value: '75', valueAsNumber: 75 } });
 
     const submitBtn = screen.getByRole('button', { name: /Cấp khóa thử nghiệm/i });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
-      expect(screen.getByText('Hạn mức thử nghiệm tối đa là 100 lượt/giờ')).toBeInTheDocument();
+      expect(screen.getByText('Hạn mức thử nghiệm tối đa là 50 lượt/giờ')).toBeInTheDocument();
     });
     expect(createTestApiKey).not.toHaveBeenCalled();
   });
@@ -112,7 +112,7 @@ describe('CreateTestApiKeyModal (NCL-12-CN-004)', () => {
       partnerName: 'Công ty Logistics Thử Nghiệm',
       keyPrefix: 'nks_test_logi',
       rawApiKey: 'nks_test_logi_1234567890abcdef',
-      rateLimitPerHour: 100,
+      rateLimitPerHour: 30,
       expiresAt: '2026-10-14T10:00:00Z',
       status: 'ACTIVE' as const,
       isTest: true,
@@ -144,7 +144,7 @@ describe('CreateTestApiKeyModal (NCL-12-CN-004)', () => {
         expect.objectContaining({
           partnerName: 'Công ty Logistics Thử Nghiệm',
           expireDays: 14,
-          rateLimitPerHour: 100,
+          rateLimitPerHour: 30,
         })
       );
       expect(toast.success).toHaveBeenCalledWith('Cấp khóa thử nghiệm thành công!');

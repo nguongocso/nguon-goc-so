@@ -54,9 +54,11 @@ public class PublicTraceResponse {
     private List<PublicInspectionCriterionResultDto> inspections;
 
     /** Đánh dấu dữ liệu thử nghiệm (Sandbox). */
+    @com.fasterxml.jackson.annotation.JsonProperty("is_test")
     private Boolean isTest;
 
     /** Thông điệp thông báo dữ liệu thử nghiệm. */
+    @com.fasterxml.jackson.annotation.JsonProperty("test_notice")
     private String testNotice;
 
     /**

@@ -36,7 +36,7 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
   ]);
 
   const [partnerName, setPartnerName] = useState("");
-  const [rateLimitPerHour, setRateLimitPerHour] = useState<number | string>(100);
+  const [rateLimitPerHour, setRateLimitPerHour] = useState<number | string>(30);
   const [expiresAt, setExpiresAt] = useState<string>(getDefaultExpiry(14));
   const [loading, setLoading] = useState(false);
 
@@ -61,8 +61,8 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
       toast.error("Hạn mức gọi API phải lớn hơn 0");
       return;
     }
-    if (rateLimit > 100) {
-      toast.error("Hạn mức thử nghiệm tối đa là 100 lượt/giờ theo quy định");
+    if (rateLimit > 50) {
+      toast.error("Hạn mức thử nghiệm tối đa là 50 lượt/giờ theo quy định");
       return;
     }
 
@@ -78,10 +78,10 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
       return;
     }
 
-    // Kiểm tra tối đa 30 ngày
-    const maxDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000 + 3600000); // 30 ngày + 1h buffer
+    // Kiểm tra tối đa 15 ngày
+    const maxDate = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000 + 3600000); // 15 ngày + 1h buffer
     if (expiryDate.getTime() > maxDate.getTime()) {
-      toast.error("Thời hạn thử nghiệm tối đa là 30 ngày theo quy định bảo mật");
+      toast.error("Thời hạn thử nghiệm tối đa là 15 ngày theo quy định bảo mật");
       return;
     }
 
@@ -240,7 +240,7 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
               Thông tin cấu hình khóa thử nghiệm
             </CardTitle>
             <CardDescription>
-              Thiết lập đối tác sử dụng, hạn mức thử nghiệm (tối đa 100 lượt/giờ) và thời hạn hiệu lực (tối đa 30 ngày).
+              Thiết lập đối tác sử dụng, hạn mức thử nghiệm (tối đa 50 lượt/giờ) và thời hạn hiệu lực (tối đa 15 ngày).
             </CardDescription>
           </CardHeader>
           <form noValidate onSubmit={handleSubmit}>
@@ -270,15 +270,15 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
                   id="rateLimitPerHour"
                   type="number"
                   min={1}
-                  max={100}
-                  placeholder="VD: 100"
+                  max={50}
+                  placeholder="VD: 30"
                   value={rateLimitPerHour}
                   onChange={(e) => setRateLimitPerHour(e.target.value)}
                   disabled={loading}
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Khóa thử nghiệm giới hạn tối đa 100 lượt/giờ theo quy định bảo mật tài nguyên.
+                  Khóa thử nghiệm giới hạn tối đa 50 lượt/giờ theo quy định bảo mật tài nguyên.
                 </p>
               </div>
 
@@ -290,7 +290,7 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
                   </Label>
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span>Chọn nhanh:</span>
-                    {[7, 14, 30].map((days) => (
+                    {[3, 7, 15].map((days) => (
                       <button
                         key={days}
                         type="button"
@@ -312,7 +312,7 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
                   className="max-w-md"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Thời hạn thử nghiệm tối đa là 30 ngày kể từ thời điểm tạo.
+                  Thời hạn thử nghiệm tối đa là 15 ngày kể từ thời điểm tạo.
                 </p>
               </div>
 

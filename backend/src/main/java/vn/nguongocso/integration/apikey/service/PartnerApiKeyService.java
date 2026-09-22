@@ -55,8 +55,9 @@ public class PartnerApiKeyService {
     private static final Logger log = LoggerFactory.getLogger(PartnerApiKeyService.class);
     private static final String KEY_PREFIX_CONSTANT = "nks_live_";
     private static final String TEST_KEY_PREFIX_CONSTANT = "nks_test_";
-    private static final int MAX_TEST_RATE_LIMIT = 100;
-    private static final int MAX_TEST_EXPIRE_DAYS = 30;
+    public static final int DEFAULT_TEST_RATE_LIMIT = 30;
+    private static final int MAX_TEST_RATE_LIMIT = 50;
+    private static final int MAX_TEST_EXPIRE_DAYS = 15;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final PartnerApiKeyRepository partnerApiKeyRepository;
@@ -145,7 +146,7 @@ public class PartnerApiKeyService {
      * Tạo mới khóa thử nghiệm (Sandbox) cho đối tác (TC-01, TC-04).
      * <p>
      * Khóa thử nghiệm có tiền tố {@code nks_test_}, gắn cờ {@code isTest = true},
-     * giới hạn thời hạn tối đa 30 ngày và hạn mức tối đa 100 lượt/giờ.
+     * giới hạn thời hạn tối đa 15 ngày và hạn mức tối đa 50 lượt/giờ.
      * Trả về DTO chứa {@code rawApiKey} duy nhất một lần.
      */
     @Transactional
@@ -158,7 +159,7 @@ public class PartnerApiKeyService {
             throw new BusinessException("Tên đối tác hoặc tên khóa thử nghiệm không được để trống");
         }
         if (request.getRateLimitPerHour() == null) {
-            request.setRateLimitPerHour(60);
+            request.setRateLimitPerHour(DEFAULT_TEST_RATE_LIMIT);
         }
         if (request.getExpiresAt() == null) {
             request.setExpiresAt(LocalDateTime.now().plusDays(7));
@@ -174,7 +175,7 @@ public class PartnerApiKeyService {
             throw new BusinessException("Thời hạn khóa thử nghiệm không được vượt quá " + MAX_TEST_EXPIRE_DAYS + " ngày");
         }
 
-        // 3. Ràng buộc hạn mức thấp cho khóa thử nghiệm: tối đa 100 lượt/giờ
+        // 3. Ràng buộc hạn mức thấp cho khóa thử nghiệm: tối đa 50 lượt/giờ
         if (request.getRateLimitPerHour() != null && request.getRateLimitPerHour() > MAX_TEST_RATE_LIMIT) {
             throw new BusinessException("Hạn mức số lượt gọi thử nghiệm không vượt quá " + MAX_TEST_RATE_LIMIT + " lượt/giờ");
         }

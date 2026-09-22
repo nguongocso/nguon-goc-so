@@ -30,17 +30,7 @@ public class PartnerLotDossierResponse {
     @com.fasterxml.jackson.annotation.JsonProperty("is_test")
     private Boolean isTest;
 
-    @com.fasterxml.jackson.annotation.JsonProperty("isTest")
-    public Boolean getIsTestCamel() {
-        return isTest;
-    }
-
     /** Thông điệp thông báo dữ liệu thử nghiệm. */
     @com.fasterxml.jackson.annotation.JsonProperty("test_notice")
     private String testNotice;
-
-    @com.fasterxml.jackson.annotation.JsonProperty("testNotice")
-    public String getTestNoticeCamel() {
-        return testNotice;
-    }
 }

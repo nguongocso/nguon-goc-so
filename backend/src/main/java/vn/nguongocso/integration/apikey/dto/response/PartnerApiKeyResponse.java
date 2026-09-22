@@ -41,11 +41,6 @@ public class PartnerApiKeyResponse {
     @com.fasterxml.jackson.annotation.JsonProperty("is_test")
     private Boolean isTest;
 
-    @com.fasterxml.jackson.annotation.JsonProperty("isTest")
-    public Boolean getIsTestCamel() {
-        return isTest;
-    }
-
     private Long totalCalls;
     private Long failedCalls;
 
