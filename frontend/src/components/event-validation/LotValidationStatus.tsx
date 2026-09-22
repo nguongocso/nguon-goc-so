@@ -2,6 +2,9 @@ import { AlertCircle, CheckCircle2, LoaderCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 
+/**
+ * Thuộc tính của component LotValidationStatus
+ */
 interface LotValidationStatusProps {
   isValid: boolean | null;
   message: string;
@@ -9,6 +12,9 @@ interface LotValidationStatusProps {
   className?: string;
 }
 
+/**
+ * Hiển thị trạng thái kiểm tra tính hợp lệ của lô sản xuất
+ */
 export const LotValidationStatus = ({ isValid, message, loading, className }: LotValidationStatusProps) => {
   if (loading) {
     return (
@@ -36,4 +42,4 @@ export const LotValidationStatus = ({ isValid, message, loading, className }: Lo
       <AlertDescription className="text-sm">{message}</AlertDescription>
     </Alert>
   );
-};
+};

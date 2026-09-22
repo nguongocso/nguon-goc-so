@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   AlertTriangle,
   FilePenLine,
@@ -9,12 +9,12 @@ import {
   MapPin,
   Percent,
   Scale,
-} from "lucide-react";
-import { toast } from "sonner";
+} from 'lucide-react';
+import { toast } from 'sonner';
 
-import { correctPreprocessingEvent } from "@/api/preprocessingApi";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { correctPreprocessingEvent } from '@/api/preprocessingApi';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -22,28 +22,31 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { useAutoGeolocation } from "@/hooks/useAutoGeolocation";
-import { LocationPicker } from "@/pages/packaging-event/components/LocationPicker";
-import type { PreprocessingEventResponse } from "@/types/preprocessing";
-import { getLocalDateString } from "@/utils/dateTime";
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useAutoGeolocation } from '@/hooks/useAutoGeolocation';
+import { LocationPicker } from '@/pages/packaging-event/components/LocationPicker';
+import type { PreprocessingEventResponse } from '@/types/preprocessing';
+import { getLocalDateString } from '@/utils/dateTime';
 import {
   correctPreprocessingSchema,
   type CorrectPreprocessingFormValues,
-} from "@/utils/validators/preprocessingEventSchema";
+} from '@/utils/validators/preprocessingEventSchema';
 
 import {
   getPreprocessingErrorMessage,
   toOptionalText,
-} from "../preprocessingFormUtils";
+} from '../preprocessingFormUtils';
 
 interface CorrectionLocationState {
   preprocessingEvent?: PreprocessingEventResponse;
 }
 
+/**
+ * Form đính chính sự kiện sơ chế nông sản
+ */
 export function CorrectPreprocessingForm() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
@@ -64,24 +67,24 @@ export function CorrectPreprocessingForm() {
     defaultValues: {
       inputQuantity: sourceData?.inputQuantity ?? 0,
       outputQuantity: sourceData?.outputQuantity ?? 0,
-      grade: sourceData?.grade ?? "",
-      processingMethod: sourceData?.processingMethod ?? "",
+      grade: sourceData?.grade ?? '',
+      processingMethod: sourceData?.processingMethod ?? '',
       preprocessingDate:
         sourceData?.preprocessingDate ?? getLocalDateString(),
-      correctionReason: "",
+      correctionReason: '',
       latitude: sourceEvent?.latitude ?? undefined,
       longitude: sourceEvent?.longitude ?? undefined,
     },
   });
 
-  const inputQuantity = watch("inputQuantity");
-  const outputQuantity = watch("outputQuantity");
-  const latitude = watch("latitude");
-  const longitude = watch("longitude");
+  const inputQuantity = watch('inputQuantity');
+  const outputQuantity = watch('outputQuantity');
+  const latitude = watch('latitude');
+  const longitude = watch('longitude');
   const currentPosition =
-    typeof latitude === "number" &&
+    typeof latitude === 'number' &&
     Number.isFinite(latitude) &&
-    typeof longitude === "number" &&
+    typeof longitude === 'number' &&
     Number.isFinite(longitude)
       ? { lat: latitude, lng: longitude }
       : undefined;
@@ -106,11 +109,11 @@ export function CorrectPreprocessingForm() {
     selectedLatitude: number,
     selectedLongitude: number,
   ) => {
-    setValue("latitude", selectedLatitude, {
+    setValue('latitude', selectedLatitude, {
       shouldDirty: true,
       shouldValidate: true,
     });
-    setValue("longitude", selectedLongitude, {
+    setValue('longitude', selectedLongitude, {
       shouldDirty: true,
       shouldValidate: true,
     });
@@ -124,7 +127,7 @@ export function CorrectPreprocessingForm() {
 
   const onSubmit = async (values: CorrectPreprocessingFormValues) => {
     if (!id) {
-      setServerError("Thiếu ID sự kiện sơ chế gốc.");
+      setServerError('Thiếu ID sự kiện sơ chế gốc.');
       return;
     }
 
@@ -142,12 +145,12 @@ export function CorrectPreprocessingForm() {
         longitude: values.longitude,
       });
 
-      toast.success("Đính chính sự kiện sơ chế thành công.");
+      toast.success('Đính chính sự kiện sơ chế thành công.');
       navigate(-1);
     } catch (error) {
       const message = getPreprocessingErrorMessage(
         error,
-        "Không thể đính chính sự kiện sơ chế. Vui lòng thử lại.",
+        'Không thể đính chính sự kiện sơ chế. Vui lòng thử lại.',
       );
       setServerError(message);
       toast.error(message);
@@ -223,7 +226,7 @@ export function CorrectPreprocessingForm() {
                   step="0.01"
                   inputMode="decimal"
                   aria-invalid={Boolean(errors.inputQuantity)}
-                  {...register("inputQuantity", { valueAsNumber: true })}
+                  {...register('inputQuantity', { valueAsNumber: true })}
                 />
                 {errors.inputQuantity && (
                   <p className="text-sm text-red-500" role="alert">
@@ -243,7 +246,7 @@ export function CorrectPreprocessingForm() {
                   step="0.01"
                   inputMode="decimal"
                   aria-invalid={Boolean(errors.outputQuantity)}
-                  {...register("outputQuantity", { valueAsNumber: true })}
+                  {...register('outputQuantity', { valueAsNumber: true })}
                 />
                 {errors.outputQuantity && (
                   <p className="text-sm text-red-500" role="alert">
@@ -260,7 +263,7 @@ export function CorrectPreprocessingForm() {
                   Tỷ lệ hao hụt sau đính chính
                 </p>
                 <p className="text-xl font-semibold text-amber-800" aria-live="polite">
-                  {lossRate === null ? "—" : `${lossRate.toLocaleString("vi-VN")}%`}
+                  {lossRate === null ? '—' : `${lossRate.toLocaleString('vi-VN')}%`}
                 </p>
               </div>
             </div>
@@ -273,7 +276,7 @@ export function CorrectPreprocessingForm() {
                 id="correctionGrade"
                 maxLength={100}
                 placeholder="VD: Hạng A, Loại 1"
-                {...register("grade")}
+                {...register('grade')}
               />
               {errors.grade && (
                 <p className="text-sm text-red-500" role="alert">
@@ -291,7 +294,7 @@ export function CorrectPreprocessingForm() {
                 type="date"
                 max={getLocalDateString()}
                 aria-invalid={Boolean(errors.preprocessingDate)}
-                {...register("preprocessingDate")}
+                {...register('preprocessingDate')}
               />
               {errors.preprocessingDate && (
                 <p className="text-sm text-red-500" role="alert">
@@ -306,7 +309,7 @@ export function CorrectPreprocessingForm() {
                 id="correctionProcessingMethod"
                 rows={4}
                 maxLength={500}
-                {...register("processingMethod")}
+                {...register('processingMethod')}
               />
               {errors.processingMethod && (
                 <p className="text-sm text-red-500" role="alert">
@@ -325,13 +328,13 @@ export function CorrectPreprocessingForm() {
                 maxLength={500}
                 placeholder="Nêu rõ thông tin sai và căn cứ điều chỉnh..."
                 aria-invalid={Boolean(errors.correctionReason)}
-                {...register("correctionReason")}
+                {...register('correctionReason')}
               />
               <div className="flex justify-between gap-3 text-xs text-muted-foreground">
-                <span className={errors.correctionReason ? "text-red-500" : ""}>
+                <span className={errors.correctionReason ? 'text-red-500' : ''}>
                   {errors.correctionReason?.message}
                 </span>
-                <span>{watch("correctionReason")?.length ?? 0}/500</span>
+                <span>{watch('correctionReason')?.length ?? 0}/500</span>
               </div>
             </div>
           </div>
@@ -363,7 +366,7 @@ export function CorrectPreprocessingForm() {
           </Button>
           <Button type="submit" variant="edit" disabled={isSubmitting || !id}>
             {isSubmitting && <LoaderCircle className="mr-2 size-4 animate-spin" />}
-            {isSubmitting ? "Đang đính chính..." : "Tạo sự kiện đính chính"}
+            {isSubmitting ? 'Đang đính chính...' : 'Tạo sự kiện đính chính'}
           </Button>
         </CardFooter>
       </form>

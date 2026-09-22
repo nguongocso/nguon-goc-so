@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { isAxiosError } from 'axios';
 import { z } from 'zod';
 import {
   LoaderCircle,
@@ -52,6 +53,9 @@ const getAlertBadgeClasses = (level: string) => {
   }
 };
 
+/**
+ * Trang ghi nhận và giám sát điều kiện bảo quản (nhiệt độ, độ ẩm) cho lô hàng
+ */
 export default function StorageConditionPage() {
   const { user } = useAuth();
   const [codeValue, setCodeValue] = useState('');
@@ -100,8 +104,11 @@ export default function StorageConditionPage() {
         shipmentStatus: lookupResult.shipmentStatus,
         storageEligible: lookupResult.storageEligible,
       });
-    } catch (err: any) {
-      setScanError(err.response?.data?.message || 'Không thể tra cứu mã.');
+    } catch (err: unknown) {
+      const message =
+        (isAxiosError<{ message?: string }>(err) && err.response?.data?.message) ||
+        'Không thể tra cứu mã.';
+      setScanError(message);
     } finally {
       setIsScanning(false);
     }
@@ -131,8 +138,10 @@ export default function StorageConditionPage() {
       });
       setResult(res);
       toast.success('Đã ghi nhận điều kiện bảo quản.');
-    } catch (err: any) {
-      const msg = err.response?.data?.message || 'Không thể ghi nhận.';
+    } catch (err: unknown) {
+      const msg =
+        (isAxiosError<{ message?: string }>(err) && err.response?.data?.message) ||
+        'Không thể ghi nhận.';
       setFormError(msg);
       toast.error(msg);
     } finally {

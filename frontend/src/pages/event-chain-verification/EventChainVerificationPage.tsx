@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { isAxiosError } from 'axios';
 import { LoaderCircle, ShieldCheck, ShieldAlert, CheckCircle2, XCircle, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,9 @@ import { verifyChainIntegrity } from '@/api/eventChainVerificationApi';
 import { HelpButton } from '@/components/help/HelpButton';
 import type { ChainVerificationResponse } from '@/types/eventChainVerification';
 
+/**
+ * Trang kiểm chứng tính toàn vẹn chuỗi băm các sự kiện của lô hàng
+ */
 export default function EventChainVerificationPage() {
   const [shipmentId, setShipmentId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,12 +31,16 @@ export default function EventChainVerificationPage() {
     try {
       const res = await verifyChainIntegrity(shipmentId.trim());
       setResult(res);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Không thể kiểm chứng dòng sự kiện.');
+    } catch (err: unknown) {
+      const message = isAxiosError(err)
+        ? (err.response?.data as { message?: string } | undefined)?.message
+        : undefined;
+      setError(message || 'Không thể kiểm chứng dòng sự kiện.');
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="space-y-6">

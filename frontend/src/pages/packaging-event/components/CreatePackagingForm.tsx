@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
-import { isAxiosError } from "axios";
-import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { getPackagingEligibility } from "@/api/cultivationMilestoneApi";
-import { getProductionLotById } from "@/api/productionLotApi";
-import { getLocalDateString } from "@/utils/dateTime";
+import { useEffect, useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'sonner';
+import { isAxiosError } from 'axios';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { getPackagingEligibility } from '@/api/cultivationMilestoneApi';
+import { getProductionLotById } from '@/api/productionLotApi';
+import { getLocalDateString } from '@/utils/dateTime';
 import {
   Card,
   CardContent,
@@ -14,38 +14,41 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   recordPackagingSchema,
   type RecordPackagingFormValues,
-} from "@/utils/validators/packagingEventSchema";
-import type { ProductionLot } from "@/types/productionLot";
-import { recordPackagingEvent } from "@/api/packagingApi";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, LoaderCircle, PackageSearch } from "lucide-react";
-import { LocationPicker } from "@/pages/packaging-event/components/LocationPicker";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
+} from '@/utils/validators/packagingEventSchema';
+import type { ProductionLot } from '@/types/productionLot';
+import { recordPackagingEvent } from '@/api/packagingApi';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle, LoaderCircle, PackageSearch } from 'lucide-react';
+import { LocationPicker } from '@/pages/packaging-event/components/LocationPicker';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 import {
   FarmLogEligibilityAlert,
   type FarmLogEligibilityStatus,
-} from "@/pages/packaging-event/components/FarmLogEligibilityAlert";
-import { useLotValidation } from "@/hooks/useLotValidation";
-import { useAutoGeolocation } from "@/hooks/useAutoGeolocation";
-import { LotValidationStatus } from "@/components/event-validation/LotValidationStatus";
+} from '@/pages/packaging-event/components/FarmLogEligibilityAlert';
+import { useLotValidation } from '@/hooks/useLotValidation';
+import { useAutoGeolocation } from '@/hooks/useAutoGeolocation';
+import { LotValidationStatus } from '@/components/event-validation/LotValidationStatus';
 
+/**
+ * Trích xuất thông tin lỗi từ response của API ghi nhận đóng gói
+ */
 const getPackagingError = (error: unknown) => {
   if (!isAxiosError<{ message?: string }>(error)) {
     return {
-      message: "Có lỗi xảy ra khi ghi sự kiện đóng gói",
+      message: 'Có lỗi xảy ra khi ghi sự kiện đóng gói',
       isNetworkError: true,
     };
   }
 
   const message =
-    error.response?.data?.message ?? "Có lỗi xảy ra khi ghi sự kiện đóng gói";
+    error.response?.data?.message ?? 'Có lỗi xảy ra khi ghi sự kiện đóng gói';
 
   return {
     message,
@@ -53,6 +56,9 @@ const getPackagingError = (error: unknown) => {
   };
 };
 
+/**
+ * Biểu mẫu ghi nhận sự kiện đóng gói cho lô sản xuất
+ */
 export function CreatePackagingForm() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -61,19 +67,19 @@ export function CreatePackagingForm() {
 
   const sourceLotId =
     (location.state as { productionLotId?: string } | null)?.productionLotId ??
-    searchParams.get("productionLotId") ??
-    "";
+    searchParams.get('productionLotId') ??
+    '';
 
   const [lot, setLot] = useState<ProductionLot | null>(null);
   const [loadingLot, setLoadingLot] = useState(sourceLotId ? true : false);
   const [lotLoadError, setLotLoadError] = useState<string | null>(null);
   const [eligibilityStatus, setEligibilityStatus] =
-    useState<FarmLogEligibilityStatus>("unselected");
-  const [eligibilityMessage, setEligibilityMessage] = useState("");
+    useState<FarmLogEligibilityStatus>('unselected');
+  const [eligibilityMessage, setEligibilityMessage] = useState('');
   const [missingMilestones, setMissingMilestones] = useState<string[]>([]);
   const eligibilityRequestRef = useRef(0);
 
-  const { validation, loading } = useLotValidation(sourceLotId, "PACKAGING");
+  const { validation, loading } = useLotValidation(sourceLotId, 'PACKAGING');
 
   const {
     register,
@@ -85,22 +91,22 @@ export function CreatePackagingForm() {
     resolver: zodResolver(recordPackagingSchema),
     defaultValues: {
       productionLotId: sourceLotId,
-      packagingSpecification: "",
+      packagingSpecification: '',
       packagingDate: getLocalDateString(),
       latitude: 0,
       longitude: 0,
     },
   });
 
-  const lat = watch("latitude");
-  const lng = watch("longitude");
+  const lat = watch('latitude');
+  const lng = watch('longitude');
 
   const currentPosition =
-    typeof lat === "number" &&
-      Number.isFinite(lat) &&
-      typeof lng === "number" &&
-      Number.isFinite(lng) &&
-      !(lat === 0 && lng === 0)
+    typeof lat === 'number' &&
+    Number.isFinite(lat) &&
+    typeof lng === 'number' &&
+    Number.isFinite(lng) &&
+    !(lat === 0 && lng === 0)
       ? {
           lat,
           lng,
@@ -113,7 +119,7 @@ export function CreatePackagingForm() {
     const fetchLot = async () => {
       setLoadingLot(true);
       setLotLoadError(null);
-      setEligibilityStatus("checking");
+      setEligibilityStatus('checking');
       try {
         const data = await getProductionLotById(sourceLotId);
         setLot(data);
@@ -122,7 +128,7 @@ export function CreatePackagingForm() {
       } catch {
         setLot(null);
         setLotLoadError(
-          "Không thể tải thông tin lô sản xuất đã chọn. Vui lòng quay lại và thử lại.",
+          'Không thể tải thông tin lô sản xuất đã chọn. Vui lòng quay lại và thử lại.',
         );
       } finally {
         setLoadingLot(false);
@@ -137,11 +143,11 @@ export function CreatePackagingForm() {
     selectedLatitude: number,
     selectedLongitude: number,
   ) => {
-    setValue("latitude", selectedLatitude, {
+    setValue('latitude', selectedLatitude, {
       shouldValidate: true,
       shouldDirty: true,
     });
-    setValue("longitude", selectedLongitude, {
+    setValue('longitude', selectedLongitude, {
       shouldValidate: true,
       shouldDirty: true,
     });
@@ -150,7 +156,7 @@ export function CreatePackagingForm() {
   useAutoGeolocation({
     onLocation: (selectedLatitude, selectedLongitude) => {
       handleLocationSelect(selectedLatitude, selectedLongitude);
-      toast.success("Đã lấy vị trí hiện tại");
+      toast.success('Đã lấy vị trí hiện tại');
     },
     onError: (message) => {
       toast.error(`Không thể lấy vị trí: ${message}`);
@@ -162,8 +168,8 @@ export function CreatePackagingForm() {
   const checkFarmLogEligibility = async (productionLotId: string) => {
     const requestId = ++eligibilityRequestRef.current;
 
-    setEligibilityStatus("checking");
-    setEligibilityMessage("");
+    setEligibilityStatus('checking');
+    setEligibilityMessage('');
     setMissingMilestones([]);
 
     try {
@@ -171,9 +177,9 @@ export function CreatePackagingForm() {
       if (requestId !== eligibilityRequestRef.current) return;
 
       if (!eligibility.eligible) {
-        setEligibilityStatus("ineligible");
+        setEligibilityStatus('ineligible');
         setEligibilityMessage(
-          "Lô sản xuất chưa đủ mốc canh tác bắt buộc. Vui lòng bổ sung nhật ký trước khi đóng gói.",
+          'Lô sản xuất chưa đủ mốc canh tác bắt buộc. Vui lòng bổ sung nhật ký trước khi đóng gói.',
         );
         setMissingMilestones(
           eligibility.missingMilestones.map((milestone) => milestone.name),
@@ -181,26 +187,26 @@ export function CreatePackagingForm() {
         return;
       }
 
-      setEligibilityStatus("eligible");
+      setEligibilityStatus('eligible');
       setEligibilityMessage(
-        "Lô đã đáp ứng đầy đủ mốc canh tác bắt buộc theo tiêu chuẩn và loại nông sản.",
+        'Lô đã đáp ứng đầy đủ mốc canh tác bắt buộc theo tiêu chuẩn và loại nông sản.',
       );
     } catch (error: unknown) {
       if (requestId !== eligibilityRequestRef.current) return;
 
       const details = getPackagingError(error);
-      setEligibilityStatus("error");
+      setEligibilityStatus('error');
       setEligibilityMessage(
         details.isNetworkError
-          ? "Không thể kết nối để kiểm tra mốc canh tác. Vui lòng thử lại."
+          ? 'Không thể kết nối để kiểm tra mốc canh tác. Vui lòng thử lại.'
           : details.message,
       );
     }
   };
 
   const onSubmit = async (values: RecordPackagingFormValues) => {
-    if (eligibilityStatus !== "eligible") {
-      toast.error("Cần kiểm tra đủ mốc canh tác trước khi đóng gói");
+    if (eligibilityStatus !== 'eligible') {
+      toast.error('Cần kiểm tra đủ mốc canh tác trước khi đóng gói');
       await checkFarmLogEligibility(values.productionLotId);
       return;
     }
@@ -213,9 +219,9 @@ export function CreatePackagingForm() {
         latitude: values.latitude || undefined,
         longitude: values.longitude || undefined,
       });
-      setEligibilityStatus("eligible");
-      toast.success("Ghi sự kiện đóng gói thành công");
-      navigate("/production-lots");
+      setEligibilityStatus('eligible');
+      toast.success('Ghi sự kiện đóng gói thành công');
+      navigate('/production-lots');
     } catch (error: unknown) {
       const details = getPackagingError(error);
       // Backend chặn vì thiếu mốc canh tác bắt buộc (race: cấu hình mốc hoặc
@@ -223,7 +229,7 @@ export function CreatePackagingForm() {
       const milestoneError = /chưa đủ mốc canh tác/i.test(details.message);
 
       if (milestoneError) {
-        setEligibilityStatus("ineligible");
+        setEligibilityStatus('ineligible');
         setEligibilityMessage(details.message);
         try {
           const eligibility = await getPackagingEligibility(
@@ -236,12 +242,12 @@ export function CreatePackagingForm() {
           setMissingMilestones([]);
         }
       } else if (details.isNetworkError) {
-        setEligibilityStatus("error");
+        setEligibilityStatus('error');
         setEligibilityMessage(
-          "Không thể kết nối để ghi sự kiện đóng gói. Vui lòng thử lại.",
+          'Không thể kết nối để ghi sự kiện đóng gói. Vui lòng thử lại.',
         );
       } else {
-        setEligibilityStatus("error");
+        setEligibilityStatus('error');
         setEligibilityMessage(details.message);
       }
 
@@ -285,7 +291,7 @@ export function CreatePackagingForm() {
           <Alert variant="destructive">
             <AlertTriangle className="size-4" />
             <AlertDescription className="flex flex-col gap-3 items-start">
-              <span>{lotLoadError ?? "Không tìm thấy lô sản xuất đã chọn."}</span>
+              <span>{lotLoadError ?? 'Không tìm thấy lô sản xuất đã chọn.'}</span>
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -303,7 +309,7 @@ export function CreatePackagingForm() {
           Nhập thông tin đóng gói cho lô sản xuất “{selectedLot.name}
           {selectedLot.productCategoryName
             ? ` - ${selectedLot.productCategoryName}`
-            : ""}”.
+            : ''}”.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -316,7 +322,7 @@ export function CreatePackagingForm() {
               {selectedLot.name}
               {selectedLot.productCategoryName
                 ? ` - ${selectedLot.productCategoryName}`
-                : ""}
+                : ''}
             </div>
           </div>
           {loading ? (
@@ -339,23 +345,23 @@ export function CreatePackagingForm() {
               missingMilestones={missingMilestones}
               message={eligibilityMessage || undefined}
               actionLabel={
-                user?.roleCode === "VT-02"
-                  ? "Xem lịch sử nhật ký"
-                  : "Ghi bổ sung nhật ký"
+                user?.roleCode === 'VT-02'
+                  ? 'Xem lịch sử nhật ký'
+                  : 'Ghi bổ sung nhật ký'
               }
               onAction={
-                eligibilityStatus === "ineligible" && sourceLotId
+                eligibilityStatus === 'ineligible' && sourceLotId
                   ? () =>
                     navigate(
-                      user?.roleCode === "VT-02"
+                      user?.roleCode === 'VT-02'
                         ? `/production-lots/${sourceLotId}/farm-logs`
                         : `/farm-logs/create?productionLotId=${encodeURIComponent(sourceLotId)}`,
                     )
                   : undefined
               }
               onRetry={
-                eligibilityStatus === "error" ||
-                  eligibilityStatus === "ineligible"
+                eligibilityStatus === 'error' ||
+                  eligibilityStatus === 'ineligible'
                   ? () => void checkFarmLogEligibility(sourceLotId)
                   : undefined
               }
@@ -367,7 +373,7 @@ export function CreatePackagingForm() {
             <Input
               id="packagingSpecification"
               placeholder="VD: Bao 60kg, Túi 500g x 20 túi/thùng..."
-              {...register("packagingSpecification")}
+              {...register('packagingSpecification')}
             />
             {errors.packagingSpecification && (
               <p className="text-sm text-red-500">
@@ -381,7 +387,7 @@ export function CreatePackagingForm() {
             <Input
               id="packagingDate"
               type="date"
-              {...register("packagingDate")}
+              {...register('packagingDate')}
               max={getLocalDateString()}
             />
             {errors.packagingDate && (
@@ -408,11 +414,11 @@ export function CreatePackagingForm() {
           <Button
             type="submit"
             disabled={
-              isSubmitting || !sourceLotId || eligibilityStatus !== "eligible" || !validation?.valid
+              isSubmitting || !sourceLotId || eligibilityStatus !== 'eligible' || !validation?.valid
             }
             variant="create"
           >
-            {isSubmitting ? "Đang ghi..." : "Ghi sự kiện"}
+            {isSubmitting ? 'Đang ghi...' : 'Ghi sự kiện'}
           </Button>
         </CardFooter>
       </form>

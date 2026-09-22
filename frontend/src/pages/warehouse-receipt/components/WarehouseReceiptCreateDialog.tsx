@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { isAxiosError } from 'axios';
 import { z } from 'zod';
 import { LoaderCircle, Send, AlertTriangle, CheckCircle2, Package, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -41,13 +42,17 @@ interface LotInfo {
   organizationName: string;
 }
 
-interface Props {
+/** Thuộc tính cho hộp thoại tạo phiếu nhập kho */
+export interface WarehouseReceiptCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: () => void;
 }
 
-export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: Props) {
+/**
+ * Hộp thoại tra cứu mã truy xuất và xác nhận ghi nhận nhập kho
+ */
+export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: WarehouseReceiptCreateDialogProps) {
   // 👇 Lấy ngày hôm nay theo giờ local (tránh lệch ngày UTC)
   const today = getLocalDateString();
 
@@ -103,8 +108,10 @@ export function WarehouseReceiptCreateDialog({ open, onOpenChange, onCreated }: 
         shipmentStatus: result.shipmentStatus,
         organizationName: result.organizationName ?? '',
       });
-    } catch (err: any) {
-      const msg = err.response?.data?.message || 'Không thể tra cứu mã truy xuất.';
+    } catch (err: unknown) {
+      const msg =
+        (isAxiosError<{ message?: string }>(err) && err.response?.data?.message) ||
+        'Không thể tra cứu mã truy xuất.';
       setScanError(msg);
     } finally {
       setIsScanning(false);

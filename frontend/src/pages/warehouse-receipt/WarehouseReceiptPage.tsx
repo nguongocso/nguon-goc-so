@@ -28,6 +28,9 @@ const formatDate = (iso: string) => {
   }
 };
 
+/**
+ * Trang danh sách sự kiện nhập kho nông sản
+ */
 export default function WarehouseReceiptPage() {
   const { list, isLoadingList, error, fetchList } = useWarehouseReceipt();
   const [createOpen, setCreateOpen] = useState(false);

@@ -1,5 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { isAxiosError } from 'axios';
 import { toast } from 'sonner';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -7,12 +8,15 @@ import {
 } from '@/components/ui/card';
 import { correctPackagingSchema, type CorrectPackagingFormValues } from '@/utils/validators/packagingEventSchema';
 import { correctPackagingEvent } from '@/api/packagingApi';
-import { Label } from '../../../components/ui/label';
-import { Input } from '../../../components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { LocationPicker } from '@/pages/packaging-event/components/LocationPicker';
-import { Button } from '../../../components/ui/button';
+import { Button } from '@/components/ui/button';
 import { getLocalDateString } from '@/utils/dateTime';
 
+/**
+ * Biểu mẫu đính chính thông tin sự kiện đóng gói
+ */
 export function CorrectPackagingForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -53,8 +57,11 @@ export function CorrectPackagingForm() {
       });
       toast.success('Đính chính sự kiện thành công');
       navigate('/production-lots');
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Có lỗi xảy ra');
+    } catch (error: unknown) {
+      const message = isAxiosError(error)
+        ? (error.response?.data as { message?: string } | undefined)?.message
+        : undefined;
+      toast.error(message || 'Có lỗi xảy ra');
     }
   };
 

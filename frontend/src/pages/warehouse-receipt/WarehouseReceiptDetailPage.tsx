@@ -16,6 +16,9 @@ import { useWarehouseReceipt } from '@/hooks/useWarehouseReceipt';
 
 const ALLOWED_THRESHOLD = 2.0;
 
+/**
+ * Trang chi tiết sự kiện nhập kho và đối chiếu số lượng khai báo / thực nhận
+ */
 export default function WarehouseReceiptDetailPage() {
   const { eventId } = useParams<{ eventId: string }>();
   const { detail, isLoadingDetail, error, fetchDetail } = useWarehouseReceipt();
