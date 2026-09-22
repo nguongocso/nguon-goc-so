@@ -11,30 +11,31 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Repository quản lý vụ việc thu hồi (NCL-08-CN-012).
- */
+/** Repository quản lý vụ việc thu hồi. */
 @Repository
 public interface RecallCaseRepository extends JpaRepository<RecallCase, UUID> {
-
+    /** Lấy danh sách vụ việc thu hồi của một tổ chức theo thời gian tạo giảm dần. */
     List<RecallCase> findByOrganizationIdOrderByCreatedAtDesc(UUID organizationId);
 
+    /** Lấy danh sách vụ việc thu hồi của một tổ chức theo trạng thái. */
     List<RecallCase> findByOrganizationIdAndStatusOrderByCreatedAtDesc(UUID organizationId, RecallCaseStatus status);
 
+    /** Lấy danh sách vụ việc thu hồi theo trạng thái. */
     List<RecallCase> findByStatusOrderByCreatedAtDesc(RecallCaseStatus status);
 
+    /** Tìm vụ việc thu hồi theo ID và ID tổ chức. */
     Optional<RecallCase> findByIdAndOrganizationId(UUID id, UUID organizationId);
 
+    /** Tìm vụ việc thu hồi theo ID lô sản xuất và trạng thái. */
     Optional<RecallCase> findByProductionLotIdAndStatus(UUID productionLotId, RecallCaseStatus status);
 
+    /** Tìm vụ việc thu hồi theo ID lô sản xuất. */
     Optional<RecallCase> findByProductionLotId(UUID productionLotId);
 
+    /** Kiểm tra lô sản xuất đã có vụ việc thu hồi hay chưa. */
     boolean existsByProductionLotId(UUID productionLotId);
 
-    /**
-     * Tìm các vụ việc đã đóng có chứa một lô hàng nhất định, mới đóng trước.
-     * Dùng cho nội dung cảnh báo công khai (QTN-09).
-     */
+    /** Tìm các vụ việc thu hồi đã đóng có chứa một lô hàng. */
     @Query("""
             SELECT DISTINCT rc
             FROM RecallCase rc

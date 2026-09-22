@@ -1,8 +1,6 @@
 package vn.nguongocso.trace.enums;
 
-/**
- * Trạng thái của một mã truy xuất.
- */
+/** Trạng thái của một mã truy xuất. */
 public enum TraceCodeStatus {
     INACTIVE, // Chưa kích hoạt
 
@@ -14,5 +12,5 @@ public enum TraceCodeStatus {
 
     RECALLED, // Đã thu hồi
 
-    CANCELLED // Đã hủy (Tem in hỏng / in lệch / rách bong)
+    CANCELLED // Đã hủy (tem in hỏng / in lệch / rách bong)
 }

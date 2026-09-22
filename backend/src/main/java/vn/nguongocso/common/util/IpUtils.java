@@ -1,59 +1,28 @@
 package vn.nguongocso.common.util;
 
-import jakarta.servlet.http.HttpServletRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Tiện ích xác định IP thực của client từ HTTP request.
- *
- * <p>
- * Cơ chế trusted-proxy:
- * </p>
- * <ul>
- *   <li>Nếu peer trực tiếp ({@code remoteAddr}) KHÔNG nằm trong danh sách
- *       proxy tin cậy, mọi header {@code X-Forwarded-For} đều bị bỏ qua
- *       (chống spoofing) và trả về {@code remoteAddr}.</li>
- *   <li>Nếu peer trực tiếp là proxy tin cậy, duyệt chuỗi XFF từ
- *       <b>phải sang trái</b>, bỏ qua các IP cũng là proxy tin cậy,
- *       và trả về IP không tin cậy đầu tiên — đó chính là IP client thực.</li>
- * </ul>
- *
- * <p>
- * Danh sách proxy tin cậy được đọc từ biến môi trường
- * {@code TRUSTED_PROXY_IPS} (phân tách bằng dấu phẩy), hỗ trợ cả
- * IP đơn và CIDR. Mặc định bao gồm loopback và các dải mạng nội bộ
- * (Docker bridge, Kubernetes pod network).
- * </p>
- */
-public class IpUtils {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import jakarta.servlet.http.HttpServletRequest;
+
+/** Tiện ích xác định địa chỉ IP thực của client từ HTTP request (hỗ trợ Trusted Proxy). */
+public class IpUtils {
     private static final Logger log = LoggerFactory.getLogger(IpUtils.class);
 
-    /**
-     * Danh sách proxy tin cậy, đọc một lần khi class được load.
-     * Mặc định: loopback + các dải private (Docker / k3s / k8s pod network).
-     */
     private static final List<TrustedProxy> TRUSTED_PROXIES = parseTrustedProxies();
 
     private IpUtils() {
-        // Prevent instantiation
     }
 
-    /**
-     * Lấy địa chỉ IP thực của client từ request hiện tại.
-     * Nếu không thể lấy được (ví dụ chạy trong background thread), trả về "127.0.0.1".
-     *
-     * @return địa chỉ IP client hoặc "127.0.0.1" nếu không xác định được
-     */
+    /** Lấy địa chỉ IP thực của client từ HTTP request hiện tại. */
     public static String getClientIp() {
         ServletRequestAttributes attributes =
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
@@ -69,23 +38,12 @@ public class IpUtils {
         return resolvedIp;
     }
 
-    /**
-     * Logic xác định IP client, tách riêng để unit-test được.
-     *
-     * @param remoteAddr    IP của peer kết nối trực tiếp tới backend
-     * @param xForwardedFor giá trị header X-Forwarded-For (có thể null)
-     * @return IP client thực
-     */
+    /** Xác định địa chỉ IP client từ remoteAddr và header X-Forwarded-For. */
     public static String resolveClientIp(String remoteAddr, String xForwardedFor) {
-        // Peer trực tiếp KHÔNG phải proxy tin cậy → remoteAddr chính là client.
-        // Bỏ qua XFF để chống spoofing (client tự gửi header giả).
         if (!isTrustedProxy(remoteAddr)) {
             return remoteAddr;
         }
 
-        // Peer trực tiếp là proxy tin cậy. Duyệt XFF từ PHẢI sang TRÁI.
-        // Mỗi proxy append IP của hop trước vào bên phải XFF,
-        // nên IP ngoài cùng bên phải gần backend nhất.
         if (xForwardedFor == null || xForwardedFor.isBlank()) {
             return remoteAddr;
         }
@@ -97,21 +55,16 @@ public class IpUtils {
                 continue;
             }
             if (!isTrustedProxy(ip)) {
-                // IP không tin cậy đầu tiên từ phải sang = client thực.
                 return ip;
             }
         }
 
-        // Toàn bộ XFF đều là proxy tin cậy (hiếm gặp).
-        // Fallback: trả về IP ngoài cùng bên trái.
         String leftmost = parts[0].trim();
         log.debug("Tất cả IP trong X-Forwarded-For đều là proxy tin cậy, dùng IP ngoài cùng bên trái: {}", leftmost);
         return leftmost;
     }
 
-    /**
-     * Kiểm tra một IP có nằm trong danh sách proxy tin cậy không.
-     */
+    /** Kiểm tra một địa chỉ IP có nằm trong danh sách proxy tin cậy hay không. */
     public static boolean isTrustedProxy(String ip) {
         if (ip == null || ip.isBlank()) {
             return false;
@@ -127,8 +80,6 @@ public class IpUtils {
     private static List<TrustedProxy> parseTrustedProxies() {
         String configured = System.getenv().getOrDefault(
                 "TRUSTED_PROXY_IPS",
-                // Mặc định: loopback + các dải private phổ biến
-                // (Docker bridge 172.16-31.x, k3s/k8s pod 10.x, LAN 192.168.x)
                 "127.0.0.1,::1,0:0:0:0:0:0:0:1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
         );
         return Arrays.stream(configured.split(","))
@@ -138,9 +89,7 @@ public class IpUtils {
                 .collect(Collectors.toUnmodifiableList());
     }
 
-    /**
-     * Đại diện cho một proxy tin cậy: IP đơn hoặc CIDR range.
-     */
+    /** Đại diện cho một proxy tin cậy theo IP đơn hoặc dải CIDR. */
     static class TrustedProxy {
         private final byte[] networkBytes;
         private final int prefixLength;

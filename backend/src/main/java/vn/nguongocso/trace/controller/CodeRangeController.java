@@ -5,7 +5,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.exception.BusinessException;
@@ -18,10 +24,10 @@ import vn.nguongocso.trace.service.CodeRangeService;
 import java.util.List;
 import java.util.UUID;
 
+/** Controller quản lý cấp dải mã truy xuất. */
 @RestController
 @RequestMapping("/api/v1/admin/code-ranges")
 @RequiredArgsConstructor
-/** Quản lý cấp dải mã truy xuất. */
 public class CodeRangeController {
     private final CodeRangeService codeRangeService;
 

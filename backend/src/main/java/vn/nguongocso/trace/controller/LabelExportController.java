@@ -20,27 +20,14 @@ import vn.nguongocso.trace.dto.request.ExportLabelsRequest;
 import vn.nguongocso.trace.dto.response.LabelExportResponse;
 import vn.nguongocso.trace.service.LabelExportService;
 
-/**
- * API xuất tem QR cho lô hàng (NCL-04-CN-005).
- *
- * <p>
- * Chỉ VT-02 (Quản lý hợp tác xã) được xuất tem.
- * </p>
- */
+/** Controller xuất tem QR cho lô hàng. */
 @RestController
 @RequestMapping("/api/v1/shipments")
 @RequiredArgsConstructor
 public class LabelExportController {
-
     private final LabelExportService labelExportService;
 
-    /**
-     * Xuất file PDF chứa tem QR của lô hàng và ghi lịch sử xuất.
-     *
-     * @param shipmentId ID lô hàng
-     * @param request    tham số xuất (khoảng mã, khổ tem, trường hiển thị)
-     * @return file PDF nhị phân kèm Content-Disposition attachment
-     */
+    /** Xuất file PDF chứa tem QR của lô hàng và ghi lịch sử xuất. */
     @PostMapping("/{shipmentId}/labels/export")
     @PreAuthorize("hasRole('VT-02')")
     public ResponseEntity<byte[]> exportLabels(

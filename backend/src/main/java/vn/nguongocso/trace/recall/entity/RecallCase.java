@@ -1,20 +1,34 @@
 package vn.nguongocso.trace.recall.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-import vn.nguongocso.farm.entity.ProductionLot;
-import vn.nguongocso.trace.recall.enums.RecallCaseStatus;
-import vn.nguongocso.auth.entity.User;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Vụ việc thu hồi (NCL-08-CN-012) — gom nhiều lô hàng đã bị thu hồi của một
- * lô sản xuất để theo dõi quá trình xử lý và kết thúc.
- */
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import vn.nguongocso.auth.entity.User;
+import vn.nguongocso.farm.entity.ProductionLot;
+import vn.nguongocso.trace.recall.enums.RecallCaseStatus;
+
+/** Vụ việc thu hồi lô sản xuất. */
 @Entity
 @Table(name = "recall_cases")
 @Getter
@@ -23,13 +37,11 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class RecallCase {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)
     private UUID id;
 
-    /** Mã định danh theo dõi vụ việc (VD: RC-20260910-XXXXXX). */
     @Column(name = "case_code", nullable = false, unique = true, length = 40)
     private String caseCode;
 
@@ -58,11 +70,9 @@ public class RecallCase {
     @Column(name = "closed_at")
     private LocalDateTime closedAt;
 
-    /** Biện pháp khắc phục / phòng ngừa (bắt buộc khi đóng vụ việc). */
     @Column(name = "corrective_measures", columnDefinition = "TEXT")
     private String remediationMeasures;
 
-    /** Danh sách ID tệp biên bản (evidence) lưu dạng chuỗi phân tách bởi dấu phẩy. */
     @Column(name = "attachments", columnDefinition = "TEXT")
     private String evidenceFileIds;
 

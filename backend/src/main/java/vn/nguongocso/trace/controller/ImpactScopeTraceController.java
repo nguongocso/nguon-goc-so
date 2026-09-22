@@ -6,26 +6,25 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
 import vn.nguongocso.trace.dto.response.ImpactScopeTraceResponse;
 import vn.nguongocso.trace.service.ImpactScopeExportService;
 import vn.nguongocso.trace.service.ImpactScopeTraceService;
 
+/** Controller truy vết phạm vi ảnh hưởng hai chiều. */
 @RestController
 @RequestMapping("/api/v1/trace")
 @RequiredArgsConstructor
 public class ImpactScopeTraceController {
-
     private final ImpactScopeTraceService impactScopeTraceService;
     private final ImpactScopeExportService impactScopeExportService;
 
-    /**
-     * Truy vết phạm vi ảnh hưởng hai chiều (Upstream & Downstream) của một lô sản xuất, lô hàng hoặc mã tem.
-     *
-     * GET /api/v1/trace/impact-scope?code={code}
-     */
+    /** Truy vết phạm vi ảnh hưởng hai chiều của một lô sản xuất, lô hàng hoặc mã tem. */
     @GetMapping("/impact-scope")
     public ResponseEntity<ApiResult<ImpactScopeTraceResponse>> getImpactScopeTrace(
             @RequestParam("code") String code,
@@ -36,11 +35,7 @@ public class ImpactScopeTraceController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Xuất tệp báo cáo phạm vi ảnh hưởng (Excel/PDF).
-     *
-     * GET /api/v1/trace/impact-scope/export?code={code}&format={format}
-     */
+    /** Xuất tệp báo cáo phạm vi ảnh hưởng. */
     @GetMapping("/impact-scope/export")
     public ResponseEntity<byte[]> exportImpactScopeReport(
             @RequestParam("code") String code,

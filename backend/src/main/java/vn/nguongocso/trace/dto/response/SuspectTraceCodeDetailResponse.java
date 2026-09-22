@@ -10,6 +10,7 @@ import vn.nguongocso.alert.dto.response.AnomalyThresholdResponse;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/** DTO response chi tiết mã truy xuất nghi vấn. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,8 +18,12 @@ import java.util.List;
 @SuperBuilder
 public class SuspectTraceCodeDetailResponse extends SuspectTraceCodeResponse {
     private List<ScanLogDetail> scanLogs;
+
     private AnomalyDetails anomalyDetails;
+
     private LocalDateTime evaluatedAt;
+
     private AnomalyThresholdResponse effectiveThreshold;
+
     private String productCategoryName;
 }
