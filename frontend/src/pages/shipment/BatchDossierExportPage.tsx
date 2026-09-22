@@ -44,7 +44,7 @@ export default function BatchDossierExportPage() {
     { label: "Xuất hồ sơ truy xuất cho nhiều lô" },
   ]);
 
-  // Stable shipmentIds memoization to prevent infinite re-render flickering
+  // Ghi nhớ danh sách shipmentIds ổn định để tránh re-render lặp vô tận
   const shipmentIdsKey = useMemo(() => {
     const stateShipmentIds: string[] = location.state?.shipmentIds || [];
     const queryParams = new URLSearchParams(location.search);

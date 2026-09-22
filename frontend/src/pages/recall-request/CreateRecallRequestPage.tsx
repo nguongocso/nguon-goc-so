@@ -116,31 +116,87 @@ export const CreateRecallRequestPage = () => {
         <CardContent className="space-y-5 pt-6">
           <div className="space-y-1.5">
             <Label htmlFor="lotId">Lô sản xuất (để lọc)</Label>
-            {loadingLots ? <p className="text-sm text-muted-foreground">Đang tải...</p> : (
-              <select id="lotId" value={selectedLotId} onChange={(e) => setSelectedLotId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                {lots.map((lot) => <option key={lot.id} value={lot.id}>{lot.name} ({PRODUCTION_LOT_STATUS_LABELS[lot.status] || lot.status})</option>)}
+            {loadingLots ? (
+              <p className="text-sm text-muted-foreground">Đang tải...</p>
+            ) : (
+              <select
+                id="lotId"
+                value={selectedLotId}
+                onChange={(e) => setSelectedLotId(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                {lots.map((lot) => (
+                  <option key={lot.id} value={lot.id}>
+                    {lot.name} ({PRODUCTION_LOT_STATUS_LABELS[lot.status] || lot.status})
+                  </option>
+                ))}
               </select>
             )}
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="shipmentId">Lô hàng cần thu hồi <span className="text-red-600">*</span></Label>
-            {loadingShipments ? <p className="text-sm text-muted-foreground">Đang tải lô hàng...</p> : shipments.length === 0 ? (
-              <p className="text-sm text-amber-600">Lô sản xuất này không có lô hàng phù hợp để thu hồi.</p>
+            <Label htmlFor="shipmentId">
+              Lô hàng cần thu hồi <span className="text-red-600">*</span>
+            </Label>
+            {loadingShipments ? (
+              <p className="text-sm text-muted-foreground">Đang tải lô hàng...</p>
+            ) : shipments.length === 0 ? (
+              <p className="text-sm text-amber-600">
+                Lô sản xuất này không có lô hàng phù hợp để thu hồi.
+              </p>
             ) : (
-              <select id="shipmentId" value={selectedShipmentId} onChange={(e) => setSelectedShipmentId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                {shipments.map((shipment) => <option key={shipment.id} value={shipment.id}>{shipment.name} ({shipment.traceCodes.length} mã tem)</option>)}
+              <select
+                id="shipmentId"
+                value={selectedShipmentId}
+                onChange={(e) => setSelectedShipmentId(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                {shipments.map((shipment) => (
+                  <option key={shipment.id} value={shipment.id}>
+                    {shipment.name} ({shipment.traceCodes.length} mã tem)
+                  </option>
+                ))}
               </select>
             )}
           </div>
 
-          <div className="space-y-1.5"><Label htmlFor="reason">Lý do thu hồi <span className="text-red-600">*</span></Label><Textarea id="reason" value={reason} rows={4} maxLength={1000} onChange={(e) => setReason(e.target.value)} /></div>
-          <div className="space-y-1.5"><Label htmlFor="evidence">Bằng chứng (tùy chọn)</Label><Textarea id="evidence" value={evidence} rows={3} maxLength={2000} onChange={(e) => setEvidence(e.target.value)} /></div>
+          <div className="space-y-1.5">
+            <Label htmlFor="reason">
+              Lý do thu hồi <span className="text-red-600">*</span>
+            </Label>
+            <Textarea
+              id="reason"
+              value={reason}
+              rows={4}
+              maxLength={1000}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="evidence">Bằng chứng (tùy chọn)</Label>
+            <Textarea
+              id="evidence"
+              value={evidence}
+              rows={3}
+              maxLength={2000}
+              onChange={(e) => setEvidence(e.target.value)}
+            />
+          </div>
+
           {error && <p className="text-sm text-red-600">{error}</p>}
+
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => navigate(-1)} disabled={submitting}>Hủy</Button>
-            <Button variant="delete" onClick={() => void handleSubmit()} disabled={submitting || !selectedShipmentId}>
-              {submitting && <LoaderCircle className="size-4 animate-spin" />}{submitting ? 'Đang gửi...' : 'Gửi yêu cầu thu hồi'}
+            <Button variant="outline" onClick={() => navigate(-1)} disabled={submitting}>
+              Hủy
+            </Button>
+            <Button
+              variant="delete"
+              onClick={() => void handleSubmit()}
+              disabled={submitting || !selectedShipmentId}
+            >
+              {submitting && <LoaderCircle className="size-4 animate-spin" />}
+              {submitting ? 'Đang gửi...' : 'Gửi yêu cầu thu hồi'}
             </Button>
           </div>
         </CardContent>

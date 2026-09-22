@@ -42,7 +42,7 @@ export default function CropAreaAnalysisPage() {
     fetchData({});
   };
 
-  // Load initial data
+  // Tải dữ liệu ban đầu
   useEffect(() => {
     fetchData({});
   }, []);
