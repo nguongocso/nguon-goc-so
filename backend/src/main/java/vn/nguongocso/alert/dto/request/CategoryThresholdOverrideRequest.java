@@ -22,7 +22,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class CategoryThresholdOverrideRequest {
-
     @NotNull(message = "Danh mục nông sản không được để trống")
     private UUID productCategoryId;
 

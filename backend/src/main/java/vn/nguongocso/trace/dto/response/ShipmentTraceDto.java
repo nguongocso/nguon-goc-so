@@ -10,20 +10,31 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+/** DTO response thông tin lô hàng trong truy xuất. */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ShipmentTraceDto {
     private UUID id;
+
     private String code;
+
     private String name;
+
     private ShipmentStatus status;
+
     private Long totalQuantity;
+
     private String packagingInfo;
+
     private LocalDateTime createdAt;
+
     private long activatedStampsCount;
+
     private ScanStatsTraceDto scanStats;
+
     private List<ChainEventTraceDto> events;
+
     private List<ReceivingOrganizationTraceDto> receivingOrganizations;
 }

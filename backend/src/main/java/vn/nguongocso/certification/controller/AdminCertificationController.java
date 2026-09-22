@@ -30,104 +30,104 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('VT-01')")
 public class AdminCertificationController {
+        private final CertificationService certificationService;
 
-    private final CertificationService certificationService;
+        /**
+         * Lấy danh sách chứng nhận để Quản trị viên kiểm tra, đối chiếu.
+         */
+        @GetMapping
+        public ResponseEntity<ApiResult<PageResponse<CertificationVerificationResponse>>> getCertifications(
+                        @RequestParam(required = false) CertificationVerificationStatus verificationStatus,
+                        @RequestParam(required = false) String keyword,
+                        @RequestParam(required = false) UUID organizationId,
+                        @RequestParam(defaultValue = "createdAt") String sortBy,
+                        @RequestParam(defaultValue = "desc") String sortDir,
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "20") int size,
+                        @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-    /**
-     * Lấy danh sách chứng nhận để Quản trị viên kiểm tra, đối chiếu.
-     */
-    @GetMapping
-    public ResponseEntity<ApiResult<PageResponse<CertificationVerificationResponse>>> getCertifications(
-            @RequestParam(required = false) CertificationVerificationStatus verificationStatus,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) UUID organizationId,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
+                PageResponse<CertificationVerificationResponse> response = certificationService.getAdminCertifications(
+                                verificationStatus,
+                                keyword,
+                                organizationId,
+                                sortBy,
+                                sortDir,
+                                page,
+                                size,
+                                currentUser);
 
-        PageResponse<CertificationVerificationResponse> response = certificationService.getAdminCertifications(
-                verificationStatus,
-                keyword,
-                organizationId,
-                sortBy,
-                sortDir,
-                page,
-                size,
-                currentUser);
+                return ResponseEntity.ok(ApiResult.success(response));
+        }
 
-        return ResponseEntity.ok(ApiResult.success(response));
-    }
+        /**
+         * Lấy chi tiết thông tin đối chiếu của một chứng nhận.
+         */
+        @GetMapping("/{certificationId}")
+        public ResponseEntity<ApiResult<CertificationVerificationResponse>> getCertificationDetail(
+                        @PathVariable UUID certificationId,
+                        @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-    /**
-     * Lấy chi tiết thông tin đối chiếu của một chứng nhận.
-     */
-    @GetMapping("/{certificationId}")
-    public ResponseEntity<ApiResult<CertificationVerificationResponse>> getCertificationDetail(
-            @PathVariable UUID certificationId,
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
+                CertificationVerificationResponse response = certificationService.getAdminCertificationDetail(
+                                certificationId,
+                                currentUser);
 
-        CertificationVerificationResponse response = certificationService.getAdminCertificationDetail(
-                certificationId,
-                currentUser);
+                return ResponseEntity.ok(ApiResult.success(response));
+        }
 
-        return ResponseEntity.ok(ApiResult.success(response));
-    }
+        /**
+         * Xem tệp tài liệu chứng nhận an toàn (không mở trực tiếp storage path).
+         */
+        @GetMapping("/{certificationId}/document")
+        public ResponseEntity<Resource> getCertificateDocument(
+                        @PathVariable UUID certificationId,
+                        @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-    /**
-     * Xem tệp tài liệu chứng nhận an toàn (không mở trực tiếp storage path).
-     */
-    @GetMapping("/{certificationId}/document")
-    public ResponseEntity<Resource> getCertificateDocument(
-            @PathVariable UUID certificationId,
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
+                CertificationService.DocumentResource documentResource = certificationService
+                                .getCertificateDocumentResource(
+                                                certificationId,
+                                                currentUser);
 
-        CertificationService.DocumentResource documentResource = certificationService.getCertificateDocumentResource(
-                certificationId,
-                currentUser);
+                String encodedFileName = URLEncoder.encode(documentResource.fileName(), StandardCharsets.UTF_8)
+                                .replace("+", "%20");
 
-        String encodedFileName = URLEncoder.encode(documentResource.fileName(), StandardCharsets.UTF_8)
-                .replace("+", "%20");
+                return ResponseEntity.ok()
+                                .contentType(documentResource.contentType())
+                                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename*=UTF-8''" + encodedFileName)
+                                .header("X-Content-Type-Options", "nosniff")
+                                .body(documentResource.resource());
+        }
 
-        return ResponseEntity.ok()
-                .contentType(documentResource.contentType())
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename*=UTF-8''" + encodedFileName)
-                .header("X-Content-Type-Options", "nosniff")
-                .body(documentResource.resource());
-    }
+        /**
+         * Xác thực chứng nhận của tổ chức (chuyển trạng thái PENDING -> VERIFIED).
+         */
+        @PutMapping("/{certificationId}/verify")
+        public ResponseEntity<ApiResult<CertificationVerificationResponse>> verifyCertificate(
+                        @PathVariable UUID certificationId,
+                        @Valid @RequestBody(required = false) VerifyCertificateRequest request,
+                        @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-    /**
-     * Xác thực chứng nhận của tổ chức (chuyển trạng thái PENDING -> VERIFIED).
-     */
-    @PutMapping("/{certificationId}/verify")
-    public ResponseEntity<ApiResult<CertificationVerificationResponse>> verifyCertificate(
-            @PathVariable UUID certificationId,
-            @Valid @RequestBody(required = false) VerifyCertificateRequest request,
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
+                CertificationVerificationResponse response = certificationService.verifyCertificate(
+                                certificationId,
+                                request,
+                                currentUser);
 
-        CertificationVerificationResponse response = certificationService.verifyCertificate(
-                certificationId,
-                request,
-                currentUser);
+                return ResponseEntity.ok(ApiResult.success(response));
+        }
 
-        return ResponseEntity.ok(ApiResult.success(response));
-    }
+        /**
+         * Từ chối xác thực chứng nhận của tổ chức (chuyển trạng thái PENDING -> REJECTED, gửi thông báo kèm lý do).
+         */
+        @PutMapping("/{certificationId}/reject")
+        public ResponseEntity<ApiResult<CertificationVerificationResponse>> rejectCertificate(
+                        @PathVariable UUID certificationId,
+                        @Valid @RequestBody RejectCertificateRequest request,
+                        @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-    /**
-     * Từ chối xác thực chứng nhận của tổ chức (chuyển trạng thái PENDING -> REJECTED, gửi thông báo kèm lý do).
-     */
-    @PutMapping("/{certificationId}/reject")
-    public ResponseEntity<ApiResult<CertificationVerificationResponse>> rejectCertificate(
-            @PathVariable UUID certificationId,
-            @Valid @RequestBody RejectCertificateRequest request,
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
+                CertificationVerificationResponse response = certificationService.rejectCertificate(
+                                certificationId,
+                                request,
+                                currentUser);
 
-        CertificationVerificationResponse response = certificationService.rejectCertificate(
-                certificationId,
-                request,
-                currentUser);
-
-        return ResponseEntity.ok(ApiResult.success(response));
-    }
+                return ResponseEntity.ok(ApiResult.success(response));
+        }
 }

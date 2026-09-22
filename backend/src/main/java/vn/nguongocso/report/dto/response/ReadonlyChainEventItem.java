@@ -9,9 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Mục dòng sự kiện ở chế độ chỉ đọc trong chi tiết lô cảnh báo.
- */
+/** DTO sự kiện chuỗi chỉ đọc trong chi tiết lô cảnh báo. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -19,14 +17,24 @@ import lombok.Setter;
 @Builder
 public class ReadonlyChainEventItem {
     private UUID eventId;
+
     private String eventType;
+
     private String eventTypeName;
+
     private LocalDateTime recordedAt;
+
     private String recordedByName;
+
     private String location;
+
     private Boolean earlyHarvest;
+
     private Boolean hasAlert;
+
     private String alertWarning;
+
     private String shipmentName;
+
     private String description;
 }

@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** DTO response kết quả hủy danh sách mã truy xuất. */
 @Getter
 @Setter
 @Builder
@@ -16,10 +17,16 @@ import lombok.Setter;
 @AllArgsConstructor
 public class CancelTraceCodesResponse {
     private UUID shipmentId;
+
     private int totalCancelled;
+
     private long refundedQuota;
+
     private long remainingQuota;
+
     private LocalDateTime cancelledAt;
+
     private String cancelledBy;
+
     private String message;
 }

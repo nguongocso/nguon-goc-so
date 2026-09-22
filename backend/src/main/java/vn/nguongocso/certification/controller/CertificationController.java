@@ -52,12 +52,6 @@ public class CertificationController {
 
     /**
      * Tìm kiếm chứng nhận của tổ chức, có phân trang (VT-02).
-     *
-     * <p>Từ khoá khớp tên / số hiệu / cơ quan cấp. Trạng thái:
-     * valid | expiring | expired. Sắp xếp theo sortBy (name | issueDate |
-     * expiryDate) và sortDir (asc | desc).</p>
-     *
-     * GET /api/v1/certifications?keyword=&status=&sortBy=&sortDir=&page=0&size=10
      */
     @GetMapping
     @PreAuthorize("hasRole('VT-02')")

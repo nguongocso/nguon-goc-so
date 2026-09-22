@@ -21,7 +21,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class UpdateGlobalThresholdRequest {
-
     @NotNull(message = "Số lượt quét tối đa mỗi giờ không được để trống")
     @Min(value = 1, message = "Số lượt quét tối đa mỗi giờ phải lớn hơn hoặc bằng 1")
     private Integer maxScansPerHour;

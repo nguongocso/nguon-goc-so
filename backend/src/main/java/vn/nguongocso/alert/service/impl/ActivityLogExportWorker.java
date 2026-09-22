@@ -39,7 +39,6 @@ public class ActivityLogExportWorker {
 
     @Value("${app.activity-log-export.storage-dir:./uploads/activity-log-exports}")
     private String storageDirectory;
-
     @Value("${app.activity-log-export.lease-seconds:300}")
     private long leaseSeconds;
 
@@ -48,7 +47,8 @@ public class ActivityLogExportWorker {
         ActivityLogExportJob job = jobRepository
                 .findByIdAndProcessingTokenAndStatus(jobId, processingToken, ActivityLogExportStatus.IN_PROGRESS)
                 .orElse(null);
-        if (job == null) return;
+        if (job == null)
+            return;
 
         Path output = null;
         try {
@@ -57,7 +57,8 @@ public class ActivityLogExportWorker {
             String fileName = "activity-logs-" + jobId + "-"
                     + LocalDateTime.now(clock).format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".csv";
             output = directory.resolve(fileName).normalize();
-            if (!output.startsWith(directory)) throw new IOException("Đường dẫn tệp export không hợp lệ.");
+            if (!output.startsWith(directory))
+                throw new IOException("Đường dẫn tệp export không hợp lệ.");
 
             try (CSVPrinter printer = csvWriter.openFile(output)) {
                 long lastSequenceNo = -1L;
@@ -68,8 +69,10 @@ public class ActivityLogExportWorker {
                     }
                     items = itemRepository.findByJobIdAndSequenceNoGreaterThanOrderBySequenceNoAsc(
                             jobId, lastSequenceNo, PageRequest.of(0, PAGE_SIZE));
-                    for (ActivityLogExportItem item : items) csvWriter.print(printer, item);
-                    if (!items.isEmpty()) lastSequenceNo = items.get(items.size() - 1).getSequenceNo();
+                    for (ActivityLogExportItem item : items)
+                        csvWriter.print(printer, item);
+                    if (!items.isEmpty())
+                        lastSequenceNo = items.get(items.size() - 1).getSequenceNo();
                 } while (items.size() == PAGE_SIZE);
             }
 
@@ -107,11 +110,17 @@ public class ActivityLogExportWorker {
         }
     }
 
+    /**
+     * Gia hạn lease cho job (NCL-08-CN-016).
+     */
     private boolean renewLease(UUID jobId, String processingToken) {
         return jobRepository.renewLease(jobId, processingToken,
                 LocalDateTime.now(clock).plusSeconds(leaseSeconds), ActivityLogExportStatus.IN_PROGRESS) == 1;
     }
 
+    /**
+     * Gia hạn lease một cách an toàn (NCL-08-CN-016).
+     */
     private boolean renewLeaseSafely(UUID jobId, String processingToken) {
         try {
             return renewLease(jobId, processingToken);
@@ -121,8 +130,12 @@ public class ActivityLogExportWorker {
         }
     }
 
+    /**
+     * Xóa tệp output một cách an toàn (NCL-08-CN-016).
+     */
     private void deleteOutput(Path output) {
-        if (output == null) return;
+        if (output == null)
+            return;
         try {
             Files.deleteIfExists(output);
         } catch (IOException cleanupError) {
@@ -130,6 +143,9 @@ public class ActivityLogExportWorker {
         }
     }
 
+    /**
+     * Ngoại lệ khi worker không còn giữ lease (NCL-08-CN-016).
+     */
     private static final class LeaseLostException extends RuntimeException {
         private static final long serialVersionUID = 1L;
     }

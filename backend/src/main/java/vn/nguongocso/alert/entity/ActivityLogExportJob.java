@@ -49,9 +49,13 @@ public class ActivityLogExportJob {
     private String requestedByRole;
 
     private LocalDate startDate;
+
     private LocalDate endDate;
+
     private String actionFilter;
+
     private String actorFilter;
+
     private String objectTypeFilter;
 
     @Enumerated(EnumType.STRING)
@@ -62,7 +66,9 @@ public class ActivityLogExportJob {
     private Long recordCount;
 
     private String fileName;
+
     private String filePath;
+
     private Long fileSize;
 
     @Column(columnDefinition = "TEXT")
@@ -80,7 +86,9 @@ public class ActivityLogExportJob {
 
     @PrePersist
     void onCreate() {
-        if (id == null) id = UUID.randomUUID();
-        if (createdAt == null) createdAt = LocalDateTime.now();
+        if (id == null)
+            id = UUID.randomUUID();
+        if (createdAt == null)
+            createdAt = LocalDateTime.now();
     }
 }

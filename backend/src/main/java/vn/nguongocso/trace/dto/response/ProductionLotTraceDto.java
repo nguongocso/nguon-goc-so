@@ -9,18 +9,27 @@ import vn.nguongocso.farm.enums.ProductionLotStatus;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/** DTO response thông tin lô sản xuất trong truy xuất. */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductionLotTraceDto {
     private UUID id;
+
     private String code;
+
     private String name;
+
     private ProductionLotStatus status;
+
     private Double expectedQuantity;
+
     private String expectedQuantityUnit;
+
     private Double actualQuantity;
+
     private LocalDate plantingDate;
+
     private LocalDate harvestDate;
 }

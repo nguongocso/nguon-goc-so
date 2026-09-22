@@ -24,13 +24,6 @@ import vn.nguongocso.organization.entity.Organization;
 
 /**
  * Mỗi bản ghi đại diện cho một trường hợp nghi vấn của một tài khoản.
- *
- * <p>
- * Một SuspiciousCase được tạo khi user có đủ 5 anomaly trong vòng 24h.
- * Nó là "case" xử lý, không phải bản ghi lịch sử sự kiện.
- * Nếu có một nhóm anomaly mới sau khi case cũ đã giải quyết, sẽ tạo case mới,
- * không mở lại case cũ.
- * </p>
  */
 @Entity
 @Table(name = "suspicious_cases")
@@ -40,7 +33,6 @@ import vn.nguongocso.organization.entity.Organization;
 @AllArgsConstructor
 @Builder
 public class SuspiciousCase {
-
     @Id
     @Column(name = "id")
     @JdbcTypeCode(SqlTypes.CHAR)

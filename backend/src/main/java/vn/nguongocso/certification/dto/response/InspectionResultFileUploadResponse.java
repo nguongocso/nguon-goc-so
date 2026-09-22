@@ -11,9 +11,5 @@ import lombok.Setter;
 @Setter
 @Builder
 public class InspectionResultFileUploadResponse {
-
-    /**
-     * Đường dẫn tệp phiếu kết quả đã lưu (filePath).
-     */
     private String filePath;
 }

@@ -16,18 +16,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Phản hồi xuất hồ sơ truy xuất theo lược đồ GS1 mô phỏng.
- *
- * <p>
- * DTO này biểu diễn hồ sơ theo bốn chiều dữ liệu {@code who / when / where / why}.
- * Khi xuất ở định dạng {@code json}, DTO được bọc trong {@code ApiResult}. Khi
- * xuất ở định dạng {@code xml}, DTO là root element {@code <gs1Dossier>} (không
- * bọc {@code ApiResult}) để giữ ngữ nghĩa lược đồ như tài liệu thiết kế.
- * </p>
- *
- * @author Triệu Văn Đại
- */
+/** Phản hồi xuất hồ sơ truy xuất theo lược đồ GS1. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -36,44 +25,34 @@ import lombok.Setter;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JacksonXmlRootElement(localName = "gs1Dossier")
 public class Gs1DossierExportResponse {
-
-    /** Thông tin lô hàng. */
     @JacksonXmlProperty(localName = "shipment")
     private Gs1ShipmentInfo shipment;
 
-    /** Danh sách sự kiện đã ánh xạ theo lược đồ GS1, sắp xếp recordedAt ASC. */
     @JacksonXmlElementWrapper(localName = "events")
     @JacksonXmlProperty(localName = "event")
     private List<Gs1Event> events;
 
-    /** Lịch sử kiểm nghiệm của lô sản xuất tương ứng (danh sách có thể rỗng). */
     @JacksonXmlElementWrapper(localName = "inspections")
     @JacksonXmlProperty(localName = "inspection")
     private List<Gs1Inspection> inspections;
 
-    /** Bảng ánh xạ hệ thống → lược đồ GS1 (nếu {@code includeMapping=true}). */
     @JacksonXmlProperty(localName = "mapping")
     private Map<String, String> mapping;
 
-    /** Danh sách cảnh báo dữ liệu thiếu/không đầy đủ. */
     @JacksonXmlElementWrapper(localName = "warnings")
     @JacksonXmlProperty(localName = "warning")
     private List<Gs1Warning> warnings;
 
-    /** Thời điểm xuất hồ sơ (server time). */
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     @JacksonXmlProperty(localName = "exportedAt")
     private LocalDateTime exportedAt;
 
-    /** Người xuất hồ sơ (authenticated principal). */
     @JacksonXmlProperty(localName = "exportedBy")
     private String exportedBy;
 
-    /** Phiên bản lược đồ mô phỏng. */
     @JacksonXmlProperty(localName = "schemaVersion")
     private String schemaVersion;
 
-    /** Mô tả lược đồ (không phải chứng nhận GS1 compliance). */
     @JacksonXmlProperty(localName = "schemaDescription")
     private String schemaDescription;
 }

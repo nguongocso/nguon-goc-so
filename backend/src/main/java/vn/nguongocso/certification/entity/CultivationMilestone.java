@@ -1,37 +1,40 @@
 package vn.nguongocso.certification.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import vn.nguongocso.farm.entity.ProductCategory;
+
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * Khai báo mốc canh tác (bảng hợp nhất).
- * - productCategoryId NULL = áp dụng cho toàn bộ loại nông sản
- * - standardId NULL        = áp dụng cho mọi tiêu chuẩn
- * - isMandatory            = mốc bắt buộc (thay "ngừng sử dụng")
- * Story: NCL-09-CN-011
  */
 @Entity
-@Table(
-    name = "cultivation_milestones",
-    uniqueConstraints = {
-        @UniqueConstraint(
-            name = "uk_milestone_name_cat_std",
-            columnNames = {"product_category_id", "standard_id", "name_key"}
-        )
-    }
-)
+@Table(name = "cultivation_milestones", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_milestone_name_cat_std", columnNames = { "product_category_id", "standard_id",
+                "name_key" })
+})
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class CultivationMilestone {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

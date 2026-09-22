@@ -16,9 +16,14 @@ import java.util.List;
 @AllArgsConstructor
 public class AggregateAlertPageResponse {
     private List<AggregateAlertItemResponse> items;
+
     private long totalElements;
+
     private int totalPages;
+
     private int currentPage;
+
     private int pageSize;
+
     private AggregateAlertCountResponse summaryCounts;
 }

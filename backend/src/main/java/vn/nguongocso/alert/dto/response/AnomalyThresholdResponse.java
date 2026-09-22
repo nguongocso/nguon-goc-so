@@ -19,7 +19,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class AnomalyThresholdResponse {
-
     private UUID id;
 
     private UUID productCategoryId;

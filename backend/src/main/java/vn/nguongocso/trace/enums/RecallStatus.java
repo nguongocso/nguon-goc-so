@@ -1,8 +1,6 @@
 package vn.nguongocso.trace.enums;
 
-/**
- * Trạng thái của một đợt thu hồi.
- */
+/** Trạng thái của một đợt thu hồi. */
 public enum RecallStatus {
     ACTIVE, // Thu hồi đang hoạt động
 

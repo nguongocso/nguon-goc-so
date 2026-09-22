@@ -27,16 +27,10 @@ import vn.nguongocso.report.dto.response.OrganizationUsageDashboardResponse;
 import vn.nguongocso.report.dto.response.OrganizationUsageDashboardResponse.MetricComparison;
 import vn.nguongocso.report.dto.response.OrganizationUsageDashboardResponse.OrganizationUsageItem;
 
-/**
- * Triển khai sinh file PDF báo cáo mức độ sử dụng nền tảng theo tổ chức (NCL-07-CN-008).
- *
- * <p>Khổ giấy A4 xoay ngang để hiển thị đủ 12 cột: STT, định danh tổ chức,
- * trạng thái sử dụng, 6 chỉ số kèm % thay đổi so với kỳ trước và hoạt động gần nhất.</p>
- */
+/** Triển khai sinh file PDF báo cáo mức độ sử dụng nền tảng theo tổ chức (NCL-07-CN-008). */
 @Slf4j
 @Component
 public class OrganizationUsagePdfGeneratorImpl implements OrganizationUsagePdfGenerator {
-
     private static final String EXPORT_ERROR = "Không thể xuất báo cáo PDF mức độ sử dụng nền tảng.";
     private static final String REGULAR_FONT = "fonts/Roboto-Regular.ttf";
     private static final String BOLD_FONT = "fonts/Roboto-Bold.ttf";
@@ -44,28 +38,27 @@ public class OrganizationUsagePdfGeneratorImpl implements OrganizationUsagePdfGe
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DATETIME_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    private static final Color HEADER_BG_COLOR = new Color(46, 125, 50); // Màu xanh lá chủ đạo (#2E7D32)
-    private static final Color ALT_ROW_BG_COLOR = new Color(248, 250, 252); // Màu nền dòng chẵn (#F8FAFC)
-    private static final Color BORDER_COLOR = new Color(226, 232, 240); // Màu viền nhẹ (#E2E8F0)
+    private static final Color HEADER_BG_COLOR = new Color(46, 125, 50);
+    private static final Color ALT_ROW_BG_COLOR = new Color(248, 250, 252);
+    private static final Color BORDER_COLOR = new Color(226, 232, 240);
 
     /** Tiêu đề 12 cột của bảng báo cáo. */
     private static final String[] TABLE_HEADERS = {
             "STT", "Mã tổ chức", "Tên tổ chức", "Loại", "Trạng thái",
             "Lô sản xuất", "Nhật ký", "Sự kiện chuỗi", "Tem kích hoạt",
-            "Tra cứu công khai", "Người dùng HT", "Hoạt động gần nhất",
+            "Tra cứu công khai", "Người dùng HT", "Hoạt động gần nhất"
     };
 
-    /** Độ rộng tương đối của từng cột (tổng bằng số cột). */
+    /** Độ rộng tương đối của từng cột. */
     private static final float[] TABLE_WIDTHS = {
             0.6F, 1.3F, 2.6F, 1.4F, 1.4F,
             1.6F, 1.4F, 1.6F, 1.6F,
-            1.8F, 1.4F, 1.9F,
+            1.8F, 1.4F, 1.9F
     };
 
     @Override
     public byte[] generate(OrganizationUsageDashboardResponse dashboard) {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            // Khổ giấy A4 xoay ngang để hiển thị đầy đủ thông tin các cột
             Document document = new Document(PageSize.A4.rotate(), 24F, 24F, 24F, 24F);
             PdfWriter.getInstance(document, outputStream);
 
@@ -81,10 +74,7 @@ public class OrganizationUsagePdfGeneratorImpl implements OrganizationUsagePdfGe
             Font headerFont = loadFont(BOLD_FONT, 9F, Font.BOLD, Color.WHITE);
             Font dataFont = loadFont(REGULAR_FONT, 8.5F, Font.NORMAL, new Color(30, 41, 59));
 
-            // 1. Tiêu đề và thông tin chung về kỳ báo cáo
             addHeaderInformation(document, dashboard, titleFont, subTitleFont);
-
-            // 2. Bảng dữ liệu mức độ sử dụng theo tổ chức
             document.add(buildUsageTable(dashboard, headerFont, dataFont));
 
             document.close();
@@ -96,15 +86,13 @@ public class OrganizationUsagePdfGeneratorImpl implements OrganizationUsagePdfGe
         }
     }
 
-    /**
-     * Thêm phần tiêu đề và thông tin kỳ báo cáo.
-     */
+    /** Thêm phần tiêu đề và thông tin kỳ báo cáo. */
     private void addHeaderInformation(
             Document document,
             OrganizationUsageDashboardResponse dashboard,
             Font titleFont,
-            Font subTitleFont) {
-
+            Font subTitleFont
+    ) {
         Paragraph title = new Paragraph("BÁO CÁO MỨC ĐỘ SỬ DỤNG NỀN TẢNG", titleFont);
         title.setSpacingAfter(4F);
         document.add(title);
@@ -114,26 +102,22 @@ public class OrganizationUsagePdfGeneratorImpl implements OrganizationUsagePdfGe
                         + " - " + dashboard.getEndDate().format(DATE_FORMAT)
                         + "   |   Kỳ trước: " + dashboard.getPreviousStartDate().format(DATE_FORMAT)
                         + " - " + dashboard.getPreviousEndDate().format(DATE_FORMAT),
-                subTitleFont);
+                subTitleFont
+        );
         subtitle.setSpacingAfter(2F);
         document.add(subtitle);
 
         Paragraph meta = new Paragraph(
                 "Tổng số tổ chức: " + dashboard.getTotalOrganizations()
                         + "   |   Thời điểm xuất: " + LocalDateTime.now().format(DATETIME_FORMAT),
-                subTitleFont);
+                subTitleFont
+        );
         meta.setSpacingAfter(10F);
         document.add(meta);
     }
 
-    /**
-     * Xây dựng bảng dữ liệu mức độ sử dụng theo từng tổ chức.
-     */
-    private PdfPTable buildUsageTable(
-            OrganizationUsageDashboardResponse dashboard,
-            Font headerFont,
-            Font dataFont) {
-
+    /** Xây dựng bảng dữ liệu mức độ sử dụng theo từng tổ chức. */
+    private PdfPTable buildUsageTable(OrganizationUsageDashboardResponse dashboard, Font headerFont, Font dataFont) {
         PdfPTable table = new PdfPTable(TABLE_WIDTHS);
         table.setWidthPercentage(100F);
         table.setSpacingAfter(12F);
@@ -142,9 +126,7 @@ public class OrganizationUsagePdfGeneratorImpl implements OrganizationUsagePdfGe
             addCell(table, header, headerFont, HEADER_BG_COLOR, Color.WHITE, Element.ALIGN_CENTER);
         }
 
-        List<OrganizationUsageItem> items = dashboard.getItems() != null
-                ? dashboard.getItems()
-                : List.of();
+        List<OrganizationUsageItem> items = dashboard.getItems() != null ? dashboard.getItems() : List.of();
         int stt = 1;
         for (OrganizationUsageItem item : items) {
             Color bgColor = stt % 2 == 0 ? ALT_ROW_BG_COLOR : Color.WHITE;
@@ -166,22 +148,14 @@ public class OrganizationUsagePdfGeneratorImpl implements OrganizationUsagePdfGe
         return table;
     }
 
-    /**
-     * Thêm một ô dữ liệu vào bảng với nền, căn lề và viền thống nhất.
-     */
-    private void addCell(
-            PdfPTable table,
-            String text,
-            Font font,
-            Color bgColor,
-            Color fontColor,
-            int horizontalAlignment) {
-
+    /** Thêm một ô dữ liệu vào bảng với nền, căn lề và viền thống nhất. */
+    private void addCell(PdfPTable table, String text, Font font, Color bgColor, Color fontColor, int horizontalAlignment) {
         Font effectiveFont = fontColor != null
                 ? new Font(font.getBaseFont(), font.getSize(), font.getStyle(), fontColor)
                 : font;
         PdfPCell cell = new PdfPCell(
-                new Phrase(text != null && !text.isBlank() ? text : "—", effectiveFont));
+                new Phrase(text != null && !text.isBlank() ? text : "—", effectiveFont)
+        );
         cell.setBackgroundColor(bgColor);
         cell.setHorizontalAlignment(horizontalAlignment);
         cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
@@ -190,10 +164,7 @@ public class OrganizationUsagePdfGeneratorImpl implements OrganizationUsagePdfGe
         table.addCell(cell);
     }
 
-    /**
-     * Định dạng một chỉ số kèm % thay đổi so với kỳ trước.
-     * Quy ước giống frontend: previous = 0, current &gt; 0 → +100.0%.
-     */
+    /** Định dạng một chỉ số kèm % thay đổi so với kỳ trước. */
     private String formatMetric(MetricComparison metric, boolean hasData) {
         if (!hasData || metric == null) {
             return "—";
@@ -204,16 +175,12 @@ public class OrganizationUsagePdfGeneratorImpl implements OrganizationUsagePdfGe
         return String.format("%d (%+.1f%%)", metric.getCurrent(), percent);
     }
 
-    /**
-     * Định dạng thời điểm hoạt động gần nhất.
-     */
+    /** Định dạng thời điểm hoạt động gần nhất. */
     private String formatLastActivity(LocalDateTime lastActivityAt) {
         return lastActivityAt != null ? lastActivityAt.format(DATETIME_FORMAT) : "—";
     }
 
-    /**
-     * Dịch loại tổ chức sang nhãn tiếng Việt (khớp với mapping của frontend).
-     */
+    /** Dịch loại tổ chức sang nhãn tiếng Việt. */
     private String typeLabel(String type) {
         if (type == null || type.isBlank()) {
             return "—";
@@ -232,10 +199,7 @@ public class OrganizationUsagePdfGeneratorImpl implements OrganizationUsagePdfGe
         }
     }
 
-    /**
-     * Nhãn trạng thái sử dụng thống nhất với giao diện (không dùng trạng thái
-     * hành chính ACTIVE/INACTIVE của tổ chức cho cột này).
-     */
+    /** Nhãn trạng thái sử dụng thống nhất với giao diện. */
     private String usageStatusLabel(OrganizationUsageItem item) {
         if (item == null) {
             return "—";
@@ -249,9 +213,7 @@ public class OrganizationUsagePdfGeneratorImpl implements OrganizationUsagePdfGe
         return "Chưa có dữ liệu";
     }
 
-    /**
-     * Tải phông chữ Roboto Unicode hỗ trợ đầy đủ tiếng Việt có dấu.
-     */
+    /** Tải phông chữ Roboto Unicode hỗ trợ đầy đủ tiếng Việt có dấu. */
     private Font loadFont(String resource, float size, int style, Color color) {
         String resourcePath = resource.startsWith("/") ? resource : "/" + resource;
         try (InputStream inputStream = getClass().getResourceAsStream(resourcePath)) {

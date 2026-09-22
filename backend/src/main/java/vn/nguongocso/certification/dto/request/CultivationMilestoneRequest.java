@@ -7,14 +7,11 @@ import java.util.UUID;
 
 /**
  * Request DTO cho tạo/cập nhật mốc canh tác.
- * - productCategoryId null = áp dụng cho toàn bộ loại nông sản
- * - standardId null        = áp dụng cho mọi tiêu chuẩn
  * Story: NCL-09-CN-011
  */
 @Getter
 @Setter
 public class CultivationMilestoneRequest {
-
     @NotBlank(message = "Tên mốc canh tác không được để trống")
     @Size(max = 150, message = "Tên mốc canh tác tối đa 150 ký tự")
     private String name;

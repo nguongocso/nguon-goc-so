@@ -13,7 +13,6 @@ import java.util.UUID;
 @Getter
 @Builder
 public class InspectionCriterionResponse {
-
     @JsonProperty("criteriaId")
     private Integer criteriaId;
 

@@ -22,10 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 /**
- * Controller bảng điều khiển mức độ sử dụng nền tảng theo tổ chức (NCL-07-CN-008).
- *
- * <p>Chỉ Quản trị viên nền tảng (VT-01) được truy cập. Mọi vai trò khác
- * (kể cả VT-02) đều bị từ chối với HTTP 403.</p>
+ * Controller bảng điều khiển mức độ sử dụng nền tảng theo tổ chức.
  */
 @Slf4j
 @RestController
@@ -38,11 +35,6 @@ public class OrganizationUsageController {
 
     /**
      * Lấy mức độ sử dụng nền tảng của từng tổ chức trong kỳ.
-     *
-     * @param startDate      ngày bắt đầu kỳ hiện tại (yyyy-MM-dd, mặc định 30 ngày gần nhất)
-     * @param endDate        ngày kết thúc kỳ hiện tại (yyyy-MM-dd, mặc định hôm nay)
-     * @param organizationId lọc một tổ chức cụ thể (mặc định tất cả tổ chức)
-     * @return dữ liệu 6 chỉ số kèm so sánh kỳ trước theo từng tổ chức
      */
     @GetMapping
     public ResponseEntity<ApiResult<OrganizationUsageDashboardResponse>> getOrganizationUsage(
@@ -56,14 +48,7 @@ public class OrganizationUsageController {
     }
 
     /**
-     * Xuất báo cáo mức độ sử dụng theo kỳ ra file CSV hoặc PDF
-     * (người dùng chọn kiểu xuất qua tham số {@code format}).
-     *
-     * @param startDate      ngày bắt đầu kỳ hiện tại (yyyy-MM-dd, mặc định 30 ngày gần nhất)
-     * @param endDate        ngày kết thúc kỳ hiện tại (yyyy-MM-dd, mặc định hôm nay)
-     * @param organizationId lọc một tổ chức cụ thể (mặc định tất cả tổ chức)
-     * @param format         kiểu xuất: {@code csv} (mặc định) hoặc {@code pdf}
-     * @return file báo cáo đính kèm theo kiểu đã chọn
+     * Xuất báo cáo mức độ sử dụng theo kỳ ra file CSV hoặc PDF.
      */
     @GetMapping("/export")
     public ResponseEntity<byte[]> exportOrganizationUsage(

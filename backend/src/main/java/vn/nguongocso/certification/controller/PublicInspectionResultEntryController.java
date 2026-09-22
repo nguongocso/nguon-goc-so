@@ -36,79 +36,65 @@ import vn.nguongocso.common.util.IpUtils;
 @RequestMapping("/api/v1/public/inspection-result-entry")
 @RequiredArgsConstructor
 public class PublicInspectionResultEntryController {
+        private static final String CACHE_CONTROL_VALUE = "no-store, no-cache, must-revalidate";
 
-    private static final String CACHE_CONTROL_VALUE = "no-store, no-cache, must-revalidate";
+        private final InspectionResultEntryLinkService linkService;
+        private final InspectionCriterionResultService criterionResultService;
 
-    private final InspectionResultEntryLinkService linkService;
-    private final InspectionCriterionResultService criterionResultService;
+        /**
+         * Lấy thông tin yêu cầu kiểm nghiệm và danh sách chỉ tiêu cần nhập.
+         */
+        @GetMapping("/{token}")
+        public ResponseEntity<ApiResult<PublicInspectionResultEntryResponse>> getPortalData(
+                        @PathVariable String token) {
 
-    /**
-     * Lấy thông tin yêu cầu kiểm nghiệm và danh sách chỉ tiêu cần nhập.
-     *
-     * @param token Mã token bí mật từ URL.
-     * @return DTO thông tin tối thiểu của yêu cầu kiểm nghiệm.
-     */
-    @GetMapping("/{token}")
-    public ResponseEntity<ApiResult<PublicInspectionResultEntryResponse>> getPortalData(
-            @PathVariable String token) {
+                String clientIp = IpUtils.getClientIp();
+                PublicInspectionResultEntryResponse response = linkService.getPublicPortalData(token, clientIp);
 
-        String clientIp = IpUtils.getClientIp();
-        PublicInspectionResultEntryResponse response = linkService.getPublicPortalData(token, clientIp);
+                return ResponseEntity.ok()
+                                .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_VALUE)
+                                .body(ApiResult.success(HttpStatus.OK.value(), response));
+        }
 
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_VALUE)
-                .body(ApiResult.success(HttpStatus.OK.value(), response));
-    }
+        /**
+         * Tải lên phiếu kết quả kiểm nghiệm cho một chỉ tiêu cụ thể.
+         */
+        @PostMapping("/{token}/criteria/{criterionId}/file")
+        public ResponseEntity<ApiResult<Map<String, String>>> uploadFile(
+                        @PathVariable String token,
+                        @PathVariable String criterionId,
+                        @RequestParam("file") MultipartFile file) {
 
-    /**
-     * Tải lên phiếu kết quả kiểm nghiệm cho một chỉ tiêu cụ thể.
-     *
-     * @param token       Mã token bí mật.
-     * @param criterionId ID của chỉ tiêu kiểm nghiệm thuộc yêu cầu.
-     * @param file        Tệp phiếu kết quả (JPG/PNG/PDF).
-     * @return Đường dẫn tệp đã lưu để đưa vào payload submit.
-     */
-    @PostMapping("/{token}/criteria/{criterionId}/file")
-    public ResponseEntity<ApiResult<Map<String, String>>> uploadFile(
-            @PathVariable String token,
-            @PathVariable String criterionId,
-            @RequestParam("file") MultipartFile file) {
+                String clientIp = IpUtils.getClientIp();
+                String fileHandle = criterionResultService.uploadPortalResultFile(token, criterionId, file, clientIp);
 
-        String clientIp = IpUtils.getClientIp();
-        String fileHandle = criterionResultService.uploadPortalResultFile(token, criterionId, file, clientIp);
+                return ResponseEntity.ok()
+                                .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_VALUE)
+                                .body(ApiResult.success(HttpStatus.OK.value(), Map.of(
+                                                "fileHandle", fileHandle,
+                                                "filePath", fileHandle)));
+        }
 
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_VALUE)
-                .body(ApiResult.success(HttpStatus.OK.value(), Map.of(
-                        "fileHandle", fileHandle,
-                        "filePath", fileHandle)));
-    }
+        /**
+         * Gửi toàn bộ kết quả kiểm nghiệm từ đơn vị kiểm nghiệm (dùng một lần, atomic consume).
+         */
+        @PutMapping("/{token}/results")
+        public ResponseEntity<ApiResult<List<InspectionCriterionResultResponse>>> recordResults(
+                        @PathVariable String token,
+                        @Valid @RequestBody RecordInspectionResultsRequest requestBody,
+                        HttpServletRequest request) {
 
-    /**
-     * Gửi toàn bộ kết quả kiểm nghiệm từ đơn vị kiểm nghiệm (dùng một lần, atomic consume).
-     *
-     * @param token       Mã token bí mật.
-     * @param requestBody Payload chứa danh sách kết quả cho toàn bộ chỉ tiêu.
-     * @param request     HttpServletRequest.
-     * @return Danh sách kết quả kiểm nghiệm đã được ghi nhận.
-     */
-    @PutMapping("/{token}/results")
-    public ResponseEntity<ApiResult<List<InspectionCriterionResultResponse>>> recordResults(
-            @PathVariable String token,
-            @Valid @RequestBody RecordInspectionResultsRequest requestBody,
-            HttpServletRequest request) {
+                String clientIp = IpUtils.getClientIp();
+                String userAgent = request.getHeader(HttpHeaders.USER_AGENT);
 
-        String clientIp = IpUtils.getClientIp();
-        String userAgent = request.getHeader(HttpHeaders.USER_AGENT);
+                List<InspectionCriterionResultResponse> response = criterionResultService.recordPortalResults(
+                                token,
+                                requestBody.getResults(),
+                                clientIp,
+                                userAgent);
 
-        List<InspectionCriterionResultResponse> response = criterionResultService.recordPortalResults(
-                token,
-                requestBody.getResults(),
-                clientIp,
-                userAgent);
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_VALUE)
-                .body(ApiResult.success(HttpStatus.OK.value(), response));
-    }
+                return ResponseEntity.ok()
+                                .header(HttpHeaders.CACHE_CONTROL, CACHE_CONTROL_VALUE)
+                                .body(ApiResult.success(HttpStatus.OK.value(), response));
+        }
 }

@@ -31,17 +31,11 @@ import vn.nguongocso.mail.service.EmailService;
 
 /**
  * Triển khai dịch vụ quên và đặt lại mật khẩu người dùng (NCL-01-CN-008).
- *
- * <p>
- * Cung cấp luồng bảo mật chống Account Enumeration, Rate Limiting theo giờ,
- * băm token SHA-256 trong cơ sở dữ liệu và tiêu thụ token atomic chống race condition.
- * </p>
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PasswordResetServiceImpl implements PasswordResetService {
-
     private static final int EXPIRY_MINUTES = 30;
     private static final int MAX_REQUESTS_PER_HOUR = 5;
     private static final int TOKEN_BYTE_LENGTH = 32;
@@ -59,8 +53,6 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
     /**
      * Tiếp nhận yêu cầu đặt lại mật khẩu, sinh token bảo mật và gửi email.
-     *
-     * @param request chứa email hoặc username
      */
     @Override
     @Transactional
@@ -97,9 +89,6 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
     /**
      * Xác thực tính hợp lệ và thời hạn của token đặt lại mật khẩu.
-     *
-     * @param token chuỗi token từ liên kết email
-     * @return phản hồi trạng thái hợp lệ
      */
     @Override
     @Transactional(readOnly = true)
@@ -112,8 +101,8 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         }
 
         String tokenHash = hashToken(token);
-        Optional<PasswordResetToken> tokenOptional =
-                tokenRepository.findByTokenHashAndIsUsedFalseAndExpiresAtAfter(tokenHash, LocalDateTime.now());
+        Optional<PasswordResetToken> tokenOptional = tokenRepository
+                .findByTokenHashAndIsUsedFalseAndExpiresAtAfter(tokenHash, LocalDateTime.now());
 
         if (tokenOptional.isEmpty()) {
             return ValidateResetTokenResponse.builder()
@@ -130,8 +119,6 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
     /**
      * Xác thực token và cập nhật mật khẩu mới cho người dùng.
-     *
-     * @param request chứa token, mật khẩu mới và xác nhận mật khẩu
      */
     @Override
     @Transactional
@@ -149,6 +136,9 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         log.info("Đặt lại mật khẩu thành công cho userId={}", user.getUserId());
     }
 
+    /**
+     * Tìm người dùng theo email hoặc username.
+     */
     private Optional<User> findUserByIdentifier(String identifier) {
         Optional<User> userByEmail = userRepository.findByEmail(identifier);
         if (userByEmail.isPresent()) {
@@ -157,12 +147,14 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         return userRepository.findByUserName(identifier);
     }
 
+    /**
+     * Kiểm tra thông tin người dùng trước khi tạo token.
+     */
     private void validateUserForPasswordReset(User user) {
         if (user.getEmail() == null || user.getEmail().isBlank()) {
             log.warn("Tài khoản userId={} không có địa chỉ email để nhận liên kết", user.getUserId());
             throw new BusinessException(
-                    "Tài khoản chưa được cập nhật địa chỉ email trên hệ thống để thực hiện đặt lại mật khẩu."
-            );
+                    "Tài khoản chưa được cập nhật địa chỉ email trên hệ thống để thực hiện đặt lại mật khẩu.");
         }
 
         if (user.getStatus() != UserStatus.ACTIVE) {
@@ -171,6 +163,9 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         }
     }
 
+    /**
+     * Kiểm tra giới hạn yêu cầu trong 1 giờ.
+     */
     private boolean isRateLimitExceeded(UUID userId) {
         LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
         long recentCount = tokenRepository.countByUser_UserIdAndCreatedAtAfter(userId, oneHourAgo);
@@ -181,6 +176,9 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         return false;
     }
 
+    /**
+     * Vô hiệu hóa tất cả token cũ của người dùng.
+     */
     private void invalidateOldTokens(UUID userId) {
         List<PasswordResetToken> oldTokens = tokenRepository.findByUser_UserIdAndIsUsedFalse(userId);
         if (!oldTokens.isEmpty()) {
@@ -191,6 +189,9 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         }
     }
 
+    /**
+     * Lưu token mới vào cơ sở dữ liệu.
+     */
     private void saveNewPasswordResetToken(User user, String tokenHash) {
         PasswordResetToken tokenEntity = PasswordResetToken.builder()
                 .user(user)
@@ -202,6 +203,9 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         tokenRepository.save(tokenEntity);
     }
 
+    /**
+     * Xây dựng URL reset mật khẩu.
+     */
     private String buildResetPasswordUrl(String rawToken) {
         String baseUrl = frontendUrl.endsWith("/")
                 ? frontendUrl.substring(0, frontendUrl.length() - 1)
@@ -209,12 +213,18 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         return baseUrl + "/reset-password?token=" + rawToken;
     }
 
+    /**
+     * Kiểm tra xác nhận mật khẩu.
+     */
     private void validatePasswordConfirmation(String newPassword, String confirmPassword) {
         if (!newPassword.equals(confirmPassword)) {
             throw new BusinessException("Xác nhận mật khẩu mới không khớp");
         }
     }
 
+    /**
+     * Lấy thông tin token reset mật khẩu và đánh dấu đã sử dụng.
+     */
     private PasswordResetToken consumeTokenOrThrow(String tokenHash) {
         int updatedRows = tokenRepository.consumeToken(tokenHash, LocalDateTime.now());
         if (updatedRows == 0) {
@@ -225,18 +235,27 @@ public class PasswordResetServiceImpl implements PasswordResetService {
                 .orElseThrow(() -> new BusinessException("Liên kết đặt lại mật khẩu không hợp lệ"));
     }
 
+    /**
+     * Kiểm tra mật khẩu mới không được trùng với mật khẩu hiện tại.
+     */
     private void validateNewPasswordNotSameAsOld(String newPassword, String oldPasswordHash) {
         if (passwordEncoder.matches(newPassword, oldPasswordHash)) {
             throw new BusinessException("Mật khẩu mới không được trùng với mật khẩu hiện tại");
         }
     }
 
+    /**
+     * Cập nhật mật khẩu mới và lưu người dùng.
+     */
     private void updatePasswordAndSaveUser(User user, String newPassword) {
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
     }
 
+    /**
+     * Vô hiệu hóa tất cả token còn lại của người dùng.
+     */
     private void invalidateAllRemainingTokens(UUID userId) {
         List<PasswordResetToken> remainingTokens = tokenRepository.findByUser_UserIdAndIsUsedFalse(userId);
         if (!remainingTokens.isEmpty()) {
@@ -247,12 +266,18 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         }
     }
 
+    /**
+     * Tạo token ngẫu nhiên.
+     */
     private String generateRawToken() {
         byte[] randomBytes = new byte[TOKEN_BYTE_LENGTH];
         secureRandom.nextBytes(randomBytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
     }
 
+    /**
+     * Hash token.
+     */
     private String hashToken(String rawToken) {
         if (rawToken == null || rawToken.isBlank()) {
             return "";

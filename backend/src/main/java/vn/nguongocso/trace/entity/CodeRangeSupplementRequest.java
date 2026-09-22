@@ -26,30 +26,13 @@ import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.organization.entity.Organization;
 import vn.nguongocso.trace.enums.CodeRangeSupplementStatus;
 
-/**
- * Thực thể đại diện cho một yêu cầu cấp bổ sung dải mã truy xuất (NCL-04-CN-007).
- *
- * <p>
- * Quy trình:
- * <ol>
- *   <li>Quản lý hợp tác xã (VT-02) tạo yêu cầu (trạng thái {@code PENDING}),
- *       kèm số lượng đề nghị, lý do và bằng chứng sản lượng thực
- *       (danh sách ID sự kiện thu hoạch/sơ chế, lưu JSON).</li>
- *   <li>Quản trị viên nền tảng (VT-01) duyệt toàn bộ / duyệt một phần
- *       ({@code APPROVED}, tăng {@code totalLimit} của dải mã hiện có)
- *       hoặc từ chối kèm lý do ({@code REJECTED}).</li>
- * </ol>
- *
- * <p>
- * Mỗi tổ chức chỉ được có tối đa một yêu cầu {@code PENDING} tại một thời điểm.
- */
+/** Yêu cầu cấp bổ sung dải mã truy xuất. */
 @Entity
 @Table(name = "code_range_supplement_requests")
 @Getter
 @Setter
 @NoArgsConstructor
 public class CodeRangeSupplementRequest {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)
@@ -76,10 +59,6 @@ public class CodeRangeSupplementRequest {
     @Column(name = "reason", nullable = false, columnDefinition = "TEXT")
     private String reason;
 
-    /**
-     * Danh sách ID sự kiện thu hoạch (HARVEST) / sơ chế (PREPROCESSING)
-     * làm bằng chứng sản lượng thực, lưu dạng JSON array.
-     */
     @Column(name = "evidence_event_ids", nullable = false, columnDefinition = "TEXT")
     private String evidenceEventIds;
 

@@ -74,31 +74,17 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Lớp CertificationServiceImpl triển khai các phương thức của CertificationService.
- * Nó chịu trách nhiệm quản lý chứng nhận, gắn chứng nhận cho lô sản xuất,
- * tạo mới chứng nhận, kiểm tra hạn hiệu lực và xác thực/từ chối chứng nhận dành cho VT-01.
+ * Triển khai dịch vụ quản lý chứng nhận nông nghiệp của tổ chức và xác thực chứng nhận.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CertificationServiceImpl implements CertificationService {
-
-    /** Các trường cho phép sắp xếp danh sách chứng nhận tổ chức. */
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("name", "issueDate", "expiryDate");
-
-    /** Các trường cho phép sắp xếp danh sách quản trị viên VT-01. */
     private static final Set<String> ALLOWED_ADMIN_SORT_FIELDS = Set.of("createdAt", "reviewedAt", "expiryDate");
-
-    /** Trường sắp xếp mặc định cho danh sách tổ chức. */
     private static final String DEFAULT_SORT_FIELD = "issueDate";
-
-    /** Trường sắp xếp mặc định cho quản trị viên (mới nhất lên đầu). */
     private static final String DEFAULT_ADMIN_SORT_FIELD = "createdAt";
-
-    /** Số bản ghi tối đa mỗi trang. */
     private static final int MAX_PAGE_SIZE = 100;
-
-    /** Các loại tài liệu chứng nhận được phép lưu và hiển thị. */
     private static final Set<String> ALLOWED_DOCUMENT_TYPES = Set.of(
             MediaType.APPLICATION_PDF_VALUE,
             MediaType.IMAGE_JPEG_VALUE,
@@ -118,13 +104,10 @@ public class CertificationServiceImpl implements CertificationService {
 
     @Value("${app.certification.expiry-warning-threshold-days:30}")
     private int warningThresholdDays;
-
     @Value("${app.upload.base-dir:./uploads}")
     private String uploadBaseDir;
-
     @Value("${app.upload.certification.relative-path:certifications}")
     private String certificationRelativePath;
-
     @Value("${app.upload.certification.max-size:5242880}")
     private long certificationMaxFileSize;
 
@@ -133,7 +116,9 @@ public class CertificationServiceImpl implements CertificationService {
      */
     @Override
     @Transactional(readOnly = true)
-    public List<ProductionLotCertificationResponse> getCertificationsOfLot(UUID lotId, CustomUserDetails currentUser) {
+    public List<ProductionLotCertificationResponse> getCertificationsOfLot(
+            UUID lotId,
+            CustomUserDetails currentUser) {
         ProductionLot lot = findLotAndValidateOrganization(lotId, currentUser);
 
         List<ProductionLotCertification> list = plCertificationRepository.findByProductionLotId(lotId);
@@ -143,16 +128,13 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     /**
-     * Gắn chứng nhận cho lô sản xuất.
-     * Quy tắc QTN-13 (hạn dùng) và QTN-34 (xác thực):
-     * - PENDING + còn hạn -> ALLOW
-     * - VERIFIED + còn hạn -> ALLOW
-     * - REJECTED -> BLOCK (409 Conflict)
-     * - EXPIRED -> BLOCK (409 Conflict / BusinessException)
+     * Gắn chứng nhận hợp lệ vào lô sản xuất theo quy tắc nghiệp vụ.
      */
     @Override
     @Transactional
-    public ProductionLotCertificationResponse attachCertification(UUID lotId, AttachCertificationRequest request,
+    public ProductionLotCertificationResponse attachCertification(
+            UUID lotId,
+            AttachCertificationRequest request,
             CustomUserDetails currentUser) {
         // 1. Kiểm tra lô và quyền
         ProductionLot lot = findLotAndValidateOrganization(lotId, currentUser);
@@ -166,7 +148,8 @@ public class CertificationServiceImpl implements CertificationService {
 
         // 3. Kiểm tra trạng thái xác thực (QTN-34)
         if (cert.getVerificationStatus() == CertificationVerificationStatus.REJECTED) {
-            throw new BusinessException(HttpStatus.CONFLICT, "Chứng nhận đã bị từ chối xác thực, không thể gắn cho lô sản xuất.");
+            throw new BusinessException(HttpStatus.CONFLICT,
+                    "Chứng nhận đã bị từ chối xác thực, không thể gắn cho lô sản xuất.");
         }
 
         // 4. Kiểm tra hiệu lực (QTN-13)
@@ -204,7 +187,10 @@ public class CertificationServiceImpl implements CertificationService {
      */
     @Override
     @Transactional
-    public void detachCertification(UUID lotId, UUID certificationId, CustomUserDetails currentUser) {
+    public void detachCertification(
+            UUID lotId,
+            UUID certificationId,
+            CustomUserDetails currentUser) {
         // 1. Kiểm tra lô và quyền
         ProductionLot lot = findLotAndValidateOrganization(lotId, currentUser);
 
@@ -224,10 +210,11 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     /**
-     * Lấy danh sách chứng nhận hợp lệ của tổ chức hiện tại để gắn cho lô (loại bỏ EXPIRED và REJECTED).
+     * Lấy danh sách chứng nhận hợp lệ của tổ chức hiện tại để gắn cho lô.
      */
     @Override
-    public List<CertificationResponse> getValidCertifications(CustomUserDetails currentUser) {
+    public List<CertificationResponse> getValidCertifications(
+            CustomUserDetails currentUser) {
         List<Certification> certs = certificationRepository.findByOrganizationIdAndExpiryDateAfter(
                 currentUser.getOrganizationId(), LocalDate.now());
         return certs.stream()
@@ -236,11 +223,12 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     /**
-     * Tạo mới chứng nhận cho tổ chức hiện tại (khởi tạo verificationStatus = PENDING).
+     * Tạo mới chứng nhận cho tổ chức hiện tại.
      */
     @Override
     @Transactional
-    public CertificationResponse createCertification(CreateCertificationRequest request,
+    public CertificationResponse createCertification(
+            CreateCertificationRequest request,
             MultipartFile file,
             CustomUserDetails currentUser) {
         // 1. Kiểm tra quyền
@@ -308,8 +296,14 @@ public class CertificationServiceImpl implements CertificationService {
      */
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<CertificationResponse> searchCertifications(String keyword, String status,
-            String sortBy, String sortDir, int page, int size, CustomUserDetails currentUser) {
+    public PageResponse<CertificationResponse> searchCertifications(
+            String keyword,
+            String status,
+            String sortBy,
+            String sortDir,
+            int page,
+            int size,
+            CustomUserDetails currentUser) {
         if (page < 0) {
             page = 0;
         }
@@ -343,12 +337,8 @@ public class CertificationServiceImpl implements CertificationService {
         return PageResponse.from(result, items);
     }
 
-    // =========================================================================
-    // QUẢN TRỊ XÁC THỰC CHỨNG NHẬN (VT-01)
-    // =========================================================================
-
     /**
-     * Lấy danh sách chứng nhận trên toàn nền tảng để Quản trị viên (VT-01) kiểm tra, đối chiếu.
+     * Lấy danh sách chứng nhận trên toàn nền tảng để Quản trị viên kiểm tra, đối chiếu.
      */
     @Override
     @Transactional(readOnly = true)
@@ -366,7 +356,8 @@ public class CertificationServiceImpl implements CertificationService {
         validateAdminPaginationAndSort(sortBy, sortDir, page, size);
 
         // Mặc định lọc PENDING nếu client không truyền trạng thái
-        CertificationVerificationStatus targetStatus = (status != null) ? status : CertificationVerificationStatus.PENDING;
+        CertificationVerificationStatus targetStatus = (status != null) ? status
+                : CertificationVerificationStatus.PENDING;
 
         String sortField = (sortBy == null || sortBy.isBlank()) ? DEFAULT_ADMIN_SORT_FIELD : sortBy;
         Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
@@ -388,7 +379,7 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     /**
-     * Lấy chi tiết thông tin đối chiếu của một chứng nhận (VT-01).
+     * Lấy chi tiết thông tin đối chiếu của một chứng nhận cho Quản trị viên.
      */
     @Override
     @Transactional(readOnly = true)
@@ -404,7 +395,7 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     /**
-     * Lấy tài nguyên tệp đính kèm an toàn phục vụ xem đối chiếu (VT-01).
+     * Lấy tài nguyên tệp đính kèm an toàn phục vụ xem đối chiếu.
      */
     @Override
     @Transactional(readOnly = true)
@@ -422,7 +413,8 @@ public class CertificationServiceImpl implements CertificationService {
 
         Path filePath = resolveStoredDocumentPath(cert);
         if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
-            log.warn("🚨 Tệp chứng nhận vật lý bị mất trên máy chủ: certId={}, path={}", certificationId, cert.getDocumentStoragePath());
+            log.warn("🚨 Tệp chứng nhận vật lý bị mất trên máy chủ: certId={}, path={}", certificationId,
+                    cert.getDocumentStoragePath());
             throw new BusinessException(HttpStatus.GONE, "Tệp chứng nhận vật lý không còn trên máy chủ.");
         }
 
@@ -446,7 +438,7 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     /**
-     * Xác thực chứng nhận của tổ chức (VT-01).
+     * Xác thực chứng nhận của tổ chức bởi Quản trị viên nền tảng.
      */
     @Override
     @Transactional
@@ -483,7 +475,8 @@ public class CertificationServiceImpl implements CertificationService {
         }
         Path filePath = resolveStoredDocumentPath(cert);
         if (!Files.exists(filePath) || !Files.isReadable(filePath)) {
-            throw new BusinessException(HttpStatus.CONFLICT, "Tệp chứng nhận vật lý không tồn tại hoặc không thể đọc được.");
+            throw new BusinessException(HttpStatus.CONFLICT,
+                    "Tệp chứng nhận vật lý không tồn tại hoặc không thể đọc được.");
         }
 
         // 4. Xử lý ghi chú xác thực
@@ -510,7 +503,8 @@ public class CertificationServiceImpl implements CertificationService {
                 null);
 
         if (updatedCount == 0) {
-            throw new BusinessException(HttpStatus.CONFLICT, "Chứng nhận đã được xử lý trước đó hoặc không còn ở trạng thái chờ.");
+            throw new BusinessException(HttpStatus.CONFLICT,
+                    "Chứng nhận đã được xử lý trước đó hoặc không còn ở trạng thái chờ.");
         }
 
         // Đồng bộ entity trong phiên làm việc
@@ -534,7 +528,7 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     /**
-     * Từ chối xác thực chứng nhận của tổ chức (VT-01).
+     * Từ chối xác thực chứng nhận của tổ chức bởi Quản trị viên nền tảng.
      */
     @Override
     @Transactional
@@ -576,7 +570,8 @@ public class CertificationServiceImpl implements CertificationService {
                 trimmedReason);
 
         if (updatedCount == 0) {
-            throw new BusinessException(HttpStatus.CONFLICT, "Chứng nhận đã được xử lý trước đó hoặc không còn ở trạng thái chờ.");
+            throw new BusinessException(HttpStatus.CONFLICT,
+                    "Chứng nhận đã được xử lý trước đó hoặc không còn ở trạng thái chờ.");
         }
 
         // Đồng bộ entity trong phiên làm việc
@@ -592,7 +587,8 @@ public class CertificationServiceImpl implements CertificationService {
                 currentUser,
                 cert.getOrganization().getOrganizationId(),
                 "REJECT_CERTIFICATION",
-                "Từ chối xác thực chứng nhận '" + cert.getCode() + "' của tổ chức " + cert.getOrganization().getName() + ". Lý do: " + trimmedReason,
+                "Từ chối xác thực chứng nhận '" + cert.getCode() + "' của tổ chức " + cert.getOrganization().getName()
+                        + ". Lý do: " + trimmedReason,
                 "CERTIFICATION",
                 cert.getId().toString());
 
@@ -604,13 +600,21 @@ public class CertificationServiceImpl implements CertificationService {
         return response;
     }
 
-    // --- Helper methods ---
-
-    private record StoredDocument(Path storagePath, String originalFileName, String contentType, long fileSize) {
+    /**
+     * Record lưu trữ thông tin tệp chứng nhận đã lưu trên máy chủ.
+     */
+    private record StoredDocument(
+            Path storagePath,
+            String originalFileName,
+            String contentType,
+            long fileSize) {
     }
 
-    /** Kiểm tra tệp chứng nhận trước khi ghi xuống vùng lưu trữ riêng. */
-    private void validateCertificationDocument(MultipartFile file) {
+    /**
+     * Kiểm tra tệp chứng nhận trước khi ghi xuống vùng lưu trữ riêng.
+     */
+    private void validateCertificationDocument(
+            MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "Tệp chứng nhận không được để trống.");
         }
@@ -628,8 +632,12 @@ public class CertificationServiceImpl implements CertificationService {
         }
     }
 
-    /** Lưu tệp bằng tên sinh nội bộ và đăng ký dọn tệp nếu transaction rollback. */
-    private StoredDocument storeCertificationDocument(UUID certificationId, MultipartFile file) {
+    /**
+     * Lưu tệp bằng tên sinh nội bộ và đăng ký dọn tệp nếu transaction rollback.
+     */
+    private StoredDocument storeCertificationDocument(
+            UUID certificationId,
+            MultipartFile file) {
         Path root = getCertificationStorageRoot();
         Path directory = root.resolve(certificationId.toString()).normalize();
         if (!directory.startsWith(root)) {
@@ -679,12 +687,19 @@ public class CertificationServiceImpl implements CertificationService {
         return new StoredDocument(target.toAbsolutePath(), originalName, file.getContentType(), file.getSize());
     }
 
-    private String sanitizeOriginalFileName(String originalName) {
+    /**
+     * Chuẩn hóa tên tệp gốc loại bỏ các ký tự không an toàn.
+     */
+    private String sanitizeOriginalFileName(
+            String originalName) {
         String normalized = originalName.replace('\\', '/');
         String fileName = normalized.substring(normalized.lastIndexOf('/') + 1);
         return fileName.replaceAll("[\\p{Cntrl}]", "").trim();
     }
 
+    /**
+     * Lấy đường dẫn gốc của vùng lưu trữ tài liệu chứng nhận.
+     */
     private Path getCertificationStorageRoot() {
         Path base = Paths.get(uploadBaseDir).toAbsolutePath().normalize();
         Path root = base.resolve(certificationRelativePath).normalize();
@@ -694,8 +709,11 @@ public class CertificationServiceImpl implements CertificationService {
         return root;
     }
 
-    /** Chuẩn hóa và giới hạn đường dẫn đọc trong đúng vùng tài liệu chứng nhận. */
-    private Path resolveStoredDocumentPath(Certification certification) {
+    /**
+     * Chuẩn hóa và giới hạn đường dẫn đọc trong đúng vùng tài liệu chứng nhận.
+     */
+    private Path resolveStoredDocumentPath(
+            Certification certification) {
         if (certification.getDocumentContentType() == null
                 || !ALLOWED_DOCUMENT_TYPES.contains(certification.getDocumentContentType())) {
             throw new BusinessException(HttpStatus.CONFLICT, "Metadata loại tệp chứng nhận không hợp lệ.");
@@ -709,7 +727,14 @@ public class CertificationServiceImpl implements CertificationService {
         return filePath;
     }
 
-    private void validateAdminPaginationAndSort(String sortBy, String sortDir, int page, int size) {
+    /**
+     * Kiểm tra tính hợp lệ của tham số phân trang và sắp xếp cho quản trị viên.
+     */
+    private void validateAdminPaginationAndSort(
+            String sortBy,
+            String sortDir,
+            int page,
+            int size) {
         if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "Phân trang không hợp lệ.");
         }
@@ -721,9 +746,16 @@ public class CertificationServiceImpl implements CertificationService {
         }
     }
 
-    /** Lưu activity log trực tiếp để cùng commit hoặc rollback với nghiệp vụ chứng nhận. */
-    private void saveActivityLog(CustomUserDetails currentUser, UUID organizationId, String action,
-            String description, String entityType, String entityId) {
+    /**
+     * Lưu nhật ký hoạt động trực tiếp để cùng commit hoặc rollback với nghiệp vụ chứng nhận.
+     */
+    private void saveActivityLog(
+            CustomUserDetails currentUser,
+            UUID organizationId,
+            String action,
+            String description,
+            String entityType,
+            String entityId) {
         activityLogRepository.save(ActivityLog.builder()
                 .organizationId(organizationId)
                 .userId(currentUser.getUserId())
@@ -741,26 +773,40 @@ public class CertificationServiceImpl implements CertificationService {
     /**
      * Kiểm tra phòng vệ vai trò VT-01 (Quản trị viên nền tảng).
      */
-    private void validatePlatformAdmin(CustomUserDetails currentUser) {
+    private void validatePlatformAdmin(
+            CustomUserDetails currentUser) {
         if (currentUser == null || !"VT-01".equals(currentUser.getRoleCode())) {
             throw new AccessDeniedException("Chỉ Quản trị viên nền tảng (VT-01) mới có quyền thực hiện thao tác này.");
         }
     }
 
-    private boolean isValidStatusFilter(String status) {
+    /**
+     * Kiểm tra tính hợp lệ của bộ lọc trạng thái chứng nhận.
+     */
+    private boolean isValidStatusFilter(
+            String status) {
         return status != null
                 && (status.equalsIgnoreCase("valid")
                         || status.equalsIgnoreCase("expiring")
                         || status.equalsIgnoreCase("expired"));
     }
 
-    private Sort buildSort(String sortBy, String sortDir) {
+    /**
+     * Xây dựng đối tượng Sort từ trường và chiều sắp xếp.
+     */
+    private Sort buildSort(
+            String sortBy,
+            String sortDir) {
         String field = (sortBy != null && ALLOWED_SORT_FIELDS.contains(sortBy)) ? sortBy : DEFAULT_SORT_FIELD;
         Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
         return Sort.by(direction, field);
     }
 
-    private CertificationResponse toCertificationResponse(Certification cert) {
+    /**
+     * Chuyển đổi Certification entity sang response cho tổ chức.
+     */
+    private CertificationResponse toCertificationResponse(
+            Certification cert) {
         return CertificationResponse.builder()
                 .id(cert.getId())
                 .name(cert.getName())
@@ -775,7 +821,8 @@ public class CertificationServiceImpl implements CertificationService {
     /**
      * Chuyển đổi Certification entity sang response đối chiếu dành cho VT-01.
      */
-    private CertificationVerificationResponse toVerificationResponse(Certification cert) {
+    private CertificationVerificationResponse toVerificationResponse(
+            Certification cert) {
         LocalDate today = LocalDate.now();
         CertificationValidityStatus validityStatus = cert.getExpiryDate().isBefore(today)
                 ? CertificationValidityStatus.EXPIRED
@@ -821,17 +868,28 @@ public class CertificationServiceImpl implements CertificationService {
                 .build();
     }
 
-    private ProductionLot findLotAndValidateOrganization(UUID lotId, CustomUserDetails currentUser) {
+    /**
+     * Tìm kiếm lô sản xuất và kiểm tra quyền truy cập của tổ chức.
+     */
+    private ProductionLot findLotAndValidateOrganization(
+            UUID lotId,
+            CustomUserDetails currentUser) {
         ProductionLot lot = productionLotRepository.findById(lotId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lô sản xuất."));
-        boolean isAdmin = currentUser != null && ("VT-01".equals(currentUser.getRoleCode()) || "ROLE_ADMIN".equals(currentUser.getRoleCode()));
-        if (!isAdmin && (currentUser == null || !lot.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId()))) {
+        boolean isAdmin = currentUser != null
+                && ("VT-01".equals(currentUser.getRoleCode()) || "ROLE_ADMIN".equals(currentUser.getRoleCode()));
+        if (!isAdmin && (currentUser == null
+                || !lot.getOrganization().getOrganizationId().equals(currentUser.getOrganizationId()))) {
             throw new BusinessException("Bạn không có quyền thao tác trên lô sản xuất này.");
         }
         return lot;
     }
 
-    private ProductionLotCertificationResponse toResponse(ProductionLotCertification plc) {
+    /**
+     * Chuyển đổi liên kết chứng nhận lô sản xuất sang DTO phản hồi.
+     */
+    private ProductionLotCertificationResponse toResponse(
+            ProductionLotCertification plc) {
         Certification cert = plc.getCertification();
         return ProductionLotCertificationResponse.builder()
                 .id(plc.getId())
@@ -848,13 +906,28 @@ public class CertificationServiceImpl implements CertificationService {
                 .build();
     }
 
-    private void publishActivityLog(CustomUserDetails currentUser, String action, String description,
-            String entityType, String entityId) {
+    /**
+     * Phát sự kiện ghi nhật ký hoạt động của người dùng hiện tại.
+     */
+    private void publishActivityLog(
+            CustomUserDetails currentUser,
+            String action,
+            String description,
+            String entityType,
+            String entityId) {
         publishActivityLog(currentUser, currentUser.getOrganizationId(), action, description, entityType, entityId);
     }
 
-    private void publishActivityLog(CustomUserDetails currentUser, UUID organizationId, String action, String description,
-            String entityType, String entityId) {
+    /**
+     * Phát sự kiện ghi nhật ký hoạt động gắn với tổ chức chỉ định.
+     */
+    private void publishActivityLog(
+            CustomUserDetails currentUser,
+            UUID organizationId,
+            String action,
+            String description,
+            String entityType,
+            String entityId) {
         eventPublisher.publishEvent(ActivityLogEvent.builder()
                 .userId(currentUser.getUserId())
                 .username(currentUser.getUsername())
@@ -870,7 +943,7 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     /**
-     * Quét và kiểm tra hạn hiệu lực của các chứng nhận.
+     * Quét và kiểm tra hạn hiệu lực của các chứng nhận trên hệ thống.
      */
     @Override
     @Transactional
@@ -897,7 +970,12 @@ public class CertificationServiceImpl implements CertificationService {
         }
     }
 
-    private void processExpiredCertification(Certification cert, LocalDate today) {
+    /**
+     * Xử lý phát sinh cảnh báo khi chứng nhận đã hết hiệu lực.
+     */
+    private void processExpiredCertification(
+            Certification cert,
+            LocalDate today) {
         autoResolveExpiringAlert(cert.getId());
 
         boolean exists = alertRepository.existsByRelatedEntityIdAndTypeAndStatus(
@@ -941,7 +1019,12 @@ public class CertificationServiceImpl implements CertificationService {
         }
     }
 
-    private void processExpiringCertification(Certification cert, long daysRemaining) {
+    /**
+     * Xử lý phát sinh cảnh báo khi chứng nhận sắp hết hiệu lực.
+     */
+    private void processExpiringCertification(
+            Certification cert,
+            long daysRemaining) {
         boolean exists = alertRepository.existsByRelatedEntityIdAndTypeAndStatus(
                 cert.getId(),
                 AlertType.CERT_EXPIRING,
@@ -983,9 +1066,10 @@ public class CertificationServiceImpl implements CertificationService {
     }
 
     /**
-     * Kiểm tra nhanh và phát sinh cảnh báo cho một chứng nhận đơn lẻ (dùng khi tạo mới hoặc cập nhật).
+     * Kiểm tra nhanh và phát sinh cảnh báo cho một chứng nhận đơn lẻ.
      */
-    private void checkAndCreateAlertForSingleCertification(Certification cert) {
+    private void checkAndCreateAlertForSingleCertification(
+            Certification cert) {
         if (cert == null || cert.getExpiryDate() == null) {
             return;
         }
@@ -1001,7 +1085,11 @@ public class CertificationServiceImpl implements CertificationService {
         }
     }
 
-    private void autoResolveExpiringAlert(UUID certificationId) {
+    /**
+     * Tự động giải quyết cảnh báo sắp hết hiệu lực khi chứng nhận đã hết hạn.
+     */
+    private void autoResolveExpiringAlert(
+            UUID certificationId) {
         List<Alert> pendingExpiringAlerts = alertRepository.findByRelatedEntityIdAndTypeAndStatus(
                 certificationId,
                 AlertType.CERT_EXPIRING,

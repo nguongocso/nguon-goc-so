@@ -25,48 +25,47 @@ import java.util.UUID;
 @RequestMapping("/api/v1/product-categories/{id}")
 @RequiredArgsConstructor
 public class ProductCategoryCriterionController {
+        private final CategoryCriterionAssignmentService categoryCriterionAssignmentService;
 
-    private final CategoryCriterionAssignmentService categoryCriterionAssignmentService;
+        /**
+         * Lấy bộ chỉ tiêu của loại nông sản. §4.7
+         */
+        @GetMapping("/criteria")
+        @PreAuthorize("isAuthenticated()")
+        public ApiResult<List<InspectionCriterionCatalogResponse>> getCriteria(
+                        @PathVariable UUID id,
+                        @RequestParam(defaultValue = "true") boolean activeOnly,
+                        @AuthenticationPrincipal CustomUserDetails currentUser) {
+                List<InspectionCriterionCatalogResponse> response = categoryCriterionAssignmentService
+                                .getCategoryCriteria(id, activeOnly, currentUser);
+                return ApiResult.success(response);
+        }
 
-    /**
-     * Lấy bộ chỉ tiêu của loại nông sản. §4.7
-     */
-    @GetMapping("/criteria")
-    @PreAuthorize("isAuthenticated()")
-    public ApiResult<List<InspectionCriterionCatalogResponse>> getCriteria(
-            @PathVariable UUID id,
-            @RequestParam(defaultValue = "true") boolean activeOnly,
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
-        List<InspectionCriterionCatalogResponse> response =
-                categoryCriterionAssignmentService.getCategoryCriteria(id, activeOnly, currentUser);
-        return ApiResult.success(response);
-    }
+        /**
+         * Gán (replace) bộ chỉ tiêu cho loại nông sản. §4.8 — chỉ PLATFORM_ADMIN.
+         */
+        @PutMapping("/criteria")
+        @PreAuthorize("hasRole('VT-01')")
+        public ResponseEntity<ApiResult<List<InspectionCriterionCatalogResponse>>> assignCriteria(
+                        @PathVariable UUID id,
+                        @Valid @RequestBody CategoryCriteriaRequest request,
+                        @AuthenticationPrincipal CustomUserDetails currentUser) {
+                List<InspectionCriterionCatalogResponse> response = categoryCriterionAssignmentService
+                                .assignCriteria(id, request, currentUser);
+                return ResponseEntity.ok(ApiResult.success(response));
+        }
 
-    /**
-     * Gán (replace) bộ chỉ tiêu cho loại nông sản. §4.8 — chỉ PLATFORM_ADMIN.
-     */
-    @PutMapping("/criteria")
-    @PreAuthorize("hasRole('VT-01')")
-    public ResponseEntity<ApiResult<List<InspectionCriterionCatalogResponse>>> assignCriteria(
-            @PathVariable UUID id,
-            @Valid @RequestBody CategoryCriteriaRequest request,
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
-        List<InspectionCriterionCatalogResponse> response =
-                categoryCriterionAssignmentService.assignCriteria(id, request, currentUser);
-        return ResponseEntity.ok(ApiResult.success(response));
-    }
-
-    /**
-     * Bật/tắt cờ bắt buộc kiểm nghiệm. §4.9 — chỉ PLATFORM_ADMIN.
-     */
-    @PutMapping("/mandatory-inspection")
-    @PreAuthorize("hasRole('VT-01')")
-    public ResponseEntity<ApiResult<ProductCategoryResponse>> setMandatoryInspection(
-            @PathVariable UUID id,
-            @Valid @RequestBody MandatoryInspectionRequest request,
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
-        ProductCategoryResponse response =
-                categoryCriterionAssignmentService.setMandatoryInspection(id, request, currentUser);
-        return ResponseEntity.ok(ApiResult.success(response));
-    }
+        /**
+         * Bật/tắt cờ bắt buộc kiểm nghiệm. §4.9 — chỉ PLATFORM_ADMIN.
+         */
+        @PutMapping("/mandatory-inspection")
+        @PreAuthorize("hasRole('VT-01')")
+        public ResponseEntity<ApiResult<ProductCategoryResponse>> setMandatoryInspection(
+                        @PathVariable UUID id,
+                        @Valid @RequestBody MandatoryInspectionRequest request,
+                        @AuthenticationPrincipal CustomUserDetails currentUser) {
+                ProductCategoryResponse response = categoryCriterionAssignmentService.setMandatoryInspection(id,
+                                request, currentUser);
+                return ResponseEntity.ok(ApiResult.success(response));
+        }
 }

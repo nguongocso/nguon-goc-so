@@ -31,7 +31,6 @@ import org.hibernate.type.SqlTypes;
 @AllArgsConstructor
 @Builder
 public class PasswordResetToken {
-
     @Id
     @Column(name = "id")
     @JdbcTypeCode(SqlTypes.CHAR)

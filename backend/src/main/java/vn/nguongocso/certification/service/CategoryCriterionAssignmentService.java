@@ -14,22 +14,21 @@ import java.util.UUID;
  * Story: NCL-09-CN-009
  */
 public interface CategoryCriterionAssignmentService {
+        /**
+         * Lấy bộ chỉ tiêu đã gán cho loại nông sản.
+         */
+        List<InspectionCriterionCatalogResponse> getCategoryCriteria(
+                        UUID categoryId, boolean activeOnly, CustomUserDetails currentUser);
 
-    /**
-     * Lấy bộ chỉ tiêu đã gán cho loại nông sản. §4.7
-     */
-    List<InspectionCriterionCatalogResponse> getCategoryCriteria(
-            UUID categoryId, boolean activeOnly, CustomUserDetails currentUser);
+        /**
+         * Gán (replace) bộ chỉ tiêu cho loại nông sản.
+         */
+        List<InspectionCriterionCatalogResponse> assignCriteria(
+                        UUID categoryId, CategoryCriteriaRequest request, CustomUserDetails currentUser);
 
-    /**
-     * Gán (replace) bộ chỉ tiêu cho loại nông sản. §4.8 — chỉ PLATFORM_ADMIN.
-     */
-    List<InspectionCriterionCatalogResponse> assignCriteria(
-            UUID categoryId, CategoryCriteriaRequest request, CustomUserDetails currentUser);
-
-    /**
-     * Bật/tắt cờ bắt buộc kiểm nghiệm cho loại nông sản. §4.9 — chỉ PLATFORM_ADMIN.
-     */
-    ProductCategoryResponse setMandatoryInspection(
-            UUID categoryId, MandatoryInspectionRequest request, CustomUserDetails currentUser);
+        /**
+         * Bật/tắt cờ bắt buộc kiểm nghiệm cho loại nông sản.
+         */
+        ProductCategoryResponse setMandatoryInspection(
+                        UUID categoryId, MandatoryInspectionRequest request, CustomUserDetails currentUser);
 }
