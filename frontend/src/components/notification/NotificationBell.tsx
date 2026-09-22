@@ -28,14 +28,14 @@ export const NotificationBell = () => {
   const isMissingEmail = Boolean(
     user &&
     hasAnyRole(user.roleCode, ROLE_ACCESS.userProfile) &&
-    (!user.email || user.email.trim() === '')
+    (!user.email || user.email.trim() === ''),
   );
 
   const isMissingTerritory = Boolean(
     user &&
     hasAnyRole(user.roleCode, ROLE_ACCESS.organizationProfile) &&
     user.roleCode === 'VT-02' &&
-    (!user.organizationProvinceId || !user.organizationCommuneId)
+    (!user.organizationProvinceId || !user.organizationCommuneId),
   );
 
   const emailNoticeKey = user ? `session_read_email_notice_${user.userId}` : '';
@@ -50,7 +50,7 @@ export const NotificationBell = () => {
     return territoryNoticeKey ? sessionStorage.getItem(territoryNoticeKey) === 'true' : false;
   });
 
-  // Đồng bộ trạng thái đã đọc khi user thay đổi hoặc email/địa bàn cập nhật
+  // Đồng bộ trạng thái đã đọc khi user hoặc thông tin tài khoản thay đổi
   useEffect(() => {
     if (emailNoticeKey) {
       setIsEmailNoticeRead(sessionStorage.getItem(emailNoticeKey) === 'true');
@@ -63,7 +63,6 @@ export const NotificationBell = () => {
     }
   }, [territoryNoticeKey, user?.organizationProvinceId, user?.organizationCommuneId]);
 
-  // Tổng số lượng thông báo chưa đọc (bao gồm thông báo nhắc email và nhắc địa bàn nếu chưa đọc)
   const totalUnreadCount =
     apiUnreadCount +
     (isMissingEmail && !isEmailNoticeRead ? 1 : 0) +
@@ -103,10 +102,9 @@ export const NotificationBell = () => {
       navigate(`/shipment-handovers/${notification.entityId}`);
       return;
     }
-    // NCL-11-CN-004: Điều hướng tới danh sách lô sản xuất khi thông báo liên quan đến kiểm nghiệm
     const text = `${notification.title} ${notification.content}`.toLowerCase();
-    if (text.includes("kiểm nghiệm") || text.includes("lô sản xuất")) {
-      navigate("/production-lots");
+    if (text.includes('kiểm nghiệm') || text.includes('lô sản xuất')) {
+      navigate('/production-lots');
     }
   };
 
