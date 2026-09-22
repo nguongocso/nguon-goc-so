@@ -1,14 +1,12 @@
 package vn.nguongocso.integration.partner.enums;
 
-/**
- * Trạng thái phân phối thông báo Webhook tới bên thứ ba.
-*/
+/** Trạng thái phân phối thông báo Webhook tới bên thứ ba. */
 public enum WebhookDeliveryStatus {
-    SUCCESS,
+    SUCCESS, // Thành công
 
-    PENDING_RETRY,
+    PENDING_RETRY, // Đang thử lại
 
-    FAILED,
+    FAILED, // Thất bại
 
-    CANCELLED
+    CANCELLED // Đã hủy
 }

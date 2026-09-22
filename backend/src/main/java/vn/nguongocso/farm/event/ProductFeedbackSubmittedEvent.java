@@ -29,27 +29,22 @@ public class ProductFeedbackSubmittedEvent extends ApplicationEvent {
         this.content = content;
     }
 
-    /** Lấy mã phản hồi. */
     public UUID getFeedbackId() {
         return feedbackId;
     }
 
-    /** Lấy mã lô sản xuất. */
     public UUID getProductionLotId() {
         return productionLotId;
     }
 
-    /** Lấy tên lô sản xuất. */
     public String getProductionLotName() {
         return productionLotName;
     }
 
-    /** Lấy mã tổ chức. */
     public UUID getOrganizationId() {
         return organizationId;
     }
 
-    /** Lấy nội dung phản hồi. */
     public String getContent() {
         return content;
     }

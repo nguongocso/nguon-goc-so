@@ -20,15 +20,16 @@ import vn.nguongocso.integration.apikey.entity.PartnerApiKeyDailyUsage;
 */
 @Repository
 public interface PartnerApiKeyDailyUsageRepository extends JpaRepository<PartnerApiKeyDailyUsage, UUID> {
+    /** Tìm bản ghi theo khóa và ngày sử dụng. */
     Optional<PartnerApiKeyDailyUsage> findByApiKeyIdAndUsageDate(UUID apiKeyId, LocalDate usageDate);
 
+    /** Tìm các bản ghi theo danh sách khóa và ngày sử dụng. */
     List<PartnerApiKeyDailyUsage> findByApiKeyIdInAndUsageDate(Collection<UUID> apiKeyIds, LocalDate usageDate);
 
+    /** Tìm các bản ghi chưa gửi cảnh báo theo ngày. */
     List<PartnerApiKeyDailyUsage> findByUsageDateAndWarningSentAtIsNull(LocalDate usageDate);
 
-    /**
-     * Cộng thêm một lượt gọi cho khóa trong ngày.
-     */
+    /** Cộng thêm một lượt gọi cho khóa trong ngày. */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE PartnerApiKeyDailyUsage u "
             + "SET u.callCount = u.callCount + 1, u.updatedAt = :now "
@@ -37,18 +38,14 @@ public interface PartnerApiKeyDailyUsageRepository extends JpaRepository<Partner
             @Param("usageDate") LocalDate usageDate,
             @Param("now") LocalDateTime now);
 
-    /**
-     * Giành quyền gửi cảnh báo hạn mức cho một dòng usage.
-     */
+    /** Giành quyền gửi cảnh báo hạn mức cho một dòng usage. */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE PartnerApiKeyDailyUsage u "
             + "SET u.warningSentAt = :now, u.updatedAt = :now "
             + "WHERE u.id = :id AND u.warningSentAt IS NULL")
     int claimWarning(@Param("id") UUID id, @Param("now") LocalDateTime now);
 
-    /**
-     * Nhả quyền gửi cảnh báo để lần đối soát sau thử lại.
-     */
+    /** Nhả quyền gửi cảnh báo để lần đối soát sau thử lại. */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE PartnerApiKeyDailyUsage u "
             + "SET u.warningSentAt = NULL, u.updatedAt = :now "

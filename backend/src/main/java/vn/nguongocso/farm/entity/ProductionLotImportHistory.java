@@ -25,9 +25,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
 import vn.nguongocso.auth.entity.User;
 import vn.nguongocso.farm.enums.ProductionLotImportStatus;
 import vn.nguongocso.organization.entity.Organization;
@@ -43,7 +40,6 @@ import vn.nguongocso.organization.entity.Organization;
 @AllArgsConstructor
 @Builder
 public class ProductionLotImportHistory {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)

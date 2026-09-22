@@ -23,30 +23,31 @@ import vn.nguongocso.integration.apikey.enums.PartnerApiKeyStatus;
 */
 @Repository
 public interface PartnerApiKeyRepository extends JpaRepository<PartnerApiKey, UUID> {
+    /** Tìm khóa theo hash. */
     Optional<PartnerApiKey> findByKeyHash(String keyHash);
 
+    /** Tìm khóa theo tổ chức với phân trang. */
     Page<PartnerApiKey> findByOrganizationOrganizationId(UUID organizationId, Pageable pageable);
 
+    /** Tìm khóa theo tổ chức và trạng thái với phân trang. */
     Page<PartnerApiKey> findByOrganizationOrganizationIdAndStatus(UUID organizationId, PartnerApiKeyStatus status,
             Pageable pageable);
 
+    /** Tìm khóa theo ID và tổ chức. */
     @Query("SELECT k FROM PartnerApiKey k WHERE k.id = :id AND k.organization.organizationId = :organizationId")
     Optional<PartnerApiKey> findByIdAndOrganizationId(@Param("id") UUID id,
             @Param("organizationId") UUID organizationId);
 
-    /**
-     * Tìm khóa kèm khóa ghi bi quan để cộng dồn hạn mức an toàn.
-     */
+    /** Tìm khóa kèm khóa ghi bi quan để cộng dồn hạn mức an toàn. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT k FROM PartnerApiKey k WHERE k.id = :id AND k.organization.organizationId = :organizationId")
     Optional<PartnerApiKey> findByIdAndOrganizationIdForUpdate(@Param("id") UUID id,
             @Param("organizationId") UUID organizationId);
 
+    /** Tìm khóa theo trạng thái. */
     List<PartnerApiKey> findByStatus(PartnerApiKeyStatus status);
 
-    /**
-     * Tìm các khóa đủ điều kiện nhận thông báo Webhook thu hồi.
-     */
+    /** Tìm các khóa đủ điều kiện nhận thông báo Webhook thu hồi. */
     @Query("""
             SELECT k FROM PartnerApiKey k
             WHERE k.id IN :ids

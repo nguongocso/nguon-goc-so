@@ -1,18 +1,26 @@
 package vn.nguongocso.farm.enums;
 
-/**
- * Trạng thái vòng đời của lô sản xuất.
-*/
+/** Trạng thái vòng đời của lô sản xuất. */
 public enum ProductionLotStatus {
-    DRAFT,
-    PENDING,
-    APPROVED,
-    REJECTED,
-    HARVESTED,
-    PREPROCESSED,
-    PACKAGED,
-    CLOSED,
-    RECALLED,
-    CANCELLED,
-    DISPOSED
+    DRAFT, // Nháp
+
+    PENDING, // Chờ duyệt
+
+    APPROVED, // Đã duyệt
+
+    REJECTED, // Bị từ chối
+
+    HARVESTED, // Đã thu hoạch
+
+    PREPROCESSED, // Đã sơ chế
+
+    PACKAGED, // Đã đóng gói
+
+    CLOSED, // Đã đóng
+
+    RECALLED, // Đã thu hồi
+
+    CANCELLED, // Đã hủy
+
+    DISPOSED // Đã tiêu hủy
 }
