@@ -7,7 +7,9 @@ export type NotificationType =
   | 'ANOMALY_OPEN'
   | 'ANOMALY_DISMISSED'
   | 'ACCOUNT_UNLOCKED'
-  | 'ACTIVITY_LOG_EXPORT_READY';
+  | 'ACTIVITY_LOG_EXPORT_READY'
+  | 'FARM_LOG_SYNC_SUCCESS'
+  | 'FARM_LOG_SYNC_FAILED';
 
 export interface NotificationResponse {
   id: string;
@@ -39,6 +41,10 @@ export interface MarkReadResponse {
   id: string;
   isRead: boolean;
   readAt: string | null;
+}
+
+export interface MarkAllReadResponse {
+  markedReadCount: number;
 }
 
 export interface GetNotificationsParams {

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { AlertTriangle, Bell, CheckCircle2, Info, MailWarning, MapPinOff } from 'lucide-react';
+import { AlertTriangle, Bell, CheckCircle2, Info, MailWarning, MapPinOff, RefreshCw } from 'lucide-react';
 import type { NotificationResponse, NotificationType } from '@/types/notification';
 import { cn } from '@/lib/utils';
 
@@ -13,6 +13,10 @@ interface NotificationPanelProps {
   isMissingTerritory?: boolean;
   isTerritoryNoticeRead?: boolean;
   onTerritoryNoticeClick?: () => void;
+  unreadCount?: number;
+  onMarkAllAsRead?: () => void;
+  isMarkingAllAsRead?: boolean;
+  onClose?: () => void;
 }
 
 const TYPE_ICON: Record<NotificationType, typeof Bell> = {
@@ -25,6 +29,8 @@ const TYPE_ICON: Record<NotificationType, typeof Bell> = {
   ANOMALY_DISMISSED: CheckCircle2,
   ACCOUNT_UNLOCKED: Info,
   ACTIVITY_LOG_EXPORT_READY: CheckCircle2,
+  FARM_LOG_SYNC_SUCCESS: CheckCircle2,
+  FARM_LOG_SYNC_FAILED: RefreshCw,
 };
 
 const TYPE_STYLE: Record<NotificationType, string> = {
@@ -37,6 +43,8 @@ const TYPE_STYLE: Record<NotificationType, string> = {
   ANOMALY_DISMISSED: 'bg-success-bg text-success',
   ACCOUNT_UNLOCKED: 'bg-info-bg text-info',
   ACTIVITY_LOG_EXPORT_READY: 'bg-success-bg text-success',
+  FARM_LOG_SYNC_SUCCESS: 'bg-success-bg text-success',
+  FARM_LOG_SYNC_FAILED: 'bg-warning-bg text-status-pending',
 };
 
 const formatNotificationReason = (content: string) => {
@@ -74,11 +82,25 @@ export const NotificationPanel = ({
   isMissingTerritory = false,
   isTerritoryNoticeRead = false,
   onTerritoryNoticeClick,
+  unreadCount = 0,
+  onMarkAllAsRead,
+  isMarkingAllAsRead = false,
+  onClose,
 }: NotificationPanelProps) => {
   return (
     <div className="w-80 max-w-[90vw]">
       <div className="flex items-center justify-between border-b px-3 py-2.5">
         <p className="text-sm font-semibold">Thông báo</p>
+        {unreadCount > 0 && onMarkAllAsRead && (
+          <button
+            type="button"
+            onClick={onMarkAllAsRead}
+            disabled={isMarkingAllAsRead}
+            className="text-xs font-medium text-primary hover:text-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isMarkingAllAsRead ? 'Đang xử lý...' : 'Đánh dấu tất cả đã đọc'}
+          </button>
+        )}
       </div>
 
       <div className="max-h-96 overflow-y-auto">
@@ -202,6 +224,7 @@ export const NotificationPanel = ({
       <div className="border-t px-3 py-2">
         <Link
           to="/notifications"
+          onClick={onClose}
           className="block text-center text-sm font-medium text-primary hover:text-primary-hover"
         >
           Xem tất cả

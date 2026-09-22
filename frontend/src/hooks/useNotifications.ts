@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { toApiError } from '@/api/apiError';
 import {
   getNotifications,
+  markAllNotificationsAsRead,
   markNotificationAsRead,
 } from '@/api/notificationApi';
 import type {
@@ -77,6 +78,20 @@ export const useNotifications = ({
     }
   }, [load, page]);
 
+  const markAllAsRead = useCallback(async () => {
+    try {
+      const data = await markAllNotificationsAsRead();
+      // Đồng bộ lại danh sách sau khi đánh dấu đã đọc toàn bộ
+      await load(0);
+      return data.markedReadCount;
+    } catch (error: unknown) {
+      // Chuẩn hoá lỗi API để UI hiển thị thông báo thống nhất
+      const message = toApiError(error, 'Không thể đánh dấu tất cả thông báo đã đọc.').message;
+      toast.error(message);
+      return 0;
+    }
+  }, [load]);
+
   return {
     items,
     page,
@@ -85,5 +100,6 @@ export const useNotifications = ({
     isLoading,
     load,
     markAsRead,
+    markAllAsRead,
   };
 };
