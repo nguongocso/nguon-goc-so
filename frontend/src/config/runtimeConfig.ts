@@ -1,16 +1,13 @@
-// ============================================================
-// Runtime configuration resolver
-// ------------------------------------------------------------
-// Resolves environment-specific values with the following priority:
-//   1. window.__RUNTIME_CONFIG__ (populated by /config.js at runtime)
-//   2. Vite build-time env vars (import.meta.env.*)
-//   3. Same-origin defaults (Nginx reverse-proxies /api -> backend)
-//
-// This keeps the API base URL configurable at runtime per environment
-// without rebuilding the frontend image.
-// ============================================================
+/**
+ * Bộ giải quyết cấu hình môi trường runtime cho ứng dụng frontend.
+ * Hỗ trợ nạp động cấu hình từ window.__RUNTIME_CONFIG__, biến môi trường Vite build-time,
+ * hoặc fallback về reverse proxy cùng origin (/api/v1).
+ */
 
-interface RuntimeConfig {
+/**
+ * Định nghĩa cấu trúc các biến cấu hình runtime của ứng dụng.
+ */
+export interface RuntimeConfig {
   API_BASE_URL: string;
   ASSET_BASE_URL: string;
 }
@@ -21,17 +18,26 @@ declare global {
   }
 }
 
-/** Returns the configured value if it is a real value (non-empty, not a placeholder). */
+/**
+ * Kiểm tra một giá trị cấu hình có hợp lệ hay không (không rỗng và không phải placeholder dạng __KEY__).
+ *
+ * @param value Giá trị chuỗi cần kiểm tra.
+ * @returns `true` nếu giá trị chuỗi hợp lệ và đã được thiết lập.
+ */
 function isConfigured(value: string | undefined): value is string {
   return (
     !!value &&
     value.trim().length > 0 &&
-    !value.startsWith("__") &&
-    !value.endsWith("__")
+    !value.startsWith('__') &&
+    !value.endsWith('__')
   );
 }
 
-/** Resolve the API base URL used by the Axios client (expected to end with /api/v1). */
+/**
+ * Lấy URL gốc cho API client (đảm bảo luôn kết thúc bằng /api/v1).
+ *
+ * @returns Đường dẫn gốc API chuẩn hoá.
+ */
 export function getApiBaseUrl(): string {
   const fromWindow = window.__RUNTIME_CONFIG__?.API_BASE_URL;
   if (isConfigured(fromWindow)) {
@@ -44,54 +50,66 @@ export function getApiBaseUrl(): string {
     return normalizeApiBaseUrl(fromVite);
   }
 
-  // Same-origin default: Nginx proxies /api -> backend service.
-  return normalizeApiBaseUrl("/api/v1");
+  // Mặc định cùng origin: Nginx reverse proxy chuyển tiếp /api -> backend service
+  return normalizeApiBaseUrl('/api/v1');
 }
 
-/** Resolve the base URL for downloadable/static assets (e.g. QR code images). */
+/**
+ * Lấy URL gốc cho các tài nguyên tĩnh hoặc file tải xuống (ví dụ: hình ảnh mã QR).
+ *
+ * @returns Đường dẫn gốc của tài nguyên tĩnh đã loại bỏ dấu gạch chéo cuối.
+ */
 export function getAssetBaseUrl(): string {
   const fromWindow = window.__RUNTIME_CONFIG__?.ASSET_BASE_URL;
   if (isConfigured(fromWindow)) {
-    return fromWindow.replace(/\/$/, "");
+    return fromWindow.replace(/\/$/, '');
   }
 
   const fromVite = import.meta.env.VITE_ASSET_BASE_URL;
   if (isConfigured(fromVite)) {
-    return fromVite.replace(/\/$/, "");
+    return fromVite.replace(/\/$/, '');
   }
 
-  // Derive from the API URL: strip a trailing /api/v1 (or /api) suffix.
+  // Suy xuất từ API URL: loại bỏ hậu tố /api/v1 hoặc /api
   const apiBase = getApiBaseUrl();
-  return apiBase.replace(/\/api(?:\/v1)?\/?$/, "").replace(/\/$/, "");
+  return apiBase.replace(/\/api(?:\/v1)?\/?$/, '').replace(/\/$/, '');
 }
 
-/** Resolve a full URL for an asset path (e.g. /uploads/avatar/xxx.png). */
+/**
+ * Tạo URL đầy đủ cho đường dẫn tài nguyên (ví dụ: /uploads/avatar/sample.png).
+ *
+ * @param url Đường dẫn tương đối hoặc tuyệt đối của tài nguyên.
+ * @returns URL hoàn chỉnh để truy cập tài nguyên hoặc undefined nếu url rỗng.
+ */
 export function getAssetUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
   if (
-    url.startsWith("http://") ||
-    url.startsWith("https://") ||
-    url.startsWith("data:") ||
-    url.startsWith("blob:")
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('data:') ||
+    url.startsWith('blob:')
   ) {
     return url;
   }
   const assetBase = getAssetBaseUrl();
   if (!assetBase) return url;
-  const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+  const cleanUrl = url.startsWith('/') ? url : `/${url}`;
   return `${assetBase}${cleanUrl}`;
 }
 
-/** Ensure the value ends with /api/v1. */
+/**
+ * Chuẩn hoá đường dẫn gốc API để luôn kết thúc bằng /api/v1.
+ *
+ * @param raw Chuỗi URL thô ban đầu.
+ * @returns Chuỗi URL chuẩn hoá kết thúc bằng /api/v1.
+ */
 function normalizeApiBaseUrl(raw: string): string {
   const value = raw.trim();
   if (/\/api\/v1\/?$/.test(value)) {
-    return value.replace(/\/$/, "");
+    return value.replace(/\/$/, '');
   }
-  // If a shorter /api suffix is present, extend it to /api/v1.
   if (/\/api\/?$/.test(value)) {
-    return value.replace(/\/+$/, "") + "/v1";
+    return value.replace(/\/+$/, '') + '/v1';
   }
-  // Otherwise treat it as the origin root and append /api/v1.
-  return value.replace(/\/+$/, "") + "/api/v1";
+  return value.replace(/\/+$/, '') + '/api/v1';
 }
