@@ -69,7 +69,8 @@ public class AuditAspect {
             }
             context.setVariable("result", result);
 
-            String evaluatedDescription = parser.parseExpression(auditable.description()).getValue(context, String.class);
+            String evaluatedDescription = parser.parseExpression(auditable.description())
+                    .getValue(context, String.class);
             String beforeValue = evaluateOptionalExpression(auditable.beforeValue(), context);
             String afterValue = evaluateOptionalExpression(auditable.afterValue(), context);
 

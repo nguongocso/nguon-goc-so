@@ -243,8 +243,7 @@ public class AnomalyThresholdServiceImpl implements AnomalyThresholdService {
 
             TraceCode tc = scans.get(0).getTraceCode();
 
-            // Áp dụng gate thời gian ân hạn: chỉ đánh giá các lượt quét sau thời gian ân
-            // hạn
+            // Áp dụng gate thời gian ân hạn: chỉ đánh giá các lượt quét sau thời gian ân hạn
             List<TraceCodeScanLog> evaluatedScans = scans.stream()
                     .filter(s -> !ScanAnomalyUtils.isWithinGracePeriod(tc.getActivatedAt(), s.getScannedAt(),
                             request.getActivationAgeDays()))
@@ -266,8 +265,7 @@ public class AnomalyThresholdServiceImpl implements AnomalyThresholdService {
             if (impossibleTravel)
                 impossibleTravelCount++;
 
-            // Chỉ gắn cờ bất thường khi vi phạm tần suất hoặc di chuyển phi lý trên các
-            // lượt quét sau ân hạn
+            // Chỉ gắn cờ bất thường khi vi phạm tần suất hoặc di chuyển phi lý trên các lượt quét sau ân hạn
             if (highFreq || impossibleTravel) {
                 estimatedAnomaliesCount++;
                 if (hasScansAfterGrace) {
