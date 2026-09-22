@@ -12,6 +12,7 @@ import {
 import { toast } from 'sonner';
 import { TrendingUp, Loader2 } from 'lucide-react';
 import { updateApiKeyQuota } from '@/api/apiKeyApi';
+import { toApiError } from '@/api/apiError';
 import type { PartnerApiKeyResponse, UpdateApiKeyQuotaRequest } from '@/types/apiKey';
 
 interface UpdateApiKeyQuotaDialogProps {
@@ -48,8 +49,8 @@ export const UpdateApiKeyQuotaDialog: React.FC<UpdateApiKeyQuotaDialogProps> = (
       toast.success(`Đã nâng hạn mức cho khóa của "${apiKeyData.partnerName}" lên ${updatedKey.rateLimitPerHour} lượt/giờ!`);
       onSuccess(updatedKey);
       onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Không thể nâng hạn mức khóa API');
+    } catch (error: unknown) {
+      toast.error(toApiError(error, 'Không thể nâng hạn mức khóa API').message);
     } finally {
       setLoading(false);
     }

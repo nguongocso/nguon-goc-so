@@ -43,8 +43,8 @@ describe('MilestoneReminderCard', () => {
 
   it('hiển thị danh sách nhắc việc quá hạn cho người ghi nhật ký (VT-03)', async () => {
     mockUseAuth.mockReturnValue({
-      user: { roleCode: 'VT-03', username: 'recorder' } as any,
-    } as any);
+      user: { roleCode: 'VT-03', username: 'recorder' } as unknown as ReturnType<typeof useAuth>['user'],
+    } as unknown as ReturnType<typeof useAuth>);
 
     vi.spyOn(milestoneReminderApi, 'getMyActiveMilestoneReminders').mockResolvedValue([
       sampleReminder,
@@ -78,8 +78,8 @@ describe('MilestoneReminderCard', () => {
 
   it('không hiển thị nút Quét quá hạn cho các vai trò khác (như VT-04, VT-05)', async () => {
     mockUseAuth.mockReturnValue({
-      user: { roleCode: 'VT-04', username: 'buyer' } as any,
-    } as any);
+      user: { roleCode: 'VT-04', username: 'buyer' } as unknown as ReturnType<typeof useAuth>['user'],
+    } as unknown as ReturnType<typeof useAuth>);
 
     vi.spyOn(milestoneReminderApi, 'getMilestoneReminders').mockResolvedValue({
       items: [sampleReminder],
@@ -106,8 +106,8 @@ describe('MilestoneReminderCard', () => {
 
   it('hiển thị thông báo khi không có mốc nào quá hạn', async () => {
     mockUseAuth.mockReturnValue({
-      user: { roleCode: 'VT-03', username: 'recorder' } as any,
-    } as any);
+      user: { roleCode: 'VT-03', username: 'recorder' } as unknown as ReturnType<typeof useAuth>['user'],
+    } as unknown as ReturnType<typeof useAuth>);
 
     vi.spyOn(milestoneReminderApi, 'getMyActiveMilestoneReminders').mockResolvedValue([]);
 
@@ -126,8 +126,8 @@ describe('MilestoneReminderCard', () => {
 
   it('hiển thị nút Quét quá hạn cho quản lý HTX (VT-02) và kích hoạt quét', async () => {
     mockUseAuth.mockReturnValue({
-      user: { roleCode: 'VT-02', username: 'manager' } as any,
-    } as any);
+      user: { roleCode: 'VT-02', username: 'manager' } as unknown as ReturnType<typeof useAuth>['user'],
+    } as unknown as ReturnType<typeof useAuth>);
 
     vi.spyOn(milestoneReminderApi, 'getMilestoneReminders').mockResolvedValue({
       items: [sampleReminder],

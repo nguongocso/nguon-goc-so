@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CreateTestPartnerApiKeyPage } from '../CreateTestPartnerApiKeyPage';
 import { createTestApiKey } from '@/api/apiKeyApi';
+import type { PartnerApiKeyResponse } from '@/types/apiKey';
 import { toast } from 'sonner';
 
 const mockNavigate = vi.fn();
@@ -135,7 +136,7 @@ describe('CreateTestPartnerApiKeyPage (NCL-12-CN-004)', () => {
       rawApiKey: 'nks_test_secret_raw_key_full_sample_12345',
     };
 
-    vi.mocked(createTestApiKey).mockResolvedValueOnce(mockCreatedResponse as any);
+    vi.mocked(createTestApiKey).mockResolvedValueOnce(mockCreatedResponse as unknown as PartnerApiKeyResponse);
 
     renderPage();
 

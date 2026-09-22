@@ -1,4 +1,5 @@
 import apiClient from './axiosConfig';
+import type { ApiResponse } from '@/types/api';
 import type {
   GetNotificationsParams,
   MarkReadResponse,
@@ -6,15 +7,12 @@ import type {
   UnreadCountResponse,
 } from '@/types/notification';
 
-interface ApiDataResponse<T> {
-  data: T;
-}
-
+// Lỗi được ném về caller (useNotifications); caller dùng try/finally + toApiError để tránh treo UI
 // GET /api/v1/notifications
 export const getNotifications = async (
   params: GetNotificationsParams = {},
 ): Promise<NotificationListResponse> => {
-  const response = await apiClient.get<ApiDataResponse<NotificationListResponse>>(
+  const response = await apiClient.get<ApiResponse<NotificationListResponse>>(
     '/notifications',
     { params },
   );
@@ -23,7 +21,7 @@ export const getNotifications = async (
 
 // GET /api/v1/notifications/unread-count
 export const getUnreadCount = async (): Promise<UnreadCountResponse> => {
-  const response = await apiClient.get<ApiDataResponse<UnreadCountResponse>>(
+  const response = await apiClient.get<ApiResponse<UnreadCountResponse>>(
     '/notifications/unread-count',
   );
   return response.data.data;
@@ -33,7 +31,7 @@ export const getUnreadCount = async (): Promise<UnreadCountResponse> => {
 export const markNotificationAsRead = async (
   notificationId: string,
 ): Promise<MarkReadResponse> => {
-  const response = await apiClient.patch<ApiDataResponse<MarkReadResponse>>(
+  const response = await apiClient.patch<ApiResponse<MarkReadResponse>>(
     `/notifications/${notificationId}/read`,
   );
   return response.data.data;

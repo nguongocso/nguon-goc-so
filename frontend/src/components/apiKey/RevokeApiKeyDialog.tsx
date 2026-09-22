@@ -12,6 +12,7 @@ import {
 import { toast } from 'sonner';
 import { ShieldX, Loader2 } from 'lucide-react';
 import { revokeApiKey } from '@/api/apiKeyApi';
+import { toApiError } from '@/api/apiError';
 import type { PartnerApiKeyResponse } from '@/types/apiKey';
 
 interface RevokeApiKeyDialogProps {
@@ -38,8 +39,8 @@ export const RevokeApiKeyDialog: React.FC<RevokeApiKeyDialogProps> = ({
       toast.success(`Đã thu hồi khóa API của "${apiKeyData.partnerName}" thành công!`);
       onSuccess(updatedKey);
       onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Không thể thu hồi khóa API');
+    } catch (error: unknown) {
+      toast.error(toApiError(error, 'Không thể thu hồi khóa API').message);
     } finally {
       setLoading(false);
     }

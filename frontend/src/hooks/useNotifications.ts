@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { toApiError } from '@/api/apiError';
 import {
   getNotifications,
   markNotificationAsRead,
@@ -39,9 +40,9 @@ export const useNotifications = ({
         setItems(data.items);
         setPage(data.page);
         setTotalElements(data.totalElements);
-      } catch (error: any) {
-        const message =
-          error.response?.data?.message || 'Không thể tải danh sách thông báo.';
+      } catch (error: unknown) {
+        // Chuẩn hoá lỗi API và luôn reset trạng thái tải để tránh treo UI
+        const message = toApiError(error, 'Không thể tải danh sách thông báo.').message;
         toast.error(message);
       } finally {
         setIsLoading(false);
@@ -67,10 +68,9 @@ export const useNotifications = ({
 
     try {
       await markNotificationAsRead(notificationId);
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message ||
-        'Không thể đánh dấu thông báo đã đọc.';
+    } catch (error: unknown) {
+      // Chuẩn hoá lỗi API và rollback khi đánh dấu đã đọc thất bại
+      const message = toApiError(error, 'Không thể đánh dấu thông báo đã đọc.').message;
       toast.error(message);
       // Rollback nếu thất bại
       void load(page);

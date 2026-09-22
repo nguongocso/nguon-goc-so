@@ -6,12 +6,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { parseCoordinatesText } from '@/utils/geoAreaCalculator';
 import type { LatLng } from '@/types/farmArea';
 
-interface Props {
+/** Thuộc tính của panel dán danh sách toạ độ. */
+interface BoundaryPastePanelProps {
   onApplyPoints: (points: LatLng[]) => void;
   disabled?: boolean;
 }
 
-export const BoundaryPastePanel: React.FC<Props> = ({ onApplyPoints, disabled = false }) => {
+export const BoundaryPastePanel: React.FC<BoundaryPastePanelProps> = ({ onApplyPoints, disabled = false }) => {
   const [text, setText] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);

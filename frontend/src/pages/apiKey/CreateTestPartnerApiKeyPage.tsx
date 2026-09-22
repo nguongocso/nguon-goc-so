@@ -11,6 +11,7 @@ import {
   Info,
 } from "lucide-react";
 import { createTestApiKey } from "@/api/apiKeyApi";
+import { toApiError } from "@/api/apiError";
 import type { PartnerApiKeyResponse } from "@/types/apiKey";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,11 +96,9 @@ export const CreateTestPartnerApiKeyPage: React.FC = () => {
 
       toast.success("Cấp khóa API thử nghiệm thành công!");
       setCreatedKeyData(response);
-    } catch (err: any) {
-      const errorMsg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Có lỗi xảy ra khi cấp khóa thử nghiệm. Vui lòng thử lại.";
+    } catch (err: unknown) {
+      // Chuẩn hoá lỗi API để hiển thị đúng thông điệp backend
+      const errorMsg = toApiError(err, "Có lỗi xảy ra khi cấp khóa thử nghiệm. Vui lòng thử lại.").message;
       toast.error(errorMsg);
     } finally {
       setLoading(false);

@@ -1,4 +1,5 @@
 import apiClient from './axiosConfig';
+import type { ApiResponse } from '@/types/api';
 import type {
   FarmArea,
   CreateFarmAreaRequest,
@@ -9,8 +10,9 @@ import type {
 } from '@/types/farmArea';
 
 // Lấy danh sách vùng trồng
+// Lỗi được ném về caller; caller phải dùng try/finally + toApiError để tránh treo UI
 export const getFarmAreas = async (activeOnly?: boolean): Promise<FarmArea[]> => {
-  const response = await apiClient.get<{ data: FarmArea[] }>('/farm-areas', {
+  const response = await apiClient.get<ApiResponse<FarmArea[]>>('/farm-areas', {
     params: activeOnly !== undefined ? { activeOnly } : undefined,
   });
   return response.data.data;
@@ -18,25 +20,25 @@ export const getFarmAreas = async (activeOnly?: boolean): Promise<FarmArea[]> =>
 
 // Lấy chi tiết vùng trồng theo ID
 export const getFarmAreaById = async (id: string): Promise<FarmArea> => {
-  const response = await apiClient.get<{ data: FarmArea }>(`/farm-areas/${id}`);
+  const response = await apiClient.get<ApiResponse<FarmArea>>(`/farm-areas/${id}`);
   return response.data.data;
 };
 
 // Tạo vùng trồng mới
 export const createFarmArea = async (data: CreateFarmAreaRequest): Promise<FarmArea> => {
-  const response = await apiClient.post<{ data: FarmArea }>('/farm-areas', data);
+  const response = await apiClient.post<ApiResponse<FarmArea>>('/farm-areas', data);
   return response.data.data;
 };
 
 // Cập nhật thông tin vùng trồng (US NCL-02-CN-005)
 export const updateFarmArea = async (id: string, data: UpdateFarmAreaRequest): Promise<FarmArea> => {
-  const response = await apiClient.put<{ data: FarmArea }>(`/farm-areas/${id}`, data);
+  const response = await apiClient.put<ApiResponse<FarmArea>>(`/farm-areas/${id}`, data);
   return response.data.data;
 };
 
 // Đổi trạng thái kích hoạt / ngừng sử dụng vùng trồng (US NCL-02-CN-005)
 export const toggleFarmAreaStatus = async (id: string, isActive: boolean): Promise<FarmArea> => {
-  const response = await apiClient.patch<{ data: FarmArea }>(`/farm-areas/${id}/status`, null, {
+  const response = await apiClient.patch<ApiResponse<FarmArea>>(`/farm-areas/${id}/status`, null, {
     params: { isActive },
   });
   return response.data.data;
@@ -49,8 +51,12 @@ export const deleteFarmArea = async (id: string): Promise<void> => {
 
 // Lấy danh sách loại cây trồng (đã có)
 export const getCropTypes = async (): Promise<CropType[]> => {
-  const response = await apiClient.get('/product-categories');
-  return response.data.data.map((item: any) => ({
+  interface ProductCategoryItem {
+    id: string;
+    name: string;
+  }
+  const response = await apiClient.get<ApiResponse<ProductCategoryItem[]>>('/product-categories');
+  return response.data.data.map((item: ProductCategoryItem) => ({
     id: item.id,
     name: item.name,
   }));
@@ -58,7 +64,7 @@ export const getCropTypes = async (): Promise<CropType[]> => {
 
 /** Lấy ranh giới vùng trồng (CV-04). */
 export const getFarmAreaBoundary = async (id: string): Promise<FarmAreaBoundaryResponse> => {
-  const response = await apiClient.get<{ data: FarmAreaBoundaryResponse }>(`/farm-areas/${id}/boundary`);
+  const response = await apiClient.get<ApiResponse<FarmAreaBoundaryResponse>>(`/farm-areas/${id}/boundary`);
   return response.data.data;
 };
 
@@ -67,6 +73,6 @@ export const updateFarmAreaBoundary = async (
   id: string,
   data: UpdateFarmAreaBoundaryRequest
 ): Promise<FarmAreaBoundaryResponse> => {
-  const response = await apiClient.put<{ data: FarmAreaBoundaryResponse }>(`/farm-areas/${id}/boundary`, data);
+  const response = await apiClient.put<ApiResponse<FarmAreaBoundaryResponse>>(`/farm-areas/${id}/boundary`, data);
   return response.data.data;
 };

@@ -6,6 +6,7 @@ import { TableCell, TableHead, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { getApiKeys } from '@/api/apiKeyApi';
+import { toApiError } from '@/api/apiError';
 import type { PartnerApiKeyResponse, PartnerApiKeyStatus } from '@/types/apiKey';
 import { ApiKeyStatusBadge } from '@/components/apiKey/ApiKeyStatusBadge';
 import { RawApiKeyModal } from '@/components/apiKey/RawApiKeyModal';
@@ -71,8 +72,9 @@ export const PartnerApiKeyListPage: React.FC = () => {
       setKeys(data.content || []);
       setTotalPages(data.totalPages || 0);
       setTotalElements(data.totalElements || 0);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Không thể tải danh sách khóa truy cập đối tác');
+    } catch (error: unknown) {
+      // Chuẩn hoá lỗi API và luôn reset trạng thái tải để tránh treo UI
+      toast.error(toApiError(error, 'Không thể tải danh sách khóa truy cập đối tác').message);
     } finally {
       setLoading(false);
     }

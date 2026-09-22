@@ -1,5 +1,5 @@
 import apiClient from '@/api/axiosConfig';
-import type { ApiResult } from '@/types/auth';
+import type { ApiResponse } from '@/types/api';
 import type {
   CreateApiKeyRequest,
   CreateTestApiKeyRequest,
@@ -19,11 +19,11 @@ export const getApiKeys = async (
   page = 0,
   size = 10,
 ): Promise<ApiKeyPageResponse> => {
-  const params: Record<string, any> = { page, size };
+  const params: Record<string, string | number> = { page, size };
   if (status) {
     params.status = status;
   }
-  const response = await apiClient.get<ApiResult<ApiKeyPageResponse>>(
+  const response = await apiClient.get<ApiResponse<ApiKeyPageResponse>>(
     '/organization/api-keys',
     { params },
   );
@@ -37,7 +37,7 @@ export const getApiKeys = async (
 export const createApiKey = async (
   data: CreateApiKeyRequest,
 ): Promise<PartnerApiKeyResponse> => {
-  const response = await apiClient.post<ApiResult<PartnerApiKeyResponse>>(
+  const response = await apiClient.post<ApiResponse<PartnerApiKeyResponse>>(
     '/organization/api-keys',
     data,
   );
@@ -51,7 +51,7 @@ export const createApiKey = async (
 export const createTestApiKey = async (
   data: CreateTestApiKeyRequest,
 ): Promise<PartnerApiKeyResponse> => {
-  const response = await apiClient.post<ApiResult<PartnerApiKeyResponse>>(
+  const response = await apiClient.post<ApiResponse<PartnerApiKeyResponse>>(
     '/organization/api-keys/test',
     data,
   );
@@ -65,7 +65,7 @@ export const createTestApiKey = async (
 export const revokeApiKey = async (
   id: string,
 ): Promise<PartnerApiKeyResponse> => {
-  const response = await apiClient.post<ApiResult<PartnerApiKeyResponse>>(
+  const response = await apiClient.post<ApiResponse<PartnerApiKeyResponse>>(
     `/organization/api-keys/${id}/revoke`,
   );
   return response.data.data;
@@ -78,7 +78,7 @@ export const renewApiKey = async (
   id: string,
   data: RenewApiKeyRequest,
 ): Promise<PartnerApiKeyResponse> => {
-  const response = await apiClient.patch<ApiResult<PartnerApiKeyResponse>>(
+  const response = await apiClient.patch<ApiResponse<PartnerApiKeyResponse>>(
     `/organization/api-keys/${id}/expiry`,
     data,
   );
@@ -92,7 +92,7 @@ export const updateApiKeyQuota = async (
   id: string,
   data: UpdateApiKeyQuotaRequest,
 ): Promise<PartnerApiKeyResponse> => {
-  const response = await apiClient.patch<ApiResult<PartnerApiKeyResponse>>(
+  const response = await apiClient.patch<ApiResponse<PartnerApiKeyResponse>>(
     `/organization/api-keys/${id}/quota`,
     data,
   );
@@ -106,7 +106,7 @@ export const updateApiKeyQuota = async (
 export const getPartnerWebhook = async (
   apiKeyId: string,
 ): Promise<import('@/types/apiKey').PartnerWebhookResponse> => {
-  const response = await apiClient.get<ApiResult<import('@/types/apiKey').PartnerWebhookResponse>>(
+  const response = await apiClient.get<ApiResponse<import('@/types/apiKey').PartnerWebhookResponse>>(
     `/organization/api-keys/${apiKeyId}/webhook`,
   );
   return response.data.data;
@@ -120,7 +120,7 @@ export const updatePartnerWebhook = async (
   apiKeyId: string,
   data: import('@/types/apiKey').PartnerWebhookRegistrationRequest,
 ): Promise<import('@/types/apiKey').PartnerWebhookResponse> => {
-  const response = await apiClient.put<ApiResult<import('@/types/apiKey').PartnerWebhookResponse>>(
+  const response = await apiClient.put<ApiResponse<import('@/types/apiKey').PartnerWebhookResponse>>(
     `/organization/api-keys/${apiKeyId}/webhook`,
     data,
   );
@@ -134,7 +134,7 @@ export const updatePartnerWebhook = async (
 export const testPingPartnerWebhook = async (
   apiKeyId: string,
 ): Promise<import('@/types/apiKey').WebhookTestPingResponse> => {
-  const response = await apiClient.post<ApiResult<import('@/types/apiKey').WebhookTestPingResponse>>(
+  const response = await apiClient.post<ApiResponse<import('@/types/apiKey').WebhookTestPingResponse>>(
     `/organization/api-keys/${apiKeyId}/webhook/test-ping`,
   );
   return response.data.data;
@@ -150,11 +150,11 @@ export const getPartnerWebhookNotifications = async (
   page = 0,
   size = 10,
 ): Promise<import('@/types/apiKey').WebhookNotificationPageResponse> => {
-  const params: Record<string, any> = { page, size };
+  const params: Record<string, string | number> = { page, size };
   if (status) {
     params.deliveryStatus = status;
   }
-  const response = await apiClient.get<ApiResult<import('@/types/apiKey').WebhookNotificationPageResponse>>(
+  const response = await apiClient.get<ApiResponse<import('@/types/apiKey').WebhookNotificationPageResponse>>(
     `/organization/api-keys/${apiKeyId}/notifications`,
     { params },
   );
