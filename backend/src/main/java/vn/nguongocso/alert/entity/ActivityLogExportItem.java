@@ -38,11 +38,17 @@ public class ActivityLogExportItem {
 
     @Column(nullable = false)
     private LocalDateTime occurredAt;
+
     private String actorName;
+
     private String actorUsername;
+
     private String actorRole;
+
     private String actionType;
+
     private String objectType;
+
     private String objectIdentifier;
 
     @Column(columnDefinition = "TEXT")

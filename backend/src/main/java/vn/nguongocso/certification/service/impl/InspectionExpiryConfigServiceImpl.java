@@ -25,7 +25,6 @@ import vn.nguongocso.exception.BusinessException;
 @Slf4j
 @RequiredArgsConstructor
 public class InspectionExpiryConfigServiceImpl implements InspectionExpiryConfigService {
-
     public static final String CONFIG_KEY = "INSPECTION_EXPIRY_WARNING_THRESHOLD_DAYS";
     public static final int FALLBACK_DEFAULT_DAYS = 15;
 
@@ -35,6 +34,9 @@ public class InspectionExpiryConfigServiceImpl implements InspectionExpiryConfig
     @Value("${app.inspection.expiry-warning-threshold-days:15}")
     private int defaultWarningThresholdDays;
 
+    /**
+     * Lấy số ngày ngưỡng cảnh báo hết hiệu lực từ cấu hình hệ thống hoặc mặc định.
+     */
     @Override
     @Transactional(readOnly = true)
     public int getWarningThresholdDays() {
@@ -54,6 +56,9 @@ public class InspectionExpiryConfigServiceImpl implements InspectionExpiryConfig
                 .orElse(defaultWarningThresholdDays > 0 ? defaultWarningThresholdDays : FALLBACK_DEFAULT_DAYS);
     }
 
+    /**
+     * Lấy thông tin cấu hình ngưỡng cảnh báo hiện tại.
+     */
     @Override
     @Transactional(readOnly = true)
     public InspectionExpiryThresholdResponse getThresholdConfig() {
@@ -79,12 +84,14 @@ public class InspectionExpiryConfigServiceImpl implements InspectionExpiryConfig
                 .build();
     }
 
+    /**
+     * Cập nhật ngưỡng cảnh báo hết hiệu lực kiểm nghiệm.
+     */
     @Override
     @Transactional
     public InspectionExpiryThresholdResponse updateThresholdConfig(
             InspectionExpiryThresholdRequest request,
             CustomUserDetails currentUser) {
-
         if (request == null || request.getWarningThresholdDays() == null) {
             throw new BusinessException("Ngưỡng cảnh báo không được để trống.");
         }

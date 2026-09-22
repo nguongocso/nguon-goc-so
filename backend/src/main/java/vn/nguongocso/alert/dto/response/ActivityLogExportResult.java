@@ -8,6 +8,8 @@ import lombok.Getter;
 @Builder
 public class ActivityLogExportResult {
     private String mode;
+
     private byte[] csvBytes;
+
     private ActivityLogExportJobResponse job;
 }

@@ -25,6 +25,6 @@ public class CertificationResponse {
     private LocalDate issueDate;
 
     private LocalDate expiryDate;
-    
-    private Boolean isValid; // true nếu expiryDate >= hôm nay
+
+    private Boolean isValid;
 }

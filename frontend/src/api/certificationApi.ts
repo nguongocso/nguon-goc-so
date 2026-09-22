@@ -2,17 +2,6 @@ import apiClient from './axiosConfig';
 import type { ProductionLotCertification, AttachCertificationRequest, Certification, CreateCertificationRequest, CertificationResponse, LotTestCriteriaResult, CreateInspectionRequestPayload, InspectionRequestCreatedResponse, InspectionRequestListItem, InspectionRequestStatusQuery, InspectionRequestDetailResponse, InspectionCriterionResult, RecordCriterionResultPayload, RecordInspectionResultsPayload, InspectionResultFileUploadResponse, CanActivateSealCheck, TestingUnit, CreateTestingUnitRequest, UpdateTestingUnitRequest, AccreditationScopeSummary, UpdateAccreditationScopeRequest } from '@/types/certification';
 import type { PageResponse } from '@/types/common';
 
-// ============================================================
-// Phạm vi công nhận của đơn vị kiểm nghiệm (NCL-11-CN-006 Phase 2)
-// ============================================================
-
-/**
- * Lấy phạm vi công nhận hiện tại của một đơn vị kiểm nghiệm.
- * GET /api/v1/testing-units/{unitId}/accreditation-scopes
- *
- * Mọi vai trò đã xác thực đều đọc được — dùng để hiển thị cảnh báo
- * khi tạo yêu cầu kiểm nghiệm.
- */
 export const getAccreditationScopes = async (
   unitId: string
 ): Promise<AccreditationScopeSummary> => {
@@ -22,10 +11,6 @@ export const getAccreditationScopes = async (
   return response.data.data;
 };
 
-/**
- * Cập nhật (REPLACE-ALL) phạm vi công nhận của một đơn vị kiểm nghiệm (VT-01).
- * PUT /api/v1/testing-units/{unitId}/accreditation-scopes
- */
 export const updateAccreditationScopes = async (
   unitId: string,
   payload: UpdateAccreditationScopeRequest
@@ -37,17 +22,6 @@ export const updateAccreditationScopes = async (
   return response.data.data;
 };
 
-// ============================================================
-// Danh mục đơn vị kiểm nghiệm dùng chung (NCL-11-CN-006 Phase 1)
-// ============================================================
-
-/**
- * Lấy danh sách đơn vị kiểm nghiệm trong danh mục dùng chung.
- * GET /api/v1/testing-units?isActive=&page=&size=
- *
- * Dùng cho dropdown chọn đơn vị khi tạo yêu cầu kiểm nghiệm
- * (mặc định chỉ lấy đơn vị còn hiệu lực).
- */
 export const getTestingUnits = async (params?: {
   isActive?: boolean;
   page?: number;
@@ -65,10 +39,6 @@ export const getTestingUnits = async (params?: {
   return response.data.data;
 };
 
-/**
- * Tạo mới đơn vị kiểm nghiệm (VT-01).
- * POST /api/v1/testing-units
- */
 export const createTestingUnit = async (
   data: CreateTestingUnitRequest
 ): Promise<TestingUnit> => {
@@ -79,10 +49,6 @@ export const createTestingUnit = async (
   return response.data.data;
 };
 
-/**
- * Cập nhật thông tin đơn vị kiểm nghiệm (VT-01).
- * PUT /api/v1/testing-units/{testingUnitId}
- */
 export const updateTestingUnit = async (
   testingUnitId: string,
   data: UpdateTestingUnitRequest
@@ -94,19 +60,12 @@ export const updateTestingUnit = async (
   return response.data.data;
 };
 
-/**
- * Vô hiệu hoá đơn vị kiểm nghiệm - soft delete (VT-01).
- * DELETE /api/v1/testing-units/{testingUnitId}
- */
 export const deactivateTestingUnit = async (
   testingUnitId: string
 ): Promise<void> => {
   await apiClient.delete(`/testing-units/${testingUnitId}`);
 };
 
-/**
- * Lấy danh sách chứng nhận đã gắn của một lô sản xuất
- */
 export const getLotCertifications = async (lotId: string): Promise<ProductionLotCertification[]> => {
   const response = await apiClient.get<{ data: ProductionLotCertification[] }>(
     `/production-lots/${lotId}/certifications`
@@ -114,9 +73,6 @@ export const getLotCertifications = async (lotId: string): Promise<ProductionLot
   return response.data.data;
 };
 
-/**
- * Gắn chứng nhận cho lô sản xuất
- */
 export const attachCertification = async (
   lotId: string,
   payload: AttachCertificationRequest
@@ -128,26 +84,15 @@ export const attachCertification = async (
   return response.data.data;
 };
 
-/**
- * Gỡ chứng nhận khỏi lô sản xuất
- */
 export const detachCertification = async (lotId: string, certificationId: string): Promise<void> => {
   await apiClient.delete(`/production-lots/${lotId}/certifications/${certificationId}`);
 };
 
-/**
- * Lấy danh sách chứng nhận còn hiệu lực của tổ chức hiện tại
- * GET /api/v1/certifications/valid
- */
 export const getValidCertifications = async (): Promise<Certification[]> => {
   const response = await apiClient.get<{ data: Certification[] }>('/certifications/valid');
   return response.data.data;
 };
 
-/**
- * Tạo mới chứng nhận cho tổ chức
- * POST /api/v1/certifications
- */
 export const createCertification = async (
   data: CreateCertificationRequest,
   file: File
@@ -167,9 +112,6 @@ export const createCertification = async (
   return response.data.data;
 };
 
-/**
- * Tham số tìm kiếm chứng nhận của tổ chức (phân trang, lọc, sắp xếp).
- */
 export interface GetCertificationsParams {
   keyword?: string;
   status?: 'valid' | 'expiring' | 'expired';
@@ -179,10 +121,6 @@ export interface GetCertificationsParams {
   size?: number;
 }
 
-/**
- * Tìm kiếm chứng nhận của tổ chức (server-side pagination + search)
- * GET /api/v1/certifications?keyword=&status=&sortBy=&sortDir=&page=&size=
- */
 export const getCertifications = async (
   params: GetCertificationsParams
 ): Promise<PageResponse<CertificationResponse>> => {
@@ -211,10 +149,6 @@ export const getCertifications = async (
   return response.data.data;
 };
 
-/**
- * Lấy chỉ tiêu kiểm nghiệm áp dụng cho lô
- * GET /api/v1/production-lots/{lotId}/test-criteria
- */
 export const getLotTestCriteria = async (lotId: string): Promise<LotTestCriteriaResult> => {
   const response = await apiClient.get<{ data: LotTestCriteriaResult }>(
     `/production-lots/${lotId}/test-criteria`
@@ -222,13 +156,6 @@ export const getLotTestCriteria = async (lotId: string): Promise<LotTestCriteria
   return response.data.data;
 };
 
-/**
- * Tạo yêu cầu kiểm nghiệm cho lô
- * POST /api/v1/production-lots/{lotId}/test-requests
- *
- * Trả HTTP 201 khi thành công.
- * Trả HTTP 409 khi trùng yêu cầu đang chờ kết quả và confirmDuplicate=false.
- */
 export const createInspectionRequest = async (
   lotId: string,
   payload: CreateInspectionRequestPayload
@@ -247,12 +174,6 @@ export interface GetInspectionRequestsParams {
   size?: number;
 }
 
-/**
- * Lấy danh sách yêu cầu kiểm nghiệm theo lô.
- * GET /api/v1/test-requests?lotId=...&status=...&page=...&size=...
- *
- * Luôn truyền lotId từ frontend; backend scope theo organization hiện tại.
- */
 export const getInspectionRequests = async (
   params: GetInspectionRequestsParams
 ): Promise<PageResponse<InspectionRequestListItem>> => {
@@ -272,12 +193,6 @@ export const getInspectionRequests = async (
   return response.data.data;
 };
 
-/**
- * Lấy chi tiết yêu cầu kiểm nghiệm để nhập kết quả.
- * GET /api/v1/inspection-requests/{requestId}
- *
- * Trả về danh sách chỉ tiêu (UUID snapshot) kèm kết quả đã ghi (nếu có).
- */
 export const getInspectionRequestDetail = async (
   requestId: string
 ): Promise<InspectionRequestDetailResponse> => {
@@ -287,10 +202,6 @@ export const getInspectionRequestDetail = async (
   return response.data.data;
 };
 
-/**
- * Lấy danh sách kết quả kiểm nghiệm của các chỉ tiêu thuộc một yêu cầu.
- * GET /api/v1/inspection-requests/{requestId}/results
- */
 export const getInspectionRequestResults = async (
   requestId: string
 ): Promise<InspectionCriterionResult[]> => {
@@ -300,14 +211,6 @@ export const getInspectionRequestResults = async (
   return response.data.data;
 };
 
-/**
- * Ghi nhận toàn bộ kết quả kiểm nghiệm của một yêu cầu trong một lần gọi.
- * PUT /api/v1/inspection-requests/{requestId}/results
- *
- * Payload phải chứa kết quả cho TẤT CẢ chỉ tiêu của yêu cầu.
- * Backend validate toàn bộ rồi lưu trong một giao dịch (all-or-nothing):
- * nếu có chỉ tiêu không hợp lệ, không chỉ tiêu nào được lưu.
- */
 export const recordInspectionRequestResults = async (
   requestId: string,
   payload: RecordInspectionResultsPayload
@@ -319,13 +222,6 @@ export const recordInspectionRequestResults = async (
   return response.data.data;
 };
 
-/**
- * Ghi nhận / cập nhật kết quả kiểm nghiệm cho một chỉ tiêu.
- * POST /api/v1/inspection-criteria/{criterionId}/results
- *
- * criterionId là UUID snapshot của chỉ tiêu thuộc yêu cầu (inspection_criteria.id).
- * Trả HTTP 201 khi thành công.
- */
 export const recordOrUpdateCriterionResult = async (
   criterionId: string,
   payload: RecordCriterionResultPayload
@@ -337,12 +233,6 @@ export const recordOrUpdateCriterionResult = async (
   return response.data.data;
 };
 
-/**
- * Tải lên phiếu kết quả kiểm nghiệm cho một chỉ tiêu.
- * POST /api/v1/inspection-criteria/{criterionId}/result-file
- *
- * Trả về filePath để gửi kèm khi ghi nhận kết quả.
- */
 export const uploadInspectionResultFile = async (
   criterionId: string,
   file: File
@@ -356,14 +246,6 @@ export const uploadInspectionResultFile = async (
     formData,
     {
       headers: {
-        /**
-         * Override Content-Type mặc định 'application/json' của apiClient.
-         * Nếu không override, axios sẽ serialize FormData thành JSON và
-         * backend trả 415 vì endpoint khai báo
-         * consumes = MULTIPART_FORM_DATA_VALUE.
-         * Axios tự thay header này bằng multipart/form-data kèm boundary
-         * khi gửi đi (giống uploadAttachment / importProductionLots).
-         */
         'Content-Type': 'multipart/form-data',
       },
     }
@@ -371,10 +253,6 @@ export const uploadInspectionResultFile = async (
   return response.data.data;
 };
 
-/**
- * Lấy kết quả kiểm nghiệm của một chỉ tiêu.
- * GET /api/v1/inspection-criteria/{criterionId}/result
- */
 export const getCriterionResult = async (
   criterionId: string
 ): Promise<InspectionCriterionResult> => {
@@ -384,18 +262,10 @@ export const getCriterionResult = async (
   return response.data.data;
 };
 
-/**
- * Xóa kết quả kiểm nghiệm.
- * DELETE /api/v1/inspection-results/{resultId}
- */
 export const deleteInspectionResult = async (resultId: string): Promise<void> => {
   await apiClient.delete(`/inspection-results/${resultId}`);
 };
 
-/**
- * Kiểm tra lô sản xuất có đủ điều kiện kích hoạt tem dựa trên kết quả kiểm nghiệm.
- * POST /api/v1/production-lots/{lotId}/can-activate-seal
- */
 export const checkCanActivateSeal = async (
   lotId: string
 ): Promise<CanActivateSealCheck> => {

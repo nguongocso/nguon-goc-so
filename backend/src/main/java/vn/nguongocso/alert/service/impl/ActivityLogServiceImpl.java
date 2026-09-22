@@ -34,7 +34,6 @@ public class ActivityLogServiceImpl implements ActivityLogService {
             int page, int size, String action, String actorName,
             LocalDate startDate, LocalDate endDate, String objectType, CustomUserDetails currentUser) {
 
-        // Sắp xếp mặc định theo thời gian giảm dần (mới nhất trước)
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Specification<ActivityLog> spec = ActivityLogSpecification.hasOrganizationId(currentUser.getOrganizationId());
 
@@ -85,9 +84,9 @@ public class ActivityLogServiceImpl implements ActivityLogService {
                 .build();
     }
 
+    /** Ghi một nhật ký hoạt động mới. */
     @Override
     @Transactional
-    /** Ghi một nhật ký hoạt động mới. */
     public void logActivity(ActivityLogRequest request) {
 
         ActivityLog activityLog = ActivityLog.builder()

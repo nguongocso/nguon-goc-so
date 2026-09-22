@@ -10,5 +10,6 @@ import lombok.Getter;
 @Builder
 public class ActivityLogExportPreviewResponse {
     private long count;
+
     private String mode;
 }

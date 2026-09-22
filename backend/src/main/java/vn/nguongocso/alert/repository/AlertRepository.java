@@ -15,104 +15,106 @@ import vn.nguongocso.alert.enums.AlertType;
 
 /** Repository thao tác Alert. */
 public interface AlertRepository extends JpaRepository<Alert, UUID> {
-    /** Lọc theo loại cảnh báo. */
-    Page<Alert> findByType(
-            AlertType type,
-            Pageable pageable);
+        /** Lọc theo loại cảnh báo. */
+        Page<Alert> findByType(
+                        AlertType type,
+                        Pageable pageable);
 
-    /** Lọc theo loại và trạng thái. */
-    Page<Alert> findByTypeAndStatus(
-            AlertType type,
-            AlertStatus status,
-            Pageable pageable);
+        /** Lọc theo loại và trạng thái. */
+        Page<Alert> findByTypeAndStatus(
+                        AlertType type,
+                        AlertStatus status,
+                        Pageable pageable);
 
-    /** Lọc theo loại và thời gian tạo. */
-    Page<Alert> findByTypeAndCreatedAtBetween(
-            AlertType type,
-            LocalDateTime fromDate,
-            LocalDateTime toDate,
-            Pageable pageable);
+        /** Lọc theo loại và thời gian tạo. */
+        Page<Alert> findByTypeAndCreatedAtBetween(
+                        AlertType type,
+                        LocalDateTime fromDate,
+                        LocalDateTime toDate,
+                        Pageable pageable);
 
-    /** Lọc theo loại, trạng thái và thời gian tạo. */
-    Page<Alert> findByTypeAndStatusAndCreatedAtBetween(
-            AlertType type,
-            AlertStatus status,
-            LocalDateTime fromDate,
-            LocalDateTime toDate,
-            Pageable pageable);
+        /** Lọc theo loại, trạng thái và thời gian tạo. */
+        Page<Alert> findByTypeAndStatusAndCreatedAtBetween(
+                        AlertType type,
+                        AlertStatus status,
+                        LocalDateTime fromDate,
+                        LocalDateTime toDate,
+                        Pageable pageable);
 
-    @Query("""
-            SELECT a
-            FROM Alert a
-            WHERE (:type IS NULL OR a.type = :type)
-              AND (:status IS NULL OR a.status = :status)
-              AND (:fromDate IS NULL OR a.createdAt >= :fromDate)
-              AND (:toDate IS NULL OR a.createdAt <= :toDate)
-              AND (:organizationId IS NULL
-                   OR a.organization.organizationId = :organizationId)
-            ORDER BY a.createdAt DESC
-            """)
-    Page<Alert> searchAlerts(
-            @Param("type") AlertType type,
-            @Param("status") AlertStatus status,
-            @Param("organizationId") UUID organizationId,
-            @Param("fromDate") LocalDateTime fromDate,
-            @Param("toDate") LocalDateTime toDate,
-            Pageable pageable);
+        /** Lọc theo loại, trạng thái, thời gian tạo và tổ chức. */
+        @Query("""
+                        SELECT a
+                        FROM Alert a
+                        WHERE (:type IS NULL OR a.type = :type)
+                        AND (:status IS NULL OR a.status = :status)
+                        AND (:fromDate IS NULL OR a.createdAt >= :fromDate)
+                        AND (:toDate IS NULL OR a.createdAt <= :toDate)
+                        AND (:organizationId IS NULL
+                                OR a.organization.organizationId = :organizationId)
+                        ORDER BY a.createdAt DESC
+                        """)
+        Page<Alert> searchAlerts(
+                        @Param("type") AlertType type,
+                        @Param("status") AlertStatus status,
+                        @Param("organizationId") UUID organizationId,
+                        @Param("fromDate") LocalDateTime fromDate,
+                        @Param("toDate") LocalDateTime toDate,
+                        Pageable pageable);
 
-    /**
-     * Kiểm tra đã tồn tại cảnh báo đang chờ xử lý của mã truy xuất hay chưa.
-     */
-    boolean existsByRelatedEntityIdAndTypeAndStatus(
-            UUID relatedEntityId,
-            AlertType type,
-            AlertStatus status);
+        /**
+         * Kiểm tra đã tồn tại cảnh báo đang chờ xử lý của mã truy xuất hay chưa.
+         */
+        boolean existsByRelatedEntityIdAndTypeAndStatus(
+                        UUID relatedEntityId,
+                        AlertType type,
+                        AlertStatus status);
 
-    java.util.List<Alert> findByRelatedEntityIdAndTypeAndStatus(
-            UUID relatedEntityId,
-            AlertType type,
-            AlertStatus status);
+        java.util.List<Alert> findByRelatedEntityIdAndTypeAndStatus(
+                        UUID relatedEntityId,
+                        AlertType type,
+                        AlertStatus status);
 
-    /**
-     * Kiểm tra đã tồn tại cảnh báo cho thực thể cùng loại trong khoảng thời gian (NCL-11-CN-004: chống duplicate trong ngày).
-     */
-    @Query("""
-            SELECT COUNT(a) > 0
-            FROM Alert a
-            WHERE a.relatedEntityId = :relatedEntityId
-              AND a.type = :type
-              AND a.createdAt >= :fromDate
-              AND a.createdAt <= :toDate
-            """)
-    boolean existsAlertToday(
-            @Param("relatedEntityId") UUID relatedEntityId,
-            @Param("type") AlertType type,
-            @Param("fromDate") LocalDateTime fromDate,
-            @Param("toDate") LocalDateTime toDate);
+        /**
+         * Kiểm tra đã tồn tại cảnh báo cho thực thể cùng loại trong khoảng thời gian (NCL-11-CN-004: chống duplicate
+         * trong ngày).
+         */
+        @Query("""
+                        SELECT COUNT(a) > 0
+                        FROM Alert a
+                        WHERE a.relatedEntityId = :relatedEntityId
+                        AND a.type = :type
+                        AND a.createdAt >= :fromDate
+                        AND a.createdAt <= :toDate
+                        """)
+        boolean existsAlertToday(
+                        @Param("relatedEntityId") UUID relatedEntityId,
+                        @Param("type") AlertType type,
+                        @Param("fromDate") LocalDateTime fromDate,
+                        @Param("toDate") LocalDateTime toDate);
 
-    boolean existsByRelatedEntityIdAndTypeAndCreatedAtBetween(
-            UUID relatedEntityId,
-            AlertType type,
-            LocalDateTime fromDate,
-            LocalDateTime toDate);
+        boolean existsByRelatedEntityIdAndTypeAndCreatedAtBetween(
+                        UUID relatedEntityId,
+                        AlertType type,
+                        LocalDateTime fromDate,
+                        LocalDateTime toDate);
 
-    /**
-     * Tìm cảnh báo theo danh sách ID thực thể và loại cảnh báo (NCL-07-CN-006).
-     */
-    @Query("SELECT a FROM Alert a WHERE a.relatedEntityId IN :lotIds AND a.type = :type")
-    java.util.List<Alert> findByRelatedEntityIdInAndType(
-            @Param("lotIds") java.util.Collection<UUID> lotIds,
-            @Param("type") AlertType type);
+        /**
+         * Tìm cảnh báo theo danh sách ID thực thể và loại cảnh báo (NCL-07-CN-006).
+         */
+        @Query("SELECT a FROM Alert a WHERE a.relatedEntityId IN :lotIds AND a.type = :type")
+        java.util.List<Alert> findByRelatedEntityIdInAndType(
+                        @Param("lotIds") java.util.Collection<UUID> lotIds,
+                        @Param("type") AlertType type);
 
-    /**
-     * Tìm cảnh báo theo tổ chức và trạng thái (NCL-08-CN-016).
-     */
-    java.util.List<Alert> findByOrganizationOrganizationIdAndStatus(
-            UUID organizationId,
-            AlertStatus status);
+        /**
+         * Tìm cảnh báo theo tổ chức và trạng thái (NCL-08-CN-016).
+         */
+        java.util.List<Alert> findByOrganizationOrganizationIdAndStatus(
+                        UUID organizationId,
+                        AlertStatus status);
 
-    /**
-     * Tìm tất cả cảnh báo theo trạng thái (NCL-08-CN-016).
-     */
-    java.util.List<Alert> findByStatus(AlertStatus status);
-}
+        /**
+         * Tìm tất cả cảnh báo theo trạng thái (NCL-08-CN-016).
+         */
+        java.util.List<Alert> findByStatus(AlertStatus status);
+}

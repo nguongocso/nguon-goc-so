@@ -38,7 +38,6 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 public class InspectionValidityServiceImpl implements InspectionValidityService {
-
     private final CategoryCriterionRepository categoryCriterionRepository;
     private final InspectionCriterionResultRepository resultRepository;
     private final InspectionRequestRepository inspectionRequestRepository;
@@ -48,18 +47,23 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
     @Value("${app.inspection.expiry-warning-threshold-days:15}")
     private int warningThresholdDays;
 
+    /**
+     * Tính toán thông tin hiệu lực kiểm nghiệm của lô sản xuất theo ngày hiện tại của hệ thống.
+     */
     @Override
     public InspectionValidityResponse calculateValidity(ProductionLot lot) {
         return calculateValidity(lot, LocalDate.now());
     }
 
+    /**
+     * Tính toán thông tin hiệu lực kiểm nghiệm của lô sản xuất theo ngày chỉ định.
+     */
     @Override
     public InspectionValidityResponse calculateValidity(ProductionLot lot, LocalDate today) {
         if (lot == null) {
             return null;
         }
 
-        // 1. Kiểm tra loại nông sản có bắt buộc kiểm nghiệm hay không
         boolean requiresInspection = lot.getProductCategory() != null
                 && Boolean.TRUE.equals(lot.getProductCategory().getRequiresInspection());
 
@@ -82,7 +86,6 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
                     .build();
         }
 
-        // 2. Lấy danh sách chỉ tiêu ACTIVE được gán cho loại nông sản của lô
         List<CategoryCriterion> assignments = categoryCriterionRepository
                 .findByCategoryIdAndCriteriaStatus(lot.getProductCategory().getId(), "ACTIVE");
 
@@ -103,7 +106,6 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
                     .build();
         }
 
-        // 3. Lấy kết quả kiểm nghiệm mới nhất theo từng chỉ tiêu (ưu tiên criterionId từ danh mục)
         LatestInspectionResultsHolder resultsHolder = new LatestInspectionResultsHolder();
         for (InspectionCriterionResult result : resultRepository.findAllByProductionLotId(lot.getId())) {
             resultsHolder.addResult(result);
@@ -173,7 +175,6 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
             criteriaList.add(cBuilder.build());
         }
 
-        // Nếu chưa đạt đủ tất cả chỉ tiêu bắt buộc
         if (hasFailedOrMissing || passedCriteria < totalCriteria || earliestExpiry == null) {
             return InspectionValidityResponse.builder()
                     .requiresInspection(true)
@@ -192,7 +193,6 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
                     .build();
         }
 
-        // 4. Khi tất cả chỉ tiêu đều đạt: so sánh ngày hết hạn sớm nhất với ngày hiện tại
         if (earliestExpiry.isBefore(today)) {
             long daysOverdue = ChronoUnit.DAYS.between(earliestExpiry, today);
             return InspectionValidityResponse.builder()
@@ -235,13 +235,15 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
     }
 
     /**
-     * Container lưu trữ kết quả kiểm nghiệm mới nhất của lô, ưu tiên index theo criterionId danh mục
-     * và fallback theo code / name cho dữ liệu legacy.
+     * Bộ lưu trữ kết quả kiểm nghiệm mới nhất của lô sản xuất theo từng chỉ tiêu.
      */
     private static class LatestInspectionResultsHolder {
         private final Map<Long, InspectionCriterionResult> byCatalogId = new HashMap<>();
         private final Map<String, InspectionCriterionResult> byCodeOrName = new HashMap<>();
 
+        /**
+         * Bổ sung kết quả kiểm nghiệm vào bộ lưu trữ nếu mới hơn kết quả hiện tại.
+         */
         void addResult(InspectionCriterionResult result) {
             if (result.getResultDate() == null || result.getInspectionCriterion() == null) {
                 return;
@@ -264,6 +266,9 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
             }
         }
 
+        /**
+         * Tìm kết quả kiểm nghiệm mới nhất tương ứng với chỉ tiêu danh mục.
+         */
         InspectionCriterionResult findLatest(InspectionCriterionCatalog catalog) {
             if (catalog == null) {
                 return null;
@@ -277,6 +282,9 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
             return null;
         }
 
+        /**
+         * Cập nhật kết quả vào bản đồ nếu mới hơn bản ghi hiện có.
+         */
         private <K> void putIfNewer(Map<K, InspectionCriterionResult> map, K key, InspectionCriterionResult result) {
             if (key == null) {
                 return;
@@ -293,8 +301,8 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
 
             boolean isNewer = result.getResultDate().isAfter(current.getResultDate())
                     || (result.getResultDate().isEqual(current.getResultDate())
-                    && resultUpdatedAt != null
-                    && (currentUpdatedAt == null || resultUpdatedAt.isAfter(currentUpdatedAt)));
+                            && resultUpdatedAt != null
+                            && (currentUpdatedAt == null || resultUpdatedAt.isAfter(currentUpdatedAt)));
 
             if (isNewer) {
                 map.put(key, result);
@@ -303,7 +311,7 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
     }
 
     /**
-     * Tìm ID của yêu cầu kiểm nghiệm PASSED mới nhất theo thời gian tạo.
+     * Tìm ID của yêu cầu kiểm nghiệm Đạt mới nhất theo thời gian tạo.
      */
     private UUID findLatestPassedRequestId(UUID lotId) {
         List<InspectionRequest> requests = inspectionRequestRepository
@@ -317,8 +325,7 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
     }
 
     /**
-     * Đếm số lượng mã tem INACTIVE thuộc các lô hàng chưa thu hồi.
-     * Trả về null nếu lô sản xuất chưa tạo lô hàng nào.
+     * Đếm số lượng mã tem chưa kích hoạt thuộc các lô hàng chưa thu hồi của lô sản xuất.
      */
     private Long calculateInactiveStampCount(UUID lotId) {
         long totalStamps = traceCodeRepository.countTotalByProductionLotId(lotId);
@@ -329,7 +336,7 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
     }
 
     /**
-     * Đếm tổng số lượng mã tem thuộc các lô hàng chưa thu hồi của lô.
+     * Đếm tổng số lượng mã tem thuộc các lô hàng chưa thu hồi của lô sản xuất.
      */
     private Long calculateTotalStamps(UUID lotId) {
         if (lotId == null) {
@@ -347,7 +354,6 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
         }
         ProductionLotStatus status = lot.getStatus();
 
-        // Không cho phép tạo với lô đã bị hủy, loại bỏ hoặc thu hồi
         if (status == ProductionLotStatus.CANCELLED
                 || status == ProductionLotStatus.DISPOSED
                 || status == ProductionLotStatus.RECALLED
@@ -361,7 +367,7 @@ public class InspectionValidityServiceImpl implements InspectionValidityService 
     }
 
     /**
-     * Lấy số ngày cảnh báo hiệu lực kiểm nghiệm thực tế (ưu tiên cấu hình động từ DB).
+     * Lấy số ngày cảnh báo hiệu lực kiểm nghiệm thực tế từ cấu hình hệ thống.
      */
     private int getEffectiveWarningThresholdDays() {
         if (inspectionExpiryConfigService != null) {

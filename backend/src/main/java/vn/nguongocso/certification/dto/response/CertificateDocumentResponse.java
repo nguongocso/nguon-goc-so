@@ -15,24 +15,11 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class CertificateDocumentResponse {
-
-    /**
-     * Tên tệp gốc.
-     */
     private String fileName;
 
-    /**
-     * Kiểu nội dung MIME (application/pdf, image/jpeg, image/png).
-     */
     private String contentType;
 
-    /**
-     * Kích thước tệp (bytes).
-     */
     private Long fileSize;
 
-    /**
-     * Đường dẫn API xem tệp chứng nhận an toàn (có kiểm tra quyền).
-     */
     private String viewUrl;
 }

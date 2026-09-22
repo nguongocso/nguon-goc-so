@@ -16,10 +16,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class VerifyCertificateRequest {
-
-    /**
-     * Ghi chú xác thực (tùy chọn, tối đa 1000 ký tự).
-     */
     @Size(max = 1000, message = "Ghi chú xác thực không được vượt quá 1000 ký tự")
     private String reviewNote;
 }

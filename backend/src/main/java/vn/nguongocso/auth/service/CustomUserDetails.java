@@ -14,16 +14,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Custom implementation of {@link UserDetails} that stores both
- * user identity and organization-specific authorization information.
- *
- * <p>
- * Besides the standard Spring Security user information, this class
- * also exposes organization and role information used throughout the
- * application.
- * </p>
- */
+/** Thông tin chi tiết người dùng và phân quyền tổ chức cho Spring Security. */
 public class CustomUserDetails implements UserDetails {
     private static final String ROLE_PREFIX = "ROLE_";
 
@@ -43,6 +34,7 @@ public class CustomUserDetails implements UserDetails {
     private final String roleName;
     private final List<GrantedAuthority> authorities;
 
+    /** Khởi tạo CustomUserDetails từ thông tin người dùng, tổ chức và vai trò. */
     public CustomUserDetails(User user, OrganizationUser orgUser, Role role) {
         this.user = user;
         this.userId = user.getUserId();
@@ -65,90 +57,110 @@ public class CustomUserDetails implements UserDetails {
                 new SimpleGrantedAuthority(ROLE_PREFIX + roleCode));
     }
 
+    /** Lấy thực thể User gốc. */
     public User getUser() {
         return user;
     }
 
+    /** Lấy danh sách quyền hạn của người dùng. */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return authorities;
     }
 
+    /** Lấy mật khẩu đã băm của người dùng. */
     @Override
     public String getPassword() {
         return passwordHash;
     }
 
+    /** Lấy tên đăng nhập của người dùng. */
     @Override
     public String getUsername() {
         return username;
     }
 
+    /** Kiểm tra tài khoản chưa hết hạn. */
     @Override
     public boolean isAccountNonExpired() {
         return true;
     }
 
+    /** Kiểm tra tài khoản không bị khóa (trạng thái ACTIVE). */
     @Override
     public boolean isAccountNonLocked() {
         return user.getStatus() == UserStatus.ACTIVE;
     }
 
+    /** Kiểm tra thông tin xác thực (mật khẩu) chưa hết hạn. */
     @Override
     public boolean isCredentialsNonExpired() {
         return true;
     }
 
+    /** Kiểm tra tài khoản có đang hoạt động hay không. */
     @Override
     public boolean isEnabled() {
         return true;
     }
 
     // Các getter bổ sung
+    /** Lấy ID của người dùng. */
     public UUID getUserId() {
         return userId;
     }
 
+    /** Lấy họ và tên của người dùng. */
     public String getFullName() {
         return fullName;
     }
 
+    /** Lấy ID của tổ chức trực thuộc. */
     public UUID getOrganizationId() {
         return organizationId;
     }
 
+    /** Lấy tên của tổ chức trực thuộc. */
     public String getOrganizationName() {
         return organizationName;
     }
 
+    /** Lấy mã của tổ chức trực thuộc. */
     public String getOrganizationCode() {
         return organizationCode;
     }
 
+    /** Lấy loại hình của tổ chức trực thuộc. */
     public OrganizationType getOrganizationType() {
         return organizationType;
     }
 
+    /** Lấy mã vai trò của người dùng trong tổ chức. */
     public String getRoleCode() {
         return roleCode;
     }
 
+    /** Lấy tên hiển thị vai trò của người dùng. */
     public String getRoleName() {
         return roleName;
     }
 
+    /** Lấy số điện thoại của người dùng. */
     public String getPhone() {
         return user != null ? user.getPhone() : null;
     }
 
+    /** Lấy địa chỉ email của người dùng. */
     public String getEmail() {
         return user != null ? user.getEmail() : null;
     }
 
+    /** Lấy ID tỉnh/thành phố của tổ chức trực thuộc. */
     public UUID getOrganizationProvinceId() {
         return organizationProvinceId;
     }
 
+    /** Lấy ID xã/phường của tổ chức trực thuộc. */
     public UUID getOrganizationCommuneId() {
         return organizationCommuneId;
     }

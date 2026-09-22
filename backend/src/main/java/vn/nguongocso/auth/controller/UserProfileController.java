@@ -29,73 +29,53 @@ import vn.nguongocso.common.ApiResult;
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserProfileController {
+        private final UserService userService;
 
-    private final UserService userService;
+        /**
+         * Lấy thông tin hồ sơ của người dùng hiện tại.
+         */
+        @GetMapping("/profile")
+        @PreAuthorize("isAuthenticated()")
+        public ResponseEntity<ApiResult<UserProfileResponse>> getProfile(
+                        @AuthenticationPrincipal CustomUserDetails currentUser) {
+                return ResponseEntity.ok(
+                                ApiResult.success(userService.getCurrentUserProfile(currentUser)));
+        }
 
-    /**
-     * Lấy thông tin hồ sơ của người dùng hiện tại.
-     *
-     * @param currentUser thông tin người dùng đang đăng nhập
-     * @return thông tin hồ sơ chi tiết
-     */
-    @GetMapping("/profile")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResult<UserProfileResponse>> getProfile(
-            @AuthenticationPrincipal CustomUserDetails currentUser) {
-        return ResponseEntity.ok(
-                ApiResult.success(userService.getCurrentUserProfile(currentUser))
-        );
-    }
+        /**
+         * Cập nhật thông tin hồ sơ cá nhân của người dùng hiện tại.
+         */
+        @PutMapping("/profile")
+        @PreAuthorize("isAuthenticated()")
+        public ResponseEntity<ApiResult<UserProfileResponse>> updateProfile(
+                        @AuthenticationPrincipal CustomUserDetails currentUser,
+                        @Valid @RequestBody UpdateUserProfileRequest request) {
+                return ResponseEntity.ok(
+                                ApiResult.success(userService.updateUserProfile(currentUser, request)));
+        }
 
-    /**
-     * Cập nhật thông tin hồ sơ cá nhân của người dùng hiện tại.
-     *
-     * @param currentUser thông tin người dùng đang đăng nhập
-     * @param request     dữ liệu cần cập nhật
-     * @return thông tin hồ sơ sau khi cập nhật
-     */
-    @PutMapping("/profile")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResult<UserProfileResponse>> updateProfile(
-            @AuthenticationPrincipal CustomUserDetails currentUser,
-            @Valid @RequestBody UpdateUserProfileRequest request) {
-        return ResponseEntity.ok(
-                ApiResult.success(userService.updateUserProfile(currentUser, request))
-        );
-    }
+        /**
+         * Thay đổi mật khẩu chủ động của người dùng.
+         */
+        @PostMapping("/change-password")
+        @PreAuthorize("isAuthenticated()")
+        public ResponseEntity<ApiResult<Void>> changePassword(
+                        @AuthenticationPrincipal CustomUserDetails currentUser,
+                        @Valid @RequestBody ChangePasswordRequest request) {
+                userService.changePassword(currentUser, request);
+                return ResponseEntity.ok(
+                                ApiResult.success(200, null));
+        }
 
-    /**
-     * Thay đổi mật khẩu chủ động của người dùng.
-     *
-     * @param currentUser thông tin người dùng đang đăng nhập
-     * @param request     dữ liệu đổi mật khẩu
-     * @return kết quả thực hiện
-     */
-    @PostMapping("/change-password")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResult<Void>> changePassword(
-            @AuthenticationPrincipal CustomUserDetails currentUser,
-            @Valid @RequestBody ChangePasswordRequest request) {
-        userService.changePassword(currentUser, request);
-        return ResponseEntity.ok(
-                ApiResult.success(200, null)
-        );
-    }
-
-    /**
-     * Tải lên ảnh đại diện cá nhân.
-     *
-     * @param currentUser thông tin người dùng đang đăng nhập
-     * @param file        tệp hình ảnh
-     * @return đường dẫn ảnh đại diện mới
-     */
-    @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResult<AvatarUploadResponse>> uploadAvatar(
-            @AuthenticationPrincipal CustomUserDetails currentUser,
-            @RequestParam("file") MultipartFile file) {
-        return ResponseEntity.ok(
-                ApiResult.success(userService.uploadAvatar(currentUser, file))
-        );
-    }
+        /**
+         * Tải lên ảnh đại diện cá nhân.
+         */
+        @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PreAuthorize("isAuthenticated()")
+        public ResponseEntity<ApiResult<AvatarUploadResponse>> uploadAvatar(
+                        @AuthenticationPrincipal CustomUserDetails currentUser,
+                        @RequestParam("file") MultipartFile file) {
+                return ResponseEntity.ok(
+                                ApiResult.success(userService.uploadAvatar(currentUser, file)));
+        }
 }

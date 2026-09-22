@@ -8,29 +8,20 @@ import vn.nguongocso.certification.dto.response.InspectionExpiryThresholdRespons
  * Dịch vụ quản lý cấu hình ngưỡng cảnh báo hết hiệu lực kiểm nghiệm (NCL-11-CN-004).
  */
 public interface InspectionExpiryConfigService {
+        /**
+         * Lấy số ngày ngưỡng cảnh báo hết hiệu lực (ưu tiên từ DB, fallback về cấu hình mặc định).
+         */
+        int getWarningThresholdDays();
 
-    /**
-     * Lấy số ngày ngưỡng cảnh báo hết hiệu lực (ưu tiên từ DB, fallback về cấu hình mặc định).
-     *
-     * @return số ngày cảnh báo (>= 1)
-     */
-    int getWarningThresholdDays();
+        /**
+         * Lấy thông tin cấu hình ngưỡng cảnh báo hiện tại.
+         */
+        InspectionExpiryThresholdResponse getThresholdConfig();
 
-    /**
-     * Lấy thông tin cấu hình ngưỡng cảnh báo hiện tại.
-     *
-     * @return DTO chứa thông tin ngưỡng và thời gian cập nhật
-     */
-    InspectionExpiryThresholdResponse getThresholdConfig();
-
-    /**
-     * Cập nhật ngưỡng cảnh báo hết hiệu lực kiểm nghiệm (chỉ dành cho Quản trị viên).
-     *
-     * @param request     yêu cầu cập nhật ngưỡng
-     * @param currentUser thông tin người dùng thực hiện
-     * @return DTO thông tin cấu hình sau khi cập nhật
-     */
-    InspectionExpiryThresholdResponse updateThresholdConfig(
-            InspectionExpiryThresholdRequest request,
-            CustomUserDetails currentUser);
+        /**
+         * Cập nhật ngưỡng cảnh báo hết hiệu lực kiểm nghiệm (chỉ dành cho Quản trị viên).
+         */
+        InspectionExpiryThresholdResponse updateThresholdConfig(
+                        InspectionExpiryThresholdRequest request,
+                        CustomUserDetails currentUser);
 }

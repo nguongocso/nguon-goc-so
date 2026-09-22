@@ -29,7 +29,6 @@ import vn.nguongocso.auth.entity.User;
 @AllArgsConstructor
 @Builder
 public class SystemConfiguration {
-
     @Id
     @Column(name = "config_key", nullable = false, length = 100)
     private String configKey;

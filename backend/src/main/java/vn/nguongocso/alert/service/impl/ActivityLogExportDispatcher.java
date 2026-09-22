@@ -34,6 +34,9 @@ public class ActivityLogExportDispatcher {
     @Value("${app.activity-log-export.recovery-batch-size:20}")
     private int recoveryBatchSize;
 
+    /**
+     * Constructor.
+     */
     public ActivityLogExportDispatcher(
             ActivityLogExportJobRepository jobRepository,
             ActivityLogExportWorker worker,
@@ -51,7 +54,8 @@ public class ActivityLogExportDispatcher {
         LocalDateTime now = LocalDateTime.now(clock);
         int claimed = jobRepository.claim(jobId, token, now.plusSeconds(leaseSeconds), now,
                 ActivityLogExportStatus.IN_PROGRESS);
-        if (claimed == 0) return false;
+        if (claimed == 0)
+            return false;
 
         try {
             taskExecutor.execute(() -> worker.process(jobId, token));
@@ -70,9 +74,7 @@ public class ActivityLogExportDispatcher {
     }
 
     /** Quét định kỳ để tự phục hồi khi tiến trình xử lý bị dừng đột ngột. */
-    @Scheduled(
-            fixedDelayString = "${app.activity-log-export.recovery-interval-ms:30000}",
-            initialDelayString = "${app.activity-log-export.recovery-interval-ms:30000}")
+    @Scheduled(fixedDelayString = "${app.activity-log-export.recovery-interval-ms:30000}", initialDelayString = "${app.activity-log-export.recovery-interval-ms:30000}")
     public void recoverPendingJobs() {
         LocalDateTime now = LocalDateTime.now(clock);
         List<UUID> jobIds = jobRepository.findRecoverableJobIds(ActivityLogExportStatus.IN_PROGRESS, now,
