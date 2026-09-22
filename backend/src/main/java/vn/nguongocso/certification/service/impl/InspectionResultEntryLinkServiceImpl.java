@@ -47,327 +47,334 @@ import vn.nguongocso.mail.service.EmailService;
 @RequiredArgsConstructor
 @Transactional
 public class InspectionResultEntryLinkServiceImpl implements InspectionResultEntryLinkService {
+        private static final String MSG_REQUEST_NOT_FOUND = "Yêu cầu kiểm nghiệm không tồn tại.";
+        private static final String MSG_REQUEST_STATUS_INVALID = "Yêu cầu kiểm nghiệm phải ở trạng thái chờ kết quả.";
+        private static final String MSG_MISSING_TESTING_UNIT = "Yêu cầu kiểm nghiệm chưa được gán đơn vị kiểm nghiệm.";
+        private static final String MSG_LINK_NOT_FOUND = "Liên kết không hợp lệ hoặc không tồn tại.";
+        private static final String MSG_NO_LINK_ISSUED = "Yêu cầu kiểm nghiệm chưa từng được cấp liên kết nhập kết quả.";
+        private static final String MSG_LINK_EXPIRED = "Liên kết đã hết hạn. Vui lòng liên hệ hợp tác xã để được cấp lại.";
+        private static final String MSG_LINK_INACTIVE = "Liên kết đã được sử dụng hoặc đã được thay thế.";
+        private static final String MSG_REQUEST_NO_LONGER_PENDING = "Yêu cầu kiểm nghiệm không còn ở trạng thái chờ kết quả.";
 
-    private static final String MSG_REQUEST_NOT_FOUND =
-            "Yêu cầu kiểm nghiệm không tồn tại.";
-    private static final String MSG_REQUEST_STATUS_INVALID =
-            "Yêu cầu kiểm nghiệm phải ở trạng thái chờ kết quả.";
-    private static final String MSG_MISSING_TESTING_UNIT =
-            "Yêu cầu kiểm nghiệm chưa được gán đơn vị kiểm nghiệm.";
-    private static final String MSG_LINK_NOT_FOUND =
-            "Liên kết không hợp lệ hoặc không tồn tại.";
-    private static final String MSG_NO_LINK_ISSUED =
-            "Yêu cầu kiểm nghiệm chưa từng được cấp liên kết nhập kết quả.";
-    private static final String MSG_LINK_EXPIRED =
-            "Liên kết đã hết hạn. Vui lòng liên hệ hợp tác xã để được cấp lại.";
-    private static final String MSG_LINK_INACTIVE =
-            "Liên kết đã được sử dụng hoặc đã được thay thế.";
-    private static final String MSG_REQUEST_NO_LONGER_PENDING =
-            "Yêu cầu kiểm nghiệm không còn ở trạng thái chờ kết quả.";
+        private static final int TOKEN_BYTE_LENGTH = 32;
+        private static final String HASH_ALGORITHM = "SHA-256";
 
-    private static final int TOKEN_BYTE_LENGTH = 32;
-    private static final String HASH_ALGORITHM = "SHA-256";
+        private final InspectionResultEntryLinkRepository linkRepository;
+        private final InspectionRequestRepository requestRepository;
+        private final TestingUnitRepository testingUnitRepository;
+        private final EmailService emailService;
+        private final InspectionResultPortalRateLimitService rateLimitService;
+        private final ApplicationEventPublisher eventPublisher;
+        private final SecureRandom secureRandom = new SecureRandom();
 
-    private final InspectionResultEntryLinkRepository linkRepository;
-    private final InspectionRequestRepository requestRepository;
-    private final TestingUnitRepository testingUnitRepository;
-    private final EmailService emailService;
-    private final InspectionResultPortalRateLimitService rateLimitService;
-    private final ApplicationEventPublisher eventPublisher;
-    private final SecureRandom secureRandom = new SecureRandom();
+        @Value("${app.frontend-url:http://localhost:5173}")
+        private String frontendUrl;
 
-    @Value("${app.frontend-url:http://localhost:5173}")
-    private String frontendUrl;
+        /**
+         * Cấp mới hoặc cấp lại liên kết nhập kết quả kiểm nghiệm cho yêu cầu.
+         */
+        @Override
+        public InspectionResultEntryLinkResponse issueLink(
+                        UUID requestId,
+                        IssueInspectionResultEntryLinkRequest request,
+                        CustomUserDetails currentUser) {
+                InspectionRequest inspectionRequest = requestRepository
+                                .findByIdAndOrganizationIdForUpdate(requestId, currentUser.getOrganizationId())
+                                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, MSG_REQUEST_NOT_FOUND));
 
-    @Override
-    public InspectionResultEntryLinkResponse issueLink(
-            UUID requestId,
-            IssueInspectionResultEntryLinkRequest request,
-            CustomUserDetails currentUser) {
-
-        InspectionRequest inspectionRequest = requestRepository
-                .findByIdAndOrganizationIdForUpdate(requestId, currentUser.getOrganizationId())
-                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, MSG_REQUEST_NOT_FOUND));
-
-        // Chỉ cấp liên kết khi yêu cầu ở trạng thái PENDING_RESULT
-        if (inspectionRequest.getStatus() != InspectionRequestStatus.PENDING_RESULT) {
-            throw new BusinessException(HttpStatus.CONFLICT, MSG_REQUEST_STATUS_INVALID);
-        }
-
-        // Yêu cầu phải có testingUnit từ danh mục
-        if (inspectionRequest.getTestingUnitId() == null) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, MSG_MISSING_TESTING_UNIT);
-        }
-
-        TestingUnit testingUnit = testingUnitRepository
-                .findById(inspectionRequest.getTestingUnitId())
-                .orElseThrow(() -> new BusinessException(HttpStatus.BAD_REQUEST, MSG_MISSING_TESTING_UNIT));
-
-        // Thu hồi toàn bộ liên kết ACTIVE cũ theo cơ chế nguyên tử (atomic update trong transaction có lock)
-        int revokedCount = linkRepository.revokeActiveLinksByRequestId(
-                requestId,
-                InspectionResultEntryLinkStatus.ACTIVE,
-                InspectionResultEntryLinkStatus.REVOKED,
-                LocalDateTime.now(),
-                currentUser.getUser());
-        boolean isReissue = revokedCount > 0;
-
-        // Sinh token ngẫu nhiên bảo mật 32 byte
-        String rawToken = generateRawToken();
-        String tokenHash = hashToken(rawToken);
-        String tokenPrefix = rawToken.substring(0, Math.min(8, rawToken.length()));
-
-        int expiryDays = (request.getExpiryDays() != null
-                && request.getExpiryDays() >= 1
-                && request.getExpiryDays() <= 30)
-                ? request.getExpiryDays()
-                : 7;
-        LocalDateTime expiresAt = LocalDateTime.now().plusDays(expiryDays);
-
-        InspectionResultEntryLink link = InspectionResultEntryLink.builder()
-                .inspectionRequest(inspectionRequest)
-                .organization(inspectionRequest.getProductionLot().getOrganization())
-                .testingUnit(testingUnit)
-                .recipientEmail(request.getRecipientEmail().trim())
-                .tokenPrefix(tokenPrefix)
-                .tokenHash(tokenHash)
-                .status(InspectionResultEntryLinkStatus.ACTIVE)
-                .expiresAt(expiresAt)
-                .createdBy(currentUser.getUser())
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        link = linkRepository.save(link);
-
-        // Xây dựng URL hoàn chỉnh để gửi email và trả về 1 lần duy nhất cho client
-        String entryUrl = frontendUrl + "/inspection-result-entry/" + rawToken;
-
-        // Gửi email bất đồng bộ
-        try {
-            String orgName = inspectionRequest.getProductionLot().getOrganization().getName();
-            String testingUnitName = testingUnit.getName();
-            String lotCode = inspectionRequest.getProductionLot().getName();
-
-            emailService.sendInspectionResultEntryEmail(
-                    request.getRecipientEmail().trim(),
-                    orgName,
-                    testingUnitName,
-                    lotCode,
-                    entryUrl,
-                    expiryDays);
-        } catch (Exception e) {
-            log.error("Lỗi khi gửi email liên kết nhập kết quả: {}", e.getMessage());
-        }
-
-        // Ghi nhật ký hoạt động (TASK-27)
-        publishActivityLog(
-                currentUser,
-                isReissue ? "REISSUE_INSPECTION_RESULT_LINK" : "ISSUE_INSPECTION_RESULT_LINK",
-                (isReissue ? "Cấp lại" : "Cấp") + " liên kết nhập kết quả kiểm nghiệm cho đơn vị '"
-                        + testingUnit.getName() + "' (email: "
-                        + maskEmail(request.getRecipientEmail().trim()) + ")",
-                "INSPECTION_RESULT_ENTRY_LINK",
-                link.getId().toString());
-
-        return InspectionResultEntryLinkResponse.builder()
-                .id(link.getId())
-                .status(link.getStatus())
-                .recipientEmail(link.getRecipientEmail())
-                .tokenPrefix(link.getTokenPrefix())
-                .expiresAt(link.getExpiresAt())
-                .usedAt(link.getUsedAt())
-                .createdAt(link.getCreatedAt())
-                .entryUrl(entryUrl)
-                .build();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public InspectionResultEntryLinkResponse getLatestLink(
-            UUID requestId,
-            CustomUserDetails currentUser) {
-
-        InspectionRequest inspectionRequest = requestRepository
-                .findByIdAndProductionLot_Organization_OrganizationId(requestId, currentUser.getOrganizationId())
-                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, MSG_REQUEST_NOT_FOUND));
-
-        InspectionResultEntryLink link = linkRepository
-                .findFirstByInspectionRequest_IdOrderByCreatedAtDesc(requestId)
-                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, MSG_NO_LINK_ISSUED));
-
-        InspectionResultEntryLinkStatus effectiveStatus = link.getStatus();
-        if (effectiveStatus == InspectionResultEntryLinkStatus.ACTIVE
-                && LocalDateTime.now().isAfter(link.getExpiresAt())) {
-            effectiveStatus = InspectionResultEntryLinkStatus.EXPIRED;
-        }
-
-        return InspectionResultEntryLinkResponse.builder()
-                .id(link.getId())
-                .status(effectiveStatus)
-                .recipientEmail(link.getRecipientEmail())
-                .tokenPrefix(link.getTokenPrefix())
-                .expiresAt(link.getExpiresAt())
-                .usedAt(link.getUsedAt())
-                .createdAt(link.getCreatedAt())
-                .entryUrl(null)
-                .build();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PublicInspectionResultEntryResponse getPublicPortalData(
-            String rawToken,
-            String clientIp) {
-
-        InspectionResultEntryLink link = validateAndGetActiveLink(rawToken, clientIp);
-        InspectionRequest request = link.getInspectionRequest();
-
-        if (request.getStatus() != InspectionRequestStatus.PENDING_RESULT) {
-            throw new BusinessException(HttpStatus.CONFLICT, MSG_REQUEST_NO_LONGER_PENDING);
-        }
-
-        List<PublicInspectionResultEntryCriterionResponse> criteria = request.getCriteria().stream()
-                .map(c -> PublicInspectionResultEntryCriterionResponse.builder()
-                        .criterionId(c.getId())
-                        .code(c.getCriterionCode())
-                        .name(c.getCriterionName())
-                        .standardName(c.getStandard() != null ? c.getStandard().getName() : null)
-                        .build())
-                .collect(Collectors.toList());
-
-        String testingUnitName = link.getTestingUnit() != null
-                ? link.getTestingUnit().getName()
-                : request.getInspectionUnit();
-
-        String lotCode = request.getProductionLot() != null
-                ? request.getProductionLot().getName()
-                : "";
-
-        return PublicInspectionResultEntryResponse.builder()
-                .testingUnitName(testingUnitName)
-                .testingUnit(testingUnitName)
-                .lotCode(lotCode)
-                .lotName(lotCode)
-                .sampleSentDate(request.getSampleSentDate())
-                .expiresAt(link.getExpiresAt())
-                .criteria(criteria)
-                .build();
-    }
-
-    @Override
-    public InspectionResultEntryLink validateAndGetActiveLink(
-            String rawToken,
-            String clientIp) {
-
-        rateLimitService.checkIpRateLimit(clientIp);
-
-        String tokenHash = hashToken(rawToken);
-        InspectionResultEntryLink link = linkRepository.findByTokenHash(tokenHash)
-                .orElseThrow(() -> {
-                    rateLimitService.recordInvalidTokenAttempt(clientIp);
-                    return new BusinessException(HttpStatus.NOT_FOUND, MSG_LINK_NOT_FOUND);
-                });
-
-        rateLimitService.checkTokenRateLimit(tokenHash);
-
-        // Kiểm tra thời hạn
-        if (LocalDateTime.now().isAfter(link.getExpiresAt())
-                || link.getStatus() == InspectionResultEntryLinkStatus.EXPIRED) {
-            throw new BusinessException(HttpStatus.GONE, MSG_LINK_EXPIRED);
-        }
-
-        // Kiểm tra trạng thái đã sử dụng hoặc bị thu hồi
-        if (link.getStatus() == InspectionResultEntryLinkStatus.USED
-                || link.getStatus() == InspectionResultEntryLinkStatus.REVOKED) {
-            throw new BusinessException(HttpStatus.GONE, MSG_LINK_INACTIVE);
-        }
-
-        // Kiểm tra tính nhất quán giữa link, yêu cầu kiểm nghiệm và đơn vị kiểm nghiệm
-        InspectionRequest request = link.getInspectionRequest();
-        if (request == null || request.getProductionLot() == null
-                || request.getProductionLot().getOrganization() == null
-                || !link.getOrganization().getOrganizationId()
-                        .equals(request.getProductionLot().getOrganization().getOrganizationId())) {
-            throw new BusinessException(HttpStatus.NOT_FOUND, MSG_LINK_NOT_FOUND);
-        }
-
-        if (request.getTestingUnitId() != null && link.getTestingUnit() != null
-                && !link.getTestingUnit().getId().equals(request.getTestingUnitId())) {
-            throw new BusinessException(HttpStatus.NOT_FOUND, MSG_LINK_NOT_FOUND);
-        }
-
-        return link;
-    }
-
-    @Override
-    public void revokeActiveLinksForRequest(UUID requestId, User actor) {
-        linkRepository.revokeActiveLinksByRequestId(
-                requestId,
-                InspectionResultEntryLinkStatus.ACTIVE,
-                InspectionResultEntryLinkStatus.REVOKED,
-                LocalDateTime.now(),
-                actor);
-    }
-
-    @Override
-    public String hashToken(String rawToken) {
-        if (rawToken == null || rawToken.isBlank()) {
-            return "";
-        }
-        try {
-            MessageDigest digest = MessageDigest.getInstance(HASH_ALGORITHM);
-            byte[] hash = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) {
-                    hexString.append('0');
+                if (inspectionRequest.getStatus() != InspectionRequestStatus.PENDING_RESULT) {
+                        throw new BusinessException(HttpStatus.CONFLICT, MSG_REQUEST_STATUS_INVALID);
                 }
-                hexString.append(hex);
-            }
-            return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("Thuật toán SHA-256 không khả dụng trên hệ thống", e);
+
+                if (inspectionRequest.getTestingUnitId() == null) {
+                        throw new BusinessException(HttpStatus.BAD_REQUEST, MSG_MISSING_TESTING_UNIT);
+                }
+
+                TestingUnit testingUnit = testingUnitRepository
+                                .findById(inspectionRequest.getTestingUnitId())
+                                .orElseThrow(() -> new BusinessException(HttpStatus.BAD_REQUEST,
+                                                MSG_MISSING_TESTING_UNIT));
+
+                int revokedCount = linkRepository.revokeActiveLinksByRequestId(
+                                requestId,
+                                InspectionResultEntryLinkStatus.ACTIVE,
+                                InspectionResultEntryLinkStatus.REVOKED,
+                                LocalDateTime.now(),
+                                currentUser.getUser());
+                boolean isReissue = revokedCount > 0;
+
+                String rawToken = generateRawToken();
+                String tokenHash = hashToken(rawToken);
+                String tokenPrefix = rawToken.substring(0, Math.min(8, rawToken.length()));
+
+                int expiryDays = (request.getExpiryDays() != null
+                                && request.getExpiryDays() >= 1
+                                && request.getExpiryDays() <= 30)
+                                                ? request.getExpiryDays()
+                                                : 7;
+                LocalDateTime expiresAt = LocalDateTime.now().plusDays(expiryDays);
+
+                InspectionResultEntryLink link = InspectionResultEntryLink.builder()
+                                .inspectionRequest(inspectionRequest)
+                                .organization(inspectionRequest.getProductionLot().getOrganization())
+                                .testingUnit(testingUnit)
+                                .recipientEmail(request.getRecipientEmail().trim())
+                                .tokenPrefix(tokenPrefix)
+                                .tokenHash(tokenHash)
+                                .status(InspectionResultEntryLinkStatus.ACTIVE)
+                                .expiresAt(expiresAt)
+                                .createdBy(currentUser.getUser())
+                                .createdAt(LocalDateTime.now())
+                                .build();
+
+                link = linkRepository.save(link);
+
+                String entryUrl = frontendUrl + "/inspection-result-entry/" + rawToken;
+
+                try {
+                        String orgName = inspectionRequest.getProductionLot().getOrganization().getName();
+                        String testingUnitName = testingUnit.getName();
+                        String lotCode = inspectionRequest.getProductionLot().getName();
+
+                        emailService.sendInspectionResultEntryEmail(
+                                        request.getRecipientEmail().trim(),
+                                        orgName,
+                                        testingUnitName,
+                                        lotCode,
+                                        entryUrl,
+                                        expiryDays);
+                } catch (Exception e) {
+                        log.error("Lỗi khi gửi email liên kết nhập kết quả: {}", e.getMessage());
+                }
+
+                publishActivityLog(
+                                currentUser,
+                                isReissue ? "REISSUE_INSPECTION_RESULT_LINK" : "ISSUE_INSPECTION_RESULT_LINK",
+                                (isReissue ? "Cấp lại" : "Cấp") + " liên kết nhập kết quả kiểm nghiệm cho đơn vị '"
+                                                + testingUnit.getName() + "' (email: "
+                                                + maskEmail(request.getRecipientEmail().trim()) + ")",
+                                "INSPECTION_RESULT_ENTRY_LINK",
+                                link.getId().toString());
+
+                return InspectionResultEntryLinkResponse.builder()
+                                .id(link.getId())
+                                .status(link.getStatus())
+                                .recipientEmail(link.getRecipientEmail())
+                                .tokenPrefix(link.getTokenPrefix())
+                                .expiresAt(link.getExpiresAt())
+                                .usedAt(link.getUsedAt())
+                                .createdAt(link.getCreatedAt())
+                                .entryUrl(entryUrl)
+                                .build();
         }
-    }
 
-    private String generateRawToken() {
-        byte[] randomBytes = new byte[TOKEN_BYTE_LENGTH];
-        secureRandom.nextBytes(randomBytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
-    }
+        /**
+         * Lấy thông tin liên kết mới nhất của yêu cầu kiểm nghiệm.
+         */
+        @Override
+        @Transactional(readOnly = true)
+        public InspectionResultEntryLinkResponse getLatestLink(
+                        UUID requestId,
+                        CustomUserDetails currentUser) {
+                InspectionRequest inspectionRequest = requestRepository
+                                .findByIdAndProductionLot_Organization_OrganizationId(requestId,
+                                                currentUser.getOrganizationId())
+                                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, MSG_REQUEST_NOT_FOUND));
 
-    private String maskEmail(String email) {
-        if (email == null || !email.contains("@")) {
-            return "***";
+                InspectionResultEntryLink link = linkRepository
+                                .findFirstByInspectionRequest_IdOrderByCreatedAtDesc(requestId)
+                                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, MSG_NO_LINK_ISSUED));
+
+                InspectionResultEntryLinkStatus effectiveStatus = link.getStatus();
+                if (effectiveStatus == InspectionResultEntryLinkStatus.ACTIVE
+                                && LocalDateTime.now().isAfter(link.getExpiresAt())) {
+                        effectiveStatus = InspectionResultEntryLinkStatus.EXPIRED;
+                }
+
+                return InspectionResultEntryLinkResponse.builder()
+                                .id(link.getId())
+                                .status(effectiveStatus)
+                                .recipientEmail(link.getRecipientEmail())
+                                .tokenPrefix(link.getTokenPrefix())
+                                .expiresAt(link.getExpiresAt())
+                                .usedAt(link.getUsedAt())
+                                .createdAt(link.getCreatedAt())
+                                .entryUrl(null)
+                                .build();
         }
-        int atIndex = email.indexOf('@');
-        String name = email.substring(0, atIndex);
-        String domain = email.substring(atIndex);
-        if (name.length() <= 2) {
-            return name.charAt(0) + "***" + domain;
+
+        /**
+         * Lấy thông tin công khai của yêu cầu kiểm nghiệm qua token bí mật.
+         */
+        @Override
+        @Transactional(readOnly = true)
+        public PublicInspectionResultEntryResponse getPublicPortalData(
+                        String rawToken,
+                        String clientIp) {
+                InspectionResultEntryLink link = validateAndGetActiveLink(rawToken, clientIp);
+                InspectionRequest request = link.getInspectionRequest();
+
+                if (request.getStatus() != InspectionRequestStatus.PENDING_RESULT) {
+                        throw new BusinessException(HttpStatus.CONFLICT, MSG_REQUEST_NO_LONGER_PENDING);
+                }
+
+                List<PublicInspectionResultEntryCriterionResponse> criteria = request.getCriteria().stream()
+                                .map(c -> PublicInspectionResultEntryCriterionResponse.builder()
+                                                .criterionId(c.getId())
+                                                .code(c.getCriterionCode())
+                                                .name(c.getCriterionName())
+                                                .standardName(c.getStandard() != null ? c.getStandard().getName()
+                                                                : null)
+                                                .build())
+                                .collect(Collectors.toList());
+
+                String testingUnitName = link.getTestingUnit() != null
+                                ? link.getTestingUnit().getName()
+                                : request.getInspectionUnit();
+
+                String lotCode = request.getProductionLot() != null
+                                ? request.getProductionLot().getName()
+                                : "";
+
+                return PublicInspectionResultEntryResponse.builder()
+                                .testingUnitName(testingUnitName)
+                                .testingUnit(testingUnitName)
+                                .lotCode(lotCode)
+                                .lotName(lotCode)
+                                .sampleSentDate(request.getSampleSentDate())
+                                .expiresAt(link.getExpiresAt())
+                                .criteria(criteria)
+                                .build();
         }
-        return name.charAt(0) + "***" + name.charAt(name.length() - 1) + domain;
-    }
 
-    private void publishActivityLog(
-            CustomUserDetails currentUser,
-            String action,
-            String description,
-            String entityType,
-            String entityId) {
+        /**
+         * Xác thực token và lấy thực thể liên kết đang hoạt động còn hạn.
+         */
+        @Override
+        public InspectionResultEntryLink validateAndGetActiveLink(
+                        String rawToken,
+                        String clientIp) {
+                rateLimitService.checkIpRateLimit(clientIp);
 
-        eventPublisher.publishEvent(ActivityLogEvent.builder()
-                .userId(currentUser.getUserId())
-                .username(currentUser.getUsername())
-                .fullName(currentUser.getFullName())
-                .organizationId(currentUser.getOrganizationId())
-                .action(action)
-                .description(description)
-                .entityType(entityType)
-                .entityId(entityId)
-                .ipAddress(IpUtils.getClientIp())
-                .timestamp(LocalDateTime.now())
-                .build());
-    }
+                String tokenHash = hashToken(rawToken);
+                InspectionResultEntryLink link = linkRepository.findByTokenHash(tokenHash)
+                                .orElseThrow(() -> {
+                                        rateLimitService.recordInvalidTokenAttempt(clientIp);
+                                        return new BusinessException(HttpStatus.NOT_FOUND, MSG_LINK_NOT_FOUND);
+                                });
+
+                rateLimitService.checkTokenRateLimit(tokenHash);
+
+                if (LocalDateTime.now().isAfter(link.getExpiresAt())
+                                || link.getStatus() == InspectionResultEntryLinkStatus.EXPIRED) {
+                        throw new BusinessException(HttpStatus.GONE, MSG_LINK_EXPIRED);
+                }
+
+                if (link.getStatus() == InspectionResultEntryLinkStatus.USED
+                                || link.getStatus() == InspectionResultEntryLinkStatus.REVOKED) {
+                        throw new BusinessException(HttpStatus.GONE, MSG_LINK_INACTIVE);
+                }
+
+                InspectionRequest request = link.getInspectionRequest();
+                if (request == null || request.getProductionLot() == null
+                                || request.getProductionLot().getOrganization() == null
+                                || !link.getOrganization().getOrganizationId()
+                                                .equals(request.getProductionLot().getOrganization()
+                                                                .getOrganizationId())) {
+                        throw new BusinessException(HttpStatus.NOT_FOUND, MSG_LINK_NOT_FOUND);
+                }
+
+                if (request.getTestingUnitId() != null && link.getTestingUnit() != null
+                                && !link.getTestingUnit().getId().equals(request.getTestingUnitId())) {
+                        throw new BusinessException(HttpStatus.NOT_FOUND, MSG_LINK_NOT_FOUND);
+                }
+
+                return link;
+        }
+
+        /**
+         * Thu hồi tất cả các liên kết đang hoạt động của yêu cầu kiểm nghiệm.
+         */
+        @Override
+        public void revokeActiveLinksForRequest(UUID requestId, User actor) {
+                linkRepository.revokeActiveLinksByRequestId(
+                                requestId,
+                                InspectionResultEntryLinkStatus.ACTIVE,
+                                InspectionResultEntryLinkStatus.REVOKED,
+                                LocalDateTime.now(),
+                                actor);
+        }
+
+        /**
+         * Băm chuỗi token bằng thuật toán SHA-256.
+         */
+        @Override
+        public String hashToken(String rawToken) {
+                if (rawToken == null || rawToken.isBlank()) {
+                        return "";
+                }
+                try {
+                        MessageDigest digest = MessageDigest.getInstance(HASH_ALGORITHM);
+                        byte[] hash = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
+                        StringBuilder hexString = new StringBuilder();
+                        for (byte b : hash) {
+                                String hex = Integer.toHexString(0xff & b);
+                                if (hex.length() == 1) {
+                                        hexString.append('0');
+                                }
+                                hexString.append(hex);
+                        }
+                        return hexString.toString();
+                } catch (NoSuchAlgorithmException e) {
+                        throw new IllegalStateException("Thuật toán SHA-256 không khả dụng trên hệ thống", e);
+                }
+        }
+
+        /**
+         * Sinh chuỗi token ngẫu nhiên bảo mật cao.
+         */
+        private String generateRawToken() {
+                byte[] randomBytes = new byte[TOKEN_BYTE_LENGTH];
+                secureRandom.nextBytes(randomBytes);
+                return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+        }
+
+        /**
+         * Ẩn một phần địa chỉ email để bảo mật thông tin nhật ký.
+         */
+        private String maskEmail(String email) {
+                if (email == null || !email.contains("@")) {
+                        return "***";
+                }
+                int atIndex = email.indexOf('@');
+                String name = email.substring(0, atIndex);
+                String domain = email.substring(atIndex);
+                if (name.length() <= 2) {
+                        return name.charAt(0) + "***" + domain;
+                }
+                return name.charAt(0) + "***" + name.charAt(name.length() - 1) + domain;
+        }
+
+        /**
+         * Ghi nhật ký hoạt động vào hệ thống.
+         */
+        private void publishActivityLog(
+                        CustomUserDetails currentUser,
+                        String action,
+                        String description,
+                        String entityType,
+                        String entityId) {
+                eventPublisher.publishEvent(ActivityLogEvent.builder()
+                                .userId(currentUser.getUserId())
+                                .username(currentUser.getUsername())
+                                .fullName(currentUser.getFullName())
+                                .organizationId(currentUser.getOrganizationId())
+                                .action(action)
+                                .description(description)
+                                .entityType(entityType)
+                                .entityId(entityId)
+                                .ipAddress(IpUtils.getClientIp())
+                                .timestamp(LocalDateTime.now())
+                                .build());
+        }
 }

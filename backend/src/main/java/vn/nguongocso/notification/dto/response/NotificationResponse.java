@@ -20,11 +20,8 @@ import vn.nguongocso.alert.enums.NotificationType;
 @AllArgsConstructor
 public class NotificationResponse {
     private UUID id;
-
     private NotificationType type;
-
     private String title;
-
     private String content;
 
     /**
@@ -34,8 +31,6 @@ public class NotificationResponse {
     private UUID entityId;
 
     private Boolean isRead;
-
     private LocalDateTime readAt;
-
     private LocalDateTime createdAt;
 }

@@ -8,6 +8,7 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
+/** DTO response chi tiết nhật ký quét mã. */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -15,8 +16,12 @@ import java.time.LocalDateTime;
 @Builder
 public class ScanLogDetail {
     private LocalDateTime scannedAt;
+
     private Double latitude;
+
     private Double longitude;
+
     private String location;
+
     private String userAgent;
 }

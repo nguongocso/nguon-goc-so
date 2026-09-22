@@ -8,17 +8,9 @@ import org.springframework.stereotype.Repository;
 
 import vn.nguongocso.recall.entity.RecallEvidenceFile;
 
-/**
- * Repository thao tác với bảng tệp biên bản thu hồi {@link RecallEvidenceFile}.
- */
+/** Repository quản lý tệp biên bản thu hồi. */
 @Repository
 public interface RecallEvidenceFileRepository extends JpaRepository<RecallEvidenceFile, UUID> {
-
-    /**
-     * Tìm danh sách tệp biên bản theo danh sách UUID.
-     *
-     * @param ids Danh sách UUID tệp biên bản.
-     * @return Danh sách thực thể {@link RecallEvidenceFile}.
-     */
+    /** Tìm danh sách tệp biên bản theo danh sách ID. */
     List<RecallEvidenceFile> findByIdIn(List<UUID> ids);
 }

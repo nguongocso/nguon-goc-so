@@ -17,6 +17,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ActivityLogExportFilterRequest {
     private LocalDate startDate;
+
     private LocalDate endDate;
 
     @Size(max = 100, message = "Loại thao tác không được vượt quá 100 ký tự.")

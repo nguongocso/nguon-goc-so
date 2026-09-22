@@ -16,7 +16,10 @@ import java.util.Map;
 @AllArgsConstructor
 public class AggregateAlertCountResponse {
     private long totalOpen;
+
     private long highSeverityCount;
+
     private long mediumSeverityCount;
+
     private Map<String, Long> byTypeCounts;
 }

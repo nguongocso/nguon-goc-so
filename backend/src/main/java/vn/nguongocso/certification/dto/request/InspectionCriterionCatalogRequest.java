@@ -6,12 +6,11 @@ import lombok.Setter;
 import java.math.BigDecimal;
 
 /**
- * Request DTO for creating/updating an inspection criterion catalog entry.
+ * DTO request tạo/cập nhật chỉ tiêu trong danh mục.
  */
 @Getter
 @Setter
 public class InspectionCriterionCatalogRequest {
-
     @NotBlank(message = "Tên chỉ tiêu không được để trống")
     @Size(max = 150, message = "Tên chỉ tiêu tối đa 150 ký tự")
     private String name;

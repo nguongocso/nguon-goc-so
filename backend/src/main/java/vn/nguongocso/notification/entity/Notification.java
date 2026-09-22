@@ -20,14 +20,15 @@ import lombok.Setter;
 import vn.nguongocso.alert.enums.NotificationType;
 import vn.nguongocso.auth.entity.User;
 
+/**
+ * Thực thể thông báo.
+ */
 @Getter
 @Setter
 @Entity
 @Table(name = "notifications")
-/**
- * Thực thể thông báo.
- */
 public class Notification {
+
     @Id
     @Column(name = "id", nullable = false, updatable = false)
     @JdbcTypeCode(SqlTypes.CHAR)

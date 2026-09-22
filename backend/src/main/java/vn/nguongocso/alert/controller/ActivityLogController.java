@@ -22,7 +22,13 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.ApiResult;
@@ -50,16 +56,6 @@ public class ActivityLogController {
 
     /**
      * API lấy danh sách lịch sử hoạt động của tổ chức hiện tại.
-     *
-     * @param page        Trang hiện tại (mặc định là 0)
-     * @param size        Số bản ghi trên 1 trang (mặc định là 10)
-     * @param action      Lọc theo loại thao tác (không bắt buộc)
-     * @param actorName   Lọc theo tên hoặc username người thực hiện (không bắt buộc)
-     * @param startDate   Lọc từ ngày (định dạng yyyy-MM-dd, không bắt buộc)
-     * @param endDate     Lọc đến ngày (định dạng yyyy-MM-dd, không bắt buộc)
-     * @param objectType  Lọc theo loại đối tượng dữ liệu (không bắt buộc)
-     * @param currentUser Thông tin tài khoản đang đăng nhập lấy từ JWT token
-     * @param request     HTTP request dùng để lấy địa chỉ IP của client
      */
     @GetMapping
     @PreAuthorize("hasRole('VT-02')")
@@ -84,20 +80,17 @@ public class ActivityLogController {
                 "User {} thuộc tổ chức {} yêu cầu xem lịch sử hoạt động từ IP {}",
                 currentUser.getUsername(),
                 currentUser.getOrganizationCode(),
-                ipAddress
-        );
+                ipAddress);
 
-        PageResponse<ActivityLogResponse> response =
-                activityLogService.getActivityLogs(
-                        page,
-                        size,
-                        action,
-                        actorName,
-                        startDate,
-                        endDate,
-                        objectType,
-                        currentUser
-                );
+        PageResponse<ActivityLogResponse> response = activityLogService.getActivityLogs(
+                page,
+                size,
+                action,
+                actorName,
+                startDate,
+                endDate,
+                objectType,
+                currentUser);
 
         return ResponseEntity.ok(ApiResult.success(response));
     }
@@ -166,23 +159,16 @@ public class ActivityLogController {
 
     /**
      * Lấy địa chỉ IP thực tế của client.
-     *
-     * Ưu tiên:
-     * 1. X-Forwarded-For
-     * 2. X-Real-IP
-     * 3. request.getRemoteAddr()
      */
     private String getClientIpAddress(HttpServletRequest request) {
 
-        String xForwardedFor =
-                request.getHeader("X-Forwarded-For");
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
 
         if (xForwardedFor != null && !xForwardedFor.isBlank()) {
             return xForwardedFor.split(",")[0].trim();
         }
 
-        String xRealIp =
-                request.getHeader("X-Real-IP");
+        String xRealIp = request.getHeader("X-Real-IP");
 
         if (xRealIp != null && !xRealIp.isBlank()) {
             return xRealIp;

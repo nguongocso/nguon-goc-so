@@ -9,23 +9,36 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/*
+ * Response thông tin case
+ */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class SuspiciousCaseResponse {
-
     private UUID id;
+
     private UUID userId;
+
     private String username;
+
     private String fullName;
+
     private UUID organizationId;
+
     private String organizationName;
+
     private String status;
+
     private int anomalyCount;
+
     private OffsetDateTime firstDetectedAt;
+
     private OffsetDateTime lastDetectedAt;
+
     private OffsetDateTime createdAt;
+
     private OffsetDateTime resolvedAt;
 }

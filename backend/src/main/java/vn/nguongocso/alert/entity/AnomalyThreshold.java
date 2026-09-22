@@ -28,10 +28,6 @@ import vn.nguongocso.farm.entity.ProductCategory;
 
 /**
  * Thực thể cấu hình ngưỡng phát hiện quét bất thường (NCL-08-CN-014).
- * <p>
- * Lưu trữ cấu hình toàn cục (khi {@code productCategory} là {@code null})
- * hoặc cấu hình ghi đè riêng cho từng loại nông sản.
- * </p>
  */
 @Entity
 @Table(name = "anomaly_thresholds")
@@ -41,7 +37,6 @@ import vn.nguongocso.farm.entity.ProductCategory;
 @AllArgsConstructor
 @Builder
 public class AnomalyThreshold {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false, updatable = false)

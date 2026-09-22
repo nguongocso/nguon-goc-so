@@ -10,25 +10,32 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 
-/**
- * Response DTO tóm tắt phiếu bàn giao phục vụ danh sách VT-04.
- */
+/** Thông tin tóm tắt phiếu bàn giao lô hàng. */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class HandoverSummaryResponse {
-
     private UUID id;
+
     private UUID shipmentId;
+
     private String shipmentName;
+
     private String fromOrganizationName;
+
     private String toOrganizationName;
+
     private Long quantity;
+
     private String unit;
+
     private ShipmentHandoverStatus status;
+
     private LocalDateTime createdAt;
+
     private LocalDateTime confirmedAt;
+
     private String rejectionReason;
 }

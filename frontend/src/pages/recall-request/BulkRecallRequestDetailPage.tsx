@@ -123,7 +123,7 @@ export const BulkRecallRequestDetailPage = () => {
         }`,
       );
       setApproveDialogOpen(false);
-      load(); // Refresh data
+      load(); // Tải lại dữ liệu
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Không thể phê duyệt yêu cầu');
     } finally {
@@ -142,7 +142,7 @@ export const BulkRecallRequestDetailPage = () => {
       await rejectBulkRecallRequest(id, { reason: rejectionReason.trim() });
       toast.success('Đã từ chối yêu cầu thu hồi');
       setRejectDialogOpen(false);
-      load(); // Refresh data
+      load(); // Tải lại dữ liệu
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Không thể từ chối yêu cầu');
     } finally {

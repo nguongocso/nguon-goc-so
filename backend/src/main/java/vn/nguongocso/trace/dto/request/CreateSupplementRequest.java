@@ -12,17 +12,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Payload tạo yêu cầu cấp bổ sung dải mã truy xuất (NCL-04-CN-007).
- *
- * <p>Chỉ Quản lý hợp tác xã (VT-02) được phép. Tổ chức lấy từ người dùng
- * đang đăng nhập (QTN-01).</p>
- */
+/** Yêu cầu tạo mới cấp bổ sung dải mã truy xuất. */
 @Getter
 @Setter
 @NoArgsConstructor
 public class CreateSupplementRequest {
-
     @NotNull(message = "Số lượng đề nghị không được để trống.")
     @Min(value = 1, message = "Số lượng đề nghị phải lớn hơn 0.")
     private Long requestedQuantity;

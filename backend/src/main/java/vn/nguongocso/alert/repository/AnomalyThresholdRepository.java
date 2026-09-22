@@ -15,7 +15,6 @@ import vn.nguongocso.alert.entity.AnomalyThreshold;
  */
 @Repository
 public interface AnomalyThresholdRepository extends JpaRepository<AnomalyThreshold, UUID> {
-
     /**
      * Tìm cấu hình mặc định toàn cục đang hoạt động.
      */

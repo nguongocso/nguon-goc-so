@@ -9,14 +9,13 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum InspectionRequestStatus {
+    PENDING_RESULT("Chờ kết quả"), // Yêu cầu kiểm nghiệm chưa có kết quả.
 
-    PENDING_RESULT("Chờ kết quả"),
+    PASSED("Đạt"), // Yêu cầu kiểm nghiệm đã có kết quả đạt.
 
-    PASSED("Đạt"),
+    FAILED("Không đạt"), // Yêu cầu kiểm nghiệm đã có kết quả không đạt.
 
-    FAILED("Không đạt"),
-
-    CANCELLED("Đã hủy");
+    CANCELLED("Đã hủy"); // Yêu cầu kiểm nghiệm đã bị hủy.
 
     private final String label;
 }

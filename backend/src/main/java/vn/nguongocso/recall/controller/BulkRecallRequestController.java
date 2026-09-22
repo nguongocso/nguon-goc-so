@@ -28,23 +28,16 @@ import vn.nguongocso.recall.dto.response.BulkRecallRequestResponse;
 import vn.nguongocso.recall.service.BulkRecallRequestService;
 import vn.nguongocso.trace.recall.dto.request.CloseRecallCaseRequest;
 
-/**
- * Controller quản lý yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng (NCL-08-CN-011, NCL-08-CN-012).
- */
+/** Controller quản lý yêu cầu thu hồi hàng loạt theo phạm vi ảnh hưởng. */
 @RestController
 @RequestMapping("/api/v1/recall-requests/bulk")
 @RequiredArgsConstructor
 @PreAuthorize("!hasRole('VT-01')")
 public class BulkRecallRequestController {
-
     private final BulkRecallRequestService bulkRecallRequestService;
     private final PermissionChecker permissionChecker;
 
-    /**
-     * Tạo yêu cầu thu hồi hàng loạt.
-     *
-     * POST /api/v1/recall-requests/bulk
-     */
+    /** Tạo yêu cầu thu hồi hàng loạt. */
     @PostMapping
     public ResponseEntity<ApiResult<BulkRecallRequestResponse>> createBulkRecallRequest(
             @Valid @RequestBody CreateBulkRecallRequest request,
@@ -59,11 +52,7 @@ public class BulkRecallRequestController {
                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * Lấy chi tiết yêu cầu thu hồi hàng loạt.
-     *
-     * GET /api/v1/recall-requests/bulk/{id}
-     */
+    /** Lấy chi tiết yêu cầu thu hồi hàng loạt. */
     @GetMapping("/{id}")
     public ResponseEntity<ApiResult<BulkRecallRequestResponse>> getBulkRecallRequest(
             @PathVariable UUID id,
@@ -77,11 +66,7 @@ public class BulkRecallRequestController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Lấy danh sách yêu cầu thu hồi hàng loạt với phân trang.
-     *
-     * GET /api/v1/recall-requests/bulk?status=PENDING&page=0&size=10
-     */
+    /** Lấy danh sách yêu cầu thu hồi hàng loạt với phân trang. */
     @GetMapping
     public ResponseEntity<ApiResult<PageResponse<BulkRecallRequestResponse>>> listBulkRecallRequests(
             @RequestParam(required = false) String status,
@@ -97,11 +82,7 @@ public class BulkRecallRequestController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Phê duyệt yêu cầu thu hồi hàng loạt.
-     *
-     * PUT /api/v1/recall-requests/bulk/{id}/approve
-     */
+    /** Phê duyệt yêu cầu thu hồi hàng loạt. */
     @PutMapping("/{id}/approve")
     public ResponseEntity<ApiResult<BulkRecallRequestResponse>> approveBulkRecallRequest(
             @PathVariable UUID id,
@@ -116,11 +97,7 @@ public class BulkRecallRequestController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Từ chối yêu cầu thu hồi hàng loạt.
-     *
-     * PUT /api/v1/recall-requests/bulk/{id}/reject
-     */
+    /** Từ chối yêu cầu thu hồi hàng loạt. */
     @PutMapping("/{id}/reject")
     public ResponseEntity<ApiResult<BulkRecallRequestResponse>> rejectBulkRecallRequest(
             @PathVariable UUID id,
@@ -135,11 +112,7 @@ public class BulkRecallRequestController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Kết thúc vụ việc thu hồi gắn liền với yêu cầu thu hồi hàng loạt (NCL-08-CN-012).
-     *
-     * PUT /api/v1/recall-requests/bulk/{id}/close
-     */
+    /** Kết thúc vụ việc thu hồi gắn liền với yêu cầu thu hồi hàng loạt. */
     @PutMapping("/{id}/close")
     public ResponseEntity<ApiResult<BulkRecallRequestResponse>> closeBulkRecallRequest(
             @PathVariable UUID id,
@@ -154,12 +127,7 @@ public class BulkRecallRequestController {
         return ResponseEntity.ok(ApiResult.success(HttpStatus.OK.value(), response));
     }
 
-    /**
-     * Tải lên tệp biên bản đính kèm vụ việc thu hồi (NCL-08-CN-012).
-     * Hỗ trợ định dạng PDF (.pdf) hoặc Word (.docx, .doc).
-     *
-     * POST /api/v1/recall-requests/bulk/evidence
-     */
+    /** Tải lên tệp biên bản đính kèm vụ việc thu hồi. */
     @PostMapping(value = "/evidence", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResult<vn.nguongocso.recall.dto.response.RecallEvidenceResponse>> uploadEvidence(
             @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
@@ -174,11 +142,7 @@ public class BulkRecallRequestController {
                 .body(ApiResult.success(HttpStatus.CREATED.value(), response));
     }
 
-    /**
-     * Tải xuống hoặc xem tệp biên bản thu hồi đã tải lên.
-     *
-     * GET /api/v1/recall-requests/bulk/evidence/{fileId}
-     */
+    /** Tải xuống hoặc xem tệp biên bản thu hồi đã tải lên. */
     @GetMapping("/evidence/{fileId}")
     public ResponseEntity<org.springframework.core.io.Resource> getEvidenceFile(
             @PathVariable UUID fileId,

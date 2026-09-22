@@ -19,44 +19,19 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CriterionValidityResponse {
-
-    /**
-     * ID của chỉ tiêu kiểm nghiệm.
-     */
     private Long criterionId;
 
-    /**
-     * Mã chỉ tiêu kiểm nghiệm (nếu có).
-     */
     private String criterionCode;
 
-    /**
-     * Tên chỉ tiêu kiểm nghiệm (tiếng Việt).
-     */
     private String criterionName;
 
-    /**
-     * Kết quả có Đạt hay không.
-     */
     private Boolean passed;
 
-    /**
-     * Ngày hết hiệu lực của kết quả chỉ tiêu này.
-     */
     private LocalDate expiryDate;
 
-    /**
-     * Số ngày còn lại (khi còn hạn).
-     */
     private Long daysRemaining;
 
-    /**
-     * Số ngày quá hạn (khi đã hết hạn).
-     */
     private Long daysOverdue;
 
-    /**
-     * Trạng thái hiệu lực của riêng chỉ tiêu này.
-     */
     private InspectionValidityStatus status;
 }

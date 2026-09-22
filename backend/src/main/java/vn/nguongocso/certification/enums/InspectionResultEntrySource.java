@@ -9,16 +9,10 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum InspectionResultEntrySource {
+    COOPERATIVE_MANUAL("Hợp tác xã nhập thủ công"), // Quản lý Hợp tác xã (VT-02) nhập kết quả thủ công trên hệ thống.
 
-    /**
-     * Quản lý Hợp tác xã (VT-02) nhập kết quả thủ công trên hệ thống.
-     */
-    COOPERATIVE_MANUAL("Hợp tác xã nhập thủ công"),
-
-    /**
-     * Đơn vị kiểm nghiệm trực tiếp khai báo kết quả qua liên kết cổng bảo mật dùng một lần.
-     */
-    TESTING_UNIT_PORTAL("Đơn vị kiểm nghiệm nhập qua cổng");
+    TESTING_UNIT_PORTAL("Đơn vị kiểm nghiệm nhập qua cổng"); // Đơn vị kiểm nghiệm trực tiếp khai báo kết quả qua liên
+                                                             // kết cổng bảo mật dùng một lần.
 
     private final String description;
 }

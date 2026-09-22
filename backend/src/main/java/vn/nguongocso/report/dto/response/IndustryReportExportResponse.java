@@ -4,15 +4,15 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Response trả về sau khi xuất báo cáo tổng hợp ngành thành công.
- */
+/** Phản hồi xuất báo cáo tổng hợp ngành. */
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class IndustryReportExportResponse {

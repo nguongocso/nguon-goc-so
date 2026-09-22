@@ -11,32 +11,52 @@ import vn.nguongocso.trace.dto.request.RejectSupplementRequest;
 import vn.nguongocso.trace.dto.response.CodeRangeSupplementResponse;
 import vn.nguongocso.trace.dto.response.EvidenceEventResponse;
 
-/**
- * Dịch vụ quản lý yêu cầu cấp bổ sung dải mã truy xuất (NCL-04-CN-007).
- */
+/** Service quản lý yêu cầu cấp bổ sung dải mã truy xuất. */
 public interface CodeRangeSupplementService {
+    /** Tạo yêu cầu cấp bổ sung cho tổ chức. */
+    CodeRangeSupplementResponse create(
+        CreateSupplementRequest request,
+        CustomUserDetails currentUser
+    );
 
-    /** VT-02 tạo yêu cầu cấp bổ sung cho tổ chức của mình. */
-    CodeRangeSupplementResponse create(CreateSupplementRequest request, CustomUserDetails currentUser);
+    /** Lấy danh sách sự kiện bằng chứng sản lượng thực. */
+    List<EvidenceEventResponse> listEvidenceEvents(
+        CustomUserDetails currentUser
+    );
 
-    /**
-     * VT-02 lấy danh sách sự kiện bằng chứng sản lượng thực (thu hoạch/sơ chế)
-     * của tổ chức mình để chọn khi tạo yêu cầu.
-     */
-    List<EvidenceEventResponse> listEvidenceEvents(CustomUserDetails currentUser);
+    /** Lấy danh sách tất cả yêu cầu cấp bổ sung có phân trang. */
+    PageResponse<CodeRangeSupplementResponse> list(
+        String status,
+        int page,
+        int size,
+        CustomUserDetails currentUser
+    );
 
-    /** VT-01 xem tất cả yêu cầu, lọc theo trạng thái, phân trang. */
-    PageResponse<CodeRangeSupplementResponse> list(String status, int page, int size, CustomUserDetails currentUser);
+    /** Lấy danh sách yêu cầu cấp bổ sung của tổ chức có phân trang. */
+    PageResponse<CodeRangeSupplementResponse> listMine(
+        String status,
+        int page,
+        int size,
+        CustomUserDetails currentUser
+    );
 
-    /** VT-02 xem yêu cầu của tổ chức mình, lọc theo trạng thái, phân trang. */
-    PageResponse<CodeRangeSupplementResponse> listMine(String status, int page, int size, CustomUserDetails currentUser);
+    /** Lấy chi tiết một yêu cầu cấp bổ sung. */
+    CodeRangeSupplementResponse getById(
+        UUID id,
+        CustomUserDetails currentUser
+    );
 
-    /** Xem chi tiết một yêu cầu (VT-01 xem tất cả, VT-02 chỉ xem của tổ chức mình). */
-    CodeRangeSupplementResponse getById(UUID id, CustomUserDetails currentUser);
+    /** Phê duyệt yêu cầu cấp bổ sung dải mã. */
+    CodeRangeSupplementResponse approve(
+        UUID id,
+        ApproveSupplementRequest request,
+        CustomUserDetails currentUser
+    );
 
-    /** VT-01 duyệt toàn bộ hoặc một phần (tăng hạn mức dải mã hiện có). */
-    CodeRangeSupplementResponse approve(UUID id, ApproveSupplementRequest request, CustomUserDetails currentUser);
-
-    /** VT-01 từ chối kèm lý do bắt buộc. */
-    CodeRangeSupplementResponse reject(UUID id, RejectSupplementRequest request, CustomUserDetails currentUser);
+    /** Từ chối yêu cầu cấp bổ sung dải mã. */
+    CodeRangeSupplementResponse reject(
+        UUID id,
+        RejectSupplementRequest request,
+        CustomUserDetails currentUser
+    );
 }

@@ -66,13 +66,13 @@ export default function ShipmentTraceCodesPage() {
     ? `/production-lots/${lotId}/shipments/${shipmentId}`
     : `/shipments/${shipmentId}`;
 
-  // ── Data state ─────────────────────────────────────────────────────────────
+  // Trạng thái dữ liệu
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [codes, setCodes] = useState<TraceCodeSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ── Filters & Pagination ───────────────────────────────────────────────────
+  // Bộ lọc và phân trang
   const [page, setPage] = useState(0);
   const [pageSize] = useState(20);
   const [totalPages, setTotalPages] = useState(0);
@@ -82,12 +82,12 @@ export default function ShipmentTraceCodesPage() {
   const [searchInput, setSearchInput] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // ── Actions & Modals ───────────────────────────────────────────────────────
+  // Thao tác và modal
   const [exporting, setExporting] = useState(false);
   const [historyCode, setHistoryCode] = useState<string | null>(null);
   const [showQrScanModal, setShowQrScanModal] = useState(false);
 
-  // ── Đồng bộ Breadcrumb ─────────────────────────────────────────────────────
+  // Đồng bộ Breadcrumb
   useSetBreadcrumb(
     shipment
       ? [
@@ -110,17 +110,17 @@ export default function ShipmentTraceCodesPage() {
       : null,
   );
 
-  // ── Load Shipment info ─────────────────────────────────────────────────────
+  // Tải thông tin lô hàng
   useEffect(() => {
     if (!shipmentId) return;
     getShipmentById(shipmentId)
       .then(setShipment)
       .catch((err: any) => {
-        console.error('Không thể tải thông tin lô hàng:', err);
+        setError(err?.message || 'Không thể tải thông tin lô hàng');
       });
   }, [shipmentId]);
 
-  // ── Load Trace Codes ───────────────────────────────────────────────────────
+  // Tải danh sách mã tem truy xuất
   const loadTraceCodes = useCallback(() => {
     if (!shipmentId) return;
 
@@ -156,7 +156,7 @@ export default function ShipmentTraceCodesPage() {
     loadTraceCodes();
   }, [loadTraceCodes]);
 
-  // ── Search & Filter Handlers ───────────────────────────────────────────────
+  // Xử lý tìm kiếm và bộ lọc
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(0);
@@ -174,17 +174,17 @@ export default function ShipmentTraceCodesPage() {
     setPage(0);
   };
 
-  // ── QR Scan Success Handler (TC-02) ────────────────────────────────────────
+  // Xử lý kết quả quét mã QR
   const handleScanSuccess = (scannedCode: string) => {
     toast.success(`Đã nhận diện mã: ${scannedCode}`);
     setSearchInput(scannedCode);
     setSearchQuery(scannedCode);
     setPage(0);
-    // Tự động mở lịch sử theo yêu cầu TC-02
+    // Tự động mở lịch sử mã vừa quét
     setHistoryCode(scannedCode);
   };
 
-  // ── Export CSV Handler ─────────────────────────────────────────────────────
+  // Xử lý xuất file CSV
   const handleExport = async () => {
     if (!shipmentId) return;
 
@@ -216,7 +216,7 @@ export default function ShipmentTraceCodesPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* ── Header ── */}
+      {/* Tiêu đề trang */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3">

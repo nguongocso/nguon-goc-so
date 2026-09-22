@@ -7,10 +7,6 @@ import type {
   MilestoneEligibilityResponse,
 } from '@/types/cultivationMilestone';
 
-/**
- * Lấy danh sách mốc canh tác (phân trang, lọc theo keyword/activityType/category/standard)
- * GET /api/v1/cultivation-milestones
- */
 export const getCultivationMilestones = async (
   params?: CultivationMilestoneQueryParams
 ): Promise<PageResponse<CultivationMilestone>> => {
@@ -20,10 +16,6 @@ export const getCultivationMilestones = async (
   return response.data.data;
 };
 
-/**
- * Chi tiết mốc canh tác
- * GET /api/v1/cultivation-milestones/{id}
- */
 export const getCultivationMilestone = async (
   id: number
 ): Promise<CultivationMilestone> => {
@@ -33,10 +25,6 @@ export const getCultivationMilestone = async (
   return response.data.data;
 };
 
-/**
- * Tạo mốc canh tác (chỉ PLATFORM_ADMIN — VT-01)
- * POST /api/v1/cultivation-milestones
- */
 export const createCultivationMilestone = async (
   data: CultivationMilestoneRequest
 ): Promise<CultivationMilestone> => {
@@ -47,10 +35,6 @@ export const createCultivationMilestone = async (
   return response.data.data;
 };
 
-/**
- * Cập nhật mốc canh tác (chỉ PLATFORM_ADMIN — VT-01)
- * PUT /api/v1/cultivation-milestones/{id}
- */
 export const updateCultivationMilestone = async (
   id: number,
   data: CultivationMilestoneRequest
@@ -62,12 +46,6 @@ export const updateCultivationMilestone = async (
   return response.data.data;
 };
 
-/**
- * Kiểm tra lô đã đủ mốc canh tác bắt buộc (loại nông sản + tiêu chuẩn của lô)
- * để ghi sự kiện đóng gói (NCL-09-CN-011). Đây là nguồn chân lý duy nhất —
- * cùng thuật toán với lúc ghi sự kiện.
- * GET /api/v1/cultivation-milestones/eligibility?productionLotId=...
- */
 export const getPackagingEligibility = async (
   productionLotId: string
 ): Promise<MilestoneEligibilityResponse> => {

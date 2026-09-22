@@ -14,9 +14,6 @@ import type {
 } from '@/types/inspectionResultPortal';
 import type { InspectionCriterionResult } from '@/types/certification';
 
-/**
- * Cấp liên kết nhập kết quả kiểm nghiệm cho đơn vị kiểm nghiệm (vai trò VT-02).
- */
 export const issueInspectionResultEntryLink = async (
   requestId: string,
   data: IssueInspectionResultEntryLinkRequest
@@ -28,9 +25,6 @@ export const issueInspectionResultEntryLink = async (
   return response.data.data;
 };
 
-/**
- * Lấy thông tin liên kết gần nhất đã cấp cho yêu cầu kiểm nghiệm.
- */
 export const getLatestInspectionResultEntryLink = async (
   requestId: string
 ): Promise<InspectionResultEntryLinkResponse> => {
@@ -40,9 +34,6 @@ export const getLatestInspectionResultEntryLink = async (
   return response.data.data;
 };
 
-/**
- * Lấy dữ liệu công khai của cổng nhập kết quả theo mã token bí mật.
- */
 export const getPublicPortalData = async (
   token: string
 ): Promise<PublicInspectionResultEntryData> => {
@@ -52,9 +43,6 @@ export const getPublicPortalData = async (
   return response.data.data;
 };
 
-/**
- * Tải lên phiếu kết quả kiểm nghiệm cho một chỉ tiêu trên cổng công khai.
- */
 export const uploadPortalResultFile = async (
   token: string,
   criterionId: string,
@@ -75,9 +63,6 @@ export const uploadPortalResultFile = async (
   return response.data.data.filePath;
 };
 
-/**
- * Gửi toàn bộ kết quả kiểm nghiệm từ cổng công khai (dùng một lần, atomic consume).
- */
 export const submitPortalResults = async (
   token: string,
   data: RecordInspectionResultsPayload

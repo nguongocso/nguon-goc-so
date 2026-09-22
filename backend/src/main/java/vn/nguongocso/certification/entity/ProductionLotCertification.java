@@ -1,7 +1,18 @@
 package vn.nguongocso.certification.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import vn.nguongocso.auth.entity.User;
@@ -11,8 +22,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * Lớp ProductionLotCertification đại diện cho chứng nhận gắn vào lô sản xuất
- * trong hệ thống.
+ * Lớp ProductionLotCertification đại diện cho chứng nhận gắn vào lô sản xuất trong hệ thống.
  */
 @Entity
 @Table(name = "production_lot_certifications")
