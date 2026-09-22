@@ -36,6 +36,7 @@ import vn.nguongocso.permission.service.PermissionChecker;
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('VT-01', 'VT-02', 'VT-03')")
 public class FarmLogAttachmentController {
+
     private final AttachmentService attachmentService;
 
     private final PermissionChecker permissionChecker;

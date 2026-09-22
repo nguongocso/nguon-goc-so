@@ -20,6 +20,7 @@ import org.springframework.validation.annotation.Validated;
 @Component
 @ConfigurationProperties(prefix = "app.farm-area")
 public class FarmAreaBoundaryProperties {
+
     @DecimalMin(value = "0.0", inclusive = true)
     private BigDecimal boundaryDeviationThresholdPercent = new BigDecimal("30.0");
 }
