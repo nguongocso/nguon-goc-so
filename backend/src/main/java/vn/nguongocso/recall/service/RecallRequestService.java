@@ -1,36 +1,57 @@
 package vn.nguongocso.recall.service;
 
 import java.util.UUID;
+
 import vn.nguongocso.auth.service.CustomUserDetails;
 import vn.nguongocso.common.PageResponse;
-import vn.nguongocso.recall.dto.request.*;
-import vn.nguongocso.recall.dto.response.RecallRequestResponse;
 import vn.nguongocso.farm.entity.ProductFeedback;
+import vn.nguongocso.recall.dto.request.ApproveRecallRequest;
+import vn.nguongocso.recall.dto.request.CreateRecallRequest;
+import vn.nguongocso.recall.dto.request.RejectRecallRequest;
+import vn.nguongocso.recall.dto.response.RecallRequestResponse;
 
-/**
- * Dịch vụ quản lý yêu cầu thu hồi lô sản xuất (NCL-08-CN-008).
- */
+/** Service quản lý yêu cầu thu hồi lô sản xuất. */
 public interface RecallRequestService {
+    /** Tạo yêu cầu thu hồi. */
+    RecallRequestResponse create(
+        CreateRecallRequest request,
+        CustomUserDetails currentUser
+    );
 
-    /** Tạo yêu cầu thu hồi (VT-03). */
-    RecallRequestResponse create(CreateRecallRequest request, CustomUserDetails currentUser);
-
+    /** Tạo yêu cầu thu hồi từ phản hồi của người tiêu dùng. */
     RecallRequestResponse createFromFeedback(
-            ProductFeedback feedback,
-            UUID shipmentId,
-            String reason,
-            String evidence,
-            CustomUserDetails currentUser);
+        ProductFeedback feedback,
+        UUID shipmentId,
+        String reason,
+        String evidence,
+        CustomUserDetails currentUser
+    );
 
-    /** Lấy danh sách yêu cầu thu hồi the filtered trạng thái, phân trang (VT-02). */
-    PageResponse<RecallRequestResponse> list(String status, int page, int size, CustomUserDetails currentUser);
+    /** Lấy danh sách yêu cầu thu hồi có phân trang. */
+    PageResponse<RecallRequestResponse> list(
+        String status,
+        int page,
+        int size,
+        CustomUserDetails currentUser
+    );
 
-    /** Lấy chi tiết một yêu cầu thu hồi (VT-02). */
-    RecallRequestResponse getById(UUID id, CustomUserDetails currentUser);
+    /** Lấy chi tiết một yêu cầu thu hồi. */
+    RecallRequestResponse getById(
+        UUID id,
+        CustomUserDetails currentUser
+    );
 
-    /** Duyệt một yêu cầu thu hồi (VT-02). */
-    RecallRequestResponse approve(UUID id, ApproveRecallRequest request, CustomUserDetails currentUser);
+    /** Duyệt một yêu cầu thu hồi. */
+    RecallRequestResponse approve(
+        UUID id,
+        ApproveRecallRequest request,
+        CustomUserDetails currentUser
+    );
 
-    /** Từ chối một yêu cầu thu hồi (VT-02). */
-    RecallRequestResponse reject(UUID id, RejectRecallRequest request, CustomUserDetails currentUser);
+    /** Từ chối một yêu cầu thu hồi. */
+    RecallRequestResponse reject(
+        UUID id,
+        RejectRecallRequest request,
+        CustomUserDetails currentUser
+    );
 }

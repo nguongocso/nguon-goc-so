@@ -20,7 +20,7 @@ import vn.nguongocso.report.dto.response.IndustryReportResponse;
 import vn.nguongocso.report.service.ReportService;
 
 /**
- * API cung cấp báo cáo tổng hợp ngành (dạng JSON, PDF và Excel).
+ * Controller báo cáo tổng hợp ngành.
  */
 @Slf4j
 @RestController
@@ -31,11 +31,6 @@ public class ReportController {
 
     /**
      * Lấy báo cáo tổng hợp ngành dưới dạng JSON.
-     *
-     * <p>
-     * {@code region} tuỳ chọn với cán bộ quản lý ngành (VT-05) đã được gán địa
-     * bàn; {@code unitIds} lặp được ({@code ?unitIds=<uuid>&unitIds=<uuid>}).
-     * </p>
      */
     @GetMapping("/industry-summary")
     public ResponseEntity<IndustryReportResponse> getIndustrySummary(

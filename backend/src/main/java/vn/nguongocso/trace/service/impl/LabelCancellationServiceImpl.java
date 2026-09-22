@@ -38,7 +38,6 @@ import vn.nguongocso.trace.service.LabelCancellationService;
 @Service
 @RequiredArgsConstructor
 public class LabelCancellationServiceImpl implements LabelCancellationService {
-
     private final ShipmentRepository shipmentRepository;
     private final TraceCodeRepository traceCodeRepository;
     private final CodeRangeRepository codeRangeRepository;

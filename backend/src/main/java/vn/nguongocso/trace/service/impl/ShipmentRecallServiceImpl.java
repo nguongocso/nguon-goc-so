@@ -34,9 +34,7 @@ import vn.nguongocso.integration.partner.service.PartnerRecallWebhookDispatcher;
 import vn.nguongocso.trace.service.ShipmentRecallService;
 import vn.nguongocso.alert.dto.request.ActivityLogRequest;
 
-/**
- * Triển khai dịch vụ thu hồi lô hàng.
- */
+/** Triển khai dịch vụ thu hồi lô hàng. */
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -70,17 +68,17 @@ public class ShipmentRecallServiceImpl implements ShipmentRecallService {
 
         CustomUserDetails currentUser = getCurrentUser();
 
-        // 1. Kiểm tra quyền
+        // Kiểm tra quyền
         validateRole(currentUser);
 
-        // 2. Tìm lô hàng
+        // Tìm lô hàng
         Shipment shipment = shipmentRepository.findById(shipmentId)
                 .orElseThrow(() -> new BusinessException(MSG_SHIPMENT_NOT_FOUND));
 
-        // 3. Kiểm tra tổ chức
+        // Kiểm tra tổ chức
         validateOrganization(currentUser, shipment);
 
-        // 4. Không cho phép thu hồi lại
+        // Không cho phép thu hồi lại
         if (shipment.getStatus() == ShipmentStatus.RECALLED) {
             throw new BusinessException(MSG_SHIPMENT_ALREADY_RECALLED);
         }
@@ -88,11 +86,11 @@ public class ShipmentRecallServiceImpl implements ShipmentRecallService {
             throw new BusinessException(MSG_SPLIT_PARENT_NOT_RECALLABLE);
         }
 
-        // 5. Lấy user thực hiện thao tác
+        // Lấy user thực hiện thao tác
         User actor = userRepository.findById(currentUser.getUserId())
                 .orElseThrow(() -> new BusinessException(MSG_USER_NOT_FOUND));
 
-        // 6. Tạo bản ghi thu hồi
+        // Tạo bản ghi thu hồi
         Recall recall = new Recall();
 
         recall.setShipment(shipment);
@@ -103,18 +101,18 @@ public class ShipmentRecallServiceImpl implements ShipmentRecallService {
 
         recallRepository.save(recall);
 
-        // 7. Cập nhật trạng thái Shipment
+        // Cập nhật trạng thái Shipment
         shipment.setStatus(ShipmentStatus.RECALLED);
         shipmentRepository.save(shipment);
 
-        // 8. Cập nhật trạng thái toàn bộ TraceCode
+        // Cập nhật trạng thái toàn bộ TraceCode
         List<TraceCode> traceCodes = traceCodeRepository.findByShipmentId(shipmentId);
 
         traceCodes.forEach(code -> code.setStatus(TraceCodeStatus.RECALLED));
 
         traceCodeRepository.saveAll(traceCodes);
 
-        // 8b. Trả lại mã đã dùng cho dải mã của tổ chức
+        // Trả lại mã đã dùng cho dải mã của tổ chức
         if (!traceCodes.isEmpty()) {
             CodeRange codeRange = shipment.getCodeRange() != null
                     ? shipment.getCodeRange()
@@ -128,7 +126,7 @@ public class ShipmentRecallServiceImpl implements ShipmentRecallService {
             }
         }
 
-        // 9. Ghi lịch sử hoạt động
+        // Ghi lịch sử hoạt động
         ActivityLogRequest activityLogRequest = ActivityLogRequest.builder()
                 .userId(actor.getUserId())
                 .username(actor.getUserName())
@@ -148,17 +146,17 @@ public class ShipmentRecallServiceImpl implements ShipmentRecallService {
 
         activityLogService.logActivity(activityLogRequest);
 
-        // 10. Gửi thông báo
+        // Gửi thông báo
         alertNotificationService.sendShipmentRecallNotification(recall);
 
-        // 10b. Gửi thông báo webhook tự động tới các bên thứ ba đủ điều kiện (NCL-12-CN-006)
+        // Gửi thông báo webhook tự động tới các bên thứ ba đủ điều kiện (NCL-12-CN-006)
         partnerRecallWebhookDispatcher.dispatchRecallNotifications(
                 List.of(shipment),
                 "RECALLED",
                 recall.getReason(),
                 null);
 
-        // 11. Trả response
+        // Trả response
         RecallResponse response = new RecallResponse();
 
         response.setId(recall.getId());
@@ -173,9 +171,7 @@ public class ShipmentRecallServiceImpl implements ShipmentRecallService {
         return response;
     }
 
-    /**
-     * Lấy thông tin thu hồi của một lô hàng.
-     */
+    /** Lấy thông tin thu hồi của một lô hàng. */
     @Override
     public RecallInfoResponse getRecallInfo(UUID shipmentId) {
 
@@ -199,9 +195,7 @@ public class ShipmentRecallServiceImpl implements ShipmentRecallService {
         return response;
     }
 
-    /**
-     * Lấy thông tin người dùng hiện tại từ SecurityContext.
-     */
+    /** Lấy thông tin người dùng hiện tại từ SecurityContext. */
     private CustomUserDetails getCurrentUser() {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -209,9 +203,7 @@ public class ShipmentRecallServiceImpl implements ShipmentRecallService {
         return (CustomUserDetails) authentication.getPrincipal();
     }
 
-    /**
-     * Kiểm tra người dùng có vai trò VT-02 (Quản lý HTX) hay không.
-     */
+    /** Kiểm tra người dùng có vai trò VT-02 (Quản lý HTX) hay không. */
     private void validateRole(CustomUserDetails currentUser) {
 
         if (!ORG_MANAGER_ROLE.equals(currentUser.getRoleCode())) {
@@ -219,9 +211,7 @@ public class ShipmentRecallServiceImpl implements ShipmentRecallService {
         }
     }
 
-    /**
-     * Kiểm tra người dùng thuộc tổ chức sở hữu lô hàng.
-     */
+    /** Kiểm tra người dùng thuộc tổ chức sở hữu lô hàng. */
     private void validateOrganization(
             CustomUserDetails currentUser,
             Shipment shipment) {
