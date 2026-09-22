@@ -15,7 +15,7 @@ export interface Invitation {
 export interface CreateInvitationRequest {
   email: string;
   roleId: number;
-  expiryDays?: number; // mặc định 7
+  expiryDays?: number;
 }
 
 export interface InvitationResponse {
