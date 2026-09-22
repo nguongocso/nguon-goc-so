@@ -8,9 +8,7 @@ import lombok.Setter;
 
 import java.util.List;
 
-/**
- * Request DTO để cập nhật quyền cho một vai trò.
- */
+/** Request DTO để cập nhật quyền cho một vai trò. */
 @Getter
 @Setter
 public class UpdateRolePermissionRequest {
@@ -18,13 +16,10 @@ public class UpdateRolePermissionRequest {
     @Valid
     private List<PermissionToggle> permissions;
 
-    /**
-     * Lớp con đại diện cho trạng thái bật/tắt của một quyền.
-     */
+    /** Trạng thái bật hoặc tắt của một quyền. */
     @Getter
     @Setter
     public static class PermissionToggle {
-
         @NotNull(message = "Permission ID không được để trống.")
         private Integer permissionId;
 

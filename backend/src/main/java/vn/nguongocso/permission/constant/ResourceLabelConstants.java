@@ -2,17 +2,13 @@ package vn.nguongocso.permission.constant;
 
 import java.util.Map;
 
-/**
- * Tên hiển thị của các nhóm chức năng và mã quyền sự kiện chuỗi.
- */
+/** Tên hiển thị của các nhóm chức năng và mã quyền sự kiện chuỗi. */
 public final class ResourceLabelConstants {
-
-    // Mã quyền chuẩn cho sự kiện chuỗi
-    public static final String EVENT_FARM_LOG = "EVENT_FARM_LOG";           // Ghi nhật ký canh tác
-    public static final String EVENT_HARVEST = "EVENT_HARVEST";             // Ghi sự kiện thu hoạch
-    public static final String EVENT_PREPROCESSING = "EVENT_PREPROCESSING"; // Ghi sự kiện sơ chế & phân loại
-    public static final String EVENT_PACKAGING = "EVENT_PACKAGING";         // Ghi sự kiện đóng gói
-    public static final String EVENT_TRANSPORT = "EVENT_TRANSPORT";         // Ghi sự kiện vận chuyển
+    public static final String EVENT_FARM_LOG = "EVENT_FARM_LOG";
+    public static final String EVENT_HARVEST = "EVENT_HARVEST";
+    public static final String EVENT_PREPROCESSING = "EVENT_PREPROCESSING";
+    public static final String EVENT_PACKAGING = "EVENT_PACKAGING";
+    public static final String EVENT_TRANSPORT = "EVENT_TRANSPORT";
 
     private ResourceLabelConstants() {
     }
@@ -44,13 +40,7 @@ public final class ResourceLabelConstants {
             Map.entry("recall", "Thu hồi lô"),
             Map.entry("product_feedback", "Phản ánh sản phẩm"));
 
-    /**
-     * Lấy tên hiển thị của nhóm chức năng dựa trên tên tài nguyên.
-     *
-     * @param resource tên tài nguyên
-     * @return tên hiển thị của nhóm chức năng, hoặc chính tên tài nguyên nếu không
-     *         tìm thấy
-     */
+    /** Lấy tên hiển thị của nhóm chức năng theo tên tài nguyên. */
     public static String getLabel(String resource) {
         return LABELS.getOrDefault(resource, resource);
     }
