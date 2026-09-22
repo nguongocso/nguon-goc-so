@@ -16,7 +16,6 @@ import vn.nguongocso.trace.enums.TraceCodeStatus;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TraceCodeHistoryResponse {
-
     private String codeValue;
 
     private TraceCodeStatus status;
@@ -31,4 +30,3 @@ public class TraceCodeHistoryResponse {
 
     private List<HistoryEvent> events;
 }
-

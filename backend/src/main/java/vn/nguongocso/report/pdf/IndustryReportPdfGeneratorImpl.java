@@ -28,7 +28,6 @@ import vn.nguongocso.report.dto.response.ProductBreakdownItem;
 @Slf4j
 @Component
 public class IndustryReportPdfGeneratorImpl implements IndustryReportPdfGenerator {
-
     private static final String EXPORT_ERROR = "Không thể xuất báo cáo PDF.";
     private static final String FONT_ERROR = "Không thể tải font PDF.";
     private static final String REGULAR_FONT = "fonts/Roboto-Regular.ttf";

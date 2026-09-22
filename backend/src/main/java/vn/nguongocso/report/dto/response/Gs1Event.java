@@ -22,7 +22,6 @@ import lombok.Setter;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Gs1Event {
-
     @JacksonXmlProperty(localName = "eventId")
     private UUID eventId;
 

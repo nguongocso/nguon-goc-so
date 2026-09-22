@@ -10,7 +10,6 @@ import lombok.Data;
 /** Yêu cầu tạo mới lô hàng. */
 @Data
 public class CreateShipmentRequest {
-
     @NotNull(message = "Vui lòng chọn lô sản xuất")
     private UUID productionLotId;
 

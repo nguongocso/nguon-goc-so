@@ -12,7 +12,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CreateHandoverRequest {
-
     @NotNull(message = "ID lô hàng không được để trống")
     private UUID shipmentId;
 

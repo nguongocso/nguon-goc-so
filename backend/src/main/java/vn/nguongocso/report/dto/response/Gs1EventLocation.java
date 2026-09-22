@@ -17,7 +17,6 @@ import lombok.Setter;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Gs1EventLocation {
-
     @JacksonXmlProperty(localName = "latitude")
     private Double latitude;
 

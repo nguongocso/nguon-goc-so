@@ -14,7 +14,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RecallEvidenceResponse {
-
     private UUID id;
 
     private String fileName;

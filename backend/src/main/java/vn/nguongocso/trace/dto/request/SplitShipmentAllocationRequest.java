@@ -11,7 +11,6 @@ import lombok.Data;
 /** Yêu cầu phân bổ lô con trong thao tác tách lô hàng. */
 @Data
 public class SplitShipmentAllocationRequest {
-
     @NotNull(message = "Tổ chức nhận không được để trống")
     private UUID recipientOrganizationId;
 

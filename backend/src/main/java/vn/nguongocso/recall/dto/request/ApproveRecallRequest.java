@@ -10,7 +10,6 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class ApproveRecallRequest {
-
     @Size(max = 2000, message = "Ghi chú không được vượt quá 2000 ký tự.")
     private String remarks;
 }

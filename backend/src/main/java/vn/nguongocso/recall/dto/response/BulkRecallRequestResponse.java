@@ -17,7 +17,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BulkRecallRequestResponse {
-
     private UUID id;
 
     private UUID productionLotId;

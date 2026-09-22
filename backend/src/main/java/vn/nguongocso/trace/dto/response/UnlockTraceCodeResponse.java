@@ -16,7 +16,6 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class UnlockTraceCodeResponse {
-
     private UUID id;
 
     private String codeValue;
@@ -37,4 +36,3 @@ public class UnlockTraceCodeResponse {
 
     private Boolean notificationSent;
 }
-

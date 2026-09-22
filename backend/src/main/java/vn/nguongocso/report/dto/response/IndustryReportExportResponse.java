@@ -16,7 +16,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class IndustryReportExportResponse {
-
     private String fileUrl;
 
     private String format;

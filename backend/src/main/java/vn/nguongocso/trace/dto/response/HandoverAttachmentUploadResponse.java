@@ -9,6 +9,5 @@ import lombok.Setter;
 @Setter
 @Builder
 public class HandoverAttachmentUploadResponse {
-
     private String filePath;
 }

@@ -13,7 +13,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class ScoreBreakdown {
-
     private Integer highFrequency;
 
     private Integer impossibleTravel;

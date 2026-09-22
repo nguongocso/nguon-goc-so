@@ -16,7 +16,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductionLotDashboardResponse {
-
     private SummaryDto summary;
 
     private Map<String, Long> byStatus;

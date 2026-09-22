@@ -7,7 +7,6 @@ import lombok.Data;
 @Data
 @Builder
 public class RemainingCodesResponse {
-
     private long remainingCount;
 
     private long totalLimit;
@@ -16,4 +15,3 @@ public class RemainingCodesResponse {
 
     private boolean hasCodeRange;
 }
-

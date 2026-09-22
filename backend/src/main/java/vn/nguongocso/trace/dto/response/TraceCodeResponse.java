@@ -10,7 +10,6 @@ import vn.nguongocso.trace.enums.TraceCodeStatus;
 @Data
 @Builder
 public class TraceCodeResponse {
-
     private UUID id;
 
     private String codeValue;

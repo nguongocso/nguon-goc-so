@@ -9,7 +9,6 @@ import lombok.Getter;
 @Getter
 @Builder
 public class SeasonYieldComparisonResponse {
-
     private Boolean hasData;
 
     private String message;

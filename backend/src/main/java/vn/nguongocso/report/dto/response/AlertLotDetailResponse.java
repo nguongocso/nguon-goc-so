@@ -15,7 +15,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class AlertLotDetailResponse {
-
     private AlertLotInfoItem lotInfo;
 
     private AlertLotOrgItem organization;

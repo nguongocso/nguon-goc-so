@@ -18,7 +18,6 @@ import vn.nguongocso.report.enums.LotAlertType;
 @AllArgsConstructor
 @Builder
 public class AlertLotSummaryResponse {
-
     private UUID lotId;
 
     private String lotCode;

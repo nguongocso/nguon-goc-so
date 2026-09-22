@@ -13,7 +13,6 @@ import lombok.Setter;
 @Setter
 @Builder
 public class CodeRangeSupplementResponse {
-
     private UUID id;
 
     private UUID organizationId;

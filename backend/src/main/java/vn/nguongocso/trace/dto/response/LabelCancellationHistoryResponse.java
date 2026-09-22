@@ -10,13 +10,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /** DTO response lịch sử hủy tem. */
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
 public class LabelCancellationHistoryResponse {
-
     private UUID id;
 
     private UUID shipmentId;
@@ -39,4 +34,3 @@ public class LabelCancellationHistoryResponse {
 
     private String reasonNote;
 }
-

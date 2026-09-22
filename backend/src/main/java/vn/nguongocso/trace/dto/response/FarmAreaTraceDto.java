@@ -13,7 +13,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class FarmAreaTraceDto {
-
     private UUID id;
 
     private String code;
@@ -24,4 +23,3 @@ public class FarmAreaTraceDto {
 
     private Double areaSize;
 }
-

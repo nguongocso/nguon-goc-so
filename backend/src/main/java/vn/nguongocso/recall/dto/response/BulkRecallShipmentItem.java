@@ -17,7 +17,6 @@ import vn.nguongocso.trace.recall.enums.LotResolution;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BulkRecallShipmentItem {
-
     private UUID id;
 
     private UUID shipmentId;

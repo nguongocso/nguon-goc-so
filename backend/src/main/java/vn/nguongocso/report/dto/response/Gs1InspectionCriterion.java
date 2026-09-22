@@ -19,7 +19,6 @@ import lombok.Setter;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Gs1InspectionCriterion {
-
     @JacksonXmlProperty(localName = "criterionCode")
     private String criterionCode;
 

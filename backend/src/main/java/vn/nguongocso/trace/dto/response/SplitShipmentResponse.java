@@ -11,7 +11,6 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 @Data
 @Builder
 public class SplitShipmentResponse {
-
     private SourceShipment sourceShipment;
 
     private List<ChildShipment> children;

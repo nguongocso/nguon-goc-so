@@ -15,7 +15,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class AlertLotOrgItem {
-
     private UUID organizationId;
 
     private String organizationName;

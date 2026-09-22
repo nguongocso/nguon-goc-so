@@ -31,7 +31,6 @@ import vn.nguongocso.report.dto.response.OrganizationUsageDashboardResponse.Orga
 @Slf4j
 @Component
 public class OrganizationUsagePdfGeneratorImpl implements OrganizationUsagePdfGenerator {
-
     private static final String EXPORT_ERROR = "Không thể xuất báo cáo PDF mức độ sử dụng nền tảng.";
     private static final String REGULAR_FONT = "fonts/Roboto-Regular.ttf";
     private static final String BOLD_FONT = "fonts/Roboto-Bold.ttf";

@@ -16,7 +16,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class AbnormalScanResponse {
-
     private UUID scanId;
 
     private String codeValue;

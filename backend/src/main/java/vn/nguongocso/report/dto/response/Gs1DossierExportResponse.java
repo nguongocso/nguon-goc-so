@@ -25,7 +25,6 @@ import lombok.Setter;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JacksonXmlRootElement(localName = "gs1Dossier")
 public class Gs1DossierExportResponse {
-
     @JacksonXmlProperty(localName = "shipment")
     private Gs1ShipmentInfo shipment;
 

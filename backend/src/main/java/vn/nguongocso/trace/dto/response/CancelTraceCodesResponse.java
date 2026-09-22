@@ -16,7 +16,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CancelTraceCodesResponse {
-
     private UUID shipmentId;
 
     private int totalCancelled;
@@ -31,4 +30,3 @@ public class CancelTraceCodesResponse {
 
     private String message;
 }
-

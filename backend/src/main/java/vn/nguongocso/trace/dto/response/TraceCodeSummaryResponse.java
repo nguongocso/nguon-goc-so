@@ -15,7 +15,6 @@ import vn.nguongocso.trace.enums.TraceCodeStatus;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TraceCodeSummaryResponse {
-
     private UUID id;
 
     private String codeValue;
@@ -34,4 +33,3 @@ public class TraceCodeSummaryResponse {
 
     private LocalDateTime createdAt;
 }
-

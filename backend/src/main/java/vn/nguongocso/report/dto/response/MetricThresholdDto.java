@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MetricThresholdDto {
-
     private String metricCode;
 
     private String metricName;

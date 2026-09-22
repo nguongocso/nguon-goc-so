@@ -13,7 +13,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UnlockTraceCodeRequest {
-
     @NotBlank(message = "Vui lòng nhập kết luận xác minh")
     @Size(min = 10, max = 500, message = "Kết luận xác minh phải từ 10 đến 500 ký tự")
     private String conclusion;

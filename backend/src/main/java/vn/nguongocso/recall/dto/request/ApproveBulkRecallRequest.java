@@ -7,6 +7,5 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ApproveBulkRecallRequest {
-
     private String remarks;
 }

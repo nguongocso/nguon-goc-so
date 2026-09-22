@@ -16,7 +16,6 @@ import java.util.UUID;
 @AllArgsConstructor
 @SuperBuilder
 public class SuspectTraceCodeResponse {
-
     private UUID id;
 
     private String codeValue;

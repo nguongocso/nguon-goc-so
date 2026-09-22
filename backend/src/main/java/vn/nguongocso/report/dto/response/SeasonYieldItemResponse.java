@@ -7,7 +7,6 @@ import lombok.Getter;
 @Getter
 @Builder
 public class SeasonYieldItemResponse {
-
     private Integer year;
 
     private String seasonCode;

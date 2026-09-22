@@ -16,7 +16,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CancelTraceCodesRequest {
-
     @NotBlank(message = "Loại hình hủy không được để trống ('RANGE' hoặc 'SINGLE')")
     private String cancelType;
 

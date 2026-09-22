@@ -17,7 +17,6 @@ import java.util.List;
 @AllArgsConstructor
 @SuperBuilder
 public class SuspectTraceCodeDetailResponse extends SuspectTraceCodeResponse {
-
     private List<ScanLogDetail> scanLogs;
 
     private AnomalyDetails anomalyDetails;

@@ -17,7 +17,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class BatchDossierCheckRequest {
-
     @NotEmpty(message = "Danh sách lô hàng không được để trống.")
     private List<UUID> shipmentIds;
 }

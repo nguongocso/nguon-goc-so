@@ -16,7 +16,6 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class LockTraceCodeResponse {
-
     private UUID id;
 
     private String codeValue;

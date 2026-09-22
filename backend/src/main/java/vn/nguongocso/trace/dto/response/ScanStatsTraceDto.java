@@ -13,11 +13,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ScanStatsTraceDto {
-
     private long totalScans;
 
     private LocalDateTime recentScanAt;
 
     private long suspectCount;
 }
-

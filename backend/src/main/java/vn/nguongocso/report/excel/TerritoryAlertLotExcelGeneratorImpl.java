@@ -29,7 +29,6 @@ import vn.nguongocso.report.dto.response.AlertLotSummaryResponse;
 @Slf4j
 @Component
 public class TerritoryAlertLotExcelGeneratorImpl implements TerritoryAlertLotExcelGenerator {
-
     private static final String EXPORT_ERROR = "Không thể xuất file Excel danh sách lô cảnh báo.";
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");

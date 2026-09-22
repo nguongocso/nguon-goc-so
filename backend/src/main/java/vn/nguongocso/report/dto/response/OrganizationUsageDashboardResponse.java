@@ -18,7 +18,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class OrganizationUsageDashboardResponse {
-
     private LocalDate startDate;
 
     private LocalDate endDate;

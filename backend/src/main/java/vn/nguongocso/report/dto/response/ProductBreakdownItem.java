@@ -13,7 +13,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductBreakdownItem {
-
     private String productCategoryName;
 
     private Long shipmentCount;

@@ -6,12 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /** DTO response kết quả xuất tem QR. */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class LabelExportResponse {
-
     private byte[] pdfBytes;
 
     private String fileName;
@@ -24,4 +20,3 @@ public class LabelExportResponse {
 
     private int endIndex;
 }
-

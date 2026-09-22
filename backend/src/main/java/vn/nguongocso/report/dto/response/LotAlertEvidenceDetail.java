@@ -17,7 +17,6 @@ import vn.nguongocso.report.enums.LotAlertType;
 @AllArgsConstructor
 @Builder
 public class LotAlertEvidenceDetail {
-
     private LotAlertType alertType;
 
     private String severity;

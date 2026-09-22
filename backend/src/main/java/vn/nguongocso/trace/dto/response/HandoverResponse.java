@@ -11,7 +11,6 @@ import vn.nguongocso.trace.enums.ShipmentHandoverStatus;
 @Getter
 @Builder
 public class HandoverResponse {
-
     private UUID id;
 
     private UUID shipmentId;

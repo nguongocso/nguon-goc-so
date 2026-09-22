@@ -13,7 +13,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LockTraceCodeRequest {
-
     @NotBlank(message = "Vui lòng nhập lý do khóa")
     @Size(min = 10, max = 500, message = "Lý do khóa phải từ 10 đến 500 ký tự")
     private String reason;

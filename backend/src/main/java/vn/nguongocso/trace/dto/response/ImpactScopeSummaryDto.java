@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ImpactScopeSummaryDto {
-
     private long totalShipments;
 
     private long totalActivatedStamps;
@@ -20,4 +19,3 @@ public class ImpactScopeSummaryDto {
 
     private long totalRecalledShipments;
 }
-

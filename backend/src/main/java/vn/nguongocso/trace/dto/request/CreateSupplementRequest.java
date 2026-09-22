@@ -17,7 +17,6 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class CreateSupplementRequest {
-
     @NotNull(message = "Số lượng đề nghị không được để trống.")
     @Min(value = 1, message = "Số lượng đề nghị phải lớn hơn 0.")
     private Long requestedQuantity;

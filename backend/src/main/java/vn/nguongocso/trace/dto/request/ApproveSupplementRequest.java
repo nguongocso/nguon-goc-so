@@ -12,7 +12,6 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class ApproveSupplementRequest {
-
     @NotNull(message = "Số lượng thực cấp không được để trống.")
     @Min(value = 1, message = "Số lượng thực cấp phải lớn hơn 0.")
     private Long approvedQuantity;

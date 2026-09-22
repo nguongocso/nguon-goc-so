@@ -16,7 +16,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class ReadonlyChainEventItem {
-
     private UUID eventId;
 
     private String eventType;

@@ -12,7 +12,6 @@ import vn.nguongocso.report.enums.MetricStatus;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MetricItemDto {
-
     private String metricCode;
 
     private String metricName;

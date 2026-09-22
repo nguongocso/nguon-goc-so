@@ -8,11 +8,9 @@ import lombok.Data;
 @Data
 @Builder
 public class PartnerOrganizationResponse {
-
     private UUID id;
 
     private String code;
 
     private String name;
 }
-

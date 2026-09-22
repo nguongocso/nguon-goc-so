@@ -8,7 +8,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class RejectBulkRecallRequest {
-
     @NotBlank(message = "Lý do từ chối không được để trống.")
     private String reason;
 }

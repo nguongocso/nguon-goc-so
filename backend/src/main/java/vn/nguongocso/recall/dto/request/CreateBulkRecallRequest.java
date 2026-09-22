@@ -12,7 +12,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CreateBulkRecallRequest {
-
     @NotNull(message = "ID lô sản xuất không được để trống.")
     private UUID productionLotId;
 

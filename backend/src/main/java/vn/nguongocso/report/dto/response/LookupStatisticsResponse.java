@@ -16,7 +16,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class LookupStatisticsResponse {
-
     private SummaryStats summary;
 
     private List<LocationScanStats> byLocation;

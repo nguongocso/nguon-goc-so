@@ -7,7 +7,6 @@ import vn.nguongocso.report.dto.response.AlertLotSummaryResponse;
 
 /** Interface sinh file Excel danh sách lô có cảnh báo cho Cán bộ quản lý ngành. */
 public interface TerritoryAlertLotExcelGenerator {
-
     /** Sinh nội dung file Excel dưới dạng byte array. */
     byte[] generate(List<AlertLotSummaryResponse> alertLots, String officerName, LocalDate fromDate, LocalDate toDate);
 

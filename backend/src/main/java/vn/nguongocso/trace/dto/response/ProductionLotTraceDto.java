@@ -15,7 +15,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductionLotTraceDto {
-
     private UUID id;
 
     private String code;
@@ -34,4 +33,3 @@ public class ProductionLotTraceDto {
 
     private LocalDate harvestDate;
 }
-

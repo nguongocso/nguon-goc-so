@@ -12,7 +12,6 @@ import lombok.Setter;
 @Setter
 @Builder
 public class RecallRequestResponse {
-
     private UUID id;
 
     private UUID shipmentId;

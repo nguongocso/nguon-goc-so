@@ -16,7 +16,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ShipmentTraceDto {
-
     private UUID id;
 
     private String code;
@@ -39,4 +38,3 @@ public class ShipmentTraceDto {
 
     private List<ReceivingOrganizationTraceDto> receivingOrganizations;
 }
-

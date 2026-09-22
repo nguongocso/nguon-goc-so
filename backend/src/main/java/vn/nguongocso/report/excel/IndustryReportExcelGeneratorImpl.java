@@ -27,7 +27,6 @@ import vn.nguongocso.report.dto.response.ProductBreakdownItem;
 @Slf4j
 @Component
 public class IndustryReportExcelGeneratorImpl implements IndustryReportExcelGenerator {
-
     private static final String EXPORT_ERROR = "Không thể xuất báo cáo Excel.";
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");

@@ -8,12 +8,8 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /** DTO response thông tin phạm vi ảnh hưởng khi truy xuất. */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@Data @Builder @NoArgsConstructor @AllArgsConstructor
 public class ImpactScopeTraceResponse {
-
     private String rootNodeType;
 
     private String searchedCode;
@@ -26,4 +22,3 @@ public class ImpactScopeTraceResponse {
 
     private ImpactScopeSummaryDto summary;
 }
-

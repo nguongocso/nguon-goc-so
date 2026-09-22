@@ -13,7 +13,6 @@ import lombok.Setter;
 @Setter
 @Builder
 public class EvidenceEventResponse {
-
     private UUID eventId;
 
     private String eventType;

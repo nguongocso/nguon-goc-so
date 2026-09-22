@@ -15,7 +15,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReceivingOrganizationTraceDto {
-
     private UUID organizationId;
 
     private String organizationName;
@@ -28,4 +27,3 @@ public class ReceivingOrganizationTraceDto {
 
     private String eventTypeName;
 }
-

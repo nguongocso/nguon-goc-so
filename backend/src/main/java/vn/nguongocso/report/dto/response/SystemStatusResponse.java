@@ -15,7 +15,6 @@ import vn.nguongocso.report.enums.OverallSystemStatus;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SystemStatusResponse {
-
     private OverallSystemStatus overallStatus;
 
     private boolean hasSufficientData;

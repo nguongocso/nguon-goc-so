@@ -16,7 +16,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class IndustryReportResponse {
-
     private String region;
 
     private LocalDate fromDate;

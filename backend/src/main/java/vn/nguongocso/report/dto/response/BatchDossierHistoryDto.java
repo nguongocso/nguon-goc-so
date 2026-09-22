@@ -16,7 +16,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class BatchDossierHistoryDto {
-
     private UUID id;
 
     private String title;

@@ -9,7 +9,6 @@ import vn.nguongocso.trace.enums.ShipmentStatus;
 @Data
 @Builder
 public class SplitPreviewResponse {
-
     private UUID shipmentId;
 
     private String shipmentName;

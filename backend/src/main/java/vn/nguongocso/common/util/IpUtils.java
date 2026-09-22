@@ -35,7 +35,6 @@ import java.util.stream.Collectors;
  * </p>
  */
 public class IpUtils {
-
     private static final Logger log = LoggerFactory.getLogger(IpUtils.class);
 
     /**

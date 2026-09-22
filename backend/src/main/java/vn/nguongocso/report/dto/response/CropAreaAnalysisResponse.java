@@ -10,7 +10,6 @@ import lombok.Getter;
 @Getter
 @Builder
 public class CropAreaAnalysisResponse {
-
     private SummaryStats summary;
 
     private List<AreaAnalysisStats> byArea;

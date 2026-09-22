@@ -8,7 +8,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CancelHandoverRequest {
-
     @NotBlank(message = "Lý do hủy không được để trống")
     private String reason;
 }

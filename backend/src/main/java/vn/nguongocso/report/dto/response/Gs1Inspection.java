@@ -22,7 +22,6 @@ import lombok.Setter;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Gs1Inspection {
-
     @JacksonXmlProperty(localName = "requestId")
     private UUID requestId;
 

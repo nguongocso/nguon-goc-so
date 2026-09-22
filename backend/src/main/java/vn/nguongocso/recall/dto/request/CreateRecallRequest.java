@@ -14,7 +14,6 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class CreateRecallRequest {
-
     @NotNull(message = "shipmentId không được để trống.")
     private UUID shipmentId;
 

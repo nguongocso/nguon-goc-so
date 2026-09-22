@@ -16,7 +16,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class BatchDossierCheckResponse {
-
     private int totalSelected;
 
     private int totalEligible;

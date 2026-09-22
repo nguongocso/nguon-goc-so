@@ -10,7 +10,6 @@ import lombok.Data;
 @Data
 @Builder
 public class CodeRangeResponse {
-
     private UUID id;
 
     private UUID organizationId;

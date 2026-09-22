@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ExportTraceCodesRequest {
-
     private String status;
 
     private String search;

@@ -34,7 +34,6 @@ import vn.nguongocso.report.enums.LotAlertType;
 @Slf4j
 @Component
 public class TerritoryAlertLotPdfGeneratorImpl implements TerritoryAlertLotPdfGenerator {
-
     private static final String EXPORT_ERROR = "Không thể xuất báo cáo PDF danh sách lô cảnh báo.";
     private static final String REGULAR_FONT = "fonts/Roboto-Regular.ttf";
     private static final String BOLD_FONT = "fonts/Roboto-Bold.ttf";

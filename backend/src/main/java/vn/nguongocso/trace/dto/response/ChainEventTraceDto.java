@@ -15,7 +15,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChainEventTraceDto {
-
     private UUID id;
 
     private ChainEventType eventType;
@@ -28,4 +27,3 @@ public class ChainEventTraceDto {
 
     private boolean isCorrection;
 }
-

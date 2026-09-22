@@ -16,7 +16,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class DossierCheckResponse {
-
     private UUID shipmentId;
 
     private boolean eligible;

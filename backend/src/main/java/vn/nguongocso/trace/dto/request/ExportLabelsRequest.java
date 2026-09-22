@@ -14,7 +14,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ExportLabelsRequest {
-
     @Min(value = 0, message = "startIndex phải >= 0")
     @Builder.Default
     private int startIndex = 0;

@@ -16,7 +16,6 @@ import vn.nguongocso.report.enums.LotAlertType;
 @AllArgsConstructor
 @Builder
 public class AlertBadgeSummary {
-
     private LotAlertType alertType;
 
     private String alertName;

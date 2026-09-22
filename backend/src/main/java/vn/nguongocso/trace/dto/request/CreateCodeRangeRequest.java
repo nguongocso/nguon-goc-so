@@ -10,7 +10,6 @@ import lombok.Data;
 /** Yêu cầu tạo mới dải mã truy xuất. */
 @Data
 public class CreateCodeRangeRequest {
-
     @NotNull(message = "ID tổ chức không được để trống")
     private UUID organizationId;
 

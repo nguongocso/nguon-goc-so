@@ -19,7 +19,6 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class OpenDataExportDto {
-
     private UUID lotId;
 
     private String lotCode;

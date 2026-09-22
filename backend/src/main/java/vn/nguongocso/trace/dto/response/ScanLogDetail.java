@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class ScanLogDetail {
-
     private LocalDateTime scannedAt;
 
     private Double latitude;
